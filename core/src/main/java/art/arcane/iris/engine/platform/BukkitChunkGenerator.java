@@ -24,6 +24,7 @@ import art.arcane.iris.core.IrisWorlds;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.service.StudioSVC;
+import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.IrisEngine;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.data.chunk.TerrainChunk;
@@ -475,6 +476,10 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     public void generateNoise(@NotNull WorldInfo world, @NotNull Random random, int x, int z, @NotNull ChunkGenerator.ChunkData d) {
         try {
             Engine engine = getEngine(world);
+            World realWorld = engine.getWorld().realWorld();
+            if (realWorld != null && IrisToolbelt.isWorldMaintenanceActive(realWorld)) {
+                return;
+            }
             computeStudioGenerator();
             TerrainChunk tc = TerrainChunk.create(d, new IrisBiomeStorage());
             this.world.bind(world);

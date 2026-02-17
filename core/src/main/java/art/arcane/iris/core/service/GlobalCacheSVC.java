@@ -52,9 +52,13 @@ public class GlobalCacheSVC implements IrisService {
     @Override
     public void onDisable() {
         disabled = true;
-        try {
-            trimmer.join();
-        } catch (InterruptedException ignored) {}
+        Looper activeTrimmer = trimmer;
+        if (activeTrimmer != null) {
+            try {
+                activeTrimmer.join();
+            } catch (InterruptedException ignored) {
+            }
+        }
         globalCache.qclear((world, cache) -> cache.write());
     }
 

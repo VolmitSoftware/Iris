@@ -114,13 +114,6 @@ public class CommandStudio implements DirectorExecutor {
             IrisDimension dimension,
             @Param(defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
             long seed) {
-        if (J.isFolia()) {
-            sender().sendMessage(C.RED + "Studio world opening is disabled on Folia.");
-            sender().sendMessage(C.YELLOW + "Folia does not currently support runtime world creation via Bukkit.createWorld().");
-            sender().sendMessage(C.YELLOW + "Use Paper/Purpur for Studio mode, or preconfigure worlds and restart.");
-            return;
-        }
-
         sender().sendMessage(C.GREEN + "Opening studio for the \"" + dimension.getName() + "\" pack (seed: " + seed + ")");
         Iris.service(StudioSVC.class).open(sender(), seed, dimension.getLoadKey());
     }

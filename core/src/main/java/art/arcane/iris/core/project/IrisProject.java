@@ -21,6 +21,7 @@ package art.arcane.iris.core.project;
 import com.google.gson.Gson;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.core.link.FoliaWorldsLink;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.loader.ResourceLoader;
@@ -58,6 +59,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 @SuppressWarnings("ALL")
@@ -225,7 +227,7 @@ public class IrisProject {
                 sender.sendMessage("Can't find dimension: " + getName());
                 return;
             } else if (sender.isPlayer()) {
-                J.s(() -> sender.player().setGameMode(GameMode.SPECTATOR));
+                J.runEntity(sender.player(), () -> sender.player().setGameMode(GameMode.SPECTATOR));
             }
 
             try {
@@ -233,7 +235,7 @@ public class IrisProject {
                         .seed(seed)
                         .sender(sender)
                         .studio(true)
-                        .name("iris/" + UUID.randomUUID())
+                        .name("iris-" + UUID.randomUUID())
                         .dimension(d.getLoadKey())
                         .create().getGenerator();
                 onDone.accept(activeProvider.getTarget().getWorld().realWorld());
@@ -241,19 +243,56 @@ public class IrisProject {
                 e.printStackTrace();
             }
 
-            openVSCode(sender);
+            if (activeProvider != null) {
+                openVSCode(sender);
+            }
         });
     }
 
     public void close() {
+        if (activeProvider == null) {
+            return;
+        }
+
         Iris.debug("Closing Active Provider");
-        IrisToolbelt.evacuate(activeProvider.getTarget().getWorld().realWorld());
-        activeProvider.close();
-        File folder = activeProvider.getTarget().getWorld().worldFolder();
-        Iris.linkMultiverseCore.removeFromConfig(activeProvider.getTarget().getWorld().name());
-        Bukkit.unloadWorld(activeProvider.getTarget().getWorld().name(), false);
+        final PlatformChunkGenerator provider = activeProvider;
+        final World studioWorld = provider.getTarget().getWorld().realWorld();
+        final File folder = provider.getTarget().getWorld().worldFolder();
+        final String worldName = provider.getTarget().getWorld().name();
+
+        final Runnable closeTask = () -> {
+            IrisToolbelt.beginWorldMaintenance(studioWorld, "studio-close", true);
+            try {
+                IrisToolbelt.evacuate(studioWorld);
+                provider.close();
+                Iris.linkMultiverseCore.removeFromConfig(worldName);
+                boolean unloaded = FoliaWorldsLink.get().unloadWorld(studioWorld, false);
+                if (!unloaded) {
+                    Iris.warn("Failed to unload studio world \"" + worldName + "\".");
+                }
+            } finally {
+                IrisToolbelt.endWorldMaintenance(studioWorld, "studio-close");
+            }
+        };
+
+        if (J.isPrimaryThread()) {
+            closeTask.run();
+        } else {
+            final CompletableFuture<Void> closeFuture = J.sfut(closeTask);
+            if (closeFuture != null) {
+                try {
+                    closeFuture.join();
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                    e.printStackTrace();
+                }
+            } else {
+                closeTask.run();
+            }
+        }
+
         J.attemptAsync(() -> IO.delete(folder));
-        Iris.debug("Closed Active Provider " + activeProvider.getTarget().getWorld().name());
+        Iris.debug("Closed Active Provider " + worldName);
         activeProvider = null;
     }
 

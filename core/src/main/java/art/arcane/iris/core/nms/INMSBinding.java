@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.nms;
 
+import art.arcane.iris.core.link.FoliaWorldsLink;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.nms.container.BiomeColor;
 import art.arcane.iris.core.nms.container.BlockProperty;
@@ -43,6 +44,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.awt.Color;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public interface INMSBinding {
     boolean hasTile(Material material);
@@ -98,6 +100,21 @@ public interface INMSBinding {
                 && missingDimensionTypes(gen.getTarget().getDimension().getDimensionTypeKey()))
             throw new IllegalStateException("Missing dimension types to create world");
         return c.createWorld();
+    }
+
+    default CompletableFuture<World> createWorldAsync(WorldCreator c) {
+        try {
+            FoliaWorldsLink link = FoliaWorldsLink.get();
+            if (link.isActive()) {
+                CompletableFuture<World> future = link.createWorld(c);
+                if (future != null) {
+                    return future;
+                }
+            }
+            return CompletableFuture.completedFuture(createWorld(c));
+        } catch (Throwable e) {
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     int countCustomBiomes();

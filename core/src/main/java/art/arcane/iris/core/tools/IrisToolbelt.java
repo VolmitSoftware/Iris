@@ -24,6 +24,7 @@ import art.arcane.iris.core.gui.PregeneratorJob;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.pregenerator.PregenTask;
 import art.arcane.iris.core.pregenerator.PregeneratorMethod;
+import art.arcane.iris.core.project.IrisProject;
 import art.arcane.iris.core.pregenerator.methods.CachedPregenMethod;
 import art.arcane.iris.core.pregenerator.methods.HybridPregenMethod;
 import art.arcane.iris.core.service.StudioSVC;
@@ -32,7 +33,9 @@ import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.util.scheduling.J;
 import art.arcane.iris.util.plugin.VolmitSender;
+import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.ApiStatus;
@@ -41,6 +44,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -178,26 +182,29 @@ public class IrisToolbelt {
      * @return the IrisAccess or null if it's not an Iris World
      */
     public static PlatformChunkGenerator access(World world) {
+        if (world == null) {
+            return null;
+        }
+
         if (isIrisWorld(world)) {
             return ((PlatformChunkGenerator) world.getGenerator());
-        } /*else {
-            Iris.warn("""
-                    "---------- No World? ---------------
-                    ⠀⣞⢽⢪⢣⢣⢣⢫⡺⡵⣝⡮⣗⢷⢽⢽⢽⣮⡷⡽⣜⣜⢮⢺⣜⢷⢽⢝⡽⣝
-                    ⠸⡸⠜⠕⠕⠁⢁⢇⢏⢽⢺⣪⡳⡝⣎⣏⢯⢞⡿⣟⣷⣳⢯⡷⣽⢽⢯⣳⣫⠇
-                    ⠀⠀⢀⢀⢄⢬⢪⡪⡎⣆⡈⠚⠜⠕⠇⠗⠝⢕⢯⢫⣞⣯⣿⣻⡽⣏⢗⣗⠏⠀
-                    ⠀⠪⡪⡪⣪⢪⢺⢸⢢⢓⢆⢤⢀⠀⠀⠀⠀⠈⢊⢞⡾⣿⡯⣏⢮⠷⠁⠀⠀
-                    ⠀⠀⠀⠈⠊⠆⡃⠕⢕⢇⢇⢇⢇⢇⢏⢎⢎⢆⢄⠀⢑⣽⣿⢝⠲⠉⠀⠀⠀⠀
-                    ⠀⠀⠀⠀⠀⡿⠂⠠⠀⡇⢇⠕⢈⣀⠀⠁⠡⠣⡣⡫⣂⣿⠯⢪⠰⠂⠀⠀⠀⠀
-                    ⠀⠀⠀⠀⡦⡙⡂⢀⢤⢣⠣⡈⣾⡃⠠⠄⠀⡄⢱⣌⣶⢏⢊⠂⠀⠀⠀⠀⠀⠀
-                    ⠀⠀⠀⠀⢝⡲⣜⡮⡏⢎⢌⢂⠙⠢⠐⢀⢘⢵⣽⣿⡿⠁⠁⠀⠀⠀⠀⠀⠀⠀
-                    ⠀⠀⠀⠀⠨⣺⡺⡕⡕⡱⡑⡆⡕⡅⡕⡜⡼⢽⡻⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-                    ⠀⠀⠀⠀⣼⣳⣫⣾⣵⣗⡵⡱⡡⢣⢑⢕⢜⢕⡝⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-                    ⠀⠀⠀⣴⣿⣾⣿⣿⣿⡿⡽⡑⢌⠪⡢⡣⣣⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-                    ⠀⠀⠀⡟⡾⣿⢿⢿⢵⣽⣾⣼⣘⢸⢸⣞⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-                    ⠀⠀⠀⠀⠁⠇⠡⠩⡫⢿⣝⡻⡮⣒⢽⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-                    """);
-        }*/
+        }
+
+        StudioSVC studioService = Iris.service(StudioSVC.class);
+        if (studioService != null && studioService.isProjectOpen()) {
+            IrisProject activeProject = studioService.getActiveProject();
+            if (activeProject != null) {
+                PlatformChunkGenerator activeProvider = activeProject.getActiveProvider();
+                if (activeProvider != null) {
+                    World activeWorld = activeProvider.getTarget().getWorld().realWorld();
+                    if (activeWorld != null && activeWorld.getName().equals(world.getName())) {
+                        activeProvider.touch(world);
+                        return activeProvider;
+                    }
+                }
+            }
+        }
+
         return null;
     }
 
@@ -264,7 +271,19 @@ public class IrisToolbelt {
             if (!i.getName().equals(world.getName())) {
                 for (Player j : world.getPlayers()) {
                     new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world.");
-                    j.teleport(i.getSpawnLocation());
+                    Location target = i.getSpawnLocation();
+                    Runnable teleportTask = () -> {
+                        CompletableFuture<Boolean> teleportFuture = PaperLib.teleportAsync(j, target);
+                        if (teleportFuture != null) {
+                            teleportFuture.exceptionally(throwable -> {
+                                Iris.reportError(throwable);
+                                return false;
+                            });
+                        }
+                    };
+                    if (!J.runEntity(j, teleportTask)) {
+                        teleportTask.run();
+                    }
                 }
 
                 return true;
@@ -286,7 +305,19 @@ public class IrisToolbelt {
             if (!i.getName().equals(world.getName())) {
                 for (Player j : world.getPlayers()) {
                     new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world. " + m);
-                    j.teleport(i.getSpawnLocation());
+                    Location target = i.getSpawnLocation();
+                    Runnable teleportTask = () -> {
+                        CompletableFuture<Boolean> teleportFuture = PaperLib.teleportAsync(j, target);
+                        if (teleportFuture != null) {
+                            teleportFuture.exceptionally(throwable -> {
+                                Iris.reportError(throwable);
+                                return false;
+                            });
+                        }
+                    };
+                    if (!J.runEntity(j, teleportTask)) {
+                        teleportTask.run();
+                    }
                 }
                 return true;
             }

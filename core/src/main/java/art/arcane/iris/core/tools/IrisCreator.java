@@ -22,27 +22,34 @@ import com.google.common.util.concurrent.AtomicDouble;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.ServerConfigurator;
+import art.arcane.iris.core.link.FoliaWorldsLink;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.pregenerator.PregenTask;
+import art.arcane.iris.core.service.BoardSVC;
 import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.volmlib.util.exceptions.IrisException;
 import art.arcane.iris.util.format.C;
 import art.arcane.volmlib.util.format.Form;
+import art.arcane.volmlib.util.io.IO;
 import art.arcane.iris.util.plugin.VolmitSender;
 import art.arcane.iris.util.scheduling.J;
 import art.arcane.volmlib.util.scheduling.O;
+import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.function.IntSupplier;
 
 import static art.arcane.iris.util.misc.ServerProperties.BUKKIT_YML;
@@ -114,8 +121,13 @@ public class IrisCreator {
             throw new IrisException("You cannot invoke create() on the main thread.");
         }
 
-        if (J.isFolia()) {
-            throw new IrisException("Folia does not support runtime world creation via Bukkit.createWorld(). Configure worlds before startup and restart the server.");
+        if (studio()) {
+            World existing = Bukkit.getWorld(name());
+            if (existing == null) {
+                IO.delete(new File(Bukkit.getWorldContainer(), name()));
+                IO.delete(new File(Bukkit.getWorldContainer(), name() + "_nether"));
+                IO.delete(new File(Bukkit.getWorldContainer(), name() + "_the_end"));
+            }
         }
 
         IrisDimension d = IrisToolbelt.getDimension(dimension());
@@ -172,11 +184,16 @@ public class IrisCreator {
 
         World world;
         try {
-            world = J.sfut(() -> INMS.get().createWorld(wc)).get();
+            world = J.sfut(() -> INMS.get().createWorldAsync(wc))
+                    .thenCompose(Function.identity())
+                    .get();
         } catch (Throwable e) {
             done.set(true);
-            if (containsCreateWorldUnsupportedOperation(e)) {
-                throw new IrisException("Runtime world creation is not supported on this server variant. Configure worlds before startup and restart the server.", e);
+            if (J.isFolia() && containsCreateWorldUnsupportedOperation(e)) {
+                if (FoliaWorldsLink.get().isActive()) {
+                    throw new IrisException("Runtime world creation is blocked and async Folia runtime world-loader creation also failed.", e);
+                }
+                throw new IrisException("Runtime world creation is blocked and no async Folia runtime world-loader path is active.", e);
             }
             throw new IrisException("Failed to create world!", e);
         }
@@ -184,11 +201,33 @@ public class IrisCreator {
         done.set(true);
 
         if (sender.isPlayer() && !benchmark) {
-            J.s(() -> sender.player().teleport(new Location(world, 0, world.getHighestBlockYAt(0, 0) + 1, 0)));
+            Player senderPlayer = sender.player();
+            if (senderPlayer == null) {
+                Iris.warn("Studio opened, but sender player reference is unavailable for teleport.");
+            } else {
+                Location studioEntryLocation = resolveStudioEntryLocation(world);
+                if (studioEntryLocation == null) {
+                    sender.sendMessage(C.YELLOW + "Studio opened, but entry location could not be resolved safely.");
+                } else {
+                    CompletableFuture<Boolean> teleportFuture = PaperLib.teleportAsync(senderPlayer, studioEntryLocation);
+                    if (teleportFuture != null) {
+                        teleportFuture.thenAccept(success -> {
+                            if (Boolean.TRUE.equals(success)) {
+                                J.runEntity(senderPlayer, () -> Iris.service(BoardSVC.class).updatePlayer(senderPlayer));
+                            }
+                        });
+                        teleportFuture.exceptionally(throwable -> {
+                            Iris.warn("Failed to schedule studio teleport task for " + senderPlayer.getName() + ".");
+                            Iris.reportError(throwable);
+                            return false;
+                        });
+                    }
+                }
+            }
         }
 
         if (studio || benchmark) {
-            J.s(() -> {
+            Runnable applyStudioWorldSettings = () -> {
                 Iris.linkMultiverseCore.removeFromConfig(world);
 
                 if (IrisSettings.get().getStudio().isDisableTimeAndWeather()) {
@@ -196,7 +235,9 @@ public class IrisCreator {
                     world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
                     world.setTime(6000);
                 }
-            });
+            };
+
+            J.s(applyStudioWorldSettings);
         } else {
             addToBukkitYml();
             J.s(() -> Iris.linkMultiverseCore.updateWorld(world, dimension));
@@ -231,6 +272,32 @@ public class IrisCreator {
             }
         }
         return world;
+    }
+
+    private Location resolveStudioEntryLocation(World world) {
+        CompletableFuture<Location> locationFuture = J.sfut(() -> {
+            Location spawnLocation = world.getSpawnLocation();
+            if (spawnLocation != null) {
+                return spawnLocation;
+            }
+
+            int x = 0;
+            int z = 0;
+            int y = Math.max(world.getMinHeight() + 1, 96);
+            return new Location(world, x + 0.5D, y, z + 0.5D);
+        });
+        if (locationFuture == null) {
+            Iris.warn("Failed to schedule studio entry-location resolve task on the global scheduler for world \"" + world.getName() + "\".");
+            return null;
+        }
+
+        try {
+            return locationFuture.get(15, TimeUnit.SECONDS);
+        } catch (Throwable e) {
+            Iris.warn("Failed to resolve studio entry location for world \"" + world.getName() + "\".");
+            Iris.reportError(e);
+            return null;
+        }
     }
 
     private static boolean containsCreateWorldUnsupportedOperation(Throwable throwable) {

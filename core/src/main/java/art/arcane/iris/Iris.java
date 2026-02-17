@@ -78,6 +78,7 @@ import java.io.*;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -96,6 +97,8 @@ public class Iris extends VolmitPlugin implements Listener {
     private static Thread shutdownHook;
     private static File settingsFile;
     private static final String PENDING_WORLD_DELETE_FILE = "pending-world-deletes.txt";
+    private static final Map<String, ChunkGenerator> stagedRuntimeGenerators = new ConcurrentHashMap<>();
+    private static final Map<String, BiomeProvider> stagedRuntimeBiomeProviders = new ConcurrentHashMap<>();
 
     static {
         try {
@@ -116,6 +119,30 @@ public class Iris extends VolmitPlugin implements Listener {
             sender.setTag(instance.getTag());
         }
         return sender;
+    }
+
+    public static void stageRuntimeWorldGenerator(@NotNull String worldName, @NotNull ChunkGenerator generator, @Nullable BiomeProvider biomeProvider) {
+        stagedRuntimeGenerators.put(worldName, generator);
+        if (biomeProvider != null) {
+            stagedRuntimeBiomeProviders.put(worldName, biomeProvider);
+        } else {
+            stagedRuntimeBiomeProviders.remove(worldName);
+        }
+    }
+
+    @Nullable
+    private static ChunkGenerator consumeRuntimeWorldGenerator(@NotNull String worldName) {
+        return stagedRuntimeGenerators.remove(worldName);
+    }
+
+    @Nullable
+    private static BiomeProvider consumeRuntimeBiomeProvider(@NotNull String worldName) {
+        return stagedRuntimeBiomeProviders.remove(worldName);
+    }
+
+    public static void clearStagedRuntimeWorldGenerator(@NotNull String worldName) {
+        stagedRuntimeGenerators.remove(worldName);
+        stagedRuntimeBiomeProviders.remove(worldName);
     }
 
     @SuppressWarnings("unchecked")
@@ -264,11 +291,11 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public static void warn(String format, Object... objs) {
-        msg(C.YELLOW + String.format(format, objs));
+        msg(C.YELLOW + safeFormat(format, objs));
     }
 
     public static void error(String format, Object... objs) {
-        msg(C.RED + String.format(format, objs));
+        msg(C.RED + safeFormat(format, objs));
     }
 
     public static void debug(String string) {
@@ -314,7 +341,23 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public static void info(String format, Object... args) {
-        msg(C.WHITE + String.format(format, args));
+        msg(C.WHITE + safeFormat(format, args));
+    }
+
+    private static String safeFormat(String format, Object... args) {
+        if (format == null) {
+            return "null";
+        }
+
+        if (args == null || args.length == 0) {
+            return format;
+        }
+
+        try {
+            return String.format(format, args);
+        } catch (IllegalFormatException ignored) {
+            return format;
+        }
     }
 
     @SuppressWarnings("deprecation")
@@ -725,10 +768,15 @@ public class Iris extends VolmitPlugin implements Listener {
                 Player r = new KList<>(getServer().getOnlinePlayers()).getRandom();
                 Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r) : getSender(), 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
                     J.s(() -> {
-                        var spawn = w.getSpawnLocation();
+                        final Location spawn = w.getSpawnLocation();
                         for (Player i : getServer().getOnlinePlayers()) {
-                            i.setGameMode(GameMode.SPECTATOR);
-                            i.teleport(spawn);
+                            final Runnable playerTask = () -> {
+                                i.setGameMode(GameMode.SPECTATOR);
+                                i.teleport(spawn);
+                            };
+                            if (!J.runEntity(i, playerTask)) {
+                                playerTask.run();
+                            }
                         }
                     });
                 });
@@ -887,12 +935,22 @@ public class Iris extends VolmitPlugin implements Listener {
     @Nullable
     @Override
     public BiomeProvider getDefaultBiomeProvider(@NotNull String worldName, @Nullable String id) {
+        BiomeProvider stagedBiomeProvider = consumeRuntimeBiomeProvider(worldName);
+        if (stagedBiomeProvider != null) {
+            Iris.debug("Using staged runtime biome provider for " + worldName);
+            return stagedBiomeProvider;
+        }
         Iris.debug("Biome Provider Called for " + worldName + " using ID: " + id);
         return super.getDefaultBiomeProvider(worldName, id);
     }
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
+        ChunkGenerator stagedGenerator = consumeRuntimeWorldGenerator(worldName);
+        if (stagedGenerator != null) {
+            Iris.debug("Using staged runtime generator for " + worldName);
+            return stagedGenerator;
+        }
         Iris.debug("Default World Generator Called for " + worldName + " using ID: " + id);
         if (id == null || id.isEmpty()) id = IrisSettings.get().getGenerator().getDefaultWorldType();
         Iris.debug("Generator ID: " + id + " requested by bukkit/plugin");

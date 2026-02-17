@@ -29,24 +29,25 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.util.decree.DecreeContext;
+import art.arcane.iris.util.director.DirectorContext;
 import art.arcane.volmlib.util.director.DirectorParameterHandler;
-import art.arcane.iris.util.decree.DecreeExecutor;
+import art.arcane.iris.util.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
-import art.arcane.iris.util.decree.specialhandlers.NullablePlayerHandler;
+import art.arcane.iris.util.director.specialhandlers.NullablePlayerHandler;
 import art.arcane.iris.util.format.C;
 import art.arcane.volmlib.util.io.IO;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.math.Position2;
 import art.arcane.iris.util.parallel.SyncExecutor;
 import art.arcane.iris.util.misc.ServerProperties;
 import art.arcane.iris.util.misc.RegenRuntime;
-import art.arcane.iris.util.mantle.MantleChunk;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.iris.util.matter.TileWrapper;
 import art.arcane.iris.util.plugin.VolmitSender;
 import art.arcane.iris.util.scheduling.J;
+import art.arcane.volmlib.util.matter.Matter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -89,7 +90,7 @@ import static art.arcane.iris.util.misc.ServerProperties.BUKKIT_YML;
 import static org.bukkit.Bukkit.getServer;
 
 @Director(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
-public class CommandIris implements DecreeExecutor {
+public class CommandIris implements DirectorExecutor {
     private static final long REGEN_HEARTBEAT_MS = 5000L;
     private static final int REGEN_MAX_ATTEMPTS = 2;
     private static final int REGEN_STACK_LIMIT = 20;
@@ -777,7 +778,7 @@ public class CommandIris implements DecreeExecutor {
         try {
             setRegenSetupPhase(setupPhase, setupPhaseSince, "touch-context", world, runId);
             updateRegenSetupDisplay(display, mode, "Touching command context", 1, 6);
-            DecreeContext.touch(sender);
+            DirectorContext.touch(sender);
             if (mode.usesMaintenance()) {
                 setRegenSetupPhase(setupPhase, setupPhaseSince, "enter-maintenance", world, runId);
                 updateRegenSetupDisplay(display, mode, "Entering maintenance", 2, 6);
@@ -886,7 +887,7 @@ public class CommandIris implements DecreeExecutor {
             if (!displayTerminal) {
                 closeRegenDisplay(display, REGEN_DISPLAY_FINAL_TICKS);
             }
-            DecreeContext.remove();
+            DirectorContext.remove();
             Iris.info("Regen run closed: id=" + runId + " world=" + world.getName() + " totalMs=" + (System.currentTimeMillis() - runStart));
         }
     }
@@ -1179,7 +1180,7 @@ public class CommandIris implements DecreeExecutor {
         double overallProgress = ((safePassIndex - 1) + passProgress) / safePassCount;
         int percent = (int) Math.round(overallProgress * 100.0D);
         String bar = buildRegenProgressBar(overallProgress);
-        String statusColor = failed ? C.RED : terminal ? C.GREEN : stalled ? C.RED : C.AQUA;
+        C statusColor = failed ? C.RED : terminal ? C.GREEN : stalled ? C.RED : C.AQUA;
         String statusLabel = failed ? "FAILED" : terminal ? "DONE" : stalled ? "STALLED" : "RUN";
         BarColor bossColor = failed ? BarColor.RED : terminal ? BarColor.GREEN : stalled ? BarColor.RED : BarColor.BLUE;
         String title = C.GOLD + "Regen " + mode.id()
@@ -1202,7 +1203,8 @@ public class CommandIris implements DecreeExecutor {
         }
 
         if (sender.isPlayer()) {
-            J.runEntity(sender.player(), () -> sender.sendAction(action));
+            String actionText = action;
+            J.runEntity(sender.player(), () -> sender.sendAction(actionText));
         }
         return now;
     }
@@ -1464,7 +1466,7 @@ public class CommandIris implements DecreeExecutor {
     }
 
     private RegenMantleChunkState inspectRegenMantleChunk(PlatformChunkGenerator platform, int chunkX, int chunkZ) {
-        MantleChunk chunk = platform.getEngine().getMantle().getMantle().getChunk(chunkX, chunkZ).use();
+        MantleChunk<Matter> chunk = platform.getEngine().getMantle().getMantle().getChunk(chunkX, chunkZ).use();
         try {
             AtomicInteger blockDataEntries = new AtomicInteger();
             AtomicInteger stringEntries = new AtomicInteger();
@@ -1528,7 +1530,7 @@ public class CommandIris implements DecreeExecutor {
             boolean scheduled = J.runRegion(world, chunkX, chunkZ, () -> {
                 try {
                     Chunk chunk = world.getChunkAt(chunkX, chunkZ);
-                    MantleChunk mantleChunk = platform.getEngine().getMantle().getMantle().getChunk(chunkX, chunkZ).use();
+                    MantleChunk<Matter> mantleChunk = platform.getEngine().getMantle().getMantle().getChunk(chunkX, chunkZ).use();
                     try {
                         mantleChunk.iterate(String.class, (x, y, z, value) -> {
                             if (value != null && !value.isEmpty() && value.indexOf('@') > 0) {
@@ -1705,7 +1707,7 @@ public class CommandIris implements DecreeExecutor {
         long total = (long) (toX - fromX + 1) * (long) (toZ - fromZ + 1);
         long started = System.currentTimeMillis();
         int resetCount = 0;
-        art.arcane.iris.util.mantle.Mantle mantle = platform.getEngine().getMantle().getMantle();
+        art.arcane.volmlib.util.mantle.runtime.Mantle mantle = platform.getEngine().getMantle().getMantle();
         AtomicReference<Thread> deleteThread = new AtomicReference<>();
         ThreadFactory deleteFactory = runnable -> {
             Thread thread = new Thread(runnable, "Iris-Regen-Reset-" + runId);

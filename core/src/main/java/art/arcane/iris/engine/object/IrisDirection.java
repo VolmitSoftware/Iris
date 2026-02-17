@@ -24,7 +24,7 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.data.Cuboid.CuboidDirection;
 import art.arcane.volmlib.util.math.DOP;
-import art.arcane.iris.util.math.VectorMath;
+import art.arcane.volmlib.util.math.VectorMath;
 import org.bukkit.Axis;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.type.Jigsaw;

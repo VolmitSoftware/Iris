@@ -21,7 +21,6 @@ package art.arcane.iris.util.noise;
 import art.arcane.volmlib.util.math.Vector2f;
 import art.arcane.volmlib.util.math.Vector3f;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 public class FastNoise {
     private static final Float2[] GRAD_2D = {new Float2(-1, -1), new Float2(1, -1), new Float2(-1, 1), new Float2(1, 1), new Float2(0, -1), new Float2(-1, 0), new Float2(0, 1), new Float2(1, 0),
     };

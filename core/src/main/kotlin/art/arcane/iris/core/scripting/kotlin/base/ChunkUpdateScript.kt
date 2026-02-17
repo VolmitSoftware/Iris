@@ -1,7 +1,7 @@
 package art.arcane.iris.core.scripting.kotlin.base
 
 import art.arcane.iris.core.scripting.func.UpdateExecutor
-import art.arcane.iris.util.mantle.MantleChunk
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk
 import org.bukkit.Chunk
 import kotlin.script.experimental.annotations.KotlinScript
 import kotlin.script.experimental.api.ScriptCompilationConfiguration

@@ -47,8 +47,8 @@ import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.matter.MatterStructurePOI;
-import art.arcane.iris.util.matter.slices.container.JigsawStructureContainer;
+import art.arcane.volmlib.util.matter.MatterStructurePOI;
+import art.arcane.volmlib.util.matter.slices.container.JigsawStructureContainer;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.iris.util.scheduling.J;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
@@ -236,7 +236,7 @@ public class IrisEngine implements Engine {
     @Override
     public IrisJigsawStructure getStructureAt(int x, int y, int z) {
         var container = getMantle().getMantle().get(x, y, z, JigsawStructureContainer.class);
-        return container == null ? null : container.load(getData());
+        return container == null ? null : getData().getJigsawStructureLoader().load(container.getLoadKey());
     }
 
     private void warmupChunk(int x, int z) {

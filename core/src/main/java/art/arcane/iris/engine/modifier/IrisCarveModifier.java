@@ -30,12 +30,13 @@ import art.arcane.iris.util.data.B;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.function.Consumer4;
 import art.arcane.iris.util.hunk.Hunk;
-import art.arcane.iris.util.mantle.Mantle;
-import art.arcane.iris.util.mantle.MantleChunk;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
-import art.arcane.iris.util.matter.slices.MarkerMatter;
+import art.arcane.volmlib.util.matter.slices.MarkerMatter;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import org.bukkit.Material;
@@ -57,8 +58,8 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     @ChunkCoordinates
     public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        Mantle mantle = getEngine().getMantle().getMantle();
-        MantleChunk mc = mantle.getChunk(x, z).use();
+        Mantle<Matter> mantle = getEngine().getMantle().getMantle();
+        MantleChunk<Matter> mc = mantle.getChunk(x, z).use();
         KMap<Long, KList<Integer>> positions = new KMap<>();
         KMap<IrisPosition, MatterCavern> walls = new KMap<>();
         Consumer4<Integer, Integer, Integer, MatterCavern> iterator = (xx, yy, zz, c) -> {
@@ -170,7 +171,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         mc.release();
     }
 
-    private void processZone(Hunk<BlockData> output, MantleChunk mc, Mantle mantle, CaveZone zone, int rx, int rz, int xx, int zz) {
+    private void processZone(Hunk<BlockData> output, MantleChunk<Matter> mc, Mantle<Matter> mantle, CaveZone zone, int rx, int rz, int xx, int zz) {
         boolean decFloor = B.isSolid(output.getClosest(rx, zone.floor - 1, rz));
         boolean decCeiling = B.isSolid(output.getClosest(rx, zone.ceiling + 1, rz));
         int center = (zone.floor + zone.ceiling) / 2;

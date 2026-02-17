@@ -25,7 +25,7 @@ import art.arcane.iris.util.context.ChunkContext;
 import art.arcane.iris.util.data.B;
 import art.arcane.volmlib.util.data.HeightMap;
 import art.arcane.iris.util.hunk.Hunk;
-import art.arcane.iris.util.mantle.MantleChunk;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.iris.util.parallel.BurstExecutor;

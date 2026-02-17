@@ -37,7 +37,7 @@ import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.matter.MatterStructurePOI;
+import art.arcane.volmlib.util.matter.MatterStructurePOI;
 import art.arcane.iris.util.noise.CNG;
 import art.arcane.iris.util.noise.NoiseType;
 import art.arcane.iris.util.parallel.BurstExecutor;

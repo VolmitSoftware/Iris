@@ -36,7 +36,7 @@ import art.arcane.iris.util.data.DataProvider;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.util.noise.CNG;
 import art.arcane.iris.util.plugin.VolmitSender;

@@ -19,9 +19,9 @@
 package art.arcane.iris.util.noise;
 
 import art.arcane.volmlib.util.hunk.bits.Writable;
-import art.arcane.iris.util.matter.IrisMatter;
-import art.arcane.iris.util.matter.Matter;
-import art.arcane.iris.util.matter.MatterSlice;
+import art.arcane.volmlib.util.matter.IrisMatter;
+import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.MatterSlice;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

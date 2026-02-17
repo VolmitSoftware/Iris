@@ -31,9 +31,9 @@ import art.arcane.iris.util.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.matter.slices.container.JigsawStructuresContainer;
+import art.arcane.volmlib.util.matter.slices.container.JigsawStructuresContainer;
 import art.arcane.iris.util.noise.CNG;
 import org.jetbrains.annotations.Nullable;
 
@@ -68,7 +68,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
                 for (Position2 pos : poss) {
                     if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
                         IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getDimension().getStronghold());
-                        place(writer, pos.toIris(), structure, new RNG(seed), true);
+                        place(writer, new IrisPosition(pos.getX(), 23, pos.getZ()), structure, new RNG(seed), true);
                         return;
                     }
                 }
@@ -113,7 +113,8 @@ public class MantleJigsawComponent extends IrisMantleComponent {
                 JigsawStructuresContainer container = getMantle().get(pos.getX(), 0, pos.getZ(), JigsawStructuresContainer.class);
                 if (container == null) continue;
                 for (String key : container.getStructures()) {
-                    cache.computeIfAbsent(key, k -> new KSet<>()).addAll(container.getPositions(key));
+                    KSet<Position2> positions = cache.computeIfAbsent(key, k -> new KSet<>());
+                    container.getPositions(key).forEach(p -> positions.add(new Position2(p.getX(), p.getZ())));
                 }
             }
         }

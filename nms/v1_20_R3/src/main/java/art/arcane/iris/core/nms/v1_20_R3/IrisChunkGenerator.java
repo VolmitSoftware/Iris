@@ -13,7 +13,7 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.math.Position2;
 import art.arcane.iris.util.reflect.WrappedField;
 import art.arcane.iris.util.reflect.WrappedReturningMethod;
 import net.minecraft.CrashReport;

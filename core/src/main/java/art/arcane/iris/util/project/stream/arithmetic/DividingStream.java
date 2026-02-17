@@ -22,7 +22,6 @@ import art.arcane.volmlib.util.function.Function2;
 import art.arcane.volmlib.util.function.Function3;
 import art.arcane.iris.util.stream.BasicStream;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 public class DividingStream<T> extends BasicStream<T> implements ProceduralStream<T> {
     private final Function3<Double, Double, Double, Double> add;
 

@@ -19,7 +19,6 @@
 package art.arcane.iris.util.stream;
 
 import art.arcane.volmlib.util.stream.BasicLayer;
-
 public abstract class BasicStream<T> extends BasicLayer implements ProceduralStream<T> {
     private final ProceduralStream<T> source;
 

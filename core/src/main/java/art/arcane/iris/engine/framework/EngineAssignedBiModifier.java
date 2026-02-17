@@ -20,7 +20,6 @@ package art.arcane.iris.engine.framework;
 
 
 import art.arcane.iris.util.hunk.Hunk;
-
 public abstract class EngineAssignedBiModifier<A, B> extends EngineAssignedComponent implements EngineBiModifier<A, B> {
     public EngineAssignedBiModifier(Engine engine, String name) {
         super(engine, name);

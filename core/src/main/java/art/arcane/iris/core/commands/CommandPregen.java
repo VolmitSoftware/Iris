@@ -22,16 +22,16 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.core.gui.PregeneratorJob;
 import art.arcane.iris.core.pregenerator.PregenTask;
 import art.arcane.iris.core.tools.IrisToolbelt;
-import art.arcane.iris.util.decree.DecreeExecutor;
+import art.arcane.iris.util.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.format.C;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.math.Position2;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
 
 @Director(name = "pregen", aliases = "pregenerate", description = "Pregenerate your Iris worlds!")
-public class CommandPregen implements DecreeExecutor {
+public class CommandPregen implements DirectorExecutor {
     @Director(description = "Pregenerate a world")
     public void start(
             @Param(description = "The radius of the pregen in blocks", aliases = "size")

@@ -6,9 +6,10 @@ import art.arcane.iris.core.nms.container.Pair
 import art.arcane.iris.engine.framework.Engine
 import art.arcane.iris.util.context.ChunkContext
 import art.arcane.iris.util.misc.RegenRuntime
+import art.arcane.volmlib.util.matter.Matter
 import art.arcane.iris.util.matter.TileWrapper
 import art.arcane.volmlib.util.documentation.ChunkCoordinates
-import art.arcane.iris.util.mantle.Mantle
+import art.arcane.volmlib.util.mantle.runtime.Mantle
 import art.arcane.volmlib.util.mantle.flag.MantleFlag
 import art.arcane.iris.util.parallel.MultiBurst
 import kotlinx.coroutines.CoroutineScope
@@ -21,7 +22,7 @@ import kotlin.math.min
 
 interface MatterGenerator {
     val engine: Engine
-    val mantle: Mantle
+    val mantle: Mantle<Matter>
     val radius: Int
     val realRadius: Int
     val components: List<Pair<List<MantleComponent>, Int>>
@@ -48,7 +49,7 @@ interface MatterGenerator {
             Iris.info("Regen matter start: center=$x,$z radius=$radius realRadius=$realRadius writeRadius=$writeRadius multicore=$multicore components=${components.size} optimized=$optimizedRegen passKey=${regenPassKey ?: "none"} thread=$threadName")
         }
 
-        mantle.write(engine.mantle, x, z, writeRadius, multicore).use { writer ->
+        MantleWriter(engine.mantle, mantle, x, z, writeRadius, multicore).use { writer ->
             for (pair in components) {
                 val rawPassRadius = pair.b
                 val passRadius = if (optimizedRegen) min(rawPassRadius, writeRadius) else rawPassRadius

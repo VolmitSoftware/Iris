@@ -5,7 +5,8 @@ import art.arcane.iris.core.pregenerator.PregenListener;
 import art.arcane.iris.core.pregenerator.PregeneratorMethod;
 import art.arcane.iris.core.pregenerator.cache.PregenCache;
 import art.arcane.iris.core.service.GlobalCacheSVC;
-import art.arcane.iris.util.mantle.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.matter.Matter;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor

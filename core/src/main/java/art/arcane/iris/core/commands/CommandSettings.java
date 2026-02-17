@@ -18,8 +18,8 @@
 
 package art.arcane.iris.core.commands;
 
-import art.arcane.iris.util.decree.DecreeExecutor;
+import art.arcane.iris.util.director.DirectorExecutor;
 
-public class CommandSettings implements DecreeExecutor {
+public class CommandSettings implements DirectorExecutor {
 
 }

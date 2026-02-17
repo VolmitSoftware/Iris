@@ -26,9 +26,10 @@ import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.iris.util.format.C;
 import art.arcane.iris.util.hunk.Hunk;
 import art.arcane.volmlib.util.json.JSONObject;
-import art.arcane.iris.util.mantle.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.math.Vector3d;
-import art.arcane.iris.util.matter.MatterBiomeInject;
+import art.arcane.volmlib.util.matter.MatterBiomeInject;
 import art.arcane.iris.util.nbt.mca.NBTWorld;
 import art.arcane.volmlib.util.nbt.mca.palette.*;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
@@ -527,7 +528,7 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
-    public void injectBiomesFromMantle(Chunk e, Mantle mantle) {
+    public void injectBiomesFromMantle(Chunk e, Mantle<Matter> mantle) {
         ChunkAccess chunk = ((CraftChunk) e).getHandle(ChunkStatus.FULL);
         AtomicInteger c = new AtomicInteger();
         AtomicInteger r = new AtomicInteger();

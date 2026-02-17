@@ -21,7 +21,6 @@ package art.arcane.iris.engine.framework;
 import art.arcane.iris.util.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.iris.util.hunk.Hunk;
-
 public interface EngineActuator<O> extends EngineComponent {
     @BlockCoordinates
     void actuate(int x, int z, Hunk<O> output, boolean multicore, ChunkContext context);

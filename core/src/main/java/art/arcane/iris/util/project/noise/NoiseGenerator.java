@@ -20,7 +20,6 @@ package art.arcane.iris.util.noise;
 
 import art.arcane.iris.util.stream.ProceduralStream;
 import art.arcane.iris.util.stream.interpolation.Interpolated;
-
 public interface NoiseGenerator {
     double noise(double x);
 

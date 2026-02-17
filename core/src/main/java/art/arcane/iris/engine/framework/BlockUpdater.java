@@ -18,8 +18,9 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.util.mantle.MantleChunk;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.matter.Matter;
 import org.bukkit.Chunk;
 import org.bukkit.block.data.BlockData;
 
@@ -29,5 +30,5 @@ public interface BlockUpdater {
 
     void updateChunk(Chunk c);
 
-    void update(int x, int y, int z, Chunk c, MantleChunk mc, RNG rf);
+    void update(int x, int y, int z, Chunk c, MantleChunk<Matter> mc, RNG rf);
 }

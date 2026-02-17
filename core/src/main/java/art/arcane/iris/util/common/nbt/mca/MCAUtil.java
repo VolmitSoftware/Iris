@@ -21,7 +21,7 @@ package art.arcane.iris.util.nbt.mca;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.nbt.mca.LoadFlags;
 import art.arcane.volmlib.util.nbt.mca.MCAUtilSupport;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.math.Position2;
 
 import java.io.File;
 import java.io.IOException;

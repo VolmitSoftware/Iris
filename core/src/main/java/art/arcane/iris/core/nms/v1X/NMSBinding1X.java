@@ -29,7 +29,8 @@ import art.arcane.iris.core.nms.container.StructurePlacement;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.iris.util.mantle.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.math.Vector3d;
 import art.arcane.volmlib.util.nbt.mca.palette.MCABiomeContainer;
 import art.arcane.volmlib.util.nbt.mca.palette.MCAPaletteAccess;
@@ -87,7 +88,7 @@ public class NMSBinding1X implements INMSBinding {
 
 
     @Override
-    public void injectBiomesFromMantle(Chunk e, Mantle mantle) {
+    public void injectBiomesFromMantle(Chunk e, Mantle<Matter> mantle) {
 
     }
 

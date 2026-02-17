@@ -27,7 +27,8 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.iris.util.mantle.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.math.Vector3d;
 import art.arcane.volmlib.util.nbt.mca.palette.MCABiomeContainer;
 import art.arcane.volmlib.util.nbt.mca.palette.MCAPaletteAccess;
@@ -109,7 +110,7 @@ public interface INMSBinding {
 
     MCAPaletteAccess createPalette();
 
-    void injectBiomesFromMantle(Chunk e, Mantle mantle);
+    void injectBiomesFromMantle(Chunk e, Mantle<Matter> mantle);
 
     ItemStack applyCustomNbt(ItemStack itemStack, KMap<String, Object> customNbt) throws IllegalArgumentException;
 

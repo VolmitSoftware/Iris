@@ -24,7 +24,7 @@ import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.engine.object.annotations.*;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterCavern;
-import art.arcane.iris.util.matter.slices.CavernMatter;
+import art.arcane.volmlib.util.matter.slices.CavernMatter;
 import lombok.Data;
 
 @Snippet("carving-elipsoid")

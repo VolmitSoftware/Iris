@@ -20,7 +20,6 @@ package art.arcane.iris.util.stream.arithmetic;
 
 import art.arcane.iris.util.stream.BasicStream;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 public class SlopeStream<T> extends BasicStream<T> {
     private final int range;
 

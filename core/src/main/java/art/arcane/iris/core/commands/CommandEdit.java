@@ -21,7 +21,7 @@ package art.arcane.iris.core.commands;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.engine.object.*;
-import art.arcane.iris.util.decree.DecreeExecutor;
+import art.arcane.iris.util.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
@@ -31,7 +31,7 @@ import java.awt.*;
 
 
 @Director(name = "edit", origin = DirectorOrigin.PLAYER, studio = true, description = "Edit something")
-public class CommandEdit implements DecreeExecutor {
+public class CommandEdit implements DirectorExecutor {
 
     private boolean noStudio() {
         if (!sender().isPlayer()) {

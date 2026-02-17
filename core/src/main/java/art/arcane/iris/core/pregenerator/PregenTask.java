@@ -20,7 +20,7 @@ package art.arcane.iris.core.pregenerator;
 
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.Spiraled;
 import art.arcane.volmlib.util.math.Spiraler;
 import lombok.Builder;

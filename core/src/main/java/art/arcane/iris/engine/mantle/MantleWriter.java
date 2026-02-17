@@ -35,10 +35,10 @@ import art.arcane.iris.util.data.B;
 import art.arcane.iris.util.data.IrisCustomData;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.function.Function3;
-import art.arcane.iris.util.mantle.Mantle;
-import art.arcane.iris.util.mantle.MantleChunk;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.matter.Matter;
+import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.iris.util.matter.TileWrapper;
 import art.arcane.iris.util.noise.CNG;
@@ -55,13 +55,13 @@ import static art.arcane.iris.engine.mantle.EngineMantle.AIR;
 @Data
 public class MantleWriter implements IObjectPlacer, AutoCloseable {
     private final EngineMantle engineMantle;
-    private final Mantle mantle;
-    private final Map<Long, MantleChunk> cachedChunks;
+    private final Mantle<Matter> mantle;
+    private final Map<Long, MantleChunk<Matter>> cachedChunks;
     private final int radius;
     private final int x;
     private final int z;
 
-    public MantleWriter(EngineMantle engineMantle, Mantle mantle, int x, int z, int radius, boolean multicore) {
+    public MantleWriter(EngineMantle engineMantle, Mantle<Matter> mantle, int x, int z, int radius, boolean multicore) {
         this.engineMantle = engineMantle;
         this.mantle = mantle;
         this.radius = radius * 2;
@@ -76,7 +76,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
         if (foliaMaintenance && IrisSettings.get().getGeneral().isDebug()) {
             Iris.info("MantleWriter using sequential chunk prefetch for maintenance regen at " + x + "," + z + ".");
         }
-        final var map = multicore ? cachedChunks : new KMap<Long, MantleChunk>(d * d, 1f, parallelism);
+        final var map = multicore ? cachedChunks : new KMap<Long, MantleChunk<Matter>>(d * d, 1f, parallelism);
         mantle.getChunks(
                 x - radius,
                 x + radius,
@@ -163,7 +163,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
             return;
         }
 
-        MantleChunk chunk = acquireChunk(cx, cz);
+        MantleChunk<Matter> chunk = acquireChunk(cx, cz);
         if (chunk == null) return;
 
         Matter matter = chunk.getOrCreate(y >> 4);
@@ -178,7 +178,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
             return null;
         }
 
-        MantleChunk chunk = acquireChunk(cx, cz);
+        MantleChunk<Matter> chunk = acquireChunk(cx, cz);
         if (chunk == null) {
             return null;
         }
@@ -189,14 +189,14 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
     }
 
     @ChunkCoordinates
-    public MantleChunk acquireChunk(int cx, int cz) {
+    public MantleChunk<Matter> acquireChunk(int cx, int cz) {
         if (cx < this.x - radius || cx > this.x + radius
                 || cz < this.z - radius || cz > this.z + radius) {
             Iris.error("Mantle Writer Accessed chunk out of bounds" + cx + "," + cz);
             return null;
         }
         final Long key = Cache.key(cx, cz);
-        MantleChunk chunk = cachedChunks.get(key);
+        MantleChunk<Matter> chunk = cachedChunks.get(key);
         if (chunk == null) {
             chunk = mantle.getChunk(cx, cz).use();
             var old = cachedChunks.put(key, chunk);

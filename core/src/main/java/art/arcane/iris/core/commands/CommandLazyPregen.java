@@ -24,11 +24,11 @@ import art.arcane.iris.core.gui.PregeneratorJob;
 import art.arcane.iris.core.pregenerator.LazyPregenerator;
 import art.arcane.iris.core.pregenerator.PregenTask;
 import art.arcane.iris.core.tools.IrisToolbelt;
-import art.arcane.iris.util.decree.DecreeExecutor;
+import art.arcane.iris.util.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.format.C;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.math.Position2;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
@@ -37,7 +37,7 @@ import java.io.File;
 import java.io.IOException;
 
 @Director(name = "lazypregen", aliases = "lazy", description = "Pregenerate your Iris worlds!")
-public class CommandLazyPregen implements DecreeExecutor {
+public class CommandLazyPregen implements DirectorExecutor {
     public String worldName;
     @Director(description = "Pregenerate a world")
     public void start(

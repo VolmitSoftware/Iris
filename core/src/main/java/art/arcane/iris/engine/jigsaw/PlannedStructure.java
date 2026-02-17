@@ -25,12 +25,13 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.placer.WorldObjectPlacer;
 import art.arcane.iris.engine.object.*;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.util.mantle.Mantle;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.matter.slices.container.JigsawPieceContainer;
-import art.arcane.iris.util.matter.slices.container.JigsawStructureContainer;
-import art.arcane.iris.util.matter.slices.container.JigsawStructuresContainer;
+import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.slices.container.JigsawPieceContainer;
+import art.arcane.volmlib.util.matter.slices.container.JigsawStructureContainer;
+import art.arcane.volmlib.util.matter.slices.container.JigsawStructuresContainer;
 import art.arcane.iris.util.scheduling.J;
 import lombok.Data;
 import org.bukkit.Axis;
@@ -78,7 +79,7 @@ public class PlannedStructure {
         }
     }
 
-    public boolean place(IObjectPlacer placer, Mantle e, Engine eng) {
+    public boolean place(IObjectPlacer placer, Mantle<Matter> e, Engine eng) {
         IrisObjectPlacement options = new IrisObjectPlacement();
         options.setRotation(IrisObjectRotation.of(0,0,0));
         int startHeight = pieces.get(0).getPosition().getY();
@@ -93,13 +94,13 @@ public class PlannedStructure {
             Position2 regionPos = new Position2(chunkPos.getX() >> 5, chunkPos.getZ() >> 5);
             JigsawStructuresContainer slice = e.get(regionPos.getX(), 0, regionPos.getZ(), JigsawStructuresContainer.class);
             if (slice == null) slice = new JigsawStructuresContainer();
-            slice.add(structure, chunkPos);
+            slice.add(structure.getLoadKey(), chunkPos);
             e.set(regionPos.getX(), 0, regionPos.getZ(), slice);
         }
         return placed;
     }
 
-    public boolean place(PlannedPiece i, int startHeight, IrisObjectPlacement o, IObjectPlacer placer, Mantle e, Engine eng) {
+    public boolean place(PlannedPiece i, int startHeight, IrisObjectPlacement o, IObjectPlacer placer, Mantle<Matter> e, Engine eng) {
         IrisObjectPlacement options = o;
 
         if (i.getPiece().getPlacementOptions() != null) {
@@ -150,8 +151,8 @@ public class PlannedStructure {
         }
 
         int id = rng.i(0, Integer.MAX_VALUE);
-        JigsawPieceContainer piece = JigsawPieceContainer.toContainer(i.getPiece());
-        JigsawStructureContainer structure = JigsawStructureContainer.toContainer(getStructure());
+        JigsawPieceContainer piece = new JigsawPieceContainer(i.getPiece().getLoadKey());
+        JigsawStructureContainer structure = new JigsawStructureContainer(getStructure().getLoadKey());
         i.setRealPositions(xx, height, zz, placer);
         return v.place(xx, height, zz, placer, options, rng, (b, data) -> {
             placer.setData(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);

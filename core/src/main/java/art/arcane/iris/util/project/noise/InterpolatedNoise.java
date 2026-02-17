@@ -21,7 +21,6 @@ package art.arcane.iris.util.noise;
 import art.arcane.volmlib.util.function.NoiseProvider;
 import art.arcane.iris.util.interpolation.InterpolationMethod;
 import art.arcane.iris.util.interpolation.IrisInterpolation;
-
 public class InterpolatedNoise implements NoiseGenerator {
     private final InterpolationMethod method;
     private final NoiseProvider p;

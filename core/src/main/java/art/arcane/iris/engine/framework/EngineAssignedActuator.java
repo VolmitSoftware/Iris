@@ -21,7 +21,6 @@ package art.arcane.iris.engine.framework;
 import art.arcane.iris.util.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.iris.util.hunk.Hunk;
-
 public abstract class EngineAssignedActuator<T> extends EngineAssignedComponent implements EngineActuator<T> {
     public EngineAssignedActuator(Engine engine, String name) {
         super(engine, name);

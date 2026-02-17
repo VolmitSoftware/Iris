@@ -21,7 +21,6 @@ package art.arcane.iris.engine.object;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.stream.ProceduralStream;
 import art.arcane.iris.util.stream.interpolation.Interpolated;
-
 import java.util.List;
 
 public interface IRare {

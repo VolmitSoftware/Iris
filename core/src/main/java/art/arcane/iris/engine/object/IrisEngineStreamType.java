@@ -21,7 +21,6 @@ package art.arcane.iris.engine.object;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 import java.util.function.Function;
 
 @Desc("Represents a stream from the engine")

@@ -33,14 +33,14 @@ import art.arcane.iris.util.data.B;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.iris.util.hunk.Hunk;
-import art.arcane.iris.util.mantle.Mantle;
-import art.arcane.iris.util.mantle.MantleChunk;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterFluidBody;
 import art.arcane.volmlib.util.matter.MatterMarker;
-import art.arcane.iris.util.matter.*;
-import art.arcane.iris.util.matter.slices.UpdateMatter;
+import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.slices.UpdateMatter;
 import art.arcane.iris.util.parallel.MultiBurst;
 import art.arcane.iris.util.scheduling.J;
 import org.bukkit.World;
@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
 public interface EngineMantle extends MatterGenerator {
     BlockData AIR = B.get("AIR");
 
-    Mantle getMantle();
+    Mantle<Matter> getMantle();
 
     Engine getEngine();
 
@@ -248,7 +248,7 @@ public interface EngineMantle extends MatterGenerator {
 
     default void cleanupChunk(int x, int z) {
         if (!isCovered(x, z)) return;
-        MantleChunk chunk = getMantle().getChunk(x, z).use();
+        MantleChunk<Matter> chunk = getMantle().getChunk(x, z).use();
         try {
             chunk.raiseFlagUnchecked(MantleFlag.CLEANED, () -> {
                 chunk.deleteSlices(BlockData.class);

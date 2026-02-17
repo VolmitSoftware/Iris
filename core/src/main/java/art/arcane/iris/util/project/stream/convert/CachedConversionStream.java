@@ -21,7 +21,6 @@ package art.arcane.iris.util.stream.convert;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.stream.BasicLayer;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 import java.util.function.Function;
 
 public class CachedConversionStream<T, V> extends BasicLayer implements ProceduralStream<V> {

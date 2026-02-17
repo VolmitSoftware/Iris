@@ -4,7 +4,7 @@ import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.scripting.func.UpdateExecutor;
 import art.arcane.iris.core.scripting.kotlin.environment.IrisExecutionEnvironment;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.util.mantle.MantleChunk;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import lombok.NonNull;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -26,5 +26,5 @@ public interface EngineEnvironment extends PackEnvironment {
 
     void preprocessObject(@NonNull String script, @NonNull IrisRegistrant object);
 
-    void updateChunk(@NonNull String script, @NonNull MantleChunk mantleChunk, @NonNull Chunk chunk, @NonNull UpdateExecutor executor);
+    void updateChunk(@NonNull String script, @NonNull MantleChunk<?> mantleChunk, @NonNull Chunk chunk, @NonNull UpdateExecutor executor);
 }

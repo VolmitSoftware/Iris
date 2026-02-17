@@ -33,11 +33,13 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.format.Form;
-import art.arcane.iris.util.mantle.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.math.M;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterMarker;
 import art.arcane.iris.util.parallel.MultiBurst;
 import art.arcane.iris.util.plugin.Chunks;
@@ -245,7 +247,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
         J.a(() -> {
             try {
-                Mantle mantle = getMantle();
+                Mantle<Matter> mantle = getMantle();
                 if (!mantle.hasFlag(chunkX, chunkZ, MantleFlag.DISCOVERED)) {
                     mantle.flag(chunkX, chunkZ, MantleFlag.DISCOVERED, true);
                 }
@@ -352,7 +354,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         J.a(() -> {
             boolean raised = false;
             try {
-                Mantle mantle = getMantle();
+                Mantle<Matter> mantle = getMantle();
                 if (!mantle.hasFlag(chunkX, chunkZ, MantleFlag.INITIAL_SPAWNED_MARKER)) {
                     mantle.flag(chunkX, chunkZ, MantleFlag.INITIAL_SPAWNED_MARKER, true);
                     raised = true;
@@ -680,7 +682,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 }
 
                 Chunk chunkRef = world.getChunkAt(chunkX, chunkZ);
-                var mantleChunk = getMantle().getChunk(chunkRef).use();
+                MantleChunk<Matter> mantleChunk = getMantle().getChunk(chunkRef).use();
                 try {
                     mantleChunk.raiseFlagUnchecked(MantleFlag.CUSTOM, () -> {
                         mantleChunk.iterate(Identifier.class, (x, y, z, v) -> {
@@ -731,7 +733,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         spawn(block, ss);
     }
 
-    public Mantle getMantle() {
+    public Mantle<Matter> getMantle() {
         return getEngine().getMantle().getMantle();
     }
 

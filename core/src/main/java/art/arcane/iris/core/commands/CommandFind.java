@@ -22,15 +22,15 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisJigsawStructure;
 import art.arcane.iris.engine.object.IrisRegion;
-import art.arcane.iris.util.decree.DecreeExecutor;
+import art.arcane.iris.util.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
-import art.arcane.iris.util.decree.specialhandlers.ObjectHandler;
+import art.arcane.iris.util.director.specialhandlers.ObjectHandler;
 import art.arcane.iris.util.format.C;
 
 @Director(name = "find", origin = DirectorOrigin.PLAYER, description = "Iris Find commands", aliases = "goto")
-public class CommandFind implements DecreeExecutor {
+public class CommandFind implements DirectorExecutor {
     @Director(description = "Find a biome")
     public void biome(
             @Param(description = "The biome to look for")

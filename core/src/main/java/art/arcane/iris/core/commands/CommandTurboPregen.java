@@ -22,7 +22,7 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.core.pregenerator.LazyPregenerator;
 import art.arcane.iris.core.pregenerator.TurboPregenerator;
 import art.arcane.iris.core.pregenerator.TurboPregenerator;
-import art.arcane.iris.util.decree.DecreeExecutor;
+import art.arcane.iris.util.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.format.C;
@@ -34,7 +34,7 @@ import java.io.File;
 import java.io.IOException;
 
 @Director(name = "turbopregen", aliases = "turbo", description = "Pregenerate your Iris worlds!")
-public class CommandTurboPregen implements DecreeExecutor {
+public class CommandTurboPregen implements DirectorExecutor {
     public String worldName;
     @Director(description = "Pregenerate a world")
     public void start(

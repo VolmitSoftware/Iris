@@ -5,7 +5,6 @@ import art.arcane.iris.util.noise.CNG;
 import art.arcane.iris.util.uniques.UFeature;
 import art.arcane.iris.util.uniques.UFeatureMeta;
 import art.arcane.iris.util.uniques.UImage;
-
 import java.util.function.Consumer;
 
 public class UFWarpedDisc implements UFeature {

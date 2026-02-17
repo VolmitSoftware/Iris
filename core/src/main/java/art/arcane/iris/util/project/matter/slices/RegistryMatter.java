@@ -20,7 +20,8 @@ package art.arcane.iris.util.matter.slices;
 
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.util.context.IrisContext;
-import art.arcane.iris.util.data.palette.Palette;
+import art.arcane.volmlib.util.data.palette.Palette;
+import art.arcane.volmlib.util.matter.slices.RawMatter;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

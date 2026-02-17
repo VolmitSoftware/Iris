@@ -30,11 +30,11 @@ import art.arcane.iris.engine.object.*;
 import art.arcane.volmlib.util.data.Cuboid;
 import art.arcane.iris.util.data.IrisCustomData;
 import art.arcane.iris.util.data.registry.Materials;
-import art.arcane.iris.util.decree.DecreeExecutor;
+import art.arcane.iris.util.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
-import art.arcane.iris.util.decree.specialhandlers.ObjectHandler;
+import art.arcane.iris.util.director.specialhandlers.ObjectHandler;
 import art.arcane.iris.util.format.C;
 import art.arcane.iris.util.math.Direction;
 import art.arcane.volmlib.util.math.RNG;
@@ -50,7 +50,7 @@ import java.text.NumberFormat;
 import java.util.*;
 
 @Director(name = "object", aliases = "o", origin = DirectorOrigin.PLAYER, studio = true, description = "Iris object manipulation")
-public class CommandObject implements DecreeExecutor {
+public class CommandObject implements DirectorExecutor {
 
     private static final Set<Material> skipBlocks = Set.of(Materials.GRASS, Material.SNOW, Material.VINE, Material.TORCH, Material.DEAD_BUSH,
             Material.POPPY, Material.DANDELION);

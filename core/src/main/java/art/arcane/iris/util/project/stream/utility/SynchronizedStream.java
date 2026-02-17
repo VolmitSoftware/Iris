@@ -20,7 +20,6 @@ package art.arcane.iris.util.stream.utility;
 
 import art.arcane.iris.util.stream.BasicStream;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 public class SynchronizedStream<T> extends BasicStream<T> {
     public SynchronizedStream(ProceduralStream<T> stream) {
         super(stream);

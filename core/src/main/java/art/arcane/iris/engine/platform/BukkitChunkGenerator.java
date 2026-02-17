@@ -37,7 +37,7 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.data.IrisBiomeStorage;
 import art.arcane.iris.util.hunk.view.BiomeGridHunkHolder;
 import art.arcane.iris.util.hunk.view.ChunkDataHunkHolder;
-import art.arcane.iris.util.io.ReactiveFolder;
+import art.arcane.volmlib.util.io.ReactiveFolder;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.iris.util.scheduling.J;
 import art.arcane.volmlib.util.scheduling.Looper;
@@ -103,7 +103,13 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.studio = studio;
         this.dataLocation = dataLocation;
         this.dimensionKey = dimensionKey;
-        this.folder = new ReactiveFolder(dataLocation, (_a, _b, _c) -> hotload());
+        this.folder = new ReactiveFolder(
+                dataLocation,
+                (_a, _b, _c) -> hotload(),
+                new KList<>(".iob", ".json", ".kts"),
+                new KList<>(".iris"),
+                new KList<>(".gradle.kts")
+        );
         Bukkit.getServer().getPluginManager().registerEvents(this, Iris.instance);
     }
 

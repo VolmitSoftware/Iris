@@ -20,7 +20,6 @@ package art.arcane.iris.util.stream.interpolation;
 
 import art.arcane.iris.util.interpolation.InterpolationMethod;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 @SuppressWarnings("ClassCanBeRecord")
 public class InterpolatorFactory<T> {
     private final ProceduralStream<T> stream;

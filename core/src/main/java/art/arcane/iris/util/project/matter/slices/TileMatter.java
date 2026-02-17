@@ -19,9 +19,10 @@
 package art.arcane.iris.util.matter.slices;
 
 import art.arcane.iris.engine.object.TileData;
-import art.arcane.iris.util.data.palette.Palette;
-import art.arcane.iris.util.matter.Sliced;
 import art.arcane.iris.util.matter.TileWrapper;
+import art.arcane.volmlib.util.data.palette.Palette;
+import art.arcane.volmlib.util.matter.Sliced;
+import art.arcane.volmlib.util.matter.slices.RawMatter;
 import org.bukkit.Location;
 import org.bukkit.World;
 

@@ -20,6 +20,5 @@ package art.arcane.iris.util.parallel;
 
 
 import art.arcane.iris.util.hunk.Hunk;
-
 public interface BurstedHunk<T> extends Hunk<T>, art.arcane.volmlib.util.parallel.BurstedHunk<T> {
 }

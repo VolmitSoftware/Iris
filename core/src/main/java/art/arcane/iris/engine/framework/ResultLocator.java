@@ -4,7 +4,7 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.object.IrisJigsawStructure;
 import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.Spiraler;
 import art.arcane.iris.util.parallel.BurstExecutor;
 import art.arcane.iris.util.parallel.MultiBurst;

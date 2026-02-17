@@ -20,7 +20,6 @@ package art.arcane.iris.util.stream.interpolation;
 
 import art.arcane.iris.util.stream.BasicStream;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 public class TriStarcastStream<T> extends BasicStream<T> implements Interpolator<T> {
     private final int rad;
     private final int checks;

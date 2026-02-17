@@ -20,7 +20,6 @@ package art.arcane.iris.util.stream.convert;
 
 import art.arcane.iris.util.stream.BasicStream;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 import java.util.List;
 
 public class SelectionStream<T> extends BasicStream<T> {

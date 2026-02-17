@@ -24,7 +24,6 @@ import art.arcane.iris.util.noise.CNG;
 import art.arcane.iris.util.noise.CNGFactory;
 import art.arcane.iris.util.noise.NoiseType;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 @Desc("Styles of noise")
 public enum NoiseStyle {
     @Desc("White Noise is like static. Useful for block scattering but not terrain.")

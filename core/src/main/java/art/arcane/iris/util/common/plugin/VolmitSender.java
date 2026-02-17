@@ -451,14 +451,14 @@ public class VolmitSender implements CommandSender {
         sendHeader(name, 44);
     }
 
-    public void sendDecreeHelp(DirectorVisualCommand v) {
-        sendDecreeHelp(v, 0);
+    public void sendDirectorHelp(DirectorVisualCommand v) {
+        sendDirectorHelp(v, 0);
     }
 
-    public void sendDecreeHelp(DirectorVisualCommand v, int page) {
+    public void sendDirectorHelp(DirectorVisualCommand v, int page) {
         if (!isPlayer()) {
             for (DirectorVisualCommand i : v.getNodes()) {
-                sendDecreeHelpNode(i);
+                sendDirectorHelpNode(i);
             }
 
             return;
@@ -474,7 +474,7 @@ public class VolmitSender implements CommandSender {
 
             AtomicBoolean next = new AtomicBoolean(false);
             for (DirectorVisualCommand i : paginate(v.getNodes(), 17, page, next)) {
-                sendDecreeHelpNode(i);
+                sendDirectorHelpNode(i);
             }
 
             String s = "";
@@ -496,7 +496,7 @@ public class VolmitSender implements CommandSender {
         }
     }
 
-    public void sendDecreeHelpNode(DirectorVisualCommand i) {
+    public void sendDirectorHelpNode(DirectorVisualCommand i) {
         if (isPlayer() || s instanceof CommandDummy) {
             sendMessageRaw(helpCache.computeIfAbsent(i.getPath(), (k) -> {
                 String newline = "<reset>\n";

@@ -1,7 +1,7 @@
 package art.arcane.iris.util.parallel;
 
 import art.arcane.volmlib.util.parallel.StreamUtilsSupport;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.math.Position2;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;

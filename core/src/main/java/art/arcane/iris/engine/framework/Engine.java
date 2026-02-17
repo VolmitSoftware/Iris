@@ -49,16 +49,17 @@ import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.iris.util.format.C;
 import art.arcane.volmlib.util.function.Function2;
 import art.arcane.iris.util.hunk.Hunk;
-import art.arcane.iris.util.mantle.MantleChunk;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.M;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterUpdate;
 import art.arcane.iris.util.matter.TileWrapper;
-import art.arcane.iris.util.matter.slices.container.JigsawPieceContainer;
+import art.arcane.volmlib.util.matter.slices.container.JigsawPieceContainer;
 import art.arcane.iris.util.parallel.BurstExecutor;
 import art.arcane.iris.util.parallel.MultiBurst;
 import art.arcane.iris.util.reflect.W;
@@ -400,7 +401,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     @BlockCoordinates
     @Override
 
-    default void update(int x, int y, int z, Chunk c, MantleChunk mc, RNG rf) {
+    default void update(int x, int y, int z, Chunk c, MantleChunk<Matter> mc, RNG rf) {
         Block block = c.getBlock(x, y, z);
         BlockData data = block.getBlockData();
         blockUpdatedMetric();
@@ -483,7 +484,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     @BlockCoordinates
     @Override
     default KList<IrisLootTable> getLootTables(RNG rng, Block b) {
-        MantleChunk mc = getMantle().getMantle().getChunk(b.getChunk()).use();
+        MantleChunk<Matter> mc = getMantle().getMantle().getChunk(b.getChunk()).use();
         try {
             return getLootTables(rng, b, mc);
         } finally {
@@ -492,7 +493,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     @BlockCoordinates
-    default KList<IrisLootTable> getLootTables(RNG rng, Block b, MantleChunk mc) {
+    default KList<IrisLootTable> getLootTables(RNG rng, Block b, MantleChunk<Matter> mc) {
         int rx = b.getX();
         int rz = b.getZ();
         int ry = b.getY() - getWorld().minHeight();
@@ -822,7 +823,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     default PlacedObject getObjectPlacement(int x, int y, int z) {
-        MantleChunk chunk = getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
+        MantleChunk<Matter> chunk = getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
         try {
             return getObjectPlacement(x, y, z, chunk);
         } finally {
@@ -830,7 +831,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
     }
 
-    default PlacedObject getObjectPlacement(int x, int y, int z, MantleChunk chunk) {
+    default PlacedObject getObjectPlacement(int x, int y, int z, MantleChunk<Matter> chunk) {
         String objectAt = chunk.get(x & 15, y, z & 15, String.class);
         if (objectAt == null || objectAt.isEmpty()) {
             return null;
@@ -843,7 +844,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
         JigsawPieceContainer container = chunk.get(x & 15, y, z & 15, JigsawPieceContainer.class);
         if (container != null) {
-            IrisJigsawPiece piece = container.load(getData());
+            IrisJigsawPiece piece = getData().getJigsawPieceLoader().load(container.getLoadKey());
             if (piece.getObject().equals(object))
                 return new PlacedObject(piece.getPlacementOptions(), getData().getObjectLoader().load(object), id, x, z);
         }

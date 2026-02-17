@@ -527,6 +527,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public void checkForBukkitWorlds(Predicate<String> filter) {
         try {
+            KList<String> deferredStartupWorlds = new KList<>();
             IrisWorlds.readBukkitWorlds().forEach((s, generator) -> {
                 try {
                     if (Bukkit.getWorld(s) != null || !filter.test(s)) return;
@@ -543,16 +544,27 @@ public class Iris extends VolmitPlugin implements Listener {
                     INMS.get().createWorld(c);
                     Iris.info(C.LIGHT_PURPLE + "Loaded " + s + "!");
                 } catch (Throwable e) {
-                    Iris.error("Failed to load world " + s + "!");
                     if (containsCreateWorldUnsupportedOperation(e)) {
+                        if (J.isFolia()) {
+                            if (!deferredStartupWorlds.contains(s)) {
+                                deferredStartupWorlds.add(s);
+                            }
+                            return;
+                        }
+                        Iris.error("Failed to load world " + s + "!");
                         Iris.error("This server denied Bukkit.createWorld for \"" + s + "\" at the current startup phase.");
                         Iris.error("Ensure Iris is loaded at STARTUP and restart after staging worlds in bukkit.yml.");
                         reportError(e);
                         return;
                     }
+                    Iris.error("Failed to load world " + s + "!");
                     e.printStackTrace();
                 }
             });
+            if (!deferredStartupWorlds.isEmpty()) {
+                Iris.warn("World init delayed on Folia until server world-init phase for staged Iris worlds: %s", String.join(", ", deferredStartupWorlds));
+                Iris.warn("Bukkit.createWorld is intentionally unavailable in this startup phase. Worlds remain staged in bukkit.yml.");
+            }
         } catch (Throwable e) {
             e.printStackTrace();
             reportError(e);

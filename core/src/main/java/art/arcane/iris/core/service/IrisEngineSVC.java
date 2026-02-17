@@ -279,7 +279,7 @@ public class IrisEngineSVC implements IrisService {
                     if (engine == null
                             || engine.isClosed()
                             || engine.getMantle().getMantle().isClosed()
-                            || !engine.getMantle().getMantle().shouldReduce(engine))
+                            || !shouldReduce(engine))
                         return;
                     World engineWorld = engine.getWorld().realWorld();
                     if (engineWorld != null && IrisToolbelt.isWorldMaintenanceActive(engineWorld)) {
@@ -306,7 +306,7 @@ public class IrisEngineSVC implements IrisService {
                     if (engine == null
                             || engine.isClosed()
                             || engine.getMantle().getMantle().isClosed()
-                            || !engine.getMantle().getMantle().shouldReduce(engine))
+                            || !shouldReduce(engine))
                         return;
                     World engineWorld = engine.getWorld().realWorld();
                     if (engineWorld != null && IrisToolbelt.isWorldMaintenanceActive(engineWorld)) {
@@ -356,6 +356,10 @@ public class IrisEngineSVC implements IrisService {
         private Engine getEngine() {
             if (closed) return null;
             return access.getEngine();
+        }
+
+        private boolean shouldReduce(Engine engine) {
+            return !engine.isStudio() || IrisSettings.get().getPerformance().isTrimMantleInStudio();
         }
     }
 }

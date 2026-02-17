@@ -21,11 +21,15 @@ package art.arcane.iris.util.matter;
 import art.arcane.iris.Iris;
 import art.arcane.iris.engine.object.TileData;
 import art.arcane.volmlib.util.data.Cuboid;
+import art.arcane.volmlib.util.matter.IrisMatter;
+import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.MatterEntityGroup;
 import org.bukkit.Location;
 import org.bukkit.block.data.BlockData;
 
 public class WorldMatter {
     public static void placeMatter(Matter matter, Location at) {
+        IrisMatterSupport.ensureRegistered();
         if (matter.hasSlice(BlockData.class)) {
             matter.slice(BlockData.class).writeInto(at);
         }
@@ -40,6 +44,7 @@ public class WorldMatter {
     }
 
     public static Matter createMatter(String author, Location a, Location b) {
+        IrisMatterSupport.ensureRegistered();
         Cuboid c = new Cuboid(a, b);
         Matter s = new IrisMatter(c.getSizeX(), c.getSizeY(), c.getSizeZ());
         Iris.info(s.getWidth() + " " + s.getHeight() + " " + s.getDepth());

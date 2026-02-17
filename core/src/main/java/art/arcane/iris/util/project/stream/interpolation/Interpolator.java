@@ -19,7 +19,6 @@
 package art.arcane.iris.util.stream.interpolation;
 
 import art.arcane.iris.util.stream.ProceduralStream;
-
 public interface Interpolator<T> {
     @SuppressWarnings("unchecked")
     default InterpolatorFactory<T> into() {

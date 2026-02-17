@@ -27,11 +27,11 @@ import art.arcane.iris.engine.object.IrisJigsawPiece;
 import art.arcane.iris.engine.object.IrisJigsawStructure;
 import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.iris.engine.object.IrisPosition;
-import art.arcane.iris.util.decree.DecreeExecutor;
+import art.arcane.iris.util.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
-import art.arcane.iris.util.decree.specialhandlers.ObjectHandler;
+import art.arcane.iris.util.director.specialhandlers.ObjectHandler;
 import art.arcane.iris.util.format.C;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.math.RNG;
@@ -41,7 +41,7 @@ import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import java.io.File;
 
 @Director(name = "jigsaw", origin = DirectorOrigin.PLAYER, studio = true, description = "Iris jigsaw commands")
-public class CommandJigsaw implements DecreeExecutor {
+public class CommandJigsaw implements DirectorExecutor {
     @Director(description = "Edit a jigsaw piece")
     public void edit(
             @Param(description = "The jigsaw piece to edit")

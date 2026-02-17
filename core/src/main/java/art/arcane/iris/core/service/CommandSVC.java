@@ -23,9 +23,9 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.commands.CommandIris;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.data.cache.AtomicCache;
-import art.arcane.iris.util.decree.DecreeContext;
-import art.arcane.iris.util.decree.DecreeContextHandler;
-import art.arcane.iris.util.decree.DecreeSystem;
+import art.arcane.iris.util.director.DirectorContext;
+import art.arcane.iris.util.director.DirectorContextHandler;
+import art.arcane.iris.util.director.DirectorSystem;
 import art.arcane.iris.util.format.C;
 import art.arcane.iris.util.plugin.IrisService;
 import art.arcane.iris.util.plugin.VolmitSender;
@@ -100,14 +100,14 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
                 buildDirectorContexts(),
                 this::dispatchDirector,
                 this,
-                DecreeSystem.handlers
+                DirectorSystem.handlers
         ));
     }
 
     private DirectorContextRegistry buildDirectorContexts() {
         DirectorContextRegistry contexts = new DirectorContextRegistry();
 
-        for (Map.Entry<Class<?>, DecreeContextHandler<?>> entry : DecreeContextHandler.contextHandlers.entrySet()) {
+        for (Map.Entry<Class<?>, DirectorContextHandler<?>> entry : DirectorContextHandler.contextHandlers.entrySet()) {
             registerContextHandler(contexts, entry.getKey(), entry.getValue());
         }
 
@@ -115,10 +115,10 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private void registerContextHandler(DirectorContextRegistry contexts, Class<?> type, DecreeContextHandler<?> handler) {
+    private void registerContextHandler(DirectorContextRegistry contexts, Class<?> type, DirectorContextHandler<?> handler) {
         contexts.register((Class) type, (invocation, map) -> {
             if (invocation.getSender() instanceof BukkitDirectorSender sender) {
-                return ((DecreeContextHandler) handler).handle(new VolmitSender(sender.sender()));
+                return ((DirectorContextHandler) handler).handle(new VolmitSender(sender.sender()));
             }
 
             return null;
@@ -136,13 +136,13 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
     @Override
     public void beforeInvoke(DirectorInvocation invocation, DirectorRuntimeNode node) {
         if (invocation.getSender() instanceof BukkitDirectorSender sender) {
-            DecreeContext.touch(new VolmitSender(sender.sender()));
+            DirectorContext.touch(new VolmitSender(sender.sender()));
         }
     }
 
     @Override
     public void afterInvoke(DirectorInvocation invocation, DirectorRuntimeNode node) {
-        DecreeContext.remove();
+        DirectorContext.remove();
     }
 
     @Nullable
@@ -201,7 +201,7 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
         }
 
         VolmitSender volmitSender = new VolmitSender(sender);
-        volmitSender.sendDecreeHelp(request.get().command(), request.get().page());
+        volmitSender.sendDirectorHelp(request.get().command(), request.get().page());
         return true;
     }
 

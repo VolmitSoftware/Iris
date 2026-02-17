@@ -21,7 +21,6 @@ package art.arcane.iris.util.stream.convert;
 import art.arcane.volmlib.util.function.Function3;
 import art.arcane.iris.util.stream.BasicStream;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 public class AwareConversionStream2D<T, V> extends BasicStream<V> {
     private final ProceduralStream<T> stream;
     private final Function3<T, Double, Double, V> converter;

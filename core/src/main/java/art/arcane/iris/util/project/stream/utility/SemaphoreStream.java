@@ -20,7 +20,6 @@ package art.arcane.iris.util.stream.utility;
 
 import art.arcane.iris.util.stream.BasicStream;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 import java.util.concurrent.Semaphore;
 
 public class SemaphoreStream<T> extends BasicStream<T> {

@@ -26,7 +26,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.iris.util.data.B;
-import art.arcane.iris.util.decree.DecreeExecutor;
+import art.arcane.iris.util.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
@@ -43,7 +43,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Director(name = "what", origin = DirectorOrigin.PLAYER, studio = true, description = "Iris What?")
-public class CommandWhat implements DecreeExecutor {
+public class CommandWhat implements DirectorExecutor {
     @Director(description = "What is in my hand?", origin = DirectorOrigin.PLAYER)
     public void hand() {
         try {

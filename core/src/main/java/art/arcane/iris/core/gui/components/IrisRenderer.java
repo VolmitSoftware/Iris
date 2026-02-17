@@ -22,7 +22,6 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisBiomeGeneratorLink;
 import art.arcane.iris.util.interpolation.IrisInterpolation;
-
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.function.BiFunction;

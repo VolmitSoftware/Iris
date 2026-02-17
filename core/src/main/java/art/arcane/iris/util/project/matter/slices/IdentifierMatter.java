@@ -1,8 +1,9 @@
 package art.arcane.iris.util.matter.slices;
 
 import art.arcane.iris.core.link.Identifier;
-import art.arcane.iris.util.data.palette.Palette;
-import art.arcane.iris.util.matter.Sliced;
+import art.arcane.volmlib.util.data.palette.Palette;
+import art.arcane.volmlib.util.matter.Sliced;
+import art.arcane.volmlib.util.matter.slices.RawMatter;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

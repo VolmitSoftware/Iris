@@ -20,7 +20,6 @@ package art.arcane.iris.util.stream.convert;
 
 import art.arcane.volmlib.util.stream.BasicLayer;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 import java.util.function.Function;
 
 public class ConversionStream<T, V> extends BasicLayer implements ProceduralStream<V> {

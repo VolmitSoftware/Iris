@@ -1,7 +1,6 @@
 package art.arcane.iris.util.hunk;
 
 import art.arcane.volmlib.util.hunk.HunkLike;
-
 final class SharedHunkAdapter<T> implements Hunk<T> {
     private final HunkLike<T> delegate;
 

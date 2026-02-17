@@ -20,7 +20,6 @@ package art.arcane.iris.util.stream.arithmetic;
 
 import art.arcane.iris.util.stream.BasicStream;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 public class OffsetStream<T> extends BasicStream<T> implements ProceduralStream<T> {
     private final double ox;
     private final double oy;

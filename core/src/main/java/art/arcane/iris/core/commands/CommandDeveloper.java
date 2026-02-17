@@ -31,6 +31,7 @@ import art.arcane.iris.core.service.IrisEngineSVC;
 import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.core.tools.IrisPackBenchmarking;
 import art.arcane.iris.core.tools.IrisToolbelt;
+import art.arcane.iris.engine.IrisEngineMantle;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisPosition;
@@ -41,19 +42,19 @@ import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.iris.util.context.IrisContext;
 import art.arcane.iris.engine.object.IrisJigsawStructurePlacement;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.util.decree.DecreeExecutor;
+import art.arcane.iris.util.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
-import art.arcane.iris.util.decree.specialhandlers.NullableDimensionHandler;
+import art.arcane.iris.util.director.specialhandlers.NullableDimensionHandler;
 import art.arcane.iris.util.format.C;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.io.CountingDataInputStream;
 import art.arcane.volmlib.util.io.IO;
-import art.arcane.iris.util.mantle.TectonicPlate;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.mantle.runtime.TectonicPlate;
+import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.M;
-import art.arcane.iris.util.matter.Matter;
+import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.iris.util.nbt.mca.MCAFile;
 import art.arcane.iris.util.nbt.mca.MCAUtil;
 import art.arcane.iris.util.parallel.MultiBurst;
@@ -82,7 +83,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 @Director(name = "Developer", origin = DirectorOrigin.BOTH, description = "Iris World Manager", aliases = {"dev"})
-public class CommandDeveloper implements DecreeExecutor {
+public class CommandDeveloper implements DirectorExecutor {
     private static final long DELETE_CHUNK_HEARTBEAT_MS = 5000L;
     private static final int DELETE_CHUNK_MAX_ATTEMPTS = 2;
     private static final int DELETE_CHUNK_STACK_LIMIT = 20;
@@ -313,7 +314,7 @@ public class CommandDeveloper implements DecreeExecutor {
 
         if (plate) {
             try (var in = CountingDataInputStream.wrap(new BufferedInputStream(new FileInputStream(base)))) {
-                new TectonicPlate(1088, in, true);
+                TectonicPlate.read(1088, in, true, IrisEngineMantle.createRuntimeDataAdapter(), IrisEngineMantle.createRuntimeHooks());
             } catch (Throwable e) {
                 e.printStackTrace();
             }
@@ -561,7 +562,7 @@ public class CommandDeveloper implements DecreeExecutor {
             return;
         }
 
-        art.arcane.iris.util.mantle.Mantle mantle = access.getEngine().getMantle().getMantle();
+        art.arcane.volmlib.util.mantle.runtime.Mantle mantle = access.getEngine().getMantle().getMantle();
         VolmitSender sender = sender();
 
         sender.sendMessage(C.GREEN + "Deleting blocks in " + C.GOLD + totalChunks + C.GREEN + " chunk(s) with " + C.GOLD + threads + C.GREEN + " worker(s).");
@@ -634,7 +635,7 @@ public class CommandDeveloper implements DecreeExecutor {
     private void runDeleteChunkOrchestrator(
             VolmitSender sender,
             World world,
-            art.arcane.iris.util.mantle.Mantle mantle,
+            art.arcane.volmlib.util.mantle.runtime.Mantle mantle,
             List<Position2> targets,
             int threadCount,
             String runId,
@@ -682,7 +683,7 @@ public class CommandDeveloper implements DecreeExecutor {
 
     private DeleteChunkSummary executeDeleteChunkQueue(
             World world,
-            art.arcane.iris.util.mantle.Mantle mantle,
+            art.arcane.volmlib.util.mantle.runtime.Mantle mantle,
             List<Position2> targets,
             ThreadPoolExecutor pool,
             Set<Thread> workerThreads,
@@ -822,7 +823,7 @@ public class CommandDeveloper implements DecreeExecutor {
     private DeleteChunkResult runDeleteChunkTask(
             DeleteChunkTask task,
             World world,
-            art.arcane.iris.util.mantle.Mantle mantle,
+            art.arcane.volmlib.util.mantle.runtime.Mantle mantle,
             ConcurrentMap<String, DeleteChunkActiveTask> activeTasks
     ) {
         String worker = Thread.currentThread().getName();
@@ -1150,7 +1151,7 @@ public class CommandDeveloper implements DecreeExecutor {
             service.submit(() -> {
                 try {
                     CountingDataInputStream raw = CountingDataInputStream.wrap(new FileInputStream(file));
-                    TectonicPlate plate = new TectonicPlate(height, raw, versioned);
+                    TectonicPlate<Matter> plate = TectonicPlate.read(height, raw, versioned, IrisEngineMantle.createRuntimeDataAdapter(), IrisEngineMantle.createRuntimeHooks());
                     raw.close();
 
                     double d1 = 0;
@@ -1169,7 +1170,7 @@ public class CommandDeveloper implements DecreeExecutor {
                             size = tmp.length();
                         start = System.currentTimeMillis();
                         CountingDataInputStream din = createInput(tmp, algorithm);
-                        new TectonicPlate(height, din, true);
+                        TectonicPlate.read(height, din, true, IrisEngineMantle.createRuntimeDataAdapter(), IrisEngineMantle.createRuntimeHooks());
                         din.close();
                         d2 += System.currentTimeMillis() - start;
                         tmp.delete();

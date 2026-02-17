@@ -8,7 +8,7 @@ import art.arcane.iris.util.format.C;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.math.M;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RollingSequence;
 import art.arcane.volmlib.util.math.Spiraler;
 import art.arcane.iris.util.parallel.BurstExecutor;

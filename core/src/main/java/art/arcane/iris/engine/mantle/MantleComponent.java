@@ -23,8 +23,9 @@ import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.util.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
-import art.arcane.iris.util.mantle.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
+import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.iris.util.parallel.BurstExecutor;
 import org.jetbrains.annotations.NotNull;
 
@@ -55,7 +56,7 @@ public interface MantleComponent extends Comparable<MantleComponent> {
 
     EngineMantle getEngineMantle();
 
-    default Mantle getMantle() {
+    default Mantle<Matter> getMantle() {
         return getEngineMantle().getMantle();
     }
 

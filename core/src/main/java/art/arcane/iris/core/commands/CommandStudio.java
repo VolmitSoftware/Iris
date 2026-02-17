@@ -33,10 +33,10 @@ import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
-import art.arcane.iris.util.decree.DecreeContext;
-import art.arcane.iris.util.decree.DecreeExecutor;
-import art.arcane.iris.util.decree.handlers.DimensionHandler;
-import art.arcane.iris.util.decree.specialhandlers.NullableDimensionHandler;
+import art.arcane.iris.util.director.DirectorContext;
+import art.arcane.iris.util.director.DirectorExecutor;
+import art.arcane.iris.util.director.handlers.DimensionHandler;
+import art.arcane.iris.util.director.specialhandlers.NullableDimensionHandler;
 import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
@@ -48,9 +48,9 @@ import art.arcane.iris.util.interpolation.InterpolationMethod;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
-import art.arcane.iris.util.mantle.MantleChunk;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.M;
-import art.arcane.iris.util.math.Position2;
+import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.math.Spiraler;
 import art.arcane.iris.util.noise.CNG;
@@ -84,7 +84,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 @Director(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
-public class CommandStudio implements DecreeExecutor {
+public class CommandStudio implements DirectorExecutor {
     private CommandFind find;
     private CommandEdit edit;
     //private CommandDeepSearch deepSearch;
@@ -188,7 +188,7 @@ public class CommandStudio implements DecreeExecutor {
         Thread orchestrator = new Thread(() -> {
             PlatformChunkGenerator plat = IrisToolbelt.access(world);
             Engine engine = plat.getEngine();
-            DecreeContext.touch(sender);
+            DirectorContext.touch(sender);
             IrisToolbelt.beginWorldMaintenance(world, "studio-regen");
             try (SyncExecutor executor = new SyncExecutor(20);
                  var service = Executors.newFixedThreadPool(threadCount)
@@ -256,7 +256,7 @@ public class CommandStudio implements DecreeExecutor {
                 e.printStackTrace();
             } finally {
                 IrisToolbelt.endWorldMaintenance(world, "studio-regen");
-                DecreeContext.remove();
+                DirectorContext.remove();
             }
         }, orchestratorName);
         orchestrator.setDaemon(true);

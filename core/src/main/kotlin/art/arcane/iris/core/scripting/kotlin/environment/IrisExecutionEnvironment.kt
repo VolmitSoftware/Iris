@@ -12,7 +12,7 @@ import art.arcane.iris.core.scripting.kotlin.base.PreprocessorScript
 import art.arcane.iris.core.scripting.kotlin.environment.IrisSimpleExecutionEnvironment
 import art.arcane.iris.core.scripting.kotlin.runner.ScriptRunner
 import art.arcane.iris.engine.framework.Engine
-import art.arcane.iris.util.mantle.MantleChunk
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk
 import org.bukkit.Chunk
 import org.bukkit.Location
 import org.bukkit.entity.Entity
@@ -40,7 +40,7 @@ class IrisExecutionEnvironment internal constructor(
     override fun preprocessObject(script: String, `object`: IrisRegistrant) =
         execute(script, PreprocessorScript::class.java, engine.limitedParameters("object" to `object`))
 
-    override fun updateChunk(script: String, mantleChunk: MantleChunk, chunk: Chunk, executor: UpdateExecutor) =
+    override fun updateChunk(script: String, mantleChunk: MantleChunk<*>, chunk: Chunk, executor: UpdateExecutor) =
         execute(script, ChunkUpdateScript::class.java, engine.parameters("mantleChunk" to mantleChunk, "chunk" to chunk, "executor" to executor))
 
     private fun Engine.limitedParameters(vararg values: Pair<String, Any?>): Map<String, Any?> {

@@ -20,7 +20,6 @@ package art.arcane.iris.util.noise;
 
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.util.interpolation.InterpolationMethod;
-
 public enum NoiseType {
     WHITE(WhiteNoise::new),
     WHITE_BILINEAR((s) -> new InterpolatedNoise(s, WHITE, InterpolationMethod.BILINEAR)),

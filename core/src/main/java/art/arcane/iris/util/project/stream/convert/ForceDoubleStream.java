@@ -20,7 +20,6 @@ package art.arcane.iris.util.stream.convert;
 
 import art.arcane.iris.util.stream.BasicStream;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 public class ForceDoubleStream extends BasicStream<Double> {
     private final ProceduralStream<?> stream;
 

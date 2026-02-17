@@ -22,7 +22,6 @@ import art.arcane.volmlib.util.function.Function2;
 import art.arcane.volmlib.util.function.Function3;
 import art.arcane.iris.util.stream.BasicStream;
 import art.arcane.iris.util.stream.interpolation.Interpolated;
-
 public class FunctionStream<T> extends BasicStream<T> {
     private final Function2<Double, Double, T> f2;
     private final Function3<Double, Double, Double, T> f3;

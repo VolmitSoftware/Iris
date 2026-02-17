@@ -19,7 +19,7 @@
 package art.arcane.iris.util.matter.slices;
 
 import art.arcane.iris.engine.object.IrisSpawner;
-import art.arcane.iris.util.matter.Sliced;
+import art.arcane.volmlib.util.matter.Sliced;
 
 @Sliced
 public class SpawnerMatter extends RegistryMatter<IrisSpawner> {

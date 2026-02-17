@@ -26,7 +26,6 @@ import art.arcane.volmlib.util.data.KCache;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.util.stream.BasicStream;
 import art.arcane.iris.util.stream.ProceduralStream;
-
 public class CachedStream3D<T> extends BasicStream<T> implements ProceduralStream<T>, MeteredCache {
     private final ProceduralStream<T> stream;
     private final KCache<BlockPosition, T> cache;

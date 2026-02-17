@@ -20,7 +20,8 @@ package art.arcane.iris.core.pregenerator.methods;
 
 import art.arcane.iris.core.pregenerator.PregenListener;
 import art.arcane.iris.core.pregenerator.PregeneratorMethod;
-import art.arcane.iris.util.mantle.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.matter.Matter;
 import io.papermc.lib.PaperLib;
 import org.bukkit.World;
 

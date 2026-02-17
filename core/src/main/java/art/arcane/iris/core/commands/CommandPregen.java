@@ -23,16 +23,16 @@ import art.arcane.iris.core.gui.PregeneratorJob;
 import art.arcane.iris.core.pregenerator.PregenTask;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.util.decree.DecreeExecutor;
-import art.arcane.volmlib.util.decree.annotations.Decree;
-import art.arcane.volmlib.util.decree.annotations.Param;
+import art.arcane.volmlib.util.director.annotations.Director;
+import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.format.C;
 import art.arcane.iris.util.math.Position2;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
 
-@Decree(name = "pregen", aliases = "pregenerate", description = "Pregenerate your Iris worlds!")
+@Director(name = "pregen", aliases = "pregenerate", description = "Pregenerate your Iris worlds!")
 public class CommandPregen implements DecreeExecutor {
-    @Decree(description = "Pregenerate a world")
+    @Director(description = "Pregenerate a world")
     public void start(
             @Param(description = "The radius of the pregen in blocks", aliases = "size")
             int radius,
@@ -66,7 +66,7 @@ public class CommandPregen implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Stop the active pregeneration task", aliases = "x")
+    @Director(description = "Stop the active pregeneration task", aliases = "x")
     public void stop() {
         if (PregeneratorJob.shutdownInstance()) {
             Iris.info( C.BLUE + "Finishing up mca region...");
@@ -75,7 +75,7 @@ public class CommandPregen implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Pause / continue the active pregeneration task", aliases = {"t", "resume", "unpause"})
+    @Director(description = "Pause / continue the active pregeneration task", aliases = {"t", "resume", "unpause"})
     public void pause() {
         if (PregeneratorJob.pauseResume()) {
             sender().sendMessage(C.GREEN + "Paused/unpaused pregeneration task, now: " + (PregeneratorJob.isPaused() ? "Paused" : "Running") + ".");

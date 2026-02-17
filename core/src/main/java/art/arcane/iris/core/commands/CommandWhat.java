@@ -27,9 +27,9 @@ import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.iris.util.data.B;
 import art.arcane.iris.util.decree.DecreeExecutor;
-import art.arcane.volmlib.util.decree.DecreeOrigin;
-import art.arcane.volmlib.util.decree.annotations.Decree;
-import art.arcane.volmlib.util.decree.annotations.Param;
+import art.arcane.volmlib.util.director.DirectorOrigin;
+import art.arcane.volmlib.util.director.annotations.Director;
+import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.format.C;
 import art.arcane.volmlib.util.matter.MatterMarker;
 import art.arcane.iris.util.scheduling.J;
@@ -42,9 +42,9 @@ import org.bukkit.block.data.BlockData;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Decree(name = "what", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris What?")
+@Director(name = "what", origin = DirectorOrigin.PLAYER, studio = true, description = "Iris What?")
 public class CommandWhat implements DecreeExecutor {
-    @Decree(description = "What is in my hand?", origin = DecreeOrigin.PLAYER)
+    @Director(description = "What is in my hand?", origin = DirectorOrigin.PLAYER)
     public void hand() {
         try {
             BlockData bd = player().getInventory().getItemInMainHand().getType().createBlockData();
@@ -65,7 +65,7 @@ public class CommandWhat implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "What biome am i in?", origin = DecreeOrigin.PLAYER)
+    @Director(description = "What biome am i in?", origin = DirectorOrigin.PLAYER)
     public void biome() {
         try {
             IrisBiome b = engine().getBiome(player().getLocation().getBlockX(), player().getLocation().getBlockY() - player().getWorld().getMinHeight(), player().getLocation().getBlockZ());
@@ -85,7 +85,7 @@ public class CommandWhat implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "What region am i in?", origin = DecreeOrigin.PLAYER)
+    @Director(description = "What region am i in?", origin = DirectorOrigin.PLAYER)
     public void region() {
         try {
             Chunk chunk = world().getChunkAt(player().getLocation().getBlockZ() / 16, player().getLocation().getBlockZ() /  16);
@@ -98,7 +98,7 @@ public class CommandWhat implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "What block am i looking at?", origin = DecreeOrigin.PLAYER)
+    @Director(description = "What block am i looking at?", origin = DirectorOrigin.PLAYER)
     public void block() {
         BlockData bd;
         try {
@@ -143,7 +143,7 @@ public class CommandWhat implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Show markers in chunk", origin = DecreeOrigin.PLAYER)
+    @Director(description = "Show markers in chunk", origin = DirectorOrigin.PLAYER)
     public void markers(@Param(description = "Marker name such as cave_floor or cave_ceiling") String marker) {
         Chunk c = player().getLocation().getChunk();
 

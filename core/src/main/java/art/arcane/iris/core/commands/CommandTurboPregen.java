@@ -23,8 +23,8 @@ import art.arcane.iris.core.pregenerator.LazyPregenerator;
 import art.arcane.iris.core.pregenerator.TurboPregenerator;
 import art.arcane.iris.core.pregenerator.TurboPregenerator;
 import art.arcane.iris.util.decree.DecreeExecutor;
-import art.arcane.volmlib.util.decree.annotations.Decree;
-import art.arcane.volmlib.util.decree.annotations.Param;
+import art.arcane.volmlib.util.director.annotations.Director;
+import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.format.C;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -33,10 +33,10 @@ import org.bukkit.util.Vector;
 import java.io.File;
 import java.io.IOException;
 
-@Decree(name = "turbopregen", aliases = "turbo", description = "Pregenerate your Iris worlds!")
+@Director(name = "turbopregen", aliases = "turbo", description = "Pregenerate your Iris worlds!")
 public class CommandTurboPregen implements DecreeExecutor {
     public String worldName;
-    @Decree(description = "Pregenerate a world")
+    @Director(description = "Pregenerate a world")
     public void start(
             @Param(description = "The radius of the pregen in blocks", aliases = "size")
             int radius,
@@ -90,7 +90,7 @@ public class CommandTurboPregen implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Stop the active pregeneration task", aliases = "x")
+    @Director(description = "Stop the active pregeneration task", aliases = "x")
     public void stop(@Param(aliases = "world", description = "The world to pause") World world) throws IOException {
         TurboPregenerator turboPregenInstance = TurboPregenerator.getInstance();
         File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());
@@ -108,7 +108,7 @@ public class CommandTurboPregen implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Pause / continue the active pregeneration task", aliases = {"t", "resume", "unpause"})
+    @Director(description = "Pause / continue the active pregeneration task", aliases = {"t", "resume", "unpause"})
     public void pause(
             @Param(aliases = "world", description = "The world to pause")
             World world

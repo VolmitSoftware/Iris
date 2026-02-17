@@ -23,7 +23,6 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.pregenerator.PregenListener;
 import art.arcane.iris.core.pregenerator.PregeneratorMethod;
 import art.arcane.iris.core.tools.IrisToolbelt;
-import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.iris.util.mantle.Mantle;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.iris.util.parallel.MultiBurst;
@@ -34,19 +33,30 @@ import org.bukkit.World;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class AsyncPregenMethod implements PregeneratorMethod {
     private static final AtomicInteger THREAD_COUNT = new AtomicInteger();
+    private static final int FOLIA_MAX_CONCURRENCY = 32;
+    private static final long CHUNK_LOAD_TIMEOUT_SECONDS = 15L;
     private final World world;
     private final Executor executor;
     private final Semaphore semaphore;
     private final int threads;
     private final boolean urgent;
     private final Map<Chunk, Long> lastUse;
+    private final AtomicInteger inFlight = new AtomicInteger();
+    private final AtomicLong submitted = new AtomicLong();
+    private final AtomicLong completed = new AtomicLong();
+    private final AtomicLong failed = new AtomicLong();
+    private final AtomicLong lastProgressAt = new AtomicLong(M.ms());
+    private final AtomicLong lastPermitWaitLog = new AtomicLong(0L);
 
     public AsyncPregenMethod(World world, int unusedThreads) {
         if (!PaperLib.isPaper()) {
@@ -54,14 +64,29 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         this.world = world;
-        this.executor = IrisSettings.get().getPregen().isUseTicketQueue() ? new TicketExecutor() : new ServiceExecutor();
-        this.threads = IrisSettings.get().getPregen().getMaxConcurrency();
+        if (J.isFolia()) {
+            this.executor = new FoliaRegionExecutor();
+        } else {
+            boolean useTicketQueue = IrisSettings.get().getPregen().isUseTicketQueue();
+            this.executor = useTicketQueue ? new TicketExecutor() : new ServiceExecutor();
+        }
+        int configuredThreads = IrisSettings.get().getPregen().getMaxConcurrency();
+        if (J.isFolia()) {
+            configuredThreads = Math.min(configuredThreads, FOLIA_MAX_CONCURRENCY);
+        }
+        this.threads = Math.max(1, configuredThreads);
         this.semaphore = new Semaphore(this.threads, true);
         this.urgent = IrisSettings.get().getPregen().useHighPriority;
-        this.lastUse = new KMap<>();
+        this.lastUse = new ConcurrentHashMap<>();
     }
 
     private void unloadAndSaveAllChunks() {
+        if (J.isFolia()) {
+            // Folia requires world/chunk mutations to be region-owned; periodic global unload/save is unsafe.
+            lastUse.clear();
+            return;
+        }
+
         try {
             J.sfut(() -> {
                 if (world == null) {
@@ -88,8 +113,71 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
     }
 
+    private Chunk onChunkFutureFailure(int x, int z, Throwable throwable) {
+        Throwable root = throwable;
+        while (root.getCause() != null) {
+            root = root.getCause();
+        }
+
+        if (root instanceof java.util.concurrent.TimeoutException) {
+            Iris.warn("Timed out async pregen chunk load at " + x + "," + z + " after " + CHUNK_LOAD_TIMEOUT_SECONDS + "s. " + metricsSnapshot());
+        } else {
+            Iris.warn("Failed async pregen chunk load at " + x + "," + z + ". " + metricsSnapshot());
+        }
+
+        Iris.reportError(throwable);
+        return null;
+    }
+
+    private String metricsSnapshot() {
+        long stalledFor = Math.max(0L, M.ms() - lastProgressAt.get());
+        return "world=" + world.getName()
+                + " permits=" + semaphore.availablePermits() + "/" + threads
+                + " inFlight=" + inFlight.get()
+                + " submitted=" + submitted.get()
+                + " completed=" + completed.get()
+                + " failed=" + failed.get()
+                + " stalledForMs=" + stalledFor;
+    }
+
+    private void markSubmitted() {
+        submitted.incrementAndGet();
+        inFlight.incrementAndGet();
+    }
+
+    private void markFinished(boolean success) {
+        if (success) {
+            completed.incrementAndGet();
+        } else {
+            failed.incrementAndGet();
+        }
+
+        lastProgressAt.set(M.ms());
+        int after = inFlight.decrementAndGet();
+        if (after < 0) {
+            inFlight.compareAndSet(after, 0);
+        }
+    }
+
+    private void logPermitWaitIfNeeded(int x, int z, long waitedMs) {
+        long now = M.ms();
+        long last = lastPermitWaitLog.get();
+        if (now - last < 5000L) {
+            return;
+        }
+
+        if (lastPermitWaitLog.compareAndSet(last, now)) {
+            Iris.warn("Async pregen waiting for permit at chunk " + x + "," + z + " waitedMs=" + waitedMs + " " + metricsSnapshot());
+        }
+    }
+
     @Override
     public void init() {
+        Iris.info("Async pregen init: world=" + world.getName()
+                + ", mode=" + (J.isFolia() ? "folia" : "paper")
+                + ", threads=" + threads
+                + ", urgent=" + urgent
+                + ", timeout=" + CHUNK_LOAD_TIMEOUT_SECONDS + "s");
         unloadAndSaveAllChunks();
         increaseWorkerThreads();
     }
@@ -126,10 +214,16 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     public void generateChunk(int x, int z, PregenListener listener) {
         listener.onChunkGenerating(x, z);
         try {
-            semaphore.acquire();
+            long waitStart = M.ms();
+            while (!semaphore.tryAcquire(5, TimeUnit.SECONDS)) {
+                logPermitWaitIfNeeded(x, z, Math.max(0L, M.ms() - waitStart));
+            }
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             return;
         }
+
+        markSubmitted();
         executor.generate(x, z, listener);
     }
 
@@ -189,6 +283,40 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         default void shutdown() {}
     }
 
+    private class FoliaRegionExecutor implements Executor {
+        @Override
+        public void generate(int x, int z, PregenListener listener) {
+            if (!J.runRegion(world, x, z, () -> PaperLib.getChunkAtAsync(world, x, z, true, urgent)
+                    .orTimeout(CHUNK_LOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                    .whenComplete((chunk, throwable) -> {
+                        boolean success = false;
+                        try {
+                            if (throwable != null) {
+                                onChunkFutureFailure(x, z, throwable);
+                                return;
+                            }
+
+                            listener.onChunkGenerated(x, z);
+                            listener.onChunkCleaned(x, z);
+                            if (chunk != null) {
+                                lastUse.put(chunk, M.ms());
+                            }
+                            success = true;
+                        } catch (Throwable e) {
+                            Iris.reportError(e);
+                            e.printStackTrace();
+                        } finally {
+                            markFinished(success);
+                            semaphore.release();
+                        }
+                    }))) {
+                markFinished(false);
+                semaphore.release();
+                Iris.warn("Failed to schedule Folia region pregen task at " + x + "," + z + ". " + metricsSnapshot());
+            }
+        }
+    }
+
     private class ServiceExecutor implements Executor {
         private final ExecutorService service = IrisSettings.get().getPregen().isUseVirtualThreads() ?
                 Executors.newVirtualThreadPerTaskExecutor() :
@@ -196,18 +324,27 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
         public void generate(int x, int z, PregenListener listener) {
             service.submit(() -> {
+                boolean success = false;
                 try {
-                    PaperLib.getChunkAtAsync(world, x, z, true, urgent).thenAccept((i) -> {
-                        listener.onChunkGenerated(x, z);
-                        listener.onChunkCleaned(x, z);
-                        if (i == null) return;
-                        lastUse.put(i, M.ms());
-                    }).get();
+                    Chunk i = PaperLib.getChunkAtAsync(world, x, z, true, urgent)
+                            .orTimeout(CHUNK_LOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                            .exceptionally(e -> onChunkFutureFailure(x, z, e))
+                            .get();
+
+                    listener.onChunkGenerated(x, z);
+                    listener.onChunkCleaned(x, z);
+                    if (i == null) {
+                        return;
+                    }
+                    lastUse.put(i, M.ms());
+                    success = true;
                 } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();
                 } finally {
+                    markFinished(success);
                     semaphore.release();
                 }
             });
@@ -223,17 +360,21 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         @Override
         public void generate(int x, int z, PregenListener listener) {
             PaperLib.getChunkAtAsync(world, x, z, true, urgent)
-                    .exceptionally(e -> {
-                        Iris.reportError(e);
-                        e.printStackTrace();
-                        return null;
-                    })
+                    .orTimeout(CHUNK_LOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                    .exceptionally(e -> onChunkFutureFailure(x, z, e))
                     .thenAccept(i -> {
-                        semaphore.release();
-                        listener.onChunkGenerated(x, z);
-                        listener.onChunkCleaned(x, z);
-                        if (i == null) return;
-                        lastUse.put(i, M.ms());
+                        boolean success = false;
+                        try {
+                            listener.onChunkGenerated(x, z);
+                            listener.onChunkCleaned(x, z);
+                            if (i != null) {
+                                lastUse.put(i, M.ms());
+                            }
+                            success = true;
+                        } finally {
+                            markFinished(success);
+                            semaphore.release();
+                        }
                     });
         }
     }

@@ -281,6 +281,10 @@ public class IrisEngineSVC implements IrisService {
                             || engine.getMantle().getMantle().isClosed()
                             || !engine.getMantle().getMantle().shouldReduce(engine))
                         return;
+                    World engineWorld = engine.getWorld().realWorld();
+                    if (engineWorld != null && IrisToolbelt.isWorldMaintenanceActive(engineWorld)) {
+                        return;
+                    }
 
                     try {
                         engine.getMantle().trim(tectonicLimit());
@@ -304,6 +308,10 @@ public class IrisEngineSVC implements IrisService {
                             || engine.getMantle().getMantle().isClosed()
                             || !engine.getMantle().getMantle().shouldReduce(engine))
                         return;
+                    World engineWorld = engine.getWorld().realWorld();
+                    if (engineWorld != null && IrisToolbelt.isWorldMaintenanceActive(engineWorld)) {
+                        return;
+                    }
 
                     try {
                         long unloadStart = System.currentTimeMillis();

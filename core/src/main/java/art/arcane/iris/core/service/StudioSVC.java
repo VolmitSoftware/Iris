@@ -57,7 +57,7 @@ public class StudioSVC implements IrisService {
 
     @Override
     public void onEnable() {
-        J.s(() -> {
+        J.a(() -> {
             String pack = IrisSettings.get().getGenerator().getDefaultWorldType();
             File f = IrisPack.packsPack(pack);
 

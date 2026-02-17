@@ -35,6 +35,9 @@ plugins {
 
 group = "art.arcane"
 version = "4.0.0-1.20.1-1.21.11-Dev1"
+val volmLibCoordinate: String = providers.gradleProperty("volmLibCoordinate")
+    .orElse("com.github.VolmitSoftware:VolmLib:master-SNAPSHOT")
+    .get()
 
 apply<ApiGenerator>()
 
@@ -89,6 +92,10 @@ nmsBindings.forEach { (key, value) ->
 
         dependencies {
             compileOnly(project(":core"))
+            compileOnly(volmLibCoordinate) {
+                isChanging = true
+                isTransitive = false
+            }
             compileOnly(rootProject.libs.annotations)
             compileOnly(rootProject.libs.byteBuddy.core)
         }
@@ -181,8 +188,8 @@ fun exec(vararg command: Any) {
 }
 
 configurations.configureEach {
-    resolutionStrategy.cacheChangingModulesFor(60, "minutes")
-    resolutionStrategy.cacheDynamicVersionsFor(60, "minutes")
+    resolutionStrategy.cacheChangingModulesFor(0, "seconds")
+    resolutionStrategy.cacheDynamicVersionsFor(0, "seconds")
 }
 
 allprojects {

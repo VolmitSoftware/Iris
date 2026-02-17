@@ -24,7 +24,6 @@ import art.arcane.iris.core.pregenerator.PregenListener;
 import art.arcane.iris.core.pregenerator.PregeneratorMethod;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.iris.util.mantle.Mantle;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.iris.util.scheduling.J;
@@ -35,6 +34,7 @@ import org.bukkit.World;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MedievalPregenMethod implements PregeneratorMethod {
     private final World world;
@@ -44,7 +44,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
     public MedievalPregenMethod(World world) {
         this.world = world;
         futures = new KList<>();
-        this.lastUse = new KMap<>();
+        this.lastUse = new ConcurrentHashMap<>();
     }
 
     private void waitForChunks() {
@@ -60,6 +60,11 @@ public class MedievalPregenMethod implements PregeneratorMethod {
     }
 
     private void unloadAndSaveAllChunks() {
+        if (J.isFolia()) {
+            lastUse.clear();
+            return;
+        }
+
         try {
             J.sfut(() -> {
                 if (world == null) {

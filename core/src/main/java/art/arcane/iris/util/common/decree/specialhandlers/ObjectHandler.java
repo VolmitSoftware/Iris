@@ -21,13 +21,13 @@ package art.arcane.iris.util.decree.specialhandlers;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.util.decree.DecreeParameterHandler;
-import art.arcane.volmlib.util.decree.exceptions.DecreeParsingException;
+import art.arcane.iris.util.decree.DirectorParameterHandler;
+import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
 
 import java.io.File;
 import java.util.stream.Collectors;
 
-public class ObjectHandler implements DecreeParameterHandler<String> {
+public class ObjectHandler implements DirectorParameterHandler<String> {
     @Override
     public KList<String> getPossibilities() {
         KList<String> p = new KList<>();
@@ -53,16 +53,16 @@ public class ObjectHandler implements DecreeParameterHandler<String> {
     }
 
     @Override
-    public String parse(String in, boolean force) throws DecreeParsingException {
+    public String parse(String in, boolean force) throws DirectorParsingException {
         KList<String> options = getPossibilities(in);
 
         if (options.isEmpty()) {
-            throw new DecreeParsingException("Unable to find Object \"" + in + "\"");
+            throw new DirectorParsingException("Unable to find Object \"" + in + "\"");
         }
         try {
             return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
         } catch (Throwable e) {
-            throw new DecreeParsingException("Unable to filter which Object \"" + in + "\"");
+            throw new DirectorParsingException("Unable to filter which Object \"" + in + "\"");
         }
     }
 

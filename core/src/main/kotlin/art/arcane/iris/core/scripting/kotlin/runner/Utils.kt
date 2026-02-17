@@ -11,7 +11,6 @@ import kotlin.script.experimental.dependencies.Repository
 import kotlin.script.experimental.dependencies.addRepository
 import kotlin.script.experimental.dependencies.impl.SimpleExternalDependenciesResolverOptionsParser
 import kotlin.script.experimental.jvm.JvmDependency
-import kotlin.script.experimental.jvm.JvmDependencyFromClassLoader
 import kotlin.script.experimental.jvm.updateClasspath
 import kotlin.script.experimental.jvm.util.classpathFromClassloader
 import kotlin.script.experimental.util.PropertiesCollection
@@ -193,7 +192,7 @@ private fun <R> ResultWithDiagnostics<R>.appendReports(reports : Collection<Scri
     }
 
 internal class SharedClassLoader(parent: ClassLoader = SharedClassLoader::class.java.classLoader) : URLClassLoader(arrayOf(), parent) {
-    val dependency = JvmDependencyFromClassLoader { this }
+    val dependency get() = JvmDependency(classpath)
 
     fun addFiles(files: List<File>) {
         files.forEach { addURL(it.toURI().toURL()) }
@@ -205,7 +204,10 @@ internal fun ScriptCompilationConfiguration.Builder.configure() {
         beforeParsing { context -> try {
             context.compilationConfiguration.with {
                 if (context.compilationConfiguration[ScriptCompilationConfiguration.server] ?: false) {
-                    ScriptCompilationConfiguration.dependencies.append(this[ScriptCompilationConfiguration.sharedClassloader]!!.dependency)
+                    val sharedClasspath = this[ScriptCompilationConfiguration.sharedClassloader]!!.classpath
+                    if (sharedClasspath.isNotEmpty()) {
+                        ScriptCompilationConfiguration.dependencies.append(JvmDependency(sharedClasspath))
+                    }
                 }
             }.asSuccess()
         } catch (e: Throwable) {

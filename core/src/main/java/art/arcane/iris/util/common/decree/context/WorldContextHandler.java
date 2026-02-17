@@ -1,6 +1,6 @@
 package art.arcane.iris.util.decree.context;
 
-import art.arcane.volmlib.util.decree.context.WorldContextHandlerBase;
+import art.arcane.volmlib.util.director.context.WorldContextHandlerBase;
 import art.arcane.iris.util.decree.DecreeContextHandler;
 import art.arcane.iris.util.plugin.VolmitSender;
 import org.bukkit.World;

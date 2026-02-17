@@ -20,6 +20,8 @@ package art.arcane.iris.engine.mantle;
 
 import com.google.common.collect.ImmutableList;
 import art.arcane.iris.Iris;
+import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.data.cache.Cache;
 import art.arcane.iris.engine.framework.Engine;
@@ -40,6 +42,7 @@ import art.arcane.iris.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.iris.util.matter.TileWrapper;
 import art.arcane.iris.util.noise.CNG;
+import art.arcane.iris.util.scheduling.J;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import lombok.Data;
 import org.bukkit.block.data.BlockData;
@@ -67,7 +70,12 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
         this.x = x;
         this.z = z;
 
-        final int parallelism = multicore ? Runtime.getRuntime().availableProcessors() / 2 : 4;
+        final boolean foliaMaintenance = J.isFolia()
+                && IrisToolbelt.isWorldMaintenanceActive(engineMantle.getEngine().getWorld().realWorld());
+        final int parallelism = foliaMaintenance ? 1 : (multicore ? Runtime.getRuntime().availableProcessors() / 2 : 4);
+        if (foliaMaintenance && IrisSettings.get().getGeneral().isDebug()) {
+            Iris.info("MantleWriter using sequential chunk prefetch for maintenance regen at " + x + "," + z + ".");
+        }
         final var map = multicore ? cachedChunks : new KMap<Long, MantleChunk>(d * d, 1f, parallelism);
         mantle.getChunks(
                 x - radius,

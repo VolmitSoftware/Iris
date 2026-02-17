@@ -18,7 +18,7 @@
 
 package art.arcane.iris.util.decree;
 
-import art.arcane.volmlib.util.decree.DecreeExecutorBase;
+import art.arcane.volmlib.util.director.DirectorExecutorBase;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
@@ -26,7 +26,7 @@ import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.util.plugin.VolmitSender;
 import org.bukkit.entity.Player;
 
-public interface DecreeExecutor extends DecreeExecutorBase {
+public interface DecreeExecutor extends DirectorExecutorBase {
     default VolmitSender sender() {
         return DecreeContext.get();
     }

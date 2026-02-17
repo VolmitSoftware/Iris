@@ -25,18 +25,18 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.core.pregenerator.ChunkUpdater;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.util.decree.DecreeExecutor;
-import art.arcane.volmlib.util.decree.DecreeOrigin;
-import art.arcane.volmlib.util.decree.annotations.Decree;
-import art.arcane.volmlib.util.decree.annotations.Param;
+import art.arcane.volmlib.util.director.DirectorOrigin;
+import art.arcane.volmlib.util.director.annotations.Director;
+import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.format.C;
 import art.arcane.volmlib.util.format.Form;
 
-@Decree(name = "updater", origin = DecreeOrigin.BOTH, description = "Iris World Updater")
+@Director(name = "updater", origin = DirectorOrigin.BOTH, description = "Iris World Updater")
 public class CommandUpdater implements DecreeExecutor {
     private final Object lock = new Object();
     private transient ChunkUpdater chunkUpdater;
 
-    @Decree(description = "Updates all chunk in the specified world")
+    @Director(description = "Updates all chunk in the specified world")
     public void start(
             @Param(description = "World to update chunks at", contextual = true)
             World world
@@ -61,7 +61,7 @@ public class CommandUpdater implements DecreeExecutor {
     }
 
     @Synchronized("lock")
-    @Decree(description = "Pause the updater")
+    @Director(description = "Pause the updater")
     public void pause( ) {
         if (chunkUpdater == null) {
             sender().sendMessage(C.GOLD + "You cant pause something that doesnt exist?");
@@ -84,7 +84,7 @@ public class CommandUpdater implements DecreeExecutor {
     }
 
     @Synchronized("lock")
-    @Decree(description = "Stops the updater")
+    @Director(description = "Stops the updater")
     public void stop() {
         if (chunkUpdater == null) {
             sender().sendMessage(C.GOLD + "You cant stop something that doesnt exist?");

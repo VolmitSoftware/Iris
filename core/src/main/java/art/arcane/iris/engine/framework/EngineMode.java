@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.util.context.ChunkContext;
@@ -27,6 +28,7 @@ import art.arcane.iris.util.hunk.Hunk;
 import art.arcane.volmlib.util.math.RollingSequence;
 import art.arcane.iris.util.parallel.BurstExecutor;
 import art.arcane.iris.util.parallel.MultiBurst;
+import art.arcane.iris.util.scheduling.J;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
@@ -69,7 +71,14 @@ public interface EngineMode extends Staged {
 
     @BlockCoordinates
     default void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore) {
-        ChunkContext ctx = new ChunkContext(x, z, getComplex());
+        boolean cacheContext = true;
+        if (J.isFolia()) {
+            var world = getEngine().getWorld().realWorld();
+            if (world != null && IrisToolbelt.isWorldMaintenanceActive(world)) {
+                cacheContext = false;
+            }
+        }
+        ChunkContext ctx = new ChunkContext(x, z, getComplex(), cacheContext);
         IrisContext.getOr(getEngine()).setChunkContext(ctx);
 
         for (EngineStage i : getStages()) {

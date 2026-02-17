@@ -65,6 +65,7 @@ import java.util.Random;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 @EqualsAndHashCode(callSuper = true)
@@ -198,72 +199,184 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void injectChunkReplacement(World world, int x, int z, Executor syncExecutor) {
+        boolean acquired = false;
+        String phase = "start";
         try {
-            loadLock.acquire();
+            phase = "acquire-load-lock";
+            long acquireStart = System.currentTimeMillis();
+            while (!loadLock.tryAcquire(5, TimeUnit.SECONDS)) {
+                Iris.warn("Chunk replacement waiting for load lock at " + x + "," + z
+                        + " for " + (System.currentTimeMillis() - acquireStart) + "ms.");
+            }
+            acquired = true;
+            long acquireWait = System.currentTimeMillis() - acquireStart;
+            if (acquireWait >= 5000L) {
+                Iris.warn("Chunk replacement waited " + acquireWait + "ms for load lock at " + x + "," + z + ".");
+            }
             IrisBiomeStorage st = new IrisBiomeStorage();
             TerrainChunk tc = TerrainChunk.createUnsafe(world, st);
             this.world.bind(world);
-            getEngine().generate(x << 4, z << 4, tc, IrisSettings.get().getGenerator().useMulticore);
 
-            Chunk c = PaperLib.getChunkAtAsync(world, x, z)
-                    .thenApply(d -> {
-                        Iris.tickets.addTicket(d);
+            phase = "engine-generate";
+            long generateStart = System.currentTimeMillis();
+            boolean useMulticore = IrisSettings.get().getGenerator().useMulticore && !J.isFolia();
+            AtomicBoolean generateDone = new AtomicBoolean(false);
+            AtomicLong generationWatchdogStart = new AtomicLong(System.currentTimeMillis());
+            Thread generateThread = Thread.currentThread();
+            J.a(() -> {
+                while (!generateDone.get()) {
+                    if (!J.sleep(5000)) {
+                        return;
+                    }
+                    if (generateDone.get()) {
+                        return;
+                    }
 
-                        for (Entity ee : d.getEntities()) {
-                            if (ee instanceof Player) {
-                                continue;
-                            }
+                    Iris.warn("Chunk replacement still generating at " + x + "," + z
+                            + " for " + (System.currentTimeMillis() - generationWatchdogStart.get()) + "ms"
+                            + " thread=" + generateThread.getName()
+                            + " state=" + generateThread.getState());
+                }
+            });
+            try {
+                getEngine().generate(x << 4, z << 4, tc, useMulticore);
+            } finally {
+                generateDone.set(true);
+            }
+            long generateTook = System.currentTimeMillis() - generateStart;
+            if (generateTook >= 5000L) {
+                Iris.warn("Chunk replacement terrain generation took " + generateTook + "ms at " + x + "," + z + ".");
+            }
 
-                            ee.remove();
-                        }
-
-                        return d;
-                    }).get();
-
-
-            KList<CompletableFuture<?>> futures = new KList<>(1 + getEngine().getHeight() >> 4);
-            for (int i = getEngine().getHeight() >> 4; i >= 0; i--) {
-                int finalI = i << 4;
-                futures.add(CompletableFuture.runAsync(() -> {
-                    for (int xx = 0; xx < 16; xx++) {
-                        for (int yy = 0; yy < 16; yy++) {
-                            for (int zz = 0; zz < 16; zz++) {
-                                if (yy + finalI >= engine.getHeight() || yy + finalI < 0) {
+            if (J.isFolia()) {
+                phase = "folia-run-region";
+                CountDownLatch latch = new CountDownLatch(1);
+                Throwable[] failure = new Throwable[1];
+                long regionScheduleStart = System.currentTimeMillis();
+                if (!J.runRegion(world, x, z, () -> {
+                    try {
+                        phaseUnsafeSet("folia-region-run", x, z);
+                        Chunk c = world.getChunkAt(x, z);
+                        Iris.tickets.addTicket(c);
+                        try {
+                            for (Entity ee : c.getEntities()) {
+                                if (ee instanceof Player) {
                                     continue;
                                 }
-                                int y = yy + finalI + world.getMinHeight();
-                                c.getBlock(xx, y, zz).setBlockData(tc.getBlockData(xx, y, zz), false);
+
+                                ee.remove();
+                            }
+
+                            for (int i = getEngine().getHeight() >> 4; i >= 0; i--) {
+                                int finalI = i << 4;
+                                for (int xx = 0; xx < 16; xx++) {
+                                    for (int yy = 0; yy < 16; yy++) {
+                                        for (int zz = 0; zz < 16; zz++) {
+                                            if (yy + finalI >= engine.getHeight() || yy + finalI < 0) {
+                                                continue;
+                                            }
+                                            int y = yy + finalI + world.getMinHeight();
+                                            c.getBlock(xx, y, zz).setBlockData(tc.getBlockData(xx, y, zz), false);
+                                        }
+                                    }
+                                }
+                            }
+
+                            INMS.get().placeStructures(c);
+                            engine.getWorldManager().onChunkLoad(c, true);
+                        } finally {
+                            Iris.tickets.removeTicket(c);
+                        }
+                    } catch (Throwable e) {
+                        failure[0] = e;
+                    } finally {
+                        latch.countDown();
+                    }
+                })) {
+                    throw new IllegalStateException("Failed to schedule region task for chunk replacement at " + x + "," + z);
+                }
+                long regionScheduleTook = System.currentTimeMillis() - regionScheduleStart;
+                if (regionScheduleTook >= 1000L) {
+                    Iris.verbose("Chunk replacement region task scheduling took " + regionScheduleTook + "ms at " + x + "," + z + ".");
+                }
+
+                long regionWaitStart = System.currentTimeMillis();
+                while (!latch.await(5, TimeUnit.SECONDS)) {
+                    Iris.warn("Chunk replacement waiting on region task at " + x + "," + z
+                            + " for " + (System.currentTimeMillis() - regionWaitStart) + "ms.");
+                }
+                long regionWaitTook = System.currentTimeMillis() - regionWaitStart;
+                if (regionWaitTook >= 5000L) {
+                    Iris.warn("Chunk replacement region task completed after " + regionWaitTook + "ms at " + x + "," + z + ".");
+                }
+                if (failure[0] != null) {
+                    throw failure[0];
+                }
+            } else {
+                phase = "paperlib-async-load";
+                long loadChunkStart = System.currentTimeMillis();
+                Chunk c = PaperLib.getChunkAtAsync(world, x, z).get();
+                long loadChunkTook = System.currentTimeMillis() - loadChunkStart;
+                if (loadChunkTook >= 5000L) {
+                    Iris.warn("Chunk replacement chunk load took " + loadChunkTook + "ms at " + x + "," + z + ".");
+                }
+
+                phase = "non-folia-apply";
+                Iris.tickets.addTicket(c);
+                CompletableFuture.runAsync(() -> {
+                    for (Entity ee : c.getEntities()) {
+                        if (ee instanceof Player) {
+                            continue;
+                        }
+
+                        ee.remove();
+                    }
+                }, syncExecutor).get();
+
+                KList<CompletableFuture<?>> futures = new KList<>(1 + getEngine().getHeight() >> 4);
+                for (int i = getEngine().getHeight() >> 4; i >= 0; i--) {
+                    int finalI = i << 4;
+                    futures.add(CompletableFuture.runAsync(() -> {
+                        for (int xx = 0; xx < 16; xx++) {
+                            for (int yy = 0; yy < 16; yy++) {
+                                for (int zz = 0; zz < 16; zz++) {
+                                    if (yy + finalI >= engine.getHeight() || yy + finalI < 0) {
+                                        continue;
+                                    }
+                                    int y = yy + finalI + world.getMinHeight();
+                                    c.getBlock(xx, y, zz).setBlockData(tc.getBlockData(xx, y, zz), false);
+                                }
                             }
                         }
-                    }
-                }, syncExecutor));
+                    }, syncExecutor));
+                }
+                futures.add(CompletableFuture.runAsync(() -> INMS.get().placeStructures(c), syncExecutor));
+
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                        .thenRunAsync(() -> {
+                            Iris.tickets.removeTicket(c);
+                            engine.getWorldManager().onChunkLoad(c, true);
+                        }, syncExecutor)
+                        .get();
             }
-            futures.add(CompletableFuture.runAsync(() -> INMS.get().placeStructures(c), syncExecutor));
 
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                    .thenRunAsync(() -> {
-                        Iris.tickets.removeTicket(c);
-                        engine.getWorldManager().onChunkLoad(c, true);
-                    }, syncExecutor)
-                    .get();
             Iris.debug("Regenerated " + x + " " + z);
-
-            loadLock.release();
         } catch (Throwable e) {
-            loadLock.release();
             Iris.error("======================================");
+            Iris.error("Chunk replacement failed at phase=" + phase + " chunk=" + x + "," + z);
             e.printStackTrace();
             Iris.reportErrorChunk(x, z, e, "CHUNK");
             Iris.error("======================================");
-
-            ChunkData d = Bukkit.createChunkData(world);
-
-            for (int i = 0; i < 16; i++) {
-                for (int j = 0; j < 16; j++) {
-                    d.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA.createBlockData());
-                }
+            throw new IllegalStateException("Chunk replacement failed at phase=" + phase + " chunk=" + x + "," + z, e);
+        } finally {
+            if (acquired) {
+                loadLock.release();
             }
         }
+    }
+
+    private static void phaseUnsafeSet(String phase, int x, int z) {
+        Iris.verbose("Chunk replacement phase=" + phase + " chunk=" + x + "," + z);
     }
 
     private Engine getEngine(WorldInfo world) {

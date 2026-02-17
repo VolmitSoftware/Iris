@@ -28,6 +28,7 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.math.Vector3d;
 import art.arcane.volmlib.util.matter.MatterMarker;
 import art.arcane.iris.util.matter.slices.MarkerMatter;
+import art.arcane.iris.util.scheduling.J;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -77,8 +78,14 @@ public class IrisEntitySpawn implements IRare {
                 int hf = gen.getHeight(x, z, false) + (gen.getWorld().tryGetRealWorld() ? gen.getWorld().realWorld().getMinHeight() : -64);
                 Location l = switch (getReferenceSpawner().getGroup()) {
                     case NORMAL -> new Location(c.getWorld(), x, hf + 1, z);
-                    case CAVE -> gen.getMantle().findMarkers(c.getX(), c.getZ(), MarkerMatter.CAVE_FLOOR)
-                            .convert((i) -> i.toLocation(c.getWorld()).add(0, 1, 0)).getRandom(rng);
+                    case CAVE -> {
+                        if (J.isFolia()) {
+                            // Avoid mantle region IO lookups on Folia tick threads.
+                            yield new Location(c.getWorld(), x, h + 1, z);
+                        }
+                        yield gen.getMantle().findMarkers(c.getX(), c.getZ(), MarkerMatter.CAVE_FLOOR)
+                                .convert((i) -> i.toLocation(c.getWorld()).add(0, 1, 0)).getRandom(rng);
+                    }
                     case UNDERWATER, BEACH -> new Location(c.getWorld(), x, rng.i(h + 1, hf), z);
                 };
 
@@ -113,7 +120,11 @@ public class IrisEntitySpawn implements IRare {
         if (spawns > 0) {
 
             if (referenceMarker != null && referenceMarker.shouldExhaust()) {
-                gen.getMantle().getMantle().remove(c.getX(), c.getY() - gen.getWorld().minHeight(), c.getZ(), MatterMarker.class);
+                if (J.isFolia()) {
+                    J.a(() -> gen.getMantle().getMantle().remove(c.getX(), c.getY() - gen.getWorld().minHeight(), c.getZ(), MatterMarker.class));
+                } else {
+                    gen.getMantle().getMantle().remove(c.getX(), c.getY() - gen.getWorld().minHeight(), c.getZ(), MatterMarker.class);
+                }
             }
 
             for (int id = 0; id < spawns; id++) {

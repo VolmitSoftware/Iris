@@ -23,15 +23,15 @@ import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisJigsawStructure;
 import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.iris.util.decree.DecreeExecutor;
-import art.arcane.volmlib.util.decree.DecreeOrigin;
-import art.arcane.volmlib.util.decree.annotations.Decree;
-import art.arcane.volmlib.util.decree.annotations.Param;
+import art.arcane.volmlib.util.director.DirectorOrigin;
+import art.arcane.volmlib.util.director.annotations.Director;
+import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.decree.specialhandlers.ObjectHandler;
 import art.arcane.iris.util.format.C;
 
-@Decree(name = "find", origin = DecreeOrigin.PLAYER, description = "Iris Find commands", aliases = "goto")
+@Director(name = "find", origin = DirectorOrigin.PLAYER, description = "Iris Find commands", aliases = "goto")
 public class CommandFind implements DecreeExecutor {
-    @Decree(description = "Find a biome")
+    @Director(description = "Find a biome")
     public void biome(
             @Param(description = "The biome to look for")
             IrisBiome biome,
@@ -48,7 +48,7 @@ public class CommandFind implements DecreeExecutor {
         e.gotoBiome(biome, player(), teleport);
     }
 
-    @Decree(description = "Find a region")
+    @Director(description = "Find a region")
     public void region(
             @Param(description = "The region to look for")
             IrisRegion region,
@@ -65,7 +65,7 @@ public class CommandFind implements DecreeExecutor {
         e.gotoRegion(region, player(), teleport);
     }
 
-    @Decree(description = "Find a structure")
+    @Director(description = "Find a structure")
     public void structure(
             @Param(description = "The structure to look for")
             IrisJigsawStructure structure,
@@ -82,7 +82,7 @@ public class CommandFind implements DecreeExecutor {
         e.gotoJigsaw(structure, player(), teleport);
     }
 
-    @Decree(description = "Find a point of interest.")
+    @Director(description = "Find a point of interest.")
     public void poi(
             @Param(description = "The type of PoI to look for.")
             String type,
@@ -98,7 +98,7 @@ public class CommandFind implements DecreeExecutor {
         e.gotoPOI(type, player(), teleport);
     }
 
-    @Decree(description = "Find an object")
+    @Director(description = "Find an object")
     public void object(
             @Param(description = "The object to look for", customHandler = ObjectHandler.class)
             String object,

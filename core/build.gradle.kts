@@ -38,6 +38,9 @@ plugins {
 val apiVersion = "1.19"
 val main = "art.arcane.iris.Iris"
 val lib = "art.arcane.iris.util"
+val volmLibCoordinate: String = providers.gradleProperty("volmLibCoordinate")
+    .orElse("com.github.VolmitSoftware:VolmLib:master-SNAPSHOT")
+    .get()
 
 /**
  * Dependencies.
@@ -73,6 +76,10 @@ dependencies {
 
     // Shaded
     implementation(slimjarHelper("spigot"))
+    implementation(volmLibCoordinate) {
+        isChanging = true
+        isTransitive = false
+    }
 
     // Dynamically Loaded
     slim(libs.paralithic)
@@ -234,10 +241,5 @@ rootProject.tasks.named("prepareKotlinBuildScriptModel") {
 }
 
 sourceSets.main {
-    java.srcDir("../../VolmLib/shared/src/main/java")
     java.srcDir(generateTemplates.map { it.outputs })
-}
-
-kotlin.sourceSets.named("main") {
-    kotlin.srcDir("../../VolmLib/shared/src/main/kotlin")
 }

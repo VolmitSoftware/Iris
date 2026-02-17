@@ -261,6 +261,10 @@ public class ChunkUpdater {
     }
 
     private void unloadAndSaveAllChunks() {
+        if (J.isFolia()) {
+            return;
+        }
+
         try {
             J.sfut(() -> {
                 if (world == null) {

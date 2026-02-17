@@ -31,9 +31,9 @@ import art.arcane.volmlib.util.data.Cuboid;
 import art.arcane.iris.util.data.IrisCustomData;
 import art.arcane.iris.util.data.registry.Materials;
 import art.arcane.iris.util.decree.DecreeExecutor;
-import art.arcane.volmlib.util.decree.DecreeOrigin;
-import art.arcane.volmlib.util.decree.annotations.Decree;
-import art.arcane.volmlib.util.decree.annotations.Param;
+import art.arcane.volmlib.util.director.DirectorOrigin;
+import art.arcane.volmlib.util.director.annotations.Director;
+import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.decree.specialhandlers.ObjectHandler;
 import art.arcane.iris.util.format.C;
 import art.arcane.iris.util.math.Direction;
@@ -49,7 +49,7 @@ import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.*;
 
-@Decree(name = "object", aliases = "o", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris object manipulation")
+@Director(name = "object", aliases = "o", origin = DirectorOrigin.PLAYER, studio = true, description = "Iris object manipulation")
 public class CommandObject implements DecreeExecutor {
 
     private static final Set<Material> skipBlocks = Set.of(Materials.GRASS, Material.SNOW, Material.VINE, Material.TORCH, Material.DEAD_BUSH,
@@ -140,7 +140,7 @@ public class CommandObject implements DecreeExecutor {
         };
     }
 
-    @Decree(description = "Check the composition of an object")
+    @Director(description = "Check the composition of an object")
     public void analyze(
             @Param(description = "The object to analyze", customHandler = ObjectHandler.class)
             String object
@@ -208,7 +208,7 @@ public class CommandObject implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Shrink an object to its minimum size")
+    @Director(description = "Shrink an object to its minimum size")
     public void shrink(@Param(description = "The object to shrink", customHandler = ObjectHandler.class) String object) {
         IrisObject o = IrisData.loadAnyObject(object, data());
         sender().sendMessage("Current Object Size: " + o.getW() + " * " + o.getH() + " * " + o.getD());
@@ -222,7 +222,7 @@ public class CommandObject implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Convert .schem files in the 'convert' folder to .iob files.")
+    @Director(description = "Convert .schem files in the 'convert' folder to .iob files.")
     public void convert () {
         try {
             IrisConverter.convertSchematics(sender());
@@ -232,13 +232,13 @@ public class CommandObject implements DecreeExecutor {
 
     }
 
-    @Decree(description = "Get a powder that reveals objects", studio = true, aliases = "d")
+    @Director(description = "Get a powder that reveals objects", studio = true, aliases = "d")
     public void dust() {
         player().getInventory().addItem(WandSVC.createDust());
         sender().playSound(Sound.AMBIENT_SOUL_SAND_VALLEY_ADDITIONS, 1f, 1.5f);
     }
 
-    @Decree(description = "Contract a selection based on your looking direction", aliases = "-")
+    @Director(description = "Contract a selection based on your looking direction", aliases = "-")
     public void contract(
             @Param(description = "The amount to inset by", defaultValue = "1")
             int amount
@@ -267,7 +267,7 @@ public class CommandObject implements DecreeExecutor {
         sender().playSound(Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
     }
 
-    @Decree(description = "Set point 1 to look", aliases = "p1")
+    @Director(description = "Set point 1 to look", aliases = "p1")
     public void position1(
             @Param(description = "Whether to use your current position, or where you look", defaultValue = "true")
             boolean here
@@ -293,7 +293,7 @@ public class CommandObject implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Set point 2 to look", aliases = "p2")
+    @Director(description = "Set point 2 to look", aliases = "p2")
     public void position2(
             @Param(description = "Whether to use your current position, or where you look", defaultValue = "true")
             boolean here
@@ -320,7 +320,7 @@ public class CommandObject implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Paste an object", sync = true)
+    @Director(description = "Paste an object", sync = true)
     public void paste(
             @Param(description = "The object to paste", customHandler = ObjectHandler.class)
             String object,
@@ -381,7 +381,7 @@ public class CommandObject implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Save an object")
+    @Director(description = "Save an object")
     public void save(
             @Param(description = "The dimension to store the object in", contextual = true)
             IrisDimension dimension,
@@ -416,7 +416,7 @@ public class CommandObject implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Successfully object to saved: " + dimension.getLoadKey() + "/objects/" + name);
     }
 
-    @Decree(description = "Shift a selection in your looking direction", aliases = "-")
+    @Director(description = "Shift a selection in your looking direction", aliases = "-")
     public void shift(
             @Param(description = "The amount to shift by", defaultValue = "1")
             int amount
@@ -447,7 +447,7 @@ public class CommandObject implements DecreeExecutor {
         sender().playSound(Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
     }
 
-    @Decree(description = "Undo a number of pastes", aliases = "-")
+    @Director(description = "Undo a number of pastes", aliases = "-")
     public void undo(
             @Param(description = "The amount of pastes to undo", defaultValue = "1")
             int amount
@@ -458,7 +458,7 @@ public class CommandObject implements DecreeExecutor {
         sender().sendMessage(C.BLUE + "Reverted " + actualReverts + C.BLUE +" pastes!");
     }
 
-    @Decree(description = "Gets an object wand and grabs the current WorldEdit selection.", aliases = "we", origin = DecreeOrigin.PLAYER, studio = true)
+    @Director(description = "Gets an object wand and grabs the current WorldEdit selection.", aliases = "we", origin = DirectorOrigin.PLAYER, studio = true)
     public void we() {
         if (!Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) {
             sender().sendMessage(C.RED + "You can't get a WorldEdit selection without WorldEdit, you know.");
@@ -476,14 +476,14 @@ public class CommandObject implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "A fresh wand with your current WorldEdit selection on it!");
     }
 
-    @Decree(description = "Get an object wand", sync = true)
+    @Director(description = "Get an object wand", sync = true)
     public void wand() {
         player().getInventory().addItem(WandSVC.createWand());
         sender().playSound(Sound.ITEM_ARMOR_EQUIP_NETHERITE, 1f, 1.5f);
         sender().sendMessage(C.GREEN + "Poof! Good luck building!");
     }
 
-    @Decree(name = "x&y", description = "Autoselect up, down & out", sync = true)
+    @Director(name = "x&y", description = "Autoselect up, down & out", sync = true)
     public void xay() {
         if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage(C.YELLOW + "Hold your wand!");
@@ -534,7 +534,7 @@ public class CommandObject implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Auto-select complete!");
     }
 
-    @Decree(name = "x+y", description = "Autoselect up & out", sync = true)
+    @Director(name = "x+y", description = "Autoselect up & out", sync = true)
     public void xpy() {
         if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage(C.YELLOW + "Hold your wand!");

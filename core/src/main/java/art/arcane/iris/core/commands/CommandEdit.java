@@ -22,15 +22,15 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.engine.object.*;
 import art.arcane.iris.util.decree.DecreeExecutor;
-import art.arcane.volmlib.util.decree.DecreeOrigin;
-import art.arcane.volmlib.util.decree.annotations.Decree;
-import art.arcane.volmlib.util.decree.annotations.Param;
+import art.arcane.volmlib.util.director.DirectorOrigin;
+import art.arcane.volmlib.util.director.annotations.Director;
+import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.format.C;
 
 import java.awt.*;
 
 
-@Decree(name = "edit", origin = DecreeOrigin.PLAYER, studio = true, description = "Edit something")
+@Director(name = "edit", origin = DirectorOrigin.PLAYER, studio = true, description = "Edit something")
 public class CommandEdit implements DecreeExecutor {
 
     private boolean noStudio() {
@@ -60,7 +60,7 @@ public class CommandEdit implements DecreeExecutor {
     }
 
 
-    @Decree(description = "Edit the biome you specified", aliases = {"b"}, origin = DecreeOrigin.PLAYER)
+    @Director(description = "Edit the biome you specified", aliases = {"b"}, origin = DirectorOrigin.PLAYER)
     public void biome(@Param(contextual = false, description = "The biome to edit") IrisBiome biome) {
         if (noStudio()) {
             return;
@@ -78,7 +78,7 @@ public class CommandEdit implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Edit the region you specified", aliases = {"r"}, origin = DecreeOrigin.PLAYER)
+    @Director(description = "Edit the region you specified", aliases = {"r"}, origin = DirectorOrigin.PLAYER)
     public void region(@Param(contextual = false, description = "The region to edit") IrisRegion region) {
         if (noStudio()) {
             return;
@@ -96,7 +96,7 @@ public class CommandEdit implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Edit the dimension you specified", aliases = {"d"}, origin = DecreeOrigin.PLAYER)
+    @Director(description = "Edit the dimension you specified", aliases = {"d"}, origin = DirectorOrigin.PLAYER)
     public void dimension(@Param(contextual = false, description = "The dimension to edit") IrisDimension dimension) {
         if (noStudio()) {
             return;
@@ -114,7 +114,7 @@ public class CommandEdit implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Edit the cave file you specified", aliases = {"c"}, origin = DecreeOrigin.PLAYER)
+    @Director(description = "Edit the cave file you specified", aliases = {"c"}, origin = DirectorOrigin.PLAYER)
     public void cave(@Param(contextual = false, description = "The cave to edit") IrisCave cave) {
         if (noStudio()) {
             return;
@@ -132,7 +132,7 @@ public class CommandEdit implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Edit the structure file you specified", aliases = {"jigsawstructure", "structure"}, origin = DecreeOrigin.PLAYER)
+    @Director(description = "Edit the structure file you specified", aliases = {"jigsawstructure", "structure"}, origin = DirectorOrigin.PLAYER)
     public void jigsaw(@Param(contextual = false, description = "The jigsaw structure to edit") IrisJigsawStructure jigsaw) {
         if (noStudio()) {
             return;
@@ -150,7 +150,7 @@ public class CommandEdit implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Edit the pool file you specified", aliases = {"jigsawpool", "pool"}, origin = DecreeOrigin.PLAYER)
+    @Director(description = "Edit the pool file you specified", aliases = {"jigsawpool", "pool"}, origin = DirectorOrigin.PLAYER)
     public void jigsawPool(@Param(contextual = false, description = "The jigsaw pool to edit") IrisJigsawPool pool) {
         if (noStudio()) {
             return;
@@ -168,7 +168,7 @@ public class CommandEdit implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Edit the jigsaw piece file you specified", aliases = {"jigsawpiece", "piece"}, origin = DecreeOrigin.PLAYER)
+    @Director(description = "Edit the jigsaw piece file you specified", aliases = {"jigsawpiece", "piece"}, origin = DirectorOrigin.PLAYER)
     public void jigsawPiece(@Param(contextual = false, description = "The jigsaw piece to edit") IrisJigsawPiece piece) {
         if (noStudio()) {
             return;

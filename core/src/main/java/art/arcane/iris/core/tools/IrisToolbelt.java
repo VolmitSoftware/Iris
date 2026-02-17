@@ -30,6 +30,7 @@ import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
+import art.arcane.iris.util.scheduling.J;
 import art.arcane.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -40,6 +41,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Something you really want to wear if working on Iris. Shit gets pretty hectic down there.
@@ -48,6 +51,8 @@ import java.util.Map;
 public class IrisToolbelt {
     @ApiStatus.Internal
     public static Map<String, Boolean> toolbeltConfiguration = new HashMap<>();
+    private static final Map<String, AtomicInteger> worldMaintenanceDepth = new ConcurrentHashMap<>();
+    private static final Map<String, AtomicInteger> worldMaintenanceMantleBypassDepth = new ConcurrentHashMap<>();
 
     /**
      * Will find / download / search for the dimension or return null
@@ -215,7 +220,8 @@ public class IrisToolbelt {
      * @return the pregenerator job (already started)
      */
     public static PregeneratorJob pregenerate(PregenTask task, PregeneratorMethod method, Engine engine, boolean cached) {
-        return new PregeneratorJob(task, cached && engine != null ? new CachedPregenMethod(method, engine.getWorld().name()) : method, engine);
+        boolean useCachedWrapper = cached && engine != null && !J.isFolia();
+        return new PregeneratorJob(task, useCachedWrapper ? new CachedPregenMethod(method, engine.getWorld().name()) : method, engine);
     }
 
     /**
@@ -291,6 +297,71 @@ public class IrisToolbelt {
 
     public static boolean isStudio(World i) {
         return isIrisWorld(i) && access(i).isStudio();
+    }
+
+    public static void beginWorldMaintenance(World world, String reason) {
+        beginWorldMaintenance(world, reason, false);
+    }
+
+    public static void beginWorldMaintenance(World world, String reason, boolean bypassMantleStages) {
+        if (world == null) {
+            return;
+        }
+
+        String name = world.getName();
+        int depth = worldMaintenanceDepth.computeIfAbsent(name, k -> new AtomicInteger()).incrementAndGet();
+        if (bypassMantleStages) {
+            worldMaintenanceMantleBypassDepth.computeIfAbsent(name, k -> new AtomicInteger()).incrementAndGet();
+        }
+        Iris.info("World maintenance enter: " + name + " reason=" + reason + " depth=" + depth + " bypassMantle=" + bypassMantleStages);
+    }
+
+    public static void endWorldMaintenance(World world, String reason) {
+        if (world == null) {
+            return;
+        }
+
+        String name = world.getName();
+        AtomicInteger depthCounter = worldMaintenanceDepth.get(name);
+        if (depthCounter == null) {
+            return;
+        }
+
+        int depth = depthCounter.decrementAndGet();
+        if (depth <= 0) {
+            worldMaintenanceDepth.remove(name, depthCounter);
+            depth = 0;
+        }
+
+        AtomicInteger bypassCounter = worldMaintenanceMantleBypassDepth.get(name);
+        int bypassDepth = 0;
+        if (bypassCounter != null) {
+            bypassDepth = bypassCounter.decrementAndGet();
+            if (bypassDepth <= 0) {
+                worldMaintenanceMantleBypassDepth.remove(name, bypassCounter);
+                bypassDepth = 0;
+            }
+        }
+
+        Iris.info("World maintenance exit: " + name + " reason=" + reason + " depth=" + depth + " bypassMantleDepth=" + bypassDepth);
+    }
+
+    public static boolean isWorldMaintenanceActive(World world) {
+        if (world == null) {
+            return false;
+        }
+
+        AtomicInteger counter = worldMaintenanceDepth.get(world.getName());
+        return counter != null && counter.get() > 0;
+    }
+
+    public static boolean isWorldMaintenanceBypassingMantleStages(World world) {
+        if (world == null) {
+            return false;
+        }
+
+        AtomicInteger counter = worldMaintenanceMantleBypassDepth.get(world.getName());
+        return counter != null && counter.get() > 0;
     }
 
     public static void retainMantleDataForSlice(String className) {

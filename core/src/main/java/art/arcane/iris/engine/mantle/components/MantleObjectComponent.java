@@ -19,6 +19,8 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.Iris;
+import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.data.cache.Cache;
 import art.arcane.iris.engine.mantle.ComponentFlag;
 import art.arcane.iris.engine.mantle.EngineMantle;
@@ -39,6 +41,7 @@ import art.arcane.iris.util.matter.MatterStructurePOI;
 import art.arcane.iris.util.noise.CNG;
 import art.arcane.iris.util.noise.NoiseType;
 import art.arcane.iris.util.parallel.BurstExecutor;
+import art.arcane.iris.util.scheduling.J;
 import org.bukkit.util.BlockVector;
 
 import java.io.IOException;
@@ -55,12 +58,32 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     @Override
     public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+        boolean traceRegen = isRegenTraceThread();
         RNG rng = applyNoise(x, z, Cache.key(x, z) + seed());
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
         IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
-        placeObjects(writer, rng, x, z, biome, region);
+        if (traceRegen) {
+            Iris.info("Regen object layer start: chunk=" + x + "," + z
+                    + " biome=" + biome.getLoadKey()
+                    + " region=" + region.getLoadKey()
+                    + " biomePlacers=" + biome.getSurfaceObjects().size()
+                    + " regionPlacers=" + region.getSurfaceObjects().size());
+        }
+        ObjectPlacementSummary summary = placeObjects(writer, rng, x, z, biome, region, traceRegen);
+        if (traceRegen) {
+            Iris.info("Regen object layer done: chunk=" + x + "," + z
+                    + " biomePlacersChecked=" + summary.biomePlacersChecked()
+                    + " biomePlacersTriggered=" + summary.biomePlacersTriggered()
+                    + " regionPlacersChecked=" + summary.regionPlacersChecked()
+                    + " regionPlacersTriggered=" + summary.regionPlacersTriggered()
+                    + " objectAttempts=" + summary.objectAttempts()
+                    + " objectPlaced=" + summary.objectPlaced()
+                    + " objectRejected=" + summary.objectRejected()
+                    + " objectNull=" + summary.objectNull()
+                    + " objectErrors=" + summary.objectErrors());
+        }
     }
 
     private RNG applyNoise(int x, int z, long seed) {
@@ -69,12 +92,39 @@ public class MantleObjectComponent extends IrisMantleComponent {
     }
 
     @ChunkCoordinates
-    private void placeObjects(MantleWriter writer, RNG rng, int x, int z, IrisBiome biome, IrisRegion region) {
+    private ObjectPlacementSummary placeObjects(MantleWriter writer, RNG rng, int x, int z, IrisBiome biome, IrisRegion region, boolean traceRegen) {
+        int biomeChecked = 0;
+        int biomeTriggered = 0;
+        int regionChecked = 0;
+        int regionTriggered = 0;
+        int attempts = 0;
+        int placed = 0;
+        int rejected = 0;
+        int nullObjects = 0;
+        int errors = 0;
+
         for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
-            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
+            biomeChecked++;
+            boolean chance = rng.chance(i.getChance() + rng.d(-0.005, 0.005));
+            if (traceRegen) {
+                Iris.info("Regen object placer chance: chunk=" + x + "," + z
+                        + " scope=biome"
+                        + " chanceResult=" + chance
+                        + " chanceBase=" + i.getChance()
+                        + " densityMid=" + i.getDensity()
+                        + " objects=" + i.getPlace().size());
+            }
+            if (chance) {
+                biomeTriggered++;
                 try {
-                    placeObject(writer, rng, x << 4, z << 4, i);
+                    ObjectPlacementResult result = placeObject(writer, rng, x << 4, z << 4, i, traceRegen, x, z, "biome");
+                    attempts += result.attempts();
+                    placed += result.placed();
+                    rejected += result.rejected();
+                    nullObjects += result.nullObjects();
+                    errors += result.errors();
                 } catch (Throwable e) {
+                    errors++;
                     Iris.reportError(e);
                     Iris.error("Failed to place objects in the following biome: " + biome.getName());
                     Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
@@ -85,10 +135,27 @@ public class MantleObjectComponent extends IrisMantleComponent {
         }
 
         for (IrisObjectPlacement i : region.getSurfaceObjects()) {
-            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
+            regionChecked++;
+            boolean chance = rng.chance(i.getChance() + rng.d(-0.005, 0.005));
+            if (traceRegen) {
+                Iris.info("Regen object placer chance: chunk=" + x + "," + z
+                        + " scope=region"
+                        + " chanceResult=" + chance
+                        + " chanceBase=" + i.getChance()
+                        + " densityMid=" + i.getDensity()
+                        + " objects=" + i.getPlace().size());
+            }
+            if (chance) {
+                regionTriggered++;
                 try {
-                    placeObject(writer, rng, x << 4, z << 4, i);
+                    ObjectPlacementResult result = placeObject(writer, rng, x << 4, z << 4, i, traceRegen, x, z, "region");
+                    attempts += result.attempts();
+                    placed += result.placed();
+                    rejected += result.rejected();
+                    nullObjects += result.nullObjects();
+                    errors += result.errors();
                 } catch (Throwable e) {
+                    errors++;
                     Iris.reportError(e);
                     Iris.error("Failed to place objects in the following region: " + region.getName());
                     Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
@@ -97,25 +164,114 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 }
             }
         }
+
+        return new ObjectPlacementSummary(
+                biomeChecked,
+                biomeTriggered,
+                regionChecked,
+                regionTriggered,
+                attempts,
+                placed,
+                rejected,
+                nullObjects,
+                errors
+        );
     }
 
     @BlockCoordinates
-    private void placeObject(MantleWriter writer, RNG rng, int x, int z, IrisObjectPlacement objectPlacement) {
-        for (int i = 0; i < objectPlacement.getDensity(rng, x, z, getData()); i++) {
+    private ObjectPlacementResult placeObject(
+            MantleWriter writer,
+            RNG rng,
+            int x,
+            int z,
+            IrisObjectPlacement objectPlacement,
+            boolean traceRegen,
+            int chunkX,
+            int chunkZ,
+            String scope
+    ) {
+        int attempts = 0;
+        int placed = 0;
+        int rejected = 0;
+        int nullObjects = 0;
+        int errors = 0;
+        int density = objectPlacement.getDensity(rng, x, z, getData());
+
+        for (int i = 0; i < density; i++) {
+            attempts++;
             IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
             if (v == null) {
-                return;
+                nullObjects++;
+                if (traceRegen) {
+                    Iris.warn("Regen object placement null object: chunk=" + chunkX + "," + chunkZ
+                            + " scope=" + scope
+                            + " densityIndex=" + i
+                            + " density=" + density
+                            + " placementKeys=" + objectPlacement.getPlace().toString(","));
+                }
+                continue;
             }
             int xx = rng.i(x, x + 15);
             int zz = rng.i(z, z + 15);
             int id = rng.i(0, Integer.MAX_VALUE);
-            v.place(xx, -1, zz, writer, objectPlacement, rng, (b, data) -> {
-                writer.setData(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
-                if (objectPlacement.isDolphinTarget() && objectPlacement.isUnderwater() && B.isStorageChest(data)) {
-                    writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
+            try {
+                int result = v.place(xx, -1, zz, writer, objectPlacement, rng, (b, data) -> {
+                    writer.setData(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
+                    if (objectPlacement.isDolphinTarget() && objectPlacement.isUnderwater() && B.isStorageChest(data)) {
+                        writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
+                    }
+                }, null, getData());
+
+                if (result >= 0) {
+                    placed++;
+                } else {
+                    rejected++;
                 }
-            }, null, getData());
+
+                if (traceRegen) {
+                    Iris.info("Regen object placement result: chunk=" + chunkX + "," + chunkZ
+                            + " scope=" + scope
+                            + " object=" + v.getLoadKey()
+                            + " resultY=" + result
+                            + " px=" + xx
+                            + " pz=" + zz
+                            + " densityIndex=" + i
+                            + " density=" + density);
+                }
+            } catch (Throwable e) {
+                errors++;
+                Iris.reportError(e);
+                Iris.error("Regen object placement exception: chunk=" + chunkX + "," + chunkZ
+                        + " scope=" + scope
+                        + " object=" + v.getLoadKey()
+                        + " densityIndex=" + i
+                        + " density=" + density
+                        + " error=" + e.getClass().getSimpleName() + ":" + e.getMessage());
+            }
         }
+
+        return new ObjectPlacementResult(attempts, placed, rejected, nullObjects, errors);
+    }
+
+    private boolean isRegenTraceThread() {
+        return Thread.currentThread().getName().startsWith("Iris-Regen-")
+                && IrisSettings.get().getGeneral().isDebug();
+    }
+
+    private record ObjectPlacementSummary(
+            int biomePlacersChecked,
+            int biomePlacersTriggered,
+            int regionPlacersChecked,
+            int regionPlacersTriggered,
+            int objectAttempts,
+            int objectPlaced,
+            int objectRejected,
+            int objectNull,
+            int objectErrors
+    ) {
+    }
+
+    private record ObjectPlacementResult(int attempts, int placed, int rejected, int nullObjects, int errors) {
     }
 
     @BlockCoordinates
@@ -182,6 +338,15 @@ public class MantleObjectComponent extends IrisMantleComponent {
         }
 
         BurstExecutor e = getEngineMantle().getTarget().getBurster().burst(objects.size());
+        boolean maintenanceFolia = false;
+        if (J.isFolia()) {
+            var world = getEngineMantle().getEngine().getWorld().realWorld();
+            maintenanceFolia = world != null && IrisToolbelt.isWorldMaintenanceActive(world);
+        }
+        if (maintenanceFolia) {
+            Iris.info("MantleObjectComponent radius scan using single-threaded mode during maintenance regen.");
+            e.setMulticore(false);
+        }
         KMap<String, BlockVector> sizeCache = new KMap<>();
         for (String i : objects) {
             e.queue(() -> {

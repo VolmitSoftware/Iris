@@ -28,9 +28,9 @@ import art.arcane.iris.engine.object.IrisJigsawStructure;
 import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.iris.engine.object.IrisPosition;
 import art.arcane.iris.util.decree.DecreeExecutor;
-import art.arcane.volmlib.util.decree.DecreeOrigin;
-import art.arcane.volmlib.util.decree.annotations.Decree;
-import art.arcane.volmlib.util.decree.annotations.Param;
+import art.arcane.volmlib.util.director.DirectorOrigin;
+import art.arcane.volmlib.util.director.annotations.Director;
+import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.decree.specialhandlers.ObjectHandler;
 import art.arcane.iris.util.format.C;
 import art.arcane.volmlib.util.format.Form;
@@ -40,9 +40,9 @@ import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
 import java.io.File;
 
-@Decree(name = "jigsaw", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris jigsaw commands")
+@Director(name = "jigsaw", origin = DirectorOrigin.PLAYER, studio = true, description = "Iris jigsaw commands")
 public class CommandJigsaw implements DecreeExecutor {
-    @Decree(description = "Edit a jigsaw piece")
+    @Director(description = "Edit a jigsaw piece")
     public void edit(
             @Param(description = "The jigsaw piece to edit")
             IrisJigsawPiece piece
@@ -51,7 +51,7 @@ public class CommandJigsaw implements DecreeExecutor {
         new JigsawEditor(player(), piece, IrisData.loadAnyObject(piece.getObject(), data()), dest);
     }
 
-    @Decree(description = "Place a jigsaw structure")
+    @Director(description = "Place a jigsaw structure")
     public void place(
             @Param(description = "The jigsaw structure to place")
             IrisJigsawStructure structure
@@ -69,7 +69,7 @@ public class CommandJigsaw implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Create a jigsaw piece")
+    @Director(description = "Create a jigsaw piece")
     public void create(
             @Param(description = "The name of the jigsaw piece")
             String piece,
@@ -93,7 +93,7 @@ public class CommandJigsaw implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Remember to use /iris jigsaw save");
     }
 
-    @Decree(description = "Exit the current jigsaw editor")
+    @Director(description = "Exit the current jigsaw editor")
     public void exit() {
         JigsawEditor editor = JigsawEditor.editors.get(player());
 
@@ -106,7 +106,7 @@ public class CommandJigsaw implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Exited Jigsaw Editor");
     }
 
-    @Decree(description = "Save & Exit the current jigsaw editor")
+    @Director(description = "Save & Exit the current jigsaw editor")
     public void save() {
         JigsawEditor editor = JigsawEditor.editors.get(player());
 

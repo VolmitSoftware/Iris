@@ -30,7 +30,7 @@ import art.arcane.iris.util.format.C;
 import art.arcane.iris.util.plugin.IrisService;
 import art.arcane.iris.util.plugin.VolmitSender;
 import art.arcane.iris.util.scheduling.J;
-import art.arcane.volmlib.util.director.compat.DirectorDecreeEngineFactory;
+import art.arcane.volmlib.util.director.compat.DirectorEngineFactory;
 import art.arcane.volmlib.util.director.context.DirectorContextRegistry;
 import art.arcane.volmlib.util.director.runtime.DirectorExecutionMode;
 import art.arcane.volmlib.util.director.runtime.DirectorExecutionResult;
@@ -94,7 +94,7 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
     }
 
     public DirectorRuntimeEngine getDirector() {
-        return directorCache.aquireNastyPrint(() -> DirectorDecreeEngineFactory.create(
+        return directorCache.aquireNastyPrint(() -> DirectorEngineFactory.create(
                 new CommandIris(),
                 null,
                 buildDirectorContexts(),

@@ -18,9 +18,9 @@
 
 package art.arcane.iris.util.decree.handlers;
 
-import art.arcane.volmlib.util.decree.handlers.base.BukkitPlayerHandlerBase;
-import art.arcane.iris.util.decree.DecreeParameterHandler;
+import art.arcane.volmlib.util.director.handlers.base.BukkitPlayerHandlerBase;
+import art.arcane.iris.util.decree.DirectorParameterHandler;
 import org.bukkit.entity.Player;
 
-public class PlayerHandler extends BukkitPlayerHandlerBase implements DecreeParameterHandler<Player> {
+public class PlayerHandler extends BukkitPlayerHandlerBase implements DirectorParameterHandler<Player> {
 }

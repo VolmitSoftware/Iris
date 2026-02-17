@@ -20,9 +20,11 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.core.gui.PregeneratorJob;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.service.ExternalDataSVC;
+import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.data.cache.Cache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedWorldManager;
@@ -62,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -80,6 +83,10 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private final ChronoLatch chunkDiscovery;
     private final KMap<Long, Future<?>> cleanup = new KMap<>();
     private final ScheduledExecutorService cleanupService;
+    private final Set<Long> mantleWarmupQueue = ConcurrentHashMap.newKeySet();
+    private final Set<Long> markerFlagQueue = ConcurrentHashMap.newKeySet();
+    private final Set<Long> discoveredFlagQueue = ConcurrentHashMap.newKeySet();
+    private final Set<Long> markerScanQueue = ConcurrentHashMap.newKeySet();
     private double energy = 25;
     private int entityCount = 0;
     private long charge = 0;
@@ -190,9 +197,12 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     }
 
     private void discoverChunks() {
-        var mantle = getEngine().getMantle().getMantle();
         World world = getEngine().getWorld().realWorld();
         if (world == null) {
+            return;
+        }
+
+        if (isPregenActiveForThisWorld()) {
             return;
         }
 
@@ -208,7 +218,9 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     int radius = 1;
                     for (int x = -radius; x <= radius; x++) {
                         for (int z = -radius; z <= radius; z++) {
-                            mantle.getChunk(centerX + x, centerZ + z).flag(MantleFlag.DISCOVERED, true);
+                            int chunkX = centerX + x;
+                            int chunkZ = centerZ + z;
+                            raiseDiscoveredChunkFlag(world, chunkX, chunkZ);
                         }
                     }
                 });
@@ -216,9 +228,42 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         });
     }
 
+    private void raiseDiscoveredChunkFlag(World world, int chunkX, int chunkZ) {
+        if (world == null) {
+            return;
+        }
+
+        if (!J.isFolia()) {
+            getMantle().getChunk(chunkX, chunkZ).flag(MantleFlag.DISCOVERED, true);
+            return;
+        }
+
+        long key = Cache.key(chunkX, chunkZ);
+        if (!discoveredFlagQueue.add(key)) {
+            return;
+        }
+
+        J.a(() -> {
+            try {
+                Mantle mantle = getMantle();
+                if (!mantle.hasFlag(chunkX, chunkZ, MantleFlag.DISCOVERED)) {
+                    mantle.flag(chunkX, chunkZ, MantleFlag.DISCOVERED, true);
+                }
+            } catch (Throwable e) {
+                Iris.reportError(e);
+            } finally {
+                discoveredFlagQueue.remove(key);
+            }
+        });
+    }
+
     private void updateChunks() {
         World world = getEngine().getWorld().realWorld();
         if (world == null) {
+            return;
+        }
+
+        if (isPregenActiveForThisWorld()) {
             return;
         }
 
@@ -253,6 +298,10 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         Chunk chunk = world.getChunkAt(chunkX, chunkZ);
 
         if (IrisSettings.get().getWorld().isPostLoadBlockUpdates()) {
+            if (J.isFolia() && !getMantle().isChunkLoaded(chunkX, chunkZ)) {
+                warmupMantleChunkAsync(chunkX, chunkZ);
+                return;
+            }
             getEngine().updateChunk(chunk);
         }
 
@@ -260,7 +309,12 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             return;
         }
 
-        getMantle().raiseFlag(chunkX, chunkZ, MantleFlag.INITIAL_SPAWNED_MARKER, () -> {
+        if (!J.isFolia() && !getMantle().isChunkLoaded(chunkX, chunkZ)) {
+            warmupMantleChunkAsync(chunkX, chunkZ);
+            return;
+        }
+
+        raiseInitialSpawnMarkerFlag(world, chunkX, chunkZ, () -> {
             int delay = RNG.r.i(5, 200);
             J.runRegion(world, chunkX, chunkZ, () -> {
                 if (!world.isChunkLoaded(chunkX, chunkZ)) {
@@ -269,20 +323,83 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 spawnIn(world.getChunkAt(chunkX, chunkZ), true);
             }, delay);
 
-            getSpawnersFromMarkers(chunk).forEach((blockf, spawners) -> {
-                if (spawners.isEmpty()) {
+            Chunk markerChunk = world.getChunkAt(chunkX, chunkZ);
+            forEachMarkerSpawner(markerChunk, (block, spawners) -> {
+                IrisSpawner s = new KList<>(spawners).getRandom();
+                if (s == null) {
                     return;
                 }
-
-                IrisPosition block = new IrisPosition(blockf.getX(), blockf.getY() + getEngine().getWorld().minHeight(), blockf.getZ());
-                IrisSpawner s = new KList<>(spawners).getRandom();
                 spawn(block, s, true);
             });
         });
     }
 
+    private void raiseInitialSpawnMarkerFlag(World world, int chunkX, int chunkZ, Runnable onFirstRaise) {
+        if (world == null || onFirstRaise == null) {
+            return;
+        }
+
+        if (!J.isFolia()) {
+            getMantle().raiseFlag(chunkX, chunkZ, MantleFlag.INITIAL_SPAWNED_MARKER, onFirstRaise);
+            return;
+        }
+
+        long key = Cache.key(chunkX, chunkZ);
+        if (!markerFlagQueue.add(key)) {
+            return;
+        }
+
+        J.a(() -> {
+            boolean raised = false;
+            try {
+                Mantle mantle = getMantle();
+                if (!mantle.hasFlag(chunkX, chunkZ, MantleFlag.INITIAL_SPAWNED_MARKER)) {
+                    mantle.flag(chunkX, chunkZ, MantleFlag.INITIAL_SPAWNED_MARKER, true);
+                    raised = true;
+                }
+            } catch (Throwable e) {
+                Iris.reportError(e);
+            } finally {
+                markerFlagQueue.remove(key);
+            }
+
+            if (!raised) {
+                return;
+            }
+
+            J.runRegion(world, chunkX, chunkZ, () -> {
+                if (!world.isChunkLoaded(chunkX, chunkZ) || !Chunks.isSafe(world, chunkX, chunkZ)) {
+                    return;
+                }
+                onFirstRaise.run();
+            });
+        });
+    }
+
+    private void warmupMantleChunkAsync(int chunkX, int chunkZ) {
+        long key = Cache.key(chunkX, chunkZ);
+        if (!mantleWarmupQueue.add(key)) {
+            return;
+        }
+
+        J.a(() -> {
+            try {
+                getMantle().getChunk(chunkX, chunkZ);
+            } catch (Throwable e) {
+                Iris.reportError(e);
+            } finally {
+                mantleWarmupQueue.remove(key);
+            }
+        });
+    }
+
     private boolean onAsyncTick() {
         if (getEngine().isClosed()) {
+            return false;
+        }
+
+        if (isPregenActiveForThisWorld()) {
+            J.sleep(500);
             return false;
         }
 
@@ -333,6 +450,24 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
         energy -= (actuallySpawned / 2D);
         return actuallySpawned > 0;
+    }
+
+    private boolean isPregenActiveForThisWorld() {
+        World world = getEngine().getWorld().realWorld();
+        if (world == null) {
+            return false;
+        }
+
+        if (IrisToolbelt.isWorldMaintenanceActive(world)) {
+            return true;
+        }
+
+        PregeneratorJob job = PregeneratorJob.getInstance();
+        if (job == null) {
+            return false;
+        }
+
+        return job.targetsWorld(world);
     }
 
     private Chunk[] getLoadedChunksSnapshot(World world) {
@@ -396,15 +531,14 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         if (IrisSettings.get().getWorld().isMarkerEntitySpawningSystem()) {
-            getSpawnersFromMarkers(c).forEach((blockf, spawners) -> {
-                if (spawners.isEmpty()) {
+            forEachMarkerSpawner(c, (block, spawners) -> {
+                IrisSpawner s = new KList<>(spawners).getRandom();
+                if (s == null) {
                     return;
                 }
 
-                IrisPosition block = new IrisPosition(blockf.getX(), blockf.getY() + getEngine().getWorld().minHeight(), blockf.getZ());
-                IrisSpawner s = new KList<>(spawners).getRandom();
                 spawn(block, s, false);
-                J.runRegion(c.getWorld(), c.getX(), c.getZ(), () -> getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.INITIAL_SPAWNED_MARKER,
+                J.runRegion(c.getWorld(), c.getX(), c.getZ(), () -> raiseInitialSpawnMarkerFlag(c.getWorld(), c.getX(), c.getZ(),
                         () -> spawn(block, s, true)));
             });
         }
@@ -530,21 +664,42 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             //INMS.get().injectBiomesFromMantle(e, getMantle());
 
             if (!IrisSettings.get().getGenerator().earlyCustomBlocks) return;
+            if (isPregenActiveForThisWorld()) return;
+
+            World world = e.getWorld();
+            int chunkX = e.getX();
+            int chunkZ = e.getZ();
+            int minY = getTarget().getWorld().minHeight();
+            int delay = RNG.r.i(20, 60);
             Iris.tickets.addTicket(e);
-            J.s(() -> {
-                var chunk = getMantle().getChunk(e).use();
-                int minY = getTarget().getWorld().minHeight();
+
+            Runnable applyCustomBlocks = () -> {
+                if (J.isFolia() && (!world.isChunkLoaded(chunkX, chunkZ) || !Chunks.isSafe(world, chunkX, chunkZ))) {
+                    Iris.tickets.removeTicket(e);
+                    return;
+                }
+
+                Chunk chunkRef = world.getChunkAt(chunkX, chunkZ);
+                var mantleChunk = getMantle().getChunk(chunkRef).use();
                 try {
-                    chunk.raiseFlagUnchecked(MantleFlag.CUSTOM, () -> {
-                        chunk.iterate(Identifier.class, (x, y, z, v) -> {
-                            Iris.service(ExternalDataSVC.class).processUpdate(getEngine(), e.getBlock(x & 15, y + minY, z & 15), v);
+                    mantleChunk.raiseFlagUnchecked(MantleFlag.CUSTOM, () -> {
+                        mantleChunk.iterate(Identifier.class, (x, y, z, v) -> {
+                            Iris.service(ExternalDataSVC.class).processUpdate(getEngine(), chunkRef.getBlock(x & 15, y + minY, z & 15), v);
                         });
                     });
                 } finally {
-                    chunk.release();
+                    mantleChunk.release();
                     Iris.tickets.removeTicket(e);
                 }
-            }, RNG.r.i(20, 60));
+            };
+
+            if (J.isFolia()) {
+                if (!J.runRegion(world, chunkX, chunkZ, applyCustomBlocks, delay)) {
+                    Iris.tickets.removeTicket(e);
+                }
+            } else {
+                J.s(applyCustomBlocks, delay);
+            }
         }
     }
 
@@ -643,6 +798,14 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     public Map<IrisPosition, KSet<IrisSpawner>> getSpawnersFromMarkers(Chunk c) {
         Map<IrisPosition, KSet<IrisSpawner>> p = new KMap<>();
         Set<IrisPosition> b = new KSet<>();
+
+        if (J.isFolia()) {
+            if (!getMantle().isChunkLoaded(c.getX(), c.getZ())) {
+                warmupMantleChunkAsync(c.getX(), c.getZ());
+            }
+            return p;
+        }
+
         getMantle().iterateChunk(c.getX(), c.getZ(), MatterMarker.class, (x, y, z, t) -> {
             if (t.getTag().equals("cave_floor") || t.getTag().equals("cave_ceiling")) {
                 return;
@@ -682,6 +845,128 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         return p;
+    }
+
+    private void forEachMarkerSpawner(Chunk c, BiConsumer<IrisPosition, KSet<IrisSpawner>> consumer) {
+        if (c == null || consumer == null) {
+            return;
+        }
+
+        if (!J.isFolia()) {
+            int minY = getEngine().getWorld().minHeight();
+            getSpawnersFromMarkers(c).forEach((relative, spawners) -> {
+                if (spawners.isEmpty()) {
+                    return;
+                }
+
+                consumer.accept(new IrisPosition(relative.getX(), relative.getY() + minY, relative.getZ()), spawners);
+            });
+            return;
+        }
+
+        int chunkX = c.getX();
+        int chunkZ = c.getZ();
+        World world = c.getWorld();
+        long key = Cache.key(chunkX, chunkZ);
+        if (!markerScanQueue.add(key)) {
+            return;
+        }
+
+        J.a(() -> {
+            try {
+                Map<IrisPosition, MarkerSpawnData> markerData = collectMarkerSpawnData(chunkX, chunkZ);
+                if (markerData.isEmpty()) {
+                    return;
+                }
+
+                J.runRegion(world, chunkX, chunkZ, () -> {
+                    if (!world.isChunkLoaded(chunkX, chunkZ) || !Chunks.isSafe(world, chunkX, chunkZ)) {
+                        return;
+                    }
+
+                    Chunk chunk = world.getChunkAt(chunkX, chunkZ);
+                    int minY = getEngine().getWorld().minHeight();
+                    markerData.forEach((relative, data) -> {
+                        if (data.spawners.isEmpty()) {
+                            return;
+                        }
+
+                        if (isMarkerObstructed(chunk, relative, data.requiresEmptyAbove)) {
+                            removeMarkerAsync(relative);
+                            return;
+                        }
+
+                        consumer.accept(new IrisPosition(relative.getX(), relative.getY() + minY, relative.getZ()), data.spawners);
+                    });
+                });
+            } catch (Throwable e) {
+                Iris.reportError(e);
+            } finally {
+                markerScanQueue.remove(key);
+            }
+        });
+    }
+
+    private Map<IrisPosition, MarkerSpawnData> collectMarkerSpawnData(int chunkX, int chunkZ) {
+        Map<IrisPosition, MarkerSpawnData> markerData = new KMap<>();
+        getMantle().iterateChunk(chunkX, chunkZ, MatterMarker.class, (x, y, z, t) -> {
+            if (t.getTag().equals("cave_floor") || t.getTag().equals("cave_ceiling")) {
+                return;
+            }
+
+            IrisMarker mark = getData().getMarkerLoader().load(t.getTag());
+            if (mark == null) {
+                return;
+            }
+
+            IrisPosition position = new IrisPosition((chunkX << 4) + x, y, (chunkZ << 4) + z);
+            MarkerSpawnData data = markerData.computeIfAbsent(position, k -> new MarkerSpawnData());
+            data.requiresEmptyAbove = data.requiresEmptyAbove || mark.isEmptyAbove();
+
+            for (String i : mark.getSpawners()) {
+                IrisSpawner spawner = getData().getSpawnerLoader().load(i);
+                if (spawner == null) {
+                    Iris.error("Cannot load spawner: " + i + " for marker on " + getName());
+                    continue;
+                }
+                spawner.setReferenceMarker(mark);
+                data.spawners.add(spawner);
+            }
+        });
+
+        return markerData;
+    }
+
+    private boolean isMarkerObstructed(Chunk chunk, IrisPosition relative, boolean requiresEmptyAbove) {
+        if (!requiresEmptyAbove) {
+            return false;
+        }
+
+        int minY = getEngine().getWorld().minHeight();
+        int markerY = relative.getY() + minY;
+        if (markerY + 2 >= chunk.getWorld().getMaxHeight()) {
+            return true;
+        }
+
+        int localX = relative.getX() & 15;
+        int localZ = relative.getZ() & 15;
+        return chunk.getBlock(localX, markerY + 1, localZ).getBlockData().getMaterial().isSolid()
+                || chunk.getBlock(localX, markerY + 2, localZ).getBlockData().getMaterial().isSolid();
+    }
+
+    private void removeMarkerAsync(IrisPosition marker) {
+        J.a(() -> {
+            try {
+                getMantle().remove(marker.getX(), marker.getY(), marker.getZ(), MatterMarker.class);
+            } catch (Throwable e) {
+                Iris.reportError(e);
+            }
+        });
+    }
+
+    private static final class MarkerSpawnData {
+        private final KSet<IrisSpawner> spawners = new KSet<>();
+        private boolean requiresEmptyAbove;
     }
 
     @Override

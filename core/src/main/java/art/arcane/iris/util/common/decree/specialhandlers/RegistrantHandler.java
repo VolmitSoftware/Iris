@@ -4,14 +4,14 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.util.decree.DecreeParameterHandler;
-import art.arcane.volmlib.util.decree.exceptions.DecreeParsingException;
+import art.arcane.iris.util.decree.DirectorParameterHandler;
+import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
 
 import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 
-public abstract class RegistrantHandler<T extends IrisRegistrant> implements DecreeParameterHandler<T> {
+public abstract class RegistrantHandler<T extends IrisRegistrant> implements DirectorParameterHandler<T> {
     private final Class<T> type;
     private final String name;
     private final boolean nullable;
@@ -54,19 +54,19 @@ public abstract class RegistrantHandler<T extends IrisRegistrant> implements Dec
     }
 
     @Override
-    public T parse(String in, boolean force) throws DecreeParsingException {
+    public T parse(String in, boolean force) throws DirectorParsingException {
         if (in.equals("null") && nullable) {
             return null;
         }
         KList<T> options = getPossibilities(in);
         if (options.isEmpty()) {
-            throw new DecreeParsingException("Unable to find " + name + " \"" + in + "\"");
+            throw new DirectorParsingException("Unable to find " + name + " \"" + in + "\"");
         }
 
         return options.stream()
                 .filter((i) -> toString(i).equalsIgnoreCase(in))
                 .findFirst()
-                .orElseThrow(() -> new DecreeParsingException("Unable to filter which " + name + " \"" + in + "\""));
+                .orElseThrow(() -> new DirectorParsingException("Unable to filter which " + name + " \"" + in + "\""));
     }
 
     @Override

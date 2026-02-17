@@ -30,6 +30,7 @@ import art.arcane.iris.core.nms.container.Pair;
 import art.arcane.iris.core.project.IrisProject;
 import art.arcane.iris.core.scripting.environment.EngineEnvironment;
 import art.arcane.iris.core.service.PreservationSVC;
+import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.framework.*;
 import art.arcane.iris.engine.mantle.EngineMantle;
@@ -55,6 +56,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
@@ -499,7 +501,11 @@ public class IrisEngine implements Engine {
                 mode.generate(x, z, blocks, vbiomes, multicore);
             }
 
-            getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.REAL, true);
+            World realWorld = getWorld().realWorld();
+            boolean skipRealFlag = J.isFolia() && realWorld != null && IrisToolbelt.isWorldMaintenanceBypassingMantleStages(realWorld);
+            if (!skipRealFlag) {
+                getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.REAL, true);
+            }
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();
 

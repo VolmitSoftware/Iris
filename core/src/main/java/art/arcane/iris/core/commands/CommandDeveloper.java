@@ -34,6 +34,7 @@ import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisPosition;
+import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.engine.object.annotations.Snippet;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
@@ -41,21 +42,23 @@ import art.arcane.iris.util.context.IrisContext;
 import art.arcane.iris.engine.object.IrisJigsawStructurePlacement;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.decree.DecreeExecutor;
-import art.arcane.volmlib.util.decree.DecreeOrigin;
-import art.arcane.volmlib.util.decree.annotations.Decree;
-import art.arcane.volmlib.util.decree.annotations.Param;
+import art.arcane.volmlib.util.director.DirectorOrigin;
+import art.arcane.volmlib.util.director.annotations.Director;
+import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.decree.specialhandlers.NullableDimensionHandler;
 import art.arcane.iris.util.format.C;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.io.CountingDataInputStream;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.iris.util.mantle.TectonicPlate;
+import art.arcane.iris.util.math.Position2;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.iris.util.matter.Matter;
 import art.arcane.iris.util.nbt.mca.MCAFile;
 import art.arcane.iris.util.nbt.mca.MCAUtil;
 import art.arcane.iris.util.parallel.MultiBurst;
 import art.arcane.iris.util.plugin.VolmitSender;
+import art.arcane.iris.util.scheduling.J;
 import art.arcane.iris.util.scheduling.jobs.Job;
 import lombok.SneakyThrows;
 import net.jpountz.lz4.LZ4BlockInputStream;
@@ -72,38 +75,41 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.nio.file.Files;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-@Decree(name = "Developer", origin = DecreeOrigin.BOTH, description = "Iris World Manager", aliases = {"dev"})
+@Director(name = "Developer", origin = DirectorOrigin.BOTH, description = "Iris World Manager", aliases = {"dev"})
 public class CommandDeveloper implements DecreeExecutor {
+    private static final long DELETE_CHUNK_HEARTBEAT_MS = 5000L;
+    private static final int DELETE_CHUNK_MAX_ATTEMPTS = 2;
+    private static final int DELETE_CHUNK_STACK_LIMIT = 20;
+    private static final Set<String> ACTIVE_DELETE_CHUNK_WORLDS = ConcurrentHashMap.newKeySet();
     private CommandTurboPregen turboPregen;
     private CommandLazyPregen lazyPregen;
 
-    @Decree(description = "Get Loaded TectonicPlates Count", origin = DecreeOrigin.BOTH, sync = true)
+    @Director(description = "Get Loaded TectonicPlates Count", origin = DirectorOrigin.BOTH, sync = true)
     public void EngineStatus() {
         Iris.service(IrisEngineSVC.class)
                 .engineStatus(sender());
     }
 
-    @Decree(description = "Send a test exception to sentry")
+    @Director(description = "Send a test exception to sentry")
     public void Sentry() {
         Engine engine = engine();
         if (engine != null) IrisContext.getOr(engine);
         Iris.reportError(new Exception("This is a test"));
     }
 
-    @Decree(description = "QOL command to open an overworld studio world", sync = true)
+    @Director(description = "QOL command to open an overworld studio world", sync = true)
     public void so() {
         sender().sendMessage(C.GREEN + "Opening studio for the \"Overworld\" pack (seed: 1337)");
         Iris.service(StudioSVC.class).open(sender(), 1337, "overworld");
     }
 
-    @Decree(description = "Set aura spins")
+    @Director(description = "Set aura spins")
     public void aura(
             @Param(description = "The h color value", defaultValue = "-20")
             int h,
@@ -119,7 +125,7 @@ public class CommandDeveloper implements DecreeExecutor {
         sender().sendMessage("<rainbow>Aura Spins updated to " + h + " " + s + " " + b);
     }
 
-    @Decree(description = "Bitwise calculations")
+    @Director(description = "Bitwise calculations")
     public void bitwise(
             @Param(description = "The first value to run calculations on")
             int value1,
@@ -144,7 +150,7 @@ public class CommandDeveloper implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "" + value1 + " " + C.GREEN + operator.replaceAll("<", "≺").replaceAll(">", "≻").replaceAll("%", "％") + " " + C.GREEN + value2 + C.GREEN + " returns " + C.GREEN + v);
     }
 
-    @Decree(description = "Update the pack of a world (UNSAFE!)", name = "update-world", aliases = "^world")
+    @Director(description = "Update the pack of a world (UNSAFE!)", name = "update-world", aliases = "^world")
     public void updateWorld(
             @Param(description = "The world to update", contextual = true)
             World world,
@@ -180,7 +186,7 @@ public class CommandDeveloper implements DecreeExecutor {
         Iris.service(StudioSVC.class).installIntoWorld(sender(), pack.getLoadKey(), folder);
     }
 
-    @Decree(description = "Dev cmd to fix all the broken objects caused by faulty shrinkwarp")
+    @Director(description = "Dev cmd to fix all the broken objects caused by faulty shrinkwarp")
     public void fixObjects(
             @Param(aliases = "dimension", description = "The dimension type to create the world with")
             IrisDimension type
@@ -298,7 +304,7 @@ public class CommandDeveloper implements DecreeExecutor {
         });
     }
 
-    @Decree(description = "Test")
+    @Director(description = "Test")
     public void mantle(@Param(defaultValue = "false") boolean plate, @Param(defaultValue = "21474836474") String name) throws Throwable {
         var base = Iris.instance.getDataFile("dump", "pv." + name + ".ttp.lz4b.bin");
         var section = Iris.instance.getDataFile("dump", "pv." + name + ".section.bin");
@@ -325,7 +331,7 @@ public class CommandDeveloper implements DecreeExecutor {
         Files.write(target.toPath(), bytes);
     }
 
-    @Decree(description = "Test")
+    @Director(description = "Test")
     public void dumpThreads() {
         try {
             File fi = Iris.instance.getDataFile("dump", "td-" + new java.sql.Date(M.ms()) + ".txt");
@@ -362,7 +368,7 @@ public class CommandDeveloper implements DecreeExecutor {
     }
 
     @SneakyThrows
-    @Decree(description = "Generate Iris structures for all loaded datapack structures")
+    @Director(description = "Generate Iris structures for all loaded datapack structures")
     public void generateStructures(
             @Param(description = "The pack to add the generated structures to", aliases = "pack", defaultValue = "null", customHandler = NullableDimensionHandler.class)
             IrisDimension dimension,
@@ -485,7 +491,7 @@ public class CommandDeveloper implements DecreeExecutor {
         data.hotloaded();
     }
 
-    @Decree(description = "Test")
+    @Director(description = "Test")
     public void packBenchmark(
             @Param(description = "The pack to bench", aliases = {"pack"}, defaultValue = "overworld")
             IrisDimension dimension,
@@ -497,7 +503,7 @@ public class CommandDeveloper implements DecreeExecutor {
         new IrisPackBenchmarking(dimension, radius, gui);
     }
 
-    @Decree(description = "Upgrade to another Minecraft version")
+    @Director(description = "Upgrade to another Minecraft version")
     public void upgrade(
             @Param(description = "The version to upgrade to", defaultValue = "latest") DataVersion version) {
         sender().sendMessage(C.GREEN + "Upgrading to " + version.getVersion() + "...");
@@ -505,7 +511,7 @@ public class CommandDeveloper implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Done upgrading! You can now update your server version to " + version.getVersion());
     }
 
-    @Decree(description = "test")
+    @Director(description = "test")
     public void mca (
             @Param(description = "String") String world) {
         try {
@@ -519,7 +525,550 @@ public class CommandDeveloper implements DecreeExecutor {
 
     }
 
-    @Decree(description = "UnloadChunks for good reasons.")
+    @Director(description = "Delete nearby chunk blocks for regen testing", name = "delete-chunk", aliases = {"delchunk", "dc"}, origin = DirectorOrigin.PLAYER, sync = true)
+    public void deleteChunk(
+            @Param(description = "Radius in chunks around your current chunk", defaultValue = "0")
+            int radius,
+            @Param(description = "How many chunks to process in parallel (0 = auto)", aliases = {"threads", "concurrency"}, defaultValue = "0")
+            int parallelism
+    ) {
+        if (radius < 0) {
+            sender().sendMessage(C.RED + "Radius must be 0 or greater.");
+            return;
+        }
+
+        World world = player().getWorld();
+        if (!IrisToolbelt.isIrisWorld(world)) {
+            sender().sendMessage(C.RED + "This is not an Iris world.");
+            return;
+        }
+        String worldKey = world.getName().toLowerCase(Locale.ROOT);
+        if (!ACTIVE_DELETE_CHUNK_WORLDS.add(worldKey)) {
+            sender().sendMessage(C.RED + "A delete-chunk run is already active for this world.");
+            return;
+        }
+
+        int threads = resolveDeleteChunkThreadCount(parallelism);
+        int centerX = player().getLocation().getBlockX() >> 4;
+        int centerZ = player().getLocation().getBlockZ() >> 4;
+        List<Position2> targets = buildDeleteChunkTargets(centerX, centerZ, radius);
+        int totalChunks = targets.size();
+        String runId = world.getName() + "-" + System.currentTimeMillis();
+        PlatformChunkGenerator access = IrisToolbelt.access(world);
+        if (access == null || access.getEngine() == null) {
+            ACTIVE_DELETE_CHUNK_WORLDS.remove(worldKey);
+            sender().sendMessage(C.RED + "The engine access for this world is null.");
+            return;
+        }
+
+        art.arcane.iris.util.mantle.Mantle mantle = access.getEngine().getMantle().getMantle();
+        VolmitSender sender = sender();
+
+        sender.sendMessage(C.GREEN + "Deleting blocks in " + C.GOLD + totalChunks + C.GREEN + " chunk(s) with " + C.GOLD + threads + C.GREEN + " worker(s).");
+        if (J.isFolia()) {
+            sender.sendMessage(C.YELLOW + "Folia maintenance mode enabled for lock-safe chunk wipe + mantle purge.");
+        }
+        sender.sendMessage(C.YELLOW + "Delete-chunk run id: " + C.GOLD + runId + C.YELLOW + ".");
+        Iris.info("Delete-chunk run start: id=" + runId
+                + " world=" + world.getName()
+                + " center=" + centerX + "," + centerZ
+                + " radius=" + radius
+                + " workers=" + threads
+                + " chunks=" + totalChunks);
+
+        Set<Thread> workerThreads = ConcurrentHashMap.newKeySet();
+        AtomicInteger workerCounter = new AtomicInteger();
+        ThreadFactory threadFactory = runnable -> {
+            Thread thread = new Thread(runnable, "Iris-DeleteChunk-" + runId + "-" + workerCounter.incrementAndGet());
+            thread.setDaemon(true);
+            workerThreads.add(thread);
+            return thread;
+        };
+
+        Thread orchestrator = new Thread(() -> runDeleteChunkOrchestrator(
+                sender,
+                world,
+                mantle,
+                targets,
+                threads,
+                runId,
+                worldKey,
+                workerThreads,
+                threadFactory
+        ), "Iris-DeleteChunk-Orchestrator-" + runId);
+        orchestrator.setDaemon(true);
+        try {
+            orchestrator.start();
+            Iris.info("Delete-chunk worker dispatched on dedicated thread=" + orchestrator.getName() + " id=" + runId + ".");
+        } catch (Throwable e) {
+            ACTIVE_DELETE_CHUNK_WORLDS.remove(worldKey);
+            sender.sendMessage(C.RED + "Failed to start delete-chunk worker thread. See console.");
+            Iris.reportError(e);
+        }
+    }
+
+    private int resolveDeleteChunkThreadCount(int parallelism) {
+        int threads = parallelism <= 0 ? Runtime.getRuntime().availableProcessors() : parallelism;
+        if (J.isFolia() && parallelism <= 0) {
+            threads = 1;
+        }
+        return Math.max(1, threads);
+    }
+
+    private List<Position2> buildDeleteChunkTargets(int centerX, int centerZ, int radius) {
+        int expected = (radius * 2 + 1) * (radius * 2 + 1);
+        List<Position2> targets = new ArrayList<>(expected);
+        for (int ring = 0; ring <= radius; ring++) {
+            for (int x = -ring; x <= ring; x++) {
+                for (int z = -ring; z <= ring; z++) {
+                    if (Math.max(Math.abs(x), Math.abs(z)) != ring) {
+                        continue;
+                    }
+                    targets.add(new Position2(centerX + x, centerZ + z));
+                }
+            }
+        }
+        return targets;
+    }
+
+    private void runDeleteChunkOrchestrator(
+            VolmitSender sender,
+            World world,
+            art.arcane.iris.util.mantle.Mantle mantle,
+            List<Position2> targets,
+            int threadCount,
+            String runId,
+            String worldKey,
+            Set<Thread> workerThreads,
+            ThreadFactory threadFactory
+    ) {
+        long runStart = System.currentTimeMillis();
+        AtomicReference<String> phase = new AtomicReference<>("bootstrap");
+        AtomicLong phaseSince = new AtomicLong(runStart);
+        AtomicBoolean runDone = new AtomicBoolean(false);
+        Thread watchdog = createDeleteChunkSetupWatchdog(world, runId, runDone, phase, phaseSince);
+        watchdog.start();
+
+        IrisToolbelt.beginWorldMaintenance(world, "delete-chunk");
+        try (ThreadPoolExecutor pool = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadCount, threadFactory)) {
+            setDeleteChunkPhase(phase, phaseSince, "dispatch", world, runId);
+            DeleteChunkSummary summary = executeDeleteChunkQueue(world, mantle, targets, pool, workerThreads, runId);
+            if (summary.failedChunks() <= 0) {
+                sender.sendMessage(C.GREEN + "Deleted blocks in " + C.GOLD + summary.successChunks() + C.GREEN + "/" + C.GOLD + summary.totalChunks() + C.GREEN + " chunk(s).");
+                return;
+            }
+
+            sender.sendMessage(C.RED + "Delete-chunk completed with " + C.GOLD + summary.failedChunks() + C.RED + " failed chunk(s).");
+            sender.sendMessage(C.YELLOW + "Successful chunks: " + C.GOLD + summary.successChunks() + C.YELLOW + "/" + C.GOLD + summary.totalChunks() + C.YELLOW + ".");
+            sender.sendMessage(C.YELLOW + "Retry attempts used: " + C.GOLD + summary.retryCount() + C.YELLOW + ".");
+            if (!summary.failedPreview().isEmpty()) {
+                sender.sendMessage(C.YELLOW + "Failed chunks sample: " + C.GOLD + summary.failedPreview());
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            sender.sendMessage(C.RED + "Delete-chunk run was interrupted.");
+            Iris.warn("Delete-chunk run interrupted: id=" + runId + " world=" + world.getName());
+        } catch (Throwable e) {
+            sender.sendMessage(C.RED + "Delete-chunk run failed. See console.");
+            Iris.reportError(e);
+        } finally {
+            runDone.set(true);
+            watchdog.interrupt();
+            IrisToolbelt.endWorldMaintenance(world, "delete-chunk");
+            ACTIVE_DELETE_CHUNK_WORLDS.remove(worldKey);
+            Iris.info("Delete-chunk run closed: id=" + runId + " world=" + world.getName() + " totalMs=" + (System.currentTimeMillis() - runStart));
+        }
+    }
+
+    private DeleteChunkSummary executeDeleteChunkQueue(
+            World world,
+            art.arcane.iris.util.mantle.Mantle mantle,
+            List<Position2> targets,
+            ThreadPoolExecutor pool,
+            Set<Thread> workerThreads,
+            String runId
+    ) throws InterruptedException {
+        ArrayDeque<DeleteChunkTask> pending = new ArrayDeque<>(targets.size());
+        long queuedAt = System.currentTimeMillis();
+        for (Position2 target : targets) {
+            pending.addLast(new DeleteChunkTask(target.getX(), target.getZ(), 1, queuedAt));
+        }
+
+        ConcurrentMap<String, DeleteChunkActiveTask> activeTasks = new ConcurrentHashMap<>();
+        ExecutorCompletionService<DeleteChunkResult> completion = new ExecutorCompletionService<>(pool);
+        List<Position2> failedChunks = new ArrayList<>();
+
+        int totalChunks = targets.size();
+        int successChunks = 0;
+        int failedCount = 0;
+        int retryCount = 0;
+        long submittedTasks = 0L;
+        long finishedTasks = 0L;
+        int completedChunks = 0;
+        int inFlight = 0;
+        int unchangedHeartbeats = 0;
+        int lastCompleted = -1;
+        long lastDump = 0L;
+
+        while (inFlight < pool.getMaximumPoolSize() && !pending.isEmpty()) {
+            DeleteChunkTask task = pending.removeFirst();
+            completion.submit(() -> runDeleteChunkTask(task, world, mantle, activeTasks));
+            inFlight++;
+            submittedTasks++;
+        }
+
+        while (completedChunks < totalChunks) {
+            Future<DeleteChunkResult> future = completion.poll(DELETE_CHUNK_HEARTBEAT_MS, TimeUnit.MILLISECONDS);
+            if (future == null) {
+                if (completedChunks == lastCompleted) {
+                    unchangedHeartbeats++;
+                } else {
+                    unchangedHeartbeats = 0;
+                    lastCompleted = completedChunks;
+                }
+
+                Iris.warn("Delete-chunk heartbeat: id=" + runId
+                        + " completed=" + completedChunks + "/" + totalChunks
+                        + " remaining=" + (totalChunks - completedChunks)
+                        + " queued=" + pending.size()
+                        + " inFlight=" + inFlight
+                        + " submitted=" + submittedTasks
+                        + " finishedTasks=" + finishedTasks
+                        + " retries=" + retryCount
+                        + " failed=" + failedCount
+                        + " poolActive=" + pool.getActiveCount()
+                        + " poolQueue=" + pool.getQueue().size()
+                        + " poolDone=" + pool.getCompletedTaskCount()
+                        + " activeTasks=" + formatDeleteChunkActiveTasks(activeTasks));
+
+                if (unchangedHeartbeats >= 3 && System.currentTimeMillis() - lastDump >= 10000L) {
+                    lastDump = System.currentTimeMillis();
+                    Iris.warn("Delete-chunk appears stalled; dumping worker stack traces for id=" + runId + ".");
+                    dumpDeleteChunkWorkerStacks(workerThreads, world.getName());
+                }
+                continue;
+            }
+
+            DeleteChunkResult result;
+            try {
+                result = future.get();
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause() == null ? e : e.getCause();
+                throw new IllegalStateException("Delete-chunk worker failed unexpectedly for run " + runId, cause);
+            }
+
+            inFlight--;
+            finishedTasks++;
+            long duration = result.finishedAtMs() - result.startedAtMs();
+
+            if (result.success()) {
+                completedChunks++;
+                successChunks++;
+                if (result.task().attempt() > 1) {
+                    Iris.warn("Delete-chunk recovered after retry: id=" + runId
+                            + " chunk=" + result.task().chunkX() + "," + result.task().chunkZ()
+                            + " attempt=" + result.task().attempt()
+                            + " durationMs=" + duration);
+                } else if (duration >= 5000L) {
+                    Iris.warn("Delete-chunk slow: id=" + runId
+                            + " chunk=" + result.task().chunkX() + "," + result.task().chunkZ()
+                            + " durationMs=" + duration
+                            + " loadedAtStart=" + result.loadedAtStart());
+                }
+            } else if (result.task().attempt() < DELETE_CHUNK_MAX_ATTEMPTS) {
+                retryCount++;
+                DeleteChunkTask retryTask = result.task().retry(System.currentTimeMillis());
+                pending.addLast(retryTask);
+                Iris.warn("Delete-chunk retry scheduled: id=" + runId
+                        + " chunk=" + result.task().chunkX() + "," + result.task().chunkZ()
+                        + " failedAttempt=" + result.task().attempt()
+                        + " nextAttempt=" + retryTask.attempt()
+                        + " error=" + result.errorSummary());
+            } else {
+                completedChunks++;
+                failedCount++;
+                Position2 failed = new Position2(result.task().chunkX(), result.task().chunkZ());
+                failedChunks.add(failed);
+                Iris.warn("Delete-chunk terminal failure: id=" + runId
+                        + " chunk=" + result.task().chunkX() + "," + result.task().chunkZ()
+                        + " attempts=" + result.task().attempt()
+                        + " error=" + result.errorSummary());
+                if (result.error() != null) {
+                    Iris.reportError(result.error());
+                }
+            }
+
+            while (inFlight < pool.getMaximumPoolSize() && !pending.isEmpty()) {
+                DeleteChunkTask task = pending.removeFirst();
+                completion.submit(() -> runDeleteChunkTask(task, world, mantle, activeTasks));
+                inFlight++;
+                submittedTasks++;
+            }
+        }
+
+        String preview = formatDeleteChunkFailedPreview(failedChunks);
+        Iris.info("Delete-chunk run complete: id=" + runId
+                + " world=" + world.getName()
+                + " total=" + totalChunks
+                + " success=" + successChunks
+                + " failed=" + failedCount
+                + " retries=" + retryCount
+                + " submittedTasks=" + submittedTasks
+                + " finishedTasks=" + finishedTasks
+                + " failedPreview=" + preview);
+        return new DeleteChunkSummary(totalChunks, successChunks, failedCount, retryCount, preview);
+    }
+
+    private DeleteChunkResult runDeleteChunkTask(
+            DeleteChunkTask task,
+            World world,
+            art.arcane.iris.util.mantle.Mantle mantle,
+            ConcurrentMap<String, DeleteChunkActiveTask> activeTasks
+    ) {
+        String worker = Thread.currentThread().getName();
+        long startedAt = System.currentTimeMillis();
+        boolean loadedAtStart = false;
+        try {
+            loadedAtStart = world.isChunkLoaded(task.chunkX(), task.chunkZ());
+        } catch (Throwable ignored) {
+        }
+
+        activeTasks.put(worker, new DeleteChunkActiveTask(task.chunkX(), task.chunkZ(), task.attempt(), startedAt, loadedAtStart));
+        try {
+            DeleteChunkRegionResult regionResult = wipeChunkRegion(world, task.chunkX(), task.chunkZ());
+            if (!regionResult.success()) {
+                return DeleteChunkResult.failure(task, worker, startedAt, System.currentTimeMillis(), loadedAtStart, regionResult.error());
+            }
+            mantle.deleteChunk(task.chunkX(), task.chunkZ());
+            return DeleteChunkResult.success(task, worker, startedAt, System.currentTimeMillis(), loadedAtStart);
+        } catch (Throwable e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            return DeleteChunkResult.failure(task, worker, startedAt, System.currentTimeMillis(), loadedAtStart, e);
+        } finally {
+            activeTasks.remove(worker);
+        }
+    }
+
+    private DeleteChunkRegionResult wipeChunkRegion(World world, int chunkX, int chunkZ) throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        if (!J.runRegion(world, chunkX, chunkZ, () -> {
+            try {
+                Chunk chunk = world.getChunkAt(chunkX, chunkZ);
+                for (org.bukkit.entity.Entity entity : chunk.getEntities()) {
+                    if (!(entity instanceof org.bukkit.entity.Player)) {
+                        entity.remove();
+                    }
+                }
+
+                int minY = world.getMinHeight();
+                int maxY = world.getMaxHeight();
+                for (int xx = 0; xx < 16; xx++) {
+                    for (int zz = 0; zz < 16; zz++) {
+                        for (int yy = minY; yy < maxY; yy++) {
+                            chunk.getBlock(xx, yy, zz).setType(org.bukkit.Material.AIR, false);
+                        }
+                    }
+                }
+            } catch (Throwable e) {
+                failure.set(e);
+            } finally {
+                latch.countDown();
+            }
+        })) {
+            return DeleteChunkRegionResult.fail(new IllegalStateException("Failed to schedule region task for chunk " + chunkX + "," + chunkZ));
+        }
+
+        if (!latch.await(30, TimeUnit.SECONDS)) {
+            return DeleteChunkRegionResult.fail(new TimeoutException("Timed out waiting for region task at chunk " + chunkX + "," + chunkZ));
+        }
+
+        Throwable thrown = failure.get();
+        if (thrown != null) {
+            return DeleteChunkRegionResult.fail(thrown);
+        }
+        return DeleteChunkRegionResult.ok();
+    }
+
+    private Thread createDeleteChunkSetupWatchdog(
+            World world,
+            String runId,
+            AtomicBoolean runDone,
+            AtomicReference<String> phase,
+            AtomicLong phaseSince
+    ) {
+        Thread watchdog = new Thread(() -> {
+            while (!runDone.get()) {
+                try {
+                    Thread.sleep(DELETE_CHUNK_HEARTBEAT_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+
+                if (!runDone.get()) {
+                    long elapsed = System.currentTimeMillis() - phaseSince.get();
+                    Iris.warn("Delete-chunk setup heartbeat: id=" + runId
+                            + " phase=" + phase.get()
+                            + " elapsedMs=" + elapsed
+                            + " world=" + world.getName());
+                }
+            }
+        }, "Iris-DeleteChunk-SetupWatchdog-" + runId);
+        watchdog.setDaemon(true);
+        return watchdog;
+    }
+
+    private void setDeleteChunkPhase(
+            AtomicReference<String> phase,
+            AtomicLong phaseSince,
+            String next,
+            World world,
+            String runId
+    ) {
+        phase.set(next);
+        phaseSince.set(System.currentTimeMillis());
+        Iris.info("Delete-chunk phase: id=" + runId + " phase=" + next + " world=" + world.getName());
+    }
+
+    private String formatDeleteChunkFailedPreview(List<Position2> failedChunks) {
+        if (failedChunks.isEmpty()) {
+            return "[]";
+        }
+        StringBuilder builder = new StringBuilder("[");
+        int index = 0;
+        for (Position2 chunk : failedChunks) {
+            if (index > 0) {
+                builder.append(", ");
+            }
+            if (index >= 10) {
+                builder.append("...");
+                break;
+            }
+            builder.append(chunk.getX()).append(",").append(chunk.getZ());
+            index++;
+        }
+        builder.append("]");
+        return builder.toString();
+    }
+
+    private String formatDeleteChunkActiveTasks(ConcurrentMap<String, DeleteChunkActiveTask> activeTasks) {
+        if (activeTasks.isEmpty()) {
+            return "{}";
+        }
+
+        StringBuilder builder = new StringBuilder("{");
+        int count = 0;
+        long now = System.currentTimeMillis();
+        for (Map.Entry<String, DeleteChunkActiveTask> entry : activeTasks.entrySet()) {
+            if (count > 0) {
+                builder.append(", ");
+            }
+            if (count >= 8) {
+                builder.append("...");
+                break;
+            }
+            DeleteChunkActiveTask activeTask = entry.getValue();
+            builder.append(entry.getKey())
+                    .append("=")
+                    .append(activeTask.chunkX())
+                    .append(",")
+                    .append(activeTask.chunkZ())
+                    .append("@")
+                    .append(activeTask.attempt())
+                    .append("/")
+                    .append(now - activeTask.startedAtMs())
+                    .append("ms")
+                    .append(activeTask.loadedAtStart() ? ":loaded" : ":cold");
+            count++;
+        }
+        builder.append("}");
+        return builder.toString();
+    }
+
+    private void dumpDeleteChunkWorkerStacks(Set<Thread> explicitThreads, String worldName) {
+        Set<Thread> threads = new LinkedHashSet<>();
+        threads.addAll(explicitThreads);
+        for (Thread thread : Thread.getAllStackTraces().keySet()) {
+            if (thread == null || !thread.isAlive()) {
+                continue;
+            }
+            String name = thread.getName();
+            if (name.startsWith("Iris-DeleteChunk-")
+                    || name.startsWith("Iris EngineSVC-")
+                    || name.startsWith("Iris World Manager")
+                    || name.contains(worldName)) {
+                threads.add(thread);
+            }
+        }
+
+        for (Thread thread : threads) {
+            if (thread == null || !thread.isAlive()) {
+                continue;
+            }
+            Iris.warn("Delete-chunk worker thread=" + thread.getName() + " state=" + thread.getState());
+            StackTraceElement[] trace = thread.getStackTrace();
+            int limit = Math.min(trace.length, DELETE_CHUNK_STACK_LIMIT);
+            for (int i = 0; i < limit; i++) {
+                Iris.warn("  at " + trace[i]);
+            }
+        }
+    }
+
+    private record DeleteChunkTask(int chunkX, int chunkZ, int attempt, long queuedAtMs) {
+        private DeleteChunkTask retry(long now) {
+            return new DeleteChunkTask(chunkX, chunkZ, attempt + 1, now);
+        }
+    }
+
+    private record DeleteChunkActiveTask(int chunkX, int chunkZ, int attempt, long startedAtMs, boolean loadedAtStart) {
+    }
+
+    private record DeleteChunkResult(
+            DeleteChunkTask task,
+            String worker,
+            long startedAtMs,
+            long finishedAtMs,
+            boolean loadedAtStart,
+            boolean success,
+            Throwable error
+    ) {
+        private static DeleteChunkResult success(DeleteChunkTask task, String worker, long startedAtMs, long finishedAtMs, boolean loadedAtStart) {
+            return new DeleteChunkResult(task, worker, startedAtMs, finishedAtMs, loadedAtStart, true, null);
+        }
+
+        private static DeleteChunkResult failure(DeleteChunkTask task, String worker, long startedAtMs, long finishedAtMs, boolean loadedAtStart, Throwable error) {
+            return new DeleteChunkResult(task, worker, startedAtMs, finishedAtMs, loadedAtStart, false, error);
+        }
+
+        private String errorSummary() {
+            if (error == null) {
+                return "unknown";
+            }
+            String message = error.getMessage();
+            if (message == null || message.isEmpty()) {
+                return error.getClass().getSimpleName();
+            }
+            return error.getClass().getSimpleName() + ": " + message;
+        }
+    }
+
+    private record DeleteChunkRegionResult(boolean success, Throwable error) {
+        private static DeleteChunkRegionResult ok() {
+            return new DeleteChunkRegionResult(true, null);
+        }
+
+        private static DeleteChunkRegionResult fail(Throwable error) {
+            return new DeleteChunkRegionResult(false, error);
+        }
+    }
+
+    private record DeleteChunkSummary(int totalChunks, int successChunks, int failedChunks, int retryCount, String failedPreview) {
+    }
+
+    @Director(description = "UnloadChunks for good reasons.")
     public void unloadchunks() {
         List<World> IrisWorlds = new ArrayList<>();
         int chunksUnloaded = 0;
@@ -545,7 +1094,7 @@ public class CommandDeveloper implements DecreeExecutor {
 
     }
 
-    @Decree
+    @Director
     public void objects(@Param(defaultValue = "overworld") IrisDimension dimension) {
         var loader = dimension.getLoader().getObjectLoader();
         var sender = sender();
@@ -562,7 +1111,7 @@ public class CommandDeveloper implements DecreeExecutor {
         sender.sendMessage(C.RED + "Failed to load " + failed.get() + " of " + keys.length + " objects");
     }
 
-    @Decree(description = "Test", aliases = {"ip"})
+    @Director(description = "Test", aliases = {"ip"})
     public void network() {
         try {
             Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
@@ -578,7 +1127,7 @@ public class CommandDeveloper implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Test the compression algorithms")
+    @Director(description = "Test the compression algorithms")
     public void compression(
             @Param(description = "base IrisWorld") World world,
             @Param(description = "raw TectonicPlate File") String path,
@@ -661,4 +1210,3 @@ public class CommandDeveloper implements DecreeExecutor {
         });
     }
 }
-

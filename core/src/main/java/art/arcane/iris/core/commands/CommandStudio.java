@@ -37,9 +37,9 @@ import art.arcane.iris.util.decree.DecreeContext;
 import art.arcane.iris.util.decree.DecreeExecutor;
 import art.arcane.iris.util.decree.handlers.DimensionHandler;
 import art.arcane.iris.util.decree.specialhandlers.NullableDimensionHandler;
-import art.arcane.volmlib.util.decree.DecreeOrigin;
-import art.arcane.volmlib.util.decree.annotations.Decree;
-import art.arcane.volmlib.util.decree.annotations.Param;
+import art.arcane.volmlib.util.director.DirectorOrigin;
+import art.arcane.volmlib.util.director.annotations.Director;
+import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.format.C;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.function.Function2;
@@ -79,12 +79,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-@Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
+@Director(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
 public class CommandStudio implements DecreeExecutor {
     private CommandFind find;
     private CommandEdit edit;
@@ -95,7 +94,7 @@ public class CommandStudio implements DecreeExecutor {
     }
 
     //TODO fix pack trimming
-    @Decree(description = "Download a project.", aliases = "dl")
+    @Director(description = "Download a project.", aliases = "dl")
     public void download(
             @Param(name = "pack", description = "The pack to download", defaultValue = "overworld", aliases = "project")
             String pack,
@@ -109,7 +108,7 @@ public class CommandStudio implements DecreeExecutor {
         new CommandIris().download(pack, branch, overwrite);
     }
 
-    @Decree(description = "Open a new studio world", aliases = "o", sync = true)
+    @Director(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
             @Param(defaultValue = "default", description = "The dimension to open a studio for", aliases = "dim", customHandler = DimensionHandler.class)
             IrisDimension dimension,
@@ -126,7 +125,7 @@ public class CommandStudio implements DecreeExecutor {
         Iris.service(StudioSVC.class).open(sender(), seed, dimension.getLoadKey());
     }
 
-    @Decree(description = "Open VSCode for a dimension", aliases = {"vsc", "edit"})
+    @Director(description = "Open VSCode for a dimension", aliases = {"vsc", "edit"})
     public void vscode(
             @Param(defaultValue = "default", description = "The dimension to open VSCode for", aliases = "dim", customHandler = DimensionHandler.class)
             IrisDimension dimension
@@ -135,7 +134,7 @@ public class CommandStudio implements DecreeExecutor {
         Iris.service(StudioSVC.class).openVSCode(sender(), dimension.getLoadKey());
     }
 
-    @Decree(description = "Close an open studio project", aliases = {"x", "c"}, sync = true)
+    @Director(description = "Close an open studio project", aliases = {"x", "c"}, sync = true)
     public void close() {
         if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No open studio projects.");
@@ -146,7 +145,7 @@ public class CommandStudio implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Project Closed.");
     }
 
-    @Decree(description = "Create a new studio project", aliases = "+", sync = true)
+    @Director(description = "Create a new studio project", aliases = "+", sync = true)
     public void create(
             @Param(description = "The name of this new Iris Project.")
             String name,
@@ -163,7 +162,7 @@ public class CommandStudio implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Get the version of a pack")
+    @Director(description = "Get the version of a pack")
     public void version(
             @Param(defaultValue = "default", description = "The dimension get the version of", aliases = "dim", contextual = true, customHandler = DimensionHandler.class)
             IrisDimension dimension
@@ -171,7 +170,7 @@ public class CommandStudio implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
     }
 
-    @Decree(name = "regen", description = "Regenerate nearby chunks.", aliases = "rg", sync = true, origin = DecreeOrigin.PLAYER)
+    @Director(name = "regen", description = "Regenerate nearby chunks.", aliases = "rg", sync = true, origin = DirectorOrigin.PLAYER)
     public void regen(
             @Param(name = "radius", description = "The radius of nearby cunks", defaultValue = "5")
             int radius
@@ -183,46 +182,60 @@ public class CommandStudio implements DecreeExecutor {
 
         VolmitSender sender = sender();
         var loc = player().getLocation().clone();
+        final int threadCount = J.isFolia() ? 1 : Runtime.getRuntime().availableProcessors();
 
-        J.a(() -> {
+        String orchestratorName = "Iris-Studio-Regen-Orchestrator-" + world.getName() + "-" + System.nanoTime();
+        Thread orchestrator = new Thread(() -> {
             PlatformChunkGenerator plat = IrisToolbelt.access(world);
             Engine engine = plat.getEngine();
             DecreeContext.touch(sender);
+            IrisToolbelt.beginWorldMaintenance(world, "studio-regen");
             try (SyncExecutor executor = new SyncExecutor(20);
-                 var service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
+                 var service = Executors.newFixedThreadPool(threadCount)
             ) {
                 int x = loc.getBlockX() >> 4;
                 int z = loc.getBlockZ() >> 4;
 
-                int rad = engine.getMantle().getRadius();
-                var mantle = engine.getMantle().getMantle();
+                int rad = 0;
                 var chunkMap = new KMap<Position2, MantleChunk>();
-                ParallelRadiusJob prep = new ParallelRadiusJob(Integer.MAX_VALUE, service) {
-                    @Override
-                    protected void execute(int rX, int rZ) {
-                        if (Math.abs(rX) <= radius && Math.abs(rZ) <= radius) {
-                            mantle.deleteChunk(rX + x, rZ + z);
-                            return;
+                boolean foliaFastRegen = J.isFolia();
+                if (foliaFastRegen) {
+                    sender.sendMessage(C.YELLOW + "Folia safe default: using 1 regen worker in studio.");
+                }
+                if (!foliaFastRegen) {
+                    rad = engine.getMantle().getRadius();
+                    final var mantle = engine.getMantle().getMantle();
+                    ParallelRadiusJob prep = new ParallelRadiusJob(threadCount, service) {
+                        @Override
+                        protected void execute(int rX, int rZ) {
+                            if (Math.abs(rX) <= radius && Math.abs(rZ) <= radius) {
+                                mantle.deleteChunk(rX + x, rZ + z);
+                                return;
+                            }
+                            rX += x;
+                            rZ += z;
+                            chunkMap.put(new Position2(rX, rZ), mantle.getChunk(rX, rZ));
+                            mantle.deleteChunk(rX, rZ);
                         }
-                        rX += x;
-                        rZ += z;
-                        chunkMap.put(new Position2(rX, rZ), mantle.getChunk(rX, rZ));
-                        mantle.deleteChunk(rX, rZ);
-                    }
 
-                    @Override
-                    public String getName() {
-                        return "Preparing Mantle";
-                    }
-                }.retarget(radius + rad, 0, 0);
-                CountDownLatch pLatch = new CountDownLatch(1);
-                prep.execute(sender(), pLatch::countDown);
-                pLatch.await();
+                        @Override
+                        public String getName() {
+                            return "Preparing Mantle";
+                        }
+                    }.retarget(radius + rad, 0, 0);
+                    sender.sendMessage(C.YELLOW + "Preparing mantle data for studio regen...");
+                    prep.execute();
+                } else {
+                    sender.sendMessage(C.YELLOW + "Folia fast regen: skipping outer mantle preservation stage.");
+                }
 
 
-                ParallelRadiusJob job = new ParallelRadiusJob(Integer.MAX_VALUE, service) {
+                ParallelRadiusJob job = new ParallelRadiusJob(threadCount, service) {
                     @Override
                     protected void execute(int x, int z) {
+                        if (foliaFastRegen) {
+                            Iris.verbose("Folia fast studio regen skipping mantle delete for " + x + "," + z + ".");
+                        }
                         plat.injectChunkReplacement(world, x, z, executor);
                     }
 
@@ -231,28 +244,38 @@ public class CommandStudio implements DecreeExecutor {
                         return "Regenerating";
                     }
                 }.retarget(radius, x, z);
-                CountDownLatch latch = new CountDownLatch(1);
-                job.execute(sender(), latch::countDown);
-                latch.await();
+                job.execute();
 
-                chunkMap.forEach((pos, chunk) ->
-                        mantle.getChunk(pos.getX(), pos.getZ()).copyFrom(chunk));
+                if (!foliaFastRegen) {
+                    var mantle = engine.getMantle().getMantle();
+                    chunkMap.forEach((pos, chunk) ->
+                            mantle.getChunk(pos.getX(), pos.getZ()).copyFrom(chunk));
+                }
             } catch (Throwable e) {
                 sender().sendMessage("Error while regenerating chunks");
                 e.printStackTrace();
             } finally {
+                IrisToolbelt.endWorldMaintenance(world, "studio-regen");
                 DecreeContext.remove();
             }
-        });
+        }, orchestratorName);
+        orchestrator.setDaemon(true);
+        try {
+            orchestrator.start();
+            Iris.info("Studio regen worker dispatched on dedicated thread=" + orchestratorName + ".");
+        } catch (Throwable e) {
+            sender.sendMessage(C.RED + "Failed to start studio regen worker thread. See console.");
+            Iris.reportError(e);
+        }
     }
 
-    @Decree(description = "Convert objects in the \"convert\" folder")
+    @Director(description = "Convert objects in the \"convert\" folder")
     public void convert() {
         Iris.service(ConversionSVC.class).check(sender());
         //IrisConverter.convertSchematics(sender());
     }
 
-    @Decree(description = "Execute a script", aliases = "run", origin = DecreeOrigin.PLAYER)
+    @Director(description = "Execute a script", aliases = "run", origin = DirectorOrigin.PLAYER)
     public void execute(
             @Param(description = "The script to run")
             IrisScript script
@@ -260,14 +283,14 @@ public class CommandStudio implements DecreeExecutor {
         engine().getExecution().execute(script.getLoadKey());
     }
 
-    @Decree(description = "Open the noise explorer (External GUI)", aliases = {"nmap", "n"})
+    @Director(description = "Open the noise explorer (External GUI)", aliases = {"nmap", "n"})
     public void noise() {
         if (noGUI()) return;
         sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
         NoiseExplorerGUI.launch();
     }
 
-    @Decree(description = "Charges all spawners in the area", aliases = "zzt", origin = DecreeOrigin.PLAYER)
+    @Director(description = "Charges all spawners in the area", aliases = "zzt", origin = DirectorOrigin.PLAYER)
     public void charge() {
         if (!IrisToolbelt.isIrisWorld(world())) {
             sender().sendMessage(C.RED + "You must be in an Iris world to charge spawners!");
@@ -277,7 +300,7 @@ public class CommandStudio implements DecreeExecutor {
         engine().getWorldManager().chargeEnergy();
     }
 
-    @Decree(description = "Preview noise gens (External GUI)", aliases = {"generator", "gen"})
+    @Director(description = "Preview noise gens (External GUI)", aliases = {"generator", "gen"})
     public void explore(
             @Param(description = "The generator to explore", contextual = true)
             IrisGenerator generator,
@@ -298,7 +321,7 @@ public class CommandStudio implements DecreeExecutor {
         NoiseExplorerGUI.launch(l, "Custom Generator");
     }
 
-    @Decree(description = "Hotload a studio", aliases = {"reload", "h"})
+    @Director(description = "Hotload a studio", aliases = {"reload", "h"})
     public void hotload() {
         if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No studio world open!");
@@ -308,7 +331,7 @@ public class CommandStudio implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Hotloaded");
     }
 
-    @Decree(description = "Show loot if a chest were right here", origin = DecreeOrigin.PLAYER, sync = true)
+    @Director(description = "Show loot if a chest were right here", origin = DirectorOrigin.PLAYER, sync = true)
     public void loot(
             @Param(description = "Fast insertion of items in virtual inventory (may cause performance drop)", defaultValue = "false")
             boolean fast,
@@ -355,7 +378,7 @@ public class CommandStudio implements DecreeExecutor {
         player().openInventory(inv);
     }
 
-    @Decree(description = "Calculate the chance for each region to generate", origin = DecreeOrigin.PLAYER)
+    @Director(description = "Calculate the chance for each region to generate", origin = DirectorOrigin.PLAYER)
     public void regions(@Param(description = "The radius in chunks", defaultValue = "500") int radius) {
         var engine = engine();
         if (engine == null) {
@@ -392,7 +415,7 @@ public class CommandStudio implements DecreeExecutor {
                 });
     }
 
-    @Decree(description = "Get all structures in a radius of chunks", aliases = "dist", origin = DecreeOrigin.PLAYER)
+    @Director(description = "Get all structures in a radius of chunks", aliases = "dist", origin = DirectorOrigin.PLAYER)
     public void distances(@Param(description = "The radius in chunks") int radius) {
         var engine = engine();
         if (engine == null) {
@@ -458,7 +481,7 @@ public class CommandStudio implements DecreeExecutor {
     }
 
 
-    @Decree(description = "Render a world map (External GUI)", aliases = "render")
+    @Director(description = "Render a world map (External GUI)", aliases = "render")
     public void map(
             @Param(name = "world", description = "The world to open the generator for", contextual = true)
             World world
@@ -474,7 +497,7 @@ public class CommandStudio implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Opening map!");
     }
 
-    @Decree(description = "Package a dimension into a compressed format", aliases = "package")
+    @Director(description = "Package a dimension into a compressed format", aliases = "package")
     public void pkg(
             @Param(name = "dimension", description = "The dimension pack to compress", contextual = true, defaultValue = "default", customHandler = DimensionHandler.class)
             IrisDimension dimension,
@@ -486,7 +509,7 @@ public class CommandStudio implements DecreeExecutor {
         Iris.service(StudioSVC.class).compilePackage(sender(), dimension.getLoadKey(), obfuscate, minify);
     }
 
-    @Decree(description = "Profiles the performance of a dimension", origin = DecreeOrigin.PLAYER)
+    @Director(description = "Profiles the performance of a dimension", origin = DirectorOrigin.PLAYER)
     public void profile(
             @Param(description = "The dimension to profile", contextual = true, defaultValue = "default", customHandler = DimensionHandler.class)
             IrisDimension dimension
@@ -675,7 +698,7 @@ public class CommandStudio implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Done! " + report.getPath());
     }
 
-    @Decree(description = "Spawn an Iris entity", aliases = "summon", origin = DecreeOrigin.PLAYER)
+    @Director(description = "Spawn an Iris entity", aliases = "summon", origin = DirectorOrigin.PLAYER)
     public void spawn(
             @Param(description = "The entity to spawn")
             IrisEntity entity,
@@ -688,7 +711,7 @@ public class CommandStudio implements DecreeExecutor {
         entity.spawn(engine(), new Location(world(), location.getX(), location.getY(), location.getZ()));
     }
 
-    @Decree(description = "Teleport to the active studio world", aliases = "stp", origin = DecreeOrigin.PLAYER, sync = true)
+    @Director(description = "Teleport to the active studio world", aliases = "stp", origin = DirectorOrigin.PLAYER, sync = true)
     public void tpstudio() {
         if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No studio world is open!");
@@ -711,7 +734,7 @@ public class CommandStudio implements DecreeExecutor {
         ).thenRun(() -> player.setGameMode(GameMode.SPECTATOR));
     }
 
-    @Decree(description = "Update your dimension projects VSCode workspace")
+    @Director(description = "Update your dimension projects VSCode workspace")
     public void update(
             @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "default", customHandler = DimensionHandler.class)
             IrisDimension dimension
@@ -724,7 +747,7 @@ public class CommandStudio implements DecreeExecutor {
         }
     }
 
-    @Decree(aliases = "find-objects", description = "Get information about nearby structures")
+    @Director(aliases = "find-objects", description = "Get information about nearby structures")
     public void objects() {
         if (!IrisToolbelt.isIrisWorld(player().getWorld())) {
             sender().sendMessage(C.RED + "You must be in an Iris world");

@@ -18,11 +18,11 @@
 
 package art.arcane.iris.util.decree;
 
-import art.arcane.volmlib.util.decree.DecreeSystemSupport;
+import art.arcane.volmlib.util.director.DirectorSystemSupport;
 import art.arcane.iris.Iris;
 import art.arcane.volmlib.util.collection.KList;
 public final class DecreeSystem {
-    public static final KList<DecreeParameterHandler<?>> handlers = Iris.initialize("art.arcane.iris.util.decree.handlers", null).convert((i) -> (DecreeParameterHandler<?>) i);
+    public static final KList<DirectorParameterHandler<?>> handlers = Iris.initialize("art.arcane.iris.util.decree.handlers", null).convert((i) -> (DirectorParameterHandler<?>) i);
 
     private DecreeSystem() {
     }
@@ -31,15 +31,15 @@ public final class DecreeSystem {
      * Get the handler for the specified type
      *
      * @param type The type to handle
-     * @return The corresponding {@link DecreeParameterHandler}, or null
+     * @return The corresponding {@link DirectorParameterHandler}, or null
      */
-    public static DecreeParameterHandler<?> getHandler(Class<?> type) {
-        DecreeParameterHandler<?> handler = DecreeSystemSupport.getHandler(handlers, type, (h, t) -> h.supports(t));
+    public static DirectorParameterHandler<?> getHandler(Class<?> type) {
+        DirectorParameterHandler<?> handler = DirectorSystemSupport.getHandler(handlers, type, (h, t) -> h.supports(t));
         if (handler != null) {
             return handler;
         }
 
-        Iris.error("Unhandled type in Decree Parameter: " + type.getName() + ". This is bad!");
+        Iris.error("Unhandled type in Director Parameter: " + type.getName() + ". This is bad!");
         return null;
     }
 }

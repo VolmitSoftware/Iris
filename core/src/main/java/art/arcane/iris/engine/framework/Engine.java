@@ -31,6 +31,7 @@ import art.arcane.iris.core.nms.container.Pair;
 import art.arcane.iris.core.pregenerator.ChunkUpdater;
 import art.arcane.iris.core.scripting.environment.EngineEnvironment;
 import art.arcane.iris.core.service.ExternalDataSVC;
+import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.data.cache.Cache;
 import art.arcane.iris.engine.data.chunk.TerrainChunk;
@@ -1003,6 +1004,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     default void cleanupMantleChunk(int x, int z) {
+        World world = getWorld().realWorld();
+        if (world != null && IrisToolbelt.isWorldMaintenanceActive(world)) {
+            return;
+        }
         if (IrisSettings.get().getPerformance().isTrimMantleInStudio() || !isStudio()) {
             getMantle().cleanupChunk(x, z);
         }

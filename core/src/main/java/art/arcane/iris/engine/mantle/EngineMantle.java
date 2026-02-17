@@ -42,6 +42,8 @@ import art.arcane.volmlib.util.matter.MatterMarker;
 import art.arcane.iris.util.matter.*;
 import art.arcane.iris.util.matter.slices.UpdateMatter;
 import art.arcane.iris.util.parallel.MultiBurst;
+import art.arcane.iris.util.scheduling.J;
+import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.UnmodifiableView;
 
@@ -80,6 +82,13 @@ public interface EngineMantle extends MatterGenerator {
     @ChunkCoordinates
     default KList<IrisPosition> findMarkers(int x, int z, MatterMarker marker) {
         KList<IrisPosition> p = new KList<>();
+        if (J.isFolia()) {
+            World world = getEngine().getWorld().realWorld();
+            if (world != null && J.isOwnedByCurrentRegion(world, x, z)) {
+                return p;
+            }
+        }
+
         getMantle().iterateChunk(x, z, MatterMarker.class, (xx, yy, zz, mm) -> {
             if (marker.equals(mm)) {
                 p.add(new IrisPosition(xx + (x << 4), yy, zz + (z << 4)));

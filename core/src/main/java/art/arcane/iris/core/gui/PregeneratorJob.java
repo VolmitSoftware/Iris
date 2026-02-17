@@ -34,6 +34,7 @@ import art.arcane.volmlib.util.math.M;
 import art.arcane.iris.util.math.Position2;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.iris.util.scheduling.J;
+import org.bukkit.World;
 
 import javax.swing.*;
 import java.awt.*;
@@ -156,6 +157,15 @@ public class PregeneratorJob implements PregenListener {
     public static long chunksRemaining() {
         PregeneratorJob inst = instance.get();
         return inst == null ? -1L : Math.max(0L, inst.lastChunksRemaining);
+    }
+
+    public boolean targetsWorld(World world) {
+        if (world == null || engine == null || engine.getWorld() == null) {
+            return false;
+        }
+
+        String targetName = engine.getWorld().name();
+        return targetName != null && targetName.equalsIgnoreCase(world.getName());
     }
 
     private static Color parseColor(String c) {

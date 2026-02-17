@@ -54,9 +54,16 @@ public class IOWorker {
 
     public IOWorker(File root, int worldHeight) {
         this.worldHeight = worldHeight;
-        this.support = new IOWorkerSupport(root, 128, (name, millis) ->
-                Iris.debug("Acquired Channel for " + C.DARK_GREEN + name + C.RED + " in " + Form.duration(millis, 2))
-        );
+        this.support = new IOWorkerSupport(root, 128, (name, millis) -> {
+            String threadName = Thread.currentThread().getName();
+            String msg = "Acquired Channel for " + C.DARK_GREEN + name + C.RED + " in " + Form.duration(millis, 2)
+                    + C.GRAY + " thread=" + threadName;
+            if (millis >= 1000L) {
+                Iris.warn(msg);
+            } else {
+                Iris.debug(msg);
+            }
+        });
         this.runtime = new IOWorkerRuntimeSupport(support, LZ4_CODEC);
     }
 

@@ -57,6 +57,7 @@ import art.arcane.iris.util.plugin.VolmitPlugin;
 import art.arcane.iris.util.plugin.VolmitSender;
 import art.arcane.iris.util.plugin.chunk.ChunkTickets;
 import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.misc.ServerProperties;
 import art.arcane.volmlib.util.scheduling.Queue;
 import art.arcane.volmlib.util.scheduling.ShurikenQueue;
 import lombok.NonNull;
@@ -94,6 +95,7 @@ public class Iris extends VolmitPlugin implements Listener {
     private static VolmitSender sender;
     private static Thread shutdownHook;
     private static File settingsFile;
+    private static final String PENDING_WORLD_DELETE_FILE = "pending-world-deletes.txt";
 
     static {
         try {
@@ -470,6 +472,12 @@ public class Iris extends VolmitPlugin implements Listener {
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
         addShutdownHook();
+        processPendingStartupWorldDeletes();
+
+        if (J.isFolia()) {
+            checkForBukkitWorlds(s -> true);
+        }
+
         J.s(() -> {
             J.a(() -> IO.delete(getTemp()));
             J.a(LazyPregenerator::loadLazyGenerators, 100);
@@ -480,7 +488,9 @@ public class Iris extends VolmitPlugin implements Listener {
             J.a(ServerConfigurator::configure, 20);
 
             autoStartStudio();
-            checkForBukkitWorlds(s -> true);
+            if (!J.isFolia()) {
+                checkForBukkitWorlds(s -> true);
+            }
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
             IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());
         });
@@ -534,6 +544,12 @@ public class Iris extends VolmitPlugin implements Listener {
                     Iris.info(C.LIGHT_PURPLE + "Loaded " + s + "!");
                 } catch (Throwable e) {
                     Iris.error("Failed to load world " + s + "!");
+                    if (containsCreateWorldUnsupportedOperation(e)) {
+                        Iris.error("This server denied Bukkit.createWorld for \"" + s + "\" at the current startup phase.");
+                        Iris.error("Ensure Iris is loaded at STARTUP and restart after staging worlds in bukkit.yml.");
+                        reportError(e);
+                        return;
+                    }
                     e.printStackTrace();
                 }
             });
@@ -541,6 +557,153 @@ public class Iris extends VolmitPlugin implements Listener {
             e.printStackTrace();
             reportError(e);
         }
+    }
+
+    private static boolean containsCreateWorldUnsupportedOperation(Throwable throwable) {
+        Throwable cursor = throwable;
+        while (cursor != null) {
+            if (cursor instanceof UnsupportedOperationException || cursor instanceof IllegalStateException) {
+                for (StackTraceElement element : cursor.getStackTrace()) {
+                    if ("org.bukkit.craftbukkit.CraftServer".equals(element.getClassName())
+                            && "createWorld".equals(element.getMethodName())) {
+                        return true;
+                    }
+                }
+            }
+            cursor = cursor.getCause();
+        }
+        return false;
+    }
+
+    public static synchronized int queueWorldDeletionOnStartup(Collection<String> worldNames) throws IOException {
+        if (instance == null || worldNames == null || worldNames.isEmpty()) {
+            return 0;
+        }
+
+        LinkedHashMap<String, String> queue = loadPendingWorldDeleteMap();
+        int before = queue.size();
+
+        for (String worldName : worldNames) {
+            String normalized = normalizeWorldName(worldName);
+            if (normalized == null) {
+                continue;
+            }
+            queue.putIfAbsent(normalized.toLowerCase(Locale.ROOT), normalized);
+        }
+
+        if (queue.size() != before) {
+            writePendingWorldDeleteMap(queue);
+        }
+
+        return queue.size() - before;
+    }
+
+    private void processPendingStartupWorldDeletes() {
+        try {
+            LinkedHashMap<String, String> queue = loadPendingWorldDeleteMap();
+            if (queue.isEmpty()) {
+                return;
+            }
+
+            LinkedHashMap<String, String> remaining = new LinkedHashMap<>();
+            for (String worldName : queue.values()) {
+                if (worldName.equalsIgnoreCase(ServerProperties.LEVEL_NAME)) {
+                    Iris.warn("Skipping queued deletion for \"" + worldName + "\" because it is configured as level-name.");
+                    continue;
+                }
+
+                if (Bukkit.getWorld(worldName) != null) {
+                    Iris.warn("Skipping queued deletion for \"" + worldName + "\" because it is currently loaded.");
+                    remaining.put(worldName.toLowerCase(Locale.ROOT), worldName);
+                    continue;
+                }
+
+                File worldFolder = new File(Bukkit.getWorldContainer(), worldName);
+                if (!worldFolder.exists()) {
+                    Iris.info("Queued world deletion skipped for \"" + worldName + "\" (folder missing).");
+                    continue;
+                }
+
+                IO.delete(worldFolder);
+                if (worldFolder.exists()) {
+                    Iris.warn("Failed to delete queued world folder \"" + worldName + "\". Retrying on next startup.");
+                    remaining.put(worldName.toLowerCase(Locale.ROOT), worldName);
+                    continue;
+                }
+
+                Iris.info("Deleted queued world folder \"" + worldName + "\".");
+            }
+
+            writePendingWorldDeleteMap(remaining);
+        } catch (Throwable e) {
+            Iris.error("Failed to process queued startup world deletions.");
+            reportError(e);
+            e.printStackTrace();
+        }
+    }
+
+    private static LinkedHashMap<String, String> loadPendingWorldDeleteMap() throws IOException {
+        LinkedHashMap<String, String> queue = new LinkedHashMap<>();
+        if (instance == null) {
+            return queue;
+        }
+
+        File queueFile = instance.getDataFile(PENDING_WORLD_DELETE_FILE);
+        if (!queueFile.exists()) {
+            return queue;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(queueFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String normalized = normalizeWorldName(line);
+                if (normalized == null) {
+                    continue;
+                }
+                queue.putIfAbsent(normalized.toLowerCase(Locale.ROOT), normalized);
+            }
+        }
+
+        return queue;
+    }
+
+    private static void writePendingWorldDeleteMap(Map<String, String> queue) throws IOException {
+        if (instance == null) {
+            return;
+        }
+
+        File queueFile = instance.getDataFile(PENDING_WORLD_DELETE_FILE);
+        if (queue.isEmpty()) {
+            if (queueFile.exists()) {
+                IO.delete(queueFile);
+            }
+            return;
+        }
+
+        File parent = queueFile.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            throw new IOException("Failed to create queue directory: " + parent.getAbsolutePath());
+        }
+
+        try (PrintWriter writer = new PrintWriter(new FileWriter(queueFile))) {
+            for (String worldName : queue.values()) {
+                writer.println(worldName);
+            }
+        }
+    }
+
+    @Nullable
+    private static String normalizeWorldName(String worldName) {
+        if (worldName == null) {
+            return null;
+        }
+
+        String trimmed = worldName.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+
+        return trimmed;
     }
 
     private void autoStartStudio() {

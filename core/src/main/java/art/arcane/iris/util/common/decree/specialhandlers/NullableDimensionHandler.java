@@ -22,7 +22,7 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.decree.exceptions.DecreeParsingException;
+import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
 
 import java.util.Locale;
 
@@ -32,7 +32,7 @@ public class NullableDimensionHandler extends RegistrantHandler<IrisDimension> {
     }
 
     @Override
-    public IrisDimension parse(String in, boolean force) throws DecreeParsingException {
+    public IrisDimension parse(String in, boolean force) throws DirectorParsingException {
         String key = in.trim();
         if (key.equalsIgnoreCase("default")) {
             key = IrisSettings.get().getGenerator().getDefaultWorldType();
@@ -40,7 +40,7 @@ public class NullableDimensionHandler extends RegistrantHandler<IrisDimension> {
 
         try {
             return super.parse(key, force);
-        } catch (DecreeParsingException ignored) {
+        } catch (DirectorParsingException ignored) {
             String normalized = key.toLowerCase(Locale.ROOT);
             IrisDimension resolved = IrisToolbelt.getDimension(normalized);
             if (resolved != null) {

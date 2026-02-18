@@ -73,10 +73,16 @@ private val software by task {
 }
 
 private val version by task {
-    val parts = Iris.instance.description.version.split('-')
-    val minVersion = parts[1]
-    val maxVersion = parts[2]
-    val supportedVersions = if (minVersion == maxVersion) minVersion else "$minVersion - $maxVersion"
+    val parts: List<String> = Iris.instance.description.version.split('-')
+    val supportedVersions: String = when {
+        parts.size >= 3 -> {
+            val minVersion: String = parts[1]
+            val maxVersion: String = parts[2]
+            if (minVersion == maxVersion) minVersion else "$minVersion - $maxVersion"
+        }
+        parts.size >= 2 -> parts[1]
+        else -> "1.21.11"
+    }
 
     if (INMS.get() !is NMSBinding1X) STABLE.withDiagnostics()
     else UNSTABLE.withDiagnostics(

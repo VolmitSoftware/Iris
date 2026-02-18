@@ -1004,7 +1004,6 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public void splash() {
-        Iris.info("Server type & version: " + Bukkit.getName() + " v" + Bukkit.getVersion());
         Iris.info("Custom Biomes: " + INMS.get().countCustomBiomes());
         printPacks();
 

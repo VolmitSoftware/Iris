@@ -54,7 +54,7 @@ registerCustomOutputTask("PixelFury", "C://Users/repix/workplace/Iris/1.21.3 - D
 registerCustomOutputTask("PixelFuryDev", "C://Users/repix/workplace/Iris/1.21 - Development-v3/plugins")
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix("CyberpwnLT", "/Users/danielmills/development/server/plugins")
-registerCustomOutputTaskUnix("PsychoLT", "/Users/brianfopiano/Developer/RemoteGit/[Minecraft Server]/plugin-jars")
+registerCustomOutputTaskUnix("PsychoLT", "/Users/brianfopiano/Developer/RemoteGit/[Minecraft Server]/consumers/plugin-consumers/dropins/plugins")
 registerCustomOutputTaskUnix("PixelMac", "/Users/test/Desktop/mcserver/plugins")
 registerCustomOutputTaskUnix("CrazyDev22LT", "/home/julian/Desktop/server/plugins")
 // ==============================================================
@@ -228,6 +228,7 @@ allprojects {
         compileJava {
             options.compilerArgs.add("-parameters")
             options.encoding = "UTF-8"
+            options.debugOptions.debugLevel = "none"
         }
 
         javadoc {

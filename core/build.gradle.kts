@@ -174,6 +174,7 @@ tasks {
     compileJava {
         options.compilerArgs.add("-parameters")
         options.encoding = "UTF-8"
+        options.debugOptions.debugLevel = "none"
     }
 
     /**

@@ -24,6 +24,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public class FoliaWorldsLink {
     private static volatile FoliaWorldsLink instance;
@@ -136,6 +137,11 @@ public class FoliaWorldsLink {
             return false;
         }
 
+        CompletableFuture<Boolean> asyncWorldUnload = unloadWorldViaAsyncApi(world, save);
+        if (asyncWorldUnload != null) {
+            return resolveAsyncUnload(asyncWorldUnload);
+        }
+
         try {
             return Bukkit.unloadWorld(world, save);
         } catch (UnsupportedOperationException unsupported) {
@@ -156,6 +162,67 @@ public class FoliaWorldsLink {
         } catch (Throwable e) {
             throw new IllegalStateException("Failed to unload world \"" + world.getName() + "\" via Folia runtime world-loader bridge.", unwrap(e));
         }
+    }
+
+    private boolean resolveAsyncUnload(CompletableFuture<Boolean> asyncWorldUnload) {
+        if (J.isPrimaryThread()) {
+            if (!asyncWorldUnload.isDone()) {
+                return true;
+            }
+
+            try {
+                return Boolean.TRUE.equals(asyncWorldUnload.join());
+            } catch (Throwable e) {
+                throw new IllegalStateException("Failed to consume async world unload result.", unwrap(e));
+            }
+        }
+
+        try {
+            return Boolean.TRUE.equals(asyncWorldUnload.get(120, TimeUnit.SECONDS));
+        } catch (Throwable e) {
+            throw new IllegalStateException("Failed while waiting for async world unload result.", unwrap(e));
+        }
+    }
+
+    private CompletableFuture<Boolean> unloadWorldViaAsyncApi(World world, boolean save) {
+        Object bukkitServer = Bukkit.getServer();
+        if (bukkitServer == null) {
+            return null;
+        }
+
+        Method unloadWorldAsyncMethod;
+        try {
+            unloadWorldAsyncMethod = bukkitServer.getClass().getMethod("unloadWorldAsync", World.class, boolean.class, Consumer.class);
+        } catch (Throwable ignored) {
+            return null;
+        }
+
+        CompletableFuture<Boolean> callbackFuture = new CompletableFuture<>();
+        Runnable invokeTask = () -> {
+            Consumer<Boolean> callback = result -> callbackFuture.complete(Boolean.TRUE.equals(result));
+            try {
+                unloadWorldAsyncMethod.invoke(bukkitServer, world, save, callback);
+            } catch (Throwable e) {
+                callbackFuture.completeExceptionally(unwrap(e));
+            }
+        };
+
+        if (J.isFolia() && !isGlobalTickThread()) {
+            CompletableFuture<Void> scheduled = J.sfut(invokeTask);
+            if (scheduled == null) {
+                callbackFuture.completeExceptionally(new IllegalStateException("Failed to schedule global world-unload task."));
+                return callbackFuture;
+            }
+            scheduled.whenComplete((unused, throwable) -> {
+                if (throwable != null) {
+                    callbackFuture.completeExceptionally(unwrap(throwable));
+                }
+            });
+        } else {
+            invokeTask.run();
+        }
+
+        return callbackFuture;
     }
 
     private boolean isWorldsProviderActive() {
@@ -457,17 +524,7 @@ public class FoliaWorldsLink {
             return;
         }
 
-        Server server = Bukkit.getServer();
-        boolean globalThread = false;
-        if (server != null) {
-            try {
-                Method isGlobalTickThreadMethod = server.getClass().getMethod("isGlobalTickThread");
-                globalThread = (boolean) isGlobalTickThreadMethod.invoke(server);
-            } catch (Throwable ignored) {
-            }
-        }
-
-        if (globalThread) {
+        if (isGlobalTickThread()) {
             detachTask.run();
             return;
         }
@@ -479,9 +536,29 @@ public class FoliaWorldsLink {
         detachFuture.get(15, TimeUnit.SECONDS);
     }
 
+    private static boolean isGlobalTickThread() {
+        Server server = Bukkit.getServer();
+        if (server == null) {
+            return false;
+        }
+
+        try {
+            Method isGlobalTickThreadMethod = server.getClass().getMethod("isGlobalTickThread");
+            return Boolean.TRUE.equals(isGlobalTickThreadMethod.invoke(server));
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
     private static Throwable unwrap(Throwable throwable) {
         if (throwable instanceof InvocationTargetException invocationTargetException && invocationTargetException.getCause() != null) {
-            return invocationTargetException.getCause();
+            return unwrap(invocationTargetException.getCause());
+        }
+        if (throwable instanceof java.util.concurrent.CompletionException completionException && completionException.getCause() != null) {
+            return unwrap(completionException.getCause());
+        }
+        if (throwable instanceof java.util.concurrent.ExecutionException executionException && executionException.getCause() != null) {
+            return unwrap(executionException.getCause());
         }
         return throwable;
     }

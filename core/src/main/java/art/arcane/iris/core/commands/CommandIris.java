@@ -21,6 +21,7 @@ package art.arcane.iris.core.commands;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.IrisWorlds;
+import art.arcane.iris.core.link.FoliaWorldsLink;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.service.StudioSVC;
@@ -545,7 +546,7 @@ public class CommandIris implements DirectorExecutor {
             return;
         }
 
-        if (!Bukkit.unloadWorld(world, false)) {
+        if (!FoliaWorldsLink.get().unloadWorld(world, false)) {
             sender().sendMessage(C.RED + "Failed to unload world: " + world.getName());
             return;
         }
@@ -1998,8 +1999,12 @@ public class CommandIris implements DirectorExecutor {
         sender().sendMessage(C.GREEN + "Unloading world: " + world.getName());
         try {
             IrisToolbelt.evacuate(world);
-            Bukkit.unloadWorld(world, false);
-            sender().sendMessage(C.GREEN + "World unloaded successfully.");
+            boolean unloaded = FoliaWorldsLink.get().unloadWorld(world, false);
+            if (unloaded) {
+                sender().sendMessage(C.GREEN + "World unloaded successfully.");
+            } else {
+                sender().sendMessage(C.RED + "Failed to unload the world.");
+            }
         } catch (Exception e) {
             sender().sendMessage(C.RED + "Failed to unload the world: " + e.getMessage());
             e.printStackTrace();

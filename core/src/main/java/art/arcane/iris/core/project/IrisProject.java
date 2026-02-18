@@ -60,6 +60,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 @SuppressWarnings("ALL")
@@ -291,9 +292,43 @@ public class IrisProject {
             }
         }
 
-        J.attemptAsync(() -> IO.delete(folder));
+        J.attemptAsync(() -> deleteStudioFolderWithRetry(folder, worldName));
         Iris.debug("Closed Active Provider " + worldName);
         activeProvider = null;
+    }
+
+    private static void deleteStudioFolderWithRetry(File folder, String worldName) {
+        if (folder == null) {
+            return;
+        }
+
+        long unloadWaitDeadlineMs = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(20);
+        while (Bukkit.getWorld(worldName) != null && System.currentTimeMillis() < unloadWaitDeadlineMs) {
+            J.sleep(100);
+        }
+
+        int attempts = 0;
+        while (folder.exists() && attempts < 40) {
+            IO.delete(folder);
+            if (!folder.exists()) {
+                return;
+            }
+
+            attempts++;
+            J.sleep(250);
+        }
+
+        if (!folder.exists()) {
+            return;
+        }
+
+        try {
+            Iris.queueWorldDeletionOnStartup(java.util.Collections.singleton(worldName));
+            Iris.warn("Queued deferred deletion for studio world folder \"" + worldName + "\".");
+        } catch (IOException e) {
+            Iris.warn("Failed to queue deferred deletion for studio world folder \"" + worldName + "\".");
+            Iris.reportError(e);
+        }
     }
 
     public File getCodeWorkspaceFile() {

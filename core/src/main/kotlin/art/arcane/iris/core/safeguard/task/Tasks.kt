@@ -56,6 +56,7 @@ private val incompatibilities by task {
 
 private val software by task {
     val supported = setOf(
+        "canvas",
         "folia",
         "purpur",
         "pufferfish",
@@ -64,10 +65,10 @@ private val software by task {
         "bukkit"
     )
 
-    if (supported.any { server.name.contains(it, true) }) STABLE.withDiagnostics()
+    if (isCanvasServer() || supported.any { server.name.contains(it, true) }) STABLE.withDiagnostics()
     else WARNING.withDiagnostics(
         WARN.create("Unsupported Server Software"),
-        WARN.create("- Please consider using Folia, Paper, or Purpur instead.")
+        WARN.create("- Please consider using Canvas, Folia, Paper, or Purpur instead.")
     )
 }
 
@@ -88,7 +89,7 @@ private val injection by task {
         WARNING.withDiagnostics(
             WARN.create("Java Agent"),
             WARN.create("- Skipping dynamic Java agent attach on Spigot/Bukkit to avoid runtime agent warnings."),
-            WARN.create("- For full runtime injection support, run with -javaagent:" + Agent.AGENT_JAR.path + " or use Paper/Purpur.")
+            WARN.create("- For full runtime injection support, run with -javaagent:" + Agent.AGENT_JAR.path + " or use Canvas/Folia/Paper/Purpur.")
         )
     } else if (!Agent.install()) UNSTABLE.withDiagnostics(
         ERROR.create("Java Agent"),
@@ -154,7 +155,20 @@ val tasks = listOf(
 private val server get() = Bukkit.getServer()
 private fun isPaperPreferredServer(): Boolean {
     val name = server.name.lowercase(Locale.ROOT)
-    return name.contains("folia") || name.contains("paper") || name.contains("purpur") || name.contains("pufferfish")
+    return isCanvasServer()
+            || name.contains("folia")
+            || name.contains("paper")
+            || name.contains("purpur")
+            || name.contains("pufferfish")
+}
+private fun isCanvasServer(): Boolean {
+    val loader: ClassLoader? = server.javaClass.classLoader
+    return try {
+        Class.forName("io.canvasmc.canvas.region.WorldRegionizer", false, loader)
+        true
+    } catch (_: Throwable) {
+        server.name.contains("canvas", true)
+    }
 }
 private fun <T> MutableList<T>.addAll(vararg values: T) = values.forEach(this::add)
 fun task(action: () -> ValueWithDiagnostics<Mode>) = PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Task>> { _, _ ->

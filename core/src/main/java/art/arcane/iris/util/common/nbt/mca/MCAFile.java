@@ -16,13 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.nbt.mca;
+package art.arcane.iris.util.nbt.common.mca;
 
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.nbt.mca.MCAFileSupport;
 import art.arcane.volmlib.util.nbt.mca.LoadFlags;
 import art.arcane.volmlib.util.math.Position2;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;

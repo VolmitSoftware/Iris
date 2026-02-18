@@ -16,15 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.stream.utility;
+package art.arcane.iris.util.project.stream.utility;
 
 import art.arcane.iris.Iris;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.math.RollingSequence;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-import art.arcane.iris.util.stream.BasicStream;
-import art.arcane.iris.util.stream.ProceduralStream;
+import art.arcane.iris.util.project.stream.BasicStream;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 import lombok.Data;
 
 import java.util.concurrent.atomic.AtomicInteger;

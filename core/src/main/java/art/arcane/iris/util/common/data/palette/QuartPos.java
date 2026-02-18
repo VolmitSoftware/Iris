@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.data.palette;
+package art.arcane.iris.util.common.data.palette;
 
 public final class QuartPos {
     public static final int BITS = 2;

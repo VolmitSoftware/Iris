@@ -4,7 +4,7 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.core.link.ExternalDataProvider;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import net.Indyuce.mmoitems.MMOItems;
 import net.Indyuce.mmoitems.api.ItemTier;
 import net.Indyuce.mmoitems.api.block.CustomBlock;

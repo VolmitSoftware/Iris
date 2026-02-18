@@ -32,14 +32,14 @@ import art.arcane.iris.engine.object.annotations.functions.ComponentFlagFunction
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
-import art.arcane.iris.util.data.DataProvider;
+import art.arcane.iris.util.common.data.DataProvider;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.noise.CNG;
-import art.arcane.iris.util.plugin.VolmitSender;
+import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.iris.util.common.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

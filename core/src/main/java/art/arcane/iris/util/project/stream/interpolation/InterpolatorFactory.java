@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.stream.interpolation;
+package art.arcane.iris.util.project.stream.interpolation;
 
-import art.arcane.iris.util.interpolation.InterpolationMethod;
-import art.arcane.iris.util.stream.ProceduralStream;
+import art.arcane.iris.util.project.interpolation.InterpolationMethod;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 @SuppressWarnings("ClassCanBeRecord")
 public class InterpolatorFactory<T> {
     private final ProceduralStream<T> stream;

@@ -23,7 +23,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.*;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.iris.util.math.AxisAlignedBB;
+import art.arcane.iris.util.common.math.AxisAlignedBB;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

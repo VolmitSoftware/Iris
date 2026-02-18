@@ -7,7 +7,7 @@ import art.arcane.iris.core.nms.container.Pair;
 import art.arcane.iris.engine.data.cache.Cache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.iris.util.data.IrisCustomData;
+import art.arcane.iris.util.common.data.IrisCustomData;
 import art.arcane.volmlib.util.math.RNG;
 import lombok.Getter;
 import lombok.NonNull;

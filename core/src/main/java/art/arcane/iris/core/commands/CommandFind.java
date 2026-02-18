@@ -22,12 +22,12 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisJigsawStructure;
 import art.arcane.iris.engine.object.IrisRegion;
-import art.arcane.iris.util.director.DirectorExecutor;
+import art.arcane.iris.util.common.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
-import art.arcane.iris.util.director.specialhandlers.ObjectHandler;
-import art.arcane.iris.util.format.C;
+import art.arcane.iris.util.common.director.specialhandlers.ObjectHandler;
+import art.arcane.iris.util.common.format.C;
 
 @Director(name = "find", origin = DirectorOrigin.PLAYER, description = "Iris Find commands", aliases = "goto")
 public class CommandFind implements DirectorExecutor {

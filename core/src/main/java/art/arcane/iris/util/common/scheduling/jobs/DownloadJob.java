@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.scheduling.jobs;
+package art.arcane.iris.util.common.scheduling.jobs;
 
 import art.arcane.volmlib.util.network.DL;
 import art.arcane.volmlib.util.network.DownloadMonitor;

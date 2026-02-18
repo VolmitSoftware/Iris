@@ -30,7 +30,7 @@ import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
-import art.arcane.iris.util.plugin.VolmitSender;
+import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import org.bukkit.World;

@@ -1,10 +1,10 @@
-package art.arcane.iris.util.stream.utility;
+package art.arcane.iris.util.project.stream.utility;
 
-import art.arcane.iris.util.context.ChunkContext;
-import art.arcane.iris.util.context.IrisContext;
+import art.arcane.iris.util.project.context.ChunkContext;
+import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.volmlib.util.function.Function3;
-import art.arcane.iris.util.stream.BasicStream;
-import art.arcane.iris.util.stream.ProceduralStream;
+import art.arcane.iris.util.project.stream.BasicStream;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 public class ContextInjectingStream<T> extends BasicStream<T> {
     private final Function3<ChunkContext, Integer, Integer, T> contextAccessor;
 

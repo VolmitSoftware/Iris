@@ -34,7 +34,7 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import org.bukkit.World;
 
 import javax.swing.*;

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.stream;
+package art.arcane.iris.util.project.stream;
 
 import art.arcane.volmlib.util.stream.BasicLayer;
 public abstract class BasicStream<T> extends BasicLayer implements ProceduralStream<T> {

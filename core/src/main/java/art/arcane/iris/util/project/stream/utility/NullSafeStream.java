@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.stream.utility;
+package art.arcane.iris.util.project.stream.utility;
 
-import art.arcane.iris.util.stream.BasicStream;
-import art.arcane.iris.util.stream.ProceduralStream;
+import art.arcane.iris.util.project.stream.BasicStream;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 public class NullSafeStream<T> extends BasicStream<T> implements ProceduralStream<T> {
     private final ProceduralStream<T> stream;
     private final T ifNull;

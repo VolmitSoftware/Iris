@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.util.context.ChunkContext;
+import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
-import art.arcane.iris.util.hunk.Hunk;
+import art.arcane.iris.util.project.hunk.Hunk;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 

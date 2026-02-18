@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.stream.sources;
+package art.arcane.iris.util.project.stream.sources;
 
-import art.arcane.iris.util.noise.CNG;
+import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.stream.BasicLayer;
-import art.arcane.iris.util.stream.ProceduralStream;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 public class CNGStream extends BasicLayer implements ProceduralStream<Double> {
     private final CNG cng;
 

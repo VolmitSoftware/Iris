@@ -1,4 +1,4 @@
-package art.arcane.iris.util.plugin.chunk;
+package art.arcane.iris.util.common.plugin.chunk;
 
 import art.arcane.iris.Iris;
 import lombok.NonNull;

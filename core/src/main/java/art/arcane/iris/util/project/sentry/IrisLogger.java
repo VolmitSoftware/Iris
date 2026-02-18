@@ -1,4 +1,4 @@
-package art.arcane.iris.util.sentry;
+package art.arcane.iris.util.project.sentry;
 
 import art.arcane.iris.Iris;
 import io.sentry.ILogger;

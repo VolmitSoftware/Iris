@@ -4,7 +4,7 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.core.gui.PregeneratorJob;
 import art.arcane.iris.core.pregenerator.LazyPregenerator;
 import art.arcane.iris.core.pregenerator.TurboPregenerator;
-import art.arcane.iris.util.plugin.IrisService;
+import art.arcane.iris.util.common.plugin.IrisService;
 import art.arcane.volmlib.integration.IntegrationHandshakeRequest;
 import art.arcane.volmlib.integration.IntegrationHandshakeResponse;
 import art.arcane.volmlib.integration.IntegrationHeartbeat;

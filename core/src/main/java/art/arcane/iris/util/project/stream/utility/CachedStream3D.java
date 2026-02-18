@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.stream.utility;
+package art.arcane.iris.util.project.stream.utility;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.service.PreservationSVC;
@@ -24,8 +24,8 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.MeteredCache;
 import art.arcane.volmlib.util.data.KCache;
 import art.arcane.volmlib.util.math.BlockPosition;
-import art.arcane.iris.util.stream.BasicStream;
-import art.arcane.iris.util.stream.ProceduralStream;
+import art.arcane.iris.util.project.stream.BasicStream;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 public class CachedStream3D<T> extends BasicStream<T> implements ProceduralStream<T>, MeteredCache {
     private final ProceduralStream<T> stream;
     private final KCache<BlockPosition, T> cache;

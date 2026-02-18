@@ -1,7 +1,7 @@
 package art.arcane.iris.core.safeguard.task
 
 import art.arcane.iris.Iris
-import art.arcane.iris.util.format.C
+import art.arcane.iris.util.common.format.C
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 

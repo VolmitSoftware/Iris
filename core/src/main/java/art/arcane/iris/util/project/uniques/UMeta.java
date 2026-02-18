@@ -1,4 +1,4 @@
-package art.arcane.iris.util.uniques;
+package art.arcane.iris.util.project.uniques;
 
 import com.google.gson.GsonBuilder;
 import art.arcane.volmlib.util.collection.KMap;

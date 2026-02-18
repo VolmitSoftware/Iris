@@ -16,14 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.director;
+package art.arcane.iris.util.common.director;
 
 import art.arcane.volmlib.util.director.DirectorExecutorBase;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
-import art.arcane.iris.util.plugin.VolmitSender;
+import art.arcane.iris.util.common.plugin.VolmitSender;
 import org.bukkit.entity.Player;
 
 public interface DirectorExecutor extends DirectorExecutorBase {

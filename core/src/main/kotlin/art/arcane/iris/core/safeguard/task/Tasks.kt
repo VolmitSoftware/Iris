@@ -8,8 +8,8 @@ import art.arcane.iris.core.safeguard.Mode
 import art.arcane.iris.core.safeguard.Mode.*
 import art.arcane.iris.core.safeguard.task.Diagnostic.Logger.*
 import art.arcane.iris.core.safeguard.task.Task.Companion.of
-import art.arcane.iris.util.agent.Agent
-import art.arcane.iris.util.misc.getHardware
+import art.arcane.iris.util.project.agent.Agent
+import art.arcane.iris.util.common.misc.getHardware
 import org.bukkit.Bukkit
 import java.util.Locale
 import java.util.stream.Collectors
@@ -76,11 +76,12 @@ private val version by task {
     val parts = Iris.instance.description.version.split('-')
     val minVersion = parts[1]
     val maxVersion = parts[2]
+    val supportedVersions = if (minVersion == maxVersion) minVersion else "$minVersion - $maxVersion"
 
     if (INMS.get() !is NMSBinding1X) STABLE.withDiagnostics()
     else UNSTABLE.withDiagnostics(
         ERROR.create("Server Version"),
-        ERROR.create("- Iris only supports $minVersion > $maxVersion")
+        ERROR.create("- Iris only supports $supportedVersions")
     )
 }
 

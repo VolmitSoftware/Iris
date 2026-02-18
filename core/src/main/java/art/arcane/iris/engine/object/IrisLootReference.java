@@ -21,7 +21,7 @@ package art.arcane.iris.engine.object;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.object.annotations.*;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.util.data.DataProvider;
+import art.arcane.iris.util.common.data.DataProvider;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

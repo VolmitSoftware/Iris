@@ -30,11 +30,11 @@ import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.volmlib.util.exceptions.IrisException;
-import art.arcane.iris.util.format.C;
+import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.io.IO;
-import art.arcane.iris.util.plugin.VolmitSender;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.plugin.VolmitSender;
+import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.O;
 import io.papermc.lib.PaperLib;
 import lombok.Data;
@@ -52,7 +52,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 
-import static art.arcane.iris.util.misc.ServerProperties.BUKKIT_YML;
+import static art.arcane.iris.util.common.misc.ServerProperties.BUKKIT_YML;
 
 /**
  * Makes it a lot easier to setup an engine, world, studio or whatever
@@ -231,8 +231,8 @@ public class IrisCreator {
                 Iris.linkMultiverseCore.removeFromConfig(world);
 
                 if (IrisSettings.get().getStudio().isDisableTimeAndWeather()) {
-                    world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
-                    world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+                    world.setGameRule(GameRule.ADVANCE_WEATHER, false);
+                    world.setGameRule(GameRule.ADVANCE_TIME, false);
                     world.setTime(6000);
                 }
             };

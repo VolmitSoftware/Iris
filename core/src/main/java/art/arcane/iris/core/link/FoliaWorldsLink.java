@@ -1,7 +1,7 @@
 package art.arcane.iris.core.link;
 
 import art.arcane.iris.Iris;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Server;

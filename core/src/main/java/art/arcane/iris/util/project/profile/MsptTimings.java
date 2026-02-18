@@ -1,7 +1,7 @@
-package art.arcane.iris.util.profile;
+package art.arcane.iris.util.project.profile;
 
 import art.arcane.volmlib.util.math.M;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.Looper;
 
 import java.util.concurrent.atomic.AtomicInteger;

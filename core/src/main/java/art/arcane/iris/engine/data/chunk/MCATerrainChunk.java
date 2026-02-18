@@ -20,9 +20,9 @@ package art.arcane.iris.engine.data.chunk;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.nms.BiomeBaseInjector;
-import art.arcane.iris.util.data.IrisCustomData;
-import art.arcane.iris.util.nbt.mca.Chunk;
-import art.arcane.iris.util.nbt.mca.NBTWorld;
+import art.arcane.iris.util.common.data.IrisCustomData;
+import art.arcane.iris.util.nbt.common.mca.Chunk;
+import art.arcane.iris.util.nbt.common.mca.NBTWorld;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import org.bukkit.Material;

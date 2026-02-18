@@ -1,7 +1,7 @@
 package art.arcane.iris.core.service;
 
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.util.plugin.IrisService;
+import art.arcane.iris.util.common.plugin.IrisService;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Marker;

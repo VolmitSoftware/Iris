@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.parallel;
+package art.arcane.iris.util.common.parallel;
 
 
-import art.arcane.iris.util.hunk.Hunk;
+import art.arcane.iris.util.project.hunk.Hunk;
 public interface BurstedHunk<T> extends Hunk<T>, art.arcane.volmlib.util.parallel.BurstedHunk<T> {
 }

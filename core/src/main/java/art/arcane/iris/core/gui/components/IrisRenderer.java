@@ -21,7 +21,7 @@ package art.arcane.iris.core.gui.components;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisBiomeGeneratorLink;
-import art.arcane.iris.util.interpolation.IrisInterpolation;
+import art.arcane.iris.util.project.interpolation.IrisInterpolation;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.function.BiFunction;

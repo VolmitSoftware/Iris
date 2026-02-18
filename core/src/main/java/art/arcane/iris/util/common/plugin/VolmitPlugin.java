@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.plugin;
+package art.arcane.iris.util.common.plugin;
 
 import art.arcane.iris.Iris;
 import art.arcane.volmlib.util.collection.KList;
@@ -24,7 +24,7 @@ import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.reflect.V;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.*;
@@ -317,11 +317,11 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         commandCache = new KList<>();
 
         for (Field i : getClass().getDeclaredFields()) {
-            if (i.isAnnotationPresent(art.arcane.iris.util.plugin.Command.class)) {
+            if (i.isAnnotationPresent(art.arcane.iris.util.common.plugin.Command.class)) {
                 try {
                     i.setAccessible(true);
                     MortarCommand pc = (MortarCommand) i.getType().getConstructor().newInstance();
-                    art.arcane.iris.util.plugin.Command c = i.getAnnotation(art.arcane.iris.util.plugin.Command.class);
+                    art.arcane.iris.util.common.plugin.Command c = i.getAnnotation(art.arcane.iris.util.common.plugin.Command.class);
                     registerCommand(pc, c.value());
                     commandCache.add(pc);
                     v("Registered Commands /" + pc.getNode() + " (" + i.getName() + ")");

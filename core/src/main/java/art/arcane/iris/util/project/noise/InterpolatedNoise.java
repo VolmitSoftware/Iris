@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.noise;
+package art.arcane.iris.util.project.noise;
 
 import art.arcane.volmlib.util.function.NoiseProvider;
-import art.arcane.iris.util.interpolation.InterpolationMethod;
-import art.arcane.iris.util.interpolation.IrisInterpolation;
+import art.arcane.iris.util.project.interpolation.InterpolationMethod;
+import art.arcane.iris.util.project.interpolation.IrisInterpolation;
 public class InterpolatedNoise implements NoiseGenerator {
     private final InterpolationMethod method;
     private final NoiseProvider p;

@@ -5,8 +5,8 @@
 //import com.jojodmo.customitems.item.custom.block.CustomMushroomBlock;
 //import com.jojodmo.customitems.version.SafeMaterial;
 //import art.arcane.volmlib.util.collection.KList;
-//import art.arcane.iris.util.reflect.WrappedField;
-//import art.arcane.iris.util.reflect.WrappedReturningMethod;
+//import art.arcane.iris.util.common.reflect.WrappedField;
+//import art.arcane.iris.util.common.reflect.WrappedReturningMethod;
 //import org.bukkit.block.BlockFace;
 //import org.bukkit.block.data.BlockData;
 //import org.bukkit.block.data.MultipleFacing;

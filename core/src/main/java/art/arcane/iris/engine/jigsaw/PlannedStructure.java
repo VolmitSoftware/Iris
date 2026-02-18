@@ -32,7 +32,7 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.slices.container.JigsawPieceContainer;
 import art.arcane.volmlib.util.matter.slices.container.JigsawStructureContainer;
 import art.arcane.volmlib.util.matter.slices.container.JigsawStructuresContainer;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import lombok.Data;
 import org.bukkit.Axis;
 

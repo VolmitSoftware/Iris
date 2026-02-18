@@ -16,12 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.stream.arithmetic;
+package art.arcane.iris.util.project.stream.arithmetic;
 
 import art.arcane.volmlib.util.function.Function2;
 import art.arcane.volmlib.util.function.Function3;
-import art.arcane.iris.util.stream.BasicStream;
-import art.arcane.iris.util.stream.ProceduralStream;
+import art.arcane.iris.util.project.stream.BasicStream;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 public class DividingStream<T> extends BasicStream<T> implements ProceduralStream<T> {
     private final Function3<Double, Double, Double, Double> add;
 

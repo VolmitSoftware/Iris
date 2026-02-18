@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.hunk.view;
+package art.arcane.iris.util.project.hunk.view;
 
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.engine.data.chunk.LinkedTerrainChunk;
-import art.arcane.iris.util.hunk.Hunk;
+import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.hunk.view.BiomeGridForceSupport;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;

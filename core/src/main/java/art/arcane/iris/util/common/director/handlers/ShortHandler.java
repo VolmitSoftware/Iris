@@ -1,4 +1,4 @@
-package art.arcane.iris.util.director.handlers;
+package art.arcane.iris.util.common.director.handlers;
 
 import art.arcane.volmlib.util.director.handlers.base.ShortHandlerBase;
 import art.arcane.volmlib.util.director.DirectorParameterHandler;

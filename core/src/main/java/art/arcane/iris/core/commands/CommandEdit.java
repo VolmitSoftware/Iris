@@ -21,11 +21,11 @@ package art.arcane.iris.core.commands;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.engine.object.*;
-import art.arcane.iris.util.director.DirectorExecutor;
+import art.arcane.iris.util.common.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
-import art.arcane.iris.util.format.C;
+import art.arcane.iris.util.common.format.C;
 
 import java.awt.*;
 

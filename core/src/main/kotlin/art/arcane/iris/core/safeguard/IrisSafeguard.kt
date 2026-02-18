@@ -5,8 +5,8 @@ import art.arcane.iris.core.safeguard.task.Diagnostic
 import art.arcane.iris.core.safeguard.task.Task
 import art.arcane.iris.core.safeguard.task.ValueWithDiagnostics
 import art.arcane.iris.core.safeguard.task.tasks
-import art.arcane.iris.util.format.C
-import art.arcane.iris.util.scheduling.J
+import art.arcane.iris.util.common.format.C
+import art.arcane.iris.util.common.scheduling.J
 import java.util.*
 
 object IrisSafeguard {

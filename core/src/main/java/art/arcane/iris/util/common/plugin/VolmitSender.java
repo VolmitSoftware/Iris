@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.plugin;
+package art.arcane.iris.util.common.plugin;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.IrisSettings;
@@ -24,11 +24,11 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.director.visual.DirectorVisualCommand;
 import art.arcane.volmlib.util.director.visual.DirectorVisualCommand.DirectorVisualParameter;
-import art.arcane.iris.util.format.C;
+import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;

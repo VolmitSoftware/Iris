@@ -18,8 +18,8 @@
 
 package art.arcane.iris.core.edit;
 
-import art.arcane.iris.util.parallel.MultiBurst;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.parallel.MultiBurst;
+import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.SR;
 import org.bukkit.Location;
 import org.bukkit.block.Block;

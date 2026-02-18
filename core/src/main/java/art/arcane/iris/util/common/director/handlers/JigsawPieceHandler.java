@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.director.handlers;
+package art.arcane.iris.util.common.director.handlers;
 
 import art.arcane.iris.engine.object.IrisJigsawPiece;
-import art.arcane.iris.util.director.specialhandlers.RegistrantHandler;
+import art.arcane.iris.util.common.director.specialhandlers.RegistrantHandler;
 
 public class JigsawPieceHandler extends RegistrantHandler<IrisJigsawPiece> {
     public JigsawPieceHandler() {

@@ -4,7 +4,7 @@ import art.arcane.iris.core.nms.container.Pair;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;

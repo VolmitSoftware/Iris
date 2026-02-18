@@ -24,17 +24,17 @@ import art.arcane.iris.core.edit.DustRevealer;
 import art.arcane.iris.core.link.WorldEditLink;
 import art.arcane.iris.core.wand.WandSelection;
 import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.util.project.matter.WorldMatter;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.data.Cuboid;
-import art.arcane.iris.util.format.C;
+import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.matter.Matter;
-import art.arcane.iris.util.matter.WorldMatter;
-import art.arcane.iris.util.plugin.IrisService;
-import art.arcane.iris.util.plugin.VolmitSender;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.plugin.IrisService;
+import art.arcane.iris.util.common.plugin.VolmitSender;
+import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.SR;
-import art.arcane.iris.util.scheduling.jobs.Job;
+import art.arcane.iris.util.common.scheduling.jobs.Job;
 import org.bukkit.*;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -55,8 +55,8 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 
-import static art.arcane.iris.util.data.registry.Particles.CRIT_MAGIC;
-import static art.arcane.iris.util.data.registry.Particles.REDSTONE;
+import static art.arcane.iris.util.common.data.registry.Particles.CRIT_MAGIC;
+import static art.arcane.iris.util.common.data.registry.Particles.REDSTONE;
 
 public class WandSVC implements IrisService {
     private static final int MS_PER_TICK = Integer.parseInt(System.getProperty("iris.ms_per_tick", "30"));

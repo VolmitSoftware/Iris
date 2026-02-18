@@ -1,7 +1,7 @@
-package art.arcane.iris.util.context
+package art.arcane.iris.util.project.context
 
 import art.arcane.volmlib.util.documentation.BlockCoordinates
-import art.arcane.iris.util.stream.ProceduralStream
+import art.arcane.iris.util.project.stream.ProceduralStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope

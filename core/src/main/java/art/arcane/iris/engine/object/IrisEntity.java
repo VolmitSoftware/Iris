@@ -27,13 +27,13 @@ import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.annotations.*;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.util.format.C;
+import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.plugin.Chunks;
-import art.arcane.iris.util.plugin.VolmitSender;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.plugin.Chunks;
+import art.arcane.iris.util.common.plugin.VolmitSender;
+import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -58,7 +58,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static art.arcane.iris.util.data.registry.Particles.ITEM;
+import static art.arcane.iris.util.common.data.registry.Particles.ITEM;
 
 @SuppressWarnings("ALL")
 @Accessors(chain = true)

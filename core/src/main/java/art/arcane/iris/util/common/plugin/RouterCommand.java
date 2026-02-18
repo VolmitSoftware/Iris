@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.plugin;
+package art.arcane.iris.util.common.plugin;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;

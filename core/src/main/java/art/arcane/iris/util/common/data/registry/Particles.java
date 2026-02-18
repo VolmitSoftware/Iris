@@ -1,8 +1,8 @@
-package art.arcane.iris.util.data.registry;
+package art.arcane.iris.util.common.data.registry;
 
 import org.bukkit.Particle;
 
-import static art.arcane.iris.util.data.registry.RegistryUtil.find;
+import static art.arcane.iris.util.common.data.registry.RegistryUtil.find;
 
 public class Particles {
     public static final Particle CRIT_MAGIC = find(Particle.class, "crit_magic", "crit");

@@ -21,7 +21,7 @@ package art.arcane.iris.engine.data.chunk;
 import art.arcane.iris.core.nms.BiomeBaseInjector;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.volmlib.util.data.IrisBiomeStorage;
-import art.arcane.iris.util.data.IrisCustomData;
+import art.arcane.iris.util.common.data.IrisCustomData;
 import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;

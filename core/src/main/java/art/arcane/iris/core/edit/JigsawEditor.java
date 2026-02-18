@@ -29,7 +29,7 @@ import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;

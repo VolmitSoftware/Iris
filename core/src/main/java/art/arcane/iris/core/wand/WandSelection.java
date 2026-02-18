@@ -27,7 +27,7 @@ import org.bukkit.util.Vector;
 
 import java.awt.*;
 
-import static art.arcane.iris.util.data.registry.Particles.REDSTONE;
+import static art.arcane.iris.util.common.data.registry.Particles.REDSTONE;
 
 public class WandSelection {
     private final Cuboid c;

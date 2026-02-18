@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.director.handlers;
+package art.arcane.iris.util.common.director.handlers;
 
 import art.arcane.iris.engine.object.IrisCave;
-import art.arcane.iris.util.director.specialhandlers.RegistrantHandler;
+import art.arcane.iris.util.common.director.specialhandlers.RegistrantHandler;
 
 public class CaveHandler extends RegistrantHandler<IrisCave> {
     public CaveHandler() {

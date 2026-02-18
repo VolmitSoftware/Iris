@@ -19,8 +19,8 @@
 package art.arcane.iris.core.service;
 
 import art.arcane.iris.Iris;
-import art.arcane.iris.util.plugin.IrisService;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.plugin.IrisService;
+import art.arcane.iris.util.common.scheduling.J;
 import lombok.Getter;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;

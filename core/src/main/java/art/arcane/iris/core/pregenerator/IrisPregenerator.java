@@ -22,7 +22,7 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.core.tools.IrisPackBenchmarking;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
-import art.arcane.iris.util.format.C;
+import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.matter.Matter;
@@ -30,7 +30,7 @@ import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RollingSequence;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.Looper;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 

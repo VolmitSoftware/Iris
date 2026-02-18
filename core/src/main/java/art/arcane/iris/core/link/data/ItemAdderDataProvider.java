@@ -5,7 +5,7 @@ import art.arcane.iris.core.link.ExternalDataProvider;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.iris.util.data.IrisCustomData;
+import art.arcane.iris.util.common.data.IrisCustomData;
 import dev.lone.itemsadder.api.CustomBlock;
 import dev.lone.itemsadder.api.CustomStack;
 import dev.lone.itemsadder.api.Events.ItemsAdderLoadDataEvent;

@@ -1,10 +1,10 @@
-package art.arcane.iris.util.uniques;
+package art.arcane.iris.util.project.uniques;
 
 import art.arcane.iris.engine.object.NoiseStyle;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.iris.util.interpolation.InterpolationMethod;
-import art.arcane.iris.util.noise.CNG;
+import art.arcane.iris.util.project.interpolation.InterpolationMethod;
+import art.arcane.iris.util.project.noise.CNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

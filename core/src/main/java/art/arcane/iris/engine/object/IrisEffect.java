@@ -24,7 +24,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.annotations.*;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

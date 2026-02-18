@@ -1,4 +1,4 @@
-package art.arcane.iris.util.misc;
+package art.arcane.iris.util.common.misc;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

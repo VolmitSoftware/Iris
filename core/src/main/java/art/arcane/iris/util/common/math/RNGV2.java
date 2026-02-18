@@ -1,4 +1,4 @@
-package art.arcane.iris.util.math;
+package art.arcane.iris.util.common.math;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;

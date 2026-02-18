@@ -1,8 +1,8 @@
-package art.arcane.iris.util.misc;
+package art.arcane.iris.util.common.misc;
 
 
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.util.format.C;
+import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.format.Form;
 import org.jetbrains.annotations.Nullable;
 import oshi.SystemInfo;

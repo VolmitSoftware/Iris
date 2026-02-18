@@ -2,7 +2,7 @@ package art.arcane.iris.core.pregenerator;
 
 import com.google.gson.Gson;
 import art.arcane.iris.Iris;
-import art.arcane.iris.util.format.C;
+import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.math.M;
@@ -10,7 +10,7 @@ import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RollingSequence;
 import art.arcane.volmlib.util.math.Spiraler;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.Getter;

@@ -6,8 +6,8 @@ import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.Spiraler;
-import art.arcane.iris.util.parallel.BurstExecutor;
-import art.arcane.iris.util.parallel.MultiBurst;
+import art.arcane.iris.util.common.parallel.BurstExecutor;
+import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import org.apache.commons.lang3.function.TriFunction;
 

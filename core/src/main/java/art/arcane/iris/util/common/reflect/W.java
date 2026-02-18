@@ -1,4 +1,4 @@
-package art.arcane.iris.util.reflect;
+package art.arcane.iris.util.common.reflect;
 
 import lombok.Getter;
 

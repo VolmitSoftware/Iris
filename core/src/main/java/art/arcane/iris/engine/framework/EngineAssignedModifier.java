@@ -19,9 +19,9 @@
 package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.Iris;
-import art.arcane.iris.util.context.ChunkContext;
+import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
-import art.arcane.iris.util.hunk.Hunk;
+import art.arcane.iris.util.project.hunk.Hunk;
 public abstract class EngineAssignedModifier<T> extends EngineAssignedComponent implements EngineModifier<T> {
     public EngineAssignedModifier(Engine engine, String name) {
         super(engine, name);

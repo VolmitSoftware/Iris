@@ -23,7 +23,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.volmlib.util.math.RollingSequence;
-import art.arcane.iris.util.parallel.MultiBurst;
+import art.arcane.iris.util.common.parallel.MultiBurst;
 import org.bukkit.event.Listener;
 
 public interface EngineComponent {

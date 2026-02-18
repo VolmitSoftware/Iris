@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.matter.slices;
+package art.arcane.iris.util.project.matter.slices;
 
 import art.arcane.iris.engine.object.IrisSpawner;
 import art.arcane.volmlib.util.matter.Sliced;

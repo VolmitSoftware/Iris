@@ -20,8 +20,8 @@ package art.arcane.iris.engine.object;
 
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.object.annotations.*;
-import art.arcane.iris.util.data.DataProvider;
-import art.arcane.iris.util.interpolation.IrisInterpolation;
+import art.arcane.iris.util.common.data.DataProvider;
+import art.arcane.iris.util.project.interpolation.IrisInterpolation;
 import lombok.*;
 import lombok.experimental.Accessors;
 

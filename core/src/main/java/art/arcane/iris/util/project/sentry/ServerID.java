@@ -1,4 +1,4 @@
-package art.arcane.iris.util.sentry;
+package art.arcane.iris.util.project.sentry;
 
 import art.arcane.volmlib.util.io.IO;
 import io.sentry.protocol.User;

@@ -1,7 +1,7 @@
-package art.arcane.iris.util.scheduling.jobs;
+package art.arcane.iris.util.common.scheduling.jobs;
 
 import art.arcane.volmlib.util.math.Spiraler;
-import art.arcane.iris.util.parallel.MultiBurst;
+import art.arcane.iris.util.common.parallel.MultiBurst;
 import lombok.SneakyThrows;
 import lombok.Synchronized;
 

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.noise;
+package art.arcane.iris.util.project.noise;
 
 public interface OctaveNoise {
     void setOctaves(int o);

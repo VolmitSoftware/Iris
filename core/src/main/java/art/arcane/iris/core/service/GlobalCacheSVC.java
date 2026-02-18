@@ -4,7 +4,7 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.pregenerator.cache.PregenCache;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.iris.util.plugin.IrisService;
+import art.arcane.iris.util.common.plugin.IrisService;
 import art.arcane.volmlib.util.scheduling.Looper;
 import lombok.NonNull;
 import org.bukkit.Bukkit;

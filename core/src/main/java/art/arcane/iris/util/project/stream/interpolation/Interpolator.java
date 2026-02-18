@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.stream.interpolation;
+package art.arcane.iris.util.project.stream.interpolation;
 
-import art.arcane.iris.util.stream.ProceduralStream;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 public interface Interpolator<T> {
     @SuppressWarnings("unchecked")
     default InterpolatorFactory<T> into() {

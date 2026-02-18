@@ -1,4 +1,4 @@
-package art.arcane.iris.util.data.registry;
+package art.arcane.iris.util.common.data.registry;
 
 import org.bukkit.attribute.Attribute;
 

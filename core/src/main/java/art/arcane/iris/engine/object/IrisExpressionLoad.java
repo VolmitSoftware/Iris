@@ -25,8 +25,8 @@ import art.arcane.iris.engine.object.annotations.Required;
 import art.arcane.iris.engine.object.annotations.Snippet;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.noise.CNG;
-import art.arcane.iris.util.stream.ProceduralStream;
+import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 import lombok.*;
 import lombok.experimental.Accessors;
 

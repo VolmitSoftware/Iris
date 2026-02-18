@@ -1,4 +1,4 @@
-package art.arcane.iris.util.agent;
+package art.arcane.iris.util.project.agent;
 
 import java.lang.instrument.Instrumentation;
 

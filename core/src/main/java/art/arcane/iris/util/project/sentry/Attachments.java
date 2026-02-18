@@ -1,4 +1,4 @@
-package art.arcane.iris.util.sentry;
+package art.arcane.iris.util.project.sentry;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

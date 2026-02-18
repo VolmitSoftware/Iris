@@ -1,6 +1,6 @@
 package art.arcane.iris.core.tools;
 
-import art.arcane.iris.util.data.B;
+import art.arcane.iris.util.common.data.B;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 

@@ -1,4 +1,4 @@
-package art.arcane.iris.util.misc;
+package art.arcane.iris.util.common.misc;
 
 public final class RegenRuntime {
     private static final ThreadLocal<String> RUN_ID = new ThreadLocal<>();

@@ -1,4 +1,4 @@
-package art.arcane.iris.util.data;
+package art.arcane.iris.util.common.data;
 
 import art.arcane.volmlib.util.collection.KMap;
 import lombok.NonNull;

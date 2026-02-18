@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.math;
+package art.arcane.iris.util.common.math;
 
 import art.arcane.volmlib.util.math.AlignedPoint;
 import art.arcane.iris.engine.object.IrisPosition;

@@ -1,4 +1,4 @@
-package art.arcane.iris.util.noise;
+package art.arcane.iris.util.project.noise;
 
 
 import art.arcane.volmlib.util.math.RNG;

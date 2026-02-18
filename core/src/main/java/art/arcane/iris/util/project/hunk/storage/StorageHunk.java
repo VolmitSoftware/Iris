@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.hunk.storage;
+package art.arcane.iris.util.project.hunk.storage;
 
-import art.arcane.iris.util.hunk.Hunk;
+import art.arcane.iris.util.project.hunk.Hunk;
 import lombok.Data;
 
 @Data

@@ -1,4 +1,4 @@
-package art.arcane.iris.util.board;
+package art.arcane.iris.util.common.board;
 
 public class BoardEntry {
     private final art.arcane.volmlib.util.board.BoardEntry delegate;

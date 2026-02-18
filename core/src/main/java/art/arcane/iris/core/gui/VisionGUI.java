@@ -35,7 +35,7 @@ import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.RollingSequence;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.O;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Location;
@@ -55,7 +55,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
 
-import static art.arcane.iris.util.data.registry.Attributes.MAX_HEALTH;
+import static art.arcane.iris.util.common.data.registry.Attributes.MAX_HEALTH;
 
 public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener, MouseMotionListener, MouseInputListener {
     private static final long serialVersionUID = 2094606939770332040L;

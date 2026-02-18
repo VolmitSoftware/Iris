@@ -27,7 +27,7 @@ import art.arcane.iris.engine.framework.EngineMode;
 import art.arcane.iris.engine.framework.EngineStage;
 import art.arcane.iris.engine.framework.IrisEngineMode;
 import art.arcane.iris.engine.modifier.*;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import org.bukkit.block.data.BlockData;
 
 import java.util.concurrent.atomic.AtomicLong;

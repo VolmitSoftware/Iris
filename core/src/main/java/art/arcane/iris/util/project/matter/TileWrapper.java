@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.matter;
+package art.arcane.iris.util.project.matter;
 
 import art.arcane.iris.engine.object.TileData;
 import lombok.Data;

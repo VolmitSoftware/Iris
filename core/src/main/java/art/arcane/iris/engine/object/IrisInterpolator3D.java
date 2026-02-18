@@ -20,8 +20,8 @@ package art.arcane.iris.engine.object;
 
 import art.arcane.iris.engine.object.annotations.*;
 import art.arcane.volmlib.util.function.NoiseProvider3;
-import art.arcane.iris.util.interpolation.InterpolationMethod3D;
-import art.arcane.iris.util.interpolation.IrisInterpolation;
+import art.arcane.iris.util.project.interpolation.InterpolationMethod3D;
+import art.arcane.iris.util.project.interpolation.IrisInterpolation;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

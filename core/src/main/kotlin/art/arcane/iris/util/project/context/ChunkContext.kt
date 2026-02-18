@@ -1,9 +1,9 @@
-package art.arcane.iris.util.context
+package art.arcane.iris.util.project.context
 
 import art.arcane.iris.engine.IrisComplex
 import art.arcane.iris.engine.`object`.IrisBiome
 import art.arcane.iris.engine.`object`.IrisRegion
-import art.arcane.iris.util.parallel.MultiBurst
+import art.arcane.iris.util.common.parallel.MultiBurst
 import kotlinx.coroutines.*
 import org.bukkit.block.data.BlockData
 

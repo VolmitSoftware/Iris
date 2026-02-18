@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.scheduling;
+package art.arcane.iris.util.common.scheduling;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.service.PreservationSVC;
-import art.arcane.iris.util.parallel.MultiBurst;
+import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.volmlib.util.function.NastyFunction;
 import art.arcane.volmlib.util.function.NastyFuture;
 import art.arcane.volmlib.util.function.NastyRunnable;

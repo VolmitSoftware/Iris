@@ -1,4 +1,4 @@
-package art.arcane.iris.util.profile;
+package art.arcane.iris.util.project.profile;
 
 
 import art.arcane.iris.Iris;

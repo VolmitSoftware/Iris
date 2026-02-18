@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.context;
+package art.arcane.iris.util.project.context;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.loader.IrisData;

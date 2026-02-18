@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.noise;
+package art.arcane.iris.util.project.noise;
 
 import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.util.interpolation.InterpolationMethod;
+import art.arcane.iris.util.project.interpolation.InterpolationMethod;
 public enum NoiseType {
     WHITE(WhiteNoise::new),
     WHITE_BILINEAR((s) -> new InterpolatedNoise(s, WHITE, InterpolationMethod.BILINEAR)),

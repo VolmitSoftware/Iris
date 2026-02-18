@@ -1,4 +1,4 @@
-package art.arcane.iris.util.math;
+package art.arcane.iris.util.common.math;
 
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.data.Cuboid.CuboidDirection;

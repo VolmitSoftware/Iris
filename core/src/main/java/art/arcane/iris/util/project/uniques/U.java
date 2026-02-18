@@ -1,4 +1,4 @@
-package art.arcane.iris.util.uniques;
+package art.arcane.iris.util.project.uniques;
 
 import java.io.File;
 

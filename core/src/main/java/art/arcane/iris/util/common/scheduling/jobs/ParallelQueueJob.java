@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.scheduling.jobs;
+package art.arcane.iris.util.common.scheduling.jobs;
 
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.util.parallel.BurstExecutor;
-import art.arcane.iris.util.parallel.MultiBurst;
+import art.arcane.iris.util.common.parallel.BurstExecutor;
+import art.arcane.iris.util.common.parallel.MultiBurst;
 
 public abstract class ParallelQueueJob<T> extends QueueJob<T> {
     @Override

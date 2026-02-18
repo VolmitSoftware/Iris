@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.commands;
 
-import art.arcane.iris.util.director.DirectorExecutor;
+import art.arcane.iris.util.common.director.DirectorExecutor;
 
 public class CommandSettings implements DirectorExecutor {
 

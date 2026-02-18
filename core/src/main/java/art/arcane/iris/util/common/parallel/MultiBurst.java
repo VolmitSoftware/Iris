@@ -1,4 +1,4 @@
-package art.arcane.iris.util.parallel;
+package art.arcane.iris.util.common.parallel;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.IrisSettings;

@@ -22,7 +22,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineTarget;
 import art.arcane.iris.engine.framework.Hotloadable;
-import art.arcane.iris.util.data.DataProvider;
+import art.arcane.iris.util.common.data.DataProvider;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

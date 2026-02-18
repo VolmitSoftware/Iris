@@ -1,4 +1,4 @@
-package art.arcane.iris.util.data;
+package art.arcane.iris.util.common.data;
 
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -10,7 +10,7 @@ import art.arcane.iris.core.link.data.DataType;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.nms.container.BlockProperty;
 import art.arcane.iris.core.service.ExternalDataSVC;
-import art.arcane.iris.util.data.registry.Materials;
+import art.arcane.iris.util.common.data.registry.Materials;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;

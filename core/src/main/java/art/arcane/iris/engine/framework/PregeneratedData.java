@@ -19,8 +19,8 @@
 package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.engine.data.chunk.TerrainChunk;
-import art.arcane.iris.util.data.B;
-import art.arcane.iris.util.hunk.Hunk;
+import art.arcane.iris.util.common.data.B;
+import art.arcane.iris.util.project.hunk.Hunk;
 import lombok.Data;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;

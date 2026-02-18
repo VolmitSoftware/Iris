@@ -16,14 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.matter;
+package art.arcane.iris.util.project.matter;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.engine.object.IrisObject;
-import art.arcane.iris.util.matter.slices.EntityMatter;
-import art.arcane.iris.util.matter.slices.IdentifierMatter;
-import art.arcane.iris.util.matter.slices.SpawnerMatter;
-import art.arcane.iris.util.matter.slices.TileMatter;
+
+import art.arcane.iris.util.project.matter.slices.EntityMatter;
+import art.arcane.iris.util.project.matter.slices.IdentifierMatter;
+import art.arcane.iris.util.project.matter.slices.SpawnerMatter;
+import art.arcane.iris.util.project.matter.slices.TileMatter;
 import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import org.bukkit.block.data.BlockData;

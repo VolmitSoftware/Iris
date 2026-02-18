@@ -12,7 +12,7 @@ import art.arcane.iris.core.scripting.kotlin.runner.value
 import art.arcane.iris.core.scripting.kotlin.runner.valueOrThrow
 import art.arcane.volmlib.util.collection.KMap
 import art.arcane.volmlib.util.data.KCache
-import art.arcane.iris.util.format.C
+import art.arcane.iris.util.common.format.C
 import java.io.File
 import kotlin.reflect.KClass
 import kotlin.script.experimental.annotations.KotlinScript

@@ -20,10 +20,10 @@ package art.arcane.iris.engine.object;
 
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.noise.CNG;
-import art.arcane.iris.util.noise.CNGFactory;
-import art.arcane.iris.util.noise.NoiseType;
-import art.arcane.iris.util.stream.ProceduralStream;
+import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.iris.util.project.noise.CNGFactory;
+import art.arcane.iris.util.project.noise.NoiseType;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 @Desc("Styles of noise")
 public enum NoiseStyle {
     @Desc("White Noise is like static. Useful for block scattering but not terrain.")

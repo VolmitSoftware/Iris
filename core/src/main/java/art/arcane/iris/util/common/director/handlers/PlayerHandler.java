@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.director.handlers;
+package art.arcane.iris.util.common.director.handlers;
 
 import art.arcane.volmlib.util.director.handlers.base.BukkitPlayerHandlerBase;
 import art.arcane.volmlib.util.director.DirectorParameterHandler;

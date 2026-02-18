@@ -1,4 +1,4 @@
-package art.arcane.iris.util.reflect;
+package art.arcane.iris.util.common.reflect;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;

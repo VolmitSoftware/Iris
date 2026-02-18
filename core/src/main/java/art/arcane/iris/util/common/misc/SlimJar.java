@@ -1,4 +1,4 @@
-package art.arcane.iris.util.misc;
+package art.arcane.iris.util.common.misc;
 
 import art.arcane.iris.Iris;
 import io.github.slimjar.app.builder.ApplicationBuilder;

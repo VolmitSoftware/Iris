@@ -1,9 +1,9 @@
-package art.arcane.iris.util.uniques;
+package art.arcane.iris.util.project.uniques;
 
 import art.arcane.volmlib.util.function.NoiseInjector;
-import art.arcane.iris.util.interpolation.InterpolationMethod;
+import art.arcane.iris.util.project.interpolation.InterpolationMethod;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.noise.CNG;
+import art.arcane.iris.util.project.noise.CNG;
 import java.awt.*;
 import java.util.List;
 import java.util.function.Consumer;

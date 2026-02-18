@@ -1,6 +1,5 @@
 import de.undercouch.gradle.tasks.download.Download
 import org.gradle.jvm.toolchain.JavaLanguageVersion
-import xyz.jpenilla.runpaper.task.RunServer
 import kotlin.system.exitProcess
 
 /*
@@ -30,11 +29,10 @@ plugins {
     java
     `java-library`
     alias(libs.plugins.download)
-    alias(libs.plugins.runPaper)
 }
 
 group = "art.arcane"
-version = "4.0.0-1.20.1-1.21.11-Dev1"
+version = "4.0.0-1.21.11"
 val volmLibCoordinate: String = providers.gradleProperty("volmLibCoordinate")
     .orElse("com.github.VolmitSoftware:VolmLib:master-SNAPSHOT")
     .get()
@@ -59,33 +57,15 @@ registerCustomOutputTaskUnix("PixelMac", "/Users/test/Desktop/mcserver/plugins")
 registerCustomOutputTaskUnix("CrazyDev22LT", "/home/julian/Desktop/server/plugins")
 // ==============================================================
 
-val serverMinHeap = "10G"
-val serverMaxHeap = "10G"
-val additionalFlags = "-XX:+AlwaysPreTouch"
-//Valid values are: none, truecolor, indexed256, indexed16, indexed8
-val color = "truecolor"
-val errorReporting = "true" == findProperty("errorReporting")
-
 val nmsBindings = mapOf(
     "v1_21_R7" to "1.21.11-R0.1-SNAPSHOT",
-    "v1_21_R6" to "1.21.10-R0.1-SNAPSHOT",
-    "v1_21_R5" to "1.21.8-R0.1-SNAPSHOT",
-    "v1_21_R4" to "1.21.5-R0.1-SNAPSHOT",
-    "v1_21_R3" to "1.21.4-R0.1-SNAPSHOT",
-    "v1_21_R2" to "1.21.3-R0.1-SNAPSHOT",
-    "v1_21_R1" to "1.21.1-R0.1-SNAPSHOT",
-    "v1_20_R4" to "1.20.6-R0.1-SNAPSHOT",
-    "v1_20_R3" to "1.20.4-R0.1-SNAPSHOT",
-    "v1_20_R2" to "1.20.2-R0.1-SNAPSHOT",
-    "v1_20_R1" to "1.20.1-R0.1-SNAPSHOT",
 )
-val jvmVersion = mapOf<String, Int>()
 nmsBindings.forEach { (key, value) ->
     project(":nms:$key") {
         apply<JavaPlugin>()
 
         nmsBinding {
-            jvm = jvmVersion.getOrDefault(key, 21)
+            jvm = 21
             version = value
             type = NMSBinding.Type.DIRECT
         }
@@ -99,22 +79,6 @@ nmsBindings.forEach { (key, value) ->
             compileOnly(rootProject.libs.annotations)
             compileOnly(rootProject.libs.byteBuddy.core)
         }
-    }
-
-    tasks.register<RunServer>("runServer-$key") {
-        group = "servers"
-        minecraftVersion(value.split("-")[0])
-        minHeapSize = serverMinHeap
-        maxHeapSize = serverMaxHeap
-        pluginJars(tasks.jar.flatMap { it.archiveFile })
-        javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(jvmVersion.getOrDefault(key, 21))}
-        runDirectory.convention(layout.buildDirectory.dir("run/$key"))
-        systemProperty("disable.watchdog", "true")
-        systemProperty("net.kyori.ansi.colorLevel", color)
-        systemProperty("com.mojang.eula.agree", true)
-        systemProperty("iris.suppressReporting", !errorReporting)
-        jvmArgs("-javaagent:${project(":core:agent").tasks.jar.flatMap { it.archiveFile }.get().asFile.absolutePath}")
-        jvmArgs(additionalFlags.split(' '))
     }
 }
 

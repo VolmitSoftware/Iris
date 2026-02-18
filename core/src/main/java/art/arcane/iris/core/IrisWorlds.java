@@ -9,7 +9,7 @@ import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.io.IO;
-import art.arcane.iris.util.misc.ServerProperties;
+import art.arcane.iris.util.common.misc.ServerProperties;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 

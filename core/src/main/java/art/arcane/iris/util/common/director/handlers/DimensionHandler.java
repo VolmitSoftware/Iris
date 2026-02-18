@@ -16,14 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.director.handlers;
+package art.arcane.iris.util.common.director.handlers;
 
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
-import art.arcane.iris.util.director.specialhandlers.RegistrantHandler;
+import art.arcane.iris.util.common.director.specialhandlers.RegistrantHandler;
 
 import java.util.Locale;
 

@@ -1,5 +1,8 @@
-package art.arcane.iris.util.misc;
+package art.arcane.iris.util.common.misc;
 
+import art.arcane.iris.util.project.sentry.Attachments;
+import art.arcane.iris.util.project.sentry.IrisLogger;
+import art.arcane.iris.util.project.sentry.ServerID;
 import com.google.gson.JsonSyntaxException;
 import art.arcane.iris.BuildConstants;
 import art.arcane.iris.Iris;
@@ -8,13 +11,11 @@ import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.safeguard.IrisSafeguard;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
-import art.arcane.iris.util.context.IrisContext;
+import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.volmlib.util.json.JSONException;
 import art.arcane.volmlib.util.reflect.ShadeFix;
-import art.arcane.iris.util.scheduling.J;
-import art.arcane.iris.util.sentry.Attachments;
-import art.arcane.iris.util.sentry.IrisLogger;
-import art.arcane.iris.util.sentry.ServerID;
+import art.arcane.iris.util.common.scheduling.J;
+
 import io.sentry.Sentry;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;

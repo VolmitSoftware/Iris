@@ -1,20 +1,20 @@
-package art.arcane.iris.util.uniques;
+package art.arcane.iris.util.project.uniques;
 
 import art.arcane.iris.engine.object.NoiseStyle;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.function.NoiseProvider;
-import art.arcane.iris.util.interpolation.InterpolationMethod;
-import art.arcane.iris.util.interpolation.IrisInterpolation;
+import art.arcane.iris.util.project.interpolation.InterpolationMethod;
+import art.arcane.iris.util.project.interpolation.IrisInterpolation;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.noise.CNG;
-import art.arcane.iris.util.parallel.BurstExecutor;
+import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.iris.util.common.parallel.BurstExecutor;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-import art.arcane.iris.util.stream.ProceduralStream;
-import art.arcane.iris.util.uniques.features.*;
+import art.arcane.iris.util.project.stream.ProceduralStream;
+import art.arcane.iris.util.project.uniques.features.*;
 
 import java.awt.image.BufferedImage;
 import java.io.File;

@@ -21,10 +21,10 @@ package art.arcane.iris.core.service;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.MeteredCache;
-import art.arcane.iris.util.context.IrisContext;
+import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.volmlib.util.data.KCache;
 import art.arcane.volmlib.util.format.Form;
-import art.arcane.iris.util.plugin.IrisService;
+import art.arcane.iris.util.common.plugin.IrisService;
 import art.arcane.volmlib.util.scheduling.Looper;
 import org.jetbrains.annotations.Unmodifiable;
 

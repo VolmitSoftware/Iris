@@ -16,13 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.stream.interpolation;
+package art.arcane.iris.util.project.stream.interpolation;
 
 import art.arcane.volmlib.util.function.NoiseProvider;
-import art.arcane.iris.util.interpolation.InterpolationMethod;
-import art.arcane.iris.util.interpolation.IrisInterpolation;
-import art.arcane.iris.util.stream.BasicStream;
-import art.arcane.iris.util.stream.ProceduralStream;
+import art.arcane.iris.util.project.interpolation.InterpolationMethod;
+import art.arcane.iris.util.project.interpolation.IrisInterpolation;
+import art.arcane.iris.util.project.stream.BasicStream;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 public class InterpolatingStream<T> extends BasicStream<T> implements Interpolator<T> {
     private final InterpolationMethod type;
     private final NoiseProvider np;

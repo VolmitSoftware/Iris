@@ -11,7 +11,7 @@ import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.exceptions.IrisException;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.io.IO;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Bukkit;
 

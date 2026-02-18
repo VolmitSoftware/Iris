@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.format;
+package art.arcane.iris.util.common.format;
 
 import art.arcane.iris.Iris;
-import art.arcane.iris.util.plugin.VolmitSender;
+import art.arcane.iris.util.common.plugin.VolmitSender;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;

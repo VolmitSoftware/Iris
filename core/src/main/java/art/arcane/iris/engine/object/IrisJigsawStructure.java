@@ -26,7 +26,7 @@ import art.arcane.iris.engine.object.annotations.functions.StructureKeyFunction;
 import art.arcane.iris.engine.object.annotations.functions.StructureKeyOrTagFunction;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.json.JSONObject;
-import art.arcane.iris.util.plugin.VolmitSender;
+import art.arcane.iris.util.common.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

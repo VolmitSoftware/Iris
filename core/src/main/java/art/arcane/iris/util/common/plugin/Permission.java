@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.plugin;
+package art.arcane.iris.util.common.plugin;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;

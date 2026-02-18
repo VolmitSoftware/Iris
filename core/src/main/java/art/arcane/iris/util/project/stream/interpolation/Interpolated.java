@@ -16,13 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.stream.interpolation;
+package art.arcane.iris.util.project.stream.interpolation;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.engine.object.CaveResult;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.stream.ProceduralStream;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 import org.bukkit.block.data.BlockData;
 
 import java.util.UUID;

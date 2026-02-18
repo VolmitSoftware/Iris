@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.mantle;
 
+import art.arcane.iris.util.project.matter.TileWrapper;
 import com.google.common.collect.ImmutableList;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.IrisSettings;
@@ -31,8 +32,8 @@ import art.arcane.iris.engine.object.IrisPosition;
 import art.arcane.iris.engine.object.TileData;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
-import art.arcane.iris.util.data.B;
-import art.arcane.iris.util.data.IrisCustomData;
+import art.arcane.iris.util.common.data.B;
+import art.arcane.iris.util.common.data.IrisCustomData;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.function.Function3;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -40,9 +41,8 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
-import art.arcane.iris.util.matter.TileWrapper;
-import art.arcane.iris.util.noise.CNG;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.iris.util.common.scheduling.J;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import lombok.Data;
 import org.bukkit.block.data.BlockData;

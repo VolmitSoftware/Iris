@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.nbt.mca;
+package art.arcane.iris.util.nbt.common.mca;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.nms.INMS;
@@ -25,10 +25,10 @@ import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.nbt.mca.MCAWorldStoreSupport;
 import art.arcane.volmlib.util.nbt.mca.MCAWorldRuntimeSupport;
 import art.arcane.volmlib.util.nbt.mca.NBTWorldSupport;
-import art.arcane.iris.util.data.B;
+import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
-import art.arcane.iris.util.parallel.HyperLock;
+import art.arcane.iris.util.common.parallel.HyperLock;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;

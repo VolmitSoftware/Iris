@@ -16,13 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.director;
+package art.arcane.iris.util.common.director;
 
 import art.arcane.volmlib.util.director.DirectorSystemSupport;
 import art.arcane.iris.Iris;
 import art.arcane.volmlib.util.collection.KList;
 public final class DirectorSystem {
-    public static final KList<art.arcane.volmlib.util.director.DirectorParameterHandler<?>> handlers = Iris.initialize("art.arcane.iris.util.director.handlers", null).convert((i) -> (art.arcane.volmlib.util.director.DirectorParameterHandler<?>) i);
+    public static final KList<art.arcane.volmlib.util.director.DirectorParameterHandler<?>> handlers = Iris.initialize("art.arcane.iris.util.common.director.handlers", null).convert((i) -> (art.arcane.volmlib.util.director.DirectorParameterHandler<?>) i);
 
     private DirectorSystem() {
     }

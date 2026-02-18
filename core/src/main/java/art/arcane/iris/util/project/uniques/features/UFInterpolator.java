@@ -1,13 +1,13 @@
-package art.arcane.iris.util.uniques.features;
+package art.arcane.iris.util.project.uniques.features;
 
 import art.arcane.volmlib.util.function.NoiseProvider;
-import art.arcane.iris.util.interpolation.InterpolationMethod;
-import art.arcane.iris.util.interpolation.IrisInterpolation;
+import art.arcane.iris.util.project.interpolation.InterpolationMethod;
+import art.arcane.iris.util.project.interpolation.IrisInterpolation;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.noise.CNG;
-import art.arcane.iris.util.uniques.UFeature;
-import art.arcane.iris.util.uniques.UFeatureMeta;
-import art.arcane.iris.util.uniques.UImage;
+import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.iris.util.project.uniques.UFeature;
+import art.arcane.iris.util.project.uniques.UFeatureMeta;
+import art.arcane.iris.util.project.uniques.UImage;
 import java.awt.*;
 import java.util.function.Consumer;
 

@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.hunk.view;
+package art.arcane.iris.util.project.hunk.view;
 
-import art.arcane.iris.util.data.B;
-import art.arcane.iris.util.data.IrisCustomData;
-import art.arcane.iris.util.hunk.Hunk;
+import art.arcane.iris.util.common.data.B;
+import art.arcane.iris.util.common.data.IrisCustomData;
+import art.arcane.iris.util.project.hunk.Hunk;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 

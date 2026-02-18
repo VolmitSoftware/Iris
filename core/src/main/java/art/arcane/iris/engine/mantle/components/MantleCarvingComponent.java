@@ -26,7 +26,7 @@ import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisCarving;
 import art.arcane.iris.engine.object.IrisRegion;
-import art.arcane.iris.util.context.ChunkContext;
+import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.math.RNG;

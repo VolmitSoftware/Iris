@@ -1,4 +1,4 @@
-package art.arcane.iris.util.inventorygui;
+package art.arcane.iris.util.common.inventorygui;
 
 import org.bukkit.event.inventory.InventoryType;
 

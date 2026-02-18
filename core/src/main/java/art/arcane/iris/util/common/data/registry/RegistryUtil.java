@@ -1,4 +1,4 @@
-package art.arcane.iris.util.data.registry;
+package art.arcane.iris.util.common.data.registry;
 
 import art.arcane.iris.core.nms.container.Pair;
 import art.arcane.iris.engine.data.cache.AtomicCache;
@@ -19,7 +19,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static art.arcane.iris.util.data.registry.KeyedRegistry.wrapped;
+import static art.arcane.iris.util.common.data.registry.KeyedRegistry.wrapped;
 
 @SuppressWarnings("unchecked")
 public class RegistryUtil {

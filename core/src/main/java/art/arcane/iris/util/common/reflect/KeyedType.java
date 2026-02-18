@@ -1,10 +1,10 @@
-package art.arcane.iris.util.reflect;
+package art.arcane.iris.util.common.reflect;
 
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.reflect.TypeToken;
-import art.arcane.iris.util.data.registry.RegistryTypeAdapter;
-import art.arcane.iris.util.data.registry.RegistryUtil;
+import art.arcane.iris.util.common.data.registry.RegistryTypeAdapter;
+import art.arcane.iris.util.common.data.registry.RegistryUtil;
 import org.bukkit.Keyed;
 
 public class KeyedType {

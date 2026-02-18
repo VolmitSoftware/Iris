@@ -19,9 +19,9 @@
 package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.util.data.B;
+import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
-import art.arcane.iris.util.hunk.Hunk;
+import art.arcane.iris.util.project.hunk.Hunk;
 import org.bukkit.block.data.BlockData;
 
 public interface EngineDecorator extends EngineComponent {

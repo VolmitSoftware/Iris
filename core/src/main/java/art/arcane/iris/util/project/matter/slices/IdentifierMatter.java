@@ -1,4 +1,4 @@
-package art.arcane.iris.util.matter.slices;
+package art.arcane.iris.util.project.matter.slices;
 
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.volmlib.util.data.palette.Palette;

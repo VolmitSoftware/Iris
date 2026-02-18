@@ -22,7 +22,7 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.Required;
-import art.arcane.iris.util.data.B;
+import art.arcane.iris.util.common.data.B;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;

@@ -27,14 +27,14 @@ import art.arcane.iris.engine.object.*;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
-import art.arcane.iris.util.context.ChunkContext;
+import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.slices.container.JigsawStructuresContainer;
-import art.arcane.iris.util.noise.CNG;
+import art.arcane.iris.util.project.noise.CNG;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;

@@ -16,12 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.scheduling.jobs;
+package art.arcane.iris.util.common.scheduling.jobs;
 
-import art.arcane.iris.util.format.C;
+import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.format.Form;
-import art.arcane.iris.util.plugin.VolmitSender;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.plugin.VolmitSender;
+import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
 import java.util.concurrent.CompletableFuture;

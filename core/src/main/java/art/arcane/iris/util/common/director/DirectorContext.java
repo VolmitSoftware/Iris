@@ -1,7 +1,7 @@
-package art.arcane.iris.util.director;
+package art.arcane.iris.util.common.director;
 
 import art.arcane.volmlib.util.director.context.DirectorContextBase;
-import art.arcane.iris.util.plugin.VolmitSender;
+import art.arcane.iris.util.common.plugin.VolmitSender;
 
 public class DirectorContext {
     private static final DirectorContextBase<VolmitSender> context = new DirectorContextBase<>();

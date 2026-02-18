@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.stream;
+package art.arcane.iris.util.project.stream;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.loader.IrisData;
@@ -27,19 +27,19 @@ import art.arcane.iris.engine.object.IrisStyledRange;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.stream.ProceduralLayer;
 import art.arcane.volmlib.util.stream.Significance;
-import art.arcane.iris.util.context.ChunkContext;
+import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.function.Function2;
 import art.arcane.volmlib.util.function.Function3;
 import art.arcane.volmlib.util.function.Function4;
-import art.arcane.iris.util.hunk.Hunk;
+import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.parallel.BurstExecutor;
-import art.arcane.iris.util.parallel.MultiBurst;
-import art.arcane.iris.util.stream.arithmetic.*;
-import art.arcane.iris.util.stream.convert.*;
-import art.arcane.iris.util.stream.interpolation.Interpolated;
-import art.arcane.iris.util.stream.sources.FunctionStream;
-import art.arcane.iris.util.stream.utility.*;
+import art.arcane.iris.util.common.parallel.BurstExecutor;
+import art.arcane.iris.util.common.parallel.MultiBurst;
+import art.arcane.iris.util.project.stream.arithmetic.*;
+import art.arcane.iris.util.project.stream.convert.*;
+import art.arcane.iris.util.project.stream.interpolation.Interpolated;
+import art.arcane.iris.util.project.stream.sources.FunctionStream;
+import art.arcane.iris.util.project.stream.utility.*;
 
 import java.util.ArrayList;
 import java.util.List;

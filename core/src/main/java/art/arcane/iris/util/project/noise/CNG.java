@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.noise;
+package art.arcane.iris.util.project.noise;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.engine.object.IRare;
@@ -25,12 +25,12 @@ import art.arcane.volmlib.util.cache.FloatCache;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.function.NoiseInjector;
-import art.arcane.iris.util.interpolation.IrisInterpolation;
+import art.arcane.iris.util.project.interpolation.IrisInterpolation;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-import art.arcane.iris.util.stream.ProceduralStream;
-import art.arcane.iris.util.stream.arithmetic.FittedStream;
-import art.arcane.iris.util.stream.sources.CNGStream;
+import art.arcane.iris.util.project.stream.ProceduralStream;
+import art.arcane.iris.util.project.stream.arithmetic.FittedStream;
+import art.arcane.iris.util.project.stream.sources.CNGStream;
 import lombok.Data;
 
 import java.io.DataOutputStream;

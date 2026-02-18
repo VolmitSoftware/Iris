@@ -1,4 +1,4 @@
-package art.arcane.iris.util.parallel;
+package art.arcane.iris.util.common.parallel;
 
 import art.arcane.volmlib.util.parallel.SyncExecutorSupport;
 import art.arcane.volmlib.util.math.M;

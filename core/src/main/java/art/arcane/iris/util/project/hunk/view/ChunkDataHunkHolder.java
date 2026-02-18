@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.hunk.view;
+package art.arcane.iris.util.project.hunk.view;
 
-import art.arcane.iris.util.hunk.storage.AtomicHunk;
+import art.arcane.iris.util.project.hunk.storage.AtomicHunk;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;

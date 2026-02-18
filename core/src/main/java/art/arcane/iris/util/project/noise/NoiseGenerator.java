@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.noise;
+package art.arcane.iris.util.project.noise;
 
-import art.arcane.iris.util.stream.ProceduralStream;
-import art.arcane.iris.util.stream.interpolation.Interpolated;
+import art.arcane.iris.util.project.stream.ProceduralStream;
+import art.arcane.iris.util.project.stream.interpolation.Interpolated;
 public interface NoiseGenerator {
     double noise(double x);
 

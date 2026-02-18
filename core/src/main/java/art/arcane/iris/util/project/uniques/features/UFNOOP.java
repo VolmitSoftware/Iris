@@ -1,9 +1,9 @@
-package art.arcane.iris.util.uniques.features;
+package art.arcane.iris.util.project.uniques.features;
 
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.uniques.UFeature;
-import art.arcane.iris.util.uniques.UFeatureMeta;
-import art.arcane.iris.util.uniques.UImage;
+import art.arcane.iris.util.project.uniques.UFeature;
+import art.arcane.iris.util.project.uniques.UFeatureMeta;
+import art.arcane.iris.util.project.uniques.UImage;
 import java.util.function.Consumer;
 
 public class UFNOOP implements UFeature {

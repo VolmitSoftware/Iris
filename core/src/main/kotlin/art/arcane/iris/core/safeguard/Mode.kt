@@ -3,7 +3,7 @@ package art.arcane.iris.core.safeguard
 import art.arcane.iris.BuildConstants
 import art.arcane.iris.Iris
 import art.arcane.iris.core.IrisSettings
-import art.arcane.iris.util.format.C
+import art.arcane.iris.util.common.format.C
 import art.arcane.volmlib.util.format.Form
 import org.bukkit.Bukkit
 import java.time.LocalDate

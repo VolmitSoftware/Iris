@@ -2,12 +2,12 @@ package art.arcane.iris.engine.modifier;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedModifier;
-import art.arcane.iris.util.context.ChunkContext;
-import art.arcane.iris.util.data.IrisCustomData;
-import art.arcane.iris.util.hunk.Hunk;
+import art.arcane.iris.util.project.context.ChunkContext;
+import art.arcane.iris.util.common.data.IrisCustomData;
+import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
-import art.arcane.iris.util.parallel.BurstExecutor;
-import art.arcane.iris.util.parallel.MultiBurst;
+import art.arcane.iris.util.common.parallel.BurstExecutor;
+import art.arcane.iris.util.common.parallel.MultiBurst;
 import org.bukkit.block.data.BlockData;
 public class IrisCustomModifier extends EngineAssignedModifier<BlockData> {
     public IrisCustomModifier(Engine engine) {

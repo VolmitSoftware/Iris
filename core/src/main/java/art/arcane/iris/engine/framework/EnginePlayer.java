@@ -24,7 +24,7 @@ import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisEffect;
 import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.volmlib.util.math.M;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import lombok.Data;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;

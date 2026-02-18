@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package art.arcane.iris.util.noise;
+package art.arcane.iris.util.project.noise;
 
 import art.arcane.volmlib.util.math.Vector2f;
 import art.arcane.volmlib.util.math.Vector3f;

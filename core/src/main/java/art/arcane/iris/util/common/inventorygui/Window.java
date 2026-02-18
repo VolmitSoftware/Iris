@@ -1,4 +1,4 @@
-package art.arcane.iris.util.inventorygui;
+package art.arcane.iris.util.common.inventorygui;
 
 import art.arcane.volmlib.util.inventorygui.WindowDecorator;
 

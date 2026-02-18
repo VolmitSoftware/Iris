@@ -4,7 +4,7 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.core.link.ExternalDataProvider;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.iris.util.reflect.WrappedField;
+import art.arcane.iris.util.common.reflect.WrappedField;
 import com.willfp.ecoitems.items.EcoItem;
 import com.willfp.ecoitems.items.EcoItems;
 import org.bukkit.NamespacedKey;

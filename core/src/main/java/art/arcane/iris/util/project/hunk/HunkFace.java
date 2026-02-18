@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.hunk;
+package art.arcane.iris.util.project.hunk;
 
 public enum HunkFace {
     TOP(art.arcane.volmlib.util.hunk.HunkFace.TOP),

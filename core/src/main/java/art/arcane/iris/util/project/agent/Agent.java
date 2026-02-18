@@ -1,4 +1,4 @@
-package art.arcane.iris.util.agent;
+package art.arcane.iris.util.project.agent;
 
 import art.arcane.iris.Iris;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -11,7 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 
 public class Agent {
-    private static final String NAME = "art.arcane.iris.util.agent.Installer";
+    private static final String NAME = "art.arcane.iris.util.project.agent.Installer";
     public static final File AGENT_JAR = new File(Iris.instance.getDataFolder(), "agent.jar");
 
     public static ClassReloadingStrategy installed() {

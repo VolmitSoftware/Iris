@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.interpolation;
+package art.arcane.iris.util.project.interpolation;
 
 import com.google.common.util.concurrent.AtomicDouble;
 import art.arcane.volmlib.util.interpolation.Starcast;
@@ -25,9 +25,9 @@ import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.function.Consumer2;
 import art.arcane.volmlib.util.function.NoiseProvider;
 import art.arcane.volmlib.util.function.NoiseProvider3;
-import art.arcane.iris.util.hunk.Hunk;
+import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.util.noise.CNG;
+import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
 import java.math.BigDecimal;

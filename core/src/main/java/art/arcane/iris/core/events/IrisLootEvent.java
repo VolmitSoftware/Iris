@@ -5,7 +5,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.InventorySlotType;
 import art.arcane.iris.engine.object.IrisLootTable;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.util.scheduling.J;
+import art.arcane.iris.util.common.scheduling.J;
 import lombok.Getter;
 import org.bukkit.*;
 import org.bukkit.block.Block;

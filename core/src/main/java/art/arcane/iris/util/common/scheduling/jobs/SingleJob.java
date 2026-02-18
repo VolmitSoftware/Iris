@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.util.scheduling.jobs;
+package art.arcane.iris.util.common.scheduling.jobs;
 
 public class SingleJob implements Job {
     private final String name;

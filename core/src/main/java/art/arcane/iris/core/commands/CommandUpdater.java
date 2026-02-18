@@ -24,11 +24,11 @@ import org.bukkit.World;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.pregenerator.ChunkUpdater;
 import art.arcane.iris.core.tools.IrisToolbelt;
-import art.arcane.iris.util.director.DirectorExecutor;
+import art.arcane.iris.util.common.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
-import art.arcane.iris.util.format.C;
+import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.format.Form;
 
 @Director(name = "updater", origin = DirectorOrigin.BOTH, description = "Iris World Updater")

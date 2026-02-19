@@ -350,7 +350,7 @@ public class CommandDeveloper implements DirectorExecutor {
 
             for (Thread i : f.keySet()) {
                 pw.println("========================================");
-                pw.println("Thread: '" + i.getName() + "' ID: " + i.getId() + " STATUS: " + i.getState().name());
+                pw.println("Thread: '" + i.getName() + "' ID: " + i.threadId() + " STATUS: " + i.getState().name());
 
                 for (StackTraceElement j : f.get(i)) {
                     pw.println("    @ " + j.toString());

@@ -19,6 +19,7 @@
 package art.arcane.iris.util.project.hunk;
 
 import art.arcane.iris.Iris;
+import art.arcane.iris.engine.data.chunk.TerrainChunk;
 import art.arcane.iris.engine.object.IrisPosition;
 import art.arcane.volmlib.util.function.*;
 import art.arcane.volmlib.util.hunk.HunkComputeSupport;
@@ -38,7 +39,6 @@ import art.arcane.iris.util.project.stream.interpolation.Interpolated;
 import org.bukkit.Chunk;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import java.io.IOException;
@@ -94,12 +94,16 @@ public interface Hunk<T> extends HunkLike<T> {
         return adapt(new art.arcane.volmlib.util.hunk.view.FunctionalHunkView<>(unwrap(src), reader, writer));
     }
 
-    static Hunk<Biome> view(BiomeGrid biome, int minHeight, int maxHeight) {
-        return new BiomeGridHunkView(biome, minHeight, maxHeight);
-    }
-
     static <T> Hunk<T> fringe(Hunk<T> i, Hunk<T> o) {
         return adapt(new art.arcane.volmlib.util.hunk.view.FringedHunkView<>(unwrap(i), unwrap(o)));
+    }
+
+    static Hunk<BlockData> view(TerrainChunk src) {
+        return new ChunkDataHunkView(src.getChunkData());
+    }
+
+    static Hunk<Biome> viewBiomes(TerrainChunk src) {
+        return new TerrainChunkBiomeHunkView(src);
     }
 
     static Hunk<BlockData> view(ChunkData src) {

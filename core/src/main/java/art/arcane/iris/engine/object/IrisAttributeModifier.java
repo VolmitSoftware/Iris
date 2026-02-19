@@ -24,11 +24,16 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attributable;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.attribute.AttributeModifier.Operation;
+import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.Locale;
+import java.util.UUID;
 
 @Snippet("attribute-modifier")
 @Accessors(chain = true)
@@ -62,17 +67,35 @@ public class IrisAttributeModifier {
 
     public void apply(RNG rng, ItemMeta meta) {
         if (rng.nextDouble() < getChance()) {
-            meta.addAttributeModifier(getAttribute(), new AttributeModifier(getName(), getAmount(rng), getOperation()));
+            meta.addAttributeModifier(getAttribute(), createModifier(rng));
         }
     }
 
     public void apply(RNG rng, Attributable meta) {
         if (rng.nextDouble() < getChance()) {
-            meta.getAttribute(getAttribute()).addModifier(new AttributeModifier(getName(), getAmount(rng), getOperation()));
+            meta.getAttribute(getAttribute()).addModifier(createModifier(rng));
         }
     }
 
     public double getAmount(RNG rng) {
         return rng.d(getMinAmount(), getMaxAmount());
+    }
+
+    private AttributeModifier createModifier(RNG rng) {
+        NamespacedKey key = NamespacedKey.minecraft(generateModifierKey());
+        return new AttributeModifier(key, getAmount(rng), getOperation(), EquipmentSlotGroup.ANY);
+    }
+
+    private String generateModifierKey() {
+        String source = getName() == null ? "modifier" : getName();
+        String normalized = source.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9/._-]", "_");
+        if (normalized.isBlank()) {
+            normalized = "modifier";
+        }
+        if (normalized.length() > 32) {
+            normalized = normalized.substring(0, 32);
+        }
+        String random = UUID.randomUUID().toString().replace("-", "");
+        return normalized + "_" + random;
     }
 }

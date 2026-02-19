@@ -443,7 +443,7 @@ public enum C {
     }
 
     public static String compress(String c) {
-        return BaseComponent.toLegacyText(TextComponent.fromLegacyText(c));
+        return BaseComponent.toLegacyText(TextComponent.fromLegacy(c));
     }
 
     /**

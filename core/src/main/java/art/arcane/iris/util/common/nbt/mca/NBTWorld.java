@@ -26,15 +26,18 @@ import art.arcane.volmlib.util.nbt.mca.MCAWorldStoreSupport;
 import art.arcane.volmlib.util.nbt.mca.MCAWorldRuntimeSupport;
 import art.arcane.volmlib.util.nbt.mca.NBTWorldSupport;
 import art.arcane.iris.util.common.data.B;
+import art.arcane.iris.util.common.reflect.KeyedType;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
 import art.arcane.iris.util.common.parallel.HyperLock;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import java.io.File;
 import java.util.Map;
+import java.util.Locale;
 
 public class NBTWorld {
     private static final BlockData AIR = B.get("AIR");
@@ -43,7 +46,10 @@ public class NBTWorld {
             B::getAir,
             blockData -> blockData.getAsString(true),
             blockData -> {
-                NamespacedKey key = blockData.getMaterial().getKey();
+                NamespacedKey key = KeyedType.getKey(blockData.getMaterial());
+                if (key == null) {
+                    return "minecraft:" + blockData.getMaterial().name().toLowerCase(Locale.ROOT);
+                }
                 return key.getNamespace() + ":" + key.getKey();
             }
     );
@@ -127,8 +133,9 @@ public class NBTWorld {
     private static Map<Biome, Integer> computeBiomeIDs() {
         Map<Biome, Integer> biomeIds = new KMap<>();
 
-        for (Biome biome : Biome.values()) {
-            if (!biome.name().equals("CUSTOM")) {
+        for (Biome biome : Registry.BIOME) {
+            NamespacedKey key = biome.getKeyOrNull();
+            if (key != null && !key.getKey().equals("custom")) {
                 biomeIds.put(biome, INMS.get().getBiomeId(biome));
             }
         }

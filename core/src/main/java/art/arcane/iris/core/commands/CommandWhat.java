@@ -36,9 +36,11 @@ import art.arcane.iris.util.common.scheduling.J;
 import org.bukkit.Chunk;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
+import java.lang.reflect.Method;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -69,13 +71,17 @@ public class CommandWhat implements DirectorExecutor {
     public void biome() {
         try {
             IrisBiome b = engine().getBiome(player().getLocation().getBlockX(), player().getLocation().getBlockY() - player().getWorld().getMinHeight(), player().getLocation().getBlockZ());
-            sender().sendMessage("IBiome: " + b.getLoadKey() + " (" + b.getDerivative().name() + ")");
+            Biome derivative = b.getDerivative();
+            NamespacedKey derivativeKey = resolveBiomeKey(derivative);
+            sender().sendMessage("IBiome: " + b.getLoadKey() + " (" + (derivativeKey == null ? "unregistered" : derivativeKey.getKey()) + ")");
 
         } catch (Throwable e) {
             Iris.reportError(e);
-            sender().sendMessage("Non-Iris Biome: " + player().getLocation().getBlock().getBiome().name());
+            Biome biome = player().getLocation().getBlock().getBiome();
+            NamespacedKey key = resolveBiomeKey(biome);
+            sender().sendMessage("Non-Iris Biome: " + (key == null ? "unregistered" : key));
 
-            if (player().getLocation().getBlock().getBiome().equals(Biome.CUSTOM)) {
+            if (key == null || key.getKey().equals("custom")) {
                 try {
                     sender().sendMessage("Data Pack Biome: " + INMS.get().getTrueBiomeBaseKey(player().getLocation()) + " (ID: " + INMS.get().getTrueBiomeBaseId(INMS.get().getTrueBiomeBase(player().getLocation())) + ")");
                 } catch (Throwable ee) {
@@ -164,6 +170,38 @@ public class CommandWhat implements DirectorExecutor {
             sender().sendMessage("Found " + v.get() + " Nearby Markers (" + marker + ")");
         } else {
             sender().sendMessage(C.IRIS + "Iris worlds only.");
+        }
+    }
+
+    private NamespacedKey resolveBiomeKey(Biome biome) {
+        Object keyOrNullValue = invokeNoThrow(biome, "getKeyOrNull");
+        if (keyOrNullValue instanceof NamespacedKey namespacedKey) {
+            return namespacedKey;
+        }
+
+        Object keyOrThrowValue = invokeNoThrow(biome, "getKeyOrThrow");
+        if (keyOrThrowValue instanceof NamespacedKey namespacedKey) {
+            return namespacedKey;
+        }
+
+        Object keyValue = invokeNoThrow(biome, "getKey");
+        if (keyValue instanceof NamespacedKey namespacedKey) {
+            return namespacedKey;
+        }
+
+        return null;
+    }
+
+    private Object invokeNoThrow(Biome biome, String methodName) {
+        if (biome == null) {
+            return null;
+        }
+
+        try {
+            Method method = biome.getClass().getMethod(methodName);
+            return method.invoke(biome);
+        } catch (Throwable ignored) {
+            return null;
         }
     }
 }

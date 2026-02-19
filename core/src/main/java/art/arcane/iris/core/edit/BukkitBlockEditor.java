@@ -51,10 +51,13 @@ public class BukkitBlockEditor implements BlockEditor {
         return M.ms();
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public void setBiome(int x, int z, Biome b) {
-        world.setBiome(x, z, b);
+        int minHeight = world.getMinHeight();
+        int maxHeight = world.getMaxHeight();
+        for (int y = minHeight; y < maxHeight; y++) {
+            world.setBiome(x, y, z, b);
+        }
     }
 
     @Override
@@ -67,9 +70,8 @@ public class BukkitBlockEditor implements BlockEditor {
         return world.getBiome(x, y, z);
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public Biome getBiome(int x, int z) {
-        return world.getBiome(x, z);
+        return world.getBiome(x, world.getMinHeight(), z);
     }
 }

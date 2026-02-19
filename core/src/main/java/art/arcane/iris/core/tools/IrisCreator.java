@@ -40,12 +40,17 @@ import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.bukkit.*;
+import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -231,8 +236,8 @@ public class IrisCreator {
                 Iris.linkMultiverseCore.removeFromConfig(world);
 
                 if (IrisSettings.get().getStudio().isDisableTimeAndWeather()) {
-                    world.setGameRule(GameRule.ADVANCE_WEATHER, false);
-                    world.setGameRule(GameRule.ADVANCE_TIME, false);
+                    setBooleanGameRule(world, false, "ADVANCE_WEATHER", "DO_WEATHER_CYCLE", "WEATHER_CYCLE", "doWeatherCycle", "weatherCycle");
+                    setBooleanGameRule(world, false, "ADVANCE_TIME", "DO_DAYLIGHT_CYCLE", "DAYLIGHT_CYCLE", "doDaylightCycle", "daylightCycle");
                     world.setTime(6000);
                 }
             };
@@ -278,7 +283,7 @@ public class IrisCreator {
         CompletableFuture<Location> locationFuture = J.sfut(() -> {
             Location spawnLocation = world.getSpawnLocation();
             if (spawnLocation != null) {
-                return spawnLocation;
+                return spawnLocation.clone();
             }
 
             int x = 0;
@@ -292,12 +297,112 @@ public class IrisCreator {
         }
 
         try {
-            return locationFuture.get(15, TimeUnit.SECONDS);
+            Location rawLocation = locationFuture.get(15, TimeUnit.SECONDS);
+            return resolveTopSafeStudioLocation(world, rawLocation);
         } catch (Throwable e) {
             Iris.warn("Failed to resolve studio entry location for world \"" + world.getName() + "\".");
             Iris.reportError(e);
             return null;
         }
+    }
+
+    private Location resolveTopSafeStudioLocation(World world, Location rawLocation) {
+        if (world == null || rawLocation == null) {
+            return rawLocation;
+        }
+
+        int chunkX = rawLocation.getBlockX() >> 4;
+        int chunkZ = rawLocation.getBlockZ() >> 4;
+        try {
+            CompletableFuture<Chunk> chunkFuture = PaperLib.getChunkAtAsync(world, chunkX, chunkZ, true);
+            if (chunkFuture != null) {
+                chunkFuture.get(15, TimeUnit.SECONDS);
+            }
+        } catch (Throwable ignored) {
+        }
+
+        CompletableFuture<Location> regionFuture = new CompletableFuture<>();
+        boolean scheduled = J.runRegion(world, chunkX, chunkZ, () -> {
+            try {
+                regionFuture.complete(findTopSafeStudioLocation(world, rawLocation));
+            } catch (Throwable e) {
+                regionFuture.completeExceptionally(e);
+            }
+        });
+        if (!scheduled) {
+            return rawLocation;
+        }
+
+        try {
+            Location resolved = regionFuture.get(15, TimeUnit.SECONDS);
+            return resolved == null ? rawLocation : resolved;
+        } catch (Throwable e) {
+            Iris.warn("Failed to resolve safe studio entry surface for world \"" + world.getName() + "\".");
+            Iris.reportError(e);
+            return rawLocation;
+        }
+    }
+
+    private Location findTopSafeStudioLocation(World world, Location source) {
+        int x = source.getBlockX();
+        int z = source.getBlockZ();
+        int minY = world.getMinHeight() + 1;
+        int maxY = world.getMaxHeight() - 2;
+        int topY = world.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+        int startY = Math.max(minY, Math.min(maxY, topY + 1));
+        float yaw = source.getYaw();
+        float pitch = source.getPitch();
+
+        int upperBound = Math.min(maxY, startY + 16);
+        for (int y = startY; y <= upperBound; y++) {
+            if (isSafeStandingLocation(world, x, y, z)) {
+                return new Location(world, x + 0.5D, y, z + 0.5D, yaw, pitch);
+            }
+        }
+
+        int lowerBound = Math.max(minY, startY - 24);
+        for (int y = startY - 1; y >= lowerBound; y--) {
+            if (isSafeStandingLocation(world, x, y, z)) {
+                return new Location(world, x + 0.5D, y, z + 0.5D, yaw, pitch);
+            }
+        }
+
+        int fallbackY = Math.max(minY, Math.min(maxY, source.getBlockY()));
+        return new Location(world, x + 0.5D, fallbackY, z + 0.5D, yaw, pitch);
+    }
+
+    private boolean isSafeStandingLocation(World world, int x, int y, int z) {
+        if (y <= world.getMinHeight() || y >= world.getMaxHeight() - 1) {
+            return false;
+        }
+
+        Block below = world.getBlockAt(x, y - 1, z);
+        Block feet = world.getBlockAt(x, y, z);
+        Block head = world.getBlockAt(x, y + 1, z);
+
+        Material belowType = below.getType();
+        if (!belowType.isSolid()) {
+            return false;
+        }
+        if (Tag.LEAVES.isTagged(belowType)) {
+            return false;
+        }
+        if (belowType == Material.LAVA
+                || belowType == Material.MAGMA_BLOCK
+                || belowType == Material.FIRE
+                || belowType == Material.SOUL_FIRE
+                || belowType == Material.CAMPFIRE
+                || belowType == Material.SOUL_CAMPFIRE) {
+            return false;
+        }
+        if (feet.getType().isSolid() || head.getType().isSolid()) {
+            return false;
+        }
+        if (feet.isLiquid() || head.isLiquid()) {
+            return false;
+        }
+
+        return true;
     }
 
     private static boolean containsCreateWorldUnsupportedOperation(Throwable throwable) {
@@ -314,6 +419,138 @@ public class IrisCreator {
             cursor = cursor.getCause();
         }
         return false;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void setBooleanGameRule(World world, boolean value, String... names) {
+        GameRule<Boolean> gameRule = resolveBooleanGameRule(world, names);
+        if (gameRule != null) {
+            world.setGameRule(gameRule, value);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static GameRule<Boolean> resolveBooleanGameRule(World world, String... names) {
+        if (world == null || names == null || names.length == 0) {
+            return null;
+        }
+
+        Set<String> candidates = buildRuleNameCandidates(names);
+        for (String name : candidates) {
+            if (name == null || name.isBlank()) {
+                continue;
+            }
+
+            try {
+                Field field = GameRule.class.getField(name);
+                Object value = field.get(null);
+                if (value instanceof GameRule<?> gameRule && Boolean.class.equals(gameRule.getType())) {
+                    return (GameRule<Boolean>) gameRule;
+                }
+            } catch (Throwable ignored) {
+            }
+
+            try {
+                GameRule<?> byName = GameRule.getByName(name);
+                if (byName != null && Boolean.class.equals(byName.getType())) {
+                    return (GameRule<Boolean>) byName;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+
+        String[] availableRules = world.getGameRules();
+        if (availableRules == null || availableRules.length == 0) {
+            return null;
+        }
+
+        Set<String> normalizedCandidates = new LinkedHashSet<>();
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.isBlank()) {
+                normalizedCandidates.add(normalizeRuleName(candidate));
+            }
+        }
+
+        for (String availableRule : availableRules) {
+            String normalizedAvailable = normalizeRuleName(availableRule);
+            if (!normalizedCandidates.contains(normalizedAvailable)) {
+                continue;
+            }
+
+            try {
+                GameRule<?> byName = GameRule.getByName(availableRule);
+                if (byName != null && Boolean.class.equals(byName.getType())) {
+                    return (GameRule<Boolean>) byName;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+
+        return null;
+    }
+
+    private static Set<String> buildRuleNameCandidates(String... names) {
+        Set<String> candidates = new LinkedHashSet<>();
+        for (String name : names) {
+            if (name == null || name.isBlank()) {
+                continue;
+            }
+
+            candidates.add(name);
+            candidates.add(name.toLowerCase(Locale.ROOT));
+
+            String lowerCamel = toLowerCamel(name);
+            if (!lowerCamel.isEmpty()) {
+                candidates.add(lowerCamel);
+            }
+        }
+
+        return candidates;
+    }
+
+    private static String toLowerCamel(String name) {
+        if (name == null) {
+            return "";
+        }
+
+        String raw = name.trim();
+        if (raw.isEmpty()) {
+            return "";
+        }
+
+        String[] parts = raw.split("_+");
+        if (parts.length == 0) {
+            return raw;
+        }
+
+        StringBuilder builder = new StringBuilder();
+        builder.append(parts[0].toLowerCase(Locale.ROOT));
+        for (int i = 1; i < parts.length; i++) {
+            String part = parts[i].toLowerCase(Locale.ROOT);
+            if (part.isEmpty()) {
+                continue;
+            }
+            builder.append(Character.toUpperCase(part.charAt(0)));
+            if (part.length() > 1) {
+                builder.append(part.substring(1));
+            }
+        }
+        return builder.toString();
+    }
+
+    private static String normalizeRuleName(String name) {
+        if (name == null || name.isBlank()) {
+            return "";
+        }
+
+        StringBuilder builder = new StringBuilder(name.length());
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (Character.isLetterOrDigit(c)) {
+                builder.append(Character.toLowerCase(c));
+            }
+        }
+        return builder.toString();
     }
 
     private void addToBukkitYml() {

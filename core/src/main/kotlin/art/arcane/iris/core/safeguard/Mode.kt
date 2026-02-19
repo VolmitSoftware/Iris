@@ -61,7 +61,7 @@ enum class Mode(private val color: C) {
             "",
             padd2 + color + " Iris, " + C.AQUA + "Iris, Dimension Engine " + C.RED + "[" + releaseTrain + " RELEASE]",
             padd2 + C.GRAY + " Version: " + color + version,
-            padd2 + C.GRAY + " By: " + color + "Arcane Arts (Volmit Software)",
+            padd2 + C.GRAY + " By: " + color + "Volmit Software (Arcane Arts)",
             padd2 + C.GRAY + " Server: " + color + serverVersion,
             padd2 + C.GRAY + " Java: " + color + javaVersion + C.GRAY + " | Date: " + color + startupDate,
             padd2 + C.GRAY + " Commit: " + color + BuildConstants.COMMIT + C.GRAY + "/" + color + BuildConstants.ENVIRONMENT,

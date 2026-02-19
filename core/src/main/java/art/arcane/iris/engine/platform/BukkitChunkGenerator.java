@@ -35,8 +35,7 @@ import art.arcane.iris.engine.object.IrisWorld;
 import art.arcane.iris.engine.object.StudioMode;
 import art.arcane.iris.engine.platform.studio.StudioGenerator;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.data.IrisBiomeStorage;
-import art.arcane.iris.util.project.hunk.view.BiomeGridHunkHolder;
+import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.iris.util.project.hunk.view.ChunkDataHunkHolder;
 import art.arcane.volmlib.util.io.ReactiveFolder;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
@@ -47,6 +46,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Setter;
 import org.bukkit.*;
+import org.bukkit.block.Biome;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -220,8 +220,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             if (acquireWait >= 5000L) {
                 Iris.warn("Chunk replacement waited " + acquireWait + "ms for load lock at " + x + "," + z + ".");
             }
-            IrisBiomeStorage st = new IrisBiomeStorage();
-            TerrainChunk tc = TerrainChunk.createUnsafe(world, st);
+            TerrainChunk tc = TerrainChunk.create(world);
             this.world.bind(world);
 
             phase = "engine-generate";
@@ -481,16 +480,15 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 return;
             }
             computeStudioGenerator();
-            TerrainChunk tc = TerrainChunk.create(d, new IrisBiomeStorage());
+            TerrainChunk tc = TerrainChunk.create(d);
             this.world.bind(world);
             if (studioGenerator != null) {
                 studioGenerator.generateChunk(engine, tc, x, z);
             } else {
-                ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(tc);
-                BiomeGridHunkHolder biomes = new BiomeGridHunkHolder(tc, tc.getMinHeight(), tc.getMaxHeight());
+                ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(d);
+                Hunk<Biome> biomes = Hunk.viewBiomes(tc);
                 engine.generate(x << 4, z << 4, blocks, biomes, IrisSettings.get().getGenerator().useMulticore);
                 blocks.apply();
-                biomes.apply();
             }
 
             Iris.debug("Generated " + x + " " + z);
@@ -527,11 +525,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     @Override
-    public boolean isParallelCapable() {
-        return true;
-    }
-
-    @Override
     public boolean shouldGenerateCaves() {
         return false;
     }
@@ -562,8 +555,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     @Override
-    public boolean shouldGenerateBedrock() {
-        return false;
+    public void generateBedrock(@NotNull WorldInfo worldInfo, @NotNull Random random, int x, int z, @NotNull ChunkData chunkData) {
+
     }
 
     @Nullable

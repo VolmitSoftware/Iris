@@ -4,6 +4,7 @@ import art.arcane.iris.core.nms.container.Pair;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
+import art.arcane.iris.util.common.reflect.KeyedType;
 import art.arcane.iris.util.common.scheduling.J;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -14,6 +15,8 @@ import org.bukkit.*;
 import org.bukkit.block.*;
 import org.bukkit.block.banner.Pattern;
 import org.bukkit.block.banner.PatternType;
+import org.bukkit.block.sign.Side;
+import org.bukkit.block.sign.SignSide;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
@@ -22,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -126,11 +130,11 @@ public class LegacyTileData extends TileData {
             dyeColor = DyeColor.values()[in.readByte()];
         }
 
-        @SuppressWarnings("deprecation")
         private static SignHandler fromBukkit(BlockState blockState, Material type) {
             if (!signsTag().isTagged(type) || !(blockState instanceof Sign sign))
                 return null;
-            return new SignHandler(sign.getLine(0), sign.getLine(1), sign.getLine(2), sign.getLine(3), sign.getColor());
+            SignSide front = sign.getSide(Side.FRONT);
+            return new SignHandler(front.getLine(0), front.getLine(1), front.getLine(2), front.getLine(3), front.getColor());
         }
 
         @Override
@@ -155,11 +159,18 @@ public class LegacyTileData extends TileData {
         @Override
         public void toBukkit(Block block) {
             Sign sign = (Sign) block.getState();
-            sign.setLine(0, line1);
-            sign.setLine(1, line2);
-            sign.setLine(2, line3);
-            sign.setLine(3, line4);
-            sign.setColor(dyeColor);
+            SignSide front = sign.getSide(Side.FRONT);
+            SignSide back = sign.getSide(Side.BACK);
+            front.setLine(0, line1);
+            front.setLine(1, line2);
+            front.setLine(2, line3);
+            front.setLine(3, line4);
+            front.setColor(dyeColor);
+            back.setLine(0, line1);
+            back.setLine(1, line2);
+            back.setLine(2, line3);
+            back.setLine(3, line4);
+            back.setColor(dyeColor);
             sign.update();
         }
     }
@@ -170,7 +181,33 @@ public class LegacyTileData extends TileData {
         private final EntityType type;
 
         private SpawnerHandler(DataInputStream in) throws IOException {
-            type = EntityType.values()[in.readShort()];
+            EntityType resolved = null;
+            if (in.markSupported()) {
+                in.mark(Integer.MAX_VALUE);
+            }
+
+            try {
+                String keyString = in.readUTF();
+                NamespacedKey key = NamespacedKey.fromString(keyString);
+                resolved = key == null ? null : Registry.ENTITY_TYPE.get(key);
+                if (resolved == null && in.markSupported()) {
+                    in.reset();
+                }
+            } catch (Throwable ignored) {
+                if (in.markSupported()) {
+                    in.reset();
+                }
+            }
+
+            if (resolved == null) {
+                short legacyOrdinal = in.readShort();
+                EntityType[] legacyValues = EntityType.values();
+                if (legacyOrdinal >= 0 && legacyOrdinal < legacyValues.length) {
+                    resolved = legacyValues[legacyOrdinal];
+                }
+            }
+
+            type = resolved == null ? EntityType.PIG : resolved;
         }
 
         private static SpawnerHandler fromBukkit(BlockState blockState, Material material) {
@@ -191,7 +228,8 @@ public class LegacyTileData extends TileData {
 
         @Override
         public void toBinary(DataOutputStream out) throws IOException {
-            out.writeShort(type.ordinal());
+            NamespacedKey key = KeyedType.getKey(type);
+            out.writeUTF(key == null ? type.name() : key.toString());
         }
 
         @Override
@@ -209,13 +247,55 @@ public class LegacyTileData extends TileData {
         private final DyeColor baseColor;
 
         private BannerHandler(DataInputStream in) throws IOException {
-            baseColor = DyeColor.values()[in.readByte()];
+            DyeColor[] dyeColors = DyeColor.values();
+            int baseColorIndex = in.readUnsignedByte();
+            baseColor = baseColorIndex >= 0 && baseColorIndex < dyeColors.length ? dyeColors[baseColorIndex] : DyeColor.WHITE;
             patterns = new KList<>();
-            int listSize = in.readByte();
+            int listSize = in.readUnsignedByte();
+
+            if (in.markSupported()) {
+                in.mark(Integer.MAX_VALUE);
+            }
+
+            boolean parsedKeyed = false;
+            try {
+                KList<Pattern> keyedPatterns = new KList<>();
+                for (int i = 0; i < listSize; i++) {
+                    int colorIndex = in.readUnsignedByte();
+                    DyeColor color = colorIndex >= 0 && colorIndex < dyeColors.length ? dyeColors[colorIndex] : DyeColor.WHITE;
+                    NamespacedKey patternKey = NamespacedKey.fromString(in.readUTF());
+                    PatternType pattern = patternKey == null ? null : Registry.BANNER_PATTERN.get(patternKey);
+                    if (pattern == null) {
+                        throw new IOException("Unknown banner pattern key");
+                    }
+                    keyedPatterns.add(new Pattern(color, pattern));
+                }
+                patterns.addAll(keyedPatterns);
+                parsedKeyed = true;
+            } catch (Throwable ignored) {
+                if (in.markSupported()) {
+                    in.reset();
+                }
+            }
+
+            if (parsedKeyed) {
+                return;
+            }
+
+            PatternType[] legacyPatternTypes = PatternType.values();
+            PatternType fallbackPattern = Registry.BANNER_PATTERN.get(NamespacedKey.minecraft("base"));
+            if (fallbackPattern == null && legacyPatternTypes.length > 0) {
+                fallbackPattern = legacyPatternTypes[0];
+            }
+
             for (int i = 0; i < listSize; i++) {
-                DyeColor color = DyeColor.values()[in.readByte()];
-                PatternType pattern = PatternType.values()[in.readByte()];
-                patterns.add(new Pattern(color, pattern));
+                int colorIndex = in.readUnsignedByte();
+                DyeColor color = colorIndex >= 0 && colorIndex < dyeColors.length ? dyeColors[colorIndex] : DyeColor.WHITE;
+                int legacyPatternIndex = in.readUnsignedByte();
+                PatternType pattern = legacyPatternIndex >= 0 && legacyPatternIndex < legacyPatternTypes.length ? legacyPatternTypes[legacyPatternIndex] : fallbackPattern;
+                if (pattern != null) {
+                    patterns.add(new Pattern(color, pattern));
+                }
             }
         }
 
@@ -241,7 +321,11 @@ public class LegacyTileData extends TileData {
             out.writeByte(patterns.size());
             for (Pattern i : patterns) {
                 out.writeByte(i.getColor().ordinal());
-                out.writeByte(i.getPattern().ordinal());
+                NamespacedKey key = KeyedType.getKey(i.getPattern());
+                if (key == null) {
+                    key = NamespacedKey.minecraft("base");
+                }
+                out.writeUTF(key.toString());
             }
         }
 
@@ -262,7 +346,11 @@ public class LegacyTileData extends TileData {
             return new Tag<>() {
                 @Override
                 public boolean isTagged(@NotNull Material item) {
-                    return item.getKey().getKey().endsWith("_sign");
+                    NamespacedKey key = KeyedType.getKey(item);
+                    if (key != null) {
+                        return key.getKey().endsWith("_sign");
+                    }
+                    return item.name().toLowerCase(Locale.ROOT).endsWith("_sign");
                 }
 
                 @NotNull

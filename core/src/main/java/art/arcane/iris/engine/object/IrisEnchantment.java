@@ -26,6 +26,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -58,7 +59,7 @@ public class IrisEnchantment {
 
     public void apply(RNG rng, ItemMeta meta) {
         try {
-            Enchantment enchant = Enchantment.getByKey(NamespacedKey.minecraft(getEnchantment()));
+            Enchantment enchant = Registry.ENCHANTMENT.get(NamespacedKey.minecraft(getEnchantment()));
             if (enchant == null) {
                 Iris.warn("Unknown Enchantment: " + getEnchantment());
                 return;

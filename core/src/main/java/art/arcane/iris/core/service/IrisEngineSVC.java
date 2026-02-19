@@ -61,8 +61,12 @@ public class IrisEngineSVC implements IrisService {
 
     @Override
     public void onDisable() {
-        service.shutdown();
-        updateTicker.interrupt();
+        if (service != null) {
+            service.shutdown();
+        }
+        if (updateTicker != null) {
+            updateTicker.interrupt();
+        }
         worlds.keySet().forEach(this::remove);
         worlds.clear();
     }

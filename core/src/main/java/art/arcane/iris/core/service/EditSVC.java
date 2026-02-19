@@ -48,6 +48,9 @@ public class EditSVC implements IrisService {
             J.csr(updateTaskId);
             updateTaskId = -1;
         }
+        if (editors == null) {
+            return;
+        }
         flushNow();
     }
 
@@ -77,6 +80,9 @@ public class EditSVC implements IrisService {
 
     @EventHandler
     public void on(WorldUnloadEvent e) {
+        if (editors == null) {
+            return;
+        }
         if (editors.containsKey(e.getWorld()) && !deletingWorld) {
             editors.remove(e.getWorld()).close();
         }
@@ -84,6 +90,9 @@ public class EditSVC implements IrisService {
 
 
     public void update() {
+        if (editors == null) {
+            return;
+        }
         for (World i : editors.k()) {
             if (M.ms() - editors.get(i).last() > 1000) {
                 editors.remove(i).close();
@@ -92,12 +101,18 @@ public class EditSVC implements IrisService {
     }
 
     public void flushNow() {
+        if (editors == null) {
+            return;
+        }
         for (World i : editors.k()) {
             editors.remove(i).close();
         }
     }
 
     public BlockEditor open(World world) {
+        if (editors == null) {
+            editors = new KMap<>();
+        }
         if (editors.containsKey(world)) {
             return editors.get(world);
         }

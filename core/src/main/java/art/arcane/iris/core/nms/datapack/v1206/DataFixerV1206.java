@@ -1,5 +1,6 @@
 package art.arcane.iris.core.nms.datapack.v1206;
 
+import art.arcane.iris.Iris;
 import art.arcane.iris.core.nms.datapack.v1192.DataFixerV1192;
 import art.arcane.iris.engine.object.IrisBiomeCustom;
 import art.arcane.iris.engine.object.IrisBiomeCustomSpawn;
@@ -7,6 +8,8 @@ import art.arcane.iris.engine.object.IrisBiomeCustomSpawnType;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
+import org.bukkit.NamespacedKey;
+import org.bukkit.entity.EntityType;
 
 import java.util.Locale;
 
@@ -26,9 +29,23 @@ public class DataFixerV1206 extends DataFixerV1192 {
             KMap<IrisBiomeCustomSpawnType, JSONArray> groups = new KMap<>();
 
             for (IrisBiomeCustomSpawn i : spawns) {
-                JSONArray g = groups.computeIfAbsent(i.getGroup(), (k) -> new JSONArray());
+                if (i == null) {
+                    continue;
+                }
+                EntityType type = i.getType();
+                if (type == null) {
+                    Iris.warn("Skipping custom biome spawn with null entity type in biome " + biome.getId());
+                    continue;
+                }
+                IrisBiomeCustomSpawnType group = i.getGroup() == null ? IrisBiomeCustomSpawnType.MISC : i.getGroup();
+                JSONArray g = groups.computeIfAbsent(group, (k) -> new JSONArray());
                 JSONObject o = new JSONObject();
-                o.put("type", i.getType().getKey());
+                NamespacedKey key = type.getKey();
+                if (key == null) {
+                    Iris.warn("Skipping custom biome spawn with unresolved entity key in biome " + biome.getId());
+                    continue;
+                }
+                o.put("type", key.toString());
                 o.put("weight", i.getWeight());
                 o.put("minCount", i.getMinCount());
                 o.put("maxCount", i.getMaxCount());

@@ -16,29 +16,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.data.chunk;
+package art.arcane.iris.util.project.hunk.view;
 
-import org.bukkit.World;
+import art.arcane.iris.engine.data.chunk.TerrainChunk;
+import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.iris.util.project.hunk.storage.StorageHunk;
 import org.bukkit.block.Biome;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.generator.ChunkGenerator.ChunkData;
 
-public interface TerrainChunk {
-    static TerrainChunk create(World world) {
-        return new LinkedTerrainChunk(world);
+public class TerrainChunkBiomeHunkView extends StorageHunk<Biome> implements Hunk<Biome> {
+    private final TerrainChunk chunk;
+
+    public TerrainChunkBiomeHunkView(TerrainChunk chunk) {
+        super(16, chunk.getMaxHeight() - chunk.getMinHeight(), 16);
+        this.chunk = chunk;
     }
 
-    static TerrainChunk create(ChunkData raw) {
-        return new LinkedTerrainChunk(raw);
+    @Override
+    public void setRaw(int x, int y, int z, Biome biome) {
+        chunk.setBiome(x, y + chunk.getMinHeight(), z, biome);
     }
 
-    Biome getBiome(int x, int y, int z);
-
-    void setBiome(int x, int y, int z, Biome bio);
-    int getMinHeight();
-    int getMaxHeight();
-    void setBlock(int x, int y, int z, BlockData blockData);
-    void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, BlockData blockData);
-    BlockData getBlockData(int x, int y, int z);
-    ChunkData getChunkData();
+    @Override
+    public Biome getRaw(int x, int y, int z) {
+        return chunk.getBiome(x, y + chunk.getMinHeight(), z);
+    }
 }

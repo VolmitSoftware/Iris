@@ -24,7 +24,7 @@ import art.arcane.volmlib.util.network.DownloadMonitor;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 
 public class DownloadJob implements Job {
     private final DL.Download download;
@@ -34,7 +34,7 @@ public class DownloadJob implements Job {
     public DownloadJob(String url, File destination) throws MalformedURLException {
         tw = 1;
         cw = 0;
-        download = new DL.Download(new URL(url), destination, DL.DownloadFlag.CALCULATE_SIZE);
+        download = new DL.Download(URI.create(url).toURL(), destination, DL.DownloadFlag.CALCULATE_SIZE);
         download.monitor(new DownloadMonitor() {
             @Override
             public void onUpdate(DL.DownloadState state, double progress, long elapsed, long estimated, long bps, long iobps, long size, long downloaded, long buffer, double bufferuse) {

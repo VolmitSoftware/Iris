@@ -402,12 +402,6 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
         delegate.validate();
     }
 
-    @Override
-    @SuppressWarnings("deprecation")
-    public BiomeGenerationSettings getBiomeGenerationSettings(Holder<Biome> holder) {
-        return delegate.getBiomeGenerationSettings(holder);
-    }
-
     static {
         Field biomeSource = null;
         for (Field field : ChunkGenerator.class.getDeclaredFields()) {

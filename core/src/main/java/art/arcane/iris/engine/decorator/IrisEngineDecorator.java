@@ -22,6 +22,7 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedComponent;
 import art.arcane.iris.engine.framework.EngineDecorator;
+import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisDecorationPart;
 import art.arcane.iris.engine.object.IrisDecorator;
@@ -88,7 +89,10 @@ public abstract class IrisEngineDecorator extends EngineAssignedComponent implem
                     continue;
                 int yy = y + f.getModY();
 
-                BlockData r = getEngine().getMantle().get(x + f.getModX(), yy, z + f.getModZ());
+                BlockData r = getEngine().getMantle().getMantle().get(x + f.getModX(), yy, z + f.getModZ(), BlockData.class);
+                if (r == null) {
+                    r = EngineMantle.AIR;
+                }
                 if (r.isFaceSturdy(f.getOppositeFace(), BlockSupport.FULL)) {
                     found = true;
                     data.setFace(f, true);

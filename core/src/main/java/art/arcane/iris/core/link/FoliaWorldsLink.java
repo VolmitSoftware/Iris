@@ -1,6 +1,8 @@
 package art.arcane.iris.core.link;
 
 import art.arcane.iris.Iris;
+import art.arcane.iris.core.nms.INMS;
+import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.util.common.scheduling.J;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -274,8 +276,8 @@ public class FoliaWorldsLink {
             Object primaryLevelData = createPrimaryLevelData(levelStorageAccess, creator.name());
             Object runtimeStemKey = createRuntimeLevelStemKey(creator.name());
             Object worldLoadingInfo = createWorldLoadingInfo(creator.name(), runtimeStemKey);
-            Object overworldLevelStem = getOverworldLevelStem();
-            Object[] createLevelArgs = new Object[]{overworldLevelStem, worldLoadingInfo, levelStorageAccess, primaryLevelData};
+            Object levelStem = resolveCreateLevelStem(creator);
+            Object[] createLevelArgs = new Object[]{levelStem, worldLoadingInfo, levelStorageAccess, primaryLevelData};
             Method createLevelMethod = minecraftServerCreateLevelMethod;
             if (createLevelMethod == null || !matches(createLevelMethod.getParameterTypes(), createLevelArgs)) {
                 createLevelMethod = resolveMethod(minecraftServer.getClass(), "createLevel", createLevelArgs);
@@ -374,6 +376,44 @@ public class FoliaWorldsLink {
         Class<?> resourceKeyClass = Class.forName("net.minecraft.resources.ResourceKey");
         Method createMethod = resolveMethod(resourceKeyClass, "create", levelStemRegistryKey, identifier);
         return createMethod.invoke(null, levelStemRegistryKey, identifier);
+    }
+
+    private Object resolveCreateLevelStem(WorldCreator creator) throws ReflectiveOperationException {
+        Object irisLevelStem = resolveIrisLevelStem(creator);
+        if (irisLevelStem != null) {
+            return irisLevelStem;
+        }
+
+        return getOverworldLevelStem();
+    }
+
+    private Object resolveIrisLevelStem(WorldCreator creator) throws ReflectiveOperationException {
+        ChunkGenerator generator = creator.generator();
+        if (!(generator instanceof PlatformChunkGenerator)) {
+            return null;
+        }
+
+        Object registryAccess = invoke(minecraftServer, "registryAccess");
+        Object binding = INMS.get();
+        Method levelStemMethod;
+        try {
+            levelStemMethod = resolveMethod(binding.getClass(), "levelStem", registryAccess, generator);
+        } catch (NoSuchMethodException e) {
+            throw new IllegalStateException("Iris NMS binding does not expose levelStem(RegistryAccess, ChunkGenerator) for runtime world \"" + creator.name() + "\".", e);
+        }
+
+        Object levelStem;
+        try {
+            levelStem = levelStemMethod.invoke(binding, registryAccess, generator);
+        } catch (InvocationTargetException e) {
+            Throwable cause = unwrap(e);
+            throw new IllegalStateException("Iris failed to resolve runtime level stem for world \"" + creator.name() + "\".", cause);
+        }
+
+        if (levelStem == null) {
+            throw new IllegalStateException("Iris resolved a null runtime level stem for world \"" + creator.name() + "\".");
+        }
+        return levelStem;
     }
 
     private Object getOverworldLevelStem() throws ReflectiveOperationException {

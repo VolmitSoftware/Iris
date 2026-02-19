@@ -11,11 +11,14 @@ import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.nms.container.BlockProperty;
 import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.iris.util.common.data.registry.Materials;
+import art.arcane.iris.util.common.reflect.KeyedType;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 public class B {
@@ -103,7 +106,9 @@ public class B {
         protected KMap<List<String>, List<BlockProperty>> loadExternalBlockStates() {
             KMap<List<BlockProperty>, List<String>> flipped = new KMap<>();
             INMS.get().getBlockProperties().forEach((k, v) -> {
-                flipped.computeIfAbsent(v, $ -> new KList<>()).add(k.getKey().toString());
+                NamespacedKey key = KeyedType.getKey(k);
+                String serialized = key == null ? k.name().toLowerCase(Locale.ROOT) : key.toString();
+                flipped.computeIfAbsent(v, $ -> new KList<>()).add(serialized);
             });
 
             var emptyStates = flipped.computeIfAbsent(new KList<>(0), $ -> new KList<>());

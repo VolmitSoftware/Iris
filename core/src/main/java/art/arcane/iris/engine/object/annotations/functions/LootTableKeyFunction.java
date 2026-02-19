@@ -4,12 +4,11 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.ListFunction;
 import art.arcane.volmlib.util.collection.KList;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.loot.LootTable;
 import org.bukkit.loot.LootTables;
 
+import java.util.Arrays;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 public class LootTableKeyFunction implements ListFunction<KList<String>> {
     @Override
@@ -24,7 +23,7 @@ public class LootTableKeyFunction implements ListFunction<KList<String>> {
 
     @Override
     public KList<String> apply(IrisData data) {
-        return StreamSupport.stream(Registry.LOOT_TABLES.spliterator(), false)
+        return Arrays.stream(LootTables.values())
                 .map(LootTables::getLootTable)
                 .map(LootTable::getKey)
                 .map(NamespacedKey::toString)

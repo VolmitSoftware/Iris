@@ -69,6 +69,9 @@ public class PlannedPiece {
         this.setRotation(rot);
         this.ogObject = data.getObjectLoader().load(piece.getObject());
         this.object = structure.rotated(piece, rotation);
+        if (this.ogObject == null || this.object == null) {
+            throw new IllegalStateException("Unable to create planned piece for object \"" + piece.getObject() + "\"");
+        }
         this.piece = rotation.rotateCopy(piece, new IrisPosition(object.getShrinkOffset()));
         this.piece.setLoadKey(piece.getLoadKey());
         this.object.setLoadKey(piece.getObject());

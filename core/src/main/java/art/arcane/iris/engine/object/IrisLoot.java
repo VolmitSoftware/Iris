@@ -42,9 +42,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 import org.bukkit.material.Colorable;
 
 import java.awt.*;
+import java.util.List;
 import java.util.Optional;
 
 @Snippet("loot")
@@ -177,7 +179,9 @@ public class IrisLoot {
         }
 
         if (getCustomModel() != null) {
-            m.setCustomModelData(getCustomModel());
+            CustomModelDataComponent customModelData = m.getCustomModelDataComponent();
+            customModelData.setFloats(List.of(getCustomModel().floatValue()));
+            m.setCustomModelDataComponent(customModelData);
         }
 
         if (is.getType().getMaxDurability() > 0 && m instanceof Damageable d) {
@@ -195,7 +199,6 @@ public class IrisLoot {
         }
 
         if (displayName != null) {
-            m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
             m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
         }
 

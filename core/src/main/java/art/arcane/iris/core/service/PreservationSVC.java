@@ -91,7 +91,9 @@ public class PreservationSVC implements IrisService {
 
     @Override
     public void onDisable() {
-        dereferencer.interrupt();
+        if (dereferencer != null) {
+            dereferencer.interrupt();
+        }
         dereference();
 
         postShutdown(() -> {

@@ -76,7 +76,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
-import java.net.URL;
+import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
@@ -232,7 +232,7 @@ public class Iris extends VolmitPlugin implements Listener {
         File f = Iris.instance.getDataFile("cache", h.substring(0, 2), h.substring(3, 5), h);
 
         if (!f.exists()) {
-            try (BufferedInputStream in = new BufferedInputStream(new URL(url).openStream()); FileOutputStream fileOutputStream = new FileOutputStream(f)) {
+            try (BufferedInputStream in = new BufferedInputStream(URI.create(url).toURL().openStream()); FileOutputStream fileOutputStream = new FileOutputStream(f)) {
                 byte[] dataBuffer = new byte[1024];
                 int bytesRead;
                 while ((bytesRead = in.read(dataBuffer, 0, 1024)) != -1) {
@@ -251,7 +251,7 @@ public class Iris extends VolmitPlugin implements Listener {
         String h = IO.hash(name + "*" + url);
         File f = Iris.instance.getDataFile("cache", h.substring(0, 2), h.substring(3, 5), h);
 
-        try (BufferedInputStream in = new BufferedInputStream(new URL(url).openStream()); FileOutputStream fileOutputStream = new FileOutputStream(f)) {
+        try (BufferedInputStream in = new BufferedInputStream(URI.create(url).toURL().openStream()); FileOutputStream fileOutputStream = new FileOutputStream(f)) {
             byte[] dataBuffer = new byte[1024];
             int bytesRead;
             while ((bytesRead = in.read(dataBuffer, 0, 1024)) != -1) {
@@ -274,7 +274,7 @@ public class Iris extends VolmitPlugin implements Listener {
         String h = IO.hash(name + "*" + url);
         File f = Iris.instance.getDataFile("cache", h.substring(0, 2), h.substring(3, 5), h);
         Iris.verbose("Download " + name + " -> " + url);
-        try (BufferedInputStream in = new BufferedInputStream(new URL(url).openStream()); FileOutputStream fileOutputStream = new FileOutputStream(f)) {
+        try (BufferedInputStream in = new BufferedInputStream(URI.create(url).toURL().openStream()); FileOutputStream fileOutputStream = new FileOutputStream(f)) {
             byte[] dataBuffer = new byte[1024];
             int bytesRead;
             while ((bytesRead = in.read(dataBuffer, 0, 1024)) != -1) {
@@ -360,7 +360,6 @@ public class Iris extends VolmitPlugin implements Listener {
         }
     }
 
-    @SuppressWarnings("deprecation")
     public static void later(NastyRunnable object) {
         try {
             J.a(() -> {
@@ -459,7 +458,7 @@ public class Iris extends VolmitPlugin implements Listener {
             PrintWriter pw = new PrintWriter(fos);
             for (Thread i : f.keySet()) {
                 pw.println("========================================");
-                pw.println("Thread: '" + i.getName() + "' ID: " + i.getId() + " STATUS: " + i.getState().name());
+                pw.println("Thread: '" + i.getName() + "' ID: " + i.threadId() + " STATUS: " + i.getState().name());
 
                 for (StackTraceElement j : f.get(i)) {
                     pw.println("    @ " + j.toString());

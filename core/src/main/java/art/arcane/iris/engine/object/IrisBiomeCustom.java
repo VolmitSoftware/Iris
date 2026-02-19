@@ -29,6 +29,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.NamespacedKey;
+import org.bukkit.entity.EntityType;
 
 import java.awt.*;
 import java.util.Locale;
@@ -142,9 +144,23 @@ public class IrisBiomeCustom {
             KMap<IrisBiomeCustomSpawnType, JSONArray> groups = new KMap<>();
 
             for (IrisBiomeCustomSpawn i : getSpawns()) {
-                JSONArray g = groups.computeIfAbsent(i.getGroup(), (k) -> new JSONArray());
+                if (i == null) {
+                    continue;
+                }
+                EntityType type = i.getType();
+                if (type == null) {
+                    Iris.warn("Skipping custom biome spawn with null entity type in biome " + getId());
+                    continue;
+                }
+                IrisBiomeCustomSpawnType group = i.getGroup() == null ? IrisBiomeCustomSpawnType.MISC : i.getGroup();
+                JSONArray g = groups.computeIfAbsent(group, (k) -> new JSONArray());
                 JSONObject o = new JSONObject();
-                o.put("type", "minecraft:" + i.getType().name().toLowerCase());
+                NamespacedKey key = type.getKey();
+                if (key == null) {
+                    Iris.warn("Skipping custom biome spawn with unresolved entity key in biome " + getId());
+                    continue;
+                }
+                o.put("type", key.toString());
                 o.put("weight", i.getWeight());
                 o.put("minCount", i.getMinCount());
                 o.put("maxCount", i.getMaxCount());

@@ -24,19 +24,24 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.annotations.*;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
+import art.arcane.iris.util.common.reflect.KeyedType;
 import art.arcane.iris.util.common.scheduling.J;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
+import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
+
+import java.util.Locale;
 
 @Snippet("effect")
 @Accessors(chain = true)
@@ -164,8 +169,9 @@ public class IrisEffect {
             }
 
             try {
-                for (PotionEffectType i : PotionEffectType.values()) {
-                    if (i.getName().toUpperCase().replaceAll("\\Q \\E", "_").equals(getPotionEffect())) {
+                for (PotionEffectType i : Registry.EFFECT) {
+                    NamespacedKey key = KeyedType.getKey(i);
+                    if (key != null && key.getKey().toUpperCase(Locale.ROOT).replaceAll("\\Q \\E", "_").equals(getPotionEffect())) {
                         t = i;
 
                         return t;

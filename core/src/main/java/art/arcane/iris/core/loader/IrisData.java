@@ -352,7 +352,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         builder = new GsonBuilder()
                 .addDeserializationExclusionStrategy(this)
                 .addSerializationExclusionStrategy(this)
-                .setLenient()
+                .setStrictness(Strictness.LENIENT)
                 .registerTypeAdapterFactory(this)
                 .registerTypeAdapter(MantleFlag.class, new MantleFlagAdapter())
                 .setPrettyPrinting();
@@ -409,19 +409,18 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     public Set<Class<?>> resolveSnippets() {
         var result = new HashSet<Class<?>>();
         var processed = new HashSet<Class<?>>();
-        var excluder = gson.excluder();
 
         var queue = new LinkedList<Class<?>>(loaders.keySet());
         while (!queue.isEmpty()) {
             var type = queue.poll();
-            if (excluder.excludeClass(type, false) || !processed.add(type))
+            if (shouldSkipClass(type) || !processed.add(type))
                 continue;
             if (type.isAnnotationPresent(Snippet.class))
                 result.add(type);
 
             try {
                 for (var field : type.getDeclaredFields()) {
-                    if (excluder.excludeField(field, false))
+                    if (shouldSkipField(new FieldAttributes(field)))
                         continue;
 
                     queue.add(field.getType());

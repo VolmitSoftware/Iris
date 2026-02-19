@@ -59,7 +59,12 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
             return t;
         } catch (Throwable e) {
             Iris.reportError(e);
-            Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
+            String message = e.getMessage();
+            String reason = e.getClass().getSimpleName();
+            if (message != null && !message.isBlank()) {
+                reason = reason + ": " + message;
+            }
+            Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + " (" + reason + ")");
             return null;
         }
     }

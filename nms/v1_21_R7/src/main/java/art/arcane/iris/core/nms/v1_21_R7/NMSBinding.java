@@ -108,7 +108,6 @@ public class NMSBinding implements INMSBinding {
     private final AtomicCache<MCAPalette<BlockState>> globalCache = new AtomicCache<>();
     private final AtomicCache<RegistryAccess> registryAccess = new AtomicCache<>();
     private final AtomicCache<Method> byIdRef = new AtomicCache<>();
-    private Field biomeStorageCache = null;
 
     private static Object getFor(Class<?> type, Object source) {
         Object o = fieldFor(type, source);
@@ -390,7 +389,11 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public KList<Biome> getBiomes() {
-        return new KList<>(Biome.values()).qadd(Biome.CHERRY_GROVE).qdel(Biome.CUSTOM);
+        KList<Biome> biomes = new KList<>();
+        for (Biome biome : org.bukkit.Registry.BIOME) {
+            biomes.add(biome);
+        }
+        return biomes;
     }
 
     @Override
@@ -407,7 +410,12 @@ public class NMSBinding implements INMSBinding {
             }
         }
 
-        return biome.ordinal();
+        List<Biome> biomes = new ArrayList<>();
+        for (Biome entry : org.bukkit.Registry.BIOME) {
+            biomes.add(entry);
+        }
+        int index = biomes.indexOf(biome);
+        return Math.max(index, 0);
     }
 
     private MCAIdMap<net.minecraft.world.level.biome.Biome> getBiomeMapping() {
@@ -489,38 +497,6 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
-    public void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk) {
-        try {
-            ChunkAccess s = (ChunkAccess) getFieldForBiomeStorage(chunk).get(chunk);
-            Holder<net.minecraft.world.level.biome.Biome> biome = (Holder<net.minecraft.world.level.biome.Biome>) somethingVeryDirty;
-            s.setBiome(x, y, z, biome);
-        } catch (IllegalAccessException e) {
-            Iris.reportError(e);
-            e.printStackTrace();
-        }
-    }
-
-    private Field getFieldForBiomeStorage(Object storage) {
-        Field f = biomeStorageCache;
-
-        if (f != null) {
-            return f;
-        }
-        try {
-            f = storage.getClass().getDeclaredField("biome");
-            f.setAccessible(true);
-            return f;
-        } catch (Throwable e) {
-            Iris.reportError(e);
-            e.printStackTrace();
-            Iris.error(storage.getClass().getCanonicalName());
-        }
-
-        biomeStorageCache = f;
-        return null;
-    }
-
-    @Override
     public MCAPaletteAccess createPalette() {
         MCAIdMapper<BlockState> registry = registryCache.aquireNasty(() -> {
             Field cf = IdMapper.class.getDeclaredField("tToId");
@@ -598,31 +574,41 @@ public class NMSBinding implements INMSBinding {
     }
 
     public Vector3d getBoundingbox(org.bukkit.entity.EntityType entity) {
-        Field[] fields = EntityType.class.getDeclaredFields();
-        for (Field field : fields) {
-            if (Modifier.isStatic(field.getModifiers()) && field.getType().equals(EntityType.class)) {
-                try {
-                    EntityType entityType = (EntityType) field.get(null);
-                    if (entityType.getDescriptionId().equals("entity.minecraft." + entity.name().toLowerCase())) {
-                        Vector<Float> v1 = new Vector<>();
-                        v1.add(entityType.getHeight());
-                        entityType.getDimensions();
-                        Vector3d box = new Vector3d( entityType.getWidth(), entityType.getHeight(),  entityType.getWidth());
-                        //System.out.println("Entity Type: " + entityType.getDescriptionId() + ", " + "Height: " + height + ", Width: " + width);
-                        return box;
-                    }
-                } catch (IllegalAccessException e) {
-                    Iris.error("Unable to get entity dimensions!");
-                    e.printStackTrace();
+        if (entity == null) {
+            return null;
+        }
+
+        try {
+            String descriptionId = "entity.minecraft." + entity.name().toLowerCase(Locale.ROOT);
+            Field[] fields = EntityType.class.getDeclaredFields();
+            for (Field field : fields) {
+                if (!Modifier.isStatic(field.getModifiers()) || !field.getType().equals(EntityType.class)) {
+                    continue;
+                }
+
+                EntityType entityType = (EntityType) field.get(null);
+                if (entityType == null) {
+                    continue;
+                }
+
+                if (descriptionId.equals(entityType.getDescriptionId())) {
+                    return new Vector3d(entityType.getWidth(), entityType.getHeight(), entityType.getWidth());
                 }
             }
+            return null;
+        } catch (Throwable e) {
+            Iris.error("Unable to get entity dimensions for " + entity + "!");
+            Iris.reportError(e);
+            return null;
         }
-        return null;
     }
 
 
     @Override
     public Entity spawnEntity(Location location,  org.bukkit.entity.EntityType type, CreatureSpawnEvent.SpawnReason reason) {
+        if (location == null || location.getWorld() == null || type == null || type.getEntityClass() == null) {
+            return null;
+        }
         return ((CraftWorld) location.getWorld()).spawn(location, type.getEntityClass(), null, reason);
     }
 
@@ -670,7 +656,49 @@ public class NMSBinding implements INMSBinding {
     }
 
     public static Holder<net.minecraft.world.level.biome.Biome> biomeToBiomeBase(Registry<net.minecraft.world.level.biome.Biome> registry, Biome biome) {
-        return registry.getOrThrow(ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(biome.getKey())));
+        if (registry == null || biome == null) {
+            return null;
+        }
+
+        NamespacedKey biomeKey = resolveBiomeKey(biome);
+        if (biomeKey == null) {
+            return null;
+        }
+
+        ResourceKey<net.minecraft.world.level.biome.Biome> key = ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(biomeKey));
+        return registry.get(key).orElse(null);
+    }
+
+    private static NamespacedKey resolveBiomeKey(Biome biome) {
+        Object keyOrNullValue = invokeNoThrow(biome, "getKeyOrNull", new Class<?>[0]);
+        if (keyOrNullValue instanceof NamespacedKey namespacedKey) {
+            return namespacedKey;
+        }
+
+        Object keyOrThrowValue = invokeNoThrow(biome, "getKeyOrThrow", new Class<?>[0]);
+        if (keyOrThrowValue instanceof NamespacedKey namespacedKey) {
+            return namespacedKey;
+        }
+
+        Object keyValue = invokeNoThrow(biome, "getKey", new Class<?>[0]);
+        if (keyValue instanceof NamespacedKey namespacedKey) {
+            return namespacedKey;
+        }
+
+        return null;
+    }
+
+    private static Object invokeNoThrow(Object target, String methodName, Class<?>[] parameterTypes, Object... args) {
+        if (target == null) {
+            return null;
+        }
+
+        try {
+            Method method = target.getClass().getMethod(methodName, parameterTypes);
+            return method.invoke(target, args);
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     @Override

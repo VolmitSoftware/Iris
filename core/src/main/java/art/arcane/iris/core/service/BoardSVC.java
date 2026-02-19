@@ -31,6 +31,7 @@ import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.iris.util.common.plugin.IrisService;
 import art.arcane.iris.util.common.scheduling.J;
+import art.arcane.volmlib.util.matter.MatterCavern;
 import lombok.Data;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -201,7 +202,7 @@ public class BoardSVC implements IrisService, BoardProvider {
             lines.add(C.AQUA + "Mantle" + C.GRAY + ": " + engine.getMantle().getLoadedRegionCount());
 
             if (IrisSettings.get().getGeneral().debug) {
-                lines.add(C.LIGHT_PURPLE + "Carving" + C.GRAY + ": " + engine.getMantle().isCarved(x,y,z));
+                lines.add(C.LIGHT_PURPLE + "Carving" + C.GRAY + ": " + (engine.getMantle().getMantle().get(x, y, z, MatterCavern.class) != null));
             }
 
             lines.add("&7&m                   ");

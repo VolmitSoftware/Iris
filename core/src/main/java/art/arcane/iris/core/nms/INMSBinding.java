@@ -39,7 +39,6 @@ import org.bukkit.block.Biome;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.Color;
@@ -104,6 +103,11 @@ public interface INMSBinding {
 
     default CompletableFuture<World> createWorldAsync(WorldCreator c) {
         try {
+            if (c.generator() instanceof PlatformChunkGenerator gen
+                    && missingDimensionTypes(gen.getTarget().getDimension().getDimensionTypeKey())) {
+                return CompletableFuture.failedFuture(new IllegalStateException("Missing dimension types to create world"));
+            }
+
             FoliaWorldsLink link = FoliaWorldsLink.get();
             if (link.isActive()) {
                 CompletableFuture<World> future = link.createWorld(c);
@@ -118,8 +122,6 @@ public interface INMSBinding {
     }
 
     int countCustomBiomes();
-
-    void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk);
 
     default boolean supportsDataPacks() {
         return false;

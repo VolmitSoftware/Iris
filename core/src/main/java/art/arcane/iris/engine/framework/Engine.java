@@ -62,6 +62,7 @@ import art.arcane.volmlib.util.matter.MatterUpdate;
 import art.arcane.volmlib.util.matter.slices.container.JigsawPieceContainer;
 import art.arcane.iris.util.common.parallel.BurstExecutor;
 import art.arcane.iris.util.common.parallel.MultiBurst;
+import art.arcane.iris.util.common.reflect.KeyedType;
 import art.arcane.iris.util.common.reflect.W;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.iris.util.common.scheduling.J;
@@ -149,7 +150,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     @BlockCoordinates
     default void generate(int x, int z, TerrainChunk tc, boolean multicore) throws WrongEngineBroException {
-        generate(x, z, Hunk.view(tc), Hunk.view(tc, tc.getMinHeight(), tc.getMaxHeight()), multicore);
+        generate(x, z, Hunk.view(tc), Hunk.viewBiomes(tc), multicore);
     }
 
     @BlockCoordinates
@@ -302,8 +303,13 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 chunk.raiseFlagUnchecked(MantleFlag.TILE, run(semaphore, c, () -> {
                     chunk.iterate(TileWrapper.class, (x, y, z, v) -> {
                         Block block = c.getBlock(x & 15, y + getWorld().minHeight(), z & 15);
-                        if (!TileData.setTileState(block, v.getData()))
-                            Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", block.getX(), block.getY(), block.getZ(), block.getType().getKey(), v.getData().getMaterial().getKey());
+                        if (!TileData.setTileState(block, v.getData())) {
+                            NamespacedKey blockTypeKey = KeyedType.getKey(block.getType());
+                            NamespacedKey tileTypeKey = KeyedType.getKey(v.getData().getMaterial());
+                            String blockType = blockTypeKey == null ? block.getType().name() : blockTypeKey.toString();
+                            String tileType = tileTypeKey == null ? v.getData().getMaterial().name() : tileTypeKey.toString();
+                            Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", block.getX(), block.getY(), block.getZ(), blockType, tileType);
+                        }
                     });
                 }, 0));
                 chunk.raiseFlagUnchecked(MantleFlag.CUSTOM, run(semaphore, c, () -> {

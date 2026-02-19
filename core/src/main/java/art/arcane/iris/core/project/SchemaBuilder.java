@@ -32,6 +32,8 @@ import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.iris.util.common.reflect.KeyedType;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
@@ -41,6 +43,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Modifier;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -65,8 +68,11 @@ public class SchemaBuilder {
     private static JSONArray getPotionTypes() {
         JSONArray a = new JSONArray();
 
-        for (PotionEffectType gg : PotionEffectType.values()) {
-            a.put(gg.getName().toUpperCase().replaceAll("\\Q \\E", "_"));
+        for (PotionEffectType gg : Registry.EFFECT) {
+            NamespacedKey key = KeyedType.getKey(gg);
+            if (key != null) {
+                a.put(key.getKey().toUpperCase(Locale.ROOT).replaceAll("\\Q \\E", "_"));
+            }
         }
 
         return a;
@@ -74,8 +80,11 @@ public class SchemaBuilder {
 
     private static JSONArray getEnchantTypes() {
         JSONArray array = new JSONArray();
-        for (Enchantment e : Enchantment.values()) {
-            array.put(e.getKey().getKey());
+        for (Enchantment e : Registry.ENCHANTMENT) {
+            NamespacedKey key = KeyedType.getKey(e);
+            if (key != null) {
+                array.put(key.getKey());
+            }
         }
         return array;
     }
@@ -602,7 +611,7 @@ public class SchemaBuilder {
 
         try {
             k.setAccessible(true);
-            Object value = k.get(cl.newInstance());
+            Object value = k.get(cl.getDeclaredConstructor().newInstance());
 
             if (value != null) {
                 if (present) d.add("    ");

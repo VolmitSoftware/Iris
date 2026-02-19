@@ -21,13 +21,18 @@ package art.arcane.iris.engine.object;
 import art.arcane.iris.Iris;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.object.annotations.*;
+import art.arcane.iris.util.common.reflect.KeyedType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.Registry;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+
+import java.util.Locale;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -65,8 +70,9 @@ public class IrisPotionEffect {
             }
 
             try {
-                for (PotionEffectType i : PotionEffectType.values()) {
-                    if (i.getName().toUpperCase().replaceAll("\\Q \\E", "_").equals(getPotionEffect())) {
+                for (PotionEffectType i : Registry.EFFECT) {
+                    NamespacedKey key = KeyedType.getKey(i);
+                    if (key != null && key.getKey().toUpperCase(Locale.ROOT).replaceAll("\\Q \\E", "_").equals(getPotionEffect())) {
                         t = i;
 
                         return t;

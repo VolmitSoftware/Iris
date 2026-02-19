@@ -115,7 +115,7 @@ public class DataFixerV1217 extends DataFixerV1213 {
             attributes.put("minecraft:gameplay/fast_lava", true);
             attributes.put("minecraft:gameplay/snow_golem_melts", true);
             attributes.put("minecraft:visual/default_dripstone_particle", new JSONObject()
-                    .put("value", "minecraft:dripstone_drip_water_lava"));
+                    .put("type", "minecraft:dripping_dripstone_lava"));
         }
 
         if ((Boolean) json.remove("bed_works")) {
@@ -132,7 +132,7 @@ public class DataFixerV1217 extends DataFixerV1213 {
         }
 
         attributes.put("minecraft:gameplay/respawn_anchor_works", json.remove("respawn_anchor_works"));
-        attributes.put("minecraft:gameplay/piglins_zombify", json.remove("piglin_safe"));
+        attributes.put("minecraft:gameplay/piglins_zombify", !(Boolean) json.remove("piglin_safe"));
         attributes.put("minecraft:gameplay/can_start_raid", json.remove("has_raids"));
 
         var cloud_height = json.remove("cloud_height");

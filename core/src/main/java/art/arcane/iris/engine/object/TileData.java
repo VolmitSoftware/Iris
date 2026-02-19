@@ -20,11 +20,14 @@ package art.arcane.iris.engine.object;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.Strictness;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.nms.INMS;
+import art.arcane.iris.util.common.reflect.KeyedType;
 import art.arcane.volmlib.util.collection.KMap;
 import lombok.*;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
@@ -39,7 +42,7 @@ import java.io.IOException;
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TileData implements Cloneable {
-    private static final Gson gson = new GsonBuilder().disableHtmlEscaping().setLenient().create();
+    private static final Gson gson = new GsonBuilder().disableHtmlEscaping().setStrictness(Strictness.LENIENT).create();
 
     @NonNull
     private Material material;
@@ -125,7 +128,13 @@ public class TileData implements Cloneable {
     }
 
     public void toBinary(DataOutputStream out) throws IOException {
-        out.writeUTF(material == null ? "" : material.getKey().toString());
+        if (material == null) {
+            out.writeUTF("");
+        } else {
+            NamespacedKey key = KeyedType.getKey(material);
+            String value = key == null ? material.name() : key.toString();
+            out.writeUTF(value);
+        }
         out.writeUTF(gson.toJson(properties));
     }
 
@@ -139,6 +148,8 @@ public class TileData implements Cloneable {
 
     @Override
     public String toString() {
-        return material.getKey() + gson.toJson(properties);
+        NamespacedKey key = KeyedType.getKey(material);
+        String value = key == null ? String.valueOf(material) : key.toString();
+        return value + gson.toJson(properties);
     }
 }

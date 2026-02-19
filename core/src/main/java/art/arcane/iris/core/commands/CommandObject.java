@@ -289,7 +289,7 @@ public class CommandObject implements DirectorExecutor {
             } else {
                 g[1] = player().getLocation().getBlock().getLocation().clone().add(0, -1, 0);
             }
-            player().setItemInHand(WandSVC.createWand(g[0], g[1]));
+            player().getInventory().setItemInMainHand(WandSVC.createWand(g[0], g[1]));
         }
     }
 
@@ -316,7 +316,7 @@ public class CommandObject implements DirectorExecutor {
             } else {
                 g[0] = player().getLocation().getBlock().getLocation().clone().add(0, -1, 0);
             }
-            player().setItemInHand(WandSVC.createWand(g[0], g[1]));
+            player().getInventory().setItemInMainHand(WandSVC.createWand(g[0], g[1]));
         }
     }
 

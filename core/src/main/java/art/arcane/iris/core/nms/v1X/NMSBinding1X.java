@@ -40,7 +40,6 @@ import org.bukkit.block.Biome;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.structure.Structure;
 import org.bukkit.inventory.ItemStack;
 
@@ -118,8 +117,8 @@ public class NMSBinding1X implements INMSBinding {
 
     @Override
     public KList<String> getStructureKeys() {
-        var list = StreamSupport.stream(Registry.STRUCTURE.spliterator(), false)
-                .map(Structure::getKey)
+        List<String> list = StreamSupport.stream(Registry.STRUCTURE.spliterator(), false)
+                .map(Structure::getKeyOrThrow)
                 .map(NamespacedKey::toString)
                 .toList();
         return new KList<>(list);
@@ -225,7 +224,11 @@ public class NMSBinding1X implements INMSBinding {
 
     @Override
     public KList<Biome> getBiomes() {
-        return new KList<>(Biome.values()).qdel(Biome.CUSTOM);
+        KList<Biome> biomes = new KList<>();
+        for (Biome biome : Registry.BIOME) {
+            biomes.add(biome);
+        }
+        return biomes;
     }
 
     @Override
@@ -240,7 +243,9 @@ public class NMSBinding1X implements INMSBinding {
 
     @Override
     public int getBiomeId(Biome biome) {
-        return biome.ordinal();
+        List<Biome> biomes = StreamSupport.stream(Registry.BIOME.spliterator(), false).toList();
+        int index = biomes.indexOf(biome);
+        return Math.max(index, 0);
     }
 
     @Override
@@ -260,11 +265,6 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public int countCustomBiomes() {
         return 0;
-    }
-
-    @Override
-    public void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk) {
-
     }
 
     @Override

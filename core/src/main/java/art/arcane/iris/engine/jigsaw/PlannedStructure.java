@@ -357,6 +357,16 @@ public class PlannedStructure {
     public IrisObject rotated(IrisJigsawPiece piece, IrisObjectRotation rotation) {
         String key = piece.getObject() + "-" + rotation.hashCode();
 
-        return objectRotationCache.computeIfAbsent(key, (k) -> rotation.rotateCopy(data.getObjectLoader().load(piece.getObject())));
+        return objectRotationCache.computeIfAbsent(key, (k) -> {
+            IrisObject loaded = data.getObjectLoader().load(piece.getObject());
+            if (loaded == null) {
+                throw new IllegalStateException("Unable to load jigsaw object \"" + piece.getObject() + "\" for piece \"" + piece.getLoadKey() + "\"");
+            }
+            IrisObject rotatedObject = rotation.rotateCopy(loaded);
+            if (rotatedObject == null) {
+                throw new IllegalStateException("Unable to rotate jigsaw object \"" + piece.getObject() + "\" for piece \"" + piece.getLoadKey() + "\"");
+            }
+            return rotatedObject;
+        });
     }
 }

@@ -32,7 +32,6 @@ import art.arcane.iris.util.common.misc.ServerProperties;
 import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.iris.util.common.scheduling.J;
 import lombok.NonNull;
-import lombok.SneakyThrows;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -42,8 +41,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerArray;
@@ -243,8 +241,9 @@ public class ServerConfigurator {
     }
 
     public static Stream<IrisData> allPacks() {
-        return Stream.concat(listFiles(Iris.instance.getDataFolder("packs"))
-                .filter(File::isDirectory)
+        File[] packs = Iris.instance.getDataFolder("packs").listFiles(File::isDirectory);
+        Stream<File> locals = packs == null ? Stream.empty() : Arrays.stream(packs);
+        return Stream.concat(locals
                 .filter( base -> {
                     var content = new File(base, "dimensions").listFiles();
                     return content != null && content.length > 0;
@@ -261,12 +260,6 @@ public class ServerConfigurator {
         if (!path.startsWith(worldContainer)) return null;
         int l = path.endsWith(File.separator) ? 11 : 10;
         return path.substring(worldContainer.length(), path.length() - l);
-    }
-
-    @SneakyThrows
-    private static Stream<File> listFiles(File parent) {
-        if (!parent.isDirectory()) return Stream.empty();
-        return Files.walk(parent.toPath()).map(Path::toFile);
     }
 
     public static class DimensionHeight {

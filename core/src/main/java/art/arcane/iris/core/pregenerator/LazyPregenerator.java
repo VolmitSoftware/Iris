@@ -123,13 +123,11 @@ public class LazyPregenerator extends Thread implements Listener {
 
         if (lazyGeneratedChunks.get() >= lazyTotalChunks.get()) {
             if (job.isHealing()) {
-                int pos = (job.getHealingPosition() + 1) % maxPosition;
-                job.setHealingPosition(pos);
-                tickRegenerate(getChunk(pos));
-            } else {
-                Iris.info("Completed Lazy Gen!");
-                interrupt();
+                Iris.warn("LazyGen healing mode is not supported on 1.21.11; ending lazy generation for " + world.getName() + ".");
+                job.setHealing(false);
             }
+            Iris.info("Completed Lazy Gen!");
+            interrupt();
         } else {
             int pos = job.getPosition() + 1;
             job.setPosition(pos);
@@ -170,11 +168,6 @@ public class LazyPregenerator extends Thread implements Listener {
             }
             lazyGeneratedChunks.addAndGet(1);
         });
-    }
-
-    private void tickRegenerate(Position2 chunk) {
-        J.s(() -> world.regenerateChunk(chunk.getX(), chunk.getZ()));
-        Iris.verbose("Regenerated " + chunk);
     }
 
     public Position2 getChunk(int position) {

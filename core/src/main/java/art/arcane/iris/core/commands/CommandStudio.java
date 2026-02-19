@@ -24,7 +24,6 @@ import art.arcane.iris.core.gui.NoiseExplorerGUI;
 import art.arcane.iris.core.gui.VisionGUI;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.project.IrisProject;
-import art.arcane.iris.core.service.ConversionSVC;
 import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.IrisNoisemapPrebakePipeline;
@@ -266,12 +265,6 @@ public class CommandStudio implements DirectorExecutor {
             sender.sendMessage(C.RED + "Failed to start studio regen worker thread. See console.");
             Iris.reportError(e);
         }
-    }
-
-    @Director(description = "Convert objects in the \"convert\" folder")
-    public void convert() {
-        Iris.service(ConversionSVC.class).check(sender());
-        //IrisConverter.convertSchematics(sender());
     }
 
     @Director(description = "Execute a script", aliases = "run", origin = DirectorOrigin.PLAYER)

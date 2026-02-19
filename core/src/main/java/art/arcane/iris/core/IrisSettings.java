@@ -215,9 +215,6 @@ public class IrisSettings {
         public boolean commandSounds = true;
         public boolean debug = false;
         public boolean dumpMantleOnError = false;
-        public boolean validatePacksOnStartup = true;
-        public boolean stopStartupOnPackValidationFailure = false;
-        public int maxPackValidationErrorsPerPack = 200;
         public boolean disableNMS = false;
         public boolean pluginMetrics = true;
         public boolean splashLogoStartup = true;

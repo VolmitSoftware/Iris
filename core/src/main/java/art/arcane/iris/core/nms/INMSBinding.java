@@ -151,6 +151,10 @@ public interface INMSBinding {
 
     KList<String> getStructureKeys();
 
+    default KMap<String, KList<String>> getVanillaStructureBiomeTags() {
+        return new KMap<>();
+    }
+
     boolean missingDimensionTypes(String... keys);
 
     default boolean injectBukkit() {

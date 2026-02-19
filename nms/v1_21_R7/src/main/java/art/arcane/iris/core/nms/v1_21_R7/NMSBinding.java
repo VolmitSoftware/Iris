@@ -728,6 +728,48 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
+    public KMap<String, KList<String>> getVanillaStructureBiomeTags() {
+        KMap<String, KList<String>> tags = new KMap<>();
+
+        Registry<net.minecraft.world.level.biome.Biome> registry = registry().lookup(Registries.BIOME).orElse(null);
+        if (registry == null) {
+            return tags;
+        }
+
+        registry.getTags().forEach(named -> {
+            TagKey<net.minecraft.world.level.biome.Biome> tagKey = named.key();
+            Identifier location = tagKey.location();
+            if (!"minecraft".equals(location.getNamespace())) {
+                return;
+            }
+
+            String path = location.getPath();
+            if (!path.startsWith("has_structure/")) {
+                return;
+            }
+
+            KList<String> values = new KList<>();
+            named.stream().forEach(holder -> {
+                net.minecraft.world.level.biome.Biome biome = holder.value();
+                Identifier biomeLocation = registry.getKey(biome);
+                if (biomeLocation == null) {
+                    return;
+                }
+                if ("minecraft".equals(biomeLocation.getNamespace())) {
+                    values.add(biomeLocation.toString());
+                }
+            });
+
+            KList<String> uniqueValues = values.removeDuplicates();
+            if (!uniqueValues.isEmpty()) {
+                tags.put(path, uniqueValues);
+            }
+        });
+
+        return tags;
+    }
+
+    @Override
     public boolean missingDimensionTypes(String... keys) {
         var type = registry().lookupOrThrow(Registries.DIMENSION_TYPE);
         return !Arrays.stream(keys)

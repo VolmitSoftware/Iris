@@ -508,7 +508,17 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public int getBaseHeight(@NotNull WorldInfo worldInfo, @NotNull Random random, int x, int z, @NotNull HeightMap heightMap) {
-        return 4;
+        Engine currentEngine = engine;
+        if (currentEngine == null || !setup.get()) {
+            currentEngine = getEngine(worldInfo);
+        }
+
+        boolean ignoreFluid = switch (heightMap) {
+            case OCEAN_FLOOR, OCEAN_FLOOR_WG -> true;
+            default -> false;
+        };
+
+        return currentEngine.getMinHeight() + currentEngine.getHeight(x, z, ignoreFluid) + 1;
     }
 
     private void computeStudioGenerator() {
@@ -541,7 +551,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public boolean shouldGenerateStructures() {
-        return false;
+        return IrisSettings.get().getGeneral().isAutoGenerateIntrinsicStructures();
     }
 
     @Override

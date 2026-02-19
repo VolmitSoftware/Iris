@@ -25,28 +25,29 @@ import org.bukkit.craftbukkit.v1_21_R7.CraftWorld;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 public class CustomBiomeSource extends BiomeSource {
+    private static final int NOISE_BIOME_CACHE_MAX = 262144;
 
     private final long seed;
     private final Engine engine;
     private final Registry<Biome> biomeCustomRegistry;
     private final Registry<Biome> biomeRegistry;
     private final AtomicCache<RegistryAccess> registryAccess = new AtomicCache<>();
-    private final RNG rng;
     private final KMap<String, Holder<Biome>> customBiomes;
     private final Holder<Biome> fallbackBiome;
+    private final ConcurrentHashMap<Long, Holder<Biome>> noiseBiomeCache = new ConcurrentHashMap<>();
 
     public CustomBiomeSource(long seed, Engine engine, World world) {
         this.engine = engine;
         this.seed = seed;
         this.biomeCustomRegistry = registry().lookup(Registries.BIOME).orElse(null);
         this.biomeRegistry = ((RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer())).lookup(Registries.BIOME).orElse(null);
-        this.rng = new RNG(engine.getSeedManager().getBiome());
         this.fallbackBiome = resolveFallbackBiome(this.biomeRegistry, this.biomeCustomRegistry);
         this.customBiomes = fillCustomBiomes(this.biomeCustomRegistry, engine, this.fallbackBiome);
     }
@@ -172,31 +173,85 @@ public class CustomBiomeSource extends BiomeSource {
 
     @Override
     public Holder<Biome> getNoiseBiome(int x, int y, int z, Climate.Sampler sampler) {
-        int m = (y - engine.getMinHeight()) << 2;
-        IrisBiome ib = engine.getComplex().getTrueBiomeStream().get(x << 2, z << 2);
-        if (ib == null) {
-            return resolveFallbackBiome(biomeRegistry, biomeCustomRegistry);
+        long cacheKey = packNoiseKey(x, y, z);
+        Holder<Biome> cachedHolder = noiseBiomeCache.get(cacheKey);
+        if (cachedHolder != null) {
+            return cachedHolder;
         }
 
-        if (ib.isCustom()) {
-            IrisBiomeCustom custom = ib.getCustomBiome(rng, x << 2, m, z << 2);
-            if (custom != null) {
-                Holder<Biome> holder = customBiomes.get(custom.getId());
+        Holder<Biome> resolvedHolder = resolveNoiseBiomeHolder(x, y, z);
+        Holder<Biome> existingHolder = noiseBiomeCache.putIfAbsent(cacheKey, resolvedHolder);
+        if (existingHolder != null) {
+            return existingHolder;
+        }
+
+        if (noiseBiomeCache.size() > NOISE_BIOME_CACHE_MAX) {
+            noiseBiomeCache.clear();
+        }
+
+        return resolvedHolder;
+    }
+
+    private Holder<Biome> resolveNoiseBiomeHolder(int x, int y, int z) {
+        if (engine == null || engine.isClosed()) {
+            return getFallbackBiome();
+        }
+
+        if (engine.getComplex() == null) {
+            return getFallbackBiome();
+        }
+
+        int blockX = x << 2;
+        int blockZ = z << 2;
+        int blockY = (y - engine.getMinHeight()) << 2;
+        IrisBiome irisBiome = engine.getComplex().getTrueBiomeStream().get(blockX, blockZ);
+        if (irisBiome == null) {
+            return getFallbackBiome();
+        }
+
+        RNG noiseRng = new RNG(seed
+                ^ (((long) blockX) * 341873128712L)
+                ^ (((long) blockY) * 132897987541L)
+                ^ (((long) blockZ) * 42317861L));
+
+        if (irisBiome.isCustom()) {
+            IrisBiomeCustom customBiome = irisBiome.getCustomBiome(noiseRng, blockX, blockY, blockZ);
+            if (customBiome != null) {
+                Holder<Biome> holder = customBiomes.get(customBiome.getId());
                 if (holder != null) {
                     return holder;
                 }
             }
 
-            return resolveFallbackBiome(biomeRegistry, biomeCustomRegistry);
+            return getFallbackBiome();
         }
 
-        org.bukkit.block.Biome v = ib.getSkyBiome(rng, x << 2, m, z << 2);
-        Holder<Biome> holder = NMSBinding.biomeToBiomeBase(biomeRegistry, v);
+        org.bukkit.block.Biome vanillaBiome = irisBiome.getSkyBiome(noiseRng, blockX, blockY, blockZ);
+        Holder<Biome> holder = NMSBinding.biomeToBiomeBase(biomeRegistry, vanillaBiome);
         if (holder != null) {
             return holder;
         }
 
-        return resolveFallbackBiome(biomeRegistry, biomeCustomRegistry);
+        return getFallbackBiome();
+    }
+
+    private Holder<Biome> getFallbackBiome() {
+        if (fallbackBiome != null) {
+            return fallbackBiome;
+        }
+
+        Holder<Biome> holder = resolveFallbackBiome(biomeRegistry, biomeCustomRegistry);
+        if (holder != null) {
+            return holder;
+        }
+
+        throw new IllegalStateException("Unable to resolve any biome holder fallback for Iris biome source");
+    }
+
+    private static long packNoiseKey(int x, int y, int z) {
+        return (((long) x & 67108863L) << 38)
+                | (((long) z & 67108863L) << 12)
+                | ((long) y & 4095L);
     }
 
     private static Holder<Biome> resolveCustomBiomeHolder(Registry<Biome> customRegistry, Engine engine, String customBiomeId) {

@@ -30,6 +30,7 @@ import net.minecraft.world.level.levelgen.*;
 import net.minecraft.world.level.levelgen.blending.Blender;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.bukkit.Bukkit;
@@ -50,6 +51,8 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
     private static final WrappedReturningMethod<Heightmap, Object> SET_HEIGHT;
     private final ChunkGenerator delegate;
     private final Engine engine;
+    private volatile Registry<Structure> cachedStructureRegistry;
+    private volatile Map<Structure, Integer> cachedStructureOrder;
 
     public IrisChunkGenerator(ChunkGenerator delegate, long seed, Engine engine, World world) {
         super(((CraftWorld) world).getHandle(), edit(delegate, new CustomBiomeSource(seed, engine, world)), null);
@@ -152,20 +155,21 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
     public void addVanillaDecorations(WorldGenLevel level, ChunkAccess chunkAccess, StructureManager structureManager) {
         if (!structureManager.shouldGenerateStructures())
             return;
+        if (!IrisSettings.get().getGeneral().isAutoGenerateIntrinsicStructures()) {
+            return;
+        }
 
         SectionPos sectionPos = SectionPos.of(chunkAccess.getPos(), level.getMinSectionY());
         BlockPos blockPos = sectionPos.origin();
         WorldgenRandom random = new WorldgenRandom(new XoroshiroRandomSource(RandomSupport.generateUniqueSeed()));
         long i = random.setDecorationSeed(level.getSeed(), blockPos.getX(), blockPos.getZ());
-        var structures = level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
-        var list = structures.stream()
-                .sorted(Comparator.comparingInt(s -> s.step().ordinal()))
-                .toList();
+        Registry<Structure> structureRegistry = level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
+        Map<Structure, Integer> structureOrder = getStructureOrder(structureRegistry);
 
-        var surface = chunkAccess.getOrCreateHeightmapUnprimed(Heightmap.Types.WORLD_SURFACE_WG);
-        var ocean = chunkAccess.getOrCreateHeightmapUnprimed(Heightmap.Types.OCEAN_FLOOR_WG);
-        var motion = chunkAccess.getOrCreateHeightmapUnprimed(Heightmap.Types.MOTION_BLOCKING);
-        var motionNoLeaves = chunkAccess.getOrCreateHeightmapUnprimed(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES);
+        Heightmap surface = chunkAccess.getOrCreateHeightmapUnprimed(Heightmap.Types.WORLD_SURFACE_WG);
+        Heightmap ocean = chunkAccess.getOrCreateHeightmapUnprimed(Heightmap.Types.OCEAN_FLOOR_WG);
+        Heightmap motion = chunkAccess.getOrCreateHeightmapUnprimed(Heightmap.Types.MOTION_BLOCKING);
+        Heightmap motionNoLeaves = chunkAccess.getOrCreateHeightmapUnprimed(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES);
 
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
@@ -174,21 +178,42 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
 
                 int noAir = engine.getHeight(wX, wZ, false) + engine.getMinHeight() + 1;
                 int noFluid = engine.getHeight(wX, wZ, true) + engine.getMinHeight() + 1;
-                SET_HEIGHT.invoke(ocean, x, z, Math.min(noFluid, ocean.getFirstAvailable(x, z)));
-                SET_HEIGHT.invoke(surface, x, z, Math.min(noAir, surface.getFirstAvailable(x, z)));
-                SET_HEIGHT.invoke(motion, x, z, Math.min(noAir, motion.getFirstAvailable(x, z)));
-                SET_HEIGHT.invoke(motionNoLeaves, x, z, Math.min(noAir, motionNoLeaves.getFirstAvailable(x, z)));
+                int oceanHeight = ocean.getFirstAvailable(x, z);
+                int surfaceHeight = surface.getFirstAvailable(x, z);
+                int motionHeight = motion.getFirstAvailable(x, z);
+                int motionNoLeavesHeight = motionNoLeaves.getFirstAvailable(x, z);
+                if (noFluid > oceanHeight) {
+                    SET_HEIGHT.invoke(ocean, x, z, noFluid);
+                }
+                if (noAir > surfaceHeight) {
+                    SET_HEIGHT.invoke(surface, x, z, noAir);
+                }
+                if (noAir > motionHeight) {
+                    SET_HEIGHT.invoke(motion, x, z, noAir);
+                }
+                if (noAir > motionNoLeavesHeight) {
+                    SET_HEIGHT.invoke(motionNoLeaves, x, z, noAir);
+                }
             }
         }
 
-        for (int j = 0; j < list.size(); j++) {
-            Structure structure = list.get(j);
-            random.setFeatureSeed(i, j, structure.step().ordinal());
-            Supplier<String> supplier = () -> structures.getResourceKey(structure).map(Object::toString).orElseGet(structure::toString);
+        List<StructureStart> starts = new ArrayList<>(structureManager.startsForStructure(chunkAccess.getPos(), structure -> true));
+        starts.sort(Comparator.comparingInt(start -> structureOrder.getOrDefault(start.getStructure(), Integer.MAX_VALUE)));
+
+        int seededStructureIndex = Integer.MIN_VALUE;
+        for (int j = 0; j < starts.size(); j++) {
+            StructureStart start = starts.get(j);
+            Structure structure = start.getStructure();
+            int structureIndex = structureOrder.getOrDefault(structure, j);
+            if (structureIndex != seededStructureIndex) {
+                random.setFeatureSeed(i, structureIndex, structure.step().ordinal());
+                seededStructureIndex = structureIndex;
+            }
+            Supplier<String> supplier = () -> structureRegistry.getResourceKey(structure).map(Object::toString).orElseGet(structure::toString);
 
             try {
                 level.setCurrentlyGenerating(supplier);
-                structureManager.startsForStructure(sectionPos, structure).forEach((start) -> start.placeInChunk(level, structureManager, this, random, getWritableArea(chunkAccess), chunkAccess.getPos()));
+                start.placeInChunk(level, structureManager, this, random, getWritableArea(chunkAccess), chunkAccess.getPos());
             } catch (Exception exception) {
                 CrashReport crashReport = CrashReport.forThrowable(exception, "Feature placement");
                 CrashReportCategory category = crashReport.addCategory("Feature");
@@ -208,6 +233,35 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
         int minY = heightAccessor.getMinY() + 1;
         int maxY = heightAccessor.getMaxY();
         return new BoundingBox(minX, minY, minZ, minX + 15, maxY, minZ + 15);
+    }
+
+    private Map<Structure, Integer> getStructureOrder(Registry<Structure> structureRegistry) {
+        Map<Structure, Integer> localOrder = cachedStructureOrder;
+        Registry<Structure> localRegistry = cachedStructureRegistry;
+        if (localRegistry == structureRegistry && localOrder != null) {
+            return localOrder;
+        }
+
+        synchronized (this) {
+            Map<Structure, Integer> synchronizedOrder = cachedStructureOrder;
+            Registry<Structure> synchronizedRegistry = cachedStructureRegistry;
+            if (synchronizedRegistry == structureRegistry && synchronizedOrder != null) {
+                return synchronizedOrder;
+            }
+
+            List<Structure> sortedStructures = structureRegistry.stream()
+                    .sorted(Comparator.comparingInt(structure -> structure.step().ordinal()))
+                    .toList();
+            Map<Structure, Integer> builtOrder = new IdentityHashMap<>(sortedStructures.size());
+            for (int index = 0; index < sortedStructures.size(); index++) {
+                Structure structure = sortedStructures.get(index);
+                builtOrder.put(structure, index);
+            }
+
+            cachedStructureRegistry = structureRegistry;
+            cachedStructureOrder = builtOrder;
+            return builtOrder;
+        }
     }
 
     @Override

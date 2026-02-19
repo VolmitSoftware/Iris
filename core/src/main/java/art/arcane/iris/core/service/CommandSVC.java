@@ -21,7 +21,6 @@ package art.arcane.iris.core.service;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.commands.CommandIris;
-import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.util.common.director.DirectorContext;
 import art.arcane.iris.util.common.director.DirectorContextHandler;
@@ -48,8 +47,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -81,16 +78,6 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
     @Override
     public void onDisable() {
 
-    }
-
-    @EventHandler
-    public void on(PlayerCommandPreprocessEvent e) {
-        String msg = e.getMessage().startsWith("/") ? e.getMessage().substring(1) : e.getMessage();
-
-        if ((msg.startsWith("locate ") || msg.startsWith("locatebiome ")) && IrisToolbelt.isIrisWorld(e.getPlayer().getWorld())) {
-            new VolmitSender(e.getPlayer()).sendMessage(C.RED + "Locating biomes & objects is disabled in Iris Worlds. Use /iris studio goto <biome>");
-            e.setCancelled(true);
-        }
     }
 
     public DirectorRuntimeEngine getDirector() {

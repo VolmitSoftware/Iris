@@ -34,6 +34,7 @@ import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.iris.util.common.data.DataProvider;
 import art.arcane.volmlib.util.io.IO;
+import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.math.Position2;
@@ -46,10 +47,18 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World.Environment;
+import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import java.io.*;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Locale;
+import java.util.Map;
 
 @Accessors(chain = true)
 @AllArgsConstructor
@@ -380,34 +389,168 @@ public class IrisDimension extends IrisRegistrant {
     }
 
     public void installBiomes(IDataFixer fixer, DataProvider data, KList<File> folders, KSet<String> biomes) {
-        getAllBiomes(data)
-                .stream()
-                .filter(IrisBiome::isCustom)
-                .map(IrisBiome::getCustomDerivitives)
-                .flatMap(KList::stream)
-                .parallel()
-                .forEach(j -> {
-                    String json = j.generateJson(fixer);
-                    synchronized (biomes) {
-                        if (!biomes.add(j.getId())) {
-                            Iris.verbose("Duplicate Data Pack Biome: " + getLoadKey() + "/" + j.getId());
-                            return;
-                        }
-                    }
+        KMap<String, String> customBiomeToVanillaBiome = new KMap<>();
+        String namespace = getLoadKey().toLowerCase(Locale.ROOT);
 
-                    for (File datapacks : folders) {
-                        File output = new File(datapacks, "iris/data/" + getLoadKey().toLowerCase() + "/worldgen/biome/" + j.getId() + ".json");
+        for (IrisBiome irisBiome : getAllBiomes(data)) {
+            if (!irisBiome.isCustom()) {
+                continue;
+            }
 
-                        Iris.verbose("    Installing Data Pack Biome: " + output.getPath());
-                        output.getParentFile().mkdirs();
-                        try {
-                            IO.writeAll(output, json);
-                        } catch (IOException e) {
-                            Iris.reportError(e);
-                            e.printStackTrace();
-                        }
+            Biome vanillaDerivative = irisBiome.getVanillaDerivative();
+            NamespacedKey vanillaDerivativeKey = vanillaDerivative == null ? null : vanillaDerivative.getKey();
+            String vanillaBiomeKey = vanillaDerivativeKey == null ? null : vanillaDerivativeKey.toString();
+
+            for (IrisBiomeCustom customBiome : irisBiome.getCustomDerivitives()) {
+                String customBiomeId = customBiome.getId();
+                String customBiomeKey = namespace + ":" + customBiomeId.toLowerCase(Locale.ROOT);
+                String json = customBiome.generateJson(fixer);
+
+                synchronized (biomes) {
+                    if (!biomes.add(customBiomeId)) {
+                        Iris.verbose("Duplicate Data Pack Biome: " + getLoadKey() + "/" + customBiomeId);
+                        continue;
                     }
-                });
+                }
+
+                if (vanillaBiomeKey != null) {
+                    customBiomeToVanillaBiome.put(customBiomeKey, vanillaBiomeKey);
+                }
+
+                for (File datapacks : folders) {
+                    File output = new File(datapacks, "iris/data/" + namespace + "/worldgen/biome/" + customBiomeId + ".json");
+
+                    Iris.verbose("    Installing Data Pack Biome: " + output.getPath());
+                    output.getParentFile().mkdirs();
+                    try {
+                        IO.writeAll(output, json);
+                    } catch (IOException e) {
+                        Iris.reportError(e);
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
+        installStructureBiomeTags(folders, customBiomeToVanillaBiome);
+    }
+
+    private void installStructureBiomeTags(KList<File> folders, KMap<String, String> customBiomeToVanillaBiome) {
+        if (customBiomeToVanillaBiome.isEmpty()) {
+            return;
+        }
+
+        KMap<String, KList<String>> vanillaTags = INMS.get().getVanillaStructureBiomeTags();
+        if (vanillaTags == null || vanillaTags.isEmpty()) {
+            return;
+        }
+
+        KMap<String, KSet<String>> customTagValues = new KMap<>();
+        for (Map.Entry<String, String> customBiomeEntry : customBiomeToVanillaBiome.entrySet()) {
+            String customBiomeKey = customBiomeEntry.getKey();
+            String vanillaBiomeKey = customBiomeEntry.getValue();
+            if (vanillaBiomeKey == null) {
+                continue;
+            }
+
+            for (Map.Entry<String, KList<String>> tagEntry : vanillaTags.entrySet()) {
+                KList<String> values = tagEntry.getValue();
+                if (values == null || !values.contains(vanillaBiomeKey)) {
+                    continue;
+                }
+                customTagValues.computeIfAbsent(tagEntry.getKey(), key -> new KSet<>()).add(customBiomeKey);
+            }
+        }
+
+        if (customTagValues.isEmpty()) {
+            return;
+        }
+
+        for (File datapacks : folders) {
+            for (Map.Entry<String, KSet<String>> tagEntry : customTagValues.entrySet()) {
+                String tagPath = tagEntry.getKey();
+                KSet<String> customValues = tagEntry.getValue();
+                if (customValues == null || customValues.isEmpty()) {
+                    continue;
+                }
+
+                File output = new File(datapacks, "iris/data/minecraft/tags/worldgen/biome/" + tagPath + ".json");
+                try {
+                    writeMergedStructureBiomeTag(output, customValues);
+                } catch (IOException e) {
+                    Iris.reportError(e);
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private void writeMergedStructureBiomeTag(File output, KSet<String> customValues) throws IOException {
+        synchronized (IrisDimension.class) {
+            KSet<String> mergedValues = readExistingStructureBiomeTagValues(output);
+            mergedValues.addAll(customValues);
+
+            JSONArray values = new JSONArray();
+            KList<String> sortedValues = new KList<>(mergedValues).sort();
+            for (String value : sortedValues) {
+                values.put(value);
+            }
+
+            JSONObject json = new JSONObject();
+            json.put("replace", false);
+            json.put("values", values);
+
+            writeAtomicFile(output, json.toString(4));
+        }
+    }
+
+    private KSet<String> readExistingStructureBiomeTagValues(File output) {
+        KSet<String> values = new KSet<>();
+        if (output == null || !output.exists()) {
+            return values;
+        }
+
+        try {
+            JSONObject json = new JSONObject(IO.readAll(output));
+            if (!json.has("values")) {
+                return values;
+            }
+
+            JSONArray existingValues = json.getJSONArray("values");
+            for (int index = 0; index < existingValues.length(); index++) {
+                Object rawValue = existingValues.get(index);
+                if (rawValue == null) {
+                    continue;
+                }
+
+                String value = String.valueOf(rawValue).trim();
+                if (!value.isEmpty()) {
+                    values.add(value);
+                }
+            }
+        } catch (Throwable e) {
+            Iris.warn("Skipping malformed existing structure biome tag file: " + output.getPath());
+        }
+
+        return values;
+    }
+
+    private void writeAtomicFile(File output, String contents) throws IOException {
+        File parent = output.getParentFile();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
+        }
+
+        File temp = new File(parent, output.getName() + ".tmp-" + System.nanoTime());
+        IO.writeAll(temp, contents);
+
+        Path tempPath = temp.toPath();
+        Path outputPath = output.toPath();
+        try {
+            Files.move(tempPath, outputPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(tempPath, outputPath, StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 
     public Dimension getBaseDimension() {

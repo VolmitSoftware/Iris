@@ -29,6 +29,7 @@ import art.arcane.iris.core.project.IrisProject;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.exceptions.IrisException;
 import art.arcane.volmlib.util.format.Form;
@@ -76,12 +77,19 @@ public class StudioSVC implements IrisService {
     @Override
     public void onDisable() {
         Iris.debug("Studio Mode Active: Closing Projects");
+        boolean stopping = IrisToolbelt.isServerStopping();
 
         for (World i : Bukkit.getWorlds()) {
             if (IrisToolbelt.isIrisWorld(i)) {
                 if (IrisToolbelt.isStudio(i)) {
-                    IrisToolbelt.evacuate(i);
-                    IrisToolbelt.access(i).close();
+                    PlatformChunkGenerator generator = IrisToolbelt.access(i);
+                    if (!stopping) {
+                        IrisToolbelt.evacuate(i);
+                    }
+
+                    if (generator != null) {
+                        generator.close();
+                    }
                 }
             }
         }

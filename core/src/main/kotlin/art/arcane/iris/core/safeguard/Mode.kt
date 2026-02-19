@@ -59,7 +59,7 @@ enum class Mode(private val color: C) {
 
         val info = arrayOf(
             "",
-            padd2 + color + " Iris, " + C.AQUA + "Iris, Dimension Engine " + C.RED + "[" + releaseTrain + " RELEASE]",
+            padd2 + color + " Iris, " + C.AQUA + "Dimension Engine " + C.RED + "[" + releaseTrain + " RELEASE]",
             padd2 + C.GRAY + " Version: " + color + version,
             padd2 + C.GRAY + " By: " + color + "Volmit Software (Arcane Arts)",
             padd2 + C.GRAY + " Server: " + color + serverVersion,

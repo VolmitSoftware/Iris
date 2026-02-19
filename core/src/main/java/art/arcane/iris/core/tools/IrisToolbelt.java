@@ -42,6 +42,8 @@ import org.jetbrains.annotations.ApiStatus;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -57,6 +59,7 @@ public class IrisToolbelt {
     public static Map<String, Boolean> toolbeltConfiguration = new HashMap<>();
     private static final Map<String, AtomicInteger> worldMaintenanceDepth = new ConcurrentHashMap<>();
     private static final Map<String, AtomicInteger> worldMaintenanceMantleBypassDepth = new ConcurrentHashMap<>();
+    private static final Method BUKKIT_IS_STOPPING_METHOD = resolveBukkitIsStoppingMethod();
 
     /**
      * Will find / download / search for the dimension or return null
@@ -267,20 +270,16 @@ public class IrisToolbelt {
      * @param world the world to evac
      */
     public static boolean evacuate(World world) {
+        if (world == null || isServerStopping()) {
+            return false;
+        }
+
         for (World i : Bukkit.getWorlds()) {
             if (!i.getName().equals(world.getName())) {
-                for (Player j : world.getPlayers()) {
+                for (Player j : new ArrayList<>(world.getPlayers())) {
                     new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world.");
                     Location target = i.getSpawnLocation();
-                    Runnable teleportTask = () -> {
-                        CompletableFuture<Boolean> teleportFuture = PaperLib.teleportAsync(j, target);
-                        if (teleportFuture != null) {
-                            teleportFuture.exceptionally(throwable -> {
-                                Iris.reportError(throwable);
-                                return false;
-                            });
-                        }
-                    };
+                    Runnable teleportTask = () -> teleportAsyncSafely(j, target);
                     if (!J.runEntity(j, teleportTask)) {
                         teleportTask.run();
                     }
@@ -301,20 +300,16 @@ public class IrisToolbelt {
      * @return true if it was evacuated.
      */
     public static boolean evacuate(World world, String m) {
+        if (world == null || isServerStopping()) {
+            return false;
+        }
+
         for (World i : Bukkit.getWorlds()) {
             if (!i.getName().equals(world.getName())) {
-                for (Player j : world.getPlayers()) {
+                for (Player j : new ArrayList<>(world.getPlayers())) {
                     new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world. " + m);
                     Location target = i.getSpawnLocation();
-                    Runnable teleportTask = () -> {
-                        CompletableFuture<Boolean> teleportFuture = PaperLib.teleportAsync(j, target);
-                        if (teleportFuture != null) {
-                            teleportFuture.exceptionally(throwable -> {
-                                Iris.reportError(throwable);
-                                return false;
-                            });
-                        }
-                    };
+                    Runnable teleportTask = () -> teleportAsyncSafely(j, target);
                     if (!J.runEntity(j, teleportTask)) {
                         teleportTask.run();
                     }
@@ -327,7 +322,58 @@ public class IrisToolbelt {
     }
 
     public static boolean isStudio(World i) {
-        return isIrisWorld(i) && access(i).isStudio();
+        if (!isIrisWorld(i)) {
+            return false;
+        }
+
+        PlatformChunkGenerator generator = access(i);
+        return generator != null && generator.isStudio();
+    }
+
+    private static void teleportAsyncSafely(Player player, Location target) {
+        if (player == null || target == null || isServerStopping()) {
+            return;
+        }
+
+        try {
+            CompletableFuture<Boolean> teleportFuture = PaperLib.teleportAsync(player, target);
+            if (teleportFuture != null) {
+                teleportFuture.exceptionally(throwable -> {
+                    if (!isServerStopping()) {
+                        Iris.reportError(throwable);
+                    }
+                    return false;
+                });
+            }
+        } catch (Throwable throwable) {
+            if (!isServerStopping()) {
+                Iris.reportError(throwable);
+            }
+        }
+    }
+
+    public static boolean isServerStopping() {
+        Method method = BUKKIT_IS_STOPPING_METHOD;
+        if (method != null) {
+            try {
+                Object value = method.invoke(null);
+                if (value instanceof Boolean) {
+                    return (Boolean) value;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+
+        Iris iris = Iris.instance;
+        return iris == null || !iris.isEnabled();
+    }
+
+    private static Method resolveBukkitIsStoppingMethod() {
+        try {
+            return Bukkit.class.getMethod("isStopping");
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     public static void beginWorldMaintenance(World world, String reason) {

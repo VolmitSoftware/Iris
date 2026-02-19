@@ -37,8 +37,8 @@ public class FastNoiseDouble {
     private final static double F3 = 1.0 / 3.0;
     private final static double G3 = 1.0 / 6.0;
     private final static double G33 = G3 * 3 - 1;
-    private final static double F2 = 1.0 / 2.0;
-    private final static double G2 = 1.0 / 4.0;
+    private final static double F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
+    private final static double G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
     private static final byte[] SIMPLEX_4D = {0, 1, 2, 3, 0, 1, 3, 2, 0, 0, 0, 0, 0, 2, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 0, 0, 2, 1, 3, 0, 0, 0, 0, 0, 3, 1, 2, 0, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 3, 0, 0, 0, 0, 1, 3, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 0, 1, 2, 3, 1, 0, 1, 0, 2, 3, 1, 0, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 3, 1, 0, 0, 0, 0, 2, 1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 1, 2, 3, 0, 2, 1, 0, 0, 0, 0, 3, 1, 2, 0, 2, 1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1, 0, 2, 0, 0, 0, 0, 3, 2, 0, 1, 3, 2, 1, 0
     };
     private final static double F4 = (2.23606797 - 1.0) / 4.0;
@@ -1132,8 +1132,8 @@ public class FastNoiseDouble {
 
         double x1 = x0 - i1 + G2;
         double y1 = y0 - j1 + G2;
-        double x2 = x0 - 1 + F2;
-        double y2 = y0 - 1 + F2;
+        double x2 = x0 - 1 + (2 * G2);
+        double y2 = y0 - 1 + (2 * G2);
 
         double n0, n1, n2;
 

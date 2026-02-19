@@ -143,6 +143,21 @@ public enum NoiseStyle {
     @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
     CELLULAR_HERMITE(rng -> new CNG(rng, NoiseType.CELLULAR_HERMITE, 1D, 1)),
 
+    @Desc("Hexagonal cells with stable per-cell values.")
+    HEXAGON(rng -> new CNG(rng, NoiseType.HEXAGON, 1D, 1).scale(1)),
+
+    @Desc("Hex James substitution pattern with 3 large and 3 small recursive hex children plus gaps.")
+    HEX_JAMES(rng -> new CNG(rng, NoiseType.HEX_JAMES, 1D, 1).scale(1)),
+
+    @Desc("Interlocked solid hex cells with per-cell values from a smooth simplex heatmap.")
+    HEX_SIMPLEX(rng -> new CNG(rng, NoiseType.HEX_SIMPLEX, 1D, 1).scale(1)),
+
+    @Desc("Randomized finite-depth Sierpinski-style hex recursion with per-level random 3-large/3-small James substitution.")
+    HEX_RANDOM_SIZE(rng -> new CNG(rng, NoiseType.HEX_RANDOM_SIZE, 1D, 1).scale(1)),
+
+    @Desc("Sierpinski triangle mask blended with simplex heat.")
+    SIERPINSKI_TRIANGLE(rng -> new CNG(rng, NoiseType.SIERPINSKI_TRIANGLE, 1D, 1).scale(1)),
+
     @Desc("Classic German Engineering")
     NOWHERE(rng -> CNG.signaturePerlin(rng).scale(0.776).bake()),
 
@@ -151,6 +166,21 @@ public enum NoiseStyle {
 
     @Desc("Classic German Engineering")
     NOWHERE_CLOVER(rng -> CNG.signaturePerlin(rng, NoiseType.CLOVER).scale(1).bake()),
+
+    @Desc("Classic German Engineering")
+    NOWHERE_HEXAGON(rng -> CNG.signaturePerlin(rng, NoiseType.HEXAGON).scale(1).bake()),
+
+    @Desc("Classic German Engineering")
+    NOWHERE_HEX_JAMES(rng -> CNG.signaturePerlin(rng, NoiseType.HEX_JAMES).scale(1).bake()),
+
+    @Desc("Classic German Engineering")
+    NOWHERE_HEX_SIMPLEX(rng -> CNG.signaturePerlin(rng, NoiseType.HEX_SIMPLEX).scale(1).bake()),
+
+    @Desc("Classic German Engineering")
+    NOWHERE_HEX_RANDOM_SIZE(rng -> CNG.signaturePerlin(rng, NoiseType.HEX_RANDOM_SIZE).scale(1).bake()),
+
+    @Desc("Classic German Engineering")
+    NOWHERE_SIERPINSKI_TRIANGLE(rng -> CNG.signaturePerlin(rng, NoiseType.SIERPINSKI_TRIANGLE).scale(1).bake()),
 
     @Desc("Classic German Engineering")
     NOWHERE_SIMPLEX(rng -> CNG.signaturePerlin(rng, NoiseType.SIMPLEX).scale(1).bake()),
@@ -241,6 +271,21 @@ public enum NoiseStyle {
 
     @Desc("FBM Fractal Iris Noise. Single octave.")
     FRACTAL_FBM_IRIS_THICK(rng -> CNG.signatureThick(rng, NoiseType.FRACTAL_FBM_SIMPLEX)),
+
+    @Desc("Fractal hexagonal cell noise.")
+    FRACTAL_HEXAGON(rng -> new CNG(rng, NoiseType.HEXAGON, 1D, 4).scale(1)),
+
+    @Desc("Fractal Hex James substitution pattern with recursive 3-large/3-small child hexes and gaps.")
+    FRACTAL_HEX_JAMES(rng -> new CNG(rng, NoiseType.HEX_JAMES, 1D, 4).scale(1)),
+
+    @Desc("Interlocked solid hex cells with per-cell fractal simplex heatmap values.")
+    FRACTAL_HEX_SIMPLEX(rng -> new CNG(rng, NoiseType.HEX_SIMPLEX, 1D, 4).scale(1)),
+
+    @Desc("Fractal hexagonal gradient noise with randomized local hex sizes and blended random/simplex heatmaps.")
+    FRACTAL_HEX_RANDOM_SIZE(rng -> new CNG(rng, NoiseType.HEX_RANDOM_SIZE, 1D, 4).scale(1)),
+
+    @Desc("Fractal Sierpinski triangle mask blended with simplex heat.")
+    FRACTAL_SIERPINSKI_TRIANGLE(rng -> new CNG(rng, NoiseType.SIERPINSKI_TRIANGLE, 1D, 4).scale(1)),
 
     @Desc("Rigid Multi Fractal Simplex Noise. Single octave.")
     FRACTAL_RM_SIMPLEX(rng -> new CNG(rng, NoiseType.FRACTAL_RIGID_MULTI_SIMPLEX, 1D, 1)),
@@ -406,6 +451,54 @@ public enum NoiseStyle {
 
     @Desc("Cubic Noise")
     CUBIC_IRIS_THICK(rng -> CNG.signatureThick(rng, NoiseType.CUBIC).scale(256)),
+
+    @Desc("Hexagonal cell noise distorted using Iris styled wispy noise.")
+    HEXAGON_IRIS(rng -> CNG.signature(rng, NoiseType.HEXAGON).scale(1)),
+
+    @Desc("Hexagonal cell noise distorted using Iris styled wispy noise.")
+    HEXAGON_IRIS_DOUBLE(rng -> CNG.signatureDouble(rng, NoiseType.HEXAGON).scale(1)),
+
+    @Desc("Hexagonal cell noise distorted using Iris styled wispy noise.")
+    HEXAGON_IRIS_THICK(rng -> CNG.signatureThick(rng, NoiseType.HEXAGON).scale(1)),
+
+    @Desc("Hexagonal cell noise distorted using Iris styled wispy noise.")
+    HEXAGON_IRIS_HALF(rng -> CNG.signatureHalf(rng, NoiseType.HEXAGON).scale(1)),
+
+    @Desc("Hex James substitution pattern distorted using Iris styled wispy noise.")
+    HEX_JAMES_IRIS(rng -> CNG.signature(rng, NoiseType.HEX_JAMES).scale(1)),
+
+    @Desc("Hex James substitution pattern distorted using Iris styled wispy noise.")
+    HEX_JAMES_IRIS_DOUBLE(rng -> CNG.signatureDouble(rng, NoiseType.HEX_JAMES).scale(1)),
+
+    @Desc("Hex James substitution pattern distorted using Iris styled wispy noise.")
+    HEX_JAMES_IRIS_THICK(rng -> CNG.signatureThick(rng, NoiseType.HEX_JAMES).scale(1)),
+
+    @Desc("Hex James substitution pattern distorted using Iris styled wispy noise.")
+    HEX_JAMES_IRIS_HALF(rng -> CNG.signatureHalf(rng, NoiseType.HEX_JAMES).scale(1)),
+
+    @Desc("Interlocked solid hex-cell simplex heatmap distorted using Iris styled wispy noise.")
+    HEX_SIMPLEX_IRIS(rng -> CNG.signature(rng, NoiseType.HEX_SIMPLEX).scale(1)),
+
+    @Desc("Interlocked solid hex-cell simplex heatmap distorted using Iris styled wispy noise.")
+    HEX_SIMPLEX_IRIS_DOUBLE(rng -> CNG.signatureDouble(rng, NoiseType.HEX_SIMPLEX).scale(1)),
+
+    @Desc("Interlocked solid hex-cell simplex heatmap distorted using Iris styled wispy noise.")
+    HEX_SIMPLEX_IRIS_THICK(rng -> CNG.signatureThick(rng, NoiseType.HEX_SIMPLEX).scale(1)),
+
+    @Desc("Interlocked solid hex-cell simplex heatmap distorted using Iris styled wispy noise.")
+    HEX_SIMPLEX_IRIS_HALF(rng -> CNG.signatureHalf(rng, NoiseType.HEX_SIMPLEX).scale(1)),
+
+    @Desc("Hexagonal random-size gradient noise and distorted using Iris styled wispy noise.")
+    HEX_RANDOM_SIZE_IRIS(rng -> CNG.signature(rng, NoiseType.HEX_RANDOM_SIZE).scale(1)),
+
+    @Desc("Hexagonal random-size gradient noise and distorted using Iris styled wispy noise.")
+    HEX_RANDOM_SIZE_IRIS_DOUBLE(rng -> CNG.signatureDouble(rng, NoiseType.HEX_RANDOM_SIZE).scale(1)),
+
+    @Desc("Hexagonal random-size gradient noise and distorted using Iris styled wispy noise.")
+    HEX_RANDOM_SIZE_IRIS_THICK(rng -> CNG.signatureThick(rng, NoiseType.HEX_RANDOM_SIZE).scale(1)),
+
+    @Desc("Hexagonal random-size gradient noise and distorted using Iris styled wispy noise.")
+    HEX_RANDOM_SIZE_IRIS_HALF(rng -> CNG.signatureHalf(rng, NoiseType.HEX_RANDOM_SIZE).scale(1)),
 
     @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders. Cells are distorted using Iris styled wispy noise.")
     CELLULAR_IRIS(rng -> CNG.signature(rng, NoiseType.CELLULAR)),

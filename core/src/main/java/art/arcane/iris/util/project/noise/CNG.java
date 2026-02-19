@@ -462,10 +462,22 @@ public class CNG {
             return generator.noise(x * scale, y * scale, z * scale) * opacity;
         }
 
-        double f = fracture.noise(dim) * fscale;
-        double x = dim.length > 0 ? dim[0] + f : 0D;
-        double y = dim.length > 1 ? dim[1] - f : 0D;
-        double z = dim.length > 2 ? dim[2] - f : 0D;
+        double x = dim.length > 0 ? dim[0] : 0D;
+        double y = dim.length > 1 ? dim[1] : 0D;
+        double z = dim.length > 2 ? dim[2] : 0D;
+
+        if (dim.length > 0) {
+            x += (fracture.noise(dim) - 0.5) * fscale;
+        }
+
+        if (dim.length > 1) {
+            y += (fracture.noise(dim[1], dim[0]) - 0.5) * fscale;
+        }
+
+        if (dim.length > 2) {
+            z += (fracture.noise(dim[2], dim[0], dim[1]) - 0.5) * fscale;
+        }
+
         return generator.noise(x * scale, y * scale, z * scale) * opacity;
     }
 

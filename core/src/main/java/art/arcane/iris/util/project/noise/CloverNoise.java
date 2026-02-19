@@ -87,10 +87,20 @@ public class CloverNoise implements NoiseGenerator {
             return input;
         }
 
+        private long mix(long input) {
+            input = (input ^ (input >>> 33)) * 0xff51afd7ed558ccdL;
+            input = (input ^ (input >>> 33)) * 0xc4ceb9fe1a85ec53L;
+            return input ^ (input >>> 33);
+        }
+
         private double hash(Vector2 position) {
-            long hash = doHash(seed, (long) Math.floor(position.getX()));
-            hash = doHash(hash, (long) Math.floor(position.getY()));
-            hash = doHash(hash, hash * (long) Math.floor(position.getX() + position.getY()));
+            long x = (long) Math.floor(position.getX());
+            long y = (long) Math.floor(position.getY());
+            long hash = seed;
+            hash ^= mix(x + 0x9E3779B97F4A7C15L);
+            hash ^= mix(y + 0xC2B2AE3D27D4EB4FL);
+            hash = mix(hash);
+            hash &= (HASH_M - 1);
             if (hash < 0) {
                 hash += HASH_M;
             }
@@ -392,11 +402,22 @@ public class CloverNoise implements NoiseGenerator {
             return input;
         }
 
+        private long mix(long input) {
+            input = (input ^ (input >>> 33)) * 0xff51afd7ed558ccdL;
+            input = (input ^ (input >>> 33)) * 0xc4ceb9fe1a85ec53L;
+            return input ^ (input >>> 33);
+        }
+
         private double hash(Vector3 position) {
-            long hash = doHash(seed, (long) Math.floor(position.getX()));
-            hash = doHash(hash, (long) Math.floor(position.getY()));
-            hash = doHash(hash, (long) Math.floor(position.getZ()));
-            hash = doHash(hash, hash * (long) Math.floor(position.getX() + position.getY() + position.getZ()));
+            long x = (long) Math.floor(position.getX());
+            long y = (long) Math.floor(position.getY());
+            long z = (long) Math.floor(position.getZ());
+            long hash = seed;
+            hash ^= mix(x + 0x9E3779B97F4A7C15L);
+            hash ^= mix(y + 0xC2B2AE3D27D4EB4FL);
+            hash ^= mix(z + 0x165667B19E3779F9L);
+            hash = mix(hash);
+            hash &= (HASH_M - 1);
             if (hash < 0) {
                 hash += HASH_M;
             }

@@ -21,6 +21,7 @@ package art.arcane.iris.engine;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import art.arcane.iris.Iris;
+import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.ServerConfigurator;
 import art.arcane.iris.core.events.IrisEngineHotloadEvent;
 import art.arcane.iris.core.gui.PregeneratorJob;
@@ -91,6 +92,7 @@ public class IrisEngine implements Engine {
     private final int art;
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
     private final AtomicBoolean cleaning;
+    private final AtomicBoolean noisemapPrebakeRunning;
     private final ChronoLatch cleanLatch;
     private final SeedManager seedManager;
     private CompletableFuture<Long> hash32;
@@ -127,6 +129,7 @@ public class IrisEngine implements Engine {
         mantle = new IrisEngineMantle(this);
         context = new IrisContext(this);
         cleaning = new AtomicBoolean(false);
+        noisemapPrebakeRunning = new AtomicBoolean(false);
         execution = getData().getEnvironment().with(this);
         if (studio) {
             getData().dump();
@@ -195,6 +198,7 @@ public class IrisEngine implements Engine {
                         .toArray(File[]::new);
                 hash32.complete(IO.hashRecursive(roots));
             });
+            scheduleStartupNoisemapPrebake();
         } catch (Throwable e) {
             Iris.error("FAILED TO SETUP ENGINE!");
             e.printStackTrace();
@@ -209,6 +213,26 @@ public class IrisEngine implements Engine {
         }
 
         mode = getDimension().getMode().create(this);
+    }
+
+    private void scheduleStartupNoisemapPrebake() {
+        if (!IrisSettings.get().getPregen().isStartupNoisemapPrebake()) {
+            return;
+        }
+
+        if (!noisemapPrebakeRunning.compareAndSet(false, true)) {
+            return;
+        }
+
+        J.a(() -> {
+            try {
+                IrisNoisemapPrebakePipeline.prebake(this);
+            } catch (Throwable throwable) {
+                Iris.reportError(throwable);
+            } finally {
+                noisemapPrebakeRunning.set(false);
+            }
+        });
     }
 
     @Override

@@ -48,6 +48,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -60,6 +61,7 @@ public class IrisToolbelt {
     private static final Map<String, AtomicInteger> worldMaintenanceDepth = new ConcurrentHashMap<>();
     private static final Map<String, AtomicInteger> worldMaintenanceMantleBypassDepth = new ConcurrentHashMap<>();
     private static final Method BUKKIT_IS_STOPPING_METHOD = resolveBukkitIsStoppingMethod();
+    private static final AtomicBoolean PREGEN_PROFILE_JVM_HINT_LOGGED = new AtomicBoolean(false);
 
     /**
      * Will find / download / search for the dimension or return null
@@ -230,8 +232,49 @@ public class IrisToolbelt {
      * @return the pregenerator job (already started)
      */
     public static PregeneratorJob pregenerate(PregenTask task, PregeneratorMethod method, Engine engine, boolean cached) {
+        applyPregenPerformanceProfile(engine);
         boolean useCachedWrapper = cached && engine != null && !J.isFolia();
         return new PregeneratorJob(task, useCachedWrapper ? new CachedPregenMethod(method, engine.getWorld().name()) : method, engine);
+    }
+
+    public static boolean applyPregenPerformanceProfile() {
+        IrisSettings.IrisSettingsPregen pregen = IrisSettings.get().getPregen();
+        if (!pregen.isEnablePregenPerformanceProfile()) {
+            return false;
+        }
+
+        IrisSettings.IrisSettingsPerformance performance = IrisSettings.get().getPerformance();
+        int previousNoiseCacheSize = performance.getNoiseCacheSize();
+        int targetNoiseCacheSize = Math.max(previousNoiseCacheSize, Math.max(1, pregen.getPregenProfileNoiseCacheSize()));
+        boolean fastCacheEnabledBefore = Boolean.getBoolean("iris.cache.fast");
+        boolean changed = false;
+
+        if (targetNoiseCacheSize != previousNoiseCacheSize) {
+            performance.setNoiseCacheSize(targetNoiseCacheSize);
+            changed = true;
+        }
+
+        if (pregen.isPregenProfileEnableFastCache() && !fastCacheEnabledBefore) {
+            System.setProperty("iris.cache.fast", "true");
+            changed = true;
+        }
+
+        if (pregen.isPregenProfileLogJvmHints()
+                && pregen.isPregenProfileEnableFastCache()
+                && PREGEN_PROFILE_JVM_HINT_LOGGED.compareAndSet(false, true)
+                && !fastCacheEnabledBefore) {
+            Iris.info("For startup-wide cache-fast coverage, set JVM argument: -Diris.cache.fast=true");
+        }
+
+        return changed;
+    }
+
+    public static void applyPregenPerformanceProfile(Engine engine) {
+        boolean changed = applyPregenPerformanceProfile();
+        if (changed && engine != null) {
+            engine.hotloadComplex();
+            Iris.info("Pregen profile applied: noiseCacheSize=" + IrisSettings.get().getPerformance().getNoiseCacheSize() + " iris.cache.fast=" + Boolean.getBoolean("iris.cache.fast"));
+        }
     }
 
     /**

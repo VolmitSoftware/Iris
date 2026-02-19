@@ -21,7 +21,8 @@ package art.arcane.iris.core.commands;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.pregenerator.LazyPregenerator;
 import art.arcane.iris.core.pregenerator.TurboPregenerator;
-import art.arcane.iris.core.pregenerator.TurboPregenerator;
+import art.arcane.iris.core.tools.IrisToolbelt;
+import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.util.common.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
@@ -68,6 +69,11 @@ public class CommandTurboPregen implements DirectorExecutor {
             if (sender().isPlayer() && access() == null) {
                 sender().sendMessage(C.RED + "The engine access for this world is null!");
                 sender().sendMessage(C.RED + "Please make sure the world is loaded & the engine is initialized. Generate a new chunk, for example.");
+            }
+
+            PlatformChunkGenerator platform = IrisToolbelt.access(world);
+            if (platform != null) {
+                IrisToolbelt.applyPregenPerformanceProfile(platform.getEngine());
             }
 
             TurboPregenerator.TurboPregenJob pregenJob = TurboPregenerator.TurboPregenJob.builder()

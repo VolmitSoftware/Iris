@@ -152,6 +152,11 @@ public class IrisSettings {
         public boolean useVirtualThreads = false;
         public boolean useTicketQueue = true;
         public int maxConcurrency = 256;
+        public boolean startupNoisemapPrebake = true;
+        public boolean enablePregenPerformanceProfile = true;
+        public int pregenProfileNoiseCacheSize = 4_096;
+        public boolean pregenProfileEnableFastCache = true;
+        public boolean pregenProfileLogJvmHints = true;
     }
 
     @Data
@@ -210,6 +215,9 @@ public class IrisSettings {
         public boolean commandSounds = true;
         public boolean debug = false;
         public boolean dumpMantleOnError = false;
+        public boolean validatePacksOnStartup = true;
+        public boolean stopStartupOnPackValidationFailure = false;
+        public int maxPackValidationErrorsPerPack = 200;
         public boolean disableNMS = false;
         public boolean pluginMetrics = true;
         public boolean splashLogoStartup = true;

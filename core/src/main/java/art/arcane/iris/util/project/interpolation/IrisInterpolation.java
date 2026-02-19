@@ -31,10 +31,12 @@ import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.HashMap;
 
 public class IrisInterpolation {
     public static CNG cng = NoiseStyle.SIMPLEX.create(new RNG());
+    private static final ThreadLocal<NoiseSampleCache2D> NOISE_SAMPLE_CACHE_2D = ThreadLocal.withInitial(() -> new NoiseSampleCache2D(64));
 
     public static double bezier(double t) {
         return t * t * (3.0d - 2.0d * t);
@@ -286,35 +288,9 @@ public class IrisInterpolation {
     }
 
     public static int getRadiusFactor(int coord, double radius) {
-        if (radius == 2) {
-            return coord >> 1;
-        }
-        if (radius == 4) {
-            return coord >> 2;
-        }
-        if (radius == 8) {
-            return coord >> 3;
-        }
-        if (radius == 16) {
-            return coord >> 4;
-        }
-        if (radius == 32) {
-            return coord >> 5;
-        }
-        if (radius == 64) {
-            return coord >> 6;
-        }
-        if (radius == 128) {
-            return coord >> 7;
-        }
-        if (radius == 256) {
-            return coord >> 8;
-        }
-        if (radius == 512) {
-            return coord >> 9;
-        }
-        if (radius == 1024) {
-            return coord >> 10;
+        int radiusInt = (int) radius;
+        if (radius == radiusInt && radiusInt > 0 && (radiusInt & (radiusInt - 1)) == 0) {
+            return coord >> Integer.numberOfTrailingZeros(radiusInt);
         }
         return (int) Math.floor(coord / radius);
     }
@@ -999,8 +975,14 @@ public class IrisInterpolation {
     }
 
     public static double getNoise(InterpolationMethod method, int x, int z, double h, NoiseProvider noise) {
-        NoiseSampleCache2D cache = new NoiseSampleCache2D(64);
-        NoiseProvider n = (x1, z1) -> cache.getOrSample(x1 - x, z1 - z, x1, z1, noise);
+        final NoiseProvider n;
+        if (usesSampleCache(method)) {
+            NoiseSampleCache2D cache = NOISE_SAMPLE_CACHE_2D.get();
+            cache.clear();
+            n = (x1, z1) -> cache.getOrSample(x1 - x, z1 - z, x1, z1, noise);
+        } else {
+            n = noise;
+        }
 
         if (method.equals(InterpolationMethod.BILINEAR)) {
             return getBilinearNoise(x, z, h, n);
@@ -1059,53 +1041,138 @@ public class IrisInterpolation {
         return n.noise(x, z);
     }
 
+    private static boolean usesSampleCache(InterpolationMethod method) {
+        return switch (method) {
+            case BILINEAR_STARCAST_3,
+                 BILINEAR_STARCAST_6,
+                 BILINEAR_STARCAST_9,
+                 BILINEAR_STARCAST_12,
+                 HERMITE_STARCAST_3,
+                 HERMITE_STARCAST_6,
+                 HERMITE_STARCAST_9,
+                 HERMITE_STARCAST_12 -> true;
+            default -> false;
+        };
+    }
+
     private static class NoiseSampleCache2D {
         private long[] xBits;
         private long[] zBits;
         private double[] values;
+        private byte[] states;
+        private int mask;
+        private int resizeThreshold;
         private int size;
 
         public NoiseSampleCache2D(int initialCapacity) {
-            xBits = new long[initialCapacity];
-            zBits = new long[initialCapacity];
-            values = new double[initialCapacity];
+            int minimumCapacity = Math.max(8, initialCapacity);
+            int tableSize = tableSizeFor((minimumCapacity << 1) + minimumCapacity);
+            xBits = new long[tableSize];
+            zBits = new long[tableSize];
+            values = new double[tableSize];
+            states = new byte[tableSize];
+            mask = tableSize - 1;
+            resizeThreshold = Math.max(1, (tableSize * 3) >> 2);
+            size = 0;
+        }
+
+        public void clear() {
+            if (size == 0) {
+                return;
+            }
+            Arrays.fill(states, (byte) 0);
             size = 0;
         }
 
         public double getOrSample(double relativeX, double relativeZ, double sampleX, double sampleZ, NoiseProvider provider) {
             long rx = Double.doubleToLongBits(relativeX);
             long rz = Double.doubleToLongBits(relativeZ);
-
-            for (int i = 0; i < size; i++) {
-                if (xBits[i] == rx && zBits[i] == rz) {
-                    return values[i];
-                }
+            int slot = findSlot(rx, rz);
+            if (states[slot] != 0) {
+                return values[slot];
             }
 
             double value = provider.noise(sampleX, sampleZ);
-            if (size >= xBits.length) {
-                grow();
-            }
-
-            xBits[size] = rx;
-            zBits[size] = rz;
-            values[size] = value;
-            size++;
-
+            insert(slot, rx, rz, value);
             return value;
         }
 
+        private int findSlot(long rx, long rz) {
+            int slot = mix(rx, rz) & mask;
+            while (states[slot] != 0) {
+                if (xBits[slot] == rx && zBits[slot] == rz) {
+                    break;
+                }
+                slot = (slot + 1) & mask;
+            }
+            return slot;
+        }
+
+        private void insert(int slot, long rx, long rz, double value) {
+            xBits[slot] = rx;
+            zBits[slot] = rz;
+            values[slot] = value;
+            states[slot] = 1;
+            size++;
+            if (size >= resizeThreshold) {
+                grow();
+            }
+        }
+
+        private int mix(long rx, long rz) {
+            long hash = rx * 0x9E3779B97F4A7C15L;
+            hash ^= Long.rotateLeft(rz * 0xC2B2AE3D27D4EB4FL, 32);
+            hash ^= (hash >>> 33);
+            hash *= 0xff51afd7ed558ccdL;
+            hash ^= (hash >>> 33);
+            return (int) hash;
+        }
+
         private void grow() {
+            long[] previousXBits = xBits;
+            long[] previousZBits = zBits;
+            double[] previousValues = values;
+            byte[] previousStates = states;
+
             int nextLength = xBits.length << 1;
             long[] nextXBits = new long[nextLength];
             long[] nextZBits = new long[nextLength];
             double[] nextValues = new double[nextLength];
-            System.arraycopy(xBits, 0, nextXBits, 0, size);
-            System.arraycopy(zBits, 0, nextZBits, 0, size);
-            System.arraycopy(values, 0, nextValues, 0, size);
+            byte[] nextStates = new byte[nextLength];
+
             xBits = nextXBits;
             zBits = nextZBits;
             values = nextValues;
+            states = nextStates;
+            mask = nextLength - 1;
+            resizeThreshold = Math.max(1, (nextLength * 3) >> 2);
+            size = 0;
+
+            for (int i = 0; i < previousStates.length; i++) {
+                if (previousStates[i] == 0) {
+                    continue;
+                }
+                int slot = findSlot(previousXBits[i], previousZBits[i]);
+                xBits[slot] = previousXBits[i];
+                zBits[slot] = previousZBits[i];
+                values[slot] = previousValues[i];
+                states[slot] = 1;
+                size++;
+            }
+        }
+
+        private int tableSizeFor(int value) {
+            int n = value - 1;
+            n |= n >>> 1;
+            n |= n >>> 2;
+            n |= n >>> 4;
+            n |= n >>> 8;
+            n |= n >>> 16;
+            int size = n + 1;
+            if (size < 8) {
+                return 8;
+            }
+            return size;
         }
     }
 

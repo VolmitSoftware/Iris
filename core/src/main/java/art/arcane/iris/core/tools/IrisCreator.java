@@ -23,10 +23,13 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.ServerConfigurator;
 import art.arcane.iris.core.link.FoliaWorldsLink;
+import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.pregenerator.PregenTask;
 import art.arcane.iris.core.service.BoardSVC;
 import art.arcane.iris.core.service.StudioSVC;
+import art.arcane.iris.engine.IrisNoisemapPrebakePipeline;
+import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.volmlib.util.exceptions.IrisException;
@@ -147,6 +150,7 @@ public class IrisCreator {
         if (!studio() || benchmark) {
             Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(Bukkit.getWorldContainer(), name()));
         }
+        prebakeNoisemapsBeforeWorldCreate(d);
 
         AtomicDouble pp = new AtomicDouble(0);
         O<Boolean> done = new O<>();
@@ -277,6 +281,30 @@ public class IrisCreator {
             }
         }
         return world;
+    }
+
+    private void prebakeNoisemapsBeforeWorldCreate(IrisDimension dimension) {
+        IrisSettings.IrisSettingsPregen pregenSettings = IrisSettings.get().getPregen();
+        if (!pregenSettings.isStartupNoisemapPrebake()) {
+            return;
+        }
+
+        try {
+            File targetDataFolder = new File(Bukkit.getWorldContainer(), name());
+            if (studio() && !benchmark) {
+                IrisData studioData = dimension.getLoader();
+                if (studioData != null) {
+                    targetDataFolder = studioData.getDataFolder();
+                }
+            }
+
+            IrisData targetData = IrisData.get(targetDataFolder);
+            SeedManager seedManager = new SeedManager(seed());
+            IrisNoisemapPrebakePipeline.prebake(targetData, seedManager, name(), dimension.getLoadKey());
+        } catch (Throwable throwable) {
+            Iris.warn("Failed pre-create noisemap pre-bake for " + name() + "/" + dimension.getLoadKey() + ": " + throwable.getMessage());
+            Iris.reportError(throwable);
+        }
     }
 
     private Location resolveStudioEntryLocation(World world) {

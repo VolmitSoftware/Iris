@@ -515,6 +515,7 @@ public class Iris extends VolmitPlugin implements Listener {
         services.values().forEach(this::registerListener);
         addShutdownHook();
         processPendingStartupWorldDeletes();
+        IrisToolbelt.applyPregenPerformanceProfile();
 
         if (J.isFolia()) {
             checkForBukkitWorlds(s -> true);

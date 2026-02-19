@@ -238,6 +238,10 @@ public class CNG {
     }
 
     public CNG cached(int size, String key, File cacheFolder) {
+        return cached(size, key, cacheFolder, false);
+    }
+
+    public CNG cached(int size, String key, File cacheFolder, boolean quiet) {
         if (size <= 0) {
             return this;
         }
@@ -271,7 +275,9 @@ public class CNG {
                 DataOutputStream dos = new DataOutputStream(fos);
                 fbc.writeCache(dos);
                 dos.close();
-                Iris.info("Saved Noise Cache " + f.getName());
+                if (!quiet) {
+                    Iris.info("Saved Noise Cache " + f.getName());
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

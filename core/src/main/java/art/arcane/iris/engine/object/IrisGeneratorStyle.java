@@ -88,7 +88,11 @@ public class IrisGeneratorStyle {
     }
 
     public CNG createNoCache(RNG rng, IrisData data) {
-        return createNoCache(rng, data, false);
+        return createNoCache(rng, data, false, 0, false);
+    }
+
+    public CNG createForPrebake(RNG rng, IrisData data, int fallbackCacheSize) {
+        return createNoCache(rng, data, false, Math.max(0, fallbackCacheSize), true);
     }
 
 
@@ -110,14 +114,19 @@ public class IrisGeneratorStyle {
         return Objects.hash(expression, imageMapHash(), script, multiplier, axialFracturing, fracture != null ? fracture.hash() : 0, exponent, cacheSize, zoom, cellularZoom, cellularFrequency, style);
     }
 
-    private String cachePrefix(RNG rng) {
+    public int prebakeSignature() {
+        return hash();
+    }
+
+    private String cachePrefix(RNG rng, int effectiveCacheSize) {
         return "style-" + Integer.toUnsignedString(hash())
                 + "-seed-" + Long.toUnsignedString(rng.getSeed())
+                + "-sz-" + effectiveCacheSize
                 + "-src-";
     }
 
-    private String cacheKey(RNG rng, long sourceStamp) {
-        return cachePrefix(rng) + Long.toUnsignedString(sourceStamp);
+    private String cacheKey(RNG rng, long sourceStamp, int effectiveCacheSize) {
+        return cachePrefix(rng, effectiveCacheSize) + Long.toUnsignedString(sourceStamp);
     }
 
     private long scriptStamp(IrisData data) {
@@ -153,6 +162,10 @@ public class IrisGeneratorStyle {
     }
 
     public CNG createNoCache(RNG rng, IrisData data, boolean actuallyCached) {
+        return createNoCache(rng, data, actuallyCached, 0, false);
+    }
+
+    private CNG createNoCache(RNG rng, IrisData data, boolean actuallyCached, int fallbackCacheSize, boolean quietCacheLog) {
         CNG cng = null;
         long sourceStamp = 0L;
         if (getExpression() != null) {
@@ -182,17 +195,18 @@ public class IrisGeneratorStyle {
         cng.setTrueFracturing(axialFracturing);
 
         if (fracture != null) {
-            cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
+            cng.fractureWith(fracture.createNoCache(rng.nextParallelRNG(2934), data, false, fallbackCacheSize, quietCacheLog), fracture.getMultiplier());
         }
 
         if (cellularFrequency > 0) {
             cng = cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D / cellularZoom).bake();
         }
 
-        if (cacheSize > 0) {
-            String key = cacheKey(rng, sourceStamp);
-            clearStaleCacheEntries(data, cachePrefix(rng), key);
-            cng = cng.cached(cacheSize, key, data.getDataFolder());
+        int effectiveCacheSize = cacheSize > 0 ? cacheSize : Math.max(0, fallbackCacheSize);
+        if (effectiveCacheSize > 0) {
+            String key = cacheKey(rng, sourceStamp, effectiveCacheSize);
+            clearStaleCacheEntries(data, cachePrefix(rng, effectiveCacheSize), key);
+            cng = cng.cached(effectiveCacheSize, key, data.getDataFolder(), quietCacheLog);
         }
 
         return cng;

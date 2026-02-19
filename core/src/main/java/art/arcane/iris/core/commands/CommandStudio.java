@@ -27,7 +27,9 @@ import art.arcane.iris.core.project.IrisProject;
 import art.arcane.iris.core.service.ConversionSVC;
 import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.core.tools.IrisToolbelt;
+import art.arcane.iris.engine.IrisNoisemapPrebakePipeline;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.*;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.volmlib.util.collection.KList;
@@ -63,6 +65,7 @@ import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.iris.util.common.scheduling.jobs.ParallelRadiusJob;
 import io.papermc.lib.PaperLib;
 import org.bukkit.*;
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.util.BlockVector;
@@ -76,8 +79,11 @@ import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -512,6 +518,18 @@ public class CommandStudio implements DirectorExecutor {
         File report = Iris.instance.getDataFile("profile.txt");
         IrisProject project = new IrisProject(pack);
         IrisData data = IrisData.get(pack);
+        PlatformChunkGenerator activeGenerator = resolveProfileGenerator(dimension);
+        Engine activeEngine = activeGenerator == null ? null : activeGenerator.getEngine();
+        long profileSeed = IrisNoisemapPrebakePipeline.dynamicStartupSeed();
+
+        if (activeEngine != null) {
+            profileSeed = activeEngine.getSeedManager().getSeed();
+            IrisToolbelt.applyPregenPerformanceProfile(activeEngine);
+        } else {
+            IrisToolbelt.applyPregenPerformanceProfile();
+        }
+
+        IrisNoisemapPrebakePipeline.prebake(data, new SeedManager(profileSeed), "studio-profile", dimension.getLoadKey());
 
         KList<String> fileText = new KList<>();
 
@@ -689,6 +707,116 @@ public class CommandStudio implements DirectorExecutor {
         }
 
         sender().sendMessage(C.GREEN + "Done! " + report.getPath());
+    }
+
+    @Director(description = "Profiles a dimension with a cache warm-up pass", origin = DirectorOrigin.PLAYER)
+    public void profilecache(
+            @Param(description = "The dimension to profile", contextual = true, defaultValue = "default", customHandler = DimensionHandler.class)
+            IrisDimension dimension
+    ) {
+        File pack = dimension.getLoadFile().getParentFile().getParentFile();
+        IrisData data = IrisData.get(pack);
+        PlatformChunkGenerator activeGenerator = resolveProfileGenerator(dimension);
+        Engine activeEngine = activeGenerator == null ? null : activeGenerator.getEngine();
+        long profileSeed = IrisNoisemapPrebakePipeline.dynamicStartupSeed();
+
+        if (activeEngine != null) {
+            profileSeed = activeEngine.getSeedManager().getSeed();
+            IrisToolbelt.applyPregenPerformanceProfile(activeEngine);
+        } else {
+            IrisToolbelt.applyPregenPerformanceProfile();
+        }
+
+        sender().sendMessage(C.YELLOW + "Warming noisemap cache for profile...");
+        IrisNoisemapPrebakePipeline.prebakeForced(data, new SeedManager(profileSeed), "studio-profilecache", dimension.getLoadKey());
+        sender().sendMessage(C.YELLOW + "Running measured profile pass...");
+        profile(dimension);
+    }
+
+    @Director(description = "List pack noise generators as pack/generator", aliases = {"pack-noise", "packnoises"})
+    public void packnoise() {
+        LinkedHashSet<File> packFolders = new LinkedHashSet<>();
+        File packsFolder = Iris.instance.getDataFolder("packs");
+        File[] children = packsFolder.listFiles();
+        if (children != null) {
+            for (File child : children) {
+                if (child != null && child.isDirectory()) {
+                    packFolders.add(child);
+                }
+            }
+        }
+
+        StudioSVC studioService = Iris.service(StudioSVC.class);
+        if (studioService != null && studioService.isProjectOpen()) {
+            IrisProject activeProject = studioService.getActiveProject();
+            if (activeProject != null && activeProject.getPath() != null && activeProject.getPath().isDirectory()) {
+                packFolders.add(activeProject.getPath());
+            }
+        }
+
+        ArrayList<String> entries = new ArrayList<>();
+
+        for (File packFolder : packFolders) {
+            IrisData packData = IrisData.get(packFolder);
+            String packName = packFolder.getName();
+            String[] keys = packData.getGeneratorLoader().getPossibleKeys();
+            for (String key : keys) {
+                entries.add(packName + "/" + key);
+            }
+        }
+
+        if (entries.isEmpty()) {
+            sender().sendMessage(C.YELLOW + "No pack noise generators were found.");
+            return;
+        }
+
+        Collections.sort(entries);
+        sender().sendMessage(C.GREEN + "Pack noise generators: " + C.GOLD + entries.size());
+        for (String entry : entries) {
+            sender().sendMessage(C.GRAY + entry);
+        }
+    }
+
+    private PlatformChunkGenerator resolveProfileGenerator(IrisDimension dimension) {
+        StudioSVC studioService = Iris.service(StudioSVC.class);
+        if (studioService != null && studioService.isProjectOpen()) {
+            IrisProject activeProject = studioService.getActiveProject();
+            if (activeProject != null) {
+                PlatformChunkGenerator activeProvider = activeProject.getActiveProvider();
+                if (isGeneratorDimension(activeProvider, dimension)) {
+                    return activeProvider;
+                }
+            }
+        }
+
+        if (!sender().isPlayer()) {
+            return null;
+        }
+
+        Player player = sender().player();
+        if (player == null) {
+            return null;
+        }
+
+        PlatformChunkGenerator worldAccess = IrisToolbelt.access(player.getWorld());
+        if (isGeneratorDimension(worldAccess, dimension)) {
+            return worldAccess;
+        }
+
+        return null;
+    }
+
+    private boolean isGeneratorDimension(PlatformChunkGenerator generator, IrisDimension dimension) {
+        if (generator == null || generator.getEngine() == null || dimension == null || dimension.getLoadKey() == null) {
+            return false;
+        }
+
+        IrisDimension engineDimension = generator.getEngine().getDimension();
+        if (engineDimension == null || engineDimension.getLoadKey() == null) {
+            return false;
+        }
+
+        return engineDimension.getLoadKey().equalsIgnoreCase(dimension.getLoadKey());
     }
 
     @Director(description = "Spawn an Iris entity", aliases = "summon", origin = DirectorOrigin.PLAYER)

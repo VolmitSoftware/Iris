@@ -32,6 +32,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.io.File;
 import java.util.Objects;
 
 @Snippet("style")
@@ -91,26 +92,85 @@ public class IrisGeneratorStyle {
     }
 
 
+    private int imageMapHash() {
+        if (imageMap == null) {
+            return 0;
+        }
+
+        return Objects.hash(imageMap.getImage(),
+                imageMap.getCoordinateScale(),
+                imageMap.getInterpolationMethod(),
+                imageMap.getChannel(),
+                imageMap.isInverted(),
+                imageMap.isTiled(),
+                imageMap.isCentered());
+    }
+
     private int hash() {
-        return Objects.hash(expression, imageMap, multiplier, axialFracturing, fracture != null ? fracture.hash() : 0, exponent, cacheSize, zoom, cellularZoom, cellularFrequency, style);
+        return Objects.hash(expression, imageMapHash(), script, multiplier, axialFracturing, fracture != null ? fracture.hash() : 0, exponent, cacheSize, zoom, cellularZoom, cellularFrequency, style);
+    }
+
+    private String cachePrefix(RNG rng) {
+        return "style-" + Integer.toUnsignedString(hash())
+                + "-seed-" + Long.toUnsignedString(rng.getSeed())
+                + "-src-";
+    }
+
+    private String cacheKey(RNG rng, long sourceStamp) {
+        return cachePrefix(rng) + Long.toUnsignedString(sourceStamp);
+    }
+
+    private long scriptStamp(IrisData data) {
+        if (getScript() == null) {
+            return 0L;
+        }
+
+        File scriptFile = data.getScriptLoader().findFile(getScript());
+        if (scriptFile == null) {
+            return Integer.toUnsignedLong(getScript().hashCode());
+        }
+
+        return Integer.toUnsignedLong(Objects.hash(getScript(), scriptFile.lastModified(), scriptFile.length()));
+    }
+
+    private void clearStaleCacheEntries(IrisData data, String prefix, String key) {
+        File cacheFolder = new File(data.getDataFolder(), ".cache");
+        File[] files = cacheFolder.listFiles((dir, name) -> name.endsWith(".cnm") && name.startsWith(prefix));
+        if (files == null) {
+            return;
+        }
+
+        String keepFile = key + ".cnm";
+        for (File file : files) {
+            if (keepFile.equals(file.getName())) {
+                continue;
+            }
+
+            if (!file.delete()) {
+                Iris.debug("Unable to delete stale noise cache " + file.getName());
+            }
+        }
     }
 
     public CNG createNoCache(RNG rng, IrisData data, boolean actuallyCached) {
-        String cacheKey = hash() + "";
-
         CNG cng = null;
+        long sourceStamp = 0L;
         if (getExpression() != null) {
             IrisExpression e = data.getExpressionLoader().load(getExpression());
             if (e != null) {
                 cng = new CNG(rng, new ExpressionNoise(rng, e), 1D, 1).bake();
+                sourceStamp = Integer.toUnsignedLong(Objects.hash(getExpression(),
+                        e.getLoadFile() == null ? 0L : e.getLoadFile().lastModified()));
             }
         } else if (getImageMap() != null) {
             cng = new CNG(rng, new ImageNoise(data, getImageMap()), 1D, 1).bake();
+            sourceStamp = Integer.toUnsignedLong(imageMapHash());
         } else if (getScript() != null) {
             Object result = data.getEnvironment().createNoise(getScript(), rng);
             if (result == null) Iris.warn("Failed to create noise from script: " + getScript());
             if (result instanceof NoiseGenerator generator) {
                 cng = new CNG(rng, generator, 1D, 1).bake();
+                sourceStamp = scriptStamp(data);
             }
         }
 
@@ -126,7 +186,13 @@ public class IrisGeneratorStyle {
         }
 
         if (cellularFrequency > 0) {
-            return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D / cellularZoom).bake();
+            cng = cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D / cellularZoom).bake();
+        }
+
+        if (cacheSize > 0) {
+            String key = cacheKey(rng, sourceStamp);
+            clearStaleCacheEntries(data, cachePrefix(rng), key);
+            cng = cng.cached(cacheSize, key, data.getDataFolder());
         }
 
         return cng;

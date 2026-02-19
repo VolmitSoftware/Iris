@@ -425,6 +425,26 @@ public class CNG {
         return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
     }
 
+    public int fit(int min, int max, double x, double z) {
+        if (min == max) {
+            return min;
+        }
+
+        double noise = noise(x, z);
+
+        return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
+    }
+
+    public int fit(int min, int max, double x, double y, double z) {
+        if (min == max) {
+            return min;
+        }
+
+        double noise = noise(x, y, z);
+
+        return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
+    }
+
     public int fit(double min, double max, double... dim) {
         if (min == max) {
             return (int) Math.round(min);
@@ -435,12 +455,52 @@ public class CNG {
         return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
     }
 
+    public int fit(double min, double max, double x, double z) {
+        if (min == max) {
+            return (int) Math.round(min);
+        }
+
+        double noise = noise(x, z);
+
+        return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
+    }
+
+    public int fit(double min, double max, double x, double y, double z) {
+        if (min == max) {
+            return (int) Math.round(min);
+        }
+
+        double noise = noise(x, y, z);
+
+        return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
+    }
+
     public double fitDouble(double min, double max, double... dim) {
         if (min == max) {
             return min;
         }
 
         double noise = noise(dim);
+
+        return IrisInterpolation.lerp(min, max, noise);
+    }
+
+    public double fitDouble(double min, double max, double x, double z) {
+        if (min == max) {
+            return min;
+        }
+
+        double noise = noise(x, z);
+
+        return IrisInterpolation.lerp(min, max, noise);
+    }
+
+    public double fitDouble(double min, double max, double x, double y, double z) {
+        if (min == max) {
+            return min;
+        }
+
+        double noise = noise(x, y, z);
 
         return IrisInterpolation.lerp(min, max, noise);
     }
@@ -481,6 +541,42 @@ public class CNG {
         return generator.noise(x * scale, y * scale, z * scale) * opacity;
     }
 
+    private double getNoise(double x) {
+        double scl = noscale ? 1 : this.bakedScale * this.scale;
+
+        if (fracture == null || noscale) {
+            return generator.noise(x * scl, 0D, 0D) * opacity;
+        }
+
+        double fx = x + ((fracture.noise(x) - 0.5D) * fscale);
+        return generator.noise(fx * scl, 0D, 0D) * opacity;
+    }
+
+    private double getNoise(double x, double z) {
+        double scl = noscale ? 1 : this.bakedScale * this.scale;
+
+        if (fracture == null || noscale) {
+            return generator.noise(x * scl, z * scl, 0D) * opacity;
+        }
+
+        double fx = x + ((fracture.noise(x, z) - 0.5D) * fscale);
+        double fz = z + ((fracture.noise(z, x) - 0.5D) * fscale);
+        return generator.noise(fx * scl, fz * scl, 0D) * opacity;
+    }
+
+    private double getNoise(double x, double y, double z) {
+        double scl = noscale ? 1 : this.bakedScale * this.scale;
+
+        if (fracture == null || noscale) {
+            return generator.noise(x * scl, y * scl, z * scl) * opacity;
+        }
+
+        double fx = x + ((fracture.noise(x, y, z) - 0.5D) * fscale);
+        double fy = y + ((fracture.noise(y, x) - 0.5D) * fscale);
+        double fz = z + ((fracture.noise(z, x, y) - 0.5D) * fscale);
+        return generator.noise(fx * scl, fy * scl, fz * scl) * opacity;
+    }
+
     public double invertNoise(double... dim) {
         if (dim.length == 1) {
             return noise(-dim[0]);
@@ -497,9 +593,69 @@ public class CNG {
         return (noise(dim) * 2) - 1;
     }
 
+    private static boolean isWholeCoordinate(double value) {
+        return value == Math.rint(value);
+    }
+
+    private double applyPost(double n, double x) {
+        n = power != 1D ? (n < 0 ? -Math.pow(Math.abs(n), power) : Math.pow(n, power)) : n;
+        double m = 1;
+        hits += oct;
+
+        if (children != null) {
+            for (CNG i : children) {
+                double[] r = injector.combine(n, i.noise(x));
+                n = r[0];
+                m += r[1];
+            }
+        }
+
+        return ((n / m) - down + up) * patch;
+    }
+
+    private double applyPost(double n, double x, double z) {
+        n = power != 1D ? (n < 0 ? -Math.pow(Math.abs(n), power) : Math.pow(n, power)) : n;
+        double m = 1;
+        hits += oct;
+
+        if (children != null) {
+            for (CNG i : children) {
+                double[] r = injector.combine(n, i.noise(x, z));
+                n = r[0];
+                m += r[1];
+            }
+        }
+
+        return ((n / m) - down + up) * patch;
+    }
+
+    private double applyPost(double n, double x, double y, double z) {
+        n = power != 1D ? (n < 0 ? -Math.pow(Math.abs(n), power) : Math.pow(n, power)) : n;
+        double m = 1;
+        hits += oct;
+
+        if (children != null) {
+            for (CNG i : children) {
+                double[] r = injector.combine(n, i.noise(x, y, z));
+                n = r[0];
+                m += r[1];
+            }
+        }
+
+        return ((n / m) - down + up) * patch;
+    }
+
     public double noise(double... dim) {
-        if (cache != null && dim.length == 2) {
-            return cache.get((int) dim[0], (int) dim[1]);
+        if (dim.length == 1) {
+            return noise(dim[0]);
+        }
+
+        if (dim.length == 2) {
+            return noise(dim[0], dim[1]);
+        }
+
+        if (dim.length == 3) {
+            return noise(dim[0], dim[1], dim[2]);
         }
 
         double n = getNoise(dim);
@@ -517,6 +673,22 @@ public class CNG {
         }
 
         return ((n / m) - down + up) * patch;
+    }
+
+    public double noise(double x) {
+        return applyPost(getNoise(x), x);
+    }
+
+    public double noise(double x, double z) {
+        if (cache != null && isWholeCoordinate(x) && isWholeCoordinate(z)) {
+            return cache.get((int) x, (int) z);
+        }
+
+        return applyPost(getNoise(x, z), x, z);
+    }
+
+    public double noise(double x, double y, double z) {
+        return applyPost(getNoise(x, y, z), x, y, z);
     }
 
     public CNG pow(double power) {

@@ -63,6 +63,14 @@ public class IrisShapedGeneratorStyle {
         return generator.create(rng, data).fitDouble(min, max, dim);
     }
 
+    public double get(RNG rng, IrisData data, double x, double z) {
+        return generator.create(rng, data).fitDouble(min, max, x, z);
+    }
+
+    public double get(RNG rng, IrisData data, double x, double y, double z) {
+        return generator.create(rng, data).fitDouble(min, max, x, y, z);
+    }
+
     public boolean isFlat() {
         return min == max || getGenerator().isFlat();
     }

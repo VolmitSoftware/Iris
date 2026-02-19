@@ -23,11 +23,12 @@ class ChunkedDataCache<T> private constructor(
         if (!cache) return
 
         supervisorScope {
-            for (i in 0 until 16) {
-                for (j in 0 until 16) {
-                    launch(context) {
-                        val t = stream.get((x + i).toDouble(), (z + j).toDouble())
-                        data[(j * 16) + i] = t
+            for (j in 0 until 16) {
+                launch(context) {
+                    val rowOffset = j * 16
+                    val zz = (z + j).toDouble()
+                    for (i in 0 until 16) {
+                        data[rowOffset + i] = stream.get((x + i).toDouble(), zz)
                     }
                 }
             }

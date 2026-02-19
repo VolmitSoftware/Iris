@@ -27,7 +27,6 @@ import art.arcane.iris.engine.object.*;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.iris.util.common.data.DataProvider;
-import art.arcane.iris.util.project.interpolation.IrisInterpolation.NoiseKey;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.util.project.noise.CNG;
@@ -83,6 +82,8 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<BlockData> fluidStream;
     private IrisBiome focusBiome;
     private IrisRegion focusRegion;
+    private Map<IrisInterpolator, IdentityHashMap<IrisBiome, GeneratorBounds>> generatorBounds;
+    private Set<IrisBiome> generatorBiomes;
 
     public IrisComplex(Engine engine) {
         this(engine, false);
@@ -97,6 +98,7 @@ public class IrisComplex implements DataProvider {
         double height = engine.getMaxHeight();
         fluidHeight = engine.getDimension().getFluidHeight();
         generators = new HashMap<>();
+        generatorBiomes = Collections.newSetFromMap(new IdentityHashMap<>());
         focusBiome = engine.getFocus();
         focusRegion = engine.getFocusRegion();
         Map<InferredType, ProceduralStream<IrisBiome>> inferredStreams = new HashMap<>();
@@ -116,9 +118,20 @@ public class IrisComplex implements DataProvider {
                             .getAllBiomes(this)
                             .forEach(this::registerGenerators));
         }
+        generatorBounds = buildGeneratorBounds(engine);
         boolean legacy = engine.getDimension().isLegacyRarity();
-        overlayStream = ProceduralStream.ofDouble((x, z) -> 0.0D).waste("Overlay Stream");
-        engine.getDimension().getOverlayNoise().forEach(i -> overlayStream = overlayStream.add((x, z) -> i.get(rng, getData(), x, z)));
+        KList<IrisShapedGeneratorStyle> overlayNoise = engine.getDimension().getOverlayNoise();
+        overlayStream = overlayNoise.isEmpty()
+                ? ProceduralStream.ofDouble((x, z) -> 0.0D).waste("Overlay Stream")
+                : ProceduralStream.ofDouble((x, z) -> {
+            double value = 0D;
+
+            for (IrisShapedGeneratorStyle style : overlayNoise) {
+                value += style.get(rng, getData(), x, z);
+            }
+
+            return value;
+        }).waste("Overlay Stream");
         rockStream = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextParallelRNG(45), data).stream()
                 .select(engine.getDimension().getRockPalette().getBlockData(data)).waste("Rock Stream");
         fluidStream = engine.getDimension().getFluidPalette().getLayerGenerator(rng.nextParallelRNG(78), data).stream()
@@ -306,18 +319,27 @@ public class IrisComplex implements DataProvider {
             return 0;
         }
 
-        HashMap<NoiseKey, IrisBiome> cache = new HashMap<>(64);
+        CoordinateBiomeCache sampleCache = new CoordinateBiomeCache(64);
+        IdentityHashMap<IrisBiome, GeneratorBounds> cachedBounds = generatorBounds.get(interpolator);
+        IdentityHashMap<IrisBiome, GeneratorBounds> localBounds = new IdentityHashMap<>(8);
         double hi = interpolator.interpolate(x, z, (xx, zz) -> {
             try {
-                IrisBiome bx = baseBiomeStream.get(xx, zz);
-                cache.put(new NoiseKey(xx, zz), bx);
-                double b = 0;
-
-                for (IrisGenerator gen : generators) {
-                    b += bx.getGenLinkMax(gen.getLoadKey(), engine);
+                IrisBiome bx = sampleCache.get(xx, zz);
+                if (bx == null) {
+                    bx = baseBiomeStream.get(xx, zz);
+                    sampleCache.put(xx, zz, bx);
                 }
 
-                return b;
+                GeneratorBounds bounds = cachedBounds == null ? null : cachedBounds.get(bx);
+                if (bounds == null) {
+                    bounds = localBounds.get(bx);
+                    if (bounds == null) {
+                        bounds = computeGeneratorBounds(engine, generators, bx);
+                        localBounds.put(bx, bounds);
+                    }
+                }
+
+                return bounds.max;
             } catch (Throwable e) {
                 Iris.reportError(e);
                 e.printStackTrace();
@@ -329,18 +351,22 @@ public class IrisComplex implements DataProvider {
 
         double lo = interpolator.interpolate(x, z, (xx, zz) -> {
             try {
-                IrisBiome bx = cache.get(new NoiseKey(xx, zz));
+                IrisBiome bx = sampleCache.get(xx, zz);
                 if (bx == null) {
                     bx = baseBiomeStream.get(xx, zz);
-                    cache.put(new NoiseKey(xx, zz), bx);
-                }
-                double b = 0;
-
-                for (IrisGenerator gen : generators) {
-                    b += bx.getGenLinkMin(gen.getLoadKey(), engine);
+                    sampleCache.put(xx, zz, bx);
                 }
 
-                return b;
+                GeneratorBounds bounds = cachedBounds == null ? null : cachedBounds.get(bx);
+                if (bounds == null) {
+                    bounds = localBounds.get(bx);
+                    if (bounds == null) {
+                        bounds = computeGeneratorBounds(engine, generators, bx);
+                        localBounds.put(bx, bounds);
+                    }
+                }
+
+                return bounds.min;
             } catch (Throwable e) {
                 Iris.reportError(e);
                 e.printStackTrace();
@@ -362,8 +388,8 @@ public class IrisComplex implements DataProvider {
     private double getInterpolatedHeight(Engine engine, double x, double z, long seed) {
         double h = 0;
 
-        for (IrisInterpolator i : generators.keySet()) {
-            h += interpolateGenerators(engine, i, generators.get(i), x, z, seed);
+        for (Map.Entry<IrisInterpolator, Set<IrisGenerator>> entry : generators.entrySet()) {
+            h += interpolateGenerators(engine, entry.getKey(), entry.getValue(), x, z, seed);
         }
 
         return h;
@@ -374,11 +400,44 @@ public class IrisComplex implements DataProvider {
     }
 
     private void registerGenerators(IrisBiome biome) {
+        generatorBiomes.add(biome);
         biome.getGenerators().forEach(c -> registerGenerator(c.getCachedGenerator(this)));
     }
 
     private void registerGenerator(IrisGenerator cachedGenerator) {
         generators.computeIfAbsent(cachedGenerator.getInterpolator(), (k) -> new HashSet<>()).add(cachedGenerator);
+    }
+
+    private Map<IrisInterpolator, IdentityHashMap<IrisBiome, GeneratorBounds>> buildGeneratorBounds(Engine engine) {
+        Map<IrisInterpolator, IdentityHashMap<IrisBiome, GeneratorBounds>> bounds = new HashMap<>();
+        KList<IrisBiome> allBiomes = new KList<>(generatorBiomes);
+
+        if (focusBiome != null && !allBiomes.contains(focusBiome)) {
+            allBiomes.add(focusBiome);
+        }
+
+        for (Map.Entry<IrisInterpolator, Set<IrisGenerator>> entry : generators.entrySet()) {
+            IdentityHashMap<IrisBiome, GeneratorBounds> interpolatorBounds = new IdentityHashMap<>(Math.max(allBiomes.size(), 16));
+            for (IrisBiome biome : allBiomes) {
+                interpolatorBounds.put(biome, computeGeneratorBounds(engine, entry.getValue(), biome));
+            }
+            bounds.put(entry.getKey(), interpolatorBounds);
+        }
+
+        return bounds;
+    }
+
+    private GeneratorBounds computeGeneratorBounds(Engine engine, Set<IrisGenerator> generators, IrisBiome biome) {
+        double min = 0D;
+        double max = 0D;
+
+        for (IrisGenerator gen : generators) {
+            String key = gen.getLoadKey();
+            max += biome.getGenLinkMax(key, engine);
+            min += biome.getGenLinkMin(key, engine);
+        }
+
+        return new GeneratorBounds(min, max);
     }
 
     private IrisBiome implode(IrisBiome b, Double x, Double z) {
@@ -404,6 +463,66 @@ public class IrisComplex implements DataProvider {
         IrisBiome biome = childCell.fitRarity(chx, x, z);
         biome.setInferredType(b.getInferredType());
         return implode(biome, x, z, max - 1);
+    }
+
+    private static class GeneratorBounds {
+        private final double min;
+        private final double max;
+
+        private GeneratorBounds(double min, double max) {
+            this.min = min;
+            this.max = max;
+        }
+    }
+
+    private static class CoordinateBiomeCache {
+        private long[] xBits;
+        private long[] zBits;
+        private IrisBiome[] values;
+        private int size;
+
+        private CoordinateBiomeCache(int initialSize) {
+            xBits = new long[initialSize];
+            zBits = new long[initialSize];
+            values = new IrisBiome[initialSize];
+            size = 0;
+        }
+
+        private IrisBiome get(double x, double z) {
+            long xb = Double.doubleToLongBits(x);
+            long zb = Double.doubleToLongBits(z);
+            for (int i = 0; i < size; i++) {
+                if (xBits[i] == xb && zBits[i] == zb) {
+                    return values[i];
+                }
+            }
+
+            return null;
+        }
+
+        private void put(double x, double z, IrisBiome biome) {
+            if (size >= xBits.length) {
+                grow();
+            }
+
+            xBits[size] = Double.doubleToLongBits(x);
+            zBits[size] = Double.doubleToLongBits(z);
+            values[size] = biome;
+            size++;
+        }
+
+        private void grow() {
+            int nextSize = xBits.length << 1;
+            long[] nx = new long[nextSize];
+            long[] nz = new long[nextSize];
+            IrisBiome[] nv = new IrisBiome[nextSize];
+            System.arraycopy(xBits, 0, nx, 0, size);
+            System.arraycopy(zBits, 0, nz, 0, size);
+            System.arraycopy(values, 0, nv, 0, size);
+            xBits = nx;
+            zBits = nz;
+            values = nv;
+        }
     }
 
     public void close() {

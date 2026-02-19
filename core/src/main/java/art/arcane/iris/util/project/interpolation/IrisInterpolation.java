@@ -999,8 +999,8 @@ public class IrisInterpolation {
     }
 
     public static double getNoise(InterpolationMethod method, int x, int z, double h, NoiseProvider noise) {
-        HashMap<NoiseKey, Double> cache = new HashMap<>(64);
-        NoiseProvider n = (x1, z1) -> cache.computeIfAbsent(new NoiseKey(x1 - x, z1 - z), k -> noise.noise(x1, z1));
+        NoiseSampleCache2D cache = new NoiseSampleCache2D(64);
+        NoiseProvider n = (x1, z1) -> cache.getOrSample(x1 - x, z1 - z, x1, z1, noise);
 
         if (method.equals(InterpolationMethod.BILINEAR)) {
             return getBilinearNoise(x, z, h, n);
@@ -1057,6 +1057,56 @@ public class IrisInterpolation {
         }
 
         return n.noise(x, z);
+    }
+
+    private static class NoiseSampleCache2D {
+        private long[] xBits;
+        private long[] zBits;
+        private double[] values;
+        private int size;
+
+        public NoiseSampleCache2D(int initialCapacity) {
+            xBits = new long[initialCapacity];
+            zBits = new long[initialCapacity];
+            values = new double[initialCapacity];
+            size = 0;
+        }
+
+        public double getOrSample(double relativeX, double relativeZ, double sampleX, double sampleZ, NoiseProvider provider) {
+            long rx = Double.doubleToLongBits(relativeX);
+            long rz = Double.doubleToLongBits(relativeZ);
+
+            for (int i = 0; i < size; i++) {
+                if (xBits[i] == rx && zBits[i] == rz) {
+                    return values[i];
+                }
+            }
+
+            double value = provider.noise(sampleX, sampleZ);
+            if (size >= xBits.length) {
+                grow();
+            }
+
+            xBits[size] = rx;
+            zBits[size] = rz;
+            values[size] = value;
+            size++;
+
+            return value;
+        }
+
+        private void grow() {
+            int nextLength = xBits.length << 1;
+            long[] nextXBits = new long[nextLength];
+            long[] nextZBits = new long[nextLength];
+            double[] nextValues = new double[nextLength];
+            System.arraycopy(xBits, 0, nextXBits, 0, size);
+            System.arraycopy(zBits, 0, nextZBits, 0, size);
+            System.arraycopy(values, 0, nextValues, 0, size);
+            xBits = nextXBits;
+            zBits = nextZBits;
+            values = nextValues;
+        }
     }
 
     public static double rangeScale(double amin, double amax, double bmin, double bmax, double b) {

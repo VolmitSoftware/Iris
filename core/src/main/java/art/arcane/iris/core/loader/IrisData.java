@@ -64,9 +64,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisRegion> regionLoader;
     private ResourceLoader<IrisDimension> dimensionLoader;
     private ResourceLoader<IrisGenerator> generatorLoader;
-    private ResourceLoader<IrisJigsawPiece> jigsawPieceLoader;
-    private ResourceLoader<IrisJigsawPool> jigsawPoolLoader;
-    private ResourceLoader<IrisJigsawStructure> jigsawStructureLoader;
     private ResourceLoader<IrisEntity> entityLoader;
     private ResourceLoader<IrisMarker> markerLoader;
     private ResourceLoader<IrisSpawner> spawnerLoader;
@@ -141,14 +138,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         return loadAny(IrisMod.class, key, nearest);
     }
 
-    public static IrisJigsawPiece loadAnyJigsawPiece(String key, @Nullable IrisData nearest) {
-        return loadAny(IrisJigsawPiece.class, key, nearest);
-    }
-
-    public static IrisJigsawPool loadAnyJigsawPool(String key, @Nullable IrisData nearest) {
-        return loadAny(IrisJigsawPool.class, key, nearest);
-    }
-
     public static IrisEntity loadAnyEntity(String key, @Nullable IrisData nearest) {
         return loadAny(IrisEntity.class, key, nearest);
     }
@@ -191,10 +180,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public static IrisDimension loadAnyDimension(String key, @Nullable IrisData nearest) {
         return loadAny(IrisDimension.class, key, nearest);
-    }
-
-    public static IrisJigsawStructure loadAnyJigsawStructure(String key, @Nullable IrisData nearest) {
-        return loadAny(IrisJigsawStructure.class, key, nearest);
     }
 
     public static IrisGenerator loadAnyGenerator(String key, @Nullable IrisData nearest) {
@@ -366,9 +351,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.biomeLoader = registerLoader(IrisBiome.class);
         this.modLoader = registerLoader(IrisMod.class);
         this.dimensionLoader = registerLoader(IrisDimension.class);
-        this.jigsawPoolLoader = registerLoader(IrisJigsawPool.class);
-        this.jigsawStructureLoader = registerLoader(IrisJigsawStructure.class);
-        this.jigsawPieceLoader = registerLoader(IrisJigsawPiece.class);
         this.generatorLoader = registerLoader(IrisGenerator.class);
         this.caveLoader = registerLoader(IrisCave.class);
         this.markerLoader = registerLoader(IrisMarker.class);

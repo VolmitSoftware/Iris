@@ -338,7 +338,6 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     }
 
     @SuppressWarnings("unchecked")
-    @Deprecated(forRemoval = true)
     default <V> ProceduralStream<V> selectRarity(V... types) {
         KList<V> rarityTypes = new KList<>();
         int totalRarity = 0;

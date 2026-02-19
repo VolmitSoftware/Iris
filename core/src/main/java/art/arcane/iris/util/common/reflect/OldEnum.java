@@ -12,7 +12,6 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Objects;
 
-@Deprecated(since = "3.7.1")
 public class OldEnum {
 
     private static final Class<?> oldEnum;

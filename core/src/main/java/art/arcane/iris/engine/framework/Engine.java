@@ -59,7 +59,6 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterUpdate;
-import art.arcane.volmlib.util.matter.slices.container.JigsawPieceContainer;
 import art.arcane.iris.util.common.parallel.BurstExecutor;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.iris.util.common.reflect.KeyedType;
@@ -231,12 +230,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     @ChunkCoordinates
     Set<Pair<String, BlockPos>> getPOIsAt(int x, int z);
-
-    @ChunkCoordinates
-    IrisJigsawStructure getStructureAt(int x, int z);
-
-    @BlockCoordinates
-    IrisJigsawStructure getStructureAt(int x, int y, int z);
 
     @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int z) {
@@ -588,7 +581,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getTarget().getBurster();
     }
 
-    @Deprecated
     default void clean() {
         burst().lazy(() -> getMantle().trim(10));
     }
@@ -848,13 +840,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         int id = Integer.parseInt(v[1]);
 
 
-        JigsawPieceContainer container = chunk.get(x & 15, y, z & 15, JigsawPieceContainer.class);
-        if (container != null) {
-            IrisJigsawPiece piece = getData().getJigsawPieceLoader().load(container.getLoadKey());
-            if (piece.getObject().equals(object))
-                return new PlacedObject(piece.getPlacementOptions(), getData().getObjectLoader().load(object), id, x, z);
-        }
-
         IrisRegion region = getRegion(x, z);
 
         for (IrisObjectPlacement i : region.getObjects()) {
@@ -880,25 +865,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getBiomeOrMantle(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 
-    @Nullable
-    @BlockCoordinates
-    default Position2 getNearestStronghold(Position2 pos) {
-        KList<Position2> p = getDimension().getStrongholds(getSeedManager().getMantle());
-        if (p.isEmpty()) return null;
-
-        Position2 pr = null;
-        double d = Double.MAX_VALUE;
-
-        for (Position2 i : p) {
-            double dx = i.distance(pos);
-            if (dx < d) {
-                d = dx;
-                pr = i;
-            }
-        }
-        return pr;
-    }
-
     default void gotoBiome(IrisBiome biome, Player player, boolean teleport) {
         Set<String> regionKeys = getDimension()
                 .getAllRegions(this).stream()
@@ -915,57 +881,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         } else {
             player.sendMessage(C.RED + biome.getName() + " is not in any defined regions!");
         }
-    }
-
-    default void gotoJigsaw(IrisJigsawStructure s, Player player, boolean teleport) {
-        if (s.getLoadKey().equals(getDimension().getStronghold())) {
-            Position2 pr = getNearestStronghold(new Position2(player.getLocation().getBlockX(), player.getLocation().getBlockZ()));
-            if (pr == null) {
-                player.sendMessage(C.GOLD + "No strongholds in world.");
-            } else {
-                Location ll = new Location(player.getWorld(), pr.getX(), 40, pr.getZ());
-                J.s(() -> player.teleport(ll));
-            }
-
-            return;
-        }
-
-        if (getDimension().getJigsawStructures().stream()
-                .map(IrisJigsawStructurePlacement::getStructure)
-                .collect(Collectors.toSet()).contains(s.getLoadKey())) {
-            Locator.jigsawStructure(s.getLoadKey()).find(player, teleport, "Structure " + s.getLoadKey());
-        } else {
-            Set<String> biomeKeys = getDimension().getAllBiomes(this).stream()
-                    .filter((i) -> i.getJigsawStructures()
-                            .stream()
-                            .anyMatch((j) -> j.getStructure().equals(s.getLoadKey())))
-                    .map(IrisRegistrant::getLoadKey)
-                    .collect(Collectors.toSet());
-            Set<String> regionKeys = getDimension().getAllRegions(this).stream()
-                    .filter((i) -> i.getAllBiomeIds().stream().anyMatch(biomeKeys::contains)
-                            || i.getJigsawStructures()
-                            .stream()
-                            .anyMatch((j) -> j.getStructure().equals(s.getLoadKey())))
-                    .map(IrisRegistrant::getLoadKey)
-                    .collect(Collectors.toSet());
-
-            Locator<IrisJigsawStructure> sl = Locator.jigsawStructure(s.getLoadKey());
-            Locator<IrisBiome> locator = (engine, chunk) -> {
-                if (biomeKeys.contains(getSurfaceBiome((chunk.getX() << 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey())) {
-                    return sl.matches(engine, chunk);
-                } else if (regionKeys.contains(getRegion((chunk.getX() << 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey())) {
-                    return sl.matches(engine, chunk);
-                }
-                return false;
-            };
-
-            if (!regionKeys.isEmpty()) {
-                locator.find(player, teleport, "Structure " + s.getLoadKey());
-            } else {
-                player.sendMessage(C.RED + s.getLoadKey() + " is not in any defined regions, biomes or dimensions!");
-            }
-        }
-
     }
 
     default void gotoObject(String s, Player player, boolean teleport) {

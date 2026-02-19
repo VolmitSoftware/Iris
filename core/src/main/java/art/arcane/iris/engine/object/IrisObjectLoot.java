@@ -32,7 +32,7 @@ import org.bukkit.block.data.BlockData;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Desc("Represents loot within this object or jigsaw piece")
+@Desc("Represents loot within this object")
 @Data
 public class IrisObjectLoot implements IObjectLoot {
     private final transient AtomicCache<KList<BlockData>> filterCache = new AtomicCache<>();

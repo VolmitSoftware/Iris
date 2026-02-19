@@ -686,7 +686,7 @@ public class IrisObject extends IrisRegistrant {
         boolean bail = false;
 
         if (config.isFromBottom()) {
-            // todo Convert this to a mode and make it compatible with jigsaw
+            // todo Convert this to a dedicated mode.
             y = (getH() + 1) + rty;
             if (!config.isForcePlace()) {
                 if (placer.isCarved(x, y, z) ||

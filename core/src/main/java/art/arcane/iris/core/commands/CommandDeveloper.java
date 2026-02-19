@@ -34,13 +34,10 @@ import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.IrisEngineMantle;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisPosition;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.engine.object.annotations.Snippet;
-import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.iris.util.project.context.IrisContext;
-import art.arcane.iris.engine.object.IrisJigsawStructurePlacement;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.common.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.DirectorOrigin;
@@ -199,14 +196,10 @@ public class CommandDeveloper implements DirectorExecutor {
 
         IrisData dm = IrisData.get(Iris.instance.getDataFolder("packs", type.getLoadKey()));
         var loader = dm.getObjectLoader();
-        var processed = new KMap<String, IrisPosition>();
-
         var objects = loader.getPossibleKeys();
-        var pieces = dm.getJigsawPieceLoader().getPossibleKeys();
         var sender = sender();
 
         sender.sendMessage(C.IRIS + "Found " + objects.length + " objects in " + type.getLoadKey());
-        sender.sendMessage(C.IRIS + "Found " + pieces.length + " jigsaw pieces in " + type.getLoadKey());
 
         final int total = objects.length;
         final AtomicInteger completed = new AtomicInteger();
@@ -220,45 +213,7 @@ public class CommandDeveloper implements DirectorExecutor {
 
             @Override
             public void execute() {
-                Arrays.stream(pieces).parallel()
-                        .map(dm.getJigsawPieceLoader()::load)
-                        .filter(Objects::nonNull)
-                        .forEach(piece -> {
-                            var offset = processed.compute(piece.getObject(), (key, o) -> {
-                                if (o != null) return o;
-                                var obj = loader.load(key);
-                                if (obj == null) return new IrisPosition();
-
-                                obj.shrinkwrap();
-                                try {
-                                    if (!obj.getShrinkOffset().isZero()) {
-                                        changed.incrementAndGet();
-                                        obj.write(obj.getLoadFile());
-                                    }
-                                    completeWork();
-                                } catch (IOException e) {
-                                    Iris.error("Failed to write object " + obj.getLoadKey());
-                                    e.printStackTrace();
-                                    return new IrisPosition();
-                                }
-
-                                return new IrisPosition(obj.getShrinkOffset());
-                            });
-                            if (offset.getX() == 0 && offset.getY() == 0 && offset.getZ() == 0)
-                                return;
-
-                            piece.getConnectors().forEach(connector -> connector.setPosition(connector.getPosition().add(offset)));
-
-                            try {
-                                IO.writeAll(piece.getLoadFile(), dm.getGson().toJson(piece));
-                            } catch (IOException e) {
-                                Iris.error("Failed to write jigsaw piece " + piece.getLoadKey());
-                                e.printStackTrace();
-                            }
-                        });
-
                 Arrays.stream(loader.getPossibleKeys()).parallel()
-                        .filter(key -> !processed.containsKey(key))
                         .map(loader::load)
                         .forEach(obj -> {
                             if (obj == null) {
@@ -368,7 +323,6 @@ public class CommandDeveloper implements DirectorExecutor {
         }
     }
 
-    @SneakyThrows
     @Director(description = "Generate Iris structures for all loaded datapack structures")
     public void generateStructures(
             @Param(description = "The pack to add the generated structures to", aliases = "pack", defaultValue = "null", customHandler = NullableDimensionHandler.class)
@@ -376,120 +330,8 @@ public class CommandDeveloper implements DirectorExecutor {
             @Param(description = "Ignore existing structures", defaultValue = "false")
             boolean force
     ) {
-        var map = INMS.get().collectStructures();
-        if (map.isEmpty()) {
-            sender().sendMessage(C.IRIS + "No structures found");
-            return;
-        }
-
-        sender().sendMessage(C.IRIS + "Found " + map.size() + " structures");
-
-        final File dataDir;
-        final IrisData data;
-        final Set<String> existingStructures;
-        final Map<String, Set<String>> snippets;
-        final File dimensionFile;
-        final File structuresFolder;
-        final File snippetsFolder;
-
-        var dimensionObj = new JsonObject();
-
-        if (dimension == null) {
-            dataDir = Iris.instance.getDataFolder("structures");
-            IO.delete(dataDir);
-            data = IrisData.get(dataDir);
-            existingStructures = Set.of();
-            snippets = Map.of();
-            dimensionFile = new File(dataDir, "structures.json");
-        } else {
-            data = dimension.getLoader();
-            dataDir = data.getDataFolder();
-            existingStructures = new KSet<>(data.getJigsawStructureLoader().getPossibleKeys());
-
-            dimensionObj = data.getGson().fromJson(IO.readAll(dimension.getLoadFile()), JsonObject.class);
-            snippets = Optional.ofNullable(dimensionObj.getAsJsonArray("jigsawStructures"))
-                    .map(array -> array.asList()
-                            .stream()
-                            .filter(JsonElement::isJsonPrimitive)
-                            .collect(Collectors.toMap(element -> data.getGson()
-                                            .fromJson(element, IrisJigsawStructurePlacement.class)
-                                            .getStructure(),
-                                    element -> Set.of(element.getAsString()),
-                                    KSet::merge)))
-                    .orElse(Map.of());
-
-            dimensionFile = dimension.getLoadFile();
-        }
-        structuresFolder = new File(dataDir, "jigsaw-structures");
-        snippetsFolder = new File(dataDir, "snippet" + "/" + IrisJigsawStructurePlacement.class.getAnnotation(Snippet.class).value());
-
-        var gson = data.getGson();
-        var jigsawStructures = Optional.ofNullable(dimensionObj.getAsJsonArray("jigsawStructures"))
-                .orElse(new JsonArray(map.size()));
-
-        map.forEach((key, placement) -> {
-            String loadKey = "datapack/" + key.namespace() + "/" + key.key();
-            if (existingStructures.contains(loadKey) && !force)
-                return;
-
-            var structures = placement.structures();
-            var obj = placement.toJson(loadKey);
-            if (obj == null || structures.isEmpty()) {
-                sender().sendMessage(C.RED + "Failed to generate hook for " + key);
-                return;
-            }
-            File snippetFile = new File(snippetsFolder, loadKey + ".json");
-            try {
-                IO.writeAll(snippetFile, gson.toJson(obj));
-            } catch (IOException e) {
-                sender().sendMessage(C.RED + "Failed to generate snippet for " + key);
-                e.printStackTrace();
-                return;
-            }
-
-            Set<String> loadKeys = snippets.getOrDefault(loadKey, Set.of(loadKey));
-            jigsawStructures.asList().removeIf(e -> loadKeys.contains((e.isJsonObject() ? e.getAsJsonObject().get("structure") : e).getAsString()));
-            jigsawStructures.add("snippet/" + loadKey);
-
-            String structureKey;
-            if (structures.size() > 1) {
-                KList<String> common = new KList<>();
-                for (int i = 0; i < structures.size(); i++) {
-                    var tags = structures.get(i).tags();
-                    if (i == 0) common.addAll(tags);
-                    else common.removeIf(tag -> !tags.contains(tag));
-                }
-                structureKey = common.isNotEmpty() ? "#" + common.getFirst() : structures.getFirst().key();
-            } else structureKey = structures.getFirst().key();
-
-            JsonArray array = new JsonArray();
-            if (structures.size() > 1) {
-                structures.stream()
-                        .flatMap(structure -> {
-                            String[] arr = new String[structure.weight()];
-                            Arrays.fill(arr, structure.key());
-                            return Arrays.stream(arr);
-                        })
-                        .forEach(array::add);
-            } else array.add(structureKey);
-
-            obj = new JsonObject();
-            obj.addProperty("structureKey", structureKey);
-            obj.add("datapackStructures", array);
-
-            File out = new File(structuresFolder, loadKey + ".json");
-            out.getParentFile().mkdirs();
-            try {
-                IO.writeAll(out, gson.toJson(obj));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-
-        dimensionObj.add("jigsawStructures", jigsawStructures);
-        IO.writeAll(dimensionFile, gson.toJson(dimensionObj));
-
-        data.hotloaded();
+        sender().sendMessage(C.YELLOW + "Legacy structure conversion hooks have been removed.");
+        sender().sendMessage(C.YELLOW + "Use intrinsic structure generation and datapack ingestion instead.");
     }
 
     @Director(description = "Test")

@@ -416,67 +416,7 @@ public class CommandStudio implements DirectorExecutor {
 
     @Director(description = "Get all structures in a radius of chunks", aliases = "dist", origin = DirectorOrigin.PLAYER)
     public void distances(@Param(description = "The radius in chunks") int radius) {
-        var engine = engine();
-        if (engine == null) {
-            sender().sendMessage(C.RED + "Only works in an Iris world!");
-            return;
-        }
-        var sender = sender();
-        int d = radius * 2;
-        KMap<String, KList<Position2>> data = new KMap<>();
-        var multiBurst = new MultiBurst("Distance Sampler");
-        var executor = multiBurst.burst(radius * radius);
-
-        sender.sendMessage(C.GRAY + "Generating data...");
-        var loc = player().getLocation();
-        int totalTasks = d * d;
-        AtomicInteger completedTasks = new AtomicInteger(0);
-        int c = J.ar(() -> {
-            sender.sendProgress((double) completedTasks.get() / totalTasks, "Finding structures");
-        }, 0);
-
-        new Spiraler(d, d, (x, z) -> executor.queue(() -> {
-            var struct = engine.getStructureAt(x, z);
-            if (struct != null) {
-                data.computeIfAbsent(struct.getLoadKey(), (k) -> new KList<>()).add(new Position2(x, z));
-            }
-            completedTasks.incrementAndGet();
-        })).setOffset(loc.getBlockX(), loc.getBlockZ()).drain();
-
-        executor.complete();
-        multiBurst.close();
-        J.car(c);
-
-        for (var key : data.keySet()) {
-            var list = data.get(key);
-            KList<Long> distances = new KList<>(list.size() - 1);
-            for (int i = 0; i < list.size(); i++) {
-                var pos = list.get(i);
-                double dist = Integer.MAX_VALUE;
-                for (var p : list) {
-                    if (p.equals(pos)) continue;
-                    dist = Math.min(dist, Math.sqrt(Math.pow(pos.getX() - p.getX(), 2) + Math.pow(pos.getZ() - p.getZ(), 2)));
-                }
-                if (dist == Integer.MAX_VALUE) continue;
-                distances.add(Math.round(dist * 16));
-            }
-            long[] array = new long[distances.size()];
-            for (int i = 0; i < distances.size(); i++) {
-                array[i] = distances.get(i);
-            }
-            Arrays.sort(array);
-            long min = array.length > 0 ? array[0] : 0;
-            long max = array.length > 0 ? array[array.length - 1] : 0;
-            long sum = Arrays.stream(array).sum();
-            long avg = array.length > 0 ? Math.round(sum / (double) array.length) : 0;
-            String msg = "%s: %s => min: %s/max: %s -> avg: %s".formatted(key, list.size(), min, max, avg);
-            sender.sendMessage(msg);
-        }
-        if (data.isEmpty()) {
-            sender.sendMessage(C.RED + "No data found!");
-        } else {
-            sender.sendMessage(C.GREEN + "Done!");
-        }
+        sender().sendMessage(C.YELLOW + "Structure distance sampling for legacy structure data has been removed.");
     }
 
 

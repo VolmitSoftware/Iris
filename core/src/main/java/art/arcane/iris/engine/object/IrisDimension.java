@@ -68,7 +68,6 @@ public class IrisDimension extends IrisRegistrant {
     private final transient AtomicCache<Double> cosr = new AtomicCache<>();
     private final transient AtomicCache<Double> rad = new AtomicCache<>();
     private final transient AtomicCache<Boolean> featuresUsed = new AtomicCache<>();
-    private final transient AtomicCache<KList<Position2>> strongholdsCache = new AtomicCache<>();
     private final transient AtomicCache<KMap<String, KList<String>>> cachedPreProcessors = new AtomicCache<>();
     @MinNumber(2)
     @Required
@@ -78,9 +77,6 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(2032)
     @Desc("Maximum height at which players can be teleported to through gameplay.")
     private int logicalHeight = 256;
-    @RegistryListResource(IrisJigsawStructure.class)
-    @Desc("If defined, Iris will place the given jigsaw structure where minecraft should place the overworld stronghold.")
-    private String stronghold;
     @Desc("If set to true, Iris will remove chunks to allow visualizing cross sections of chunks easily")
     private boolean debugChunkCrossSections = false;
     @Desc("Vertically split up the biome palettes with 3 air blocks in between to visualize them")
@@ -95,10 +91,6 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(16)
     @Desc("Every X/Z % debugCrossSectionsMod == 0 cuts the chunk")
     private int debugCrossSectionsMod = 3;
-    @Desc("The average distance between strongholds")
-    private int strongholdJumpDistance = 1280;
-    @Desc("Define the maximum strongholds to place")
-    private int maxStrongholds = 14;
     @Desc("Tree growth override settings")
     private IrisTreeSettings treeSettings = new IrisTreeSettings();
     @Desc("Spawn Entities in this dimension over time. Iris will continually replenish these mobs just like vanilla does.")
@@ -154,11 +146,6 @@ public class IrisDimension extends IrisRegistrant {
     @ArrayType(min = 1, type = String.class)
     @Desc("Define all of the regions to include in this dimension. Dimensions -> Regions -> Biomes -> Objects etc")
     private KList<String> regions = new KList<>();
-    @ArrayType(min = 1, type = IrisJigsawStructurePlacement.class)
-    @Desc("Jigsaw structures")
-    private KList<IrisJigsawStructurePlacement> jigsawStructures = new KList<>();
-    @Desc("The jigsaw structure divisor to use when generating missing jigsaw placement values")
-    private double jigsawStructureDivisor = 18;
     @Required
     @MinNumber(0)
     @MaxNumber(1024)
@@ -287,25 +274,6 @@ public class IrisDimension extends IrisRegistrant {
             }
         }
         return null;
-    }
-
-    public KList<Position2> getStrongholds(long seed) {
-        return strongholdsCache.aquire(() -> {
-            KList<Position2> pos = new KList<>();
-            int jump = strongholdJumpDistance;
-            RNG rng = new RNG((seed * 223) + 12945);
-            for (int i = 0; i < maxStrongholds + 1; i++) {
-                int m = i + 1;
-                pos.add(new Position2(
-                        (int) ((rng.i(jump * i) + (jump * i)) * (rng.b() ? -1D : 1D)),
-                        (int) ((rng.i(jump * i) + (jump * i)) * (rng.b() ? -1D : 1D))
-                ));
-            }
-
-            pos.remove(0);
-
-            return pos;
-        });
     }
 
     public int getFluidHeight() {

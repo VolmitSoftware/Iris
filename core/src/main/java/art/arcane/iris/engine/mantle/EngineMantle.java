@@ -24,7 +24,6 @@ import art.arcane.iris.core.nms.container.Pair;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineTarget;
-import art.arcane.iris.engine.mantle.components.MantleJigsawComponent;
 import art.arcane.iris.engine.mantle.components.MantleObjectComponent;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisPosition;
@@ -114,12 +113,10 @@ public interface EngineMantle extends MatterGenerator {
         return getComplex().getRoundedHeighteightStream().get(x, z);
     }
 
-    @Deprecated(forRemoval = true)
     default boolean isCarved(int x, int h, int z) {
         return getMantle().get(x, h, z, MatterCavern.class) != null;
     }
 
-    @Deprecated(forRemoval = true)
     default BlockData get(int x, int y, int z) {
         BlockData block = getMantle().get(x, y, z, BlockData.class);
         if (block == null)
@@ -225,8 +222,6 @@ public interface EngineMantle extends MatterGenerator {
     default int getLoadedRegionCount() {
         return getMantle().getLoadedRegionCount();
     }
-
-    MantleJigsawComponent getJigsawComponent();
 
     MantleObjectComponent getObjectComponent();
 

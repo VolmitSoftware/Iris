@@ -109,7 +109,6 @@ public class CommandIris implements DirectorExecutor {
     private CommandPregen pregen;
     private CommandSettings settings;
     private CommandObject object;
-    private CommandJigsaw jigsaw;
     private CommandWhat what;
     private CommandEdit edit;
     private CommandFind find;
@@ -694,7 +693,7 @@ public class CommandIris implements DirectorExecutor {
                 + C.GOLD + threadCount + C.GREEN + " worker(s). "
                 + C.GRAY + "Progress is shown on-screen.");
         if (regenMode == RegenMode.TERRAIN) {
-            Iris.warn("Regen running in terrain mode; mantle object/jigsaw stages are bypassed. Use mode=full to regenerate objects.");
+            Iris.warn("Regen running in terrain mode; mantle object stages are bypassed. Use mode=full to regenerate objects.");
         }
 
         Iris.info("Regen run start: id=" + runId
@@ -1497,7 +1496,6 @@ public class CommandIris implements DirectorExecutor {
             return new RegenMantleChunkState(
                     chunk.isFlagged(MantleFlag.PLANNED),
                     chunk.isFlagged(MantleFlag.OBJECT),
-                    chunk.isFlagged(MantleFlag.JIGSAW),
                     chunk.isFlagged(MantleFlag.REAL),
                     blockDataEntries.get(),
                     stringEntries.get(),
@@ -1855,7 +1853,6 @@ public class CommandIris implements DirectorExecutor {
     private record RegenMantleChunkState(
             boolean planned,
             boolean objectFlag,
-            boolean jigsawFlag,
             boolean realFlag,
             int blockDataEntries,
             int stringEntries,
@@ -1865,7 +1862,6 @@ public class CommandIris implements DirectorExecutor {
         private String describe() {
             return "flags[planned=" + planned
                     + ",object=" + objectFlag
-                    + ",jigsaw=" + jigsawFlag
                     + ",real=" + realFlag
                     + "] slices[blockData=" + blockDataEntries
                     + ",strings=" + stringEntries

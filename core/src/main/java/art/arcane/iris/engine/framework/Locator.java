@@ -23,7 +23,6 @@ import art.arcane.iris.core.nms.container.BlockPos;
 import art.arcane.iris.core.nms.container.Pair;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisJigsawStructure;
 import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.iris.util.project.context.ChunkContext;
@@ -63,13 +62,6 @@ public interface Locator<T> {
 
     static Locator<IrisRegion> region(String loadKey) {
         return (e, c) -> e.getRegion((c.getX() << 4) + 8, (c.getZ() << 4) + 8).getLoadKey().equals(loadKey);
-    }
-
-    static Locator<IrisJigsawStructure> jigsawStructure(String loadKey) {
-        return (e, c) -> {
-            IrisJigsawStructure s = e.getStructureAt(c.getX(), c.getZ());
-            return s != null && s.getLoadKey().equals(loadKey);
-        };
     }
 
     static Locator<IrisObject> object(String loadKey) {

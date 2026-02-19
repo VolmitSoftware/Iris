@@ -1,7 +1,6 @@
 package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.engine.object.IrisJigsawStructure;
 import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.Position2;
@@ -26,13 +25,6 @@ public interface ResultLocator<T> {
             LocatorCanceller.cancel.run();
             LocatorCanceller.cancel = null;
         }
-    }
-
-    static ResultLocator<IrisJigsawStructure> locateStructure(Collection<String> keys) {
-        return (e, pos) -> {
-            var structure = e.getStructureAt(pos.getX(), pos.getZ());
-            return structure != null && keys.contains(structure.getLoadKey()) ? structure : null;
-        };
     }
 
     static ResultLocator<IrisObject> locateObject(Collection<String> keys) {

@@ -20,7 +20,6 @@ package art.arcane.iris.core.commands;
 
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisJigsawStructure;
 import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.iris.util.common.director.DirectorExecutor;
 import art.arcane.volmlib.util.director.DirectorOrigin;
@@ -63,23 +62,6 @@ public class CommandFind implements DirectorExecutor {
         }
 
         e.gotoRegion(region, player(), teleport);
-    }
-
-    @Director(description = "Find a structure")
-    public void structure(
-            @Param(description = "The structure to look for")
-            IrisJigsawStructure structure,
-            @Param(description = "Should you be teleported", defaultValue = "true")
-            boolean teleport
-    ) {
-        Engine e = engine();
-
-        if (e == null) {
-            sender().sendMessage(C.GOLD + "Not in an Iris World!");
-            return;
-        }
-
-        e.gotoJigsaw(structure, player(), teleport);
     }
 
     @Director(description = "Find a point of interest.")

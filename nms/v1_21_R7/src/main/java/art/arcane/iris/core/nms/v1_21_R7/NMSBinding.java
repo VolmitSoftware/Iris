@@ -10,7 +10,6 @@ import art.arcane.iris.core.nms.container.BlockProperty;
 import art.arcane.iris.core.nms.datapack.DataVersion;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisJigsawStructurePlacement;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.util.project.agent.Agent;
 import art.arcane.volmlib.util.collection.KList;
@@ -814,8 +813,8 @@ public class NMSBinding implements INMSBinding {
                                 .separation(random.separation())
                                 .spacing(random.spacing())
                                 .spreadType(switch (random.spreadType()) {
-                                    case LINEAR -> IrisJigsawStructurePlacement.SpreadType.LINEAR;
-                                    case TRIANGULAR -> IrisJigsawStructurePlacement.SpreadType.TRIANGULAR;
+                                    case LINEAR -> StructurePlacement.SpreadType.LINEAR;
+                                    case TRIANGULAR -> StructurePlacement.SpreadType.TRIANGULAR;
                                 });
                     } else if (placement instanceof ConcentricRingsStructurePlacement rings) {
                         builder = StructurePlacement.ConcentricRings.builder()

@@ -1,7 +1,6 @@
 package art.arcane.iris.core.nms.container;
 
 import com.google.gson.JsonObject;
-import art.arcane.iris.engine.object.IrisJigsawStructurePlacement.SpreadType;
 import lombok.*;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
@@ -29,6 +28,11 @@ public abstract class StructurePlacement {
     public int frequencyToSpacing() {
         var frac = new Fraction(Math.max(Math.min(frequency, 1), 0.000000001f));
         return (int) Math.round(Math.sqrt((double) frac.getDenominator() / frac.getNumerator()));
+    }
+
+    public enum SpreadType {
+        LINEAR,
+        TRIANGULAR
     }
 
     @Getter

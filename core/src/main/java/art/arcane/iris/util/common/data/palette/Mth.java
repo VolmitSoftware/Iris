@@ -643,7 +643,6 @@ public class Mth {
         return Math.min(var0 * var0 * 0.6F + var1 * var1 * (3.0F + var1) / 4.0F + var2 * var2 * 0.8F, 1.0F);
     }
 
-    @Deprecated
     public static float rotlerp(float var0, float var1, float var2) {
         float var3 = var1 - var0;
         while (var3 < -180.0F)
@@ -653,7 +652,6 @@ public class Mth {
         return var0 + var2 * var3;
     }
 
-    @Deprecated
     public static float rotWrap(double var0) {
         while (var0 >= 180.0D)
             var0 -= 360.0D;

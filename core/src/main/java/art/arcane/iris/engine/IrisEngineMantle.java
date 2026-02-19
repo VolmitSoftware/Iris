@@ -29,7 +29,6 @@ import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.mantle.MantleComponent;
 import art.arcane.iris.engine.mantle.components.MantleCarvingComponent;
 import art.arcane.iris.engine.mantle.components.MantleFluidBodyComponent;
-import art.arcane.iris.engine.mantle.components.MantleJigsawComponent;
 import art.arcane.iris.engine.mantle.components.MantleObjectComponent;
 import art.arcane.iris.util.project.matter.IrisMatterSupport;
 import art.arcane.volmlib.util.collection.KList;
@@ -73,7 +72,6 @@ public class IrisEngineMantle implements EngineMantle {
     private final AtomicCache<List<Pair<List<MantleComponent>, Integer>>> componentsCache = new AtomicCache<>();
     private final AtomicCache<Set<MantleFlag>> disabledFlags = new AtomicCache<>();
     private final MantleObjectComponent object;
-    private final MantleJigsawComponent jigsaw;
 
     public IrisEngineMantle(Engine engine) {
         this.engine = engine;
@@ -81,8 +79,6 @@ public class IrisEngineMantle implements EngineMantle {
         components = new KMap<>();
         registerComponent(new MantleCarvingComponent(this));
         registerComponent(new MantleFluidBodyComponent(this));
-        jigsaw = new MantleJigsawComponent(this);
-        registerComponent(jigsaw);
         object = new MantleObjectComponent(this);
         registerComponent(object);
     }
@@ -158,11 +154,6 @@ public class IrisEngineMantle implements EngineMantle {
 
     private Set<MantleFlag> getDisabledFlags() {
         return disabledFlags.aquire(() -> Set.copyOf(getDimension().getDisabledComponents()));
-    }
-
-    @Override
-    public MantleJigsawComponent getJigsawComponent() {
-        return jigsaw;
     }
 
     @Override

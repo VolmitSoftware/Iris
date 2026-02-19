@@ -224,6 +224,8 @@ public class IrisSettings {
         public boolean useConsoleCustomColors = true;
         public boolean useCustomColorsIngame = true;
         public boolean adjustVanillaHeight = false;
+        public boolean importExternalDatapacks = true;
+        public boolean autoGenerateIntrinsicStructures = true;
         public String forceMainWorld = "";
         public int spinh = -20;
         public int spins = 7;

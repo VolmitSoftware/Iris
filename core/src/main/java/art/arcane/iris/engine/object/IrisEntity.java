@@ -153,7 +153,7 @@ public class IrisEntity extends IrisRegistrant {
     @Desc("The this entity is ageable, set it's baby status")
     private boolean baby = false;
 
-    @Desc("If the entity should never be culled. Useful for Jigsaws")
+    @Desc("If the entity should never be culled.")
     private boolean keepEntity = false;
 
     @Desc("The surface type to spawn this mob on")

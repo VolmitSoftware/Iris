@@ -3,17 +3,8 @@ package art.arcane.iris.core.nms.v1_21_R7;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.MapCodec;
 import art.arcane.iris.Iris;
+import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.ResultLocator;
-import art.arcane.iris.engine.framework.WrongEngineBroException;
-import art.arcane.iris.engine.object.IrisJigsawStructure;
-import art.arcane.iris.engine.object.IrisJigsawStructurePlacement;
-import art.arcane.iris.engine.object.IrisStructurePopulator;
-import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.volmlib.util.collection.KSet;
-import art.arcane.volmlib.util.mantle.flag.MantleFlag;
-import art.arcane.volmlib.util.math.Position2;
 import art.arcane.iris.util.common.reflect.WrappedField;
 import art.arcane.iris.util.common.reflect.WrappedReturningMethod;
 import net.minecraft.CrashReport;
@@ -25,8 +16,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.WorldGenRegion;
-import net.minecraft.tags.StructureTags;
-import net.minecraft.tags.TagKey;
 import net.minecraft.util.random.WeightedList;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.*;
@@ -42,14 +31,11 @@ import net.minecraft.world.level.levelgen.blending.Blender;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
-import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.v1_21_R7.CraftWorld;
 import org.bukkit.craftbukkit.v1_21_R7.generator.CustomChunkGenerator;
-import org.bukkit.craftbukkit.v1_21_R7.generator.structure.CraftStructure;
-import org.bukkit.event.world.AsyncStructureSpawnEvent;
 import org.spigotmc.SpigotWorldConfig;
 
 import javax.annotation.Nullable;
@@ -57,7 +43,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 public class IrisChunkGenerator extends CustomChunkGenerator {
@@ -65,105 +50,19 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
     private static final WrappedReturningMethod<Heightmap, Object> SET_HEIGHT;
     private final ChunkGenerator delegate;
     private final Engine engine;
-    private final KMap<ResourceKey<Structure>, KSet<String>> structures = new KMap<>();
-    private final IrisStructurePopulator populator;
 
     public IrisChunkGenerator(ChunkGenerator delegate, long seed, Engine engine, World world) {
         super(((CraftWorld) world).getHandle(), edit(delegate, new CustomBiomeSource(seed, engine, world)), null);
         this.delegate = delegate;
         this.engine = engine;
-        this.populator = new IrisStructurePopulator(engine);
-        var dimension = engine.getDimension();
-
-        KSet<IrisJigsawStructure> placements = new KSet<>();
-        addAll(dimension.getJigsawStructures(), placements);
-        for (var region : dimension.getAllRegions(engine)) {
-            addAll(region.getJigsawStructures(), placements);
-            for (var biome : region.getAllBiomes(engine))
-                addAll(biome.getJigsawStructures(), placements);
-        }
-        var stronghold = dimension.getStronghold();
-        if (stronghold != null)
-            placements.add(engine.getData().getJigsawStructureLoader().load(stronghold));
-        placements.removeIf(Objects::isNull);
-
-        var registry = ((CraftWorld) world).getHandle().registryAccess().lookup(Registries.STRUCTURE).orElseThrow();
-        for (var s : placements) {
-            try {
-                String raw = s.getStructureKey();
-                if (raw == null) continue;
-                boolean tag = raw.startsWith("#");
-                if (tag) raw = raw.substring(1);
-
-                var location = Identifier.parse(raw);
-                if (!tag) {
-                    structures.computeIfAbsent(ResourceKey.create(Registries.STRUCTURE, location), k -> new KSet<>()).add(s.getLoadKey());
-                    continue;
-                }
-
-                var key = TagKey.create(Registries.STRUCTURE, location);
-                var set = registry.get(key).orElse(null);
-                if (set == null) {
-                    Iris.error("Could not find structure tag: " + raw);
-                    continue;
-                }
-                for (var holder : set) {
-                    var resourceKey = holder.unwrapKey().orElse(null);
-                    if (resourceKey == null) continue;
-                    structures.computeIfAbsent(resourceKey, k -> new KSet<>()).add(s.getLoadKey());
-                }
-            } catch (Throwable e) {
-                Iris.error("Failed to load structure: " + s.getLoadKey());
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private void addAll(KList<IrisJigsawStructurePlacement> placements, KSet<IrisJigsawStructure> structures) {
-        if (placements == null) return;
-        placements.stream()
-                .map(IrisJigsawStructurePlacement::getStructure)
-                .map(engine.getData().getJigsawStructureLoader()::load)
-                .filter(Objects::nonNull)
-                .forEach(structures::add);
     }
 
     @Override
     public @Nullable Pair<BlockPos, Holder<Structure>> findNearestMapStructure(ServerLevel level, HolderSet<Structure> holders, BlockPos pos, int radius, boolean findUnexplored) {
         if (holders.size() == 0) return null;
-        if (holders.unwrapKey().orElse(null) == StructureTags.EYE_OF_ENDER_LOCATED) {
-            var next = engine.getNearestStronghold(new Position2(pos.getX(), pos.getZ()));
-            return next == null ? null : new Pair<>(new BlockPos(next.getX(), 0, next.getZ()), holders.get(0));
-        }
         if (engine.getDimension().isDisableExplorerMaps())
             return null;
-
-        KMap<String, Holder<Structure>> structures = new KMap<>();
-        for (var holder : holders) {
-            if (holder == null) continue;
-            var key = holder.unwrapKey().orElse(null);
-            var set = this.structures.get(key);
-            if (set == null) continue;
-            for (var structure : set) {
-                structures.put(structure, holder);
-            }
-        }
-        if (structures.isEmpty())
-            return null;
-
-        var locator = ResultLocator.locateStructure(structures.keySet())
-                .then((e, p , s) -> structures.get(s.getLoadKey()));
-        if (findUnexplored)
-            locator = locator.then((e, p, s) -> e.getMantle().getMantle().getChunk(p.getX(), p.getZ()).isFlagged(MantleFlag.DISCOVERED) ? null : s);
-
-        try {
-            var result = locator.find(engine, new Position2(pos.getX() >> 4, pos.getZ() >> 4), radius * 10L, i -> {}, false).get();
-            if (result == null) return null;
-            var blockPos = new BlockPos(result.getBlockX(), 0, result.getBlockZ());
-            return Pair.of(blockPos, result.obj());
-        } catch (WrongEngineBroException | ExecutionException | InterruptedException e) {
-            return null;
-        }
+        return delegate.findNearestMapStructure(level, holders, pos, radius, findUnexplored);
     }
 
     @Override
@@ -192,58 +91,10 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
     public void createStructures(RegistryAccess registryAccess, ChunkGeneratorStructureState structureState, StructureManager structureManager, ChunkAccess access, StructureTemplateManager templateManager, ResourceKey<Level> levelKey) {
         if (!structureManager.shouldGenerateStructures())
             return;
-        var chunkPos = access.getPos();
-        var sectionPos = SectionPos.bottomOf(access);
-        var registry = registryAccess.lookupOrThrow(Registries.STRUCTURE);
-        populator.populateStructures(chunkPos.x, chunkPos.z, (key, ignoreBiomes) -> {
-            var loc = Identifier.tryParse(key);
-            if (loc == null) return false;
-            var holder = registry.get(loc).orElse(null);
-            if (holder == null) return false;
-            var structure = holder.value();
-            var biomes = structure.biomes();
-
-            var start = structure.generate(
-                    holder,
-                    levelKey,
-                    registryAccess,
-                    this,
-                    biomeSource,
-                    structureState.randomState(),
-                    templateManager,
-                    structureState.getLevelSeed(),
-                    chunkPos,
-                    fetchReferences(structureManager, access, sectionPos, structure),
-                    access,
-                    biome -> ignoreBiomes || biomes.contains(biome)
-            );
-
-            if (!start.isValid())
-                return false;
-
-            BoundingBox box = start.getBoundingBox();
-            AsyncStructureSpawnEvent event = new AsyncStructureSpawnEvent(
-                    structureManager.level.getMinecraftWorld().getWorld(),
-                    CraftStructure.minecraftToBukkit(structure),
-                    new org.bukkit.util.BoundingBox(
-                            box.minX(),
-                            box.minY(),
-                            box.minZ(),
-                            box.maxX(),
-                            box.maxY(),
-                            box.maxZ()
-                    ), chunkPos.x, chunkPos.z);
-            Bukkit.getPluginManager().callEvent(event);
-            if (!event.isCancelled()) {
-                structureManager.setStartForStructure(sectionPos, structure, start, access);
-            }
-            return true;
-        });
-    }
-
-    private static int fetchReferences(StructureManager structureManager, ChunkAccess access, SectionPos sectionPos, Structure structure) {
-        StructureStart structurestart = structureManager.getStartForStructure(sectionPos, structure, access);
-        return structurestart != null ? structurestart.getReferences() : 0;
+        if (!IrisSettings.get().getGeneral().isAutoGenerateIntrinsicStructures()) {
+            return;
+        }
+        delegate.createStructures(registryAccess, structureState, structureManager, access, templateManager, levelKey);
     }
 
     @Override

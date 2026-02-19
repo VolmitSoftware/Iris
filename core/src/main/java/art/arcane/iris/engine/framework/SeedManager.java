@@ -46,7 +46,6 @@ public class SeedManager {
     private final long decorator;
     private final long terrain;
     private final long spawn;
-    private final long jigsaw;
     private final long carve;
     private final long deposit;
     private final long post;
@@ -71,7 +70,6 @@ public class SeedManager {
         decorator = of("decorator");
         terrain = of("terrain");
         spawn = of("spawn");
-        jigsaw = of("jigsaw");
         carve = of("carve");
         deposit = of("deposit");
         post = of("post");

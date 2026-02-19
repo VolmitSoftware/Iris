@@ -63,7 +63,6 @@ public final class IrisNoisemapPrebakePipeline {
             "generators",
             "caves",
             "ravines",
-            "jigsaw-structures",
             "mods",
             "expressions"
     );
@@ -74,9 +73,6 @@ public final class IrisNoisemapPrebakePipeline {
             "generators",
             "caves",
             "ravines",
-            "jigsaw-structures",
-            "jigsaw-pools",
-            "jigsaw-pieces",
             "mods",
             "expressions",
             "scripts",
@@ -791,7 +787,6 @@ public final class IrisNoisemapPrebakePipeline {
                 seedManager.getDecorator(),
                 seedManager.getTerrain(),
                 seedManager.getSpawn(),
-                seedManager.getJigsaw(),
                 seedManager.getCarve(),
                 seedManager.getDeposit(),
                 seedManager.getPost(),

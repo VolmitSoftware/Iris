@@ -27,7 +27,6 @@ import art.arcane.volmlib.util.math.DOP;
 import art.arcane.volmlib.util.math.VectorMath;
 import org.bukkit.Axis;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.data.type.Jigsaw;
 import org.bukkit.util.Vector;
 
 import java.util.Map;
@@ -74,27 +73,6 @@ public enum IrisDirection {
             case SELF, UP -> UP_POSITIVE_Y;
             case SOUTH, SOUTH_EAST, SOUTH_SOUTH_EAST, SOUTH_SOUTH_WEST, SOUTH_WEST -> SOUTH_POSITIVE_Z;
             case WEST, WEST_NORTH_WEST, WEST_SOUTH_WEST -> WEST_NEGATIVE_X;
-        };
-
-    }
-
-    public static IrisDirection fromJigsawBlock(String direction) {
-        for (IrisDirection i : IrisDirection.values()) {
-            if (i.name().toLowerCase().split("\\Q_\\E")[0]
-                    .equals(direction.split("\\Q_\\E")[0])) {
-                return i;
-            }
-        }
-
-        return null;
-    }
-
-    public static IrisDirection getDirection(Jigsaw.Orientation orientation) {
-        return switch (orientation) {
-            case DOWN_EAST, UP_EAST, EAST_UP -> EAST_POSITIVE_X;
-            case DOWN_NORTH, UP_NORTH, NORTH_UP -> NORTH_NEGATIVE_Z;
-            case DOWN_SOUTH, UP_SOUTH, SOUTH_UP -> SOUTH_POSITIVE_Z;
-            case DOWN_WEST, UP_WEST, WEST_UP -> WEST_NEGATIVE_X;
         };
 
     }

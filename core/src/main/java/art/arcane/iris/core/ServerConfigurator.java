@@ -27,6 +27,7 @@ import art.arcane.iris.engine.object.*;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
+import art.arcane.volmlib.util.io.IO;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.iris.util.common.misc.ServerProperties;
 import art.arcane.iris.util.common.plugin.VolmitSender;
@@ -41,6 +42,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -119,6 +122,7 @@ public class ServerConfigurator {
         Iris.info("Checking Data Packs...");
         DimensionHeight height = new DimensionHeight(fixer);
         KList<File> folders = getDatapacksFolder();
+        installExternalDataPacks(folders);
         KMap<String, KSet<String>> biomes = new KMap<>();
 
         try (Stream<IrisData> stream = allPacks()) {
@@ -134,6 +138,52 @@ public class ServerConfigurator {
         Iris.info("Data Packs Setup!");
 
         return fullInstall && verifyDataPacksPost(IrisSettings.get().getAutoConfiguration().isAutoRestartOnCustomBiomeInstall());
+    }
+
+    private static void installExternalDataPacks(KList<File> folders) {
+        if (!IrisSettings.get().getGeneral().isImportExternalDatapacks()) {
+            return;
+        }
+
+        File source = Iris.instance.getDataFolder("datapacks");
+        source.mkdirs();
+        File[] datapacks = source.listFiles();
+        if (datapacks == null || datapacks.length == 0) {
+            return;
+        }
+
+        int copied = 0;
+        for (File targetFolder : folders) {
+            targetFolder.mkdirs();
+            for (File entry : datapacks) {
+                if (entry == null || !entry.exists() || entry.getName().startsWith(".")) {
+                    continue;
+                }
+
+                File output = new File(targetFolder, entry.getName());
+                try {
+                    if (entry.isDirectory()) {
+                        IO.copyDirectory(entry.toPath(), output.toPath());
+                    } else if (entry.isFile()) {
+                        File parent = output.getParentFile();
+                        if (parent != null) {
+                            parent.mkdirs();
+                        }
+                        Files.copy(entry.toPath(), output.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    } else {
+                        continue;
+                    }
+                    copied++;
+                } catch (Throwable e) {
+                    Iris.warn("Failed to install datapack \"" + entry.getName() + "\" into \"" + targetFolder.getPath() + "\"");
+                    Iris.reportError(e);
+                }
+            }
+        }
+
+        if (copied > 0) {
+            Iris.info("Installed " + copied + " external datapack copy operation" + (copied == 1 ? "" : "s") + " from " + source.getPath());
+        }
     }
 
     private static boolean verifyDataPacksPost(boolean allowRestarting) {

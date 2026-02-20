@@ -203,8 +203,15 @@ public class CustomBiomeSource extends BiomeSource {
 
         int blockX = x << 2;
         int blockZ = z << 2;
-        int blockY = (y - engine.getMinHeight()) << 2;
-        IrisBiome irisBiome = engine.getComplex().getTrueBiomeStream().get(blockX, blockZ);
+        int blockY = y << 2;
+        int surfaceY = engine.getComplex().getHeightStream().get(blockX, blockZ).intValue();
+        boolean underground = blockY <= surfaceY - 2;
+        IrisBiome irisBiome = underground
+                ? engine.getComplex().getCaveBiomeStream().get(blockX, blockZ)
+                : engine.getComplex().getTrueBiomeStream().get(blockX, blockZ);
+        if (irisBiome == null && underground) {
+            irisBiome = engine.getComplex().getTrueBiomeStream().get(blockX, blockZ);
+        }
         if (irisBiome == null) {
             return getFallbackBiome();
         }
@@ -226,7 +233,9 @@ public class CustomBiomeSource extends BiomeSource {
             return getFallbackBiome();
         }
 
-        org.bukkit.block.Biome vanillaBiome = irisBiome.getSkyBiome(noiseRng, blockX, blockY, blockZ);
+        org.bukkit.block.Biome vanillaBiome = underground
+                ? irisBiome.getGroundBiome(noiseRng, blockX, blockY, blockZ)
+                : irisBiome.getSkyBiome(noiseRng, blockX, blockY, blockZ);
         Holder<Biome> holder = NMSBinding.biomeToBiomeBase(biomeRegistry, vanillaBiome);
         if (holder != null) {
             return holder;

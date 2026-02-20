@@ -144,6 +144,8 @@ public class IrisDimension extends IrisRegistrant {
     private boolean postProcessingWalls = true;
     @Desc("Carving configuration for the dimension")
     private IrisCarving carving = new IrisCarving();
+    @Desc("Profile-driven 3D cave configuration")
+    private IrisCaveProfile caveProfile = new IrisCaveProfile();
     @Desc("Configuration of fluid bodies such as rivers & lakes")
     private IrisFluidBodies fluidBodies = new IrisFluidBodies();
     @Desc("forceConvertTo320Height")

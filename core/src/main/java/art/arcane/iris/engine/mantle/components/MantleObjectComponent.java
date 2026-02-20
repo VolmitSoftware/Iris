@@ -63,21 +63,29 @@ public class MantleObjectComponent extends IrisMantleComponent {
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
-        IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
+        IrisBiome surfaceBiome = getComplex().getTrueBiomeStream().get(xxx, zzz);
+        IrisBiome caveBiome = getComplex().getCaveBiomeStream().get(xxx, zzz);
         if (traceRegen) {
             Iris.info("Regen object layer start: chunk=" + x + "," + z
-                    + " biome=" + biome.getLoadKey()
+                    + " surfaceBiome=" + surfaceBiome.getLoadKey()
+                    + " caveBiome=" + caveBiome.getLoadKey()
                     + " region=" + region.getLoadKey()
-                    + " biomePlacers=" + biome.getSurfaceObjects().size()
-                    + " regionPlacers=" + region.getSurfaceObjects().size());
+                    + " biomeSurfacePlacers=" + surfaceBiome.getSurfaceObjects().size()
+                    + " biomeCavePlacers=" + caveBiome.getCarvingObjects().size()
+                    + " regionSurfacePlacers=" + region.getSurfaceObjects().size()
+                    + " regionCavePlacers=" + region.getCarvingObjects().size());
         }
-        ObjectPlacementSummary summary = placeObjects(writer, rng, x, z, biome, region, traceRegen);
+        ObjectPlacementSummary summary = placeObjects(writer, rng, x, z, surfaceBiome, caveBiome, region, traceRegen);
         if (traceRegen) {
             Iris.info("Regen object layer done: chunk=" + x + "," + z
-                    + " biomePlacersChecked=" + summary.biomePlacersChecked()
-                    + " biomePlacersTriggered=" + summary.biomePlacersTriggered()
-                    + " regionPlacersChecked=" + summary.regionPlacersChecked()
-                    + " regionPlacersTriggered=" + summary.regionPlacersTriggered()
+                    + " biomeSurfacePlacersChecked=" + summary.biomeSurfacePlacersChecked()
+                    + " biomeSurfacePlacersTriggered=" + summary.biomeSurfacePlacersTriggered()
+                    + " biomeCavePlacersChecked=" + summary.biomeCavePlacersChecked()
+                    + " biomeCavePlacersTriggered=" + summary.biomeCavePlacersTriggered()
+                    + " regionSurfacePlacersChecked=" + summary.regionSurfacePlacersChecked()
+                    + " regionSurfacePlacersTriggered=" + summary.regionSurfacePlacersTriggered()
+                    + " regionCavePlacersChecked=" + summary.regionCavePlacersChecked()
+                    + " regionCavePlacersTriggered=" + summary.regionCavePlacersTriggered()
                     + " objectAttempts=" + summary.objectAttempts()
                     + " objectPlaced=" + summary.objectPlaced()
                     + " objectRejected=" + summary.objectRejected()
@@ -92,32 +100,40 @@ public class MantleObjectComponent extends IrisMantleComponent {
     }
 
     @ChunkCoordinates
-    private ObjectPlacementSummary placeObjects(MantleWriter writer, RNG rng, int x, int z, IrisBiome biome, IrisRegion region, boolean traceRegen) {
-        int biomeChecked = 0;
-        int biomeTriggered = 0;
-        int regionChecked = 0;
-        int regionTriggered = 0;
+    private ObjectPlacementSummary placeObjects(MantleWriter writer, RNG rng, int x, int z, IrisBiome surfaceBiome, IrisBiome caveBiome, IrisRegion region, boolean traceRegen) {
+        int biomeSurfaceChecked = 0;
+        int biomeSurfaceTriggered = 0;
+        int biomeCaveChecked = 0;
+        int biomeCaveTriggered = 0;
+        int regionSurfaceChecked = 0;
+        int regionSurfaceTriggered = 0;
+        int regionCaveChecked = 0;
+        int regionCaveTriggered = 0;
         int attempts = 0;
         int placed = 0;
         int rejected = 0;
         int nullObjects = 0;
         int errors = 0;
+        IrisCaveProfile biomeCaveProfile = resolveCaveProfile(caveBiome.getCaveProfile(), region.getCaveProfile());
+        IrisCaveProfile regionCaveProfile = resolveCaveProfile(region.getCaveProfile(), caveBiome.getCaveProfile());
+        int biomeSurfaceExclusionDepth = resolveSurfaceObjectExclusionDepth(biomeCaveProfile);
+        int regionSurfaceExclusionDepth = resolveSurfaceObjectExclusionDepth(regionCaveProfile);
 
-        for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
-            biomeChecked++;
+        for (IrisObjectPlacement i : surfaceBiome.getSurfaceObjects()) {
+            biomeSurfaceChecked++;
             boolean chance = rng.chance(i.getChance() + rng.d(-0.005, 0.005));
             if (traceRegen) {
                 Iris.info("Regen object placer chance: chunk=" + x + "," + z
-                        + " scope=biome"
+                        + " scope=biome-surface"
                         + " chanceResult=" + chance
                         + " chanceBase=" + i.getChance()
                         + " densityMid=" + i.getDensity()
                         + " objects=" + i.getPlace().size());
             }
             if (chance) {
-                biomeTriggered++;
+                biomeSurfaceTriggered++;
                 try {
-                    ObjectPlacementResult result = placeObject(writer, rng, x << 4, z << 4, i, traceRegen, x, z, "biome");
+                    ObjectPlacementResult result = placeObject(writer, rng, x << 4, z << 4, i, biomeSurfaceExclusionDepth, traceRegen, x, z, "biome-surface");
                     attempts += result.attempts();
                     placed += result.placed();
                     rejected += result.rejected();
@@ -126,7 +142,41 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 } catch (Throwable e) {
                     errors++;
                     Iris.reportError(e);
-                    Iris.error("Failed to place objects in the following biome: " + biome.getName());
+                    Iris.error("Failed to place objects in the following biome: " + surfaceBiome.getName());
+                    Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
+                    Iris.error("Are these objects missing?");
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        for (IrisObjectPlacement i : caveBiome.getCarvingObjects()) {
+            if (!i.getCarvingSupport().equals(CarvingMode.CARVING_ONLY)) {
+                continue;
+            }
+            biomeCaveChecked++;
+            boolean chance = rng.chance(i.getChance() + rng.d(-0.005, 0.005));
+            if (traceRegen) {
+                Iris.info("Regen object placer chance: chunk=" + x + "," + z
+                        + " scope=biome-cave"
+                        + " chanceResult=" + chance
+                        + " chanceBase=" + i.getChance()
+                        + " densityMid=" + i.getDensity()
+                        + " objects=" + i.getPlace().size());
+            }
+            if (chance) {
+                biomeCaveTriggered++;
+                try {
+                    ObjectPlacementResult result = placeCaveObject(writer, rng, x, z, i, biomeCaveProfile, traceRegen, x, z, "biome-cave");
+                    attempts += result.attempts();
+                    placed += result.placed();
+                    rejected += result.rejected();
+                    nullObjects += result.nullObjects();
+                    errors += result.errors();
+                } catch (Throwable e) {
+                    errors++;
+                    Iris.reportError(e);
+                    Iris.error("Failed to place cave objects in the following biome: " + caveBiome.getName());
                     Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
                     Iris.error("Are these objects missing?");
                     e.printStackTrace();
@@ -135,20 +185,20 @@ public class MantleObjectComponent extends IrisMantleComponent {
         }
 
         for (IrisObjectPlacement i : region.getSurfaceObjects()) {
-            regionChecked++;
+            regionSurfaceChecked++;
             boolean chance = rng.chance(i.getChance() + rng.d(-0.005, 0.005));
             if (traceRegen) {
                 Iris.info("Regen object placer chance: chunk=" + x + "," + z
-                        + " scope=region"
+                        + " scope=region-surface"
                         + " chanceResult=" + chance
                         + " chanceBase=" + i.getChance()
                         + " densityMid=" + i.getDensity()
                         + " objects=" + i.getPlace().size());
             }
             if (chance) {
-                regionTriggered++;
+                regionSurfaceTriggered++;
                 try {
-                    ObjectPlacementResult result = placeObject(writer, rng, x << 4, z << 4, i, traceRegen, x, z, "region");
+                    ObjectPlacementResult result = placeObject(writer, rng, x << 4, z << 4, i, regionSurfaceExclusionDepth, traceRegen, x, z, "region-surface");
                     attempts += result.attempts();
                     placed += result.placed();
                     rejected += result.rejected();
@@ -165,11 +215,49 @@ public class MantleObjectComponent extends IrisMantleComponent {
             }
         }
 
+        for (IrisObjectPlacement i : region.getCarvingObjects()) {
+            if (!i.getCarvingSupport().equals(CarvingMode.CARVING_ONLY)) {
+                continue;
+            }
+            regionCaveChecked++;
+            boolean chance = rng.chance(i.getChance() + rng.d(-0.005, 0.005));
+            if (traceRegen) {
+                Iris.info("Regen object placer chance: chunk=" + x + "," + z
+                        + " scope=region-cave"
+                        + " chanceResult=" + chance
+                        + " chanceBase=" + i.getChance()
+                        + " densityMid=" + i.getDensity()
+                        + " objects=" + i.getPlace().size());
+            }
+            if (chance) {
+                regionCaveTriggered++;
+                try {
+                    ObjectPlacementResult result = placeCaveObject(writer, rng, x, z, i, regionCaveProfile, traceRegen, x, z, "region-cave");
+                    attempts += result.attempts();
+                    placed += result.placed();
+                    rejected += result.rejected();
+                    nullObjects += result.nullObjects();
+                    errors += result.errors();
+                } catch (Throwable e) {
+                    errors++;
+                    Iris.reportError(e);
+                    Iris.error("Failed to place cave objects in the following region: " + region.getName());
+                    Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
+                    Iris.error("Are these objects missing?");
+                    e.printStackTrace();
+                }
+            }
+        }
+
         return new ObjectPlacementSummary(
-                biomeChecked,
-                biomeTriggered,
-                regionChecked,
-                regionTriggered,
+                biomeSurfaceChecked,
+                biomeSurfaceTriggered,
+                biomeCaveChecked,
+                biomeCaveTriggered,
+                regionSurfaceChecked,
+                regionSurfaceTriggered,
+                regionCaveChecked,
+                regionCaveTriggered,
                 attempts,
                 placed,
                 rejected,
@@ -185,6 +273,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             int x,
             int z,
             IrisObjectPlacement objectPlacement,
+            int surfaceObjectExclusionDepth,
             boolean traceRegen,
             int chunkX,
             int chunkZ,
@@ -213,6 +302,11 @@ public class MantleObjectComponent extends IrisMantleComponent {
             }
             int xx = rng.i(x, x + 15);
             int zz = rng.i(z, z + 15);
+            int surfaceObjectExclusionRadius = resolveSurfaceObjectExclusionRadius(v);
+            if (surfaceObjectExclusionDepth > 0 && hasSurfaceCarveExposure(writer, xx, zz, surfaceObjectExclusionDepth, surfaceObjectExclusionRadius)) {
+                rejected++;
+                continue;
+            }
             int id = rng.i(0, Integer.MAX_VALUE);
             try {
                 int result = v.place(xx, -1, zz, writer, objectPlacement, rng, (b, data) -> {
@@ -253,16 +347,270 @@ public class MantleObjectComponent extends IrisMantleComponent {
         return new ObjectPlacementResult(attempts, placed, rejected, nullObjects, errors);
     }
 
+    @ChunkCoordinates
+    private ObjectPlacementResult placeCaveObject(
+            MantleWriter writer,
+            RNG rng,
+            int chunkX,
+            int chunkZ,
+            IrisObjectPlacement objectPlacement,
+            IrisCaveProfile caveProfile,
+            boolean traceRegen,
+            int metricChunkX,
+            int metricChunkZ,
+            String scope
+    ) {
+        int attempts = 0;
+        int placed = 0;
+        int rejected = 0;
+        int nullObjects = 0;
+        int errors = 0;
+        int minX = chunkX << 4;
+        int minZ = chunkZ << 4;
+        int density = objectPlacement.getDensity(rng, minX, minZ, getData());
+        KMap<Long, KList<Integer>> anchorCache = new KMap<>();
+        IrisCaveAnchorMode anchorMode = resolveAnchorMode(objectPlacement, caveProfile);
+        int anchorScanStep = resolveAnchorScanStep(caveProfile);
+        int objectMinDepthBelowSurface = resolveObjectMinDepthBelowSurface(caveProfile);
+        int anchorSearchAttempts = resolveAnchorSearchAttempts(caveProfile);
+
+        for (int i = 0; i < density; i++) {
+            attempts++;
+            IrisObject object = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
+            if (object == null) {
+                nullObjects++;
+                if (traceRegen) {
+                    Iris.warn("Regen cave object placement null object: chunk=" + metricChunkX + "," + metricChunkZ
+                            + " scope=" + scope
+                            + " densityIndex=" + i
+                            + " density=" + density
+                            + " placementKeys=" + objectPlacement.getPlace().toString(","));
+                }
+                continue;
+            }
+
+            int x = 0;
+            int z = 0;
+            int y = -1;
+            for (int search = 0; search < anchorSearchAttempts; search++) {
+                int candidateX = rng.i(minX, minX + 15);
+                int candidateZ = rng.i(minZ, minZ + 15);
+                int candidateY = findCaveAnchorY(writer, rng, candidateX, candidateZ, anchorMode, anchorScanStep, objectMinDepthBelowSurface, anchorCache);
+                if (candidateY < 0) {
+                    continue;
+                }
+
+                x = candidateX;
+                z = candidateZ;
+                y = candidateY;
+                break;
+            }
+
+            if (y < 0) {
+                rejected++;
+                continue;
+            }
+
+            int id = rng.i(0, Integer.MAX_VALUE);
+
+            try {
+                int result = object.place(x, y, z, writer, objectPlacement, rng, (b, data) -> {
+                    writer.setData(b.getX(), b.getY(), b.getZ(), object.getLoadKey() + "@" + id);
+                    if (objectPlacement.isDolphinTarget() && objectPlacement.isUnderwater() && B.isStorageChest(data)) {
+                        writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
+                    }
+                }, null, getData());
+
+                if (result >= 0) {
+                    placed++;
+                } else {
+                    rejected++;
+                }
+
+                if (traceRegen) {
+                    Iris.info("Regen cave object placement result: chunk=" + metricChunkX + "," + metricChunkZ
+                            + " scope=" + scope
+                            + " object=" + object.getLoadKey()
+                            + " resultY=" + result
+                            + " anchorY=" + y
+                            + " px=" + x
+                            + " pz=" + z
+                            + " densityIndex=" + i
+                            + " density=" + density);
+                }
+            } catch (Throwable e) {
+                errors++;
+                Iris.reportError(e);
+                Iris.error("Regen cave object placement exception: chunk=" + metricChunkX + "," + metricChunkZ
+                        + " scope=" + scope
+                        + " object=" + object.getLoadKey()
+                        + " densityIndex=" + i
+                        + " density=" + density
+                        + " error=" + e.getClass().getSimpleName() + ":" + e.getMessage());
+            }
+        }
+
+        return new ObjectPlacementResult(attempts, placed, rejected, nullObjects, errors);
+    }
+
+    private int findCaveAnchorY(MantleWriter writer, RNG rng, int x, int z, IrisCaveAnchorMode anchorMode, int anchorScanStep, int objectMinDepthBelowSurface, KMap<Long, KList<Integer>> anchorCache) {
+        long key = Cache.key(x, z);
+        KList<Integer> anchors = anchorCache.computeIfAbsent(key, (k) -> scanCaveAnchorColumn(writer, anchorMode, anchorScanStep, objectMinDepthBelowSurface, x, z));
+        if (anchors.isEmpty()) {
+            return -1;
+        }
+
+        if (anchors.size() == 1) {
+            return anchors.get(0);
+        }
+
+        return anchors.get(rng.i(0, anchors.size() - 1));
+    }
+
+    private KList<Integer> scanCaveAnchorColumn(MantleWriter writer, IrisCaveAnchorMode anchorMode, int anchorScanStep, int objectMinDepthBelowSurface, int x, int z) {
+        KList<Integer> anchors = new KList<>();
+        int height = getEngineMantle().getEngine().getHeight();
+        int step = Math.max(1, anchorScanStep);
+        int surfaceY = getEngineMantle().getEngine().getHeight(x, z);
+        int maxAnchorY = Math.min(height - 1, surfaceY - Math.max(0, objectMinDepthBelowSurface));
+        if (maxAnchorY <= 1) {
+            return anchors;
+        }
+
+        for (int y = 1; y < maxAnchorY; y += step) {
+            if (!writer.isCarved(x, y, z)) {
+                continue;
+            }
+
+            boolean solidBelow = y <= 0 || !writer.isCarved(x, y - 1, z);
+            boolean solidAbove = y >= (height - 1) || !writer.isCarved(x, y + 1, z);
+            if (matchesCaveAnchor(anchorMode, solidBelow, solidAbove)) {
+                anchors.add(y);
+            }
+        }
+
+        return anchors;
+    }
+
+    private boolean matchesCaveAnchor(IrisCaveAnchorMode anchorMode, boolean solidBelow, boolean solidAbove) {
+        return switch (anchorMode) {
+            case PROFILE_DEFAULT, FLOOR -> solidBelow;
+            case CEILING -> solidAbove;
+            case CENTER -> !solidBelow && !solidAbove;
+            case ANY -> true;
+        };
+    }
+
+    private IrisCaveProfile resolveCaveProfile(IrisCaveProfile preferred, IrisCaveProfile secondary) {
+        IrisCaveProfile dimensionProfile = getDimension().getCaveProfile();
+        if (preferred != null && preferred.isEnabled()) {
+            return preferred;
+        }
+
+        if (secondary != null && secondary.isEnabled()) {
+            return secondary;
+        }
+
+        if (dimensionProfile != null) {
+            return dimensionProfile;
+        }
+
+        return new IrisCaveProfile();
+    }
+
+    private IrisCaveAnchorMode resolveAnchorMode(IrisObjectPlacement objectPlacement, IrisCaveProfile caveProfile) {
+        IrisCaveAnchorMode placementMode = objectPlacement.getCaveAnchorMode();
+        if (placementMode != null && !placementMode.equals(IrisCaveAnchorMode.PROFILE_DEFAULT)) {
+            return placementMode;
+        }
+
+        if (caveProfile == null) {
+            return IrisCaveAnchorMode.FLOOR;
+        }
+
+        IrisCaveAnchorMode profileMode = caveProfile.getDefaultObjectAnchor();
+        if (profileMode == null || profileMode.equals(IrisCaveAnchorMode.PROFILE_DEFAULT)) {
+            return IrisCaveAnchorMode.FLOOR;
+        }
+
+        return profileMode;
+    }
+
+    private int resolveAnchorScanStep(IrisCaveProfile caveProfile) {
+        if (caveProfile == null) {
+            return 1;
+        }
+
+        return Math.max(1, caveProfile.getAnchorScanStep());
+    }
+
+    private int resolveObjectMinDepthBelowSurface(IrisCaveProfile caveProfile) {
+        if (caveProfile == null) {
+            return 6;
+        }
+
+        return Math.max(0, caveProfile.getObjectMinDepthBelowSurface());
+    }
+
+    private int resolveSurfaceObjectExclusionDepth(IrisCaveProfile caveProfile) {
+        if (caveProfile == null) {
+            return 5;
+        }
+
+        return Math.max(0, caveProfile.getSurfaceObjectExclusionDepth());
+    }
+
+    private int resolveSurfaceObjectExclusionRadius(IrisObject object) {
+        if (object == null) {
+            return 1;
+        }
+
+        int maxDimension = Math.max(object.getW(), object.getD());
+        return Math.max(1, Math.min(8, Math.floorDiv(Math.max(1, maxDimension), 2)));
+    }
+
+    private int resolveAnchorSearchAttempts(IrisCaveProfile caveProfile) {
+        if (caveProfile == null) {
+            return 6;
+        }
+
+        return Math.max(1, caveProfile.getAnchorSearchAttempts());
+    }
+
+    private boolean hasSurfaceCarveExposure(MantleWriter writer, int x, int z, int depth, int radius) {
+        int horizontalRadius = Math.max(0, radius);
+        for (int dx = -horizontalRadius; dx <= horizontalRadius; dx++) {
+            for (int dz = -horizontalRadius; dz <= horizontalRadius; dz++) {
+                int columnX = x + dx;
+                int columnZ = z + dz;
+                int surfaceY = getEngineMantle().getEngine().getHeight(columnX, columnZ, true);
+                int fromY = Math.max(1, surfaceY - Math.max(0, depth));
+                int toY = Math.min(getEngineMantle().getEngine().getHeight() - 1, surfaceY + 1);
+                for (int y = fromY; y <= toY; y++) {
+                    if (writer.isCarved(columnX, y, columnZ)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     private boolean isRegenTraceThread() {
         return Thread.currentThread().getName().startsWith("Iris-Regen-")
                 && IrisSettings.get().getGeneral().isDebug();
     }
 
     private record ObjectPlacementSummary(
-            int biomePlacersChecked,
-            int biomePlacersTriggered,
-            int regionPlacersChecked,
-            int regionPlacersTriggered,
+            int biomeSurfacePlacersChecked,
+            int biomeSurfacePlacersTriggered,
+            int biomeCavePlacersChecked,
+            int biomeCavePlacersTriggered,
+            int regionSurfacePlacersChecked,
+            int regionSurfacePlacersTriggered,
+            int regionCavePlacersChecked,
+            int regionCavePlacersTriggered,
             int objectAttempts,
             int objectPlaced,
             int objectRejected,

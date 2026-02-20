@@ -102,6 +102,8 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private int lockLayersMax = 7;
     @Desc("Carving configuration for the dimension")
     private IrisCarving carving = new IrisCarving();
+    @Desc("Profile-driven 3D cave configuration")
+    private IrisCaveProfile caveProfile = new IrisCaveProfile();
     @Desc("Configuration of fluid bodies such as rivers & lakes")
     private IrisFluidBodies fluidBodies = new IrisFluidBodies();
     @MinNumber(1)
@@ -194,12 +196,21 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     }
 
     public double getGenLinkMax(String loadKey, Engine engine) {
+        if (loadKey == null || loadKey.isBlank()) {
+            return 0;
+        }
+
         Integer v = genCacheMax.aquire(() ->
         {
             KMap<String, Integer> l = new KMap<>();
 
             for (IrisBiomeGeneratorLink i : getGenerators()) {
-                l.put(i.getGenerator(), i.getMax());
+                String generatorKey = i.getGenerator();
+                if (generatorKey == null || generatorKey.isBlank()) {
+                    continue;
+                }
+
+                l.put(generatorKey, i.getMax());
 
             }
 
@@ -210,12 +221,21 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     }
 
     public double getGenLinkMin(String loadKey, Engine engine) {
+        if (loadKey == null || loadKey.isBlank()) {
+            return 0;
+        }
+
         Integer v = genCacheMin.aquire(() ->
         {
             KMap<String, Integer> l = new KMap<>();
 
             for (IrisBiomeGeneratorLink i : getGenerators()) {
-                l.put(i.getGenerator(), i.getMin());
+                String generatorKey = i.getGenerator();
+                if (generatorKey == null || generatorKey.isBlank()) {
+                    continue;
+                }
+
+                l.put(generatorKey, i.getMin());
             }
 
             return l;
@@ -225,12 +245,21 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     }
 
     public IrisBiomeGeneratorLink getGenLink(String loadKey) {
+        if (loadKey == null || loadKey.isBlank()) {
+            return null;
+        }
+
         return genCache.aquire(() ->
         {
             KMap<String, IrisBiomeGeneratorLink> l = new KMap<>();
 
             for (IrisBiomeGeneratorLink i : getGenerators()) {
-                l.put(i.getGenerator(), i);
+                String generatorKey = i.getGenerator();
+                if (generatorKey == null || generatorKey.isBlank()) {
+                    continue;
+                }
+
+                l.put(generatorKey, i);
             }
 
             return l;

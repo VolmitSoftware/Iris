@@ -195,7 +195,12 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         };
         looper.setPriority(Thread.MIN_PRIORITY);
         looper.setName("Iris World Manager " + getTarget().getWorld().name());
-        looper.start();
+    }
+
+    public void startManager() {
+        if (!looper.isAlive()) {
+            looper.start();
+        }
     }
 
     private void discoverChunks() {
@@ -525,6 +530,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     private void spawnIn(Chunk c, boolean initial) {
         if (getEngine().isClosed()) {
+            return;
+        }
+
+        IrisComplex complex = getEngine().getComplex();
+        if (complex == null) {
             return;
         }
 

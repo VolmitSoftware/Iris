@@ -433,6 +433,10 @@ public class IrisComplex implements DataProvider {
 
         for (IrisGenerator gen : generators) {
             String key = gen.getLoadKey();
+            if (key == null || key.isBlank()) {
+                continue;
+            }
+
             max += biome.getGenLinkMax(key, engine);
             min += biome.getGenLinkMin(key, engine);
         }

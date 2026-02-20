@@ -52,10 +52,19 @@ public class IrisBiomeGeneratorLink {
 
     public IrisGenerator getCachedGenerator(DataProvider g) {
         return gen.aquire(() -> {
-            IrisGenerator gen = g.getData().getGeneratorLoader().load(getGenerator());
+            String generatorKey = getGenerator();
+            if (generatorKey == null || generatorKey.isBlank()) {
+                generatorKey = "default";
+            }
+
+            IrisGenerator gen = g.getData().getGeneratorLoader().load(generatorKey);
 
             if (gen == null) {
                 gen = new IrisGenerator();
+            }
+
+            if (gen.getLoadKey() == null || gen.getLoadKey().isBlank()) {
+                gen.setLoadKey(generatorKey);
             }
 
             return gen;

@@ -689,10 +689,7 @@ public class IrisObject extends IrisRegistrant {
             // todo Convert this to a dedicated mode.
             y = (getH() + 1) + rty;
             if (!config.isForcePlace()) {
-                if (placer.isCarved(x, y, z) ||
-                        placer.isCarved(x, y - 1, z) ||
-                        placer.isCarved(x, y - 2, z) ||
-                        placer.isCarved(x, y - 3, z)) {
+                if (shouldBailForCarvingAnchor(placer, config, x, y, z)) {
                     bail = true;
                 }
             }
@@ -700,7 +697,7 @@ public class IrisObject extends IrisRegistrant {
             if (config.getMode().equals(ObjectPlaceMode.CENTER_HEIGHT) || config.getMode() == ObjectPlaceMode.CENTER_STILT) {
                 y = (c != null ? c.getSurface() : placer.getHighest(x, z, getLoader(), config.isUnderwater())) + rty;
                 if (!config.isForcePlace()) {
-                    if (placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z) || placer.isCarved(x, y - 2, z) || placer.isCarved(x, y - 3, z)) {
+                    if (shouldBailForCarvingAnchor(placer, config, x, y, z)) {
                         bail = true;
                     }
                 }
@@ -717,7 +714,7 @@ public class IrisObject extends IrisRegistrant {
                     for (int ii = minZ; ii <= maxZ; ii++) {
                         int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
                         if (!config.isForcePlace()) {
-                            if (placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
+                            if (shouldBailForCarvingAnchor(placer, config, i, h, ii)) {
                                 bail = true;
                                 break;
                             }
@@ -743,7 +740,7 @@ public class IrisObject extends IrisRegistrant {
                     for (int ii = minZ; ii <= maxZ; ii += Math.abs(zRadius) + 1) {
                         int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
                         if (!config.isForcePlace()) {
-                            if (placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
+                            if (shouldBailForCarvingAnchor(placer, config, i, h, ii)) {
                                 bail = true;
                                 break;
                             }
@@ -767,7 +764,7 @@ public class IrisObject extends IrisRegistrant {
                     for (int ii = minZ; ii <= maxZ; ii++) {
                         int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
                         if (!config.isForcePlace()) {
-                            if (placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
+                            if (shouldBailForCarvingAnchor(placer, config, i, h, ii)) {
                                 bail = true;
                                 break;
                             }
@@ -795,7 +792,7 @@ public class IrisObject extends IrisRegistrant {
                     for (int ii = minZ; ii <= maxZ; ii += Math.abs(zRadius) + 1) {
                         int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
                         if (!config.isForcePlace()) {
-                            if (placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
+                            if (shouldBailForCarvingAnchor(placer, config, i, h, ii)) {
                                 bail = true;
                                 break;
                             }
@@ -808,7 +805,7 @@ public class IrisObject extends IrisRegistrant {
             } else if (config.getMode().equals(ObjectPlaceMode.PAINT)) {
                 y = placer.getHighest(x, z, getLoader(), config.isUnderwater()) + rty;
                 if (!config.isForcePlace()) {
-                    if (placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z) || placer.isCarved(x, y - 2, z) || placer.isCarved(x, y - 3, z)) {
+                    if (shouldBailForCarvingAnchor(placer, config, x, y, z)) {
                         bail = true;
                     }
                 }
@@ -816,7 +813,7 @@ public class IrisObject extends IrisRegistrant {
         } else {
             y = yv;
             if (!config.isForcePlace()) {
-                if (placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z) || placer.isCarved(x, y - 2, z) || placer.isCarved(x, y - 3, z)) {
+                if (shouldBailForCarvingAnchor(placer, config, x, y, z)) {
                     bail = true;
                 }
             }
@@ -825,7 +822,7 @@ public class IrisObject extends IrisRegistrant {
         if (yv >= 0 && config.isBottom()) {
             y += Math.floorDiv(h, 2);
             if (!config.isForcePlace()) {
-                bail = placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z) || placer.isCarved(x, y - 2, z) || placer.isCarved(x, y - 3, z);
+                bail = shouldBailForCarvingAnchor(placer, config, x, y, z);
             }
         }
 
@@ -1158,6 +1155,23 @@ public class IrisObject extends IrisRegistrant {
         }
 
         return y;
+    }
+
+    private boolean shouldBailForCarvingAnchor(IObjectPlacer placer, IrisObjectPlacement placement, int x, int y, int z) {
+        boolean carved = isCarvedAnchor(placer, x, y, z);
+        CarvingMode carvingMode = placement.getCarvingSupport();
+        return switch (carvingMode) {
+            case SURFACE_ONLY -> carved;
+            case CARVING_ONLY -> !carved;
+            case ANYWHERE -> false;
+        };
+    }
+
+    private boolean isCarvedAnchor(IObjectPlacer placer, int x, int y, int z) {
+        return placer.isCarved(x, y, z)
+                || placer.isCarved(x, y - 1, z)
+                || placer.isCarved(x, y - 2, z)
+                || placer.isCarved(x, y - 3, z);
     }
 
     public IrisObject rotateCopy(IrisObjectRotation rt) {

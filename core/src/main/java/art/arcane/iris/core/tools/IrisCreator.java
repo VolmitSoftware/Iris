@@ -342,11 +342,16 @@ public class IrisCreator {
         int chunkX = rawLocation.getBlockX() >> 4;
         int chunkZ = rawLocation.getBlockZ() >> 4;
         try {
-            CompletableFuture<Chunk> chunkFuture = PaperLib.getChunkAtAsync(world, chunkX, chunkZ, true);
+            CompletableFuture<Chunk> chunkFuture = PaperLib.getChunkAtAsync(world, chunkX, chunkZ, false);
             if (chunkFuture != null) {
-                chunkFuture.get(15, TimeUnit.SECONDS);
+                chunkFuture.get(10, TimeUnit.SECONDS);
             }
         } catch (Throwable ignored) {
+            return rawLocation;
+        }
+
+        if (!world.isChunkLoaded(chunkX, chunkZ)) {
+            return rawLocation;
         }
 
         CompletableFuture<Location> regionFuture = new CompletableFuture<>();
@@ -376,19 +381,19 @@ public class IrisCreator {
         int z = source.getBlockZ();
         int minY = world.getMinHeight() + 1;
         int maxY = world.getMaxHeight() - 2;
-        int topY = world.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
-        int startY = Math.max(minY, Math.min(maxY, topY + 1));
+        int sourceY = source.getBlockY();
+        int startY = Math.max(minY, Math.min(maxY, sourceY));
         float yaw = source.getYaw();
         float pitch = source.getPitch();
 
-        int upperBound = Math.min(maxY, startY + 16);
+        int upperBound = Math.min(maxY, startY + 32);
         for (int y = startY; y <= upperBound; y++) {
             if (isSafeStandingLocation(world, x, y, z)) {
                 return new Location(world, x + 0.5D, y, z + 0.5D, yaw, pitch);
             }
         }
 
-        int lowerBound = Math.max(minY, startY - 24);
+        int lowerBound = Math.max(minY, startY - 64);
         for (int y = startY - 1; y >= lowerBound; y--) {
             if (isSafeStandingLocation(world, x, y, z)) {
                 return new Location(world, x + 0.5D, y, z + 0.5D, yaw, pitch);

@@ -107,6 +107,7 @@ public class IrisEngine implements Engine {
     private double maxBiomeLayerDensity;
     private double maxBiomeDecoratorDensity;
     private IrisComplex complex;
+    private final AtomicBoolean modeFallbackLogged;
 
     public IrisEngine(EngineTarget target, boolean studio) {
         this.studio = studio;
@@ -129,6 +130,7 @@ public class IrisEngine implements Engine {
         context = new IrisContext(this);
         cleaning = new AtomicBoolean(false);
         noisemapPrebakeRunning = new AtomicBoolean(false);
+        modeFallbackLogged = new AtomicBoolean(false);
         execution = getData().getEnvironment().with(this);
         if (studio) {
             getData().dump();
@@ -165,10 +167,29 @@ public class IrisEngine implements Engine {
     }
 
     private void prehotload() {
-        worldManager.close();
-        complex.close();
-        effects.close();
-        mode.close();
+        EngineWorldManager currentWorldManager = worldManager;
+        worldManager = null;
+        if (currentWorldManager != null) {
+            currentWorldManager.close();
+        }
+
+        IrisComplex currentComplex = complex;
+        complex = null;
+        if (currentComplex != null) {
+            currentComplex.close();
+        }
+
+        EngineEffects currentEffects = effects;
+        effects = null;
+        if (currentEffects != null) {
+            currentEffects.close();
+        }
+
+        EngineMode currentMode = mode;
+        mode = null;
+        if (currentMode != null) {
+            currentMode.close();
+        }
         execution = getData().getEnvironment().with(this);
 
         J.a(() -> new IrisProject(getData().getDataFolder()).updateWorkspace());
@@ -178,12 +199,14 @@ public class IrisEngine implements Engine {
         try {
             Iris.debug("Setup Engine " + getCacheID());
             cacheId = RNG.r.nextInt();
-            worldManager = new IrisWorldManager(this);
-            complex = new IrisComplex(this);
+            complex = ensureComplex();
             effects = new IrisEngineEffects(this);
             hash32 = new CompletableFuture<>();
             mantle.hotload();
             setupMode();
+            IrisWorldManager manager = new IrisWorldManager(this);
+            worldManager = manager;
+            manager.startManager();
             getDimension().getEngineScripts().forEach(execution::execute);
             J.a(this::computeBiomeMaxes);
             J.a(() -> {
@@ -207,11 +230,76 @@ public class IrisEngine implements Engine {
     }
 
     private void setupMode() {
-        if (mode != null) {
-            mode.close();
+        EngineMode currentMode = mode;
+        if (currentMode != null) {
+            currentMode.close();
         }
 
-        mode = getDimension().getMode().create(this);
+        mode = null;
+        mode = ensureMode();
+    }
+
+    private EngineMode ensureMode() {
+        EngineMode currentMode = mode;
+        if (currentMode != null) {
+            return currentMode;
+        }
+
+        synchronized (this) {
+            currentMode = mode;
+            if (currentMode != null) {
+                return currentMode;
+            }
+
+            try {
+                IrisComplex readyComplex = ensureComplex();
+                if (readyComplex == null) {
+                    throw new IllegalStateException("Iris complex is unavailable");
+                }
+
+                IrisDimensionMode configuredMode = getDimension().getMode();
+                if (configuredMode == null) {
+                    configuredMode = new IrisDimensionMode();
+                    getDimension().setMode(configuredMode);
+                }
+
+                currentMode = configuredMode.create(this);
+                if (currentMode == null) {
+                    throw new IllegalStateException("Dimension mode factory returned null");
+                }
+            } catch (Throwable e) {
+                Iris.reportError(e);
+                if (modeFallbackLogged.compareAndSet(false, true)) {
+                    Iris.warn("Failed to initialize configured dimension mode for " + getDimension().getLoadKey() + ", falling back to OVERWORLD mode.");
+                }
+                currentMode = IrisDimensionModeType.OVERWORLD.create(this);
+            }
+
+            mode = currentMode;
+            return currentMode;
+        }
+    }
+
+    private IrisComplex ensureComplex() {
+        IrisComplex currentComplex = complex;
+        if (currentComplex != null) {
+            return currentComplex;
+        }
+
+        if (closed) {
+            return null;
+        }
+
+        synchronized (this) {
+            currentComplex = complex;
+            if (currentComplex != null) {
+                return currentComplex;
+            }
+
+            currentComplex = new IrisComplex(this);
+            complex = currentComplex;
+            return currentComplex;
+        }
     }
 
     private void scheduleStartupNoisemapPrebake() {
@@ -447,17 +535,39 @@ public class IrisEngine implements Engine {
         PregeneratorJob.shutdownInstance();
         closed = true;
         J.car(art);
-        getWorldManager().close();
+        EngineWorldManager currentWorldManager = getWorldManager();
+        if (currentWorldManager != null) {
+            currentWorldManager.close();
+        }
         getTarget().close();
         saveEngineData();
         getMantle().close();
-        getComplex().close();
-        mode.close();
+        IrisComplex currentComplex = complex;
+        if (currentComplex != null) {
+            currentComplex.close();
+        }
+        complex = null;
+        EngineMode currentMode = mode;
+        if (currentMode != null) {
+            currentMode.close();
+        }
+        mode = null;
+        effects = null;
+        worldManager = null;
         getData().dump();
         getData().clearLists();
         Iris.service(PreservationSVC.class).dereference();
         Iris.debug("Engine Fully Shutdown!");
-        complex = null;
+    }
+
+    @Override
+    public IrisComplex getComplex() {
+        return ensureComplex();
+    }
+
+    @Override
+    public EngineMode getMode() {
+        return ensureMode();
     }
 
     @Override
@@ -510,7 +620,8 @@ public class IrisEngine implements Engine {
                     }
                 }
             } else {
-                mode.generate(x, z, blocks, vbiomes, multicore);
+                EngineMode activeMode = ensureMode();
+                activeMode.generate(x, z, blocks, vbiomes, multicore);
             }
 
             World realWorld = getWorld().realWorld();

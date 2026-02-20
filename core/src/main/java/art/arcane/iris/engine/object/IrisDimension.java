@@ -142,12 +142,15 @@ public class IrisDimension extends IrisRegistrant {
     private boolean postProcessingSlabs = true;
     @Desc("Add painted walls in post processing")
     private boolean postProcessingWalls = true;
-    @Desc("Carving configuration for the dimension")
-    private IrisCarving carving = new IrisCarving();
+    @Desc("Enable or disable all carving for this dimension")
+    private boolean carvingEnabled = true;
     @Desc("Profile-driven 3D cave configuration")
     private IrisCaveProfile caveProfile = new IrisCaveProfile();
     @Desc("Configuration of fluid bodies such as rivers & lakes")
     private IrisFluidBodies fluidBodies = new IrisFluidBodies();
+    @ArrayType(type = IrisExternalDatapack.class, min = 1)
+    @Desc("Pack-scoped external datapack sources for structure import and optional vanilla replacement")
+    private KList<IrisExternalDatapack> externalDatapacks = new KList<>();
     @Desc("forceConvertTo320Height")
     private Boolean forceConvertTo320Height = false;
     @Desc("The world environment")
@@ -259,8 +262,6 @@ public class IrisDimension extends IrisRegistrant {
     @RegistryListResource(IrisScript.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> chunkUpdateScripts = new KList<>();
-    @Desc("Use legacy rarity instead of modern one\nWARNING: Changing this may break expressions and image maps")
-    private boolean legacyRarity = true;
 
     public int getMaxHeight() {
         return (int) getDimensionHeight().getMax();

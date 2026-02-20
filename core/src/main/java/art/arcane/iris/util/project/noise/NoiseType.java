@@ -18,7 +18,6 @@
 
 package art.arcane.iris.util.project.noise;
 
-import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.util.project.interpolation.InterpolationMethod;
 public enum NoiseType {
     WHITE(WhiteNoise::new),
@@ -97,7 +96,6 @@ public enum NoiseType {
     }
 
     public NoiseGenerator create(long seed) {
-        if (IrisSettings.get().getGenerator().offsetNoiseTypes) return f.create(seed).offset(seed);
-        else return f.create(seed);
+        return f.create(seed).offset(seed);
     }
 }

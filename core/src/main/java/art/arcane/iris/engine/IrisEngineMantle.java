@@ -41,6 +41,7 @@ import art.arcane.volmlib.util.mantle.runtime.MantleDataAdapter;
 import art.arcane.volmlib.util.mantle.runtime.MantleHooks;
 import art.arcane.volmlib.util.mantle.runtime.TectonicPlate;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
+import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.matter.IrisMatter;
@@ -153,7 +154,14 @@ public class IrisEngineMantle implements EngineMantle {
     }
 
     private Set<MantleFlag> getDisabledFlags() {
-        return disabledFlags.aquire(() -> Set.copyOf(getDimension().getDisabledComponents()));
+        return disabledFlags.aquire(() -> {
+            KList<MantleFlag> disabled = new KList<>();
+            disabled.addAll(getDimension().getDisabledComponents());
+            if (!getDimension().isCarvingEnabled()) {
+                disabled.addIfMissing(ReservedFlag.CARVED);
+            }
+            return Set.copyOf(disabled);
+        });
     }
 
     @Override

@@ -114,22 +114,4 @@ public class CommandEdit implements DirectorExecutor {
         }
     }
 
-    @Director(description = "Edit the cave file you specified", aliases = {"c"}, origin = DirectorOrigin.PLAYER)
-    public void cave(@Param(contextual = false, description = "The cave to edit") IrisCave cave) {
-        if (noStudio()) {
-            return;
-        }
-        try {
-            if (cave == null || cave.getLoadFile() == null) {
-                sender().sendMessage(C.GOLD + "Cannot find the file; Perhaps it was not loaded directly from a file?");
-                return;
-            }
-            Desktop.getDesktop().open(cave.getLoadFile());
-            sender().sendMessage(C.GREEN + "Opening " + cave.getTypeName() + " " + cave.getLoadFile().getName().split("\\Q.\\E")[0] + " in VSCode! ");
-        } catch (Throwable e) {
-            Iris.reportError(e);
-            sender().sendMessage(C.RED + "Cant find the file. Or registrant does not exist");
-        }
-    }
-
 }

@@ -20,6 +20,7 @@ package art.arcane.iris.core;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.nms.datapack.DataVersion;
 import art.arcane.iris.core.nms.datapack.IDataFixer;
@@ -142,27 +143,156 @@ public class ServerConfigurator {
             return;
         }
 
-        File source = Iris.instance.getDataFolder("datapacks");
-        source.mkdirs();
-        ExternalDataPackPipeline.syncPinnedDatapacks(source);
-        int removedLegacyCopies = ExternalDataPackPipeline.removeLegacyWorldDatapackCopies(source, folders);
-        ExternalDataPackPipeline.ImportSummary summary = ExternalDataPackPipeline.importDatapackStructures(source);
-        if (removedLegacyCopies > 0) {
-            Iris.info("Removed " + removedLegacyCopies + " legacy external datapack world copies.");
+        KList<ExternalDataPackPipeline.DatapackRequest> requests = collectExternalDatapackRequests();
+        KMap<String, KList<File>> worldDatapackFoldersByPack = collectWorldDatapackFoldersByPack(folders);
+        ExternalDataPackPipeline.PipelineSummary summary = ExternalDataPackPipeline.processDatapacks(requests, worldDatapackFoldersByPack);
+        if (summary.getLegacyDownloadRemovals() > 0) {
+            Iris.info("Removed " + summary.getLegacyDownloadRemovals() + " legacy global datapack downloads.");
         }
-        if (summary.getSources() > 0) {
-            Iris.info("External datapack structure import: sources=" + summary.getSources()
-                    + ", cached=" + summary.getCachedSources()
-                    + ", scanned=" + summary.getNbtScanned()
-                    + ", converted=" + summary.getConverted()
-                    + ", failed=" + summary.getFailed()
-                    + ", skipped=" + summary.getSkipped()
-                    + ", entitiesIgnored=" + summary.getEntitiesIgnored()
-                    + ", blockEntities=" + summary.getBlockEntities());
+        if (summary.getLegacyWorldCopyRemovals() > 0) {
+            Iris.info("Removed " + summary.getLegacyWorldCopyRemovals() + " legacy managed world datapack copies.");
         }
-        if (summary.getSources() > 0 || summary.getConverted() > 0) {
-            Iris.info("External datapack world install is disabled; only structure template import is applied.");
+        if (summary.getRequests() > 0 || summary.getImportedSources() > 0 || summary.getWorldDatapacksInstalled() > 0) {
+            Iris.info("External datapack sync/import/install: requests=" + summary.getRequests()
+                    + ", synced=" + summary.getSyncedRequests()
+                    + ", restored=" + summary.getRestoredRequests()
+                    + ", importedSources=" + summary.getImportedSources()
+                    + ", cachedSources=" + summary.getCachedSources()
+                    + ", converted=" + summary.getConvertedStructures()
+                    + ", failedConversions=" + summary.getFailedConversions()
+                    + ", worldDatapacks=" + summary.getWorldDatapacksInstalled()
+                    + ", worldAssets=" + summary.getWorldAssetsInstalled()
+                    + ", optionalFailures=" + summary.getOptionalFailures()
+                    + ", requiredFailures=" + summary.getRequiredFailures());
         }
+        if (summary.getRequiredFailures() > 0) {
+            throw new IllegalStateException("Required external datapack setup failed for " + summary.getRequiredFailures() + " request(s).");
+        }
+    }
+
+    private static KList<ExternalDataPackPipeline.DatapackRequest> collectExternalDatapackRequests() {
+        KMap<String, ExternalDataPackPipeline.DatapackRequest> deduplicated = new KMap<>();
+        try (Stream<IrisData> stream = allPacks()) {
+            stream.forEach(data -> {
+                ResourceLoader<IrisDimension> loader = data.getDimensionLoader();
+                if (loader == null) {
+                    return;
+                }
+
+                KList<IrisDimension> dimensions = loader.loadAll(loader.getPossibleKeys());
+                for (IrisDimension dimension : dimensions) {
+                    if (dimension == null || dimension.getExternalDatapacks() == null || dimension.getExternalDatapacks().isEmpty()) {
+                        continue;
+                    }
+
+                    String targetPack = sanitizePackName(dimension.getLoadKey());
+                    if (targetPack.isBlank()) {
+                        targetPack = sanitizePackName(data.getDataFolder().getName());
+                    }
+                    String environment = ExternalDataPackPipeline.normalizeEnvironmentValue(dimension.getEnvironment() == null ? null : dimension.getEnvironment().name());
+
+                    for (IrisExternalDatapack externalDatapack : dimension.getExternalDatapacks()) {
+                        if (externalDatapack == null || !externalDatapack.isEnabled()) {
+                            continue;
+                        }
+
+                        String url = externalDatapack.getUrl() == null ? "" : externalDatapack.getUrl().trim();
+                        if (url.isBlank()) {
+                            continue;
+                        }
+
+                        String requestId = externalDatapack.getId() == null ? "" : externalDatapack.getId().trim();
+                        if (requestId.isBlank()) {
+                            requestId = url;
+                        }
+
+                        IrisExternalDatapackReplaceTargets replaceTargets = externalDatapack.getReplaceTargets();
+                        ExternalDataPackPipeline.DatapackRequest request = new ExternalDataPackPipeline.DatapackRequest(
+                                requestId,
+                                url,
+                                targetPack,
+                                environment,
+                                externalDatapack.isRequired(),
+                                externalDatapack.isReplaceVanilla(),
+                                replaceTargets
+                        );
+
+                        String dedupeKey = request.getDedupeKey();
+                        ExternalDataPackPipeline.DatapackRequest existing = deduplicated.get(dedupeKey);
+                        if (existing == null) {
+                            deduplicated.put(dedupeKey, request);
+                            continue;
+                        }
+
+                        deduplicated.put(dedupeKey, existing.merge(request));
+                    }
+                }
+            });
+        }
+
+        return new KList<>(deduplicated.v());
+    }
+
+    private static KMap<String, KList<File>> collectWorldDatapackFoldersByPack(KList<File> fallbackFolders) {
+        KMap<String, KList<File>> foldersByPack = new KMap<>();
+        KMap<String, String> mappedWorlds = IrisWorlds.get().getWorlds();
+
+        for (String worldName : mappedWorlds.k()) {
+            String packName = sanitizePackName(mappedWorlds.get(worldName));
+            if (packName.isBlank()) {
+                continue;
+            }
+            File datapacksFolder = new File(Bukkit.getWorldContainer(), worldName + File.separator + "datapacks");
+            addWorldDatapackFolder(foldersByPack, packName, datapacksFolder);
+        }
+
+        for (org.bukkit.World world : Bukkit.getWorlds()) {
+            String worldName = world.getName();
+            String mappedPack = mappedWorlds.get(worldName);
+            String packName = sanitizePackName(mappedPack);
+            if (packName.isBlank()) {
+                packName = sanitizePackName(IrisSettings.get().getGenerator().getDefaultWorldType());
+            }
+            if (packName.isBlank()) {
+                continue;
+            }
+            File datapacksFolder = new File(world.getWorldFolder(), "datapacks");
+            addWorldDatapackFolder(foldersByPack, packName, datapacksFolder);
+        }
+
+        String defaultPack = sanitizePackName(IrisSettings.get().getGenerator().getDefaultWorldType());
+        if (!defaultPack.isBlank()) {
+            for (File folder : fallbackFolders) {
+                addWorldDatapackFolder(foldersByPack, defaultPack, folder);
+            }
+        }
+
+        return foldersByPack;
+    }
+
+    private static void addWorldDatapackFolder(KMap<String, KList<File>> foldersByPack, String packName, File folder) {
+        if (folder == null || packName == null || packName.isBlank()) {
+            return;
+        }
+        KList<File> folders = foldersByPack.computeIfAbsent(packName, k -> new KList<>());
+        if (!folders.contains(folder)) {
+            folders.add(folder);
+        }
+    }
+
+    private static String sanitizePackName(String value) {
+        if (value == null) {
+            return "";
+        }
+        String sanitized = value.trim().toLowerCase().replace("\\", "/");
+        sanitized = sanitized.replaceAll("[^a-z0-9_\\-./]", "_");
+        sanitized = sanitized.replaceAll("/+", "/");
+        sanitized = sanitized.replaceAll("^/+", "");
+        sanitized = sanitized.replaceAll("/+$", "");
+        if (sanitized.contains("..")) {
+            sanitized = sanitized.replace("..", "_");
+        }
+        return sanitized.replace("/", "_");
     }
 
     private static boolean verifyDataPacksPost(boolean allowRestarting) {

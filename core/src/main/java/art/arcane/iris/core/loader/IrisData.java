@@ -74,8 +74,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisMatterObject> matterLoader;
     private ResourceLoader<IrisImage> imageLoader;
     private ResourceLoader<IrisScript> scriptLoader;
-    private ResourceLoader<IrisCave> caveLoader;
-    private ResourceLoader<IrisRavine> ravineLoader;
     private ResourceLoader<IrisMatterObject> matterObjectLoader;
     private KMap<String, KList<String>> possibleSnippets;
     private Gson gson;
@@ -158,20 +156,12 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         return loadAny(IrisScript.class, key, nearest);
     }
 
-    public static IrisRavine loadAnyRavine(String key, @Nullable IrisData nearest) {
-        return loadAny(IrisRavine.class, key, nearest);
-    }
-
     public static IrisRegion loadAnyRegion(String key, @Nullable IrisData nearest) {
         return loadAny(IrisRegion.class, key, nearest);
     }
 
     public static IrisMarker loadAnyMarker(String key, @Nullable IrisData nearest) {
         return loadAny(IrisMarker.class, key, nearest);
-    }
-
-    public static IrisCave loadAnyCave(String key, @Nullable IrisData nearest) {
-        return loadAny(IrisCave.class, key, nearest);
     }
 
     public static IrisImage loadAnyImage(String key, @Nullable IrisData nearest) {
@@ -352,9 +342,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.modLoader = registerLoader(IrisMod.class);
         this.dimensionLoader = registerLoader(IrisDimension.class);
         this.generatorLoader = registerLoader(IrisGenerator.class);
-        this.caveLoader = registerLoader(IrisCave.class);
         this.markerLoader = registerLoader(IrisMarker.class);
-        this.ravineLoader = registerLoader(IrisRavine.class);
         this.blockLoader = registerLoader(IrisBlockData.class);
         this.expressionLoader = registerLoader(IrisExpression.class);
         this.objectLoader = registerLoader(IrisObject.class);

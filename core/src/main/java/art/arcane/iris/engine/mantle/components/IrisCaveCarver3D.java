@@ -29,6 +29,8 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterCavern;
 
+import java.util.Arrays;
+
 public class IrisCaveCarver3D {
     private static final byte LIQUID_AIR = 0;
     private static final byte LIQUID_WATER = 1;
@@ -81,6 +83,27 @@ public class IrisCaveCarver3D {
     }
 
     public int carve(MantleWriter writer, int chunkX, int chunkZ) {
+        double[] fullWeights = new double[256];
+        Arrays.fill(fullWeights, 1D);
+        return carve(writer, chunkX, chunkZ, fullWeights, 0D, 0D);
+    }
+
+    public int carve(
+            MantleWriter writer,
+            int chunkX,
+            int chunkZ,
+            double[] columnWeights,
+            double minWeight,
+            double thresholdPenalty
+    ) {
+        if (columnWeights == null || columnWeights.length < 256) {
+            double[] fullWeights = new double[256];
+            Arrays.fill(fullWeights, 1D);
+            columnWeights = fullWeights;
+        }
+
+        double resolvedMinWeight = Math.max(0D, Math.min(1D, minWeight));
+        double resolvedThresholdPenalty = Math.max(0D, thresholdPenalty);
         int worldHeight = writer.getMantle().getWorldHeight();
         int minY = Math.max(0, (int) Math.floor(profile.getVerticalRange().getMin()));
         int maxY = Math.min(worldHeight - 1, (int) Math.ceil(profile.getVerticalRange().getMax()));
@@ -140,6 +163,9 @@ public class IrisCaveCarver3D {
                 surfaceBreakFloorY,
                 surfaceBreakColumn,
                 columnThreshold,
+                columnWeights,
+                resolvedMinWeight,
+                resolvedThresholdPenalty,
                 0D,
                 false
         );
@@ -162,6 +188,9 @@ public class IrisCaveCarver3D {
                     surfaceBreakFloorY,
                     surfaceBreakColumn,
                     columnThreshold,
+                    columnWeights,
+                    resolvedMinWeight,
+                    resolvedThresholdPenalty,
                     recoveryThresholdBoost,
                     true
             );
@@ -185,6 +214,9 @@ public class IrisCaveCarver3D {
             int[] surfaceBreakFloorY,
             boolean[] surfaceBreakColumn,
             double[] columnThreshold,
+            double[] columnWeights,
+            double minWeight,
+            double thresholdPenalty,
             double thresholdBoost,
             boolean skipExistingCarved
     ) {
@@ -195,6 +227,11 @@ public class IrisCaveCarver3D {
             for (int lz = 0; lz < 16; lz++) {
                 int z = z0 + lz;
                 int index = (lx << 4) | lz;
+                double columnWeight = clampColumnWeight(columnWeights[index]);
+                if (columnWeight <= minWeight) {
+                    continue;
+                }
+
                 int columnTopY = columnMaxY[index];
                 if (columnTopY < minY) {
                     continue;
@@ -203,7 +240,7 @@ public class IrisCaveCarver3D {
                 boolean breakColumn = surfaceBreakColumn[index];
                 int breakFloorY = surfaceBreakFloorY[index];
                 int surfaceY = columnSurface[index];
-                double threshold = columnThreshold[index] + thresholdBoost;
+                double threshold = columnThreshold[index] + thresholdBoost - ((1D - columnWeight) * thresholdPenalty);
 
                 for (int y = minY; y <= columnTopY; y += sampleStep) {
                     double localThreshold = threshold;
@@ -351,6 +388,22 @@ public class IrisCaveCarver3D {
 
     private boolean isDensitySolid(int x, int y, int z, double threshold) {
         return sampleDensity(x, y, z) > threshold;
+    }
+
+    private double clampColumnWeight(double weight) {
+        if (Double.isNaN(weight) || Double.isInfinite(weight)) {
+            return 0D;
+        }
+
+        if (weight <= 0D) {
+            return 0D;
+        }
+
+        if (weight >= 1D) {
+            return 1D;
+        }
+
+        return weight;
     }
 
     private double signed(double value) {

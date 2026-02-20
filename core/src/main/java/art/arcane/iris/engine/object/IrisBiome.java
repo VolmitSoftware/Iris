@@ -100,8 +100,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private boolean lockLayers = false;
     @Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")
     private int lockLayersMax = 7;
-    @Desc("Carving configuration for the dimension")
-    private IrisCarving carving = new IrisCarving();
     @Desc("Profile-driven 3D cave configuration")
     private IrisCaveProfile caveProfile = new IrisCaveProfile();
     @Desc("Configuration of fluid bodies such as rivers & lakes")

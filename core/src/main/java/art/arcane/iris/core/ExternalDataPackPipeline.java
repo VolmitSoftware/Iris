@@ -2,8 +2,10 @@ package art.arcane.iris.core;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.IrisExternalDatapackReplaceTargets;
 import art.arcane.iris.engine.object.TileData;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.common.math.Vector3i;
@@ -67,17 +69,22 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 public final class ExternalDataPackPipeline {
+    private static final Pattern STRUCTURE_JSON_ENTRY = Pattern.compile("(?i)^data/([^/]+)/worldgen/structure/(.+)\\.json$");
+    private static final Pattern STRUCTURE_SET_JSON_ENTRY = Pattern.compile("(?i)^data/([^/]+)/worldgen/structure_set/(.+)\\.json$");
+    private static final Pattern TEMPLATE_POOL_JSON_ENTRY = Pattern.compile("(?i)^data/([^/]+)/worldgen/template_pool/(.+)\\.json$");
+    private static final Pattern PROCESSOR_LIST_JSON_ENTRY = Pattern.compile("(?i)^data/([^/]+)/worldgen/processor_list/(.+)\\.json$");
+    private static final Pattern BIOME_HAS_STRUCTURE_TAG_ENTRY = Pattern.compile("(?i)^data/([^/]+)/tags/worldgen/biome/has_structure/(.+)\\.json$");
     private static final Pattern MODRINTH_VERSION_URL = Pattern.compile("^https?://modrinth\\.com/(?:datapack|mod|plugin|resourcepack)/([^/?#]+)/version/([^/?#]+).*$", Pattern.CASE_INSENSITIVE);
     private static final Pattern STRUCTURE_ENTRY = Pattern.compile("(?i)(?:^|.*/)data/([^/]+)/(?:structure|structures)/(.+\\.nbt)$");
-    private static final String PACK_NAME = "datapack-imports";
+    private static final String EXTERNAL_PACK_INDEX = "datapack-imports";
+    private static final String PACK_NAME = EXTERNAL_PACK_INDEX;
+    private static final String MANAGED_WORLD_PACK_PREFIX = "iris-external-";
+    private static final String MANAGED_PACK_META_DESCRIPTION = "Iris managed external structure datapack assets.";
     private static final String IMPORT_PREFIX = "imports";
     private static final int CONNECT_TIMEOUT_MS = 4000;
     private static final int READ_TIMEOUT_MS = 8000;
     private static final int IMPORT_PARALLELISM = Math.max(1, Math.min(8, Runtime.getRuntime().availableProcessors()));
     private static final int MAX_IN_FLIGHT = Math.max(2, IMPORT_PARALLELISM * 3);
-    private static final List<String> PINNED_MODRINTH_URLS = List.of(
-            "https://modrinth.com/datapack/dungeons-and-taverns/version/v5.1.0"
-    );
     private static final Map<String, BlockData> BLOCK_DATA_CACHE = new ConcurrentHashMap<>();
     private static final Map<String, String> PACK_ENVIRONMENT_CACHE = new ConcurrentHashMap<>();
     private static final BlockData AIR = B.getAir();
@@ -85,162 +92,712 @@ public final class ExternalDataPackPipeline {
     private ExternalDataPackPipeline() {
     }
 
-    public static void syncPinnedDatapacks(File sourceFolder) {
-        if (sourceFolder == null) {
-            return;
-        }
+    public static String sanitizePackNameValue(String value) {
+        return sanitizePackName(value);
+    }
 
-        File cacheFolder = Iris.instance.getDataFolder("cache", "datapacks");
-        cacheFolder.mkdirs();
-        boolean offline = false;
-        int downloaded = 0;
-        int upToDate = 0;
-        int restoredFromCache = 0;
-        int failed = 0;
+    public static String normalizeEnvironmentValue(String value) {
+        return normalizeEnvironment(value);
+    }
 
-        for (String pageUrl : PINNED_MODRINTH_URLS) {
-            if (offline) {
-                break;
-            }
+    public static PipelineSummary processDatapacks(List<DatapackRequest> requests, Map<String, KList<File>> worldDatapackFoldersByPack) {
+        PipelineSummary summary = new PipelineSummary();
+        PACK_ENVIRONMENT_CACHE.clear();
 
-            try {
-                ModrinthFile file = resolveModrinthFile(pageUrl);
-                if (file == null) {
-                    failed++;
+        Set<File> knownWorldDatapackFolders = new LinkedHashSet<>();
+        if (worldDatapackFoldersByPack != null) {
+            for (Map.Entry<String, KList<File>> entry : worldDatapackFoldersByPack.entrySet()) {
+                KList<File> folders = entry.getValue();
+                if (folders == null) {
                     continue;
                 }
-
-                File output = new File(sourceFolder, file.outputFileName());
-                File cached = new File(cacheFolder, file.outputFileName());
-                if (isUpToDate(output, file.sha1)) {
-                    upToDate++;
-                    continue;
-                }
-
-                if (isUpToDate(cached, file.sha1)) {
-                    copyFile(cached, output);
-                    if (isUpToDate(output, file.sha1)) {
-                        restoredFromCache++;
-                        continue;
+                for (File folder : folders) {
+                    if (folder != null) {
+                        knownWorldDatapackFolders.add(folder);
                     }
-                    output.delete();
                 }
+            }
+        }
+        collectWorldDatapackFolders(knownWorldDatapackFolders);
+        summary.legacyDownloadRemovals = removeLegacyGlobalDownloads();
+        summary.legacyWorldCopyRemovals = removeLegacyWorldDatapackCopies(knownWorldDatapackFolders);
 
-                downloadToFile(file.url, cached);
-                if (!isUpToDate(cached, file.sha1)) {
-                    failed++;
-                    cached.delete();
-                    Iris.warn("Pinned datapack hash mismatch for " + pageUrl);
+        List<DatapackRequest> normalizedRequests = normalizeRequests(requests);
+        summary.requests = normalizedRequests.size();
+        if (normalizedRequests.isEmpty()) {
+            summary.legacyWorldCopyRemovals += pruneManagedWorldDatapacks(knownWorldDatapackFolders, Set.of());
+            return summary;
+        }
+
+        List<RequestedSourceInput> sourceInputs = new ArrayList<>();
+        for (DatapackRequest request : normalizedRequests) {
+            if (request == null) {
+                continue;
+            }
+
+            if (request.replaceVanilla() && !request.hasReplacementTargets()) {
+                if (request.required()) {
+                    summary.requiredFailures++;
+                } else {
+                    summary.optionalFailures++;
+                }
+                Iris.warn("Skipped external datapack request " + request.id() + " because replaceVanilla requires explicit replacement targets.");
+                continue;
+            }
+
+            RequestSyncResult syncResult = syncRequest(request);
+            if (!syncResult.success()) {
+                if (request.required()) {
+                    summary.requiredFailures++;
+                } else {
+                    summary.optionalFailures++;
+                }
+                Iris.warn("Failed external datapack request " + request.id() + ": " + syncResult.error());
+                continue;
+            }
+
+            if (syncResult.downloaded()) {
+                summary.syncedRequests++;
+            } else if (syncResult.restored()) {
+                summary.restoredRequests++;
+            }
+            sourceInputs.add(new RequestedSourceInput(syncResult.source(), request));
+        }
+
+        if (sourceInputs.isEmpty()) {
+            if (summary.requiredFailures == 0) {
+                summary.legacyWorldCopyRemovals += pruneManagedWorldDatapacks(knownWorldDatapackFolders, Set.of());
+            }
+            return summary;
+        }
+
+        File importPackFolder = Iris.instance.getDataFolder("packs", EXTERNAL_PACK_INDEX);
+        File indexFile = new File(importPackFolder, "datapack-index.json");
+        importPackFolder.mkdirs();
+
+        JSONObject oldIndex = readExistingIndex(indexFile);
+        Map<String, JSONObject> oldSources = mapExistingSources(oldIndex);
+        JSONArray newSources = new JSONArray();
+        Set<String> seenSourceKeys = new HashSet<>();
+        Set<String> activeManagedWorldDatapackNames = new HashSet<>();
+        ImportSummary importSummary = new ImportSummary();
+
+        for (RequestedSourceInput sourceInput : sourceInputs) {
+            File entry = sourceInput.source();
+            DatapackRequest request = sourceInput.request();
+            if (entry == null || !entry.exists() || request == null) {
+                continue;
+            }
+
+            SourceDescriptor sourceDescriptor = createSourceDescriptor(entry, request.targetPack(), request.requiredEnvironment());
+            if (sourceDescriptor.requiredEnvironment() != null) {
+                String packEnvironment = resolvePackEnvironment(sourceDescriptor.targetPack());
+                if (packEnvironment == null || !packEnvironment.equals(sourceDescriptor.requiredEnvironment())) {
+                    if (request.required()) {
+                        summary.requiredFailures++;
+                    } else {
+                        summary.optionalFailures++;
+                    }
+                    Iris.warn("Skipped external datapack source " + sourceDescriptor.sourceName()
+                            + " targetPack=" + sourceDescriptor.targetPack()
+                            + " requiredEnvironment=" + sourceDescriptor.requiredEnvironment()
+                            + " packEnvironment=" + (packEnvironment == null ? "unknown" : packEnvironment));
                     continue;
                 }
+            }
 
-                copyFile(cached, output);
-                if (!isUpToDate(output, file.sha1)) {
-                    failed++;
-                    output.delete();
-                    Iris.warn("Pinned datapack output write mismatch for " + pageUrl);
-                    continue;
+            seenSourceKeys.add(sourceDescriptor.sourceKey());
+            File sourceRoot = resolveSourceRoot(sourceDescriptor.targetPack(), sourceDescriptor.sourceKey());
+            JSONObject cachedSource = oldSources.get(sourceDescriptor.sourceKey());
+            String cachedTargetPack = cachedSource == null
+                    ? null
+                    : sanitizePackName(cachedSource.optString("targetPack", defaultTargetPack()));
+            boolean sameTargetPack = cachedTargetPack != null && cachedTargetPack.equals(sourceDescriptor.targetPack());
+
+            if (cachedSource != null
+                    && sourceDescriptor.fingerprint().equals(cachedSource.optString("fingerprint", ""))
+                    && sameTargetPack
+                    && sourceRoot.exists()) {
+                newSources.put(cachedSource);
+                addSourceToSummary(importSummary, cachedSource, true);
+            } else {
+                if (cachedTargetPack != null && !cachedTargetPack.equals(sourceDescriptor.targetPack())) {
+                    File previousSourceRoot = resolveSourceRoot(cachedTargetPack, sourceDescriptor.sourceKey());
+                    deleteFolder(previousSourceRoot);
                 }
 
-                downloaded++;
-                Iris.info("Downloaded pinned datapack: " + output.getName());
-            } catch (IOException e) {
-                offline = true;
-                failed++;
-                Iris.warn("Pinned datapack sync skipped because Iris appears offline: " + e.getMessage());
-            } catch (Throwable e) {
-                failed++;
-                Iris.warn("Failed pinned datapack sync for " + pageUrl + ": " + e.getMessage());
-                Iris.reportError(e);
+                deleteFolder(sourceRoot);
+                sourceRoot.mkdirs();
+                JSONObject sourceResult = convertSource(entry, sourceDescriptor, sourceRoot);
+                newSources.put(sourceResult);
+                addSourceToSummary(importSummary, sourceResult, false);
+                if (sourceResult.optInt("failed", 0) > 0) {
+                    if (request.required()) {
+                        summary.requiredFailures++;
+                    } else {
+                        summary.optionalFailures++;
+                    }
+                }
+            }
+
+            KList<File> targetWorldFolders = resolveTargetWorldFolders(request.targetPack(), worldDatapackFoldersByPack);
+            ProjectionResult projectionResult = projectSourceToWorldDatapacks(entry, sourceDescriptor, request, targetWorldFolders);
+            summary.worldDatapacksInstalled += projectionResult.installedDatapacks();
+            summary.worldAssetsInstalled += projectionResult.installedAssets();
+            if (projectionResult.managedName() != null && !projectionResult.managedName().isBlank() && projectionResult.installedDatapacks() > 0) {
+                activeManagedWorldDatapackNames.add(projectionResult.managedName());
+            }
+            if (!projectionResult.success()) {
+                if (request.required()) {
+                    summary.requiredFailures++;
+                } else {
+                    summary.optionalFailures++;
+                }
             }
         }
 
-        if (downloaded > 0 || upToDate > 0 || restoredFromCache > 0 || failed > 0) {
-            Iris.info("Pinned datapack sync: downloaded=" + downloaded
-                    + ", upToDate=" + upToDate
-                    + ", restoredFromCache=" + restoredFromCache
-                    + ", failed=" + failed);
+        pruneRemovedSourceFolders(oldSources, seenSourceKeys);
+        writeIndex(indexFile, newSources, importSummary);
+        summary.setImportSummary(importSummary);
+        if (summary.requiredFailures == 0) {
+            summary.legacyWorldCopyRemovals += pruneManagedWorldDatapacks(knownWorldDatapackFolders, activeManagedWorldDatapackNames);
+        }
+
+        return summary;
+    }
+
+    private static List<DatapackRequest> normalizeRequests(List<DatapackRequest> requests) {
+        Map<String, DatapackRequest> deduplicated = new HashMap<>();
+        if (requests == null) {
+            return new ArrayList<>();
+        }
+
+        for (DatapackRequest request : requests) {
+            if (request == null) {
+                continue;
+            }
+            String dedupeKey = request.getDedupeKey();
+            if (dedupeKey.isBlank()) {
+                continue;
+            }
+
+            DatapackRequest existing = deduplicated.get(dedupeKey);
+            if (existing == null) {
+                deduplicated.put(dedupeKey, request);
+            } else {
+                deduplicated.put(dedupeKey, existing.merge(request));
+            }
+        }
+
+        return new ArrayList<>(deduplicated.values());
+    }
+
+    private static RequestSyncResult syncRequest(DatapackRequest request) {
+        if (request == null) {
+            return RequestSyncResult.failure("request is null");
+        }
+
+        String url = request.url();
+        if (url == null || url.isBlank()) {
+            return RequestSyncResult.failure("url is blank");
+        }
+
+        File packSourceFolder = Iris.instance.getDataFolder("packs", request.targetPack(), "externaldatapacks");
+        File cacheFolder = Iris.instance.getDataFolder("cache", "datapacks");
+        packSourceFolder.mkdirs();
+        cacheFolder.mkdirs();
+
+        try {
+            ResolvedRemoteFile remoteFile = resolveRemoteFile(url);
+            File output = new File(packSourceFolder, remoteFile.outputFileName());
+            File cached = new File(cacheFolder, remoteFile.outputFileName());
+            if (isUpToDate(output, remoteFile.sha1())) {
+                writeRequestMetadata(packSourceFolder, request, output.getName(), remoteFile.sha1());
+                return RequestSyncResult.restored(output);
+            }
+
+            if (isUpToDate(cached, remoteFile.sha1())) {
+                copyFile(cached, output);
+                if (isUpToDate(output, remoteFile.sha1())) {
+                    writeRequestMetadata(packSourceFolder, request, output.getName(), remoteFile.sha1());
+                    return RequestSyncResult.restored(output);
+                }
+                output.delete();
+            }
+
+            downloadToFile(remoteFile.url(), cached);
+            if (!isUpToDate(cached, remoteFile.sha1())) {
+                cached.delete();
+                return RequestSyncResult.failure("hash mismatch for downloaded datapack");
+            }
+
+            copyFile(cached, output);
+            if (!isUpToDate(output, remoteFile.sha1())) {
+                output.delete();
+                return RequestSyncResult.failure("output write mismatch after download");
+            }
+
+            writeRequestMetadata(packSourceFolder, request, output.getName(), remoteFile.sha1());
+            return RequestSyncResult.downloaded(output);
+        } catch (Throwable e) {
+            RequestSyncResult restored = restoreRequestFromMetadata(packSourceFolder, request);
+            if (restored.success()) {
+                return restored;
+            }
+            String message = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+            return RequestSyncResult.failure(message);
         }
     }
 
-    public static int removeLegacyWorldDatapackCopies(File sourceFolder, KList<File> worldDatapackFolders) {
-        if (sourceFolder == null) {
+    private static ResolvedRemoteFile resolveRemoteFile(String url) throws IOException {
+        Matcher matcher = MODRINTH_VERSION_URL.matcher(url);
+        if (matcher.matches()) {
+            ModrinthFile modrinthFile = resolveModrinthFile(url);
+            return new ResolvedRemoteFile(modrinthFile.url(), modrinthFile.outputFileName(), modrinthFile.sha1());
+        }
+
+        String path = URI.create(url).getPath();
+        String fileName = path == null || path.isBlank() ? "datapack.zip" : path;
+        String extension = extension(fileName);
+        String outputName = "external-" + shortHash(url) + extension;
+        return new ResolvedRemoteFile(url, outputName, null);
+    }
+
+    private static void writeRequestMetadata(File packSourceFolder, DatapackRequest request, String fileName, String sha1) {
+        try {
+            File metadataFile = getRequestMetadataFile(packSourceFolder, request);
+            JSONObject metadata = new JSONObject();
+            metadata.put("url", request.url());
+            metadata.put("file", fileName);
+            if (sha1 != null && !sha1.isBlank()) {
+                metadata.put("sha1", sha1);
+            }
+            metadata.put("updatedAt", Instant.now().toString());
+            Files.writeString(metadataFile.toPath(), metadata.toString(4), StandardCharsets.UTF_8);
+        } catch (Throwable e) {
+            Iris.reportError(e);
+        }
+    }
+
+    private static RequestSyncResult restoreRequestFromMetadata(File packSourceFolder, DatapackRequest request) {
+        try {
+            File metadataFile = getRequestMetadataFile(packSourceFolder, request);
+            if (!metadataFile.exists() || !metadataFile.isFile()) {
+                return RequestSyncResult.failure("no cached metadata");
+            }
+
+            JSONObject metadata = new JSONObject(Files.readString(metadataFile.toPath(), StandardCharsets.UTF_8));
+            String fileName = metadata.optString("file", "");
+            if (fileName.isBlank()) {
+                return RequestSyncResult.failure("cached metadata missing file");
+            }
+
+            String sha1 = metadata.optString("sha1", "");
+            File candidate = new File(packSourceFolder, fileName);
+            if (!isUpToDate(candidate, sha1.isBlank() ? null : sha1)) {
+                return RequestSyncResult.failure("cached datapack failed integrity check");
+            }
+            return RequestSyncResult.restored(candidate);
+        } catch (Throwable e) {
+            return RequestSyncResult.failure("failed to restore cached metadata");
+        }
+    }
+
+    private static File getRequestMetadataFile(File packSourceFolder, DatapackRequest request) {
+        return new File(packSourceFolder, ".iris-request-" + shortHash(request.getDedupeKey()) + ".json");
+    }
+
+    private static int removeLegacyGlobalDownloads() {
+        File legacyFolder = Iris.instance.getDataFolder("datapacks");
+        if (!legacyFolder.exists()) {
             return 0;
         }
 
-        Set<File> datapackFolders = new LinkedHashSet<>();
-        if (worldDatapackFolders != null) {
-            for (File folder : worldDatapackFolders) {
-                if (folder != null) {
-                    datapackFolders.add(folder);
-                }
-            }
-        }
-        collectWorldDatapackFolders(datapackFolders);
-        if (datapackFolders.isEmpty()) {
-            return 0;
-        }
+        File[] entries = legacyFolder.listFiles();
+        int removed = entries == null ? 0 : entries.length;
+        deleteFolder(legacyFolder);
+        return removed;
+    }
 
-        Set<String> managedNames = new HashSet<>();
-        File[] sourceEntries = sourceFolder.listFiles();
-        if (sourceEntries != null) {
-            for (File sourceEntry : sourceEntries) {
-                if (sourceEntry == null || sourceEntry.getName().startsWith(".")) {
-                    continue;
-                }
-                if (isArchive(sourceEntry.getName())
-                        || (sourceEntry.isDirectory() && looksLikeDatapackDirectory(sourceEntry))) {
-                    managedNames.add(sourceEntry.getName());
-                }
-            }
-        }
-
-        JSONObject index = readExistingIndex(new File(Iris.instance.getDataFolder("packs", PACK_NAME), "datapack-index.json"));
-        JSONArray indexedSources = index.optJSONArray("sources");
-        if (indexedSources != null) {
-            for (int i = 0; i < indexedSources.length(); i++) {
-                JSONObject indexedSource = indexedSources.optJSONObject(i);
-                if (indexedSource == null) {
-                    continue;
-                }
-
-                String sourceName = indexedSource.optString("sourceName", "");
-                if (!sourceName.isBlank()) {
-                    managedNames.add(sourceName);
-                }
-            }
-        }
-
+    private static int removeLegacyWorldDatapackCopies(Set<File> worldDatapackFolders) {
         int removed = 0;
-        for (File datapacksFolder : datapackFolders) {
-            if (datapacksFolder == null || !datapacksFolder.exists() || !datapacksFolder.isDirectory()) {
+        for (File folder : worldDatapackFolders) {
+            if (folder == null || !folder.exists() || !folder.isDirectory()) {
                 continue;
             }
 
-            File[] datapackEntries = datapacksFolder.listFiles();
-            if (datapackEntries == null || datapackEntries.length == 0) {
+            File[] entries = folder.listFiles();
+            if (entries == null) {
                 continue;
             }
 
-            for (File datapackEntry : datapackEntries) {
-                if (datapackEntry == null || datapackEntry.getName().startsWith(".")) {
+            for (File entry : entries) {
+                if (entry == null) {
                     continue;
                 }
-
-                String lowerName = datapackEntry.getName().toLowerCase(Locale.ROOT);
-                boolean managed = managedNames.contains(datapackEntry.getName()) || lowerName.startsWith("modrinth-");
-                if (!managed) {
+                String name = entry.getName().toLowerCase(Locale.ROOT);
+                if (!name.startsWith("modrinth-")) {
                     continue;
                 }
-
-                deleteFolder(datapackEntry);
-                if (!datapackEntry.exists()) {
+                deleteFolder(entry);
+                if (!entry.exists()) {
                     removed++;
                 }
             }
         }
-
         return removed;
+    }
+
+    private static int pruneManagedWorldDatapacks(Set<File> worldDatapackFolders, Set<String> activeManagedNames) {
+        int removed = 0;
+        for (File folder : worldDatapackFolders) {
+            if (folder == null || !folder.exists() || !folder.isDirectory()) {
+                continue;
+            }
+
+            File[] entries = folder.listFiles();
+            if (entries == null) {
+                continue;
+            }
+
+            for (File entry : entries) {
+                if (entry == null) {
+                    continue;
+                }
+                String name = entry.getName();
+                if (!name.startsWith(MANAGED_WORLD_PACK_PREFIX)) {
+                    continue;
+                }
+                if (activeManagedNames.contains(name)) {
+                    continue;
+                }
+                deleteFolder(entry);
+                if (!entry.exists()) {
+                    removed++;
+                }
+            }
+        }
+        return removed;
+    }
+
+    private static KList<File> resolveTargetWorldFolders(String targetPack, Map<String, KList<File>> worldDatapackFoldersByPack) {
+        KList<File> resolved = new KList<>();
+        if (worldDatapackFoldersByPack == null || worldDatapackFoldersByPack.isEmpty()) {
+            return resolved;
+        }
+
+        String normalizedPack = sanitizePackName(targetPack);
+        KList<File> direct = worldDatapackFoldersByPack.get(normalizedPack);
+        if (direct != null) {
+            for (File file : direct) {
+                if (file != null && !resolved.contains(file)) {
+                    resolved.add(file);
+                }
+            }
+            return resolved;
+        }
+
+        KList<File> fallback = worldDatapackFoldersByPack.get(targetPack);
+        if (fallback != null) {
+            for (File file : fallback) {
+                if (file != null && !resolved.contains(file)) {
+                    resolved.add(file);
+                }
+            }
+        }
+
+        return resolved;
+    }
+
+    private static ProjectionResult projectSourceToWorldDatapacks(File source, SourceDescriptor sourceDescriptor, DatapackRequest request, KList<File> worldDatapackFolders) {
+        if (source == null || sourceDescriptor == null || request == null) {
+            return ProjectionResult.failure("");
+        }
+
+        String managedName = buildManagedWorldDatapackName(sourceDescriptor.targetPack(), sourceDescriptor.sourceKey());
+        if (worldDatapackFolders == null || worldDatapackFolders.isEmpty()) {
+            return ProjectionResult.success(managedName, 0, 0);
+        }
+
+        int installedDatapacks = 0;
+        int installedAssets = 0;
+        for (File worldDatapackFolder : worldDatapackFolders) {
+            if (worldDatapackFolder == null) {
+                continue;
+            }
+
+            try {
+                worldDatapackFolder.mkdirs();
+                File managedFolder = new File(worldDatapackFolder, managedName);
+                deleteFolder(managedFolder);
+                int copiedAssets = copyProjectedEntries(source, managedFolder, request);
+                if (copiedAssets <= 0) {
+                    deleteFolder(managedFolder);
+                    continue;
+                }
+                writeManagedPackMeta(managedFolder);
+                installedDatapacks++;
+                installedAssets += copiedAssets;
+            } catch (Throwable e) {
+                Iris.warn("Failed to project external datapack source " + sourceDescriptor.sourceName() + " into " + worldDatapackFolder.getPath());
+                Iris.reportError(e);
+                return ProjectionResult.failure(managedName);
+            }
+        }
+
+        return ProjectionResult.success(managedName, installedDatapacks, installedAssets);
+    }
+
+    private static int copyProjectedEntries(File source, File managedFolder, DatapackRequest request) throws IOException {
+        if (source.isDirectory()) {
+            return copyProjectedDirectoryEntries(source, managedFolder, request);
+        }
+        if (isArchive(source.getName())) {
+            return copyProjectedArchiveEntries(source, managedFolder, request);
+        }
+        return 0;
+    }
+
+    private static int copyProjectedDirectoryEntries(File source, File managedFolder, DatapackRequest request) throws IOException {
+        int copied = 0;
+        ArrayDeque<File> queue = new ArrayDeque<>();
+        queue.add(source);
+        while (!queue.isEmpty()) {
+            File next = queue.removeFirst();
+            File[] children = next.listFiles();
+            if (children == null) {
+                continue;
+            }
+
+            Arrays.sort(children, Comparator.comparing(File::getName, String.CASE_INSENSITIVE_ORDER));
+            for (File child : children) {
+                if (child == null || child.getName().startsWith(".")) {
+                    continue;
+                }
+                if (child.isDirectory()) {
+                    queue.add(child);
+                    continue;
+                }
+
+                String relative = source.toPath().relativize(child.toPath()).toString().replace('\\', '/');
+                String normalizedRelative = normalizeRelativePath(relative);
+                if (normalizedRelative == null || !shouldProjectEntry(normalizedRelative, request)) {
+                    continue;
+                }
+
+                File output = new File(managedFolder, normalizedRelative);
+                File parent = output.getParentFile();
+                if (parent != null) {
+                    parent.mkdirs();
+                }
+                copyFile(child, output);
+                copied++;
+            }
+        }
+        return copied;
+    }
+
+    private static int copyProjectedArchiveEntries(File source, File managedFolder, DatapackRequest request) throws IOException {
+        int copied = 0;
+        try (ZipFile zipFile = new ZipFile(source)) {
+            List<? extends ZipEntry> entries = zipFile.stream()
+                    .filter(entry -> !entry.isDirectory())
+                    .sorted(Comparator.comparing(ZipEntry::getName, String.CASE_INSENSITIVE_ORDER))
+                    .toList();
+
+            for (ZipEntry zipEntry : entries) {
+                String normalizedRelative = normalizeRelativePath(zipEntry.getName());
+                if (normalizedRelative == null || !shouldProjectEntry(normalizedRelative, request)) {
+                    continue;
+                }
+
+                File output = new File(managedFolder, normalizedRelative);
+                File parent = output.getParentFile();
+                if (parent != null) {
+                    parent.mkdirs();
+                }
+                try (InputStream inputStream = zipFile.getInputStream(zipEntry)) {
+                    writeInputStreamToFile(inputStream, output);
+                }
+                copied++;
+            }
+        }
+        return copied;
+    }
+
+    private static void writeInputStreamToFile(InputStream inputStream, File output) throws IOException {
+        File parent = output.getParentFile();
+        if (parent != null) {
+            parent.mkdirs();
+        }
+
+        File temp = parent == null
+                ? new File(output.getPath() + ".tmp-" + System.nanoTime())
+                : new File(parent, output.getName() + ".tmp-" + System.nanoTime());
+        Files.copy(inputStream, temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        try {
+            Files.move(temp.toPath(), output.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (IOException e) {
+            Files.move(temp.toPath(), output.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private static void writeManagedPackMeta(File managedFolder) throws IOException {
+        managedFolder.mkdirs();
+        int packFormat = INMS.get().getDataVersion().getPackFormat();
+        JSONObject root = new JSONObject();
+        JSONObject pack = new JSONObject();
+        pack.put("description", MANAGED_PACK_META_DESCRIPTION);
+        pack.put("pack_format", packFormat);
+        root.put("pack", pack);
+        Files.writeString(new File(managedFolder, "pack.mcmeta").toPath(), root.toString(4), StandardCharsets.UTF_8);
+    }
+
+    private static boolean shouldProjectEntry(String relativePath, DatapackRequest request) {
+        ProjectedEntry entry = parseProjectedEntry(relativePath);
+        if (entry == null) {
+            return false;
+        }
+
+        if (!"minecraft".equals(entry.namespace())) {
+            return true;
+        }
+
+        if (!request.replaceVanilla()) {
+            return false;
+        }
+
+        if (!request.hasReplacementTargets()) {
+            return false;
+        }
+
+        return switch (entry.type()) {
+            case STRUCTURE -> request.structures().contains(entry.key());
+            case STRUCTURE_SET -> request.structureSets().contains(entry.key());
+            case TEMPLATE_POOL -> request.templatePools().contains(entry.key());
+            case PROCESSOR_LIST -> request.processorLists().contains(entry.key());
+            case BIOME_HAS_STRUCTURE_TAG -> request.biomeHasStructureTags().contains(entry.key());
+            case STRUCTURE_NBT -> request.structures().contains(entry.key()) || !request.templatePools().isEmpty();
+        };
+    }
+
+    private static ProjectedEntry parseProjectedEntry(String relativePath) {
+        String normalized = relativePath.replace('\\', '/');
+        Matcher matcher = STRUCTURE_JSON_ENTRY.matcher(normalized);
+        if (matcher.matches()) {
+            String key = normalizeResourceKey(matcher.group(1), matcher.group(2), "worldgen/structure/");
+            return key == null ? null : new ProjectedEntry(ProjectedEntryType.STRUCTURE, normalizeNamespace(matcher.group(1)), key);
+        }
+
+        matcher = STRUCTURE_SET_JSON_ENTRY.matcher(normalized);
+        if (matcher.matches()) {
+            String key = normalizeResourceKey(matcher.group(1), matcher.group(2), "worldgen/structure_set/");
+            return key == null ? null : new ProjectedEntry(ProjectedEntryType.STRUCTURE_SET, normalizeNamespace(matcher.group(1)), key);
+        }
+
+        matcher = TEMPLATE_POOL_JSON_ENTRY.matcher(normalized);
+        if (matcher.matches()) {
+            String key = normalizeResourceKey(matcher.group(1), matcher.group(2), "worldgen/template_pool/");
+            return key == null ? null : new ProjectedEntry(ProjectedEntryType.TEMPLATE_POOL, normalizeNamespace(matcher.group(1)), key);
+        }
+
+        matcher = PROCESSOR_LIST_JSON_ENTRY.matcher(normalized);
+        if (matcher.matches()) {
+            String key = normalizeResourceKey(matcher.group(1), matcher.group(2), "worldgen/processor_list/");
+            return key == null ? null : new ProjectedEntry(ProjectedEntryType.PROCESSOR_LIST, normalizeNamespace(matcher.group(1)), key);
+        }
+
+        matcher = BIOME_HAS_STRUCTURE_TAG_ENTRY.matcher(normalized);
+        if (matcher.matches()) {
+            String key = normalizeResourceKey(matcher.group(1), matcher.group(2), "tags/worldgen/biome/has_structure/", "worldgen/biome/has_structure/", "has_structure/");
+            return key == null ? null : new ProjectedEntry(ProjectedEntryType.BIOME_HAS_STRUCTURE_TAG, normalizeNamespace(matcher.group(1)), key);
+        }
+
+        EntryPath entryPath = resolveEntryPath(normalized);
+        if (entryPath == null) {
+            return null;
+        }
+        String key = normalizeResourceKey(entryPath.namespace, stripExtension(entryPath.structurePath));
+        return key == null ? null : new ProjectedEntry(ProjectedEntryType.STRUCTURE_NBT, normalizeNamespace(entryPath.namespace), key);
+    }
+
+    private static String normalizeRelativePath(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String normalized = value.replace('\\', '/').replaceAll("/+", "/");
+        normalized = normalized.replaceAll("^/+", "").replaceAll("/+$", "");
+        if (normalized.isBlank() || normalized.contains("..")) {
+            return null;
+        }
+        return normalized;
+    }
+
+    private static String buildManagedWorldDatapackName(String targetPack, String sourceKey) {
+        String pack = sanitizePackName(targetPack);
+        String source = sanitizePath(sourceKey).replace("/", "_");
+        if (pack.isBlank()) {
+            pack = "pack";
+        }
+        if (source.isBlank()) {
+            source = "source";
+        }
+        return MANAGED_WORLD_PACK_PREFIX + pack + "-" + source;
+    }
+
+    private static String normalizeNamespace(String namespace) {
+        String cleaned = sanitizePath(namespace);
+        return cleaned.isBlank() ? "minecraft" : cleaned;
+    }
+
+    private static String normalizeResourceKey(String namespace, String value, String... prefixes) {
+        String normalizedNamespace = normalizeNamespace(namespace);
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        String cleaned = value.trim().replace('\\', '/');
+        if (cleaned.startsWith("#")) {
+            cleaned = cleaned.substring(1);
+        }
+        if (cleaned.isBlank()) {
+            return null;
+        }
+
+        String keyNamespace = normalizedNamespace;
+        String path = cleaned;
+        int colon = cleaned.indexOf(':');
+        if (colon > 0 && colon < cleaned.length() - 1) {
+            keyNamespace = normalizeNamespace(cleaned.substring(0, colon));
+            path = cleaned.substring(colon + 1);
+        }
+
+        path = sanitizePath(path);
+        if (path.isBlank()) {
+            return null;
+        }
+
+        if (prefixes != null) {
+            for (String prefix : prefixes) {
+                String cleanedPrefix = sanitizePath(prefix);
+                if (!cleanedPrefix.isBlank() && path.startsWith(cleanedPrefix)) {
+                    path = path.substring(cleanedPrefix.length());
+                }
+            }
+        }
+
+        path = path.replaceAll("^/+", "").replaceAll("/+$", "");
+        if (path.endsWith(".json")) {
+            path = stripExtension(path);
+        }
+        if (path.endsWith(".nbt")) {
+            path = stripExtension(path);
+        }
+        if (path.isBlank()) {
+            return null;
+        }
+
+        return keyNamespace + ":" + path;
     }
 
     private static void collectWorldDatapackFolders(Set<File> folders) {
@@ -269,224 +826,6 @@ public final class ExternalDataPackPipeline {
         } catch (Throwable e) {
             Iris.reportError(e);
         }
-    }
-
-    public static ImportSummary importDatapackStructures(File sourceFolder) {
-        ImportSummary summary = new ImportSummary();
-        if (sourceFolder == null || !sourceFolder.exists()) {
-            return summary;
-        }
-        PACK_ENVIRONMENT_CACHE.clear();
-
-        File importPackFolder = Iris.instance.getDataFolder("packs", PACK_NAME);
-        File indexFile = new File(importPackFolder, "datapack-index.json");
-        importPackFolder.mkdirs();
-
-        JSONObject oldIndex = readExistingIndex(indexFile);
-        Map<String, JSONObject> oldSources = mapExistingSources(oldIndex);
-        JSONArray newSources = new JSONArray();
-        Set<String> seenSourceKeys = new HashSet<>();
-
-        List<SourceInput> sources = discoverSources(sourceFolder);
-        if (sources.isEmpty()) {
-            pruneRemovedSourceFolders(oldSources, seenSourceKeys);
-            writeIndex(indexFile, newSources, summary);
-            return summary;
-        }
-
-        for (SourceInput sourceInput : sources) {
-            File entry = sourceInput.source();
-            if (entry == null || !entry.exists()) {
-                continue;
-            }
-
-            SourceDescriptor sourceDescriptor = createSourceDescriptor(entry, sourceInput.targetPack(), sourceInput.requiredEnvironment());
-            if (sourceDescriptor.requiredEnvironment() != null) {
-                String packEnvironment = resolvePackEnvironment(sourceDescriptor.targetPack());
-                if (packEnvironment == null || !packEnvironment.equals(sourceDescriptor.requiredEnvironment())) {
-                    summary.skipped++;
-                    Iris.warn("Skipped external datapack source " + sourceDescriptor.sourceName()
-                            + " targetPack=" + sourceDescriptor.targetPack()
-                            + " requiredEnvironment=" + sourceDescriptor.requiredEnvironment()
-                            + " packEnvironment=" + (packEnvironment == null ? "unknown" : packEnvironment));
-                    continue;
-                }
-            }
-
-            seenSourceKeys.add(sourceDescriptor.sourceKey());
-            File sourceRoot = resolveSourceRoot(sourceDescriptor.targetPack(), sourceDescriptor.sourceKey());
-            JSONObject cachedSource = oldSources.get(sourceDescriptor.sourceKey());
-            String cachedTargetPack = cachedSource == null
-                    ? null
-                    : sanitizePackName(cachedSource.optString("targetPack", defaultTargetPack()));
-            boolean sameTargetPack = cachedTargetPack != null && cachedTargetPack.equals(sourceDescriptor.targetPack());
-
-            if (cachedSource != null
-                    && sourceDescriptor.fingerprint().equals(cachedSource.optString("fingerprint", ""))
-                    && sameTargetPack
-                    && sourceRoot.exists()) {
-                newSources.put(cachedSource);
-                addSourceToSummary(summary, cachedSource, true);
-                continue;
-            }
-
-            if (cachedTargetPack != null && !cachedTargetPack.equals(sourceDescriptor.targetPack())) {
-                File previousSourceRoot = resolveSourceRoot(cachedTargetPack, sourceDescriptor.sourceKey());
-                deleteFolder(previousSourceRoot);
-            }
-
-            deleteFolder(sourceRoot);
-            sourceRoot.mkdirs();
-            JSONObject sourceResult = convertSource(entry, sourceDescriptor, sourceRoot);
-            newSources.put(sourceResult);
-            addSourceToSummary(summary, sourceResult, false);
-        }
-
-        pruneRemovedSourceFolders(oldSources, seenSourceKeys);
-        writeIndex(indexFile, newSources, summary);
-        return summary;
-    }
-
-    private static List<SourceInput> discoverSources(File sourceFolder) {
-        List<SourceInput> sources = new ArrayList<>();
-        File[] entries = sourceFolder.listFiles();
-        if (entries == null || entries.length == 0) {
-            return sources;
-        }
-
-        Arrays.sort(entries, Comparator.comparing(File::getName, String.CASE_INSENSITIVE_ORDER));
-        String defaultPack = defaultTargetPack();
-        for (File entry : entries) {
-            if (entry == null || !entry.exists() || entry.getName().startsWith(".")) {
-                continue;
-            }
-
-            if (entry.isDirectory() && !looksLikeDatapackDirectory(entry)) {
-                collectContainerSources(entry, sources, defaultPack);
-                continue;
-            }
-
-            if (!(entry.isDirectory() || isArchive(entry.getName()))) {
-                continue;
-            }
-
-            SourceControl sourceControl = resolveSourceControl(entry, defaultPack, null);
-            sources.add(new SourceInput(entry, sourceControl.targetPack(), sourceControl.requiredEnvironment()));
-        }
-
-        return sources;
-    }
-
-    private static void collectContainerSources(File container, List<SourceInput> sources, String defaultPack) {
-        File[] children = container.listFiles();
-        if (children == null || children.length == 0) {
-            return;
-        }
-
-        Arrays.sort(children, Comparator.comparing(File::getName, String.CASE_INSENSITIVE_ORDER));
-        SourceControl containerControl = resolveContainerControl(container, defaultPack);
-        for (File child : children) {
-            if (child == null || !child.exists() || child.getName().startsWith(".")) {
-                continue;
-            }
-            if (!(child.isDirectory() || isArchive(child.getName()))) {
-                continue;
-            }
-
-            SourceControl sourceControl = resolveSourceControl(child, containerControl.targetPack(), containerControl.requiredEnvironment());
-            sources.add(new SourceInput(child, sourceControl.targetPack(), sourceControl.requiredEnvironment()));
-        }
-    }
-
-    private static SourceControl resolveContainerControl(File container, String defaultPack) {
-        String targetPack = sanitizePackName(container.getName());
-        if (targetPack.isEmpty()) {
-            targetPack = sanitizePackName(defaultPack);
-        }
-        if (targetPack.isEmpty()) {
-            targetPack = defaultTargetPack();
-        }
-
-        File control = new File(container, ".iris-pack.json");
-        if (!control.exists() || !control.isFile()) {
-            return new SourceControl(targetPack, null);
-        }
-
-        return parseSourceControl(control, targetPack, null);
-    }
-
-    private static SourceControl resolveSourceControl(File source, String targetPack, String requiredEnvironment) {
-        String sanitizedPack = sanitizePackName(targetPack);
-        if (sanitizedPack.isEmpty()) {
-            sanitizedPack = defaultTargetPack();
-        }
-        String normalizedEnvironment = normalizeEnvironment(requiredEnvironment);
-        File controlFile = findSourceControlFile(source);
-        if (controlFile == null) {
-            return new SourceControl(sanitizedPack, normalizedEnvironment);
-        }
-        return parseSourceControl(controlFile, sanitizedPack, normalizedEnvironment);
-    }
-
-    private static SourceControl parseSourceControl(File controlFile, String defaultTargetPack, String defaultRequiredEnvironment) {
-        String targetPack = defaultTargetPack;
-        String requiredEnvironment = defaultRequiredEnvironment;
-        try {
-            String raw = Files.readString(controlFile.toPath(), StandardCharsets.UTF_8);
-            JSONObject json = new JSONObject(raw);
-            String configuredPack = sanitizePackName(json.optString("targetPack", ""));
-            if (!configuredPack.isEmpty()) {
-                targetPack = configuredPack;
-            }
-
-            String configuredEnvironment = normalizeEnvironment(json.optString("environment", json.optString("dimension", "")));
-            if (configuredEnvironment != null) {
-                requiredEnvironment = configuredEnvironment;
-            }
-        } catch (Throwable e) {
-            Iris.warn("Failed to parse external datapack control file " + controlFile.getPath());
-            Iris.reportError(e);
-        }
-
-        return new SourceControl(targetPack, requiredEnvironment);
-    }
-
-    private static File findSourceControlFile(File source) {
-        if (source == null) {
-            return null;
-        }
-
-        if (source.isDirectory()) {
-            File hidden = new File(source, ".iris-import.json");
-            if (hidden.exists() && hidden.isFile()) {
-                return hidden;
-            }
-
-            File plain = new File(source, "iris-import.json");
-            if (plain.exists() && plain.isFile()) {
-                return plain;
-            }
-        }
-
-        File parent = source.getParentFile();
-        if (parent == null) {
-            return null;
-        }
-
-        File exact = new File(parent, source.getName() + ".iris.json");
-        if (exact.exists() && exact.isFile()) {
-            return exact;
-        }
-
-        String stripped = stripExtension(source.getName());
-        if (!stripped.equals(source.getName())) {
-            File strippedFile = new File(parent, stripped + ".iris.json");
-            if (strippedFile.exists() && strippedFile.isFile()) {
-                return strippedFile;
-            }
-        }
-
-        return null;
     }
 
     private static String defaultTargetPack() {
@@ -1483,13 +1822,288 @@ public final class ExternalDataPackPipeline {
         }
     }
 
+    public record DatapackRequest(
+            String id,
+            String url,
+            String targetPack,
+            String requiredEnvironment,
+            boolean required,
+            boolean replaceVanilla,
+            Set<String> structures,
+            Set<String> structureSets,
+            Set<String> templatePools,
+            Set<String> processorLists,
+            Set<String> biomeHasStructureTags
+    ) {
+        public DatapackRequest(
+                String id,
+                String url,
+                String targetPack,
+                String requiredEnvironment,
+                boolean required,
+                boolean replaceVanilla,
+                IrisExternalDatapackReplaceTargets replaceTargets
+        ) {
+            this(
+                    normalizeRequestId(id, url),
+                    url == null ? "" : url.trim(),
+                    normalizeRequestPack(targetPack),
+                    normalizeEnvironment(requiredEnvironment),
+                    required,
+                    replaceVanilla,
+                    normalizeTargets(replaceTargets == null ? null : replaceTargets.getStructures(), "worldgen/structure/"),
+                    normalizeTargets(replaceTargets == null ? null : replaceTargets.getStructureSets(), "worldgen/structure_set/"),
+                    normalizeTargets(replaceTargets == null ? null : replaceTargets.getTemplatePools(), "worldgen/template_pool/"),
+                    normalizeTargets(replaceTargets == null ? null : replaceTargets.getProcessorLists(), "worldgen/processor_list/"),
+                    normalizeTargets(replaceTargets == null ? null : replaceTargets.getBiomeHasStructureTags(),
+                            "tags/worldgen/biome/has_structure/",
+                            "worldgen/biome/has_structure/",
+                            "has_structure/")
+            );
+        }
+
+        public DatapackRequest {
+            id = normalizeRequestId(id, url);
+            url = url == null ? "" : url.trim();
+            targetPack = normalizeRequestPack(targetPack);
+            requiredEnvironment = normalizeEnvironment(requiredEnvironment);
+            structures = immutableSet(structures);
+            structureSets = immutableSet(structureSets);
+            templatePools = immutableSet(templatePools);
+            processorLists = immutableSet(processorLists);
+            biomeHasStructureTags = immutableSet(biomeHasStructureTags);
+        }
+
+        public String getDedupeKey() {
+            return targetPack + "|" + url;
+        }
+
+        public boolean hasReplacementTargets() {
+            return !structures.isEmpty()
+                    || !structureSets.isEmpty()
+                    || !templatePools.isEmpty()
+                    || !processorLists.isEmpty()
+                    || !biomeHasStructureTags.isEmpty();
+        }
+
+        public DatapackRequest merge(DatapackRequest other) {
+            if (other == null) {
+                return this;
+            }
+            String environment = requiredEnvironment;
+            if ((environment == null || environment.isBlank()) && other.requiredEnvironment != null && !other.requiredEnvironment.isBlank()) {
+                environment = other.requiredEnvironment;
+            }
+            return new DatapackRequest(
+                    id,
+                    url,
+                    targetPack,
+                    environment,
+                    required || other.required,
+                    replaceVanilla || other.replaceVanilla,
+                    union(structures, other.structures),
+                    union(structureSets, other.structureSets),
+                    union(templatePools, other.templatePools),
+                    union(processorLists, other.processorLists),
+                    union(biomeHasStructureTags, other.biomeHasStructureTags)
+            );
+        }
+
+        private static String normalizeRequestId(String id, String url) {
+            String cleaned = id == null ? "" : id.trim();
+            if (!cleaned.isBlank()) {
+                return cleaned;
+            }
+            return url == null ? "" : url.trim();
+        }
+
+        private static String normalizeRequestPack(String targetPack) {
+            String sanitized = sanitizePackName(targetPack);
+            if (!sanitized.isBlank()) {
+                return sanitized;
+            }
+            return defaultTargetPack();
+        }
+
+        private static Set<String> normalizeTargets(KList<String> values, String... prefixes) {
+            LinkedHashSet<String> normalized = new LinkedHashSet<>();
+            if (values == null) {
+                return normalized;
+            }
+            for (String value : values) {
+                String normalizedKey = normalizeResourceKey("minecraft", value, prefixes);
+                if (normalizedKey != null && !normalizedKey.isBlank()) {
+                    normalized.add(normalizedKey);
+                }
+            }
+            return normalized;
+        }
+
+        private static Set<String> immutableSet(Set<String> values) {
+            LinkedHashSet<String> copy = new LinkedHashSet<>();
+            if (values != null) {
+                copy.addAll(values);
+            }
+            return Set.copyOf(copy);
+        }
+
+        private static Set<String> union(Set<String> first, Set<String> second) {
+            LinkedHashSet<String> merged = new LinkedHashSet<>();
+            if (first != null) {
+                merged.addAll(first);
+            }
+            if (second != null) {
+                merged.addAll(second);
+            }
+            return merged;
+        }
+    }
+
+    public static final class PipelineSummary {
+        private int requests;
+        private int syncedRequests;
+        private int restoredRequests;
+        private int optionalFailures;
+        private int requiredFailures;
+        private int importedSources;
+        private int cachedSources;
+        private int scannedStructures;
+        private int convertedStructures;
+        private int failedConversions;
+        private int skippedConversions;
+        private int entitiesIgnored;
+        private int blockEntities;
+        private int worldDatapacksInstalled;
+        private int worldAssetsInstalled;
+        private int legacyDownloadRemovals;
+        private int legacyWorldCopyRemovals;
+
+        private void setImportSummary(ImportSummary importSummary) {
+            if (importSummary == null) {
+                return;
+            }
+            this.importedSources = importSummary.getSources();
+            this.cachedSources = importSummary.getCachedSources();
+            this.scannedStructures = importSummary.getNbtScanned();
+            this.convertedStructures = importSummary.getConverted();
+            this.failedConversions = importSummary.getFailed();
+            this.skippedConversions = importSummary.getSkipped();
+            this.entitiesIgnored = importSummary.getEntitiesIgnored();
+            this.blockEntities = importSummary.getBlockEntities();
+        }
+
+        public int getRequests() {
+            return requests;
+        }
+
+        public int getSyncedRequests() {
+            return syncedRequests;
+        }
+
+        public int getRestoredRequests() {
+            return restoredRequests;
+        }
+
+        public int getOptionalFailures() {
+            return optionalFailures;
+        }
+
+        public int getRequiredFailures() {
+            return requiredFailures;
+        }
+
+        public int getImportedSources() {
+            return importedSources;
+        }
+
+        public int getCachedSources() {
+            return cachedSources;
+        }
+
+        public int getScannedStructures() {
+            return scannedStructures;
+        }
+
+        public int getConvertedStructures() {
+            return convertedStructures;
+        }
+
+        public int getFailedConversions() {
+            return failedConversions;
+        }
+
+        public int getSkippedConversions() {
+            return skippedConversions;
+        }
+
+        public int getEntitiesIgnored() {
+            return entitiesIgnored;
+        }
+
+        public int getBlockEntities() {
+            return blockEntities;
+        }
+
+        public int getWorldDatapacksInstalled() {
+            return worldDatapacksInstalled;
+        }
+
+        public int getWorldAssetsInstalled() {
+            return worldAssetsInstalled;
+        }
+
+        public int getLegacyDownloadRemovals() {
+            return legacyDownloadRemovals;
+        }
+
+        public int getLegacyWorldCopyRemovals() {
+            return legacyWorldCopyRemovals;
+        }
+    }
+
+    private record RequestedSourceInput(File source, DatapackRequest request) {
+    }
+
+    private record ResolvedRemoteFile(String url, String outputFileName, String sha1) {
+    }
+
+    private record RequestSyncResult(boolean success, boolean downloaded, boolean restored, File source, String error) {
+        private static RequestSyncResult downloaded(File source) {
+            return new RequestSyncResult(true, true, false, source, "");
+        }
+
+        private static RequestSyncResult restored(File source) {
+            return new RequestSyncResult(true, false, true, source, "");
+        }
+
+        private static RequestSyncResult failure(String error) {
+            return new RequestSyncResult(false, false, false, null, error == null ? "unknown error" : error);
+        }
+    }
+
+    private record ProjectedEntry(ProjectedEntryType type, String namespace, String key) {
+    }
+
+    private enum ProjectedEntryType {
+        STRUCTURE,
+        STRUCTURE_SET,
+        TEMPLATE_POOL,
+        PROCESSOR_LIST,
+        STRUCTURE_NBT,
+        BIOME_HAS_STRUCTURE_TAG
+    }
+
+    private record ProjectionResult(boolean success, int installedDatapacks, int installedAssets, String managedName) {
+        private static ProjectionResult success(String managedName, int installedDatapacks, int installedAssets) {
+            return new ProjectionResult(true, installedDatapacks, installedAssets, managedName);
+        }
+
+        private static ProjectionResult failure(String managedName) {
+            return new ProjectionResult(false, 0, 0, managedName);
+        }
+    }
+
     private record EntryPath(String originalPath, String namespace, String structurePath) {
-    }
-
-    private record SourceInput(File source, String targetPack, String requiredEnvironment) {
-    }
-
-    private record SourceControl(String targetPack, String requiredEnvironment) {
     }
 
     private record SourceDescriptor(String sourceKey, String sourceName, String fingerprint, String targetPack, String requiredEnvironment) {

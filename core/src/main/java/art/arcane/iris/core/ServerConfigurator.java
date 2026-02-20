@@ -27,7 +27,6 @@ import art.arcane.iris.engine.object.*;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
-import art.arcane.volmlib.util.io.IO;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.iris.util.common.misc.ServerProperties;
 import art.arcane.iris.util.common.plugin.VolmitSender;
@@ -42,8 +41,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -147,42 +144,24 @@ public class ServerConfigurator {
 
         File source = Iris.instance.getDataFolder("datapacks");
         source.mkdirs();
-        File[] datapacks = source.listFiles();
-        if (datapacks == null || datapacks.length == 0) {
-            return;
+        ExternalDataPackPipeline.syncPinnedDatapacks(source);
+        int removedLegacyCopies = ExternalDataPackPipeline.removeLegacyWorldDatapackCopies(source, folders);
+        ExternalDataPackPipeline.ImportSummary summary = ExternalDataPackPipeline.importDatapackStructures(source);
+        if (removedLegacyCopies > 0) {
+            Iris.info("Removed " + removedLegacyCopies + " legacy external datapack world copies.");
         }
-
-        int copied = 0;
-        for (File targetFolder : folders) {
-            targetFolder.mkdirs();
-            for (File entry : datapacks) {
-                if (entry == null || !entry.exists() || entry.getName().startsWith(".")) {
-                    continue;
-                }
-
-                File output = new File(targetFolder, entry.getName());
-                try {
-                    if (entry.isDirectory()) {
-                        IO.copyDirectory(entry.toPath(), output.toPath());
-                    } else if (entry.isFile()) {
-                        File parent = output.getParentFile();
-                        if (parent != null) {
-                            parent.mkdirs();
-                        }
-                        Files.copy(entry.toPath(), output.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    } else {
-                        continue;
-                    }
-                    copied++;
-                } catch (Throwable e) {
-                    Iris.warn("Failed to install datapack \"" + entry.getName() + "\" into \"" + targetFolder.getPath() + "\"");
-                    Iris.reportError(e);
-                }
-            }
+        if (summary.getSources() > 0) {
+            Iris.info("External datapack structure import: sources=" + summary.getSources()
+                    + ", cached=" + summary.getCachedSources()
+                    + ", scanned=" + summary.getNbtScanned()
+                    + ", converted=" + summary.getConverted()
+                    + ", failed=" + summary.getFailed()
+                    + ", skipped=" + summary.getSkipped()
+                    + ", entitiesIgnored=" + summary.getEntitiesIgnored()
+                    + ", blockEntities=" + summary.getBlockEntities());
         }
-
-        if (copied > 0) {
-            Iris.info("Installed " + copied + " external datapack copy operation" + (copied == 1 ? "" : "s") + " from " + source.getPath());
+        if (summary.getSources() > 0 || summary.getConverted() > 0) {
+            Iris.info("External datapack world install is disabled; only structure template import is applied.");
         }
     }
 

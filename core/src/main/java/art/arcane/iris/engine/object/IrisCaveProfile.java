@@ -24,6 +24,16 @@ public class IrisCaveProfile {
     @Desc("Global vertical bounds for profile cave carving.")
     private IrisRange verticalRange = new IrisRange(0, 384);
 
+    @MinNumber(0)
+    @MaxNumber(128)
+    @Desc("Vertical fade range applied near cave profile min/max bounds to avoid abrupt hard-stop ceilings/floors.")
+    private int verticalEdgeFade = 20;
+
+    @MinNumber(0)
+    @MaxNumber(1)
+    @Desc("Strength of the vertical edge fade at cave profile min/max bounds.")
+    private double verticalEdgeFadeStrength = 0.18;
+
     @Desc("Base density style for cave field generation.")
     private IrisGeneratorStyle baseDensityStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
@@ -57,6 +67,16 @@ public class IrisCaveProfile {
     @MaxNumber(8)
     @Desc("Vertical sample step used while evaluating cave density.")
     private int sampleStep = 2;
+
+    @MinNumber(0)
+    @MaxNumber(4096)
+    @Desc("Minimum carved cells expected from this profile before recovery boost applies.")
+    private int minCarveCells = 0;
+
+    @MinNumber(0)
+    @MaxNumber(1)
+    @Desc("Additional threshold boost used when profile carve output is too sparse.")
+    private double recoveryThresholdBoost = 0.08;
 
     @MinNumber(0)
     @MaxNumber(64)

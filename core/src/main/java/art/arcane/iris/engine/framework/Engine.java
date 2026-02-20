@@ -222,7 +222,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             }
         }
 
-        return getCaveBiome(x, z);
+        return getCaveBiome(x, y, z);
     }
 
     @ChunkCoordinates
@@ -234,6 +234,28 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int z) {
         return getComplex().getCaveBiomeStream().get(x, z);
+    }
+
+    @BlockCoordinates
+    default IrisBiome getCaveBiome(int x, int y, int z) {
+        IrisBiome caveBiome = getCaveBiome(x, z);
+        IrisBiome surfaceBiome = getSurfaceBiome(x, z);
+        if (caveBiome == null) {
+            return surfaceBiome;
+        }
+
+        int surfaceY = getComplex().getHeightStream().get(x, z).intValue();
+        int depthBelowSurface = surfaceY - y;
+        if (depthBelowSurface <= 0) {
+            return surfaceBiome;
+        }
+
+        int minDepth = Math.max(0, caveBiome.getCaveMinDepthBelowSurface());
+        if (depthBelowSurface < minDepth) {
+            return surfaceBiome;
+        }
+
+        return caveBiome;
     }
 
     @BlockCoordinates
@@ -514,7 +536,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
         IrisRegion region = getComplex().getRegionStream().get(rx, rz);
         IrisBiome biomeSurface = getComplex().getTrueBiomeStream().get(rx, rz);
-        IrisBiome biomeUnder = ry < he ? getComplex().getCaveBiomeStream().get(rx, rz) : biomeSurface;
+        IrisBiome biomeUnder = ry < he ? getCaveBiome(rx, ry, rz) : biomeSurface;
 
         double multiplier = 1D * getDimension().getLoot().getMultiplier() * region.getLoot().getMultiplier() * biomeSurface.getLoot().getMultiplier() * biomeUnder.getLoot().getMultiplier();
         boolean fallback = tables.isEmpty();
@@ -796,7 +818,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     default IrisBiome getBiome(int x, int y, int z) {
         if (y <= getHeight(x, z) - 2) {
-            return getCaveBiome(x, z);
+            return getCaveBiome(x, y, z);
         }
 
         return getSurfaceBiome(x, z);

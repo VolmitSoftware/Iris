@@ -123,7 +123,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
 
         walls.forEach((i, v) -> {
             IrisBiome biome = v.getCustomBiome().isEmpty()
-                    ? getEngine().getCaveBiome(i.getX() + (x << 4), i.getZ() + (z << 4))
+                    ? getEngine().getCaveBiome(i.getX() + (x << 4), i.getY(), i.getZ() + (z << 4))
                     : getEngine().getData().getBiomeLoader().load(v.getCustomBiome());
 
             if (biome != null) {
@@ -207,7 +207,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         }
 
         IrisBiome biome = customBiome.isEmpty()
-                ? getEngine().getCaveBiome(xx, zz)
+                ? getEngine().getCaveBiome(xx, center, zz)
                 : getEngine().getData().getBiomeLoader().load(customBiome);
 
         if (biome == null) {

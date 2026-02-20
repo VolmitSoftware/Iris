@@ -64,7 +64,12 @@ public class MantleObjectComponent extends IrisMantleComponent {
         int zzz = 8 + (z << 4);
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
         IrisBiome surfaceBiome = getComplex().getTrueBiomeStream().get(xxx, zzz);
-        IrisBiome caveBiome = getComplex().getCaveBiomeStream().get(xxx, zzz);
+        int surfaceY = getEngineMantle().getEngine().getHeight(xxx, zzz, true);
+        int sampleY = Math.max(1, surfaceY - 48);
+        IrisBiome caveBiome = getEngineMantle().getEngine().getCaveBiome(xxx, sampleY, zzz);
+        if (caveBiome == null) {
+            caveBiome = surfaceBiome;
+        }
         if (traceRegen) {
             Iris.info("Regen object layer start: chunk=" + x + "," + z
                     + " surfaceBiome=" + surfaceBiome.getLoadKey()

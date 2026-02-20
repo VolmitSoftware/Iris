@@ -137,6 +137,10 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @RegistryListResource(IrisBiome.class)
     @Desc("The carving biome. If specified the biome will be used when under a carving instead of this current biome.")
     private String carvingBiome = "";
+    @MinNumber(0)
+    @MaxNumber(256)
+    @Desc("Minimum depth below terrain surface required before this cave biome can be selected.")
+    private int caveMinDepthBelowSurface = 0;
     @Desc("The default slab if iris decides to place a slab in this biome. Default is no slab.")
     private IrisBiomePaletteLayer slab = new IrisBiomePaletteLayer().zero();
     @Desc("The default wall if iris decides to place a wall higher than 2 blocks (steep hills or possibly cliffs)")

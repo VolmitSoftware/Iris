@@ -50,23 +50,47 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
-        IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
-        carve(writer, rng, x, z, region, biome);
+        IrisBiome surfaceBiome = getComplex().getTrueBiomeStream().get(xxx, zzz);
+        IrisCaveProfile caveBiomeProfile = resolveDominantCaveBiomeProfile(x, z);
+        carve(writer, rng, x, z, region, surfaceBiome, caveBiomeProfile);
     }
 
     @ChunkCoordinates
-    private void carve(MantleWriter writer, RNG rng, int cx, int cz, IrisRegion region, IrisBiome biome) {
+    private void carve(MantleWriter writer, RNG rng, int cx, int cz, IrisRegion region, IrisBiome surfaceBiome, IrisCaveProfile caveBiomeProfile) {
         IrisCaveProfile dimensionProfile = getDimension().getCaveProfile();
-        IrisCaveProfile biomeProfile = biome.getCaveProfile();
+        IrisCaveProfile surfaceBiomeProfile = surfaceBiome.getCaveProfile();
         IrisCaveProfile regionProfile = region.getCaveProfile();
-        IrisCaveProfile activeProfile = resolveActiveProfile(dimensionProfile, regionProfile, biomeProfile);
+        IrisCaveProfile activeProfile = resolveActiveProfile(dimensionProfile, regionProfile, surfaceBiomeProfile, caveBiomeProfile);
         if (isProfileEnabled(activeProfile)) {
-            carveProfile(activeProfile, writer, cx, cz);
-            return;
+            int carved = carveProfile(activeProfile, writer, cx, cz);
+            if (carved > 0) {
+                return;
+            }
+
+            if (activeProfile != regionProfile && isProfileEnabled(regionProfile)) {
+                carved = carveProfile(regionProfile, writer, cx, cz);
+                if (carved > 0) {
+                    return;
+                }
+            }
+
+            if (activeProfile != surfaceBiomeProfile && isProfileEnabled(surfaceBiomeProfile)) {
+                carved = carveProfile(surfaceBiomeProfile, writer, cx, cz);
+                if (carved > 0) {
+                    return;
+                }
+            }
+
+            if (activeProfile != dimensionProfile && isProfileEnabled(dimensionProfile)) {
+                carved = carveProfile(dimensionProfile, writer, cx, cz);
+                if (carved > 0) {
+                    return;
+                }
+            }
         }
 
         carve(getDimension().getCarving(), writer, nextCarveRng(rng, cx, cz), cx, cz);
-        carve(biome.getCarving(), writer, nextCarveRng(rng, cx, cz), cx, cz);
+        carve(surfaceBiome.getCarving(), writer, nextCarveRng(rng, cx, cz), cx, cz);
         carve(region.getCarving(), writer, nextCarveRng(rng, cx, cz), cx, cz);
     }
 
@@ -80,13 +104,13 @@ public class MantleCarvingComponent extends IrisMantleComponent {
     }
 
     @ChunkCoordinates
-    private void carveProfile(IrisCaveProfile profile, MantleWriter writer, int cx, int cz) {
+    private int carveProfile(IrisCaveProfile profile, MantleWriter writer, int cx, int cz) {
         if (!isProfileEnabled(profile)) {
-            return;
+            return 0;
         }
 
         IrisCaveCarver3D carver = getCarver(profile);
-        carver.carve(writer, cx, cz);
+        return carver.carve(writer, cx, cz);
     }
 
     private IrisCaveCarver3D getCarver(IrisCaveProfile profile) {
@@ -106,9 +130,59 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         return profile != null && profile.isEnabled();
     }
 
-    private IrisCaveProfile resolveActiveProfile(IrisCaveProfile dimensionProfile, IrisCaveProfile regionProfile, IrisCaveProfile biomeProfile) {
-        if (isProfileEnabled(biomeProfile)) {
-            return biomeProfile;
+    @ChunkCoordinates
+    private IrisCaveProfile resolveDominantCaveBiomeProfile(int chunkX, int chunkZ) {
+        int[] offsets = new int[]{1, 4, 8, 12, 15};
+        Map<IrisCaveProfile, Integer> profileVotes = new IdentityHashMap<>();
+        int validSamples = 0;
+        IrisCaveProfile dominantProfile = null;
+        int dominantVotes = 0;
+
+        for (int offsetX : offsets) {
+            for (int offsetZ : offsets) {
+                int sampleX = (chunkX << 4) + offsetX;
+                int sampleZ = (chunkZ << 4) + offsetZ;
+                int surfaceY = getEngineMantle().getEngine().getHeight(sampleX, sampleZ, true);
+                int sampleY = Math.max(1, surfaceY - 56);
+                IrisBiome caveBiome = getEngineMantle().getEngine().getCaveBiome(sampleX, sampleY, sampleZ);
+                if (caveBiome == null) {
+                    continue;
+                }
+
+                IrisCaveProfile profile = caveBiome.getCaveProfile();
+                if (!isProfileEnabled(profile)) {
+                    continue;
+                }
+
+                int votes = profileVotes.getOrDefault(profile, 0) + 1;
+                profileVotes.put(profile, votes);
+                validSamples++;
+                if (votes > dominantVotes) {
+                    dominantVotes = votes;
+                    dominantProfile = profile;
+                }
+            }
+        }
+
+        if (dominantProfile == null || validSamples <= 0) {
+            return null;
+        }
+
+        int requiredVotes = Math.max(13, (int) Math.ceil(validSamples * 0.65D));
+        if (dominantVotes < requiredVotes) {
+            return null;
+        }
+
+        return dominantProfile;
+    }
+
+    private IrisCaveProfile resolveActiveProfile(IrisCaveProfile dimensionProfile, IrisCaveProfile regionProfile, IrisCaveProfile surfaceBiomeProfile, IrisCaveProfile caveBiomeProfile) {
+        if (isProfileEnabled(caveBiomeProfile)) {
+            return caveBiomeProfile;
+        }
+
+        if (isProfileEnabled(surfaceBiomeProfile)) {
+            return surfaceBiomeProfile;
         }
 
         if (isProfileEnabled(regionProfile)) {

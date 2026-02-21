@@ -42,7 +42,14 @@ public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
     @NotNull
     EngineTarget getTarget();
 
-    void injectChunkReplacement(World world, int x, int z, Executor syncExecutor);
+    void injectChunkReplacement(
+            World world,
+            int x,
+            int z,
+            Executor syncExecutor,
+            ChunkReplacementOptions options,
+            ChunkReplacementListener listener
+    );
 
     void close();
 

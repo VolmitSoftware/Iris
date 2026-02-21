@@ -528,7 +528,7 @@ public class Iris extends VolmitPlugin implements Listener {
             J.ar(this::checkConfigHotload, 60);
             J.sr(this::tickQueue, 0);
             J.s(this::setupPapi);
-            J.a(ServerConfigurator::configure, 20);
+            J.a(ServerConfigurator::configureIfDeferred, 20);
 
             autoStartStudio();
             if (!J.isFolia()) {

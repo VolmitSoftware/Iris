@@ -205,13 +205,12 @@ public class CustomBiomeSource extends BiomeSource {
         int blockZ = z << 2;
         int blockY = y << 2;
         int worldMinHeight = engine.getWorld().minHeight();
-        int surfaceInternalY = engine.getComplex().getHeightStream().get(blockX, blockZ).intValue();
-        int surfaceWorldY = surfaceInternalY + worldMinHeight;
-        int caveSwitchWorldY = Math.min(-8, worldMinHeight + 40);
-        boolean deepUnderground = blockY <= caveSwitchWorldY;
-        boolean belowSurface = blockY <= surfaceWorldY - 8;
-        boolean underground = deepUnderground && belowSurface;
         int internalY = blockY - worldMinHeight;
+        int surfaceInternalY = engine.getComplex().getHeightStream().get(blockX, blockZ).intValue();
+        int caveSwitchInternalY = Math.max(-8 - worldMinHeight, 40);
+        boolean deepUnderground = internalY <= caveSwitchInternalY;
+        boolean belowSurface = internalY <= surfaceInternalY - 8;
+        boolean underground = deepUnderground && belowSurface;
         IrisBiome irisBiome = underground
                 ? engine.getCaveBiome(blockX, internalY, blockZ)
                 : engine.getComplex().getTrueBiomeStream().get(blockX, blockZ);

@@ -161,7 +161,9 @@ public class IrisCreator {
                 .seed(seed)
                 .studio(studio)
                 .create();
-        if (ServerConfigurator.installDataPacks(true)) {
+        boolean verifyDataPacks = !studio();
+        boolean includeExternalDataPacks = !studio();
+        if (ServerConfigurator.installDataPacks(verifyDataPacks, includeExternalDataPacks)) {
             throw new IrisException("Datapacks were missing!");
         }
 

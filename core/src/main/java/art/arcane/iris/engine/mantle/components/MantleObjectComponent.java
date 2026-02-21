@@ -45,6 +45,7 @@ import art.arcane.iris.util.common.scheduling.J;
 import org.bukkit.util.BlockVector;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -313,10 +314,11 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 continue;
             }
             int id = rng.i(0, Integer.MAX_VALUE);
+            IrisObjectPlacement effectivePlacement = resolveEffectivePlacement(objectPlacement, v);
             try {
-                int result = v.place(xx, -1, zz, writer, objectPlacement, rng, (b, data) -> {
+                int result = v.place(xx, -1, zz, writer, effectivePlacement, rng, (b, data) -> {
                     writer.setData(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
-                    if (objectPlacement.isDolphinTarget() && objectPlacement.isUnderwater() && B.isStorageChest(data)) {
+                    if (effectivePlacement.isDolphinTarget() && effectivePlacement.isUnderwater() && B.isStorageChest(data)) {
                         writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
                     }
                 }, null, getData());
@@ -417,11 +419,12 @@ public class MantleObjectComponent extends IrisMantleComponent {
             }
 
             int id = rng.i(0, Integer.MAX_VALUE);
+            IrisObjectPlacement effectivePlacement = resolveEffectivePlacement(objectPlacement, object);
 
             try {
-                int result = object.place(x, y, z, writer, objectPlacement, rng, (b, data) -> {
+                int result = object.place(x, y, z, writer, effectivePlacement, rng, (b, data) -> {
                     writer.setData(b.getX(), b.getY(), b.getZ(), object.getLoadKey() + "@" + id);
-                    if (objectPlacement.isDolphinTarget() && objectPlacement.isUnderwater() && B.isStorageChest(data)) {
+                    if (effectivePlacement.isDolphinTarget() && effectivePlacement.isUnderwater() && B.isStorageChest(data)) {
                         writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
                     }
                 }, null, getData());
@@ -456,6 +459,38 @@ public class MantleObjectComponent extends IrisMantleComponent {
         }
 
         return new ObjectPlacementResult(attempts, placed, rejected, nullObjects, errors);
+    }
+
+    private static IrisObjectPlacement resolveEffectivePlacement(IrisObjectPlacement objectPlacement, IrisObject object) {
+        if (objectPlacement == null || object == null) {
+            return objectPlacement;
+        }
+
+        String loadKey = object.getLoadKey();
+        if (loadKey == null || loadKey.isBlank()) {
+            return objectPlacement;
+        }
+
+        String normalized = loadKey.toLowerCase(Locale.ROOT);
+        boolean imported = normalized.startsWith("imports/")
+                || normalized.contains("/imports/")
+                || normalized.contains("imports/");
+        if (!imported) {
+            return objectPlacement;
+        }
+
+        ObjectPlaceMode mode = objectPlacement.getMode();
+        if (mode == ObjectPlaceMode.STILT
+                || mode == ObjectPlaceMode.FAST_STILT
+                || mode == ObjectPlaceMode.MIN_STILT
+                || mode == ObjectPlaceMode.FAST_MIN_STILT
+                || mode == ObjectPlaceMode.CENTER_STILT) {
+            return objectPlacement;
+        }
+
+        IrisObjectPlacement effectivePlacement = objectPlacement.toPlacement(loadKey);
+        effectivePlacement.setMode(ObjectPlaceMode.FAST_MIN_STILT);
+        return effectivePlacement;
     }
 
     private int findCaveAnchorY(MantleWriter writer, RNG rng, int x, int z, IrisCaveAnchorMode anchorMode, int anchorScanStep, int objectMinDepthBelowSurface, KMap<Long, KList<Integer>> anchorCache) {

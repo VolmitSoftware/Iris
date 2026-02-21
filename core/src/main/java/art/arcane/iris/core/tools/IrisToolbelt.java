@@ -433,7 +433,11 @@ public class IrisToolbelt {
         if (bypassMantleStages) {
             worldMaintenanceMantleBypassDepth.computeIfAbsent(name, k -> new AtomicInteger()).incrementAndGet();
         }
-        Iris.info("World maintenance enter: " + name + " reason=" + reason + " depth=" + depth + " bypassMantle=" + bypassMantleStages);
+        if (IrisSettings.get().getGeneral().isDebug()) {
+            Iris.info("World maintenance enter: " + name + " reason=" + reason + " depth=" + depth + " bypassMantle=" + bypassMantleStages);
+        } else {
+            Iris.verbose("World maintenance enter: " + name + " reason=" + reason + " depth=" + depth + " bypassMantle=" + bypassMantleStages);
+        }
     }
 
     public static void endWorldMaintenance(World world, String reason) {
@@ -463,7 +467,11 @@ public class IrisToolbelt {
             }
         }
 
-        Iris.info("World maintenance exit: " + name + " reason=" + reason + " depth=" + depth + " bypassMantleDepth=" + bypassDepth);
+        if (IrisSettings.get().getGeneral().isDebug()) {
+            Iris.info("World maintenance exit: " + name + " reason=" + reason + " depth=" + depth + " bypassMantleDepth=" + bypassDepth);
+        } else {
+            Iris.verbose("World maintenance exit: " + name + " reason=" + reason + " depth=" + depth + " bypassMantleDepth=" + bypassDepth);
+        }
     }
 
     public static boolean isWorldMaintenanceActive(World world) {

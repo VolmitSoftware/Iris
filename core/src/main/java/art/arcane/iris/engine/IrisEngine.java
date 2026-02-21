@@ -307,6 +307,10 @@ public class IrisEngine implements Engine {
             return;
         }
 
+        if (studio) {
+            return;
+        }
+
         if (!noisemapPrebakeRunning.compareAndSet(false, true)) {
             return;
         }
@@ -369,7 +373,7 @@ public class IrisEngine implements Engine {
         setupEngine();
         J.a(() -> {
             synchronized (ServerConfigurator.class) {
-                ServerConfigurator.installDataPacks(false);
+                ServerConfigurator.installDataPacks(false, false);
             }
         });
     }

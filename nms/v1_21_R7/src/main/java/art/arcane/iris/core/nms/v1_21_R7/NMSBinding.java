@@ -832,7 +832,10 @@ public class NMSBinding implements INMSBinding {
     public void placeStructures(Chunk chunk) {
         var craft = ((CraftChunk) chunk);
         var level = craft.getCraftWorld().getHandle();
-        var access = ((CraftChunk) chunk).getHandle(ChunkStatus.FULL);
+        var access = craft.getHandle(ChunkStatus.FEATURES);
+        if (access instanceof LevelChunk) {
+            return;
+        }
         level.getChunkSource().getGenerator().applyBiomeDecoration(level, access, level.structureManager());
     }
 

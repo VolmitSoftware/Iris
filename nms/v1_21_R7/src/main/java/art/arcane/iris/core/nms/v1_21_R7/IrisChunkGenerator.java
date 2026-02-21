@@ -3,6 +3,7 @@ package art.arcane.iris.core.nms.v1_21_R7;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.MapCodec;
 import art.arcane.iris.Iris;
+import art.arcane.iris.core.ExternalDataPackPipeline;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.util.common.reflect.WrappedField;
@@ -49,6 +50,7 @@ import java.util.function.Supplier;
 public class IrisChunkGenerator extends CustomChunkGenerator {
     private static final WrappedField<ChunkGenerator, BiomeSource> BIOME_SOURCE;
     private static final WrappedReturningMethod<Heightmap, Object> SET_HEIGHT;
+    private static final int EXTERNAL_FOUNDATION_MAX_DEPTH = 96;
     private final ChunkGenerator delegate;
     private final Engine engine;
     private volatile Registry<Structure> cachedStructureRegistry;
@@ -199,6 +201,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
 
         List<StructureStart> starts = new ArrayList<>(structureManager.startsForStructure(chunkAccess.getPos(), structure -> true));
         starts.sort(Comparator.comparingInt(start -> structureOrder.getOrDefault(start.getStructure(), Integer.MAX_VALUE)));
+        Set<String> externalLocateStructures = ExternalDataPackPipeline.snapshotLocateStructureKeys();
 
         int seededStructureIndex = Integer.MIN_VALUE;
         for (int j = 0; j < starts.size(); j++) {
@@ -210,10 +213,19 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
                 seededStructureIndex = structureIndex;
             }
             Supplier<String> supplier = () -> structureRegistry.getResourceKey(structure).map(Object::toString).orElseGet(structure::toString);
+            String structureKey = supplier.get().toLowerCase(Locale.ROOT);
+            boolean isExternalLocateStructure = externalLocateStructures.contains(structureKey);
+            BitSet[] beforeSolidColumns = null;
+            if (isExternalLocateStructure) {
+                beforeSolidColumns = snapshotChunkSolidColumns(level, chunkAccess);
+            }
 
             try {
                 level.setCurrentlyGenerating(supplier);
                 start.placeInChunk(level, structureManager, this, random, getWritableArea(chunkAccess), chunkAccess.getPos());
+                if (isExternalLocateStructure && beforeSolidColumns != null) {
+                    applyExternalStructureFoundations(level, chunkAccess, beforeSolidColumns, EXTERNAL_FOUNDATION_MAX_DEPTH);
+                }
             } catch (Exception exception) {
                 CrashReport crashReport = CrashReport.forThrowable(exception, "Feature placement");
                 CrashReportCategory category = crashReport.addCategory("Feature");
@@ -233,6 +245,120 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
         int minY = heightAccessor.getMinY() + 1;
         int maxY = heightAccessor.getMaxY();
         return new BoundingBox(minX, minY, minZ, minX + 15, maxY, minZ + 15);
+    }
+
+    private static BitSet[] snapshotChunkSolidColumns(WorldGenLevel level, ChunkAccess chunkAccess) {
+        int minY = level.getMinY();
+        int maxY = level.getMaxY();
+        int ySpan = maxY - minY;
+        if (ySpan <= 0) {
+            return new BitSet[0];
+        }
+
+        ChunkPos chunkPos = chunkAccess.getPos();
+        int minX = chunkPos.getMinBlockX();
+        int minZ = chunkPos.getMinBlockZ();
+        BitSet[] columns = new BitSet[16 * 16];
+        BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
+        for (int localX = 0; localX < 16; localX++) {
+            for (int localZ = 0; localZ < 16; localZ++) {
+                int index = (localX << 4) | localZ;
+                BitSet solids = new BitSet(ySpan);
+                int worldX = minX + localX;
+                int worldZ = minZ + localZ;
+                for (int y = minY; y < maxY; y++) {
+                    mutablePos.set(worldX, y, worldZ);
+                    if (isFoundationSolid(level.getBlockState(mutablePos))) {
+                        solids.set(y - minY);
+                    }
+                }
+                columns[index] = solids;
+            }
+        }
+
+        return columns;
+    }
+
+    private static void applyExternalStructureFoundations(
+            WorldGenLevel level,
+            ChunkAccess chunkAccess,
+            BitSet[] beforeSolidColumns,
+            int maxDepth
+    ) {
+        if (beforeSolidColumns == null || beforeSolidColumns.length == 0 || maxDepth <= 0) {
+            return;
+        }
+
+        int minY = level.getMinY();
+        int maxY = level.getMaxY();
+        int ySpan = maxY - minY;
+        if (ySpan <= 0) {
+            return;
+        }
+
+        ChunkPos chunkPos = chunkAccess.getPos();
+        int minX = chunkPos.getMinBlockX();
+        int minZ = chunkPos.getMinBlockZ();
+        BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
+        for (int localX = 0; localX < 16; localX++) {
+            for (int localZ = 0; localZ < 16; localZ++) {
+                int index = (localX << 4) | localZ;
+                BitSet before = beforeSolidColumns[index];
+                if (before == null) {
+                    continue;
+                }
+
+                int worldX = minX + localX;
+                int worldZ = minZ + localZ;
+                int lowestNewSolidY = Integer.MIN_VALUE;
+                for (int y = minY; y < maxY; y++) {
+                    mutablePos.set(worldX, y, worldZ);
+                    BlockState state = level.getBlockState(mutablePos);
+                    if (!isFoundationSolid(state)) {
+                        continue;
+                    }
+
+                    if (before.get(y - minY)) {
+                        continue;
+                    }
+
+                    lowestNewSolidY = y;
+                    break;
+                }
+
+                if (lowestNewSolidY == Integer.MIN_VALUE) {
+                    continue;
+                }
+
+                mutablePos.set(worldX, lowestNewSolidY, worldZ);
+                BlockState foundationState = level.getBlockState(mutablePos);
+                if (!isFoundationSolid(foundationState)) {
+                    continue;
+                }
+
+                int depth = 0;
+                for (int y = lowestNewSolidY - 1; y >= minY && depth < maxDepth; y--) {
+                    mutablePos.set(worldX, y, worldZ);
+                    BlockState state = level.getBlockState(mutablePos);
+                    if (isFoundationSolid(state)) {
+                        break;
+                    }
+
+                    level.setBlock(mutablePos, foundationState, 2);
+                    depth++;
+                }
+            }
+        }
+    }
+
+    private static boolean isFoundationSolid(BlockState state) {
+        if (state == null || state.isAir()) {
+            return false;
+        }
+        if (!state.getFluidState().isEmpty()) {
+            return false;
+        }
+        return Heightmap.Types.MOTION_BLOCKING_NO_LEAVES.isOpaque().test(state);
     }
 
     private Map<Structure, Integer> getStructureOrder(Registry<Structure> structureRegistry) {

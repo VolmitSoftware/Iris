@@ -442,7 +442,9 @@ public class CommandDeveloper implements DirectorExecutor {
         orchestrator.setDaemon(true);
         try {
             orchestrator.start();
-            Iris.info("Delete-chunk worker dispatched on dedicated thread=" + orchestrator.getName() + " id=" + runId + ".");
+            if (IrisSettings.get().getGeneral().isDebug()) {
+                Iris.info("Delete-chunk worker dispatched on dedicated thread=" + orchestrator.getName() + " id=" + runId + ".");
+            }
         } catch (Throwable e) {
             ACTIVE_DELETE_CHUNK_WORLDS.remove(worldKey);
             sender.sendMessage(C.RED + "Failed to start delete-chunk worker thread. See console.");
@@ -519,7 +521,9 @@ public class CommandDeveloper implements DirectorExecutor {
             watchdog.interrupt();
             IrisToolbelt.endWorldMaintenance(world, "delete-chunk");
             ACTIVE_DELETE_CHUNK_WORLDS.remove(worldKey);
-            Iris.info("Delete-chunk run closed: id=" + runId + " world=" + world.getName() + " totalMs=" + (System.currentTimeMillis() - runStart));
+            if (IrisSettings.get().getGeneral().isDebug()) {
+                Iris.info("Delete-chunk run closed: id=" + runId + " world=" + world.getName() + " totalMs=" + (System.currentTimeMillis() - runStart));
+            }
         }
     }
 
@@ -773,7 +777,9 @@ public class CommandDeveloper implements DirectorExecutor {
     ) {
         phase.set(next);
         phaseSince.set(System.currentTimeMillis());
-        Iris.info("Delete-chunk phase: id=" + runId + " phase=" + next + " world=" + world.getName());
+        if (IrisSettings.get().getGeneral().isDebug()) {
+            Iris.info("Delete-chunk phase: id=" + runId + " phase=" + next + " world=" + world.getName());
+        }
     }
 
     private String formatDeleteChunkFailedPreview(List<Position2> failedChunks) {

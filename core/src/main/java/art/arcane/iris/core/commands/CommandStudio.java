@@ -30,6 +30,8 @@ import art.arcane.iris.engine.IrisNoisemapPrebakePipeline;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.*;
+import art.arcane.iris.engine.platform.ChunkReplacementListener;
+import art.arcane.iris.engine.platform.ChunkReplacementOptions;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -227,6 +229,7 @@ public class CommandStudio implements DirectorExecutor {
                     sender.sendMessage(C.YELLOW + "Folia fast regen: skipping outer mantle preservation stage.");
                 }
 
+                final String runId = "studio-regen-" + world.getName() + "-" + System.currentTimeMillis();
 
                 ParallelRadiusJob job = new ParallelRadiusJob(threadCount, service) {
                     @Override
@@ -234,7 +237,14 @@ public class CommandStudio implements DirectorExecutor {
                         if (foliaFastRegen) {
                             Iris.verbose("Folia fast studio regen skipping mantle delete for " + x + "," + z + ".");
                         }
-                        plat.injectChunkReplacement(world, x, z, executor);
+                        plat.injectChunkReplacement(
+                                world,
+                                x,
+                                z,
+                                executor,
+                                ChunkReplacementOptions.terrain(runId, IrisSettings.get().getGeneral().isDebug()),
+                                ChunkReplacementListener.NO_OP
+                        );
                     }
 
                     @Override

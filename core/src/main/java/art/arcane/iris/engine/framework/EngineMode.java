@@ -73,7 +73,7 @@ public interface EngineMode extends Staged {
     default void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore) {
         boolean cacheContext = true;
         if (J.isFolia()) {
-            var world = getEngine().getWorld().realWorld();
+            org.bukkit.World world = getEngine().getWorld().realWorld();
             if (world != null && IrisToolbelt.isWorldMaintenanceActive(world)) {
                 cacheContext = false;
             }
@@ -81,7 +81,8 @@ public interface EngineMode extends Staged {
         ChunkContext ctx = new ChunkContext(x, z, getComplex(), cacheContext);
         IrisContext.getOr(getEngine()).setChunkContext(ctx);
 
-        for (EngineStage i : getStages()) {
+        EngineStage[] stages = getStages().toArray(new EngineStage[0]);
+        for (EngineStage i : stages) {
             i.generate(x, z, blocks, biomes, multicore, ctx);
         }
     }

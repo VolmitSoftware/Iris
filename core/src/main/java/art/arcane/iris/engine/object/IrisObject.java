@@ -821,8 +821,11 @@ public class IrisObject extends IrisRegistrant {
 
         if (yv >= 0 && config.isBottom()) {
             y += Math.floorDiv(h, 2);
-            if (!config.isForcePlace()) {
-                bail = shouldBailForCarvingAnchor(placer, config, x, y, z);
+            CarvingMode carvingMode = config.getCarvingSupport();
+            if (!config.isForcePlace() && !carvingMode.equals(CarvingMode.CARVING_ONLY)) {
+                if (shouldBailForCarvingAnchor(placer, config, x, y, z)) {
+                    bail = true;
+                }
             }
         }
 

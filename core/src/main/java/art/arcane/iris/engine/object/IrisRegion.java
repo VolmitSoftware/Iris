@@ -116,6 +116,9 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     private IrisCaveProfile caveProfile = new IrisCaveProfile();
     @Desc("Configuration of fluid bodies such as rivers & lakes")
     private IrisFluidBodies fluidBodies = new IrisFluidBodies();
+    @ArrayType(type = IrisExternalDatapackBinding.class, min = 1)
+    @Desc("Scoped external datapack bindings for this region")
+    private KList<IrisExternalDatapackBinding> externalDatapacks = new KList<>();
     @RegistryListResource(IrisBiome.class)
     @Required
     @ArrayType(min = 1, type = String.class)

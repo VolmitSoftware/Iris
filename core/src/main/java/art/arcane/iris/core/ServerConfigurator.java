@@ -34,6 +34,8 @@ import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.iris.util.common.scheduling.J;
 import lombok.NonNull;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
+import org.bukkit.block.Biome;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -42,13 +44,22 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.stream.Stream;
 
 public class ServerConfigurator {
+    private static volatile boolean deferredInstallPending = false;
+
     public static void configure() {
         IrisSettings.IrisSettingsAutoconfiguration s = IrisSettings.get().getAutoConfiguration();
         if (s.isConfigureSpigotTimeoutTime()) {
@@ -59,7 +70,24 @@ public class ServerConfigurator {
             J.attempt(ServerConfigurator::increasePaperWatchdog);
         }
 
+        if (shouldDeferInstallUntilWorldsReady()) {
+            deferredInstallPending = true;
+            return;
+        }
+
+        deferredInstallPending = false;
         installDataPacks(true);
+    }
+
+    public static void configureIfDeferred() {
+        if (!deferredInstallPending) {
+            return;
+        }
+
+        configure();
+        if (deferredInstallPending) {
+            J.a(ServerConfigurator::configureIfDeferred, 20);
+        }
     }
 
     private static void increaseKeepAliveSpigot() throws IOException, InvalidConfigurationException {
@@ -103,24 +131,38 @@ public class ServerConfigurator {
     }
 
     public static boolean installDataPacks(boolean fullInstall) {
+        return installDataPacks(fullInstall, true);
+    }
+
+    public static boolean installDataPacks(boolean fullInstall, boolean includeExternal) {
         IDataFixer fixer = DataVersion.getDefault();
         if (fixer == null) {
             DataVersion fallback = DataVersion.getLatest();
             Iris.warn("Primary datapack fixer was null, forcing latest fixer: " + fallback.getVersion());
             fixer = fallback.get();
         }
-        return installDataPacks(fixer, fullInstall);
+        return installDataPacks(fixer, fullInstall, includeExternal);
     }
 
     public static boolean installDataPacks(IDataFixer fixer, boolean fullInstall) {
+        return installDataPacks(fixer, fullInstall, true);
+    }
+
+    public static boolean installDataPacks(IDataFixer fixer, boolean fullInstall, boolean includeExternal) {
         if (fixer == null) {
             Iris.error("Unable to install datapacks, fixer is null!");
             return false;
         }
-        Iris.info("Checking Data Packs...");
+        if (fullInstall || includeExternal) {
+            Iris.info("Checking Data Packs...");
+        } else {
+            Iris.verbose("Checking Data Packs...");
+        }
         DimensionHeight height = new DimensionHeight(fixer);
         KList<File> folders = getDatapacksFolder();
-        installExternalDataPacks(folders);
+        if (includeExternal) {
+            installExternalDataPacks(folders);
+        }
         KMap<String, KSet<String>> biomes = new KMap<>();
 
         try (Stream<IrisData> stream = allPacks()) {
@@ -133,7 +175,11 @@ public class ServerConfigurator {
                     });
         }
         IrisDimension.writeShared(folders, height);
-        Iris.info("Data Packs Setup!");
+        if (fullInstall || includeExternal) {
+            Iris.info("Data Packs Setup!");
+        } else {
+            Iris.verbose("Data Packs Setup!");
+        }
 
         return fullInstall && verifyDataPacksPost(IrisSettings.get().getAutoConfiguration().isAutoRestartOnCustomBiomeInstall());
     }
@@ -147,91 +193,682 @@ public class ServerConfigurator {
         KMap<String, KList<File>> worldDatapackFoldersByPack = collectWorldDatapackFoldersByPack(folders);
         ExternalDataPackPipeline.PipelineSummary summary = ExternalDataPackPipeline.processDatapacks(requests, worldDatapackFoldersByPack);
         if (summary.getLegacyDownloadRemovals() > 0) {
-            Iris.info("Removed " + summary.getLegacyDownloadRemovals() + " legacy global datapack downloads.");
+            Iris.verbose("Removed " + summary.getLegacyDownloadRemovals() + " legacy global datapack downloads.");
         }
         if (summary.getLegacyWorldCopyRemovals() > 0) {
-            Iris.info("Removed " + summary.getLegacyWorldCopyRemovals() + " legacy managed world datapack copies.");
+            Iris.verbose("Removed " + summary.getLegacyWorldCopyRemovals() + " legacy managed world datapack copies.");
         }
-        if (summary.getRequests() > 0 || summary.getImportedSources() > 0 || summary.getWorldDatapacksInstalled() > 0) {
-            Iris.info("External datapack sync/import/install: requests=" + summary.getRequests()
-                    + ", synced=" + summary.getSyncedRequests()
-                    + ", restored=" + summary.getRestoredRequests()
-                    + ", importedSources=" + summary.getImportedSources()
-                    + ", cachedSources=" + summary.getCachedSources()
-                    + ", converted=" + summary.getConvertedStructures()
-                    + ", failedConversions=" + summary.getFailedConversions()
-                    + ", worldDatapacks=" + summary.getWorldDatapacksInstalled()
-                    + ", worldAssets=" + summary.getWorldAssetsInstalled()
-                    + ", optionalFailures=" + summary.getOptionalFailures()
-                    + ", requiredFailures=" + summary.getRequiredFailures());
-        }
+        int loadedDatapackCount = Math.max(0, summary.getRequests() - summary.getOptionalFailures() - summary.getRequiredFailures());
+        Iris.info("Loaded Datapacks into Iris: " + loadedDatapackCount + "!");
         if (summary.getRequiredFailures() > 0) {
             throw new IllegalStateException("Required external datapack setup failed for " + summary.getRequiredFailures() + " request(s).");
         }
     }
 
+    private static boolean shouldDeferInstallUntilWorldsReady() {
+        String forcedMainWorld = IrisSettings.get().getGeneral().forceMainWorld;
+        if (forcedMainWorld != null && !forcedMainWorld.isBlank()) {
+            return false;
+        }
+
+        return Bukkit.getServer().getWorlds().isEmpty();
+    }
+
     private static KList<ExternalDataPackPipeline.DatapackRequest> collectExternalDatapackRequests() {
         KMap<String, ExternalDataPackPipeline.DatapackRequest> deduplicated = new KMap<>();
         try (Stream<IrisData> stream = allPacks()) {
-            stream.forEach(data -> {
-                ResourceLoader<IrisDimension> loader = data.getDimensionLoader();
-                if (loader == null) {
-                    return;
-                }
-
-                KList<IrisDimension> dimensions = loader.loadAll(loader.getPossibleKeys());
-                for (IrisDimension dimension : dimensions) {
-                    if (dimension == null || dimension.getExternalDatapacks() == null || dimension.getExternalDatapacks().isEmpty()) {
-                        continue;
-                    }
-
-                    String targetPack = sanitizePackName(dimension.getLoadKey());
-                    if (targetPack.isBlank()) {
-                        targetPack = sanitizePackName(data.getDataFolder().getName());
-                    }
-                    String environment = ExternalDataPackPipeline.normalizeEnvironmentValue(dimension.getEnvironment() == null ? null : dimension.getEnvironment().name());
-
-                    for (IrisExternalDatapack externalDatapack : dimension.getExternalDatapacks()) {
-                        if (externalDatapack == null || !externalDatapack.isEnabled()) {
-                            continue;
-                        }
-
-                        String url = externalDatapack.getUrl() == null ? "" : externalDatapack.getUrl().trim();
-                        if (url.isBlank()) {
-                            continue;
-                        }
-
-                        String requestId = externalDatapack.getId() == null ? "" : externalDatapack.getId().trim();
-                        if (requestId.isBlank()) {
-                            requestId = url;
-                        }
-
-                        IrisExternalDatapackReplaceTargets replaceTargets = externalDatapack.getReplaceTargets();
-                        ExternalDataPackPipeline.DatapackRequest request = new ExternalDataPackPipeline.DatapackRequest(
-                                requestId,
-                                url,
-                                targetPack,
-                                environment,
-                                externalDatapack.isRequired(),
-                                externalDatapack.isReplaceVanilla(),
-                                replaceTargets,
-                                externalDatapack.getStructurePatches()
-                        );
-
-                        String dedupeKey = request.getDedupeKey();
-                        ExternalDataPackPipeline.DatapackRequest existing = deduplicated.get(dedupeKey);
-                        if (existing == null) {
-                            deduplicated.put(dedupeKey, request);
-                            continue;
-                        }
-
-                        deduplicated.put(dedupeKey, existing.merge(request));
-                    }
-                }
-            });
+            stream.forEach(data -> collectExternalDatapackRequestsForPack(data, deduplicated));
         }
 
         return new KList<>(deduplicated.v());
+    }
+
+    private static void collectExternalDatapackRequestsForPack(IrisData data, KMap<String, ExternalDataPackPipeline.DatapackRequest> deduplicated) {
+        ResourceLoader<IrisDimension> loader = data.getDimensionLoader();
+        if (loader == null) {
+            Iris.warn("Skipping external datapack request discovery for pack " + data.getDataFolder().getName() + " because dimension loader is unavailable.");
+            return;
+        }
+
+        String[] possibleKeys = loader.getPossibleKeys();
+        if (possibleKeys == null || possibleKeys.length == 0) {
+            File dimensionsFolder = new File(data.getDataFolder(), "dimensions");
+            File[] dimensionFiles = dimensionsFolder.listFiles((dir, name) -> name != null && name.toLowerCase().endsWith(".json"));
+            int dimensionFileCount = dimensionFiles == null ? 0 : dimensionFiles.length;
+            Iris.warn("Pack " + data.getDataFolder().getName() + " has no loadable dimension keys. Dimension folder json files=" + dimensionFileCount + ". External datapacks in this pack cannot be discovered.");
+            return;
+        }
+
+        KList<IrisDimension> dimensions = loader.loadAll(possibleKeys);
+        int scannedDimensions = 0;
+        int dimensionsWithExternalEntries = 0;
+        int enabledEntries = 0;
+        int disabledEntries = 0;
+        int skippedBlankUrl = 0;
+        int scopedRequests = 0;
+        int unscopedRequests = 0;
+        int dedupeMerges = 0;
+        for (IrisDimension dimension : dimensions) {
+            if (dimension == null) {
+                continue;
+            }
+
+            scannedDimensions++;
+            KList<IrisExternalDatapack> externalDatapacks = dimension.getExternalDatapacks();
+            if (externalDatapacks == null || externalDatapacks.isEmpty()) {
+                continue;
+            }
+
+            dimensionsWithExternalEntries++;
+            String targetPack = sanitizePackName(dimension.getLoadKey());
+            if (targetPack.isBlank()) {
+                targetPack = sanitizePackName(data.getDataFolder().getName());
+            }
+
+            String environment = ExternalDataPackPipeline.normalizeEnvironmentValue(dimension.getEnvironment() == null ? null : dimension.getEnvironment().name());
+            LinkedHashMap<String, IrisExternalDatapack> definitionsById = new LinkedHashMap<>();
+            for (IrisExternalDatapack externalDatapack : externalDatapacks) {
+                if (externalDatapack == null) {
+                    disabledEntries++;
+                    continue;
+                }
+
+                if (!externalDatapack.isEnabled()) {
+                    disabledEntries++;
+                    continue;
+                }
+
+                String url = externalDatapack.getUrl() == null ? "" : externalDatapack.getUrl().trim();
+                if (url.isBlank()) {
+                    skippedBlankUrl++;
+                    continue;
+                }
+
+                enabledEntries++;
+                String requestId = normalizeExternalDatapackId(externalDatapack.getId(), url);
+                IrisExternalDatapack existingDefinition = definitionsById.put(requestId, externalDatapack);
+                if (existingDefinition != null) {
+                    Iris.warn("Duplicate external datapack id '" + requestId + "' in dimension " + dimension.getLoadKey() + ". Latest entry wins.");
+                }
+            }
+
+            if (definitionsById.isEmpty()) {
+                continue;
+            }
+
+            KMap<String, KList<ScopedBindingGroup>> scopedGroups = resolveScopedBindingGroups(data, dimension, definitionsById);
+            for (Map.Entry<String, IrisExternalDatapack> entry : definitionsById.entrySet()) {
+                String requestId = entry.getKey();
+                IrisExternalDatapack definition = entry.getValue();
+                String url = definition.getUrl() == null ? "" : definition.getUrl().trim();
+                if (url.isBlank()) {
+                    continue;
+                }
+
+                KList<ScopedBindingGroup> groups = scopedGroups.get(requestId);
+                if (groups == null || groups.isEmpty()) {
+                    String scopeKey = buildRootScopeKey(dimension.getLoadKey(), requestId);
+                    ExternalDataPackPipeline.DatapackRequest request = new ExternalDataPackPipeline.DatapackRequest(
+                            requestId,
+                            url,
+                            targetPack,
+                            environment,
+                            definition.isRequired(),
+                            definition.isReplaceVanilla(),
+                            definition.getReplaceTargets(),
+                            definition.getStructurePatches(),
+                            Set.of(),
+                            scopeKey,
+                            !definition.isReplaceVanilla(),
+                            Set.of()
+                    );
+                    dedupeMerges += mergeDeduplicatedRequest(deduplicated, request);
+                    unscopedRequests++;
+                    Iris.verbose("External datapack scope resolved: id=" + requestId
+                            + ", targetPack=" + targetPack
+                            + ", dimension=" + dimension.getLoadKey()
+                            + ", scope=dimension-root"
+                            + ", forcedBiomes=0"
+                            + ", replaceVanilla=" + definition.isReplaceVanilla()
+                            + ", alongsideMode=" + (!definition.isReplaceVanilla())
+                            + ", required=" + definition.isRequired());
+                    continue;
+                }
+
+                for (ScopedBindingGroup group : groups) {
+                    ExternalDataPackPipeline.DatapackRequest request = new ExternalDataPackPipeline.DatapackRequest(
+                            requestId,
+                            url,
+                            targetPack,
+                            environment,
+                            group.required(),
+                            group.replaceVanilla(),
+                            definition.getReplaceTargets(),
+                            definition.getStructurePatches(),
+                            group.forcedBiomeKeys(),
+                            group.scopeKey(),
+                            !group.replaceVanilla(),
+                            Set.of()
+                    );
+                    dedupeMerges += mergeDeduplicatedRequest(deduplicated, request);
+                    scopedRequests++;
+                    Iris.verbose("External datapack scope resolved: id=" + requestId
+                            + ", targetPack=" + targetPack
+                            + ", dimension=" + dimension.getLoadKey()
+                            + ", scope=" + group.source()
+                            + ", forcedBiomes=" + group.forcedBiomeKeys().size()
+                            + ", replaceVanilla=" + group.replaceVanilla()
+                            + ", alongsideMode=" + (!group.replaceVanilla())
+                            + ", required=" + group.required());
+                }
+            }
+        }
+
+        if (scannedDimensions == 0) {
+            Iris.warn("Pack " + data.getDataFolder().getName() + " did not resolve any dimensions during external datapack discovery.");
+            return;
+        }
+
+        if (dimensionsWithExternalEntries > 0 || enabledEntries > 0 || disabledEntries > 0 || skippedBlankUrl > 0) {
+            Iris.verbose("External datapack discovery for pack " + data.getDataFolder().getName()
+                    + ": dimensions=" + scannedDimensions
+                    + ", withEntries=" + dimensionsWithExternalEntries
+                    + ", enabled=" + enabledEntries
+                    + ", disabled=" + disabledEntries
+                    + ", skippedBlankUrl=" + skippedBlankUrl
+                    + ", scopedRequests=" + scopedRequests
+                    + ", unscopedRequests=" + unscopedRequests
+                    + ", dedupeMerges=" + dedupeMerges);
+        }
+    }
+
+    private static KMap<String, KList<ScopedBindingGroup>> resolveScopedBindingGroups(
+            IrisData data,
+            IrisDimension dimension,
+            Map<String, IrisExternalDatapack> definitionsById
+    ) {
+        KMap<String, KList<ScopedBindingGroup>> groupedRequestsById = new KMap<>();
+        if (definitionsById == null || definitionsById.isEmpty()) {
+            return groupedRequestsById;
+        }
+
+        ResourceLoader<IrisRegion> regionLoader = data.getRegionLoader();
+        ResourceLoader<IrisBiome> biomeLoader = data.getBiomeLoader();
+        if (regionLoader == null || biomeLoader == null) {
+            return groupedRequestsById;
+        }
+
+        String biomeNamespace = resolveBiomeNamespace(dimension);
+        LinkedHashMap<String, IrisBiome> biomeCache = new LinkedHashMap<>();
+        LinkedHashMap<String, IrisRegion> regions = new LinkedHashMap<>();
+        KList<String> dimensionRegions = dimension.getRegions();
+        if (dimensionRegions != null) {
+            for (String regionKey : dimensionRegions) {
+                String normalizedRegion = normalizeResourceReference(regionKey);
+                if (normalizedRegion.isBlank()) {
+                    continue;
+                }
+
+                IrisRegion region = regionLoader.load(normalizedRegion, false);
+                if (region != null) {
+                    regions.put(normalizedRegion, region);
+                }
+            }
+        }
+
+        LinkedHashMap<String, KList<ScopedBindingCandidate>> candidatesById = new LinkedHashMap<>();
+        LinkedHashSet<String> discoveryBiomeKeys = new LinkedHashSet<>();
+        for (IrisRegion region : regions.values()) {
+            Set<String> expandedRegionBiomes = collectRegionBiomeKeys(region, true, biomeLoader, biomeCache);
+            discoveryBiomeKeys.addAll(expandedRegionBiomes);
+
+            KList<IrisExternalDatapackBinding> bindings = region.getExternalDatapacks();
+            if (bindings == null || bindings.isEmpty()) {
+                continue;
+            }
+
+            for (IrisExternalDatapackBinding binding : bindings) {
+                if (binding == null || !binding.isEnabled()) {
+                    continue;
+                }
+
+                String id = normalizeExternalDatapackId(binding.getId(), "");
+                if (id.isBlank()) {
+                    continue;
+                }
+
+                IrisExternalDatapack definition = definitionsById.get(id);
+                if (definition == null) {
+                    Iris.warn("Ignoring region external datapack binding id '" + id + "' in " + region.getLoadKey() + " because no matching dimension externalDatapacks entry exists.");
+                    continue;
+                }
+
+                boolean replaceVanilla = binding.getReplaceVanillaOverride() == null
+                        ? definition.isReplaceVanilla()
+                        : binding.getReplaceVanillaOverride();
+                boolean required = binding.getRequiredOverride() == null
+                        ? definition.isRequired()
+                        : binding.getRequiredOverride();
+                Set<String> regionBiomeKeys = collectRegionBiomeKeys(region, binding.isIncludeChildren(), biomeLoader, biomeCache);
+                Set<String> runtimeBiomeKeys = resolveRuntimeBiomeKeys(regionBiomeKeys, biomeNamespace, biomeLoader, biomeCache);
+                if (runtimeBiomeKeys.isEmpty()) {
+                    continue;
+                }
+
+                KList<ScopedBindingCandidate> candidates = candidatesById.computeIfAbsent(id, key -> new KList<>());
+                candidates.add(new ScopedBindingCandidate("region", region.getLoadKey(), 1, replaceVanilla, required, runtimeBiomeKeys));
+            }
+        }
+
+        for (String biomeKey : discoveryBiomeKeys) {
+            IrisBiome biome = loadBiomeFromCache(biomeKey, biomeLoader, biomeCache);
+            if (biome == null) {
+                continue;
+            }
+
+            KList<IrisExternalDatapackBinding> bindings = biome.getExternalDatapacks();
+            if (bindings == null || bindings.isEmpty()) {
+                continue;
+            }
+
+            for (IrisExternalDatapackBinding binding : bindings) {
+                if (binding == null || !binding.isEnabled()) {
+                    continue;
+                }
+
+                String id = normalizeExternalDatapackId(binding.getId(), "");
+                if (id.isBlank()) {
+                    continue;
+                }
+
+                IrisExternalDatapack definition = definitionsById.get(id);
+                if (definition == null) {
+                    Iris.warn("Ignoring biome external datapack binding id '" + id + "' in " + biome.getLoadKey() + " because no matching dimension externalDatapacks entry exists.");
+                    continue;
+                }
+
+                boolean replaceVanilla = binding.getReplaceVanillaOverride() == null
+                        ? definition.isReplaceVanilla()
+                        : binding.getReplaceVanillaOverride();
+                boolean required = binding.getRequiredOverride() == null
+                        ? definition.isRequired()
+                        : binding.getRequiredOverride();
+                Set<String> biomeSelection = collectBiomeKeys(biome.getLoadKey(), binding.isIncludeChildren(), biomeLoader, biomeCache);
+                Set<String> runtimeBiomeKeys = resolveRuntimeBiomeKeys(biomeSelection, biomeNamespace, biomeLoader, biomeCache);
+                if (runtimeBiomeKeys.isEmpty()) {
+                    continue;
+                }
+
+                KList<ScopedBindingCandidate> candidates = candidatesById.computeIfAbsent(id, key -> new KList<>());
+                candidates.add(new ScopedBindingCandidate("biome", biome.getLoadKey(), 2, replaceVanilla, required, runtimeBiomeKeys));
+            }
+        }
+
+        for (Map.Entry<String, KList<ScopedBindingCandidate>> entry : candidatesById.entrySet()) {
+            String id = entry.getKey();
+            KList<ScopedBindingCandidate> candidates = entry.getValue();
+            if (candidates == null || candidates.isEmpty()) {
+                continue;
+            }
+
+            LinkedHashMap<String, ScopedBindingSelection> selectedByBiome = new LinkedHashMap<>();
+            for (ScopedBindingCandidate candidate : candidates) {
+                if (candidate == null || candidate.forcedBiomeKeys() == null || candidate.forcedBiomeKeys().isEmpty()) {
+                    continue;
+                }
+
+                ArrayList<String> sortedBiomeKeys = new ArrayList<>(candidate.forcedBiomeKeys());
+                sortedBiomeKeys.sort(String::compareTo);
+                for (String runtimeBiomeKey : sortedBiomeKeys) {
+                    ScopedBindingSelection selected = selectedByBiome.get(runtimeBiomeKey);
+                    if (selected == null) {
+                        selectedByBiome.put(runtimeBiomeKey, new ScopedBindingSelection(
+                                candidate.priority(),
+                                candidate.replaceVanilla(),
+                                candidate.required(),
+                                candidate.sourceType(),
+                                candidate.sourceKey()
+                        ));
+                        continue;
+                    }
+
+                    if (candidate.priority() > selected.priority()) {
+                        selectedByBiome.put(runtimeBiomeKey, new ScopedBindingSelection(
+                                candidate.priority(),
+                                candidate.replaceVanilla(),
+                                candidate.required(),
+                                candidate.sourceType(),
+                                candidate.sourceKey()
+                        ));
+                        continue;
+                    }
+
+                    if (candidate.priority() == selected.priority()
+                            && (candidate.replaceVanilla() != selected.replaceVanilla() || candidate.required() != selected.required())) {
+                        Iris.warn("External datapack scope conflict for id=" + id
+                                + ", biomeKey=" + runtimeBiomeKey
+                                + ", kept=" + selected.sourceType() + "/" + selected.sourceKey()
+                                + ", ignored=" + candidate.sourceType() + "/" + candidate.sourceKey());
+                    }
+                }
+            }
+
+            LinkedHashMap<String, LinkedHashSet<String>> groupedBiomes = new LinkedHashMap<>();
+            LinkedHashMap<String, ScopedBindingSelection> groupedSelection = new LinkedHashMap<>();
+            for (Map.Entry<String, ScopedBindingSelection> selectedEntry : selectedByBiome.entrySet()) {
+                String runtimeBiomeKey = selectedEntry.getKey();
+                ScopedBindingSelection selection = selectedEntry.getValue();
+                String groupKey = selection.replaceVanilla() + "|" + selection.required();
+                groupedBiomes.computeIfAbsent(groupKey, key -> new LinkedHashSet<>()).add(runtimeBiomeKey);
+                groupedSelection.putIfAbsent(groupKey, selection);
+            }
+
+            for (Map.Entry<String, LinkedHashSet<String>> groupedEntry : groupedBiomes.entrySet()) {
+                LinkedHashSet<String> runtimeBiomeKeys = groupedEntry.getValue();
+                if (runtimeBiomeKeys == null || runtimeBiomeKeys.isEmpty()) {
+                    continue;
+                }
+
+                ScopedBindingSelection selection = groupedSelection.get(groupedEntry.getKey());
+                if (selection == null) {
+                    continue;
+                }
+
+                Set<String> forcedBiomeKeys = Set.copyOf(runtimeBiomeKeys);
+                String scopeKey = buildScopedScopeKey(dimension.getLoadKey(), id, selection.sourceType(), selection.sourceKey(), forcedBiomeKeys);
+                String source = selection.sourceType() + ":" + selection.sourceKey();
+                KList<ScopedBindingGroup> groups = groupedRequestsById.computeIfAbsent(id, key -> new KList<>());
+                groups.add(new ScopedBindingGroup(selection.replaceVanilla(), selection.required(), forcedBiomeKeys, scopeKey, source));
+            }
+        }
+
+        return groupedRequestsById;
+    }
+
+    private static Set<String> collectRegionBiomeKeys(
+            IrisRegion region,
+            boolean includeChildren,
+            ResourceLoader<IrisBiome> biomeLoader,
+            Map<String, IrisBiome> biomeCache
+    ) {
+        LinkedHashSet<String> regionBiomeKeys = new LinkedHashSet<>();
+        if (region == null) {
+            return regionBiomeKeys;
+        }
+
+        addAllResourceReferences(regionBiomeKeys, region.getLandBiomes());
+        addAllResourceReferences(regionBiomeKeys, region.getSeaBiomes());
+        addAllResourceReferences(regionBiomeKeys, region.getShoreBiomes());
+        addAllResourceReferences(regionBiomeKeys, region.getCaveBiomes());
+        if (!includeChildren) {
+            return regionBiomeKeys;
+        }
+
+        LinkedHashSet<String> expanded = new LinkedHashSet<>();
+        for (String biomeKey : regionBiomeKeys) {
+            expanded.addAll(collectBiomeKeys(biomeKey, true, biomeLoader, biomeCache));
+        }
+        return expanded;
+    }
+
+    private static Set<String> collectBiomeKeys(
+            String biomeKey,
+            boolean includeChildren,
+            ResourceLoader<IrisBiome> biomeLoader,
+            Map<String, IrisBiome> biomeCache
+    ) {
+        LinkedHashSet<String> resolved = new LinkedHashSet<>();
+        String normalizedBiomeKey = normalizeResourceReference(biomeKey);
+        if (normalizedBiomeKey.isBlank()) {
+            return resolved;
+        }
+
+        if (!includeChildren) {
+            resolved.add(normalizedBiomeKey);
+            return resolved;
+        }
+
+        ArrayDeque<String> queue = new ArrayDeque<>();
+        queue.add(normalizedBiomeKey);
+        while (!queue.isEmpty()) {
+            String next = normalizeResourceReference(queue.removeFirst());
+            if (next.isBlank() || !resolved.add(next)) {
+                continue;
+            }
+
+            IrisBiome biome = loadBiomeFromCache(next, biomeLoader, biomeCache);
+            if (biome == null) {
+                continue;
+            }
+
+            addQueueResourceReferences(queue, biome.getChildren());
+        }
+
+        return resolved;
+    }
+
+    private static Set<String> resolveRuntimeBiomeKeys(
+            Set<String> irisBiomeKeys,
+            String biomeNamespace,
+            ResourceLoader<IrisBiome> biomeLoader,
+            Map<String, IrisBiome> biomeCache
+    ) {
+        LinkedHashSet<String> resolved = new LinkedHashSet<>();
+        if (irisBiomeKeys == null || irisBiomeKeys.isEmpty()) {
+            return resolved;
+        }
+
+        for (String irisBiomeKey : irisBiomeKeys) {
+            String normalizedBiomeKey = normalizeResourceReference(irisBiomeKey);
+            if (normalizedBiomeKey.isBlank()) {
+                continue;
+            }
+
+            IrisBiome biome = loadBiomeFromCache(normalizedBiomeKey, biomeLoader, biomeCache);
+            if (biome == null) {
+                continue;
+            }
+
+            if (biome.isCustom() && biome.getCustomDerivitives() != null && !biome.getCustomDerivitives().isEmpty()) {
+                for (IrisBiomeCustom customDerivative : biome.getCustomDerivitives()) {
+                    if (customDerivative == null) {
+                        continue;
+                    }
+
+                    String customId = normalizeResourceReference(customDerivative.getId());
+                    if (customId.isBlank()) {
+                        continue;
+                    }
+                    resolved.add((biomeNamespace + ":" + customId).toLowerCase(Locale.ROOT));
+                }
+                continue;
+            }
+
+            Biome vanillaDerivative = biome.getVanillaDerivative();
+            NamespacedKey vanillaKey = vanillaDerivative == null ? null : vanillaDerivative.getKey();
+            if (vanillaKey != null) {
+                resolved.add(vanillaKey.toString().toLowerCase(Locale.ROOT));
+            }
+        }
+
+        return resolved;
+    }
+
+    private static String resolveBiomeNamespace(IrisDimension dimension) {
+        if (dimension == null) {
+            return "iris";
+        }
+
+        String namespace = dimension.getLoadKey() == null ? "" : dimension.getLoadKey().trim().toLowerCase(Locale.ROOT);
+        namespace = namespace.replaceAll("[^a-z0-9_\\-.]", "_");
+        namespace = namespace.replaceAll("_+", "_");
+        namespace = namespace.replaceAll("^_+", "");
+        namespace = namespace.replaceAll("_+$", "");
+        if (namespace.isBlank()) {
+            return "iris";
+        }
+        return namespace;
+    }
+
+    private static IrisBiome loadBiomeFromCache(
+            String biomeKey,
+            ResourceLoader<IrisBiome> biomeLoader,
+            Map<String, IrisBiome> biomeCache
+    ) {
+        if (biomeLoader == null) {
+            return null;
+        }
+
+        String normalizedBiomeKey = normalizeResourceReference(biomeKey);
+        if (normalizedBiomeKey.isBlank()) {
+            return null;
+        }
+
+        if (biomeCache.containsKey(normalizedBiomeKey)) {
+            return biomeCache.get(normalizedBiomeKey);
+        }
+
+        IrisBiome biome = biomeLoader.load(normalizedBiomeKey, false);
+        if (biome != null) {
+            biomeCache.put(normalizedBiomeKey, biome);
+        }
+        return biome;
+    }
+
+    private static void addAllResourceReferences(Set<String> destination, KList<String> references) {
+        if (destination == null || references == null || references.isEmpty()) {
+            return;
+        }
+
+        for (String reference : references) {
+            String normalized = normalizeResourceReference(reference);
+            if (!normalized.isBlank()) {
+                destination.add(normalized);
+            }
+        }
+    }
+
+    private static void addQueueResourceReferences(ArrayDeque<String> queue, KList<String> references) {
+        if (queue == null || references == null || references.isEmpty()) {
+            return;
+        }
+
+        for (String reference : references) {
+            String normalized = normalizeResourceReference(reference);
+            if (!normalized.isBlank()) {
+                queue.addLast(normalized);
+            }
+        }
+    }
+
+    private static String normalizeResourceReference(String reference) {
+        if (reference == null) {
+            return "";
+        }
+
+        String normalized = reference.trim().replace('\\', '/');
+        normalized = normalized.replaceAll("/+", "/");
+        normalized = normalized.replaceAll("^/+", "");
+        normalized = normalized.replaceAll("/+$", "");
+        return normalized;
+    }
+
+    private static int mergeDeduplicatedRequest(
+            KMap<String, ExternalDataPackPipeline.DatapackRequest> deduplicated,
+            ExternalDataPackPipeline.DatapackRequest request
+    ) {
+        if (request == null) {
+            return 0;
+        }
+
+        String dedupeKey = request.getDedupeKey();
+        ExternalDataPackPipeline.DatapackRequest existing = deduplicated.get(dedupeKey);
+        if (existing == null) {
+            deduplicated.put(dedupeKey, request);
+            return 0;
+        }
+
+        deduplicated.put(dedupeKey, existing.merge(request));
+        return 1;
+    }
+
+    private static String normalizeExternalDatapackId(String id, String fallbackUrl) {
+        String normalized = id == null ? "" : id.trim();
+        if (!normalized.isBlank()) {
+            return normalized.toLowerCase(Locale.ROOT);
+        }
+
+        String fallback = fallbackUrl == null ? "" : fallbackUrl.trim();
+        if (fallback.isBlank()) {
+            return "";
+        }
+        return fallback.toLowerCase(Locale.ROOT);
+    }
+
+    private static String buildRootScopeKey(String dimensionKey, String id) {
+        String normalizedDimension = ExternalDataPackPipeline.sanitizePackNameValue(dimensionKey);
+        if (normalizedDimension.isBlank()) {
+            normalizedDimension = "dimension";
+        }
+        String normalizedId = ExternalDataPackPipeline.sanitizePackNameValue(id);
+        if (normalizedId.isBlank()) {
+            normalizedId = "external";
+        }
+        return "root-" + normalizedDimension + "-" + normalizedId;
+    }
+
+    private static String buildScopedScopeKey(String dimensionKey, String id, String sourceType, String sourceKey, Set<String> forcedBiomeKeys) {
+        ArrayList<String> sortedBiomes = new ArrayList<>();
+        if (forcedBiomeKeys != null) {
+            sortedBiomes.addAll(forcedBiomeKeys);
+        }
+        sortedBiomes.sort(String::compareTo);
+        String biomeFingerprint = Integer.toHexString(String.join(",", sortedBiomes).hashCode());
+        String normalizedDimension = ExternalDataPackPipeline.sanitizePackNameValue(dimensionKey);
+        if (normalizedDimension.isBlank()) {
+            normalizedDimension = "dimension";
+        }
+        String normalizedId = ExternalDataPackPipeline.sanitizePackNameValue(id);
+        if (normalizedId.isBlank()) {
+            normalizedId = "external";
+        }
+        String normalizedSourceType = ExternalDataPackPipeline.sanitizePackNameValue(sourceType);
+        if (normalizedSourceType.isBlank()) {
+            normalizedSourceType = "scope";
+        }
+        String normalizedSourceKey = ExternalDataPackPipeline.sanitizePackNameValue(sourceKey);
+        if (normalizedSourceKey.isBlank()) {
+            normalizedSourceKey = "entry";
+        }
+        return normalizedDimension + "-" + normalizedId + "-" + normalizedSourceType + "-" + normalizedSourceKey + "-" + biomeFingerprint;
+    }
+
+    private record ScopedBindingCandidate(
+            String sourceType,
+            String sourceKey,
+            int priority,
+            boolean replaceVanilla,
+            boolean required,
+            Set<String> forcedBiomeKeys
+    ) {
+    }
+
+    private record ScopedBindingSelection(
+            int priority,
+            boolean replaceVanilla,
+            boolean required,
+            String sourceType,
+            String sourceKey
+    ) {
+    }
+
+    private record ScopedBindingGroup(
+            boolean replaceVanilla,
+            boolean required,
+            Set<String> forcedBiomeKeys,
+            String scopeKey,
+            String source
+    ) {
     }
 
     private static KMap<String, KList<File>> collectWorldDatapackFoldersByPack(KList<File> fallbackFolders) {

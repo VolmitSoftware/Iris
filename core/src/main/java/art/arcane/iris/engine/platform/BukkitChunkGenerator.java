@@ -34,10 +34,14 @@ import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisWorld;
 import art.arcane.iris.engine.object.StudioMode;
 import art.arcane.iris.engine.platform.studio.StudioGenerator;
+import art.arcane.iris.util.project.matter.TileWrapper;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.iris.util.project.hunk.view.ChunkDataHunkHolder;
 import art.arcane.volmlib.util.io.ReactiveFolder;
+import art.arcane.volmlib.util.mantle.flag.MantleFlag;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.Looper;
@@ -47,6 +51,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Setter;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -62,11 +67,13 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 @EqualsAndHashCode(callSuper = true)
@@ -205,15 +212,25 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     @Override
-    public void injectChunkReplacement(World world, int x, int z, Executor syncExecutor) {
+    public void injectChunkReplacement(
+            World world,
+            int x,
+            int z,
+            Executor syncExecutor,
+            ChunkReplacementOptions options,
+            ChunkReplacementListener listener
+    ) {
         boolean acquired = false;
-        String phase = "start";
+        ChunkReplacementOptions effectiveOptions = Objects.requireNonNull(options, "options");
+        ChunkReplacementListener effectiveListener = Objects.requireNonNull(listener, "listener");
+        AtomicReference<String> phaseRef = new AtomicReference<>("start");
         try {
-            phase = "acquire-load-lock";
+            setChunkReplacementPhase(phaseRef, effectiveListener, "acquire-load-lock", x, z);
             long acquireStart = System.currentTimeMillis();
             while (!loadLock.tryAcquire(5, TimeUnit.SECONDS)) {
                 Iris.warn("Chunk replacement waiting for load lock at " + x + "," + z
                         + " for " + (System.currentTimeMillis() - acquireStart) + "ms.");
+                effectiveListener.onPhase(phaseRef.get(), x, z, System.currentTimeMillis());
             }
             acquired = true;
             long acquireWait = System.currentTimeMillis() - acquireStart;
@@ -223,7 +240,12 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             TerrainChunk tc = TerrainChunk.create(world);
             this.world.bind(world);
 
-            phase = "engine-generate";
+            if (effectiveOptions.isFullMode()) {
+                setChunkReplacementPhase(phaseRef, effectiveListener, "reset-mantle", x, z);
+                resetMantleChunkForFullRegen(x, z);
+            }
+
+            setChunkReplacementPhase(phaseRef, effectiveListener, "generate", x, z);
             long generateStart = System.currentTimeMillis();
             boolean useMulticore = IrisSettings.get().getGenerator().useMulticore && !J.isFolia();
             AtomicBoolean generateDone = new AtomicBoolean(false);
@@ -242,6 +264,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                             + " for " + (System.currentTimeMillis() - generationWatchdogStart.get()) + "ms"
                             + " thread=" + generateThread.getName()
                             + " state=" + generateThread.getState());
+                    effectiveListener.onPhase(phaseRef.get(), x, z, System.currentTimeMillis());
                 }
             });
             try {
@@ -255,12 +278,13 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
 
             if (J.isFolia()) {
-                phase = "folia-run-region";
+                setChunkReplacementPhase(phaseRef, effectiveListener, "folia-run-region", x, z);
                 CountDownLatch latch = new CountDownLatch(1);
                 Throwable[] failure = new Throwable[1];
                 long regionScheduleStart = System.currentTimeMillis();
                 if (!J.runRegion(world, x, z, () -> {
                     try {
+                        setChunkReplacementPhase(phaseRef, effectiveListener, "apply-terrain", x, z);
                         phaseUnsafeSet("folia-region-run", x, z);
                         Chunk c = world.getChunkAt(x, z);
                         Iris.tickets.addTicket(c);
@@ -288,7 +312,15 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                                 }
                             }
 
+                            if (effectiveOptions.isFullMode()) {
+                                setChunkReplacementPhase(phaseRef, effectiveListener, "overlay", x, z);
+                                OverlayMetrics overlayMetrics = applyMantleOverlay(c, world, x, z);
+                                effectiveListener.onOverlay(x, z, overlayMetrics.appliedBlocks(), overlayMetrics.objectKeys(), System.currentTimeMillis());
+                            }
+
+                            setChunkReplacementPhase(phaseRef, effectiveListener, "structures", x, z);
                             INMS.get().placeStructures(c);
+                            setChunkReplacementPhase(phaseRef, effectiveListener, "chunk-load-callback", x, z);
                             engine.getWorldManager().onChunkLoad(c, true);
                         } finally {
                             Iris.tickets.removeTicket(c);
@@ -310,16 +342,18 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 while (!latch.await(5, TimeUnit.SECONDS)) {
                     Iris.warn("Chunk replacement waiting on region task at " + x + "," + z
                             + " for " + (System.currentTimeMillis() - regionWaitStart) + "ms.");
+                    effectiveListener.onPhase(phaseRef.get(), x, z, System.currentTimeMillis());
                 }
                 long regionWaitTook = System.currentTimeMillis() - regionWaitStart;
                 if (regionWaitTook >= 5000L) {
                     Iris.warn("Chunk replacement region task completed after " + regionWaitTook + "ms at " + x + "," + z + ".");
                 }
                 if (failure[0] != null) {
+                    effectiveListener.onFailurePhase(phaseRef.get(), x, z, failure[0], System.currentTimeMillis());
                     throw failure[0];
                 }
             } else {
-                phase = "paperlib-async-load";
+                setChunkReplacementPhase(phaseRef, effectiveListener, "paperlib-async-load", x, z);
                 long loadChunkStart = System.currentTimeMillis();
                 Chunk c = PaperLib.getChunkAtAsync(world, x, z).get();
                 long loadChunkTook = System.currentTimeMillis() - loadChunkStart;
@@ -327,53 +361,66 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                     Iris.warn("Chunk replacement chunk load took " + loadChunkTook + "ms at " + x + "," + z + ".");
                 }
 
-                phase = "non-folia-apply";
+                setChunkReplacementPhase(phaseRef, effectiveListener, "apply-terrain", x, z);
                 Iris.tickets.addTicket(c);
-                CompletableFuture.runAsync(() -> {
-                    for (Entity ee : c.getEntities()) {
-                        if (ee instanceof Player) {
-                            continue;
+                try {
+                    CompletableFuture.runAsync(() -> {
+                        for (Entity ee : c.getEntities()) {
+                            if (ee instanceof Player) {
+                                continue;
+                            }
+
+                            ee.remove();
                         }
+                    }, syncExecutor).get();
 
-                        ee.remove();
-                    }
-                }, syncExecutor).get();
-
-                KList<CompletableFuture<?>> futures = new KList<>(1 + getEngine().getHeight() >> 4);
-                for (int i = getEngine().getHeight() >> 4; i >= 0; i--) {
-                    int finalI = i << 4;
-                    futures.add(CompletableFuture.runAsync(() -> {
-                        for (int xx = 0; xx < 16; xx++) {
-                            for (int yy = 0; yy < 16; yy++) {
-                                for (int zz = 0; zz < 16; zz++) {
-                                    if (yy + finalI >= engine.getHeight() || yy + finalI < 0) {
-                                        continue;
+                    KList<CompletableFuture<?>> futures = new KList<>(1 + getEngine().getHeight() >> 4);
+                    for (int i = getEngine().getHeight() >> 4; i >= 0; i--) {
+                        int finalI = i << 4;
+                        futures.add(CompletableFuture.runAsync(() -> {
+                            for (int xx = 0; xx < 16; xx++) {
+                                for (int yy = 0; yy < 16; yy++) {
+                                    for (int zz = 0; zz < 16; zz++) {
+                                        if (yy + finalI >= engine.getHeight() || yy + finalI < 0) {
+                                            continue;
+                                        }
+                                        int y = yy + finalI + world.getMinHeight();
+                                        c.getBlock(xx, y, zz).setBlockData(tc.getBlockData(xx, y, zz), false);
                                     }
-                                    int y = yy + finalI + world.getMinHeight();
-                                    c.getBlock(xx, y, zz).setBlockData(tc.getBlockData(xx, y, zz), false);
                                 }
                             }
-                        }
-                    }, syncExecutor));
+                        }, syncExecutor));
+                    }
+                    CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
+                    if (effectiveOptions.isFullMode()) {
+                        CompletableFuture.runAsync(() -> {
+                            setChunkReplacementPhase(phaseRef, effectiveListener, "overlay", x, z);
+                            OverlayMetrics overlayMetrics = applyMantleOverlay(c, world, x, z);
+                            effectiveListener.onOverlay(x, z, overlayMetrics.appliedBlocks(), overlayMetrics.objectKeys(), System.currentTimeMillis());
+                        }, syncExecutor).get();
+                    }
+                    CompletableFuture.runAsync(() -> {
+                        setChunkReplacementPhase(phaseRef, effectiveListener, "structures", x, z);
+                        INMS.get().placeStructures(c);
+                    }, syncExecutor).get();
+                    CompletableFuture.runAsync(() -> {
+                        setChunkReplacementPhase(phaseRef, effectiveListener, "chunk-load-callback", x, z);
+                        engine.getWorldManager().onChunkLoad(c, true);
+                    }, syncExecutor).get();
+                } finally {
+                    Iris.tickets.removeTicket(c);
                 }
-                futures.add(CompletableFuture.runAsync(() -> INMS.get().placeStructures(c), syncExecutor));
-
-                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                        .thenRunAsync(() -> {
-                            Iris.tickets.removeTicket(c);
-                            engine.getWorldManager().onChunkLoad(c, true);
-                        }, syncExecutor)
-                        .get();
             }
 
             Iris.debug("Regenerated " + x + " " + z);
         } catch (Throwable e) {
+            effectiveListener.onFailurePhase(phaseRef.get(), x, z, e, System.currentTimeMillis());
             Iris.error("======================================");
-            Iris.error("Chunk replacement failed at phase=" + phase + " chunk=" + x + "," + z);
+            Iris.error("Chunk replacement failed at phase=" + phaseRef.get() + " chunk=" + x + "," + z);
             e.printStackTrace();
             Iris.reportErrorChunk(x, z, e, "CHUNK");
             Iris.error("======================================");
-            throw new IllegalStateException("Chunk replacement failed at phase=" + phase + " chunk=" + x + "," + z, e);
+            throw new IllegalStateException("Chunk replacement failed at phase=" + phaseRef.get() + " chunk=" + x + "," + z, e);
         } finally {
             if (acquired) {
                 loadLock.release();
@@ -383,6 +430,63 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     private static void phaseUnsafeSet(String phase, int x, int z) {
         Iris.verbose("Chunk replacement phase=" + phase + " chunk=" + x + "," + z);
+    }
+
+    private static void setChunkReplacementPhase(
+            AtomicReference<String> phaseRef,
+            ChunkReplacementListener listener,
+            String phase,
+            int x,
+            int z
+    ) {
+        phaseRef.set(phase);
+        listener.onPhase(phase, x, z, System.currentTimeMillis());
+    }
+
+    private void resetMantleChunkForFullRegen(int chunkX, int chunkZ) {
+        MantleChunk<Matter> mantleChunk = getEngine().getMantle().getMantle().getChunk(chunkX, chunkZ).use();
+        try {
+            mantleChunk.deleteSlices(BlockData.class);
+            mantleChunk.deleteSlices(String.class);
+            mantleChunk.deleteSlices(TileWrapper.class);
+            mantleChunk.flag(MantleFlag.PLANNED, false);
+            mantleChunk.flag(MantleFlag.OBJECT, false);
+            mantleChunk.flag(MantleFlag.REAL, false);
+        } finally {
+            mantleChunk.release();
+        }
+    }
+
+    private OverlayMetrics applyMantleOverlay(Chunk chunk, World world, int chunkX, int chunkZ) {
+        int minWorldY = world.getMinHeight();
+        int maxWorldY = world.getMaxHeight();
+        AtomicInteger appliedBlocks = new AtomicInteger();
+        AtomicInteger objectKeys = new AtomicInteger();
+        MantleChunk<Matter> mantleChunk = getEngine().getMantle().getMantle().getChunk(chunkX, chunkZ).use();
+        try {
+            mantleChunk.iterate(String.class, (x, y, z, value) -> {
+                if (value != null && !value.isEmpty() && value.indexOf('@') > 0) {
+                    objectKeys.incrementAndGet();
+                }
+            });
+            mantleChunk.iterate(BlockData.class, (x, y, z, blockData) -> {
+                if (blockData == null) {
+                    return;
+                }
+                int worldY = y + minWorldY;
+                if (worldY < minWorldY || worldY >= maxWorldY) {
+                    return;
+                }
+                chunk.getBlock(x & 15, worldY, z & 15).setBlockData(blockData, false);
+                appliedBlocks.incrementAndGet();
+            });
+        } finally {
+            mantleChunk.release();
+        }
+        return new OverlayMetrics(appliedBlocks.get(), objectKeys.get());
+    }
+
+    private record OverlayMetrics(int appliedBlocks, int objectKeys) {
     }
 
     private Engine getEngine(WorldInfo world) {

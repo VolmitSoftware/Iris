@@ -29,6 +29,7 @@ import art.arcane.iris.util.common.data.DataProvider;
 import art.arcane.volmlib.util.data.WeightedRandom;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.util.project.noise.CNG;
+import com.google.gson.annotations.SerializedName;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -150,6 +151,7 @@ public class IrisObjectPlacement {
     @Desc("List of objects to this object is forbidden to collied with")
     private KList<String> forbiddenCollisions = new KList<>();
     @Desc("Ignore any placement restrictions for this object")
+    @SerializedName(value = "forcePlace", alternate = {"force"})
     private boolean forcePlace = false;
     private transient AtomicCache<TableCache> cache = new AtomicCache<>();
 
@@ -178,6 +180,7 @@ public class IrisObjectPlacement {
         p.setClamp(clamp);
         p.setRotation(rotation);
         p.setLoot(loot);
+        p.setForcePlace(forcePlace);
         return p;
     }
 

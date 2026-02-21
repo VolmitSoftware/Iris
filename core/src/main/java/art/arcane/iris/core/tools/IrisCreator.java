@@ -20,6 +20,7 @@ package art.arcane.iris.core.tools;
 
 import com.google.common.util.concurrent.AtomicDouble;
 import art.arcane.iris.Iris;
+import art.arcane.iris.core.IrisWorlds;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.ServerConfigurator;
 import art.arcane.iris.core.link.FoliaWorldsLink;
@@ -161,6 +162,9 @@ public class IrisCreator {
                 .seed(seed)
                 .studio(studio)
                 .create();
+        if (!studio()) {
+            IrisWorlds.get().put(name(), dimension());
+        }
         boolean verifyDataPacks = !studio();
         boolean includeExternalDataPacks = !studio();
         if (ServerConfigurator.installDataPacks(verifyDataPacks, includeExternalDataPacks)) {

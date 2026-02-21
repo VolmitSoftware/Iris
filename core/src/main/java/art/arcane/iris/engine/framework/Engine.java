@@ -81,6 +81,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -944,6 +945,24 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
     }
 
+    default boolean hasObjectPlacement(String objectKey) {
+        String normalizedObjectKey = normalizeObjectPlacementKey(objectKey);
+        if (normalizedObjectKey.isBlank()) {
+            return false;
+        }
+
+        Set<String> biomeKeys = getDimension().getAllBiomes(this).stream()
+                .filter((i) -> containsObjectPlacement(i.getObjects(), normalizedObjectKey))
+                .map(IrisRegistrant::getLoadKey)
+                .collect(Collectors.toSet());
+        Set<String> regionKeys = getDimension().getAllRegions(this).stream()
+                .filter((i) -> i.getAllBiomeIds().stream().anyMatch(biomeKeys::contains)
+                        || containsObjectPlacement(i.getObjects(), normalizedObjectKey))
+                .map(IrisRegistrant::getLoadKey)
+                .collect(Collectors.toSet());
+        return !regionKeys.isEmpty();
+    }
+
     default void gotoRegion(IrisRegion r, Player player, boolean teleport) {
         if (!getDimension().getRegions().contains(r.getLoadKey())) {
             player.sendMessage(C.RED + r.getName() + " is not defined in the dimension!");
@@ -955,6 +974,45 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     default void gotoPOI(String type, Player p, boolean teleport) {
         Locator.poi(type).find(p, teleport, "POI " + type);
+    }
+
+    private static boolean containsObjectPlacement(KList<IrisObjectPlacement> placements, String normalizedObjectKey) {
+        if (placements == null || placements.isEmpty() || normalizedObjectKey.isBlank()) {
+            return false;
+        }
+
+        for (IrisObjectPlacement placement : placements) {
+            if (placement == null || placement.getPlace() == null || placement.getPlace().isEmpty()) {
+                continue;
+            }
+
+            for (String placedObject : placement.getPlace()) {
+                String normalizedPlacedObject = normalizeObjectPlacementKey(placedObject);
+                if (!normalizedPlacedObject.isBlank() && normalizedPlacedObject.equals(normalizedObjectKey)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static String normalizeObjectPlacementKey(String objectKey) {
+        if (objectKey == null) {
+            return "";
+        }
+
+        String normalized = objectKey.trim().replace('\\', '/');
+        while (normalized.startsWith("/")) {
+            normalized = normalized.substring(1);
+        }
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        if (normalized.endsWith(".iob")) {
+            normalized = normalized.substring(0, normalized.length() - 4);
+        }
+        return normalized.toLowerCase(Locale.ROOT);
     }
 
     default void cleanupMantleChunk(int x, int z) {

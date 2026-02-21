@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.commands;
 
+import art.arcane.iris.core.ExternalDataPackPipeline;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisRegion;
@@ -27,6 +28,11 @@ import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.common.director.specialhandlers.ObjectHandler;
 import art.arcane.iris.util.common.format.C;
+import art.arcane.iris.util.common.scheduling.J;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
+import java.util.Set;
 
 @Director(name = "find", origin = DirectorOrigin.PLAYER, description = "Iris Find commands", aliases = "goto")
 public class CommandFind implements DirectorExecutor {
@@ -94,6 +100,45 @@ public class CommandFind implements DirectorExecutor {
             return;
         }
 
-        e.gotoObject(object, player(), teleport);
+        if (e.hasObjectPlacement(object)) {
+            e.gotoObject(object, player(), teleport);
+            return;
+        }
+
+        Set<String> structures = ExternalDataPackPipeline.resolveLocateStructuresForObjectKey(object);
+        if (structures.isEmpty()) {
+            sender().sendMessage(C.RED + object + " is not configured in any region/biome object placements and has no external structure mapping.");
+            sender().sendMessage(C.GRAY + "Try /iris locateexternal <datapack-id> for external structure lookups.");
+            return;
+        }
+
+        Player target = player();
+        if (target == null) {
+            sender().sendMessage(C.RED + "No active player sender was available for object lookup.");
+            return;
+        }
+
+        Runnable dispatchTask = () -> {
+            int dispatched = 0;
+            for (String structure : structures) {
+                String command = "locate structure " + structure;
+                boolean accepted = Bukkit.dispatchCommand(target, command);
+                if (!accepted) {
+                    sender().sendMessage(C.RED + "Failed to dispatch: /" + command);
+                } else {
+                    sender().sendMessage(C.GREEN + "Dispatched: /" + command);
+                    dispatched++;
+                }
+            }
+
+            if (teleport) {
+                sender().sendMessage(C.YELLOW + "External object lookups are structure-backed and dispatch locate commands instead of direct teleport.");
+            }
+            sender().sendMessage(C.GREEN + "External object mapping matched locateTargets=" + structures.size() + ", dispatched=" + dispatched + ".");
+        };
+
+        if (!J.runEntity(target, dispatchTask)) {
+            sender().sendMessage(C.RED + "Failed to schedule external object locate dispatch on your region thread.");
+        }
     }
 }

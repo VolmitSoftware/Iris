@@ -90,6 +90,7 @@ public final class ExternalDataPackPipeline {
     private static final String MANAGED_PACK_META_DESCRIPTION = "Iris managed external structure datapack assets.";
     private static final String IMPORT_PREFIX = "imports";
     private static final String LOCATE_MANIFEST_PATH = "cache/external-datapack-locate-manifest.json";
+    private static final String OBJECT_LOCATE_MANIFEST_PATH = "cache/external-datapack-object-locate-manifest.json";
     private static final int CONNECT_TIMEOUT_MS = 4000;
     private static final int READ_TIMEOUT_MS = 8000;
     private static final int IMPORT_PARALLELISM = Math.max(1, Math.min(8, Runtime.getRuntime().availableProcessors()));
@@ -97,6 +98,7 @@ public final class ExternalDataPackPipeline {
     private static final Map<String, BlockData> BLOCK_DATA_CACHE = new ConcurrentHashMap<>();
     private static final Map<String, String> PACK_ENVIRONMENT_CACHE = new ConcurrentHashMap<>();
     private static final Map<String, Set<String>> RESOLVED_LOCATE_STRUCTURES_BY_ID = new ConcurrentHashMap<>();
+    private static final Map<String, Set<String>> RESOLVED_LOCATE_STRUCTURES_BY_OBJECT_KEY = new ConcurrentHashMap<>();
     private static final AtomicCache<KMap<Identifier, StructurePlacement>> VANILLA_STRUCTURE_PLACEMENTS = new AtomicCache<>();
     private static final BlockData AIR = B.getAir();
 
@@ -129,6 +131,27 @@ public final class ExternalDataPackPipeline {
         }
 
         RESOLVED_LOCATE_STRUCTURES_BY_ID.put(normalizedId, Set.copyOf(manifestSet));
+        return Set.copyOf(manifestSet);
+    }
+
+    public static Set<String> resolveLocateStructuresForObjectKey(String objectKey) {
+        String normalizedObjectKey = normalizeObjectLoadKey(objectKey);
+        if (normalizedObjectKey.isBlank()) {
+            return Set.of();
+        }
+
+        Set<String> resolved = RESOLVED_LOCATE_STRUCTURES_BY_OBJECT_KEY.get(normalizedObjectKey);
+        if (resolved != null && !resolved.isEmpty()) {
+            return Set.copyOf(resolved);
+        }
+
+        Map<String, Set<String>> fromManifest = readObjectLocateManifest();
+        Set<String> manifestSet = fromManifest.get(normalizedObjectKey);
+        if (manifestSet == null || manifestSet.isEmpty()) {
+            return Set.of();
+        }
+
+        RESOLVED_LOCATE_STRUCTURES_BY_OBJECT_KEY.put(normalizedObjectKey, Set.copyOf(manifestSet));
         return Set.copyOf(manifestSet);
     }
 
@@ -184,6 +207,7 @@ public final class ExternalDataPackPipeline {
         PipelineSummary summary = new PipelineSummary();
         PACK_ENVIRONMENT_CACHE.clear();
         RESOLVED_LOCATE_STRUCTURES_BY_ID.clear();
+        RESOLVED_LOCATE_STRUCTURES_BY_OBJECT_KEY.clear();
 
         Set<File> knownWorldDatapackFolders = new LinkedHashSet<>();
         if (worldDatapackFoldersByPack != null) {
@@ -208,12 +232,14 @@ public final class ExternalDataPackPipeline {
         if (normalizedRequests.isEmpty()) {
             Iris.info("Downloading datapacks [0/0] Downloading/Done!");
             writeLocateManifest(Map.of());
+            writeObjectLocateManifest(Map.of());
             summary.legacyWorldCopyRemovals += pruneManagedWorldDatapacks(knownWorldDatapackFolders, Set.of());
             return summary;
         }
 
         List<RequestedSourceInput> sourceInputs = new ArrayList<>();
         LinkedHashMap<String, Set<String>> resolvedLocateStructuresById = new LinkedHashMap<>();
+        LinkedHashMap<String, Set<String>> resolvedLocateStructuresByObjectKey = new LinkedHashMap<>();
         for (int requestIndex = 0; requestIndex < normalizedRequests.size(); requestIndex++) {
             DatapackRequest request = normalizedRequests.get(requestIndex);
             if (request == null) {
@@ -245,10 +271,10 @@ public final class ExternalDataPackPipeline {
 
             if (syncResult.downloaded()) {
                 summary.syncedRequests++;
+                Iris.info("Downloading datapacks [" + (requestIndex + 1) + "/" + normalizedRequests.size() + "] Downloading/Done!");
             } else if (syncResult.restored()) {
                 summary.restoredRequests++;
             }
-            Iris.info("Downloading datapacks [" + (requestIndex + 1) + "/" + normalizedRequests.size() + "] Downloading/Done!");
             mergeResolvedLocateStructures(resolvedLocateStructuresById, request.id(), request.resolvedLocateStructures());
             sourceInputs.add(new RequestedSourceInput(syncResult.source(), request));
         }
@@ -258,7 +284,9 @@ public final class ExternalDataPackPipeline {
                 summary.legacyWorldCopyRemovals += pruneManagedWorldDatapacks(knownWorldDatapackFolders, Set.of());
             }
             writeLocateManifest(resolvedLocateStructuresById);
+            writeObjectLocateManifest(resolvedLocateStructuresByObjectKey);
             RESOLVED_LOCATE_STRUCTURES_BY_ID.putAll(resolvedLocateStructuresById);
+            RESOLVED_LOCATE_STRUCTURES_BY_OBJECT_KEY.putAll(resolvedLocateStructuresByObjectKey);
             return summary;
         }
 
@@ -281,7 +309,7 @@ public final class ExternalDataPackPipeline {
                 continue;
             }
 
-            SourceDescriptor sourceDescriptor = createSourceDescriptor(entry, request.targetPack(), request.requiredEnvironment());
+            SourceDescriptor sourceDescriptor = createSourceDescriptor(entry, request.id(), request.targetPack(), request.requiredEnvironment());
             if (sourceDescriptor.requiredEnvironment() != null) {
                 String packEnvironment = resolvePackEnvironment(sourceDescriptor.targetPack());
                 if (packEnvironment == null || !packEnvironment.equals(sourceDescriptor.requiredEnvironment())) {
@@ -299,30 +327,39 @@ public final class ExternalDataPackPipeline {
             }
 
             seenSourceKeys.add(sourceDescriptor.sourceKey());
-            File sourceRoot = resolveSourceRoot(sourceDescriptor.targetPack(), sourceDescriptor.sourceKey());
+            File sourceRoot = resolveSourceRoot(sourceDescriptor.targetPack(), sourceDescriptor.objectRootKey());
             JSONObject cachedSource = oldSources.get(sourceDescriptor.sourceKey());
             String cachedTargetPack = cachedSource == null
                     ? null
                     : sanitizePackName(cachedSource.optString("targetPack", defaultTargetPack()));
             boolean sameTargetPack = cachedTargetPack != null && cachedTargetPack.equals(sourceDescriptor.targetPack());
+            String cachedObjectRootKey = cachedSource == null ? "" : normalizeObjectRootKey(cachedSource.optString("objectRootKey", ""));
+            boolean sameObjectRoot = cachedObjectRootKey.equals(sourceDescriptor.objectRootKey());
+            JSONObject activeSource = null;
 
             if (cachedSource != null
                     && sourceDescriptor.fingerprint().equals(cachedSource.optString("fingerprint", ""))
                     && sameTargetPack
+                    && sameObjectRoot
                     && sourceRoot.exists()) {
                 newSources.put(cachedSource);
                 addSourceToSummary(importSummary, cachedSource, true);
+                activeSource = cachedSource;
             } else {
-                if (cachedTargetPack != null && !cachedTargetPack.equals(sourceDescriptor.targetPack())) {
-                    File previousSourceRoot = resolveSourceRoot(cachedTargetPack, sourceDescriptor.sourceKey());
+                if (cachedTargetPack != null && cachedSource != null) {
+                    File previousSourceRoot = resolveSourceRoot(cachedTargetPack, cachedObjectRootKey);
                     deleteFolder(previousSourceRoot);
+                    String cachedSourceKey = cachedSource.optString("sourceKey", sourceDescriptor.sourceKey());
+                    File previousLegacySourceRoot = resolveLegacySourceRoot(cachedTargetPack, cachedSourceKey);
+                    deleteFolder(previousLegacySourceRoot);
                 }
 
                 deleteFolder(sourceRoot);
                 sourceRoot.mkdirs();
-                JSONObject sourceResult = convertSource(entry, sourceDescriptor, sourceRoot);
+                JSONObject sourceResult = convertSource(entry, sourceDescriptor, sourceRoot, request.id());
                 newSources.put(sourceResult);
                 addSourceToSummary(importSummary, sourceResult, false);
+                activeSource = sourceResult;
                 int conversionFailed = sourceResult.optInt("failed", 0);
                 if (conversionFailed > 0) {
                     int conversionScanned = sourceResult.optInt("nbtScanned", 0);
@@ -339,6 +376,14 @@ public final class ExternalDataPackPipeline {
             summary.worldDatapacksInstalled += projectionResult.installedDatapacks();
             summary.worldAssetsInstalled += projectionResult.installedAssets();
             mergeResolvedLocateStructures(resolvedLocateStructuresById, request.id(), projectionResult.resolvedLocateStructures());
+            LinkedHashSet<String> objectLocateTargets = new LinkedHashSet<>();
+            objectLocateTargets.addAll(request.resolvedLocateStructures());
+            objectLocateTargets.addAll(projectionResult.resolvedLocateStructures());
+            mergeResolvedLocateStructuresByObjectKey(
+                    resolvedLocateStructuresByObjectKey,
+                    extractObjectKeys(activeSource),
+                    objectLocateTargets
+            );
             if (projectionResult.managedName() != null && !projectionResult.managedName().isBlank() && projectionResult.installedDatapacks() > 0) {
                 activeManagedWorldDatapackNames.add(projectionResult.managedName());
             }
@@ -379,12 +424,18 @@ public final class ExternalDataPackPipeline {
         }
 
         writeLocateManifest(resolvedLocateStructuresById);
+        writeObjectLocateManifest(resolvedLocateStructuresByObjectKey);
         RESOLVED_LOCATE_STRUCTURES_BY_ID.putAll(resolvedLocateStructuresById);
+        RESOLVED_LOCATE_STRUCTURES_BY_OBJECT_KEY.putAll(resolvedLocateStructuresByObjectKey);
         return summary;
     }
 
     private static File getLocateManifestFile() {
         return Iris.instance.getDataFile(LOCATE_MANIFEST_PATH);
+    }
+
+    private static File getObjectLocateManifestFile() {
+        return Iris.instance.getDataFile(OBJECT_LOCATE_MANIFEST_PATH);
     }
 
     private static String normalizeLocateId(String id) {
@@ -413,6 +464,57 @@ public final class ExternalDataPackPipeline {
         return normalized;
     }
 
+    private static String normalizeObjectLoadKey(String objectKey) {
+        if (objectKey == null) {
+            return "";
+        }
+
+        String normalized = sanitizePath(objectKey);
+        if (normalized.endsWith(".iob")) {
+            normalized = normalized.substring(0, normalized.length() - 4);
+        }
+        return normalized;
+    }
+
+    private static String normalizeObjectRootKey(String requestId) {
+        if (requestId == null) {
+            return "external-datapack";
+        }
+
+        String normalized = sanitizePath(requestId).replace("/", "_");
+        if (normalized.isBlank()) {
+            return "external-datapack";
+        }
+
+        return normalized;
+    }
+
+    private static Set<String> extractObjectKeys(JSONObject source) {
+        LinkedHashSet<String> objectKeys = new LinkedHashSet<>();
+        if (source == null) {
+            return objectKeys;
+        }
+
+        JSONArray objects = source.optJSONArray("objects");
+        if (objects == null) {
+            return objectKeys;
+        }
+
+        for (int i = 0; i < objects.length(); i++) {
+            JSONObject object = objects.optJSONObject(i);
+            if (object == null) {
+                continue;
+            }
+
+            String objectKey = normalizeObjectLoadKey(object.optString("objectKey", ""));
+            if (!objectKey.isBlank()) {
+                objectKeys.add(objectKey);
+            }
+        }
+
+        return objectKeys;
+    }
+
     private static void mergeResolvedLocateStructures(Map<String, Set<String>> destination, String id, Set<String> resolvedStructures) {
         if (destination == null) {
             return;
@@ -429,6 +531,38 @@ public final class ExternalDataPackPipeline {
             if (!normalizedStructure.isBlank()) {
                 merged.add(normalizedStructure);
             }
+        }
+    }
+
+    private static void mergeResolvedLocateStructuresByObjectKey(
+            Map<String, Set<String>> destination,
+            Set<String> objectKeys,
+            Set<String> resolvedStructures
+    ) {
+        if (destination == null || objectKeys == null || objectKeys.isEmpty() || resolvedStructures == null || resolvedStructures.isEmpty()) {
+            return;
+        }
+
+        LinkedHashSet<String> normalizedStructures = new LinkedHashSet<>();
+        for (String structure : resolvedStructures) {
+            String normalized = normalizeLocateStructure(structure);
+            if (!normalized.isBlank()) {
+                normalizedStructures.add(normalized);
+            }
+        }
+
+        if (normalizedStructures.isEmpty()) {
+            return;
+        }
+
+        for (String objectKey : objectKeys) {
+            String normalizedObjectKey = normalizeObjectLoadKey(objectKey);
+            if (normalizedObjectKey.isBlank()) {
+                continue;
+            }
+
+            Set<String> merged = destination.computeIfAbsent(normalizedObjectKey, key -> new LinkedHashSet<>());
+            merged.addAll(normalizedStructures);
         }
     }
 
@@ -488,6 +622,62 @@ public final class ExternalDataPackPipeline {
         }
     }
 
+    private static void writeObjectLocateManifest(Map<String, Set<String>> resolvedLocateStructuresByObjectKey) {
+        File output = getObjectLocateManifestFile();
+        LinkedHashMap<String, Set<String>> normalized = new LinkedHashMap<>();
+        if (resolvedLocateStructuresByObjectKey != null) {
+            for (Map.Entry<String, Set<String>> entry : resolvedLocateStructuresByObjectKey.entrySet()) {
+                String normalizedObjectKey = normalizeObjectLoadKey(entry.getKey());
+                if (normalizedObjectKey.isBlank()) {
+                    continue;
+                }
+
+                LinkedHashSet<String> structures = new LinkedHashSet<>();
+                Set<String> values = entry.getValue();
+                if (values != null) {
+                    for (String structure : values) {
+                        String normalizedStructure = normalizeLocateStructure(structure);
+                        if (!normalizedStructure.isBlank()) {
+                            structures.add(normalizedStructure);
+                        }
+                    }
+                }
+
+                if (!structures.isEmpty()) {
+                    normalized.put(normalizedObjectKey, Set.copyOf(structures));
+                }
+            }
+        }
+
+        JSONObject root = new JSONObject();
+        root.put("generatedAt", Instant.now().toString());
+        JSONObject mappings = new JSONObject();
+        ArrayList<String> objectKeys = new ArrayList<>(normalized.keySet());
+        objectKeys.sort(String::compareTo);
+        for (String objectKey : objectKeys) {
+            Set<String> structures = normalized.get(objectKey);
+            if (structures == null || structures.isEmpty()) {
+                continue;
+            }
+
+            ArrayList<String> sortedStructures = new ArrayList<>(structures);
+            sortedStructures.sort(String::compareTo);
+            JSONArray values = new JSONArray();
+            for (String structure : sortedStructures) {
+                values.put(structure);
+            }
+            mappings.put(objectKey, values);
+        }
+        root.put("objects", mappings);
+
+        try {
+            writeBytesToFile(root.toString(4).getBytes(StandardCharsets.UTF_8), output);
+        } catch (Throwable e) {
+            Iris.warn("Failed to write external datapack object locate manifest " + output.getPath());
+            Iris.reportError(e);
+        }
+    }
+
     private static Map<String, Set<String>> readLocateManifest() {
         LinkedHashMap<String, Set<String>> mapped = new LinkedHashMap<>();
         File input = getLocateManifestFile();
@@ -532,6 +722,56 @@ public final class ExternalDataPackPipeline {
             }
         } catch (Throwable e) {
             Iris.warn("Failed to read external datapack locate manifest " + input.getPath());
+            Iris.reportError(e);
+        }
+
+        return mapped;
+    }
+
+    private static Map<String, Set<String>> readObjectLocateManifest() {
+        LinkedHashMap<String, Set<String>> mapped = new LinkedHashMap<>();
+        File input = getObjectLocateManifestFile();
+        if (!input.exists() || !input.isFile()) {
+            return mapped;
+        }
+
+        try {
+            JSONObject root = new JSONObject(Files.readString(input.toPath(), StandardCharsets.UTF_8));
+            JSONObject objects = root.optJSONObject("objects");
+            if (objects == null) {
+                return mapped;
+            }
+
+            ArrayList<String> keys = new ArrayList<>(objects.keySet());
+            keys.sort(String::compareTo);
+            for (String key : keys) {
+                String normalizedObjectKey = normalizeObjectLoadKey(key);
+                if (normalizedObjectKey.isBlank()) {
+                    continue;
+                }
+
+                LinkedHashSet<String> structures = new LinkedHashSet<>();
+                JSONArray values = objects.optJSONArray(key);
+                if (values != null) {
+                    for (int i = 0; i < values.length(); i++) {
+                        Object rawValue = values.opt(i);
+                        if (rawValue == null) {
+                            continue;
+                        }
+
+                        String normalizedStructure = normalizeLocateStructure(String.valueOf(rawValue));
+                        if (!normalizedStructure.isBlank()) {
+                            structures.add(normalizedStructure);
+                        }
+                    }
+                }
+
+                if (!structures.isEmpty()) {
+                    mapped.put(normalizedObjectKey, Set.copyOf(structures));
+                }
+            }
+        } catch (Throwable e) {
+            Iris.warn("Failed to read external datapack object locate manifest " + input.getPath());
             Iris.reportError(e);
         }
 
@@ -1885,7 +2125,19 @@ public final class ExternalDataPackPipeline {
         }
     }
 
-    private static File resolveSourceRoot(String targetPack, String sourceKey) {
+    private static File resolveSourceRoot(String targetPack, String objectRootKey) {
+        String pack = sanitizePackName(targetPack);
+        if (pack.isEmpty()) {
+            pack = defaultTargetPack();
+        }
+        String normalizedObjectRootKey = normalizeObjectRootKey(objectRootKey);
+        if (normalizedObjectRootKey.isEmpty()) {
+            normalizedObjectRootKey = "external-datapack";
+        }
+        return new File(Iris.instance.getDataFolder("packs", pack), "objects/" + normalizedObjectRootKey);
+    }
+
+    private static File resolveLegacySourceRoot(String targetPack, String sourceKey) {
         String pack = sanitizePackName(targetPack);
         if (pack.isEmpty()) {
             pack = defaultTargetPack();
@@ -1893,14 +2145,15 @@ public final class ExternalDataPackPipeline {
         return new File(Iris.instance.getDataFolder("packs", pack), "objects/" + IMPORT_PREFIX + "/" + sourceKey);
     }
 
-    private static SourceDescriptor createSourceDescriptor(File entry, String targetPack, String requiredEnvironment) {
+    private static SourceDescriptor createSourceDescriptor(File entry, String requestId, String targetPack, String requiredEnvironment) {
         String base = entry.getName();
         String sanitized = sanitizePath(stripExtension(base));
         if (sanitized.isEmpty()) {
             sanitized = "source";
         }
-        String sourceHash = shortHash(entry.getAbsolutePath());
-        String sourceKey = sanitized + "-" + sourceHash;
+        String objectRootKey = normalizeObjectRootKey(requestId);
+        String sourceHash = shortHash(entry.getAbsolutePath() + "|" + objectRootKey);
+        String sourceKey = objectRootKey + "-" + sanitized + "-" + sourceHash;
         String fingerprint = entry.isFile()
                 ? "file:" + entry.length() + ":" + entry.lastModified()
                 : "dir:" + directoryFingerprint(entry);
@@ -1908,7 +2161,7 @@ public final class ExternalDataPackPipeline {
         if (pack.isEmpty()) {
             pack = defaultTargetPack();
         }
-        return new SourceDescriptor(sourceKey, base, fingerprint, pack, normalizeEnvironment(requiredEnvironment));
+        return new SourceDescriptor(sourceKey, base, fingerprint, pack, normalizeEnvironment(requiredEnvironment), objectRootKey);
     }
 
     private static String directoryFingerprint(File directory) {
@@ -1939,12 +2192,14 @@ public final class ExternalDataPackPipeline {
         return files + ":" + size + ":" + latest;
     }
 
-    private static JSONObject convertSource(File entry, SourceDescriptor sourceDescriptor, File sourceRoot) {
+    private static JSONObject convertSource(File entry, SourceDescriptor sourceDescriptor, File sourceRoot, String requestId) {
         SourceConversion conversion = new SourceConversion(
                 sourceDescriptor.sourceKey(),
                 sourceDescriptor.sourceName(),
                 sourceDescriptor.targetPack(),
-                sourceDescriptor.requiredEnvironment()
+                sourceDescriptor.requiredEnvironment(),
+                sourceDescriptor.objectRootKey(),
+                requestId
         );
         if (entry.isDirectory()) {
             convertDirectory(entry, conversion, sourceRoot);
@@ -2085,6 +2340,11 @@ public final class ExternalDataPackPipeline {
     }
 
     private static void applyResult(SourceConversion conversion, ConversionResult result) {
+        if (result.skipped) {
+            conversion.skipped++;
+            return;
+        }
+
         if (!result.success) {
             conversion.failed++;
             return;
@@ -2107,19 +2367,21 @@ public final class ExternalDataPackPipeline {
             return ConversionResult.failed();
         }
 
+        if (isEmptyStructure(compoundTag)) {
+            return ConversionResult.skipped();
+        }
+
         IrisObject object = toObject(compoundTag);
         if (object == null) {
             return ConversionResult.failed();
         }
 
         String relative = objectKey;
-        if (relative.startsWith(IMPORT_PREFIX + "/")) {
-            relative = relative.substring((IMPORT_PREFIX + "/").length());
-            int slash = relative.indexOf('/');
-            if (slash >= 0 && slash + 1 < relative.length()) {
-                relative = relative.substring(slash + 1);
-            }
+        int slash = relative.indexOf('/');
+        if (slash <= 0 || slash + 1 >= relative.length()) {
+            return ConversionResult.failed();
         }
+        relative = relative.substring(slash + 1);
         File output = new File(sourceRoot, relative + ".iob");
         File parent = output.getParentFile();
         if (parent != null) {
@@ -2137,6 +2399,32 @@ public final class ExternalDataPackPipeline {
         record.put("objectKey", objectKey);
         record.put("entitiesIgnored", hasEntities);
         return ConversionResult.success(record, object.getStates().size(), hasEntities);
+    }
+
+    private static boolean isEmptyStructure(CompoundTag root) {
+        ListTag<?> sizeList = root.getListTag("size");
+        if (sizeList == null || sizeList.size() < 3) {
+            return false;
+        }
+
+        Integer width = tagToInt(sizeList.get(0));
+        Integer height = tagToInt(sizeList.get(1));
+        Integer depth = tagToInt(sizeList.get(2));
+        if (width == null || height == null || depth == null) {
+            return false;
+        }
+
+        if (width != 0 || height != 0 || depth != 0) {
+            return false;
+        }
+
+        ListTag<?> blocksTag = root.getListTag("blocks");
+        if (blocksTag != null && blocksTag.size() > 0) {
+            return false;
+        }
+
+        ListTag<?> paletteTag = root.getListTag("palette");
+        return paletteTag == null || paletteTag.size() == 0;
     }
 
     private static IrisObject toObject(CompoundTag root) {
@@ -2548,7 +2836,11 @@ public final class ExternalDataPackPipeline {
                 }
             }
 
-            deleteFolder(resolveSourceRoot(targetPack, sourceKey));
+            String objectRootKey = source == null ? "" : normalizeObjectRootKey(source.optString("objectRootKey", ""));
+            if (!objectRootKey.isBlank()) {
+                deleteFolder(resolveSourceRoot(targetPack, objectRootKey));
+            }
+            deleteFolder(resolveLegacySourceRoot(targetPack, sourceKey));
         }
     }
 
@@ -3363,7 +3655,14 @@ public final class ExternalDataPackPipeline {
     private record EntryPath(String originalPath, String namespace, String structurePath) {
     }
 
-    private record SourceDescriptor(String sourceKey, String sourceName, String fingerprint, String targetPack, String requiredEnvironment) {
+    private record SourceDescriptor(
+            String sourceKey,
+            String sourceName,
+            String fingerprint,
+            String targetPack,
+            String requiredEnvironment,
+            String objectRootKey
+    ) {
     }
 
     private record ModrinthFile(String pageUrl, String url, String slug, String versionId, String extension, String sha1) {
@@ -3381,6 +3680,7 @@ public final class ExternalDataPackPipeline {
         private final String sourceName;
         private final String targetPack;
         private final String requiredEnvironment;
+        private final String objectRootKey;
         private final Set<String> usedKeys;
         private final JSONArray objects;
         private int nbtScanned;
@@ -3390,11 +3690,20 @@ public final class ExternalDataPackPipeline {
         private int entitiesIgnored;
         private int blockEntities;
 
-        private SourceConversion(String sourceKey, String sourceName, String targetPack, String requiredEnvironment) {
+        private SourceConversion(
+                String sourceKey,
+                String sourceName,
+                String targetPack,
+                String requiredEnvironment,
+                String objectRootKey,
+                String requestId
+        ) {
             this.sourceKey = sourceKey;
             this.sourceName = sourceName;
             this.targetPack = targetPack;
             this.requiredEnvironment = requiredEnvironment;
+            String effectiveRequestId = requestId == null ? "" : requestId;
+            this.objectRootKey = normalizeObjectRootKey(effectiveRequestId.isBlank() ? objectRootKey : effectiveRequestId);
             this.usedKeys = new HashSet<>();
             this.objects = new JSONArray();
             this.nbtScanned = 0;
@@ -3411,8 +3720,12 @@ public final class ExternalDataPackPipeline {
             if (namespacePath.isEmpty() || structureValue.isEmpty()) {
                 return null;
             }
-            String baseKey = IMPORT_PREFIX + "/" + sourceKey + "/" + namespacePath + "/" + structureValue;
-            return createUniqueKey(baseKey, usedKeys);
+            String baseKey = objectRootKey + "/" + structureValue;
+            if (usedKeys.add(baseKey)) {
+                return baseKey;
+            }
+            String namespacedKey = objectRootKey + "/" + namespacePath + "/" + structureValue;
+            return createUniqueKey(namespacedKey, usedKeys);
         }
 
         private JSONObject toJson(String fingerprint) {
@@ -3420,6 +3733,7 @@ public final class ExternalDataPackPipeline {
             source.put("sourceKey", sourceKey);
             source.put("sourceName", sourceName);
             source.put("targetPack", targetPack);
+            source.put("objectRootKey", objectRootKey);
             if (requiredEnvironment != null) {
                 source.put("requiredEnvironment", requiredEnvironment);
             }
@@ -3480,23 +3794,29 @@ public final class ExternalDataPackPipeline {
 
     private static final class ConversionResult {
         private final boolean success;
+        private final boolean skipped;
         private final JSONObject record;
         private final int blockEntities;
         private final boolean entitiesIgnored;
 
-        private ConversionResult(boolean success, JSONObject record, int blockEntities, boolean entitiesIgnored) {
+        private ConversionResult(boolean success, boolean skipped, JSONObject record, int blockEntities, boolean entitiesIgnored) {
             this.success = success;
+            this.skipped = skipped;
             this.record = record;
             this.blockEntities = blockEntities;
             this.entitiesIgnored = entitiesIgnored;
         }
 
         private static ConversionResult success(JSONObject record, int blockEntities, boolean entitiesIgnored) {
-            return new ConversionResult(true, record, blockEntities, entitiesIgnored);
+            return new ConversionResult(true, false, record, blockEntities, entitiesIgnored);
         }
 
         private static ConversionResult failed() {
-            return new ConversionResult(false, null, 0, false);
+            return new ConversionResult(false, false, null, 0, false);
+        }
+
+        private static ConversionResult skipped() {
+            return new ConversionResult(false, true, null, 0, false);
         }
     }
 }

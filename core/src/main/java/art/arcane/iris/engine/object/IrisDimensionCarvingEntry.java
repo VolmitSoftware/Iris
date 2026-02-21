@@ -15,6 +15,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 @Snippet("dimension-carving-entry")
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -23,7 +26,7 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisDimensionCarvingEntry {
     private final transient AtomicCache<IrisBiome> realBiome = new AtomicCache<>(true);
-    private final transient AtomicCache<CNG> childGenerator = new AtomicCache<>();
+    private final transient Map<Long, CNG> childGenerators = new ConcurrentHashMap<>();
 
     @Desc("Stable id for this carving entry")
     private String id = "";
@@ -65,12 +68,12 @@ public class IrisDimensionCarvingEntry {
     }
 
     public CNG getChildrenGenerator(long seed, IrisData data) {
-        return childGenerator.aquire(() -> {
-            String entryId = getId();
-            long idHash = entryId == null ? 0L : entryId.trim().hashCode();
-            long generatorSeed = seed ^ (idHash << 32) ^ 2137L;
+        String entryId = getId();
+        long idHash = entryId == null ? 0L : entryId.trim().hashCode();
+        long generatorSeed = seed ^ (idHash << 32) ^ 2137L;
+        return childGenerators.computeIfAbsent(generatorSeed, key -> {
             double scale = Math.max(0.0001D, getChildShrinkFactor());
-            RNG random = new RNG(generatorSeed);
+            RNG random = new RNG(key);
             return getChildStyle().create(random.nextParallelRNG(2137), data).bake().scale(scale).bake();
         });
     }

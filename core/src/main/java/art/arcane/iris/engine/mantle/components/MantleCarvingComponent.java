@@ -25,6 +25,7 @@ import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisCaveProfile;
 import art.arcane.iris.engine.object.IrisDimensionCarvingEntry;
+import art.arcane.iris.engine.object.IrisDimensionCarvingResolver;
 import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.iris.engine.object.IrisRange;
 import art.arcane.iris.util.project.context.ChunkContext;
@@ -32,7 +33,6 @@ import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
@@ -106,11 +106,11 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         }
 
         weightedProfiles.sort(Comparator.comparingDouble(WeightedProfile::averageWeight));
-        weightedProfiles.addAll(0, resolveDimensionCarvingProfiles());
+        weightedProfiles.addAll(0, resolveDimensionCarvingProfiles(chunkX, chunkZ));
         return weightedProfiles;
     }
 
-    private List<WeightedProfile> resolveDimensionCarvingProfiles() {
+    private List<WeightedProfile> resolveDimensionCarvingProfiles(int chunkX, int chunkZ) {
         List<WeightedProfile> weightedProfiles = new ArrayList<>();
         List<IrisDimensionCarvingEntry> entries = getDimension().getCarving();
         if (entries == null || entries.isEmpty()) {
@@ -122,23 +122,39 @@ public class MantleCarvingComponent extends IrisMantleComponent {
                 continue;
             }
 
-            String biomeKey = entry.getBiome();
-            if (biomeKey == null || biomeKey.isBlank()) {
+            IrisBiome rootBiome = IrisDimensionCarvingResolver.resolveEntryBiome(getEngineMantle().getEngine(), entry);
+            if (rootBiome == null) {
                 continue;
             }
 
-            IrisBiome biome = getData().getBiomeLoader().load(biomeKey.trim());
-            if (biome == null) {
-                continue;
-            }
-
-            IrisCaveProfile profile = biome.getCaveProfile();
-            if (!isProfileEnabled(profile)) {
-                continue;
-            }
-
+            Map<IrisCaveProfile, double[]> rootProfileWeights = new IdentityHashMap<>();
             IrisRange worldYRange = entry.getWorldYRange();
-            weightedProfiles.add(new WeightedProfile(profile, fullWeights(), -1D, worldYRange));
+            for (int localX = 0; localX < CHUNK_SIZE; localX++) {
+                for (int localZ = 0; localZ < CHUNK_SIZE; localZ++) {
+                    int worldX = (chunkX << 4) + localX;
+                    int worldZ = (chunkZ << 4) + localZ;
+                    int columnIndex = (localX << 4) | localZ;
+                    IrisDimensionCarvingEntry resolvedEntry = IrisDimensionCarvingResolver.resolveFromRoot(getEngineMantle().getEngine(), entry, worldX, worldZ);
+                    IrisBiome resolvedBiome = IrisDimensionCarvingResolver.resolveEntryBiome(getEngineMantle().getEngine(), resolvedEntry);
+                    if (resolvedBiome == null) {
+                        continue;
+                    }
+
+                    IrisCaveProfile profile = resolvedBiome.getCaveProfile();
+                    if (!isProfileEnabled(profile)) {
+                        continue;
+                    }
+
+                    double[] weights = rootProfileWeights.computeIfAbsent(profile, key -> new double[CHUNK_AREA]);
+                    weights[columnIndex] = 1D;
+                }
+            }
+
+            List<Map.Entry<IrisCaveProfile, double[]>> profileEntries = new ArrayList<>(rootProfileWeights.entrySet());
+            profileEntries.sort((a, b) -> Integer.compare(a.getKey().hashCode(), b.getKey().hashCode()));
+            for (Map.Entry<IrisCaveProfile, double[]> profileEntry : profileEntries) {
+                weightedProfiles.add(new WeightedProfile(profileEntry.getKey(), profileEntry.getValue(), -1D, worldYRange));
+            }
         }
 
         return weightedProfiles;
@@ -196,12 +212,6 @@ public class MantleCarvingComponent extends IrisMantleComponent {
     private double haloWeight(int offsetX, int offsetZ) {
         int edgeDistance = Math.max(Math.abs(offsetX), Math.abs(offsetZ));
         return (BLEND_RADIUS + 1D) - edgeDistance;
-    }
-
-    private double[] fullWeights() {
-        double[] weights = new double[CHUNK_AREA];
-        Arrays.fill(weights, 1D);
-        return weights;
     }
 
     private IrisCaveProfile resolveColumnProfile(int worldX, int worldZ) {

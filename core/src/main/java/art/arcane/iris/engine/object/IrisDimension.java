@@ -57,6 +57,7 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
@@ -78,6 +79,7 @@ public class IrisDimension extends IrisRegistrant {
     private final transient AtomicCache<Double> rad = new AtomicCache<>();
     private final transient AtomicCache<Boolean> featuresUsed = new AtomicCache<>();
     private final transient AtomicCache<KMap<String, KList<String>>> cachedPreProcessors = new AtomicCache<>();
+    private final transient AtomicCache<Map<String, IrisDimensionCarvingEntry>> carvingEntryIndex = new AtomicCache<>();
     @MinNumber(2)
     @Required
     @Desc("The human readable name of this dimension")
@@ -272,6 +274,36 @@ public class IrisDimension extends IrisRegistrant {
 
     public int getMinHeight() {
         return (int) getDimensionHeight().getMin();
+    }
+
+    public Map<String, IrisDimensionCarvingEntry> getCarvingEntryIndex() {
+        return carvingEntryIndex.aquire(() -> {
+            Map<String, IrisDimensionCarvingEntry> index = new HashMap<>();
+            KList<IrisDimensionCarvingEntry> entries = getCarving();
+            if (entries == null || entries.isEmpty()) {
+                return index;
+            }
+
+            for (IrisDimensionCarvingEntry entry : entries) {
+                if (entry == null) {
+                    continue;
+                }
+
+                String entryId = entry.getId();
+                if (entryId == null || entryId.isBlank()) {
+                    continue;
+                }
+
+                index.put(entryId.trim(), entry);
+            }
+
+            return index;
+        });
+    }
+
+    public void setCarving(KList<IrisDimensionCarvingEntry> carving) {
+        this.carving = carving == null ? new KList<>() : carving;
+        carvingEntryIndex.reset();
     }
 
     public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data, boolean surface) {

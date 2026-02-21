@@ -161,7 +161,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 continue;
             }
             biomeCaveChecked++;
-            boolean chance = rng.chance(i.getChance() + rng.d(-0.005, 0.005));
+            boolean chance = rng.chance(i.getChance());
             if (traceRegen) {
                 Iris.info("Regen object placer chance: chunk=" + x + "," + z
                         + " scope=biome-cave"
@@ -226,7 +226,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 continue;
             }
             regionCaveChecked++;
-            boolean chance = rng.chance(i.getChance() + rng.d(-0.005, 0.005));
+            boolean chance = rng.chance(i.getChance());
             if (traceRegen) {
                 Iris.info("Regen object placer chance: chunk=" + x + "," + z
                         + " scope=region-cave"

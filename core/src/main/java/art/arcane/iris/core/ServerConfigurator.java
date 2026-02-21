@@ -24,6 +24,7 @@ import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.nms.datapack.DataVersion;
 import art.arcane.iris.core.nms.datapack.IDataFixer;
+import art.arcane.iris.engine.IrisNoisemapPrebakePipeline;
 import art.arcane.iris.engine.object.*;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -76,7 +77,10 @@ public class ServerConfigurator {
         }
 
         deferredInstallPending = false;
-        installDataPacks(true);
+        boolean datapacksMissing = installDataPacks(true);
+        if (!datapacksMissing) {
+            IrisNoisemapPrebakePipeline.scheduleInstalledPacksPrebakeAsync();
+        }
     }
 
     public static void configureIfDeferred() {
@@ -135,13 +139,21 @@ public class ServerConfigurator {
     }
 
     public static boolean installDataPacks(boolean fullInstall, boolean includeExternal) {
+        return installDataPacks(fullInstall, includeExternal, null);
+    }
+
+    public static boolean installDataPacks(
+            boolean fullInstall,
+            boolean includeExternal,
+            KMap<String, KList<File>> extraWorldDatapackFoldersByPack
+    ) {
         IDataFixer fixer = DataVersion.getDefault();
         if (fixer == null) {
             DataVersion fallback = DataVersion.getLatest();
             Iris.warn("Primary datapack fixer was null, forcing latest fixer: " + fallback.getVersion());
             fixer = fallback.get();
         }
-        return installDataPacks(fixer, fullInstall, includeExternal);
+        return installDataPacks(fixer, fullInstall, includeExternal, extraWorldDatapackFoldersByPack);
     }
 
     public static boolean installDataPacks(IDataFixer fixer, boolean fullInstall) {
@@ -149,6 +161,15 @@ public class ServerConfigurator {
     }
 
     public static boolean installDataPacks(IDataFixer fixer, boolean fullInstall, boolean includeExternal) {
+        return installDataPacks(fixer, fullInstall, includeExternal, null);
+    }
+
+    public static boolean installDataPacks(
+            IDataFixer fixer,
+            boolean fullInstall,
+            boolean includeExternal,
+            KMap<String, KList<File>> extraWorldDatapackFoldersByPack
+    ) {
         if (fixer == null) {
             Iris.error("Unable to install datapacks, fixer is null!");
             return false;
@@ -161,7 +182,7 @@ public class ServerConfigurator {
         DimensionHeight height = new DimensionHeight(fixer);
         KList<File> folders = getDatapacksFolder();
         if (includeExternal) {
-            installExternalDataPacks(folders);
+            installExternalDataPacks(folders, extraWorldDatapackFoldersByPack);
         }
         KMap<String, KSet<String>> biomes = new KMap<>();
 
@@ -184,13 +205,16 @@ public class ServerConfigurator {
         return fullInstall && verifyDataPacksPost(IrisSettings.get().getAutoConfiguration().isAutoRestartOnCustomBiomeInstall());
     }
 
-    private static void installExternalDataPacks(KList<File> folders) {
+    private static void installExternalDataPacks(
+            KList<File> folders,
+            KMap<String, KList<File>> extraWorldDatapackFoldersByPack
+    ) {
         if (!IrisSettings.get().getGeneral().isImportExternalDatapacks()) {
             return;
         }
 
         KList<ExternalDataPackPipeline.DatapackRequest> requests = collectExternalDatapackRequests();
-        KMap<String, KList<File>> worldDatapackFoldersByPack = collectWorldDatapackFoldersByPack(folders);
+        KMap<String, KList<File>> worldDatapackFoldersByPack = collectWorldDatapackFoldersByPack(folders, extraWorldDatapackFoldersByPack);
         ExternalDataPackPipeline.PipelineSummary summary = ExternalDataPackPipeline.processDatapacks(requests, worldDatapackFoldersByPack);
         if (summary.getLegacyDownloadRemovals() > 0) {
             Iris.verbose("Removed " + summary.getLegacyDownloadRemovals() + " legacy global datapack downloads.");
@@ -315,6 +339,7 @@ public class ServerConfigurator {
                             environment,
                             definition.isRequired(),
                             definition.isReplaceVanilla(),
+                            definition.isSupportSmartBore(),
                             definition.getReplaceTargets(),
                             definition.getStructurePatches(),
                             Set.of(),
@@ -343,6 +368,7 @@ public class ServerConfigurator {
                             environment,
                             group.required(),
                             group.replaceVanilla(),
+                            definition.isSupportSmartBore(),
                             definition.getReplaceTargets(),
                             definition.getStructurePatches(),
                             group.forcedBiomeKeys(),
@@ -871,7 +897,10 @@ public class ServerConfigurator {
     ) {
     }
 
-    private static KMap<String, KList<File>> collectWorldDatapackFoldersByPack(KList<File> fallbackFolders) {
+    private static KMap<String, KList<File>> collectWorldDatapackFoldersByPack(
+            KList<File> fallbackFolders,
+            KMap<String, KList<File>> extraWorldDatapackFoldersByPack
+    ) {
         KMap<String, KList<File>> foldersByPack = new KMap<>();
         KMap<String, String> mappedWorlds = IrisWorlds.get().getWorlds();
 
@@ -902,6 +931,22 @@ public class ServerConfigurator {
         if (!defaultPack.isBlank()) {
             for (File folder : fallbackFolders) {
                 addWorldDatapackFolder(foldersByPack, defaultPack, folder);
+            }
+        }
+
+        if (extraWorldDatapackFoldersByPack != null && !extraWorldDatapackFoldersByPack.isEmpty()) {
+            for (Map.Entry<String, KList<File>> entry : extraWorldDatapackFoldersByPack.entrySet()) {
+                String packName = sanitizePackName(entry.getKey());
+                if (packName.isBlank()) {
+                    continue;
+                }
+                KList<File> folders = entry.getValue();
+                if (folders == null || folders.isEmpty()) {
+                    continue;
+                }
+                for (File folder : folders) {
+                    addWorldDatapackFolder(foldersByPack, packName, folder);
+                }
             }
         }
 

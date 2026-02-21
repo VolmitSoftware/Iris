@@ -201,7 +201,8 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
 
         List<StructureStart> starts = new ArrayList<>(structureManager.startsForStructure(chunkAccess.getPos(), structure -> true));
         starts.sort(Comparator.comparingInt(start -> structureOrder.getOrDefault(start.getStructure(), Integer.MAX_VALUE)));
-        Set<String> externalLocateStructures = ExternalDataPackPipeline.snapshotLocateStructureKeys();
+        Set<String> externalSmartBoreStructures = ExternalDataPackPipeline.snapshotSmartBoreStructureKeys();
+        Set<String> suppressedVanillaStructures = ExternalDataPackPipeline.snapshotSuppressedVanillaStructureKeys();
 
         int seededStructureIndex = Integer.MIN_VALUE;
         for (int j = 0; j < starts.size(); j++) {
@@ -213,17 +214,20 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
                 seededStructureIndex = structureIndex;
             }
             Supplier<String> supplier = () -> structureRegistry.getResourceKey(structure).map(Object::toString).orElseGet(structure::toString);
-            String structureKey = supplier.get().toLowerCase(Locale.ROOT);
-            boolean isExternalLocateStructure = externalLocateStructures.contains(structureKey);
+            String structureKey = resolveStructureKey(structureRegistry, structure);
+            if (suppressedVanillaStructures.contains(structureKey)) {
+                continue;
+            }
+            boolean isExternalSmartBoreStructure = externalSmartBoreStructures.contains(structureKey);
             BitSet[] beforeSolidColumns = null;
-            if (isExternalLocateStructure) {
+            if (isExternalSmartBoreStructure) {
                 beforeSolidColumns = snapshotChunkSolidColumns(level, chunkAccess);
             }
 
             try {
                 level.setCurrentlyGenerating(supplier);
                 start.placeInChunk(level, structureManager, this, random, getWritableArea(chunkAccess), chunkAccess.getPos());
-                if (isExternalLocateStructure && beforeSolidColumns != null) {
+                if (isExternalSmartBoreStructure && beforeSolidColumns != null) {
                     applyExternalStructureFoundations(level, chunkAccess, beforeSolidColumns, EXTERNAL_FOUNDATION_MAX_DEPTH);
                 }
             } catch (Exception exception) {
@@ -235,6 +239,22 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
         }
 
         Heightmap.primeHeightmaps(chunkAccess, ChunkStatus.FINAL_HEIGHTMAPS);
+    }
+
+    private static String resolveStructureKey(Registry<Structure> structureRegistry, Structure structure) {
+        Identifier directKey = structureRegistry.getKey(structure);
+        if (directKey != null) {
+            return directKey.toString().toLowerCase(Locale.ROOT);
+        }
+
+        String fallback = String.valueOf(structure);
+        int slash = fallback.lastIndexOf('/');
+        int end = fallback.lastIndexOf(']');
+        if (slash >= 0 && end > slash) {
+            return fallback.substring(slash + 1, end).toLowerCase(Locale.ROOT);
+        }
+
+        return fallback.toLowerCase(Locale.ROOT);
     }
 
     private static BoundingBox getWritableArea(ChunkAccess ichunkaccess) {

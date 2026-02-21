@@ -242,8 +242,14 @@ public class IrisEntity extends IrisRegistrant {
         int gg = 0;
         for (IrisEntity i : passengers) {
             Entity passenger = i.spawn(gen, at, rng.nextParallelRNG(234858 + gg++));
-            if (!Bukkit.isPrimaryThread()) {
-                J.s(() -> e.addPassenger(passenger));
+            if (passenger == null) {
+                continue;
+            }
+
+            if (Bukkit.isPrimaryThread()) {
+                e.addPassenger(passenger);
+            } else {
+                J.runEntity(e, () -> e.addPassenger(passenger));
             }
         }
 
@@ -338,7 +344,7 @@ public class IrisEntity extends IrisRegistrant {
         if (e instanceof Villager) {
             Villager villager = (Villager) e;
             villager.setRemoveWhenFarAway(false);
-            J.s(() -> villager.setPersistent(true), 1);
+            J.runEntity(villager, () -> villager.setPersistent(true), 1);
         }
 
         if (e instanceof Mob) {
@@ -365,7 +371,7 @@ public class IrisEntity extends IrisRegistrant {
 
         Location finalAt1 = at;
 
-        J.s(() -> {
+        J.runEntity(e, () -> {
             if (isSpawnEffectRiseOutOfGround() && e instanceof LivingEntity && Chunks.hasPlayersNearby(finalAt1)) {
                 Location start = finalAt1.clone();
                 e.setInvulnerable(true);
@@ -373,10 +379,13 @@ public class IrisEntity extends IrisRegistrant {
                 ((LivingEntity) e).setCollidable(false);
                 ((LivingEntity) e).setNoDamageTicks(100000);
                 AtomicInteger t = new AtomicInteger(0);
-                AtomicInteger v = new AtomicInteger(0);
-                v.set(J.sr(() -> {
-                    if (t.get() > 100) {
-                        J.csr(v.get());
+                Runnable[] loop = new Runnable[1];
+                loop[0] = () -> {
+                    if (t.get() > 100 || e.isDead()) {
+                        ((LivingEntity) e).setNoDamageTicks(0);
+                        ((LivingEntity) e).setCollidable(true);
+                        ((LivingEntity) e).setAI(true);
+                        e.setInvulnerable(false);
                         return;
                     }
 
@@ -388,14 +397,20 @@ public class IrisEntity extends IrisRegistrant {
                         if (M.r(0.2)) {
                             e.getWorld().playSound(e.getLocation(), Sound.BLOCK_CHORUS_FLOWER_GROW, 0.8f, 0.1f);
                         }
+                        if (!J.runEntity(e, loop[0], 1)) {
+                            ((LivingEntity) e).setNoDamageTicks(0);
+                            ((LivingEntity) e).setCollidable(true);
+                            ((LivingEntity) e).setAI(true);
+                            e.setInvulnerable(false);
+                        }
                     } else {
-                        J.csr(v.get());
                         ((LivingEntity) e).setNoDamageTicks(0);
                         ((LivingEntity) e).setCollidable(true);
                         ((LivingEntity) e).setAI(true);
                         e.setInvulnerable(false);
                     }
-                }, 0));
+                };
+                J.runEntity(e, loop[0]);
             }
         });
 
@@ -437,7 +452,9 @@ public class IrisEntity extends IrisRegistrant {
             AtomicReference<Entity> ae = new AtomicReference<>();
 
             try {
-                J.s(() -> ae.set(doSpawn(at)));
+                if (!J.runAt(at, () -> ae.set(doSpawn(at)))) {
+                    return null;
+                }
             } catch (Throwable e) {
                 return null;
             }

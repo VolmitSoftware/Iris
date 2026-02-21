@@ -33,7 +33,6 @@ import java.util.Arrays;
 
 public class IrisCaveCarver3D {
     private static final byte LIQUID_AIR = 0;
-    private static final byte LIQUID_WATER = 1;
     private static final byte LIQUID_LAVA = 2;
     private static final byte LIQUID_FORCED_AIR = 3;
 
@@ -48,7 +47,6 @@ public class IrisCaveCarver3D {
     private final KList<ModuleState> modules;
     private final double normalization;
     private final MatterCavern carveAir;
-    private final MatterCavern carveWater;
     private final MatterCavern carveLava;
     private final MatterCavern carveForcedAir;
 
@@ -57,7 +55,6 @@ public class IrisCaveCarver3D {
         this.data = engine.getData();
         this.profile = profile;
         this.carveAir = new MatterCavern(true, "", LIQUID_AIR);
-        this.carveWater = new MatterCavern(true, "", LIQUID_WATER);
         this.carveLava = new MatterCavern(true, "", LIQUID_LAVA);
         this.carveForcedAir = new MatterCavern(true, "", LIQUID_FORCED_AIR);
         this.modules = new KList<>();
@@ -352,22 +349,7 @@ public class IrisCaveCarver3D {
         }
 
         if (profile.isAllowWater() && y <= fluidHeight) {
-            if (surfaceY - y < waterMinDepthBelowSurface) {
-                return carveAir;
-            }
-
-            double depthFactor = Math.max(0, Math.min(1.5, (fluidHeight - y) / 48D));
-            double cutoff = 0.35 + (depthFactor * 0.2);
-            double aquifer = signed(detailDensity.noise(x, y * 0.5D, z));
-            if (aquifer <= cutoff) {
-                return carveAir;
-            }
-
-            if (waterRequiresFloor && !hasAquiferCupSupport(x, y, z, localThreshold)) {
-                return carveAir;
-            }
-
-            return carveWater;
+            return carveAir;
         }
 
         if (!profile.isAllowLava() && y <= lavaHeight) {
@@ -375,38 +357,6 @@ public class IrisCaveCarver3D {
         }
 
         return carveAir;
-    }
-
-    private boolean hasAquiferCupSupport(int x, int y, int z, double threshold) {
-        int floorY = Math.max(0, y - 1);
-        int deepFloorY = Math.max(0, y - 2);
-        if (!isDensitySolid(x, floorY, z, threshold)) {
-            return false;
-        }
-
-        if (!isDensitySolid(x, deepFloorY, z, threshold - 0.05D)) {
-            return false;
-        }
-
-        int support = 0;
-        if (isDensitySolid(x + 1, y, z, threshold)) {
-            support++;
-        }
-        if (isDensitySolid(x - 1, y, z, threshold)) {
-            support++;
-        }
-        if (isDensitySolid(x, y, z + 1, threshold)) {
-            support++;
-        }
-        if (isDensitySolid(x, y, z - 1, threshold)) {
-            support++;
-        }
-
-        return support >= 3;
-    }
-
-    private boolean isDensitySolid(int x, int y, int z, double threshold) {
-        return sampleDensity(x, y, z) > threshold;
     }
 
     private double clampColumnWeight(double weight) {

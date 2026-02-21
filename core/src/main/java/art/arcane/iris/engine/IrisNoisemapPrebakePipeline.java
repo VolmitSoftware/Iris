@@ -38,6 +38,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletionService;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -45,7 +47,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
 public final class IrisNoisemapPrebakePipeline {
@@ -53,7 +57,10 @@ public final class IrisNoisemapPrebakePipeline {
     private static final long STARTUP_PROGRESS_INTERVAL_MS = Long.getLong("iris.prebake.progress.interval", 30000L);
     private static final int STATE_VERSION = 1;
     private static final String STATE_FILE = "noisemap-prebake.state";
+    private static final AtomicBoolean STARTUP_PREBAKE_SCHEDULED = new AtomicBoolean(false);
+    private static final AtomicBoolean STARTUP_PREBAKE_FAILURE_REPORTED = new AtomicBoolean(false);
     private static final AtomicInteger STARTUP_WORKER_SEQUENCE = new AtomicInteger();
+    private static final AtomicReference<CompletableFuture<Void>> STARTUP_PREBAKE_COMPLETION = new AtomicReference<>();
     private static final ConcurrentHashMap<Class<?>, Field[]> FIELD_CACHE = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Boolean> SKIP_ONCE = new ConcurrentHashMap<>();
     private static final Set<String> PREBAKE_LOADERS = Set.of(
@@ -83,9 +90,64 @@ public final class IrisNoisemapPrebakePipeline {
     private IrisNoisemapPrebakePipeline() {
     }
 
-    public static void prebakeInstalledPacksAtStartup() {
-        IrisSettings.IrisSettingsPregen settings = IrisSettings.get().getPregen();
+    public static void scheduleInstalledPacksPrebakeAsync() {
+        if (!IrisSettings.get().getPregen().isStartupNoisemapPrebake()) {
+            return;
+        }
 
+        if (!STARTUP_PREBAKE_SCHEDULED.compareAndSet(false, true)) {
+            return;
+        }
+
+        CompletableFuture<Void> completion = new CompletableFuture<>();
+        STARTUP_PREBAKE_COMPLETION.set(completion);
+        Thread thread = new Thread(() -> {
+            try {
+                prebakeInstalledPacksAtStartup();
+                completion.complete(null);
+            } catch (Throwable throwable) {
+                completion.completeExceptionally(throwable);
+                if (STARTUP_PREBAKE_FAILURE_REPORTED.compareAndSet(false, true)) {
+                    Iris.warn("Startup noisemap pre-bake failed.");
+                    Iris.reportError(throwable);
+                }
+            }
+        }, "Iris-StartupNoisemapPrebake");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    public static boolean awaitInstalledPacksPrebakeForStudio() {
+        if (!IrisSettings.get().getPregen().isStartupNoisemapPrebake()) {
+            return false;
+        }
+
+        scheduleInstalledPacksPrebakeAsync();
+        CompletableFuture<Void> completion = STARTUP_PREBAKE_COMPLETION.get();
+        if (completion == null) {
+            return false;
+        }
+
+        try {
+            completion.join();
+            return true;
+        } catch (CompletionException e) {
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            if (STARTUP_PREBAKE_FAILURE_REPORTED.compareAndSet(false, true)) {
+                Iris.warn("Startup noisemap pre-bake failed.");
+                Iris.reportError(cause);
+            }
+            return false;
+        } catch (Throwable throwable) {
+            if (STARTUP_PREBAKE_FAILURE_REPORTED.compareAndSet(false, true)) {
+                Iris.warn("Startup noisemap pre-bake failed.");
+                Iris.reportError(throwable);
+            }
+            return false;
+        }
+    }
+
+    public static void prebakeInstalledPacksAtStartup() {
         List<PrebakeTarget> targets = collectStartupTargets();
         if (targets.isEmpty()) {
             Iris.info("Startup noisemap pre-bake skipped (no installed or self-contained packs found).");

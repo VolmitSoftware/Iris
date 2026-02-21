@@ -954,7 +954,7 @@ public class IrisObject extends IrisRegistrant {
                 i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();
                 i = config.getTranslate().translate(i.clone(), config.getRotation(), spinx, spiny, spinz).clone();
 
-                if (stilting && i.getBlockY() < lowest && !B.isAir(data)) {
+                if (stilting && i.getBlockY() < lowest && B.isSolid(data)) {
                     lowest = i.getBlockY();
                 }
 
@@ -1013,8 +1013,7 @@ public class IrisObject extends IrisRegistrant {
                     continue;
                 }
 
-                if ((config.isWaterloggable() || config.isUnderwater()) && yy <= placer.getFluidHeight() && data instanceof Waterlogged) {
-                    // TODO Here
+                if (data instanceof Waterlogged && shouldAutoWaterlogBlock(placer, config, yv, xx, yy, zz)) {
                     ((Waterlogged) data).setWaterlogged(true);
                 }
 
@@ -1056,24 +1055,28 @@ public class IrisObject extends IrisRegistrant {
             readLock.lock();
             IrisStiltSettings settings = config.getStiltSettings();
             for (BlockVector g : blocks.keys()) {
-                BlockData d;
+                BlockData sourceData;
+                try {
+                    sourceData = blocks.get(g);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                    Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt cme)");
+                    sourceData = AIR;
+                }
 
-                if (settings == null || settings.getPalette() == null) {
-                    try {
-                        d = blocks.get(g);
-                    } catch (Throwable e) {
-                        Iris.reportError(e);
-                        Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt cme)");
-                        d = AIR;
-                    }
+                if (sourceData == null) {
+                    Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt null)");
+                    sourceData = AIR;
+                }
 
-                    if (d == null) {
-                        Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt null)");
-                        d = AIR;
-                    }
-                } else
+                if (!B.isSolid(sourceData)) {
+                    continue;
+                }
+
+                BlockData d = sourceData;
+                if (settings != null && settings.getPalette() != null) {
                     d = config.getStiltSettings().getPalette().get(rng, x, y, z, rdata);
-
+                }
 
                 BlockVector i = g.clone();
                 i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();
@@ -1099,7 +1102,7 @@ public class IrisObject extends IrisRegistrant {
                     }
                 }
 
-                if (d == null || B.isAir(d))
+                if (d == null || !B.isSolid(d))
                     continue;
 
                 xx = x + (int) Math.round(i.getX());
@@ -1112,7 +1115,7 @@ public class IrisObject extends IrisRegistrant {
 
                 int highest = placer.getHighest(xx, zz, getLoader(), true);
 
-                if ((config.isWaterloggable() || config.isUnderwater()) && highest <= placer.getFluidHeight() && d instanceof Waterlogged)
+                if (d instanceof Waterlogged && shouldAutoWaterlogBlock(placer, config, yv, xx, highest, zz))
                     ((Waterlogged) d).setWaterlogged(true);
 
                 if (yv >= 0 && config.isBottom())
@@ -1175,6 +1178,23 @@ public class IrisObject extends IrisRegistrant {
                 || placer.isCarved(x, y - 1, z)
                 || placer.isCarved(x, y - 2, z)
                 || placer.isCarved(x, y - 3, z);
+    }
+
+    private boolean shouldAutoWaterlogBlock(IObjectPlacer placer, IrisObjectPlacement placement, int yv, int x, int y, int z) {
+        if (!(placement.isWaterloggable() || placement.isUnderwater())) {
+            return false;
+        }
+
+        if (yv >= 0 && placement.getCarvingSupport().equals(CarvingMode.CARVING_ONLY)) {
+            return false;
+        }
+
+        BlockData existing = placer.get(x, y, z);
+        if (existing == null) {
+            return false;
+        }
+
+        return B.isWater(existing) || B.isWaterLogged(existing);
     }
 
     public IrisObject rotateCopy(IrisObjectRotation rt) {

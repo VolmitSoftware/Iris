@@ -33,6 +33,8 @@ import art.arcane.iris.engine.IrisNoisemapPrebakePipeline;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
+import art.arcane.volmlib.util.collection.KList;
+import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.exceptions.IrisException;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.format.Form;
@@ -166,8 +168,16 @@ public class IrisCreator {
             IrisWorlds.get().put(name(), dimension());
         }
         boolean verifyDataPacks = !studio();
-        boolean includeExternalDataPacks = !studio();
-        if (ServerConfigurator.installDataPacks(verifyDataPacks, includeExternalDataPacks)) {
+        boolean includeExternalDataPacks = true;
+        KMap<String, KList<File>> extraWorldDatapackFoldersByPack = null;
+        if (studio()) {
+            File studioDatapackFolder = new File(new File(Bukkit.getWorldContainer(), name()), "datapacks");
+            KList<File> studioDatapackFolders = new KList<>();
+            studioDatapackFolders.add(studioDatapackFolder);
+            extraWorldDatapackFoldersByPack = new KMap<>();
+            extraWorldDatapackFoldersByPack.put(d.getLoadKey(), studioDatapackFolders);
+        }
+        if (ServerConfigurator.installDataPacks(verifyDataPacks, includeExternalDataPacks, extraWorldDatapackFoldersByPack)) {
             throw new IrisException("Datapacks were missing!");
         }
 
@@ -293,6 +303,13 @@ public class IrisCreator {
         IrisSettings.IrisSettingsPregen pregenSettings = IrisSettings.get().getPregen();
         if (!pregenSettings.isStartupNoisemapPrebake()) {
             return;
+        }
+
+        if (studio() && !benchmark) {
+            boolean startupPrebakeReady = IrisNoisemapPrebakePipeline.awaitInstalledPacksPrebakeForStudio();
+            if (startupPrebakeReady) {
+                return;
+            }
         }
 
         try {

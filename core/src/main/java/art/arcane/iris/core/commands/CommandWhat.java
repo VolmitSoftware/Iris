@@ -32,7 +32,6 @@ import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.matter.MatterMarker;
-import art.arcane.iris.util.common.scheduling.J;
 import org.bukkit.Chunk;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Material;
@@ -161,7 +160,7 @@ public class CommandWhat implements DirectorExecutor {
                 for (int zzz = c.getZ() - 4; zzz <= c.getZ() + 4; zzz++) {
                     IrisToolbelt.access(c.getWorld()).getEngine().getMantle().findMarkers(xxx, zzz, new MatterMarker(marker))
                             .convert((i) -> i.toLocation(c.getWorld())).forEach((i) -> {
-                                J.s(() -> BlockSignal.of(i.getBlock(), 100));
+                                BlockSignal.of(i.getWorld(), i.getBlockX(), i.getBlockY(), i.getBlockZ(), 100);
                                 v.incrementAndGet();
                             });
                 }

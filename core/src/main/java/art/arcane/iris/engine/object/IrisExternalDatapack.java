@@ -29,6 +29,9 @@ public class IrisExternalDatapack {
     @Desc("If true, minecraft namespace worldgen assets may replace vanilla targets listed in replaceTargets")
     private boolean replaceVanilla = false;
 
+    @Desc("If true, structures projected from this datapack id receive smartbore foundation extension during generation")
+    private boolean supportSmartBore = true;
+
     @Desc("Explicit replacement targets for minecraft namespace assets")
     private IrisExternalDatapackReplaceTargets replaceTargets = new IrisExternalDatapackReplaceTargets();
 

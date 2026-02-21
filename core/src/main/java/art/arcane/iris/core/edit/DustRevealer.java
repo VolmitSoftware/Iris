@@ -28,6 +28,7 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.iris.util.common.scheduling.J;
 import lombok.Data;
+import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -48,8 +49,9 @@ public class DustRevealer {
         this.key = key;
         this.hits = hits;
 
-        J.s(() -> {
-            new BlockSignal(world.getBlockAt(block.getX(), block.getY(), block.getZ()), 10);
+        Location blockLocation = block.toBlock(world).getLocation();
+        Runnable revealTask = () -> {
+            BlockSignal.of(world, block.getX(), block.getY(), block.getZ(), 10);
             if (M.r(0.25)) {
                 world.playSound(block.toBlock(world).getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, RNG.r.f(0.2f, 2f));
             }
@@ -90,7 +92,13 @@ public class DustRevealer {
                     e.printStackTrace();
                 }
             });
-        }, RNG.r.i(2, 8));
+        };
+        int delay = RNG.r.i(2, 8);
+        if (!J.runAt(blockLocation, revealTask, delay)) {
+            if (!J.isFolia()) {
+                J.s(revealTask, delay);
+            }
+        }
     }
 
     public static void spawn(Block block, VolmitSender sender) {

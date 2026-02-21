@@ -48,10 +48,15 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 @ComponentFlag(ReservedFlag.OBJECT)
 public class MantleObjectComponent extends IrisMantleComponent {
+    private static final long CAVE_REJECT_LOG_THROTTLE_MS = 5000L;
+    private static final Map<String, CaveRejectLogState> CAVE_REJECT_LOG_STATE = new ConcurrentHashMap<>();
 
     public MantleObjectComponent(EngineMantle engineMantle) {
         super(engineMantle, ReservedFlag.OBJECT, 1);
@@ -66,11 +71,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
         IrisBiome surfaceBiome = getComplex().getTrueBiomeStream().get(xxx, zzz);
         int surfaceY = getEngineMantle().getEngine().getHeight(xxx, zzz, true);
-        int sampleY = Math.max(1, surfaceY - 48);
-        IrisBiome caveBiome = getEngineMantle().getEngine().getCaveBiome(xxx, sampleY, zzz);
-        if (caveBiome == null) {
-            caveBiome = surfaceBiome;
-        }
+        IrisBiome caveBiome = resolveCaveObjectBiome(xxx, zzz, surfaceY, surfaceBiome);
         if (traceRegen) {
             Iris.info("Regen object layer start: chunk=" + x + "," + z
                     + " surfaceBiome=" + surfaceBiome.getLoadKey()
@@ -103,6 +104,41 @@ public class MantleObjectComponent extends IrisMantleComponent {
     private RNG applyNoise(int x, int z, long seed) {
         CNG noise = CNG.signatureFast(new RNG(seed), NoiseType.WHITE, NoiseType.GLOB);
         return new RNG((long) (seed * noise.noise(x, z)));
+    }
+
+    private IrisBiome resolveCaveObjectBiome(int x, int z, int surfaceY, IrisBiome surfaceBiome) {
+        int legacySampleY = Math.max(1, surfaceY - 48);
+        IrisBiome legacyCaveBiome = getEngineMantle().getEngine().getCaveBiome(x, legacySampleY, z);
+        if (legacyCaveBiome == null) {
+            legacyCaveBiome = surfaceBiome;
+        }
+
+        int[] sampleDepths = new int[]{48, 80, 112};
+        IrisBiome ladderChoice = null;
+        for (int sampleDepth : sampleDepths) {
+            int sampleY = Math.max(1, surfaceY - sampleDepth);
+            IrisBiome sampled = getEngineMantle().getEngine().getCaveBiome(x, sampleY, z);
+            boolean sameSurface = sampled == surfaceBiome;
+            if (!sameSurface && sampled != null && surfaceBiome != null) {
+                String sampledKey = sampled.getLoadKey();
+                String surfaceKey = surfaceBiome.getLoadKey();
+                sameSurface = sampledKey != null && sampledKey.equals(surfaceKey);
+            }
+
+            if (sampled == null || sameSurface) {
+                continue;
+            }
+
+            if (!sampled.getCarvingObjects().isEmpty()) {
+                ladderChoice = sampled;
+            }
+        }
+
+        if (ladderChoice != null) {
+            return ladderChoice;
+        }
+
+        return legacyCaveBiome;
     }
 
     @ChunkCoordinates
@@ -393,6 +429,22 @@ public class MantleObjectComponent extends IrisMantleComponent {
                             + " density=" + density
                             + " placementKeys=" + objectPlacement.getPlace().toString(","));
                 }
+                logCaveReject(
+                        scope,
+                        "NULL_OBJECT",
+                        metricChunkX,
+                        metricChunkZ,
+                        objectPlacement,
+                        null,
+                        i,
+                        density,
+                        anchorMode,
+                        anchorSearchAttempts,
+                        anchorScanStep,
+                        objectMinDepthBelowSurface,
+                        null,
+                        null
+                );
                 continue;
             }
 
@@ -415,24 +467,59 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
             if (y < 0) {
                 rejected++;
+                logCaveReject(
+                        scope,
+                        "NO_ANCHOR",
+                        metricChunkX,
+                        metricChunkZ,
+                        objectPlacement,
+                        object,
+                        i,
+                        density,
+                        anchorMode,
+                        anchorSearchAttempts,
+                        anchorScanStep,
+                        objectMinDepthBelowSurface,
+                        null,
+                        null
+                );
                 continue;
             }
 
             int id = rng.i(0, Integer.MAX_VALUE);
             IrisObjectPlacement effectivePlacement = resolveEffectivePlacement(objectPlacement, object);
+            AtomicBoolean wrotePlacementData = new AtomicBoolean(false);
 
             try {
                 int result = object.place(x, y, z, writer, effectivePlacement, rng, (b, data) -> {
+                    wrotePlacementData.set(true);
                     writer.setData(b.getX(), b.getY(), b.getZ(), object.getLoadKey() + "@" + id);
                     if (effectivePlacement.isDolphinTarget() && effectivePlacement.isUnderwater() && B.isStorageChest(data)) {
                         writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
                     }
                 }, null, getData());
 
-                if (result >= 0) {
+                boolean wroteBlocks = wrotePlacementData.get();
+                if (wroteBlocks) {
                     placed++;
-                } else {
+                } else if (result < 0) {
                     rejected++;
+                    logCaveReject(
+                            scope,
+                            "PLACE_NEGATIVE",
+                            metricChunkX,
+                            metricChunkZ,
+                            objectPlacement,
+                            object,
+                            i,
+                            density,
+                            anchorMode,
+                            anchorSearchAttempts,
+                            anchorScanStep,
+                            objectMinDepthBelowSurface,
+                            y,
+                            null
+                    );
                 }
 
                 if (traceRegen) {
@@ -443,6 +530,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                             + " anchorY=" + y
                             + " px=" + x
                             + " pz=" + z
+                            + " wroteBlocks=" + wroteBlocks
                             + " densityIndex=" + i
                             + " density=" + density);
                 }
@@ -455,13 +543,87 @@ public class MantleObjectComponent extends IrisMantleComponent {
                         + " densityIndex=" + i
                         + " density=" + density
                         + " error=" + e.getClass().getSimpleName() + ":" + e.getMessage());
+                logCaveReject(
+                        scope,
+                        "EXCEPTION",
+                        metricChunkX,
+                        metricChunkZ,
+                        objectPlacement,
+                        object,
+                        i,
+                        density,
+                        anchorMode,
+                        anchorSearchAttempts,
+                        anchorScanStep,
+                        objectMinDepthBelowSurface,
+                        y,
+                        e
+                );
             }
         }
 
         return new ObjectPlacementResult(attempts, placed, rejected, nullObjects, errors);
     }
 
-    private static IrisObjectPlacement resolveEffectivePlacement(IrisObjectPlacement objectPlacement, IrisObject object) {
+    private void logCaveReject(
+            String scope,
+            String reason,
+            int chunkX,
+            int chunkZ,
+            IrisObjectPlacement objectPlacement,
+            IrisObject object,
+            int densityIndex,
+            int density,
+            IrisCaveAnchorMode anchorMode,
+            int anchorSearchAttempts,
+            int anchorScanStep,
+            int objectMinDepthBelowSurface,
+            Integer anchorY,
+            Throwable error
+    ) {
+        if (!IrisSettings.get().getGeneral().isDebug()) {
+            return;
+        }
+
+        String placementKeys = objectPlacement == null ? "none" : objectPlacement.getPlace().toString(",");
+        String objectKey = object == null ? "null" : object.getLoadKey();
+        String throttleKey = scope + "|" + reason + "|" + placementKeys + "|" + objectKey;
+        CaveRejectLogState state = CAVE_REJECT_LOG_STATE.computeIfAbsent(throttleKey, (k) -> new CaveRejectLogState());
+        long now = System.currentTimeMillis();
+        long last = state.lastLogMs.get();
+        if ((now - last) < CAVE_REJECT_LOG_THROTTLE_MS) {
+            state.suppressed.incrementAndGet();
+            return;
+        }
+
+        if (!state.lastLogMs.compareAndSet(last, now)) {
+            state.suppressed.incrementAndGet();
+            return;
+        }
+
+        int suppressed = state.suppressed.getAndSet(0);
+        String anchorYText = anchorY == null ? "none" : String.valueOf(anchorY);
+        String errorText = error == null ? "none" : error.getClass().getSimpleName() + ":" + String.valueOf(error.getMessage());
+        Iris.warn("Cave object reject: scope=" + scope
+                + " reason=" + reason
+                + " chunk=" + chunkX + "," + chunkZ
+                + " object=" + objectKey
+                + " placements=" + placementKeys
+                + " densityIndex=" + densityIndex
+                + " density=" + density
+                + " anchorMode=" + anchorMode
+                + " anchorSearchAttempts=" + anchorSearchAttempts
+                + " anchorScanStep=" + anchorScanStep
+                + " minDepthBelowSurface=" + objectMinDepthBelowSurface
+                + " anchorY=" + anchorYText
+                + " forcePlace=" + (objectPlacement != null && objectPlacement.isForcePlace())
+                + " carvingSupport=" + (objectPlacement == null ? "none" : objectPlacement.getCarvingSupport())
+                + " bottom=" + (objectPlacement != null && objectPlacement.isBottom())
+                + " suppressed=" + suppressed
+                + " error=" + errorText);
+    }
+
+    private IrisObjectPlacement resolveEffectivePlacement(IrisObjectPlacement objectPlacement, IrisObject object) {
         if (objectPlacement == null || object == null) {
             return objectPlacement;
         }
@@ -472,25 +634,62 @@ public class MantleObjectComponent extends IrisMantleComponent {
         }
 
         String normalized = loadKey.toLowerCase(Locale.ROOT);
-        boolean imported = normalized.startsWith("imports/")
+        boolean legacyImported = normalized.startsWith("imports/")
                 || normalized.contains("/imports/")
                 || normalized.contains("imports/");
+        IrisExternalDatapack externalDatapack = resolveExternalDatapackForObjectKey(normalized);
+        boolean externalImported = externalDatapack != null;
+        boolean imported = legacyImported || externalImported;
+
         if (!imported) {
             return objectPlacement;
         }
 
         ObjectPlaceMode mode = objectPlacement.getMode();
-        if (mode == ObjectPlaceMode.STILT
-                || mode == ObjectPlaceMode.FAST_STILT
-                || mode == ObjectPlaceMode.MIN_STILT
-                || mode == ObjectPlaceMode.FAST_MIN_STILT
-                || mode == ObjectPlaceMode.CENTER_STILT) {
+        boolean needsModeChange = mode != ObjectPlaceMode.FAST_MIN_STILT;
+        if (!needsModeChange) {
             return objectPlacement;
         }
 
         IrisObjectPlacement effectivePlacement = objectPlacement.toPlacement(loadKey);
         effectivePlacement.setMode(ObjectPlaceMode.FAST_MIN_STILT);
         return effectivePlacement;
+    }
+
+    private IrisExternalDatapack resolveExternalDatapackForObjectKey(String normalizedLoadKey) {
+        if (normalizedLoadKey == null || normalizedLoadKey.isBlank()) {
+            return null;
+        }
+
+        int slash = normalizedLoadKey.indexOf('/');
+        if (slash <= 0) {
+            return null;
+        }
+        String candidateId = normalizedLoadKey.substring(0, slash);
+        if (candidateId.isBlank()) {
+            return null;
+        }
+
+        IrisDimension dimension = getDimension();
+        if (dimension == null || dimension.getExternalDatapacks() == null || dimension.getExternalDatapacks().isEmpty()) {
+            return null;
+        }
+
+        for (IrisExternalDatapack externalDatapack : dimension.getExternalDatapacks()) {
+            if (externalDatapack == null || !externalDatapack.isEnabled()) {
+                continue;
+            }
+
+            String id = externalDatapack.getId();
+            if (id == null || id.isBlank()) {
+                continue;
+            }
+            if (candidateId.equals(id.toLowerCase(Locale.ROOT))) {
+                return externalDatapack;
+            }
+        }
+
+        return null;
     }
 
     private int findCaveAnchorY(MantleWriter writer, RNG rng, int x, int z, IrisCaveAnchorMode anchorMode, int anchorScanStep, int objectMinDepthBelowSurface, KMap<Long, KList<Integer>> anchorCache) {
@@ -660,6 +859,11 @@ public class MantleObjectComponent extends IrisMantleComponent {
     }
 
     private record ObjectPlacementResult(int attempts, int placed, int rejected, int nullObjects, int errors) {
+    }
+
+    private static final class CaveRejectLogState {
+        private final AtomicLong lastLogMs = new AtomicLong(0L);
+        private final AtomicInteger suppressed = new AtomicInteger(0);
     }
 
     @BlockCoordinates

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.Iris;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.nms.container.BlockPos;
 import art.arcane.iris.core.nms.container.Pair;
@@ -38,11 +39,14 @@ import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.iris.util.common.scheduling.jobs.SingleJob;
+import io.papermc.lib.PaperLib;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
+import java.lang.reflect.Method;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -106,7 +110,7 @@ public interface Locator<T> {
     default void find(Player player, boolean teleport, String message) {
         find(player, location -> {
             if (teleport) {
-                J.s(() -> player.teleport(location));
+                J.runEntity(player, () -> teleportAsyncSafely(player, location));
             } else {
                 player.sendMessage(C.GREEN + message + " at: " + location.getBlockX() + " " + location.getBlockY() + " " + location.getBlockZ());
             }
@@ -205,5 +209,40 @@ public interface Locator<T> {
 
             return null;
         });
+    }
+
+    static void teleportAsyncSafely(Player player, Location location) {
+        if (player == null || location == null) {
+            return;
+        }
+
+        if (invokeNativeTeleportAsync(player, location)) {
+            return;
+        }
+
+        try {
+            CompletableFuture<Boolean> teleportFuture = PaperLib.teleportAsync(player, location);
+            if (teleportFuture != null) {
+                teleportFuture.exceptionally(throwable -> {
+                    Iris.reportError(throwable);
+                    return false;
+                });
+            }
+        } catch (Throwable throwable) {
+            Iris.reportError(throwable);
+        }
+    }
+
+    static boolean invokeNativeTeleportAsync(Player player, Location location) {
+        try {
+            Method teleportAsyncMethod = player.getClass().getMethod("teleportAsync", Location.class);
+            teleportAsyncMethod.invoke(player, location);
+            return true;
+        } catch (NoSuchMethodException ignored) {
+            return false;
+        } catch (Throwable throwable) {
+            Iris.reportError(throwable);
+            return false;
+        }
     }
 }

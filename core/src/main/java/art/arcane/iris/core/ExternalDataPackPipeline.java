@@ -91,6 +91,8 @@ public final class ExternalDataPackPipeline {
     private static final String IMPORT_PREFIX = "imports";
     private static final String LOCATE_MANIFEST_PATH = "cache/external-datapack-locate-manifest.json";
     private static final String OBJECT_LOCATE_MANIFEST_PATH = "cache/external-datapack-object-locate-manifest.json";
+    private static final String SMARTBORE_STRUCTURE_MANIFEST_PATH = "cache/external-datapack-smartbore-manifest.json";
+    private static final String SUPPRESSED_VANILLA_STRUCTURE_MANIFEST_PATH = "cache/external-datapack-suppressed-vanilla-structures.json";
     private static final int CONNECT_TIMEOUT_MS = 4000;
     private static final int READ_TIMEOUT_MS = 8000;
     private static final int IMPORT_PARALLELISM = Math.max(1, Math.min(8, Runtime.getRuntime().availableProcessors()));
@@ -99,6 +101,8 @@ public final class ExternalDataPackPipeline {
     private static final Map<String, String> PACK_ENVIRONMENT_CACHE = new ConcurrentHashMap<>();
     private static final Map<String, Set<String>> RESOLVED_LOCATE_STRUCTURES_BY_ID = new ConcurrentHashMap<>();
     private static final Map<String, Set<String>> RESOLVED_LOCATE_STRUCTURES_BY_OBJECT_KEY = new ConcurrentHashMap<>();
+    private static final Map<String, Set<String>> RESOLVED_SMARTBORE_STRUCTURES_BY_ID = new ConcurrentHashMap<>();
+    private static final Set<String> SUPPRESSED_VANILLA_STRUCTURE_KEYS = ConcurrentHashMap.newKeySet();
     private static final AtomicCache<KMap<Identifier, StructurePlacement>> VANILLA_STRUCTURE_PLACEMENTS = new AtomicCache<>();
     private static final BlockData AIR = B.getAir();
 
@@ -203,11 +207,48 @@ public final class ExternalDataPackPipeline {
         return Set.copyOf(structures);
     }
 
+    public static Set<String> snapshotSmartBoreStructureKeys() {
+        if (RESOLVED_SMARTBORE_STRUCTURES_BY_ID.isEmpty()) {
+            Map<String, Set<String>> manifest = readSmartBoreManifest();
+            if (!manifest.isEmpty()) {
+                RESOLVED_SMARTBORE_STRUCTURES_BY_ID.putAll(manifest);
+            }
+        }
+
+        LinkedHashSet<String> structures = new LinkedHashSet<>();
+        for (Set<String> values : RESOLVED_SMARTBORE_STRUCTURES_BY_ID.values()) {
+            if (values == null || values.isEmpty()) {
+                continue;
+            }
+
+            for (String value : values) {
+                String normalized = normalizeLocateStructure(value);
+                if (!normalized.isBlank()) {
+                    structures.add(normalized);
+                }
+            }
+        }
+
+        return Set.copyOf(structures);
+    }
+
+    public static Set<String> snapshotSuppressedVanillaStructureKeys() {
+        if (SUPPRESSED_VANILLA_STRUCTURE_KEYS.isEmpty()) {
+            Set<String> manifest = readSuppressedVanillaStructureManifest();
+            if (!manifest.isEmpty()) {
+                SUPPRESSED_VANILLA_STRUCTURE_KEYS.addAll(manifest);
+            }
+        }
+        return Set.copyOf(SUPPRESSED_VANILLA_STRUCTURE_KEYS);
+    }
+
     public static PipelineSummary processDatapacks(List<DatapackRequest> requests, Map<String, KList<File>> worldDatapackFoldersByPack) {
         PipelineSummary summary = new PipelineSummary();
         PACK_ENVIRONMENT_CACHE.clear();
         RESOLVED_LOCATE_STRUCTURES_BY_ID.clear();
         RESOLVED_LOCATE_STRUCTURES_BY_OBJECT_KEY.clear();
+        RESOLVED_SMARTBORE_STRUCTURES_BY_ID.clear();
+        SUPPRESSED_VANILLA_STRUCTURE_KEYS.clear();
 
         Set<File> knownWorldDatapackFolders = new LinkedHashSet<>();
         if (worldDatapackFoldersByPack != null) {
@@ -233,6 +274,8 @@ public final class ExternalDataPackPipeline {
             Iris.info("Downloading datapacks [0/0] Downloading/Done!");
             writeLocateManifest(Map.of());
             writeObjectLocateManifest(Map.of());
+            writeSmartBoreManifest(Map.of());
+            writeSuppressedVanillaStructureManifest(Set.of());
             summary.legacyWorldCopyRemovals += pruneManagedWorldDatapacks(knownWorldDatapackFolders, Set.of());
             return summary;
         }
@@ -240,6 +283,8 @@ public final class ExternalDataPackPipeline {
         List<RequestedSourceInput> sourceInputs = new ArrayList<>();
         LinkedHashMap<String, Set<String>> resolvedLocateStructuresById = new LinkedHashMap<>();
         LinkedHashMap<String, Set<String>> resolvedLocateStructuresByObjectKey = new LinkedHashMap<>();
+        LinkedHashMap<String, Set<String>> resolvedSmartBoreStructuresById = new LinkedHashMap<>();
+        LinkedHashSet<String> suppressedVanillaStructures = new LinkedHashSet<>();
         for (int requestIndex = 0; requestIndex < normalizedRequests.size(); requestIndex++) {
             DatapackRequest request = normalizedRequests.get(requestIndex);
             if (request == null) {
@@ -285,8 +330,12 @@ public final class ExternalDataPackPipeline {
             }
             writeLocateManifest(resolvedLocateStructuresById);
             writeObjectLocateManifest(resolvedLocateStructuresByObjectKey);
+            writeSmartBoreManifest(resolvedSmartBoreStructuresById);
+            writeSuppressedVanillaStructureManifest(suppressedVanillaStructures);
             RESOLVED_LOCATE_STRUCTURES_BY_ID.putAll(resolvedLocateStructuresById);
             RESOLVED_LOCATE_STRUCTURES_BY_OBJECT_KEY.putAll(resolvedLocateStructuresByObjectKey);
+            RESOLVED_SMARTBORE_STRUCTURES_BY_ID.putAll(resolvedSmartBoreStructuresById);
+            SUPPRESSED_VANILLA_STRUCTURE_KEYS.addAll(suppressedVanillaStructures);
             return summary;
         }
 
@@ -376,6 +425,13 @@ public final class ExternalDataPackPipeline {
             summary.worldDatapacksInstalled += projectionResult.installedDatapacks();
             summary.worldAssetsInstalled += projectionResult.installedAssets();
             mergeResolvedLocateStructures(resolvedLocateStructuresById, request.id(), projectionResult.resolvedLocateStructures());
+            suppressedVanillaStructures.addAll(determineSuppressedVanillaStructures(request, projectionResult.projectedStructureKeys()));
+            if (request.supportSmartBore()) {
+                LinkedHashSet<String> smartBoreTargets = new LinkedHashSet<>();
+                smartBoreTargets.addAll(request.resolvedLocateStructures());
+                smartBoreTargets.addAll(projectionResult.resolvedLocateStructures());
+                mergeResolvedLocateStructures(resolvedSmartBoreStructuresById, request.id(), smartBoreTargets);
+            }
             LinkedHashSet<String> objectLocateTargets = new LinkedHashSet<>();
             objectLocateTargets.addAll(request.resolvedLocateStructures());
             objectLocateTargets.addAll(projectionResult.resolvedLocateStructures());
@@ -425,8 +481,12 @@ public final class ExternalDataPackPipeline {
 
         writeLocateManifest(resolvedLocateStructuresById);
         writeObjectLocateManifest(resolvedLocateStructuresByObjectKey);
+        writeSmartBoreManifest(resolvedSmartBoreStructuresById);
+        writeSuppressedVanillaStructureManifest(suppressedVanillaStructures);
         RESOLVED_LOCATE_STRUCTURES_BY_ID.putAll(resolvedLocateStructuresById);
         RESOLVED_LOCATE_STRUCTURES_BY_OBJECT_KEY.putAll(resolvedLocateStructuresByObjectKey);
+        RESOLVED_SMARTBORE_STRUCTURES_BY_ID.putAll(resolvedSmartBoreStructuresById);
+        SUPPRESSED_VANILLA_STRUCTURE_KEYS.addAll(suppressedVanillaStructures);
         return summary;
     }
 
@@ -436,6 +496,14 @@ public final class ExternalDataPackPipeline {
 
     private static File getObjectLocateManifestFile() {
         return Iris.instance.getDataFile(OBJECT_LOCATE_MANIFEST_PATH);
+    }
+
+    private static File getSmartBoreManifestFile() {
+        return Iris.instance.getDataFile(SMARTBORE_STRUCTURE_MANIFEST_PATH);
+    }
+
+    private static File getSuppressedVanillaStructureManifestFile() {
+        return Iris.instance.getDataFile(SUPPRESSED_VANILLA_STRUCTURE_MANIFEST_PATH);
     }
 
     private static String normalizeLocateId(String id) {
@@ -462,6 +530,26 @@ public final class ExternalDataPackPipeline {
             return "";
         }
         return normalized;
+    }
+
+    private static Set<String> determineSuppressedVanillaStructures(DatapackRequest request, Set<String> projectedStructureKeys) {
+        LinkedHashSet<String> suppressed = new LinkedHashSet<>();
+        if (request == null || !request.replaceVanilla() || request.alongsideMode()) {
+            return suppressed;
+        }
+
+        Set<String> projected = projectedStructureKeys == null ? Set.of() : projectedStructureKeys;
+        for (String structureTarget : request.structures()) {
+            String normalizedTarget = normalizeLocateStructure(structureTarget);
+            if (normalizedTarget.isBlank() || !normalizedTarget.startsWith("minecraft:")) {
+                continue;
+            }
+            if (!projected.contains(normalizedTarget)) {
+                suppressed.add(normalizedTarget);
+            }
+        }
+
+        return suppressed;
     }
 
     private static String normalizeObjectLoadKey(String objectKey) {
@@ -678,6 +766,93 @@ public final class ExternalDataPackPipeline {
         }
     }
 
+    private static void writeSmartBoreManifest(Map<String, Set<String>> resolvedSmartBoreStructuresById) {
+        File output = getSmartBoreManifestFile();
+        LinkedHashMap<String, Set<String>> normalized = new LinkedHashMap<>();
+        if (resolvedSmartBoreStructuresById != null) {
+            for (Map.Entry<String, Set<String>> entry : resolvedSmartBoreStructuresById.entrySet()) {
+                String normalizedId = normalizeLocateId(entry.getKey());
+                if (normalizedId.isBlank()) {
+                    continue;
+                }
+
+                LinkedHashSet<String> structures = new LinkedHashSet<>();
+                Set<String> values = entry.getValue();
+                if (values != null) {
+                    for (String structure : values) {
+                        String normalizedStructure = normalizeLocateStructure(structure);
+                        if (!normalizedStructure.isBlank()) {
+                            structures.add(normalizedStructure);
+                        }
+                    }
+                }
+
+                if (!structures.isEmpty()) {
+                    normalized.put(normalizedId, Set.copyOf(structures));
+                }
+            }
+        }
+
+        JSONObject root = new JSONObject();
+        root.put("generatedAt", Instant.now().toString());
+        JSONObject mappings = new JSONObject();
+        ArrayList<String> ids = new ArrayList<>(normalized.keySet());
+        ids.sort(String::compareTo);
+        for (String id : ids) {
+            Set<String> structures = normalized.get(id);
+            if (structures == null || structures.isEmpty()) {
+                continue;
+            }
+
+            ArrayList<String> sortedStructures = new ArrayList<>(structures);
+            sortedStructures.sort(String::compareTo);
+            JSONArray values = new JSONArray();
+            for (String structure : sortedStructures) {
+                values.put(structure);
+            }
+            mappings.put(id, values);
+        }
+        root.put("ids", mappings);
+
+        try {
+            writeBytesToFile(root.toString(4).getBytes(StandardCharsets.UTF_8), output);
+        } catch (Throwable e) {
+            Iris.warn("Failed to write external datapack smartbore manifest " + output.getPath());
+            Iris.reportError(e);
+        }
+    }
+
+    private static void writeSuppressedVanillaStructureManifest(Set<String> suppressedStructures) {
+        File output = getSuppressedVanillaStructureManifestFile();
+        LinkedHashSet<String> normalized = new LinkedHashSet<>();
+        if (suppressedStructures != null) {
+            for (String value : suppressedStructures) {
+                String normalizedStructure = normalizeLocateStructure(value);
+                if (normalizedStructure.isBlank() || !normalizedStructure.startsWith("minecraft:")) {
+                    continue;
+                }
+                normalized.add(normalizedStructure);
+            }
+        }
+
+        JSONObject root = new JSONObject();
+        root.put("generatedAt", Instant.now().toString());
+        JSONArray values = new JSONArray();
+        ArrayList<String> sorted = new ArrayList<>(normalized);
+        sorted.sort(String::compareTo);
+        for (String value : sorted) {
+            values.put(value);
+        }
+        root.put("structures", values);
+
+        try {
+            writeBytesToFile(root.toString(4).getBytes(StandardCharsets.UTF_8), output);
+        } catch (Throwable e) {
+            Iris.warn("Failed to write external datapack suppressed-vanilla structure manifest " + output.getPath());
+            Iris.reportError(e);
+        }
+    }
+
     private static Map<String, Set<String>> readLocateManifest() {
         LinkedHashMap<String, Set<String>> mapped = new LinkedHashMap<>();
         File input = getLocateManifestFile();
@@ -772,6 +947,88 @@ public final class ExternalDataPackPipeline {
             }
         } catch (Throwable e) {
             Iris.warn("Failed to read external datapack object locate manifest " + input.getPath());
+            Iris.reportError(e);
+        }
+
+        return mapped;
+    }
+
+    private static Map<String, Set<String>> readSmartBoreManifest() {
+        LinkedHashMap<String, Set<String>> mapped = new LinkedHashMap<>();
+        File input = getSmartBoreManifestFile();
+        if (!input.exists() || !input.isFile()) {
+            return mapped;
+        }
+
+        try {
+            JSONObject root = new JSONObject(Files.readString(input.toPath(), StandardCharsets.UTF_8));
+            JSONObject ids = root.optJSONObject("ids");
+            if (ids == null) {
+                return mapped;
+            }
+
+            ArrayList<String> keys = new ArrayList<>(ids.keySet());
+            keys.sort(String::compareTo);
+            for (String key : keys) {
+                String normalizedId = normalizeLocateId(key);
+                if (normalizedId.isBlank()) {
+                    continue;
+                }
+
+                LinkedHashSet<String> structures = new LinkedHashSet<>();
+                JSONArray values = ids.optJSONArray(key);
+                if (values != null) {
+                    for (int i = 0; i < values.length(); i++) {
+                        Object rawValue = values.opt(i);
+                        if (rawValue == null) {
+                            continue;
+                        }
+
+                        String normalizedStructure = normalizeLocateStructure(String.valueOf(rawValue));
+                        if (!normalizedStructure.isBlank()) {
+                            structures.add(normalizedStructure);
+                        }
+                    }
+                }
+
+                if (!structures.isEmpty()) {
+                    mapped.put(normalizedId, Set.copyOf(structures));
+                }
+            }
+        } catch (Throwable e) {
+            Iris.warn("Failed to read external datapack smartbore manifest " + input.getPath());
+            Iris.reportError(e);
+        }
+
+        return mapped;
+    }
+
+    private static Set<String> readSuppressedVanillaStructureManifest() {
+        LinkedHashSet<String> mapped = new LinkedHashSet<>();
+        File input = getSuppressedVanillaStructureManifestFile();
+        if (!input.exists() || !input.isFile()) {
+            return mapped;
+        }
+
+        try {
+            JSONObject root = new JSONObject(Files.readString(input.toPath(), StandardCharsets.UTF_8));
+            JSONArray values = root.optJSONArray("structures");
+            if (values == null) {
+                return mapped;
+            }
+
+            for (int i = 0; i < values.length(); i++) {
+                Object rawValue = values.opt(i);
+                if (rawValue == null) {
+                    continue;
+                }
+                String normalizedStructure = normalizeLocateStructure(String.valueOf(rawValue));
+                if (!normalizedStructure.isBlank() && normalizedStructure.startsWith("minecraft:")) {
+                    mapped.add(normalizedStructure);
+                }
+            }
+        } catch (Throwable e) {
+            Iris.warn("Failed to read external datapack suppressed-vanilla structure manifest " + input.getPath());
             Iris.reportError(e);
         }
 
@@ -1028,7 +1285,10 @@ public final class ExternalDataPackPipeline {
 
         String managedName = buildManagedWorldDatapackName(sourceDescriptor.targetPack(), sourceDescriptor.sourceKey());
         if (worldDatapackFolders == null || worldDatapackFolders.isEmpty()) {
-            return ProjectionResult.success(managedName, 0, 0, Set.copyOf(request.resolvedLocateStructures()), 0);
+            if (request.required()) {
+                return ProjectionResult.failure(managedName, "no target world datapack folder is available for required external datapack request");
+            }
+            return ProjectionResult.success(managedName, 0, 0, Set.copyOf(request.resolvedLocateStructures()), 0, Set.of());
         }
 
         ProjectionAssetSummary projectionAssetSummary;
@@ -1041,7 +1301,14 @@ public final class ExternalDataPackPipeline {
         }
 
         if (projectionAssetSummary.assets().isEmpty()) {
-            return ProjectionResult.success(managedName, 0, 0, projectionAssetSummary.resolvedLocateStructures(), projectionAssetSummary.syntheticStructureSets());
+            return ProjectionResult.success(
+                    managedName,
+                    0,
+                    0,
+                    projectionAssetSummary.resolvedLocateStructures(),
+                    projectionAssetSummary.syntheticStructureSets(),
+                    projectionAssetSummary.projectedStructureKeys()
+            );
         }
 
         int installedDatapacks = 0;
@@ -1070,7 +1337,14 @@ public final class ExternalDataPackPipeline {
             }
         }
 
-        return ProjectionResult.success(managedName, installedDatapacks, installedAssets, projectionAssetSummary.resolvedLocateStructures(), projectionAssetSummary.syntheticStructureSets());
+        return ProjectionResult.success(
+                managedName,
+                installedDatapacks,
+                installedAssets,
+                projectionAssetSummary.resolvedLocateStructures(),
+                projectionAssetSummary.syntheticStructureSets(),
+                projectionAssetSummary.projectedStructureKeys()
+        );
     }
 
     private static ProjectionAssetSummary buildProjectedAssets(File source, SourceDescriptor sourceDescriptor, DatapackRequest request) throws IOException {
@@ -1081,7 +1355,16 @@ public final class ExternalDataPackPipeline {
 
         List<ProjectionInputAsset> inputAssets = projectionSelection.assets();
         if (inputAssets.isEmpty()) {
-            return new ProjectionAssetSummary(List.of(), Set.copyOf(request.resolvedLocateStructures()), 0);
+            return new ProjectionAssetSummary(List.of(), Set.copyOf(request.resolvedLocateStructures()), 0, Set.of());
+        }
+        int selectedStructureNbtCount = 0;
+        for (ProjectionInputAsset inputAsset : inputAssets) {
+            if (inputAsset == null || inputAsset.entry() == null) {
+                continue;
+            }
+            if (inputAsset.entry().type() == ProjectedEntryType.STRUCTURE_NBT) {
+                selectedStructureNbtCount++;
+            }
         }
 
         String scopeNamespace = buildScopeNamespace(sourceDescriptor, request);
@@ -1103,9 +1386,11 @@ public final class ExternalDataPackPipeline {
         LinkedHashSet<String> resolvedLocateStructures = new LinkedHashSet<>();
         resolvedLocateStructures.addAll(request.resolvedLocateStructures());
         LinkedHashSet<String> remappedStructureKeys = new LinkedHashSet<>();
+        LinkedHashSet<String> projectedStructureKeys = new LinkedHashSet<>();
         LinkedHashSet<String> structureSetReferences = new LinkedHashSet<>();
         LinkedHashSet<String> writtenPaths = new LinkedHashSet<>();
         ArrayList<ProjectionOutputAsset> outputAssets = new ArrayList<>();
+        int projectedCanonicalStructureNbtCount = 0;
 
         for (ProjectionInputAsset inputAsset : inputAssets) {
             ProjectedEntry projectedEntry = inputAsset.entry();
@@ -1152,6 +1437,10 @@ public final class ExternalDataPackPipeline {
 
                     remappedStructureKeys.add(effectiveEntry.key());
                     resolvedLocateStructures.add(effectiveEntry.key());
+                    String normalizedProjectedStructure = normalizeLocateStructure(effectiveEntry.key());
+                    if (!normalizedProjectedStructure.isBlank()) {
+                        projectedStructureKeys.add(normalizedProjectedStructure);
+                    }
                 } else if (projectedEntry.type() == ProjectedEntryType.STRUCTURE_SET) {
                     structureSetReferences.addAll(readStructureSetReferences(root));
                 }
@@ -1160,6 +1449,11 @@ public final class ExternalDataPackPipeline {
             }
 
             outputAssets.add(new ProjectionOutputAsset(outputRelativePath, outputBytes));
+            if (projectedEntry.type() == ProjectedEntryType.STRUCTURE_NBT
+                    && outputRelativePath.endsWith(".nbt")
+                    && outputRelativePath.contains("/structure/")) {
+                projectedCanonicalStructureNbtCount++;
+            }
         }
 
         int syntheticStructureSets = 0;
@@ -1195,7 +1489,11 @@ public final class ExternalDataPackPipeline {
             outputAssets.add(new ProjectionOutputAsset(tagPath, root.toString(4).getBytes(StandardCharsets.UTF_8)));
         }
 
-        return new ProjectionAssetSummary(outputAssets, Set.copyOf(resolvedLocateStructures), syntheticStructureSets);
+        if (request.required() && selectedStructureNbtCount > 0 && projectedCanonicalStructureNbtCount <= 0) {
+            throw new IOException("Required external datapack projection produced no canonical structure template outputs (data/*/structure/*.nbt).");
+        }
+
+        return new ProjectionAssetSummary(outputAssets, Set.copyOf(resolvedLocateStructures), syntheticStructureSets, Set.copyOf(projectedStructureKeys));
     }
 
     private static ProjectionSelection readProjectedEntries(File source, DatapackRequest request) throws IOException {
@@ -1775,7 +2073,7 @@ public final class ExternalDataPackPipeline {
             case TEMPLATE_POOL -> "data/" + namespace + "/worldgen/template_pool/" + path + ".json";
             case PROCESSOR_LIST -> "data/" + namespace + "/worldgen/processor_list/" + path + ".json";
             case BIOME_HAS_STRUCTURE_TAG -> "data/" + namespace + "/tags/worldgen/biome/has_structure/" + path + ".json";
-            case STRUCTURE_NBT -> "data/" + namespace + "/structures/" + path + ".nbt";
+            case STRUCTURE_NBT -> "data/" + namespace + "/structure/" + path + ".nbt";
         };
     }
 
@@ -3090,6 +3388,7 @@ public final class ExternalDataPackPipeline {
             String requiredEnvironment,
             boolean required,
             boolean replaceVanilla,
+            boolean supportSmartBore,
             Set<String> structures,
             Set<String> structureSets,
             Set<String> configuredFeatures,
@@ -3110,6 +3409,7 @@ public final class ExternalDataPackPipeline {
                 String requiredEnvironment,
                 boolean required,
                 boolean replaceVanilla,
+                boolean supportSmartBore,
                 IrisExternalDatapackReplaceTargets replaceTargets,
                 KList<IrisExternalDatapackStructurePatch> structurePatches
         ) {
@@ -3120,6 +3420,7 @@ public final class ExternalDataPackPipeline {
                     requiredEnvironment,
                     required,
                     replaceVanilla,
+                    supportSmartBore,
                     replaceTargets,
                     structurePatches,
                     Set.of(),
@@ -3136,6 +3437,7 @@ public final class ExternalDataPackPipeline {
                 String requiredEnvironment,
                 boolean required,
                 boolean replaceVanilla,
+                boolean supportSmartBore,
                 IrisExternalDatapackReplaceTargets replaceTargets,
                 KList<IrisExternalDatapackStructurePatch> structurePatches,
                 Set<String> forcedBiomeKeys,
@@ -3150,6 +3452,7 @@ public final class ExternalDataPackPipeline {
                     normalizeEnvironment(requiredEnvironment),
                     required,
                     replaceVanilla,
+                    supportSmartBore,
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getStructures(), "worldgen/structure/"),
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getStructureSets(), "worldgen/structure_set/"),
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getConfiguredFeatures(), "worldgen/configured_feature/"),
@@ -3216,6 +3519,7 @@ public final class ExternalDataPackPipeline {
                     environment,
                     required || other.required,
                     replaceVanilla || other.replaceVanilla,
+                    supportSmartBore || other.supportSmartBore,
                     union(structures, other.structures),
                     union(structureSets, other.structureSets),
                     union(configuredFeatures, other.configuredFeatures),
@@ -3573,6 +3877,7 @@ public final class ExternalDataPackPipeline {
             int installedAssets,
             Set<String> resolvedLocateStructures,
             int syntheticStructureSets,
+            Set<String> projectedStructureKeys,
             String managedName,
             String error
     ) {
@@ -3587,6 +3892,16 @@ public final class ExternalDataPackPipeline {
                 }
             }
             resolvedLocateStructures = Set.copyOf(normalized);
+            LinkedHashSet<String> normalizedProjected = new LinkedHashSet<>();
+            if (projectedStructureKeys != null) {
+                for (String structure : projectedStructureKeys) {
+                    String normalizedStructure = normalizeLocateStructure(structure);
+                    if (!normalizedStructure.isBlank()) {
+                        normalizedProjected.add(normalizedStructure);
+                    }
+                }
+            }
+            projectedStructureKeys = Set.copyOf(normalizedProjected);
             syntheticStructureSets = Math.max(0, syntheticStructureSets);
             if (error == null) {
                 error = "";
@@ -3598,14 +3913,15 @@ public final class ExternalDataPackPipeline {
                 int installedDatapacks,
                 int installedAssets,
                 Set<String> resolvedLocateStructures,
-                int syntheticStructureSets
+                int syntheticStructureSets,
+                Set<String> projectedStructureKeys
         ) {
-            return new ProjectionResult(true, installedDatapacks, installedAssets, resolvedLocateStructures, syntheticStructureSets, managedName, "");
+            return new ProjectionResult(true, installedDatapacks, installedAssets, resolvedLocateStructures, syntheticStructureSets, projectedStructureKeys, managedName, "");
         }
 
         private static ProjectionResult failure(String managedName, String error) {
             String message = error == null || error.isBlank() ? "projection failed" : error;
-            return new ProjectionResult(false, 0, 0, Set.of(), 0, managedName, message);
+            return new ProjectionResult(false, 0, 0, Set.of(), 0, Set.of(), managedName, message);
         }
     }
 
@@ -3621,7 +3937,12 @@ public final class ExternalDataPackPipeline {
         }
     }
 
-    private record ProjectionAssetSummary(List<ProjectionOutputAsset> assets, Set<String> resolvedLocateStructures, int syntheticStructureSets) {
+    private record ProjectionAssetSummary(
+            List<ProjectionOutputAsset> assets,
+            Set<String> resolvedLocateStructures,
+            int syntheticStructureSets,
+            Set<String> projectedStructureKeys
+    ) {
         private ProjectionAssetSummary {
             assets = assets == null ? List.of() : List.copyOf(assets);
             LinkedHashSet<String> normalized = new LinkedHashSet<>();
@@ -3634,6 +3955,16 @@ public final class ExternalDataPackPipeline {
                 }
             }
             resolvedLocateStructures = Set.copyOf(normalized);
+            LinkedHashSet<String> normalizedProjected = new LinkedHashSet<>();
+            if (projectedStructureKeys != null) {
+                for (String structure : projectedStructureKeys) {
+                    String normalizedStructure = normalizeLocateStructure(structure);
+                    if (!normalizedStructure.isBlank()) {
+                        normalizedProjected.add(normalizedStructure);
+                    }
+                }
+            }
+            projectedStructureKeys = Set.copyOf(normalizedProjected);
             syntheticStructureSets = Math.max(0, syntheticStructureSets);
         }
     }

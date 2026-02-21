@@ -24,12 +24,15 @@ import art.arcane.iris.engine.mantle.IrisMantleComponent;
 import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisCaveProfile;
+import art.arcane.iris.engine.object.IrisDimensionCarvingEntry;
 import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.object.IrisRange;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
@@ -55,14 +58,14 @@ public class MantleCarvingComponent extends IrisMantleComponent {
     public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
         List<WeightedProfile> weightedProfiles = resolveWeightedProfiles(x, z);
         for (WeightedProfile weightedProfile : weightedProfiles) {
-            carveProfile(weightedProfile.profile, weightedProfile.columnWeights, writer, x, z);
+            carveProfile(weightedProfile, writer, x, z);
         }
     }
 
     @ChunkCoordinates
-    private void carveProfile(IrisCaveProfile profile, double[] columnWeights, MantleWriter writer, int cx, int cz) {
-        IrisCaveCarver3D carver = getCarver(profile);
-        carver.carve(writer, cx, cz, columnWeights, MIN_WEIGHT, THRESHOLD_PENALTY);
+    private void carveProfile(WeightedProfile weightedProfile, MantleWriter writer, int cx, int cz) {
+        IrisCaveCarver3D carver = getCarver(weightedProfile.profile);
+        carver.carve(writer, cx, cz, weightedProfile.columnWeights, MIN_WEIGHT, THRESHOLD_PENALTY, weightedProfile.worldYRange);
     }
 
     private List<WeightedProfile> resolveWeightedProfiles(int chunkX, int chunkZ) {
@@ -99,10 +102,45 @@ public class MantleCarvingComponent extends IrisMantleComponent {
             }
 
             double averageWeight = totalWeight / CHUNK_AREA;
-            weightedProfiles.add(new WeightedProfile(profile, weights, averageWeight));
+            weightedProfiles.add(new WeightedProfile(profile, weights, averageWeight, null));
         }
 
         weightedProfiles.sort(Comparator.comparingDouble(WeightedProfile::averageWeight));
+        weightedProfiles.addAll(0, resolveDimensionCarvingProfiles());
+        return weightedProfiles;
+    }
+
+    private List<WeightedProfile> resolveDimensionCarvingProfiles() {
+        List<WeightedProfile> weightedProfiles = new ArrayList<>();
+        List<IrisDimensionCarvingEntry> entries = getDimension().getCarving();
+        if (entries == null || entries.isEmpty()) {
+            return weightedProfiles;
+        }
+
+        for (IrisDimensionCarvingEntry entry : entries) {
+            if (entry == null || !entry.isEnabled()) {
+                continue;
+            }
+
+            String biomeKey = entry.getBiome();
+            if (biomeKey == null || biomeKey.isBlank()) {
+                continue;
+            }
+
+            IrisBiome biome = getData().getBiomeLoader().load(biomeKey.trim());
+            if (biome == null) {
+                continue;
+            }
+
+            IrisCaveProfile profile = biome.getCaveProfile();
+            if (!isProfileEnabled(profile)) {
+                continue;
+            }
+
+            IrisRange worldYRange = entry.getWorldYRange();
+            weightedProfiles.add(new WeightedProfile(profile, fullWeights(), -1D, worldYRange));
+        }
+
         return weightedProfiles;
     }
 
@@ -158,6 +196,12 @@ public class MantleCarvingComponent extends IrisMantleComponent {
     private double haloWeight(int offsetX, int offsetZ) {
         int edgeDistance = Math.max(Math.abs(offsetX), Math.abs(offsetZ));
         return (BLEND_RADIUS + 1D) - edgeDistance;
+    }
+
+    private double[] fullWeights() {
+        double[] weights = new double[CHUNK_AREA];
+        Arrays.fill(weights, 1D);
+        return weights;
     }
 
     private IrisCaveProfile resolveColumnProfile(int worldX, int worldZ) {
@@ -221,11 +265,13 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         private final IrisCaveProfile profile;
         private final double[] columnWeights;
         private final double averageWeight;
+        private final IrisRange worldYRange;
 
-        private WeightedProfile(IrisCaveProfile profile, double[] columnWeights, double averageWeight) {
+        private WeightedProfile(IrisCaveProfile profile, double[] columnWeights, double averageWeight, IrisRange worldYRange) {
             this.profile = profile;
             this.columnWeights = columnWeights;
             this.averageWeight = averageWeight;
+            this.worldYRange = worldYRange;
         }
 
         private double averageWeight() {

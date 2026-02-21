@@ -238,8 +238,37 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int y, int z) {
-        IrisBiome caveBiome = getCaveBiome(x, z);
         IrisBiome surfaceBiome = getSurfaceBiome(x, z);
+        IrisBiome entryBiome = null;
+        int worldY = y + getWorld().minHeight();
+        KList<IrisDimensionCarvingEntry> carvingEntries = getDimension().getCarving();
+        if (carvingEntries != null && !carvingEntries.isEmpty()) {
+            for (IrisDimensionCarvingEntry entry : carvingEntries) {
+                if (entry == null || !entry.isEnabled()) {
+                    continue;
+                }
+
+                String key = entry.getBiome();
+                if (key == null || key.isBlank()) {
+                    continue;
+                }
+
+                IrisRange worldYRange = entry.getWorldYRange();
+                if (worldYRange != null && !worldYRange.contains(worldY)) {
+                    continue;
+                }
+
+                IrisBiome loadedBiome = getData().getBiomeLoader().load(key.trim());
+                if (loadedBiome != null) {
+                    entryBiome = loadedBiome;
+                }
+            }
+        }
+        if (entryBiome != null) {
+            return entryBiome;
+        }
+
+        IrisBiome caveBiome = getCaveBiome(x, z);
         if (caveBiome == null) {
             return surfaceBiome;
         }

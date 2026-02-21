@@ -214,7 +214,8 @@ public class ServerConfigurator {
                                 environment,
                                 externalDatapack.isRequired(),
                                 externalDatapack.isReplaceVanilla(),
-                                replaceTargets
+                                replaceTargets,
+                                externalDatapack.getStructurePatches()
                         );
 
                         String dedupeKey = request.getDedupeKey();

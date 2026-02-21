@@ -34,11 +34,21 @@ public class IrisExternalDatapackReplaceTargets {
     @Desc("Biome has_structure tag ids that may be replaced when replaceVanilla is enabled")
     private KList<String> biomeHasStructureTags = new KList<>();
 
+    @ArrayType(type = String.class, min = 1)
+    @Desc("Configured feature ids that may be replaced when replaceVanilla is enabled")
+    private KList<String> configuredFeatures = new KList<>();
+
+    @ArrayType(type = String.class, min = 1)
+    @Desc("Placed feature ids that may be replaced when replaceVanilla is enabled")
+    private KList<String> placedFeatures = new KList<>();
+
     public boolean hasAnyTargets() {
         return !structures.isEmpty()
                 || !structureSets.isEmpty()
                 || !templatePools.isEmpty()
                 || !processorLists.isEmpty()
-                || !biomeHasStructureTags.isEmpty();
+                || !biomeHasStructureTags.isEmpty()
+                || !configuredFeatures.isEmpty()
+                || !placedFeatures.isEmpty();
     }
 }

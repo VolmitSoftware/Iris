@@ -144,6 +144,9 @@ public class IrisDimension extends IrisRegistrant {
     private boolean postProcessingWalls = true;
     @Desc("Enable or disable all carving for this dimension")
     private boolean carvingEnabled = true;
+    @ArrayType(type = IrisDimensionCarvingEntry.class, min = 1)
+    @Desc("Dimension-level cave biome carving overrides with absolute world Y ranges")
+    private KList<IrisDimensionCarvingEntry> carving = new KList<>();
     @Desc("Profile-driven 3D cave configuration")
     private IrisCaveProfile caveProfile = new IrisCaveProfile();
     @Desc("Configuration of fluid bodies such as rivers & lakes")

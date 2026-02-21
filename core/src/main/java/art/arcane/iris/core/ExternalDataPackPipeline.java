@@ -6,6 +6,7 @@ import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisExternalDatapackReplaceTargets;
+import art.arcane.iris.engine.object.IrisExternalDatapackStructurePatch;
 import art.arcane.iris.engine.object.TileData;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.common.math.Vector3i;
@@ -53,6 +54,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -71,6 +73,8 @@ import java.util.zip.ZipFile;
 public final class ExternalDataPackPipeline {
     private static final Pattern STRUCTURE_JSON_ENTRY = Pattern.compile("(?i)^data/([^/]+)/worldgen/structure/(.+)\\.json$");
     private static final Pattern STRUCTURE_SET_JSON_ENTRY = Pattern.compile("(?i)^data/([^/]+)/worldgen/structure_set/(.+)\\.json$");
+    private static final Pattern CONFIGURED_FEATURE_JSON_ENTRY = Pattern.compile("(?i)^data/([^/]+)/worldgen/configured_feature/(.+)\\.json$");
+    private static final Pattern PLACED_FEATURE_JSON_ENTRY = Pattern.compile("(?i)^data/([^/]+)/worldgen/placed_feature/(.+)\\.json$");
     private static final Pattern TEMPLATE_POOL_JSON_ENTRY = Pattern.compile("(?i)^data/([^/]+)/worldgen/template_pool/(.+)\\.json$");
     private static final Pattern PROCESSOR_LIST_JSON_ENTRY = Pattern.compile("(?i)^data/([^/]+)/worldgen/processor_list/(.+)\\.json$");
     private static final Pattern BIOME_HAS_STRUCTURE_TAG_ENTRY = Pattern.compile("(?i)^data/([^/]+)/tags/worldgen/biome/has_structure/(.+)\\.json$");
@@ -581,7 +585,12 @@ public final class ExternalDataPackPipeline {
 
                 String relative = source.toPath().relativize(child.toPath()).toString().replace('\\', '/');
                 String normalizedRelative = normalizeRelativePath(relative);
-                if (normalizedRelative == null || !shouldProjectEntry(normalizedRelative, request)) {
+                if (normalizedRelative == null) {
+                    continue;
+                }
+
+                ProjectedEntry projectedEntry = parseProjectedEntry(normalizedRelative);
+                if (!shouldProjectEntry(projectedEntry, request)) {
                     continue;
                 }
 
@@ -590,7 +599,7 @@ public final class ExternalDataPackPipeline {
                 if (parent != null) {
                     parent.mkdirs();
                 }
-                copyFile(child, output);
+                copyProjectedFileEntry(child, output, request, projectedEntry);
                 copied++;
             }
         }
@@ -607,7 +616,12 @@ public final class ExternalDataPackPipeline {
 
             for (ZipEntry zipEntry : entries) {
                 String normalizedRelative = normalizeRelativePath(zipEntry.getName());
-                if (normalizedRelative == null || !shouldProjectEntry(normalizedRelative, request)) {
+                if (normalizedRelative == null) {
+                    continue;
+                }
+
+                ProjectedEntry projectedEntry = parseProjectedEntry(normalizedRelative);
+                if (!shouldProjectEntry(projectedEntry, request)) {
                     continue;
                 }
 
@@ -617,12 +631,52 @@ public final class ExternalDataPackPipeline {
                     parent.mkdirs();
                 }
                 try (InputStream inputStream = zipFile.getInputStream(zipEntry)) {
-                    writeInputStreamToFile(inputStream, output);
+                    copyProjectedStreamEntry(inputStream, output, request, projectedEntry);
                 }
                 copied++;
             }
         }
         return copied;
+    }
+
+    private static void copyProjectedFileEntry(File sourceFile, File output, DatapackRequest request, ProjectedEntry projectedEntry) throws IOException {
+        Integer startHeightAbsolute = getPatchedStartHeightAbsolute(projectedEntry, request);
+        if (startHeightAbsolute == null) {
+            copyFile(sourceFile, output);
+            return;
+        }
+
+        String content = Files.readString(sourceFile.toPath(), StandardCharsets.UTF_8);
+        String patched = applyStructureStartHeightPatch(content, startHeightAbsolute);
+        Files.writeString(output.toPath(), patched, StandardCharsets.UTF_8);
+    }
+
+    private static void copyProjectedStreamEntry(InputStream inputStream, File output, DatapackRequest request, ProjectedEntry projectedEntry) throws IOException {
+        Integer startHeightAbsolute = getPatchedStartHeightAbsolute(projectedEntry, request);
+        if (startHeightAbsolute == null) {
+            writeInputStreamToFile(inputStream, output);
+            return;
+        }
+
+        byte[] bytes = inputStream.readAllBytes();
+        String content = new String(bytes, StandardCharsets.UTF_8);
+        String patched = applyStructureStartHeightPatch(content, startHeightAbsolute);
+        Files.writeString(output.toPath(), patched, StandardCharsets.UTF_8);
+    }
+
+    private static Integer getPatchedStartHeightAbsolute(ProjectedEntry projectedEntry, DatapackRequest request) {
+        if (projectedEntry == null || request == null || projectedEntry.type() != ProjectedEntryType.STRUCTURE) {
+            return null;
+        }
+        return request.structureStartHeights().get(projectedEntry.key());
+    }
+
+    private static String applyStructureStartHeightPatch(String content, int startHeightAbsolute) {
+        JSONObject root = new JSONObject(content);
+        JSONObject startHeight = new JSONObject();
+        startHeight.put("absolute", startHeightAbsolute);
+        root.put("start_height", startHeight);
+        return root.toString(4);
     }
 
     private static void writeInputStreamToFile(InputStream inputStream, File output) throws IOException {
@@ -653,8 +707,7 @@ public final class ExternalDataPackPipeline {
         Files.writeString(new File(managedFolder, "pack.mcmeta").toPath(), root.toString(4), StandardCharsets.UTF_8);
     }
 
-    private static boolean shouldProjectEntry(String relativePath, DatapackRequest request) {
-        ProjectedEntry entry = parseProjectedEntry(relativePath);
+    private static boolean shouldProjectEntry(ProjectedEntry entry, DatapackRequest request) {
         if (entry == null) {
             return false;
         }
@@ -674,6 +727,8 @@ public final class ExternalDataPackPipeline {
         return switch (entry.type()) {
             case STRUCTURE -> request.structures().contains(entry.key());
             case STRUCTURE_SET -> request.structureSets().contains(entry.key());
+            case CONFIGURED_FEATURE -> request.configuredFeatures().contains(entry.key());
+            case PLACED_FEATURE -> request.placedFeatures().contains(entry.key());
             case TEMPLATE_POOL -> request.templatePools().contains(entry.key());
             case PROCESSOR_LIST -> request.processorLists().contains(entry.key());
             case BIOME_HAS_STRUCTURE_TAG -> request.biomeHasStructureTags().contains(entry.key());
@@ -693,6 +748,18 @@ public final class ExternalDataPackPipeline {
         if (matcher.matches()) {
             String key = normalizeResourceKey(matcher.group(1), matcher.group(2), "worldgen/structure_set/");
             return key == null ? null : new ProjectedEntry(ProjectedEntryType.STRUCTURE_SET, normalizeNamespace(matcher.group(1)), key);
+        }
+
+        matcher = CONFIGURED_FEATURE_JSON_ENTRY.matcher(normalized);
+        if (matcher.matches()) {
+            String key = normalizeResourceKey(matcher.group(1), matcher.group(2), "worldgen/configured_feature/");
+            return key == null ? null : new ProjectedEntry(ProjectedEntryType.CONFIGURED_FEATURE, normalizeNamespace(matcher.group(1)), key);
+        }
+
+        matcher = PLACED_FEATURE_JSON_ENTRY.matcher(normalized);
+        if (matcher.matches()) {
+            String key = normalizeResourceKey(matcher.group(1), matcher.group(2), "worldgen/placed_feature/");
+            return key == null ? null : new ProjectedEntry(ProjectedEntryType.PLACED_FEATURE, normalizeNamespace(matcher.group(1)), key);
         }
 
         matcher = TEMPLATE_POOL_JSON_ENTRY.matcher(normalized);
@@ -1831,9 +1898,12 @@ public final class ExternalDataPackPipeline {
             boolean replaceVanilla,
             Set<String> structures,
             Set<String> structureSets,
+            Set<String> configuredFeatures,
+            Set<String> placedFeatures,
             Set<String> templatePools,
             Set<String> processorLists,
-            Set<String> biomeHasStructureTags
+            Set<String> biomeHasStructureTags,
+            Map<String, Integer> structureStartHeights
     ) {
         public DatapackRequest(
                 String id,
@@ -1842,7 +1912,8 @@ public final class ExternalDataPackPipeline {
                 String requiredEnvironment,
                 boolean required,
                 boolean replaceVanilla,
-                IrisExternalDatapackReplaceTargets replaceTargets
+                IrisExternalDatapackReplaceTargets replaceTargets,
+                KList<IrisExternalDatapackStructurePatch> structurePatches
         ) {
             this(
                     normalizeRequestId(id, url),
@@ -1853,12 +1924,15 @@ public final class ExternalDataPackPipeline {
                     replaceVanilla,
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getStructures(), "worldgen/structure/"),
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getStructureSets(), "worldgen/structure_set/"),
+                    normalizeTargets(replaceTargets == null ? null : replaceTargets.getConfiguredFeatures(), "worldgen/configured_feature/"),
+                    normalizeTargets(replaceTargets == null ? null : replaceTargets.getPlacedFeatures(), "worldgen/placed_feature/"),
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getTemplatePools(), "worldgen/template_pool/"),
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getProcessorLists(), "worldgen/processor_list/"),
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getBiomeHasStructureTags(),
                             "tags/worldgen/biome/has_structure/",
                             "worldgen/biome/has_structure/",
-                            "has_structure/")
+                            "has_structure/"),
+                    normalizeStructureStartHeights(structurePatches)
             );
         }
 
@@ -1869,9 +1943,12 @@ public final class ExternalDataPackPipeline {
             requiredEnvironment = normalizeEnvironment(requiredEnvironment);
             structures = immutableSet(structures);
             structureSets = immutableSet(structureSets);
+            configuredFeatures = immutableSet(configuredFeatures);
+            placedFeatures = immutableSet(placedFeatures);
             templatePools = immutableSet(templatePools);
             processorLists = immutableSet(processorLists);
             biomeHasStructureTags = immutableSet(biomeHasStructureTags);
+            structureStartHeights = immutableMap(structureStartHeights);
         }
 
         public String getDedupeKey() {
@@ -1881,6 +1958,8 @@ public final class ExternalDataPackPipeline {
         public boolean hasReplacementTargets() {
             return !structures.isEmpty()
                     || !structureSets.isEmpty()
+                    || !configuredFeatures.isEmpty()
+                    || !placedFeatures.isEmpty()
                     || !templatePools.isEmpty()
                     || !processorLists.isEmpty()
                     || !biomeHasStructureTags.isEmpty();
@@ -1903,9 +1982,12 @@ public final class ExternalDataPackPipeline {
                     replaceVanilla || other.replaceVanilla,
                     union(structures, other.structures),
                     union(structureSets, other.structureSets),
+                    union(configuredFeatures, other.configuredFeatures),
+                    union(placedFeatures, other.placedFeatures),
                     union(templatePools, other.templatePools),
                     union(processorLists, other.processorLists),
-                    union(biomeHasStructureTags, other.biomeHasStructureTags)
+                    union(biomeHasStructureTags, other.biomeHasStructureTags),
+                    unionStructureStartHeights(structureStartHeights, other.structureStartHeights)
             );
         }
 
@@ -1947,6 +2029,14 @@ public final class ExternalDataPackPipeline {
             return Set.copyOf(copy);
         }
 
+        private static Map<String, Integer> immutableMap(Map<String, Integer> values) {
+            LinkedHashMap<String, Integer> copy = new LinkedHashMap<>();
+            if (values != null) {
+                copy.putAll(values);
+            }
+            return Map.copyOf(copy);
+        }
+
         private static Set<String> union(Set<String> first, Set<String> second) {
             LinkedHashSet<String> merged = new LinkedHashSet<>();
             if (first != null) {
@@ -1954,6 +2044,44 @@ public final class ExternalDataPackPipeline {
             }
             if (second != null) {
                 merged.addAll(second);
+            }
+            return merged;
+        }
+
+        private static Map<String, Integer> normalizeStructureStartHeights(KList<IrisExternalDatapackStructurePatch> patches) {
+            LinkedHashMap<String, Integer> normalized = new LinkedHashMap<>();
+            if (patches == null) {
+                return normalized;
+            }
+
+            for (IrisExternalDatapackStructurePatch patch : patches) {
+                if (patch == null || !patch.isEnabled()) {
+                    continue;
+                }
+
+                String structure = patch.getStructure();
+                if (structure == null || structure.isBlank()) {
+                    continue;
+                }
+
+                String normalizedStructure = normalizeResourceKey("minecraft", structure, "worldgen/structure/");
+                if (normalizedStructure == null || normalizedStructure.isBlank()) {
+                    continue;
+                }
+
+                normalized.put(normalizedStructure, patch.getStartHeightAbsolute());
+            }
+
+            return normalized;
+        }
+
+        private static Map<String, Integer> unionStructureStartHeights(Map<String, Integer> first, Map<String, Integer> second) {
+            LinkedHashMap<String, Integer> merged = new LinkedHashMap<>();
+            if (first != null) {
+                merged.putAll(first);
+            }
+            if (second != null) {
+                merged.putAll(second);
             }
             return merged;
         }
@@ -2087,6 +2215,8 @@ public final class ExternalDataPackPipeline {
     private enum ProjectedEntryType {
         STRUCTURE,
         STRUCTURE_SET,
+        CONFIGURED_FEATURE,
+        PLACED_FEATURE,
         TEMPLATE_POOL,
         PROCESSOR_LIST,
         STRUCTURE_NBT,

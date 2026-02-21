@@ -1,6 +1,8 @@
 package art.arcane.iris.engine.object;
 
+import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
+import art.arcane.volmlib.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -29,4 +31,8 @@ public class IrisExternalDatapack {
 
     @Desc("Explicit replacement targets for minecraft namespace assets")
     private IrisExternalDatapackReplaceTargets replaceTargets = new IrisExternalDatapackReplaceTargets();
+
+    @ArrayType(type = IrisExternalDatapackStructurePatch.class, min = 1)
+    @Desc("Structure placement patches applied when this external datapack is projected")
+    private KList<IrisExternalDatapackStructurePatch> structurePatches = new KList<>();
 }

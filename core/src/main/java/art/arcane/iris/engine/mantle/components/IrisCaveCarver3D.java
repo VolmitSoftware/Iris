@@ -85,7 +85,7 @@ public class IrisCaveCarver3D {
     public int carve(MantleWriter writer, int chunkX, int chunkZ) {
         double[] fullWeights = new double[256];
         Arrays.fill(fullWeights, 1D);
-        return carve(writer, chunkX, chunkZ, fullWeights, 0D, 0D);
+        return carve(writer, chunkX, chunkZ, fullWeights, 0D, 0D, null);
     }
 
     public int carve(
@@ -95,6 +95,18 @@ public class IrisCaveCarver3D {
             double[] columnWeights,
             double minWeight,
             double thresholdPenalty
+    ) {
+        return carve(writer, chunkX, chunkZ, columnWeights, minWeight, thresholdPenalty, null);
+    }
+
+    public int carve(
+            MantleWriter writer,
+            int chunkX,
+            int chunkZ,
+            double[] columnWeights,
+            double minWeight,
+            double thresholdPenalty,
+            IrisRange worldYRange
     ) {
         if (columnWeights == null || columnWeights.length < 256) {
             double[] fullWeights = new double[256];
@@ -107,6 +119,13 @@ public class IrisCaveCarver3D {
         int worldHeight = writer.getMantle().getWorldHeight();
         int minY = Math.max(0, (int) Math.floor(profile.getVerticalRange().getMin()));
         int maxY = Math.min(worldHeight - 1, (int) Math.ceil(profile.getVerticalRange().getMax()));
+        if (worldYRange != null) {
+            int worldMinHeight = engine.getWorld().minHeight();
+            int rangeMinY = (int) Math.floor(worldYRange.getMin() - worldMinHeight);
+            int rangeMaxY = (int) Math.ceil(worldYRange.getMax() - worldMinHeight);
+            minY = Math.max(minY, rangeMinY);
+            maxY = Math.min(maxY, rangeMaxY);
+        }
         int sampleStep = Math.max(1, profile.getSampleStep());
         int surfaceClearance = Math.max(0, profile.getSurfaceClearance());
         int surfaceBreakDepth = Math.max(0, profile.getSurfaceBreakDepth());

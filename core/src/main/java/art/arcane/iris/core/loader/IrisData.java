@@ -24,7 +24,6 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import art.arcane.iris.Iris;
-import art.arcane.iris.core.scripting.environment.PackEnvironment;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.*;
@@ -32,8 +31,6 @@ import art.arcane.iris.engine.object.annotations.Snippet;
 import art.arcane.iris.engine.object.matter.IrisMatterObject;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.iris.util.project.context.IrisContext;
-import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.mantle.flag.MantleFlagAdapter;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.math.RNG;
@@ -58,7 +55,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private final File dataFolder;
     private final int id;
     private boolean closed = false;
-    private PackEnvironment environment;
     private ResourceLoader<IrisBiome> biomeLoader;
     private ResourceLoader<IrisLootTable> lootLoader;
     private ResourceLoader<IrisRegion> regionLoader;
@@ -73,7 +69,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisObject> objectLoader;
     private ResourceLoader<IrisMatterObject> matterLoader;
     private ResourceLoader<IrisImage> imageLoader;
-    private ResourceLoader<IrisScript> scriptLoader;
     private ResourceLoader<IrisMatterObject> matterObjectLoader;
     private KMap<String, KList<String>> possibleSnippets;
     private Gson gson;
@@ -150,10 +145,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public static IrisSpawner loadAnySpaner(String key, @Nullable IrisData nearest) {
         return loadAny(IrisSpawner.class, key, nearest);
-    }
-
-    public static IrisScript loadAnyScript(String key, @Nullable IrisData nearest) {
-        return loadAny(IrisScript.class, key, nearest);
     }
 
     public static IrisRegion loadAnyRegion(String key, @Nullable IrisData nearest) {
@@ -237,45 +228,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public void preprocessObject(IrisRegistrant t) {
-        try {
-            IrisContext ctx = IrisContext.get();
-            Engine engine = this.engine;
-
-            if (engine == null && ctx != null && ctx.getEngine() != null) {
-                engine = ctx.getEngine();
-            }
-
-            if (engine == null && t.getPreprocessors().isNotEmpty()) {
-                Iris.error("Failed to preprocess object " + t.getLoadKey() + " because there is no engine context here. (See stack below)");
-                try {
-                    throw new RuntimeException();
-                } catch (Throwable ex) {
-                    ex.printStackTrace();
-                }
-            }
-
-            if (engine == null) return;
-            var global = engine.getDimension().getPreProcessors(t.getFolderName());
-            var local = t.getPreprocessors();
-            if ((global != null && global.isNotEmpty()) || local.isNotEmpty()) {
-                synchronized (this) {
-                    if (global != null) {
-                        for (String i : global) {
-                            engine.getExecution().preprocessObject(i, t);
-                            Iris.debug("Loader<" + C.GREEN + t.getTypeName() + C.LIGHT_PURPLE + "> iprocess " + C.YELLOW + t.getLoadKey() + C.LIGHT_PURPLE + " in <rainbow>" + i);
-                        }
-                    }
-
-                    for (String i : local) {
-                        engine.getExecution().preprocessObject(i, t);
-                        Iris.debug("Loader<" + C.GREEN + t.getTypeName() + C.LIGHT_PURPLE + "> iprocess " + C.YELLOW + t.getLoadKey() + C.LIGHT_PURPLE + " in <rainbow>" + i);
-                    }
-                }
-            }
-        } catch (Throwable e) {
-            Iris.error("Failed to preprocess object!");
-            e.printStackTrace();
-        }
     }
 
     public void close() {
@@ -297,9 +249,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                         rr.getTypeName());
             } else if (registrant.equals(IrisMatterObject.class)) {
                 r = (ResourceLoader<T>) new MatterObjectResourceLoader(dataFolder, this, rr.getFolderName(),
-                        rr.getTypeName());
-            } else if (registrant.equals(IrisScript.class)) {
-                r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(),
                         rr.getTypeName());
             } else if (registrant.equals(IrisImage.class)) {
                 r = (ResourceLoader<T>) new ImageResourceLoader(dataFolder, this, rr.getFolderName(),
@@ -347,16 +296,10 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.expressionLoader = registerLoader(IrisExpression.class);
         this.objectLoader = registerLoader(IrisObject.class);
         this.imageLoader = registerLoader(IrisImage.class);
-        this.scriptLoader = registerLoader(IrisScript.class);
         this.matterObjectLoader = registerLoader(IrisMatterObject.class);
-        this.environment = PackEnvironment.create(this);
         builder.registerTypeAdapterFactory(KeyedType::createTypeAdapter);
 
         gson = builder.create();
-        dimensionLoader.streamAll()
-                .map(IrisDimension::getDataScripts)
-                .flatMap(KList::stream)
-                .forEach(environment::execute);
 
         if (engine != null) {
             engine.hotload();

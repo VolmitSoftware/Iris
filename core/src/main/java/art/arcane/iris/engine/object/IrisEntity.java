@@ -163,17 +163,8 @@ public class IrisEntity extends IrisRegistrant {
     @Desc("Create a mob from another plugin, such as Mythic Mobs. Should be in the format of a namespace of PluginName:MobName")
     private String specialType = "";
 
-    @Desc("Set to true if you want to apply all of the settings here to the mob, even though an external plugin has already done so. Scripts are always applied.")
+    @Desc("Set to true if you want to apply all of the settings here to the mob, even though an external plugin has already done so.")
     private boolean applySettingsToCustomMobAnyways = false;
-
-    @Desc("Set the entity type to UNKNOWN, then define a script here which ends with the entity variable (the result). You can use location to find the target location. You can spawn any entity this way.\nFile extension: .spawn.kts")
-    @RegistryListResource(IrisScript.class)
-    private String spawnerScript = "";
-
-    @ArrayType(min = 1, type = String.class)
-    @Desc("Executed post spawn you can modify the entity however you want with it\nFile extension: .postspawn.kts")
-    @RegistryListResource(IrisScript.class)
-    private KList<String> postSpawnScripts = new KList<>();
 
     @ArrayType(min = 1, type = IrisCommand.class)
     @Desc("Run raw commands when this entity is spawned. Use {x}, {y}, and {z} for location. /summon pig {x} {y} {z}")
@@ -209,17 +200,6 @@ public class IrisEntity extends IrisRegistrant {
 
         if (ee == null && !Chunks.isSafe(at)) {
             return null;
-        }
-
-        if (!spawnerScript.isEmpty() && ee == null) {
-            synchronized (this) {
-                try {
-                    ee = (Entity) gen.getExecution().spawnMob(spawnerScript, at);
-                } catch (Throwable ex) {
-                    Iris.error("You must return an Entity in your scripts to use entity scripts!");
-                    ex.printStackTrace();
-                }
-            }
         }
 
         if (isSpecialType() && !applySettingsToCustomMobAnyways) {
@@ -354,14 +334,6 @@ public class IrisEntity extends IrisRegistrant {
 
         if (spawnEffect != null) {
             spawnEffect.apply(e);
-        }
-
-        if (postSpawnScripts.isNotEmpty()) {
-            synchronized (this) {
-                for (String i : postSpawnScripts) {
-                    gen.getExecution().postSpawnMob(i, at, ee);
-                }
-            }
         }
 
         if (rawCommands.isNotEmpty()) {

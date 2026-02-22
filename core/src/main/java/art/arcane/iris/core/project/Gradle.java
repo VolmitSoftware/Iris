@@ -20,7 +20,7 @@ public class Gradle {
 
     public static synchronized void wrapper(File projectDir) {
         try {
-            File settings = new File(projectDir, "settings.gradle.kts");
+            File settings = new File(projectDir, "settings.gradle");
             if (!settings.exists()) settings.createNewFile();
             runGradle(projectDir, "wrapper");
         } catch (Throwable e) {

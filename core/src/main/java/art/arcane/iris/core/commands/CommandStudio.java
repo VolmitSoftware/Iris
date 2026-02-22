@@ -277,14 +277,6 @@ public class CommandStudio implements DirectorExecutor {
         }
     }
 
-    @Director(description = "Execute a script", aliases = "run", origin = DirectorOrigin.PLAYER)
-    public void execute(
-            @Param(description = "The script to run")
-            IrisScript script
-    ) {
-        engine().getExecution().execute(script.getLoadKey());
-    }
-
     @Director(description = "Open the noise explorer (External GUI)", aliases = {"nmap", "n"})
     public void noise() {
         if (noGUI()) return;

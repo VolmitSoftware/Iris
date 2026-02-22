@@ -82,7 +82,6 @@ public final class IrisNoisemapPrebakePipeline {
             "ravines",
             "mods",
             "expressions",
-            "scripts",
             "images",
             "snippet"
     );

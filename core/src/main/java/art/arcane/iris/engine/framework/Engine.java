@@ -29,7 +29,6 @@ import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.nms.container.BlockPos;
 import art.arcane.iris.core.nms.container.Pair;
 import art.arcane.iris.core.pregenerator.ChunkUpdater;
-import art.arcane.iris.core.scripting.environment.EngineEnvironment;
 import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.IrisComplex;
@@ -113,8 +112,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     void close();
 
     IrisContext getContext();
-
-    EngineEnvironment getExecution();
 
     double getMaxBiomeObjectDensity();
 
@@ -388,16 +385,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     chunk.deleteSlices(MatterUpdate.class);
                     getMetrics().getUpdates().put(p.getMilliseconds());
                 }, RNG.r.i(1, 20))); //Why is there a random delay here?
-            });
-
-            chunk.raiseFlagUnchecked(MantleFlag.SCRIPT, () -> {
-                var scripts = getDimension().getChunkUpdateScripts();
-                if (scripts == null || scripts.isEmpty())
-                    return;
-
-                for (var script : scripts) {
-                    getExecution().updateChunk(script, chunk, c, (delay, task) -> run(semaphore, c, task, delay));
-                }
             });
 
             try {

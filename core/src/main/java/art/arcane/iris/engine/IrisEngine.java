@@ -29,7 +29,6 @@ import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.nms.container.BlockPos;
 import art.arcane.iris.core.nms.container.Pair;
 import art.arcane.iris.core.project.IrisProject;
-import art.arcane.iris.core.scripting.environment.EngineEnvironment;
 import art.arcane.iris.core.service.PreservationSVC;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.data.cache.AtomicCache;
@@ -97,7 +96,6 @@ public class IrisEngine implements Engine {
     private CompletableFuture<Long> hash32;
     private EngineMode mode;
     private EngineEffects effects;
-    private EngineEnvironment execution;
     private EngineWorldManager worldManager;
     private volatile int parallelism;
     private boolean failing;
@@ -131,7 +129,6 @@ public class IrisEngine implements Engine {
         cleaning = new AtomicBoolean(false);
         noisemapPrebakeRunning = new AtomicBoolean(false);
         modeFallbackLogged = new AtomicBoolean(false);
-        execution = getData().getEnvironment().with(this);
         if (studio) {
             getData().dump();
             getData().clearLists();
@@ -190,7 +187,6 @@ public class IrisEngine implements Engine {
         if (currentMode != null) {
             currentMode.close();
         }
-        execution = getData().getEnvironment().with(this);
 
         J.a(() -> new IrisProject(getData().getDataFolder()).updateWorkspace());
     }
@@ -207,7 +203,6 @@ public class IrisEngine implements Engine {
             IrisWorldManager manager = new IrisWorldManager(this);
             worldManager = manager;
             manager.startManager();
-            getDimension().getEngineScripts().forEach(execution::execute);
             J.a(this::computeBiomeMaxes);
             J.a(() -> {
                 File[] roots = getData().getLoaders()

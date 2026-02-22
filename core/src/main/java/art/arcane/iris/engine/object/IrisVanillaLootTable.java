@@ -72,9 +72,4 @@ public class IrisVanillaLootTable extends IrisLootTable {
     public IrisData getLoader() {
         throw new UnsupportedOperationException("VanillaLootTables do not have a loader");
     }
-
-    @Override
-    public KList<String> getPreprocessors() {
-        return new KList<>();
-    }
 }

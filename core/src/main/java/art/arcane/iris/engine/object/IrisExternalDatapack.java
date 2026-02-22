@@ -43,6 +43,10 @@ public class IrisExternalDatapack {
     @Desc("Optional structure-set alias mappings used to synthesize vanilla structure_set replacements from non-minecraft source keys")
     private KList<IrisExternalDatapackStructureSetAlias> structureSetAliases = new KList<>();
 
+    @ArrayType(type = IrisExternalDatapackTemplateAlias.class, min = 1)
+    @Desc("Optional template location alias mappings applied while projecting template pools")
+    private KList<IrisExternalDatapackTemplateAlias> templateAliases = new KList<>();
+
     @ArrayType(type = IrisExternalDatapackStructurePatch.class, min = 1)
     @Desc("Structure placement patches applied when this external datapack is projected")
     private KList<IrisExternalDatapackStructurePatch> structurePatches = new KList<>();

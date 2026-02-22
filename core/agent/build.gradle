@@ -1,0 +1,14 @@
+import org.gradle.jvm.tasks.Jar
+
+plugins {
+    id 'java'
+}
+
+tasks.named('jar', Jar).configure {
+    manifest.attributes(
+        'Agent-Class': 'art.arcane.iris.util.project.agent.Installer',
+        'Premain-Class': 'art.arcane.iris.util.project.agent.Installer',
+        'Can-Redefine-Classes': true,
+        'Can-Retransform-Classes': true
+    )
+}

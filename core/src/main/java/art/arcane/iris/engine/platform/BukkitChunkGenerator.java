@@ -114,9 +114,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.folder = new ReactiveFolder(
                 dataLocation,
                 (_a, _b, _c) -> hotload(),
-                new KList<>(".iob", ".json", ".kts"),
+                new KList<>(".iob", ".json"),
                 new KList<>(".iris"),
-                new KList<>(".gradle.kts")
+                new KList<>()
         );
         Bukkit.getServer().getPluginManager().registerEvents(this, Iris.instance);
     }

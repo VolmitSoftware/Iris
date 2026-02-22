@@ -12,6 +12,7 @@ import art.arcane.iris.engine.object.IrisExternalDatapackReplaceTargets;
 import art.arcane.iris.engine.object.IrisExternalDatapackStructureAlias;
 import art.arcane.iris.engine.object.IrisExternalDatapackStructureSetAlias;
 import art.arcane.iris.engine.object.IrisExternalDatapackStructurePatch;
+import art.arcane.iris.engine.object.IrisExternalDatapackTemplateAlias;
 import art.arcane.iris.engine.object.TileData;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.common.math.Vector3i;
@@ -436,6 +437,9 @@ public final class ExternalDataPackPipeline {
                         + ", installedDatapacks=" + projectionResult.installedDatapacks()
                         + ", installedAssets=" + projectionResult.installedAssets()
                         + ", syntheticStructureSets=" + projectionResult.syntheticStructureSets()
+                        + ", templateAliasesApplied=" + projectionResult.templateAliasesApplied()
+                        + ", emptyElementConversions=" + projectionResult.emptyElementConversions()
+                        + ", unresolvedTemplateRefs=" + projectionResult.unresolvedTemplateRefs()
                         + ", success=true");
             } else {
                 Iris.warn("External datapack projection: id=" + request.id()
@@ -445,6 +449,9 @@ public final class ExternalDataPackPipeline {
                         + ", installedDatapacks=" + projectionResult.installedDatapacks()
                         + ", installedAssets=" + projectionResult.installedAssets()
                         + ", syntheticStructureSets=" + projectionResult.syntheticStructureSets()
+                        + ", templateAliasesApplied=" + projectionResult.templateAliasesApplied()
+                        + ", emptyElementConversions=" + projectionResult.emptyElementConversions()
+                        + ", unresolvedTemplateRefs=" + projectionResult.unresolvedTemplateRefs()
                         + ", success=false"
                         + ", reason=" + projectionResult.error());
             }
@@ -1184,7 +1191,7 @@ public final class ExternalDataPackPipeline {
             if (request.required()) {
                 return ProjectionResult.failure(managedName, "no target world datapack folder is available for required external datapack request");
             }
-            return ProjectionResult.success(managedName, 0, 0, Set.copyOf(request.resolvedLocateStructures()), 0, Set.of());
+            return ProjectionResult.success(managedName, 0, 0, Set.copyOf(request.resolvedLocateStructures()), 0, Set.of(), 0, 0, 0);
         }
 
         ProjectionAssetSummary projectionAssetSummary;
@@ -1203,7 +1210,10 @@ public final class ExternalDataPackPipeline {
                     0,
                     projectionAssetSummary.resolvedLocateStructures(),
                     projectionAssetSummary.syntheticStructureSets(),
-                    projectionAssetSummary.projectedStructureKeys()
+                    projectionAssetSummary.projectedStructureKeys(),
+                    projectionAssetSummary.templateAliasesApplied(),
+                    projectionAssetSummary.emptyElementConversions(),
+                    projectionAssetSummary.unresolvedTemplateRefs()
             );
         }
 
@@ -1245,7 +1255,10 @@ public final class ExternalDataPackPipeline {
                 installedAssets,
                 projectionAssetSummary.resolvedLocateStructures(),
                 projectionAssetSummary.syntheticStructureSets(),
-                projectionAssetSummary.projectedStructureKeys()
+                projectionAssetSummary.projectedStructureKeys(),
+                projectionAssetSummary.templateAliasesApplied(),
+                projectionAssetSummary.emptyElementConversions(),
+                projectionAssetSummary.unresolvedTemplateRefs()
         );
     }
 
@@ -1257,7 +1270,7 @@ public final class ExternalDataPackPipeline {
 
         List<ProjectionInputAsset> inputAssets = projectionSelection.assets();
         if (inputAssets.isEmpty()) {
-            return new ProjectionAssetSummary(List.of(), Set.copyOf(request.resolvedLocateStructures()), 0, Set.of());
+            return new ProjectionAssetSummary(List.of(), Set.copyOf(request.resolvedLocateStructures()), 0, Set.of(), 0, 0, 0);
         }
         int selectedStructureNbtCount = 0;
         for (ProjectionInputAsset inputAsset : inputAssets) {
@@ -1290,6 +1303,9 @@ public final class ExternalDataPackPipeline {
         LinkedHashSet<String> remappedStructureKeys = new LinkedHashSet<>();
         LinkedHashSet<String> projectedStructureKeys = new LinkedHashSet<>();
         LinkedHashSet<String> structureSetReferences = new LinkedHashSet<>();
+        int templateAliasesApplied = 0;
+        int emptyElementConversions = 0;
+        LinkedHashSet<String> unresolvedTemplateRefs = new LinkedHashSet<>();
         LinkedHashSet<String> writtenPaths = new LinkedHashSet<>();
         ArrayList<ProjectionOutputAsset> outputAssets = new ArrayList<>();
         int projectedCanonicalStructureNbtCount = 0;
@@ -1317,6 +1333,13 @@ public final class ExternalDataPackPipeline {
                     || projectedEntry.type() == ProjectedEntryType.BIOME_HAS_STRUCTURE_TAG) {
                 JSONObject root = new JSONObject(new String(outputBytes, StandardCharsets.UTF_8));
                 rewriteJsonValues(root, remapStringValues);
+
+                if (projectedEntry.type() == ProjectedEntryType.TEMPLATE_POOL && !request.templateAliases().isEmpty()) {
+                    TemplateAliasRewriteResult templateAliasRewriteResult = applyTemplateAliasesToTemplatePool(root, request.templateAliases());
+                    templateAliasesApplied += templateAliasRewriteResult.appliedCount();
+                    emptyElementConversions += templateAliasRewriteResult.emptyConversions();
+                    unresolvedTemplateRefs.addAll(templateAliasRewriteResult.unresolvedReferences());
+                }
 
                 if (projectedEntry.type() == ProjectedEntryType.STRUCTURE) {
                     Integer startHeightAbsolute = getPatchedStartHeightAbsolute(projectedEntry, request);
@@ -1395,17 +1418,26 @@ public final class ExternalDataPackPipeline {
             throw new IOException("Required external datapack projection produced no canonical structure template outputs (data/*/structure/*.nbt).");
         }
 
+        if (request.required() && !unresolvedTemplateRefs.isEmpty()) {
+            throw new IOException("Required external datapack template alias rewrite unresolved reference(s): "
+                    + summarizeMissingSeededTargets(unresolvedTemplateRefs));
+        }
+
         if (request.replaceVanilla() && !request.alongsideMode()) {
             int directTargetCount = projectionSelection.directResolvedTargets().size();
             int aliasTargetCount = projectionSelection.aliasResolvedTargets().size();
             int projectedStructureCount = projectedStructureKeys.size();
             int projectedTemplateCount = projectedCanonicalStructureNbtCount;
+            int unresolvedTemplateRefCount = unresolvedTemplateRefs.size();
             if (request.required()) {
                 Iris.info("External datapack strict replace validation: id=" + request.id()
                         + ", directTargets=" + directTargetCount
                         + ", aliasTargets=" + aliasTargetCount
                         + ", projectedStructures=" + projectedStructureCount
                         + ", templates=" + projectedTemplateCount
+                        + ", templateAliasesApplied=" + templateAliasesApplied
+                        + ", emptyElementConversions=" + emptyElementConversions
+                        + ", unresolvedTemplateRefs=" + unresolvedTemplateRefCount
                         + ", missingTargets=0");
             } else {
                 Iris.verbose("External datapack strict replace validation: id=" + request.id()
@@ -1413,11 +1445,22 @@ public final class ExternalDataPackPipeline {
                         + ", aliasTargets=" + aliasTargetCount
                         + ", projectedStructures=" + projectedStructureCount
                         + ", templates=" + projectedTemplateCount
+                        + ", templateAliasesApplied=" + templateAliasesApplied
+                        + ", emptyElementConversions=" + emptyElementConversions
+                        + ", unresolvedTemplateRefs=" + unresolvedTemplateRefCount
                         + ", missingTargets=0");
             }
         }
 
-        return new ProjectionAssetSummary(outputAssets, Set.copyOf(resolvedLocateStructures), syntheticStructureSets, Set.copyOf(projectedStructureKeys));
+        return new ProjectionAssetSummary(
+                outputAssets,
+                Set.copyOf(resolvedLocateStructures),
+                syntheticStructureSets,
+                Set.copyOf(projectedStructureKeys),
+                templateAliasesApplied,
+                emptyElementConversions,
+                unresolvedTemplateRefs.size()
+        );
     }
 
     private static ProjectionSelection readProjectedEntries(File source, DatapackRequest request) throws IOException {
@@ -2490,6 +2533,75 @@ public final class ExternalDataPackPipeline {
             }
         }
         return value;
+    }
+
+    private static TemplateAliasRewriteResult applyTemplateAliasesToTemplatePool(JSONObject root, Map<String, String> templateAliases) {
+        if (root == null || templateAliases == null || templateAliases.isEmpty()) {
+            return TemplateAliasRewriteResult.empty();
+        }
+
+        JSONArray elements = root.optJSONArray("elements");
+        if (elements == null || elements.length() <= 0) {
+            return TemplateAliasRewriteResult.empty();
+        }
+
+        LinkedHashSet<String> referenced = new LinkedHashSet<>();
+        LinkedHashSet<String> rewritten = new LinkedHashSet<>();
+        LinkedHashSet<String> unresolved = new LinkedHashSet<>();
+        int applied = 0;
+        int emptyConversions = 0;
+
+        for (int i = 0; i < elements.length(); i++) {
+            JSONObject poolElement = elements.optJSONObject(i);
+            if (poolElement == null) {
+                continue;
+            }
+
+            JSONObject elementData = poolElement.optJSONObject("element");
+            if (elementData == null) {
+                continue;
+            }
+
+            String location = elementData.optString("location", "");
+            if (location.isBlank()) {
+                continue;
+            }
+
+            String normalizedLocation = normalizeResourceKey("minecraft", location, "structure/", "structures/");
+            if (normalizedLocation == null || normalizedLocation.isBlank()) {
+                continue;
+            }
+
+            String aliasTarget = templateAliases.get(normalizedLocation);
+            if (aliasTarget == null || aliasTarget.isBlank()) {
+                continue;
+            }
+
+            referenced.add(normalizedLocation);
+            try {
+                if ("minecraft:empty".equalsIgnoreCase(aliasTarget)) {
+                    JSONObject emptyElement = new JSONObject();
+                    emptyElement.put("element_type", "minecraft:empty_pool_element");
+                    poolElement.put("element", emptyElement);
+                    emptyConversions++;
+                } else {
+                    elementData.put("location", aliasTarget);
+                    poolElement.put("element", elementData);
+                }
+                applied++;
+                rewritten.add(normalizedLocation);
+            } catch (Throwable ignored) {
+                unresolved.add(normalizedLocation);
+            }
+        }
+
+        for (String reference : referenced) {
+            if (!rewritten.contains(reference)) {
+                unresolved.add(reference);
+            }
+        }
+
+        return new TemplateAliasRewriteResult(applied, emptyConversions, unresolved);
     }
 
     private static Set<String> readStructureSetReferences(JSONObject root) {
@@ -4002,6 +4114,7 @@ public final class ExternalDataPackPipeline {
             Set<String> structureSets,
             Map<String, List<String>> structureAliases,
             Map<String, String> structureSetAliases,
+            Map<String, String> templateAliases,
             Set<String> configuredFeatures,
             Set<String> placedFeatures,
             Set<String> templatePools,
@@ -4024,6 +4137,7 @@ public final class ExternalDataPackPipeline {
                 IrisExternalDatapackReplaceTargets replaceTargets,
                 KList<IrisExternalDatapackStructureAlias> structureAliases,
                 KList<IrisExternalDatapackStructureSetAlias> structureSetAliases,
+                KList<IrisExternalDatapackTemplateAlias> templateAliases,
                 KList<IrisExternalDatapackStructurePatch> structurePatches
         ) {
             this(
@@ -4037,6 +4151,7 @@ public final class ExternalDataPackPipeline {
                     replaceTargets,
                     structureAliases,
                     structureSetAliases,
+                    templateAliases,
                     structurePatches,
                     Set.of(),
                     "dimension-root",
@@ -4056,6 +4171,7 @@ public final class ExternalDataPackPipeline {
                 IrisExternalDatapackReplaceTargets replaceTargets,
                 KList<IrisExternalDatapackStructureAlias> structureAliases,
                 KList<IrisExternalDatapackStructureSetAlias> structureSetAliases,
+                KList<IrisExternalDatapackTemplateAlias> templateAliases,
                 KList<IrisExternalDatapackStructurePatch> structurePatches,
                 Set<String> forcedBiomeKeys,
                 String scopeKey,
@@ -4074,6 +4190,7 @@ public final class ExternalDataPackPipeline {
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getStructureSets(), "worldgen/structure_set/"),
                     normalizeStructureAliases(structureAliases),
                     normalizeStructureSetAliases(structureSetAliases),
+                    normalizeTemplateAliases(templateAliases),
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getConfiguredFeatures(), "worldgen/configured_feature/"),
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getPlacedFeatures(), "worldgen/placed_feature/"),
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getTemplatePools(), "worldgen/template_pool/"),
@@ -4099,6 +4216,7 @@ public final class ExternalDataPackPipeline {
             structureSets = immutableSet(structureSets);
             structureAliases = immutableStructureAliasMap(structureAliases);
             structureSetAliases = immutableAliasMap(structureSetAliases);
+            templateAliases = immutableAliasMap(templateAliases);
             configuredFeatures = immutableSet(configuredFeatures);
             placedFeatures = immutableSet(placedFeatures);
             templatePools = immutableSet(templatePools);
@@ -4145,6 +4263,7 @@ public final class ExternalDataPackPipeline {
                     union(structureSets, other.structureSets),
                     unionStructureAliases(structureAliases, other.structureAliases),
                     unionAliases(structureSetAliases, other.structureSetAliases),
+                    unionAliases(templateAliases, other.templateAliases),
                     union(configuredFeatures, other.configuredFeatures),
                     union(placedFeatures, other.placedFeatures),
                     union(templatePools, other.templatePools),
@@ -4269,6 +4388,40 @@ public final class ExternalDataPackPipeline {
                     continue;
                 }
                 normalized.put(target, source);
+            }
+
+            return normalized;
+        }
+
+        private static Map<String, String> normalizeTemplateAliases(KList<IrisExternalDatapackTemplateAlias> aliases) {
+            LinkedHashMap<String, String> normalized = new LinkedHashMap<>();
+            if (aliases == null) {
+                return normalized;
+            }
+
+            for (IrisExternalDatapackTemplateAlias alias : aliases) {
+                if (alias == null || !alias.isEnabled()) {
+                    continue;
+                }
+
+                String from = normalizeResourceKey("minecraft", alias.getFrom(), "structure/", "structures/");
+                if (from == null || from.isBlank()) {
+                    continue;
+                }
+
+                String toRaw = alias.getTo() == null ? "" : alias.getTo().trim();
+                String to;
+                if ("minecraft:empty".equalsIgnoreCase(toRaw)) {
+                    to = "minecraft:empty";
+                } else {
+                    to = normalizeResourceKey("minecraft", toRaw, "structure/", "structures/");
+                }
+
+                if (to == null || to.isBlank()) {
+                    continue;
+                }
+
+                normalized.put(from, to);
             }
 
             return normalized;
@@ -4666,6 +4819,9 @@ public final class ExternalDataPackPipeline {
             Set<String> resolvedLocateStructures,
             int syntheticStructureSets,
             Set<String> projectedStructureKeys,
+            int templateAliasesApplied,
+            int emptyElementConversions,
+            int unresolvedTemplateRefs,
             String managedName,
             String error
     ) {
@@ -4691,6 +4847,9 @@ public final class ExternalDataPackPipeline {
             }
             projectedStructureKeys = Set.copyOf(normalizedProjected);
             syntheticStructureSets = Math.max(0, syntheticStructureSets);
+            templateAliasesApplied = Math.max(0, templateAliasesApplied);
+            emptyElementConversions = Math.max(0, emptyElementConversions);
+            unresolvedTemplateRefs = Math.max(0, unresolvedTemplateRefs);
             if (error == null) {
                 error = "";
             }
@@ -4702,14 +4861,29 @@ public final class ExternalDataPackPipeline {
                 int installedAssets,
                 Set<String> resolvedLocateStructures,
                 int syntheticStructureSets,
-                Set<String> projectedStructureKeys
+                Set<String> projectedStructureKeys,
+                int templateAliasesApplied,
+                int emptyElementConversions,
+                int unresolvedTemplateRefs
         ) {
-            return new ProjectionResult(true, installedDatapacks, installedAssets, resolvedLocateStructures, syntheticStructureSets, projectedStructureKeys, managedName, "");
+            return new ProjectionResult(
+                    true,
+                    installedDatapacks,
+                    installedAssets,
+                    resolvedLocateStructures,
+                    syntheticStructureSets,
+                    projectedStructureKeys,
+                    templateAliasesApplied,
+                    emptyElementConversions,
+                    unresolvedTemplateRefs,
+                    managedName,
+                    ""
+            );
         }
 
         private static ProjectionResult failure(String managedName, String error) {
             String message = error == null || error.isBlank() ? "projection failed" : error;
-            return new ProjectionResult(false, 0, 0, Set.of(), 0, Set.of(), managedName, message);
+            return new ProjectionResult(false, 0, 0, Set.of(), 0, Set.of(), 0, 0, 0, managedName, message);
         }
     }
 
@@ -4725,11 +4899,30 @@ public final class ExternalDataPackPipeline {
         }
     }
 
+    private record TemplateAliasRewriteResult(
+            int appliedCount,
+            int emptyConversions,
+            Set<String> unresolvedReferences
+    ) {
+        private TemplateAliasRewriteResult {
+            appliedCount = Math.max(0, appliedCount);
+            emptyConversions = Math.max(0, emptyConversions);
+            unresolvedReferences = unresolvedReferences == null ? Set.of() : Set.copyOf(unresolvedReferences);
+        }
+
+        private static TemplateAliasRewriteResult empty() {
+            return new TemplateAliasRewriteResult(0, 0, Set.of());
+        }
+    }
+
     private record ProjectionAssetSummary(
             List<ProjectionOutputAsset> assets,
             Set<String> resolvedLocateStructures,
             int syntheticStructureSets,
-            Set<String> projectedStructureKeys
+            Set<String> projectedStructureKeys,
+            int templateAliasesApplied,
+            int emptyElementConversions,
+            int unresolvedTemplateRefs
     ) {
         private ProjectionAssetSummary {
             assets = assets == null ? List.of() : List.copyOf(assets);
@@ -4754,6 +4947,9 @@ public final class ExternalDataPackPipeline {
             }
             projectedStructureKeys = Set.copyOf(normalizedProjected);
             syntheticStructureSets = Math.max(0, syntheticStructureSets);
+            templateAliasesApplied = Math.max(0, templateAliasesApplied);
+            emptyElementConversions = Math.max(0, emptyElementConversions);
+            unresolvedTemplateRefs = Math.max(0, unresolvedTemplateRefs);
         }
     }
 

@@ -26,7 +26,6 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.project.noise.ExpressionNoise;
 import art.arcane.iris.util.project.noise.ImageNoise;
-import art.arcane.iris.util.project.noise.NoiseGenerator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -59,9 +58,6 @@ public class IrisGeneratorStyle {
     private String expression = null;
     @Desc("Use an Image map instead of a generated value")
     private IrisImageMap imageMap = null;
-    @Desc("Instead of using the style property, use a custom noise generator to represent this style.\nFile extension: .noise.kts")
-    @RegistryListResource(IrisScript.class)
-    private String script = null;
     @MinNumber(0.00001)
     @Desc("The Output multiplier. Only used if parent is fracture.")
     private double multiplier = 1;
@@ -111,7 +107,7 @@ public class IrisGeneratorStyle {
     }
 
     private int hash() {
-        return Objects.hash(expression, imageMapHash(), script, multiplier, axialFracturing, fracture != null ? fracture.hash() : 0, exponent, cacheSize, zoom, cellularZoom, cellularFrequency, style);
+        return Objects.hash(expression, imageMapHash(), multiplier, axialFracturing, fracture != null ? fracture.hash() : 0, exponent, cacheSize, zoom, cellularZoom, cellularFrequency, style);
     }
 
     public int prebakeSignature() {
@@ -127,19 +123,6 @@ public class IrisGeneratorStyle {
 
     private String cacheKey(RNG rng, long sourceStamp, int effectiveCacheSize) {
         return cachePrefix(rng, effectiveCacheSize) + Long.toUnsignedString(sourceStamp);
-    }
-
-    private long scriptStamp(IrisData data) {
-        if (getScript() == null) {
-            return 0L;
-        }
-
-        File scriptFile = data.getScriptLoader().findFile(getScript());
-        if (scriptFile == null) {
-            return Integer.toUnsignedLong(getScript().hashCode());
-        }
-
-        return Integer.toUnsignedLong(Objects.hash(getScript(), scriptFile.lastModified(), scriptFile.length()));
     }
 
     private void clearStaleCacheEntries(IrisData data, String prefix, String key) {
@@ -178,13 +161,6 @@ public class IrisGeneratorStyle {
         } else if (getImageMap() != null) {
             cng = new CNG(rng, new ImageNoise(data, getImageMap()), 1D, 1).bake();
             sourceStamp = Integer.toUnsignedLong(imageMapHash());
-        } else if (getScript() != null) {
-            Object result = data.getEnvironment().createNoise(getScript(), rng);
-            if (result == null) Iris.warn("Failed to create noise from script: " + getScript());
-            if (result instanceof NoiseGenerator generator) {
-                cng = new CNG(rng, generator, 1D, 1).bake();
-                sourceStamp = scriptStamp(data);
-            }
         }
 
         if (cng == null) {

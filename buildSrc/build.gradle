@@ -1,0 +1,25 @@
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+
+plugins {
+    id 'java'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+    gradlePluginPortal()
+    maven {
+        url = uri('https://jitpack.io')
+    }
+}
+
+dependencies {
+    implementation('org.ow2.asm:asm:9.8')
+    implementation('com.github.VolmitSoftware:NMSTools:c88961416f')
+    implementation('io.papermc.paperweight:paperweight-userdev:2.0.0-beta.18')
+}

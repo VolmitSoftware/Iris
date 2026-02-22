@@ -78,7 +78,6 @@ public class IrisDimension extends IrisRegistrant {
     private final transient AtomicCache<Double> cosr = new AtomicCache<>();
     private final transient AtomicCache<Double> rad = new AtomicCache<>();
     private final transient AtomicCache<Boolean> featuresUsed = new AtomicCache<>();
-    private final transient AtomicCache<KMap<String, KList<String>>> cachedPreProcessors = new AtomicCache<>();
     private final transient AtomicCache<Map<String, IrisDimensionCarvingEntry>> carvingEntryIndex = new AtomicCache<>();
     @MinNumber(2)
     @Required
@@ -252,21 +251,6 @@ public class IrisDimension extends IrisRegistrant {
     @ArrayType(type = String.class)
     @Desc("Collection of disabled components")
     private KList<MantleFlag> disabledComponents = new KList<>();
-    @Desc("A list of globally applied pre-processors")
-    @ArrayType(type = IrisPreProcessors.class)
-    private KList<IrisPreProcessors> globalPreProcessors = new KList<>();
-    @Desc("A list of scripts executed on engine setup\nFile extension: .engine.kts")
-    @RegistryListResource(IrisScript.class)
-    @ArrayType(type = String.class, min = 1)
-    private KList<String> engineScripts = new KList<>();
-    @Desc("A list of scripts executed on data setup\nFile extension: .data.kts")
-    @RegistryListResource(IrisScript.class)
-    @ArrayType(type = String.class, min = 1)
-    private KList<String> dataScripts = new KList<>();
-    @Desc("A list of scripts executed on chunk update\nFile extension: .update.kts")
-    @RegistryListResource(IrisScript.class)
-    @ArrayType(type = String.class, min = 1)
-    private KList<String> chunkUpdateScripts = new KList<>();
 
     public int getMaxHeight() {
         return (int) getDimensionHeight().getMax();
@@ -396,17 +380,6 @@ public class IrisDimension extends IrisRegistrant {
         }
 
         return r;
-    }
-
-    public KList<String> getPreProcessors(String type) {
-        return cachedPreProcessors.aquire(() -> {
-            KMap<String, KList<String>> preProcessors = new KMap<>();
-            for (var entry : globalPreProcessors) {
-                preProcessors.computeIfAbsent(entry.getType(), k -> new KList<>())
-                        .addAll(entry.getScripts());
-            }
-            return preProcessors;
-        }).get(type);
     }
 
     public IrisGeneratorStyle getBiomeStyle(InferredType type) {

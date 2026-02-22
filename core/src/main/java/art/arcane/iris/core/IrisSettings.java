@@ -167,7 +167,6 @@ public class IrisSettings {
         public int noiseCacheSize = 1_024;
         public int resourceLoaderCacheSize = 1_024;
         public int objectLoaderCacheSize = 4_096;
-        public int scriptLoaderCacheSize = 512;
         public int tectonicPlateSize = -1;
         public int mantleCleanupDelay = 200;
 

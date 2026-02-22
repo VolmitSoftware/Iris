@@ -21,7 +21,6 @@ package art.arcane.iris.engine.object;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineMode;
 import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.RegistryListResource;
 import art.arcane.iris.engine.object.annotations.Snippet;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -38,19 +37,7 @@ public class IrisDimensionMode {
     @Desc("The dimension type")
     private IrisDimensionModeType type = IrisDimensionModeType.OVERWORLD;
 
-    @RegistryListResource(IrisScript.class)
-    @Desc("The script to create the dimension mode instead of using provided types\nFile extension: .engine.kts")
-    private String script;
-
     public EngineMode create(Engine engine) {
-        if (script == null) {
-            return type.create(engine);
-        }
-        Object result = engine.getExecution().evaluate(script);
-        if (result instanceof EngineMode) {
-            return (EngineMode) result;
-        }
-
-        throw new IllegalStateException("The script '" + script + "' did not return an engine mode!");
+        return type.create(engine);
     }
 }

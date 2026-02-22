@@ -20,11 +20,6 @@ package art.arcane.iris.core.loader;
 
 import com.google.gson.GsonBuilder;
 import art.arcane.iris.Iris;
-import art.arcane.iris.engine.object.IrisScript;
-import art.arcane.iris.engine.object.annotations.ArrayType;
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.RegistryListResource;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.iris.util.common.plugin.VolmitSender;
 import lombok.Data;
@@ -35,11 +30,6 @@ import java.io.File;
 
 @Data
 public abstract class IrisRegistrant {
-    @Desc("Preprocess this object in-memory when it's loaded, run scripts using the variable 'object' and modify properties about this object before it's used.\nFile extension: .proc.kts")
-    @RegistryListResource(IrisScript.class)
-    @ArrayType(min = 1, type = String.class)
-    private KList<String> preprocessors = new KList<>();
-
     @EqualsAndHashCode.Exclude
     private transient IrisData loader;
 

@@ -152,11 +152,21 @@ public class IrisSettings {
         public boolean useVirtualThreads = false;
         public boolean useTicketQueue = true;
         public int maxConcurrency = 256;
+        public int chunkLoadTimeoutSeconds = 15;
+        public int timeoutWarnIntervalMs = 500;
         public boolean startupNoisemapPrebake = true;
         public boolean enablePregenPerformanceProfile = true;
         public int pregenProfileNoiseCacheSize = 4_096;
         public boolean pregenProfileEnableFastCache = true;
         public boolean pregenProfileLogJvmHints = true;
+
+        public int getChunkLoadTimeoutSeconds() {
+            return Math.max(5, Math.min(chunkLoadTimeoutSeconds, 120));
+        }
+
+        public int getTimeoutWarnIntervalMs() {
+            return Math.max(timeoutWarnIntervalMs, 250);
+        }
     }
 
     @Data

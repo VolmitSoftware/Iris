@@ -28,6 +28,7 @@ import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterCavern;
+import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
 import java.util.Arrays;
 
@@ -35,6 +36,7 @@ public class IrisCaveCarver3D {
     private static final byte LIQUID_AIR = 0;
     private static final byte LIQUID_LAVA = 2;
     private static final byte LIQUID_FORCED_AIR = 3;
+    private static final ThreadLocal<Scratch> SCRATCH = ThreadLocal.withInitial(Scratch::new);
 
     private final Engine engine;
     private final IrisData data;
@@ -49,6 +51,11 @@ public class IrisCaveCarver3D {
     private final MatterCavern carveAir;
     private final MatterCavern carveLava;
     private final MatterCavern carveForcedAir;
+    private final double baseWeight;
+    private final double detailWeight;
+    private final double warpStrength;
+    private final boolean hasWarp;
+    private final boolean hasModules;
 
     public IrisCaveCarver3D(Engine engine, IrisCaveProfile profile) {
         this.engine = engine;
@@ -65,8 +72,12 @@ public class IrisCaveCarver3D {
         this.warpDensity = profile.getWarpStyle().create(baseRng.nextParallelRNG(770_713), data);
         this.surfaceBreakDensity = profile.getSurfaceBreakStyle().create(baseRng.nextParallelRNG(341_219), data);
         this.thresholdRng = baseRng.nextParallelRNG(489_112);
+        this.baseWeight = profile.getBaseWeight();
+        this.detailWeight = profile.getDetailWeight();
+        this.warpStrength = profile.getWarpStrength();
+        this.hasWarp = this.warpStrength > 0D;
 
-        double weight = Math.abs(profile.getBaseWeight()) + Math.abs(profile.getDetailWeight());
+        double weight = Math.abs(baseWeight) + Math.abs(detailWeight);
         int index = 0;
         for (IrisCaveFieldModule module : profile.getModules()) {
             CNG moduleDensity = module.getStyle().create(baseRng.nextParallelRNG(1_000_003L + (index * 65_537L)), data);
@@ -77,12 +88,16 @@ public class IrisCaveCarver3D {
         }
 
         normalization = weight <= 0 ? 1 : weight;
+        hasModules = !modules.isEmpty();
     }
 
     public int carve(MantleWriter writer, int chunkX, int chunkZ) {
-        double[] fullWeights = new double[256];
-        Arrays.fill(fullWeights, 1D);
-        return carve(writer, chunkX, chunkZ, fullWeights, 0D, 0D, null);
+        Scratch scratch = SCRATCH.get();
+        if (!scratch.fullWeightsInitialized) {
+            Arrays.fill(scratch.fullWeights, 1D);
+            scratch.fullWeightsInitialized = true;
+        }
+        return carve(writer, chunkX, chunkZ, scratch.fullWeights, 0D, 0D, null);
     }
 
     public int carve(
@@ -105,91 +120,71 @@ public class IrisCaveCarver3D {
             double thresholdPenalty,
             IrisRange worldYRange
     ) {
-        if (columnWeights == null || columnWeights.length < 256) {
-            double[] fullWeights = new double[256];
-            Arrays.fill(fullWeights, 1D);
-            columnWeights = fullWeights;
-        }
-
-        double resolvedMinWeight = Math.max(0D, Math.min(1D, minWeight));
-        double resolvedThresholdPenalty = Math.max(0D, thresholdPenalty);
-        int worldHeight = writer.getMantle().getWorldHeight();
-        int minY = Math.max(0, (int) Math.floor(profile.getVerticalRange().getMin()));
-        int maxY = Math.min(worldHeight - 1, (int) Math.ceil(profile.getVerticalRange().getMax()));
-        if (worldYRange != null) {
-            int worldMinHeight = engine.getWorld().minHeight();
-            int rangeMinY = (int) Math.floor(worldYRange.getMin() - worldMinHeight);
-            int rangeMaxY = (int) Math.ceil(worldYRange.getMax() - worldMinHeight);
-            minY = Math.max(minY, rangeMinY);
-            maxY = Math.min(maxY, rangeMaxY);
-        }
-        int sampleStep = Math.max(1, profile.getSampleStep());
-        int surfaceClearance = Math.max(0, profile.getSurfaceClearance());
-        int surfaceBreakDepth = Math.max(0, profile.getSurfaceBreakDepth());
-        double surfaceBreakNoiseThreshold = profile.getSurfaceBreakNoiseThreshold();
-        double surfaceBreakThresholdBoost = Math.max(0, profile.getSurfaceBreakThresholdBoost());
-        int waterMinDepthBelowSurface = Math.max(0, profile.getWaterMinDepthBelowSurface());
-        boolean waterRequiresFloor = profile.isWaterRequiresFloor();
-        boolean allowSurfaceBreak = profile.isAllowSurfaceBreak();
-        if (maxY < minY) {
-            return 0;
-        }
-
-        int x0 = chunkX << 4;
-        int z0 = chunkZ << 4;
-        int[] columnSurface = new int[256];
-        int[] columnMaxY = new int[256];
-        int[] surfaceBreakFloorY = new int[256];
-        boolean[] surfaceBreakColumn = new boolean[256];
-        double[] columnThreshold = new double[256];
-
-        for (int lx = 0; lx < 16; lx++) {
-            int x = x0 + lx;
-            for (int lz = 0; lz < 16; lz++) {
-                int z = z0 + lz;
-                int index = (lx << 4) | lz;
-                int columnSurfaceY = engine.getHeight(x, z);
-                int clearanceTopY = Math.min(maxY, Math.max(minY, columnSurfaceY - surfaceClearance));
-                boolean breakColumn = allowSurfaceBreak
-                        && signed(surfaceBreakDensity.noise(x, z)) >= surfaceBreakNoiseThreshold;
-                int columnTopY = breakColumn
-                        ? Math.min(maxY, Math.max(minY, columnSurfaceY))
-                        : clearanceTopY;
-
-                columnSurface[index] = columnSurfaceY;
-                columnMaxY[index] = columnTopY;
-                surfaceBreakFloorY[index] = Math.max(minY, columnSurfaceY - surfaceBreakDepth);
-                surfaceBreakColumn[index] = breakColumn;
-                columnThreshold[index] = profile.getDensityThreshold().get(thresholdRng, x, z, data) - profile.getThresholdBias();
+        PrecisionStopwatch applyStopwatch = PrecisionStopwatch.start();
+        try {
+            Scratch scratch = SCRATCH.get();
+            if (columnWeights == null || columnWeights.length < 256) {
+                if (!scratch.fullWeightsInitialized) {
+                    Arrays.fill(scratch.fullWeights, 1D);
+                    scratch.fullWeightsInitialized = true;
+                }
+                columnWeights = scratch.fullWeights;
             }
-        }
 
-        int carved = carvePass(
-                writer,
-                x0,
-                z0,
-                minY,
-                maxY,
-                sampleStep,
-                surfaceBreakThresholdBoost,
-                waterMinDepthBelowSurface,
-                waterRequiresFloor,
-                columnSurface,
-                columnMaxY,
-                surfaceBreakFloorY,
-                surfaceBreakColumn,
-                columnThreshold,
-                columnWeights,
-                resolvedMinWeight,
-                resolvedThresholdPenalty,
-                0D,
-                false
-        );
+            double resolvedMinWeight = Math.max(0D, Math.min(1D, minWeight));
+            double resolvedThresholdPenalty = Math.max(0D, thresholdPenalty);
+            int worldHeight = writer.getMantle().getWorldHeight();
+            int minY = Math.max(0, (int) Math.floor(profile.getVerticalRange().getMin()));
+            int maxY = Math.min(worldHeight - 1, (int) Math.ceil(profile.getVerticalRange().getMax()));
+            if (worldYRange != null) {
+                int worldMinHeight = engine.getWorld().minHeight();
+                int rangeMinY = (int) Math.floor(worldYRange.getMin() - worldMinHeight);
+                int rangeMaxY = (int) Math.ceil(worldYRange.getMax() - worldMinHeight);
+                minY = Math.max(minY, rangeMinY);
+                maxY = Math.min(maxY, rangeMaxY);
+            }
+            int sampleStep = Math.max(1, profile.getSampleStep());
+            int surfaceClearance = Math.max(0, profile.getSurfaceClearance());
+            int surfaceBreakDepth = Math.max(0, profile.getSurfaceBreakDepth());
+            double surfaceBreakNoiseThreshold = profile.getSurfaceBreakNoiseThreshold();
+            double surfaceBreakThresholdBoost = Math.max(0, profile.getSurfaceBreakThresholdBoost());
+            int waterMinDepthBelowSurface = Math.max(0, profile.getWaterMinDepthBelowSurface());
+            boolean waterRequiresFloor = profile.isWaterRequiresFloor();
+            boolean allowSurfaceBreak = profile.isAllowSurfaceBreak();
+            if (maxY < minY) {
+                return 0;
+            }
 
-        int minCarveCells = Math.max(0, profile.getMinCarveCells());
-        double recoveryThresholdBoost = Math.max(0, profile.getRecoveryThresholdBoost());
-        if (carved < minCarveCells && recoveryThresholdBoost > 0D) {
-            carved += carvePass(
+            int x0 = chunkX << 4;
+            int z0 = chunkZ << 4;
+            int[] columnSurface = scratch.columnSurface;
+            int[] columnMaxY = scratch.columnMaxY;
+            int[] surfaceBreakFloorY = scratch.surfaceBreakFloorY;
+            boolean[] surfaceBreakColumn = scratch.surfaceBreakColumn;
+            double[] columnThreshold = scratch.columnThreshold;
+
+            for (int lx = 0; lx < 16; lx++) {
+                int x = x0 + lx;
+                for (int lz = 0; lz < 16; lz++) {
+                    int z = z0 + lz;
+                    int index = (lx << 4) | lz;
+                    int columnSurfaceY = engine.getHeight(x, z);
+                    int clearanceTopY = Math.min(maxY, Math.max(minY, columnSurfaceY - surfaceClearance));
+                    boolean breakColumn = allowSurfaceBreak
+                            && signed(surfaceBreakDensity.noise(x, z)) >= surfaceBreakNoiseThreshold;
+                    int columnTopY = breakColumn
+                            ? Math.min(maxY, Math.max(minY, columnSurfaceY))
+                            : clearanceTopY;
+
+                    columnSurface[index] = columnSurfaceY;
+                    columnMaxY[index] = columnTopY;
+                    surfaceBreakFloorY[index] = Math.max(minY, columnSurfaceY - surfaceBreakDepth);
+                    surfaceBreakColumn[index] = breakColumn;
+                    columnThreshold[index] = profile.getDensityThreshold().get(thresholdRng, x, z, data) - profile.getThresholdBias();
+                }
+            }
+
+            int carved = carvePass(
                     writer,
                     x0,
                     z0,
@@ -207,12 +202,40 @@ public class IrisCaveCarver3D {
                     columnWeights,
                     resolvedMinWeight,
                     resolvedThresholdPenalty,
-                    recoveryThresholdBoost,
-                    true
+                    0D,
+                    false
             );
-        }
 
-        return carved;
+            int minCarveCells = Math.max(0, profile.getMinCarveCells());
+            double recoveryThresholdBoost = Math.max(0, profile.getRecoveryThresholdBoost());
+            if (carved < minCarveCells && recoveryThresholdBoost > 0D) {
+                carved += carvePass(
+                        writer,
+                        x0,
+                        z0,
+                        minY,
+                        maxY,
+                        sampleStep,
+                        surfaceBreakThresholdBoost,
+                        waterMinDepthBelowSurface,
+                        waterRequiresFloor,
+                        columnSurface,
+                        columnMaxY,
+                        surfaceBreakFloorY,
+                        surfaceBreakColumn,
+                        columnThreshold,
+                        columnWeights,
+                        resolvedMinWeight,
+                        resolvedThresholdPenalty,
+                        recoveryThresholdBoost,
+                        true
+                );
+            }
+
+            return carved;
+        } finally {
+            engine.getMetrics().getCarveApply().put(applyStopwatch.getMilliseconds());
+        }
     }
 
     private int carvePass(
@@ -305,12 +328,16 @@ public class IrisCaveCarver3D {
     }
 
     private double sampleDensity(int x, int y, int z) {
+        if (!hasWarp && !hasModules) {
+            double density = signed(baseDensity.noise(x, y, z)) * baseWeight;
+            density += signed(detailDensity.noise(x, y, z)) * detailWeight;
+            return density / normalization;
+        }
+
         double warpedX = x;
         double warpedY = y;
         double warpedZ = z;
-        double warpStrength = profile.getWarpStrength();
-
-        if (warpStrength > 0) {
+        if (hasWarp) {
             double warpA = signed(warpDensity.noise(x, y, z));
             double warpB = signed(warpDensity.noise(x + 31.37D, y - 17.21D, z + 23.91D));
             double offsetX = warpA * warpStrength;
@@ -321,20 +348,22 @@ public class IrisCaveCarver3D {
             warpedZ += offsetZ;
         }
 
-        double density = signed(baseDensity.noise(warpedX, warpedY, warpedZ)) * profile.getBaseWeight();
-        density += signed(detailDensity.noise(warpedX, warpedY, warpedZ)) * profile.getDetailWeight();
+        double density = signed(baseDensity.noise(warpedX, warpedY, warpedZ)) * baseWeight;
+        density += signed(detailDensity.noise(warpedX, warpedY, warpedZ)) * detailWeight;
 
-        for (ModuleState module : modules) {
-            if (y < module.minY || y > module.maxY) {
-                continue;
+        if (hasModules) {
+            for (ModuleState module : modules) {
+                if (y < module.minY || y > module.maxY) {
+                    continue;
+                }
+
+                double moduleDensity = signed(module.density.noise(warpedX, warpedY, warpedZ)) - module.threshold;
+                if (module.invert) {
+                    moduleDensity = -moduleDensity;
+                }
+
+                density += moduleDensity * module.weight;
             }
-
-            double moduleDensity = signed(module.density.noise(warpedX, warpedY, warpedZ)) - module.threshold;
-            if (module.invert) {
-                moduleDensity = -moduleDensity;
-            }
-
-            density += moduleDensity * module.weight;
         }
 
         return density / normalization;
@@ -396,5 +425,15 @@ public class IrisCaveCarver3D {
             this.threshold = module.getThreshold();
             this.invert = module.isInvert();
         }
+    }
+
+    private static final class Scratch {
+        private final int[] columnSurface = new int[256];
+        private final int[] columnMaxY = new int[256];
+        private final int[] surfaceBreakFloorY = new int[256];
+        private final boolean[] surfaceBreakColumn = new boolean[256];
+        private final double[] columnThreshold = new double[256];
+        private final double[] fullWeights = new double[256];
+        private boolean fullWeightsInitialized;
     }
 }

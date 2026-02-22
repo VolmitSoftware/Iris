@@ -37,6 +37,8 @@ public class EngineMetrics {
     private final AtomicRollingSequence cave;
     private final AtomicRollingSequence ravine;
     private final AtomicRollingSequence deposit;
+    private final AtomicRollingSequence carveResolve;
+    private final AtomicRollingSequence carveApply;
 
     public EngineMetrics(int mem) {
         this.total = new AtomicRollingSequence(mem);
@@ -52,6 +54,8 @@ public class EngineMetrics {
         this.cave = new AtomicRollingSequence(mem);
         this.ravine = new AtomicRollingSequence(mem);
         this.deposit = new AtomicRollingSequence(mem);
+        this.carveResolve = new AtomicRollingSequence(mem);
+        this.carveApply = new AtomicRollingSequence(mem);
     }
 
     public KMap<String, Double> pull() {
@@ -69,6 +73,8 @@ public class EngineMetrics {
         v.put("cave", cave.getAverage());
         v.put("ravine", ravine.getAverage());
         v.put("deposit", deposit.getAverage());
+        v.put("carve.resolve", carveResolve.getAverage());
+        v.put("carve.apply", carveApply.getAverage());
 
         return v;
     }

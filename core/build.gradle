@@ -112,6 +112,11 @@ dependencies {
     // Script Engine
     slim(libs.kotlin.stdlib)
     slim(libs.kotlin.coroutines)
+
+    testImplementation('junit:junit:4.13.2')
+    testImplementation('org.mockito:mockito-core:5.16.1')
+    testImplementation(libs.spigot)
+    testRuntimeOnly(libs.spigot)
 }
 
 java {

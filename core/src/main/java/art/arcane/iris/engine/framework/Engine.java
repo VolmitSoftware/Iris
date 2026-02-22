@@ -236,12 +236,17 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int y, int z) {
+        return getCaveBiome(x, y, z, null);
+    }
+
+    @BlockCoordinates
+    default IrisBiome getCaveBiome(int x, int y, int z, IrisDimensionCarvingResolver.State state) {
         IrisBiome surfaceBiome = getSurfaceBiome(x, z);
         int worldY = y + getWorld().minHeight();
-        IrisDimensionCarvingEntry rootCarvingEntry = IrisDimensionCarvingResolver.resolveRootEntry(this, worldY);
+        IrisDimensionCarvingEntry rootCarvingEntry = IrisDimensionCarvingResolver.resolveRootEntry(this, worldY, state);
         if (rootCarvingEntry != null) {
-            IrisDimensionCarvingEntry resolvedCarvingEntry = IrisDimensionCarvingResolver.resolveFromRoot(this, rootCarvingEntry, x, z);
-            IrisBiome resolvedCarvingBiome = IrisDimensionCarvingResolver.resolveEntryBiome(this, resolvedCarvingEntry);
+            IrisDimensionCarvingEntry resolvedCarvingEntry = IrisDimensionCarvingResolver.resolveFromRoot(this, rootCarvingEntry, x, z, state);
+            IrisBiome resolvedCarvingBiome = IrisDimensionCarvingResolver.resolveEntryBiome(this, resolvedCarvingEntry, state);
             if (resolvedCarvingBiome != null) {
                 return resolvedCarvingBiome;
             }
@@ -321,70 +326,85 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
         var chunk = mantle.getChunk(c).use();
         try {
+            Runnable tileTask = () -> {
+                chunk.iterate(TileWrapper.class, (x, y, z, v) -> {
+                    Block block = c.getBlock(x & 15, y + getWorld().minHeight(), z & 15);
+                    if (!TileData.setTileState(block, v.getData())) {
+                        NamespacedKey blockTypeKey = KeyedType.getKey(block.getType());
+                        NamespacedKey tileTypeKey = KeyedType.getKey(v.getData().getMaterial());
+                        String blockType = blockTypeKey == null ? block.getType().name() : blockTypeKey.toString();
+                        String tileType = tileTypeKey == null ? v.getData().getMaterial().name() : tileTypeKey.toString();
+                        Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", block.getX(), block.getY(), block.getZ(), blockType, tileType);
+                    }
+                });
+            };
+
+            Runnable customTask = () -> {
+                chunk.iterate(Identifier.class, (x, y, z, v) -> {
+                    Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
+                });
+            };
+
+            Runnable updateTask = () -> {
+                PrecisionStopwatch p = PrecisionStopwatch.start();
+                int[][] grid = new int[16][16];
+                for (int x = 0; x < 16; x++) {
+                    for (int z = 0; z < 16; z++) {
+                        grid[x][z] = Integer.MIN_VALUE;
+                    }
+                }
+
+                RNG rng = new RNG(Cache.key(c.getX(), c.getZ()));
+                chunk.iterate(MatterCavern.class, (x, yf, z, v) -> {
+                    int y = yf + getWorld().minHeight();
+                    x &= 15;
+                    z &= 15;
+                    Block block = c.getBlock(x, y, z);
+                    if (!B.isFluid(block.getBlockData())) {
+                        return;
+                    }
+                    boolean u = B.isAir(block.getRelative(BlockFace.DOWN).getBlockData())
+                            || B.isAir(block.getRelative(BlockFace.WEST).getBlockData())
+                            || B.isAir(block.getRelative(BlockFace.EAST).getBlockData())
+                            || B.isAir(block.getRelative(BlockFace.SOUTH).getBlockData())
+                            || B.isAir(block.getRelative(BlockFace.NORTH).getBlockData());
+
+                    if (u) grid[x][z] = Math.max(grid[x][z], y);
+                });
+
+                for (int x = 0; x < 16; x++) {
+                    for (int z = 0; z < 16; z++) {
+                        if (grid[x][z] == Integer.MIN_VALUE) {
+                            continue;
+                        }
+                        update(x, grid[x][z], z, c, chunk, rng);
+                    }
+                }
+
+                chunk.iterate(MatterUpdate.class, (x, yf, z, v) -> {
+                    int y = yf + getWorld().minHeight();
+                    if (v != null && v.isUpdate()) {
+                        update(x, y, z, c, chunk, rng);
+                    }
+                });
+                chunk.deleteSlices(MatterUpdate.class);
+                getMetrics().getUpdates().put(p.getMilliseconds());
+            };
+
+            if (shouldRunChunkUpdateInline(c)) {
+                chunk.raiseFlagUnchecked(MantleFlag.ETCHED, () -> {
+                    chunk.raiseFlagUnchecked(MantleFlag.TILE, tileTask);
+                    chunk.raiseFlagUnchecked(MantleFlag.CUSTOM, customTask);
+                    chunk.raiseFlagUnchecked(MantleFlag.UPDATE, updateTask);
+                });
+                return;
+            }
+
             Semaphore semaphore = new Semaphore(1024);
             chunk.raiseFlagUnchecked(MantleFlag.ETCHED, () -> {
-                chunk.raiseFlagUnchecked(MantleFlag.TILE, run(semaphore, c, () -> {
-                    chunk.iterate(TileWrapper.class, (x, y, z, v) -> {
-                        Block block = c.getBlock(x & 15, y + getWorld().minHeight(), z & 15);
-                        if (!TileData.setTileState(block, v.getData())) {
-                            NamespacedKey blockTypeKey = KeyedType.getKey(block.getType());
-                            NamespacedKey tileTypeKey = KeyedType.getKey(v.getData().getMaterial());
-                            String blockType = blockTypeKey == null ? block.getType().name() : blockTypeKey.toString();
-                            String tileType = tileTypeKey == null ? v.getData().getMaterial().name() : tileTypeKey.toString();
-                            Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", block.getX(), block.getY(), block.getZ(), blockType, tileType);
-                        }
-                    });
-                }, 0));
-                chunk.raiseFlagUnchecked(MantleFlag.CUSTOM, run(semaphore, c, () -> {
-                    chunk.iterate(Identifier.class, (x, y, z, v) -> {
-                        Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
-                    });
-                }, 0));
-
-                chunk.raiseFlagUnchecked(MantleFlag.UPDATE, run(semaphore, c, () -> {
-                    PrecisionStopwatch p = PrecisionStopwatch.start();
-                    int[][] grid = new int[16][16];
-                    for (int x = 0; x < 16; x++) {
-                        for (int z = 0; z < 16; z++) {
-                            grid[x][z] = Integer.MIN_VALUE;
-                        }
-                    }
-
-                    RNG rng = new RNG(Cache.key(c.getX(), c.getZ()));
-                    chunk.iterate(MatterCavern.class, (x, yf, z, v) -> {
-                        int y = yf + getWorld().minHeight();
-                        x &= 15;
-                        z &= 15;
-                        Block block = c.getBlock(x, y, z);
-                        if (!B.isFluid(block.getBlockData())) {
-                            return;
-                        }
-                        boolean u = B.isAir(block.getRelative(BlockFace.DOWN).getBlockData())
-                                || B.isAir(block.getRelative(BlockFace.WEST).getBlockData())
-                                || B.isAir(block.getRelative(BlockFace.EAST).getBlockData())
-                                || B.isAir(block.getRelative(BlockFace.SOUTH).getBlockData())
-                                || B.isAir(block.getRelative(BlockFace.NORTH).getBlockData());
-
-                        if (u) grid[x][z] = Math.max(grid[x][z], y);
-                    });
-
-                    for (int x = 0; x < 16; x++) {
-                        for (int z = 0; z < 16; z++) {
-                            if (grid[x][z] == Integer.MIN_VALUE)
-                                continue;
-                            update(x, grid[x][z], z, c, chunk, rng);
-                        }
-                    }
-
-                    chunk.iterate(MatterUpdate.class, (x, yf, z, v) -> {
-                        int y = yf + getWorld().minHeight();
-                        if (v != null && v.isUpdate()) {
-                            update(x, y, z, c, chunk, rng);
-                        }
-                    });
-                    chunk.deleteSlices(MatterUpdate.class);
-                    getMetrics().getUpdates().put(p.getMilliseconds());
-                }, RNG.r.i(1, 20))); //Why is there a random delay here?
+                chunk.raiseFlagUnchecked(MantleFlag.TILE, run(semaphore, c, tileTask, 0));
+                chunk.raiseFlagUnchecked(MantleFlag.CUSTOM, run(semaphore, c, customTask, 0));
+                chunk.raiseFlagUnchecked(MantleFlag.UPDATE, run(semaphore, c, updateTask, RNG.r.i(1, 20)));
             });
 
             try {
@@ -398,6 +418,18 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
     }
 
+    private static boolean shouldRunChunkUpdateInline(Chunk chunk) {
+        if (chunk == null) {
+            return false;
+        }
+
+        if (!J.isFolia()) {
+            return J.isPrimaryThread();
+        }
+
+        return J.isOwnedByCurrentRegion(chunk.getWorld(), chunk.getX(), chunk.getZ());
+    }
+
     private static Runnable run(Semaphore semaphore, Chunk contextChunk, Runnable runnable, int delay) {
         return () -> {
             try {
@@ -407,13 +439,23 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             }
 
             int effectiveDelay = J.isFolia() ? 0 : delay;
-            J.runRegion(contextChunk.getWorld(), contextChunk.getX(), contextChunk.getZ(), () -> {
+            boolean scheduled = J.runRegion(contextChunk.getWorld(), contextChunk.getX(), contextChunk.getZ(), () -> {
                 try {
                     runnable.run();
                 } finally {
                     semaphore.release();
                 }
             }, effectiveDelay);
+
+            if (!scheduled) {
+                try {
+                    if (J.isPrimaryThread()) {
+                        runnable.run();
+                    }
+                } finally {
+                    semaphore.release();
+                }
+            }
         };
     }
 

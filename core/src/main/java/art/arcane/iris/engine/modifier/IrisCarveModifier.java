@@ -19,17 +19,18 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.engine.actuator.IrisDecorantActuator;
-import art.arcane.iris.engine.data.cache.Cache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedModifier;
-import art.arcane.iris.engine.object.*;
-import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.collection.KMap;
+import art.arcane.iris.engine.object.InferredType;
+import art.arcane.iris.engine.object.IrisBiome;
+import art.arcane.iris.engine.object.IrisDecorationPart;
+import art.arcane.iris.engine.object.IrisDecorator;
+import art.arcane.iris.engine.object.IrisDimensionCarvingResolver;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
-import art.arcane.volmlib.util.function.Consumer4;
 import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.M;
@@ -41,6 +42,8 @@ import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
+
+import java.util.Arrays;
 
 public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     private final RNG rng;
@@ -60,124 +63,135 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         Mantle<Matter> mantle = getEngine().getMantle().getMantle();
         MantleChunk<Matter> mc = mantle.getChunk(x, z).use();
-        KMap<Long, KList<Integer>> positions = new KMap<>();
-        KMap<IrisPosition, MatterCavern> walls = new KMap<>();
-        Consumer4<Integer, Integer, Integer, MatterCavern> iterator = (xx, yy, zz, c) -> {
-            if (c == null) {
-                return;
-            }
+        IrisDimensionCarvingResolver.State resolverState = new IrisDimensionCarvingResolver.State();
+        int[][] columnHeights = new int[256][];
+        int[] columnHeightSizes = new int[256];
+        PackedWallBuffer walls = new PackedWallBuffer(512);
+        try {
+            PrecisionStopwatch resolveStopwatch = PrecisionStopwatch.start();
+            mc.iterate(MatterCavern.class, (xx, yy, zz, c) -> {
+                if (c == null) {
+                    return;
+                }
 
-            if (yy >= getEngine().getWorld().maxHeight() - getEngine().getWorld().minHeight() || yy <= 0) { // Yes, skip bedrock
-                return;
-            }
+                if (yy >= getEngine().getWorld().maxHeight() - getEngine().getWorld().minHeight() || yy <= 0) {
+                    return;
+                }
 
-            int rx = xx & 15;
-            int rz = zz & 15;
+                int rx = xx & 15;
+                int rz = zz & 15;
+                int columnIndex = (rx << 4) | rz;
+                BlockData current = output.get(rx, yy, rz);
 
-            BlockData current = output.get(rx, yy, rz);
+                if (B.isFluid(current)) {
+                    return;
+                }
 
-            if (B.isFluid(current)) {
-                return;
-            }
+                appendColumnHeight(columnHeights, columnHeightSizes, columnIndex, yy);
 
-            positions.computeIfAbsent(Cache.key(rx, rz), (k) -> new KList<>()).qadd(yy);
+                if (rz < 15 && mc.get(xx, yy, zz + 1, MatterCavern.class) == null) {
+                    walls.put(rx, yy, rz + 1, c);
+                }
 
-            //todo: Fix chunk decoration not working on chunk's border
+                if (rx < 15 && mc.get(xx + 1, yy, zz, MatterCavern.class) == null) {
+                    walls.put(rx + 1, yy, rz, c);
+                }
 
-            if (rz < 15 && mc.get(xx, yy, zz + 1, MatterCavern.class) == null) {
-                walls.put(new IrisPosition(rx, yy, rz + 1), c);
-            }
+                if (rz > 0 && mc.get(xx, yy, zz - 1, MatterCavern.class) == null) {
+                    walls.put(rx, yy, rz - 1, c);
+                }
 
-            if (rx < 15 && mc.get(xx + 1, yy, zz, MatterCavern.class) == null) {
-                walls.put(new IrisPosition(rx + 1, yy, rz), c);
-            }
+                if (rx > 0 && mc.get(xx - 1, yy, zz, MatterCavern.class) == null) {
+                    walls.put(rx - 1, yy, rz, c);
+                }
 
-            if (rz > 0 && mc.get(xx, yy, zz - 1, MatterCavern.class) == null) {
-                walls.put(new IrisPosition(rx, yy, rz - 1), c);
-            }
+                if (current.getMaterial().isAir()) {
+                    return;
+                }
 
-            if (rx > 0 && mc.get(xx - 1, yy, zz, MatterCavern.class) == null) {
-                walls.put(new IrisPosition(rx - 1, yy, rz), c);
-            }
-
-            if (current.getMaterial().isAir()) {
-                return;
-            }
-
-            if (c.isWater()) {
-                output.set(rx, yy, rz, context.getFluid().get(rx, rz));
-            } else if (c.isLava()) {
-                output.set(rx, yy, rz, LAVA);
-            } else if (c.getLiquid() == 3) {
-                output.set(rx, yy, rz, AIR);
-            } else {
-                if (getEngine().getDimension().getCaveLavaHeight() > yy) {
+                if (c.isWater()) {
+                    output.set(rx, yy, rz, context.getFluid().get(rx, rz));
+                } else if (c.isLava()) {
+                    output.set(rx, yy, rz, LAVA);
+                } else if (c.getLiquid() == 3) {
+                    output.set(rx, yy, rz, AIR);
+                } else if (getEngine().getDimension().getCaveLavaHeight() > yy) {
                     output.set(rx, yy, rz, LAVA);
                 } else {
                     output.set(rx, yy, rz, AIR);
                 }
-            }
-        };
+            });
+            getEngine().getMetrics().getCarveResolve().put(resolveStopwatch.getMilliseconds());
 
-        mc.iterate(MatterCavern.class, iterator);
+            PrecisionStopwatch applyStopwatch = PrecisionStopwatch.start();
+            try {
+                walls.forEach((rx, yy, rz, cavern) -> {
+                    int worldX = rx + (x << 4);
+                    int worldZ = rz + (z << 4);
+                    IrisBiome biome = cavern.getCustomBiome().isEmpty()
+                            ? getEngine().getCaveBiome(worldX, yy, worldZ, resolverState)
+                            : getEngine().getData().getBiomeLoader().load(cavern.getCustomBiome());
 
-        walls.forEach((i, v) -> {
-            IrisBiome biome = v.getCustomBiome().isEmpty()
-                    ? getEngine().getCaveBiome(i.getX() + (x << 4), i.getY(), i.getZ() + (z << 4))
-                    : getEngine().getData().getBiomeLoader().load(v.getCustomBiome());
+                    if (biome != null) {
+                        biome.setInferredType(InferredType.CAVE);
+                        BlockData data = biome.getWall().get(rng, worldX, yy, worldZ, getData());
 
-            if (biome != null) {
-                biome.setInferredType(InferredType.CAVE);
-                BlockData d = biome.getWall().get(rng, i.getX() + (x << 4), i.getY(), i.getZ() + (z << 4), getData());
+                        if (data != null && B.isSolid(output.get(rx, yy, rz)) && yy <= context.getHeight().get(rx, rz)) {
+                            output.set(rx, yy, rz, data);
+                        }
+                    }
+                });
 
-                if (d != null && B.isSolid(output.get(i.getX(), i.getY(), i.getZ())) && i.getY() <= context.getHeight().get(i.getX(), i.getZ())) {
-                    output.set(i.getX(), i.getY(), i.getZ(), d);
+                for (int columnIndex = 0; columnIndex < 256; columnIndex++) {
+                    int size = columnHeightSizes[columnIndex];
+                    if (size <= 0) {
+                        continue;
+                    }
+
+                    int[] heights = columnHeights[columnIndex];
+                    Arrays.sort(heights, 0, size);
+                    int rx = columnIndex >> 4;
+                    int rz = columnIndex & 15;
+                    CaveZone zone = new CaveZone();
+                    zone.setFloor(heights[0]);
+                    int buf = heights[0] - 1;
+
+                    for (int heightIndex = 0; heightIndex < size; heightIndex++) {
+                        int y = heights[heightIndex];
+                        if (y < 0 || y > getEngine().getHeight()) {
+                            continue;
+                        }
+
+                        if (y == buf + 1) {
+                            buf = y;
+                            zone.ceiling = buf;
+                        } else if (zone.isValid(getEngine())) {
+                            processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4), resolverState);
+                            zone = new CaveZone();
+                            zone.setFloor(y);
+                            buf = y;
+                        } else {
+                            zone = new CaveZone();
+                            zone.setFloor(y);
+                            buf = y;
+                        }
+                    }
+
+                    if (zone.isValid(getEngine())) {
+                        processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4), resolverState);
+                    }
                 }
+            } finally {
+                getEngine().getMetrics().getCarveApply().put(applyStopwatch.getMilliseconds());
             }
-        });
-
-        positions.forEach((k, v) -> {
-            if (v.isEmpty()) {
-                return;
-            }
-
-            int rx = Cache.keyX(k);
-            int rz = Cache.keyZ(k);
-            v.sort(Integer::compare);
-            CaveZone zone = new CaveZone();
-            zone.setFloor(v.get(0));
-            int buf = v.get(0) - 1;
-
-            for (Integer i : v) {
-                if (i < 0 || i > getEngine().getHeight()) {
-                    continue;
-                }
-
-                if (i == buf + 1) {
-                    buf = i;
-                    zone.ceiling = buf;
-                } else if (zone.isValid(getEngine())) {
-                    processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4));
-                    zone = new CaveZone();
-                    zone.setFloor(i);
-                    buf = i;
-                }
-            }
-
-            if (zone.isValid(getEngine())) {
-                processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4));
-            }
-        });
-
-        getEngine().getMetrics().getDeposit().put(p.getMilliseconds());
-        mc.release();
+        } finally {
+            getEngine().getMetrics().getCave().put(p.getMilliseconds());
+            mc.release();
+        }
     }
 
-    private void processZone(Hunk<BlockData> output, MantleChunk<Matter> mc, Mantle<Matter> mantle, CaveZone zone, int rx, int rz, int xx, int zz) {
-        boolean decFloor = B.isSolid(output.getClosest(rx, zone.floor - 1, rz));
-        boolean decCeiling = B.isSolid(output.getClosest(rx, zone.ceiling + 1, rz));
+    private void processZone(Hunk<BlockData> output, MantleChunk<Matter> mc, Mantle<Matter> mantle, CaveZone zone, int rx, int rz, int xx, int zz, IrisDimensionCarvingResolver.State resolverState) {
         int center = (zone.floor + zone.ceiling) / 2;
-        int thickness = zone.airThickness();
         String customBiome = "";
 
         if (B.isDecorant(output.getClosest(rx, zone.ceiling + 1, rz))) {
@@ -207,7 +221,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         }
 
         IrisBiome biome = customBiome.isEmpty()
-                ? getEngine().getCaveBiome(xx, center, zz)
+                ? getEngine().getCaveBiome(xx, center, zz, resolverState)
                 : getEngine().getData().getBiomeLoader().load(customBiome);
 
         if (biome == null) {
@@ -270,6 +284,151 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 decorant.getCeilingDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getCeiling(), zone.airThickness());
             }
         }
+    }
+
+    private void appendColumnHeight(int[][] heights, int[] sizes, int columnIndex, int y) {
+        int[] column = heights[columnIndex];
+        int size = sizes[columnIndex];
+        if (column == null) {
+            column = new int[8];
+            heights[columnIndex] = column;
+        } else if (size >= column.length) {
+            int nextSize = column.length << 1;
+            column = Arrays.copyOf(column, nextSize);
+            heights[columnIndex] = column;
+        }
+
+        column[size] = y;
+        sizes[columnIndex] = size + 1;
+    }
+
+    private static final class PackedWallBuffer {
+        private static final int EMPTY_KEY = -1;
+        private static final double LOAD_FACTOR = 0.75D;
+
+        private int[] keys;
+        private MatterCavern[] values;
+        private int mask;
+        private int resizeAt;
+        private int size;
+
+        private PackedWallBuffer(int expectedSize) {
+            int capacity = 1;
+            int minimumCapacity = Math.max(8, expectedSize);
+            while (capacity < minimumCapacity) {
+                capacity <<= 1;
+            }
+
+            this.keys = new int[capacity];
+            Arrays.fill(this.keys, EMPTY_KEY);
+            this.values = new MatterCavern[capacity];
+            this.mask = capacity - 1;
+            this.resizeAt = Math.max(1, (int) (capacity * LOAD_FACTOR));
+        }
+
+        private void put(int x, int y, int z, MatterCavern value) {
+            int key = pack(x, y, z);
+            int index = mix(key) & mask;
+
+            while (true) {
+                int existingKey = keys[index];
+                if (existingKey == EMPTY_KEY) {
+                    keys[index] = key;
+                    values[index] = value;
+                    size++;
+                    if (size >= resizeAt) {
+                        resize();
+                    }
+                    return;
+                }
+
+                if (existingKey == key) {
+                    values[index] = value;
+                    return;
+                }
+
+                index = (index + 1) & mask;
+            }
+        }
+
+        private void forEach(PackedWallConsumer consumer) {
+            for (int index = 0; index < keys.length; index++) {
+                int key = keys[index];
+                if (key == EMPTY_KEY) {
+                    continue;
+                }
+
+                MatterCavern cavern = values[index];
+                if (cavern == null) {
+                    continue;
+                }
+
+                consumer.accept(unpackX(key), unpackY(key), unpackZ(key), cavern);
+            }
+        }
+
+        private void resize() {
+            int[] oldKeys = keys;
+            MatterCavern[] oldValues = values;
+            int nextCapacity = oldKeys.length << 1;
+            keys = new int[nextCapacity];
+            Arrays.fill(keys, EMPTY_KEY);
+            values = new MatterCavern[nextCapacity];
+            mask = nextCapacity - 1;
+            resizeAt = Math.max(1, (int) (nextCapacity * LOAD_FACTOR));
+            size = 0;
+
+            for (int index = 0; index < oldKeys.length; index++) {
+                int key = oldKeys[index];
+                if (key == EMPTY_KEY) {
+                    continue;
+                }
+
+                MatterCavern value = oldValues[index];
+                if (value == null) {
+                    continue;
+                }
+
+                reinsert(key, value);
+            }
+        }
+
+        private void reinsert(int key, MatterCavern value) {
+            int index = mix(key) & mask;
+            while (keys[index] != EMPTY_KEY) {
+                index = (index + 1) & mask;
+            }
+
+            keys[index] = key;
+            values[index] = value;
+            size++;
+        }
+
+        private int pack(int x, int y, int z) {
+            return (y << 8) | ((x & 15) << 4) | (z & 15);
+        }
+
+        private int unpackX(int key) {
+            return (key >> 4) & 15;
+        }
+
+        private int unpackY(int key) {
+            return key >> 8;
+        }
+
+        private int unpackZ(int key) {
+            return key & 15;
+        }
+
+        private int mix(int value) {
+            int mixed = value * 0x9E3779B9;
+            return mixed ^ (mixed >>> 16);
+        }
+    }
+
+    @FunctionalInterface
+    private interface PackedWallConsumer {
+        void accept(int x, int y, int z, MatterCavern cavern);
     }
 
     @Data

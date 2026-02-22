@@ -45,13 +45,23 @@ import java.util.concurrent.atomic.AtomicLong;
 public class AsyncPregenMethod implements PregeneratorMethod {
     private static final AtomicInteger THREAD_COUNT = new AtomicInteger();
     private static final int FOLIA_MAX_CONCURRENCY = 32;
-    private static final long CHUNK_LOAD_TIMEOUT_SECONDS = 15L;
+    private static final int NON_FOLIA_MAX_CONCURRENCY = 96;
+    private static final int NON_FOLIA_CONCURRENCY_FACTOR = 2;
+    private static final int ADAPTIVE_TIMEOUT_STEP = 3;
     private final World world;
     private final Executor executor;
     private final Semaphore semaphore;
     private final int threads;
+    private final int timeoutSeconds;
+    private final int timeoutWarnIntervalMs;
     private final boolean urgent;
     private final Map<Chunk, Long> lastUse;
+    private final AtomicInteger adaptiveInFlightLimit;
+    private final int adaptiveMinInFlightLimit;
+    private final AtomicInteger timeoutStreak = new AtomicInteger();
+    private final AtomicLong lastTimeoutLogAt = new AtomicLong(0L);
+    private final AtomicInteger suppressedTimeoutLogs = new AtomicInteger();
+    private final AtomicLong lastAdaptiveLogAt = new AtomicLong(0L);
     private final AtomicInteger inFlight = new AtomicInteger();
     private final AtomicLong submitted = new AtomicLong();
     private final AtomicLong completed = new AtomicLong();
@@ -71,14 +81,21 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             boolean useTicketQueue = IrisSettings.get().getPregen().isUseTicketQueue();
             this.executor = useTicketQueue ? new TicketExecutor() : new ServiceExecutor();
         }
-        int configuredThreads = IrisSettings.get().getPregen().getMaxConcurrency();
+        IrisSettings.IrisSettingsPregen pregen = IrisSettings.get().getPregen();
+        int configuredThreads = pregen.getMaxConcurrency();
         if (J.isFolia()) {
             configuredThreads = Math.min(configuredThreads, FOLIA_MAX_CONCURRENCY);
+        } else {
+            configuredThreads = Math.min(configuredThreads, resolveNonFoliaConcurrencyCap());
         }
         this.threads = Math.max(1, configuredThreads);
         this.semaphore = new Semaphore(this.threads, true);
+        this.timeoutSeconds = pregen.getChunkLoadTimeoutSeconds();
+        this.timeoutWarnIntervalMs = pregen.getTimeoutWarnIntervalMs();
         this.urgent = IrisSettings.get().getPregen().useHighPriority;
         this.lastUse = new ConcurrentHashMap<>();
+        this.adaptiveInFlightLimit = new AtomicInteger(this.threads);
+        this.adaptiveMinInFlightLimit = Math.max(4, Math.min(16, Math.max(1, this.threads / 4)));
     }
 
     private void unloadAndSaveAllChunks() {
@@ -121,7 +138,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         if (root instanceof java.util.concurrent.TimeoutException) {
-            Iris.warn("Timed out async pregen chunk load at " + x + "," + z + " after " + CHUNK_LOAD_TIMEOUT_SECONDS + "s. " + metricsSnapshot());
+            onTimeout(x, z);
         } else {
             Iris.warn("Failed async pregen chunk load at " + x + "," + z + ". " + metricsSnapshot());
         }
@@ -130,10 +147,93 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         return null;
     }
 
+    private void onTimeout(int x, int z) {
+        int streak = timeoutStreak.incrementAndGet();
+        if (streak % ADAPTIVE_TIMEOUT_STEP == 0) {
+            lowerAdaptiveInFlightLimit();
+        }
+
+        long now = M.ms();
+        long last = lastTimeoutLogAt.get();
+        if (now - last < timeoutWarnIntervalMs || !lastTimeoutLogAt.compareAndSet(last, now)) {
+            suppressedTimeoutLogs.incrementAndGet();
+            return;
+        }
+
+        int suppressed = suppressedTimeoutLogs.getAndSet(0);
+        String suppressedText = suppressed <= 0 ? "" : " suppressed=" + suppressed;
+        Iris.warn("Timed out async pregen chunk load at " + x + "," + z
+                + " after " + timeoutSeconds + "s."
+                + " adaptiveLimit=" + adaptiveInFlightLimit.get()
+                + suppressedText + " " + metricsSnapshot());
+    }
+
+    private void onSuccess() {
+        int streak = timeoutStreak.get();
+        if (streak > 0) {
+            timeoutStreak.compareAndSet(streak, streak - 1);
+            return;
+        }
+
+        if ((completed.get() & 31L) == 0L) {
+            raiseAdaptiveInFlightLimit();
+        }
+    }
+
+    private void lowerAdaptiveInFlightLimit() {
+        while (true) {
+            int current = adaptiveInFlightLimit.get();
+            if (current <= adaptiveMinInFlightLimit) {
+                return;
+            }
+
+            int next = Math.max(adaptiveMinInFlightLimit, current - 1);
+            if (adaptiveInFlightLimit.compareAndSet(current, next)) {
+                logAdaptiveLimit("decrease", next);
+                return;
+            }
+        }
+    }
+
+    private void raiseAdaptiveInFlightLimit() {
+        while (true) {
+            int current = adaptiveInFlightLimit.get();
+            if (current >= threads) {
+                return;
+            }
+
+            int next = Math.min(threads, current + 1);
+            if (adaptiveInFlightLimit.compareAndSet(current, next)) {
+                logAdaptiveLimit("increase", next);
+                return;
+            }
+        }
+    }
+
+    private void logAdaptiveLimit(String mode, int value) {
+        long now = M.ms();
+        long last = lastAdaptiveLogAt.get();
+        if (now - last < 5000L) {
+            return;
+        }
+
+        if (lastAdaptiveLogAt.compareAndSet(last, now)) {
+            Iris.info("Async pregen adaptive limit " + mode + " -> " + value + " " + metricsSnapshot());
+        }
+    }
+
+    private int resolveNonFoliaConcurrencyCap() {
+        int worldGenThreads = Math.max(1, IrisSettings.get().getConcurrency().getWorldGenThreads());
+        int recommended = worldGenThreads * NON_FOLIA_CONCURRENCY_FACTOR;
+        int bounded = Math.max(8, Math.min(NON_FOLIA_MAX_CONCURRENCY, recommended));
+        return bounded;
+    }
+
     private String metricsSnapshot() {
         long stalledFor = Math.max(0L, M.ms() - lastProgressAt.get());
         return "world=" + world.getName()
                 + " permits=" + semaphore.availablePermits() + "/" + threads
+                + " adaptiveLimit=" + adaptiveInFlightLimit.get()
                 + " inFlight=" + inFlight.get()
                 + " submitted=" + submitted.get()
                 + " completed=" + completed.get()
@@ -149,6 +249,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private void markFinished(boolean success) {
         if (success) {
             completed.incrementAndGet();
+            onSuccess();
         } else {
             failed.incrementAndGet();
         }
@@ -177,8 +278,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         Iris.info("Async pregen init: world=" + world.getName()
                 + ", mode=" + (J.isFolia() ? "folia" : "paper")
                 + ", threads=" + threads
+                + ", adaptiveLimit=" + adaptiveInFlightLimit.get()
                 + ", urgent=" + urgent
-                + ", timeout=" + CHUNK_LOAD_TIMEOUT_SECONDS + "s");
+                + ", timeout=" + timeoutSeconds + "s");
         unloadAndSaveAllChunks();
         increaseWorkerThreads();
     }
@@ -216,6 +318,14 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         listener.onChunkGenerating(x, z);
         try {
             long waitStart = M.ms();
+            while (inFlight.get() >= adaptiveInFlightLimit.get()) {
+                long waited = Math.max(0L, M.ms() - waitStart);
+                logPermitWaitIfNeeded(x, z, waited);
+                if (!J.sleep(5)) {
+                    return;
+                }
+            }
+
             while (!semaphore.tryAcquire(5, TimeUnit.SECONDS)) {
                 logPermitWaitIfNeeded(x, z, Math.max(0L, M.ms() - waitStart));
             }
@@ -288,7 +398,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         @Override
         public void generate(int x, int z, PregenListener listener) {
             if (!J.runRegion(world, x, z, () -> PaperLib.getChunkAtAsync(world, x, z, true, urgent)
-                    .orTimeout(CHUNK_LOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                    .orTimeout(timeoutSeconds, TimeUnit.SECONDS)
                     .whenComplete((chunk, throwable) -> {
                         boolean success = false;
                         try {
@@ -328,15 +438,16 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 boolean success = false;
                 try {
                     Chunk i = PaperLib.getChunkAtAsync(world, x, z, true, urgent)
-                            .orTimeout(CHUNK_LOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                            .orTimeout(timeoutSeconds, TimeUnit.SECONDS)
                             .exceptionally(e -> onChunkFutureFailure(x, z, e))
                             .get();
 
-                    listener.onChunkGenerated(x, z);
-                    listener.onChunkCleaned(x, z);
                     if (i == null) {
                         return;
                     }
+
+                    listener.onChunkGenerated(x, z);
+                    listener.onChunkCleaned(x, z);
                     lastUse.put(i, M.ms());
                     success = true;
                 } catch (InterruptedException ignored) {
@@ -361,16 +472,18 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         @Override
         public void generate(int x, int z, PregenListener listener) {
             PaperLib.getChunkAtAsync(world, x, z, true, urgent)
-                    .orTimeout(CHUNK_LOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                    .orTimeout(timeoutSeconds, TimeUnit.SECONDS)
                     .exceptionally(e -> onChunkFutureFailure(x, z, e))
                     .thenAccept(i -> {
                         boolean success = false;
                         try {
+                            if (i == null) {
+                                return;
+                            }
+
                             listener.onChunkGenerated(x, z);
                             listener.onChunkCleaned(x, z);
-                            if (i != null) {
-                                lastUse.put(i, M.ms());
-                            }
+                            lastUse.put(i, M.ms());
                             success = true;
                         } finally {
                             markFinished(success);

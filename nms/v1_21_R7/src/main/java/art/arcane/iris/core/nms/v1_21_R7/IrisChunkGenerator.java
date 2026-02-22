@@ -202,7 +202,6 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
         List<StructureStart> starts = new ArrayList<>(structureManager.startsForStructure(chunkAccess.getPos(), structure -> true));
         starts.sort(Comparator.comparingInt(start -> structureOrder.getOrDefault(start.getStructure(), Integer.MAX_VALUE)));
         Set<String> externalSmartBoreStructures = ExternalDataPackPipeline.snapshotSmartBoreStructureKeys();
-        Set<String> suppressedVanillaStructures = ExternalDataPackPipeline.snapshotSuppressedVanillaStructureKeys();
 
         int seededStructureIndex = Integer.MIN_VALUE;
         for (int j = 0; j < starts.size(); j++) {
@@ -215,9 +214,6 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
             }
             Supplier<String> supplier = () -> structureRegistry.getResourceKey(structure).map(Object::toString).orElseGet(structure::toString);
             String structureKey = resolveStructureKey(structureRegistry, structure);
-            if (suppressedVanillaStructures.contains(structureKey)) {
-                continue;
-            }
             boolean isExternalSmartBoreStructure = externalSmartBoreStructures.contains(structureKey);
             BitSet[] beforeSolidColumns = null;
             if (isExternalSmartBoreStructure) {
@@ -229,6 +225,9 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
                 start.placeInChunk(level, structureManager, this, random, getWritableArea(chunkAccess), chunkAccess.getPos());
                 if (isExternalSmartBoreStructure && beforeSolidColumns != null) {
                     applyExternalStructureFoundations(level, chunkAccess, beforeSolidColumns, EXTERNAL_FOUNDATION_MAX_DEPTH);
+                }
+                if (shouldLogExternalStructureFingerprint(structureKey)) {
+                    logExternalStructureFingerprint(structureKey, start);
                 }
             } catch (Exception exception) {
                 CrashReport crashReport = CrashReport.forThrowable(exception, "Feature placement");
@@ -379,6 +378,133 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
             return false;
         }
         return Heightmap.Types.MOTION_BLOCKING_NO_LEAVES.isOpaque().test(state);
+    }
+
+    private static boolean shouldLogExternalStructureFingerprint(String structureKey) {
+        if (!IrisSettings.get().getGeneral().isDebug()) {
+            return false;
+        }
+        if (structureKey == null || structureKey.isBlank()) {
+            return false;
+        }
+
+        String normalized = structureKey.toLowerCase(Locale.ROOT);
+        return "minecraft:ancient_city".equals(normalized)
+                || "minecraft:mineshaft".equals(normalized)
+                || "minecraft:mineshaft_mesa".equals(normalized);
+    }
+
+    private static void logExternalStructureFingerprint(String structureKey, StructureStart start) {
+        if (start == null) {
+            return;
+        }
+
+        List<?> pieces = extractPieces(start);
+        int pieceCount = pieces.size();
+        String firstPieceType = "none";
+        String firstPieceFingerprint = "none";
+        if (!pieces.isEmpty()) {
+            Object firstPiece = pieces.get(0);
+            if (firstPiece != null) {
+                firstPieceType = firstPiece.getClass().getName();
+                firstPieceFingerprint = resolvePieceFingerprint(firstPiece);
+            }
+        }
+
+        Iris.debug("External structure fingerprint: key=" + structureKey
+                + ", pieces=" + pieceCount
+                + ", firstPiece=" + firstPieceType
+                + ", fingerprint=" + firstPieceFingerprint);
+    }
+
+    private static List<?> extractPieces(StructureStart start) {
+        try {
+            Method getPiecesMethod = start.getClass().getMethod("getPieces");
+            Object result = getPiecesMethod.invoke(start);
+            if (result instanceof List<?> list) {
+                return list;
+            }
+            if (result != null) {
+                Method piecesMethod = result.getClass().getMethod("pieces");
+                Object piecesResult = piecesMethod.invoke(result);
+                if (piecesResult instanceof List<?> list) {
+                    return list;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+
+        try {
+            Method piecesMethod = start.getClass().getMethod("pieces");
+            Object result = piecesMethod.invoke(start);
+            if (result instanceof List<?> list) {
+                return list;
+            }
+        } catch (Throwable ignored) {
+        }
+
+        return List.of();
+    }
+
+    private static String resolvePieceFingerprint(Object piece) {
+        if (piece == null) {
+            return "unknown";
+        }
+
+        try {
+            Method templateNameMethod = piece.getClass().getMethod("templateName");
+            Object value = templateNameMethod.invoke(piece);
+            if (value != null) {
+                String normalized = String.valueOf(value);
+                if (!normalized.isBlank()) {
+                    return normalized;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+
+        try {
+            Method templateMethod = piece.getClass().getMethod("template");
+            Object value = templateMethod.invoke(piece);
+            if (value != null) {
+                return value.getClass().getName();
+            }
+        } catch (Throwable ignored) {
+        }
+
+        Class<?> current = piece.getClass();
+        while (current != null && current != Object.class) {
+            Field[] fields = current.getDeclaredFields();
+            for (Field field : fields) {
+                try {
+                    field.setAccessible(true);
+                    Object value = field.get(piece);
+                    if (value == null) {
+                        continue;
+                    }
+
+                    if (value instanceof Identifier identifier) {
+                        String normalized = identifier.toString();
+                        if (!normalized.isBlank()) {
+                            return normalized;
+                        }
+                    }
+
+                    if (value instanceof String text) {
+                        String fieldName = field.getName() == null ? "" : field.getName().toLowerCase(Locale.ROOT);
+                        if (fieldName.contains("template") || fieldName.contains("name") || fieldName.contains("id")) {
+                            if (!text.isBlank()) {
+                                return text;
+                            }
+                        }
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+            current = current.getSuperclass();
+        }
+
+        return piece.getClass().getSimpleName();
     }
 
     private Map<Structure, Integer> getStructureOrder(Registry<Structure> structureRegistry) {

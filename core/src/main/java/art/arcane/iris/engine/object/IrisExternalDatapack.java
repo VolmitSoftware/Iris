@@ -35,6 +35,14 @@ public class IrisExternalDatapack {
     @Desc("Explicit replacement targets for minecraft namespace assets")
     private IrisExternalDatapackReplaceTargets replaceTargets = new IrisExternalDatapackReplaceTargets();
 
+    @ArrayType(type = IrisExternalDatapackStructureAlias.class, min = 1)
+    @Desc("Optional structure alias mappings used to synthesize vanilla structure replacements from non-minecraft source keys")
+    private KList<IrisExternalDatapackStructureAlias> structureAliases = new KList<>();
+
+    @ArrayType(type = IrisExternalDatapackStructureSetAlias.class, min = 1)
+    @Desc("Optional structure-set alias mappings used to synthesize vanilla structure_set replacements from non-minecraft source keys")
+    private KList<IrisExternalDatapackStructureSetAlias> structureSetAliases = new KList<>();
+
     @ArrayType(type = IrisExternalDatapackStructurePatch.class, min = 1)
     @Desc("Structure placement patches applied when this external datapack is projected")
     private KList<IrisExternalDatapackStructurePatch> structurePatches = new KList<>();

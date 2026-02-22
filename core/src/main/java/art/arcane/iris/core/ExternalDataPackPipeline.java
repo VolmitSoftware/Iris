@@ -9,6 +9,8 @@ import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisExternalDatapackReplaceTargets;
+import art.arcane.iris.engine.object.IrisExternalDatapackStructureAlias;
+import art.arcane.iris.engine.object.IrisExternalDatapackStructureSetAlias;
 import art.arcane.iris.engine.object.IrisExternalDatapackStructurePatch;
 import art.arcane.iris.engine.object.TileData;
 import art.arcane.iris.util.common.data.B;
@@ -73,6 +75,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 public final class ExternalDataPackPipeline {
     private static final Pattern STRUCTURE_JSON_ENTRY = Pattern.compile("(?i)^data/([^/]+)/worldgen/structure/(.+)\\.json$");
@@ -92,7 +95,6 @@ public final class ExternalDataPackPipeline {
     private static final String LOCATE_MANIFEST_PATH = "cache/external-datapack-locate-manifest.json";
     private static final String OBJECT_LOCATE_MANIFEST_PATH = "cache/external-datapack-object-locate-manifest.json";
     private static final String SMARTBORE_STRUCTURE_MANIFEST_PATH = "cache/external-datapack-smartbore-manifest.json";
-    private static final String SUPPRESSED_VANILLA_STRUCTURE_MANIFEST_PATH = "cache/external-datapack-suppressed-vanilla-structures.json";
     private static final int CONNECT_TIMEOUT_MS = 4000;
     private static final int READ_TIMEOUT_MS = 8000;
     private static final int IMPORT_PARALLELISM = Math.max(1, Math.min(8, Runtime.getRuntime().availableProcessors()));
@@ -102,7 +104,6 @@ public final class ExternalDataPackPipeline {
     private static final Map<String, Set<String>> RESOLVED_LOCATE_STRUCTURES_BY_ID = new ConcurrentHashMap<>();
     private static final Map<String, Set<String>> RESOLVED_LOCATE_STRUCTURES_BY_OBJECT_KEY = new ConcurrentHashMap<>();
     private static final Map<String, Set<String>> RESOLVED_SMARTBORE_STRUCTURES_BY_ID = new ConcurrentHashMap<>();
-    private static final Set<String> SUPPRESSED_VANILLA_STRUCTURE_KEYS = ConcurrentHashMap.newKeySet();
     private static final AtomicCache<KMap<Identifier, StructurePlacement>> VANILLA_STRUCTURE_PLACEMENTS = new AtomicCache<>();
     private static final BlockData AIR = B.getAir();
 
@@ -232,23 +233,12 @@ public final class ExternalDataPackPipeline {
         return Set.copyOf(structures);
     }
 
-    public static Set<String> snapshotSuppressedVanillaStructureKeys() {
-        if (SUPPRESSED_VANILLA_STRUCTURE_KEYS.isEmpty()) {
-            Set<String> manifest = readSuppressedVanillaStructureManifest();
-            if (!manifest.isEmpty()) {
-                SUPPRESSED_VANILLA_STRUCTURE_KEYS.addAll(manifest);
-            }
-        }
-        return Set.copyOf(SUPPRESSED_VANILLA_STRUCTURE_KEYS);
-    }
-
     public static PipelineSummary processDatapacks(List<DatapackRequest> requests, Map<String, KList<File>> worldDatapackFoldersByPack) {
         PipelineSummary summary = new PipelineSummary();
         PACK_ENVIRONMENT_CACHE.clear();
         RESOLVED_LOCATE_STRUCTURES_BY_ID.clear();
         RESOLVED_LOCATE_STRUCTURES_BY_OBJECT_KEY.clear();
         RESOLVED_SMARTBORE_STRUCTURES_BY_ID.clear();
-        SUPPRESSED_VANILLA_STRUCTURE_KEYS.clear();
 
         Set<File> knownWorldDatapackFolders = new LinkedHashSet<>();
         if (worldDatapackFoldersByPack != null) {
@@ -275,7 +265,6 @@ public final class ExternalDataPackPipeline {
             writeLocateManifest(Map.of());
             writeObjectLocateManifest(Map.of());
             writeSmartBoreManifest(Map.of());
-            writeSuppressedVanillaStructureManifest(Set.of());
             summary.legacyWorldCopyRemovals += pruneManagedWorldDatapacks(knownWorldDatapackFolders, Set.of());
             return summary;
         }
@@ -284,7 +273,6 @@ public final class ExternalDataPackPipeline {
         LinkedHashMap<String, Set<String>> resolvedLocateStructuresById = new LinkedHashMap<>();
         LinkedHashMap<String, Set<String>> resolvedLocateStructuresByObjectKey = new LinkedHashMap<>();
         LinkedHashMap<String, Set<String>> resolvedSmartBoreStructuresById = new LinkedHashMap<>();
-        LinkedHashSet<String> suppressedVanillaStructures = new LinkedHashSet<>();
         for (int requestIndex = 0; requestIndex < normalizedRequests.size(); requestIndex++) {
             DatapackRequest request = normalizedRequests.get(requestIndex);
             if (request == null) {
@@ -331,11 +319,9 @@ public final class ExternalDataPackPipeline {
             writeLocateManifest(resolvedLocateStructuresById);
             writeObjectLocateManifest(resolvedLocateStructuresByObjectKey);
             writeSmartBoreManifest(resolvedSmartBoreStructuresById);
-            writeSuppressedVanillaStructureManifest(suppressedVanillaStructures);
             RESOLVED_LOCATE_STRUCTURES_BY_ID.putAll(resolvedLocateStructuresById);
             RESOLVED_LOCATE_STRUCTURES_BY_OBJECT_KEY.putAll(resolvedLocateStructuresByObjectKey);
             RESOLVED_SMARTBORE_STRUCTURES_BY_ID.putAll(resolvedSmartBoreStructuresById);
-            SUPPRESSED_VANILLA_STRUCTURE_KEYS.addAll(suppressedVanillaStructures);
             return summary;
         }
 
@@ -425,7 +411,6 @@ public final class ExternalDataPackPipeline {
             summary.worldDatapacksInstalled += projectionResult.installedDatapacks();
             summary.worldAssetsInstalled += projectionResult.installedAssets();
             mergeResolvedLocateStructures(resolvedLocateStructuresById, request.id(), projectionResult.resolvedLocateStructures());
-            suppressedVanillaStructures.addAll(determineSuppressedVanillaStructures(request, projectionResult.projectedStructureKeys()));
             if (request.supportSmartBore()) {
                 LinkedHashSet<String> smartBoreTargets = new LinkedHashSet<>();
                 smartBoreTargets.addAll(request.resolvedLocateStructures());
@@ -482,11 +467,9 @@ public final class ExternalDataPackPipeline {
         writeLocateManifest(resolvedLocateStructuresById);
         writeObjectLocateManifest(resolvedLocateStructuresByObjectKey);
         writeSmartBoreManifest(resolvedSmartBoreStructuresById);
-        writeSuppressedVanillaStructureManifest(suppressedVanillaStructures);
         RESOLVED_LOCATE_STRUCTURES_BY_ID.putAll(resolvedLocateStructuresById);
         RESOLVED_LOCATE_STRUCTURES_BY_OBJECT_KEY.putAll(resolvedLocateStructuresByObjectKey);
         RESOLVED_SMARTBORE_STRUCTURES_BY_ID.putAll(resolvedSmartBoreStructuresById);
-        SUPPRESSED_VANILLA_STRUCTURE_KEYS.addAll(suppressedVanillaStructures);
         return summary;
     }
 
@@ -500,10 +483,6 @@ public final class ExternalDataPackPipeline {
 
     private static File getSmartBoreManifestFile() {
         return Iris.instance.getDataFile(SMARTBORE_STRUCTURE_MANIFEST_PATH);
-    }
-
-    private static File getSuppressedVanillaStructureManifestFile() {
-        return Iris.instance.getDataFile(SUPPRESSED_VANILLA_STRUCTURE_MANIFEST_PATH);
     }
 
     private static String normalizeLocateId(String id) {
@@ -530,26 +509,6 @@ public final class ExternalDataPackPipeline {
             return "";
         }
         return normalized;
-    }
-
-    private static Set<String> determineSuppressedVanillaStructures(DatapackRequest request, Set<String> projectedStructureKeys) {
-        LinkedHashSet<String> suppressed = new LinkedHashSet<>();
-        if (request == null || !request.replaceVanilla() || request.alongsideMode()) {
-            return suppressed;
-        }
-
-        Set<String> projected = projectedStructureKeys == null ? Set.of() : projectedStructureKeys;
-        for (String structureTarget : request.structures()) {
-            String normalizedTarget = normalizeLocateStructure(structureTarget);
-            if (normalizedTarget.isBlank() || !normalizedTarget.startsWith("minecraft:")) {
-                continue;
-            }
-            if (!projected.contains(normalizedTarget)) {
-                suppressed.add(normalizedTarget);
-            }
-        }
-
-        return suppressed;
     }
 
     private static String normalizeObjectLoadKey(String objectKey) {
@@ -822,37 +781,6 @@ public final class ExternalDataPackPipeline {
         }
     }
 
-    private static void writeSuppressedVanillaStructureManifest(Set<String> suppressedStructures) {
-        File output = getSuppressedVanillaStructureManifestFile();
-        LinkedHashSet<String> normalized = new LinkedHashSet<>();
-        if (suppressedStructures != null) {
-            for (String value : suppressedStructures) {
-                String normalizedStructure = normalizeLocateStructure(value);
-                if (normalizedStructure.isBlank() || !normalizedStructure.startsWith("minecraft:")) {
-                    continue;
-                }
-                normalized.add(normalizedStructure);
-            }
-        }
-
-        JSONObject root = new JSONObject();
-        root.put("generatedAt", Instant.now().toString());
-        JSONArray values = new JSONArray();
-        ArrayList<String> sorted = new ArrayList<>(normalized);
-        sorted.sort(String::compareTo);
-        for (String value : sorted) {
-            values.put(value);
-        }
-        root.put("structures", values);
-
-        try {
-            writeBytesToFile(root.toString(4).getBytes(StandardCharsets.UTF_8), output);
-        } catch (Throwable e) {
-            Iris.warn("Failed to write external datapack suppressed-vanilla structure manifest " + output.getPath());
-            Iris.reportError(e);
-        }
-    }
-
     private static Map<String, Set<String>> readLocateManifest() {
         LinkedHashMap<String, Set<String>> mapped = new LinkedHashMap<>();
         File input = getLocateManifestFile();
@@ -997,38 +925,6 @@ public final class ExternalDataPackPipeline {
             }
         } catch (Throwable e) {
             Iris.warn("Failed to read external datapack smartbore manifest " + input.getPath());
-            Iris.reportError(e);
-        }
-
-        return mapped;
-    }
-
-    private static Set<String> readSuppressedVanillaStructureManifest() {
-        LinkedHashSet<String> mapped = new LinkedHashSet<>();
-        File input = getSuppressedVanillaStructureManifestFile();
-        if (!input.exists() || !input.isFile()) {
-            return mapped;
-        }
-
-        try {
-            JSONObject root = new JSONObject(Files.readString(input.toPath(), StandardCharsets.UTF_8));
-            JSONArray values = root.optJSONArray("structures");
-            if (values == null) {
-                return mapped;
-            }
-
-            for (int i = 0; i < values.length(); i++) {
-                Object rawValue = values.opt(i);
-                if (rawValue == null) {
-                    continue;
-                }
-                String normalizedStructure = normalizeLocateStructure(String.valueOf(rawValue));
-                if (!normalizedStructure.isBlank() && normalizedStructure.startsWith("minecraft:")) {
-                    mapped.add(normalizedStructure);
-                }
-            }
-        } catch (Throwable e) {
-            Iris.warn("Failed to read external datapack suppressed-vanilla structure manifest " + input.getPath());
             Iris.reportError(e);
         }
 
@@ -1320,14 +1216,20 @@ public final class ExternalDataPackPipeline {
 
             try {
                 worldDatapackFolder.mkdirs();
-                File managedFolder = new File(worldDatapackFolder, managedName);
+                String baseManagedName = managedName.endsWith(".zip") ? managedName.substring(0, managedName.length() - 4) : managedName;
+                File managedFolder = new File(worldDatapackFolder, baseManagedName);
+                File managedZip = new File(worldDatapackFolder, managedName);
                 deleteFolder(managedFolder);
-                int copiedAssets = writeProjectedAssets(managedFolder, projectionAssetSummary.assets());
+                if (managedZip.exists() && !managedZip.delete()) {
+                    throw new IOException("failed to replace managed external datapack zip " + managedZip.getPath());
+                }
+                int copiedAssets = writeProjectedAssets(managedZip, projectionAssetSummary.assets());
                 if (copiedAssets <= 0) {
-                    deleteFolder(managedFolder);
+                    if (managedZip.exists() && !managedZip.delete()) {
+                        Iris.warn("Failed to remove empty managed external datapack zip " + managedZip.getPath());
+                    }
                     continue;
                 }
-                writeManagedPackMeta(managedFolder);
                 installedDatapacks++;
                 installedAssets += copiedAssets;
             } catch (Throwable e) {
@@ -1349,8 +1251,8 @@ public final class ExternalDataPackPipeline {
 
     private static ProjectionAssetSummary buildProjectedAssets(File source, SourceDescriptor sourceDescriptor, DatapackRequest request) throws IOException {
         ProjectionSelection projectionSelection = readProjectedEntries(source, request);
-        if (request.required() && !projectionSelection.missingSeededTargets().isEmpty()) {
-            throw new IOException("Required replaceVanilla projection missing seeded target(s): " + summarizeMissingSeededTargets(projectionSelection.missingSeededTargets()));
+        if (!projectionSelection.missingSeededTargets().isEmpty()) {
+            throw new IOException("Strict replace validation missing target(s): " + summarizeMissingSeededTargets(projectionSelection.missingSeededTargets()));
         }
 
         List<ProjectionInputAsset> inputAssets = projectionSelection.assets();
@@ -1493,6 +1395,28 @@ public final class ExternalDataPackPipeline {
             throw new IOException("Required external datapack projection produced no canonical structure template outputs (data/*/structure/*.nbt).");
         }
 
+        if (request.replaceVanilla() && !request.alongsideMode()) {
+            int directTargetCount = projectionSelection.directResolvedTargets().size();
+            int aliasTargetCount = projectionSelection.aliasResolvedTargets().size();
+            int projectedStructureCount = projectedStructureKeys.size();
+            int projectedTemplateCount = projectedCanonicalStructureNbtCount;
+            if (request.required()) {
+                Iris.info("External datapack strict replace validation: id=" + request.id()
+                        + ", directTargets=" + directTargetCount
+                        + ", aliasTargets=" + aliasTargetCount
+                        + ", projectedStructures=" + projectedStructureCount
+                        + ", templates=" + projectedTemplateCount
+                        + ", missingTargets=0");
+            } else {
+                Iris.verbose("External datapack strict replace validation: id=" + request.id()
+                        + ", directTargets=" + directTargetCount
+                        + ", aliasTargets=" + aliasTargetCount
+                        + ", projectedStructures=" + projectedStructureCount
+                        + ", templates=" + projectedTemplateCount
+                        + ", missingTargets=0");
+            }
+        }
+
         return new ProjectionAssetSummary(outputAssets, Set.copyOf(resolvedLocateStructures), syntheticStructureSets, Set.copyOf(projectedStructureKeys));
     }
 
@@ -1593,14 +1517,14 @@ public final class ExternalDataPackPipeline {
             }
         }
 
-        return new ProjectionSelection(selected, Set.of());
+        return new ProjectionSelection(selected, Set.of(), Set.of(), Set.of());
     }
 
     private static ProjectionSelection selectReplaceVanillaEntries(List<ProjectionInputAsset> inputAssets, DatapackRequest request) {
-        EnumMap<ProjectedEntryType, LinkedHashMap<String, ProjectionInputAsset>> minecraftAssets = new EnumMap<>(ProjectedEntryType.class);
+        EnumMap<ProjectedEntryType, LinkedHashMap<String, ProjectionInputAsset>> allAssets = new EnumMap<>(ProjectedEntryType.class);
         EnumMap<ProjectedEntryType, LinkedHashSet<String>> closure = new EnumMap<>(ProjectedEntryType.class);
         for (ProjectedEntryType type : ProjectedEntryType.values()) {
-            minecraftAssets.put(type, new LinkedHashMap<>());
+            allAssets.put(type, new LinkedHashMap<>());
             closure.put(type, new LinkedHashSet<>());
         }
 
@@ -1609,22 +1533,42 @@ public final class ExternalDataPackPipeline {
                 continue;
             }
 
-            if (!"minecraft".equals(asset.entry().namespace())) {
-                continue;
-            }
-
-            minecraftAssets.get(asset.entry().type()).put(asset.entry().key(), asset);
+            allAssets.get(asset.entry().type()).put(asset.entry().key(), asset);
         }
 
         LinkedHashSet<String> missingSeededTargets = new LinkedHashSet<>();
+        LinkedHashSet<String> directResolvedTargets = new LinkedHashSet<>();
+        LinkedHashSet<String> aliasResolvedTargets = new LinkedHashSet<>();
+        LinkedHashMap<String, List<String>> resolvedStructureAliases = new LinkedHashMap<>();
+        LinkedHashMap<String, String> resolvedStructureSetAliases = new LinkedHashMap<>();
         ArrayDeque<ProjectedDependency> queue = new ArrayDeque<>();
-        enqueueSeedTargets(request.structures(), ProjectedEntryType.STRUCTURE, minecraftAssets, missingSeededTargets, queue);
-        enqueueSeedTargets(request.structureSets(), ProjectedEntryType.STRUCTURE_SET, minecraftAssets, missingSeededTargets, queue);
-        enqueueSeedTargets(request.configuredFeatures(), ProjectedEntryType.CONFIGURED_FEATURE, minecraftAssets, missingSeededTargets, queue);
-        enqueueSeedTargets(request.placedFeatures(), ProjectedEntryType.PLACED_FEATURE, minecraftAssets, missingSeededTargets, queue);
-        enqueueSeedTargets(request.templatePools(), ProjectedEntryType.TEMPLATE_POOL, minecraftAssets, missingSeededTargets, queue);
-        enqueueSeedTargets(request.processorLists(), ProjectedEntryType.PROCESSOR_LIST, minecraftAssets, missingSeededTargets, queue);
-        enqueueSeedTargets(request.biomeHasStructureTags(), ProjectedEntryType.BIOME_HAS_STRUCTURE_TAG, minecraftAssets, missingSeededTargets, queue);
+        enqueueSeedTargetsWithMultiAliases(
+                request.structures(),
+                ProjectedEntryType.STRUCTURE,
+                allAssets,
+                request.structureAliases(),
+                resolvedStructureAliases,
+                directResolvedTargets,
+                aliasResolvedTargets,
+                missingSeededTargets,
+                queue
+        );
+        enqueueSeedTargetsWithSingleAliases(
+                request.structureSets(),
+                ProjectedEntryType.STRUCTURE_SET,
+                allAssets,
+                request.structureSetAliases(),
+                resolvedStructureSetAliases,
+                directResolvedTargets,
+                aliasResolvedTargets,
+                missingSeededTargets,
+                queue
+        );
+        enqueueSeedTargets(request.configuredFeatures(), ProjectedEntryType.CONFIGURED_FEATURE, allAssets, missingSeededTargets, queue);
+        enqueueSeedTargets(request.placedFeatures(), ProjectedEntryType.PLACED_FEATURE, allAssets, missingSeededTargets, queue);
+        enqueueSeedTargets(request.templatePools(), ProjectedEntryType.TEMPLATE_POOL, allAssets, missingSeededTargets, queue);
+        enqueueSeedTargets(request.processorLists(), ProjectedEntryType.PROCESSOR_LIST, allAssets, missingSeededTargets, queue);
+        enqueueSeedTargets(request.biomeHasStructureTags(), ProjectedEntryType.BIOME_HAS_STRUCTURE_TAG, allAssets, missingSeededTargets, queue);
 
         while (!queue.isEmpty()) {
             ProjectedDependency current = queue.removeFirst();
@@ -1637,7 +1581,7 @@ public final class ExternalDataPackPipeline {
                 continue;
             }
 
-            ProjectionInputAsset currentAsset = minecraftAssets.get(current.type()).get(current.key());
+            ProjectionInputAsset currentAsset = allAssets.get(current.type()).get(current.key());
             if (currentAsset == null) {
                 continue;
             }
@@ -1658,10 +1602,7 @@ public final class ExternalDataPackPipeline {
                     if (dependency == null || dependency.key() == null || dependency.key().isBlank()) {
                         continue;
                     }
-                    if (!dependency.key().startsWith("minecraft:")) {
-                        continue;
-                    }
-                    if (!minecraftAssets.get(dependency.type()).containsKey(dependency.key())) {
+                    if (!allAssets.get(dependency.type()).containsKey(dependency.key())) {
                         continue;
                     }
                     queue.addLast(dependency);
@@ -1670,14 +1611,19 @@ public final class ExternalDataPackPipeline {
             }
         }
 
+        Set<String> externalAliasNamespaces = collectExternalAliasNamespaces(resolvedStructureAliases, resolvedStructureSetAliases);
+        if (!externalAliasNamespaces.isEmpty()) {
+            includeNamespaceAssetsInClosure(externalAliasNamespaces, allAssets, closure, ProjectedEntryType.CONFIGURED_FEATURE);
+            includeNamespaceAssetsInClosure(externalAliasNamespaces, allAssets, closure, ProjectedEntryType.PLACED_FEATURE);
+            includeNamespaceAssetsInClosure(externalAliasNamespaces, allAssets, closure, ProjectedEntryType.TEMPLATE_POOL);
+            includeNamespaceAssetsInClosure(externalAliasNamespaces, allAssets, closure, ProjectedEntryType.PROCESSOR_LIST);
+            includeNamespaceAssetsInClosure(externalAliasNamespaces, allAssets, closure, ProjectedEntryType.BIOME_HAS_STRUCTURE_TAG);
+            includeNamespaceAssetsInClosure(externalAliasNamespaces, allAssets, closure, ProjectedEntryType.STRUCTURE_NBT);
+        }
+
         ArrayList<ProjectionInputAsset> selected = new ArrayList<>();
         for (ProjectionInputAsset asset : inputAssets) {
             if (asset == null || asset.entry() == null) {
-                continue;
-            }
-
-            if (!"minecraft".equals(asset.entry().namespace())) {
-                selected.add(asset);
                 continue;
             }
 
@@ -1687,13 +1633,164 @@ public final class ExternalDataPackPipeline {
             }
         }
 
-        return new ProjectionSelection(selected, Set.copyOf(missingSeededTargets));
+        Map<String, String> sourceToTargetStructureAliases = invertStructureAliasMap(resolvedStructureAliases);
+        Map<String, Integer> sourceStructureWeights = collectAliasedStructureWeights(
+                resolvedStructureSetAliases,
+                allAssets.get(ProjectedEntryType.STRUCTURE_SET)
+        );
+        LinkedHashSet<String> usedTemplatePoolKeys = new LinkedHashSet<>(allAssets.get(ProjectedEntryType.TEMPLATE_POOL).keySet());
+        for (Map.Entry<String, List<String>> aliasEntry : resolvedStructureAliases.entrySet()) {
+            String targetKey = aliasEntry.getKey();
+            List<String> sourceKeys = aliasEntry.getValue();
+            if (sourceKeys == null || sourceKeys.isEmpty()) {
+                missingSeededTargets.add(formatSeededTarget(ProjectedEntryType.STRUCTURE, targetKey));
+                continue;
+            }
+
+            ProjectionInputAsset sourceAsset = allAssets.get(ProjectedEntryType.STRUCTURE).get(sourceKeys.get(0));
+            if (sourceAsset == null) {
+                missingSeededTargets.add(formatSeededTarget(ProjectedEntryType.STRUCTURE, targetKey));
+                continue;
+            }
+
+            MergedStartPoolResult mergedStartPoolResult = synthesizeMergedStartPoolAsset(
+                    targetKey,
+                    sourceKeys,
+                    allAssets.get(ProjectedEntryType.STRUCTURE),
+                    allAssets.get(ProjectedEntryType.TEMPLATE_POOL),
+                    sourceStructureWeights,
+                    usedTemplatePoolKeys
+            );
+            if (mergedStartPoolResult.asset() != null) {
+                selected.add(mergedStartPoolResult.asset());
+                closure.get(ProjectedEntryType.TEMPLATE_POOL).add(mergedStartPoolResult.key());
+            }
+
+            ProjectionInputAsset syntheticAsset = synthesizeAliasedStructureAsset(targetKey, sourceAsset, mergedStartPoolResult.key());
+            if (syntheticAsset == null) {
+                missingSeededTargets.add(formatSeededTarget(ProjectedEntryType.STRUCTURE, targetKey));
+                continue;
+            }
+
+            selected.add(syntheticAsset);
+            closure.get(ProjectedEntryType.STRUCTURE).add(targetKey);
+        }
+
+        for (Map.Entry<String, String> aliasEntry : resolvedStructureSetAliases.entrySet()) {
+            String targetKey = aliasEntry.getKey();
+            String sourceKey = aliasEntry.getValue();
+            ProjectionInputAsset sourceAsset = allAssets.get(ProjectedEntryType.STRUCTURE_SET).get(sourceKey);
+            AliasedStructureSetSynthesisResult syntheticResult = synthesizeAliasedStructureSetAsset(
+                    targetKey,
+                    sourceAsset,
+                    sourceToTargetStructureAliases,
+                    request.structures()
+            );
+            if (syntheticResult == null) {
+                missingSeededTargets.add(formatSeededTarget(ProjectedEntryType.STRUCTURE_SET, targetKey));
+                continue;
+            }
+            if (!syntheticResult.unmappedStructureKeys().isEmpty()) {
+                String missing = formatSeededTarget(ProjectedEntryType.STRUCTURE_SET, targetKey)
+                        + " (unmapped structures: "
+                        + summarizeMissingSeededTargets(syntheticResult.unmappedStructureKeys())
+                        + ")";
+                missingSeededTargets.add(missing);
+                continue;
+            }
+            if (syntheticResult.asset() == null) {
+                missingSeededTargets.add(formatSeededTarget(ProjectedEntryType.STRUCTURE_SET, targetKey));
+                continue;
+            }
+
+            selected.add(syntheticResult.asset());
+            closure.get(ProjectedEntryType.STRUCTURE_SET).add(targetKey);
+        }
+
+        for (String structureTarget : request.structures()) {
+            if (!closure.get(ProjectedEntryType.STRUCTURE).contains(structureTarget)) {
+                missingSeededTargets.add(formatSeededTarget(ProjectedEntryType.STRUCTURE, structureTarget));
+            }
+        }
+
+        for (String structureSetTarget : request.structureSets()) {
+            if (!closure.get(ProjectedEntryType.STRUCTURE_SET).contains(structureSetTarget)) {
+                missingSeededTargets.add(formatSeededTarget(ProjectedEntryType.STRUCTURE_SET, structureSetTarget));
+            }
+        }
+
+        return new ProjectionSelection(
+                selected,
+                Set.copyOf(missingSeededTargets),
+                Set.copyOf(directResolvedTargets),
+                Set.copyOf(aliasResolvedTargets)
+        );
+    }
+
+    private static Set<String> collectExternalAliasNamespaces(
+            Map<String, List<String>> resolvedStructureAliases,
+            Map<String, String> resolvedStructureSetAliases
+    ) {
+        LinkedHashSet<String> namespaces = new LinkedHashSet<>();
+        if (resolvedStructureAliases != null && !resolvedStructureAliases.isEmpty()) {
+            for (List<String> sourceList : resolvedStructureAliases.values()) {
+                if (sourceList == null || sourceList.isEmpty()) {
+                    continue;
+                }
+                for (String sourceKey : sourceList) {
+                    String namespace = extractNamespaceFromKey(sourceKey);
+                    if (namespace == null || namespace.isBlank() || "minecraft".equals(namespace)) {
+                        continue;
+                    }
+                    namespaces.add(namespace);
+                }
+            }
+        }
+
+        if (resolvedStructureSetAliases != null && !resolvedStructureSetAliases.isEmpty()) {
+            for (String sourceKey : resolvedStructureSetAliases.values()) {
+                String namespace = extractNamespaceFromKey(sourceKey);
+                if (namespace == null || namespace.isBlank() || "minecraft".equals(namespace)) {
+                    continue;
+                }
+                namespaces.add(namespace);
+            }
+        }
+
+        return namespaces;
+    }
+
+    private static void includeNamespaceAssetsInClosure(
+            Set<String> namespaces,
+            Map<ProjectedEntryType, LinkedHashMap<String, ProjectionInputAsset>> allAssets,
+            Map<ProjectedEntryType, LinkedHashSet<String>> closure,
+            ProjectedEntryType type
+    ) {
+        if (namespaces == null || namespaces.isEmpty() || allAssets == null || closure == null || type == null) {
+            return;
+        }
+
+        LinkedHashMap<String, ProjectionInputAsset> typedAssets = allAssets.get(type);
+        LinkedHashSet<String> typedClosure = closure.get(type);
+        if (typedAssets == null || typedAssets.isEmpty() || typedClosure == null) {
+            return;
+        }
+
+        for (String key : typedAssets.keySet()) {
+            String namespace = extractNamespaceFromKey(key);
+            if (namespace == null || namespace.isBlank()) {
+                continue;
+            }
+            if (namespaces.contains(namespace)) {
+                typedClosure.add(key);
+            }
+        }
     }
 
     private static void enqueueSeedTargets(
             Set<String> keys,
             ProjectedEntryType type,
-            Map<ProjectedEntryType, LinkedHashMap<String, ProjectionInputAsset>> minecraftAssets,
+            Map<ProjectedEntryType, LinkedHashMap<String, ProjectionInputAsset>> availableAssets,
             Set<String> missingSeededTargets,
             ArrayDeque<ProjectedDependency> queue
     ) {
@@ -1701,19 +1798,501 @@ public final class ExternalDataPackPipeline {
             return;
         }
 
-        LinkedHashMap<String, ProjectionInputAsset> typedAssets = minecraftAssets.get(type);
+        LinkedHashMap<String, ProjectionInputAsset> typedAssets = availableAssets.get(type);
         for (String key : keys) {
             if (key == null || key.isBlank()) {
                 continue;
             }
 
             if (typedAssets == null || !typedAssets.containsKey(key)) {
-                missingSeededTargets.add(type.name().toLowerCase(Locale.ROOT) + ":" + key);
+                missingSeededTargets.add(formatSeededTarget(type, key));
                 continue;
             }
 
             queue.addLast(new ProjectedDependency(type, key));
         }
+    }
+
+    private static void enqueueSeedTargetsWithMultiAliases(
+            Set<String> keys,
+            ProjectedEntryType type,
+            Map<ProjectedEntryType, LinkedHashMap<String, ProjectionInputAsset>> availableAssets,
+            Map<String, List<String>> aliases,
+            Map<String, List<String>> resolvedAliases,
+            Set<String> directResolvedTargets,
+            Set<String> aliasResolvedTargets,
+            Set<String> missingSeededTargets,
+            ArrayDeque<ProjectedDependency> queue
+    ) {
+        if (keys == null || keys.isEmpty()) {
+            return;
+        }
+
+        LinkedHashMap<String, ProjectionInputAsset> typedAssets = availableAssets.get(type);
+        for (String key : keys) {
+            if (key == null || key.isBlank()) {
+                continue;
+            }
+
+            if (typedAssets != null && typedAssets.containsKey(key)) {
+                queue.addLast(new ProjectedDependency(type, key));
+                directResolvedTargets.add(formatSeededTarget(type, key));
+                continue;
+            }
+
+            List<String> aliasSources = aliases == null ? null : aliases.get(key);
+            if (aliasSources == null || aliasSources.isEmpty()) {
+                missingSeededTargets.add(formatSeededTarget(type, key));
+                continue;
+            }
+
+            ArrayList<String> resolvedSources = new ArrayList<>();
+            for (String aliasSource : aliasSources) {
+                if (aliasSource == null || aliasSource.isBlank()) {
+                    continue;
+                }
+                if (typedAssets == null || !typedAssets.containsKey(aliasSource)) {
+                    continue;
+                }
+                if (!resolvedSources.contains(aliasSource)) {
+                    resolvedSources.add(aliasSource);
+                    queue.addLast(new ProjectedDependency(type, aliasSource));
+                }
+            }
+
+            if (resolvedSources.isEmpty()) {
+                missingSeededTargets.add(formatSeededTarget(type, key));
+                continue;
+            }
+
+            resolvedAliases.put(key, List.copyOf(resolvedSources));
+            aliasResolvedTargets.add(formatSeededTarget(type, key));
+        }
+    }
+
+    private static void enqueueSeedTargetsWithSingleAliases(
+            Set<String> keys,
+            ProjectedEntryType type,
+            Map<ProjectedEntryType, LinkedHashMap<String, ProjectionInputAsset>> availableAssets,
+            Map<String, String> aliases,
+            Map<String, String> resolvedAliases,
+            Set<String> directResolvedTargets,
+            Set<String> aliasResolvedTargets,
+            Set<String> missingSeededTargets,
+            ArrayDeque<ProjectedDependency> queue
+    ) {
+        if (keys == null || keys.isEmpty()) {
+            return;
+        }
+
+        LinkedHashMap<String, ProjectionInputAsset> typedAssets = availableAssets.get(type);
+        for (String key : keys) {
+            if (key == null || key.isBlank()) {
+                continue;
+            }
+
+            if (typedAssets != null && typedAssets.containsKey(key)) {
+                queue.addLast(new ProjectedDependency(type, key));
+                directResolvedTargets.add(formatSeededTarget(type, key));
+                continue;
+            }
+
+            String aliasedSource = aliases == null ? null : aliases.get(key);
+            if (aliasedSource == null || aliasedSource.isBlank()) {
+                missingSeededTargets.add(formatSeededTarget(type, key));
+                continue;
+            }
+
+            if (typedAssets == null || !typedAssets.containsKey(aliasedSource)) {
+                missingSeededTargets.add(formatSeededTarget(type, key));
+                continue;
+            }
+
+            queue.addLast(new ProjectedDependency(type, aliasedSource));
+            resolvedAliases.put(key, aliasedSource);
+            aliasResolvedTargets.add(formatSeededTarget(type, key));
+        }
+    }
+
+    private static String formatSeededTarget(ProjectedEntryType type, String key) {
+        return type.name().toLowerCase(Locale.ROOT) + ":" + key;
+    }
+
+    private static Map<String, String> invertStructureAliasMap(Map<String, List<String>> targetToSourceAlias) {
+        LinkedHashMap<String, String> sourceToTarget = new LinkedHashMap<>();
+        if (targetToSourceAlias == null || targetToSourceAlias.isEmpty()) {
+            return sourceToTarget;
+        }
+
+        for (Map.Entry<String, List<String>> entry : targetToSourceAlias.entrySet()) {
+            String target = entry.getKey();
+            List<String> sources = entry.getValue();
+            if (target == null || target.isBlank() || sources == null || sources.isEmpty()) {
+                continue;
+            }
+
+            for (String source : sources) {
+                if (source == null || source.isBlank()) {
+                    continue;
+                }
+                sourceToTarget.putIfAbsent(source, target);
+            }
+        }
+
+        return sourceToTarget;
+    }
+
+    private static Map<String, Integer> collectAliasedStructureWeights(
+            Map<String, String> resolvedStructureSetAliases,
+            Map<String, ProjectionInputAsset> structureSetAssets
+    ) {
+        LinkedHashMap<String, Integer> weights = new LinkedHashMap<>();
+        if (resolvedStructureSetAliases == null || resolvedStructureSetAliases.isEmpty() || structureSetAssets == null || structureSetAssets.isEmpty()) {
+            return weights;
+        }
+
+        for (String sourceStructureSetKey : resolvedStructureSetAliases.values()) {
+            if (sourceStructureSetKey == null || sourceStructureSetKey.isBlank()) {
+                continue;
+            }
+
+            ProjectionInputAsset structureSetAsset = structureSetAssets.get(sourceStructureSetKey);
+            if (structureSetAsset == null) {
+                continue;
+            }
+
+            try {
+                JSONObject root = new JSONObject(new String(structureSetAsset.bytes(), StandardCharsets.UTF_8));
+                JSONArray structures = root.optJSONArray("structures");
+                if (structures == null) {
+                    continue;
+                }
+                for (int index = 0; index < structures.length(); index++) {
+                    JSONObject structure = structures.optJSONObject(index);
+                    if (structure == null) {
+                        continue;
+                    }
+                    String structureKey = normalizeResourceKey("minecraft", structure.optString("structure", ""), "worldgen/structure/");
+                    if (structureKey == null || structureKey.isBlank()) {
+                        continue;
+                    }
+                    int weight = Math.max(1, structure.optInt("weight", 1));
+                    Integer existing = weights.get(structureKey);
+                    if (existing == null) {
+                        weights.put(structureKey, weight);
+                    } else {
+                        long summed = (long) existing + weight;
+                        if (summed > Integer.MAX_VALUE) {
+                            summed = Integer.MAX_VALUE;
+                        }
+                        weights.put(structureKey, (int) summed);
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+
+        return weights;
+    }
+
+    private static MergedStartPoolResult synthesizeMergedStartPoolAsset(
+            String targetKey,
+            List<String> sourceStructureKeys,
+            Map<String, ProjectionInputAsset> structureAssets,
+            Map<String, ProjectionInputAsset> templatePoolAssets,
+            Map<String, Integer> sourceStructureWeights,
+            Set<String> usedTemplatePoolKeys
+    ) {
+        if (targetKey == null
+                || targetKey.isBlank()
+                || sourceStructureKeys == null
+                || sourceStructureKeys.isEmpty()
+                || structureAssets == null
+                || structureAssets.isEmpty()
+                || templatePoolAssets == null
+                || templatePoolAssets.isEmpty()) {
+            return MergedStartPoolResult.empty();
+        }
+
+        LinkedHashSet<String> sourceStartPools = new LinkedHashSet<>();
+        LinkedHashMap<String, Integer> startPoolWeights = new LinkedHashMap<>();
+        String fallback = "";
+        ArrayList<WeightedTemplatePoolElement> weightedElements = new ArrayList<>();
+        long maxRawWeight = 1L;
+        for (String sourceStructureKey : sourceStructureKeys) {
+            if (sourceStructureKey == null || sourceStructureKey.isBlank()) {
+                continue;
+            }
+
+            ProjectionInputAsset sourceStructureAsset = structureAssets.get(sourceStructureKey);
+            if (sourceStructureAsset == null) {
+                continue;
+            }
+
+            String startPoolKey;
+            try {
+                JSONObject sourceStructureRoot = new JSONObject(new String(sourceStructureAsset.bytes(), StandardCharsets.UTF_8));
+                startPoolKey = normalizeResourceKey("minecraft", sourceStructureRoot.optString("start_pool", ""), "worldgen/template_pool/");
+            } catch (Throwable ignored) {
+                continue;
+            }
+            if (startPoolKey == null || startPoolKey.isBlank()) {
+                continue;
+            }
+
+            ProjectionInputAsset templatePoolAsset = templatePoolAssets.get(startPoolKey);
+            if (templatePoolAsset == null) {
+                continue;
+            }
+
+            JSONObject templatePoolRoot;
+            try {
+                templatePoolRoot = new JSONObject(new String(templatePoolAsset.bytes(), StandardCharsets.UTF_8));
+            } catch (Throwable ignored) {
+                continue;
+            }
+
+            JSONArray elements = templatePoolRoot.optJSONArray("elements");
+            if (elements == null || elements.length() == 0) {
+                continue;
+            }
+
+            if (fallback.isBlank()) {
+                fallback = templatePoolRoot.optString("fallback", "");
+            }
+
+            int sourceWeight = sourceStructureWeights == null
+                    ? 1
+                    : Math.max(1, sourceStructureWeights.getOrDefault(sourceStructureKey, 1));
+            sourceStartPools.add(startPoolKey);
+            startPoolWeights.put(startPoolKey, sourceWeight);
+            for (int index = 0; index < elements.length(); index++) {
+                JSONObject element = elements.optJSONObject(index);
+                if (element == null) {
+                    continue;
+                }
+                JSONObject copied = new JSONObject(element.toString());
+                int entryWeight = Math.max(1, copied.optInt("weight", 1));
+                long rawWeight = (long) entryWeight * sourceWeight;
+                if (rawWeight < 1L) {
+                    rawWeight = 1L;
+                }
+                if (rawWeight > Integer.MAX_VALUE) {
+                    rawWeight = Integer.MAX_VALUE;
+                }
+                if (rawWeight > maxRawWeight) {
+                    maxRawWeight = rawWeight;
+                }
+                weightedElements.add(new WeightedTemplatePoolElement(copied, (int) rawWeight));
+            }
+        }
+
+        if (weightedElements.isEmpty() || sourceStartPools.isEmpty()) {
+            return MergedStartPoolResult.empty();
+        }
+
+        JSONArray mergedElements = new JSONArray();
+        double scale = maxRawWeight > 150L ? 150.0D / (double) maxRawWeight : 1.0D;
+        for (WeightedTemplatePoolElement weightedElement : weightedElements) {
+            JSONObject copied = weightedElement.element();
+            int scaledWeight = (int) Math.round((double) weightedElement.weight() * scale);
+            if (scaledWeight < 1) {
+                scaledWeight = 1;
+            } else if (scaledWeight > 150) {
+                scaledWeight = 150;
+            }
+            copied.put("weight", scaledWeight);
+            mergedElements.put(copied);
+        }
+
+        String normalizedFallback = normalizeResourceKey("minecraft", fallback, "worldgen/template_pool/");
+        if (normalizedFallback == null || normalizedFallback.isBlank()) {
+            normalizedFallback = "minecraft:empty";
+        }
+
+        String basePath = sanitizePath(extractPathFromKey(targetKey)).replace('/', '_');
+        if (basePath.isBlank()) {
+            basePath = "structure";
+        }
+        StringBuilder seedBuilder = new StringBuilder(targetKey);
+        ArrayList<String> sourceStartPoolList = new ArrayList<>(sourceStartPools);
+        sourceStartPoolList.sort(String::compareTo);
+        for (String sourceStartPool : sourceStartPoolList) {
+            int sourceWeight = startPoolWeights.getOrDefault(sourceStartPool, 1);
+            seedBuilder.append("|").append(sourceStartPool).append(":").append(sourceWeight);
+        }
+
+        String namespace = extractNamespaceFromKey(targetKey);
+        if (namespace.isBlank()) {
+            namespace = "minecraft";
+        }
+        String baseKey = namespace + ":iris_external/merged_start_pool/" + basePath + "-" + shortHash(seedBuilder.toString());
+        String finalKey = baseKey;
+        int uniqueIndex = 2;
+        while (usedTemplatePoolKeys != null && usedTemplatePoolKeys.contains(finalKey)) {
+            finalKey = baseKey + "-" + uniqueIndex;
+            uniqueIndex++;
+        }
+
+        JSONObject root = new JSONObject();
+        root.put("fallback", normalizedFallback);
+        root.put("elements", mergedElements);
+        ProjectedEntry entry = new ProjectedEntry(ProjectedEntryType.TEMPLATE_POOL, extractNamespaceFromKey(finalKey), finalKey);
+        String relativePath = buildProjectedPath(entry);
+        if (relativePath == null || relativePath.isBlank()) {
+            return MergedStartPoolResult.empty();
+        }
+
+        if (usedTemplatePoolKeys != null) {
+            usedTemplatePoolKeys.add(finalKey);
+        }
+
+        ProjectionInputAsset asset = new ProjectionInputAsset(relativePath, entry, root.toString(4).getBytes(StandardCharsets.UTF_8));
+        return new MergedStartPoolResult(finalKey, asset);
+    }
+
+    private static ProjectionInputAsset synthesizeAliasedStructureAsset(String targetKey, ProjectionInputAsset sourceAsset, String mergedStartPoolKey) {
+        if (targetKey == null || targetKey.isBlank() || sourceAsset == null) {
+            return null;
+        }
+
+        ProjectedEntry entry = new ProjectedEntry(ProjectedEntryType.STRUCTURE, extractNamespaceFromKey(targetKey), targetKey);
+        String relativePath = buildProjectedPath(entry);
+        if (relativePath == null || relativePath.isBlank()) {
+            return null;
+        }
+
+        byte[] outputBytes;
+        try {
+            JSONObject root = new JSONObject(new String(sourceAsset.bytes(), StandardCharsets.UTF_8));
+            if (mergedStartPoolKey != null && !mergedStartPoolKey.isBlank()) {
+                root.put("start_pool", mergedStartPoolKey);
+            }
+            String mineshaftBiomeTag = resolveMineshaftBiomeTag(targetKey);
+            if (!mineshaftBiomeTag.isBlank()) {
+                root.put("biomes", "#" + mineshaftBiomeTag);
+            }
+            outputBytes = root.toString(4).getBytes(StandardCharsets.UTF_8);
+        } catch (Throwable ignored) {
+            return null;
+        }
+
+        return new ProjectionInputAsset(relativePath, entry, outputBytes);
+    }
+
+    private static String resolveMineshaftBiomeTag(String targetKey) {
+        String normalizedTargetKey = normalizeLocateStructure(targetKey);
+        if ("minecraft:mineshaft".equals(normalizedTargetKey)) {
+            return "minecraft:has_structure/mineshaft";
+        }
+        if ("minecraft:mineshaft_mesa".equals(normalizedTargetKey)) {
+            return "minecraft:has_structure/mineshaft_mesa";
+        }
+        return "";
+    }
+
+    private static AliasedStructureSetSynthesisResult synthesizeAliasedStructureSetAsset(
+            String targetKey,
+            ProjectionInputAsset sourceAsset,
+            Map<String, String> sourceToTargetStructureAliases,
+            Set<String> allowedTargetStructures
+    ) {
+        if (targetKey == null || targetKey.isBlank() || sourceAsset == null) {
+            return null;
+        }
+
+        ProjectedEntry entry = new ProjectedEntry(ProjectedEntryType.STRUCTURE_SET, extractNamespaceFromKey(targetKey), targetKey);
+        String relativePath = buildProjectedPath(entry);
+        if (relativePath == null || relativePath.isBlank()) {
+            return null;
+        }
+
+        JSONObject root;
+        try {
+            root = new JSONObject(new String(sourceAsset.bytes(), StandardCharsets.UTF_8));
+        } catch (Throwable ignored) {
+            return null;
+        }
+
+        StructureSetRewriteResult rewriteResult = rewriteStructureSetAliasStructures(root, sourceToTargetStructureAliases, allowedTargetStructures);
+        if (rewriteResult == null) {
+            return new AliasedStructureSetSynthesisResult(null, Set.of());
+        }
+
+        if (!rewriteResult.unmappedStructureKeys().isEmpty()) {
+            return new AliasedStructureSetSynthesisResult(null, rewriteResult.unmappedStructureKeys());
+        }
+        root.put("structures", rewriteResult.rewrittenStructures());
+        byte[] outputBytes = root.toString(4).getBytes(StandardCharsets.UTF_8);
+
+        return new AliasedStructureSetSynthesisResult(new ProjectionInputAsset(relativePath, entry, outputBytes), Set.of());
+    }
+
+    private static StructureSetRewriteResult rewriteStructureSetAliasStructures(
+            JSONObject root,
+            Map<String, String> sourceToTargetStructureAliases,
+            Set<String> allowedTargetStructures
+    ) {
+        if (root == null) {
+            return null;
+        }
+
+        JSONArray structures = root.optJSONArray("structures");
+        if (structures == null) {
+            return new StructureSetRewriteResult(new JSONArray(), Set.of());
+        }
+
+        Map<String, String> effectiveAliases = sourceToTargetStructureAliases == null ? Map.of() : sourceToTargetStructureAliases;
+        LinkedHashMap<String, Integer> collapsedWeights = new LinkedHashMap<>();
+        LinkedHashSet<String> unmappedStructureKeys = new LinkedHashSet<>();
+        for (int i = 0; i < structures.length(); i++) {
+            JSONObject structure = structures.optJSONObject(i);
+            if (structure == null) {
+                continue;
+            }
+
+            String structureKey = structure.optString("structure", "");
+            if (structureKey.isBlank()) {
+                continue;
+            }
+
+            String normalizedStructureKey = normalizeResourceKey("minecraft", structureKey, "worldgen/structure/");
+            if (normalizedStructureKey == null || normalizedStructureKey.isBlank()) {
+                continue;
+            }
+
+            String targetKey = effectiveAliases.get(normalizedStructureKey);
+            if (targetKey == null || targetKey.isBlank()) {
+                if (allowedTargetStructures != null && allowedTargetStructures.contains(normalizedStructureKey)) {
+                    targetKey = normalizedStructureKey;
+                } else {
+                    unmappedStructureKeys.add(normalizedStructureKey);
+                    continue;
+                }
+            }
+
+            int weight = Math.max(1, structure.optInt("weight", 1));
+            Integer existingWeight = collapsedWeights.get(targetKey);
+            if (existingWeight == null) {
+                collapsedWeights.put(targetKey, weight);
+            } else {
+                long sum = (long) existingWeight + weight;
+                if (sum > Integer.MAX_VALUE) {
+                    sum = Integer.MAX_VALUE;
+                }
+                collapsedWeights.put(targetKey, (int) sum);
+            }
+        }
+
+        JSONArray rewritten = new JSONArray();
+        for (Map.Entry<String, Integer> entry : collapsedWeights.entrySet()) {
+            JSONObject structure = new JSONObject();
+            structure.put("structure", entry.getKey());
+            structure.put("weight", entry.getValue());
+            rewritten.put(structure);
+        }
+
+        return new StructureSetRewriteResult(rewritten, Set.copyOf(unmappedStructureKeys));
     }
 
     private static boolean isJsonProjectedEntryType(ProjectedEntryType type) {
@@ -1801,20 +2380,51 @@ public final class ExternalDataPackPipeline {
         return String.join(", ", limited) + " +" + (sorted.size() - limited.size()) + " more";
     }
 
-    private static int writeProjectedAssets(File managedFolder, List<ProjectionOutputAsset> assets) throws IOException {
+    private static int writeProjectedAssets(File managedZipFile, List<ProjectionOutputAsset> assets) throws IOException {
         if (assets == null || assets.isEmpty()) {
             return 0;
         }
 
-        int copied = 0;
-        for (ProjectionOutputAsset asset : assets) {
-            if (asset == null || asset.relativePath() == null || asset.bytes() == null) {
-                continue;
-            }
-            File output = new File(managedFolder, asset.relativePath());
-            writeBytesToFile(asset.bytes(), output);
-            copied++;
+        File parent = managedZipFile.getParentFile();
+        if (parent != null) {
+            parent.mkdirs();
         }
+
+        File temp = parent == null
+                ? new File(managedZipFile.getPath() + ".tmp-" + System.nanoTime())
+                : new File(parent, managedZipFile.getName() + ".tmp-" + System.nanoTime());
+        int copied = 0;
+        try (ZipOutputStream zipOutputStream = new ZipOutputStream(Files.newOutputStream(temp.toPath()))) {
+            byte[] packMetaBytes = buildManagedPackMetaBytes();
+            ZipEntry packMetaEntry = new ZipEntry("pack.mcmeta");
+            zipOutputStream.putNextEntry(packMetaEntry);
+            zipOutputStream.write(packMetaBytes);
+            zipOutputStream.closeEntry();
+
+            for (ProjectionOutputAsset asset : assets) {
+                if (asset == null || asset.relativePath() == null || asset.bytes() == null) {
+                    continue;
+                }
+
+                String relativePath = normalizeRelativePath(asset.relativePath());
+                if (relativePath == null || relativePath.isBlank()) {
+                    continue;
+                }
+
+                ZipEntry zipEntry = new ZipEntry(relativePath);
+                zipOutputStream.putNextEntry(zipEntry);
+                zipOutputStream.write(asset.bytes());
+                zipOutputStream.closeEntry();
+                copied++;
+            }
+        }
+
+        try {
+            Files.move(temp.toPath(), managedZipFile.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (IOException e) {
+            Files.move(temp.toPath(), managedZipFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+
         return copied;
     }
 
@@ -2116,15 +2726,14 @@ public final class ExternalDataPackPipeline {
         }
     }
 
-    private static void writeManagedPackMeta(File managedFolder) throws IOException {
-        managedFolder.mkdirs();
+    private static byte[] buildManagedPackMetaBytes() {
         int packFormat = INMS.get().getDataVersion().getPackFormat();
         JSONObject root = new JSONObject();
         JSONObject pack = new JSONObject();
         pack.put("description", MANAGED_PACK_META_DESCRIPTION);
         pack.put("pack_format", packFormat);
         root.put("pack", pack);
-        Files.writeString(new File(managedFolder, "pack.mcmeta").toPath(), root.toString(4), StandardCharsets.UTF_8);
+        return root.toString(4).getBytes(StandardCharsets.UTF_8);
     }
 
     private static boolean shouldProjectEntry(ProjectedEntry entry, DatapackRequest request) {
@@ -2233,7 +2842,7 @@ public final class ExternalDataPackPipeline {
         if (source.isBlank()) {
             source = "source";
         }
-        return MANAGED_WORLD_PACK_PREFIX + pack + "-" + source;
+        return MANAGED_WORLD_PACK_PREFIX + pack + "-" + source + ".zip";
     }
 
     private static String normalizeNamespace(String namespace) {
@@ -3391,6 +4000,8 @@ public final class ExternalDataPackPipeline {
             boolean supportSmartBore,
             Set<String> structures,
             Set<String> structureSets,
+            Map<String, List<String>> structureAliases,
+            Map<String, String> structureSetAliases,
             Set<String> configuredFeatures,
             Set<String> placedFeatures,
             Set<String> templatePools,
@@ -3411,6 +4022,8 @@ public final class ExternalDataPackPipeline {
                 boolean replaceVanilla,
                 boolean supportSmartBore,
                 IrisExternalDatapackReplaceTargets replaceTargets,
+                KList<IrisExternalDatapackStructureAlias> structureAliases,
+                KList<IrisExternalDatapackStructureSetAlias> structureSetAliases,
                 KList<IrisExternalDatapackStructurePatch> structurePatches
         ) {
             this(
@@ -3422,6 +4035,8 @@ public final class ExternalDataPackPipeline {
                     replaceVanilla,
                     supportSmartBore,
                     replaceTargets,
+                    structureAliases,
+                    structureSetAliases,
                     structurePatches,
                     Set.of(),
                     "dimension-root",
@@ -3439,6 +4054,8 @@ public final class ExternalDataPackPipeline {
                 boolean replaceVanilla,
                 boolean supportSmartBore,
                 IrisExternalDatapackReplaceTargets replaceTargets,
+                KList<IrisExternalDatapackStructureAlias> structureAliases,
+                KList<IrisExternalDatapackStructureSetAlias> structureSetAliases,
                 KList<IrisExternalDatapackStructurePatch> structurePatches,
                 Set<String> forcedBiomeKeys,
                 String scopeKey,
@@ -3455,6 +4072,8 @@ public final class ExternalDataPackPipeline {
                     supportSmartBore,
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getStructures(), "worldgen/structure/"),
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getStructureSets(), "worldgen/structure_set/"),
+                    normalizeStructureAliases(structureAliases),
+                    normalizeStructureSetAliases(structureSetAliases),
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getConfiguredFeatures(), "worldgen/configured_feature/"),
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getPlacedFeatures(), "worldgen/placed_feature/"),
                     normalizeTargets(replaceTargets == null ? null : replaceTargets.getTemplatePools(), "worldgen/template_pool/"),
@@ -3478,6 +4097,8 @@ public final class ExternalDataPackPipeline {
             requiredEnvironment = normalizeEnvironment(requiredEnvironment);
             structures = immutableSet(structures);
             structureSets = immutableSet(structureSets);
+            structureAliases = immutableStructureAliasMap(structureAliases);
+            structureSetAliases = immutableAliasMap(structureSetAliases);
             configuredFeatures = immutableSet(configuredFeatures);
             placedFeatures = immutableSet(placedFeatures);
             templatePools = immutableSet(templatePools);
@@ -3522,6 +4143,8 @@ public final class ExternalDataPackPipeline {
                     supportSmartBore || other.supportSmartBore,
                     union(structures, other.structures),
                     union(structureSets, other.structureSets),
+                    unionStructureAliases(structureAliases, other.structureAliases),
+                    unionAliases(structureSetAliases, other.structureSetAliases),
                     union(configuredFeatures, other.configuredFeatures),
                     union(placedFeatures, other.placedFeatures),
                     union(templatePools, other.templatePools),
@@ -3604,12 +4227,100 @@ public final class ExternalDataPackPipeline {
             return normalized;
         }
 
+        private static Map<String, List<String>> normalizeStructureAliases(KList<IrisExternalDatapackStructureAlias> aliases) {
+            LinkedHashMap<String, List<String>> normalized = new LinkedHashMap<>();
+            if (aliases == null) {
+                return normalized;
+            }
+
+            for (IrisExternalDatapackStructureAlias alias : aliases) {
+                if (alias == null) {
+                    continue;
+                }
+
+                String target = normalizeResourceKey("minecraft", alias.getTarget(), "worldgen/structure/");
+                String source = normalizeResourceKey("minecraft", alias.getSource(), "worldgen/structure/");
+                if (target == null || target.isBlank() || source == null || source.isBlank()) {
+                    continue;
+                }
+                List<String> targetSources = normalized.computeIfAbsent(target, key -> new ArrayList<>());
+                if (!targetSources.contains(source)) {
+                    targetSources.add(source);
+                }
+            }
+
+            return normalized;
+        }
+
+        private static Map<String, String> normalizeStructureSetAliases(KList<IrisExternalDatapackStructureSetAlias> aliases) {
+            LinkedHashMap<String, String> normalized = new LinkedHashMap<>();
+            if (aliases == null) {
+                return normalized;
+            }
+
+            for (IrisExternalDatapackStructureSetAlias alias : aliases) {
+                if (alias == null) {
+                    continue;
+                }
+
+                String target = normalizeResourceKey("minecraft", alias.getTarget(), "worldgen/structure_set/");
+                String source = normalizeResourceKey("minecraft", alias.getSource(), "worldgen/structure_set/");
+                if (target == null || target.isBlank() || source == null || source.isBlank()) {
+                    continue;
+                }
+                normalized.put(target, source);
+            }
+
+            return normalized;
+        }
+
         private static Set<String> immutableSet(Set<String> values) {
             LinkedHashSet<String> copy = new LinkedHashSet<>();
             if (values != null) {
                 copy.addAll(values);
             }
             return Set.copyOf(copy);
+        }
+
+        private static Map<String, List<String>> immutableStructureAliasMap(Map<String, List<String>> values) {
+            LinkedHashMap<String, List<String>> copy = new LinkedHashMap<>();
+            if (values != null) {
+                for (Map.Entry<String, List<String>> entry : values.entrySet()) {
+                    String target = entry.getKey();
+                    List<String> sources = entry.getValue();
+                    if (target == null || target.isBlank() || sources == null || sources.isEmpty()) {
+                        continue;
+                    }
+
+                    ArrayList<String> filteredSources = new ArrayList<>();
+                    for (String source : sources) {
+                        if (source == null || source.isBlank() || filteredSources.contains(source)) {
+                            continue;
+                        }
+                        filteredSources.add(source);
+                    }
+
+                    if (!filteredSources.isEmpty()) {
+                        copy.put(target, List.copyOf(filteredSources));
+                    }
+                }
+            }
+            return Map.copyOf(copy);
+        }
+
+        private static Map<String, String> immutableAliasMap(Map<String, String> values) {
+            LinkedHashMap<String, String> copy = new LinkedHashMap<>();
+            if (values != null) {
+                for (Map.Entry<String, String> entry : values.entrySet()) {
+                    String target = entry.getKey();
+                    String source = entry.getValue();
+                    if (target == null || target.isBlank() || source == null || source.isBlank()) {
+                        continue;
+                    }
+                    copy.put(target, source);
+                }
+            }
+            return Map.copyOf(copy);
         }
 
         private static Set<String> immutableBiomeSet(Set<String> values) {
@@ -3661,6 +4372,54 @@ public final class ExternalDataPackPipeline {
             }
             if (second != null) {
                 merged.addAll(second);
+            }
+            return merged;
+        }
+
+        private static Map<String, List<String>> unionStructureAliases(Map<String, List<String>> first, Map<String, List<String>> second) {
+            LinkedHashMap<String, ArrayList<String>> merged = new LinkedHashMap<>();
+            mergeStructureAliasesInto(merged, first);
+            mergeStructureAliasesInto(merged, second);
+            LinkedHashMap<String, List<String>> normalized = new LinkedHashMap<>();
+            for (Map.Entry<String, ArrayList<String>> entry : merged.entrySet()) {
+                ArrayList<String> sources = entry.getValue();
+                if (sources == null || sources.isEmpty()) {
+                    continue;
+                }
+                normalized.put(entry.getKey(), List.copyOf(sources));
+            }
+            return normalized;
+        }
+
+        private static void mergeStructureAliasesInto(Map<String, ArrayList<String>> target, Map<String, List<String>> source) {
+            if (target == null || source == null || source.isEmpty()) {
+                return;
+            }
+
+            for (Map.Entry<String, List<String>> entry : source.entrySet()) {
+                String key = entry.getKey();
+                List<String> values = entry.getValue();
+                if (key == null || key.isBlank() || values == null || values.isEmpty()) {
+                    continue;
+                }
+
+                ArrayList<String> existing = target.computeIfAbsent(key, ignored -> new ArrayList<>());
+                for (String value : values) {
+                    if (value == null || value.isBlank() || existing.contains(value)) {
+                        continue;
+                    }
+                    existing.add(value);
+                }
+            }
+        }
+
+        private static Map<String, String> unionAliases(Map<String, String> first, Map<String, String> second) {
+            LinkedHashMap<String, String> merged = new LinkedHashMap<>();
+            if (first != null) {
+                merged.putAll(first);
+            }
+            if (second != null) {
+                merged.putAll(second);
             }
             return merged;
         }
@@ -3860,14 +4619,43 @@ public final class ExternalDataPackPipeline {
     private record ProjectedDependency(ProjectedEntryType type, String key) {
     }
 
-    private record ProjectionSelection(List<ProjectionInputAsset> assets, Set<String> missingSeededTargets) {
+    private record ProjectionSelection(
+            List<ProjectionInputAsset> assets,
+            Set<String> missingSeededTargets,
+            Set<String> directResolvedTargets,
+            Set<String> aliasResolvedTargets
+    ) {
         private ProjectionSelection {
             assets = assets == null ? List.of() : List.copyOf(assets);
             missingSeededTargets = missingSeededTargets == null ? Set.of() : Set.copyOf(missingSeededTargets);
+            directResolvedTargets = directResolvedTargets == null ? Set.of() : Set.copyOf(directResolvedTargets);
+            aliasResolvedTargets = aliasResolvedTargets == null ? Set.of() : Set.copyOf(aliasResolvedTargets);
         }
 
         private static ProjectionSelection empty() {
-            return new ProjectionSelection(List.of(), Set.of());
+            return new ProjectionSelection(List.of(), Set.of(), Set.of(), Set.of());
+        }
+    }
+
+    private record MergedStartPoolResult(String key, ProjectionInputAsset asset) {
+        private static MergedStartPoolResult empty() {
+            return new MergedStartPoolResult("", null);
+        }
+    }
+
+    private record WeightedTemplatePoolElement(JSONObject element, int weight) {
+    }
+
+    private record AliasedStructureSetSynthesisResult(ProjectionInputAsset asset, Set<String> unmappedStructureKeys) {
+        private AliasedStructureSetSynthesisResult {
+            unmappedStructureKeys = unmappedStructureKeys == null ? Set.of() : Set.copyOf(unmappedStructureKeys);
+        }
+    }
+
+    private record StructureSetRewriteResult(JSONArray rewrittenStructures, Set<String> unmappedStructureKeys) {
+        private StructureSetRewriteResult {
+            rewrittenStructures = rewrittenStructures == null ? new JSONArray() : rewrittenStructures;
+            unmappedStructureKeys = unmappedStructureKeys == null ? Set.of() : Set.copyOf(unmappedStructureKeys);
         }
     }
 

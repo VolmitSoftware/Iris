@@ -493,8 +493,6 @@ public class IrisProject {
         if (!schemaMap.isEmpty()) {
             IO.write(schemasFile, doc);
         }
-        Gradle.wrapper(path);
-
         return ws;
     }
 

@@ -27,6 +27,8 @@ import art.arcane.volmlib.util.data.KCache;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
 
 public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
     public ObjectResourceLoader(File root, IrisData idm, String folderName, String resourceTypeName) {
@@ -75,24 +77,49 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
         }
         Iris.debug("Building " + resourceTypeName + " Possibility Lists");
         KSet<String> m = new KSet<>();
+        HashSet<String> visitedDirectories = new HashSet<>();
         for (File i : getFolders()) {
-            m.addAll(getFiles(i, ".iob", true));
+            m.addAll(getFiles(i, ".iob", true, visitedDirectories));
         }
         possibleKeys = m.toArray(new String[0]);
         return possibleKeys;
     }
 
-    private KList<String> getFiles(File dir, String ext, boolean skipDirName) {
+    private KList<String> getFiles(File dir, String ext, boolean skipDirName, HashSet<String> visitedDirectories) {
         KList<String> paths = new KList<>();
+        if (dir == null || !dir.exists()) {
+            return paths;
+        }
+
+        if (dir.isDirectory()) {
+            String canonicalDirectory = toCanonicalPath(dir);
+            if (canonicalDirectory != null && !visitedDirectories.add(canonicalDirectory)) {
+                return paths;
+            }
+        }
+
+        File[] listedFiles = dir.listFiles();
+        if (listedFiles == null) {
+            return paths;
+        }
+
         String name = skipDirName ? "" : dir.getName() + "/";
-        for (File f : dir.listFiles()) {
+        for (File f : listedFiles) {
             if (f.isFile() && f.getName().endsWith(ext)) {
                 paths.add(name + f.getName().replaceAll("\\Q" + ext + "\\E", ""));
             } else if (f.isDirectory()) {
-                getFiles(f, ext, false).forEach(e -> paths.add(name + e));
+                getFiles(f, ext, false, visitedDirectories).forEach(e -> paths.add(name + e));
             }
         }
         return paths;
+    }
+
+    private String toCanonicalPath(File file) {
+        try {
+            return file.getCanonicalPath();
+        } catch (IOException ignored) {
+            return null;
+        }
     }
 
     public File findFile(String name) {

@@ -29,6 +29,8 @@ import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 
 public class ImageResourceLoader extends ResourceLoader<IrisImage> {
@@ -67,12 +69,28 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
         }
     }
 
-    void getPNGFiles(File directory, Set<String> m) {
-        for (File file : directory.listFiles()) {
+    void getPNGFiles(File directory, Set<String> m, HashSet<String> visitedDirectories) {
+        if (directory == null || !directory.exists()) {
+            return;
+        }
+
+        if (directory.isDirectory()) {
+            String canonicalDirectory = toCanonicalPath(directory);
+            if (canonicalDirectory != null && !visitedDirectories.add(canonicalDirectory)) {
+                return;
+            }
+        }
+
+        File[] listedFiles = directory.listFiles();
+        if (listedFiles == null) {
+            return;
+        }
+
+        for (File file : listedFiles) {
             if (file.isFile() && file.getName().endsWith(".png")) {
                 m.add(file.getName().replaceAll("\\Q.png\\E", ""));
             } else if (file.isDirectory()) {
-                getPNGFiles(file, m);
+                getPNGFiles(file, m, visitedDirectories);
             }
         }
     }
@@ -85,10 +103,11 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
 
         Iris.debug("Building " + resourceTypeName + " Possibility Lists");
         KSet<String> m = new KSet<>();
+        HashSet<String> visitedDirectories = new HashSet<>();
 
 
         for (File i : getFolders()) {
-            getPNGFiles(i, m);
+            getPNGFiles(i, m, visitedDirectories);
         }
 
 //        for (File i : getFolders()) {
@@ -114,6 +133,14 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
         KList<String> v = new KList<>(m);
         possibleKeys = v.toArray(new String[0]);
         return possibleKeys;
+    }
+
+    private String toCanonicalPath(File file) {
+        try {
+            return file.getCanonicalPath();
+        } catch (IOException ignored) {
+            return null;
+        }
     }
 
     public File findFile(String name) {

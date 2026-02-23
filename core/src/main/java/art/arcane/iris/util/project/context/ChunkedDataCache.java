@@ -1,13 +1,9 @@
 package art.arcane.iris.util.project.context;
 
 import art.arcane.iris.util.project.stream.ProceduralStream;
+import art.arcane.iris.util.project.stream.utility.CachedStream2D;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
 
 public class ChunkedDataCache<T> {
     private final int x;
@@ -31,7 +27,7 @@ public class ChunkedDataCache<T> {
     }
 
     public void fill() {
-        fill(ForkJoinPool.commonPool());
+        fill(null);
     }
 
     public void fill(Executor executor) {
@@ -39,20 +35,17 @@ public class ChunkedDataCache<T> {
             return;
         }
 
-        List<CompletableFuture<Void>> tasks = new ArrayList<>(16);
-        for (int j = 0; j < 16; j++) {
-            int row = j;
-            tasks.add(CompletableFuture.runAsync(() -> {
-                int rowOffset = row * 16;
-                double zz = (z + row);
-                for (int i = 0; i < 16; i++) {
-                    data[rowOffset + i] = stream.get(x + i, zz);
-                }
-            }, executor));
+        if (stream instanceof CachedStream2D<?> cachedStream) {
+            cachedStream.fillChunk(x, z, data);
+            return;
         }
 
-        for (CompletableFuture<Void> task : tasks) {
-            task.join();
+        for (int row = 0; row < 16; row++) {
+            int rowOffset = row * 16;
+            int worldZ = z + row;
+            for (int column = 0; column < 16; column++) {
+                data[rowOffset + column] = stream.get(x + column, worldZ);
+            }
         }
     }
 
@@ -63,11 +56,14 @@ public class ChunkedDataCache<T> {
             return stream.get(this.x + x, this.z + z);
         }
 
-        T value = (T) data[(z * 16) + x];
+        int index = (z * 16) + x;
+        T value = (T) data[index];
         if (value != null) {
             return value;
         }
 
-        return stream.get(this.x + x, this.z + z);
+        T sampled = stream.get(this.x + x, this.z + z);
+        data[index] = sampled;
+        return sampled;
     }
 }

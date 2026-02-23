@@ -19,6 +19,7 @@
 package art.arcane.iris.core.pregenerator;
 
 import art.arcane.iris.Iris;
+import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.tools.IrisPackBenchmarking;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
@@ -66,13 +67,14 @@ public class IrisPregenerator {
     private final KSet<Position2> retry;
     private final KSet<Position2> net;
     private final ChronoLatch cl;
-    private final ChronoLatch saveLatch = new ChronoLatch(30000);
+    private final ChronoLatch saveLatch;
     private final IrisPackBenchmarking benchmarking;
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
         benchmarking = IrisPackBenchmarking.getInstance();
         this.listener = listenify(listener);
         cl = new ChronoLatch(5000);
+        saveLatch = new ChronoLatch(IrisSettings.get().getPregen().getSaveIntervalMs());
         generatedRegions = new KSet<>();
         this.shutdown = new AtomicBoolean(false);
         this.paused = new AtomicBoolean(false);

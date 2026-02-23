@@ -168,7 +168,7 @@ public class J {
     }
 
     public static boolean isFolia() {
-        return FoliaScheduler.isFolia(Iris.instance);
+        return FoliaScheduler.isFolia(Bukkit.getServer());
     }
 
     public static boolean isPrimaryThread() {
@@ -176,10 +176,26 @@ public class J {
     }
 
     public static boolean isOwnedByCurrentRegion(Entity entity) {
+        if (entity == null) {
+            return false;
+        }
+
+        if (!isFolia()) {
+            return isPrimaryThread();
+        }
+
         return FoliaScheduler.isOwnedByCurrentRegion(entity);
     }
 
     public static boolean isOwnedByCurrentRegion(World world, int chunkX, int chunkZ) {
+        if (world == null) {
+            return false;
+        }
+
+        if (!isFolia()) {
+            return isPrimaryThread();
+        }
+
         return FoliaScheduler.isOwnedByCurrentRegion(world, chunkX, chunkZ);
     }
 
@@ -531,34 +547,66 @@ public class J {
     }
 
     private static boolean runGlobalImmediate(Runnable runnable) {
+        if (!isFolia()) {
+            return false;
+        }
+
         return FoliaScheduler.runGlobal(Iris.instance, runnable);
     }
 
     private static boolean runGlobalDelayed(Runnable runnable, int delayTicks) {
+        if (!isFolia()) {
+            return false;
+        }
+
         return FoliaScheduler.runGlobal(Iris.instance, runnable, Math.max(0, delayTicks));
     }
 
     private static boolean runRegionImmediate(World world, int chunkX, int chunkZ, Runnable runnable) {
+        if (!isFolia()) {
+            return false;
+        }
+
         return FoliaScheduler.runRegion(Iris.instance, world, chunkX, chunkZ, runnable);
     }
 
     private static boolean runRegionDelayed(World world, int chunkX, int chunkZ, Runnable runnable, int delayTicks) {
+        if (!isFolia()) {
+            return false;
+        }
+
         return FoliaScheduler.runRegion(Iris.instance, world, chunkX, chunkZ, runnable, Math.max(0, delayTicks));
     }
 
     private static boolean runAsyncImmediate(Runnable runnable) {
+        if (!isFolia()) {
+            return false;
+        }
+
         return FoliaScheduler.runAsync(Iris.instance, runnable);
     }
 
     private static boolean runAsyncDelayed(Runnable runnable, int delayTicks) {
+        if (!isFolia()) {
+            return false;
+        }
+
         return FoliaScheduler.runAsync(Iris.instance, runnable, Math.max(0, delayTicks));
     }
 
     private static boolean runEntityImmediate(Entity entity, Runnable runnable) {
+        if (!isFolia()) {
+            return false;
+        }
+
         return FoliaScheduler.runEntity(Iris.instance, entity, runnable);
     }
 
     private static boolean runEntityDelayed(Entity entity, Runnable runnable, int delayTicks) {
+        if (!isFolia()) {
+            return false;
+        }
+
         return FoliaScheduler.runEntity(Iris.instance, entity, runnable, Math.max(0, delayTicks));
     }
 

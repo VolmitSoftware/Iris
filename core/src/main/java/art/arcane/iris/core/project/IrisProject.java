@@ -33,6 +33,7 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.exceptions.IrisException;
+import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONArray;
@@ -61,6 +62,8 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 @SuppressWarnings("ALL")
@@ -165,6 +168,11 @@ public class IrisProject {
         J.attemptAsync(() ->
         {
             try {
+                if (d == null) {
+                    sender.sendMessage("Could not load dimension \"" + getName() + "\"");
+                    return;
+                }
+
                 if (d.getLoader() == null) {
                     sender.sendMessage("Could not get dimension loader");
                     return;
@@ -176,12 +184,11 @@ public class IrisProject {
                     Iris.warn("Project missing code-workspace: " + ff.getAbsolutePath() + " Re-creating code workspace.");
 
                     try {
-                        IO.writeAll(ff, createCodeWorkspaceConfig());
+                        IO.writeAll(ff, createCodeWorkspaceConfig(false));
                     } catch (IOException e1) {
                         Iris.reportError(e1);
                         e1.printStackTrace();
                     }
-                    updateWorkspace();
                     if (!doOpenVSCode(f)) {
                         Iris.warn("Tried creating code workspace but failed a second time. Your project is likely corrupt.");
                     }
@@ -198,16 +205,20 @@ public class IrisProject {
         for (File i : Objects.requireNonNull(f.listFiles())) {
             if (i.getName().endsWith(".code-workspace")) {
                 foundWork = true;
-                J.a(() ->
-                {
-                    updateWorkspace();
-                });
 
                 if (IrisSettings.get().getStudio().isOpenVSCode()) {
                     if (!GraphicsEnvironment.isHeadless()) {
                         Iris.msg("Opening VSCode. You may see the output from VSCode.");
                         Iris.msg("VSCode output always starts with: '(node:#####) electron'");
-                        Desktop.getDesktop().open(i);
+                        Thread launcherThread = new Thread(() -> {
+                            try {
+                                Desktop.getDesktop().open(i);
+                            } catch (Throwable e) {
+                                Iris.reportError(e);
+                            }
+                        }, "Iris-VSCode-Launcher");
+                        launcherThread.setDaemon(true);
+                        launcherThread.start();
                     }
                 }
 
@@ -222,30 +233,121 @@ public class IrisProject {
             close();
         }
 
-        J.a(() -> {
-            IrisDimension d = IrisData.loadAnyDimension(getName(), null);
-            if (d == null) {
-                sender.sendMessage("Can't find dimension: " + getName());
-                return;
-            } else if (sender.isPlayer()) {
-                J.runEntity(sender.player(), () -> sender.player().setGameMode(GameMode.SPECTATOR));
-            }
+        AtomicReference<String> stage = new AtomicReference<>("Queued");
+        AtomicReference<Double> progress = new AtomicReference<>(0.01D);
+        AtomicBoolean complete = new AtomicBoolean(false);
+        AtomicBoolean failed = new AtomicBoolean(false);
+        startStudioOpenReporter(sender, stage, progress, complete, failed);
 
+        J.a(() -> {
+            World maintenanceWorld = null;
+            boolean maintenanceActive = false;
             try {
+                stage.set("Loading dimension");
+                progress.set(0.05D);
+                IrisDimension d = IrisData.loadAnyDimension(getName(), null);
+                if (d == null) {
+                    failed.set(true);
+                    sender.sendMessage(C.RED + "Can't find dimension: " + getName());
+                    return;
+                } else if (sender.isPlayer()) {
+                    J.runEntity(sender.player(), () -> sender.player().setGameMode(GameMode.SPECTATOR));
+                }
+
+                stage.set("Creating world");
+                progress.set(0.12D);
                 activeProvider = (PlatformChunkGenerator) IrisToolbelt.createWorld()
                         .seed(seed)
                         .sender(sender)
                         .studio(true)
                         .name("iris-" + UUID.randomUUID())
                         .dimension(d.getLoadKey())
+                        .studioProgressConsumer((value, currentStage) -> {
+                            if (currentStage != null && !currentStage.isBlank()) {
+                                stage.set(currentStage);
+                            }
+                            progress.set(Math.max(0D, Math.min(0.99D, value)));
+                        })
                         .create().getGenerator();
-                onDone.accept(activeProvider.getTarget().getWorld().realWorld());
+
+                if (activeProvider != null) {
+                    maintenanceWorld = activeProvider.getTarget().getWorld().realWorld();
+                    if (maintenanceWorld != null) {
+                        IrisToolbelt.beginWorldMaintenance(maintenanceWorld, "studio-open");
+                        maintenanceActive = true;
+                    }
+                    onDone.accept(maintenanceWorld);
+                }
             } catch (IrisException e) {
-                e.printStackTrace();
+                failed.set(true);
+                Iris.reportError(e);
+                sender.sendMessage(C.RED + "Failed to open studio world: " + e.getMessage());
+            } catch (Throwable e) {
+                failed.set(true);
+                Iris.reportError(e);
+                sender.sendMessage(C.RED + "Studio open failed: " + e.getMessage());
+            } finally {
+                if (activeProvider != null) {
+                    stage.set("Opening workspace");
+                    progress.set(Math.max(progress.get(), 0.95D));
+                    openVSCode(sender);
+                }
+
+                if (maintenanceActive && maintenanceWorld != null) {
+                    World worldToRelease = maintenanceWorld;
+                    J.a(() -> {
+                        J.sleep(15000);
+                        IrisToolbelt.endWorldMaintenance(worldToRelease, "studio-open");
+                    });
+                    maintenanceActive = false;
+                }
+
+                if (maintenanceActive && maintenanceWorld != null) {
+                    IrisToolbelt.endWorldMaintenance(maintenanceWorld, "studio-open");
+                }
+                complete.set(true);
+            }
+        });
+    }
+
+    private void startStudioOpenReporter(VolmitSender sender, AtomicReference<String> stage, AtomicReference<Double> progress, AtomicBoolean complete, AtomicBoolean failed) {
+        J.a(() -> {
+            String[] spinner = {"|", "/", "-", "\\"};
+            int spinIndex = 0;
+            long nextConsoleUpdate = 0L;
+
+            while (!complete.get()) {
+                double currentProgress = Math.max(0D, Math.min(0.97D, progress.get()));
+                String currentStage = stage.get();
+                String currentSpinner = spinner[spinIndex % spinner.length];
+
+                if (sender.isPlayer()) {
+                    sender.sendProgress(currentProgress, "Studio " + currentSpinner + " " + currentStage);
+                } else {
+                    long now = System.currentTimeMillis();
+                    if (now >= nextConsoleUpdate) {
+                        sender.sendMessage(C.WHITE + "Studio " + Form.pc(currentProgress, 0) + C.GRAY + " - " + currentStage);
+                        nextConsoleUpdate = now + 1500L;
+                    }
+                }
+
+                spinIndex++;
+                J.sleep(120);
             }
 
-            if (activeProvider != null) {
-                openVSCode(sender);
+            if (failed.get()) {
+                if (sender.isPlayer()) {
+                    sender.sendProgress(1D, "Studio open failed");
+                } else {
+                    sender.sendMessage(C.RED + "Studio open failed.");
+                }
+                return;
+            }
+
+            if (sender.isPlayer()) {
+                sender.sendProgress(1D, "Studio ready");
+            } else {
+                sender.sendMessage(C.GREEN + "Studio ready.");
             }
         });
     }
@@ -361,6 +463,10 @@ public class IrisProject {
     }
 
     public JSONObject createCodeWorkspaceConfig() {
+        return createCodeWorkspaceConfig(true);
+    }
+
+    private JSONObject createCodeWorkspaceConfig(boolean includeSchemas) {
         JSONObject ws = new JSONObject();
         JSONArray folders = new JSONArray();
         JSONObject folder = new JSONObject();
@@ -391,42 +497,49 @@ public class IrisProject {
         settings.put("[json]", jc);
         settings.put("json.maxItemsComputed", 30000);
         JSONArray schemas = new JSONArray();
-        IrisData dm = IrisData.get(getPath());
-
-        for (ResourceLoader<?> r : dm.getLoaders().v()) {
-            if (r.supportsSchemas()) {
-                schemas.put(r.buildSchema());
-            }
-        }
-
-        for (Class<?> i : dm.resolveSnippets()) {
-            try {
-                String snipType = i.getDeclaredAnnotation(Snippet.class).value();
-                JSONObject o = new JSONObject();
-                KList<String> fm = new KList<>();
-
-                for (int g = 1; g < 8; g++) {
-                    fm.add("/snippet/" + snipType + Form.repeat("/*", g) + ".json");
+        IrisData dm = null;
+        if (includeSchemas) {
+            dm = IrisData.get(getPath());
+            for (ResourceLoader<?> r : dm.getLoaders().v()) {
+                if (r.supportsSchemas()) {
+                    schemas.put(r.buildSchema());
                 }
+            }
 
-                o.put("fileMatch", new JSONArray(fm.toArray()));
-                o.put("url", "./.iris/schema/snippet/" + snipType + "-schema.json");
-                schemas.put(o);
-                File a = new File(dm.getDataFolder(), ".iris/schema/snippet/" + snipType + "-schema.json");
-                J.attemptAsync(() -> {
-                    try {
-                        IO.writeAll(a, new SchemaBuilder(i, dm).construct().toString(4));
-                    } catch (Throwable e) {
-                        e.printStackTrace();
+            for (Class<?> i : dm.resolveSnippets()) {
+                try {
+                    String snipType = i.getDeclaredAnnotation(Snippet.class).value();
+                    JSONObject o = new JSONObject();
+                    KList<String> fm = new KList<>();
+
+                    for (int g = 1; g < 8; g++) {
+                        fm.add("/snippet/" + snipType + Form.repeat("/*", g) + ".json");
                     }
-                });
-            } catch (Throwable e) {
-                e.printStackTrace();
+
+                    o.put("fileMatch", new JSONArray(fm.toArray()));
+                    o.put("url", "./.iris/schema/snippet/" + snipType + "-schema.json");
+                    schemas.put(o);
+                    IrisData snippetData = dm;
+                    File a = new File(snippetData.getDataFolder(), ".iris/schema/snippet/" + snipType + "-schema.json");
+                    J.attemptAsync(() -> {
+                        try {
+                            IO.writeAll(a, new SchemaBuilder(i, snippetData).construct().toString(4));
+                        } catch (Throwable e) {
+                            e.printStackTrace();
+                        }
+                    });
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                }
             }
         }
 
         settings.put("json.schemas", schemas);
         ws.put("settings", settings);
+
+        if (!includeSchemas) {
+            return ws;
+        }
 
         File schemasFile = new File(path, ".idea" + File.separator + "jsonSchemas.xml");
         Document doc = IO.read(schemasFile);

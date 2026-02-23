@@ -324,6 +324,18 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             return;
         }
 
+        if (!J.isFolia() && !J.isPrimaryThread()) {
+            CompletableFuture<?> scheduled = J.sfut(() -> updateChunk(c));
+            if (scheduled != null) {
+                try {
+                    scheduled.join();
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                }
+            }
+            return;
+        }
+
         var chunk = mantle.getChunk(c).use();
         try {
             Runnable tileTask = () -> {
@@ -424,7 +436,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
 
         if (!J.isFolia()) {
-            return J.isPrimaryThread();
+            return true;
         }
 
         return J.isOwnedByCurrentRegion(chunk.getWorld(), chunk.getX(), chunk.getZ());

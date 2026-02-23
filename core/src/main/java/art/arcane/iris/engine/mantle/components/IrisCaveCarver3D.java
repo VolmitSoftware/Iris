@@ -25,12 +25,13 @@ import art.arcane.iris.engine.object.IrisCaveFieldModule;
 import art.arcane.iris.engine.object.IrisCaveProfile;
 import art.arcane.iris.engine.object.IrisRange;
 import art.arcane.iris.util.project.noise.CNG;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class IrisCaveCarver3D {
     private static final byte LIQUID_AIR = 0;
@@ -46,7 +47,7 @@ public class IrisCaveCarver3D {
     private final CNG warpDensity;
     private final CNG surfaceBreakDensity;
     private final RNG thresholdRng;
-    private final KList<ModuleState> modules;
+    private final ModuleState[] modules;
     private final double normalization;
     private final MatterCavern carveAir;
     private final MatterCavern carveLava;
@@ -64,7 +65,7 @@ public class IrisCaveCarver3D {
         this.carveAir = new MatterCavern(true, "", LIQUID_AIR);
         this.carveLava = new MatterCavern(true, "", LIQUID_LAVA);
         this.carveForcedAir = new MatterCavern(true, "", LIQUID_FORCED_AIR);
-        this.modules = new KList<>();
+        List<ModuleState> moduleStates = new ArrayList<>();
 
         RNG baseRng = new RNG(engine.getSeedManager().getCarve());
         this.baseDensity = profile.getBaseDensityStyle().create(baseRng.nextParallelRNG(934_447), data);
@@ -82,13 +83,14 @@ public class IrisCaveCarver3D {
         for (IrisCaveFieldModule module : profile.getModules()) {
             CNG moduleDensity = module.getStyle().create(baseRng.nextParallelRNG(1_000_003L + (index * 65_537L)), data);
             ModuleState state = new ModuleState(module, moduleDensity);
-            modules.add(state);
+            moduleStates.add(state);
             weight += Math.abs(state.weight);
             index++;
         }
 
+        this.modules = moduleStates.toArray(new ModuleState[0]);
         normalization = weight <= 0 ? 1 : weight;
-        hasModules = !modules.isEmpty();
+        hasModules = modules.length > 0;
     }
 
     public int carve(MantleWriter writer, int chunkX, int chunkZ) {
@@ -171,7 +173,7 @@ public class IrisCaveCarver3D {
                     int columnSurfaceY = engine.getHeight(x, z);
                     int clearanceTopY = Math.min(maxY, Math.max(minY, columnSurfaceY - surfaceClearance));
                     boolean breakColumn = allowSurfaceBreak
-                            && signed(surfaceBreakDensity.noise(x, z)) >= surfaceBreakNoiseThreshold;
+                            && signed(surfaceBreakDensity.noiseFast2D(x, z)) >= surfaceBreakNoiseThreshold;
                     int columnTopY = breakColumn
                             ? Math.min(maxY, Math.max(minY, columnSurfaceY))
                             : clearanceTopY;
@@ -329,8 +331,8 @@ public class IrisCaveCarver3D {
 
     private double sampleDensity(int x, int y, int z) {
         if (!hasWarp && !hasModules) {
-            double density = signed(baseDensity.noise(x, y, z)) * baseWeight;
-            density += signed(detailDensity.noise(x, y, z)) * detailWeight;
+            double density = signed(baseDensity.noiseFast3D(x, y, z)) * baseWeight;
+            density += signed(detailDensity.noiseFast3D(x, y, z)) * detailWeight;
             return density / normalization;
         }
 
@@ -338,8 +340,8 @@ public class IrisCaveCarver3D {
         double warpedY = y;
         double warpedZ = z;
         if (hasWarp) {
-            double warpA = signed(warpDensity.noise(x, y, z));
-            double warpB = signed(warpDensity.noise(x + 31.37D, y - 17.21D, z + 23.91D));
+            double warpA = signed(warpDensity.noiseFast3D(x, y, z));
+            double warpB = signed(warpDensity.noiseFast3D(x + 31.37D, y - 17.21D, z + 23.91D));
             double offsetX = warpA * warpStrength;
             double offsetY = warpB * warpStrength;
             double offsetZ = (warpA - warpB) * 0.5D * warpStrength;
@@ -348,16 +350,17 @@ public class IrisCaveCarver3D {
             warpedZ += offsetZ;
         }
 
-        double density = signed(baseDensity.noise(warpedX, warpedY, warpedZ)) * baseWeight;
-        density += signed(detailDensity.noise(warpedX, warpedY, warpedZ)) * detailWeight;
+        double density = signed(baseDensity.noiseFast3D(warpedX, warpedY, warpedZ)) * baseWeight;
+        density += signed(detailDensity.noiseFast3D(warpedX, warpedY, warpedZ)) * detailWeight;
 
         if (hasModules) {
-            for (ModuleState module : modules) {
+            for (int moduleIndex = 0; moduleIndex < modules.length; moduleIndex++) {
+                ModuleState module = modules[moduleIndex];
                 if (y < module.minY || y > module.maxY) {
                     continue;
                 }
 
-                double moduleDensity = signed(module.density.noise(warpedX, warpedY, warpedZ)) - module.threshold;
+                double moduleDensity = signed(module.density.noiseFast3D(warpedX, warpedY, warpedZ)) - module.threshold;
                 if (module.invert) {
                     moduleDensity = -moduleDensity;
                 }

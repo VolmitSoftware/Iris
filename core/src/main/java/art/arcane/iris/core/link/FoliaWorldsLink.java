@@ -116,6 +116,10 @@ public class FoliaWorldsLink {
     }
 
     public boolean isActive() {
+        if (!J.isFolia()) {
+            return false;
+        }
+
         return isWorldsProviderActive() || isPaperWorldLoaderActive();
     }
 

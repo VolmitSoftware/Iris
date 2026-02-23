@@ -63,6 +63,7 @@ public class CNG {
     private FloatCache cache;
     private NoiseGenerator generator;
     private NoiseInjector injector;
+    private InjectorMode injectorMode;
     private RNG rng;
     private boolean noscale;
     private int oct;
@@ -106,6 +107,7 @@ public class CNG {
         this.generator = generator;
         this.opacity = opacity;
         this.injector = ADD;
+        this.injectorMode = InjectorMode.ADD;
 
         if (generator instanceof OctaveNoise) {
             ((OctaveNoise) generator).setOctaves(octaves);
@@ -345,11 +347,60 @@ public class CNG {
     }
 
     public CNG injectWith(NoiseInjector i) {
-        injector = i;
+        injector = i == null ? ADD : i;
+        injectorMode = resolveInjectorMode(injector);
         return this;
     }
 
+    private InjectorMode resolveInjectorMode(NoiseInjector i) {
+        if (i == ADD) {
+            return InjectorMode.ADD;
+        }
+
+        if (i == SRC_SUBTRACT) {
+            return InjectorMode.SRC_SUBTRACT;
+        }
+
+        if (i == DST_SUBTRACT) {
+            return InjectorMode.DST_SUBTRACT;
+        }
+
+        if (i == MULTIPLY) {
+            return InjectorMode.MULTIPLY;
+        }
+
+        if (i == MAX) {
+            return InjectorMode.MAX;
+        }
+
+        if (i == MIN) {
+            return InjectorMode.MIN;
+        }
+
+        if (i == SRC_MOD) {
+            return InjectorMode.SRC_MOD;
+        }
+
+        if (i == SRC_POW) {
+            return InjectorMode.SRC_POW;
+        }
+
+        if (i == DST_MOD) {
+            return InjectorMode.DST_MOD;
+        }
+
+        if (i == DST_POW) {
+            return InjectorMode.DST_POW;
+        }
+
+        return InjectorMode.CUSTOM;
+    }
+
     public <T extends IRare> T fitRarity(KList<T> b, double... dim) {
+        if (dim.length == 2) {
+            return fitRarity2D(b, dim[0], dim[1]);
+        }
+
         if (b.size() == 0) {
             return null;
         }
@@ -358,27 +409,7 @@ public class CNG {
             return b.get(0);
         }
 
-        KList<T> rarityMapped = new KList<>();
-        boolean o = false;
-        int max = 1;
-        for (T i : b) {
-            if (i.getRarity() > max) {
-                max = i.getRarity();
-            }
-        }
-
-        max++;
-
-        for (T i : b) {
-            for (int j = 0; j < max - i.getRarity(); j++) {
-                //noinspection AssignmentUsedAsCondition
-                if (o = !o) {
-                    rarityMapped.add(i);
-                } else {
-                    rarityMapped.add(0, i);
-                }
-            }
-        }
+        KList<T> rarityMapped = buildRarityMapped(b);
 
         if (rarityMapped.size() == 1) {
             return rarityMapped.get(0);
@@ -389,6 +420,92 @@ public class CNG {
         }
 
         return fit(rarityMapped, dim);
+    }
+
+    public <T extends IRare> T fitRarity2D(KList<T> b, double x, double z) {
+        if (b.size() == 0) {
+            return null;
+        }
+
+        if (b.size() == 1) {
+            return b.get(0);
+        }
+
+        KList<T> rarityMapped = buildRarityMapped(b);
+        if (rarityMapped.size() == 1) {
+            return rarityMapped.get(0);
+        }
+
+        if (rarityMapped.isEmpty()) {
+            throw new RuntimeException("BAD RARITY MAP! RELATED TO: " + b.toString(", or possibly "));
+        }
+
+        return fit2D(rarityMapped, x, z);
+    }
+
+    private <T extends IRare> KList<T> buildRarityMapped(KList<T> values) {
+        KList<T> rarityMapped = new KList<>();
+        boolean flip = false;
+        int max = 1;
+        for (T value : values) {
+            if (value.getRarity() > max) {
+                max = value.getRarity();
+            }
+        }
+
+        max++;
+        for (T value : values) {
+            int count = max - value.getRarity();
+            for (int j = 0; j < count; j++) {
+                flip = !flip;
+                if (flip) {
+                    rarityMapped.add(value);
+                } else {
+                    rarityMapped.add(0, value);
+                }
+            }
+        }
+
+        return rarityMapped;
+    }
+
+    public <T> T fit2D(T[] values, double x, double z) {
+        if (values.length == 0) {
+            return null;
+        }
+
+        if (values.length == 1) {
+            return values[0];
+        }
+
+        return values[fit2D(0, values.length - 1, x, z)];
+    }
+
+    public <T> T fit2D(List<T> values, double x, double z) {
+        if (values.isEmpty()) {
+            return null;
+        }
+
+        if (values.size() == 1) {
+            return values.get(0);
+        }
+
+        try {
+            return values.get(fit2D(0, values.size() - 1, x, z));
+        } catch (Throwable e) {
+            Iris.reportError(e);
+        }
+
+        return values.get(0);
+    }
+
+    public int fit2D(int min, int max, double x, double z) {
+        if (min == max) {
+            return min;
+        }
+
+        double noise = noiseFast2D(x, z);
+        return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
     }
 
     public <T> T fit(T[] v, double... dim) {
@@ -432,13 +549,7 @@ public class CNG {
     }
 
     public int fit(int min, int max, double x, double z) {
-        if (min == max) {
-            return min;
-        }
-
-        double noise = noise(x, z);
-
-        return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
+        return fit2D(min, max, x, z);
     }
 
     public int fit(int min, int max, double x, double y, double z) {
@@ -466,7 +577,7 @@ public class CNG {
             return (int) Math.round(min);
         }
 
-        double noise = noise(x, z);
+        double noise = noiseFast2D(x, z);
 
         return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
     }
@@ -610,9 +721,34 @@ public class CNG {
 
         if (children != null) {
             for (CNG i : children) {
-                double[] r = injector.combine(n, i.noise(x));
-                n = r[0];
-                m += r[1];
+                double source = n;
+                double value = i.noise(x);
+                switch (injectorMode) {
+                    case ADD -> {
+                        n = source + value;
+                        m += 1D;
+                    }
+                    case SRC_SUBTRACT -> {
+                        n = source - value < 0D ? 0D : source - value;
+                        m -= 1D;
+                    }
+                    case DST_SUBTRACT -> {
+                        n = value - source < 0D ? 0D : source - value;
+                        m -= 1D;
+                    }
+                    case MULTIPLY -> n = source * value;
+                    case MAX -> n = Math.max(source, value);
+                    case MIN -> n = Math.min(source, value);
+                    case SRC_MOD -> n = source % value;
+                    case SRC_POW -> n = Math.pow(source, value);
+                    case DST_MOD -> n = value % source;
+                    case DST_POW -> n = Math.pow(value, source);
+                    case CUSTOM -> {
+                        double[] combined = injector.combine(source, value);
+                        n = combined[0];
+                        m += combined[1];
+                    }
+                }
             }
         }
 
@@ -626,9 +762,34 @@ public class CNG {
 
         if (children != null) {
             for (CNG i : children) {
-                double[] r = injector.combine(n, i.noise(x, z));
-                n = r[0];
-                m += r[1];
+                double source = n;
+                double value = i.noise(x, z);
+                switch (injectorMode) {
+                    case ADD -> {
+                        n = source + value;
+                        m += 1D;
+                    }
+                    case SRC_SUBTRACT -> {
+                        n = source - value < 0D ? 0D : source - value;
+                        m -= 1D;
+                    }
+                    case DST_SUBTRACT -> {
+                        n = value - source < 0D ? 0D : source - value;
+                        m -= 1D;
+                    }
+                    case MULTIPLY -> n = source * value;
+                    case MAX -> n = Math.max(source, value);
+                    case MIN -> n = Math.min(source, value);
+                    case SRC_MOD -> n = source % value;
+                    case SRC_POW -> n = Math.pow(source, value);
+                    case DST_MOD -> n = value % source;
+                    case DST_POW -> n = Math.pow(value, source);
+                    case CUSTOM -> {
+                        double[] combined = injector.combine(source, value);
+                        n = combined[0];
+                        m += combined[1];
+                    }
+                }
             }
         }
 
@@ -642,9 +803,34 @@ public class CNG {
 
         if (children != null) {
             for (CNG i : children) {
-                double[] r = injector.combine(n, i.noise(x, y, z));
-                n = r[0];
-                m += r[1];
+                double source = n;
+                double value = i.noise(x, y, z);
+                switch (injectorMode) {
+                    case ADD -> {
+                        n = source + value;
+                        m += 1D;
+                    }
+                    case SRC_SUBTRACT -> {
+                        n = source - value < 0D ? 0D : source - value;
+                        m -= 1D;
+                    }
+                    case DST_SUBTRACT -> {
+                        n = value - source < 0D ? 0D : source - value;
+                        m -= 1D;
+                    }
+                    case MULTIPLY -> n = source * value;
+                    case MAX -> n = Math.max(source, value);
+                    case MIN -> n = Math.min(source, value);
+                    case SRC_MOD -> n = source % value;
+                    case SRC_POW -> n = Math.pow(source, value);
+                    case DST_MOD -> n = value % source;
+                    case DST_POW -> n = Math.pow(value, source);
+                    case CUSTOM -> {
+                        double[] combined = injector.combine(source, value);
+                        n = combined[0];
+                        m += combined[1];
+                    }
+                }
             }
         }
 
@@ -673,15 +859,44 @@ public class CNG {
         }
 
         for (CNG i : children) {
-            double[] r = injector.combine(n, i.noise(dim));
-            n = r[0];
-            m += r[1];
+            double source = n;
+            double value = i.noise(dim);
+            switch (injectorMode) {
+                case ADD -> {
+                    n = source + value;
+                    m += 1D;
+                }
+                case SRC_SUBTRACT -> {
+                    n = source - value < 0D ? 0D : source - value;
+                    m -= 1D;
+                }
+                case DST_SUBTRACT -> {
+                    n = value - source < 0D ? 0D : source - value;
+                    m -= 1D;
+                }
+                case MULTIPLY -> n = source * value;
+                case MAX -> n = Math.max(source, value);
+                case MIN -> n = Math.min(source, value);
+                case SRC_MOD -> n = source % value;
+                case SRC_POW -> n = Math.pow(source, value);
+                case DST_MOD -> n = value % source;
+                case DST_POW -> n = Math.pow(value, source);
+                case CUSTOM -> {
+                    double[] combined = injector.combine(source, value);
+                    n = combined[0];
+                    m += combined[1];
+                }
+            }
         }
 
         return ((n / m) - down + up) * patch;
     }
 
     public double noise(double x) {
+        return applyPost(getNoise(x), x);
+    }
+
+    public double noiseFast1D(double x) {
         return applyPost(getNoise(x), x);
     }
 
@@ -693,7 +908,19 @@ public class CNG {
         return applyPost(getNoise(x, z), x, z);
     }
 
+    public double noiseFast2D(double x, double z) {
+        if (cache != null && isWholeCoordinate(x) && isWholeCoordinate(z)) {
+            return cache.get((int) x, (int) z);
+        }
+
+        return applyPost(getNoise(x, z), x, z);
+    }
+
     public double noise(double x, double y, double z) {
+        return applyPost(getNoise(x, y, z), x, y, z);
+    }
+
+    public double noiseFast3D(double x, double y, double z) {
         return applyPost(getNoise(x, y, z), x, y, z);
     }
 
@@ -713,5 +940,19 @@ public class CNG {
 
     public boolean isStatic() {
         return generator != null && generator.isStatic();
+    }
+
+    private enum InjectorMode {
+        ADD,
+        SRC_SUBTRACT,
+        DST_SUBTRACT,
+        MULTIPLY,
+        MAX,
+        MIN,
+        SRC_MOD,
+        SRC_POW,
+        DST_MOD,
+        DST_POW,
+        CUSTOM
     }
 }

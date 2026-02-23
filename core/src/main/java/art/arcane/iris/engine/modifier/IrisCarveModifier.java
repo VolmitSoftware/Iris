@@ -33,12 +33,14 @@ import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.slices.MarkerMatter;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -64,6 +66,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         Mantle<Matter> mantle = getEngine().getMantle().getMantle();
         MantleChunk<Matter> mc = mantle.getChunk(x, z).use();
         IrisDimensionCarvingResolver.State resolverState = new IrisDimensionCarvingResolver.State();
+        Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache = new Long2ObjectOpenHashMap<>(2048);
         int[][] columnHeights = new int[256][];
         int[] columnHeightSizes = new int[256];
         PackedWallBuffer walls = new PackedWallBuffer(512);
@@ -129,7 +132,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                     int worldX = rx + (x << 4);
                     int worldZ = rz + (z << 4);
                     IrisBiome biome = cavern.getCustomBiome().isEmpty()
-                            ? getEngine().getCaveBiome(worldX, yy, worldZ, resolverState)
+                            ? resolveCaveBiome(caveBiomeCache, worldX, yy, worldZ, resolverState)
                             : getEngine().getData().getBiomeLoader().load(cavern.getCustomBiome());
 
                     if (biome != null) {
@@ -166,7 +169,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                             buf = y;
                             zone.ceiling = buf;
                         } else if (zone.isValid(getEngine())) {
-                            processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4), resolverState);
+                            processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4), resolverState, caveBiomeCache);
                             zone = new CaveZone();
                             zone.setFloor(y);
                             buf = y;
@@ -178,7 +181,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                     }
 
                     if (zone.isValid(getEngine())) {
-                        processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4), resolverState);
+                        processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4), resolverState, caveBiomeCache);
                     }
                 }
             } finally {
@@ -190,7 +193,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         }
     }
 
-    private void processZone(Hunk<BlockData> output, MantleChunk<Matter> mc, Mantle<Matter> mantle, CaveZone zone, int rx, int rz, int xx, int zz, IrisDimensionCarvingResolver.State resolverState) {
+    private void processZone(Hunk<BlockData> output, MantleChunk<Matter> mc, Mantle<Matter> mantle, CaveZone zone, int rx, int rz, int xx, int zz, IrisDimensionCarvingResolver.State resolverState, Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache) {
         int center = (zone.floor + zone.ceiling) / 2;
         String customBiome = "";
 
@@ -221,7 +224,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         }
 
         IrisBiome biome = customBiome.isEmpty()
-                ? getEngine().getCaveBiome(xx, center, zz, resolverState)
+                ? resolveCaveBiome(caveBiomeCache, xx, center, zz, resolverState)
                 : getEngine().getData().getBiomeLoader().load(customBiome);
 
         if (biome == null) {
@@ -284,6 +287,20 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 decorant.getCeilingDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getCeiling(), zone.airThickness());
             }
         }
+    }
+
+    private IrisBiome resolveCaveBiome(Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, int x, int y, int z, IrisDimensionCarvingResolver.State resolverState) {
+        long key = BlockPosition.toLong(x, y, z);
+        IrisBiome cachedBiome = caveBiomeCache.get(key);
+        if (cachedBiome != null) {
+            return cachedBiome;
+        }
+
+        IrisBiome resolvedBiome = getEngine().getCaveBiome(x, y, z, resolverState);
+        if (resolvedBiome != null) {
+            caveBiomeCache.put(key, resolvedBiome);
+        }
+        return resolvedBiome;
     }
 
     private void appendColumnHeight(int[][] heights, int[] sizes, int columnIndex, int y) {

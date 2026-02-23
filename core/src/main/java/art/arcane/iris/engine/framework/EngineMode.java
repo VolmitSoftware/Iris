@@ -78,7 +78,8 @@ public interface EngineMode extends Staged {
                 cacheContext = false;
             }
         }
-        ChunkContext ctx = new ChunkContext(x, z, getComplex(), cacheContext);
+        ChunkContext.PrefillPlan prefillPlan = cacheContext ? ChunkContext.PrefillPlan.NO_CAVE : ChunkContext.PrefillPlan.NONE;
+        ChunkContext ctx = new ChunkContext(x, z, getComplex(), cacheContext, prefillPlan, getEngine().getMetrics());
         IrisContext.getOr(getEngine()).setChunkContext(ctx);
 
         EngineStage[] stages = getStages().toArray(new EngineStage[0]);

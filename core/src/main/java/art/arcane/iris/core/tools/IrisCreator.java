@@ -20,6 +20,7 @@ package art.arcane.iris.core.tools;
 
 import com.google.common.util.concurrent.AtomicDouble;
 import art.arcane.iris.Iris;
+import art.arcane.iris.core.IrisRuntimeSchedulerMode;
 import art.arcane.iris.core.IrisWorlds;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.ServerConfigurator;
@@ -42,6 +43,7 @@ import art.arcane.volmlib.util.io.IO;
 import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.O;
+import art.arcane.volmlib.util.scheduling.FoliaScheduler;
 import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -60,6 +62,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 
@@ -102,6 +105,7 @@ public class IrisCreator {
      * Benchmark mode
      */
     private boolean benchmark = false;
+    private BiConsumer<Double, String> studioProgressConsumer;
 
     public static boolean removeFromBukkitYml(String name) throws IOException {
         YamlConfiguration yml = YamlConfiguration.loadConfiguration(BUKKIT_YML);
@@ -132,6 +136,8 @@ public class IrisCreator {
             throw new IrisException("You cannot invoke create() on the main thread.");
         }
 
+        reportStudioProgress(0.02D, "Preparing studio open");
+
         if (studio()) {
             World existing = Bukkit.getWorld(name());
             if (existing == null) {
@@ -141,6 +147,7 @@ public class IrisCreator {
             }
         }
 
+        reportStudioProgress(0.08D, "Resolving dimension");
         IrisDimension d = IrisToolbelt.getDimension(dimension());
 
         if (d == null) {
@@ -150,11 +157,18 @@ public class IrisCreator {
         if (sender == null)
             sender = Iris.getSender();
 
+        reportStudioProgress(0.16D, "Preparing world pack");
         if (!studio() || benchmark) {
             Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(Bukkit.getWorldContainer(), name()));
         }
+        if (studio()) {
+            IrisRuntimeSchedulerMode runtimeSchedulerMode = IrisRuntimeSchedulerMode.resolve(IrisSettings.get().getPregen());
+            Iris.info("Studio create scheduling: mode=" + runtimeSchedulerMode.name().toLowerCase(Locale.ROOT)
+                    + ", regionizedRuntime=" + FoliaScheduler.isRegionizedRuntime(Bukkit.getServer()));
+        }
         prebakeNoisemapsBeforeWorldCreate(d);
 
+        reportStudioProgress(0.28D, "Installing datapacks");
         AtomicDouble pp = new AtomicDouble(0);
         O<Boolean> done = new O<>();
         done.set(false);
@@ -180,6 +194,7 @@ public class IrisCreator {
         if (ServerConfigurator.installDataPacks(verifyDataPacks, includeExternalDataPacks, extraWorldDatapackFoldersByPack)) {
             throw new IrisException("Datapacks were missing!");
         }
+        reportStudioProgress(0.40D, "Datapacks ready");
 
         PlatformChunkGenerator access = (PlatformChunkGenerator) wc.generator();
         if (access == null) throw new IrisException("Access is null. Something bad happened.");
@@ -195,7 +210,10 @@ public class IrisCreator {
                 int req = access.getSpawnChunks().join();
                 for (int c = 0; c < req && !done.get(); c = g.getAsInt()) {
                     double v = (double) c / req;
-                    if (sender.isPlayer()) {
+                    if (studioProgressConsumer != null) {
+                        reportStudioProgress(0.40D + (0.42D * v), "Generating spawn");
+                        J.sleep(16);
+                    } else if (sender.isPlayer()) {
                         sender.sendProgress(v, "Generating");
                         J.sleep(16);
                     } else {
@@ -208,6 +226,7 @@ public class IrisCreator {
 
 
         World world;
+        reportStudioProgress(0.46D, "Creating world");
         try {
             world = J.sfut(() -> INMS.get().createWorldAsync(wc))
                     .thenCompose(Function.identity())
@@ -224,6 +243,7 @@ public class IrisCreator {
         }
 
         done.set(true);
+        reportStudioProgress(0.86D, "World created");
 
         if (sender.isPlayer() && !benchmark) {
             Player senderPlayer = sender.player();
@@ -267,6 +287,7 @@ public class IrisCreator {
             addToBukkitYml();
             J.s(() -> Iris.linkMultiverseCore.updateWorld(world, dimension));
         }
+        reportStudioProgress(0.93D, "Applying world settings");
 
         if (pregen != null) {
             CompletableFuture<Boolean> ff = new CompletableFuture<>();
@@ -296,7 +317,22 @@ public class IrisCreator {
                 e.printStackTrace();
             }
         }
+        reportStudioProgress(0.98D, "Finalizing");
         return world;
+    }
+
+    private void reportStudioProgress(double progress, String stage) {
+        BiConsumer<Double, String> consumer = studioProgressConsumer;
+        if (consumer == null) {
+            return;
+        }
+
+        double clamped = Math.max(0D, Math.min(1D, progress));
+        try {
+            consumer.accept(clamped, stage);
+        } catch (Throwable e) {
+            Iris.reportError(e);
+        }
     }
 
     private void prebakeNoisemapsBeforeWorldCreate(IrisDimension dimension) {

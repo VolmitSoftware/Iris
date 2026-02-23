@@ -39,6 +39,17 @@ public class EngineMetrics {
     private final AtomicRollingSequence deposit;
     private final AtomicRollingSequence carveResolve;
     private final AtomicRollingSequence carveApply;
+    private final AtomicRollingSequence noiseHeightInterpolate;
+    private final AtomicRollingSequence noiseHeightGenerator;
+    private final AtomicRollingSequence contextPrefill;
+    private final AtomicRollingSequence contextPrefillHeight;
+    private final AtomicRollingSequence contextPrefillBiome;
+    private final AtomicRollingSequence contextPrefillRock;
+    private final AtomicRollingSequence contextPrefillFluid;
+    private final AtomicRollingSequence contextPrefillRegion;
+    private final AtomicRollingSequence contextPrefillCave;
+    private final AtomicRollingSequence pregenWaitPermit;
+    private final AtomicRollingSequence pregenWaitAdaptive;
 
     public EngineMetrics(int mem) {
         this.total = new AtomicRollingSequence(mem);
@@ -56,6 +67,17 @@ public class EngineMetrics {
         this.deposit = new AtomicRollingSequence(mem);
         this.carveResolve = new AtomicRollingSequence(mem);
         this.carveApply = new AtomicRollingSequence(mem);
+        this.noiseHeightInterpolate = new AtomicRollingSequence(mem);
+        this.noiseHeightGenerator = new AtomicRollingSequence(mem);
+        this.contextPrefill = new AtomicRollingSequence(mem);
+        this.contextPrefillHeight = new AtomicRollingSequence(mem);
+        this.contextPrefillBiome = new AtomicRollingSequence(mem);
+        this.contextPrefillRock = new AtomicRollingSequence(mem);
+        this.contextPrefillFluid = new AtomicRollingSequence(mem);
+        this.contextPrefillRegion = new AtomicRollingSequence(mem);
+        this.contextPrefillCave = new AtomicRollingSequence(mem);
+        this.pregenWaitPermit = new AtomicRollingSequence(mem);
+        this.pregenWaitAdaptive = new AtomicRollingSequence(mem);
     }
 
     public KMap<String, Double> pull() {
@@ -75,6 +97,17 @@ public class EngineMetrics {
         v.put("deposit", deposit.getAverage());
         v.put("carve.resolve", carveResolve.getAverage());
         v.put("carve.apply", carveApply.getAverage());
+        v.put("noise.height.interpolate", noiseHeightInterpolate.getAverage());
+        v.put("noise.height.generator", noiseHeightGenerator.getAverage());
+        v.put("context.prefill", contextPrefill.getAverage());
+        v.put("context.prefill.height", contextPrefillHeight.getAverage());
+        v.put("context.prefill.biome", contextPrefillBiome.getAverage());
+        v.put("context.prefill.rock", contextPrefillRock.getAverage());
+        v.put("context.prefill.fluid", contextPrefillFluid.getAverage());
+        v.put("context.prefill.region", contextPrefillRegion.getAverage());
+        v.put("context.prefill.cave", contextPrefillCave.getAverage());
+        v.put("pregen.wait.permit", pregenWaitPermit.getAverage());
+        v.put("pregen.wait.adaptive", pregenWaitAdaptive.getAverage());
 
         return v;
     }

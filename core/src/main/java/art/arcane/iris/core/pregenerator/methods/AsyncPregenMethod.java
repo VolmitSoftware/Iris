@@ -19,10 +19,13 @@
 package art.arcane.iris.core.pregenerator.methods;
 
 import art.arcane.iris.Iris;
+import art.arcane.iris.core.IrisPaperLikeBackendMode;
+import art.arcane.iris.core.IrisRuntimeSchedulerMode;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.pregenerator.PregenListener;
 import art.arcane.iris.core.pregenerator.PregeneratorMethod;
 import art.arcane.iris.core.tools.IrisToolbelt;
+import art.arcane.iris.engine.framework.Engine;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.math.M;
@@ -33,6 +36,7 @@ import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -44,11 +48,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class AsyncPregenMethod implements PregeneratorMethod {
     private static final AtomicInteger THREAD_COUNT = new AtomicInteger();
-    private static final int FOLIA_MAX_CONCURRENCY = 32;
-    private static final int NON_FOLIA_MAX_CONCURRENCY = 96;
-    private static final int NON_FOLIA_CONCURRENCY_FACTOR = 2;
     private static final int ADAPTIVE_TIMEOUT_STEP = 3;
     private final World world;
+    private final IrisRuntimeSchedulerMode runtimeSchedulerMode;
+    private final IrisPaperLikeBackendMode paperLikeBackendMode;
+    private final boolean foliaRuntime;
+    private final String backendMode;
+    private final int workerPoolThreads;
     private final Executor executor;
     private final Semaphore semaphore;
     private final int threads;
@@ -68,6 +74,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final AtomicLong failed = new AtomicLong();
     private final AtomicLong lastProgressAt = new AtomicLong(M.ms());
     private final AtomicLong lastPermitWaitLog = new AtomicLong(0L);
+    private final Object permitMonitor = new Object();
+    private volatile Engine metricsEngine;
 
     public AsyncPregenMethod(World world, int unusedThreads) {
         if (!PaperLib.isPaper()) {
@@ -75,20 +83,31 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         this.world = world;
-        if (J.isFolia()) {
+        IrisSettings.IrisSettingsPregen pregen = IrisSettings.get().getPregen();
+        this.runtimeSchedulerMode = IrisRuntimeSchedulerMode.resolve(pregen);
+        this.foliaRuntime = runtimeSchedulerMode == IrisRuntimeSchedulerMode.FOLIA;
+        if (foliaRuntime) {
+            this.paperLikeBackendMode = IrisPaperLikeBackendMode.AUTO;
+            this.backendMode = "folia-region";
             this.executor = new FoliaRegionExecutor();
         } else {
-            boolean useTicketQueue = IrisSettings.get().getPregen().isUseTicketQueue();
-            this.executor = useTicketQueue ? new TicketExecutor() : new ServiceExecutor();
+            this.paperLikeBackendMode = resolvePaperLikeBackendMode(pregen);
+            if (paperLikeBackendMode == IrisPaperLikeBackendMode.SERVICE) {
+                this.executor = new ServiceExecutor();
+                this.backendMode = "paper-service";
+            } else {
+                this.executor = new TicketExecutor();
+                this.backendMode = "paper-ticket";
+            }
         }
-        IrisSettings.IrisSettingsPregen pregen = IrisSettings.get().getPregen();
         int configuredThreads = pregen.getMaxConcurrency();
-        if (J.isFolia()) {
-            configuredThreads = Math.min(configuredThreads, FOLIA_MAX_CONCURRENCY);
+        if (foliaRuntime) {
+            configuredThreads = Math.min(configuredThreads, pregen.getFoliaMaxConcurrency());
         } else {
-            configuredThreads = Math.min(configuredThreads, resolveNonFoliaConcurrencyCap());
+            configuredThreads = Math.min(configuredThreads, resolvePaperLikeConcurrencyCap(pregen.getPaperLikeMaxConcurrency()));
         }
         this.threads = Math.max(1, configuredThreads);
+        this.workerPoolThreads = resolveWorkerPoolThreads();
         this.semaphore = new Semaphore(this.threads, true);
         this.timeoutSeconds = pregen.getChunkLoadTimeoutSeconds();
         this.timeoutWarnIntervalMs = pregen.getTimeoutWarnIntervalMs();
@@ -98,8 +117,32 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         this.adaptiveMinInFlightLimit = Math.max(4, Math.min(16, Math.max(1, this.threads / 4)));
     }
 
+    private IrisPaperLikeBackendMode resolvePaperLikeBackendMode(IrisSettings.IrisSettingsPregen pregen) {
+        IrisPaperLikeBackendMode configuredMode = pregen.getPaperLikeBackendMode();
+        if (configuredMode != IrisPaperLikeBackendMode.AUTO) {
+            return configuredMode;
+        }
+
+        return pregen.isUseVirtualThreads() ? IrisPaperLikeBackendMode.SERVICE : IrisPaperLikeBackendMode.TICKET;
+    }
+
+    private int resolveWorkerPoolThreads() {
+        try {
+            Class<?> moonriseCommonClass = Class.forName("ca.spottedleaf.moonrise.common.util.MoonriseCommon");
+            java.lang.reflect.Field workerPoolField = moonriseCommonClass.getDeclaredField("WORKER_POOL");
+            Object workerPool = workerPoolField.get(null);
+            Object coreThreads = workerPool.getClass().getDeclaredMethod("getCoreThreads").invoke(workerPool);
+            if (coreThreads instanceof Thread[] threadsArray) {
+                return threadsArray.length;
+            }
+        } catch (Throwable ignored) {
+        }
+
+        return -1;
+    }
+
     private void unloadAndSaveAllChunks() {
-        if (J.isFolia()) {
+        if (foliaRuntime) {
             // Folia requires world/chunk mutations to be region-owned; periodic global unload/save is unsafe.
             lastUse.clear();
             return;
@@ -190,6 +233,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             int next = Math.max(adaptiveMinInFlightLimit, current - 1);
             if (adaptiveInFlightLimit.compareAndSet(current, next)) {
                 logAdaptiveLimit("decrease", next);
+                notifyPermitWaiters();
                 return;
             }
         }
@@ -205,6 +249,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             int next = Math.min(threads, current + 1);
             if (adaptiveInFlightLimit.compareAndSet(current, next)) {
                 logAdaptiveLimit("increase", next);
+                notifyPermitWaiters();
                 return;
             }
         }
@@ -222,11 +267,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
     }
 
-    private int resolveNonFoliaConcurrencyCap() {
-        int worldGenThreads = Math.max(1, IrisSettings.get().getConcurrency().getWorldGenThreads());
-        int recommended = worldGenThreads * NON_FOLIA_CONCURRENCY_FACTOR;
-        int bounded = Math.max(8, Math.min(NON_FOLIA_MAX_CONCURRENCY, recommended));
-        return bounded;
+    private int resolvePaperLikeConcurrencyCap(int configuredCap) {
+        return Math.max(8, configuredCap);
     }
 
     private String metricsSnapshot() {
@@ -259,6 +301,48 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         if (after < 0) {
             inFlight.compareAndSet(after, 0);
         }
+        notifyPermitWaiters();
+    }
+
+    private void notifyPermitWaiters() {
+        synchronized (permitMonitor) {
+            permitMonitor.notifyAll();
+        }
+    }
+
+    private void recordAdaptiveWait(long waitedMs) {
+        Engine engine = resolveMetricsEngine();
+        if (engine != null) {
+            engine.getMetrics().getPregenWaitAdaptive().put(waitedMs);
+        }
+    }
+
+    private void recordPermitWait(long waitedMs) {
+        Engine engine = resolveMetricsEngine();
+        if (engine != null) {
+            engine.getMetrics().getPregenWaitPermit().put(waitedMs);
+        }
+    }
+
+    private Engine resolveMetricsEngine() {
+        Engine cachedEngine = metricsEngine;
+        if (cachedEngine != null) {
+            return cachedEngine;
+        }
+
+        if (!IrisToolbelt.isIrisWorld(world)) {
+            return null;
+        }
+
+        try {
+            Engine resolvedEngine = IrisToolbelt.access(world).getEngine();
+            if (resolvedEngine != null) {
+                metricsEngine = resolvedEngine;
+            }
+            return resolvedEngine;
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     private void logPermitWaitIfNeeded(int x, int z, long waitedMs) {
@@ -276,9 +360,11 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     @Override
     public void init() {
         Iris.info("Async pregen init: world=" + world.getName()
-                + ", mode=" + (J.isFolia() ? "folia" : "paper")
+                + ", mode=" + runtimeSchedulerMode.name().toLowerCase(Locale.ROOT)
+                + ", backend=" + backendMode
                 + ", threads=" + threads
                 + ", adaptiveLimit=" + adaptiveInFlightLimit.get()
+                + ", workerPoolThreads=" + workerPoolThreads
                 + ", urgent=" + urgent
                 + ", timeout=" + timeoutSeconds + "s");
         unloadAndSaveAllChunks();
@@ -318,16 +404,25 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         listener.onChunkGenerating(x, z);
         try {
             long waitStart = M.ms();
-            while (inFlight.get() >= adaptiveInFlightLimit.get()) {
-                long waited = Math.max(0L, M.ms() - waitStart);
-                logPermitWaitIfNeeded(x, z, waited);
-                if (!J.sleep(5)) {
-                    return;
+            synchronized (permitMonitor) {
+                while (inFlight.get() >= adaptiveInFlightLimit.get()) {
+                    long waited = Math.max(0L, M.ms() - waitStart);
+                    logPermitWaitIfNeeded(x, z, waited);
+                    permitMonitor.wait(5000L);
                 }
             }
+            long adaptiveWait = Math.max(0L, M.ms() - waitStart);
+            if (adaptiveWait > 0L) {
+                recordAdaptiveWait(adaptiveWait);
+            }
 
+            long permitWaitStart = M.ms();
             while (!semaphore.tryAcquire(5, TimeUnit.SECONDS)) {
                 logPermitWaitIfNeeded(x, z, Math.max(0L, M.ms() - waitStart));
+            }
+            long permitWait = Math.max(0L, M.ms() - permitWaitStart);
+            if (permitWait > 0L) {
+                recordPermitWait(permitWait);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

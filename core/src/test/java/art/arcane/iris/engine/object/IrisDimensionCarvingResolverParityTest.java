@@ -57,11 +57,31 @@ public class IrisDimensionCarvingResolverParityTest {
             IrisDimensionCarvingEntry statefulRoot = IrisDimensionCarvingResolver.resolveRootEntry(fixture.engine, worldY, state);
             assertSame("root mismatch at worldY=" + worldY, legacyRoot, statefulRoot);
 
-            for (int worldX = -192; worldX <= 192; worldX += 31) {
-                for (int worldZ = -192; worldZ <= 192; worldZ += 37) {
+            for (int worldX = -384; worldX <= 384; worldX += 29) {
+                for (int worldZ = -384; worldZ <= 384; worldZ += 31) {
                     IrisDimensionCarvingEntry legacyResolved = legacyResolveFromRoot(fixture.engine, legacyRoot, worldX, worldZ);
                     IrisDimensionCarvingEntry statefulResolved = IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, statefulRoot, worldX, worldZ, state);
                     assertSame("entry mismatch at worldY=" + worldY + " worldX=" + worldX + " worldZ=" + worldZ, legacyResolved, statefulResolved);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void resolverStatefulOverloadsMatchLegacyResolverAcrossMixedDepthGraph() {
+        Fixture fixture = createMixedDepthFixture();
+        IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
+
+        for (int worldY = -64; worldY <= 320; worldY += 17) {
+            IrisDimensionCarvingEntry legacyRoot = legacyResolveRootEntry(fixture.engine, worldY);
+            IrisDimensionCarvingEntry statefulRoot = IrisDimensionCarvingResolver.resolveRootEntry(fixture.engine, worldY, state);
+            assertSame("mixed root mismatch at worldY=" + worldY, legacyRoot, statefulRoot);
+
+            for (int worldX = -640; worldX <= 640; worldX += 79) {
+                for (int worldZ = -640; worldZ <= 640; worldZ += 83) {
+                    IrisDimensionCarvingEntry legacyResolved = legacyResolveFromRoot(fixture.engine, legacyRoot, worldX, worldZ);
+                    IrisDimensionCarvingEntry statefulResolved = IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, statefulRoot, worldX, worldZ, state);
+                    assertSame("mixed entry mismatch at worldY=" + worldY + " worldX=" + worldX + " worldZ=" + worldZ, legacyResolved, statefulResolved);
                 }
             }
         }
@@ -138,6 +158,92 @@ public class IrisDimensionCarvingResolverParityTest {
         doReturn(dimension).when(engine).getDimension();
         doReturn(data).when(engine).getData();
         doReturn(new SeedManager(913_531_771L)).when(engine).getSeedManager();
+        doReturn(IrisWorld.builder().minHeight(-64).maxHeight(320).build()).when(engine).getWorld();
+        doReturn(surfaceBiome).when(engine).getSurfaceBiome(anyInt(), anyInt());
+        doReturn(fallbackBiome).when(engine).getCaveBiome(anyInt(), anyInt());
+
+        return new Fixture(engine);
+    }
+
+    private Fixture createMixedDepthFixture() {
+        IrisBiome rootLowBiome = mock(IrisBiome.class);
+        IrisBiome rootHighBiome = mock(IrisBiome.class);
+        IrisBiome childABiome = mock(IrisBiome.class);
+        IrisBiome childBBiome = mock(IrisBiome.class);
+        IrisBiome childCBiome = mock(IrisBiome.class);
+        IrisBiome childDBiome = mock(IrisBiome.class);
+        IrisBiome childEBiome = mock(IrisBiome.class);
+        IrisBiome childFBiome = mock(IrisBiome.class);
+        IrisBiome childGBiome = mock(IrisBiome.class);
+        IrisBiome fallbackBiome = mock(IrisBiome.class);
+        IrisBiome surfaceBiome = mock(IrisBiome.class);
+
+        doReturn(7).when(rootLowBiome).getRarity();
+        doReturn(5).when(rootHighBiome).getRarity();
+        doReturn(2).when(childABiome).getRarity();
+        doReturn(3).when(childBBiome).getRarity();
+        doReturn(6).when(childCBiome).getRarity();
+        doReturn(1).when(childDBiome).getRarity();
+        doReturn(4).when(childEBiome).getRarity();
+        doReturn(8).when(childFBiome).getRarity();
+        doReturn(2).when(childGBiome).getRarity();
+        doReturn(0).when(fallbackBiome).getCaveMinDepthBelowSurface();
+
+        @SuppressWarnings("unchecked")
+        ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
+        doReturn(rootLowBiome).when(biomeLoader).load("root-low");
+        doReturn(rootHighBiome).when(biomeLoader).load("root-high");
+        doReturn(childABiome).when(biomeLoader).load("child-a");
+        doReturn(childBBiome).when(biomeLoader).load("child-b");
+        doReturn(childCBiome).when(biomeLoader).load("child-c");
+        doReturn(childDBiome).when(biomeLoader).load("child-d");
+        doReturn(childEBiome).when(biomeLoader).load("child-e");
+        doReturn(childFBiome).when(biomeLoader).load("child-f");
+        doReturn(childGBiome).when(biomeLoader).load("child-g");
+
+        IrisData data = mock(IrisData.class);
+        doReturn(biomeLoader).when(data).getBiomeLoader();
+
+        IrisDimensionCarvingEntry rootLow = buildEntry("root-low", "root-low", new IrisRange(-64, 120), 7, List.of("child-a", "child-d", "child-e"));
+        IrisDimensionCarvingEntry rootHigh = buildEntry("root-high", "root-high", new IrisRange(121, 320), 6, List.of("child-b", "child-c", "child-f"));
+        IrisDimensionCarvingEntry childA = buildEntry("child-a", "child-a", new IrisRange(-4096, 4096), 5, List.of("child-b", "child-g"));
+        IrisDimensionCarvingEntry childB = buildEntry("child-b", "child-b", new IrisRange(-4096, 4096), 1, List.of("child-c"));
+        IrisDimensionCarvingEntry childC = buildEntry("child-c", "child-c", new IrisRange(-4096, 4096), 0, List.of());
+        IrisDimensionCarvingEntry childD = buildEntry("child-d", "child-d", new IrisRange(-4096, 4096), 6, List.of("child-e", "child-f"));
+        IrisDimensionCarvingEntry childE = buildEntry("child-e", "child-e", new IrisRange(-4096, 4096), 2, List.of("child-a"));
+        IrisDimensionCarvingEntry childF = buildEntry("child-f", "child-f", new IrisRange(-4096, 4096), 8, List.of("child-g", "child-c"));
+        IrisDimensionCarvingEntry childG = buildEntry("child-g", "child-g", new IrisRange(-4096, 4096), 3, List.of("child-d"));
+
+        KList<IrisDimensionCarvingEntry> carvingEntries = new KList<>();
+        carvingEntries.add(rootLow);
+        carvingEntries.add(rootHigh);
+        carvingEntries.add(childA);
+        carvingEntries.add(childB);
+        carvingEntries.add(childC);
+        carvingEntries.add(childD);
+        carvingEntries.add(childE);
+        carvingEntries.add(childF);
+        carvingEntries.add(childG);
+
+        Map<String, IrisDimensionCarvingEntry> index = new HashMap<>();
+        index.put(rootLow.getId(), rootLow);
+        index.put(rootHigh.getId(), rootHigh);
+        index.put(childA.getId(), childA);
+        index.put(childB.getId(), childB);
+        index.put(childC.getId(), childC);
+        index.put(childD.getId(), childD);
+        index.put(childE.getId(), childE);
+        index.put(childF.getId(), childF);
+        index.put(childG.getId(), childG);
+
+        IrisDimension dimension = mock(IrisDimension.class);
+        doReturn(carvingEntries).when(dimension).getCarving();
+        doReturn(index).when(dimension).getCarvingEntryIndex();
+
+        Engine engine = mock(Engine.class, CALLS_REAL_METHODS);
+        doReturn(dimension).when(engine).getDimension();
+        doReturn(data).when(engine).getData();
+        doReturn(new SeedManager(4_627_991_643L)).when(engine).getSeedManager();
         doReturn(IrisWorld.builder().minHeight(-64).maxHeight(320).build()).when(engine).getWorld();
         doReturn(surfaceBiome).when(engine).getSurfaceBiome(anyInt(), anyInt());
         doReturn(fallbackBiome).when(engine).getCaveBiome(anyInt(), anyInt());

@@ -25,6 +25,8 @@ import art.arcane.iris.engine.object.annotations.Required;
 import art.arcane.volmlib.util.function.NoiseProvider;
 import art.arcane.iris.util.project.interpolation.InterpolationMethod;
 import art.arcane.iris.util.project.interpolation.IrisInterpolation;
+import art.arcane.iris.util.project.interpolation.IrisInterpolation.NoiseBounds;
+import art.arcane.iris.util.project.interpolation.IrisInterpolation.NoiseBoundsProvider;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -70,5 +72,13 @@ public class IrisInterpolator {
 
     public double interpolate(int x, int z, NoiseProvider provider) {
         return IrisInterpolation.getNoise(getFunction(), x, z, getHorizontalScale(), provider);
+    }
+
+    public NoiseBounds interpolateBounds(double x, double z, NoiseBoundsProvider provider) {
+        return interpolateBounds((int) Math.round(x), (int) Math.round(z), provider);
+    }
+
+    public NoiseBounds interpolateBounds(int x, int z, NoiseBoundsProvider provider) {
+        return IrisInterpolation.getNoiseBounds(getFunction(), x, z, getHorizontalScale(), provider);
     }
 }

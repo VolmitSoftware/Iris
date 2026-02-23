@@ -48,6 +48,10 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -61,6 +65,13 @@ import java.util.zip.GZIPOutputStream;
 public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     public static final AtomicDouble tlt = new AtomicDouble(0);
     private static final int CACHE_SIZE = 100000;
+    private static final ExecutorService schemaBuildExecutor = Executors.newSingleThreadExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "Iris-Schema-Builder");
+        thread.setDaemon(true);
+        thread.setPriority(Thread.MIN_PRIORITY);
+        return thread;
+    });
+    private static final Set<String> schemaBuildQueue = ConcurrentHashMap.newKeySet();
     protected final AtomicCache<KList<File>> folderCache;
     protected KSet<String> firstAccess;
     protected File root;
@@ -102,7 +113,18 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
         o.put("fileMatch", new JSONArray(fm.toArray()));
         o.put("url", "./.iris/schema/" + getFolderName() + "-schema.json");
         File a = new File(getManager().getDataFolder(), ".iris/schema/" + getFolderName() + "-schema.json");
-        J.attemptAsync(() -> IO.writeAll(a, new SchemaBuilder(objectClass, manager).construct().toString(4)));
+        String schemaPath = a.getAbsolutePath();
+        if (!a.exists() && schemaBuildQueue.add(schemaPath)) {
+            schemaBuildExecutor.execute(() -> {
+                try {
+                    IO.writeAll(a, new SchemaBuilder(objectClass, manager).construct().toString(4));
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                } finally {
+                    schemaBuildQueue.remove(schemaPath);
+                }
+            });
+        }
 
         return o;
     }
@@ -149,20 +171,44 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     }
 
     private KList<File> matchAllFiles(File root, Predicate<File> f) {
-        KList<File> fx = new KList<>();
-        matchFiles(root, fx, f);
-        return fx;
+        KList<File> files = new KList<>();
+        HashSet<String> visitedDirectories = new HashSet<>();
+        matchFiles(root, files, f, visitedDirectories);
+        return files;
     }
 
-    private void matchFiles(File at, KList<File> files, Predicate<File> f) {
+    private void matchFiles(File at, KList<File> files, Predicate<File> f, HashSet<String> visitedDirectories) {
+        if (at == null || !at.exists()) {
+            return;
+        }
+
         if (at.isDirectory()) {
-            for (File i : at.listFiles()) {
-                matchFiles(i, files, f);
+            String canonicalPath = toCanonicalPath(at);
+            if (canonicalPath != null && !visitedDirectories.add(canonicalPath)) {
+                return;
             }
-        } else {
-            if (f.test(at)) {
-                files.add(at);
+
+            File[] listedFiles = at.listFiles();
+            if (listedFiles == null) {
+                return;
             }
+
+            for (File listedFile : listedFiles) {
+                matchFiles(listedFile, files, f, visitedDirectories);
+            }
+            return;
+        }
+
+        if (f.test(at)) {
+            files.add(at);
+        }
+    }
+
+    private String toCanonicalPath(File file) {
+        try {
+            return file.getCanonicalPath();
+        } catch (IOException ignored) {
+            return null;
         }
     }
 

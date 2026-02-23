@@ -24,6 +24,7 @@ import art.arcane.iris.core.nms.container.BiomeColor;
 import art.arcane.iris.core.nms.container.BlockProperty;
 import art.arcane.iris.core.nms.container.StructurePlacement;
 import art.arcane.iris.core.nms.datapack.DataVersion;
+import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.volmlib.util.collection.KList;
@@ -108,11 +109,13 @@ public interface INMSBinding {
                 return CompletableFuture.failedFuture(new IllegalStateException("Missing dimension types to create world"));
             }
 
-            FoliaWorldsLink link = FoliaWorldsLink.get();
-            if (link.isActive()) {
-                CompletableFuture<World> future = link.createWorld(c);
-                if (future != null) {
-                    return future;
+            if (J.isFolia()) {
+                FoliaWorldsLink link = FoliaWorldsLink.get();
+                if (link.isActive()) {
+                    CompletableFuture<World> future = link.createWorld(c);
+                    if (future != null) {
+                        return future;
+                    }
                 }
             }
             return CompletableFuture.completedFuture(createWorld(c));

@@ -27,6 +27,8 @@ import art.arcane.volmlib.util.data.KCache;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
 
 public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject> {
     private String[] possibleKeys;
@@ -65,12 +67,28 @@ public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject>
         }
     }
 
-    private void findMatFiles(File dir, KSet<String> m) {
-        for (File file : dir.listFiles()) {
+    private void findMatFiles(File dir, KSet<String> m, HashSet<String> visitedDirectories) {
+        if (dir == null || !dir.exists()) {
+            return;
+        }
+
+        if (dir.isDirectory()) {
+            String canonicalDirectory = toCanonicalPath(dir);
+            if (canonicalDirectory != null && !visitedDirectories.add(canonicalDirectory)) {
+                return;
+            }
+        }
+
+        File[] listedFiles = dir.listFiles();
+        if (listedFiles == null) {
+            return;
+        }
+
+        for (File file : listedFiles) {
             if (file.isFile() && file.getName().endsWith(".mat")) {
                 m.add(file.getName().replaceAll("\\Q.mat\\E", ""));
             } else if (file.isDirectory()) {
-                findMatFiles(file, m);
+                findMatFiles(file, m, visitedDirectories);
             }
         }
     }
@@ -82,14 +100,23 @@ public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject>
 
         Iris.debug("Building " + resourceTypeName + " Possibility Lists");
         KSet<String> m = new KSet<>();
+        HashSet<String> visitedDirectories = new HashSet<>();
 
         for (File folder : getFolders()) {
-            findMatFiles(folder, m);
+            findMatFiles(folder, m, visitedDirectories);
         }
 
         KList<String> v = new KList<>(m);
         possibleKeys = v.toArray(new String[0]);
         return possibleKeys;
+    }
+
+    private String toCanonicalPath(File file) {
+        try {
+            return file.getCanonicalPath();
+        } catch (IOException ignored) {
+            return null;
+        }
     }
 
 

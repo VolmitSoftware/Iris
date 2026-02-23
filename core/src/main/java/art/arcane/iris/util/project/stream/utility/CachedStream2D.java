@@ -53,7 +53,6 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
 
     @Override
     public T get(double x, double z) {
-        //return stream.get(x, z);
         return cache.get((int) x, (int) z);
     }
 
@@ -80,5 +79,11 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
     @Override
     public boolean isClosed() {
         return engine.isClosed();
+    }
+
+    public void fillChunk(int worldX, int worldZ, Object[] target) {
+        int chunkX = worldX >> 4;
+        int chunkZ = worldZ >> 4;
+        cache.fillChunk(chunkX, chunkZ, target);
     }
 }

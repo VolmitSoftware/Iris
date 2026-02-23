@@ -19,6 +19,7 @@
 package art.arcane.iris.core.tools;
 
 import art.arcane.iris.Iris;
+import art.arcane.iris.core.IrisRuntimeSchedulerMode;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.gui.PregeneratorJob;
 import art.arcane.iris.core.loader.IrisData;
@@ -233,7 +234,11 @@ public class IrisToolbelt {
      */
     public static PregeneratorJob pregenerate(PregenTask task, PregeneratorMethod method, Engine engine, boolean cached) {
         applyPregenPerformanceProfile(engine);
-        boolean useCachedWrapper = cached && engine != null && !J.isFolia();
+        boolean useCachedWrapper = false;
+        if (cached && engine != null) {
+            IrisRuntimeSchedulerMode runtimeSchedulerMode = IrisRuntimeSchedulerMode.resolve(IrisSettings.get().getPregen());
+            useCachedWrapper = runtimeSchedulerMode != IrisRuntimeSchedulerMode.FOLIA;
+        }
         return new PregeneratorJob(task, useCachedWrapper ? new CachedPregenMethod(method, engine.getWorld().name()) : method, engine);
     }
 

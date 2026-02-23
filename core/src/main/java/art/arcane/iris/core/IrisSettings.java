@@ -151,9 +151,16 @@ public class IrisSettings {
         public boolean useHighPriority = false;
         public boolean useVirtualThreads = false;
         public boolean useTicketQueue = true;
+        public IrisRuntimeSchedulerMode runtimeSchedulerMode = IrisRuntimeSchedulerMode.AUTO;
+        public IrisPaperLikeBackendMode paperLikeBackendMode = IrisPaperLikeBackendMode.AUTO;
+        public IrisHotPathMetricsMode hotPathMetricsMode = IrisHotPathMetricsMode.SAMPLED;
+        public int hotPathMetricsSampleStride = 1024;
         public int maxConcurrency = 256;
+        public int paperLikeMaxConcurrency = 96;
+        public int foliaMaxConcurrency = 32;
         public int chunkLoadTimeoutSeconds = 15;
         public int timeoutWarnIntervalMs = 500;
+        public int saveIntervalMs = 120_000;
         public boolean startupNoisemapPrebake = true;
         public boolean enablePregenPerformanceProfile = true;
         public int pregenProfileNoiseCacheSize = 4_096;
@@ -166,6 +173,40 @@ public class IrisSettings {
 
         public int getTimeoutWarnIntervalMs() {
             return Math.max(timeoutWarnIntervalMs, 250);
+        }
+
+        public int getPaperLikeMaxConcurrency() {
+            return Math.max(1, paperLikeMaxConcurrency);
+        }
+
+        public int getFoliaMaxConcurrency() {
+            return Math.max(1, foliaMaxConcurrency);
+        }
+
+        public IrisPaperLikeBackendMode getPaperLikeBackendMode() {
+            if (paperLikeBackendMode == null) {
+                return IrisPaperLikeBackendMode.AUTO;
+            }
+
+            return paperLikeBackendMode;
+        }
+
+        public IrisHotPathMetricsMode getHotPathMetricsMode() {
+            if (hotPathMetricsMode == null) {
+                return IrisHotPathMetricsMode.SAMPLED;
+            }
+
+            return hotPathMetricsMode;
+        }
+
+        public int getHotPathMetricsSampleStride() {
+            int stride = Math.max(1, Math.min(hotPathMetricsSampleStride, 65_536));
+            int normalized = Integer.highestOneBit(stride);
+            return normalized <= 0 ? 1 : normalized;
+        }
+
+        public int getSaveIntervalMs() {
+            return Math.max(5_000, Math.min(saveIntervalMs, 900_000));
         }
     }
 

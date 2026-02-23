@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.object;
 
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.util.project.interpolation.IrisInterpolation;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.project.noise.CNG;
 
@@ -153,7 +154,8 @@ public final class IrisDimensionCarvingResolver {
 
         long seed = resolveChildSeed(engine, state);
         CNG childGenerator = parent.getChildrenGenerator(seed, engine.getData());
-        int selectedIndex = childGenerator.fit(0, selectionPlan.maxIndex, worldX, worldZ);
+        double sample = childGenerator.noiseFast2D(worldX, worldZ);
+        int selectedIndex = (int) Math.round(IrisInterpolation.lerp(0, selectionPlan.maxIndex, sample));
         CarvingChoice selected = selectionPlan.get(selectedIndex);
         if (selected == null || selected.entry == null) {
             return parent;

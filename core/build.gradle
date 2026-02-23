@@ -1,6 +1,8 @@
 import io.github.slimjar.resolver.data.Mirror
 import org.ajoberstar.grgit.Grgit
+import org.gradle.api.Task
 import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.jvm.tasks.Jar
 import org.gradle.jvm.toolchain.JavaLanguageVersion
@@ -225,6 +227,28 @@ tasks.named('processResources').configure {
     inputs.properties(pluginProperties)
     filesMatching('**/plugin.yml') {
         expand(pluginProperties)
+    }
+}
+
+def runningTestTasks = gradle.startParameter.taskNames.any { String taskName -> taskName.toLowerCase().contains('test') }
+if (runningTestTasks) {
+    TaskProvider<Task> processResourcesTask = tasks.named('processResources')
+    tasks.named('classes').configure { Task classesTask ->
+        Set<Object> dependencies = new LinkedHashSet<Object>(classesTask.getDependsOn())
+        dependencies.removeIf { Object dependency ->
+            if (dependency instanceof TaskProvider) {
+                return ((TaskProvider<?>) dependency).name == processResourcesTask.name
+            }
+            if (dependency instanceof Task) {
+                return ((Task) dependency).name == processResourcesTask.name
+            }
+            String dependencyName = String.valueOf(dependency)
+            return dependencyName == 'processResources' || dependencyName.endsWith(':processResources')
+        }
+        classesTask.setDependsOn(dependencies)
+    }
+    processResourcesTask.configure { Task task ->
+        task.enabled = false
     }
 }
 

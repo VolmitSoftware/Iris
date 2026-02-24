@@ -97,6 +97,7 @@ public class Iris extends VolmitPlugin implements Listener {
     private static Thread shutdownHook;
     private static File settingsFile;
     private static final String PENDING_WORLD_DELETE_FILE = "pending-world-deletes.txt";
+    private static final StackWalker DEBUG_STACK_WALKER = StackWalker.getInstance();
     private static final Map<String, ChunkGenerator> stagedRuntimeGenerators = new ConcurrentHashMap<>();
     private static final Map<String, BiomeProvider> stagedRuntimeBiomeProviders = new ConcurrentHashMap<>();
 
@@ -303,21 +304,37 @@ public class Iris extends VolmitPlugin implements Listener {
             return;
         }
 
+        StackWalker.StackFrame frame = null;
         try {
-            throw new RuntimeException();
-        } catch (Throwable e) {
-            try {
-                String[] cc = e.getStackTrace()[1].getClassName().split("\\Q.\\E");
-
-                if (cc.length > 5) {
-                    debug(cc[3] + "/" + cc[4] + "/" + cc[cc.length - 1], e.getStackTrace()[1].getLineNumber(), string);
-                } else {
-                    debug(cc[3] + "/" + cc[4], e.getStackTrace()[1].getLineNumber(), string);
-                }
-            } catch (Throwable ex) {
-                debug("Origin", -1, string);
-            }
+            frame = DEBUG_STACK_WALKER.walk(stream -> stream.skip(1).findFirst().orElse(null));
+        } catch (Throwable ignored) {
         }
+
+        if (frame == null) {
+            debug("Origin", -1, string);
+            return;
+        }
+
+        String className = frame.getClassName();
+        String[] cc = className == null ? new String[0] : className.split("\\Q.\\E");
+        int line = frame.getLineNumber();
+
+        if (cc.length > 5) {
+            debug(cc[3] + "/" + cc[4] + "/" + cc[cc.length - 1], line, string);
+            return;
+        }
+
+        if (cc.length > 4) {
+            debug(cc[3] + "/" + cc[4], line, string);
+            return;
+        }
+
+        if (cc.length > 0) {
+            debug(cc[cc.length - 1], line, string);
+            return;
+        }
+
+        debug("Origin", line, string);
     }
 
     public static void debug(String category, int line, String string) {

@@ -45,12 +45,14 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 public class IrisChunkGenerator extends CustomChunkGenerator {
     private static final WrappedField<ChunkGenerator, BiomeSource> BIOME_SOURCE;
     private static final WrappedReturningMethod<Heightmap, Object> SET_HEIGHT;
     private static final int EXTERNAL_FOUNDATION_MAX_DEPTH = 96;
+    private static final Set<String> loggedExternalStructureFingerprintKeys = ConcurrentHashMap.newKeySet();
     private final ChunkGenerator delegate;
     private final Engine engine;
     private volatile Registry<Structure> cachedStructureRegistry;
@@ -389,9 +391,13 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
         }
 
         String normalized = structureKey.toLowerCase(Locale.ROOT);
-        return "minecraft:ancient_city".equals(normalized)
-                || "minecraft:mineshaft".equals(normalized)
-                || "minecraft:mineshaft_mesa".equals(normalized);
+        if (!"minecraft:ancient_city".equals(normalized)
+                && !"minecraft:mineshaft".equals(normalized)
+                && !"minecraft:mineshaft_mesa".equals(normalized)) {
+            return false;
+        }
+
+        return loggedExternalStructureFingerprintKeys.add(normalized);
     }
 
     private static void logExternalStructureFingerprint(String structureKey, StructureStart start) {

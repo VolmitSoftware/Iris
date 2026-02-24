@@ -301,11 +301,15 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         Chunk chunk = world.getChunkAt(chunkX, chunkZ);
 
         if (IrisSettings.get().getWorld().isPostLoadBlockUpdates()) {
-            if (J.isFolia() && !getMantle().isChunkLoaded(chunkX, chunkZ)) {
+            if (!getMantle().isChunkLoaded(chunkX, chunkZ)) {
                 warmupMantleChunkAsync(chunkX, chunkZ);
                 return;
             }
             getEngine().updateChunk(chunk);
+        }
+
+        if (!isEntitySpawningEnabledForCurrentWorld()) {
+            return;
         }
 
         if (!IrisSettings.get().getWorld().isMarkerEntitySpawningSystem()) {
@@ -585,6 +589,10 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             return;
         }
 
+        if (!isEntitySpawningEnabledForCurrentWorld()) {
+            return;
+        }
+
         IrisComplex complex = getEngine().getComplex();
         if (complex == null) {
             return;
@@ -678,6 +686,14 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         return (initial ? s.getInitialSpawns() : s.getSpawns()).stream();
+    }
+
+    private boolean isEntitySpawningEnabledForCurrentWorld() {
+        if (!getEngine().isStudio()) {
+            return true;
+        }
+
+        return IrisSettings.get().getStudio().isEnableEntitySpawning();
     }
 
     private KList<IrisEntitySpawn> spawnRandomly(List<IrisEntitySpawn> types) {

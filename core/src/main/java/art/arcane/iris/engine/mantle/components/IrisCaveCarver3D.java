@@ -25,8 +25,11 @@ import art.arcane.iris.engine.object.IrisCaveFieldModule;
 import art.arcane.iris.engine.object.IrisCaveProfile;
 import art.arcane.iris.engine.object.IrisRange;
 import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
+import art.arcane.volmlib.util.matter.MatterSlice;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
 import java.util.ArrayList;
@@ -48,7 +51,7 @@ public class IrisCaveCarver3D {
     private final CNG surfaceBreakDensity;
     private final RNG thresholdRng;
     private final ModuleState[] modules;
-    private final double normalization;
+    private final double inverseNormalization;
     private final MatterCavern carveAir;
     private final MatterCavern carveLava;
     private final MatterCavern carveForcedAir;
@@ -89,7 +92,8 @@ public class IrisCaveCarver3D {
         }
 
         this.modules = moduleStates.toArray(new ModuleState[0]);
-        normalization = weight <= 0 ? 1 : weight;
+        double normalization = weight <= 0 ? 1 : weight;
+        inverseNormalization = 1D / normalization;
         hasModules = modules.length > 0;
     }
 
@@ -99,7 +103,7 @@ public class IrisCaveCarver3D {
             Arrays.fill(scratch.fullWeights, 1D);
             scratch.fullWeightsInitialized = true;
         }
-        return carve(writer, chunkX, chunkZ, scratch.fullWeights, 0D, 0D, null);
+        return carve(writer, chunkX, chunkZ, scratch.fullWeights, 0D, 0D, null, null);
     }
 
     public int carve(
@@ -110,7 +114,7 @@ public class IrisCaveCarver3D {
             double minWeight,
             double thresholdPenalty
     ) {
-        return carve(writer, chunkX, chunkZ, columnWeights, minWeight, thresholdPenalty, null);
+        return carve(writer, chunkX, chunkZ, columnWeights, minWeight, thresholdPenalty, null, null);
     }
 
     public int carve(
@@ -121,6 +125,19 @@ public class IrisCaveCarver3D {
             double minWeight,
             double thresholdPenalty,
             IrisRange worldYRange
+    ) {
+        return carve(writer, chunkX, chunkZ, columnWeights, minWeight, thresholdPenalty, worldYRange, null);
+    }
+
+    public int carve(
+            MantleWriter writer,
+            int chunkX,
+            int chunkZ,
+            double[] columnWeights,
+            double minWeight,
+            double thresholdPenalty,
+            IrisRange worldYRange,
+            int[] precomputedSurfaceHeights
     ) {
         PrecisionStopwatch applyStopwatch = PrecisionStopwatch.start();
         try {
@@ -150,27 +167,38 @@ public class IrisCaveCarver3D {
             int surfaceBreakDepth = Math.max(0, profile.getSurfaceBreakDepth());
             double surfaceBreakNoiseThreshold = profile.getSurfaceBreakNoiseThreshold();
             double surfaceBreakThresholdBoost = Math.max(0, profile.getSurfaceBreakThresholdBoost());
-            int waterMinDepthBelowSurface = Math.max(0, profile.getWaterMinDepthBelowSurface());
-            boolean waterRequiresFloor = profile.isWaterRequiresFloor();
             boolean allowSurfaceBreak = profile.isAllowSurfaceBreak();
             if (maxY < minY) {
                 return 0;
             }
 
+            MantleChunk<Matter> chunk = writer.acquireChunk(chunkX, chunkZ);
+            if (chunk == null) {
+                return 0;
+            }
+
             int x0 = chunkX << 4;
             int z0 = chunkZ << 4;
-            int[] columnSurface = scratch.columnSurface;
             int[] columnMaxY = scratch.columnMaxY;
             int[] surfaceBreakFloorY = scratch.surfaceBreakFloorY;
             boolean[] surfaceBreakColumn = scratch.surfaceBreakColumn;
             double[] columnThreshold = scratch.columnThreshold;
+            double[] clampedWeights = scratch.clampedColumnWeights;
+            double[] verticalEdgeFade = prepareVerticalEdgeFadeTable(scratch, minY, maxY);
+            MatterCavern[] matterByY = prepareMatterByYTable(scratch, minY, maxY);
+            prepareSectionCaches(scratch, minY, maxY);
 
             for (int lx = 0; lx < 16; lx++) {
                 int x = x0 + lx;
                 for (int lz = 0; lz < 16; lz++) {
                     int z = z0 + lz;
                     int index = (lx << 4) | lz;
-                    int columnSurfaceY = engine.getHeight(x, z);
+                    int columnSurfaceY;
+                    if (precomputedSurfaceHeights != null && precomputedSurfaceHeights.length > index) {
+                        columnSurfaceY = precomputedSurfaceHeights[index];
+                    } else {
+                        columnSurfaceY = engine.getHeight(x, z);
+                    }
                     int clearanceTopY = Math.min(maxY, Math.max(minY, columnSurfaceY - surfaceClearance));
                     boolean breakColumn = allowSurfaceBreak
                             && signed(surfaceBreakDensity.noiseFast2D(x, z)) >= surfaceBreakNoiseThreshold;
@@ -178,30 +206,30 @@ public class IrisCaveCarver3D {
                             ? Math.min(maxY, Math.max(minY, columnSurfaceY))
                             : clearanceTopY;
 
-                    columnSurface[index] = columnSurfaceY;
                     columnMaxY[index] = columnTopY;
                     surfaceBreakFloorY[index] = Math.max(minY, columnSurfaceY - surfaceBreakDepth);
                     surfaceBreakColumn[index] = breakColumn;
                     columnThreshold[index] = profile.getDensityThreshold().get(thresholdRng, x, z, data) - profile.getThresholdBias();
+                    clampedWeights[index] = clampColumnWeight(columnWeights[index]);
                 }
             }
 
-            int carved = carvePass(
-                    writer,
+            int latticeStep = Math.max(2, sampleStep);
+            int carved = carvePassLattice(
+                    chunk,
                     x0,
                     z0,
                     minY,
                     maxY,
-                    sampleStep,
+                    latticeStep,
                     surfaceBreakThresholdBoost,
-                    waterMinDepthBelowSurface,
-                    waterRequiresFloor,
-                    columnSurface,
                     columnMaxY,
                     surfaceBreakFloorY,
                     surfaceBreakColumn,
                     columnThreshold,
-                    columnWeights,
+                    clampedWeights,
+                    verticalEdgeFade,
+                    matterByY,
                     resolvedMinWeight,
                     resolvedThresholdPenalty,
                     0D,
@@ -211,27 +239,71 @@ public class IrisCaveCarver3D {
             int minCarveCells = Math.max(0, profile.getMinCarveCells());
             double recoveryThresholdBoost = Math.max(0, profile.getRecoveryThresholdBoost());
             if (carved < minCarveCells && recoveryThresholdBoost > 0D) {
-                carved += carvePass(
-                        writer,
+                carved += carvePassLattice(
+                        chunk,
+                        x0,
+                        z0,
+                        minY,
+                        maxY,
+                        latticeStep,
+                        surfaceBreakThresholdBoost,
+                        columnMaxY,
+                        surfaceBreakFloorY,
+                        surfaceBreakColumn,
+                        columnThreshold,
+                        clampedWeights,
+                        verticalEdgeFade,
+                        matterByY,
+                        resolvedMinWeight,
+                        resolvedThresholdPenalty,
+                        recoveryThresholdBoost,
+                        true
+                );
+            }
+
+            if (carved == 0 && hasFallbackCandidates(columnMaxY, clampedWeights, minY, resolvedMinWeight)) {
+                carved += carvePassFallback(
+                        chunk,
                         x0,
                         z0,
                         minY,
                         maxY,
                         sampleStep,
                         surfaceBreakThresholdBoost,
-                        waterMinDepthBelowSurface,
-                        waterRequiresFloor,
-                        columnSurface,
                         columnMaxY,
                         surfaceBreakFloorY,
                         surfaceBreakColumn,
                         columnThreshold,
-                        columnWeights,
+                        clampedWeights,
+                        verticalEdgeFade,
+                        matterByY,
                         resolvedMinWeight,
                         resolvedThresholdPenalty,
-                        recoveryThresholdBoost,
-                        true
+                        0D,
+                        false
                 );
+                if (carved < minCarveCells && recoveryThresholdBoost > 0D) {
+                    carved += carvePassFallback(
+                            chunk,
+                            x0,
+                            z0,
+                            minY,
+                            maxY,
+                            sampleStep,
+                            surfaceBreakThresholdBoost,
+                            columnMaxY,
+                            surfaceBreakFloorY,
+                            surfaceBreakColumn,
+                            columnThreshold,
+                            clampedWeights,
+                            verticalEdgeFade,
+                            matterByY,
+                            resolvedMinWeight,
+                            resolvedThresholdPenalty,
+                            recoveryThresholdBoost,
+                            true
+                    );
+                }
             }
 
             return carved;
@@ -240,35 +312,174 @@ public class IrisCaveCarver3D {
         }
     }
 
-    private int carvePass(
-            MantleWriter writer,
+    private int carvePassLattice(
+            MantleChunk<Matter> chunk,
             int x0,
             int z0,
             int minY,
             int maxY,
-            int sampleStep,
+            int latticeStep,
             double surfaceBreakThresholdBoost,
-            int waterMinDepthBelowSurface,
-            boolean waterRequiresFloor,
-            int[] columnSurface,
             int[] columnMaxY,
             int[] surfaceBreakFloorY,
             boolean[] surfaceBreakColumn,
             double[] columnThreshold,
-            double[] columnWeights,
+            double[] clampedWeights,
+            double[] verticalEdgeFade,
+            MatterCavern[] matterByY,
             double minWeight,
             double thresholdPenalty,
             double thresholdBoost,
             boolean skipExistingCarved
     ) {
         int carved = 0;
+        Scratch scratch = SCRATCH.get();
+        double[] passThreshold = scratch.passThreshold;
+        int[] tileIndices = scratch.tileIndices;
+        int[] tileLocalX = scratch.tileLocalX;
+        int[] tileLocalZ = scratch.tileLocalZ;
+        int[] tileTopY = scratch.tileTopY;
+
+        for (int index = 0; index < 256; index++) {
+            double columnWeight = clampedWeights[index];
+            if (columnWeight <= minWeight || columnMaxY[index] < minY) {
+                passThreshold[index] = Double.NaN;
+                continue;
+            }
+            passThreshold[index] = columnThreshold[index] + thresholdBoost - ((1D - columnWeight) * thresholdPenalty);
+        }
+
+        for (int lx = 0; lx < 16; lx += 2) {
+            int x = x0 + lx;
+            int lx1 = lx + 1;
+            for (int lz = 0; lz < 16; lz += 2) {
+                int z = z0 + lz;
+                int lz1 = lz + 1;
+                int activeColumns = 0;
+
+                int index00 = (lx << 4) | lz;
+                if (!Double.isNaN(passThreshold[index00])) {
+                    tileIndices[activeColumns] = index00;
+                    tileLocalX[activeColumns] = lx;
+                    tileLocalZ[activeColumns] = lz;
+                    tileTopY[activeColumns] = columnMaxY[index00];
+                    activeColumns++;
+                }
+
+                int index01 = (lx << 4) | lz1;
+                if (!Double.isNaN(passThreshold[index01])) {
+                    tileIndices[activeColumns] = index01;
+                    tileLocalX[activeColumns] = lx;
+                    tileLocalZ[activeColumns] = lz1;
+                    tileTopY[activeColumns] = columnMaxY[index01];
+                    activeColumns++;
+                }
+
+                int index10 = (lx1 << 4) | lz;
+                if (!Double.isNaN(passThreshold[index10])) {
+                    tileIndices[activeColumns] = index10;
+                    tileLocalX[activeColumns] = lx1;
+                    tileLocalZ[activeColumns] = lz;
+                    tileTopY[activeColumns] = columnMaxY[index10];
+                    activeColumns++;
+                }
+
+                int index11 = (lx1 << 4) | lz1;
+                if (!Double.isNaN(passThreshold[index11])) {
+                    tileIndices[activeColumns] = index11;
+                    tileLocalX[activeColumns] = lx1;
+                    tileLocalZ[activeColumns] = lz1;
+                    tileTopY[activeColumns] = columnMaxY[index11];
+                    activeColumns++;
+                }
+
+                if (activeColumns == 0) {
+                    continue;
+                }
+
+                int tileMaxY = minY;
+                for (int columnIndex = 0; columnIndex < activeColumns; columnIndex++) {
+                    if (tileTopY[columnIndex] > tileMaxY) {
+                        tileMaxY = tileTopY[columnIndex];
+                    }
+                }
+                if (tileMaxY < minY) {
+                    continue;
+                }
+
+                for (int y = minY; y <= tileMaxY; y += latticeStep) {
+                    double density = sampleDensityOptimized(x, y, z);
+                    int stampMaxY = Math.min(maxY, y + 1);
+                    for (int yy = y; yy <= stampMaxY; yy++) {
+                        MatterCavern matter = matterByY[yy - minY];
+                        MatterSlice<MatterCavern> cavernSlice = resolveCavernSlice(scratch, chunk, yy >> 4);
+                        int localY = yy & 15;
+                        int fadeIndex = yy - minY;
+                        for (int columnIndex = 0; columnIndex < activeColumns; columnIndex++) {
+                            if (yy > tileTopY[columnIndex]) {
+                                continue;
+                            }
+
+                            int index = tileIndices[columnIndex];
+                            double localThreshold = passThreshold[index];
+                            if (surfaceBreakColumn[index] && yy >= surfaceBreakFloorY[index]) {
+                                localThreshold += surfaceBreakThresholdBoost;
+                            }
+                            localThreshold -= verticalEdgeFade[fadeIndex];
+                            if (density > localThreshold) {
+                                continue;
+                            }
+
+                            int localX = tileLocalX[columnIndex];
+                            int localZ = tileLocalZ[columnIndex];
+                            if (skipExistingCarved) {
+                                if (cavernSlice.get(localX, localY, localZ) == null) {
+                                    cavernSlice.set(localX, localY, localZ, matter);
+                                    carved++;
+                                }
+                                continue;
+                            }
+
+                            cavernSlice.set(localX, localY, localZ, matter);
+                            carved++;
+                        }
+                    }
+                }
+            }
+        }
+
+        return carved;
+    }
+
+    private int carvePassFallback(
+            MantleChunk<Matter> chunk,
+            int x0,
+            int z0,
+            int minY,
+            int maxY,
+            int sampleStep,
+            double surfaceBreakThresholdBoost,
+            int[] columnMaxY,
+            int[] surfaceBreakFloorY,
+            boolean[] surfaceBreakColumn,
+            double[] columnThreshold,
+            double[] clampedWeights,
+            double[] verticalEdgeFade,
+            MatterCavern[] matterByY,
+            double minWeight,
+            double thresholdPenalty,
+            double thresholdBoost,
+            boolean skipExistingCarved
+    ) {
+        int carved = 0;
+        Scratch scratch = SCRATCH.get();
 
         for (int lx = 0; lx < 16; lx++) {
             int x = x0 + lx;
             for (int lz = 0; lz < 16; lz++) {
                 int z = z0 + lz;
                 int index = (lx << 4) | lz;
-                double columnWeight = clampColumnWeight(columnWeights[index]);
+                double columnWeight = clampedWeights[index];
                 if (columnWeight <= minWeight) {
                     continue;
                 }
@@ -280,7 +491,6 @@ public class IrisCaveCarver3D {
 
                 boolean breakColumn = surfaceBreakColumn[index];
                 int breakFloorY = surfaceBreakFloorY[index];
-                int surfaceY = columnSurface[index];
                 double threshold = columnThreshold[index] + thresholdBoost - ((1D - columnWeight) * thresholdPenalty);
 
                 for (int y = minY; y <= columnTopY; y += sampleStep) {
@@ -289,18 +499,25 @@ public class IrisCaveCarver3D {
                         localThreshold += surfaceBreakThresholdBoost;
                     }
 
-                    localThreshold = applyVerticalEdgeFade(localThreshold, y, minY, maxY);
-                    if (sampleDensity(x, y, z) > localThreshold) {
+                    localThreshold -= verticalEdgeFade[y - minY];
+                    if (sampleDensityOptimized(x, y, z) > localThreshold) {
                         continue;
                     }
 
                     int carveMaxY = Math.min(columnTopY, y + sampleStep - 1);
                     for (int yy = y; yy <= carveMaxY; yy++) {
-                        if (skipExistingCarved && writer.isCarved(x, yy, z)) {
+                        MatterCavern matter = matterByY[yy - minY];
+                        MatterSlice<MatterCavern> cavernSlice = resolveCavernSlice(scratch, chunk, yy >> 4);
+                        int localY = yy & 15;
+                        if (skipExistingCarved) {
+                            if (cavernSlice.get(lx, localY, lz) == null) {
+                                cavernSlice.set(lx, localY, lz, matter);
+                                carved++;
+                            }
                             continue;
                         }
 
-                        writer.setData(x, yy, z, resolveMatter(x, yy, z, surfaceY, localThreshold, waterMinDepthBelowSurface, waterRequiresFloor));
+                        cavernSlice.set(lx, localY, lz, matter);
                         carved++;
                     }
                 }
@@ -310,85 +527,163 @@ public class IrisCaveCarver3D {
         return carved;
     }
 
-    private double applyVerticalEdgeFade(double threshold, int y, int minY, int maxY) {
-        int fadeRange = Math.max(0, profile.getVerticalEdgeFade());
-        if (fadeRange <= 0 || maxY <= minY) {
-            return threshold;
-        }
+    private boolean hasFallbackCandidates(int[] columnMaxY, double[] clampedWeights, int minY, double minWeight) {
+        for (int index = 0; index < 256; index++) {
+            if (clampedWeights[index] <= minWeight) {
+                continue;
+            }
 
-        int floorDistance = y - minY;
-        int ceilingDistance = maxY - y;
-        int edgeDistance = Math.min(floorDistance, ceilingDistance);
-        if (edgeDistance >= fadeRange) {
-            return threshold;
-        }
-
-        double t = Math.max(0D, Math.min(1D, edgeDistance / (double) fadeRange));
-        double smooth = t * t * (3D - (2D * t));
-        double fadeStrength = Math.max(0D, profile.getVerticalEdgeFadeStrength());
-        return threshold - ((1D - smooth) * fadeStrength);
-    }
-
-    private double sampleDensity(int x, int y, int z) {
-        if (!hasWarp && !hasModules) {
-            double density = signed(baseDensity.noiseFast3D(x, y, z)) * baseWeight;
-            density += signed(detailDensity.noiseFast3D(x, y, z)) * detailWeight;
-            return density / normalization;
-        }
-
-        double warpedX = x;
-        double warpedY = y;
-        double warpedZ = z;
-        if (hasWarp) {
-            double warpA = signed(warpDensity.noiseFast3D(x, y, z));
-            double warpB = signed(warpDensity.noiseFast3D(x + 31.37D, y - 17.21D, z + 23.91D));
-            double offsetX = warpA * warpStrength;
-            double offsetY = warpB * warpStrength;
-            double offsetZ = (warpA - warpB) * 0.5D * warpStrength;
-            warpedX += offsetX;
-            warpedY += offsetY;
-            warpedZ += offsetZ;
-        }
-
-        double density = signed(baseDensity.noiseFast3D(warpedX, warpedY, warpedZ)) * baseWeight;
-        density += signed(detailDensity.noiseFast3D(warpedX, warpedY, warpedZ)) * detailWeight;
-
-        if (hasModules) {
-            for (int moduleIndex = 0; moduleIndex < modules.length; moduleIndex++) {
-                ModuleState module = modules[moduleIndex];
-                if (y < module.minY || y > module.maxY) {
-                    continue;
-                }
-
-                double moduleDensity = signed(module.density.noiseFast3D(warpedX, warpedY, warpedZ)) - module.threshold;
-                if (module.invert) {
-                    moduleDensity = -moduleDensity;
-                }
-
-                density += moduleDensity * module.weight;
+            if (columnMaxY[index] >= minY) {
+                return true;
             }
         }
 
-        return density / normalization;
+        return false;
     }
 
-    private MatterCavern resolveMatter(int x, int y, int z, int surfaceY, double localThreshold, int waterMinDepthBelowSurface, boolean waterRequiresFloor) {
+    private double sampleDensityOptimized(int x, int y, int z) {
+        if (!hasWarp) {
+            if (!hasModules) {
+                return sampleDensityNoWarpNoModules(x, y, z);
+            }
+
+            return sampleDensityNoWarpModules(x, y, z);
+        }
+
+        if (!hasModules) {
+            return sampleDensityWarpOnly(x, y, z);
+        }
+
+        return sampleDensityWarpModules(x, y, z);
+    }
+
+    private double sampleDensityNoWarpNoModules(int x, int y, int z) {
+        double density = signed(baseDensity.noiseFast3D(x, y, z)) * baseWeight;
+        density += signed(detailDensity.noiseFast3D(x, y, z)) * detailWeight;
+        return density * inverseNormalization;
+    }
+
+    private double sampleDensityNoWarpModules(int x, int y, int z) {
+        double density = signed(baseDensity.noiseFast3D(x, y, z)) * baseWeight;
+        density += signed(detailDensity.noiseFast3D(x, y, z)) * detailWeight;
+        for (int moduleIndex = 0; moduleIndex < modules.length; moduleIndex++) {
+            ModuleState module = modules[moduleIndex];
+            if (y < module.minY || y > module.maxY) {
+                continue;
+            }
+
+            double moduleDensity = signed(module.density.noiseFast3D(x, y, z)) - module.threshold;
+            if (module.invert) {
+                moduleDensity = -moduleDensity;
+            }
+
+            density += moduleDensity * module.weight;
+        }
+
+        return density * inverseNormalization;
+    }
+
+    private double sampleDensityWarpOnly(int x, int y, int z) {
+        double warpA = signed(warpDensity.noiseFast3D(x, y, z));
+        double warpB = signed(warpDensity.noiseFast3D(x + 31.37D, y - 17.21D, z + 23.91D));
+        double warpedX = x + (warpA * warpStrength);
+        double warpedY = y + (warpB * warpStrength);
+        double warpedZ = z + ((warpA - warpB) * 0.5D * warpStrength);
+        double density = signed(baseDensity.noiseFast3D(warpedX, warpedY, warpedZ)) * baseWeight;
+        density += signed(detailDensity.noiseFast3D(warpedX, warpedY, warpedZ)) * detailWeight;
+        return density * inverseNormalization;
+    }
+
+    private double sampleDensityWarpModules(int x, int y, int z) {
+        double warpA = signed(warpDensity.noiseFast3D(x, y, z));
+        double warpB = signed(warpDensity.noiseFast3D(x + 31.37D, y - 17.21D, z + 23.91D));
+        double warpedX = x + (warpA * warpStrength);
+        double warpedY = y + (warpB * warpStrength);
+        double warpedZ = z + ((warpA - warpB) * 0.5D * warpStrength);
+        double density = signed(baseDensity.noiseFast3D(warpedX, warpedY, warpedZ)) * baseWeight;
+        density += signed(detailDensity.noiseFast3D(warpedX, warpedY, warpedZ)) * detailWeight;
+        for (int moduleIndex = 0; moduleIndex < modules.length; moduleIndex++) {
+            ModuleState module = modules[moduleIndex];
+            if (y < module.minY || y > module.maxY) {
+                continue;
+            }
+
+            double moduleDensity = signed(module.density.noiseFast3D(warpedX, warpedY, warpedZ)) - module.threshold;
+            if (module.invert) {
+                moduleDensity = -moduleDensity;
+            }
+
+            density += moduleDensity * module.weight;
+        }
+
+        return density * inverseNormalization;
+    }
+
+    private MatterSlice<MatterCavern> resolveCavernSlice(Scratch scratch, MantleChunk<Matter> chunk, int sectionIndex) {
+        @SuppressWarnings("unchecked")
+        MatterSlice<MatterCavern> cachedSlice = (MatterSlice<MatterCavern>) scratch.sectionSlices[sectionIndex];
+        if (cachedSlice != null) {
+            return cachedSlice;
+        }
+
+        Matter sectionMatter = scratch.sectionMatter[sectionIndex];
+        if (sectionMatter == null) {
+            sectionMatter = chunk.getOrCreate(sectionIndex);
+            scratch.sectionMatter[sectionIndex] = sectionMatter;
+        }
+
+        MatterSlice<MatterCavern> resolvedSlice = sectionMatter.slice(MatterCavern.class);
+        scratch.sectionSlices[sectionIndex] = resolvedSlice;
+        return resolvedSlice;
+    }
+
+    private MatterCavern[] prepareMatterByYTable(Scratch scratch, int minY, int maxY) {
+        int size = Math.max(0, maxY - minY + 1);
+        if (scratch.matterByY.length < size) {
+            scratch.matterByY = new MatterCavern[size];
+        }
+
+        MatterCavern[] matterByY = scratch.matterByY;
+        boolean allowLava = profile.isAllowLava();
+        boolean allowWater = profile.isAllowWater();
         int lavaHeight = engine.getDimension().getCaveLavaHeight();
         int fluidHeight = engine.getDimension().getFluidHeight();
 
-        if (profile.isAllowLava() && y <= lavaHeight) {
-            return carveLava;
+        for (int y = minY; y <= maxY; y++) {
+            int offset = y - minY;
+            if (allowLava && y <= lavaHeight) {
+                matterByY[offset] = carveLava;
+                continue;
+            }
+            if (allowWater && y <= fluidHeight) {
+                matterByY[offset] = carveAir;
+                continue;
+            }
+            if (!allowLava && y <= lavaHeight) {
+                matterByY[offset] = carveForcedAir;
+                continue;
+            }
+
+            matterByY[offset] = carveAir;
         }
 
-        if (profile.isAllowWater() && y <= fluidHeight) {
-            return carveAir;
+        return matterByY;
+    }
+
+    private void prepareSectionCaches(Scratch scratch, int minY, int maxY) {
+        int minSection = Math.max(0, minY >> 4);
+        int maxSection = Math.max(minSection, maxY >> 4);
+        int requiredSections = maxSection + 1;
+        if (scratch.sectionMatter.length < requiredSections) {
+            scratch.sectionMatter = new Matter[requiredSections];
+            scratch.sectionSlices = new MatterSlice<?>[requiredSections];
+            return;
         }
 
-        if (!profile.isAllowLava() && y <= lavaHeight) {
-            return carveForcedAir;
+        for (int section = minSection; section <= maxSection; section++) {
+            scratch.sectionMatter[section] = null;
+            scratch.sectionSlices[section] = null;
         }
-
-        return carveAir;
     }
 
     private double clampColumnWeight(double weight) {
@@ -411,6 +706,38 @@ public class IrisCaveCarver3D {
         return (value * 2D) - 1D;
     }
 
+    private double[] prepareVerticalEdgeFadeTable(Scratch scratch, int minY, int maxY) {
+        int size = Math.max(0, maxY - minY + 1);
+        if (scratch.verticalEdgeFade.length < size) {
+            scratch.verticalEdgeFade = new double[size];
+        }
+
+        double[] verticalEdgeFade = scratch.verticalEdgeFade;
+        int fadeRange = Math.max(0, profile.getVerticalEdgeFade());
+        double fadeStrength = Math.max(0D, profile.getVerticalEdgeFadeStrength());
+        if (size <= 0 || fadeRange <= 0 || maxY <= minY || fadeStrength <= 0D) {
+            Arrays.fill(verticalEdgeFade, 0, size, 0D);
+            return verticalEdgeFade;
+        }
+
+        for (int y = minY; y <= maxY; y++) {
+            int floorDistance = y - minY;
+            int ceilingDistance = maxY - y;
+            int edgeDistance = Math.min(floorDistance, ceilingDistance);
+            int offsetIndex = y - minY;
+            if (edgeDistance >= fadeRange) {
+                verticalEdgeFade[offsetIndex] = 0D;
+                continue;
+            }
+
+            double t = Math.max(0D, Math.min(1D, edgeDistance / (double) fadeRange));
+            double smooth = t * t * (3D - (2D * t));
+            verticalEdgeFade[offsetIndex] = (1D - smooth) * fadeStrength;
+        }
+
+        return verticalEdgeFade;
+    }
+
     private static final class ModuleState {
         private final CNG density;
         private final int minY;
@@ -431,12 +758,21 @@ public class IrisCaveCarver3D {
     }
 
     private static final class Scratch {
-        private final int[] columnSurface = new int[256];
         private final int[] columnMaxY = new int[256];
         private final int[] surfaceBreakFloorY = new int[256];
         private final boolean[] surfaceBreakColumn = new boolean[256];
         private final double[] columnThreshold = new double[256];
+        private final double[] passThreshold = new double[256];
         private final double[] fullWeights = new double[256];
+        private final double[] clampedColumnWeights = new double[256];
+        private final int[] tileIndices = new int[4];
+        private final int[] tileLocalX = new int[4];
+        private final int[] tileLocalZ = new int[4];
+        private final int[] tileTopY = new int[4];
+        private double[] verticalEdgeFade = new double[0];
+        private MatterCavern[] matterByY = new MatterCavern[0];
+        private Matter[] sectionMatter = new Matter[0];
+        private MatterSlice<?>[] sectionSlices = new MatterSlice<?>[0];
         private boolean fullWeightsInitialized;
     }
 }

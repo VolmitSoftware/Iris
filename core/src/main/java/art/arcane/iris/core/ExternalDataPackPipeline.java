@@ -1324,6 +1324,9 @@ public final class ExternalDataPackPipeline {
             writtenPaths.add(outputRelativePath);
 
             byte[] outputBytes = inputAsset.bytes();
+            if (projectedEntry.type() == ProjectedEntryType.STRUCTURE_NBT && !remappedKeys.isEmpty()) {
+                outputBytes = StructureNbtJigsawPoolRewriter.rewrite(outputBytes, remappedKeys);
+            }
             if (projectedEntry.type() == ProjectedEntryType.STRUCTURE
                     || projectedEntry.type() == ProjectedEntryType.STRUCTURE_SET
                     || projectedEntry.type() == ProjectedEntryType.CONFIGURED_FEATURE

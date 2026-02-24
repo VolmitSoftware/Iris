@@ -579,10 +579,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     public void generateNoise(@NotNull WorldInfo world, @NotNull Random random, int x, int z, @NotNull ChunkGenerator.ChunkData d) {
         try {
             Engine engine = getEngine(world);
-            World realWorld = engine.getWorld().realWorld();
-            if (realWorld != null && IrisToolbelt.isWorldMaintenanceActive(realWorld)) {
-                return;
-            }
             computeStudioGenerator();
             TerrainChunk tc = TerrainChunk.create(d);
             this.world.bind(world);

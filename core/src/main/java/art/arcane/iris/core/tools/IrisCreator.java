@@ -56,8 +56,13 @@ import org.bukkit.entity.Player;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -74,6 +79,9 @@ import static art.arcane.iris.util.common.misc.ServerProperties.BUKKIT_YML;
 @Data
 @Accessors(fluent = true, chain = true)
 public class IrisCreator {
+    private static final int STUDIO_PREWARM_RADIUS_CHUNKS = 1;
+    private static final Duration STUDIO_PREWARM_TIMEOUT = Duration.ofSeconds(45L);
+
     /**
      * Specify an area to pregenerate during creation
      */
@@ -254,6 +262,7 @@ public class IrisCreator {
                 if (studioEntryLocation == null) {
                     sender.sendMessage(C.YELLOW + "Studio opened, but entry location could not be resolved safely.");
                 } else {
+                    prewarmStudioEntryChunks(world, studioEntryLocation, STUDIO_PREWARM_RADIUS_CHUNKS, STUDIO_PREWARM_TIMEOUT);
                     CompletableFuture<Boolean> teleportFuture = PaperLib.teleportAsync(senderPlayer, studioEntryLocation);
                     if (teleportFuture != null) {
                         teleportFuture.thenAccept(success -> {
@@ -495,6 +504,197 @@ public class IrisCreator {
         }
 
         return true;
+    }
+
+    private void prewarmStudioEntryChunks(World world, Location entry, int radiusChunks, Duration timeout) throws IrisException {
+        if (world == null || entry == null) {
+            throw new IrisException("Studio prewarm failed: world or entry location is null.");
+        }
+
+        int centerChunkX = entry.getBlockX() >> 4;
+        int centerChunkZ = entry.getBlockZ() >> 4;
+        List<StudioChunkCoordinate> chunkTargets = resolveStudioPrewarmTargets(centerChunkX, centerChunkZ, radiusChunks);
+        if (chunkTargets.isEmpty()) {
+            throw new IrisException("Studio prewarm failed: no target chunks were resolved.");
+        }
+
+        int loadedBefore = 0;
+        Map<StudioChunkCoordinate, CompletableFuture<Chunk>> futures = new LinkedHashMap<>();
+        for (StudioChunkCoordinate coordinate : chunkTargets) {
+            if (world.isChunkLoaded(coordinate.getX(), coordinate.getZ())) {
+                loadedBefore++;
+            }
+
+            CompletableFuture<Chunk> chunkFuture = PaperLib.getChunkAtAsync(world, coordinate.getX(), coordinate.getZ(), true);
+            if (chunkFuture == null) {
+                throw new IrisException("Studio prewarm failed: async chunk future was null for " + coordinate + ".");
+            }
+
+            futures.put(coordinate, chunkFuture);
+        }
+
+        int total = chunkTargets.size();
+        int completed = 0;
+        Set<StudioChunkCoordinate> remaining = new LinkedHashSet<>(chunkTargets);
+        long startNanos = System.nanoTime();
+        long timeoutNanos = Math.max(1L, timeout.toNanos());
+        reportStudioProgress(0.88D, "Prewarming entry chunks (0/" + total + ")");
+
+        while (!remaining.isEmpty()) {
+            long elapsedNanos = System.nanoTime() - startNanos;
+            if (elapsedNanos >= timeoutNanos) {
+                StudioPrewarmDiagnostics diagnostics = buildStudioPrewarmDiagnostics(world, chunkTargets, remaining, loadedBefore, elapsedNanos);
+                throw new IrisException("Studio prewarm timed out: " + diagnostics.toMessage());
+            }
+
+            boolean progressed = false;
+            List<StudioChunkCoordinate> completedCoordinates = new ArrayList<>();
+            for (StudioChunkCoordinate coordinate : remaining) {
+                CompletableFuture<Chunk> chunkFuture = futures.get(coordinate);
+                if (chunkFuture == null || !chunkFuture.isDone()) {
+                    continue;
+                }
+
+                try {
+                    Chunk loadedChunk = chunkFuture.get();
+                    if (loadedChunk == null) {
+                        throw new IrisException("Studio prewarm failed: chunk " + coordinate + " resolved to null.");
+                    }
+                } catch (IrisException e) {
+                    throw e;
+                } catch (Throwable e) {
+                    throw new IrisException("Studio prewarm failed while loading chunk " + coordinate + ".", e);
+                }
+
+                completedCoordinates.add(coordinate);
+                progressed = true;
+            }
+
+            if (!completedCoordinates.isEmpty()) {
+                for (StudioChunkCoordinate completedCoordinate : completedCoordinates) {
+                    remaining.remove(completedCoordinate);
+                }
+
+                completed += completedCoordinates.size();
+                double ratio = (double) completed / (double) total;
+                reportStudioProgress(0.88D + (0.04D * ratio), "Prewarming entry chunks (" + completed + "/" + total + ")");
+            }
+
+            if (!progressed) {
+                J.sleep(20);
+            }
+        }
+
+        long elapsedNanos = System.nanoTime() - startNanos;
+        StudioPrewarmDiagnostics diagnostics = buildStudioPrewarmDiagnostics(world, chunkTargets, new LinkedHashSet<>(), loadedBefore, elapsedNanos);
+        Iris.info("Studio prewarm complete: " + diagnostics.toMessage());
+    }
+
+    private StudioPrewarmDiagnostics buildStudioPrewarmDiagnostics(
+            World world,
+            List<StudioChunkCoordinate> chunkTargets,
+            Set<StudioChunkCoordinate> timedOutChunks,
+            int loadedBefore,
+            long elapsedNanos
+    ) {
+        int loadedAfter = 0;
+        for (StudioChunkCoordinate coordinate : chunkTargets) {
+            if (world.isChunkLoaded(coordinate.getX(), coordinate.getZ())) {
+                loadedAfter++;
+            }
+        }
+
+        int generatedDuring = Math.max(0, loadedAfter - loadedBefore);
+        List<String> timedOut = new ArrayList<>();
+        for (StudioChunkCoordinate timedOutChunk : timedOutChunks) {
+            timedOut.add(timedOutChunk.toString());
+        }
+
+        long elapsedMs = TimeUnit.NANOSECONDS.toMillis(Math.max(0L, elapsedNanos));
+        return new StudioPrewarmDiagnostics(elapsedMs, loadedBefore, loadedAfter, generatedDuring, timedOut);
+    }
+
+    private List<StudioChunkCoordinate> resolveStudioPrewarmTargets(int centerChunkX, int centerChunkZ, int radiusChunks) {
+        int safeRadius = Math.max(0, radiusChunks);
+        List<StudioChunkCoordinate> targets = new ArrayList<>();
+        targets.add(new StudioChunkCoordinate(centerChunkX, centerChunkZ));
+
+        for (int x = -safeRadius; x <= safeRadius; x++) {
+            for (int z = -safeRadius; z <= safeRadius; z++) {
+                if (x == 0 && z == 0) {
+                    continue;
+                }
+
+                targets.add(new StudioChunkCoordinate(centerChunkX + x, centerChunkZ + z));
+            }
+        }
+
+        return targets;
+    }
+
+    private static final class StudioChunkCoordinate {
+        private final int x;
+        private final int z;
+
+        private StudioChunkCoordinate(int x, int z) {
+            this.x = x;
+            this.z = z;
+        }
+
+        private int getX() {
+            return x;
+        }
+
+        private int getZ() {
+            return z;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) {
+                return true;
+            }
+
+            if (!(other instanceof StudioChunkCoordinate coordinate)) {
+                return false;
+            }
+
+            return x == coordinate.x && z == coordinate.z;
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * x + z;
+        }
+
+        @Override
+        public String toString() {
+            return x + "," + z;
+        }
+    }
+
+    private static final class StudioPrewarmDiagnostics {
+        private final long elapsedMs;
+        private final int loadedBefore;
+        private final int loadedAfter;
+        private final int generatedDuring;
+        private final List<String> timedOutChunks;
+
+        private StudioPrewarmDiagnostics(long elapsedMs, int loadedBefore, int loadedAfter, int generatedDuring, List<String> timedOutChunks) {
+            this.elapsedMs = elapsedMs;
+            this.loadedBefore = loadedBefore;
+            this.loadedAfter = loadedAfter;
+            this.generatedDuring = generatedDuring;
+            this.timedOutChunks = new ArrayList<>(timedOutChunks);
+        }
+
+        private String toMessage() {
+            return "elapsedMs=" + elapsedMs
+                    + ", loadedBefore=" + loadedBefore
+                    + ", loadedAfter=" + loadedAfter
+                    + ", generatedDuring=" + generatedDuring
+                    + ", timedOut=" + timedOutChunks;
+        }
     }
 
     private static boolean containsCreateWorldUnsupportedOperation(Throwable throwable) {

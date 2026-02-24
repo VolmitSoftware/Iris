@@ -318,7 +318,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
         var mantle = getMantle().getMantle();
         if (!mantle.isLoaded(c)) {
-            var msg = "Mantle Chunk " + c.getX() + c.getX() + " is not loaded";
+            var msg = "Mantle Chunk " + c.getX() + "," + c.getZ() + " is not loaded";
             if (W.getStack().getCallerClass().equals(ChunkUpdater.class)) Iris.warn(msg);
             else Iris.debug(msg);
             return;

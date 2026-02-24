@@ -103,6 +103,27 @@ public class IrisDimensionCarvingResolverParityTest {
         }
     }
 
+    @Test
+    public void tileAnchoredChunkPlanResolutionIsStableAcrossRepeatedBuilds() {
+        Fixture fixture = createMixedDepthFixture();
+        IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
+        IrisDimensionCarvingEntry root = legacyResolveRootEntry(fixture.engine, 80);
+
+        for (int chunkX = -24; chunkX <= 24; chunkX += 6) {
+            for (int chunkZ = -24; chunkZ <= 24; chunkZ += 6) {
+                IrisDimensionCarvingEntry[] firstPlan = buildTilePlan(fixture.engine, root, chunkX, chunkZ, state);
+                IrisDimensionCarvingEntry[] secondPlan = buildTilePlan(fixture.engine, root, chunkX, chunkZ, state);
+                for (int tileIndex = 0; tileIndex < firstPlan.length; tileIndex++) {
+                    assertSame(
+                            "tile plan mismatch at chunkX=" + chunkX + " chunkZ=" + chunkZ + " tileIndex=" + tileIndex,
+                            firstPlan[tileIndex],
+                            secondPlan[tileIndex]
+                    );
+                }
+            }
+        }
+    }
+
     private Fixture createFixture() {
         IrisBiome rootLowBiome = mock(IrisBiome.class);
         IrisBiome rootHighBiome = mock(IrisBiome.class);
@@ -249,6 +270,19 @@ public class IrisDimensionCarvingResolverParityTest {
         doReturn(fallbackBiome).when(engine).getCaveBiome(anyInt(), anyInt());
 
         return new Fixture(engine);
+    }
+
+    private IrisDimensionCarvingEntry[] buildTilePlan(Engine engine, IrisDimensionCarvingEntry rootEntry, int chunkX, int chunkZ, IrisDimensionCarvingResolver.State state) {
+        IrisDimensionCarvingEntry[] plan = new IrisDimensionCarvingEntry[64];
+        for (int tileX = 0; tileX < 8; tileX++) {
+            int worldX = (chunkX << 4) + (tileX << 1);
+            for (int tileZ = 0; tileZ < 8; tileZ++) {
+                int worldZ = (chunkZ << 4) + (tileZ << 1);
+                int tileIndex = (tileX * 8) + tileZ;
+                plan[tileIndex] = IrisDimensionCarvingResolver.resolveFromRoot(engine, rootEntry, worldX, worldZ, state);
+            }
+        }
+        return plan;
     }
 
     private IrisDimensionCarvingEntry buildEntry(String id, String biome, IrisRange worldRange, int depth, List<String> children) {

@@ -321,12 +321,23 @@ public class J {
             return;
         }
 
-        if (!runGlobalImmediate(r)) {
-            try {
-                Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r);
-            } catch (UnsupportedOperationException e) {
-                throw new IllegalStateException("Failed to schedule sync task (Folia scheduler unavailable, BukkitScheduler unsupported).", e);
+        if (isFolia()) {
+            if (runGlobalImmediate(r)) {
+                return;
             }
+
+            throw new IllegalStateException("Failed to schedule sync task on Folia runtime.");
+        }
+
+        try {
+            Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r);
+        } catch (UnsupportedOperationException e) {
+            FoliaScheduler.forceFoliaThreading(Bukkit.getServer());
+            if (runGlobalImmediate(r)) {
+                return;
+            }
+
+            throw new IllegalStateException("Failed to schedule sync task (Folia scheduler unavailable, BukkitScheduler unsupported).", e);
         }
     }
 
@@ -397,10 +408,28 @@ public class J {
             return;
         }
 
-        try {
-            if (!runGlobalDelayed(r, delay)) {
-                Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r, delay);
+        if (isFolia()) {
+            if (runGlobalDelayed(r, delay)) {
+                return;
             }
+
+            a(() -> {
+                if (sleep(ticksToMilliseconds(delay))) {
+                    s(r);
+                }
+            });
+            return;
+        }
+
+        try {
+            Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r, delay);
+        } catch (UnsupportedOperationException e) {
+            FoliaScheduler.forceFoliaThreading(Bukkit.getServer());
+            if (runGlobalDelayed(r, delay)) {
+                return;
+            }
+
+            throw new IllegalStateException("Failed to schedule delayed sync task (Folia scheduler unavailable, BukkitScheduler unsupported).", e);
         } catch (Throwable e) {
             Iris.reportError(e);
         }
@@ -551,12 +580,21 @@ public class J {
             return false;
         }
 
+        if (isPrimaryThread()) {
+            runnable.run();
+            return true;
+        }
+
         return FoliaScheduler.runGlobal(Iris.instance, runnable);
     }
 
     private static boolean runGlobalDelayed(Runnable runnable, int delayTicks) {
         if (!isFolia()) {
             return false;
+        }
+
+        if (delayTicks <= 0) {
+            return runGlobalImmediate(runnable);
         }
 
         return FoliaScheduler.runGlobal(Iris.instance, runnable, Math.max(0, delayTicks));

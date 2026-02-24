@@ -23,6 +23,7 @@ import art.arcane.iris.engine.framework.EngineAssignedActuator;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.util.project.context.ChunkedDataCache;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.iris.util.project.hunk.Hunk;
@@ -74,6 +75,11 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
      */
     @BlockCoordinates
     public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h, ChunkContext context) {
+        terrainSliverOptimized(x, z, xf, h, context);
+    }
+
+    @BlockCoordinates
+    private void terrainSliverLegacy(int x, int z, int xf, Hunk<BlockData> h, ChunkContext context) {
         int zf, realX, realZ, hf, he;
         IrisBiome biome;
         IrisRegion region;
@@ -154,6 +160,89 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                         h.set(xf, i, zf, ore);
                     } else {
                         h.set(xf, i, zf, context.getRock().get(xf, zf));
+                    }
+                }
+            }
+        }
+    }
+
+    @BlockCoordinates
+    private void terrainSliverOptimized(int x, int z, int xf, Hunk<BlockData> h, ChunkContext context) {
+        int chunkHeight = h.getHeight();
+        int chunkDepth = h.getDepth();
+        int fluidHeight = getDimension().getFluidHeight();
+        boolean bedrockEnabled = getDimension().isBedrock();
+        ChunkedDataCache<IrisBiome> biomeCache = context.getBiome();
+        ChunkedDataCache<IrisRegion> regionCache = context.getRegion();
+        ChunkedDataCache<Double> heightCache = context.getHeight();
+        ChunkedDataCache<BlockData> fluidCache = context.getFluid();
+        ChunkedDataCache<BlockData> rockCache = context.getRock();
+        int realX = xf + x;
+
+        for (int zf = 0; zf < chunkDepth; zf++) {
+            int realZ = zf + z;
+            IrisBiome biome = biomeCache.get(xf, zf);
+            IrisRegion region = regionCache.get(xf, zf);
+            int he = (int) Math.round(Math.min(chunkHeight, heightCache.get(xf, zf)));
+            int hf = Math.round(Math.max(Math.min(chunkHeight, fluidHeight), he));
+            if (hf < 0) {
+                continue;
+            }
+
+            int topY = Math.min(hf, chunkHeight - 1);
+            BlockData fluid = fluidCache.get(xf, zf);
+            BlockData rock = rockCache.get(xf, zf);
+            KList<BlockData> blocks = null;
+            KList<BlockData> fblocks = null;
+
+            for (int i = topY; i >= 0; i--) {
+                if (i == 0 && bedrockEnabled) {
+                    h.set(xf, i, zf, BEDROCK);
+                    lastBedrock = i;
+                    continue;
+                }
+
+                BlockData ore = biome.generateOres(realX, i, realZ, rng, getData(), true);
+                ore = ore == null ? region.generateOres(realX, i, realZ, rng, getData(), true) : ore;
+                ore = ore == null ? getDimension().generateOres(realX, i, realZ, rng, getData(), true) : ore;
+                if (ore != null) {
+                    h.set(xf, i, zf, ore);
+                    continue;
+                }
+
+                if (i > he && i <= hf) {
+                    int fdepth = hf - i;
+                    if (fblocks == null) {
+                        fblocks = biome.generateSeaLayers(realX, realZ, rng, hf - he, getData());
+                    }
+
+                    if (fblocks.hasIndex(fdepth)) {
+                        h.set(xf, i, zf, fblocks.get(fdepth));
+                    } else {
+                        h.set(xf, i, zf, fluid);
+                    }
+                    continue;
+                }
+
+                if (i <= he) {
+                    int depth = he - i;
+                    if (blocks == null) {
+                        blocks = biome.generateLayers(getDimension(), realX, realZ, rng, he, he, getData(), getComplex());
+                    }
+
+                    if (blocks.hasIndex(depth)) {
+                        h.set(xf, i, zf, blocks.get(depth));
+                        continue;
+                    }
+
+                    ore = biome.generateOres(realX, i, realZ, rng, getData(), false);
+                    ore = ore == null ? region.generateOres(realX, i, realZ, rng, getData(), false) : ore;
+                    ore = ore == null ? getDimension().generateOres(realX, i, realZ, rng, getData(), false) : ore;
+
+                    if (ore != null) {
+                        h.set(xf, i, zf, ore);
+                    } else {
+                        h.set(xf, i, zf, rock);
                     }
                 }
             }

@@ -19,7 +19,6 @@
 package art.arcane.iris.engine;
 
 import art.arcane.iris.Iris;
-import art.arcane.iris.core.IrisHotPathMetricsMode;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.data.cache.Cache;
@@ -50,8 +49,6 @@ import java.util.*;
 public class IrisComplex implements DataProvider {
     private static final BlockData AIR = Material.AIR.createBlockData();
     private static final NoiseBounds ZERO_NOISE_BOUNDS = new NoiseBounds(0D, 0D);
-    private static final int HOT_PATH_METRICS_FLUSH_SIZE = 64;
-    private static final ThreadLocal<HotPathMetricsState> HOT_PATH_METRICS = ThreadLocal.withInitial(HotPathMetricsState::new);
     private RNG rng;
     private double fluidHeight;
     private IrisData data;
@@ -324,11 +321,6 @@ public class IrisComplex implements DataProvider {
             return 0;
         }
 
-        IrisSettings.IrisSettingsPregen pregen = IrisSettings.get().getPregen();
-        IrisHotPathMetricsMode metricsMode = pregen.getHotPathMetricsMode();
-        HotPathMetricsState metricsState = metricsMode == IrisHotPathMetricsMode.DISABLED ? null : HOT_PATH_METRICS.get();
-        boolean sampleMetrics = metricsState != null && metricsState.shouldSample(metricsMode, pregen.getHotPathMetricsSampleStride());
-        long interpolateStartNanos = sampleMetrics ? System.nanoTime() : 0L;
         CoordinateBiomeCache sampleCache = new CoordinateBiomeCache(64);
         IdentityHashMap<IrisBiome, GeneratorBounds> cachedBounds = generatorBounds.get(interpolator);
         IdentityHashMap<IrisBiome, GeneratorBounds> localBounds = new IdentityHashMap<>(8);
@@ -350,21 +342,14 @@ public class IrisComplex implements DataProvider {
 
             return ZERO_NOISE_BOUNDS;
         });
-        if (sampleMetrics) {
-            metricsState.recordInterpolate(engine, System.nanoTime() - interpolateStartNanos);
-        }
 
         double hi = sampledBounds.max();
         double lo = sampledBounds.min();
 
-        long generatorStartNanos = sampleMetrics ? System.nanoTime() : 0L;
         double d = 0;
 
         for (IrisGenerator i : generators) {
             d += M.lerp(lo, hi, i.getHeight(x, z, seed + 239945));
-        }
-        if (sampleMetrics) {
-            metricsState.recordGenerator(engine, System.nanoTime() - generatorStartNanos);
         }
 
         return d / generators.size();
@@ -633,69 +618,6 @@ public class IrisComplex implements DataProvider {
             }
 
             return mappedBiomes[selectedIndex];
-        }
-    }
-
-    private static class HotPathMetricsState {
-        private long callCounter;
-        private long interpolateNanos;
-        private int interpolateSamples;
-        private long generatorNanos;
-        private int generatorSamples;
-
-        private boolean shouldSample(IrisHotPathMetricsMode mode, int sampleStride) {
-            if (mode == IrisHotPathMetricsMode.EXACT) {
-                return true;
-            }
-
-            long current = callCounter++;
-            return (current & (sampleStride - 1L)) == 0L;
-        }
-
-        private void recordInterpolate(Engine engine, long nanos) {
-            if (nanos < 0L) {
-                return;
-            }
-
-            interpolateNanos += nanos;
-            interpolateSamples++;
-            if (interpolateSamples >= HOT_PATH_METRICS_FLUSH_SIZE) {
-                flushInterpolate(engine);
-            }
-        }
-
-        private void recordGenerator(Engine engine, long nanos) {
-            if (nanos < 0L) {
-                return;
-            }
-
-            generatorNanos += nanos;
-            generatorSamples++;
-            if (generatorSamples >= HOT_PATH_METRICS_FLUSH_SIZE) {
-                flushGenerator(engine);
-            }
-        }
-
-        private void flushInterpolate(Engine engine) {
-            if (interpolateSamples <= 0) {
-                return;
-            }
-
-            double averageMs = (interpolateNanos / (double) interpolateSamples) / 1_000_000D;
-            engine.getMetrics().getNoiseHeightInterpolate().put(averageMs);
-            interpolateNanos = 0L;
-            interpolateSamples = 0;
-        }
-
-        private void flushGenerator(Engine engine) {
-            if (generatorSamples <= 0) {
-                return;
-            }
-
-            double averageMs = (generatorNanos / (double) generatorSamples) / 1_000_000D;
-            engine.getMetrics().getNoiseHeightGenerator().put(averageMs);
-            generatorNanos = 0L;
-            generatorSamples = 0;
         }
     }
 

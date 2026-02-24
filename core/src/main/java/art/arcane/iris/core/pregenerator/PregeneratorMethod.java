@@ -59,6 +59,10 @@ public interface PregeneratorMethod {
      */
     String getMethod(int x, int z);
 
+    default boolean isAsyncChunkMode() {
+        return false;
+    }
+
     /**
      * Called to generate a region. Execute sync, if multicore internally, wait
      * for the task to complete

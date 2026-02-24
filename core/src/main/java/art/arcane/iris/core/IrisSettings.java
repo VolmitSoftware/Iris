@@ -153,8 +153,6 @@ public class IrisSettings {
         public boolean useTicketQueue = true;
         public IrisRuntimeSchedulerMode runtimeSchedulerMode = IrisRuntimeSchedulerMode.AUTO;
         public IrisPaperLikeBackendMode paperLikeBackendMode = IrisPaperLikeBackendMode.AUTO;
-        public IrisHotPathMetricsMode hotPathMetricsMode = IrisHotPathMetricsMode.SAMPLED;
-        public int hotPathMetricsSampleStride = 1024;
         public int maxConcurrency = 256;
         public int paperLikeMaxConcurrency = 96;
         public int foliaMaxConcurrency = 32;
@@ -189,20 +187,6 @@ public class IrisSettings {
             }
 
             return paperLikeBackendMode;
-        }
-
-        public IrisHotPathMetricsMode getHotPathMetricsMode() {
-            if (hotPathMetricsMode == null) {
-                return IrisHotPathMetricsMode.SAMPLED;
-            }
-
-            return hotPathMetricsMode;
-        }
-
-        public int getHotPathMetricsSampleStride() {
-            int stride = Math.max(1, Math.min(hotPathMetricsSampleStride, 65_536));
-            int normalized = Integer.highestOneBit(stride);
-            return normalized <= 0 ? 1 : normalized;
         }
 
         public int getSaveIntervalMs() {
@@ -315,6 +299,7 @@ public class IrisSettings {
         public boolean studio = true;
         public boolean openVSCode = true;
         public boolean disableTimeAndWeather = true;
+        public boolean enableEntitySpawning = false;
         public boolean autoStartDefaultStudio = false;
     }
 

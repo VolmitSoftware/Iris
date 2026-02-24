@@ -46,8 +46,11 @@ import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
+    private static final ThreadLocal<CarveScratch> SCRATCH = ThreadLocal.withInitial(CarveScratch::new);
     private final RNG rng;
     private final BlockData AIR = Material.CAVE_AIR.createBlockData();
     private final BlockData LAVA = Material.LAVA.createBlockData();
@@ -67,9 +70,12 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         MantleChunk<Matter> mc = mantle.getChunk(x, z).use();
         IrisDimensionCarvingResolver.State resolverState = new IrisDimensionCarvingResolver.State();
         Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache = new Long2ObjectOpenHashMap<>(2048);
-        int[][] columnHeights = new int[256][];
-        int[] columnHeightSizes = new int[256];
-        PackedWallBuffer walls = new PackedWallBuffer(512);
+        CarveScratch scratch = SCRATCH.get();
+        scratch.reset();
+        PackedWallBuffer walls = scratch.walls;
+        ColumnMask[] columnMasks = scratch.columnMasks;
+        Map<String, IrisBiome> customBiomeCache = scratch.customBiomeCache;
+
         try {
             PrecisionStopwatch resolveStopwatch = PrecisionStopwatch.start();
             mc.iterate(MatterCavern.class, (xx, yy, zz, c) -> {
@@ -90,7 +96,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                     return;
                 }
 
-                appendColumnHeight(columnHeights, columnHeightSizes, columnIndex, yy);
+                columnMasks[columnIndex].add(yy);
 
                 if (rz < 15 && mc.get(xx, yy, zz + 1, MatterCavern.class) == null) {
                     walls.put(rx, yy, rz + 1, c);
@@ -131,9 +137,10 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 walls.forEach((rx, yy, rz, cavern) -> {
                     int worldX = rx + (x << 4);
                     int worldZ = rz + (z << 4);
-                    IrisBiome biome = cavern.getCustomBiome().isEmpty()
+                    String customBiome = cavern.getCustomBiome();
+                    IrisBiome biome = customBiome.isEmpty()
                             ? resolveCaveBiome(caveBiomeCache, worldX, yy, worldZ, resolverState)
-                            : getEngine().getData().getBiomeLoader().load(cavern.getCustomBiome());
+                            : resolveCustomBiome(customBiomeCache, customBiome);
 
                     if (biome != null) {
                         biome.setInferredType(InferredType.CAVE);
@@ -146,43 +153,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 });
 
                 for (int columnIndex = 0; columnIndex < 256; columnIndex++) {
-                    int size = columnHeightSizes[columnIndex];
-                    if (size <= 0) {
-                        continue;
-                    }
-
-                    int[] heights = columnHeights[columnIndex];
-                    Arrays.sort(heights, 0, size);
-                    int rx = columnIndex >> 4;
-                    int rz = columnIndex & 15;
-                    CaveZone zone = new CaveZone();
-                    zone.setFloor(heights[0]);
-                    int buf = heights[0] - 1;
-
-                    for (int heightIndex = 0; heightIndex < size; heightIndex++) {
-                        int y = heights[heightIndex];
-                        if (y < 0 || y > getEngine().getHeight()) {
-                            continue;
-                        }
-
-                        if (y == buf + 1) {
-                            buf = y;
-                            zone.ceiling = buf;
-                        } else if (zone.isValid(getEngine())) {
-                            processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4), resolverState, caveBiomeCache);
-                            zone = new CaveZone();
-                            zone.setFloor(y);
-                            buf = y;
-                        } else {
-                            zone = new CaveZone();
-                            zone.setFloor(y);
-                            buf = y;
-                        }
-                    }
-
-                    if (zone.isValid(getEngine())) {
-                        processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4), resolverState, caveBiomeCache);
-                    }
+                    processColumnFromMask(output, mc, mantle, columnMasks[columnIndex], columnIndex, x, z, resolverState, caveBiomeCache);
                 }
             } finally {
                 getEngine().getMetrics().getCarveApply().put(applyStopwatch.getMilliseconds());
@@ -190,6 +161,60 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         } finally {
             getEngine().getMetrics().getCave().put(p.getMilliseconds());
             mc.release();
+        }
+    }
+
+    private void processColumnFromMask(
+            Hunk<BlockData> output,
+            MantleChunk<Matter> mc,
+            Mantle<Matter> mantle,
+            ColumnMask columnMask,
+            int columnIndex,
+            int chunkX,
+            int chunkZ,
+            IrisDimensionCarvingResolver.State resolverState,
+            Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache
+    ) {
+        if (columnMask == null || columnMask.isEmpty()) {
+            return;
+        }
+
+        int firstHeight = columnMask.nextSetBit(0);
+        if (firstHeight < 0) {
+            return;
+        }
+
+        int rx = columnIndex >> 4;
+        int rz = columnIndex & 15;
+        int worldX = rx + (chunkX << 4);
+        int worldZ = rz + (chunkZ << 4);
+        CaveZone zone = new CaveZone();
+        zone.setFloor(firstHeight);
+        int buf = firstHeight - 1;
+        int y = firstHeight;
+
+        while (y >= 0) {
+            if (y >= 0 && y <= getEngine().getHeight()) {
+                if (y == buf + 1) {
+                    buf = y;
+                    zone.ceiling = buf;
+                } else if (zone.isValid(getEngine())) {
+                    processZone(output, mc, mantle, zone, rx, rz, worldX, worldZ, resolverState, caveBiomeCache);
+                    zone = new CaveZone();
+                    zone.setFloor(y);
+                    buf = y;
+                } else {
+                    zone = new CaveZone();
+                    zone.setFloor(y);
+                    buf = y;
+                }
+            }
+
+            y = columnMask.nextSetBit(y + 1);
+        }
+
+        if (zone.isValid(getEngine())) {
+            processZone(output, mc, mantle, zone, rx, rz, worldX, worldZ, resolverState, caveBiomeCache);
         }
     }
 
@@ -303,20 +328,14 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         return resolvedBiome;
     }
 
-    private void appendColumnHeight(int[][] heights, int[] sizes, int columnIndex, int y) {
-        int[] column = heights[columnIndex];
-        int size = sizes[columnIndex];
-        if (column == null) {
-            column = new int[8];
-            heights[columnIndex] = column;
-        } else if (size >= column.length) {
-            int nextSize = column.length << 1;
-            column = Arrays.copyOf(column, nextSize);
-            heights[columnIndex] = column;
+    private IrisBiome resolveCustomBiome(Map<String, IrisBiome> customBiomeCache, String customBiome) {
+        if (customBiomeCache.containsKey(customBiome)) {
+            return customBiomeCache.get(customBiome);
         }
 
-        column[size] = y;
-        sizes[columnIndex] = size + 1;
+        IrisBiome loaded = getEngine().getData().getBiomeLoader().load(customBiome);
+        customBiomeCache.put(customBiome, loaded);
+        return loaded;
     }
 
     private static final class PackedWallBuffer {
@@ -384,6 +403,12 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             }
         }
 
+        private void clear() {
+            Arrays.fill(keys, EMPTY_KEY);
+            Arrays.fill(values, null);
+            size = 0;
+        }
+
         private void resize() {
             int[] oldKeys = keys;
             MatterCavern[] oldValues = values;
@@ -440,6 +465,87 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         private int mix(int value) {
             int mixed = value * 0x9E3779B9;
             return mixed ^ (mixed >>> 16);
+        }
+    }
+
+    private static final class CarveScratch {
+        private final ColumnMask[] columnMasks = new ColumnMask[256];
+        private final PackedWallBuffer walls = new PackedWallBuffer(512);
+        private final Map<String, IrisBiome> customBiomeCache = new HashMap<>();
+
+        private CarveScratch() {
+            for (int index = 0; index < columnMasks.length; index++) {
+                columnMasks[index] = new ColumnMask();
+            }
+        }
+
+        private void reset() {
+            for (int index = 0; index < columnMasks.length; index++) {
+                columnMasks[index].clear();
+            }
+            walls.clear();
+            customBiomeCache.clear();
+        }
+    }
+
+    private static final class ColumnMask {
+        private long[] words = new long[8];
+        private int maxWord = -1;
+
+        private void add(int y) {
+            if (y < 0) {
+                return;
+            }
+
+            int wordIndex = y >> 6;
+            if (wordIndex >= words.length) {
+                words = Arrays.copyOf(words, Math.max(words.length << 1, wordIndex + 1));
+            }
+
+            words[wordIndex] |= 1L << (y & 63);
+            if (wordIndex > maxWord) {
+                maxWord = wordIndex;
+            }
+        }
+
+        private int nextSetBit(int fromBit) {
+            if (maxWord < 0) {
+                return -1;
+            }
+
+            int startBit = Math.max(0, fromBit);
+            int wordIndex = startBit >> 6;
+            if (wordIndex > maxWord) {
+                return -1;
+            }
+
+            long word = words[wordIndex] & (-1L << (startBit & 63));
+            while (true) {
+                if (word != 0L) {
+                    return (wordIndex << 6) + Long.numberOfTrailingZeros(word);
+                }
+
+                wordIndex++;
+                if (wordIndex > maxWord) {
+                    return -1;
+                }
+                word = words[wordIndex];
+            }
+        }
+
+        private boolean isEmpty() {
+            return maxWord < 0;
+        }
+
+        private void clear() {
+            if (maxWord < 0) {
+                return;
+            }
+
+            for (int index = 0; index <= maxWord; index++) {
+                words[index] = 0L;
+            }
+            maxWord = -1;
         }
     }
 

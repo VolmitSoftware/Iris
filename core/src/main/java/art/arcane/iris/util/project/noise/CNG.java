@@ -73,6 +73,8 @@ public class CNG {
     private double power;
     private NoiseStyle leakStyle;
     private ProceduralStream<Double> customGenerator;
+    private transient boolean identityPostFastPath;
+    private transient boolean fastPathStateDirty = true;
 
     public CNG(RNG random) {
         this(random, 1);
@@ -112,6 +114,8 @@ public class CNG {
         if (generator instanceof OctaveNoise) {
             ((OctaveNoise) generator).setOctaves(octaves);
         }
+
+        refreshFastPathState();
     }
 
     public static CNG signature(RNG rng) {
@@ -304,6 +308,7 @@ public class CNG {
     public CNG bake() {
         bakedScale *= scale;
         scale = 1;
+        markFastPathStateDirty();
         return this;
     }
 
@@ -313,6 +318,7 @@ public class CNG {
         }
 
         children.add(c);
+        markFastPathStateDirty();
         return this;
     }
 
@@ -323,32 +329,38 @@ public class CNG {
     public CNG fractureWith(CNG c, double scale) {
         fracture = c;
         fscale = scale;
+        markFastPathStateDirty();
         return this;
     }
 
     public CNG scale(double c) {
         scale = c;
+        markFastPathStateDirty();
         return this;
     }
 
     public CNG patch(double c) {
         patch = c;
+        markFastPathStateDirty();
         return this;
     }
 
     public CNG up(double c) {
         up = c;
+        markFastPathStateDirty();
         return this;
     }
 
     public CNG down(double c) {
         down = c;
+        markFastPathStateDirty();
         return this;
     }
 
     public CNG injectWith(NoiseInjector i) {
         injector = i == null ? ADD : i;
         injectorMode = resolveInjectorMode(injector);
+        markFastPathStateDirty();
         return this;
     }
 
@@ -665,7 +677,7 @@ public class CNG {
             return generator.noise(x * scl, 0D, 0D) * opacity;
         }
 
-        double fx = x + ((fracture.noise(x) - 0.5D) * fscale);
+        double fx = x + ((fracture.noiseFast1D(x) - 0.5D) * fscale);
         return generator.noise(fx * scl, 0D, 0D) * opacity;
     }
 
@@ -676,8 +688,8 @@ public class CNG {
             return generator.noise(x * scl, z * scl, 0D) * opacity;
         }
 
-        double fx = x + ((fracture.noise(x, z) - 0.5D) * fscale);
-        double fz = z + ((fracture.noise(z, x) - 0.5D) * fscale);
+        double fx = x + ((fracture.noiseFast2D(x, z) - 0.5D) * fscale);
+        double fz = z + ((fracture.noiseFast2D(z, x) - 0.5D) * fscale);
         return generator.noise(fx * scl, fz * scl, 0D) * opacity;
     }
 
@@ -688,9 +700,9 @@ public class CNG {
             return generator.noise(x * scl, y * scl, z * scl) * opacity;
         }
 
-        double fx = x + ((fracture.noise(x, y, z) - 0.5D) * fscale);
-        double fy = y + ((fracture.noise(y, x) - 0.5D) * fscale);
-        double fz = z + ((fracture.noise(z, x, y) - 0.5D) * fscale);
+        double fx = x + ((fracture.noiseFast3D(x, y, z) - 0.5D) * fscale);
+        double fy = y + ((fracture.noiseFast2D(y, x) - 0.5D) * fscale);
+        double fz = z + ((fracture.noiseFast3D(z, x, y) - 0.5D) * fscale);
         return generator.noise(fx * scl, fy * scl, fz * scl) * opacity;
     }
 
@@ -913,6 +925,10 @@ public class CNG {
             return cache.get((int) x, (int) z);
         }
 
+        if (isIdentityPostFastPath()) {
+            return getNoise(x, z);
+        }
+
         return applyPost(getNoise(x, z), x, z);
     }
 
@@ -921,11 +937,16 @@ public class CNG {
     }
 
     public double noiseFast3D(double x, double y, double z) {
+        if (isIdentityPostFastPath()) {
+            return getNoise(x, y, z);
+        }
+
         return applyPost(getNoise(x, y, z), x, y, z);
     }
 
     public CNG pow(double power) {
         this.power = power;
+        markFastPathStateDirty();
         return this;
     }
 
@@ -940,6 +961,28 @@ public class CNG {
 
     public boolean isStatic() {
         return generator != null && generator.isStatic();
+    }
+
+    private boolean isIdentityPostFastPath() {
+        if (fastPathStateDirty) {
+            refreshFastPathState();
+        }
+
+        return identityPostFastPath;
+    }
+
+    private void markFastPathStateDirty() {
+        fastPathStateDirty = true;
+    }
+
+    private void refreshFastPathState() {
+        identityPostFastPath = power == 1D
+                && children == null
+                && fracture == null
+                && down == 0D
+                && up == 0D
+                && patch == 1D;
+        fastPathStateDirty = false;
     }
 
     private enum InjectorMode {

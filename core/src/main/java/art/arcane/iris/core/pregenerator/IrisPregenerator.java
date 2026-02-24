@@ -173,9 +173,13 @@ public class IrisPregenerator {
         init();
         ticker.start();
         checkRegions();
-        var p = PrecisionStopwatch.start();
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         task.iterateRegions((x, z) -> visitRegion(x, z, true));
-        task.iterateRegions((x, z) -> visitRegion(x, z, false));
+        if (generator.isAsyncChunkMode()) {
+            visitChunksInterleaved();
+        } else {
+            task.iterateRegions((x, z) -> visitRegion(x, z, false));
+        }
         Iris.info("Pregen took " + Form.duration((long) p.getMilliseconds()));
         shutdown();
         if (benchmarking == null) {
@@ -258,6 +262,46 @@ public class IrisPregenerator {
         }
 
         generator.supportsRegions(x, z, listener);
+    }
+
+    private void visitChunksInterleaved() {
+        task.iterateAllChunksInterleaved((regionX, regionZ, chunkX, chunkZ, firstChunkInRegion, lastChunkInRegion) -> {
+            while (paused.get() && !shutdown.get()) {
+                J.sleep(50);
+            }
+
+            Position2 regionPos = new Position2(regionX, regionZ);
+            if (shutdown.get()) {
+                if (!generatedRegions.contains(regionPos)) {
+                    listener.onRegionSkipped(regionX, regionZ);
+                    generatedRegions.add(regionPos);
+                }
+                return false;
+            }
+
+            if (generatedRegions.contains(regionPos)) {
+                return true;
+            }
+
+            if (firstChunkInRegion) {
+                currentGeneratorMethod.set(generator.getMethod(regionX, regionZ));
+                listener.onRegionGenerating(regionX, regionZ);
+            }
+
+            generator.generateChunk(chunkX, chunkZ, listener);
+
+            if (lastChunkInRegion) {
+                listener.onRegionGenerated(regionX, regionZ);
+                if (saveLatch.flip()) {
+                    listener.onSaving();
+                    generator.save();
+                }
+                generatedRegions.add(regionPos);
+                checkRegions();
+            }
+
+            return true;
+        });
     }
 
     public void pause() {

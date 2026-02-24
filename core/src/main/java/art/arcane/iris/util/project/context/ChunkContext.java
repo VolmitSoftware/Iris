@@ -1,19 +1,18 @@
 package art.arcane.iris.util.project.context;
 
-import art.arcane.iris.core.IrisHotPathMetricsMode;
-import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.Iris;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.EngineMetrics;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisRegion;
-import art.arcane.volmlib.util.atomics.AtomicRollingSequence;
+import art.arcane.iris.util.common.parallel.MultiBurst;
 import org.bukkit.block.data.BlockData;
 
-import java.util.IdentityHashMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class ChunkContext {
-    private static final int PREFILL_METRICS_FLUSH_SIZE = 64;
-    private static final ThreadLocal<PrefillMetricsState> PREFILL_METRICS = ThreadLocal.withInitial(PrefillMetricsState::new);
     private final int x;
     private final int z;
     private final ChunkedDataCache<Double> height;
@@ -47,41 +46,45 @@ public class ChunkContext {
 
         if (cache) {
             PrefillPlan resolvedPlan = prefillPlan == null ? PrefillPlan.NO_CAVE : prefillPlan;
-            PrefillMetricsState metricsState = PREFILL_METRICS.get();
-            IrisSettings.IrisSettingsPregen pregen = IrisSettings.get().getPregen();
-            IrisHotPathMetricsMode metricsMode = pregen.getHotPathMetricsMode();
-            boolean sampleMetrics = metricsMode != IrisHotPathMetricsMode.DISABLED
-                    && metricsState.shouldSample(metricsMode, pregen.getHotPathMetricsSampleStride());
-            long totalStartNanos = sampleMetrics ? System.nanoTime() : 0L;
+            boolean capturePrefillMetric = metrics != null;
+            long totalStartNanos = capturePrefillMetric ? System.nanoTime() : 0L;
+            List<PrefillFillTask> fillTasks = new ArrayList<>(6);
             if (resolvedPlan.height) {
-                fill(height, metrics == null ? null : metrics.getContextPrefillHeight(), sampleMetrics, metricsState);
+                fillTasks.add(new PrefillFillTask(height));
             }
             if (resolvedPlan.biome) {
-                fill(biome, metrics == null ? null : metrics.getContextPrefillBiome(), sampleMetrics, metricsState);
+                fillTasks.add(new PrefillFillTask(biome));
             }
             if (resolvedPlan.rock) {
-                fill(rock, metrics == null ? null : metrics.getContextPrefillRock(), sampleMetrics, metricsState);
+                fillTasks.add(new PrefillFillTask(rock));
             }
             if (resolvedPlan.fluid) {
-                fill(fluid, metrics == null ? null : metrics.getContextPrefillFluid(), sampleMetrics, metricsState);
+                fillTasks.add(new PrefillFillTask(fluid));
             }
             if (resolvedPlan.region) {
-                fill(region, metrics == null ? null : metrics.getContextPrefillRegion(), sampleMetrics, metricsState);
+                fillTasks.add(new PrefillFillTask(region));
             }
             if (resolvedPlan.cave) {
-                fill(cave, metrics == null ? null : metrics.getContextPrefillCave(), sampleMetrics, metricsState);
+                fillTasks.add(new PrefillFillTask(cave));
             }
-            if (metrics != null && sampleMetrics) {
-                metricsState.record(metrics.getContextPrefill(), System.nanoTime() - totalStartNanos);
-            }
-        }
-    }
 
-    private void fill(ChunkedDataCache<?> dataCache, AtomicRollingSequence metrics, boolean sampleMetrics, PrefillMetricsState metricsState) {
-        long startNanos = sampleMetrics ? System.nanoTime() : 0L;
-        dataCache.fill();
-        if (metrics != null && sampleMetrics) {
-            metricsState.record(metrics, System.nanoTime() - startNanos);
+            if (fillTasks.size() <= 1 || Iris.instance == null) {
+                for (PrefillFillTask fillTask : fillTasks) {
+                    fillTask.run();
+                }
+            } else {
+                List<CompletableFuture<Void>> futures = new ArrayList<>(fillTasks.size());
+                for (PrefillFillTask fillTask : fillTasks) {
+                    futures.add(CompletableFuture.runAsync(fillTask, MultiBurst.burst));
+                }
+                for (CompletableFuture<Void> future : futures) {
+                    future.join();
+                }
+            }
+
+            if (capturePrefillMetric) {
+                metrics.getContextPrefill().put((System.nanoTime() - totalStartNanos) / 1_000_000D);
+            }
         }
     }
 
@@ -139,43 +142,16 @@ public class ChunkContext {
         }
     }
 
-    private static final class PrefillMetricsState {
-        private long callCounter;
-        private final IdentityHashMap<AtomicRollingSequence, MetricBucket> buckets = new IdentityHashMap<>();
+    private static final class PrefillFillTask implements Runnable {
+        private final ChunkedDataCache<?> dataCache;
 
-        private boolean shouldSample(IrisHotPathMetricsMode mode, int sampleStride) {
-            if (mode == IrisHotPathMetricsMode.EXACT) {
-                return true;
-            }
-
-            long current = callCounter++;
-            return (current & (sampleStride - 1L)) == 0L;
+        private PrefillFillTask(ChunkedDataCache<?> dataCache) {
+            this.dataCache = dataCache;
         }
 
-        private void record(AtomicRollingSequence sequence, long nanos) {
-            if (sequence == null || nanos < 0L) {
-                return;
-            }
-
-            MetricBucket bucket = buckets.get(sequence);
-            if (bucket == null) {
-                bucket = new MetricBucket();
-                buckets.put(sequence, bucket);
-            }
-
-            bucket.nanos += nanos;
-            bucket.samples++;
-            if (bucket.samples >= PREFILL_METRICS_FLUSH_SIZE) {
-                double averageMs = (bucket.nanos / (double) bucket.samples) / 1_000_000D;
-                sequence.put(averageMs);
-                bucket.nanos = 0L;
-                bucket.samples = 0;
-            }
+        @Override
+        public void run() {
+            dataCache.fill();
         }
-    }
-
-    private static final class MetricBucket {
-        private long nanos;
-        private int samples;
     }
 }

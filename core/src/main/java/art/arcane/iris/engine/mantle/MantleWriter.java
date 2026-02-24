@@ -170,6 +170,33 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
         matter.slice(matter.getClass(t)).set(x & 15, y & 15, z & 15, t);
     }
 
+    public boolean setDataIfAbsent(int x, int y, int z, MatterCavern value) {
+        if (value == null) {
+            return false;
+        }
+
+        int cx = x >> 4;
+        int cz = z >> 4;
+
+        if (y < 0 || y >= mantle.getWorldHeight()) {
+            return false;
+        }
+
+        MantleChunk<Matter> chunk = acquireChunk(cx, cz);
+        if (chunk == null) {
+            return false;
+        }
+
+        Matter matter = chunk.getOrCreate(y >> 4);
+        MatterCavern existing = matter.<MatterCavern>slice(MatterCavern.class).get(x & 15, y & 15, z & 15);
+        if (existing != null) {
+            return false;
+        }
+
+        matter.<MatterCavern>slice(MatterCavern.class).set(x & 15, y & 15, z & 15, value);
+        return true;
+    }
+
     public <T> T getData(int x, int y, int z, Class<T> type) {
         int cx = x >> 4;
         int cz = z >> 4;

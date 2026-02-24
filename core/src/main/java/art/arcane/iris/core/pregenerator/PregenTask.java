@@ -97,6 +97,54 @@ public class PregenTask {
         iterateRegions(((rX, rZ) -> iterateChunks(rX, rZ, s)));
     }
 
+    public void iterateAllChunksInterleaved(InterleavedChunkSpiraled spiraled) {
+        if (spiraled == null) {
+            return;
+        }
+
+        KList<RegionChunkCursor> cursors = new KList<>();
+        iterateRegions((regionX, regionZ) -> {
+            KList<Position2> chunks = new KList<>();
+            iterateChunks(regionX, regionZ, (chunkX, chunkZ) -> chunks.add(new Position2(chunkX, chunkZ)));
+            if (!chunks.isEmpty()) {
+                cursors.add(new RegionChunkCursor(regionX, regionZ, chunks));
+            }
+        });
+
+        boolean hasProgress = true;
+        while (hasProgress) {
+            hasProgress = false;
+            for (RegionChunkCursor cursor : cursors) {
+                if (!cursor.hasNext()) {
+                    continue;
+                }
+
+                hasProgress = true;
+                Position2 chunk = cursor.next();
+                if (chunk == null) {
+                    continue;
+                }
+
+                boolean shouldContinue = spiraled.on(
+                        cursor.getRegionX(),
+                        cursor.getRegionZ(),
+                        chunk.getX(),
+                        chunk.getZ(),
+                        cursor.getIndex() == 1,
+                        !cursor.hasNext()
+                );
+                if (!shouldContinue) {
+                    return;
+                }
+            }
+        }
+    }
+
+    @FunctionalInterface
+    public interface InterleavedChunkSpiraled {
+        boolean on(int regionX, int regionZ, int chunkX, int chunkZ, boolean firstChunkInRegion, boolean lastChunkInRegion);
+    }
+
     private class Bounds {
         private Bound chunk = null;
         private Bound region = null;
@@ -145,6 +193,46 @@ public class PregenTask {
         @Override
         public void setZ(int z) {
             throw new IllegalStateException("This Position2 may not be modified");
+        }
+    }
+
+    private static final class RegionChunkCursor {
+        private final int regionX;
+        private final int regionZ;
+        private final KList<Position2> chunks;
+        private int index;
+
+        private RegionChunkCursor(int regionX, int regionZ, KList<Position2> chunks) {
+            this.regionX = regionX;
+            this.regionZ = regionZ;
+            this.chunks = chunks;
+            this.index = 0;
+        }
+
+        private boolean hasNext() {
+            return index < chunks.size();
+        }
+
+        private Position2 next() {
+            if (!hasNext()) {
+                return null;
+            }
+
+            Position2 value = chunks.get(index);
+            index++;
+            return value;
+        }
+
+        private int getRegionX() {
+            return regionX;
+        }
+
+        private int getRegionZ() {
+            return regionZ;
+        }
+
+        private int getIndex() {
+            return index;
         }
     }
 }

@@ -55,6 +55,10 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final boolean foliaRuntime;
     private final String backendMode;
     private final int workerPoolThreads;
+    private final int runtimeCpuThreads;
+    private final int effectiveWorkerThreads;
+    private final int recommendedRuntimeConcurrencyCap;
+    private final int configuredMaxConcurrency;
     private final Executor executor;
     private final Semaphore semaphore;
     private final int threads;
@@ -86,6 +90,10 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         IrisSettings.IrisSettingsPregen pregen = IrisSettings.get().getPregen();
         this.runtimeSchedulerMode = IrisRuntimeSchedulerMode.resolve(pregen);
         this.foliaRuntime = runtimeSchedulerMode == IrisRuntimeSchedulerMode.FOLIA;
+        int detectedWorkerPoolThreads = resolveWorkerPoolThreads();
+        int detectedCpuThreads = Math.max(1, Runtime.getRuntime().availableProcessors());
+        int configuredWorldGenThreads = Math.max(1, IrisSettings.get().getConcurrency().getWorldGenThreads());
+        int workerThreadsForCap = Math.max(detectedCpuThreads, Math.max(configuredWorldGenThreads, Math.max(1, detectedWorkerPoolThreads)));
         if (foliaRuntime) {
             this.paperLikeBackendMode = IrisPaperLikeBackendMode.AUTO;
             this.backendMode = "folia-region";
@@ -100,14 +108,19 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 this.backendMode = "paper-ticket";
             }
         }
-        int configuredThreads = pregen.getMaxConcurrency();
-        if (foliaRuntime) {
-            configuredThreads = Math.min(configuredThreads, pregen.getFoliaMaxConcurrency());
-        } else {
-            configuredThreads = Math.min(configuredThreads, resolvePaperLikeConcurrencyCap(pregen.getPaperLikeMaxConcurrency()));
-        }
+        int configuredThreads = applyRuntimeConcurrencyCap(
+                pregen.getMaxConcurrency(),
+                foliaRuntime,
+                workerThreadsForCap
+        );
+        this.configuredMaxConcurrency = Math.max(1, pregen.getMaxConcurrency());
         this.threads = Math.max(1, configuredThreads);
-        this.workerPoolThreads = resolveWorkerPoolThreads();
+        this.workerPoolThreads = detectedWorkerPoolThreads;
+        this.runtimeCpuThreads = detectedCpuThreads;
+        this.effectiveWorkerThreads = workerThreadsForCap;
+        this.recommendedRuntimeConcurrencyCap = foliaRuntime
+                ? computeFoliaRecommendedCap(workerThreadsForCap)
+                : computePaperLikeRecommendedCap(workerThreadsForCap);
         this.semaphore = new Semaphore(this.threads, true);
         this.timeoutSeconds = pregen.getChunkLoadTimeoutSeconds();
         this.timeoutWarnIntervalMs = pregen.getTimeoutWarnIntervalMs();
@@ -267,8 +280,40 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
     }
 
-    private int resolvePaperLikeConcurrencyCap(int configuredCap) {
-        return Math.max(8, configuredCap);
+    static int computePaperLikeRecommendedCap(int workerThreads) {
+        int normalizedWorkers = Math.max(1, workerThreads);
+        int recommendedCap = normalizedWorkers * 2;
+        if (recommendedCap < 8) {
+            return 8;
+        }
+
+        if (recommendedCap > 96) {
+            return 96;
+        }
+
+        return recommendedCap;
+    }
+
+    static int computeFoliaRecommendedCap(int workerThreads) {
+        int normalizedWorkers = Math.max(1, workerThreads);
+        int recommendedCap = normalizedWorkers * 4;
+        if (recommendedCap < 64) {
+            return 64;
+        }
+
+        if (recommendedCap > 192) {
+            return 192;
+        }
+
+        return recommendedCap;
+    }
+
+    static int applyRuntimeConcurrencyCap(int maxConcurrency, boolean foliaRuntime, int workerThreads) {
+        int normalizedMaxConcurrency = Math.max(1, maxConcurrency);
+        int recommendedCap = foliaRuntime
+                ? computeFoliaRecommendedCap(workerThreads)
+                : computePaperLikeRecommendedCap(workerThreads);
+        return Math.min(normalizedMaxConcurrency, recommendedCap);
     }
 
     private String metricsSnapshot() {
@@ -365,6 +410,10 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 + ", threads=" + threads
                 + ", adaptiveLimit=" + adaptiveInFlightLimit.get()
                 + ", workerPoolThreads=" + workerPoolThreads
+                + ", cpuThreads=" + runtimeCpuThreads
+                + ", effectiveWorkerThreads=" + effectiveWorkerThreads
+                + ", maxConcurrency=" + configuredMaxConcurrency
+                + ", recommendedCap=" + recommendedRuntimeConcurrencyCap
                 + ", urgent=" + urgent
                 + ", timeout=" + timeoutSeconds + "s");
         unloadAndSaveAllChunks();
@@ -374,6 +423,11 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     @Override
     public String getMethod(int x, int z) {
         return "Async";
+    }
+
+    @Override
+    public boolean isAsyncChunkMode() {
+        return true;
     }
 
     @Override
@@ -492,33 +546,45 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private class FoliaRegionExecutor implements Executor {
         @Override
         public void generate(int x, int z, PregenListener listener) {
+            try {
+                PaperLib.getChunkAtAsync(world, x, z, true, urgent)
+                        .orTimeout(timeoutSeconds, TimeUnit.SECONDS)
+                        .whenComplete((chunk, throwable) -> completeFoliaChunk(x, z, listener, chunk, throwable));
+                return;
+            } catch (Throwable ignored) {
+            }
+
             if (!J.runRegion(world, x, z, () -> PaperLib.getChunkAtAsync(world, x, z, true, urgent)
                     .orTimeout(timeoutSeconds, TimeUnit.SECONDS)
-                    .whenComplete((chunk, throwable) -> {
-                        boolean success = false;
-                        try {
-                            if (throwable != null) {
-                                onChunkFutureFailure(x, z, throwable);
-                                return;
-                            }
-
-                            listener.onChunkGenerated(x, z);
-                            listener.onChunkCleaned(x, z);
-                            if (chunk != null) {
-                                lastUse.put(chunk, M.ms());
-                            }
-                            success = true;
-                        } catch (Throwable e) {
-                            Iris.reportError(e);
-                            e.printStackTrace();
-                        } finally {
-                            markFinished(success);
-                            semaphore.release();
-                        }
-                    }))) {
+                    .whenComplete((chunk, throwable) -> completeFoliaChunk(x, z, listener, chunk, throwable)))) {
                 markFinished(false);
                 semaphore.release();
                 Iris.warn("Failed to schedule Folia region pregen task at " + x + "," + z + ". " + metricsSnapshot());
+            }
+        }
+
+        private void completeFoliaChunk(int x, int z, PregenListener listener, Chunk chunk, Throwable throwable) {
+            boolean success = false;
+            try {
+                if (throwable != null) {
+                    onChunkFutureFailure(x, z, throwable);
+                    return;
+                }
+
+                if (chunk == null) {
+                    return;
+                }
+
+                listener.onChunkGenerated(x, z);
+                listener.onChunkCleaned(x, z);
+                lastUse.put(chunk, M.ms());
+                success = true;
+            } catch (Throwable e) {
+                Iris.reportError(e);
+                e.printStackTrace();
+            } finally {
+                markFinished(success);
+                semaphore.release();
             }
         }
     }

@@ -198,6 +198,7 @@ allprojects {
         mavenCentral()
         maven("https://repo.papermc.io/repository/maven-public/")
         maven("https://repo.codemc.org/repository/maven-public/")
+        maven("https://repo.auxilor.io/repository/maven-public/")
 
         maven("https://jitpack.io") // EcoItems, score
         maven("https://repo.nexomc.com/releases/") // nexo

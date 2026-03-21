@@ -21,6 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.core.nms.container.BlockPos;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.PlacedObject;
@@ -885,47 +886,8 @@ public class IrisObject extends IrisRegistrant {
         y += yrand;
         readLock.lock();
 
-        KMap<BlockVector, String> markers = null;
-
         try {
-            if (config.getMarkers().isNotEmpty() && placer.getEngine() != null) {
-                markers = new KMap<>();
-                var list = StreamSupport.stream(blocks.keys().spliterator(), false)
-                        .collect(KList.collector());
-
-                for (IrisObjectMarker j : config.getMarkers()) {
-                    IrisMarker marker = getLoader().getMarkerLoader().load(j.getMarker());
-
-                    if (marker == null) {
-                        continue;
-                    }
-
-                    int max = j.getMaximumMarkers();
-                    for (BlockVector i : list.shuffle()) {
-                        if (max <= 0) {
-                            break;
-                        }
-
-                        BlockData data = blocks.get(i);
-
-                        for (BlockData k : j.getMark(rdata)) {
-                            if (max <= 0) {
-                                break;
-                            }
-
-                            if (j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial())) {
-                                boolean a = !blocks.containsKey((BlockVector) i.clone().add(new BlockVector(0, 1, 0)));
-                                boolean fff = !blocks.containsKey((BlockVector) i.clone().add(new BlockVector(0, 2, 0)));
-
-                                if (!marker.isEmptyAbove() || (a && fff)) {
-                                    markers.put(i, j.getMarker());
-                                    max--;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            var markerCandidates = new HashMap<IrisObjectMarker, KList<BlockPosition>>();
 
             for (var entry : blocks) {
                 var g = entry.getKey();
@@ -1029,10 +991,6 @@ public class IrisObject extends IrisRegistrant {
                     listener.accept(new BlockPosition(xx, yy, zz), data);
                 }
 
-                if (markers != null && markers.containsKey(g)) {
-                    placer.getEngine().getMantle().getMantle().set(xx, yy, zz, new MatterMarker(markers.get(g)));
-                }
-
                 boolean wouldReplace = B.isSolid(placer.get(xx, yy, zz)) && B.isVineBlock(data);
                 boolean place = !data.getMaterial().equals(Material.AIR) && !data.getMaterial().equals(Material.CAVE_AIR) && !wouldReplace;
 
@@ -1041,8 +999,47 @@ public class IrisObject extends IrisRegistrant {
                     if (tile != null) {
                         placer.setTile(xx, yy, zz, tile);
                     }
+
+                    if (config.getMarkers().isNotEmpty()) {
+                        for (IrisObjectMarker j : config.getMarkers()) {
+                            for (BlockData k : j.getMark(rdata)) {
+                                if (j.isExact() ? k.matches(d) : k.getMaterial().equals(d.getMaterial())) {
+                                    markerCandidates.computeIfAbsent(j, kk -> new KList<>()).add(new BlockPosition(xx, yy, zz));
+                                }
+                            }
+                        }
+                    }
                 }
             }
+
+            if (config.getMarkers().isNotEmpty() && placer.getEngine() != null) {
+                for (IrisObjectMarker j : config.getMarkers()) {
+                    IrisMarker marker = getLoader().getMarkerLoader().load(j.getMarker());
+
+                    if (marker == null) {
+                        continue;
+                    }
+
+                    var list = markerCandidates.getOrDefault(j, new KList<>());
+
+                    int max = j.getMaximumMarkers();
+                    for (BlockPosition i : list.shuffle()) {
+                        if (max <= 0) {
+                            break;
+                        }
+
+                        boolean a1 = placer.get(i.getX(), i.getY() + 1, i.getZ()).getMaterial().isAir();
+                        boolean a2 = placer.get(i.getX(), i.getY() + 2, i.getZ()).getMaterial().isAir();
+
+                        if (!marker.isEmptyAbove() || (a1 && a2)) {
+                            placer.getEngine().getMantle().getMantle().set(i.getX(), i.getY(), i.getZ(),  new MatterMarker(j.getMarker()));
+                            max--;
+                        }
+                    }
+                }
+
+            }
+
         } catch (Throwable e) {
             e.printStackTrace();
             Iris.reportError(e);

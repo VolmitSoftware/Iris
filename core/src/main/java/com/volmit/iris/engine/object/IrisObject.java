@@ -887,7 +887,7 @@ public class IrisObject extends IrisRegistrant {
         readLock.lock();
 
         try {
-            var markerCandidates = new HashMap<IrisObjectMarker, KList<BlockPosition>>();
+            var markerCandidates = new HashMap<IrisObjectMarker, List<BlockPosition>>();
 
             for (var entry : blocks) {
                 var g = entry.getKey();
@@ -1004,7 +1004,7 @@ public class IrisObject extends IrisRegistrant {
                         for (IrisObjectMarker j : config.getMarkers()) {
                             for (BlockData k : j.getMark(rdata)) {
                                 if (j.isExact() ? k.matches(d) : k.getMaterial().equals(d.getMaterial())) {
-                                    markerCandidates.computeIfAbsent(j, kk -> new KList<>()).add(new BlockPosition(xx, yy, zz));
+                                    markerCandidates.computeIfAbsent(j, kk -> new ArrayList<>()).add(new BlockPosition(xx, yy, zz));
                                 }
                             }
                         }
@@ -1020,10 +1020,11 @@ public class IrisObject extends IrisRegistrant {
                         continue;
                     }
 
-                    var list = markerCandidates.getOrDefault(j, new KList<>());
+                    var list = markerCandidates.getOrDefault(j, List.of());
+                    Collections.shuffle(list);
 
                     int max = j.getMaximumMarkers();
-                    for (BlockPosition i : list.shuffle()) {
+                    for (BlockPosition i : list) {
                         if (max <= 0) {
                             break;
                         }
@@ -1032,12 +1033,11 @@ public class IrisObject extends IrisRegistrant {
                         boolean a2 = placer.get(i.getX(), i.getY() + 2, i.getZ()).getMaterial().isAir();
 
                         if (!marker.isEmptyAbove() || (a1 && a2)) {
-                            placer.getEngine().getMantle().getMantle().set(i.getX(), i.getY(), i.getZ(),  new MatterMarker(j.getMarker()));
+                            placer.getEngine().getMantle().getMantle().set(i.getX(), i.getY(), i.getZ(), new MatterMarker(j.getMarker()));
                             max--;
                         }
                     }
                 }
-
             }
 
         } catch (Throwable e) {

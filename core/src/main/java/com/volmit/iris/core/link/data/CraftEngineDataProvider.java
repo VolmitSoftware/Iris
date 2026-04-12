@@ -4,10 +4,12 @@ import com.volmit.iris.core.link.ExternalDataProvider;
 import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.nms.container.BlockProperty;
 import com.volmit.iris.core.service.ExternalDataSVC;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.IrisCustomData;
+import com.volmit.iris.util.math.RNG;
 import net.momirealms.craftengine.bukkit.api.CraftEngineBlocks;
 import net.momirealms.craftengine.bukkit.api.CraftEngineFurniture;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
@@ -16,14 +18,14 @@ import net.momirealms.craftengine.core.block.properties.BooleanProperty;
 import net.momirealms.craftengine.core.block.properties.IntegerProperty;
 import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.util.Key;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.MissingResourceException;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class CraftEngineDataProvider extends ExternalDataProvider {
@@ -32,6 +34,13 @@ public class CraftEngineDataProvider extends ExternalDataProvider {
         super("CraftEngine");
     }
 
+    private static final BlockProperty[] FURNITURE_PROPERTIES = new BlockProperty[] {
+            BlockProperty.ofBoolean("randomYaw", false),
+            BlockProperty.ofDouble("yaw", 0, 0, 360f, false, true),
+            BlockProperty.ofBoolean("randomPitch", false),
+            BlockProperty.ofDouble("pitch", 0, 0, 360f, false, true),
+    };
+
     @Override
     public void init() {
     }
@@ -39,11 +48,23 @@ public class CraftEngineDataProvider extends ExternalDataProvider {
     @Override
     public @NotNull List<BlockProperty> getBlockProperties(@NotNull Identifier blockId) throws MissingResourceException {
         var block = CraftEngineBlocks.byId(Key.of(blockId.namespace(), blockId.key()));
-        if (block == null) throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
-        return block.properties()
+        if (block != null) return block.properties()
                 .stream()
                 .map(CraftEngineDataProvider::convert)
                 .toList();
+        var furniture = CraftEngineFurniture.byId(Key.of(blockId.namespace(), blockId.key()));
+        if (furniture != null) {
+            BlockProperty[] properties = Arrays.copyOf(FURNITURE_PROPERTIES, 5);
+            properties[4] = new BlockProperty(
+                    "variant",
+                    String.class,
+                    furniture.anyVariantName(),
+                    furniture.variants().keySet(),
+                    Function.identity()
+            );
+            return List.of(properties);
+        }
+        throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
     }
 
     @Override
@@ -84,7 +105,28 @@ public class CraftEngineDataProvider extends ExternalDataProvider {
 
         var furniture = CraftEngineFurniture.byId(key);
         if (furniture == null) return;
-        CraftEngineFurniture.place(block.getLocation(), furniture, furniture.getAnyAnchorType(), false);
+        var location = parseYawAndPitch(engine, block, state);
+        String variant = state.getOrDefault("variant", furniture.anyVariantName());
+        CraftEngineFurniture.place(location, furniture, variant, false);
+    }
+
+    private static Location parseYawAndPitch(@NotNull Engine engine, @NotNull Block block, @NotNull Map<String, String> state) {
+        Location location = block.getLocation();
+        long seed = engine.getSeedManager().getSeed() + Cache.key(block.getX(), block.getZ()) + block.getY();
+        RNG rng = new RNG(seed);
+        if ("true".equals(state.get("randomYaw"))) {
+            location.setYaw(rng.f(0, 360));
+        } else if (state.containsKey("yaw")) {
+            location.setYaw(Float.parseFloat(state.get("yaw")));
+        }
+
+        if ("true".equals(state.get("randomPitch"))) {
+            location.setPitch(rng.f(0, 360));
+        } else if (state.containsKey("pitch")) {
+            location.setPitch(Float.parseFloat(state.get("pitch")));
+        }
+
+        return location;
     }
 
     @Override

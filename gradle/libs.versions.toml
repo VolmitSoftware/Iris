@@ -55,7 +55,7 @@ mythic = "5.9.5"
 mythic-chrucible = "2.1.0"
 kgenerators = "7.3" # https://repo.codemc.io/repository/maven-public/me/kryniowesegryderiusz/kgenerators-core/maven-metadata.xml
 multiverseCore = "5.1.0"
-craftengine = "0.0.63" # https://github.com/Xiao-MoMi/craft-engine/releases
+craftengine = "0.0.67" # https://github.com/Xiao-MoMi/craft-engine/releases
 
 [libraries]
 # Core Libraries

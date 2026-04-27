@@ -48,6 +48,9 @@ class NMSBinding : Plugin<Project> {
             }
 
             configurations.named(REOBF_CONFIG) { conf ->
+                // Paper 26 dev bundles are Mojang-production only and do not ship legacy
+                // reobf mappings. Keep the repo's existing "reobf" variant contract, but
+                // publish the compiled userdev jar for these bindings.
                 conf.outgoing.artifacts.clear()
                 conf.outgoing.artifact(tasks.named("jar"))
             }

@@ -25,7 +25,6 @@ import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.mca.palette.*;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.scheduling.J;
-import io.papermc.paper.world.PaperWorldLoader;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.shorts.ShortList;
 import net.bytebuddy.ByteBuddy;
@@ -60,14 +59,11 @@ import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.status.WorldGenContext;
 import net.minecraft.world.level.dimension.LevelStem;
-import net.minecraft.world.level.levelgen.WorldGenSettings;
 import net.minecraft.world.level.levelgen.FlatLevelSource;
 import net.minecraft.world.level.levelgen.flat.FlatLayerInfo;
 import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
 import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
-import net.minecraft.world.level.storage.LevelStorageSource;
-import net.minecraft.world.level.storage.SavedDataStorage;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -82,7 +78,6 @@ import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Contract;
@@ -90,12 +85,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.awt.Color;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -696,11 +689,10 @@ public class NMSBinding implements INMSBinding {
             Iris.info("Injecting Bukkit");
             var buddy = new ByteBuddy();
             buddy.redefine(ServerLevel.class)
-                    .visit(Advice.to(ServerLevelAdvice.class).on(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(
-                            MinecraftServer.class, Executor.class, LevelStorageSource.LevelStorageAccess.class, WorldGenSettings.class,
-                            ResourceKey.class, LevelStem.class, boolean.class, long.class, List.class, boolean.class,
-                            ResourceKey.class, World.Environment.class, ChunkGenerator.class, BiomeProvider.class,
-                            SavedDataStorage.class, PaperWorldLoader.LoadedWorldData.class))))
+                    .visit(Advice.to(ServerLevelAdvice.class).on(ElementMatchers.isConstructor()
+                            .and(ElementMatchers.takesArgument(0, MinecraftServer.class))
+                            .and(ElementMatchers.takesArgument(5, LevelStem.class))
+                            .and(ElementMatchers.takesArgument(12, ChunkGenerator.class))))
                     .make()
                     .load(ServerLevel.class.getClassLoader(), Agent.installed());
             for (Class<?> clazz : List.of(ChunkAccess.class, ProtoChunk.class)) {
@@ -833,11 +825,24 @@ public class NMSBinding implements INMSBinding {
         static void enter(
                 @Advice.Argument(0) MinecraftServer server,
                 @Advice.Argument(value = 5, readOnly = false) LevelStem levelStem,
-                @Advice.Argument(11) World.Environment env,
                 @Advice.Argument(12) ChunkGenerator gen
         ) {
-            if (gen == null || !gen.getClass().getPackageName().startsWith("com.volmit.iris"))
+            if (gen == null) {
                 return;
+            }
+
+            try {
+                Class<?> platformGenerator = Class.forName(
+                        "com.volmit.iris.engine.platform.PlatformChunkGenerator",
+                        false,
+                        gen.getClass().getClassLoader());
+
+                if (!platformGenerator.isInstance(gen)) {
+                    return;
+                }
+            } catch (ClassNotFoundException ignored) {
+                return;
+            }
 
             try {
                 Object bindings = Class.forName("com.volmit.iris.core.nms.INMS", true, Bukkit.getPluginManager().getPlugin("Iris")
@@ -850,7 +855,7 @@ public class NMSBinding implements INMSBinding {
                         .invoke(bindings, server.registryAccess(), gen);
 
             } catch (Throwable e) {
-                throw new RuntimeException("Iris failed to replace the levelStem", e instanceof InvocationTargetException ex ? ex.getCause() : e);
+                throw new RuntimeException("Iris failed to replace the levelStem", e.getCause() == null ? e : e.getCause());
             }
         }
     }

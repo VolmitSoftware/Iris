@@ -72,7 +72,7 @@ data class IrisNMSBinding(
 
 val nmsBindings = mapOf(
     "v26_1_R1" to IrisNMSBinding(
-        version = "26.1.2.build.50-beta",
+        version = "26.1.2.build.51-beta",
         runVersion = "26.1.2",
         jvm = 25,
         type = NMSBinding.Type.USER_DEV,

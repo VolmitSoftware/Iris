@@ -4,6 +4,7 @@ import com.volmit.nmstools.NMSToolsPlugin
 import io.papermc.paperweight.userdev.PaperweightUser
 import io.papermc.paperweight.userdev.PaperweightUserDependenciesExtension
 import io.papermc.paperweight.userdev.PaperweightUserExtension
+import io.papermc.paperweight.userdev.ReobfArtifactConfiguration
 import io.papermc.paperweight.userdev.attribute.Obfuscation
 import io.papermc.paperweight.util.constants.REOBF_CONFIG
 import kotlinx.coroutines.Dispatchers
@@ -38,9 +39,17 @@ class NMSBinding : Plugin<Project> {
             val java = extensions.findByType(JavaPluginExtension::class.java) ?: throw GradleException("Java plugin not found")
             java.toolchain.languageVersion.set(JavaLanguageVersion.of(jvm))
 
-            val javaToolchains = project.extensions.getByType(JavaToolchainService::class.java) ?: throw GradleException("Java toolchain service not found")
+            val javaToolchains = project.extensions.getByType(JavaToolchainService::class.java)
             extensions.configure(PaperweightUserExtension::class.java) {
-                it.javaLauncher.set(javaToolchains.launcherFor(java.toolchain))
+                it.javaLauncher.set(javaToolchains.launcherFor { spec ->
+                    spec.languageVersion.set(JavaLanguageVersion.of(jvm))
+                })
+                it.reobfArtifactConfiguration.set(ReobfArtifactConfiguration.MOJANG_PRODUCTION)
+            }
+
+            configurations.named(REOBF_CONFIG) { conf ->
+                conf.outgoing.artifacts.clear()
+                conf.outgoing.artifact(tasks.named("jar"))
             }
         } else {
             extra["nmsTools.useBuildTools"] = type == Type.BUILD_TOOLS
@@ -164,7 +173,11 @@ class NMSBinding : Plugin<Project> {
 private val NEW_LINE = System.lineSeparator()
 private val NEW_LINE_BYTES = NEW_LINE.encodeToByteArray()
 private fun String.parseVersion() = substringBefore('-').split(".").let {
-    it[1].toInt() to it[2].toInt()
+    if (it.size >= 3 && it[0].toIntOrNull() == 1) {
+        it[1].toInt() to it[2].toInt()
+    } else {
+        it[0].toInt() to it[1].toInt()
+    }
 }
 
 class Config(

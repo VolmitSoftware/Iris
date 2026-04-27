@@ -23,6 +23,7 @@ rootProject.name = "Iris"
 
 include(":core", ":core:agent")
 include(
+    ":nms:v26_1_R1",
     ":nms:v1_21_R7",
     ":nms:v1_21_R6",
     ":nms:v1_21_R5",

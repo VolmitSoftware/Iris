@@ -499,14 +499,18 @@ public class IrisDimension extends IrisRegistrant {
             write(datapacks, "the_end", jsonStrings[2]);
         }
 
+        int packFormat = INMS.get().getDataVersion().getPackFormat();
+        String requiredRange = packFormat > 81
+                ? ",\n        \"min_format\": " + packFormat + ",\n        \"max_format\": " + packFormat
+                : "";
         String raw = """
-                        {
-                            "pack": {
-                                "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
-                                "pack_format": {}
-                            }
-                        }
-                        """.replace("{}", INMS.get().getDataVersion().getPackFormat() + "");
+                {
+                    "pack": {
+                        "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
+                        "pack_format": %d%s
+                    }
+                }
+                """.formatted(packFormat, requiredRange);
 
         for (File datapacks : folders) {
             File mcm = new File(datapacks, "iris/pack.mcmeta");

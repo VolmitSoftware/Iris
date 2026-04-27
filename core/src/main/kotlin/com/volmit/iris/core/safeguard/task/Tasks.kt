@@ -112,10 +112,13 @@ private val diskSpace by task {
 private val java by task {
     val version = Iris.getJavaVersion()
     val jdk = runCatching { ToolProvider.getSystemJavaCompiler() }.getOrNull() != null
-    if (version in setOf(21) && jdk) STABLE.withDiagnostics()
+    val minecraftVersion = Regex("""MC: (\d+\.\d+(?:\.\d+)?)""").find(server.version)?.groupValues?.get(1)
+        ?: Regex("""\b(\d+\.\d+(?:\.\d+)?)\b""").find(server.version)?.groupValues?.get(1)
+    val expected = if ((minecraftVersion?.substringBefore('.')?.toIntOrNull() ?: 1) >= 26) 25 else 21
+    if (version == expected && jdk) STABLE.withDiagnostics()
     else WARNING.withDiagnostics(
         WARN.create("Unsupported Java version"),
-        WARN.create("- Please consider using JDK 21 Instead of ${if(jdk) "JDK" else "JRE"} $version")
+        WARN.create("- Please consider using JDK $expected instead of ${if(jdk) "JDK" else "JRE"} $version")
     )
 }
 

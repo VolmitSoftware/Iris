@@ -46,6 +46,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -965,10 +966,7 @@ public class IrisObject extends IrisRegistrant {
                             if (j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial())) {
                                 BlockData newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata).clone();
 
-                                if (newData.getMaterial() == data.getMaterial() && !(newData instanceof IrisCustomData || data instanceof IrisCustomData))
-                                    data = data.merge(newData);
-                                else
-                                    data = newData;
+                                data = mergeReplacement(data, newData);
 
                                 Optional<TileData> t = j.getReplace().getTile(rng, x, y, z, rdata);
                                 if (t.isPresent()) {
@@ -1086,11 +1084,7 @@ public class IrisObject extends IrisRegistrant {
                             if (j.isExact() ? k.matches(d) : k.getMaterial().equals(d.getMaterial())) {
                                 BlockData newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata).clone();
 
-                                if (newData.getMaterial() == d.getMaterial()) {
-                                    d = d.merge(newData);
-                                } else {
-                                    d = newData;
-                                }
+                                d = mergeReplacement(d, newData);
                             }
                         }
                     }
@@ -1399,6 +1393,22 @@ public class IrisObject extends IrisRegistrant {
         readLock.unlock();
 
         return r;
+    }
+
+    private BlockData mergeReplacement(BlockData original, BlockData replacement) {
+        if (replacement.getMaterial() != original.getMaterial() || replacement instanceof IrisCustomData || original instanceof IrisCustomData) {
+            return replacement;
+        }
+
+        try {
+            return original.merge(replacement);
+        } catch (IllegalArgumentException e) {
+            try {
+                return original.merge(Bukkit.createBlockData(replacement.getAsString(true)));
+            } catch (IllegalArgumentException ignored) {
+                return replacement;
+            }
+        }
     }
 
     public int volume() {

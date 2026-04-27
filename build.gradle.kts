@@ -34,7 +34,7 @@ plugins {
 }
 
 group = "com.volmit"
-version = "3.9.1-1.20.1-1.21.11"
+version = "3.9.1-1.20.1-26.1.2"
 
 apply<ApiGenerator>()
 
@@ -63,28 +63,40 @@ val additionalFlags = "-XX:+AlwaysPreTouch"
 val color = "truecolor"
 val errorReporting = "true" == findProperty("errorReporting")
 
-val nmsBindings = mapOf(
-    "v1_21_R7" to "1.21.11-R0.1-SNAPSHOT",
-    "v1_21_R6" to "1.21.10-R0.1-SNAPSHOT",
-    "v1_21_R5" to "1.21.8-R0.1-SNAPSHOT",
-    "v1_21_R4" to "1.21.5-R0.1-SNAPSHOT",
-    "v1_21_R3" to "1.21.4-R0.1-SNAPSHOT",
-    "v1_21_R2" to "1.21.3-R0.1-SNAPSHOT",
-    "v1_21_R1" to "1.21.1-R0.1-SNAPSHOT",
-    "v1_20_R4" to "1.20.6-R0.1-SNAPSHOT",
-    "v1_20_R3" to "1.20.4-R0.1-SNAPSHOT",
-    "v1_20_R2" to "1.20.2-R0.1-SNAPSHOT",
-    "v1_20_R1" to "1.20.1-R0.1-SNAPSHOT",
+data class IrisNMSBinding(
+    val version: String,
+    val runVersion: String = version.split("-")[0],
+    val jvm: Int = 21,
+    val type: NMSBinding.Type = NMSBinding.Type.DIRECT,
 )
-val jvmVersion = mapOf<String, Int>()
+
+val nmsBindings = mapOf(
+    "v26_1_R1" to IrisNMSBinding(
+        version = "26.1.2.build.50-beta",
+        runVersion = "26.1.2",
+        jvm = 25,
+        type = NMSBinding.Type.USER_DEV,
+    ),
+    "v1_21_R7" to IrisNMSBinding("1.21.11-R0.1-SNAPSHOT"),
+    "v1_21_R6" to IrisNMSBinding("1.21.10-R0.1-SNAPSHOT"),
+    "v1_21_R5" to IrisNMSBinding("1.21.8-R0.1-SNAPSHOT"),
+    "v1_21_R4" to IrisNMSBinding("1.21.5-R0.1-SNAPSHOT"),
+    "v1_21_R3" to IrisNMSBinding("1.21.4-R0.1-SNAPSHOT"),
+    "v1_21_R2" to IrisNMSBinding("1.21.3-R0.1-SNAPSHOT"),
+    "v1_21_R1" to IrisNMSBinding("1.21.1-R0.1-SNAPSHOT"),
+    "v1_20_R4" to IrisNMSBinding("1.20.6-R0.1-SNAPSHOT"),
+    "v1_20_R3" to IrisNMSBinding("1.20.4-R0.1-SNAPSHOT"),
+    "v1_20_R2" to IrisNMSBinding("1.20.2-R0.1-SNAPSHOT"),
+    "v1_20_R1" to IrisNMSBinding("1.20.1-R0.1-SNAPSHOT"),
+)
 nmsBindings.forEach { (key, value) ->
     project(":nms:$key") {
         apply<JavaPlugin>()
 
         nmsBinding {
-            jvm = jvmVersion.getOrDefault(key, 21)
-            version = value
-            type = NMSBinding.Type.DIRECT
+            jvm = value.jvm
+            version = value.version
+            type = value.type
         }
 
         dependencies {
@@ -96,11 +108,11 @@ nmsBindings.forEach { (key, value) ->
 
     tasks.register<RunServer>("runServer-$key") {
         group = "servers"
-        minecraftVersion(value.split("-")[0])
+        minecraftVersion(value.runVersion)
         minHeapSize = serverMinHeap
         maxHeapSize = serverMaxHeap
         pluginJars(tasks.jar.flatMap { it.archiveFile })
-        javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(jvmVersion.getOrDefault(key, 21))}
+        javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(value.jvm)}
         runDirectory.convention(layout.buildDirectory.dir("run/$key"))
         systemProperty("disable.watchdog", "true")
         systemProperty("net.kyori.ansi.colorLevel", color)
@@ -190,7 +202,7 @@ allprojects {
 
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(21))
+            languageVersion.convention(JavaLanguageVersion.of(21))
         }
     }
 

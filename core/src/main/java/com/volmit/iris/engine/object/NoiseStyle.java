@@ -446,6 +446,12 @@ public enum NoiseStyle {
 
     @Desc("Vascular noise gets higher as the position nears a cell border. Cells are distorted using Iris styled wispy noise.")
     VASCULAR_IRIS_HALF(rng -> CNG.signatureHalf(rng, NoiseType.VASCULAR)),
+
+    @Desc("Perplex noise = Perlin x Simplex, multiplied together.")
+    PERPLEX(rng -> new CNG(rng, NoiseType.PERPLEX, 1D, 1)),
+
+    @Desc("Perplex noise with Iris wispy swirls.")
+    PERPLEX_IRIS(rng -> CNG.signature(rng, NoiseType.PERPLEX)),
     ;
 
     private final CNGFactory f;

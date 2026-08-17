@@ -28,6 +28,7 @@ public enum NoiseType {
     WHITE_HERMITE((s) -> new InterpolatedNoise(s, WHITE, InterpolationMethod.HERMITE)),
     SIMPLEX(SimplexNoise::new),
     PERLIN(seed -> new PerlinNoise(seed).hermite()),
+    PERPLEX(PerplexNoise::new),
     FRACTAL_BILLOW_SIMPLEX(FractalBillowSimplexNoise::new),
     FRACTAL_BILLOW_PERLIN(FractalBillowPerlinNoise::new),
     FRACTAL_FBM_SIMPLEX(FractalFBMSimplexNoise::new),

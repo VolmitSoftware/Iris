@@ -40,6 +40,7 @@ import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterMarker;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -118,20 +119,20 @@ final class IrisObjectPlacementRunner {
                 ? config.getRotation().rotate(new IrisBlockVector(translate.getX(), translate.getY(), translate.getZ()), spinx, spiny, spinz)
                 : null;
         boolean hasEdits = !config.getEdit().isEmpty();
-        int y = -1;
+        //int y = -1;
         int xx, zz;
         int yrand = config.getTranslate().getYRandom();
         yrand = yrand > 0 ? rng.i(0, yrand) : yrand < 0 ? rng.i(yrand, 0) : yrand;
         int warpMargin = warped ? (int) Math.ceil(Math.abs(config.getWarp().getMultiplier()) / 2D) : 0;
         TransformedBounds placementBounds = transformedBounds(spin, translating, translateOffset, ceilingHang, warpMargin);
 
-        PlacementContext context = new PlacementContext(config, placer, c, rng, self, placementBounds, x, z, y, rty);
+        PlacementContext context = new PlacementContext(config, rdata, placer, c, rng, self, placementBounds, x, -1, z, rty);
 
 //        if (config.isFromBottom()) {
 //            // todo Convert this to a dedicated mode.
 //            y = (self.getH() + 1) + rty;
 //            if (!config.isForcePlace()) {
-//                if (shouldBailForCarvingAnchor(placer, config, x, y, z)) {
+//                if (shouldBailForCarvingAnchor(placer, config, context.x, y, context.z)) {
 //                    bail = true;
 //                }
 //            }
@@ -149,19 +150,19 @@ final class IrisObjectPlacementRunner {
                 default -> throw new RuntimeException("Invalid placement mode: " + config.getMode().name());
             }
         } else {
-            y = yv;
+            context.y = yv;
             if (!config.isForcePlace() && !rawStructurePiece) {
-                if (shouldBailForCarvingAnchor(placer, config, x, y, z)) {
+                if (shouldBailForCarvingAnchor(placer, config, context.x, context.y, context.z)) {
                     context.bail = true;
                 }
             }
         }
 
         if (yv >= 0 && config.isBottom() && !rawStructurePiece) {
-            y += Math.floorDiv(self.h, 2);
+            context.y += Math.floorDiv(self.h, 2);
             CarvingMode carvingMode = config.getCarvingSupport();
             if (!config.isForcePlace() && !carvingMode.equals(CarvingMode.CARVING_ONLY)) {
-                if (shouldBailForCarvingAnchor(placer, config, x, y, z)) {
+                if (shouldBailForCarvingAnchor(placer, config, context.x, context.y, context.z)) {
                     context.bail = true;
                 }
             }
@@ -175,8 +176,8 @@ final class IrisObjectPlacementRunner {
                 && config.getCarvingSupport().supportsSurface()
                 && placer.getEngine() != null
                 && placer.getEngine().getDimension().isBedrock()
-                && y <= 1) {
-            warnImplausibleBedrockPlacement(placer, config, x, y, z);
+                && context.y <= 1) {
+            warnImplausibleBedrockPlacement(placer, config, context.x, context.y, context.z);
             return -1;
         }
 
@@ -198,14 +199,14 @@ final class IrisObjectPlacementRunner {
                 && !config.isUnderwater()
                 && !config.isOnwater()
                 && config.isRequireSurfaceSupport()
-                && IrisSurfaceSupport.isUnsupported(oplacer, self.getLoader(), x, z, config.getTranslate(),
+                && IrisSurfaceSupport.isUnsupported(oplacer, self.getLoader(), context.x, context.z, config.getTranslate(),
                         config.getRotation(), spinx, spiny, spinz, self.getSurfaceSupportOffsets(),
                         config.getSurfaceSupportBuffer(), config.getSurfaceSupportDepth())) {
             return -1;
         }
 
         if (yv < 0 && !config.getMode().equals(ObjectPlaceMode.FLOATING) && !rawStructurePiece) {
-            if (!config.isForcePlace() && !config.isUnderwater() && !config.isOnwater() && placer.isUnderwater(x, z)) {
+            if (!config.isForcePlace() && !config.isUnderwater() && !config.isOnwater() && placer.isUnderwater(context.x, context.z)) {
                 return -1;
             }
         }
@@ -214,16 +215,16 @@ final class IrisObjectPlacementRunner {
             return -1;
         }
 
-        if (!config.isForcePlace() && !rawStructurePiece && config.isUnderwater() && y + rty + ty >= placer.getFluidHeight()) {
+        if (!config.isForcePlace() && !rawStructurePiece && config.isUnderwater() && context.y + rty + ty >= placer.getFluidHeight()) {
             return -1;
         }
 
-        if (!config.isForcePlace() && !rawStructurePiece && !config.getClamp().canPlace(y + rty + ty, y - rty + ty)) {
+        if (!config.isForcePlace() && !rawStructurePiece && !config.getClamp().canPlace(context.y + rty + ty, context.y - rty + ty)) {
             return -1;
         }
 
         if (!rawStructurePiece && nativeStructureVetoes(placer, config, spin, translating, translateOffset, ceilingHang,
-                yv < 0 && config.getMode() == ObjectPlaceMode.PAINT, warpMargin, x, y + yrand, z)) {
+                yv < 0 && config.getMode() == ObjectPlaceMode.PAINT, warpMargin, context.x, context.y + yrand, context.z)) {
             return -1;
         }
 
@@ -231,7 +232,7 @@ final class IrisObjectPlacementRunner {
         WorldBounds worldBounds = null;
         if (config.isBore() || (!config.isForcePlace() && !rawStructurePiece
                 && (!config.getAllowedCollisions().isEmpty() || !config.getForbiddenCollisions().isEmpty()))) {
-            worldBounds = resolveWorldBounds(placer, config, placementBounds, paint, x, y + yrand, z);
+            worldBounds = resolveWorldBounds(placer, config, placementBounds, paint, context.x, context.y + yrand, context.z);
         }
 
         if (!config.isForcePlace() && !rawStructurePiece && (!config.getAllowedCollisions().isEmpty() || !config.getForbiddenCollisions().isEmpty())) {
@@ -254,7 +255,7 @@ final class IrisObjectPlacementRunner {
             }
         }
 
-        y += yrand;
+        context.y += yrand;
 
         if (config.isBore()) {
             for (int i = worldBounds.minX(); i <= worldBounds.maxX(); i++) {
@@ -272,7 +273,8 @@ final class IrisObjectPlacementRunner {
         int vacuumHighest = Integer.MIN_VALUE;
         self.readLock.lock();
 
-        KList<MarkerPlacement> markerPlacements = null;
+        List<ObjectMarkerPlacement.MarkerPlacement> markerPlacements = null;
+        ObjectMarkerPlacement markerPlacer = null;
         RNG markerRng = null;
 
         try {
@@ -282,22 +284,9 @@ final class IrisObjectPlacementRunner {
             boolean hasStates = !states.isEmpty();
 
             if (config.getMarkers().isNotEmpty() && placer.getEngine() != null) {
-                markerPlacements = new KList<>();
-                // Marker selection persists into the mantle, so it must be seed-deterministic.
-                // Derive a side stream keyed on the placement position instead of consuming the
-                // caller's rng: consuming draws there would shift every later placement in the
-                // chunk and invalidate existing worlds/goldenhashes.
+                markerPlacer = new ObjectMarkerPlacement(config, context);
                 markerRng = rng.nextParallelRNG(((((long) x) << 32) | (z & 0xFFFFFFFFL)) * 31L + yv);
-
-                int markerIndex = 0;
-                for (IrisObjectMarker markerConfig : config.getMarkers()) {
-                    IrisMarker marker = self.getLoader().getMarkerLoader().load(markerConfig.getMarker());
-                    int markerSalt = markerIndex++;
-                    if (marker != null) {
-                        markerPlacements.add(new MarkerPlacement(markerConfig, marker,
-                                markerConfig.getMark(rdata), markerSalt));
-                    }
-                }
+                markerPlacements = markerPlacer.possibleMarkers();
             }
 
             VectorMap<PlatformBlockState>.Cursor cursor = blocks.cursor();
@@ -354,14 +343,14 @@ final class IrisObjectPlacementRunner {
                         if (rng.chance(j.getChance())) {
                             for (PlatformBlockState k : j.getFind(rdata)) {
                                 if (j.isExact() ? k.matches(data) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(data))) {
-                                    PlatformBlockState newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata);
+                                    PlatformBlockState newData = j.getReplace(rng, i.getX() + context.x, i.getY() + context.y, i.getZ() + context.z, rdata);
 
                                     if (IrisObjectShaping.materialKey(newData).equals(IrisObjectShaping.materialKey(data)) && !(newData.isCustom() || data.isCustom()))
                                         data = BlockDataMergeSupport.merge(data, newData);
                                     else
                                         data = newData;
 
-                                    Optional<TileData> t = j.getReplace().getTile(rng, x, y, z, rdata);
+                                    Optional<TileData> t = j.getReplace().getTile(rng, context.x, context.y, context.z, rdata);
                                     if (t.isPresent()) {
                                         tile = t.get();
                                     }
@@ -371,27 +360,17 @@ final class IrisObjectPlacementRunner {
                     }
                 }
 
-                KList<MarkerPlacement> matchingMarkers = null;
-                if (markerPlacements != null) {
-                    for (MarkerPlacement markerPlacement : markerPlacements) {
-                        if (markerPlacement.matches(data)) {
-                            if (matchingMarkers == null) {
-                                matchingMarkers = new KList<>();
-                            }
-                            matchingMarkers.add(markerPlacement);
-                        }
-                    }
-                }
+                List<ObjectMarkerPlacement.MarkerPlacement> matchingMarkers = markerPlacements != null ? markerPlacer.matchMarkers(markerPlacements, data) : null;
 
                 data = config.getRotation().rotate(data, spinx, spiny, spinz);
-                xx = x + (int) Math.round(i.getX());
+                xx = context.x + (int) Math.round(i.getX());
 
-                int yy = y + (int) Math.round(i.getY());
-                zz = z + (int) Math.round(i.getZ());
+                int yy = context.y + (int) Math.round(i.getY());
+                zz = context.z + (int) Math.round(i.getZ());
 
                 if (warped) {
-                    xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getX() + x, i.getY() + y, i.getZ() + z);
-                    zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getZ() + z, i.getY() + y, i.getX() + x);
+                    xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getX() + context.x, i.getY() + context.y, i.getZ() + context.z);
+                    zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getZ() + context.z, i.getY() + context.y, i.getX() + context.x);
                 }
 
                 if (yv < 0 && (config.getMode().equals(ObjectPlaceMode.PAINT)) && !B.isVineBlock(data)) {
@@ -431,7 +410,7 @@ final class IrisObjectPlacementRunner {
                     }
                     if (matchingMarkers != null) {
                         BlockPosition markerPosition = new BlockPosition(xx, yy, zz);
-                        for (MarkerPlacement markerPlacement : matchingMarkers) {
+                        for (ObjectMarkerPlacement.MarkerPlacement markerPlacement : matchingMarkers) {
                             markerPlacement.candidates.add(markerPosition);
                         }
                     }
@@ -448,34 +427,20 @@ final class IrisObjectPlacementRunner {
             }
 
             if (markerPlacements != null) {
-                for (MarkerPlacement markerPlacement : markerPlacements) {
-                    int max = markerPlacement.config.getMaximumMarkers();
-                    for (BlockPosition position : markerPlacement.candidates
-                            .shuffleCopy(markerRng.nextParallelRNG(markerPlacement.salt))) {
-                        if (max <= 0) {
-                            break;
-                        }
-
-                        boolean firstAboveAir = B.isAir(placer.get(position.getX(), position.getY() + 1, position.getZ()));
-                        boolean secondAboveAir = B.isAir(placer.get(position.getX(), position.getY() + 2, position.getZ()));
-                        if (!markerPlacement.marker.isEmptyAbove() || (firstAboveAir && secondAboveAir)) {
-                            placer.setData(position.getX(), position.getY(), position.getZ(),
-                                    new MatterMarker(markerPlacement.config.getMarker()));
-                            max--;
-                        }
-                    }
-                }
+                markerPlacer.placeMarkers(markerPlacements, markerRng);
             }
+
         } finally {
             self.readLock.unlock();
         }
 
         if (stilting) {
+            // todo stilting
 
         }
 
         if (vacuuming && vacuumLowest != Integer.MAX_VALUE && placer.getEngine() != null) {
-            vacuumTerrain(placer, config, x, z, placementBounds.minX(), placementBounds.maxX(),
+            vacuumTerrain(placer, config, context.x, context.z, placementBounds.minX(), placementBounds.maxX(),
                     placementBounds.minZ(), placementBounds.maxZ(), vacuumLowest, vacuumHighest);
         }
 
@@ -494,7 +459,7 @@ final class IrisObjectPlacementRunner {
             }
         }
 
-        return y;
+        return context.y;
     }
 
     static boolean shouldPlaceObjectBlock(boolean rawStructurePiece, boolean air, boolean wouldReplace) {
@@ -833,33 +798,6 @@ final class IrisObjectPlacementRunner {
             }
         }
         return result;
-    }
-
-    private static final class MarkerPlacement {
-        private final IrisObjectMarker config;
-        private final IrisMarker marker;
-        private final Iterable<PlatformBlockState> targets;
-        private final int salt;
-        private final KList<BlockPosition> candidates = new KList<>();
-
-        private MarkerPlacement(IrisObjectMarker config, IrisMarker marker,
-                                Iterable<PlatformBlockState> targets, int salt) {
-            this.config = config;
-            this.marker = marker;
-            this.targets = targets;
-            this.salt = salt;
-        }
-
-        private boolean matches(PlatformBlockState state) {
-            for (PlatformBlockState target : targets) {
-                if (config.isExact()
-                        ? target.matches(state)
-                        : IrisObjectShaping.materialKey(target).equals(IrisObjectShaping.materialKey(state))) {
-                    return true;
-                }
-            }
-            return false;
-        }
     }
 
     /**

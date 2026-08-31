@@ -1,4 +1,4 @@
-package art.arcane.iris.engine.object.placer;
+package art.arcane.iris.engine.object;
 
 public class PlacementBehaviorHeight implements PlacementBehavior {
 
@@ -20,54 +20,53 @@ public class PlacementBehaviorHeight implements PlacementBehavior {
     }
 
     @Override
-    public int getHeight(PlacementContext context) {
+    public void setHeight(PlacementContext context) {
         minX = context.x + context.bounds.minX();
         maxX = context.x + context.bounds.maxX();
         minZ = context.z + context.bounds.minZ();
         maxZ = context.z + context.bounds.maxZ();
-
+        if (Mode.MIN == mode) {
+            context.y = context.placer.getEngine().getHeight() + 1;
+        }
         if (fast) {
-            return computeFastHeight(context);
+            computeFastHeight(context);
         } else {
-            return computeHeight(context);
+            computeHeight(context);
         }
     }
 
-    private int computeFastHeight(PlacementContext context) {
+    private void computeFastHeight(PlacementContext context) {
         int xRadius = Math.max(0, (maxX - minX) / 2);
         int zRadius = Math.max(0, (maxZ - minZ) / 2);
 
         for (int i = minX; i <= maxX; i += Math.abs(xRadius) + 1) {
             for (int ii = minZ; ii <= maxZ; ii += Math.abs(zRadius) + 1) {
-                if (columnHeight(context, i, ii)) return -1;
+                columnHeight(context, i, ii);
             }
         }
-        return context.y;
     }
 
-    private int computeHeight(PlacementContext context) {
+    private void computeHeight(PlacementContext context) {
         for (int i = minX; i <= maxX; i++) {
             for (int ii = minZ; ii <= maxZ; ii++) {
-                if (columnHeight(context, i, ii)) return -1;
+                columnHeight(context, i, ii);
             }
         }
-        return context.y;
     }
 
-    private boolean columnHeight(PlacementContext context, int i, int ii) {
+    private void columnHeight(PlacementContext context, int i, int ii) {
         int h = context.placer.getHighest(i, ii, context.self.getLoader(), context.config.isUnderwater()) + context.rty;
         if (!context.config.isForcePlace()) {
             if (context.shouldBailForCarvingAnchor(i, h, ii)) {
-                return true;
+                context.bail = true;
             }
         }
 
-        if (Mode.MAX == mode && h < context.y) {
+        if (Mode.MIN == mode && h < context.y) {
             context.y = h;
         }
-        if (Mode.MIN == mode && h > context.y) {
+        if (Mode.MAX == mode && h > context.y) {
             context.y = h;
         }
-        return false;
     }
 }

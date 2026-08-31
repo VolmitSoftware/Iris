@@ -1,6 +1,5 @@
-package art.arcane.iris.engine.object.placer;
+package art.arcane.iris.engine.object;
 
-import art.arcane.iris.engine.object.*;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
@@ -25,7 +24,7 @@ public class PlacementBehaviorStilt implements PlacementBehavior {
     }
 
     @Override
-    public int getHeight(PlacementContext context) {
+    public int setHeight(PlacementContext context) {
         return 0;
     }
 
@@ -39,13 +38,13 @@ public class PlacementBehaviorStilt implements PlacementBehavior {
             double erodeCentroidX = 0;
             double erodeCentroidZ = 0;
             double erodeMaxDist = 1;
-            if (eroding) {
+            if (context.config.getMode() == ObjectPlaceMode.ERODE_STILT) {
                 int centroidCount = 0;
                 VectorMap<PlatformBlockState>.Cursor centroidCursor = blocks.cursor();
                 while (centroidCursor.next()) {
                     IrisBlockVector rot = centroidCursor.key().clone();
                     spin.rotate(rot);
-                    if (translating) {
+                    if (context.config.getTranslate().canTranslate()) {
                         rot.add(translateOffset);
                     }
                     if (rot.getBlockY() == lowest) {
@@ -170,7 +169,7 @@ public class PlacementBehaviorStilt implements PlacementBehavior {
                     if (ceilingHang) {
                         int scan = 0;
                         int solidY = startY + 1;
-                        while (scan < maxScan && !placer.isSolid(xx, solidY, zz)) {
+                        while (scan < maxScan && !context.placer.isSolid(xx, solidY, zz)) {
                             solidY++;
                             scan++;
                         }
@@ -228,7 +227,7 @@ public class PlacementBehaviorStilt implements PlacementBehavior {
                         lowerBound -= Math.min(context.config.getStiltSettings().getYMax() - (lowest + y - highest), 0);
                 }
 
-                if (eroding) {
+                if (context.config.getMode() == ObjectPlaceMode.ERODE_STILT) {
                     double dx = i.getX() - erodeCentroidX;
                     double dz = i.getZ() - erodeCentroidZ;
                     double normalizedDist = Math.sqrt(dx * dx + dz * dz) / erodeMaxDist;
@@ -243,7 +242,7 @@ public class PlacementBehaviorStilt implements PlacementBehavior {
                     if (B.isFluid(fluidState)) {
                         break;
                     }
-                    if (eroding) {
+                    if (context.config.getMode() == ObjectPlaceMode.ERODE_STILT) {
                         int depth = (lowest + context.y) - j;
                         int totalDepth = (lowest + context.y) - lowerBound;
                         double depthRatio = totalDepth > 0 ? (double) depth / totalDepth : 0;

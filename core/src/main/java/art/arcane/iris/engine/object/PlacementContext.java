@@ -1,15 +1,11 @@
-package art.arcane.iris.engine.object.placer;
+package art.arcane.iris.engine.object;
 
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.*;
 import art.arcane.volmlib.util.math.RNG;
 import lombok.AllArgsConstructor;
 
-@AllArgsConstructor
 public final class PlacementContext {
-    public record TransformedBounds(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
-    }
+    public record TransformedBounds(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {}
 
     IrisObjectPlacement config;
     final IObjectPlacer placer;
@@ -17,14 +13,35 @@ public final class PlacementContext {
     final RNG rng;
     IrisObject self;
     TransformedBounds bounds;
+    boolean bail;
 
     int x;
     int z;
     int y;
     int rty;
 
+    public PlacementContext(
+            IrisObjectPlacement config,
+            IObjectPlacer placer,
+            CarveResult caveResult,
+            RNG rng,
+            IrisObject self,
+            int x,
+            int y,
+            int z,
+            int rty
+    ) {
+        this.config = config;
+        this.placer = placer;
+        this.caveResult = caveResult;
+        this.rng = rng;
+        this.self = self;
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
 
-    public boolean shouldBailForCarvingAnchor() {
+        public boolean shouldBailForCarvingAnchor() {
        return shouldBailForCarvingAnchor(x,y,z);
     }
 

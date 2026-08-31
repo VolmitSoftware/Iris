@@ -19,7 +19,6 @@
 package art.arcane.iris.engine.object;
 
 import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.placer.*;
 import lombok.Getter;
 
 @Desc("Object Place modes are useful for positioning objects just right. The default value is CENTER_HEIGHT.")

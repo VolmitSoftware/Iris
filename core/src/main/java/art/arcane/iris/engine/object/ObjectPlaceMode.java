@@ -19,28 +19,29 @@
 package art.arcane.iris.engine.object;
 
 import art.arcane.iris.engine.object.annotations.Desc;
+import art.arcane.iris.engine.object.placer.*;
+import lombok.Getter;
 
 @Desc("Object Place modes are useful for positioning objects just right. The default value is CENTER_HEIGHT.")
 public enum ObjectPlaceMode {
     @Desc("The default place mode. This mode picks a center point (where the center of the object will be) and takes the height. That height is used for the whole object.")
 
-    CENTER_HEIGHT,
+    CENTER_HEIGHT(new PlacementBehaviorCenterHeight()),
 
     @Desc("Samples a lot of points where the object will cover (horizontally) and picks the highest height, that height is then used to place the object. This mode is useful for preventing any part of your object from being buried though it will float off of cliffs.")
 
-    MAX_HEIGHT,
+    MAX_HEIGHT(new PlacementBehaviorHeight(PlacementBehaviorHeight.Mode.MAX, false)),
 
     @Desc("Samples only 4 points where the object will cover (horizontally) and picks the highest height, that height is then used to place the object. This mode is useful for preventing any part of your object from being buried though it will float off of cliffs.\"")
 
-    FAST_MAX_HEIGHT,
+    FAST_MAX_HEIGHT(new PlacementBehaviorHeight(PlacementBehaviorHeight.Mode.MAX, true)),
 
     @Desc("Samples a lot of points where the object will cover (horizontally) and picks the lowest height, that height is then used to place the object. This mode is useful for preventing any part of your object from overhanging a cliff though it gets buried a lot")
-
-    MIN_HEIGHT,
+    MIN_HEIGHT(new PlacementBehaviorHeight(PlacementBehaviorHeight.Mode.MIN, false)),
 
     @Desc("Samples only 4 points where the object will cover (horizontally) and picks the lowest height, that height is then used to place the object. This mode is useful for preventing any part of your object from overhanging a cliff though it gets buried a lot")
 
-    FAST_MIN_HEIGHT,
+    FAST_MIN_HEIGHT(new PlacementBehaviorHeight(PlacementBehaviorHeight.Mode.MIN, true)),
 
     @Desc("Stilting is MAX_HEIGHT but it repeats the bottom most block of your object until it hits the surface. This is expensive because it has to first sample every height value for each x,z position of your object. Avoid using this unless its structures for performance reasons.")
 
@@ -96,13 +97,21 @@ public enum ObjectPlaceMode {
 
     @Desc("Samples the height of the terrain at every x,z position of your object and pushes it down to the surface. It's pretty much like a melt function over the terrain.")
 
-    PAINT,
+    PAINT(new PlacementBehaviorPaint()),
 
     @Desc("Places the object in pure air at an absolute Y driven entirely by translate.y (plus optional translate.yRandom). Terrain height, underwater, and carving anchor checks are skipped. Use this for floating islands, sky structures, clouds, or blimps where the object must not be translated to the ground.")
 
-    FLOATING,
+    FLOATING(new PlacementBehaviorFloating()),
 
     @Desc("Raw stamp at the caller-supplied (x, y, z). No terrain sampling, no stilting, no Y recomputation, no underwater or carving anchor guards. Used internally to route native Minecraft structure pieces (villages etc.) through the Iris object placer.")
 
-    STRUCTURE_PIECE
+    STRUCTURE_PIECE;
+
+    @Getter
+    final PlacementBehavior behavior;
+
+    ObjectPlaceMode(PlacementBehavior behavior) {
+        this.behavior = behavior;
+    }
+
 }

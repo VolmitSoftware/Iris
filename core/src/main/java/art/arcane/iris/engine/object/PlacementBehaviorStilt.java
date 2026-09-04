@@ -7,9 +7,10 @@ import art.arcane.iris.util.common.data.VectorMap;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.iris.util.project.noise.CNG;
 
-public class PlacementBehaviorStilt implements PlacementBehavior {
+public class PlacementBehaviorStilt extends PlacementBehavior {
 
     private boolean fast;
+    private boolean erode;
     private Mode mode;
     public enum Mode {
         DEFAULT,
@@ -25,17 +26,41 @@ public class PlacementBehaviorStilt implements PlacementBehavior {
     }
 
     @Override
-    public void setHeight(PlacementContext context) {
+    public void setHeight() {
+        switch (mode) {
+            case CENTER, ORGANIC -> ObjectPlaceMode.CENTER_HEIGHT.createBehavior(context, util).setHeight();
+            case ERODE -> {
+                // Only handled in post
+            }
+            case MIN -> {
+                if (fast) {
+                    ObjectPlaceMode.FAST_MIN_HEIGHT.createBehavior(context, util).setHeight();
+                } else {
+                    ObjectPlaceMode.MIN_HEIGHT.createBehavior(context, util).setHeight();
+                }
+            }
+            case DEFAULT -> {
+                if (fast) {
+                    ObjectPlaceMode.FAST_MAX_HEIGHT.createBehavior(context, util).setHeight();
+                } else {
+                    ObjectPlaceMode.MAX_HEIGHT.createBehavior(context, util).setHeight();
+                }
+            }
+        }
+    }
+
+    @Override
+    public void postHeight() {
 
     }
 
 
-    private void erodeStilt(PlacementContext context) {
+    private void erodeStilt() {
             int centroidCount = 0;
             VectorMap<PlatformBlockState>.Cursor centroidCursor = blocks.cursor();
             while (centroidCursor.next()) {
                 IrisBlockVector rot = centroidCursor.key().clone();
-                spin.rotate(rot);
+                context.spin.rotate(rot);
                 if (context.config.getTranslate().canTranslate()) {
                     rot.add(translateOffset);
                 }
@@ -73,7 +98,9 @@ public class PlacementBehaviorStilt implements PlacementBehavior {
             }
     }
 
-    private void applyOrganic(PlacementContext context, IrisStiltSettings settings, int targetLayer, boolean ceilingHang) {
+    private void applyOrganic(int targetLayer, boolean ceilingHang) {
+        var settings = context.config.getStiltSettings();
+
         int startY = targetLayer + context.y;
         int maxScan = settings != null ? Math.max(1, settings.getOrganicMaxScan()) : 48;
         int jitterMax = settings != null ? Math.max(0, settings.getOrganicJitter()) : 3;
@@ -231,7 +258,7 @@ public class PlacementBehaviorStilt implements PlacementBehavior {
 
                 int highest = context.placer.getHighest(xx, zz, self.getLoader(), true);
 
-                if (IrisProceduralBlocks.hasProperty(d, "waterlogged") && shouldAutoWaterlogBlock(placer, config, yv, xx, highest, zz)) {
+                if (IrisProceduralBlocks.hasProperty(d, "waterlogged") && shouldAutoWaterlogBlock(yv, xx, highest, zz)) {
                     d = d.withProperty("waterlogged", "true");
                 }
 

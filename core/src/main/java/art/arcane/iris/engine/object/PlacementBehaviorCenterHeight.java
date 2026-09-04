@@ -1,12 +1,12 @@
 package art.arcane.iris.engine.object;
 
-public class PlacementBehaviorCenterHeight implements PlacementBehavior{
+public class PlacementBehaviorCenterHeight extends PlacementBehavior{
 
     @Override
-    public void setHeight(PlacementContext context) {
+    public void setHeight() {
         context.y = (context.caveResult != null ? context.caveResult.getSurface() : context.placer.getHighest(context.x, context.z, context.self.getLoader(), context.config.isUnderwater())) + context.rty;
         if (!context.config.isForcePlace()) {
-            if (context.shouldBailForCarvingAnchor()) {
+            if (util.shouldBailForCarvingAnchor(context.x, context.y, context.z)) {
                context.bail = true;
             }
         }

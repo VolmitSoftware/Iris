@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.object;
 
-public class PlacementBehaviorHeight implements PlacementBehavior {
+public class PlacementBehaviorHeight extends PlacementBehavior {
 
     int minX;
     int maxX;
@@ -9,6 +9,7 @@ public class PlacementBehaviorHeight implements PlacementBehavior {
 
    private boolean fast;
    private Mode mode;
+
    public enum Mode {
         MIN,
         MAX
@@ -20,7 +21,7 @@ public class PlacementBehaviorHeight implements PlacementBehavior {
     }
 
     @Override
-    public void setHeight(PlacementContext context) {
+    public void setHeight() {
         minX = context.x + context.bounds.minX();
         maxX = context.x + context.bounds.maxX();
         minZ = context.z + context.bounds.minZ();
@@ -41,7 +42,7 @@ public class PlacementBehaviorHeight implements PlacementBehavior {
 
         for (int i = minX; i <= maxX; i += Math.abs(xRadius) + 1) {
             for (int ii = minZ; ii <= maxZ; ii += Math.abs(zRadius) + 1) {
-                columnHeight(context, i, ii);
+                columnHeight(context, util, i, ii);
             }
         }
     }
@@ -49,15 +50,15 @@ public class PlacementBehaviorHeight implements PlacementBehavior {
     private void computeHeight(PlacementContext context) {
         for (int i = minX; i <= maxX; i++) {
             for (int ii = minZ; ii <= maxZ; ii++) {
-                columnHeight(context, i, ii);
+                columnHeight(context, util, i, ii);
             }
         }
     }
 
-    private void columnHeight(PlacementContext context, int i, int ii) {
+    private void columnHeight(PlacementContext context, ObjectPlacementConditions util, int i, int ii) {
         int h = context.placer.getHighest(i, ii, context.self.getLoader(), context.config.isUnderwater()) + context.rty;
         if (!context.config.isForcePlace()) {
-            if (context.shouldBailForCarvingAnchor(i, h, ii)) {
+            if (util.shouldBailForCarvingAnchor(i, h, ii)) {
                 context.bail = true;
             }
         }

@@ -1,9 +1,9 @@
 package art.arcane.iris.engine.object;
 
-public class PlacementBehaviorFloating implements PlacementBehavior {
+public class PlacementBehaviorFloating extends PlacementBehavior {
 
     @Override
-    public void setHeight(PlacementContext context) {
+    public void setHeight() {
         context.y = context.rty;
     }
 

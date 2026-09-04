@@ -38,7 +38,6 @@ import art.arcane.iris.engine.object.PlacementContext.TransformedBounds;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.volmlib.util.matter.MatterMarker;
 
 import java.util.List;
 import java.util.Objects;
@@ -69,6 +68,7 @@ final class IrisObjectPlacementRunner {
         Objects.requireNonNull(rdata, "Object placement data is required.");
 
         IObjectPlacer placer = config.getHeightmap() != null ? new HeightmapObjectPlacer(rng, x, yv, z, config, oplacer) : oplacer;
+        ObjectPlacementConditions util = new ObjectPlacementConditions(config, placer, self);
 
         boolean evaluateSlopeCondition = !config.isForcePlace() && !config.getSlopeCondition().isDefault();
         if (evaluateSlopeCondition || config.isRotateTowardsSlope()) {
@@ -112,7 +112,7 @@ final class IrisObjectPlacementRunner {
         // Per-placement invariants. The rotation kernel, the rotated translate offset and the edit-list emptiness
         // are pure functions of (config, spin), all of which are fixed from here down. Recomputing them per block
         // only cost allocations and transcendentals.
-        SpinKernel spin = new SpinKernel(config.getRotation(), spinx, spiny, spinz);
+        ObjectSpinKernel spin = new ObjectSpinKernel(config.getRotation(), spinx, spiny, spinz);
         IrisObjectTranslate translate = config.getTranslate();
         boolean translating = translate.canTranslate();
         IrisBlockVector translateOffset = translating
@@ -124,9 +124,9 @@ final class IrisObjectPlacementRunner {
         int yrand = config.getTranslate().getYRandom();
         yrand = yrand > 0 ? rng.i(0, yrand) : yrand < 0 ? rng.i(yrand, 0) : yrand;
         int warpMargin = warped ? (int) Math.ceil(Math.abs(config.getWarp().getMultiplier()) / 2D) : 0;
-        TransformedBounds placementBounds = transformedBounds(spin, translating, translateOffset, ceilingHang, warpMargin);
+        TransformedBounds placementBounds = util.transformedBounds(spin, translating, translateOffset, ceilingHang, warpMargin);
 
-        PlacementContext context = new PlacementContext(config, rdata, placer, c, rng, self, placementBounds, x, -1, z, rty);
+        PlacementContext context = new PlacementContext(config, rdata, placer, c, rng, spin, self, placementBounds, x, -1, z, yv, rty);
 
 //        if (config.isFromBottom()) {
 //            // todo Convert this to a dedicated mode.
@@ -137,22 +137,15 @@ final class IrisObjectPlacementRunner {
 //                }
 //            }
 //        } else
+        PlacementBehavior behavior = config.getMode().createBehavior(context, util);
 
         if (yv < 0) {
-            switch (config.getMode()) {
-                case MAX_HEIGHT -> ObjectPlaceMode.MAX_HEIGHT.getBehavior().setHeight(context);
-                case FAST_MAX_HEIGHT -> ObjectPlaceMode.FAST_MAX_HEIGHT.getBehavior().setHeight(context);
-                case MIN_HEIGHT -> ObjectPlaceMode.MIN_HEIGHT.getBehavior().setHeight(context);
-                case FAST_MIN_HEIGHT -> ObjectPlaceMode.FAST_MIN_HEIGHT.getBehavior().setHeight(context);
-                case CENTER_HEIGHT -> ObjectPlaceMode.CENTER_HEIGHT.getBehavior().setHeight(context);
-                case PAINT -> ObjectPlaceMode.PAINT.getBehavior().setHeight(context);
-                case FLOATING -> ObjectPlaceMode.FLOATING.getBehavior().setHeight(context);
-                default -> throw new RuntimeException("Invalid placement mode: " + config.getMode().name());
-            }
+            behavior.setHeight();
+
         } else {
             context.y = yv;
             if (!config.isForcePlace() && !rawStructurePiece) {
-                if (shouldBailForCarvingAnchor(placer, config, context.x, context.y, context.z)) {
+                if (util.shouldBailForCarvingAnchor(context.x, context.y, context.z)) {
                     context.bail = true;
                 }
             }
@@ -162,7 +155,7 @@ final class IrisObjectPlacementRunner {
             context.y += Math.floorDiv(self.h, 2);
             CarvingMode carvingMode = config.getCarvingSupport();
             if (!config.isForcePlace() && !carvingMode.equals(CarvingMode.CARVING_ONLY)) {
-                if (shouldBailForCarvingAnchor(placer, config, context.x, context.y, context.z)) {
+                if (util.shouldBailForCarvingAnchor(context.x, context.y, context.z)) {
                     context.bail = true;
                 }
             }
@@ -229,10 +222,10 @@ final class IrisObjectPlacementRunner {
         }
 
         boolean paint = yv < 0 && config.getMode() == ObjectPlaceMode.PAINT;
-        WorldBounds worldBounds = null;
+        ObjectPlacementConditions.WorldBounds worldBounds = null;
         if (config.isBore() || (!config.isForcePlace() && !rawStructurePiece
                 && (!config.getAllowedCollisions().isEmpty() || !config.getForbiddenCollisions().isEmpty()))) {
-            worldBounds = resolveWorldBounds(placer, config, placementBounds, paint, context.x, context.y + yrand, context.z);
+            worldBounds = util.resolveWorldBounds(placementBounds, paint, context.x, context.y + yrand, context.z);
         }
 
         if (!config.isForcePlace() && !rawStructurePiece && (!config.getAllowedCollisions().isEmpty() || !config.getForbiddenCollisions().isEmpty())) {
@@ -273,9 +266,8 @@ final class IrisObjectPlacementRunner {
         int vacuumHighest = Integer.MIN_VALUE;
         self.readLock.lock();
 
-        List<ObjectMarkerPlacement.MarkerPlacement> markerPlacements = null;
+        ObjectBlockPass pass = new ObjectBlockPass(context, behavior);
         ObjectMarkerPlacement markerPlacer = null;
-        RNG markerRng = null;
 
         try {
             VectorMap<PlatformBlockState> blocks = self.blocks;
@@ -285,8 +277,7 @@ final class IrisObjectPlacementRunner {
 
             if (config.getMarkers().isNotEmpty() && placer.getEngine() != null) {
                 markerPlacer = new ObjectMarkerPlacement(config, context);
-                markerRng = rng.nextParallelRNG(((((long) x) << 32) | (z & 0xFFFFFFFFL)) * 31L + yv);
-                markerPlacements = markerPlacer.possibleMarkers();
+                markerPlacer.loadPossibleMarkers();
             }
 
             VectorMap<PlatformBlockState>.Cursor cursor = blocks.cursor();
@@ -325,14 +316,15 @@ final class IrisObjectPlacementRunner {
                     i.add(translateOffset);
                 }
 
-                if (stilting && IrisObjectShaping.shouldStilt(data)) {
-                    if (i.getBlockY() < lowest) {
-                        lowest = i.getBlockY();
-                    }
-                    if (i.getBlockY() > topLayer) {
-                        topLayer = i.getBlockY();
-                    }
-                }
+                //todo move this under stilt mode
+//                if (stilting && IrisObjectShaping.shouldStilt(data)) {
+//                    if (i.getBlockY() < lowest) {
+//                        lowest = i.getBlockY();
+//                    }
+//                    if (i.getBlockY() > topLayer) {
+//                        topLayer = i.getBlockY();
+//                    }
+//                }
 
                 if (preventingDecay && IrisProceduralBlocks.hasProperty(data, "distance") && "false".equals(IrisProceduralBlocks.propertyValue(data, "persistent"))) {
                     data = data.withProperty("persistent", "true");
@@ -360,7 +352,7 @@ final class IrisObjectPlacementRunner {
                     }
                 }
 
-                List<ObjectMarkerPlacement.MarkerPlacement> matchingMarkers = markerPlacements != null ? markerPlacer.matchMarkers(markerPlacements, data) : null;
+                List<ObjectMarkerPlacement.MarkerPlacement> matchingMarkers = markerPlacer != null ? markerPlacer.matchMarkers(data) : null;
 
                 data = config.getRotation().rotate(data, spinx, spiny, spinz);
                 xx = context.x + (int) Math.round(i.getX());
@@ -381,7 +373,7 @@ final class IrisObjectPlacementRunner {
                     continue;
                 }
 
-                if (waterlogCandidate && IrisProceduralBlocks.hasProperty(data, "waterlogged") && shouldAutoWaterlogBlock(placer, config, yv, xx, yy, zz)) {
+                if (waterlogCandidate && IrisProceduralBlocks.hasProperty(data, "waterlogged") && util.shouldAutoWaterlogBlock(yv, xx, yy, zz)) {
                     data = data.withProperty("waterlogged", "true");
                 }
 
@@ -426,18 +418,22 @@ final class IrisObjectPlacementRunner {
                 }
             }
 
-            if (markerPlacements != null) {
-                markerPlacer.placeMarkers(markerPlacements, markerRng);
+
+            if (markerPlacer != null) {
+                markerPlacer.placeMarkers();
             }
 
         } finally {
             self.readLock.unlock();
         }
 
-        if (stilting) {
-            // todo stilting
 
-        }
+        // todo stilt was here
+        config.getMode().getBehavior().postHeight();
+//        if (stilting) {
+//            // todo stilting
+//
+//        }
 
         if (vacuuming && vacuumLowest != Integer.MAX_VALUE && placer.getEngine() != null) {
             vacuumTerrain(placer, config, context.x, context.z, placementBounds.minX(), placementBounds.maxX(),
@@ -475,7 +471,7 @@ final class IrisObjectPlacementRunner {
         double hSouth = heightStream.get(x, z - ((float) self.d) / 2);
         double hWest = heightStream.get(x - ((float) self.w) / 2, z);
         double min = Math.min(Math.min(hNorth, hEast), Math.min(hSouth, hWest));
-        if (min == hNorth) {
+        if (mind == hNorth) {
             slopeRotationY = 0;
         } else if (min == hEast) {
             slopeRotationY = 90;
@@ -499,76 +495,6 @@ final class IrisObjectPlacementRunner {
         }
         config = config.toPlacement(config.getPlace().toArray(new String[0]));
         config.setRotation(slopeRotation);
-    }
-
-
-    private TransformedBounds transformedBounds(SpinKernel spin, boolean translating, IrisBlockVector translateOffset,
-                                                boolean ceilingHang, int margin) {
-        int sourceMinX = -self.getCenter().getBlockX();
-        int sourceMaxX = self.getW() - self.getCenter().getBlockX() - 1;
-        int sourceMinY = -self.getCenter().getBlockY();
-        int sourceMaxY = self.getH() - self.getCenter().getBlockY() - 1;
-        int sourceMinZ = -self.getCenter().getBlockZ();
-        int sourceMaxZ = self.getD() - self.getCenter().getBlockZ() - 1;
-        int minX = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int maxY = Integer.MIN_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxZ = Integer.MIN_VALUE;
-
-        for (int xCorner = 0; xCorner < 2; xCorner++) {
-            int sourceX = xCorner == 0 ? sourceMinX : sourceMaxX;
-            for (int yCorner = 0; yCorner < 2; yCorner++) {
-                int sourceY = yCorner == 0 ? sourceMinY : sourceMaxY;
-                for (int zCorner = 0; zCorner < 2; zCorner++) {
-                    int sourceZ = zCorner == 0 ? sourceMinZ : sourceMaxZ;
-                    IrisBlockVector corner = new IrisBlockVector(sourceX, sourceY, sourceZ);
-                    spin.rotate(corner);
-                    if (ceilingHang) {
-                        corner.setY(-corner.getBlockY());
-                    }
-                    if (translating) {
-                        corner.add(translateOffset);
-                    }
-                    int transformedX = (int) Math.round(corner.getX());
-                    int transformedY = (int) Math.round(corner.getY());
-                    int transformedZ = (int) Math.round(corner.getZ());
-                    minX = Math.min(minX, transformedX);
-                    maxX = Math.max(maxX, transformedX);
-                    minY = Math.min(minY, transformedY);
-                    maxY = Math.max(maxY, transformedY);
-                    minZ = Math.min(minZ, transformedZ);
-                    maxZ = Math.max(maxZ, transformedZ);
-                }
-            }
-        }
-
-        return new TransformedBounds(minX - margin, maxX + margin, minY, maxY, minZ - margin, maxZ + margin);
-    }
-
-    private WorldBounds resolveWorldBounds(IObjectPlacer placer, IrisObjectPlacement config, TransformedBounds bounds,
-                                           boolean paint, int x, int y, int z) {
-        int minX = x + bounds.minX();
-        int maxX = x + bounds.maxX();
-        int minZ = z + bounds.minZ();
-        int maxZ = z + bounds.maxZ();
-        if (!paint) {
-            return new WorldBounds(minX, maxX, y + bounds.minY(), y + bounds.maxY(), minZ, maxZ);
-        }
-
-        int minimumSurface = Integer.MAX_VALUE;
-        int maximumSurface = Integer.MIN_VALUE;
-        for (int worldX = minX; worldX <= maxX; worldX++) {
-            for (int worldZ = minZ; worldZ <= maxZ; worldZ++) {
-                int surface = placer.getHighest(worldX, worldZ, self.getLoader(), config.isUnderwater());
-                minimumSurface = Math.min(minimumSurface, surface);
-                maximumSurface = Math.max(maximumSurface, surface);
-            }
-        }
-        int paintOffset = Math.floorDiv(self.h, 2);
-        return new WorldBounds(minX, maxX, minimumSurface + bounds.minY() + paintOffset,
-                maximumSurface + bounds.maxY() + paintOffset, minZ, maxZ);
     }
 
     private static Engine requireSlopeEngine(IObjectPlacer placer) {
@@ -596,7 +522,7 @@ final class IrisObjectPlacementRunner {
      * near this placement means no per block work at all. Only when the placement envelope meets a piece does the
      * precise pass run, and the first solid block inside a piece rejects the whole object before any write.
      */
-    private boolean nativeStructureVetoes(IObjectPlacer placer, IrisObjectPlacement config, SpinKernel spin,
+    private boolean nativeStructureVetoes(IObjectPlacer placer, IrisObjectPlacement config, ObjectSpinKernel spin,
                                           boolean translating, IrisBlockVector translateOffset, boolean ceilingHang,
                                           boolean paint, int warpMargin, int x, int y, int z) {
         Engine engine = placer.getEngine();
@@ -750,205 +676,5 @@ final class IrisObjectPlacementRunner {
                 }
             }
         }
-    }
-
-    private boolean shouldBailForCarvingAnchor(IObjectPlacer placer, IrisObjectPlacement placement, int x, int y, int z) {
-        CarvingMode carvingMode = placement.getCarvingSupport();
-        return switch (carvingMode) {
-            case SURFACE_ONLY -> placer.isCarved(x, y, z);
-            case CARVING_ONLY -> !isCarvedCaveAnchor(placer, x, y, z);
-            case ANYWHERE -> false;
-        };
-    }
-
-    private boolean isCarvedCaveAnchor(IObjectPlacer placer, int x, int y, int z) {
-        return placer.isCarved(x, y, z)
-                || placer.isCarved(x, y - 1, z)
-                || placer.isCarved(x, y - 2, z)
-                || placer.isCarved(x, y - 3, z);
-    }
-
-    private boolean shouldAutoWaterlogBlock(IObjectPlacer placer, IrisObjectPlacement placement, int yv, int x, int y, int z) {
-        if (!(placement.isWaterloggable() || placement.isUnderwater())) {
-            return false;
-        }
-
-        if (yv >= 0 && placement.getCarvingSupport().equals(CarvingMode.CARVING_ONLY)) {
-            return false;
-        }
-
-        PlatformBlockState existing = placer.get(x, y, z);
-        if (existing == null) {
-            return false;
-        }
-
-        return B.isWater(existing) || B.isWaterLogged(existing);
-    }
-
-    private static PlatformBlockState attachVineFaces(IObjectPlacer placer, PlatformBlockState data, int x, int y, int z) {
-        PlatformBlockState result = data;
-        for (String face : IrisProceduralBlocks.FACE_PROPERTIES) {
-            if (!IrisProceduralBlocks.hasProperty(data, face)) {
-                continue;
-            }
-            int[] mod = IrisProceduralBlocks.faceOffset(face);
-            PlatformBlockState facing = placer.get(x + mod[0], y + mod[1], z + mod[2]);
-            if (B.isSolid(facing) && !B.isVineBlock(facing)) {
-                result = result.withProperty(face, "true");
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Precomputed vector rotation for a single placement.
-     * <p>
-     * This mirrors {@link IrisObjectRotation#rotate(IrisBlockVector, int, int, int)} branch for branch, with two
-     * differences: it mutates the vector handed to it instead of cloning, and the per-axis angle plus its cosine
-     * and sine are resolved once instead of once per block. The angle is a pure function of the axis clamp and the
-     * spin, both fixed for the placement, and Math.cos/Math.sin are pure, so every produced double is identical to
-     * the value the per-call form would have produced.
-     */
-    private static final class SpinKernel {
-        private static final int MODE_NONE = 0;
-        private static final int MODE_FLIP = 1;
-        private static final int MODE_QUARTER = 2;
-        private static final int MODE_THREE_QUARTER = 3;
-        private static final int MODE_ANGLE = 4;
-
-        private final boolean rotates;
-        private final int xMode;
-        private final int yMode;
-        private final int zMode;
-        private final double xCos;
-        private final double xSin;
-        private final double yCos;
-        private final double ySin;
-        private final double zCos;
-        private final double zSin;
-
-        private SpinKernel(IrisObjectRotation rotation, int spinx, int spiny, int spinz) {
-            rotates = rotation.canRotate();
-            xMode = rotation.canRotateX() ? modeOf(rotation.getXAxis()) : MODE_NONE;
-            zMode = rotation.canRotateZ() ? modeOf(rotation.getZAxis()) : MODE_NONE;
-            yMode = rotation.canRotateY() ? modeOf(rotation.getYAxis()) : MODE_NONE;
-
-            double xAngle = xMode == MODE_ANGLE ? rotation.getXRotation(spinx) : 0;
-            double zAngle = zMode == MODE_ANGLE ? rotation.getZRotation(spinz) : 0;
-            double yAngle = yMode == MODE_ANGLE ? rotation.getYRotation(spiny) : 0;
-            xCos = Math.cos(xAngle);
-            xSin = Math.sin(xAngle);
-            zCos = Math.cos(zAngle);
-            zSin = Math.sin(zAngle);
-            yCos = Math.cos(yAngle);
-            ySin = Math.sin(yAngle);
-        }
-
-        private static int modeOf(IrisAxisRotationClamp clamp) {
-            if (!clamp.isLocked()) {
-                return MODE_ANGLE;
-            }
-
-            if (Math.abs(clamp.getMax()) % 360D == 180D) {
-                return MODE_FLIP;
-            }
-
-            if (clamp.getMax() % 360D == 90D || clamp.getMax() % 360D == -270D) {
-                return MODE_QUARTER;
-            }
-
-            if (clamp.getMax() == -90D || clamp.getMax() % 360D == 270D) {
-                return MODE_THREE_QUARTER;
-            }
-
-            return MODE_ANGLE;
-        }
-
-        /**
-         * Rotates in place. Axis order (X, then Z, then Y) is load bearing.
-         */
-        private void rotate(IrisBlockVector v) {
-            if (!rotates) {
-                return;
-            }
-
-            switch (xMode) {
-                case MODE_FLIP -> {
-                    v.setZ(-v.getZ());
-                    v.setY(-v.getY());
-                }
-                case MODE_QUARTER -> {
-                    double z = v.getZ();
-                    v.setZ(v.getY());
-                    v.setY(-z);
-                }
-                case MODE_THREE_QUARTER -> {
-                    double z = v.getZ();
-                    v.setZ(-v.getY());
-                    v.setY(z);
-                }
-                case MODE_ANGLE -> {
-                    double y = xCos * v.getY() - xSin * v.getZ();
-                    double z = xSin * v.getY() + xCos * v.getZ();
-                    v.setY(y);
-                    v.setZ(z);
-                }
-                default -> {
-                }
-            }
-
-            switch (zMode) {
-                case MODE_FLIP -> {
-                    v.setY(-v.getY());
-                    v.setX(-v.getX());
-                }
-                case MODE_QUARTER -> {
-                    double y = v.getY();
-                    v.setY(v.getX());
-                    v.setX(-y);
-                }
-                case MODE_THREE_QUARTER -> {
-                    double y = v.getY();
-                    v.setY(-v.getX());
-                    v.setX(y);
-                }
-                case MODE_ANGLE -> {
-                    double x = zCos * v.getX() - zSin * v.getY();
-                    double y = zSin * v.getX() + zCos * v.getY();
-                    v.setX(x);
-                    v.setY(y);
-                }
-                default -> {
-                }
-            }
-
-            switch (yMode) {
-                case MODE_FLIP -> {
-                    v.setX(-v.getX());
-                    v.setZ(-v.getZ());
-                }
-                case MODE_QUARTER -> {
-                    double x = v.getX();
-                    v.setX(v.getZ());
-                    v.setZ(-x);
-                }
-                case MODE_THREE_QUARTER -> {
-                    double x = v.getX();
-                    v.setX(-v.getZ());
-                    v.setZ(x);
-                }
-                case MODE_ANGLE -> {
-                    double x = yCos * v.getX() + ySin * v.getZ();
-                    double z = -ySin * v.getX() + yCos * v.getZ();
-                    v.setX(x);
-                    v.setZ(z);
-                }
-                default -> {
-                }
-            }
-        }
-    }
-
-    private record WorldBounds(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
     }
 }

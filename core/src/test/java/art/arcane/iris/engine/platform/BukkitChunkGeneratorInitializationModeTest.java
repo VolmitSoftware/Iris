@@ -3,7 +3,9 @@ package art.arcane.iris.engine.platform;
 import art.arcane.iris.engine.IrisEngine;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.hydrology.HydrologyPlannerSettings;
 import art.arcane.iris.engine.hydrology.runtime.IrisHydrologyRuntime;
+import org.bukkit.Chunk;
 import org.bukkit.World;
 import art.arcane.iris.engine.object.StudioMode;
 import art.arcane.iris.engine.object.IrisDimension;
@@ -14,11 +16,14 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -35,23 +40,31 @@ public class BukkitChunkGeneratorInitializationModeTest {
         Field studio = BukkitChunkGenerator.class.getDeclaredField("studio");
         studio.setAccessible(true);
         studio.setBoolean(generator, true);
+        Field loadLock = BukkitChunkGenerator.class.getDeclaredField("loadLock");
+        loadLock.setAccessible(true);
+        loadLock.set(generator, new BukkitChunkGenerator.GenerationStageGate(2, generator::isClosing));
         doReturn(false).when(generator).usesFlatStudioTerrain();
         World world = mock(World.class);
         when(world.getMinHeight()).thenReturn(-64);
         when(world.getMaxHeight()).thenReturn(320);
+        when(world.getChunkAtAsync(0, 0, false)).thenReturn(CompletableFuture.completedFuture(null));
         IrisEngine engine = mock(IrisEngine.class);
+        generator.setEngine(engine);
         IrisDimension dimension = mock(IrisDimension.class);
         when(engine.getDimension()).thenReturn(dimension);
         when(dimension.getStudioMode()).thenReturn(StudioMode.NORMAL);
         IrisComplex complex = mock(IrisComplex.class);
         IrisHydrologyRuntime hydrology = mock(IrisHydrologyRuntime.class);
+        HydrologyPlannerSettings settings = mock(HydrologyPlannerSettings.class, RETURNS_DEEP_STUBS);
+        when(settings.routing().tileSize()).thenReturn(512);
+        when(hydrology.settings()).thenReturn(settings);
         when(engine.getComplex()).thenReturn(complex);
         when(complex.getHydrologyRuntime()).thenReturn(hydrology);
         Method prefetch = BukkitChunkGenerator.class.getDeclaredMethod(
                 "prefetchSpawnHydrology", Engine.class, World.class);
         prefetch.setAccessible(true);
 
-        prefetch.invoke(generator, engine, world);
+        ((CompletableFuture<?>) prefetch.invoke(generator, engine, world)).get(5L, TimeUnit.SECONDS);
 
         verify(engine).startStudioEntryHydrology(0, 0);
         verifyNoInteractions(hydrology);
@@ -60,21 +73,21 @@ public class BukkitChunkGeneratorInitializationModeTest {
         assertEquals(0.5D, generator.getInitialSpawnLocation(world).getZ(), 0D);
 
         when(dimension.getStudioMode()).thenReturn(StudioMode.BIOME_BUFFET_1x1);
-        prefetch.invoke(generator, engine, world);
+        ((CompletableFuture<?>) prefetch.invoke(generator, engine, world)).get(5L, TimeUnit.SECONDS);
         verify(engine, times(1)).startStudioEntryHydrology(0, 0);
         verify(hydrology).prefetchArea(anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
         when(dimension.getStudioMode()).thenReturn(StudioMode.NORMAL);
 
         IrisEngine authoring = mock(IrisEngine.class);
         doReturn(true).when(generator).usesFlatStudioTerrain();
-        prefetch.invoke(generator, authoring, world);
+        ((CompletableFuture<?>) prefetch.invoke(generator, authoring, world)).get(5L, TimeUnit.SECONDS);
         verifyNoInteractions(authoring);
 
         IrisEngine generated = mock(IrisEngine.class);
         when(generated.getComplex()).thenReturn(complex);
         doReturn(false).when(generator).usesFlatStudioTerrain();
-        when(world.isChunkGenerated(0, 0)).thenReturn(true);
-        prefetch.invoke(generator, generated, world);
+        when(world.getChunkAtAsync(0, 0, false)).thenReturn(CompletableFuture.completedFuture(mock(Chunk.class)));
+        ((CompletableFuture<?>) prefetch.invoke(generator, generated, world)).get(5L, TimeUnit.SECONDS);
         verify(generated, never()).startStudioEntryHydrology(anyInt(), anyInt());
     }
 
@@ -99,8 +112,8 @@ public class BukkitChunkGeneratorInitializationModeTest {
     public void authoringStartupDoesNotPrefetchTerrainHydrology() throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/art/arcane/iris/engine/platform/BukkitChunkGenerator.java"));
-        int start = source.indexOf("private void prefetchSpawnHydrology(");
-        int end = source.indexOf("private int hydrologyTileSize()", start);
+        int start = source.indexOf("private CompletableFuture<Void> prefetchSpawnHydrology(");
+        int end = source.indexOf("private void updateSpawnLocation(", start);
         String prefetch = source.substring(start, end);
 
         assertTrue(prefetch.indexOf("if (usesFlatStudioTerrain())") >= 0);

@@ -37,6 +37,7 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioActivation;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioSession;
 import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.core.tools.IrisToolbelt;
+import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.IrisEngine;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.data.chunk.TerrainChunk;
@@ -52,6 +53,7 @@ import art.arcane.iris.engine.history.GenerationAdmission;
 import art.arcane.iris.engine.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.engine.history.IrisBoundarySignatureSampler;
 import art.arcane.iris.engine.history.TransitionGenerationPlan;
+import art.arcane.iris.engine.hydrology.runtime.IrisHydrologyRuntime;
 import art.arcane.iris.engine.object.IrisDimensionContractException;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisDimensionRuntimeContract;
@@ -101,6 +103,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -258,41 +261,73 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     /** Starts nearest-first hydrology planning around a new world's initial spawn. */
-    private void prefetchSpawnHydrology(Engine engine, World world) {
+    private CompletableFuture<Void> prefetchSpawnHydrology(Engine engine, World world) {
         if (usesFlatStudioTerrain()) {
-            return;
+            return CompletableFuture.completedFuture(null);
         }
-        if (engine.getComplex() == null || engine.getComplex().getHydrologyRuntime() == null) {
-            return;
+        IrisComplex complex = engine.getComplex();
+        IrisHydrologyRuntime hydrology = complex == null ? null : complex.getHydrologyRuntime();
+        if (hydrology == null) {
+            return CompletableFuture.completedFuture(null);
         }
         Location spawn = getInitialSpawnLocation(world);
-        int spawnX = spawn.getBlockX();
-        int spawnZ = spawn.getBlockZ();
-        if (world.isChunkGenerated(spawnX >> 4, spawnZ >> 4)) {
-            return;
-        }
-        if (studio && engine.getDimension().getStudioMode() == StudioMode.NORMAL
-                && engine instanceof IrisEngine irisEngine) {
-            irisEngine.startStudioEntryHydrology(spawnX, spawnZ);
-            return;
-        }
-        int reach = Math.max(16, hydrologyTileSize() / 2);
-        engine.getComplex().getHydrologyRuntime().prefetchArea(
-                spawnX - reach,
-                spawnZ - reach,
-                spawnX + reach - 1,
-                spawnZ + reach - 1,
-                spawnX,
-                spawnZ
-        );
+        return requestChunkAsync(world, spawn.getBlockX() >> 4, spawn.getBlockZ() >> 4, false)
+                .exceptionally(failure -> {
+                    if (closing || this.engine != engine || engine.isClosing() || engine.isClosed()) {
+                        return null;
+                    }
+                    throw new CompletionException(failure);
+                })
+                .thenAcceptAsync(chunk -> {
+                    if (chunk == null) {
+                        startSpawnHydrology(engine, hydrology, spawn);
+                    }
+                })
+                .whenComplete((ignored, failure) -> {
+                    if (failure != null) {
+                        IrisLogging.reportError("Failed to prefetch spawn hydrology for " + world.getName(), failure);
+                    }
+                });
     }
 
-    private int hydrologyTileSize() {
-        Engine activeEngine = engine;
-        if (activeEngine == null || activeEngine.getComplex() == null || activeEngine.getComplex().getHydrologyRuntime() == null) {
-            return 0;
+    private void startSpawnHydrology(Engine expectedEngine, IrisHydrologyRuntime hydrology, Location spawn) {
+        if (closing) {
+            return;
         }
-        return activeEngine.getComplex().getHydrologyRuntime().settings().routing().tileSize();
+        GenerationStagePermit permit;
+        try {
+            permit = acquireGenerationStage("spawn_hydrology_prefetch");
+        } catch (IllegalStateException failure) {
+            if (closing && failure.getCause() == null) {
+                return;
+            }
+            throw failure;
+        }
+        try (permit) {
+            if (engine != expectedEngine || expectedEngine.isClosing() || expectedEngine.isClosed() || usesFlatStudioTerrain()) {
+                return;
+            }
+            IrisComplex complex = expectedEngine.getComplex();
+            if (complex == null || complex.getHydrologyRuntime() != hydrology) {
+                return;
+            }
+            int spawnX = spawn.getBlockX();
+            int spawnZ = spawn.getBlockZ();
+            if (studio && expectedEngine.getDimension().getStudioMode() == StudioMode.NORMAL
+                    && expectedEngine instanceof IrisEngine irisEngine) {
+                irisEngine.startStudioEntryHydrology(spawnX, spawnZ);
+                return;
+            }
+            int reach = Math.max(16, hydrology.settings().routing().tileSize() / 2);
+            hydrology.prefetchArea(
+                    spawnX - reach,
+                    spawnZ - reach,
+                    spawnX + reach - 1,
+                    spawnZ + reach - 1,
+                    spawnX,
+                    spawnZ
+            );
+        }
     }
 
     private void updateSpawnLocation(World world) {

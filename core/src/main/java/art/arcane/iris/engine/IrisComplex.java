@@ -37,6 +37,7 @@ import art.arcane.iris.engine.image.IrisImageMapRuntime;
 import art.arcane.iris.engine.mantle.components.MantleHydrologyCaveVoxelView;
 import art.arcane.iris.engine.object.InferredType;
 import art.arcane.iris.engine.object.IrisBiome;
+import art.arcane.iris.engine.object.IrisRaritySelection;
 import art.arcane.iris.engine.object.IrisDecorationPart;
 import art.arcane.iris.engine.object.IrisDecorator;
 import art.arcane.iris.engine.object.IrisGenerator;
@@ -1708,74 +1709,25 @@ public class IrisComplex implements DataProvider {
     }
 
     static final class ChildSelectionPlan {
-        private final IrisBiome[] mappedBiomes;
-        private final int maxIndex;
+        private final IrisRaritySelection<IrisBiome> selection;
 
-        private ChildSelectionPlan(IrisBiome[] mappedBiomes) {
-            this.mappedBiomes = mappedBiomes;
-            this.maxIndex = mappedBiomes.length - 1;
+        private ChildSelectionPlan(IrisRaritySelection<IrisBiome> selection) {
+            this.selection = selection;
         }
 
         static ChildSelectionPlan create(KList<IrisBiome> options) {
-            if (options.isEmpty()) {
-                return new ChildSelectionPlan(new IrisBiome[0]);
-            }
-
-            int maxRarity = 1;
-            for (IrisBiome biome : options) {
-                if (biome != null && biome.getRarity() > maxRarity) {
-                    maxRarity = biome.getRarity();
-                }
-            }
-
-            int rarityMax = maxRarity + 1;
-            boolean flip = false;
-            KList<IrisBiome> mapped = new KList<>();
-            for (IrisBiome biome : options) {
-                if (biome == null) {
-                    continue;
-                }
-
-                int rarity = Math.max(1, biome.getRarity());
-                int count = rarityMax - rarity;
-                for (int index = 0; index < count; index++) {
-                    flip = !flip;
-                    if (flip) {
-                        mapped.add(biome);
-                    } else {
-                        mapped.add(0, biome);
-                    }
-                }
-            }
-
-            if (mapped.isEmpty()) {
-                IrisBiome[] fallback = new IrisBiome[]{options.get(0)};
-                return new ChildSelectionPlan(fallback);
-            }
-
-            IrisBiome[] mappedBiomes = mapped.toArray(new IrisBiome[0]);
-            return new ChildSelectionPlan(mappedBiomes);
+            return new ChildSelectionPlan(IrisRaritySelection.create(options));
         }
 
         IrisBiome select(CNG childCell, double x, double z) {
-            if (mappedBiomes.length == 0) {
-                return null;
+            long maximumIndex = selection.size() - 1L;
+            if (maximumIndex <= 0L) {
+                return selection.get(0L);
             }
-
-            if (mappedBiomes.length == 1) {
-                return mappedBiomes[0];
+            if (maximumIndex <= Integer.MAX_VALUE) {
+                return selection.get(childCell.fit2D(0, (int) maximumIndex, x, z));
             }
-
-            int selectedIndex = childCell.fit2D(0, maxIndex, x, z);
-            if (selectedIndex < 0) {
-                return mappedBiomes[0];
-            }
-
-            if (selectedIndex > maxIndex) {
-                return mappedBiomes[maxIndex];
-            }
-
-            return mappedBiomes[selectedIndex];
+            return selection.select(childCell.noiseFast2D(x, z));
         }
     }
 

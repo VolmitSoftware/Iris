@@ -13,8 +13,12 @@ import java.util.List;
 
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 public class IrisComplexImplodeParityTest {
     private static Method childSelectionCreateMethod;
@@ -46,6 +50,27 @@ public class IrisComplexImplodeParityTest {
                 }
             }
         }
+    }
+
+    @Test
+    public void extremeCountsKeepTheRareBiomeReachableAcrossTheIntIndexBoundary() {
+        IrisBiome rare = createBiome(Integer.MAX_VALUE);
+        IrisBiome common = createBiome(1);
+        CNG generator = mock(CNG.class);
+        doReturn(1_073_741_824).when(generator).fit2D(0, Integer.MAX_VALUE, 12D, -32D);
+        IrisComplex.ChildSelectionPlan pair = IrisComplex.ChildSelectionPlan.create(new KList<>(rare, common));
+
+        assertSame(rare, pair.select(generator, 12D, -32D));
+        verify(generator).fit2D(0, Integer.MAX_VALUE, 12D, -32D);
+        verify(generator, never()).noiseFast2D(anyDouble(), anyDouble());
+
+        CNG largeGenerator = mock(CNG.class);
+        doReturn(0.5D).when(largeGenerator).noiseFast2D(12D, -32D);
+        IrisComplex.ChildSelectionPlan large = IrisComplex.ChildSelectionPlan.create(
+                new KList<>(rare, common, createBiome(2)));
+        assertSame(rare, large.select(largeGenerator, 12D, -32D));
+        verify(largeGenerator).noiseFast2D(12D, -32D);
+        verify(largeGenerator, never()).fit2D(anyInt(), anyInt(), anyDouble(), anyDouble());
     }
 
     @Test

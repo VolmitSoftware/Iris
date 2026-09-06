@@ -35,11 +35,16 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Answers.CALLS_REAL_METHODS;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 public class IrisDimensionCarvingResolverParityTest {
     private static final int MAX_CHILD_DEPTH = 32;
@@ -69,6 +74,31 @@ public class IrisDimensionCarvingResolverParityTest {
         BlockData data = mock(BlockData.class);
         doReturn(canonical).when(data).getAsString();
         return data;
+    }
+
+    @Test
+    public void extremeChildRarityRemainsReachableWithOneNoiseSample() {
+        Fixture fixture = createFixture();
+        Engine engine = fixture.engine;
+        IrisData data = engine.getData();
+        IrisBiome rare = data.getBiomeLoader().load("child-a");
+        IrisBiome common = data.getBiomeLoader().load("child-b");
+        IrisBiome parentBiome = data.getBiomeLoader().load("root-low");
+        doReturn(Integer.MAX_VALUE).when(rare).getRarity();
+        doReturn(1).when(common).getRarity();
+        doReturn(2).when(parentBiome).getRarity();
+        IrisDimensionCarvingEntry parent = spy(engine.getDimension().getCarvingEntryIndex().get("root-low"));
+        parent.setChildRecursionDepth(1);
+        CNG generator = mock(CNG.class);
+        doReturn(0.5D).when(generator).noiseFast2D(-17D, 23D);
+        doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(IrisData.class));
+
+        IrisDimensionCarvingEntry selected = IrisDimensionCarvingResolver.resolveFromRoot(
+                engine, parent, -17, 23, new IrisDimensionCarvingResolver.State());
+
+        assertSame(engine.getDimension().getCarvingEntryIndex().get("child-a"), selected);
+        verify(generator).noiseFast2D(-17D, 23D);
+        verify(generator, never()).fit2D(anyInt(), anyInt(), anyDouble(), anyDouble());
     }
 
     @Test

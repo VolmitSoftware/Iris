@@ -58,6 +58,8 @@ import art.arcane.iris.util.common.data.DataProvider;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.math.RNG;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -70,7 +72,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.nio.file.Path;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.IntConsumer;
 import java.util.function.Predicate;
 
@@ -96,7 +97,9 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
     private final Set<String> profileKeys;
     private final String defaultProfileKey;
     private final Object terrainSampleLock;
-    private final Set<HydrologyTileKey> unplannedQueries = ConcurrentHashMap.newKeySet();
+    private final Cache<HydrologyTileKey, Boolean> unplannedQueries = Caffeine.newBuilder()
+            .maximumSize(MAXIMUM_CACHE_TILES)
+            .build();
     private final LinkedHashMap<Long, HydrologyTerrainSample> terrainSamples;
 
     public IrisHydrologyRuntime(IrisHydrologyRuntimeContext context) {
@@ -156,7 +159,7 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
         if (!planned) {
             int tileSize = settings.routing().tileSize();
             HydrologyTileKey key = new HydrologyTileKey(Math.floorDiv(blockX, tileSize), Math.floorDiv(blockZ, tileSize));
-            if (unplannedQueries.add(key)) {
+            if (unplannedQueries.asMap().putIfAbsent(key, Boolean.TRUE) == null) {
                 IrisLogging.debug("Hydrology tile %d,%d queried before it was planned; natural terrain answers until the plan lands",
                         key.tileX(), key.tileZ());
             }
@@ -479,6 +482,7 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
     @Override
     public void close() {
         cache.close();
+        unplannedQueries.invalidateAll();
         routingTerrainSampler.close();
         synchronized (terrainSampleLock) {
             terrainSamples.clear();

@@ -51,7 +51,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         this.runtimeFactory = Objects.requireNonNull(runtimeFactory, "activation runtime factory");
         this.bindings = new LinkedHashMap<>();
         this.retiringBindings = new LinkedHashMap<>();
-        this.stateLock = new ReentrantLock(true);
+        this.stateLock = new ReentrantLock();
         this.inactive = stateLock.newCondition();
         this.operationDepth = ThreadLocal.withInitial(() -> 0);
         this.scopedRoute = new ThreadLocal<>();
@@ -449,6 +449,9 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
                 loader = true;
             }
             entry.leases++;
+            if (!entry.loading && entry.loadFailure == null && entry.binding != null) {
+                return new RuntimeLease(this, entry, entry.binding);
+            }
         } finally {
             stateLock.unlock();
         }
@@ -584,6 +587,9 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
     }
 
     private List<RuntimeRetirement> collectEvictionsLocked() {
+        if (bindings.size() <= 1) {
+            return List.of();
+        }
         ArrayList<RuntimeRetirement> retired = new ArrayList<>();
         while (bindings.size() > 1) {
             RuntimeCacheEntry candidate = null;

@@ -1783,9 +1783,9 @@ public class IrisComplex implements DataProvider {
     }
 
     public void close() {
-        resolvedTerrain.clear();
         if (hydrologyRuntime != null) {
             hydrologyRuntime.close();
         }
+        resolvedTerrain.clear();
     }
 }

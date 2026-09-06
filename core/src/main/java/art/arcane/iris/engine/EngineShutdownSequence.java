@@ -192,8 +192,17 @@ final class EngineShutdownSequence {
                 () -> NativeStructureOwnershipStore.close(engine));
         cleanupFailure = appendFailure(cleanupFailure, ownershipFailure);
         if (ownershipFailure == null) {
-            cleanupFailure = closeDetachedGenerationRuntimes(cleanupFailure);
-            cleanupFailure = closeRuntime(engine.runtime, cleanupFailure);
+            Throwable runtimeFailure = closeDetachedGenerationRuntimes(null);
+            if (runtimeFailure == null) {
+                runtimeFailure = closeRuntime(engine.runtime, null);
+            }
+            cleanupFailure = appendFailure(cleanupFailure, runtimeFailure);
+            if (runtimeFailure != null) {
+                if (cleanupFailure != original) {
+                    original.addSuppressed(cleanupFailure);
+                }
+                return;
+            }
             engine.runtime = null;
             cleanupFailure = runCleanup(cleanupFailure, engine.publishedTarget::close);
             cleanupFailure = runCleanup(cleanupFailure, engine.engineDataStore::releaseEngineData);
@@ -229,11 +238,15 @@ final class EngineShutdownSequence {
                 assembly.mode.close();
             }
         });
-        failure = runCleanup(failure, () -> {
+        Throwable complexFailure = runCleanup(null, () -> {
             if (assembly.complex != null) {
                 assembly.complex.close();
             }
         });
+        failure = appendFailure(failure, complexFailure);
+        if (complexFailure != null) {
+            return failure;
+        }
         failure = runCleanup(failure, () -> {
             if (assembly.hash32 != null) {
                 assembly.hash32.cancel(true);
@@ -277,7 +290,11 @@ final class EngineShutdownSequence {
             return failure;
         }
         failure = runCleanup(failure, generationRuntime.mode()::close);
-        failure = runCleanup(failure, generationRuntime.complex()::close);
+        Throwable complexFailure = runCleanup(null, generationRuntime.complex()::close);
+        failure = appendFailure(failure, complexFailure);
+        if (complexFailure != null) {
+            return failure;
+        }
         failure = runCleanup(failure, () -> generationRuntime.hash32().cancel(true));
         if (generationRuntime.mantle() != retainedMantle) {
             failure = runCleanup(failure, generationRuntime.mantle()::saveAllNow);
@@ -290,10 +307,14 @@ final class EngineShutdownSequence {
         IrisEngine.GenerationRuntimeBinding binding = new IrisEngine.GenerationRuntimeBinding(
                 engine,
                 generationRuntime);
+        Throwable runtimeFailure;
         try (IrisEngine.GenerationRuntimeScope ignored = engine.generationRuntimeScopes.open(binding)) {
-            failure = closeGenerationRuntime(generationRuntime, failure);
+            runtimeFailure = closeGenerationRuntime(generationRuntime, null);
         } catch (Throwable scopeFailure) {
-            failure = appendFailure(failure, scopeFailure);
+            runtimeFailure = scopeFailure;
+        }
+        if (runtimeFailure != null) {
+            return appendFailure(failure, runtimeFailure);
         }
         return closeDetachedTarget(generationRuntime.target(), failure);
     }

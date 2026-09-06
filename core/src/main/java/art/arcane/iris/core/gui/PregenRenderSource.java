@@ -18,14 +18,6 @@
 
 package art.arcane.iris.core.gui;
 
-import art.arcane.volmlib.util.math.Position2;
-
 public interface PregenRenderSource {
-    Position2 min();
-
-    Position2 max();
-
-    String[] progress();
-
-    boolean paused();
+    PregenRenderSnapshot renderSnapshot();
 }

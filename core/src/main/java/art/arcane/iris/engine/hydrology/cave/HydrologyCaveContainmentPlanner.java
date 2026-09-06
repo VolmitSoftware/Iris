@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -1132,8 +1131,8 @@ public final class HydrologyCaveContainmentPlanner {
             List<CavePosition> throat
     ) {
         Queue<CavePosition> queue = new ArrayDeque<>();
-        Set<CavePosition> queued = new HashSet<>();
-        Set<CavePosition> resolved = new LinkedHashSet<>();
+        Set<CavePosition> queued = new LinkedHashSet<>();
+        int visitedCount = 0;
 
         queue.add(source.target());
         queued.add(source.target());
@@ -1148,10 +1147,7 @@ public final class HydrologyCaveContainmentPlanner {
             if (positionRejection != HydrologyCaveRejection.NONE) {
                 return ComponentResult.rejected(positionRejection);
             }
-            if (!resolved.add(position)) {
-                continue;
-            }
-            if (resolved.size() > settings.maxFloodVolume()) {
+            if (++visitedCount > settings.maxFloodVolume()) {
                 return ComponentResult.rejected(HydrologyCaveRejection.VOLUME_LIMIT);
             }
 
@@ -1171,7 +1167,7 @@ public final class HydrologyCaveContainmentPlanner {
             }
         }
 
-        return ComponentResult.accepted(resolved);
+        return ComponentResult.accepted(queued);
     }
 
     private HydrologyCaveRejection addThroatContacts(

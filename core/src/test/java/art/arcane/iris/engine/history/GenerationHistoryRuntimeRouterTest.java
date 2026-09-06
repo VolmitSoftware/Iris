@@ -400,8 +400,9 @@ public final class GenerationHistoryRuntimeRouterTest {
         ExecutorService executor = Executors.newFixedThreadPool(9);
         CountDownLatch routing = new CountDownLatch(8);
         CompletableFuture<?>[] workers = new CompletableFuture<?>[8];
-        try (GenerationHistoryRuntimeRouter router = GenerationHistoryRuntimeRouter.attach(
-                engine, history, (ignored, x, z) -> signature(x, z), runtimes)) {
+        GenerationHistoryRuntimeRouter router = GenerationHistoryRuntimeRouter.attach(
+                engine, history, (ignored, x, z) -> signature(x, z), runtimes);
+        try {
             for (int i = 0; i < workers.length; i++) {
                 workers[i] = CompletableFuture.runAsync(() -> routeUntilClosed(router, routing), executor);
             }
@@ -413,6 +414,7 @@ public final class GenerationHistoryRuntimeRouterTest {
         } finally {
             executor.shutdownNow();
             assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+            router.close();
         }
     }
 

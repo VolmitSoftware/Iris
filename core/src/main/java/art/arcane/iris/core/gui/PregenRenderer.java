@@ -361,7 +361,9 @@ public final class PregenRenderer extends JPanel {
         overallValue.setText(initializing ? pending() : rate(progress.overallChunksPerSecond()));
         thirtyValue.setText(initializing ? pending() : rate(progress.thirtySecondChunksPerSecond()));
         sixtyValue.setText(initializing ? pending() : rate(progress.sixtySecondChunksPerSecond()));
-        etaValue.setText(initializing || paused || progress.eta() < 0 ? pending() : Form.duration(progress.eta(), 2));
+        etaValue.setText(initializing || paused || progress.eta() < 0
+                || (progress.eta() == 0 && progress.chunksRemaining() > 0)
+                ? pending() : Form.duration(progress.eta(), 2));
         elapsedValue.setText(initializing ? pending() : Form.duration(progress.elapsed(), 2));
         memoryValue.setText(snapshot.usedMemoryBytes() < 0 ? pending() : text(DesktopUiMessages.PREGEN_MEMORY_USAGE,
                 MessageArgument.trusted("used", Form.memSize(snapshot.usedMemoryBytes(), 1)),

@@ -35,12 +35,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -112,6 +115,45 @@ public class IrisCaveCarver3DNearParityTest {
         carveLavaField.setAccessible(true);
         carveForcedAirField = IrisCaveCarver3D.class.getDeclaredField("carveForcedAir");
         carveForcedAirField.setAccessible(true);
+    }
+
+    @Test
+    public void carvingReleasesSectionReferencesAfterSuccessAndFailure() throws Exception {
+        for (boolean fail : new boolean[]{false, true}) {
+            Engine engine = createEngine(128, 110);
+            IrisCaveProfile profile = createProfile(false, false).setAdaptiveSampling(false)
+                    .setAllowFluid(false).setDetailWeight(0D)
+                    .setDensityThreshold(new IrisStyledRange(2D, 2D, new IrisGeneratorStyle(NoiseStyle.FLAT)));
+            IrisCaveCarver3D carver = new IrisCaveCarver3D(engine, profile);
+            WriterCapture capture = createWriterCapture(128);
+            if (fail) {
+                AtomicInteger samples = new AtomicInteger();
+                CNG density = mock(CNG.class);
+                doAnswer(invocation -> {
+                    if (samples.incrementAndGet() > 300) {
+                        throw new IllegalStateException("Density sample failed");
+                    }
+                    return -1D;
+                }).when(density).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
+                baseDensityField.set(carver, density);
+                assertThrows(IllegalStateException.class, () -> carver.carve(capture.writer, 0, 0,
+                        fullWeights(), 0D, 0D, null, filledHeights(110)));
+            } else {
+                carver.carve(capture.writer, 0, 0, fullWeights(), 0D, 0D, null, filledHeights(110));
+            }
+            assertFalse(capture.carvedCells.isEmpty());
+            Field scratchField = IrisCaveCarver3D.class.getDeclaredField("scratchCache");
+            scratchField.setAccessible(true);
+            ThreadLocal<?> scratchCache = (ThreadLocal<?>) scratchField.get(carver);
+            CaveCarveScratch scratch = (CaveCarveScratch) scratchCache.get();
+            assertTrue(scratch.sectionMatter.length > 0);
+            for (Matter matter : scratch.sectionMatter) {
+                assertNull(matter);
+            }
+            for (MatterSlice<?> slice : scratch.sectionSlices) {
+                assertNull(slice);
+            }
+        }
     }
 
     @Test

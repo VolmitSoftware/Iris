@@ -91,50 +91,17 @@ public final class SurfaceFootprintCompiler {
                     && column.x() == centerline.x()[0] && column.z() == centerline.z()[0];
             int y = column.role() == SurfaceRole.CHANNEL ? column.headY() : column.height();
             HydrologyFeatureRef feature = features.feature(segment, column.role(), source, column.x(), y, column.z(), flowX, flowZ);
+            String biomeOverride = pool ? poolBiome == null ? column.terrain().parentBiomeKey() : poolBiome : null;
             columns.add(new SurfaceLayerColumn(
                     column.x(),
                     column.z(),
                     column.terrain(),
-                    pool ? poolLayer(feature, column, course.profileKey(), poolBiome) : layer(feature, column, course.profileKey()),
+                    layer(feature, column, course.profileKey(), biomeOverride),
                     column.role(),
                     column.apron()
             ));
         }
         return new SurfaceFootprint(columns, field.uncontainedWetCells());
-    }
-
-    /** A pool's bowl and rim carry the pool biome when one is configured, otherwise the surrounding biome. */
-    private static HydrologyColumnLayer poolLayer(
-            HydrologyFeatureRef feature,
-            SurfaceColumn column,
-            String profileKey,
-            String poolBiome
-    ) {
-        HydrologyTerrainSample terrain = column.terrain();
-        String biome = poolBiome == null ? terrain.parentBiomeKey() : poolBiome;
-        boolean channel = column.role() == SurfaceRole.CHANNEL;
-        boolean shore = column.role() == SurfaceRole.SHORE;
-        return new HydrologyColumnLayer(
-                feature,
-                column.height(),
-                column.headY(),
-                column.headY(),
-                channel,
-                shore,
-                !channel,
-                channel,
-                false,
-                false,
-                true,
-                channel,
-                false,
-                profileKey,
-                biome,
-                biome,
-                biome,
-                biome,
-                terrain.floodedCaveBiomeKey()
-        );
     }
 
     private ChannelProfile poolProfile(HydraulicSegment segment, SurfaceCenterline centerline) {
@@ -160,9 +127,15 @@ public final class SurfaceFootprintCompiler {
         return null;
     }
 
-    private static HydrologyColumnLayer layer(HydrologyFeatureRef feature, SurfaceColumn column, String profileKey) {
+    /** A pool's bowl and rim carry the pool biome when one is configured, otherwise the surrounding biome. */
+    private static HydrologyColumnLayer layer(
+            HydrologyFeatureRef feature,
+            SurfaceColumn column,
+            String profileKey,
+            String biomeOverride
+    ) {
         HydrologyTerrainSample terrain = column.terrain();
-        if (column.apron()) {
+        if (column.apron() && biomeOverride == null) {
             return new HydrologyColumnLayer(
                     feature,
                     column.headY(),
@@ -194,10 +167,10 @@ public final class SurfaceFootprintCompiler {
                 channel,
                 false,
                 profileKey,
-                terrain.surfaceBiomeKey(),
-                terrain.mouthBiomeKey(),
-                terrain.shoreBiomeKey(),
-                terrain.bankBiomeKey(),
+                biomeOverride == null ? terrain.surfaceBiomeKey() : biomeOverride,
+                biomeOverride == null ? terrain.mouthBiomeKey() : biomeOverride,
+                biomeOverride == null ? terrain.shoreBiomeKey() : biomeOverride,
+                biomeOverride == null ? terrain.bankBiomeKey() : biomeOverride,
                 terrain.floodedCaveBiomeKey()
         );
     }

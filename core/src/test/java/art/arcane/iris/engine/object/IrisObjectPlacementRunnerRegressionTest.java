@@ -10,6 +10,9 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.RNG;
+import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.Directional;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -67,6 +71,36 @@ public class IrisObjectPlacementRunnerRegressionTest {
     @After
     public void unbindPlatform() {
         IrisPlatforms.unbind();
+    }
+
+    @Test
+    public void unsupportedRotatedOrientationOmitsBlockTileAndListener() {
+        PlatformBlockState torch = state("minecraft:wall_torch", false);
+        Directional directional = mock(Directional.class);
+        Material material = mock(Material.class);
+        when(torch.nativeHandle()).thenReturn(directional);
+        when(directional.clone()).thenReturn(directional);
+        when(directional.getFacing()).thenReturn(BlockFace.NORTH);
+        when(directional.getFaces()).thenReturn(Set.of(BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST));
+        when(directional.getMaterial()).thenReturn(material);
+        IrisObjectPlacement placement = placement();
+        placement.setRotation(IrisObjectRotation.of(90, 0, 0));
+        assertNull(placement.getRotation().rotate(torch, 0, 0, 0));
+        IrisObject object = lineObject(3);
+        object.setUnsigned(1, 0, 0, torch);
+        object.setUnsignedTile(1, 0, 0, new TileData("minecraft:wall_torch", new KMap<>()));
+        RecordingPlacer placer = new RecordingPlacer(null);
+        List<PlatformBlockState> placed = new ArrayList<>();
+
+        int result = object.place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L),
+                (position, state) -> placed.add(state), null, data);
+
+        assertEquals(ANCHOR_Y, result);
+        assertEquals(2, placer.writes().size());
+        assertEquals(List.of(solid, solid), placed);
+        assertNull(placer.get(0, ANCHOR_Y, 0));
+        assertNull(placer.getData(0, ANCHOR_Y, 0, TileData.class));
+        assertEquals(1, object.getStates().size());
     }
 
     @Test

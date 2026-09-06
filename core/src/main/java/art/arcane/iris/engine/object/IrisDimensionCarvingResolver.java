@@ -2,7 +2,6 @@ package art.arcane.iris.engine.object;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.util.project.interpolation.IrisInterpolation;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.project.noise.CNG;
 
@@ -149,21 +148,20 @@ public final class IrisDimensionCarvingResolver {
             return parent;
         }
 
-        ParentSelectionPlan selectionPlan = state.selectionPlans.get(parent);
+        IrisRaritySelection<CarvingChoice> selectionPlan = state.selectionPlans.get(parent);
         if (selectionPlan == null) {
             selectionPlan = buildSelectionPlan(engine, parent, parentBiome, entryIndex, state);
             state.selectionPlans.put(parent, selectionPlan);
         }
 
-        if (selectionPlan.parentOnly) {
+        if (selectionPlan.size() <= 1L) {
             return parent;
         }
 
         long seed = resolveChildSeed(engine, state);
         CNG childGenerator = parent.getChildrenGenerator(seed, engine.getData());
         double sample = childGenerator.noiseFast2D(worldX, worldZ);
-        int selectedIndex = (int) Math.round(IrisInterpolation.lerp(0, selectionPlan.maxIndex, sample));
-        CarvingChoice selected = selectionPlan.get(selectedIndex);
+        CarvingChoice selected = selectionPlan.select(sample);
         if (selected == null || selected.entry == null) {
             return parent;
         }
@@ -171,7 +169,7 @@ public final class IrisDimensionCarvingResolver {
         return selected.entry;
     }
 
-    private static ParentSelectionPlan buildSelectionPlan(
+    private static IrisRaritySelection<CarvingChoice> buildSelectionPlan(
             Engine engine,
             IrisDimensionCarvingEntry parent,
             IrisBiome parentBiome,
@@ -201,42 +199,7 @@ public final class IrisDimensionCarvingResolver {
         }
 
         options.add(new CarvingChoice(parent, rarity(parentBiome)));
-        if (options.size() <= 1) {
-            return ParentSelectionPlan.parentOnly();
-        }
-
-        CarvingChoice[] mappedChoices = buildRarityMappedChoices(options);
-        if (mappedChoices.length == 0) {
-            return ParentSelectionPlan.parentOnly();
-        }
-
-        return new ParentSelectionPlan(mappedChoices);
-    }
-
-    private static CarvingChoice[] buildRarityMappedChoices(List<CarvingChoice> choices) {
-        int max = 1;
-        for (CarvingChoice choice : choices) {
-            if (choice.rarity > max) {
-                max = choice.rarity;
-            }
-        }
-
-        max++;
-        List<CarvingChoice> mapped = new ArrayList<>();
-        boolean flip = false;
-        for (CarvingChoice choice : choices) {
-            int count = max - choice.rarity;
-            for (int index = 0; index < count; index++) {
-                flip = !flip;
-                if (flip) {
-                    mapped.add(choice);
-                } else {
-                    mapped.add(0, choice);
-                }
-            }
-        }
-
-        return mapped.toArray(new CarvingChoice[0]);
+        return IrisRaritySelection.create(options);
     }
 
     private static int rarity(IrisBiome biome) {
@@ -285,7 +248,7 @@ public final class IrisDimensionCarvingResolver {
 
     public static final class State {
         private final Map<Integer, IrisDimensionCarvingEntry> rootEntriesByWorldY = new HashMap<>();
-        private final Map<IrisDimensionCarvingEntry, ParentSelectionPlan> selectionPlans = new IdentityHashMap<>();
+        private final Map<IrisDimensionCarvingEntry, IrisRaritySelection<CarvingChoice>> selectionPlans = new IdentityHashMap<>();
         private final Map<IrisDimensionCarvingEntry, IrisBiome> biomeCache = new IdentityHashMap<>();
         private WeakReference<Engine> engineIdentity;
         private WeakReference<IrisDimension> dimensionIdentity;
@@ -313,44 +276,6 @@ public final class IrisDimensionCarvingResolver {
 
         private static boolean references(WeakReference<?> identity, Object value) {
             return identity != null && identity.get() == value;
-        }
-    }
-
-    private static final class ParentSelectionPlan {
-        private final CarvingChoice[] mappedChoices;
-        private final int maxIndex;
-        private final boolean parentOnly;
-
-        private ParentSelectionPlan(CarvingChoice[] mappedChoices) {
-            this.mappedChoices = mappedChoices;
-            this.maxIndex = mappedChoices.length - 1;
-            this.parentOnly = false;
-        }
-
-        private ParentSelectionPlan() {
-            this.mappedChoices = null;
-            this.maxIndex = -1;
-            this.parentOnly = true;
-        }
-
-        private static ParentSelectionPlan parentOnly() {
-            return new ParentSelectionPlan();
-        }
-
-        private CarvingChoice get(int index) {
-            if (mappedChoices == null || mappedChoices.length == 0) {
-                return null;
-            }
-
-            if (index < 0) {
-                return mappedChoices[0];
-            }
-
-            if (index >= mappedChoices.length) {
-                return mappedChoices[mappedChoices.length - 1];
-            }
-
-            return mappedChoices[index];
         }
     }
 

@@ -30,10 +30,12 @@ import art.arcane.iris.util.project.interpolation.Interpolation3D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Geometric transforms for {@link IrisObject}: rotation, scaling and the interpolated upscalers.
@@ -52,15 +54,23 @@ final class IrisObjectTransforms {
         self.writeLock.lock();
         try {
             VectorMap<PlatformBlockState> d = new VectorMap<>();
+            Set<IrisBlockVector> omitted = new HashSet<>();
 
-            for (var entry : self.blocks) {
-                d.put(r.rotate(entry.getKey(), spinx, spiny, spinz), r.rotate(entry.getValue(), spinx, spiny, spinz));
+            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : self.blocks) {
+                PlatformBlockState rotated = r.rotate(entry.getValue(), spinx, spiny, spinz);
+                if (rotated == null) {
+                    omitted.add(entry.getKey());
+                    continue;
+                }
+                d.put(r.rotate(entry.getKey(), spinx, spiny, spinz), rotated);
             }
 
             VectorMap<TileData> dx = new VectorMap<>();
 
-            for (var entry : self.states) {
-                dx.put(r.rotate(entry.getKey(), spinx, spiny, spinz), entry.getValue());
+            for (Map.Entry<IrisBlockVector, TileData> entry : self.states) {
+                if (!omitted.contains(entry.getKey())) {
+                    dx.put(r.rotate(entry.getKey(), spinx, spiny, spinz), entry.getValue());
+                }
             }
 
             self.blocks = d;
@@ -96,32 +106,31 @@ final class IrisObjectTransforms {
             scale = scale - 0.0001;
         }
 
-        IrisPosition l1 = self.getAABB().max();
-        IrisPosition l2 = self.getAABB().min();
         VectorMap<PlatformBlockState> placeBlock = new VectorMap<>();
         VectorMap<TileData> placeTile = new VectorMap<>();
         VectorMap<IrisBlockVector> placeMax = savedOrigin && scale > 1 ? new VectorMap<>() : null;
 
-        IrisVector center = new IrisVector(self.getCenter().getX(), self.getCenter().getY(), self.getCenter().getZ());
-        if (self.getH() == 2) {
-            center = center.setY(center.getBlockY() + 0.5);
-        }
-        if (self.getW() == 2) {
-            center = center.setX(center.getBlockX() + 0.5);
-        }
-        if (self.getD() == 2) {
-            center = center.setZ(center.getBlockZ() + 0.5);
-        }
-
-        IrisObject oo = savedOrigin ? createOriginScaledObject(self, scale)
-                : new IrisObject((int) Math.ceil((self.w * scale) + (scale * 2)), (int) Math.ceil((self.h * scale) + (scale * 2)), (int) Math.ceil((self.d * scale) + (scale * 2)));
-        oo.setLoadKey(self.getLoadKey());
-        oo.setLoader(self.getLoader());
-        oo.setLoadFile(self.getLoadFile());
-
+        IrisVector center;
+        IrisObject oo;
         boolean hasTiles;
         self.readLock.lock();
         try {
+            center = new IrisVector(self.getCenter().getX(), self.getCenter().getY(), self.getCenter().getZ());
+            if (self.getH() == 2) {
+                center = center.setY(center.getBlockY() + 0.5);
+            }
+            if (self.getW() == 2) {
+                center = center.setX(center.getBlockX() + 0.5);
+            }
+            if (self.getD() == 2) {
+                center = center.setZ(center.getBlockZ() + 0.5);
+            }
+
+            oo = savedOrigin ? createOriginScaledObject(self, scale)
+                    : new IrisObject((int) Math.ceil((self.w * scale) + (scale * 2)), (int) Math.ceil((self.h * scale) + (scale * 2)), (int) Math.ceil((self.d * scale) + (scale * 2)));
+            oo.setLoadKey(self.getLoadKey());
+            oo.setLoader(self.getLoader());
+            oo.setLoadFile(self.getLoadFile());
             hasTiles = !self.states.isEmpty();
             for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : self.blocks) {
                 PlatformBlockState bd = entry.getValue();
@@ -153,13 +162,27 @@ final class IrisObjectTransforms {
             if (scale > 1) {
                 IrisVector minimum = savedOrigin ? v : v.clone().add(center);
                 IrisVector maximum = savedOrigin ? placeMax.get(v) : v.clone().add(center).add(sm1);
-                for (IrisBlockVector vec : IrisObjectShaping.blocksBetweenTwoPoints(minimum, maximum)) {
-                    oo.blocks.put(vec, entry.getValue());
-                    if (hasTiles) {
-                        if (tile == null) {
-                            oo.states.remove(vec);
-                        } else {
-                            oo.states.put(vec, tile.clone());
+                int minX = Math.min(minimum.getBlockX(), maximum.getBlockX());
+                int maxX = Math.max(minimum.getBlockX(), maximum.getBlockX());
+                int minY = Math.min(minimum.getBlockY(), maximum.getBlockY());
+                int maxY = Math.max(minimum.getBlockY(), maximum.getBlockY());
+                int minZ = Math.min(minimum.getBlockZ(), maximum.getBlockZ());
+                int maxZ = Math.max(minimum.getBlockZ(), maximum.getBlockZ());
+                IrisBlockVector position = new IrisBlockVector(minX, minY, minZ);
+                for (int x = minX; x <= maxX; x++) {
+                    position.setX(x);
+                    for (int z = minZ; z <= maxZ; z++) {
+                        position.setZ(z);
+                        for (int y = minY; y <= maxY; y++) {
+                            position.setY(y);
+                            oo.blocks.put(position, entry.getValue());
+                            if (hasTiles) {
+                                if (tile == null) {
+                                    oo.states.remove(position);
+                                } else {
+                                    oo.states.put(position, tile.clone());
+                                }
+                            }
                         }
                     }
                 }

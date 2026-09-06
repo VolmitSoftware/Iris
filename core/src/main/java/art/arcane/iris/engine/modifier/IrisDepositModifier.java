@@ -40,11 +40,19 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.iris.util.common.parallel.BurstExecutor;
+import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
+import art.arcane.iris.util.common.data.VectorMap;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockState> {
+    private static final int CLUMPS_PER_BATCH = 8;
+    private static final int PREPARATION_BATCH_COUNT = 4;
+
     private final RNG rng;
 
     public IrisDepositModifier(Engine engine) {
@@ -62,29 +70,36 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
     public void generateDeposits(Hunk<PlatformBlockState> terrain, int x, int z, boolean multicore, ChunkContext context) {
         IrisRegion region = context.getRegion().get(7, 7);
         IrisBiome biome = context.getBiome().get(7, 7);
-        BurstExecutor burst = burst().burst(multicore);
+        List<IrisDepositGenerator> generators = new ArrayList<>(
+                getDimension().getDeposits().size() + region.getDeposits().size() + biome.getDeposits().size());
+        generators.addAll(getDimension().getDeposits());
+        generators.addAll(region.getDeposits());
+        generators.addAll(biome.getDeposits());
+        if (generators.isEmpty()) {
+            return;
+        }
 
+        BurstExecutor burst = burst().burst(multicore);
         long seed = x * 341873128712L + z * 132897987541L;
-        long mask = 0;
+        PreparedDeposit[] prepared = new PreparedDeposit[PREPARATION_BATCH_COUNT];
+        int pending = 0;
         MantleChunk chunk = getEngine().getMantle().getMantle().getChunk(x, z).use();
         try {
-            for (IrisDepositGenerator k : getDimension().getDeposits()) {
-                long finalSeed = seed * ++mask;
-                burst.queue(scopedDepositTask(
-                        () -> generate(k, chunk, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context), context));
+            for (int i = 0; i < generators.size(); i++) {
+                DepositPlan plan = plan(generators.get(i), rng.nextParallelRNG(seed * (i + 1L)));
+                for (int first = 0; first < plan.attempts(); first += CLUMPS_PER_BATCH) {
+                    int firstAttempt = first;
+                    int limit = Math.min(plan.attempts(), first + CLUMPS_PER_BATCH);
+                    int index = pending++;
+                    burst.queue(scopedDepositTask(
+                            () -> prepared[index] = prepare(plan, firstAttempt, limit, x, z, null, context), context));
+                    if (pending == prepared.length) {
+                        completeBatches(burst, prepared, chunk, terrain, x, z, context);
+                        pending = 0;
+                    }
+                }
             }
-
-            for (IrisDepositGenerator k : region.getDeposits()) {
-                long finalSeed = seed * ++mask;
-                burst.queue(scopedDepositTask(
-                        () -> generate(k, chunk, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context), context));
-            }
-
-            for (IrisDepositGenerator k : biome.getDeposits()) {
-                long finalSeed = seed * ++mask;
-                burst.queue(scopedDepositTask(
-                        () -> generate(k, chunk, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context), context));
-            }
+            completeBatches(burst, prepared, chunk, terrain, x, z, context);
         } finally {
             // complete() must run before release() even when queueing throws — already
             // submitted burst tasks must never write into a released chunk.
@@ -92,6 +107,20 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
                 burst.complete();
             } finally {
                 chunk.release();
+            }
+        }
+    }
+
+    private void completeBatches(BurstExecutor burst, PreparedDeposit[] prepared, MantleChunk chunk,
+                                 Hunk<PlatformBlockState> terrain, int x, int z, ChunkContext context) {
+        burst.complete();
+        try (IrisContext.Scope chunkScope = IrisContext.open(getEngine(), context.getGenerationSessionId(), context)) {
+            for (int i = 0; i < prepared.length; i++) {
+                PreparedDeposit deposit = prepared[i];
+                prepared[i] = null;
+                if (deposit != null) {
+                    place(deposit, chunk, terrain, x, z, null, context);
+                }
             }
         }
     }
@@ -115,17 +144,35 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
     }
 
     public void generate(IrisDepositGenerator k, MantleChunk chunk, Hunk<PlatformBlockState> data, RNG rng, int cx, int cz, boolean safe, HeightMap he, ChunkContext context) {
-        IrisDimensionCarvingResolver.State carvingState = new IrisDimensionCarvingResolver.State();
-        if (k.getSpawnChance() < rng.d())
-            return;
+        DepositPlan plan = plan(k, rng);
+        for (int first = 0; first < plan.attempts(); first += CLUMPS_PER_BATCH) {
+            int limit = Math.min(plan.attempts(), first + CLUMPS_PER_BATCH);
+            place(prepare(plan, first, limit, cx, cz, he, context), chunk, data, cx, cz, he, context);
+        }
+    }
 
-        boolean oreDeposit = k.isOre(getData());
+    private DepositPlan plan(IrisDepositGenerator generator, RNG rng) {
+        if (generator.getSpawnChance() < rng.d()) {
+            return new DepositPlan(generator, rng.getSeed(), false, 0);
+        }
+        boolean ore = generator.isOre(getData());
+        int attempts = rng.i(generator.getMinPerChunk(), generator.getMaxPerChunk() + 1);
+        return new DepositPlan(generator, rng.getSeed(), ore, attempts);
+    }
 
-        for (int l = 0; l < rng.i(k.getMinPerChunk(), k.getMaxPerChunk() + 1); l++) {
-            if (k.getPerClumpSpawnChance() < rng.d())
+    private PreparedDeposit prepare(DepositPlan plan, int first, int limit, int cx, int cz, HeightMap he, ChunkContext context) {
+        IrisDepositGenerator k = plan.generator();
+        boolean oreDeposit = plan.ore();
+        boolean needsCaveBiome = oreDeposit || k.usesCaveBiomeFilter();
+        IrisDimensionCarvingResolver.State carvingState = needsCaveBiome ? new IrisDimensionCarvingResolver.State() : null;
+        List<PreparedClump> clumps = new ArrayList<>(limit - first);
+        for (int l = first; l < limit; l++) {
+            RNG clumpRng = new RNG(clumpSeed(plan.seed(), l));
+            if (k.getPerClumpSpawnChance() < clumpRng.d()) {
                 continue;
+            }
 
-            IrisObject clump = k.getClump(getEngine(), rng, getData());
+            IrisObject clump = k.getClump(getEngine(), clumpRng, getData());
 
             int dim = clump.getW();
             int min = dim / 2;
@@ -136,8 +183,8 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
                 max = 9;
             }
 
-            int x = rng.i(min, max + 1);
-            int z = rng.i(min, max + 1);
+            int x = clumpRng.i(min, max + 1);
+            int z = clumpRng.i(min, max + 1);
             int terrainSurface = getDepositTerrainSurface(cx, cz, x, z, he, context);
             int height = k.getPlacementScope() == IrisDepositPlacementScope.TERRAIN
                     ? depositSurfaceLimit(terrainSurface, k.getSurfaceClearance())
@@ -148,19 +195,20 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
             }
 
             int y = sampleHeight(
-                    k.getHeightDistribution(), rng, k.getMinHeight(), k.getMaxHeight(),
+                    k.getHeightDistribution(), clumpRng, k.getMinHeight(), k.getMaxHeight(),
                     Math.min(height, getEngine().getHeight() - 1));
             if (y == Integer.MIN_VALUE) {
                 continue;
             }
 
             boolean clippedHeight = k.getHeightDistribution() == IrisDepositHeightDistribution.CLIPPED_UNIFORM;
-            if (clippedHeight && y > height - 2)
+            if (clippedHeight && y > height - 2) {
                 continue;
+            }
 
             int biomeY = Math.max(0, Math.min(getEngine().getHeight() - 1, y));
             IrisBiome surfaceBiome = context.getBiome().get(x, z);
-            IrisBiome depositBiome = oreDeposit || k.usesCaveBiomeFilter()
+            IrisBiome depositBiome = needsCaveBiome
                     ? getEngine().getCaveBiome(
                             (cx << 4) + x, biomeY, (cz << 4) + z, carvingState)
                     : null;
@@ -172,13 +220,13 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
                 if (depositBiome != null) {
                     double frequencyMultiplier = depositBiome.getOreDepositFrequencyMultiplier();
                     if (frequencyMultiplier < 1D
-                            && !passesOreFrequency(frequencyMultiplier, rng.d())) {
+                            && !passesOreFrequency(frequencyMultiplier, clumpRng.d())) {
                         continue;
                     }
 
                     double sizeMultiplier = depositBiome.getOreDepositSizeMultiplier();
                     if (sizeMultiplier != 1D) {
-                        IrisObject scaledClump = k.getClump(getEngine(), rng, getData(), sizeMultiplier);
+                        IrisObject scaledClump = k.getClump(getEngine(), clumpRng, getData(), sizeMultiplier);
                         int scaledDimension = scaledClump.getW();
                         x = clampDepositCenter(x, scaledDimension, 16);
                         if (clippedHeight) {
@@ -190,9 +238,30 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
                 }
             }
 
-            IrisDimension dimension = getDimension();
+            clumps.add(new PreparedClump(clump, x, y, z, clumpRng));
+        }
+        return new PreparedDeposit(k, oreDeposit, clumps);
+    }
 
-            for (art.arcane.iris.util.common.math.IrisBlockVector j : clump.getBlocks().keys()) {
+    private void place(PreparedDeposit deposit, MantleChunk chunk, Hunk<PlatformBlockState> data,
+                       int cx, int cz, HeightMap he, ChunkContext context) {
+        if (deposit.clumps().isEmpty()) {
+            return;
+        }
+        IrisDepositGenerator k = deposit.generator();
+        boolean oreDeposit = deposit.ore();
+        IrisDimensionCarvingResolver.State carvingState = new IrisDimensionCarvingResolver.State();
+        IrisDimension dimension = getDimension();
+        for (PreparedClump prepared : deposit.clumps()) {
+            IrisObject clump = prepared.object();
+            int x = prepared.x();
+            int y = prepared.y();
+            int z = prepared.z();
+            RNG rng = prepared.rng();
+
+            VectorMap<PlatformBlockState>.Cursor cursor = clump.getBlocks().cursor();
+            while (cursor.next()) {
+                IrisBlockVector j = cursor.key();
                 int nx = j.getBlockX() + x;
                 int ny = j.getBlockY() + y;
                 int nz = j.getBlockZ() + z;
@@ -236,7 +305,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
                 }
 
                 if (chunk.get(nx, ny, nz, MatterCavern.class) == null) {
-                    PlatformBlockState ore = clump.getBlocks().get(j);
+                    PlatformBlockState ore = cursor.value();
                     PlatformBlockState remapped = resolveDepositVariant(
                             cx, cz, nx, ny, nz, ore, dimension, context, carvingState);
                     PlatformBlockState finalBlock = remapped != null
@@ -420,5 +489,21 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
         }
 
         return null;
+    }
+
+    static long clumpSeed(long seed, int attempt) {
+        long mixed = seed + 0x9e3779b97f4a7c15L * (attempt + 1L);
+        mixed = (mixed ^ (mixed >>> 30)) * 0xbf58476d1ce4e5b9L;
+        mixed = (mixed ^ (mixed >>> 27)) * 0x94d049bb133111ebL;
+        return mixed ^ (mixed >>> 31);
+    }
+
+    private record DepositPlan(IrisDepositGenerator generator, long seed, boolean ore, int attempts) {
+    }
+
+    private record PreparedDeposit(IrisDepositGenerator generator, boolean ore, List<PreparedClump> clumps) {
+    }
+
+    private record PreparedClump(IrisObject object, int x, int y, int z, RNG rng) {
     }
 }

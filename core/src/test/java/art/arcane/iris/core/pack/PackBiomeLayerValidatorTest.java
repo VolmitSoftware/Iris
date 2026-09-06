@@ -11,7 +11,6 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class PackBiomeLayerValidatorTest {
@@ -19,14 +18,12 @@ public class PackBiomeLayerValidatorTest {
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
-    public void rejectsMoreCeilingLayersThanLayers() throws Exception {
+    public void acceptsMoreCeilingLayersThanSurfaceLayers() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
         write(pack, "biomes/nested/cave.json",
                 "{\"layers\":[{}],\"caveCeilingLayers\":[{},{},{}]}");
 
-        assertEquals(List.of(
-                "Biome 'nested/cave' declares 3 caveCeilingLayers but only 1 layers. caveCeilingLayers reuses the layers height generators and must not have more entries."
-        ), PackBiomeLayerValidator.validateCeilingLayerCounts(new File(pack, "biomes")));
+        assertTrue(PackBiomeLayerValidator.validateLayers(new File(pack, "biomes")).isEmpty());
     }
 
     @Test
@@ -35,9 +32,7 @@ public class PackBiomeLayerValidatorTest {
         write(pack, "biomes/defaulted.json", "{\"name\":\"Defaulted\"}");
         write(pack, "biomes/implicit.json", "{\"caveCeilingLayers\":[{},{}]}");
 
-        assertEquals(List.of(
-                "Biome 'implicit' declares 2 caveCeilingLayers but only 1 layers. caveCeilingLayers reuses the layers height generators and must not have more entries."
-        ), PackBiomeLayerValidator.validateCeilingLayerCounts(new File(pack, "biomes")));
+        assertTrue(PackBiomeLayerValidator.validateLayers(new File(pack, "biomes")).isEmpty());
     }
 
     @Test
@@ -45,7 +40,7 @@ public class PackBiomeLayerValidatorTest {
         File pack = temporaryFolder.newFolder("pack");
         write(pack, "biomes/ok.json", "{\"layers\":[{},{},{}],\"caveCeilingLayers\":[{},{}]}");
 
-        assertTrue(PackBiomeLayerValidator.validateCeilingLayerCounts(new File(pack, "biomes")).isEmpty());
+        assertTrue(PackBiomeLayerValidator.validateLayers(new File(pack, "biomes")).isEmpty());
     }
 
     @Test
@@ -56,11 +51,11 @@ public class PackBiomeLayerValidatorTest {
         assertEquals(List.of(
                 "Biome 'bad' layers must be an array.",
                 "Biome 'bad' caveCeilingLayers must be an array."
-        ), PackBiomeLayerValidator.validateCeilingLayerCounts(new File(pack, "biomes")));
+        ), PackBiomeLayerValidator.validateLayers(new File(pack, "biomes")));
     }
 
     @Test
-    public void ceilingLayerOverflowBlocksFullPackValidation() throws Exception {
+    public void independentCeilingLayersPassFullPackValidation() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
         write(pack, "dimensions/main.json", "{\"regions\":[\"region\"]}");
         write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
@@ -68,9 +63,7 @@ public class PackBiomeLayerValidatorTest {
 
         PackValidationResult result = PackValidator.validate(pack);
 
-        assertFalse(result.isLoadable());
-        assertTrue(result.getBlockingErrors().contains(
-                "Biome 'biome' declares 2 caveCeilingLayers but only 1 layers. caveCeilingLayers reuses the layers height generators and must not have more entries."));
+        assertTrue(result.getBlockingErrors().toString(), result.isLoadable());
     }
 
     @Test

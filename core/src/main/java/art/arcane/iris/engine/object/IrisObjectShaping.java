@@ -22,16 +22,9 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.VectorMap;
 import art.arcane.iris.util.common.math.IrisBlockVector;
-import art.arcane.iris.util.common.math.IrisVector;
 import art.arcane.iris.util.common.math.Vector3i;
-import art.arcane.iris.util.common.parallel.BurstExecutor;
-import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Volume shaping for {@link IrisObject}: smart boring, shrinkwrapping, compaction and the shared block
@@ -62,30 +55,23 @@ final class IrisObjectShaping {
     private static void ensureSmartBoredLocked(IrisObject self) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         PlatformBlockState vair = IrisObject.States.VAIR;
-        AtomicInteger applied = new AtomicInteger();
-        IrisBlockVector max = new IrisBlockVector(Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE);
-        IrisBlockVector min = new IrisBlockVector(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
-        VectorMap<PlatformBlockState> source;
-        self.readLock.lock();
-        try {
-            if (self.blocks.isEmpty()) {
-                IrisLogging.warn("Cannot Smart Bore " + self.getLoadKey() + " because it has 0 blocks in it.");
-                self.smartBored = true;
-                return;
-            }
+        int applied = 0;
+        IrisBlockVector max = new IrisBlockVector(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
+        IrisBlockVector min = new IrisBlockVector(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+        VectorMap<PlatformBlockState> source = self.blocks;
+        if (source.isEmpty()) {
+            IrisLogging.warn("Cannot Smart Bore " + self.getLoadKey() + " because it has 0 blocks in it.");
+            self.smartBored = true;
+            return;
+        }
 
-            source = self.blocks;
-
-            for (IrisBlockVector i : self.blocks.keys()) {
-                max.setX(Math.max(i.getX(), max.getX()));
-                min.setX(Math.min(i.getX(), min.getX()));
-                max.setY(Math.max(i.getY(), max.getY()));
-                min.setY(Math.min(i.getY(), min.getY()));
-                max.setZ(Math.max(i.getZ(), max.getZ()));
-                min.setZ(Math.min(i.getZ(), min.getZ()));
-            }
-        } finally {
-            self.readLock.unlock();
+        for (IrisBlockVector i : source.keys()) {
+            max.setX(Math.max(i.getX(), max.getX()));
+            min.setX(Math.min(i.getX(), min.getX()));
+            max.setY(Math.max(i.getY(), max.getY()));
+            min.setY(Math.min(i.getY(), min.getY()));
+            max.setZ(Math.max(i.getZ(), max.getZ()));
+            min.setZ(Math.min(i.getZ(), min.getZ()));
         }
 
         VectorMap<PlatformBlockState> bore = new VectorMap<>();
@@ -93,114 +79,94 @@ final class IrisObjectShaping {
         // bored volume must come from a fixed X->Y->Z order on the calling (lock-owning)
         // thread, not from pool scheduling. This matches what burst-worker callers (studio,
         // generation threads) already produced, so output is unchanged where it was stable.
-        BurstExecutor burst = MultiBurst.burst.burst();
-        burst.setMulticore(false);
 
         // Smash X
         for (int rayY = min.getBlockY(); rayY <= max.getBlockY(); rayY++) {
-            int finalRayY = rayY;
-            burst.queue(() -> {
-                for (int rayZ = min.getBlockZ(); rayZ <= max.getBlockZ(); rayZ++) {
-                    int start = Integer.MAX_VALUE;
-                    int end = Integer.MIN_VALUE;
+            for (int rayZ = min.getBlockZ(); rayZ <= max.getBlockZ(); rayZ++) {
+                int start = Integer.MAX_VALUE;
+                int end = Integer.MIN_VALUE;
 
-                    for (int ray = min.getBlockX(); ray <= max.getBlockX(); ray++) {
-                        if (boreContains(source, bore, new IrisBlockVector(ray, finalRayY, rayZ))) {
-                            start = Math.min(ray, start);
-                            end = Math.max(ray, end);
-                        }
-                    }
-
-                    if (start != Integer.MAX_VALUE && end != Integer.MIN_VALUE) {
-                        for (int i = start; i <= end; i++) {
-                            boreCell(source, bore, new IrisBlockVector(i, finalRayY, rayZ), vair, applied);
-                        }
+                for (int ray = min.getBlockX(); ray <= max.getBlockX(); ray++) {
+                    if (boreContains(source, bore, new IrisBlockVector(ray, rayY, rayZ))) {
+                        start = Math.min(ray, start);
+                        end = Math.max(ray, end);
                     }
                 }
-            });
+
+                if (start != Integer.MAX_VALUE && end != Integer.MIN_VALUE) {
+                    for (int i = start; i <= end; i++) {
+                        applied += boreCell(source, bore, new IrisBlockVector(i, rayY, rayZ), vair);
+                    }
+                }
+            }
         }
 
         // Smash Y
         for (int rayX = min.getBlockX(); rayX <= max.getBlockX(); rayX++) {
-            int finalRayX = rayX;
-            burst.queue(() -> {
-                for (int rayZ = min.getBlockZ(); rayZ <= max.getBlockZ(); rayZ++) {
-                    int start = Integer.MAX_VALUE;
-                    int end = Integer.MIN_VALUE;
+            for (int rayZ = min.getBlockZ(); rayZ <= max.getBlockZ(); rayZ++) {
+                int start = Integer.MAX_VALUE;
+                int end = Integer.MIN_VALUE;
 
-                    for (int ray = min.getBlockY(); ray <= max.getBlockY(); ray++) {
-                        if (boreContains(source, bore, new IrisBlockVector(finalRayX, ray, rayZ))) {
-                            start = Math.min(ray, start);
-                            end = Math.max(ray, end);
-                        }
-                    }
-
-                    if (start != Integer.MAX_VALUE && end != Integer.MIN_VALUE) {
-                        for (int i = start; i <= end; i++) {
-                            boreCell(source, bore, new IrisBlockVector(finalRayX, i, rayZ), vair, applied);
-                        }
+                for (int ray = min.getBlockY(); ray <= max.getBlockY(); ray++) {
+                    if (boreContains(source, bore, new IrisBlockVector(rayX, ray, rayZ))) {
+                        start = Math.min(ray, start);
+                        end = Math.max(ray, end);
                     }
                 }
-            });
+
+                if (start != Integer.MAX_VALUE && end != Integer.MIN_VALUE) {
+                    for (int i = start; i <= end; i++) {
+                        applied += boreCell(source, bore, new IrisBlockVector(rayX, i, rayZ), vair);
+                    }
+                }
+            }
         }
 
         // Smash Z
         for (int rayX = min.getBlockX(); rayX <= max.getBlockX(); rayX++) {
-            int finalRayX = rayX;
-            burst.queue(() -> {
-                for (int rayY = min.getBlockY(); rayY <= max.getBlockY(); rayY++) {
-                    int start = Integer.MAX_VALUE;
-                    int end = Integer.MIN_VALUE;
+            for (int rayY = min.getBlockY(); rayY <= max.getBlockY(); rayY++) {
+                int start = Integer.MAX_VALUE;
+                int end = Integer.MIN_VALUE;
 
-                    for (int ray = min.getBlockZ(); ray <= max.getBlockZ(); ray++) {
-                        if (boreContains(source, bore, new IrisBlockVector(finalRayX, rayY, ray))) {
-                            start = Math.min(ray, start);
-                            end = Math.max(ray, end);
-                        }
-                    }
-
-                    if (start != Integer.MAX_VALUE && end != Integer.MIN_VALUE) {
-                        for (int i = start; i <= end; i++) {
-                            boreCell(source, bore, new IrisBlockVector(finalRayX, rayY, i), vair, applied);
-                        }
+                for (int ray = min.getBlockZ(); ray <= max.getBlockZ(); ray++) {
+                    if (boreContains(source, bore, new IrisBlockVector(rayX, rayY, ray))) {
+                        start = Math.min(ray, start);
+                        end = Math.max(ray, end);
                     }
                 }
-            });
-        }
 
-        burst.complete();
-
-        self.writeLock.lock();
-        try {
-            if (!self.smartBored) {
-                bore.forEach((v, s) -> self.blocks.computeIfAbsent(v, (vv) -> s));
-                self.smartBored = true;
+                if (start != Integer.MAX_VALUE && end != Integer.MIN_VALUE) {
+                    for (int i = start; i <= end; i++) {
+                        applied += boreCell(source, bore, new IrisBlockVector(rayX, rayY, i), vair);
+                    }
+                }
             }
-        } finally {
-            self.writeLock.unlock();
         }
 
-        IrisLogging.debug("Smart Bore: " + self.getLoadKey() + " in " + Form.duration(p.getMilliseconds(), 2) + " (" + Form.f(applied.get()) + ")");
+        source.putAll(bore);
+        self.smartBored = true;
+
+        IrisLogging.debug("Smart Bore: " + self.getLoadKey() + " in " + Form.duration(p.getMilliseconds(), 2) + " (" + Form.f(applied) + ")");
     }
 
     private static boolean boreContains(VectorMap<PlatformBlockState> source, VectorMap<PlatformBlockState> bore, IrisBlockVector v) {
         return source.containsKey(v) || bore.containsKey(v);
     }
 
-    private static void boreCell(VectorMap<PlatformBlockState> source, VectorMap<PlatformBlockState> bore, IrisBlockVector v, PlatformBlockState vair, AtomicInteger applied) {
+    private static int boreCell(VectorMap<PlatformBlockState> source, VectorMap<PlatformBlockState> bore, IrisBlockVector v, PlatformBlockState vair) {
         PlatformBlockState existing = source.get(v);
 
         if (existing == null) {
             if (vair.equals(bore.get(v))) {
-                return;
+                return 0;
             }
 
-            bore.computeIfAbsent(v, (vv) -> vair);
+            bore.put(v, vair);
         } else if (vair.equals(existing)) {
-            return;
+            return 0;
         }
 
-        applied.getAndIncrement();
+        return 1;
     }
 
     static void shrinkwrap(IrisObject self) {
@@ -288,24 +254,5 @@ final class IrisObjectShaping {
 
     static String materialKey(PlatformBlockState state) {
         return IrisProceduralBlocks.materialKey(state);
-    }
-
-    static List<IrisBlockVector> blocksBetweenTwoPoints(IrisVector loc1, IrisVector loc2) {
-        List<IrisBlockVector> locations = new ArrayList<>();
-        int topBlockX = Math.max(loc1.getBlockX(), loc2.getBlockX());
-        int bottomBlockX = Math.min(loc1.getBlockX(), loc2.getBlockX());
-        int topBlockY = Math.max(loc1.getBlockY(), loc2.getBlockY());
-        int bottomBlockY = Math.min(loc1.getBlockY(), loc2.getBlockY());
-        int topBlockZ = Math.max(loc1.getBlockZ(), loc2.getBlockZ());
-        int bottomBlockZ = Math.min(loc1.getBlockZ(), loc2.getBlockZ());
-
-        for (int x = bottomBlockX; x <= topBlockX; x++) {
-            for (int z = bottomBlockZ; z <= topBlockZ; z++) {
-                for (int y = bottomBlockY; y <= topBlockY; y++) {
-                    locations.add(new IrisBlockVector(x, y, z));
-                }
-            }
-        }
-        return locations;
     }
 }

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine;
 
+import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.EngineBackgroundTasks.BackgroundTaskDrain;
 import art.arcane.iris.engine.EngineRuntimeBuilder.RuntimeAssembly;
 import art.arcane.iris.engine.IrisEngine.LifecycleState;
@@ -26,8 +27,18 @@ import art.arcane.iris.engine.framework.EngineTarget;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
 import art.arcane.iris.engine.framework.PreservationRegistry;
 import art.arcane.iris.engine.mantle.EngineMantle;
+import art.arcane.iris.engine.history.GenerationAdmission;
+import art.arcane.iris.engine.history.GenerationHistory;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
+
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Owns the ordered teardown of a single {@link IrisEngine}, both for a normal close and for a
@@ -38,6 +49,12 @@ final class EngineShutdownSequence {
     private static final long CLOSE_RETRY_DRAIN_TIMEOUT_MILLIS = 5000L;
 
     private final IrisEngine engine;
+    private final List<GenerationAdmission.RuntimeLease> generationAdmissions = new ArrayList<>(1);
+    private final Set<RuntimeAssembly> incompleteAssemblies = ConcurrentHashMap.newKeySet();
+    private final Set<EngineRuntime> unpublishedRuntimes = Collections.synchronizedSet(
+            Collections.newSetFromMap(new IdentityHashMap<>()));
+    private final Set<EngineTarget> incompleteTargets = Collections.synchronizedSet(
+            Collections.newSetFromMap(new IdentityHashMap<>()));
     private boolean runtimeReleased;
     private boolean targetReleased;
     private boolean engineDataReleased;
@@ -45,6 +62,10 @@ final class EngineShutdownSequence {
 
     EngineShutdownSequence(IrisEngine engine) {
         this.engine = engine;
+    }
+
+    void retainGenerationHistory(GenerationHistory history) {
+        generationAdmissions.add(history.retainRuntime());
     }
 
     void close() {
@@ -150,14 +171,30 @@ final class EngineShutdownSequence {
                     && targetReleased
                     && engineDataReleased
                     && preservationReleased) {
-                engine.closed = true;
-                engine.lifecycleState = LifecycleState.CLOSED;
-                IrisLogging.debug("Engine Fully Shutdown!");
+                failure = releaseGenerationAdmissions(failure);
+                if (failure == null) {
+                    engine.closed = true;
+                    engine.lifecycleState = LifecycleState.CLOSED;
+                    IrisLogging.debug("Engine Fully Shutdown!");
+                }
             }
         }
         if (failure != null) {
             reportIncompleteClose(failure);
         }
+    }
+
+    private Throwable releaseGenerationAdmissions(Throwable failure) {
+        Iterator<GenerationAdmission.RuntimeLease> admissions = generationAdmissions.iterator();
+        while (admissions.hasNext()) {
+            GenerationAdmission.RuntimeLease admission = admissions.next();
+            Throwable admissionFailure = runCleanup(null, admission::close);
+            failure = appendFailure(failure, admissionFailure);
+            if (admissionFailure == null) {
+                admissions.remove();
+            }
+        }
+        return failure;
     }
 
     private void reportIncompleteClose(Throwable failure) {
@@ -172,17 +209,21 @@ final class EngineShutdownSequence {
         EngineTickRegistry.unregisterTicking(engine);
         engine.lifecycleState = LifecycleState.FAILED;
         Throwable cleanupFailure = null;
+        boolean sessionsDrained = true;
         try {
             engine.getGenerationSessions().sealAndAwait("failed initialization", 0L, true);
         } catch (Throwable e) {
+            sessionsDrained = false;
             cleanupFailure = appendFailure(cleanupFailure, e);
         }
         engine.backgroundTasks.cancelBackgroundTasks("failed initialization");
         BackgroundTaskDrain backgroundDrain = engine.backgroundTasks.drainBackgroundTasks("failed initialization");
         cleanupFailure = appendFailure(cleanupFailure, backgroundDrain.failure());
-        if (!backgroundDrain.allowsResourceRelease()) {
-            cleanupFailure = appendFailure(cleanupFailure,
-                    new IllegalStateException("Iris background tasks remain active after failed initialization."));
+        if (!sessionsDrained || !backgroundDrain.allowsResourceRelease()) {
+            if (!backgroundDrain.allowsResourceRelease()) {
+                cleanupFailure = appendFailure(cleanupFailure,
+                        new IllegalStateException("Iris background tasks remain active after failed initialization."));
+            }
             if (cleanupFailure != original) {
                 original.addSuppressed(cleanupFailure);
             }
@@ -192,18 +233,22 @@ final class EngineShutdownSequence {
                 () -> NativeStructureOwnershipStore.close(engine));
         cleanupFailure = appendFailure(cleanupFailure, ownershipFailure);
         if (ownershipFailure == null) {
-            cleanupFailure = closeDetachedGenerationRuntimes(cleanupFailure);
-            cleanupFailure = closeRuntime(engine.runtime, cleanupFailure);
-            engine.runtime = null;
-            cleanupFailure = runCleanup(cleanupFailure, engine.publishedTarget::close);
-            cleanupFailure = runCleanup(cleanupFailure, engine.engineDataStore::releaseEngineData);
-            engine.closed = true;
-            cleanupFailure = runCleanup(cleanupFailure, () -> {
-                PreservationRegistry registry = IrisServices.getOrNull(PreservationRegistry.class);
-                if (registry != null) {
-                    registry.dereference();
+            cleanupFailure = releaseRuntime(cleanupFailure);
+            if (runtimeReleased) {
+                cleanupFailure = releaseTarget(cleanupFailure);
+            }
+            if (targetReleased) {
+                cleanupFailure = releaseEngineDataForShutdown(cleanupFailure);
+            }
+            if (engineDataReleased) {
+                cleanupFailure = releasePreservation(cleanupFailure);
+            }
+            if (runtimeReleased && targetReleased && engineDataReleased && preservationReleased) {
+                cleanupFailure = releaseGenerationAdmissions(cleanupFailure);
+                if (generationAdmissions.isEmpty()) {
+                    engine.closed = true;
                 }
-            });
+            }
         }
         if (cleanupFailure != null && cleanupFailure != original) {
             original.addSuppressed(cleanupFailure);
@@ -214,37 +259,55 @@ final class EngineShutdownSequence {
         if (assembly == null) {
             return failure;
         }
-        failure = runCleanup(failure, () -> {
-            if (assembly.worldManager != null) {
-                assembly.worldManager.close();
-            }
-        });
-        failure = runCleanup(failure, () -> {
-            if (assembly.effects != null) {
-                assembly.effects.close();
-            }
-        });
-        failure = runCleanup(failure, () -> {
-            if (assembly.mode != null) {
-                assembly.mode.close();
-            }
-        });
-        failure = runCleanup(failure, () -> {
-            if (assembly.complex != null) {
-                assembly.complex.close();
-            }
-        });
-        failure = runCleanup(failure, () -> {
-            if (assembly.hash32 != null) {
-                assembly.hash32.cancel(true);
-            }
-        });
-        if (assembly.mantle != null && assembly.ownsMantle) {
-            assembly.ownsMantle = false;
-            failure = runCleanup(failure, assembly.mantle::saveAllNow);
-            failure = runCleanup(failure, assembly.mantle::close);
+        incompleteAssemblies.add(assembly);
+        RuntimeAssembly previous = engine == null ? null : engine.runtimeAssembly.get();
+        if (engine != null) {
+            engine.runtimeAssembly.set(assembly);
         }
-        return failure;
+        Throwable assemblyFailure;
+        try {
+            assemblyFailure = closeAssemblyResources(assembly);
+        } finally {
+            if (engine != null) {
+                if (previous == null) {
+                    engine.runtimeAssembly.remove();
+                } else {
+                    engine.runtimeAssembly.set(previous);
+                }
+            }
+        }
+        if (assemblyFailure == null) {
+            incompleteAssemblies.remove(assembly);
+        } else if (engine != null) {
+            engine.lifecycleState = LifecycleState.FAILED;
+        }
+        return appendFailure(failure, assemblyFailure);
+    }
+
+    void retainUnpublishedRuntime(EngineRuntime runtime) {
+        unpublishedRuntimes.add(runtime);
+    }
+
+    boolean retainsData(IrisData data) {
+        if (engine.runtime != null && engine.runtime.generation().data() == data) {
+            return true;
+        }
+        for (RuntimeAssembly assembly : incompleteAssemblies) {
+            if (assembly.target.getData() == data) {
+                return true;
+            }
+        }
+        for (EngineRuntime runtime : unpublishedRuntimes.toArray(new EngineRuntime[0])) {
+            if (runtime.generation().data() == data) {
+                return true;
+            }
+        }
+        for (EngineTarget target : incompleteTargets.toArray(new EngineTarget[0])) {
+            if (target.getData() == data) {
+                return true;
+            }
+        }
+        return false;
     }
 
     Throwable closeRuntime(EngineRuntime engineRuntime, Throwable failure) {
@@ -259,8 +322,11 @@ final class EngineShutdownSequence {
         if (engineRuntime == null) {
             return failure;
         }
-        failure = runCleanup(failure, engineRuntime.worldManager()::close);
-        failure = runCleanup(failure, engineRuntime.effects()::close);
+        Throwable serviceFailure = runCleanup(null, engineRuntime.worldManager()::close);
+        serviceFailure = runCleanup(serviceFailure, engineRuntime.effects()::close);
+        if (serviceFailure != null) {
+            return appendFailure(failure, serviceFailure);
+        }
         return closeGenerationRuntime(engineRuntime.generation(), retainedMantle, failure);
     }
 
@@ -276,12 +342,18 @@ final class EngineShutdownSequence {
         if (generationRuntime == null) {
             return failure;
         }
-        failure = runCleanup(failure, generationRuntime.mode()::close);
-        failure = runCleanup(failure, generationRuntime.complex()::close);
+        Throwable modeFailure = runCleanup(null, generationRuntime.mode()::close);
+        if (modeFailure != null) {
+            return appendFailure(failure, modeFailure);
+        }
+        Throwable complexFailure = runCleanup(null, generationRuntime.complex()::close);
+        failure = appendFailure(failure, complexFailure);
+        if (complexFailure != null) {
+            return failure;
+        }
         failure = runCleanup(failure, () -> generationRuntime.hash32().cancel(true));
         if (generationRuntime.mantle() != retainedMantle) {
-            failure = runCleanup(failure, generationRuntime.mantle()::saveAllNow);
-            failure = runCleanup(failure, generationRuntime.mantle()::close);
+            failure = appendFailure(failure, closeMantle(generationRuntime.mantle()));
         }
         return failure;
     }
@@ -290,15 +362,31 @@ final class EngineShutdownSequence {
         IrisEngine.GenerationRuntimeBinding binding = new IrisEngine.GenerationRuntimeBinding(
                 engine,
                 generationRuntime);
+        Throwable runtimeFailure;
         try (IrisEngine.GenerationRuntimeScope ignored = engine.generationRuntimeScopes.open(binding)) {
-            failure = closeGenerationRuntime(generationRuntime, failure);
+            runtimeFailure = closeGenerationRuntime(generationRuntime, null);
         } catch (Throwable scopeFailure) {
-            failure = appendFailure(failure, scopeFailure);
+            runtimeFailure = scopeFailure;
+        }
+        if (runtimeFailure != null) {
+            return appendFailure(failure, runtimeFailure);
         }
         return closeDetachedTarget(generationRuntime.target(), failure);
     }
 
     Throwable closeDetachedTarget(EngineTarget target, Throwable failure) {
+        for (RuntimeAssembly assembly : incompleteAssemblies) {
+            if (assembly.target == target) {
+                return appendFailure(failure,
+                        new IllegalStateException("Iris runtime assembly still owns the detached target."));
+            }
+        }
+        for (EngineRuntime runtime : unpublishedRuntimes.toArray(new EngineRuntime[0])) {
+            if (runtime.generation().target() == target) {
+                return appendFailure(failure,
+                        new IllegalStateException("Iris unpublished runtime still owns the detached target."));
+            }
+        }
         failure = runCleanup(failure, () -> target.getData().unregisterEngine(engine));
         failure = runCleanup(failure, target::close);
         failure = runCleanup(failure, target.getData()::close);
@@ -308,6 +396,10 @@ final class EngineShutdownSequence {
     private Throwable releaseRuntime(Throwable failure) {
         if (runtimeReleased) {
             return failure;
+        }
+        Throwable incompleteFailure = closeIncompleteRuntimes();
+        if (incompleteFailure != null) {
+            return appendFailure(failure, incompleteFailure);
         }
         Throwable detachedFailure = closeDetachedGenerationRuntimes(null);
         if (detachedFailure != null) {
@@ -320,6 +412,86 @@ final class EngineShutdownSequence {
         engine.runtime = null;
         runtimeReleased = true;
         return failure;
+    }
+
+    private Throwable closeAssemblyResources(RuntimeAssembly assembly) {
+        Throwable failure = runCleanup(null, () -> {
+            if (assembly.worldManager != null) {
+                assembly.worldManager.close();
+            }
+        });
+        failure = runCleanup(failure, () -> {
+            if (assembly.effects != null) {
+                assembly.effects.close();
+            }
+        });
+        if (failure != null) {
+            return failure;
+        }
+        failure = runCleanup(null, () -> {
+            if (assembly.mode != null) {
+                assembly.mode.close();
+            }
+        });
+        if (failure != null) {
+            return failure;
+        }
+        failure = runCleanup(null, () -> {
+            if (assembly.complex != null) {
+                assembly.complex.close();
+            }
+        });
+        if (failure != null) {
+            return failure;
+        }
+        failure = runCleanup(null, () -> {
+            if (assembly.hash32 != null) {
+                assembly.hash32.cancel(true);
+            }
+        });
+        if (assembly.mantle != null && assembly.ownsMantle) {
+            Throwable mantleFailure = closeMantle(assembly.mantle);
+            if (mantleFailure == null) {
+                assembly.ownsMantle = false;
+            }
+            failure = appendFailure(failure, mantleFailure);
+        }
+        return failure;
+    }
+
+    private Throwable closeIncompleteRuntimes() {
+        Throwable failure = null;
+        for (RuntimeAssembly assembly : incompleteAssemblies.toArray(new RuntimeAssembly[0])) {
+            Throwable assemblyFailure = closeAssembly(assembly, null);
+            if (assemblyFailure == null && assembly.target != engine.publishedTarget) {
+                incompleteTargets.add(assembly.target);
+            }
+            failure = appendFailure(failure, assemblyFailure);
+        }
+        EngineMantle retainedMantle = engine.runtime == null ? null : engine.runtime.generation().mantle();
+        for (EngineRuntime unpublished : unpublishedRuntimes.toArray(new EngineRuntime[0])) {
+            Throwable runtimeFailure = closeRuntime(unpublished, retainedMantle, null);
+            if (runtimeFailure == null) {
+                unpublishedRuntimes.remove(unpublished);
+                if (unpublished.generation().target() != engine.publishedTarget) {
+                    incompleteTargets.add(unpublished.generation().target());
+                }
+            }
+            failure = appendFailure(failure, runtimeFailure);
+        }
+        for (EngineTarget target : incompleteTargets.toArray(new EngineTarget[0])) {
+            Throwable targetFailure = closeDetachedTarget(target, null);
+            if (targetFailure == null) {
+                incompleteTargets.remove(target);
+            }
+            failure = appendFailure(failure, targetFailure);
+        }
+        return failure;
+    }
+
+    private static Throwable closeMantle(EngineMantle mantle) {
+        Throwable failure = runCleanup(null, mantle::saveAllNow);
+        return failure == null ? runCleanup(null, mantle::close) : failure;
     }
 
     private Throwable closeDetachedGenerationRuntimes(Throwable failure) {

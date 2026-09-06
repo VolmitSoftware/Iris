@@ -1,8 +1,10 @@
 package art.arcane.iris.probe;
 
+import art.arcane.iris.engine.decorator.IrisSpeleothems;
 import art.arcane.iris.engine.object.IrisObjectRotation;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.util.project.hunk.Hunk;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -78,6 +80,18 @@ public final class StubPlatformStateTest {
         assertTrue(state("minecraft:brain_coral_fan[waterlogged=true]").isWaterLogged());
         assertFalse(state("minecraft:brain_coral_fan[waterlogged=false]").isWaterLogged());
         assertFalse(state("minecraft:brain_coral_fan").isWaterLogged());
+    }
+
+    @Test
+    public void resolvesSpikeSupportWithoutServerClasses() {
+        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(1, 3, 1);
+        PlatformBlockState spike = state("minecraft:pointed_dripstone[vertical_direction=up,thickness=tip]");
+        blocks.set(0, 0, 0, state("minecraft:stone"));
+        assertTrue(IrisSpeleothems.isSupported(spike, blocks, 0, 0, 1));
+        blocks.set(0, 0, 0, state("minecraft:water[level=0]"));
+        assertFalse(IrisSpeleothems.isSupported(spike, blocks, 0, 0, 1));
+        blocks.set(0, 0, 0, state("minecraft:air"));
+        assertFalse(IrisSpeleothems.isSupported(spike, blocks, 0, 0, 1));
     }
 
     private PlatformBlockState state(String key) {

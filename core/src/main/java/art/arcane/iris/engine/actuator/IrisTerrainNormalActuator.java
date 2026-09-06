@@ -46,11 +46,7 @@ import art.arcane.iris.util.common.data.B;
 import lombok.Getter;
 
 public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBlockState> {
-    private static final PlatformBlockState AIR = B.getState("AIR");
     private static final PlatformBlockState BEDROCK = B.getState("BEDROCK");
-    private static final PlatformBlockState LAVA = B.getState("LAVA");
-    private static final PlatformBlockState GLASS = B.getState("GLASS");
-    private static final PlatformBlockState CAVE_AIR = B.getState("CAVE_AIR");
     @Getter
     private final RNG rng;
     @Getter
@@ -83,11 +79,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
      */
     @BlockCoordinates
     public void terrainSliver(int x, int z, int xf, Hunk<PlatformBlockState> h, ChunkContext context) {
-        terrainSliverOptimized(x, z, xf, h, context);
-    }
-
-    @BlockCoordinates
-    private void terrainSliverOptimized(int x, int z, int xf, Hunk<PlatformBlockState> h, ChunkContext context) {
         int chunkHeight = h.getHeight();
         int chunkDepth = h.getDepth();
         IrisDimension dimension = getDimension();

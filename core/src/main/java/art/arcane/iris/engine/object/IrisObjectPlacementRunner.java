@@ -350,7 +350,7 @@ final class IrisObjectPlacementRunner {
             return -1;
         }
 
-        if (!rawStructurePiece && nativeStructureVetoes(placer, config, spin, translating, translateOffset, ceilingHang,
+        if (!rawStructurePiece && nativeStructureVetoes(placer, config, spin, placementBounds, translating, translateOffset, ceilingHang,
                 yv < 0 && config.getMode() == ObjectPlaceMode.PAINT, warpMargin, x, y + yrand, z)) {
             return -1;
         }
@@ -533,6 +533,9 @@ final class IrisObjectPlacementRunner {
                 }
 
                 data = config.getRotation().rotate(data, spinx, spiny, spinz);
+                if (data == null) {
+                    continue;
+                }
                 xx = x + (int) Math.round(i.getX());
 
                 int yy = y + (int) Math.round(i.getY());
@@ -955,7 +958,7 @@ final class IrisObjectPlacementRunner {
      * near this placement means no per block work at all. Only when the placement envelope meets a piece does the
      * precise pass run, and the first solid block inside a piece rejects the whole object before any write.
      */
-    private boolean nativeStructureVetoes(IObjectPlacer placer, IrisObjectPlacement config, SpinKernel spin,
+    private boolean nativeStructureVetoes(IObjectPlacer placer, IrisObjectPlacement config, SpinKernel spin, TransformedBounds bounds,
                                           boolean translating, IrisBlockVector translateOffset, boolean ceilingHang,
                                           boolean paint, int warpMargin, int x, int y, int z) {
         Engine engine = placer.getEngine();
@@ -963,23 +966,21 @@ final class IrisObjectPlacementRunner {
             return false;
         }
 
-        int margin = (Math.max(self.getW(), Math.max(self.getH(), self.getD())) / 2) + 1 + warpMargin;
-        if (translating) {
-            margin += Math.max(Math.abs(translateOffset.getBlockX()),
-                    Math.max(Math.abs(translateOffset.getBlockY()), Math.abs(translateOffset.getBlockZ())));
-        }
-
-        KList<NativeStructureVolume> volumes = engine.getNativeStructureVolumes(x - margin, z - margin, x + margin, z + margin);
+        int minX = x + bounds.minX();
+        int maxX = x + bounds.maxX();
+        int minZ = z + bounds.minZ();
+        int maxZ = z + bounds.maxZ();
+        KList<NativeStructureVolume> volumes = engine.getNativeStructureVolumes(minX, minZ, maxX, maxZ);
         if (volumes == null || volumes.isEmpty()) {
             return false;
         }
 
         int worldY = y + engine.getMinHeight();
-        int envelopeMinY = paint ? Integer.MIN_VALUE : worldY - margin;
-        int envelopeMaxY = paint ? Integer.MAX_VALUE : worldY + margin;
+        int envelopeMinY = paint ? Integer.MIN_VALUE : worldY + bounds.minY() - warpMargin;
+        int envelopeMaxY = paint ? Integer.MAX_VALUE : worldY + bounds.maxY() + warpMargin;
         boolean envelopeMeetsPiece = false;
         for (NativeStructureVolume volume : volumes) {
-            if (volume.intersects(x - margin, envelopeMinY, z - margin, x + margin, envelopeMaxY, z + margin)) {
+            if (volume.intersects(minX, envelopeMinY, minZ, maxX, envelopeMaxY, maxZ)) {
                 envelopeMeetsPiece = true;
                 break;
             }

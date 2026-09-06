@@ -110,7 +110,7 @@ public class IrisObject extends IrisRegistrant {
         this.d = d;
         center = new Vector3i(w / 2, h / 2, d / 2);
         shrinkOffset = new Vector3i(0, 0, 0);
-        var lock = new ReentrantReadWriteLock();
+        ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
         readLock = lock.readLock();
         writeLock = lock.writeLock();
     }
@@ -135,17 +135,22 @@ public class IrisObject extends IrisRegistrant {
         return aabb.aquire(() -> getAABBFor(new IrisBlockVector(w, h, d)));
     }
 
-    public synchronized IrisObject copy() {
-        IrisObject o = new IrisObject(w, h, d);
-        o.setLoadKey(getLoadKey());
-        o.setLoader(getLoader());
-        o.setLoadFile(getLoadFile());
-        o.setCenter(getCenter().clone());
+    public IrisObject copy() {
+        readLock.lock();
+        try {
+            IrisObject copy = new IrisObject(w, h, d);
+            copy.setLoadKey(getLoadKey());
+            copy.setLoader(getLoader());
+            copy.setLoadFile(getLoadFile());
+            copy.setCenter(getCenter().clone());
 
-        blocks.forEach((i, v) -> o.blocks.put(i.clone(), v));
-        states.forEach((i, v) -> o.states.put(i.clone(), v.clone()));
+            blocks.forEach(copy.blocks::put);
+            states.forEach((position, tile) -> copy.states.put(position, tile.clone()));
 
-        return o;
+            return copy;
+        } finally {
+            readLock.unlock();
+        }
     }
 
     public void readLegacy(InputStream in) throws IOException {

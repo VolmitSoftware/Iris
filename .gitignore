@@ -74,3 +74,5 @@ BUILDS/
 
 # Version-content compat lane worktree. Generated, never source.
 .compatwt/
+
+.worktrees/

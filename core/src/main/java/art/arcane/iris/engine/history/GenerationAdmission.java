@@ -16,7 +16,12 @@ public final class GenerationAdmission {
         Path root = Objects.requireNonNull(dimensionRoot, "dimensionRoot")
                 .toAbsolutePath()
                 .normalize();
-        this.state = STATES.computeIfAbsent(root, ignored -> new State());
+        this.state = STATES.computeIfAbsent(root, State::new);
+    }
+
+    public RuntimeLease retainRuntime() {
+        state.retainRuntime();
+        return new RuntimeLease(state);
     }
 
     public StageLease enterStage() {
@@ -32,6 +37,23 @@ public final class GenerationAdmission {
     CutoverLease beginStartupCutover() {
         state.beginCutover(true);
         return new CutoverLease(state);
+    }
+
+    public static final class RuntimeLease implements AutoCloseable {
+        private final State state;
+        private boolean closed;
+
+        private RuntimeLease(State state) {
+            this.state = state;
+        }
+
+        @Override
+        public synchronized void close() {
+            if (!closed) {
+                state.releaseRuntime();
+                closed = true;
+            }
+        }
     }
 
     public static final class StageLease implements AutoCloseable {
@@ -69,26 +91,71 @@ public final class GenerationAdmission {
     }
 
     private static final class State {
+        private final Path root;
         private final ReentrantLock lock;
         private final Condition changed;
+        private int runtimeOwners;
+        private int waitingStages;
         private int activeStages;
         private int waitingCutovers;
         private boolean cutoverActive;
         private boolean generationAdmissionOpened;
+        private boolean closed;
 
-        private State() {
+        private State(Path root) {
+            this.root = root;
             this.lock = new ReentrantLock(true);
             this.changed = lock.newCondition();
+        }
+
+        private void retainRuntime() {
+            lock.lock();
+            try {
+                requireOpen();
+                runtimeOwners++;
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        private void releaseRuntime() {
+            lock.lock();
+            try {
+                requireOpen();
+                if (runtimeOwners == 1) {
+                    if (activeStages > 0 || waitingStages > 0 || waitingCutovers > 0 || cutoverActive) {
+                        throw new IllegalStateException("Generation admission still has active stages or cutovers.");
+                    }
+                    closed = true;
+                    STATES.remove(root, this);
+                }
+                runtimeOwners--;
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        private void requireOpen() {
+            if (closed) {
+                throw new IllegalStateException("Generation admission belongs to a closed runtime.");
+            }
         }
 
         private void enterStage() {
             lock.lock();
             try {
+                requireOpen();
                 generationAdmissionOpened = true;
-                while (cutoverActive || waitingCutovers > 0) {
-                    changed.awaitUninterruptibly();
+                waitingStages++;
+                try {
+                    while (cutoverActive || waitingCutovers > 0) {
+                        changed.awaitUninterruptibly();
+                        requireOpen();
+                    }
+                    activeStages++;
+                } finally {
+                    waitingStages--;
                 }
-                activeStages++;
             } finally {
                 lock.unlock();
             }
@@ -112,6 +179,7 @@ public final class GenerationAdmission {
         private void beginCutover(boolean startupOnly) {
             lock.lock();
             try {
+                requireOpen();
                 if (startupOnly && generationAdmissionOpened) {
                     throw new IllegalStateException(
                             "Generation activation promotion is only allowed before generation admission opens."
@@ -121,6 +189,7 @@ public final class GenerationAdmission {
                 try {
                     while (cutoverActive || activeStages > 0) {
                         changed.awaitUninterruptibly();
+                        requireOpen();
                     }
                     cutoverActive = true;
                 } finally {

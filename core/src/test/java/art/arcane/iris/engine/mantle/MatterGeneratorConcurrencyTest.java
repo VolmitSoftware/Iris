@@ -21,9 +21,14 @@ import art.arcane.iris.util.common.parallel.MultiBurst;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Future;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -41,6 +46,9 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class MatterGeneratorConcurrencyTest {
@@ -213,6 +221,167 @@ public class MatterGeneratorConcurrencyTest {
         assertThrows(IllegalStateException.class,
                 () -> generator.generateContentMatter(0, 0, false, fixture.context));
         assertFalse(fixture.mantle.getChunk(0, 0).isFlagged(MantleFlag.PLANNED));
+    }
+
+    @Test
+    public void dispatcherPropagatesAnAlreadyFailedSharedComponent() {
+        IllegalStateException failure = new IllegalStateException("Shared component failed");
+        ExecutionException observed = sharedComponentFailure(failure, ExecutionException.class);
+        assertSame(failure, observed.getCause());
+    }
+
+    @Test
+    public void dispatcherPropagatesAnAlreadyCancelledSharedComponent() {
+        sharedComponentFailure(new CancellationException("Shared component cancelled"), CancellationException.class);
+    }
+
+    @Test
+    public void timedOutRunningComponentRetainsWriterAndSharedClaimUntilItExits() throws Exception {
+        GeneratorFixture fixture = new GeneratorFixture(true);
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        CountDownLatch writersAcquired = new CountDownLatch(2);
+        CountDownLatch cancelled = new CountDownLatch(1);
+        AtomicInteger runs = new AtomicInteger();
+        MantleChunk<Matter> chunk = fixture.mantle.getChunk(0, 0);
+        when(chunk.use()).thenAnswer(invocation -> {
+            writersAcquired.countDown();
+            return chunk;
+        });
+        RecordingComponent component = new RecordingComponent(ReservedFlag.OBJECT, 0, 0) {
+            @Override
+            public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+                runs.incrementAndGet();
+                started.countDown();
+                await(release);
+                verify(chunk, never()).release();
+            }
+        };
+        TestMatterGenerator generator = fixture.generator(List.of(new MantlePass(List.of(component), 0, 0)));
+        CompletableFuture<Void> first = CompletableFuture.runAsync(
+                () -> generator.generateMatter(0, 0, true, fixture.context));
+        await(started);
+        MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(fixture.mantle, 0, 0, ReservedFlag.OBJECT);
+        MatterGenerator.MatterComponentTask task = MatterGenerator.IN_FLIGHT_COMPONENTS.get(key);
+        Future<?> submission = mock(Future.class);
+        when(submission.cancel(true)).thenAnswer(invocation -> {
+            cancelled.countDown();
+            return true;
+        });
+        task.setSubmission(submission);
+        CompletableFuture<Void> second = MultiBurst.burst.completeValueAsync(() -> {
+            generator.generateMatter(0, 0, true, fixture.context);
+            return null;
+        });
+        CompletableFuture<Void> timeout = CompletableFuture.runAsync(() -> task.await(0L));
+        try {
+            await(writersAcquired);
+            await(cancelled);
+            assertSame(task, MatterGenerator.IN_FLIGHT_COMPONENTS.get(key));
+            assertFalse(first.isDone());
+            assertFalse(second.isDone());
+            assertFalse(timeout.isDone());
+            verify(chunk, never()).release();
+            assertEquals(1, runs.get());
+        } finally {
+            release.countDown();
+        }
+        assertThrows(ExecutionException.class, () -> timeout.get(5L, TimeUnit.SECONDS));
+        assertThrows(ExecutionException.class, () -> first.get(5L, TimeUnit.SECONDS));
+        assertThrows(ExecutionException.class, () -> second.get(5L, TimeUnit.SECONDS));
+        verify(chunk, times(2)).release();
+        assertFalse(MatterGenerator.IN_FLIGHT_COMPONENTS.containsKey(key));
+    }
+
+    @Test
+    public void queuedTimeoutPreventsLateExecutionAndAllowsANewClaim() {
+        GeneratorFixture fixture = new GeneratorFixture();
+        MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(fixture.mantle, 0, 0, ReservedFlag.OBJECT);
+        MatterGenerator.MatterComponentTask task = new MatterGenerator.MatterComponentTask(key);
+        MatterGenerator.IN_FLIGHT_COMPONENTS.put(key, task);
+        Future<?> submission = mock(Future.class);
+        task.setSubmission(submission);
+
+        CompletionException failure = assertThrows(CompletionException.class, () -> task.await(0L));
+
+        assertTrue(failure.getCause().getMessage().contains("did not complete"));
+        assertFalse(task.start());
+        assertFalse(MatterGenerator.IN_FLIGHT_COMPONENTS.containsKey(key));
+        verify(submission).cancel(true);
+        MatterGenerator.MatterComponentTask replacement = new MatterGenerator.MatterComponentTask(key);
+        assertNull(MatterGenerator.IN_FLIGHT_COMPONENTS.putIfAbsent(key, replacement));
+        task.finish(null);
+        assertSame(replacement, MatterGenerator.IN_FLIGHT_COMPONENTS.get(key));
+        replacement.finish(null);
+    }
+
+    @Test
+    public void droppedQueuedSubmissionCannotRunAfterTheBarrier() {
+        GeneratorFixture fixture = new GeneratorFixture();
+        MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(fixture.mantle, 0, 0, ReservedFlag.OBJECT);
+        MatterGenerator.MatterComponentTask task = new MatterGenerator.MatterComponentTask(key);
+        MatterGenerator.IN_FLIGHT_COMPONENTS.put(key, task);
+        Future<?> submission = mock(Future.class);
+        when(submission.isDone()).thenReturn(true);
+        task.setSubmission(submission);
+
+        CompletionException failure = assertThrows(CompletionException.class,
+                () -> task.await(MatterGenerator.COMPONENT_TASK_TIMEOUT_MS));
+
+        assertTrue(failure.getCause().getMessage().contains("was dropped"));
+        assertFalse(task.start());
+        assertFalse(MatterGenerator.IN_FLIGHT_COMPONENTS.containsKey(key));
+    }
+
+    @Test
+    public void interruptedWaiterDrainsRunningTaskAndRestoresInterrupt() throws Exception {
+        GeneratorFixture fixture = new GeneratorFixture();
+        MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(fixture.mantle, 0, 0, ReservedFlag.OBJECT);
+        MatterGenerator.MatterComponentTask task = new MatterGenerator.MatterComponentTask(key);
+        assertTrue(task.start());
+        CountDownLatch waiting = new CountDownLatch(1);
+        AtomicBoolean restored = new AtomicBoolean();
+        CompletableFuture<Void> completion = new CompletableFuture<>();
+        Thread waiter = new Thread(() -> {
+            try {
+                Thread.currentThread().interrupt();
+                waiting.countDown();
+                task.await(MatterGenerator.COMPONENT_TASK_TIMEOUT_MS);
+                restored.set(Thread.currentThread().isInterrupted());
+                completion.complete(null);
+            } catch (Throwable failure) {
+                completion.completeExceptionally(failure);
+            }
+        });
+        waiter.start();
+        await(waiting);
+        try {
+            assertFalse(completion.isDone());
+        } finally {
+            task.finish(null);
+        }
+        completion.get(5L, TimeUnit.SECONDS);
+        waiter.join(5_000L);
+        assertTrue(restored.get());
+    }
+
+    private <T extends Throwable> T sharedComponentFailure(Throwable failure, Class<T> expectedFailure) {
+        GeneratorFixture fixture = new GeneratorFixture(true);
+        RecordingComponent component = new RecordingComponent(ReservedFlag.OBJECT, 0, 0);
+        TestMatterGenerator generator = fixture.generator(List.of(new MantlePass(List.of(component), 0, 0)));
+        MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(fixture.mantle, 0, 0, ReservedFlag.OBJECT);
+        MatterGenerator.MatterComponentTask task = new MatterGenerator.MatterComponentTask(key);
+        task.finish(failure);
+        MatterGenerator.IN_FLIGHT_COMPONENTS.put(key, task);
+        try {
+            CompletableFuture<Void> generation = MultiBurst.burst.completeValueAsync(() -> {
+                generator.generateMatter(0, 0, true, fixture.context);
+                return null;
+            });
+            return assertThrows(expectedFailure, () -> generation.get(5L, TimeUnit.SECONDS));
+        } finally {
+            MatterGenerator.IN_FLIGHT_COMPONENTS.remove(key, task);
+        }
     }
 
     private static void await(CountDownLatch latch) {

@@ -22,12 +22,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public interface MatterGenerator {
     MultiBurst DISPATCHER = MultiBurst.burst;
-    ConcurrentHashMap<MatterTaskKey, CompletableFuture<Void>> IN_FLIGHT_COMPONENTS = new ConcurrentHashMap<>();
+    ConcurrentHashMap<MatterTaskKey, MatterComponentTask> IN_FLIGHT_COMPONENTS = new ConcurrentHashMap<>();
     long COMPONENT_TASK_POLL_MS = 1000L;
     long COMPONENT_TASK_TIMEOUT_MS = Long.getLong("iris.mantle.componentTimeout", 120000L);
 
@@ -368,38 +369,37 @@ public interface MatterGenerator {
     ) {
         MantleFlag flag = component.getFlag();
         MatterTaskKey key = new MatterTaskKey(getMantle(), chunkX, chunkZ, flag);
+        MatterComponentTask task = new MatterComponentTask(key);
         if (chunk.isFlagged(flag)) {
-            return new MatterComponentTask(key, CompletableFuture.completedFuture(null), null);
+            task.finish(null);
+            return task;
         }
 
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        CompletableFuture<Void> existing = IN_FLIGHT_COMPONENTS.putIfAbsent(key, future);
+        MatterComponentTask existing = IN_FLIGHT_COMPONENTS.putIfAbsent(key, task);
         if (existing != null) {
-            return new MatterComponentTask(key, existing, null);
+            return existing;
         }
 
         try {
             if (DISPATCHER.ownsCurrentThread()) {
                 // A pool thread runs its claim inline: a task queued behind pool threads that block
                 // on unmanaged waits (structure builds, cache locks) could starve the whole pool.
-                completeComponentTask(future, key, chunk, component, writer, chunkX, chunkZ, context, IrisContext.get());
-                return new MatterComponentTask(key, future, null);
+                completeComponentTask(task, chunk, component, writer, chunkX, chunkZ, context, IrisContext.get());
+                return task;
             }
             IrisContext callerContext = IrisContext.get();
-            Future<?> submission = DISPATCHER.submit(() -> completeComponentTask(
-                    future,
-                    key,
+            task.setSubmission(DISPATCHER.submit(() -> completeComponentTask(
+                    task,
                     chunk,
                     component,
                     writer,
                     chunkX,
                     chunkZ,
                     context,
-                    callerContext));
-            return new MatterComponentTask(key, future, submission);
+                    callerContext)));
+            return task;
         } catch (Throwable throwable) {
-            IN_FLIGHT_COMPONENTS.remove(key, future);
-            future.completeExceptionally(throwable);
+            task.cancel(throwable);
             throw throwable;
         }
     }
@@ -449,7 +449,7 @@ public interface MatterGenerator {
     }
 
     private static void awaitComponentTask(MatterComponentTask task) {
-        CompletableFuture<Void> future = task.future();
+        CompletableFuture<Void> future = task.future;
         if (future.isDone() && !future.isCompletedExceptionally()) {
             return;
         }
@@ -459,11 +459,17 @@ public interface MatterGenerator {
             try {
                 ForkJoinPool.managedBlock(new ComponentTaskBlocker(task));
             } catch (InterruptedException interruption) {
-                Thread.currentThread().interrupt();
+                try {
+                    task.await(COMPONENT_TASK_TIMEOUT_MS);
+                } finally {
+                    Thread.currentThread().interrupt();
+                }
+            } catch (RejectedExecutionException exhaustedPool) {
+                task.await(COMPONENT_TASK_TIMEOUT_MS);
             }
             return;
         }
-        awaitComponentTaskBlocking(task);
+        task.await(COMPONENT_TASK_TIMEOUT_MS);
     }
 
     /**
@@ -478,66 +484,22 @@ public interface MatterGenerator {
 
         @Override
         public boolean block() {
-            awaitComponentTaskBlocking(task);
+            task.await(COMPONENT_TASK_TIMEOUT_MS);
             return true;
         }
 
         @Override
         public boolean isReleasable() {
-            return task.future().isDone();
-        }
-    }
-
-    private static void awaitComponentTaskBlocking(MatterComponentTask task) {
-        CompletableFuture<Void> future = task.future();
-        long start = System.currentTimeMillis();
-        boolean interrupted = false;
-
-        try {
-            while (true) {
-                try {
-                    future.get(COMPONENT_TASK_POLL_MS, TimeUnit.MILLISECONDS);
-                    return;
-                } catch (InterruptedException interruption) {
-                    // The writer cannot close while this task still writes through it, so the wait is
-                    // uninterruptible and the flag is restored on the way out.
-                    interrupted = true;
-                } catch (TimeoutException timeout) {
-                    Future<?> submission = task.submission();
-                    boolean dropped = submission != null && submission.isDone();
-                    if (future.isDone()) {
-                        continue;
-                    }
-
-                    long waited = System.currentTimeMillis() - start;
-                    if (!dropped && waited < COMPONENT_TASK_TIMEOUT_MS) {
-                        continue;
-                    }
-
-                    // The task can no longer complete (the dispatcher dropped it) or is wedged. Drop
-                    // the dedup entry so later generations do not inherit a future that never
-                    // completes, and release anything else already waiting on it.
-                    IllegalStateException failure = new IllegalStateException("Mantle component " + task.key()
-                            + (dropped ? " was dropped by the dispatcher" : " did not complete in " + waited + "ms"));
-                    IN_FLIGHT_COMPONENTS.remove(task.key(), future);
-                    future.completeExceptionally(failure);
-                    IrisLogging.error(failure.getMessage());
-                    throw new CompletionException(failure);
-                } catch (ExecutionException executionFailure) {
-                    Throwable cause = executionFailure.getCause();
-                    throw new CompletionException(cause != null ? cause : executionFailure);
-                }
+            if (!task.future.isDone()) {
+                return false;
             }
-        } finally {
-            if (interrupted) {
-                Thread.currentThread().interrupt();
-            }
+            task.future.join();
+            return true;
         }
     }
 
     private void completeComponentTask(
-            CompletableFuture<Void> future,
-            MatterTaskKey key,
+            MatterComponentTask task,
             MantleChunk<Matter> chunk,
             MantleComponent component,
             MantleWriter writer,
@@ -546,14 +508,17 @@ public interface MatterGenerator {
             ChunkContext context,
             IrisContext callerContext
     ) {
+        if (!task.start()) {
+            return;
+        }
+        Throwable failure = null;
         try {
             runComponentWithContext(chunk, component, writer, chunkX, chunkZ, context, callerContext);
-            future.complete(null);
         } catch (Throwable throwable) {
-            future.completeExceptionally(throwable);
+            failure = throwable;
             throw throwable;
         } finally {
-            IN_FLIGHT_COMPONENTS.remove(key, future);
+            task.finish(failure);
         }
     }
 
@@ -593,11 +558,98 @@ public interface MatterGenerator {
         ));
     }
 
-    /**
-     * A launched component task. {@code submission} is the dispatcher handle when this generation
-     * owns the task, and null when the future belongs to another generation or already completed.
-     */
-    record MatterComponentTask(MatterTaskKey key, CompletableFuture<Void> future, Future<?> submission) {
+    final class MatterComponentTask {
+        private final MatterTaskKey key;
+        private final CompletableFuture<Void> future = new CompletableFuture<>();
+        private volatile Future<?> submission;
+        private volatile Throwable failure;
+        private boolean started;
+
+        MatterComponentTask(MatterTaskKey key) {
+            this.key = key;
+        }
+
+        synchronized boolean start() {
+            if (started || future.isDone()) {
+                return false;
+            }
+            started = true;
+            return true;
+        }
+
+        synchronized void setSubmission(Future<?> submission) {
+            this.submission = submission;
+            if (failure != null) {
+                submission.cancel(true);
+            }
+        }
+
+        synchronized boolean cancel(Throwable cause) {
+            if (future.isDone() || failure != null) {
+                return false;
+            }
+            failure = cause;
+            if (!started) {
+                finish(null);
+            }
+            if (submission != null) {
+                submission.cancel(true);
+            }
+            return true;
+        }
+
+        synchronized void finish(Throwable cause) {
+            if (failure == null) {
+                failure = cause;
+            } else if (cause != null && cause != failure) {
+                failure.addSuppressed(cause);
+            }
+            IN_FLIGHT_COMPONENTS.remove(key, this);
+            if (failure == null) {
+                future.complete(null);
+            } else {
+                future.completeExceptionally(failure);
+            }
+        }
+
+        void await(long timeoutMillis) {
+            long start = System.nanoTime();
+            boolean interrupted = false;
+            try {
+                while (true) {
+                    try {
+                        future.get(COMPONENT_TASK_POLL_MS, TimeUnit.MILLISECONDS);
+                        return;
+                    } catch (InterruptedException interruption) {
+                        // The writer cannot close while this task still writes through it, so the wait is
+                        // uninterruptible and the flag is restored on the way out.
+                        interrupted = true;
+                    } catch (TimeoutException timeout) {
+                        if (future.isDone() || failure != null) {
+                            continue;
+                        }
+                        Future<?> submitted = submission;
+                        boolean dropped = submitted != null && submitted.isDone();
+                        long waited = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+                        if (!dropped && waited < timeoutMillis) {
+                            continue;
+                        }
+                        IllegalStateException timeoutFailure = new IllegalStateException("Mantle component " + key
+                                + (dropped ? " was dropped by the dispatcher" : " did not complete in " + waited + "ms"));
+                        if (cancel(timeoutFailure)) {
+                            IrisLogging.error(timeoutFailure.getMessage());
+                        }
+                    } catch (ExecutionException executionFailure) {
+                        Throwable cause = executionFailure.getCause();
+                        throw new CompletionException(cause != null ? cause : executionFailure);
+                    }
+                }
+            } finally {
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
     }
 
     record MatterPassPlan(MantlePass pass, int passChunkRadius, int downstreamBlockRadius) {

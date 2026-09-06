@@ -50,7 +50,9 @@ public final class TreePlausibility {
             return;
         }
 
-        Map<TreeBlockCanvas.Vec, Integer> distance = computeDistances(trunkPositions, realLeaves);
+        Map<TreeBlockCanvas.Vec, Integer> distance = tree.isPlausible()
+                ? computeDistances(trunkPositions, realLeaves)
+                : Map.of();
 
         for (TreeBlockCanvas.Vec v : realLeaves) {
             PlatformBlockState leaf = resolved.get(v);

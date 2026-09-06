@@ -28,6 +28,7 @@ import art.arcane.iris.engine.history.GenerationActivation;
 import art.arcane.iris.engine.history.GenerationEpoch;
 import art.arcane.iris.engine.history.GenerationEpochContractFactory;
 import art.arcane.iris.engine.history.GenerationHistory;
+import art.arcane.iris.engine.history.GenerationAdmission;
 import art.arcane.iris.engine.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.engine.history.IrisBoundarySignatureSampler;
 import art.arcane.iris.engine.history.TransitionGenerationPlan;
@@ -191,44 +192,46 @@ public final class ModdedWorldEngines {
             ModdedGenerationHistoryStorage.ActivePack opened
     ) throws IOException {
         GenerationHistory history = opened.history();
-        history.prepareCurrentGenerator(IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks());
-        opened = ModdedGenerationHistoryStorage.resolveActive(history);
-        long openedActivationId = history.activeActivation().activationId();
-        IrisEngine candidate = buildEngine(level, seed, opened);
-        boolean ready = false;
-        try {
-            GenerationHistoryRuntimeRouter router = candidate.attachGenerationHistory(
-                    history,
-                    IrisBoundarySignatureSampler.INSTANCE,
-                    IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks()
-            );
-            router.preloadActiveRuntimes();
-            if (history.activeActivation().activationId() != openedActivationId) {
-                close(candidate);
-                ModdedGenerationHistoryStorage.ActivePack promoted =
-                        ModdedGenerationHistoryStorage.resolveActive(history);
-                candidate = buildEngine(level, seed, promoted);
-                router = GenerationHistoryRuntimeRouter.attach(
-                        candidate,
+        try (GenerationAdmission.RuntimeLease startupAdmission = history.retainRuntime()) {
+            history.prepareCurrentGenerator(IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks());
+            opened = ModdedGenerationHistoryStorage.resolveActive(history);
+            long openedActivationId = history.activeActivation().activationId();
+            IrisEngine candidate = buildEngine(level, seed, opened);
+            boolean ready = false;
+            try {
+                GenerationHistoryRuntimeRouter router = candidate.attachGenerationHistory(
                         history,
-                        IrisBoundarySignatureSampler.INSTANCE
+                        IrisBoundarySignatureSampler.INSTANCE,
+                        IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks()
                 );
                 router.preloadActiveRuntimes();
-            }
-            requireReady(candidate, level, ModdedGenerationMode.PERSISTENT_RESTORE);
-            ready = true;
-            ModdedIrisLog.info("Iris engine up for {}: pack={} dim={} seed={} height={}..{} activation={}",
-                    level.dimension().identifier(),
-                    candidate.getData().getDataFolder().getAbsolutePath(),
-                    candidate.getDimension().getLoadKey(),
-                    seed,
-                    candidate.getDimension().getMinHeight(),
-                    candidate.getDimension().getMaxHeight(),
-                    history.activeActivation().activationId());
-            return candidate;
-        } finally {
-            if (!ready) {
-                close(candidate);
+                if (history.activeActivation().activationId() != openedActivationId) {
+                    close(candidate);
+                    ModdedGenerationHistoryStorage.ActivePack promoted =
+                            ModdedGenerationHistoryStorage.resolveActive(history);
+                    candidate = buildEngine(level, seed, promoted);
+                    router = GenerationHistoryRuntimeRouter.attach(
+                            candidate,
+                            history,
+                            IrisBoundarySignatureSampler.INSTANCE
+                    );
+                    router.preloadActiveRuntimes();
+                }
+                requireReady(candidate, level, ModdedGenerationMode.PERSISTENT_RESTORE);
+                ready = true;
+                ModdedIrisLog.info("Iris engine up for {}: pack={} dim={} seed={} height={}..{} activation={}",
+                        level.dimension().identifier(),
+                        candidate.getData().getDataFolder().getAbsolutePath(),
+                        candidate.getDimension().getLoadKey(),
+                        seed,
+                        candidate.getDimension().getMinHeight(),
+                        candidate.getDimension().getMaxHeight(),
+                        history.activeActivation().activationId());
+                return candidate;
+            } finally {
+                if (!ready) {
+                    close(candidate);
+                }
             }
         }
     }

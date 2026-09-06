@@ -22,15 +22,12 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.VectorMap;
 import art.arcane.iris.util.common.math.IrisBlockVector;
-import art.arcane.iris.util.common.math.IrisVector;
 import art.arcane.iris.util.common.math.Vector3i;
 import art.arcane.iris.util.common.parallel.BurstExecutor;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -288,24 +285,5 @@ final class IrisObjectShaping {
 
     static String materialKey(PlatformBlockState state) {
         return IrisProceduralBlocks.materialKey(state);
-    }
-
-    static List<IrisBlockVector> blocksBetweenTwoPoints(IrisVector loc1, IrisVector loc2) {
-        List<IrisBlockVector> locations = new ArrayList<>();
-        int topBlockX = Math.max(loc1.getBlockX(), loc2.getBlockX());
-        int bottomBlockX = Math.min(loc1.getBlockX(), loc2.getBlockX());
-        int topBlockY = Math.max(loc1.getBlockY(), loc2.getBlockY());
-        int bottomBlockY = Math.min(loc1.getBlockY(), loc2.getBlockY());
-        int topBlockZ = Math.max(loc1.getBlockZ(), loc2.getBlockZ());
-        int bottomBlockZ = Math.min(loc1.getBlockZ(), loc2.getBlockZ());
-
-        for (int x = bottomBlockX; x <= topBlockX; x++) {
-            for (int z = bottomBlockZ; z <= topBlockZ; z++) {
-                for (int y = bottomBlockY; y <= topBlockY; y++) {
-                    locations.add(new IrisBlockVector(x, y, z));
-                }
-            }
-        }
-        return locations;
     }
 }

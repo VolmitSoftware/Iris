@@ -11,6 +11,7 @@ import art.arcane.iris.engine.framework.EngineWorldManager;
 import art.arcane.iris.engine.framework.GenerationSessionException;
 import art.arcane.iris.engine.framework.GenerationSessionManager;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
+import art.arcane.iris.engine.history.GenerationKernelRegistry;
 import art.arcane.iris.engine.object.IrisWorld;
 import art.arcane.iris.engine.framework.EngineMode;
 import art.arcane.iris.engine.mantle.EngineMantle;
@@ -25,6 +26,7 @@ import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,12 +37,18 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -298,6 +306,114 @@ public class EngineShutdownDrainTest {
         verify(fixture.target).close();
     }
 
+    @Test
+    public void failedComplexRetirementRetainsReplacementBeforeSharedStorageCanClose() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        IrisComplex replacement = mock(IrisComplex.class);
+        fixture.prepareComplexHotload(replacement);
+        doThrow(new IllegalStateException("Previous planner still active")).when(fixture.complex).close();
+        doThrow(new IllegalStateException("Replacement planner still active")).when(replacement).close();
+
+        assertThrows(IllegalStateException.class, () -> new EngineHotloader(fixture.engine).hotloadComplex());
+
+        assertSame(fixture.runtime, fixture.engine.runtime);
+        assertSame(IrisEngine.LifecycleState.FAILED, fixture.engine.lifecycleState);
+        doNothing().when(fixture.complex).close();
+        try (MockedStatic<NativeStructureOwnershipStore> ignored = mockStatic(NativeStructureOwnershipStore.class)) {
+            assertThrows(IllegalStateException.class, fixture.shutdown::close);
+            verify(replacement, times(2)).close();
+            verify(fixture.mantle, never()).close();
+            verify(fixture.target, never()).close();
+            doNothing().when(replacement).close();
+            fixture.shutdown.close();
+        }
+        assertTrue(fixture.engine.closed);
+        verify(replacement, times(3)).close();
+        verify(fixture.mantle).close();
+    }
+
+    @Test
+    public void failedComplexBuildDrainBlocksRollbackUntilShutdownRetry() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        IrisComplex replacement = mock(IrisComplex.class);
+        GenerationKernelRegistry.RuntimeKernel kernel = fixture.prepareComplexHotload(replacement);
+        IllegalStateException buildFailure = new IllegalStateException("Dimension stack failed");
+        when(kernel.createDimensionStackContext(fixture.engine)).thenThrow(buildFailure);
+        IllegalStateException drainFailure = new IllegalStateException("Replacement planner still active");
+        doThrow(drainFailure).when(replacement).close();
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class,
+                () -> new EngineHotloader(fixture.engine).hotloadComplex());
+
+        assertSame(buildFailure, failure.getCause());
+        assertSame(drainFailure, buildFailure.getSuppressed()[0]);
+        assertSame(IrisEngine.LifecycleState.FAILED, fixture.engine.lifecycleState);
+        assertSame(fixture.runtime, fixture.engine.runtime);
+        verify(fixture.sessions, never()).activateNextSession();
+        verify(fixture.complex, never()).close();
+        doNothing().when(replacement).close();
+        try (MockedStatic<NativeStructureOwnershipStore> ignored = mockStatic(NativeStructureOwnershipStore.class)) {
+            fixture.shutdown.close();
+        }
+        assertTrue(fixture.engine.closed);
+        verify(replacement, times(2)).close();
+        verify(fixture.mantle).close();
+    }
+
+    @Test
+    public void successfullyDrainedFailedComplexBuildRestoresPreviousRuntime() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        IrisComplex replacement = mock(IrisComplex.class);
+        GenerationKernelRegistry.RuntimeKernel kernel = fixture.prepareComplexHotload(replacement);
+        when(kernel.createDimensionStackContext(fixture.engine))
+                .thenThrow(new IllegalStateException("Dimension stack failed"));
+
+        assertThrows(IllegalStateException.class, () -> new EngineHotloader(fixture.engine).hotloadComplex());
+
+        assertSame(fixture.runtime, fixture.engine.runtime);
+        assertSame(IrisEngine.LifecycleState.RUNNING, fixture.engine.lifecycleState);
+        verify(replacement).close();
+        verify(fixture.complex, never()).close();
+        verify(fixture.mantle, never()).close();
+        verify(fixture.sessions).activateNextSession();
+    }
+
+    @Test
+    public void successfulComplexHotloadPublishesReplacementWithoutClosingIt() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        IrisComplex replacement = mock(IrisComplex.class);
+        fixture.prepareComplexHotload(replacement);
+
+        new EngineHotloader(fixture.engine).hotloadComplex();
+
+        assertSame(replacement, fixture.engine.runtime.generation().complex());
+        assertSame(IrisEngine.LifecycleState.RUNNING, fixture.engine.lifecycleState);
+        verify(fixture.complex).close();
+        verify(replacement, never()).close();
+        verify(fixture.mantle, never()).close();
+    }
+
+    @Test
+    public void failedComplexActivationKeepsPublishedReplacementOwnedForShutdown() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        IrisComplex replacement = mock(IrisComplex.class);
+        fixture.prepareComplexHotload(replacement);
+        doThrow(new IllegalStateException("Session activation failed")).when(fixture.sessions).activateNextSession();
+
+        assertThrows(IllegalStateException.class, () -> new EngineHotloader(fixture.engine).hotloadComplex());
+
+        assertSame(replacement, fixture.engine.runtime.generation().complex());
+        assertSame(IrisEngine.LifecycleState.FAILED, fixture.engine.lifecycleState);
+        assertTrue(fixture.engine.getClosing().get());
+        verify(fixture.complex).close();
+        verify(replacement, never()).close();
+        try (MockedStatic<NativeStructureOwnershipStore> ignored = mockStatic(NativeStructureOwnershipStore.class)) {
+            fixture.shutdown.close();
+        }
+        assertTrue(fixture.engine.closed);
+        verify(replacement).close();
+    }
+
     private static EngineTarget target() {
         EngineTarget target = mock(EngineTarget.class);
         when(target.getData()).thenReturn(mock(IrisData.class));
@@ -359,6 +475,21 @@ public class EngineShutdownDrainTest {
         private final EngineRuntime runtime = new EngineRuntime(generation, mock(EngineEffects.class), manager);
         private final GenerationSessionManager sessions = mock(GenerationSessionManager.class);
         private final EngineShutdownSequence shutdown = new EngineShutdownSequence(engine);
+
+        private GenerationKernelRegistry.RuntimeKernel prepareComplexHotload(IrisComplex replacement) throws Exception {
+            GenerationKernelRegistry.RuntimeKernel kernel = mock(GenerationKernelRegistry.RuntimeKernel.class);
+            when(kernel.createComplex(engine, null)).thenReturn(replacement);
+            when(generation.runtimeKernel()).thenReturn(kernel);
+            GenerationRuntime nextGeneration = generation(target, mantle);
+            when(nextGeneration.complex()).thenReturn(replacement);
+            when(generation.withComplex(anyInt(), same(replacement), isNull(), isNull(), any()))
+                    .thenReturn(nextGeneration);
+            EngineRuntimeBuilder builder = spy(new EngineRuntimeBuilder(engine));
+            doReturn(new GenerationRuntime.BiomeMaxes(0D, 0D, 0D)).when(builder).computeBiomeMaxes();
+            setField(engine, "runtimeBuilder", builder);
+            when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+            return kernel;
+        }
 
         private ShutdownFixture() throws Exception {
             EngineBackgroundTasks background = mock(EngineBackgroundTasks.class);

@@ -1358,6 +1358,8 @@
     "iris.bukkit.scoreboard.carving": "§d조각 중§7: {state}",
     "iris.bukkit.scoreboard.region": "§b주요 특징§7: {region}",
     "iris.bukkit.scoreboard.biome": "§b바이오메트§7:  {biome}",
+    "iris.bukkit.scoreboard.biome_loading": "불러오는 중",
+    "iris.bukkit.scoreboard.biome_unavailable": "사용 불가",
     "iris.bukkit.scoreboard.height": "§b고도:§7: {height}",
     "iris.bukkit.scoreboard.slope": "§b기울기§7:  {slope}",
     "iris.bukkit.scoreboard.block_updates": "§bBUD/s§7: {updates}",

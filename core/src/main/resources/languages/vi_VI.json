@@ -1358,6 +1358,8 @@
     "iris.bukkit.scoreboard.carving": "§dQuan tâm§7: {state}",
     "iris.bukkit.scoreboard.region": "§bVùng§7: {region}",
     "iris.bukkit.scoreboard.biome": "§bĐôi§7:  {biome}",
+    "iris.bukkit.scoreboard.biome_loading": "Đang tải",
+    "iris.bukkit.scoreboard.biome_unavailable": "Không khả dụng",
     "iris.bukkit.scoreboard.height": "§bChiều cao§7: {height}",
     "iris.bukkit.scoreboard.slope": "§bTrượt§7:  {slope}",
     "iris.bukkit.scoreboard.block_updates": "§bBAD/s§7: {updates}",

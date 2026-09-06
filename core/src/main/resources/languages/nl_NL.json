@@ -1358,6 +1358,8 @@
     "iris.bukkit.scoreboard.carving": "§dsnijden§7: {state}",
     "iris.bukkit.scoreboard.region": "§bGebieden§7: {region}",
     "iris.bukkit.scoreboard.biome": "§bBiomeName§7:  {biome}",
+    "iris.bukkit.scoreboard.biome_loading": "Laden",
+    "iris.bukkit.scoreboard.biome_unavailable": "Niet beschikbaar",
     "iris.bukkit.scoreboard.height": "§bHoogte§7: {height}",
     "iris.bukkit.scoreboard.slope": "§bHelling§7:  {slope}",
     "iris.bukkit.scoreboard.block_updates": "§bBUD./s§7: {updates}",

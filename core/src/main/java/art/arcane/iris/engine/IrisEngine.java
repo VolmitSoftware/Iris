@@ -560,6 +560,18 @@ public class IrisEngine implements Engine {
     }
 
     @Override
+    public BiomeEnvironment getBiomeOrMantleEnvironment(int x, int y, int z) {
+        Optional<BiomeEnvironment> saved = resolveSavedBiomeEnvironment(x, y, z, false);
+        if (saved.isPresent()) {
+            return saved.get();
+        }
+        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
+                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve a mantle biome environment")) {
+            return Engine.super.getBiomeOrMantleEnvironment(x, y, z);
+        }
+    }
+
+    @Override
     public BiomeEnvironment getSurfaceBiomeEnvironment(int x, int z) {
         Optional<BiomeEnvironment> saved = resolveSavedBiomeEnvironment(x, 0, z, true);
         if (saved.isPresent()) {

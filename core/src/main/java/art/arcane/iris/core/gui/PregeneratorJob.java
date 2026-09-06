@@ -34,11 +34,8 @@ import art.arcane.iris.core.pregenerator.PregenTask;
 import art.arcane.iris.core.pregenerator.PregeneratorMethod;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.history.SavedBiomeUnavailableException;
-import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.format.MemoryMonitor;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
-import art.arcane.volmlib.util.localization.MessageArgument;
-import art.arcane.volmlib.util.math.Position2;
 import art.arcane.iris.util.common.scheduling.J;
 
 import java.awt.Color;
@@ -59,14 +56,6 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
     // 60s permit drain + 120s flush + plate reclaim), or a routine drain trips the deadline
     // and aborts the engine shutdown sequence mid-teardown.
     private static final long WORLD_SHUTDOWN_TIMEOUT_MILLIS = 200_000L;
-    private static final Color COLOR_EXISTS = parseColor("#4d7d5b");
-    private static final Color COLOR_BLACK = parseColor("#4d7d5b");
-    private static final Color COLOR_MANTLE = parseColor("#3c2773");
-    private static final Color COLOR_GENERATING = parseColor("#66967f");
-    private static final Color COLOR_NETWORK = parseColor("#a863c2");
-    private static final Color COLOR_NETWORK_GENERATING = parseColor("#836b8c");
-    private static final Color COLOR_GENERATED = parseColor("#65c295");
-    private static final Color COLOR_CLEANED = parseColor("#34eb93");
     private static final AtomicReference<PregeneratorJob> instance = new AtomicReference<>();
     private final MemoryMonitor monitor;
     private final PregenTask task;
@@ -75,14 +64,17 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
     private final List<Consumer<Double>> onProgress = new CopyOnWriteArrayList<>();
     private final List<Runnable> whenDone = new CopyOnWriteArrayList<>();
     private final IrisPregenerator pregenerator;
-    private final Position2 min;
-    private final Position2 max;
+    private final PregenRenderSnapshot.Bounds bounds;
     private final Engine engine;
     private final ExecutorService service;
     private final Thread worker;
     private final PregenPhaseTracker apiPhases = new PregenPhaseTracker();
-    private PregenRenderer renderer;
-    private String[] info;
+    private volatile PregenRenderer renderer;
+    private volatile PregenRenderSnapshot renderSnapshot;
+    private volatile boolean closed;
+    private volatile boolean finished;
+    private volatile String failure;
+    private boolean lastCached;
     private volatile double lastChunksPerSecond = 0D;
     private volatile double lastOverallChunksPerSecond = 0D;
     private volatile double lastThirtySecondChunksPerSecond = 0D;
@@ -102,11 +94,13 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
         monitor = new MemoryMonitor(50);
         saving = new AtomicBoolean(false);
         stopRequested = new AtomicBoolean(false);
-        info = new String[]{IrisLanguage.plain(DesktopUiMessages.PREGEN_INITIALIZING)};
         this.task = task;
         this.pregenerator = new IrisPregenerator(task, method, this);
-        max = new Position2(Integer.MIN_VALUE, Integer.MIN_VALUE);
-        min = new Position2(Integer.MAX_VALUE, Integer.MAX_VALUE);
+        int[] chunkBounds = task.chunkBounds();
+        bounds = new PregenRenderSnapshot.Bounds(chunkBounds[0], chunkBounds[1], chunkBounds[2], chunkBounds[3]);
+        lastTotalChunks = task.chunkCount();
+        lastChunksRemaining = lastTotalChunks;
+        publishView(PregenRenderSnapshot.Phase.INITIALIZING);
         service = new ThreadPoolExecutor(
                 1,
                 1,
@@ -142,7 +136,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
         // teardown with the new job's generation. Replacement goes through
         // shutdownAndWait first, matching the modded adapter's rejection contract.
         if (!instance.compareAndSet(null, this)) {
-            monitor.close();
+            close();
             service.shutdown();
             throw new IllegalStateException("An Iris pregeneration job is already running; stop it first.");
         }
@@ -152,7 +146,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
             // Un-publish: a worker that never started can never run onClose(), so nothing
             // else would ever clear this instance via the normal path.
             instance.compareAndSet(this, null);
-            monitor.close();
+            close();
             service.shutdown();
             throw startFailure;
         }
@@ -170,21 +164,12 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
                 onClose();
                 return;
             }
-            computeBounds();
             pregenerator.start();
         } catch (Throwable failure) {
+            this.failure = failure.toString();
             IrisLogging.reportError("Pregen startup failed.", failure);
             onClose();
         }
-    }
-
-    private void computeBounds() {
-        task.iterateAllChunks((xx, zz) -> {
-            min.setX(Math.min(xx, min.getX()));
-            min.setZ(Math.min(zz, min.getZ()));
-            max.setX(Math.max(xx, max.getX()));
-            max.setZ(Math.max(zz, max.getZ()));
-        });
     }
 
     public static boolean shutdownInstance() {
@@ -245,15 +230,20 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
 
     public static boolean pauseResume() {
         PregeneratorJob inst = instance.get();
-        if (inst == null) {
+        return inst != null && inst.togglePause();
+    }
+
+    synchronized boolean togglePause() {
+        if (finished || stopRequested.get() || failure != null) {
             return false;
         }
 
-        if (isPaused()) {
-            inst.pregenerator.resume();
+        if (paused()) {
+            pregenerator.resume();
         } else {
-            inst.pregenerator.pause();
+            pregenerator.pause();
         }
+        publishView(paused() ? PregenRenderSnapshot.Phase.PAUSED : PregenRenderSnapshot.Phase.GENERATING);
         return true;
     }
 
@@ -287,7 +277,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
         return inst == null ? null : inst.snapshot();
     }
 
-    public PregenProgress snapshot() {
+    public synchronized PregenProgress snapshot() {
         double percent = lastTotalChunks <= 0 ? 0D : ((double) lastGenerated / (double) lastTotalChunks) * 100D;
         return new PregenProgress(
                 percent,
@@ -330,18 +320,6 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
         return worldIdentity.equals(engine.getWorld().identity());
     }
 
-    private static Color parseColor(String c) {
-        String v = (c.startsWith("#") ? c : "#" + c).trim();
-        try {
-            return Color.decode(v);
-        } catch (Throwable e) {
-            IrisLogging.reportError(e);
-            IrisLogging.error("Error Parsing 'color', (" + c + ")");
-        }
-
-        return Color.RED;
-    }
-
     public Mantle getMantle() {
         return pregenerator.getMantle();
     }
@@ -357,16 +335,17 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
     }
 
     public void drawRegion(int x, int z, Color color) {
-        J.a(() -> task.iterateChunks(x, z, (xx, zz) -> {
-            draw(xx, zz, color);
-            J.sleep(3);
-        }));
+        PregenRenderer activeRenderer = renderer;
+        if (activeRenderer == null || closed) {
+            return;
+        }
+        task.iterateChunks(x, z, (chunkX, chunkZ) -> activeRenderer.submit(chunkX, chunkZ, color));
     }
 
     public void draw(int x, int z, Color color) {
         try {
             PregenRenderer activeRenderer = renderer;
-            if (activeRenderer != null && activeRenderer.isVisibleFrame()) {
+            if (activeRenderer != null) {
                 activeRenderer.submit(x, z, color);
             }
         } catch (Throwable error) {
@@ -384,11 +363,13 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
         if (!stopRequested.compareAndSet(false, true)) {
             return;
         }
+        publishView(PregenRenderSnapshot.Phase.STOPPING);
         pregenerator.close();
         worker.interrupt();
     }
 
     public void close() {
+        closed = true;
         try {
             monitor.close();
             PregenRenderer activeRenderer = renderer;
@@ -403,8 +384,15 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
 
     public void open() {
         EventQueue.invokeLater(() -> {
+            if (closed) {
+                return;
+            }
             try {
-                renderer = PregenRenderer.open(IrisLanguage.plain(DesktopUiMessages.PREGEN_TITLE), this, PregeneratorJob::pauseResume);
+                PregenRenderer opened = PregenRenderer.open(IrisLanguage.plain(DesktopUiMessages.PREGEN_TITLE), this, this::togglePause);
+                renderer = opened;
+                if (closed) {
+                    opened.close();
+                }
             } catch (Throwable error) {
                 IrisLogging.reportError(error);
                 IrisLogging.error("Error opening pregen gui");
@@ -415,45 +403,21 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
     @Override
     public void onTick(double chunksPerSecond, double chunksPerMinute, double regionsPerMinute, double percent, long generated, long totalChunks, long chunksRemaining, long eta, long elapsed, String method, boolean cached) {
         PregenRates rateSnapshot = pregenerator.getRates();
-        lastChunksPerSecond = chunksPerSecond;
-        lastOverallChunksPerSecond = rateSnapshot.overall();
-        lastThirtySecondChunksPerSecond = rateSnapshot.thirtySecond();
-        lastSixtySecondChunksPerSecond = rateSnapshot.sixtySecond();
-        lastChunksRemaining = chunksRemaining;
-        lastGenerated = generated;
-        lastTotalChunks = totalChunks;
-        lastEta = eta;
-        lastElapsed = elapsed;
-        lastMethod = method;
-
-        info = new String[]{
-                IrisLanguage.plain(
-                        paused() ? DesktopUiMessages.PREGEN_PROGRESS_PAUSED
-                                : saving.getAndSet(false) ? DesktopUiMessages.PREGEN_PROGRESS_SAVING : DesktopUiMessages.PREGEN_PROGRESS_GENERATING,
-                        MessageArgument.trusted("generated", Form.f(generated)),
-                        MessageArgument.trusted("total", Form.f(totalChunks)),
-                        MessageArgument.trusted("percent", Form.pc(percent, 0))
-                ),
-                IrisLanguage.plain(
-                        cached ? DesktopUiMessages.PREGEN_SPEED_CACHED : DesktopUiMessages.PREGEN_SPEED,
-                        MessageArgument.trusted("overall", Form.f(rateSnapshot.overall(), 1)),
-                        MessageArgument.trusted("tenSecond", Form.f(rateSnapshot.tenSecond(), 1)),
-                        MessageArgument.trusted("thirtySecond", Form.f(rateSnapshot.thirtySecond(), 1)),
-                        MessageArgument.trusted("sixtySecond", Form.f(rateSnapshot.sixtySecond(), 1))
-                ),
-                IrisLanguage.plain(
-                        DesktopUiMessages.PREGEN_TIME,
-                        MessageArgument.trusted("remaining", Form.duration(eta, 2)),
-                        MessageArgument.trusted("elapsed", Form.duration(elapsed, 2))
-                ),
-                IrisLanguage.plain(DesktopUiMessages.PREGEN_METHOD, MessageArgument.untrusted("method", String.valueOf(method))),
-                IrisLanguage.plain(
-                        DesktopUiMessages.PREGEN_MEMORY,
-                        MessageArgument.trusted("used", Form.memSize(monitor.getUsedBytes(), 2)),
-                        MessageArgument.trusted("usage", Form.pc(monitor.getUsagePercent(), 0)),
-                        MessageArgument.trusted("pressure", Form.memSize(monitor.getPressure(), 0))
-                )
-        };
+        synchronized (this) {
+            lastChunksPerSecond = chunksPerSecond;
+            lastOverallChunksPerSecond = rateSnapshot.overall();
+            lastThirtySecondChunksPerSecond = rateSnapshot.thirtySecond();
+            lastSixtySecondChunksPerSecond = rateSnapshot.sixtySecond();
+            lastChunksRemaining = chunksRemaining;
+            lastGenerated = generated;
+            lastTotalChunks = totalChunks;
+            lastEta = eta;
+            lastElapsed = elapsed;
+            lastMethod = method;
+            lastCached = cached;
+            publishView(paused() ? PregenRenderSnapshot.Phase.PAUSED
+                    : saving.getAndSet(false) ? PregenRenderSnapshot.Phase.SAVING : PregenRenderSnapshot.Phase.GENERATING);
+        }
 
         for (Consumer<Double> i : onProgress) {
             i.accept(percent);
@@ -488,12 +452,12 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
 
     @Override
     public void onChunkGenerating(int x, int z) {
-        draw(x, z, COLOR_GENERATING);
+        draw(x, z, PregenRenderer.GENERATING);
     }
 
     @Override
     public void onChunkGenerated(int x, int z, boolean cached) {
-        drawChunkPreview(x, z, COLOR_GENERATED);
+        drawChunkPreview(x, z, PregenRenderer.GENERATED);
     }
 
     @Override
@@ -528,7 +492,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
 
     @Override
     public void onNetworkStarted(int x, int z) {
-        drawRegion(x, z, COLOR_NETWORK);
+        drawRegion(x, z, PregenRenderer.NETWORK);
     }
 
     @Override
@@ -543,18 +507,25 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
 
     @Override
     public void onNetworkGeneratedChunk(int x, int z) {
-        draw(x, z, COLOR_NETWORK_GENERATING);
+        draw(x, z, PregenRenderer.NETWORK_GENERATING);
     }
 
     @Override
     public void onNetworkDownloaded(int x, int z) {
-        drawRegion(x, z, COLOR_NETWORK);
+        drawRegion(x, z, PregenRenderer.NETWORK);
     }
 
     @Override
     public void onClose() {
+        finished = true;
         dispatchApiPhases(apiPhases.onClose(reachedTotal()));
-        close();
+        publishView(failure != null ? PregenRenderSnapshot.Phase.ERROR
+                : reachedTotal() ? PregenRenderSnapshot.Phase.COMPLETED : PregenRenderSnapshot.Phase.STOPPING);
+        if (failure == null) {
+            close();
+        } else {
+            monitor.close();
+        }
         instance.compareAndSet(this, null);
         whenDone.forEach(Runnable::run);
         service.shutdownNow();
@@ -563,40 +534,47 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
     @Override
     public void onSaving() {
         saving.set(true);
+        publishView(PregenRenderSnapshot.Phase.SAVING);
         dispatchApiPhases(apiPhases.onSaving());
     }
 
     @Override
     public void onChunkExistsInRegionGen(int x, int z) {
-        drawChunkPreview(x, z, COLOR_EXISTS);
+        drawChunkPreview(x, z, PregenRenderer.EXISTS);
     }
 
-    @Override
-    public Position2 max() {
-        return max;
-    }
-
-    @Override
-    public Position2 min() {
-        return min;
-    }
-
-    @Override
     public boolean paused() {
         return pregenerator.paused();
     }
 
     @Override
-    public String[] progress() {
-        return info;
+    public PregenRenderSnapshot renderSnapshot() {
+        return renderSnapshot;
+    }
+
+    private synchronized void publishView(PregenRenderSnapshot.Phase phase) {
+        if (failure != null) {
+            phase = PregenRenderSnapshot.Phase.ERROR;
+        } else if (finished) {
+            phase = reachedTotal() ? PregenRenderSnapshot.Phase.COMPLETED : PregenRenderSnapshot.Phase.STOPPING;
+        } else if (stopRequested.get()) {
+            phase = PregenRenderSnapshot.Phase.STOPPING;
+        } else if (paused()) {
+            phase = PregenRenderSnapshot.Phase.PAUSED;
+        }
+        renderSnapshot = new PregenRenderSnapshot(bounds, snapshot(), phase, lastCached,
+                monitor.getUsedBytes(), monitor.getUsagePercent(), monitor.getPressure(), failure);
     }
 
     private void drawChunkPreview(int x, int z, Color statusColor) {
         PregenRenderer activeRenderer = renderer;
-        if (activeRenderer == null || !activeRenderer.isVisibleFrame() || service.isShutdown()) {
+        if (activeRenderer == null) {
             return;
         }
         draw(x, z, statusColor);
+        if (!activeRenderer.isVisibleFrame() || service.isShutdown()) {
+            return;
+        }
         if (engine != null) {
             service.execute(() -> renderChunkPreview(x, z));
         }

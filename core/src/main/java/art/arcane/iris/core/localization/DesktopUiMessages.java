@@ -79,20 +79,44 @@ public final class DesktopUiMessages {
     public static final TextKey NOISE_CATEGORY_SIERPINSKI = TextKey.of("iris.desktop.noise.category.sierpinski", "Sierpinski");
     public static final TextKey NOISE_CATEGORY_UTILITY = TextKey.of("iris.desktop.noise.category.utility", "Utility");
     public static final TextKey NOISE_CATEGORY_OTHER = TextKey.of("iris.desktop.noise.category.other", "Other");
-    public static final TextKey PREGEN_INITIALIZING = TextKey.of("iris.desktop.pregen.initializing", "Initializing...");
-    public static final TextKey PREGEN_TITLE = TextKey.of("iris.desktop.pregen.title", "Pregen View");
+    public static final TextKey PREGEN_INITIALIZING = TextKey.of("iris.desktop.pregen.initializing", "Preparing generation");
+    public static final TextKey PREGEN_TITLE = TextKey.of("iris.desktop.pregen.title", "Pregeneration");
     public static final TextKey PREGEN_METHOD_PENDING = TextKey.of("iris.desktop.pregen.method_pending", "Pending");
-    public static final TextKey PREGEN_PAUSED = TextKey.of("iris.desktop.pregen.paused", "PAUSED");
+    public static final TextKey PREGEN_PAUSED = TextKey.of("iris.desktop.pregen.paused", "Paused");
     public static final TextKey PREGEN_RESUME_HINT = TextKey.of("iris.desktop.pregen.resume_hint", "Press P to resume");
     public static final TextKey PREGEN_PAUSE_HINT = TextKey.of("iris.desktop.pregen.pause_hint", "Press P to pause");
-    public static final TextKey PREGEN_PROGRESS_PAUSED = TextKey.of("iris.desktop.pregen.progress_paused", "PAUSED {generated} of {total} ({percent} complete)");
-    public static final TextKey PREGEN_PROGRESS_SAVING = TextKey.of("iris.desktop.pregen.progress_saving", "Saving... {generated} of {total} ({percent} complete)");
-    public static final TextKey PREGEN_PROGRESS_GENERATING = TextKey.of("iris.desktop.pregen.progress_generating", "Generating {generated} of {total} ({percent} complete)");
-    public static final TextKey PREGEN_SPEED = TextKey.of("iris.desktop.pregen.speed", "Speed: overall {overall}, 10s {tenSecond}, 30s {thirtySecond}, 60s {sixtySecond} chunks/s");
-    public static final TextKey PREGEN_SPEED_CACHED = TextKey.of("iris.desktop.pregen.speed_cached", "Speed (cached): overall {overall}, 10s {tenSecond}, 30s {thirtySecond}, 60s {sixtySecond} chunks/s");
-    public static final TextKey PREGEN_TIME = TextKey.of("iris.desktop.pregen.time", "{remaining} remaining ({elapsed} elapsed)");
-    public static final TextKey PREGEN_METHOD = TextKey.of("iris.desktop.pregen.method", "Generation method: {method}");
-    public static final TextKey PREGEN_MEMORY = TextKey.of("iris.desktop.pregen.memory", "Memory: {used} ({usage}) Pressure: {pressure}/s");
+    public static final TextKey PREGEN_PAUSE = TextKey.of("iris.desktop.pregen.pause", "Pause");
+    public static final TextKey PREGEN_RESUME = TextKey.of("iris.desktop.pregen.resume", "Resume");
+    public static final TextKey PREGEN_GENERATING = TextKey.of("iris.desktop.pregen.generating", "Generating");
+    public static final TextKey PREGEN_SAVING = TextKey.of("iris.desktop.pregen.saving", "Saving");
+    public static final TextKey PREGEN_STOPPING = TextKey.of("iris.desktop.pregen.stopping", "Stopping");
+    public static final TextKey PREGEN_COMPLETED = TextKey.of("iris.desktop.pregen.completed", "Complete");
+    public static final TextKey PREGEN_ERROR = TextKey.of("iris.desktop.pregen.error", "Generation failed");
+    public static final TextKey PREGEN_CONTROL_FAILED = TextKey.of("iris.desktop.pregen.control_failed", "Pause control failed · see server log");
+    public static final TextKey PREGEN_ERROR_DETAILS = TextKey.of("iris.desktop.pregen.error_details", "See server log for details");
+    public static final TextKey PREGEN_PROGRESS = TextKey.of("iris.desktop.pregen.progress", "{generated} / {total} chunks");
+    public static final TextKey PREGEN_PERCENT = TextKey.of("iris.desktop.pregen.percent", "{percent} complete");
+    public static final TextKey PREGEN_CURRENT = TextKey.of("iris.desktop.pregen.current", "Current · 10 s");
+    public static final TextKey PREGEN_OVERALL = TextKey.of("iris.desktop.pregen.overall", "Overall");
+    public static final TextKey PREGEN_THIRTY = TextKey.of("iris.desktop.pregen.thirty", "30 s average");
+    public static final TextKey PREGEN_SIXTY = TextKey.of("iris.desktop.pregen.sixty", "60 s average");
+    public static final TextKey PREGEN_RATE = TextKey.of("iris.desktop.pregen.rate", "{rate} chunks/s");
+    public static final TextKey PREGEN_ETA = TextKey.of("iris.desktop.pregen.eta", "Remaining");
+    public static final TextKey PREGEN_ELAPSED = TextKey.of("iris.desktop.pregen.elapsed", "Elapsed");
+    public static final TextKey PREGEN_MEMORY_LABEL = TextKey.of("iris.desktop.pregen.memory_label", "Memory");
+    public static final TextKey PREGEN_MEMORY_USAGE = TextKey.of("iris.desktop.pregen.memory_usage", "{used} · {usage}");
+    public static final TextKey PREGEN_PRESSURE = TextKey.of("iris.desktop.pregen.pressure", "Allocation");
+    public static final TextKey PREGEN_PRESSURE_VALUE = TextKey.of("iris.desktop.pregen.pressure_value", "{rate}/s");
+    public static final TextKey PREGEN_METHOD = TextKey.of("iris.desktop.pregen.method", "Method: {method}");
+    public static final TextKey PREGEN_CACHED = TextKey.of("iris.desktop.pregen.cached", "{method} · cached");
+    public static final TextKey PREGEN_FAILED = TextKey.of("iris.desktop.pregen.failed", "{count} failed · see server log");
+    public static final TextKey PREGEN_MAP = TextKey.of("iris.desktop.pregen.map", "Generation map");
+    public static final TextKey PREGEN_BOUNDS = TextKey.of("iris.desktop.pregen.bounds", "Chunks X {minX} to {maxX} · Z {minZ} to {maxZ}");
+    public static final TextKey PREGEN_WAITING = TextKey.of("iris.desktop.pregen.waiting", "Waiting");
+    public static final TextKey PREGEN_READY = TextKey.of("iris.desktop.pregen.ready", "Ready");
+    public static final TextKey PREGEN_EXISTING = TextKey.of("iris.desktop.pregen.existing", "Existing");
+    public static final TextKey PREGEN_NETWORK = TextKey.of("iris.desktop.pregen.network", "Network");
+    public static final TextKey PREGEN_TERRAIN_HINT = TextKey.of("iris.desktop.pregen.terrain_hint", "Finished chunks show terrain colors");
     public static final TextKey IMAGEMAP_TITLE = TextKey.of("iris.desktop.imagemap.title", "Image Map Studio");
     public static final TextKey IMAGEMAP_PRESET = TextKey.of("iris.desktop.imagemap.preset", "Preset:");
     public static final TextKey IMAGEMAP_LOAD = TextKey.of("iris.desktop.imagemap.load", "Load");
@@ -179,10 +203,17 @@ public final class DesktopUiMessages {
             NOISE_CATEGORY_CELLULAR, NOISE_CATEGORY_IRIS, NOISE_CATEGORY_CLOVER, NOISE_CATEGORY_HEXAGON,
             NOISE_CATEGORY_VASCULAR, NOISE_CATEGORY_GLOBE, NOISE_CATEGORY_CUBIC, NOISE_CATEGORY_FRACTAL,
             NOISE_CATEGORY_STATIC, NOISE_CATEGORY_NOWHERE, NOISE_CATEGORY_SIERPINSKI,
-            NOISE_CATEGORY_UTILITY, NOISE_CATEGORY_OTHER, PREGEN_INITIALIZING, PREGEN_TITLE,
-            PREGEN_METHOD_PENDING, PREGEN_PAUSED, PREGEN_RESUME_HINT, PREGEN_PAUSE_HINT,
-            PREGEN_PROGRESS_PAUSED, PREGEN_PROGRESS_SAVING, PREGEN_PROGRESS_GENERATING, PREGEN_SPEED,
-            PREGEN_SPEED_CACHED, PREGEN_TIME, PREGEN_METHOD, PREGEN_MEMORY,
+            NOISE_CATEGORY_UTILITY, NOISE_CATEGORY_OTHER,
+            PREGEN_INITIALIZING, PREGEN_TITLE, PREGEN_METHOD_PENDING, PREGEN_PAUSED,
+            PREGEN_RESUME_HINT, PREGEN_PAUSE_HINT, PREGEN_PAUSE, PREGEN_RESUME,
+            PREGEN_GENERATING, PREGEN_SAVING, PREGEN_STOPPING, PREGEN_COMPLETED,
+            PREGEN_ERROR, PREGEN_CONTROL_FAILED, PREGEN_ERROR_DETAILS, PREGEN_PROGRESS,
+            PREGEN_PERCENT, PREGEN_CURRENT, PREGEN_OVERALL, PREGEN_THIRTY,
+            PREGEN_SIXTY, PREGEN_RATE, PREGEN_ETA, PREGEN_ELAPSED,
+            PREGEN_MEMORY_LABEL, PREGEN_MEMORY_USAGE, PREGEN_PRESSURE, PREGEN_PRESSURE_VALUE,
+            PREGEN_METHOD, PREGEN_CACHED, PREGEN_FAILED, PREGEN_MAP,
+            PREGEN_BOUNDS, PREGEN_WAITING, PREGEN_READY, PREGEN_EXISTING,
+            PREGEN_NETWORK, PREGEN_TERRAIN_HINT,
             IMAGEMAP_TITLE, IMAGEMAP_PRESET, IMAGEMAP_LOAD, IMAGEMAP_IMPORT_PNG,
             IMAGEMAP_REPLACE_PNG, IMAGEMAP_PREVIEW, IMAGEMAP_EXPORT, IMAGEMAP_METADATA,
             IMAGEMAP_RESOURCE, IMAGEMAP_COORDINATES, IMAGEMAP_BINDING_KEY, IMAGEMAP_MAP_KEY,

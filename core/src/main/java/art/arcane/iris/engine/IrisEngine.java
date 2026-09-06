@@ -992,6 +992,10 @@ public class IrisEngine implements Engine {
     }
 
     public Optional<GenerationHistoryRuntimeRouter> getGenerationHistoryRuntimeRouter() {
+        GenerationHistoryRuntimeRouter router = generationHistoryRuntimeRouter;
+        if (router != null) {
+            return Optional.of(router);
+        }
         synchronized (generationHistoryRuntimeRouterLock) {
             return Optional.ofNullable(generationHistoryRuntimeRouter);
         }
@@ -1001,7 +1005,10 @@ public class IrisEngine implements Engine {
             int blockX,
             int blockZ
     ) throws IOException {
-        GenerationHistoryRuntimeRouter router;
+        GenerationHistoryRuntimeRouter router = generationHistoryRuntimeRouter;
+        if (router != null) {
+            return router.openCoordinateScope(blockX, blockZ);
+        }
         synchronized (generationHistoryRuntimeRouterLock) {
             router = generationHistoryRuntimeRouter;
             if (router == null && generationHistoryRoutingRequired) {

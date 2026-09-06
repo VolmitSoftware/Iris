@@ -96,8 +96,6 @@ final class IrisObjectTransforms {
             scale = scale - 0.0001;
         }
 
-        IrisPosition l1 = self.getAABB().max();
-        IrisPosition l2 = self.getAABB().min();
         VectorMap<PlatformBlockState> placeBlock = new VectorMap<>();
         VectorMap<TileData> placeTile = new VectorMap<>();
         VectorMap<IrisBlockVector> placeMax = savedOrigin && scale > 1 ? new VectorMap<>() : null;
@@ -153,13 +151,27 @@ final class IrisObjectTransforms {
             if (scale > 1) {
                 IrisVector minimum = savedOrigin ? v : v.clone().add(center);
                 IrisVector maximum = savedOrigin ? placeMax.get(v) : v.clone().add(center).add(sm1);
-                for (IrisBlockVector vec : IrisObjectShaping.blocksBetweenTwoPoints(minimum, maximum)) {
-                    oo.blocks.put(vec, entry.getValue());
-                    if (hasTiles) {
-                        if (tile == null) {
-                            oo.states.remove(vec);
-                        } else {
-                            oo.states.put(vec, tile.clone());
+                int minX = Math.min(minimum.getBlockX(), maximum.getBlockX());
+                int maxX = Math.max(minimum.getBlockX(), maximum.getBlockX());
+                int minY = Math.min(minimum.getBlockY(), maximum.getBlockY());
+                int maxY = Math.max(minimum.getBlockY(), maximum.getBlockY());
+                int minZ = Math.min(minimum.getBlockZ(), maximum.getBlockZ());
+                int maxZ = Math.max(minimum.getBlockZ(), maximum.getBlockZ());
+                IrisBlockVector position = new IrisBlockVector(minX, minY, minZ);
+                for (int x = minX; x <= maxX; x++) {
+                    position.setX(x);
+                    for (int z = minZ; z <= maxZ; z++) {
+                        position.setZ(z);
+                        for (int y = minY; y <= maxY; y++) {
+                            position.setY(y);
+                            oo.blocks.put(position, entry.getValue());
+                            if (hasTiles) {
+                                if (tile == null) {
+                                    oo.states.remove(position);
+                                } else {
+                                    oo.states.put(position, tile.clone());
+                                }
+                            }
                         }
                     }
                 }

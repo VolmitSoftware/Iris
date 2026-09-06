@@ -8,6 +8,7 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.util.common.math.Vector3i;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
@@ -98,6 +99,35 @@ public class NativeStructureObjectVetoTest {
         volumes(volume(0, worldBaseY, 0, 0, worldBaseY, 0));
 
         assertEquals(-1, place(placer));
+        assertTrue(placer.written().isEmpty());
+    }
+
+    @Test
+    public void obliqueRotationRejectsNativePiecesBeyondTheUnrotatedRadius() {
+        IrisObject object = new IrisObject(21, 1, 21);
+        object.setUnsigned(20, 0, 20, log);
+        IrisObjectPlacement placement = placement();
+        placement.setBottom(false);
+        placement.setRotation(IrisObjectRotation.of(0, 45, 0));
+        RecordingPlacer placer = new RecordingPlacer(engine);
+        volumes(volume(14, SURFACE_Y, 0, 14, SURFACE_Y, 0));
+
+        assertEquals(-1, object.place(0, SURFACE_Y, 0, placer, placement, new RNG(1234L), data));
+        assertTrue(placer.written().isEmpty());
+    }
+
+    @Test
+    public void offCenterOriginRejectsNativePiecesAtTheFarEdge() {
+        IrisObject object = new IrisObject(9, 1, 1);
+        object.setCenter(new Vector3i(0, 0, 0));
+        object.setUnsigned(8, 0, 0, log);
+        IrisObjectPlacement placement = placement();
+        placement.setBottom(false);
+        placement.setRotation(IrisObjectRotation.of(0, 0, 0));
+        RecordingPlacer placer = new RecordingPlacer(engine);
+        volumes(volume(8, SURFACE_Y, 0, 8, SURFACE_Y, 0));
+
+        assertEquals(-1, object.place(0, SURFACE_Y, 0, placer, placement, new RNG(1234L), data));
         assertTrue(placer.written().isEmpty());
     }
 

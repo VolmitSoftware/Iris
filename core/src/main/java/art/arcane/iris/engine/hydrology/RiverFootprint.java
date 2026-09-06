@@ -3,46 +3,48 @@ package art.arcane.iris.engine.hydrology;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.TreeMap;
 
 public final class RiverFootprint {
+    private static final RiverFootprint EMPTY = new RiverFootprint(Map.of());
+
+    private final Long2ObjectLinkedOpenHashMap<HydrologyColumnSample> indexed;
     private final Map<Long, HydrologyColumnSample> columns;
 
     public RiverFootprint(Map<Long, HydrologyColumnSample> columns) {
         if (columns == null) {
             throw new IllegalArgumentException("columns must not be null.");
         }
-        TreeMap<Long, HydrologyColumnSample> ordered = new TreeMap<>();
+        indexed = new Long2ObjectLinkedOpenHashMap<>(columns.size());
         for (Map.Entry<Long, HydrologyColumnSample> entry : columns.entrySet()) {
             HydrologyColumnSample sample = entry.getValue();
             if (sample == null || entry.getKey() != pack(sample.x(), sample.z())) {
                 throw new IllegalArgumentException("Footprint keys must match their column coordinates.");
             }
-            ordered.put(entry.getKey(), sample);
+            indexed.put(entry.getKey().longValue(), sample);
         }
-        Long2ObjectLinkedOpenHashMap<HydrologyColumnSample> indexed =
-                new Long2ObjectLinkedOpenHashMap<>(ordered.size());
-        for (Map.Entry<Long, HydrologyColumnSample> entry : ordered.entrySet()) {
-            indexed.put(entry.getKey().longValue(), entry.getValue());
+        long[] order = indexed.keySet().toLongArray();
+        Arrays.sort(order);
+        for (long key : order) {
+            indexed.getAndMoveToLast(key);
         }
-        columns = Collections.unmodifiableMap(indexed);
-        this.columns = columns;
+        this.columns = Collections.unmodifiableMap(indexed);
     }
 
     public static RiverFootprint empty() {
-        return new RiverFootprint(Map.of());
+        return EMPTY;
     }
 
     public Optional<HydrologyColumnSample> sample(int x, int z) {
-        return Optional.ofNullable(columns.get(pack(x, z)));
+        return Optional.ofNullable(indexed.get(pack(x, z)));
     }
 
     public HydrologyRenderSample renderSample(int x, int z) {
-        HydrologyColumnSample sample = columns.get(pack(x, z));
+        HydrologyColumnSample sample = indexed.get(pack(x, z));
         return sample == null ? new HydrologyRenderSample(x, z, List.of()) : sample.renderSample();
     }
 
@@ -61,7 +63,7 @@ public final class RiverFootprint {
         if (area < columns.size()) {
             for (long z = minimumZ; z < maximumZ; z++) {
                 for (long x = minimumX; x < maximumX; x++) {
-                    HydrologyColumnSample sample = columns.get(pack((int) x, (int) z));
+                    HydrologyColumnSample sample = indexed.get(pack((int) x, (int) z));
                     if (sample != null) {
                         selected.add(sample);
                     }

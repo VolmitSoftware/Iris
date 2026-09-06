@@ -2646,7 +2646,7 @@ public final class HydrologyPlanner {
                 potential,
                 parent,
                 outletIndex,
-                routeLengths(grid, parent),
+                routeLengths(parent, grid.width(), settings.routing()),
                 List.copyOf(outlets),
                 false
         );
@@ -3222,29 +3222,41 @@ public final class HydrologyPlanner {
         return count + (HydrologyHash.unit(stable) < remainder ? 1 : 0);
     }
 
-    private int[] routeLengths(SampledGrid grid, int[] parent) {
+    static int[] routeLengths(int[] parent, int width, HydrologyPlannerSettings.Routing routing) {
         int[] lengths = new int[parent.length];
+        int[] pending = new int[parent.length];
+        double[] distances = new double[parent.length];
+        Arrays.fill(distances, Double.NaN);
+        double diagonalDistance = StrictMath.hypot(routing.sampleSpacing(), routing.sampleSpacing());
         for (int sourceIndex = 0; sourceIndex < parent.length; sourceIndex++) {
-            lengths[sourceIndex] = routeLength(sourceIndex, grid, parent);
+            if (!Double.isNaN(distances[sourceIndex])) {
+                continue;
+            }
+            int current = sourceIndex;
+            int pendingCount = 0;
+            while (current >= 0 && Double.isNaN(distances[current])) {
+                pending[pendingCount++] = current;
+                distances[current] = -1D;
+                current = parent[current];
+            }
+            if (current >= 0 && distances[current] < 0D) {
+                throw new IllegalStateException("Hydrology drainage routing contains a cycle.");
+            }
+            double distance = current < 0 ? 0D : distances[current];
+            while (pendingCount > 0) {
+                int node = pending[--pendingCount];
+                int next = parent[node];
+                if (next >= 0) {
+                    boolean cardinal = node / width == next / width || node % width == next % width;
+                    distance += cardinal ? routing.sampleSpacing() : diagonalDistance;
+                }
+                distances[node] = distance;
+                lengths[node] = distance > routing.maximumRouteLength()
+                        ? Integer.MAX_VALUE
+                        : (int) StrictMath.ceil(distance);
+            }
         }
         return lengths;
-    }
-
-    private int routeLength(int sourceIndex, SampledGrid grid, int[] parent) {
-        int current = sourceIndex;
-        int steps = 0;
-        double length = 0D;
-        while (parent[current] >= 0) {
-            int next = parent[current];
-            GridNode currentNode = grid.node(current);
-            GridNode nextNode = grid.node(next);
-            length += StrictMath.hypot(currentNode.x() - nextNode.x(), currentNode.z() - nextNode.z());
-            if (length > settings.routing().maximumRouteLength() || ++steps > settings.routing().maximumRouteNodes()) {
-                return Integer.MAX_VALUE;
-            }
-            current = next;
-        }
-        return (int) StrictMath.ceil(length);
     }
 
     private int[] countContributions(List<Integer> sources, RoutingPlan routing) {

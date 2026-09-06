@@ -22,24 +22,15 @@ import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-/**
- * Validates biome layer stacks. caveCeilingLayers reuses the height generators built from layers,
- * so a biome with more ceiling entries than surface entries has no generator for the extras; the
- * engine skips them, and this validator surfaces the mistake to the author at validate time.
- */
 final class PackBiomeLayerValidator {
-    private static final int DEFAULT_LAYER_COUNT = 1;
-
     private PackBiomeLayerValidator() {
     }
 
-    static List<String> validateCeilingLayerCounts(File biomesFolder) {
+    static List<String> validateLayers(File biomesFolder) {
         List<String> blockingErrors = new ArrayList<>();
         if (biomesFolder == null || !biomesFolder.isDirectory()) {
             return blockingErrors;
@@ -49,24 +40,13 @@ final class PackBiomeLayerValidator {
         biomeFiles.sort(Comparator.comparing(File::getPath));
         for (File biomeFile : biomeFiles) {
             String biomeKey = PackValidationIo.deriveKey(biomesFolder, biomeFile);
-            JSONObject biome;
-            try {
-                biome = new JSONObject(Files.readString(biomeFile.toPath(), StandardCharsets.UTF_8));
-            } catch (Throwable e) {
-                // Invalid JSON is reported by the graph validators; layer counts have nothing to add.
+            JSONObject biome = PackValidationIo.readJson(biomeFile);
+            if (biome == null) {
                 continue;
             }
 
-            Integer layers = arrayLength(biome, "layers", biomeKey, DEFAULT_LAYER_COUNT, blockingErrors);
-            Integer ceiling = arrayLength(biome, "caveCeilingLayers", biomeKey, 0, blockingErrors);
-            if (layers == null || ceiling == null) {
-                continue;
-            }
-
-            if (ceiling > layers) {
-                blockingErrors.add("Biome '" + biomeKey + "' declares " + ceiling + " caveCeilingLayers but only "
-                        + layers + " layers. caveCeilingLayers reuses the layers height generators and must not have more entries.");
-            }
+            validateLayerArray(biome, "layers", biomeKey, blockingErrors);
+            validateLayerArray(biome, "caveCeilingLayers", biomeKey, blockingErrors);
         }
         return blockingErrors;
     }
@@ -126,17 +106,15 @@ final class PackBiomeLayerValidator {
         }
     }
 
-    private static Integer arrayLength(JSONObject biome, String field, String biomeKey, int defaultCount,
+    private static void validateLayerArray(JSONObject biome, String field, String biomeKey,
                                        List<String> blockingErrors) {
         if (!biome.has(field) || biome.isNull(field)) {
-            return defaultCount;
+            return;
         }
 
         JSONArray array = biome.optJSONArray(field);
         if (array == null) {
             blockingErrors.add("Biome '" + biomeKey + "' " + field + " must be an array.");
-            return null;
         }
-        return array.length();
     }
 }

@@ -22,6 +22,8 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterSlice;
 
+import java.util.Arrays;
+
 final class CaveCarveScratch {
     final int[] columnMaxY = new int[256];
     final int[] fluidMaxY = new int[256];
@@ -70,4 +72,9 @@ final class CaveCarveScratch {
     int adaptiveGeometryStep = -1;
     int adaptiveGeometryAxisCells = -1;
     boolean fullWeightsInitialized;
+
+    void releaseSections() {
+        Arrays.fill(sectionMatter, null);
+        Arrays.fill(sectionSlices, null);
+    }
 }

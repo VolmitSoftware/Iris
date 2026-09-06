@@ -92,6 +92,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private final transient AtomicCache<IrisBiome> realCarveBiome = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
     private final transient AtomicCache<KList<CNG>> layerHeightGenerators = new AtomicCache<>();
+    private final transient AtomicCache<KList<CNG>> layerCeilingHeightGenerators = new AtomicCache<>();
     private final transient AtomicCache<KList<CNG>> layerSeaHeightGenerators = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisOreGenerator>> surfaceOreCache = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisOreGenerator>> undergroundOreCache = new AtomicCache<>();

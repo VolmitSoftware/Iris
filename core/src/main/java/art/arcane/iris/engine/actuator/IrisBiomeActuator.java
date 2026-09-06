@@ -41,7 +41,6 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterBiomeInject;
 import art.arcane.volmlib.util.matter.slices.BiomeInjectMatter;
-import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
 import java.util.List;
@@ -49,7 +48,6 @@ import java.util.Objects;
 
 public class IrisBiomeActuator extends EngineAssignedActuator<PlatformBiome> {
     private final RNG rng;
-    private final ChronoLatch cl = new ChronoLatch(5000);
     private final KMap<String, ResolvedBiome> resolvedBiomes = new KMap<>();
     private final KMap<String, ResolvedBiome> resolvedPhysicalBiomes = new KMap<>();
 

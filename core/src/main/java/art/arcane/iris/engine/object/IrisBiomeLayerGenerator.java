@@ -74,7 +74,7 @@ final class IrisBiomeLayerGenerator {
             IrisBiomePaletteLayer layer = layers.get(i);
             double zoom = layer.getZoom();
             CNG hgen = heightGenerators.get(i);
-            double d = hgen.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / zoom, wz / zoom);
+            int d = hgen.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / zoom, wz / zoom);
 
             IrisSlopeClip sc = layer.getSlopeCondition();
 
@@ -88,17 +88,7 @@ final class IrisBiomeLayerGenerator {
                 continue;
             }
 
-            for (int j = 0; j < d; j++) {
-                if (data.size() >= maxDepth) {
-                    break;
-                }
-
-                try {
-                    data.add(layer.get(random, i + j, (wx + j) / zoom, j, (wz - j) / zoom, rdata));
-                } catch (Throwable e) {
-                    IrisLogging.reportError(e);
-                }
-            }
+            appendLayer(data, layer, i, d, wx, wz, random, maxDepth, rdata);
 
             if (data.size() >= maxDepth) {
                 break;
@@ -132,31 +122,20 @@ final class IrisBiomeLayerGenerator {
             return data;
         }
 
-        KList<CNG> heightGenerators = getLayerHeightGenerators(biome, random, rdata);
-        // Ceiling layers reuse the surface-layer height generators, so entries beyond layers.size() have no generator; skip them.
-        int usableLayers = Math.min(layerCount, heightGenerators.size());
+        KList<CNG> heightGenerators = getHeightGenerators(
+                biome.getLayerCeilingHeightGenerators(), ceilingLayers, 7235, random, rdata);
 
-        for (int i = 0; i < usableLayers; i++) {
+        for (int i = 0; i < layerCount; i++) {
             IrisBiomePaletteLayer layer = ceilingLayers.get(i);
             double zoom = layer.getZoom();
             CNG hgen = heightGenerators.get(i);
-            double d = hgen.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / zoom, wz / zoom);
+            int d = hgen.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / zoom, wz / zoom);
 
             if (d <= 0) {
                 continue;
             }
 
-            for (int j = 0; j < d; j++) {
-                if (data.size() >= maxDepth) {
-                    break;
-                }
-
-                try {
-                    data.add(layer.get(random, i + j, (wx + j) / zoom, j, (wz - j) / zoom, rdata));
-                } catch (Throwable e) {
-                    IrisLogging.reportError(e);
-                }
-            }
+            appendLayer(data, layer, i, d, wx, wz, random, maxDepth, rdata);
 
             if (data.size() >= maxDepth) {
                 break;
@@ -198,7 +177,7 @@ final class IrisBiomeLayerGenerator {
                 IrisBiomePaletteLayer layer = layers.get(i);
                 double zoom = layer.getZoom();
                 CNG hgen = heightGenerators.get(i);
-                double d = hgen.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / zoom, wz / zoom);
+                int d = hgen.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / zoom, wz / zoom);
 
                 IrisSlopeClip sc = layer.getSlopeCondition();
 
@@ -212,13 +191,7 @@ final class IrisBiomeLayerGenerator {
                     continue;
                 }
 
-                for (int j = 0; j < d; j++) {
-                    try {
-                        data.add(layer.get(random, i + j, (wx + j) / zoom, j, (wz - j) / zoom, rdata));
-                    } catch (Throwable e) {
-                        IrisLogging.reportError(e);
-                    }
-                }
+                appendLayer(data, layer, i, d, wx, wz, random, Integer.MAX_VALUE, rdata);
             }
         }
 
@@ -227,9 +200,8 @@ final class IrisBiomeLayerGenerator {
         }
 
         for (int i = 0; i < maxDepth; i++) {
-            int offset = (512 - height) - i;
-            int index = offset % data.size();
-            real.add(data.get(Math.max(index, 0)));
+            long offset = 512L - height - i;
+            real.add(data.get(Math.floorMod(offset, data.size())));
         }
 
         return real;
@@ -264,17 +236,7 @@ final class IrisBiomeLayerGenerator {
                 continue;
             }
 
-            for (int j = 0; j < d; j++) {
-                if (data.size() >= maxDepth) {
-                    break;
-                }
-
-                try {
-                    data.add(layer.get(random, i + j, (wx + j) / zoom, j, (wz - j) / zoom, rdata));
-                } catch (Throwable e) {
-                    IrisLogging.reportError(e);
-                }
-            }
+            appendLayer(data, layer, i, d, wx, wz, random, maxDepth, rdata);
 
             if (data.size() >= maxDepth) {
                 break;
@@ -285,7 +247,16 @@ final class IrisBiomeLayerGenerator {
     }
 
     static KList<CNG> getLayerHeightGenerators(IrisBiome biome, RNG rng, IrisData rdata) {
-        AtomicCache<KList<CNG>> cache = biome.getLayerHeightGenerators();
+        return getHeightGenerators(biome.getLayerHeightGenerators(), biome.getLayers(), 7235, rng, rdata);
+    }
+
+    static KList<CNG> getLayerSeaHeightGenerators(IrisBiome biome, RNG rng, IrisData data) {
+        return getHeightGenerators(biome.getLayerSeaHeightGenerators(), biome.getSeaLayers(), 7735, rng, data);
+    }
+
+    private static KList<CNG> getHeightGenerators(AtomicCache<KList<CNG>> cache,
+                                                  KList<IrisBiomePaletteLayer> layers,
+                                                  int seedOffset, RNG rng, IrisData data) {
         KList<CNG> cached = cache.getIfPresent();
 
         if (cached != null) {
@@ -296,36 +267,28 @@ final class IrisBiomeLayerGenerator {
         {
             KList<CNG> layerHeightGenerators = new KList<>();
 
-            int m = 7235;
+            int m = seedOffset;
 
-            for (IrisBiomePaletteLayer i : biome.getLayers()) {
-                layerHeightGenerators.add(i.getHeightGenerator(rng.nextParallelRNG((m++) * m * m * m), rdata));
+            for (IrisBiomePaletteLayer layer : layers) {
+                layerHeightGenerators.add(layer.getHeightGenerator(rng.nextParallelRNG((m++) * m * m * m), data));
             }
 
             return layerHeightGenerators;
         });
     }
 
-    static KList<CNG> getLayerSeaHeightGenerators(IrisBiome biome, RNG rng, IrisData data) {
-        AtomicCache<KList<CNG>> cache = biome.getLayerSeaHeightGenerators();
-        KList<CNG> cached = cache.getIfPresent();
-
-        if (cached != null) {
-            return cached;
-        }
-
-        return cache.aquire(() ->
-        {
-            KList<CNG> layerSeaHeightGenerators = new KList<>();
-
-            int m = 7735;
-
-            for (IrisBiomePaletteLayer i : biome.getSeaLayers()) {
-                layerSeaHeightGenerators.add(i.getHeightGenerator(rng.nextParallelRNG((m++) * m * m * m), data));
+    private static void appendLayer(KList<PlatformBlockState> blocks, IrisBiomePaletteLayer layer,
+                                    int layerIndex, int thickness, double x, double z,
+                                    RNG random, int maxDepth, IrisData data) {
+        double zoom = layer.getZoom();
+        for (int offset = 0; offset < thickness && blocks.size() < maxDepth; offset++) {
+            try {
+                blocks.add(layer.get(random, layerIndex + offset,
+                        (x + offset) / zoom, offset, (z - offset) / zoom, data));
+            } catch (Throwable error) {
+                IrisLogging.reportError(error);
             }
-
-            return layerSeaHeightGenerators;
-        });
+        }
     }
 
     static PlatformBlockState getSurfaceBlock(IrisBiome biome, int x, int z, RNG rng, IrisData idm) {

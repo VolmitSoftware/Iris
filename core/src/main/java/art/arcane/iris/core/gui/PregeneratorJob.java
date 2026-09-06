@@ -33,6 +33,7 @@ import art.arcane.iris.core.pregenerator.PregenRates;
 import art.arcane.iris.core.pregenerator.PregenTask;
 import art.arcane.iris.core.pregenerator.PregeneratorMethod;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.history.SavedBiomeUnavailableException;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.format.MemoryMonitor;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -492,18 +493,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
 
     @Override
     public void onChunkGenerated(int x, int z, boolean cached) {
-        if (renderer == null || !renderer.isVisibleFrame()) return;
-        if (service.isShutdown()) {
-            return;
-        }
-        service.execute(() -> {
-            if (engine != null) {
-                draw(x, z, engine.draw((x << 4) + 8, (z << 4) + 8));
-                return;
-            }
-
-            draw(x, z, COLOR_GENERATED);
-        });
+        drawChunkPreview(x, z, COLOR_GENERATED);
     }
 
     @Override
@@ -578,12 +568,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
 
     @Override
     public void onChunkExistsInRegionGen(int x, int z) {
-        if (engine != null) {
-            draw(x, z, engine.draw((x << 4) + 8, (z << 4) + 8));
-            return;
-        }
-
-        draw(x, z, COLOR_EXISTS);
+        drawChunkPreview(x, z, COLOR_EXISTS);
     }
 
     @Override
@@ -604,6 +589,35 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
     @Override
     public String[] progress() {
         return info;
+    }
+
+    private void drawChunkPreview(int x, int z, Color statusColor) {
+        PregenRenderer activeRenderer = renderer;
+        if (activeRenderer == null || !activeRenderer.isVisibleFrame() || service.isShutdown()) {
+            return;
+        }
+        draw(x, z, statusColor);
+        if (engine != null) {
+            service.execute(() -> renderChunkPreview(x, z));
+        }
+    }
+
+    private void renderChunkPreview(int x, int z) {
+        PregenRenderer activeRenderer = renderer;
+        if (activeRenderer == null || !activeRenderer.isVisibleFrame() || service.isShutdown() || engine.isClosing()) {
+            return;
+        }
+        try {
+            draw(x, z, engine.drawForPreview((x << 4) + 8, (z << 4) + 8));
+        } catch (InterruptedException interruption) {
+            Thread.currentThread().interrupt();
+        } catch (SavedBiomeUnavailableException unavailable) {
+            if (!unavailable.isLoading()) {
+                IrisLogging.reportError("Unable to draw saved biome information for chunk " + x + "," + z + ".", unavailable);
+            }
+        } catch (RuntimeException failure) {
+            IrisLogging.reportError("Unable to draw the pregeneration preview for chunk " + x + "," + z + ".", failure);
+        }
     }
 
     public record Configuration(

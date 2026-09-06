@@ -77,6 +77,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.awt.Color;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -544,6 +545,26 @@ public class IrisEngine implements Engine {
             getMantle().generateMatter(x, z, multicore, context);
         } catch (GenerationSessionException | IOException e) {
             throw new IllegalStateException("Matter generation was rejected by the Iris lifecycle.", e);
+        }
+    }
+
+    @Override
+    public Color drawForPreview(int x, int z) throws InterruptedException {
+        try (GenerationSessionLease lease = acquireGenerationLease("pregen_preview")) {
+            if (!usesSavedBiomeEnvironment()) {
+                return Engine.super.draw(x, z);
+            }
+            return generationHistoryRuntimeRouter.biomes().readSurfaceBiome(x, z, saved -> {
+                if (saved.isPresent()) {
+                    return drawBiomeEnvironment(x, z, saved.get());
+                }
+                try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
+                             openGenerationHistoryCoordinateScopeUnchecked(x, z, "draw a pregeneration preview")) {
+                    return Engine.super.draw(x, z);
+                }
+            });
+        } catch (GenerationSessionException failure) {
+            throw new IllegalStateException("Pregeneration preview was rejected by the Iris lifecycle.", failure);
         }
     }
 

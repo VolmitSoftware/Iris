@@ -262,11 +262,21 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     default Color draw(double x, double z) {
-        IrisRegion region = getRegion((int) x, (int) z);
-        IrisBiome biome = getSurfaceBiome((int) x, (int) z);
-        int height = getHeight((int) x, (int) z);
+        return drawBiomeEnvironment((int) x, (int) z, getSurfaceBiomeEnvironment((int) x, (int) z));
+    }
+
+    @BlockCoordinates
+    default Color drawForPreview(int x, int z) throws InterruptedException {
+        return draw(x, z);
+    }
+
+    @BlockCoordinates
+    default Color drawBiomeEnvironment(int x, int z, BiomeEnvironment environment) {
+        IrisRegion region = environment.region();
+        IrisBiome biome = environment.biome();
+        int height = getHeight(x, z);
         double heightFactor = M.lerpInverse(0, getTarget().getHeight(), height);
-        Color irc = region.getColor(this.getComplex(), RenderType.BIOME);
+        Color irc = region.getColor(environment::data, RenderType.BIOME);
         Color ibc = biome.getColor(this, RenderType.BIOME);
         Color rc = irc != null ? irc : Color.GREEN.darker();
         Color bc = ibc != null ? ibc : biome.isAquatic() ? Color.BLUE : Color.YELLOW;

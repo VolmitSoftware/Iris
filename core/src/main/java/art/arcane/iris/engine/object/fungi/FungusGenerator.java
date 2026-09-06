@@ -63,11 +63,7 @@ public final class FungusGenerator {
 
     private static void buildUpright(Map<Vector3i, FungusCellRole> roles, IrisFungus fungus, int height, RNG rng, long baseSeed) {
         int stemHeight = Math.max(1, height);
-        Map<Vector3i, PlatformBlockState> stemCells = new HashMap<>();
-        double[] top = FungusStemBuilder.build(stemCells, fungus, stemHeight, baseSeed);
-        for (Vector3i v : stemCells.keySet()) {
-            roles.put(v, FungusCellRole.STEM);
-        }
+        double[] top = FungusStemBuilder.build(roles, fungus, stemHeight, baseSeed);
 
         int radius = pickRadius(fungus, rng);
         double cx = top[0];

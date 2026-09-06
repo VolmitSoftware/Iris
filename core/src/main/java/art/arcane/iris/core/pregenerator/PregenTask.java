@@ -215,6 +215,11 @@ public class PregenTask {
         return new int[]{bound.minX(), bound.minZ(), bound.maxX(), bound.maxZ()};
     }
 
+    public int[] chunkBounds() {
+        Bound bound = bounds.chunk();
+        return new int[]{bound.minX(), bound.minZ(), bound.maxX(), bound.maxZ()};
+    }
+
     public long chunkCount() {
         Bound bound = bounds.chunk();
         return (long) bound.sizeX() * bound.sizeZ();

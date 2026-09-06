@@ -52,7 +52,10 @@ public class BukkitEngineLifecycleContractTest {
         String waitedShutdown = method(jobSource,
                 "private static boolean shutdownAndWait(PregeneratorJob inst, long timeoutMs)");
         assertBefore(waitedShutdown, "inst.requestStop()", "inst.worker.join(");
-        assertTrue(waitedShutdown.contains("inst.worker.isAlive()"));
+        assertBefore(waitedShutdown, "inst.worker.join(", "finishShutdown(inst, timeoutMs)");
+        String finishedShutdown = method(jobSource,
+                "private static boolean finishShutdown(PregeneratorJob inst, long timeoutMs)");
+        assertBefore(finishedShutdown, "inst.worker.isAlive()", "instance.compareAndSet(inst, null)");
 
         String hooksSource = Files.readString(Path.of(System.getProperty("iris.bukkitEnginePlatformHooksSource")));
         String hookShutdown = method(hooksSource, "public void shutdownPregenerator(Engine engine)");

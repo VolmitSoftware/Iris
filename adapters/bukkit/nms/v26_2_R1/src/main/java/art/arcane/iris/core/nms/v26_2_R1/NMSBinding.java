@@ -38,6 +38,7 @@ import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.math.Vector3d;
+import art.arcane.volmlib.util.scheduling.FoliaScheduler;
 import art.arcane.volmlib.util.matter.MatterBiomeInject;
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.util.nbt.common.mca.NBTWorld;
@@ -1138,6 +1139,18 @@ public class NMSBinding implements INMSBinding {
             IrisLogging.reportError(e);
             return false;
         }
+    }
+
+    @Override
+    public boolean pollChunkTask(World world) {
+        if (FoliaScheduler.isRegionizedRuntime(Bukkit.getServer())) {
+            return false;
+        }
+        ServerLevel level = ((CraftWorld) world).getHandle();
+        if (Thread.currentThread() != level.getServer().getRunningThread()) {
+            throw new IllegalStateException("Native chunk tasks require the server lifecycle thread");
+        }
+        return level.getChunkSource().pollTask();
     }
 
     @Override

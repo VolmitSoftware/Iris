@@ -357,6 +357,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     private CompletableFuture<Void> evictRegion(long c) {
+        if (IrisToolbelt.isServerStopping()) {
+            return CompletableFuture.completedFuture(null);
+        }
         if (!evictedRegions.add(c)) {
             return CompletableFuture.completedFuture(null);
         }
@@ -441,6 +444,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     private void flushAllRemainingChunks() {
+        if (IrisToolbelt.isServerStopping()) {
+            return;
+        }
         List<Long> keys = new ArrayList<>(regionChunks.keySet());
         List<CompletableFuture<Void>> evictions = new ArrayList<>(keys.size() + pendingEvictions.size());
         for (Long regionKey : keys) {
@@ -453,10 +459,27 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         CompletableFuture<Void> settledEvictions = evictionsComplete.handle((ignored, failure) -> null);
         CompletableFuture<Void> flush = foliaRuntime
                 ? settledEvictions
-                : settledEvictions.thenCompose(ignored -> J.sfut(() -> INMS.get().flushChunkIO(world)));
+                : settledEvictions.thenCompose(ignored -> IrisToolbelt.isServerStopping()
+                        ? CompletableFuture.completedFuture(null)
+                        : J.sfut(() -> INMS.get().flushChunkIO(world)));
 
+        long started = System.nanoTime();
+        long timeoutNanos = TimeUnit.SECONDS.toNanos(FLUSH_TIMEOUT_SECONDS);
         try {
-            flush.get(FLUSH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            while (!IrisToolbelt.isServerStopping()) {
+                long remaining = timeoutNanos - (System.nanoTime() - started);
+                if (remaining <= 0L) {
+                    throw new TimeoutException();
+                }
+                try {
+                    flush.get(Math.min(remaining, TimeUnit.MILLISECONDS.toNanos(100L)), TimeUnit.NANOSECONDS);
+                    return;
+                } catch (TimeoutException e) {
+                    if (System.nanoTime() - started >= timeoutNanos) {
+                        throw e;
+                    }
+                }
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             IrisLogging.warn("Interrupted while flushing pregen chunks for " + world.getName() + ".");

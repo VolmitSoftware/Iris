@@ -772,7 +772,7 @@ public class J {
     }
 
     private static boolean isPluginEnabled() {
-        return usesBukkitScheduler() && BukkitPlatform.hasPlugin() && Bukkit.getPluginManager().isPluginEnabled(BukkitPlatform.plugin());
+        return usesBukkitScheduler() && BukkitPlatform.hasPlugin() && BukkitPlatform.plugin().isEnabled();
     }
 
     private static boolean canSchedule() {

@@ -16,6 +16,9 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -44,6 +47,40 @@ public class IrisObjectTransformsTileTest {
     @After
     public void unbindPlatform() {
         IrisPlatforms.unbind();
+    }
+
+    @Test
+    public void rotationOmitsUnsupportedBlocksAndTheirTiles() {
+        IrisObject source = new IrisObject(3, 1, 1);
+        PlatformBlockState unsupported = state("minecraft:wall_torch");
+        source.setUnsigned(0, 0, 0, unsupported);
+        source.setUnsignedTile(0, 0, 0, tile("minecraft:wall_torch", "omitted"));
+        source.setUnsigned(1, 0, 0, state("minecraft:chest"));
+        source.setUnsignedTile(1, 0, 0, tile("minecraft:chest", "kept"));
+        source.setUnsigned(2, 0, 0, state("minecraft:stone"));
+        IrisObjectRotation.StateRotator previous = IrisObjectRotation.bindPlatformRotator(
+                (rotation, block, x, y, z) -> block == unsupported ? null : block);
+        IrisObject rotated;
+        try {
+            rotated = source.rotateCopy(IrisObjectRotation.of(0, 90, 0));
+        } finally {
+            IrisObjectRotation.restorePlatformRotator(previous);
+        }
+
+        assertEquals(2, rotated.getBlocks().size());
+        assertEquals(1, rotated.getStates().size());
+        for (Map.Entry<IrisBlockVector, TileData> entry : rotated.getStates()) {
+            assertEquals("minecraft:chest", rotated.getBlocks().get(entry.getKey()).materialKey());
+            assertEquals("kept", entry.getValue().getProperties().get("name"));
+        }
+        assertEquals(3, source.getBlocks().size());
+        assertEquals(2, source.getStates().size());
+    }
+
+    @Test
+    public void scalingWaitsForMatchingGeometryAndVolume() throws Exception {
+        assertConsistentScaling(false);
+        assertConsistentScaling(true);
     }
 
     @Test
@@ -184,6 +221,52 @@ public class IrisObjectTransformsTileTest {
         IrisObject scaled = source.scaledAroundOrigin(2, IrisObjectPlacementScaleInterpolator.NONE);
 
         assertEquals(8, scaled.getStates().size());
+    }
+
+    private static void assertConsistentScaling(boolean savedOrigin) throws Exception {
+        IrisObject source = new IrisObject(9, 5, 3);
+        source.setUnsigned(0, 0, 0, state("minecraft:stone"));
+        FutureTask<IrisObject> scaling = new FutureTask<>(() -> savedOrigin
+                ? source.scaledAroundOrigin(2, IrisObjectPlacementScaleInterpolator.NONE)
+                : source.scaled(2, IrisObjectPlacementScaleInterpolator.NONE));
+        Thread worker = new Thread(scaling, "object-scaling-snapshot");
+        source.writeLock.lock();
+        try {
+            worker.start();
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            while (worker.getState() != Thread.State.WAITING && System.nanoTime() < deadline) {
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+            }
+            assertEquals(Thread.State.WAITING, worker.getState());
+            source.setW(2);
+            source.setH(2);
+            source.setD(2);
+            source.setCenter(new Vector3i(1, 1, 1));
+            source.getBlocks().clear();
+            source.setUnsigned(0, 0, 0, state("minecraft:chest"));
+            source.setUnsignedTile(0, 0, 0, tile("minecraft:chest", "new volume"));
+        } finally {
+            source.writeLock.unlock();
+        }
+        try {
+            IrisObject actual = scaling.get(5, TimeUnit.SECONDS);
+            IrisObject expected = savedOrigin
+                    ? source.scaledAroundOrigin(2, IrisObjectPlacementScaleInterpolator.NONE)
+                    : source.scaled(2, IrisObjectPlacementScaleInterpolator.NONE);
+            assertEquals(expected.getCenter(), actual.getCenter());
+            assertEquals(expected.getW(), actual.getW());
+            assertEquals(expected.getH(), actual.getH());
+            assertEquals(expected.getD(), actual.getD());
+            assertEquals(expected.getBlocks().size(), actual.getBlocks().size());
+            assertEquals(expected.getStates().size(), actual.getStates().size());
+            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : expected.getBlocks()) {
+                assertEquals(entry.getValue(), actual.getBlocks().get(entry.getKey()));
+                assertEquals(expected.getStates().get(entry.getKey()), actual.getStates().get(entry.getKey()));
+            }
+        } finally {
+            worker.interrupt();
+            worker.join(TimeUnit.SECONDS.toMillis(5));
+        }
     }
 
     private static IrisObject asymmetricObject() {

@@ -170,7 +170,9 @@ public final class CoralGenerator {
             int y = (int) Math.round(oy + dy * t);
             int z = (int) Math.round(oz + dz * t - sway);
             canvas.set(x, y, z, CoralCanvas.Role.STRUCTURE);
-            tip = new double[]{x, y, z};
+            tip[0] = x;
+            tip[1] = y;
+            tip[2] = z;
         }
         return tip;
     }

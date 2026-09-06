@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.object.tree;
 
-import java.util.ArrayList;
 import java.util.Map;
 
 public final class TreeSupport {
@@ -36,7 +35,7 @@ public final class TreeSupport {
             TreeBlockCanvas.Vec worstWood = null;
             int worstGap = -1;
 
-            for (TreeBlockCanvas.Vec leaf : new ArrayList<>(canvas.getLeaf())) {
+            for (TreeBlockCanvas.Vec leaf : canvas.getLeaf()) {
                 Integer d = dist.get(leaf);
                 if (d != null && d <= LEGAL_DISTANCE) {
                     continue;

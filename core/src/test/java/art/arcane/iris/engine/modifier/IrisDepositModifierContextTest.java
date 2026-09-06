@@ -3,6 +3,9 @@ package art.arcane.iris.engine.modifier;
 import art.arcane.iris.engine.IrisEngine;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisDepositGenerator;
+import art.arcane.iris.engine.object.IrisDepositHeightDistribution;
+import art.arcane.iris.engine.object.IrisDepositPlacementScope;
+import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -16,6 +19,7 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -33,14 +37,12 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -88,6 +90,26 @@ public class IrisDepositModifierContextTest {
         try (Fixture fixture = new Fixture(mock(Engine.class, RETURNS_DEEP_STUBS), false)) {
             fixture.generateAndCheckCleanup();
         }
+    }
+
+    @Test
+    public void failedClumpChanceDoesNotResampleTheConfiguredAttemptCount() {
+        Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
+        IrisDepositGenerator generator = mock(IrisDepositGenerator.class);
+        when(generator.getSpawnChance()).thenReturn(1D);
+        when(generator.getMinPerChunk()).thenReturn(0);
+        when(generator.getMaxPerChunk()).thenReturn(4);
+        when(generator.getPerClumpSpawnChance()).thenReturn(0D);
+        RNG rng = mock(RNG.class);
+        when(rng.d()).thenReturn(0.5D);
+        when(rng.i(0, 5)).thenReturn(4, 0);
+        when(rng.nextParallelRNG(anyLong())).thenReturn(rng);
+
+        new IrisDepositModifier(engine).generate(generator, null, null, rng, 0, 0, false, null);
+
+        verify(generator, times(4)).getPerClumpSpawnChance();
+        verify(rng, times(1)).i(0, 5);
+        verify(generator, never()).getClump(any(), any(), any());
     }
 
     private static final class Fixture implements AutoCloseable {
@@ -138,16 +160,27 @@ public class IrisDepositModifierContextTest {
                     return null;
                 }).when(scope).close();
             }
-            modifier = spy(new IrisDepositModifier(engine));
-            doAnswer(invocation -> {
-                assertNotSame(caller, Thread.currentThread());
-                assertEquals(scoped, workerRuntime.get());
-                assertSame(engine, IrisContext.require().getEngine());
-                assertSame(context, IrisContext.require().getChunkContext());
-                assertEquals(71L, IrisContext.require().getGenerationSessionId());
-                completed.incrementAndGet();
-                return null;
-            }).when(modifier).generate(any(), same(chunk), any(), any(), eq(2), eq(-3), eq(false), same(context));
+            when(engine.getHeight()).thenReturn(16);
+            IrisObject clump = new IrisObject(1, 1, 1);
+            for (IrisDepositGenerator generator : new IrisDepositGenerator[]{dimensionDeposit, regionDeposit, biomeDeposit}) {
+                when(generator.getSpawnChance()).thenReturn(1D);
+                when(generator.getMinPerChunk()).thenReturn(1);
+                when(generator.getMaxPerChunk()).thenReturn(1);
+                when(generator.getPerClumpSpawnChance()).thenReturn(1D);
+                when(generator.getPlacementScope()).thenReturn(IrisDepositPlacementScope.FULL_HEIGHT);
+                when(generator.getHeightDistribution()).thenReturn(IrisDepositHeightDistribution.UNIFORM);
+                when(generator.matchesBiome(any(), any())).thenReturn(true);
+                doAnswer(invocation -> {
+                    assertNotSame(caller, Thread.currentThread());
+                    assertEquals(scoped, workerRuntime.get());
+                    assertSame(engine, IrisContext.require().getEngine());
+                    assertSame(context, IrisContext.require().getChunkContext());
+                    assertEquals(71L, IrisContext.require().getGenerationSessionId());
+                    completed.incrementAndGet();
+                    return clump;
+                }).when(generator).getClump(any(), any(), any());
+            }
+            modifier = new IrisDepositModifier(engine);
             doAnswer(invocation -> {
                 assertEquals(3, completed.get());
                 assertEquals(scoped ? 3 : 0, closedScopes.get());

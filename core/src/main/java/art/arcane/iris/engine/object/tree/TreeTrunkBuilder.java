@@ -121,7 +121,7 @@ public final class TreeTrunkBuilder {
     }
 
     private static void markExposedEnds(TreeBlockCanvas canvas) {
-        for (TreeBlockCanvas.Vec v : new ArrayList<>(canvas.getTrunk())) {
+        for (TreeBlockCanvas.Vec v : canvas.getTrunk()) {
             if (!canvas.has(v.x(), v.y() + 1, v.z()) || !canvas.has(v.x(), v.y() - 1, v.z())) {
                 canvas.markExposed(v.x(), v.y(), v.z());
             }

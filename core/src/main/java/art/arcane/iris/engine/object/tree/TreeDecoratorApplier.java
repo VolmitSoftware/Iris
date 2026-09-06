@@ -67,11 +67,24 @@ public final class TreeDecoratorApplier {
             if (rng.nextDouble() > dec.getChance()) {
                 continue;
             }
-            if (canvas.has(e[0], e[1], e[2])) {
+            int dx = e[0] - e[3];
+            int dz = e[2] - e[4];
+            boolean alongX = Math.abs(dx) >= Math.abs(dz);
+            int stepX = alongX ? (dx >= 0 ? 1 : -1) : 0;
+            int stepZ = alongX ? 0 : (dz >= 0 ? 1 : -1);
+            int x = e[0] + stepX;
+            int z = e[2] + stepZ;
+            TreeBlockCanvas.Cell cell = canvas.get(x, e[1], z);
+            while (cell != null && cell.role() != TreeBlockCanvas.Role.DECORATOR) {
+                x += stepX;
+                z += stepZ;
+                cell = canvas.get(x, e[1], z);
+            }
+            if (cell != null) {
                 continue;
             }
             String facing = dec.isAxisAware() ? facingAway(e[3], e[4], e[0], e[2]) : null;
-            canvas.setDecor(e[0], e[1], e[2], idx, facing);
+            canvas.setDecor(x, e[1], z, idx, facing);
         }
     }
 

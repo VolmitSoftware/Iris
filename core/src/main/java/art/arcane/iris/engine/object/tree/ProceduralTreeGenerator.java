@@ -66,9 +66,10 @@ public final class ProceduralTreeGenerator {
         Map<TreeBlockCanvas.Vec, PlatformBlockState> resolved = new HashMap<>();
         Set<TreeBlockCanvas.Vec> trunkPositions = new HashSet<>();
         Set<TreeBlockCanvas.Vec> leafPositions = new HashSet<>();
+        RNG paletteRng = new RNG(tree.getSeed());
         for (Map.Entry<TreeBlockCanvas.Vec, TreeBlockCanvas.Cell> entry : canvas.getCells().entrySet()) {
             TreeBlockCanvas.Cell cell = entry.getValue();
-            PlatformBlockState state = TreeBlockResolver.resolve(tree, data, cell, entry.getKey());
+            PlatformBlockState state = TreeBlockResolver.resolve(tree, data, cell, entry.getKey(), paletteRng);
             if (state == null) {
                 continue;
             }

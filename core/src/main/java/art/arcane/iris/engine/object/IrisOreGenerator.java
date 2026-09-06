@@ -58,7 +58,7 @@ public class IrisOreGenerator {
     }
 
     public PlatformBlockState generate(int x, int y, int z, RNG rng, IrisData data) {
-        if (!range.contains(y)) {
+        if (threshold <= 0 || !range.contains(y)) {
             return null;
         }
 

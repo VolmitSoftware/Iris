@@ -25,35 +25,48 @@ import art.arcane.iris.engine.object.IrisProceduralBlocks;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 public final class FormationBlockResolver {
-    private FormationBlockResolver() {
+    private final IrisFormation formation;
+    private final IrisData data;
+    private final RNG paletteRng;
+    private final Int2ObjectOpenHashMap<RNG> strataRngs = new Int2ObjectOpenHashMap<>();
+
+    public FormationBlockResolver(IrisFormation formation, IrisData data) {
+        this.formation = formation;
+        this.data = data;
+        paletteRng = new RNG(formation.getSeed());
     }
 
-    public static PlatformBlockState resolve(IrisFormation f, IrisData data, FormationCanvas.Role role, Vector3i raw) {
+    public PlatformBlockState resolve(FormationCanvas.Role role, Vector3i raw) {
         int x = raw.getBlockX();
         int y = raw.getBlockY();
         int z = raw.getBlockZ();
-        RNG paletteRng = new RNG(f.getSeed());
 
-        if (role == FormationCanvas.Role.CAP && capDefined(f)) {
-            PlatformBlockState cap = IrisProceduralBlocks.resolve(f.getCapBlock(), f.getCapPalette(), data, x, y, z, paletteRng);
+        if (role == FormationCanvas.Role.CAP && capDefined(formation)) {
+            PlatformBlockState cap = IrisProceduralBlocks.resolve(formation.getCapBlock(), formation.getCapPalette(), data, x, y, z, paletteRng);
             if (cap != null) {
                 return cap;
             }
         }
 
-        if (strataDefined(f)) {
-            IrisMaterialPalette strata = f.getStrataPalette();
-            int thickness = Math.max(1, f.getStrataThickness());
+        if (strataDefined(formation)) {
+            IrisMaterialPalette strata = formation.getStrataPalette();
+            int thickness = Math.max(1, formation.getStrataThickness());
             int band = Math.floorDiv(y, thickness);
-            PlatformBlockState strataState = strata.get(new RNG(f.getSeed() + (band * 31L)), x, band, z, data);
+            RNG strataRng = strataRngs.get(band);
+            if (strataRng == null) {
+                strataRng = new RNG(formation.getSeed() + band * 31L);
+                strataRngs.put(band, strataRng);
+            }
+            PlatformBlockState strataState = strata.get(strataRng, x, band, z, data);
             if (strataState != null) {
                 return strataState;
             }
         }
 
-        return IrisProceduralBlocks.resolve(f.getBlock(), f.getBlockPalette(), data, x, y, z, paletteRng);
+        return IrisProceduralBlocks.resolve(formation.getBlock(), formation.getBlockPalette(), data, x, y, z, paletteRng);
     }
 
     private static boolean capDefined(IrisFormation f) {

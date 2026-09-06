@@ -3,10 +3,13 @@ package art.arcane.iris.engine.object.tree;
 import art.arcane.iris.engine.object.IrisBlockData;
 import art.arcane.iris.engine.object.IrisMaterialPalette;
 import art.arcane.iris.engine.object.IrisProceduralTree;
+import art.arcane.iris.engine.object.IrisTreeSecondaryLeaf;
 import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -16,9 +19,42 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 public class TreeBlockResolverTest {
+    @Test
+    public void largeSecondaryWeightsKeepTheirRelativeDistribution() {
+        IrisProceduralTree tree = new IrisProceduralTree();
+        tree.setSeed(91874L);
+        tree.setLeavesPalette(palette("oak_leaves", "birch_leaves"));
+        PlatformBlockState blossom = mock(PlatformBlockState.class);
+        PlatformBlockState light = mock(PlatformBlockState.class);
+        List<PlatformBlockState> normal = new ArrayList<>();
+        List<PlatformBlockState> large = new ArrayList<>();
+        TreeBlockCanvas.Cell cell = new TreeBlockCanvas.Cell(
+                TreeBlockCanvas.Role.SECONDARY_LEAF, TreeBlockCanvas.Axis.NONE, false, -1, null);
+        try (MockedStatic<B> blocks = mockStatic(B.class)) {
+            blocks.when(() -> B.getStateOrNull("minecraft:cherry_leaves", false)).thenReturn(blossom);
+            blocks.when(() -> B.getStateOrNull("minecraft:shroomlight", false)).thenReturn(light);
+            for (int weight : new int[]{1, Integer.MAX_VALUE}) {
+                tree.setWeightedSecondaryLeaves(new KList<>(
+                        new IrisTreeSecondaryLeaf("minecraft:cherry_leaves", weight),
+                        new IrisTreeSecondaryLeaf("minecraft:shroomlight", weight)));
+                List<PlatformBlockState> resolved = weight == 1 ? normal : large;
+                for (int x = -16; x <= 16; x++) {
+                    for (int y = 0; y < 16; y++) {
+                        resolved.add(TreeBlockResolver.resolve(tree, null, cell,
+                                new TreeBlockCanvas.Vec(x, y, x + y), new RNG(tree.getSeed())));
+                    }
+                }
+            }
+        }
+        assertTrue(normal.contains(blossom));
+        assertTrue(normal.contains(light));
+        assertEquals(normal, large);
+    }
+
     @Test
     public void sharedPaletteRandomSourceMatchesFreshPerVoxelSources() {
         IrisProceduralTree tree = new IrisProceduralTree();

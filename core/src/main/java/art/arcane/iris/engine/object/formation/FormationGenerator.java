@@ -62,8 +62,9 @@ public final class FormationGenerator {
         }
 
         Map<Vector3i, PlatformBlockState> resolved = new HashMap<>();
+        FormationBlockResolver resolver = new FormationBlockResolver(f, data);
         for (Map.Entry<Vector3i, FormationCanvas.Role> entry : canvas.getCells().entrySet()) {
-            PlatformBlockState bd = FormationBlockResolver.resolve(f, data, entry.getValue(), entry.getKey());
+            PlatformBlockState bd = resolver.resolve(entry.getValue(), entry.getKey());
             if (bd == null) {
                 continue;
             }

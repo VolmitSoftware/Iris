@@ -277,26 +277,26 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
         if (!looperStopped) {
             try {
-                looperStopped = true;
                 if (looper != null) {
                     looper.interrupt();
-                    joinQuietly(looper);
+                    awaitLooper(looper);
                 }
+                looperStopped = true;
             } catch (Throwable e) {
                 failure = appendCloseFailure(failure, e);
             }
         }
         if (!cleanupServiceStopped) {
             try {
-                cleanupServiceStopped = true;
                 if (cleanupService != null) {
                     for (Future<?> future : cleanup.values()) {
                         future.cancel(false);
                     }
                     cleanup.clear();
                     cleanupService.shutdownNow();
-                    awaitQuietly(cleanupService);
+                    awaitCleanupService(cleanupService);
                 }
+                cleanupServiceStopped = true;
             } catch (Throwable e) {
                 failure = appendCloseFailure(failure, e);
             }
@@ -306,28 +306,30 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
     }
 
-    private void joinQuietly(Thread thread) {
+    private void awaitLooper(Thread thread) {
         if (thread == Thread.currentThread()) {
-            return;
+            throw new IllegalStateException("Cannot finish world manager shutdown from its own loop thread.");
         }
 
         try {
             thread.join(CLOSE_AWAIT_MS);
             if (thread.isAlive()) {
-                IrisLogging.warn("Thread " + thread.getName() + " did not stop within " + CLOSE_AWAIT_MS + "ms.");
+                throw new IllegalStateException("Thread " + thread.getName() + " did not stop within " + CLOSE_AWAIT_MS + "ms.");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for the world manager loop to stop.", e);
         }
     }
 
-    private void awaitQuietly(ScheduledExecutorService service) {
+    private void awaitCleanupService(ScheduledExecutorService service) {
         try {
             if (!service.awaitTermination(CLOSE_AWAIT_MS, TimeUnit.MILLISECONDS)) {
-                IrisLogging.warn("Mantle cleanup executor did not stop within " + CLOSE_AWAIT_MS + "ms.");
+                throw new IllegalStateException("Mantle cleanup executor did not stop within " + CLOSE_AWAIT_MS + "ms.");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for mantle cleanup to stop.", e);
         }
     }
 

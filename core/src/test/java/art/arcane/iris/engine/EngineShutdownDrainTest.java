@@ -2,6 +2,8 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.EngineRuntimeBuilder.RuntimeAssembly;
+import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.EngineAssignedComponent;
 import art.arcane.iris.engine.framework.EngineEffects;
 import art.arcane.iris.engine.framework.EnginePlatformHooks;
 import art.arcane.iris.engine.framework.EngineTarget;
@@ -251,7 +253,8 @@ public class EngineShutdownDrainTest {
         ShutdownFixture fixture = new ShutdownFixture();
         EngineTarget nextTarget = target();
         GenerationRuntime nextGeneration = generation(nextTarget, fixture.mantle);
-        EngineRuntime next = new EngineRuntime(nextGeneration, mock(EngineEffects.class), mock(EngineWorldManager.class));
+        EngineRuntime next = new EngineRuntime(nextGeneration,
+                new ChangingEffects(fixture.engine), mock(EngineWorldManager.class));
         EngineMode nextMode = nextGeneration.mode();
         doThrow(new IllegalStateException("Previous planner active")).when(fixture.complex).close();
         doThrow(new IllegalStateException("Next mode active")).when(nextMode).close();
@@ -318,6 +321,32 @@ public class EngineShutdownDrainTest {
         Field field = target.getClass().getDeclaredField(name);
         field.setAccessible(true);
         field.set(target, value);
+    }
+
+    private static final class ChangingEffects extends EngineAssignedComponent implements EngineEffects {
+        private int hash = 1;
+
+        private ChangingEffects(Engine engine) {
+            super(engine, "changing effects");
+        }
+
+        @Override
+        public void updatePlayerMap() {
+        }
+
+        @Override
+        public void tickRandomPlayer() {
+        }
+
+        @Override
+        public void close() {
+            hash++;
+        }
+
+        @Override
+        public int hashCode() {
+            return hash;
+        }
     }
 
     private static final class ShutdownFixture {

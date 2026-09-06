@@ -42,11 +42,11 @@ public abstract class IrisEngineMode implements EngineMode {
             return;
         }
 
-        closed = true;
         dump();
         terrainStages.forEach(EngineStage::close);
         terrainStages.clear();
         transitionStage.close();
+        closed = true;
     }
 
     @Override

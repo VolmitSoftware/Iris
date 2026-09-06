@@ -104,7 +104,7 @@ public final class GenerationAdmission {
 
         private State(Path root) {
             this.root = root;
-            this.lock = new ReentrantLock(true);
+            this.lock = new ReentrantLock();
             this.changed = lock.newCondition();
         }
 

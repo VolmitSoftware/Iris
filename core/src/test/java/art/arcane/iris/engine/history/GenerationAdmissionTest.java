@@ -5,10 +5,16 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -75,6 +81,37 @@ public class GenerationAdmissionTest {
             cutoverThread.join(5_000L);
             laterStageThread.join(5_000L);
         }
+    }
+
+    @Test
+    public void cutoverDrainsContinuouslyArrivingStages() throws Exception {
+        GenerationAdmission admission = new GenerationAdmission(temporaryFolder.getRoot().toPath());
+        GenerationAdmission.RuntimeLease runtime = admission.retainRuntime();
+        ExecutorService executor = Executors.newFixedThreadPool(9, Thread.ofPlatform().daemon().factory());
+        AtomicBoolean running = new AtomicBoolean(true);
+        CountDownLatch ready = new CountDownLatch(8);
+        List<Future<?>> stages = new ArrayList<>(8);
+        try {
+            for (int i = 0; i < 8; i++) {
+                stages.add(executor.submit(() -> enterStagesUntilCutover(admission, running, ready)));
+            }
+            assertTrue(ready.await(5, TimeUnit.SECONDS));
+            Future<?> cutover = executor.submit(() -> {
+                try (GenerationAdmission.CutoverLease ignored = admission.beginCutover()) {
+                    running.set(false);
+                }
+            });
+            cutover.get(5, TimeUnit.SECONDS);
+            for (Future<?> stage : stages) {
+                stage.get(5, TimeUnit.SECONDS);
+            }
+        } finally {
+            running.set(false);
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+            runtime.close();
+        }
+        assertThrows(IllegalStateException.class, admission::enterStage);
     }
 
     @Test
@@ -194,6 +231,18 @@ public class GenerationAdmissionTest {
             stage.close();
             release.countDown();
             thread.join(5_000L);
+        }
+    }
+
+    private static void enterStagesUntilCutover(GenerationAdmission admission, AtomicBoolean running, CountDownLatch ready) {
+        boolean started = false;
+        while (running.get() && !Thread.currentThread().isInterrupted()) {
+            try (GenerationAdmission.StageLease ignored = admission.enterStage()) {
+                if (!started) {
+                    started = true;
+                    ready.countDown();
+                }
+            }
         }
     }
 

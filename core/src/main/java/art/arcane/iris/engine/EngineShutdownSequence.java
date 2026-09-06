@@ -45,7 +45,8 @@ final class EngineShutdownSequence {
 
     private final IrisEngine engine;
     private final Set<RuntimeAssembly> incompleteAssemblies = ConcurrentHashMap.newKeySet();
-    private final Set<EngineRuntime> unpublishedRuntimes = ConcurrentHashMap.newKeySet();
+    private final Set<EngineRuntime> unpublishedRuntimes = Collections.synchronizedSet(
+            Collections.newSetFromMap(new IdentityHashMap<>()));
     private final Set<EngineTarget> incompleteTargets = Collections.synchronizedSet(
             Collections.newSetFromMap(new IdentityHashMap<>()));
     private boolean runtimeReleased;
@@ -267,7 +268,7 @@ final class EngineShutdownSequence {
                 return true;
             }
         }
-        for (EngineRuntime runtime : unpublishedRuntimes) {
+        for (EngineRuntime runtime : unpublishedRuntimes.toArray(new EngineRuntime[0])) {
             if (runtime.generation().data() == data) {
                 return true;
             }
@@ -351,7 +352,7 @@ final class EngineShutdownSequence {
                         new IllegalStateException("Iris runtime assembly still owns the detached target."));
             }
         }
-        for (EngineRuntime runtime : unpublishedRuntimes) {
+        for (EngineRuntime runtime : unpublishedRuntimes.toArray(new EngineRuntime[0])) {
             if (runtime.generation().target() == target) {
                 return appendFailure(failure,
                         new IllegalStateException("Iris unpublished runtime still owns the detached target."));

@@ -68,11 +68,12 @@ final class EngineHotloader {
             engine.lifecycleState = LifecycleState.HOTLOADING;
             EngineRuntime previous = engine.runtime;
             GenerationRuntime previousGeneration = previous.generation();
-            IrisComplex nextComplex = null;
+            RuntimeAssembly assembly = null;
+            boolean published = false;
             try {
                 engine.sealForTransition("complex hotload", false);
                 engine.prepareRuntimeHotload();
-                RuntimeAssembly assembly = new RuntimeAssembly(
+                assembly = new RuntimeAssembly(
                         RuntimeAssembly.nextRuntimeId(),
                         previousGeneration.target(),
                         previousGeneration.mantleStorageDirectory(),
@@ -82,7 +83,6 @@ final class EngineHotloader {
                 EngineRuntime next;
                 try (IrisContext.Scope ignored = IrisContext.open(engine, engine.getGenerationSessions().currentSessionId(), null)) {
                     assembly.complex = assembly.runtimeKernel.createComplex(engine, assembly.transitionPlan);
-                    nextComplex = assembly.complex;
                     assembly.dimensionStackContext = assembly.runtimeKernel.createDimensionStackContext(engine);
                     assembly.upperContext = assembly.runtimeKernel.createUpperContext(engine);
                     BiomeMaxes biomeMaxes = engine.runtimeBuilder.computeBiomeMaxes();
@@ -98,25 +98,30 @@ final class EngineHotloader {
                 }
                 Throwable retirementFailure = runCleanup(null, previousGeneration.complex()::close);
                 if (retirementFailure != null) {
-                    retirementFailure = runCleanup(retirementFailure, nextComplex::close);
-                    nextComplex = null;
                     engine.lifecycleState = LifecycleState.FAILED;
                     throw new IllegalStateException("Failed to retire the previous Iris biome complex.", retirementFailure);
                 }
                 engine.runtime = next;
+                published = true;
                 engine.getGenerationSessions().activateNextSession();
                 engine.lifecycleState = LifecycleState.RUNNING;
                 engine.getClosing().set(false);
                 engine.backgroundTasks.openBackgroundTaskAdmission();
             } catch (Throwable e) {
-                if (nextComplex != null && nextComplex != previousGeneration.complex()) {
-                    Throwable cleanupFailure = runCleanup(null, nextComplex::close);
-                    if (cleanupFailure != null) {
-                        e.addSuppressed(cleanupFailure);
+                if (published) {
+                    engine.lifecycleState = LifecycleState.FAILED;
+                    engine.getClosing().set(true);
+                    engine.backgroundTasks.closeBackgroundTaskAdmission();
+                } else {
+                    if (assembly != null && assembly.complex != previousGeneration.complex()) {
+                        Throwable cleanupFailure = engine.shutdownSequence.closeAssembly(assembly, null);
+                        if (cleanupFailure != null) {
+                            e.addSuppressed(cleanupFailure);
+                        }
                     }
-                }
-                if (engine.lifecycleState != LifecycleState.FAILED) {
-                    engine.runtimeBuilder.restoreRuntimeAfterFailedTransition(previous);
+                    if (engine.lifecycleState != LifecycleState.FAILED) {
+                        engine.runtimeBuilder.restoreRuntimeAfterFailedTransition(previous);
+                    }
                 }
                 throw new IllegalStateException("Failed to rebuild the Iris biome complex.", e);
             }

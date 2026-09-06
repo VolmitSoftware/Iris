@@ -436,6 +436,7 @@ public class IrisCaveCarver3D {
 
             return carved;
         } finally {
+            scratchCache.get().releaseSections();
             carving.set(nested);
             if (nested) {
                 scratchCache.set(previousScratch);
@@ -2693,10 +2694,6 @@ public class IrisCaveCarver3D {
         }
 
         return weight;
-    }
-
-    private double signed(double value) {
-        return (value * 2D) - 1D;
     }
 
     private double applySurfaceCeilingFade(

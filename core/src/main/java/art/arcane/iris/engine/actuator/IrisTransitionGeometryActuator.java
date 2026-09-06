@@ -42,9 +42,7 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
             return;
         }
         GeometrySource source = new GeometrySource(blocks, biomes, getEngine().getMinHeight(), context);
-        if (plan != null && plan.hasTransitionAtChunk(x >> 4, z >> 4)) {
-            blendGeometry(x, z, blocks, context, source, plan);
-        }
+        blendGeometry(x, z, blocks, context, source, plan);
     }
 
     public static SavedTerrainChunk capture(int x, int z, Hunk<PlatformBlockState> blocks,

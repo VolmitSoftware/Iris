@@ -1358,6 +1358,8 @@
     "iris.bukkit.scoreboard.carving": "§dKaiverrus§7: {state}",
     "iris.bukkit.scoreboard.region": "§bAlue§7: {region}",
     "iris.bukkit.scoreboard.biome": "§bBiometri§7:  {biome}",
+    "iris.bukkit.scoreboard.biome_loading": "Ladataan",
+    "iris.bukkit.scoreboard.biome_unavailable": "Ei saatavilla",
     "iris.bukkit.scoreboard.height": "§bKorkeus§7: {height}",
     "iris.bukkit.scoreboard.slope": "§bRivi§7:  {slope}",
     "iris.bukkit.scoreboard.block_updates": "§bBUDName/s§7: {updates}",

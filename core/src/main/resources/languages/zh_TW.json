@@ -1358,6 +1358,8 @@
     "iris.bukkit.scoreboard.carving": "§d雕刻§7: {state}",
     "iris.bukkit.scoreboard.region": "§b地區§7: {region}",
     "iris.bukkit.scoreboard.biome": "§b生物團§7:  {biome}",
+    "iris.bukkit.scoreboard.biome_loading": "載入中",
+    "iris.bukkit.scoreboard.biome_unavailable": "無法使用",
     "iris.bukkit.scoreboard.height": "§b高度§7: {height}",
     "iris.bukkit.scoreboard.slope": "§b斜坡§7:  {slope}",
     "iris.bukkit.scoreboard.block_updates": "§b學生會/s§7: {updates}",

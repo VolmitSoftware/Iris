@@ -77,6 +77,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.awt.Color;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -548,6 +549,26 @@ public class IrisEngine implements Engine {
     }
 
     @Override
+    public Color drawForPreview(int x, int z) throws InterruptedException {
+        try (GenerationSessionLease lease = acquireGenerationLease("pregen_preview")) {
+            if (!usesSavedBiomeEnvironment()) {
+                return Engine.super.draw(x, z);
+            }
+            return generationHistoryRuntimeRouter.biomes().readSurfaceBiome(x, z, saved -> {
+                if (saved.isPresent()) {
+                    return drawBiomeEnvironment(x, z, saved.get());
+                }
+                try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
+                             openGenerationHistoryCoordinateScopeUnchecked(x, z, "draw a pregeneration preview")) {
+                    return Engine.super.draw(x, z);
+                }
+            });
+        } catch (GenerationSessionException failure) {
+            throw new IllegalStateException("Pregeneration preview was rejected by the Iris lifecycle.", failure);
+        }
+    }
+
+    @Override
     public BiomeEnvironment getBiomeEnvironment(int x, int y, int z) {
         Optional<BiomeEnvironment> saved = resolveSavedBiomeEnvironment(x, y, z, false);
         if (saved.isPresent()) {
@@ -556,6 +577,18 @@ public class IrisEngine implements Engine {
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
                      openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve a biome environment")) {
             return Engine.super.getBiomeEnvironment(x, y, z);
+        }
+    }
+
+    @Override
+    public BiomeEnvironment getBiomeOrMantleEnvironment(int x, int y, int z) {
+        Optional<BiomeEnvironment> saved = resolveSavedBiomeEnvironment(x, y, z, false);
+        if (saved.isPresent()) {
+            return saved.get();
+        }
+        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
+                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve a mantle biome environment")) {
+            return Engine.super.getBiomeOrMantleEnvironment(x, y, z);
         }
     }
 

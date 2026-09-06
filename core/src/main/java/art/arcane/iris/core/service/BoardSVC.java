@@ -25,7 +25,9 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.tools.IrisToolbelt;
+import art.arcane.iris.engine.framework.BiomeEnvironment;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.history.SavedBiomeUnavailableException;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.volmlib.util.board.Board;
 import art.arcane.volmlib.util.board.BoardProvider;
@@ -358,6 +360,8 @@ public class BoardSVC implements IrisService, BoardProvider {
         private volatile BoardView view;
         private volatile boolean cancelled;
         private volatile boolean ordinaryTickScheduled;
+        private UUID ordinaryWorldId;
+        private BiomeFailureContext reportedBiomeFailure;
 
         public PlayerBoard(Player player) {
             this.player = player;
@@ -377,10 +381,12 @@ public class BoardSVC implements IrisService, BoardProvider {
                 yieldBoard(player, this);
                 return;
             }
-            boolean switched = view != BoardView.ORDINARY;
+            UUID worldId = player.getWorld().getUID();
+            boolean switched = view != BoardView.ORDINARY || !worldId.equals(ordinaryWorldId);
             view = BoardView.ORDINARY;
             jigsawContext = null;
             if (switched) {
+                ordinaryWorldId = worldId;
                 updateOrdinary();
                 board.update();
             }
@@ -515,13 +521,41 @@ public class BoardSVC implements IrisService, BoardProvider {
             }
 
             lines.add("&7&m                   ");
-            lines.add(IrisLanguage.text(BukkitUiMessages.SCOREBOARD_REGION, MessageArgument.untrusted("region", engine.getRegion(x, y, z).getName())));
-            lines.add(IrisLanguage.text(BukkitUiMessages.SCOREBOARD_BIOME, MessageArgument.untrusted("biome", engine.getBiomeOrMantle(x, y, z).getName())));
+            String regionName;
+            String biomeName;
+            try {
+                BiomeEnvironment environment = engine.getBiomeOrMantleEnvironment(x, y, z);
+                regionName = environment.region().getName();
+                biomeName = environment.biome().getName();
+                reportedBiomeFailure = null;
+            } catch (SavedBiomeUnavailableException failure) {
+                regionName = IrisLanguage.text(failure.isLoading()
+                        ? BukkitUiMessages.SCOREBOARD_BIOME_LOADING
+                        : BukkitUiMessages.SCOREBOARD_BIOME_UNAVAILABLE);
+                biomeName = regionName;
+                if (!failure.isLoading()) {
+                    reportBiomeFailure(failure, engine, loc);
+                }
+            }
+            lines.add(IrisLanguage.text(BukkitUiMessages.SCOREBOARD_REGION, MessageArgument.untrusted("region", regionName)));
+            lines.add(IrisLanguage.text(BukkitUiMessages.SCOREBOARD_BIOME, MessageArgument.untrusted("biome", biomeName)));
             lines.add(IrisLanguage.text(BukkitUiMessages.SCOREBOARD_HEIGHT, MessageArgument.trusted("height", Math.round(engine.getHeight(x, z)))));
             lines.add(IrisLanguage.text(BukkitUiMessages.SCOREBOARD_SLOPE, MessageArgument.trusted("slope", Form.f(engine.getSlope(x, z), 2))));
             lines.add(IrisLanguage.text(BukkitUiMessages.SCOREBOARD_BLOCK_UPDATES, MessageArgument.trusted("updates", Form.f(engine.getBlockUpdatesPerSecond()))));
             lines.add("&7&m                   ");
             this.lines = lines;
+        }
+
+        private void reportBiomeFailure(SavedBiomeUnavailableException failure, Engine engine, Location location) {
+            World world = Objects.requireNonNull(location.getWorld());
+            BiomeFailureContext context = new BiomeFailureContext(world.getUID(), engine,
+                    location.getBlockX() >> 4, location.getBlockZ() >> 4, failure.getMessage());
+            if (context.equals(reportedBiomeFailure)) {
+                return;
+            }
+            reportedBiomeFailure = context;
+            IrisLogging.reportError("Unable to display saved Iris biome information in " + world.getName()
+                    + " at " + location.getBlockX() + ", " + location.getBlockY() + ", " + location.getBlockZ() + ".", failure);
         }
     }
 
@@ -535,5 +569,8 @@ public class BoardSVC implements IrisService, BoardProvider {
         NONE,
         ORDINARY,
         JIGSAW
+    }
+
+    private record BiomeFailureContext(UUID worldId, Engine engine, int chunkX, int chunkZ, String reason) {
     }
 }

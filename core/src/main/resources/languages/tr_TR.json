@@ -1358,6 +1358,8 @@
     "iris.bukkit.scoreboard.carving": "§dAraba§7: {state}",
     "iris.bukkit.scoreboard.region": "§bBölge Bölgesi§7: {region}",
     "iris.bukkit.scoreboard.biome": "§bBiyome§7:  {biome}",
+    "iris.bukkit.scoreboard.biome_loading": "Yükleniyor",
+    "iris.bukkit.scoreboard.biome_unavailable": "Kullanılamıyor",
     "iris.bukkit.scoreboard.height": "§bYükseklik§7: {height}",
     "iris.bukkit.scoreboard.slope": "§bSlopee§7:  {slope}",
     "iris.bukkit.scoreboard.block_updates": "§bBUDÜ/s§7: {updates}",

@@ -1151,6 +1151,11 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
+    public void reconcileNativeStructurePois(Chunk chunk) {
+        NativeStructurePoiUpdates.reconcile((LevelChunk) ((CraftChunk) chunk).getHandle(ChunkStatus.FULL));
+    }
+
+    @Override
     public boolean clearChunkBlocks(Chunk bukkitChunk) {
         try {
             ServerLevel level = ((CraftWorld) bukkitChunk.getWorld()).getHandle();

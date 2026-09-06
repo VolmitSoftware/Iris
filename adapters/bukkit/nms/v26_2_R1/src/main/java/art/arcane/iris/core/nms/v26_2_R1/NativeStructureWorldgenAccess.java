@@ -11,6 +11,7 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
@@ -59,6 +60,7 @@ import java.util.function.Supplier;
 
 final class NativeStructureWorldgenAccess implements WorldGenLevel {
     private static final int WRITE_RADIUS = 1;
+    private static final NativeStructurePoiUpdates POI_UPDATES = NativeStructurePoiUpdates.create();
 
     private final WorldGenLevel delegate;
     private final ChunkPos generationCenter;
@@ -431,17 +433,31 @@ final class NativeStructureWorldgenAccess implements WorldGenLevel {
 
     @Override
     public boolean setBlock(BlockPos position, BlockState state, int updateFlags, int updateLimit) {
-        return isWritable(position) && delegate.setBlock(position, state, updateFlags, updateLimit);
+        return isWritable(position)
+                && (POI_UPDATES != null
+                ? POI_UPDATES.setBlock(delegate, position, state, updateFlags, updateLimit)
+                : delegate.setBlock(position, state, updateFlags, updateLimit));
     }
 
     @Override
     public boolean removeBlock(BlockPos position, boolean move) {
-        return isWritable(position) && delegate.removeBlock(position, move);
+        if (!isWritable(position)) {
+            return false;
+        }
+        return POI_UPDATES != null && delegate instanceof WorldGenRegion
+                ? setBlock(position, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL, Block.UPDATE_LIMIT)
+                : delegate.removeBlock(position, move);
     }
 
     @Override
     public boolean destroyBlock(BlockPos position, boolean drop, Entity source, int updateLimit) {
-        return isWritable(position) && delegate.destroyBlock(position, drop, source, updateLimit);
+        if (!isWritable(position)) {
+            return false;
+        }
+        return POI_UPDATES != null && delegate instanceof WorldGenRegion
+                ? !delegate.getBlockState(position).isAir()
+                && setBlock(position, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL, updateLimit)
+                : delegate.destroyBlock(position, drop, source, updateLimit);
     }
 
     @Override

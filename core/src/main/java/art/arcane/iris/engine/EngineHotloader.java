@@ -175,7 +175,7 @@ final class EngineHotloader {
                 broadcastStudioHotload(false, "");
             } catch (Throwable e) {
                 if (!published) {
-                    if (replacementData != null) {
+                    if (replacementData != null && !engine.shutdownSequence.retainsData(replacementData)) {
                         replacementData.unregisterEngine(engine);
                         Throwable replacementDataFailure = runCleanup(null, replacementData::close);
                         if (replacementDataFailure != null) {

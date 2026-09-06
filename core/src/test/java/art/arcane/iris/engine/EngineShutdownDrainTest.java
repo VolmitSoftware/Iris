@@ -12,6 +12,13 @@ import art.arcane.iris.engine.framework.GenerationSessionException;
 import art.arcane.iris.engine.framework.GenerationSessionManager;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
 import art.arcane.iris.engine.history.GenerationKernelRegistry;
+import art.arcane.iris.engine.history.GenerationHistory;
+import art.arcane.iris.engine.history.GenerationAdmission;
+import art.arcane.iris.engine.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.engine.history.GenerationEpoch;
+import art.arcane.iris.engine.history.GenerationEpochContractFactory;
+import art.arcane.iris.engine.history.GenerationPackFingerprint;
+import art.arcane.iris.engine.history.GenerationRegistryContract;
 import art.arcane.iris.engine.object.IrisWorld;
 import art.arcane.iris.engine.framework.EngineMode;
 import art.arcane.iris.engine.mantle.EngineMantle;
@@ -22,16 +29,21 @@ import art.arcane.iris.spi.PlatformRegistries;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -42,6 +54,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doAnswer;
@@ -57,6 +70,9 @@ import static org.mockito.Mockito.when;
 
 public class EngineShutdownDrainTest {
     private static IrisPlatform previousPlatform;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @BeforeClass
     public static void bindPlatform() {
@@ -75,6 +91,100 @@ public class EngineShutdownDrainTest {
         if (previousPlatform != null) {
             IrisPlatforms.bind(previousPlatform);
         }
+    }
+
+    @Test
+    public void successfulEngineCloseAllowsTheSameWorldToPrepareGenerationAgain() throws Exception {
+        GenerationHistory history = history();
+        ShutdownFixture fixture = new ShutdownFixture();
+        fixture.attachHistory(history);
+        try (GenerationHistory.GenerationStage ignored = history.openStage(2, 3)) {
+        }
+        assertThrows(IllegalStateException.class, () -> history.prepareCurrentGenerator(32));
+        try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class)) {
+            fixture.shutdown.close();
+        }
+        assertTrue(fixture.engine.closed);
+        GenerationHistory reopened = GenerationHistory.open(history.paths().dimensionRoot());
+        reopened.prepareCurrentGenerator(32);
+        try (GenerationHistory.GenerationStage ignored = reopened.openStage(3, 4)) {
+        }
+    }
+
+    @Test
+    public void failedEngineCloseKeepsAdmissionUntilSuccessfulRetry() throws Exception {
+        GenerationHistory history = history();
+        ShutdownFixture fixture = new ShutdownFixture();
+        fixture.attachHistory(history);
+        try (GenerationHistory.GenerationStage ignored = history.openStage(2, 3)) {
+        }
+        doThrow(new IllegalStateException("Planner still active")).when(fixture.complex).close();
+        try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class)) {
+            assertThrows(IllegalStateException.class, fixture.shutdown::close);
+            GenerationHistory premature = GenerationHistory.open(history.paths().dimensionRoot());
+            assertThrows(IllegalStateException.class, () -> premature.prepareCurrentGenerator(32));
+            doNothing().when(fixture.complex).close();
+            fixture.shutdown.close();
+        }
+        GenerationHistory reopened = GenerationHistory.open(history.paths().dimensionRoot());
+        reopened.prepareCurrentGenerator(32);
+    }
+
+    @Test
+    public void startupOwnershipSpansReplacementEnginesUsingTheSameHistory() throws Exception {
+        GenerationHistory history = history();
+        ShutdownFixture first = new ShutdownFixture();
+        ShutdownFixture replacement = new ShutdownFixture();
+        try (GenerationAdmission.RuntimeLease startup = history.retainRuntime();
+             MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class)) {
+            first.attachHistory(history);
+            first.shutdown.close();
+            history.prepareCurrentGenerator(32);
+            replacement.attachHistory(history);
+        }
+        try (GenerationHistory.GenerationStage ignored = history.openStage(2, 3)) {
+        }
+        try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class)) {
+            replacement.shutdown.close();
+        }
+        GenerationHistory.open(history.paths().dimensionRoot()).prepareCurrentGenerator(32);
+    }
+
+    @Test
+    public void reopenedWorldPromotesPendingGenerationAfterTheOldEngineCloses() throws Exception {
+        GenerationHistory history = history();
+        ShutdownFixture fixture = new ShutdownFixture();
+        fixture.attachHistory(history);
+        try (GenerationHistory.GenerationStage ignored = history.openStage(2, 3)) {
+        }
+        Path replacementPack = temporaryFolder.newFolder("replacement-pack").toPath();
+        Files.createDirectories(replacementPack.resolve("dimensions"));
+        Files.writeString(replacementPack.resolve("dimensions/main.json"), "{\"name\":\"replacement\"}");
+        history.stageUpdate(replacementPack,
+                GenerationPackFingerprint.compute(replacementPack, GenerationPackFingerprint.CURRENT_VERSION),
+                history.activeEpoch().dimensionContract(), GenerationRegistryContract.empty(), 32);
+        assertThrows(IllegalStateException.class, () -> history.prepareCurrentGenerator(32));
+        try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class)) {
+            fixture.shutdown.close();
+        }
+        GenerationHistory reopened = GenerationHistory.open(history.paths().dimensionRoot());
+        reopened.prepareCurrentGenerator(32);
+        assertEquals(2L, reopened.activeActivation().activationId());
+        assertFalse(reopened.pendingActivation().isPresent());
+    }
+
+    private GenerationHistory history() throws Exception {
+        Path world = temporaryFolder.newFolder("history-world").toPath();
+        Path pack = temporaryFolder.newFolder("history-pack").toPath();
+        Files.createDirectories(pack.resolve("dimensions"));
+        Files.writeString(pack.resolve("dimensions/main.json"), "{}");
+        GenerationEpoch.DimensionContract contract = new GenerationEpoch.DimensionContract(
+                "overworld", "iris:overworld_type", "NORMAL", "OVERWORLD", 127,
+                -64, 384, 384, 1D, false, "none", 0, "0".repeat(64),
+                GenerationEpochContractFactory.CURRENT_DIMENSION_TYPE_FINGERPRINT_SCHEMA, "c".repeat(64));
+        return GenerationHistory.create(world, pack,
+                GenerationPackFingerprint.compute(pack, GenerationPackFingerprint.CURRENT_VERSION),
+                42L, contract, GenerationRegistryContract.empty());
     }
 
     @Test
@@ -489,6 +599,15 @@ public class EngineShutdownDrainTest {
             setField(engine, "runtimeBuilder", builder);
             when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
             return kernel;
+        }
+
+        private void attachHistory(GenerationHistory history) throws Exception {
+            GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
+            when(router.engine()).thenReturn(engine);
+            when(router.history()).thenReturn(history);
+            setField(engine, "generationHistoryRuntimeRouterLock", new Object());
+            doCallRealMethod().when(engine).attachGenerationHistoryRuntimeRouter(router);
+            engine.attachGenerationHistoryRuntimeRouter(router);
         }
 
         private ShutdownFixture() throws Exception {

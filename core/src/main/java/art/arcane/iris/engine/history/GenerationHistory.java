@@ -64,6 +64,10 @@ public final class GenerationHistory {
         validateReferencedState();
     }
 
+    public GenerationAdmission.RuntimeLease retainRuntime() {
+        return admission.retainRuntime();
+    }
+
     public SavedBiomeStore savedBiomes() {
         return savedBiomes;
     }

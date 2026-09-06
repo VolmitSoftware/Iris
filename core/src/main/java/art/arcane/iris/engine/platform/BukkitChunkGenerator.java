@@ -48,6 +48,7 @@ import art.arcane.iris.engine.framework.WrongEngineBroException;
 import art.arcane.iris.engine.history.GenerationActivation;
 import art.arcane.iris.engine.history.GenerationEpoch;
 import art.arcane.iris.engine.history.GenerationHistory;
+import art.arcane.iris.engine.history.GenerationAdmission;
 import art.arcane.iris.engine.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.engine.history.IrisBoundarySignatureSampler;
 import art.arcane.iris.engine.history.TransitionGenerationPlan;
@@ -396,66 +397,68 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private void setupEngine() {
-        lastMode = StudioMode.NORMAL;
-        lastJigsawStudioRequestId = null;
-        if (generationHistory != null) {
-            try {
-                generationHistory.prepareCurrentGenerator(IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks());
-                targetCache.reset();
-            } catch (IOException failure) {
-                throw new IllegalStateException("Unable to prepare saved Iris terrain for the current generator.", failure);
-            }
-        }
-        EngineTarget engineTarget = getTarget();
-        String packKey = engineTarget.getDimension().getLoadKey();
-        JigsawStudioActivation.Request request = studio
-                ? JigsawStudioActivation.getGeneratorRequest(packKey)
-                : null;
-        JigsawStudioSession session = request == null
-                ? null
-                : JigsawStudioActivation.getGeneratorSession(packKey);
-        jigsawStudioActive = request != null
-                && session != null
-                && session.sessionId().equals(request.requestId());
-        objectStudioActive = studio && ObjectStudioActivation.isActive(packKey);
-        IrisEngine createdEngine = createEngine(engineTarget);
-        if (generationHistory != null) {
-            long initialActivationId = generationHistory.activeActivation().activationId();
-            int transitionWidthBlocks = IrisSettings.get()
-                    .getGenerator()
-                    .getGenerationTransitionWidthBlocks();
-            try {
-                createdEngine.attachGenerationHistory(
-                        generationHistory,
-                        IrisBoundarySignatureSampler.INSTANCE,
-                        transitionWidthBlocks);
-                if (generationHistory.activeActivation().activationId() != initialActivationId) {
-                    createdEngine.close();
+        try (GenerationAdmission.RuntimeLease startupAdmission = generationHistory == null ? null : generationHistory.retainRuntime()) {
+            lastMode = StudioMode.NORMAL;
+            lastJigsawStudioRequestId = null;
+            if (generationHistory != null) {
+                try {
+                    generationHistory.prepareCurrentGenerator(IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks());
                     targetCache.reset();
-                    createdEngine = createEngine(loadActiveGenerationHistoryTarget());
+                } catch (IOException failure) {
+                    throw new IllegalStateException("Unable to prepare saved Iris terrain for the current generator.", failure);
+                }
+            }
+            EngineTarget engineTarget = getTarget();
+            String packKey = engineTarget.getDimension().getLoadKey();
+            JigsawStudioActivation.Request request = studio
+                    ? JigsawStudioActivation.getGeneratorRequest(packKey)
+                    : null;
+            JigsawStudioSession session = request == null
+                    ? null
+                    : JigsawStudioActivation.getGeneratorSession(packKey);
+            jigsawStudioActive = request != null
+                    && session != null
+                    && session.sessionId().equals(request.requestId());
+            objectStudioActive = studio && ObjectStudioActivation.isActive(packKey);
+            IrisEngine createdEngine = createEngine(engineTarget);
+            if (generationHistory != null) {
+                long initialActivationId = generationHistory.activeActivation().activationId();
+                int transitionWidthBlocks = IrisSettings.get()
+                        .getGenerator()
+                        .getGenerationTransitionWidthBlocks();
+                try {
                     createdEngine.attachGenerationHistory(
                             generationHistory,
                             IrisBoundarySignatureSampler.INSTANCE,
                             transitionWidthBlocks);
-                }
-            } catch (Throwable failure) {
-                try {
-                    createdEngine.close();
-                } catch (Throwable closeFailure) {
-                    if (failure != closeFailure) {
-                        failure.addSuppressed(closeFailure);
+                    if (generationHistory.activeActivation().activationId() != initialActivationId) {
+                        createdEngine.close();
+                        targetCache.reset();
+                        createdEngine = createEngine(loadActiveGenerationHistoryTarget());
+                        createdEngine.attachGenerationHistory(
+                                generationHistory,
+                                IrisBoundarySignatureSampler.INSTANCE,
+                                transitionWidthBlocks);
                     }
+                } catch (Throwable failure) {
+                    try {
+                        createdEngine.close();
+                    } catch (Throwable closeFailure) {
+                        if (failure != closeFailure) {
+                            failure.addSuppressed(closeFailure);
+                        }
+                    }
+                    throw propagateEngineSetupFailure(failure);
                 }
-                throw propagateEngineSetupFailure(failure);
             }
+            createdEngine.setNativeStructureVolumeQueriesEnabled(shouldGenerateNativeStructures(
+                    isAuthoringStudio(),
+                    studioEntryBootstrapActive.get(),
+                    initializationFailure != null));
+            engine = createdEngine;
+            populators.clear();
+            targetCache.reset();
         }
-        createdEngine.setNativeStructureVolumeQueriesEnabled(shouldGenerateNativeStructures(
-                isAuthoringStudio(),
-                studioEntryBootstrapActive.get(),
-                initializationFailure != null));
-        engine = createdEngine;
-        populators.clear();
-        targetCache.reset();
     }
 
     private EngineTarget loadActiveGenerationHistoryTarget() throws IOException {
@@ -672,7 +675,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public CompletableFuture<Void> closeAsync() {
-        closing = true;
         // Outside the exclusive-control block so every close path detaches the WorldInit
         // listener, including a rollback where the world never materialized. Guarded: with no
         // hosted plugin (unit tests, teardown) volmitPlugin() throws, and that must not stop
@@ -689,6 +691,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
         }
 
+        boolean alreadyClosing = closing;
+        closing = true;
         CompletableFuture<Void> operation;
         try {
             operation = withExclusiveControlFuture(() -> {
@@ -712,11 +716,13 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 populators.clear();
             });
         } catch (Throwable throwable) {
-            future.completeExceptionally(throwable);
+            if (!alreadyClosing) {
+                // A failed close must stay retryable; leaving closing latched would permanently
+                // reject generation for a world that may still be loaded.
+                closing = false;
+            }
             closeFuture.compareAndSet(future, null);
-            // A failed close must stay retryable; leaving closing latched would permanently
-            // reject generation for a world that may still be loaded.
-            closing = false;
+            future.completeExceptionally(throwable);
             return future;
         }
 
@@ -727,6 +733,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 // The close body already ran and tore the engine down; unlike the pre-dispatch
                 // failure above, resetting the gate here would advertise a healthy generator
                 // over a CLOSED or FAILED engine. Stay latched and surface the failure.
+                closeFuture.compareAndSet(future, null);
                 future.completeExceptionally(throwable);
             }
         });

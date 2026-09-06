@@ -1,5 +1,6 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.iris.engine.IrisEngine;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
 import art.arcane.volmlib.util.collection.KList;
@@ -20,18 +21,26 @@ import org.junit.Test;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.lang.reflect.Proxy;
+import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntConsumer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 
 public class NativeStructureVolumeIndexTest {
     private static final String STRUCTURE_KEY = "minecraft:swamp_hut";
@@ -103,6 +112,86 @@ public class NativeStructureVolumeIndexTest {
         runtimeId.set(1);
         index.resolve(engine, 0, 0, 15, 15);
         assertEquals(867, resolver.resolutions());
+    }
+
+    @Test
+    public void invalidatedIndexReceivesRuntimeRetirementAndDetachesOnUninstall() throws Exception {
+        IrisEngine engine = mock(IrisEngine.class);
+        Set<IntConsumer> listeners = new CopyOnWriteArraySet<>();
+        doAnswer(invocation -> {
+            listeners.add(invocation.getArgument(0));
+            return null;
+        }).when(engine).addGenerationRuntimeRetirementListener(any());
+        doAnswer(invocation -> {
+            listeners.remove(invocation.getArgument(0));
+            return null;
+        }).when(engine).removeGenerationRuntimeRetirementListener(any());
+        NativeStructureVolumeIndex.Context context = new NativeStructureVolumeIndex.Context(
+                null, null, null, null, () -> null, () -> null, () -> null);
+        NativeStructureVolumeIndex.install(engine, context);
+        try {
+            assertEquals(1, listeners.size());
+            IntConsumer original = listeners.iterator().next();
+            NativeStructureVolumeIndex.invalidate(engine);
+            assertEquals(1, listeners.size());
+            assertFalse(listeners.contains(original));
+
+            NativeStructureVolumeIndex.volumes(engine, 0, 0, 15, 15);
+            NativeStructureVolumeIndex current = installedIndexes().get(engine);
+            assertEquals(289, cache(current, "originCache").size());
+            assertEquals(1, cache(current, "queryCache").size());
+            for (IntConsumer listener : listeners) {
+                listener.accept(0);
+            }
+            assertTrue(cache(current, "originCache").isEmpty());
+            assertTrue(cache(current, "queryCache").isEmpty());
+        } finally {
+            NativeStructureVolumeIndex.uninstall(engine);
+        }
+        assertTrue(listeners.isEmpty());
+    }
+
+    @Test
+    public void retiringOriginBuildCannotRepublishWhileQueryEvictionWaits() throws Exception {
+        BlockingResolver resolver = new BlockingResolver();
+        NativeStructureVolumeIndex index = NativeStructureVolumeIndex.forTesting(resolver);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Map<?, ?> origins = cache(index, "originCache");
+        Map<?, ?> queries = cache(index, "queryCache");
+        try {
+            Future<KList<NativeStructureVolume>> builder = executor.submit(() -> index.originVolumes(null, 0, 0));
+            assertTrue(resolver.awaitFirstEntry());
+            index.originVolumes(null, 1, 0);
+            assertEquals(1, origins.size());
+            Future<?> retirement;
+            synchronized (queries) {
+                retirement = executor.submit(() -> index.evictRuntime(0));
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+                boolean cleared = false;
+                while (System.nanoTime() < deadline) {
+                    synchronized (origins) {
+                        cleared = origins.isEmpty();
+                    }
+                    if (cleared) {
+                        break;
+                    }
+                    Thread.sleep(1);
+                }
+                assertTrue("Origin eviction did not complete before the query cache lock", cleared);
+                resolver.release();
+                assertTrue(builder.get(5, TimeUnit.SECONDS).isEmpty());
+                synchronized (origins) {
+                    assertTrue("The retired in-flight origin was cached again", origins.isEmpty());
+                }
+            }
+            retirement.get(5, TimeUnit.SECONDS);
+            index.originVolumes(null, 0, 0);
+            assertEquals(3, resolver.resolutions());
+        } finally {
+            resolver.release();
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
     }
 
     @Test
@@ -222,6 +311,19 @@ public class NativeStructureVolumeIndexTest {
         assertTrue(source.contains("addGenerationRuntimeRetirementListener(retirementListener)"));
         assertTrue(source.contains("originCache.keySet().removeIf(key -> key.runtimeId() == runtimeId)"));
         assertTrue(source.contains("queryCache.keySet().removeIf(key -> key.runtimeId() == runtimeId)"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<Engine, NativeStructureVolumeIndex> installedIndexes() throws Exception {
+        Field indexes = NativeStructureVolumeIndex.class.getDeclaredField("INDEXES");
+        indexes.setAccessible(true);
+        return (Map<Engine, NativeStructureVolumeIndex>) indexes.get(null);
+    }
+
+    private static Map<?, ?> cache(NativeStructureVolumeIndex index, String name) throws Exception {
+        Field field = NativeStructureVolumeIndex.class.getDeclaredField(name);
+        field.setAccessible(true);
+        return (Map<?, ?>) field.get(index);
     }
 
     private static StructureStart swampHut(int chunkX, int chunkZ, int x, int z) {

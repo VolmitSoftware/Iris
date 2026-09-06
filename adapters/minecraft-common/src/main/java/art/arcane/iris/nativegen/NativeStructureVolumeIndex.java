@@ -113,7 +113,10 @@ public final class NativeStructureVolumeIndex {
         synchronized (INDEXES) {
             NativeStructureVolumeIndex current = INDEXES.get(engine);
             if (current != null) {
-                INDEXES.put(engine, current.fresh());
+                NativeStructureVolumeIndex replacement = current.fresh();
+                current.detachRetirementListener(engine);
+                INDEXES.put(engine, replacement);
+                replacement.attachRetirementListener(engine);
             }
         }
     }
@@ -395,13 +398,13 @@ public final class NativeStructureVolumeIndex {
 
     void evictRuntime(int runtimeId) {
         synchronized (originCache) {
+            originBuilds.keySet().removeIf(key -> key.runtimeId() == runtimeId);
             originCache.keySet().removeIf(key -> key.runtimeId() == runtimeId);
         }
         synchronized (queryCache) {
+            queryBuilds.keySet().removeIf(key -> key.runtimeId() == runtimeId);
             queryCache.keySet().removeIf(key -> key.runtimeId() == runtimeId);
         }
-        originBuilds.keySet().removeIf(key -> key.runtimeId() == runtimeId);
-        queryBuilds.keySet().removeIf(key -> key.runtimeId() == runtimeId);
     }
 
     private KList<NativeStructureVolume> cached(

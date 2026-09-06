@@ -208,6 +208,28 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
         return shutdownAndWait(inst, timeoutMs);
     }
 
+    public static boolean shutdownAndWait(long timeoutMs, Runnable processPendingTasks) {
+        Objects.requireNonNull(processPendingTasks, "processPendingTasks");
+        PregeneratorJob inst = instance.get();
+        if (inst == null) {
+            return false;
+        }
+
+        inst.requestStop();
+        long started = System.nanoTime();
+        long timeoutNanos = TimeUnit.MILLISECONDS.toNanos(Math.max(1L, timeoutMs));
+        try {
+            while (inst.worker.isAlive() && System.nanoTime() - started < timeoutNanos) {
+                processPendingTasks.run();
+                inst.worker.join(1L);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while stopping the Iris pregenerator.", e);
+        }
+        return finishShutdown(inst, timeoutMs);
+    }
+
     private static boolean shutdownAndWait(PregeneratorJob inst, long timeoutMs) {
         inst.requestStop();
         try {
@@ -216,6 +238,10 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while stopping the Iris pregenerator.", e);
         }
+        return finishShutdown(inst, timeoutMs);
+    }
+
+    private static boolean finishShutdown(PregeneratorJob inst, long timeoutMs) {
         if (inst.worker.isAlive()) {
             throw new IllegalStateException("Timed out while stopping the Iris pregenerator after "
                     + Math.max(1L, timeoutMs) + "ms.");

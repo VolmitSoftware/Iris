@@ -1010,6 +1010,7 @@ public class IrisEngine implements Engine {
                 if (generationHistoryRuntimeRouter != null) {
                     throw new IllegalStateException("Iris engine already has a generation-history runtime router.");
                 }
+                shutdownSequence.retainGenerationHistory(required.history());
                 generationHistoryRuntimeRouter = required;
                 generationHistoryRoutingRequired = true;
             }

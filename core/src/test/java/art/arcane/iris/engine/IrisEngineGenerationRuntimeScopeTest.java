@@ -18,6 +18,8 @@ import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.framework.IrisEngineMode;
 import art.arcane.iris.engine.framework.NativeStructureVolumeMemo;
 import art.arcane.iris.engine.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.engine.history.GenerationHistory;
+import art.arcane.iris.engine.history.GenerationAdmission;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisBiome;
@@ -515,9 +517,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
     public void attachedHistoryRouterIsClearedWhenEngineShutdownBegins() throws Exception {
         RuntimeFixture active = runtime(1, 1D, 1D, 1D);
         IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
-        GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
-        when(router.biomes()).thenReturn(mock(SavedBiomeRuntime.class));
-        when(router.engine()).thenReturn(engine);
+        GenerationHistoryRuntimeRouter router = historyRouter(engine);
         engine.attachGenerationHistoryRuntimeRouter(router);
 
         assertTrue(engine.beginShutdown());
@@ -531,9 +531,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
     public void attachedHistoryRejectsGenerationRuntimeHotload() throws Exception {
         RuntimeFixture active = runtime(1, 1D, 1D, 1D);
         IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
-        GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
-        when(router.biomes()).thenReturn(mock(SavedBiomeRuntime.class));
-        when(router.engine()).thenReturn(engine);
+        GenerationHistoryRuntimeRouter router = historyRouter(engine);
         engine.attachGenerationHistoryRuntimeRouter(router);
 
         IllegalStateException failure = assertThrows(IllegalStateException.class, engine::hotloadComplex);
@@ -548,9 +546,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         RuntimeFixture active = runtime(1, 1D, 1D, 1D);
         IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
         assertNull(engine.openGenerationHistoryCoordinateScope(0, 0));
-        GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
-        when(router.biomes()).thenReturn(mock(SavedBiomeRuntime.class));
-        when(router.engine()).thenReturn(engine);
+        GenerationHistoryRuntimeRouter router = historyRouter(engine);
         engine.attachGenerationHistoryRuntimeRouter(router);
         engine.detachGenerationHistoryRuntimeRouter(router);
 
@@ -708,6 +704,16 @@ public class IrisEngineGenerationRuntimeScopeTest {
         }
         assertSame(active.data, engine.getData());
         assertSame(active.dimension, engine.getDimension());
+    }
+
+    private static GenerationHistoryRuntimeRouter historyRouter(IrisEngine engine) {
+        GenerationHistory history = mock(GenerationHistory.class);
+        when(history.retainRuntime()).thenReturn(mock(GenerationAdmission.RuntimeLease.class));
+        GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
+        when(router.biomes()).thenReturn(mock(SavedBiomeRuntime.class));
+        when(router.engine()).thenReturn(engine);
+        when(router.history()).thenReturn(history);
+        return router;
     }
 
     private static IrisEngine engine(

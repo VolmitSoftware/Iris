@@ -4,6 +4,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
@@ -101,6 +102,99 @@ public class GenerationAdmissionTest {
         }
 
         assertThrows(IllegalStateException.class, admission::beginStartupCutover);
+    }
+
+    @Test
+    public void lastRuntimeReleaseAllowsStartupOnAFreshAdmissionOnly() {
+        Path root = temporaryFolder.getRoot().toPath();
+        GenerationAdmission admission = new GenerationAdmission(root);
+        GenerationAdmission stale = new GenerationAdmission(root);
+        GenerationAdmission.RuntimeLease runtime = admission.retainRuntime();
+        try (GenerationAdmission.StageLease ignored = admission.enterStage()) {
+        }
+        runtime.close();
+        GenerationAdmission reopened = new GenerationAdmission(root);
+        try (GenerationAdmission.CutoverLease ignored = reopened.beginStartupCutover()) {
+        }
+        assertThrows(IllegalStateException.class, stale::enterStage);
+        assertThrows(IllegalStateException.class, stale::beginCutover);
+        assertThrows(IllegalStateException.class, stale::retainRuntime);
+        runtime.close();
+        try (GenerationAdmission.StageLease ignored = reopened.enterStage()) {
+        }
+    }
+
+    @Test
+    public void everyRuntimeMustReleaseBeforeAdmissionCanRetire() {
+        Path root = temporaryFolder.getRoot().toPath();
+        GenerationAdmission first = new GenerationAdmission(root);
+        GenerationAdmission second = new GenerationAdmission(root);
+        GenerationAdmission.RuntimeLease firstRuntime = first.retainRuntime();
+        GenerationAdmission.RuntimeLease secondRuntime = second.retainRuntime();
+        try (GenerationAdmission.StageLease ignored = first.enterStage()) {
+        }
+        firstRuntime.close();
+        assertThrows(IllegalStateException.class, new GenerationAdmission(root)::beginStartupCutover);
+        try (GenerationAdmission.StageLease ignored = second.enterStage()) {
+        }
+        secondRuntime.close();
+        try (GenerationAdmission.CutoverLease ignored = new GenerationAdmission(root).beginStartupCutover()) {
+        }
+    }
+
+    @Test
+    public void failedRetirementRetainsTheLeaseUntilActiveStagesFinish() {
+        GenerationAdmission admission = new GenerationAdmission(temporaryFolder.getRoot().toPath());
+        GenerationAdmission.RuntimeLease runtime = admission.retainRuntime();
+        GenerationAdmission.StageLease stage = admission.enterStage();
+        assertThrows(IllegalStateException.class, runtime::close);
+        assertThrows(IllegalStateException.class, admission::beginStartupCutover);
+        stage.close();
+        runtime.close();
+        assertThrows(IllegalStateException.class, admission::enterStage);
+    }
+
+    @Test
+    public void failedRetirementRetainsTheLeaseUntilActiveCutoversFinish() {
+        GenerationAdmission admission = new GenerationAdmission(temporaryFolder.getRoot().toPath());
+        GenerationAdmission.RuntimeLease runtime = admission.retainRuntime();
+        GenerationAdmission.CutoverLease cutover = admission.beginCutover();
+        assertThrows(IllegalStateException.class, runtime::close);
+        cutover.close();
+        runtime.close();
+        assertThrows(IllegalStateException.class, admission::beginCutover);
+    }
+
+    @Test
+    public void waitingCutoversKeepAdmissionOwnedUntilTheirWorkCompletes() throws Exception {
+        GenerationAdmission admission = new GenerationAdmission(temporaryFolder.getRoot().toPath());
+        GenerationAdmission.RuntimeLease runtime = admission.retainRuntime();
+        GenerationAdmission.StageLease stage = admission.enterStage();
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        FutureTask<Void> cutover = new FutureTask<>(() -> {
+            try (GenerationAdmission.CutoverLease ignored = admission.beginCutover()) {
+                entered.countDown();
+                await(release);
+            }
+        }, null);
+        Thread thread = Thread.ofPlatform().daemon().unstarted(cutover);
+        try {
+            thread.start();
+            awaitWaiting(thread);
+            assertThrows(IllegalStateException.class, runtime::close);
+            stage.close();
+            assertTrue(entered.await(5L, TimeUnit.SECONDS));
+            assertThrows(IllegalStateException.class, runtime::close);
+            release.countDown();
+            cutover.get(5L, TimeUnit.SECONDS);
+            runtime.close();
+            assertThrows(IllegalStateException.class, admission::beginCutover);
+        } finally {
+            stage.close();
+            release.countDown();
+            thread.join(5_000L);
+        }
     }
 
     private static void awaitWaiting(Thread thread) throws InterruptedException {

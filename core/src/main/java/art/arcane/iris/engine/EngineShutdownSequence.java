@@ -27,11 +27,16 @@ import art.arcane.iris.engine.framework.EngineTarget;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
 import art.arcane.iris.engine.framework.PreservationRegistry;
 import art.arcane.iris.engine.mantle.EngineMantle;
+import art.arcane.iris.engine.history.GenerationAdmission;
+import art.arcane.iris.engine.history.GenerationHistory;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,6 +49,7 @@ final class EngineShutdownSequence {
     private static final long CLOSE_RETRY_DRAIN_TIMEOUT_MILLIS = 5000L;
 
     private final IrisEngine engine;
+    private final List<GenerationAdmission.RuntimeLease> generationAdmissions = new ArrayList<>(1);
     private final Set<RuntimeAssembly> incompleteAssemblies = ConcurrentHashMap.newKeySet();
     private final Set<EngineRuntime> unpublishedRuntimes = Collections.synchronizedSet(
             Collections.newSetFromMap(new IdentityHashMap<>()));
@@ -56,6 +62,10 @@ final class EngineShutdownSequence {
 
     EngineShutdownSequence(IrisEngine engine) {
         this.engine = engine;
+    }
+
+    void retainGenerationHistory(GenerationHistory history) {
+        generationAdmissions.add(history.retainRuntime());
     }
 
     void close() {
@@ -161,14 +171,30 @@ final class EngineShutdownSequence {
                     && targetReleased
                     && engineDataReleased
                     && preservationReleased) {
-                engine.closed = true;
-                engine.lifecycleState = LifecycleState.CLOSED;
-                IrisLogging.debug("Engine Fully Shutdown!");
+                failure = releaseGenerationAdmissions(failure);
+                if (failure == null) {
+                    engine.closed = true;
+                    engine.lifecycleState = LifecycleState.CLOSED;
+                    IrisLogging.debug("Engine Fully Shutdown!");
+                }
             }
         }
         if (failure != null) {
             reportIncompleteClose(failure);
         }
+    }
+
+    private Throwable releaseGenerationAdmissions(Throwable failure) {
+        Iterator<GenerationAdmission.RuntimeLease> admissions = generationAdmissions.iterator();
+        while (admissions.hasNext()) {
+            GenerationAdmission.RuntimeLease admission = admissions.next();
+            Throwable admissionFailure = runCleanup(null, admission::close);
+            failure = appendFailure(failure, admissionFailure);
+            if (admissionFailure == null) {
+                admissions.remove();
+            }
+        }
+        return failure;
     }
 
     private void reportIncompleteClose(Throwable failure) {
@@ -218,7 +244,10 @@ final class EngineShutdownSequence {
                 cleanupFailure = releasePreservation(cleanupFailure);
             }
             if (runtimeReleased && targetReleased && engineDataReleased && preservationReleased) {
-                engine.closed = true;
+                cleanupFailure = releaseGenerationAdmissions(cleanupFailure);
+                if (generationAdmissions.isEmpty()) {
+                    engine.closed = true;
+                }
             }
         }
         if (cleanupFailure != null && cleanupFailure != original) {

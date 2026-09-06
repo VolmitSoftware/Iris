@@ -37,7 +37,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -103,7 +102,6 @@ public class IrisDepositModifierContextTest {
         RNG rng = mock(RNG.class);
         when(rng.d()).thenReturn(0.5D);
         when(rng.i(0, 5)).thenReturn(4, 0);
-        when(rng.nextParallelRNG(anyLong())).thenReturn(rng);
 
         new IrisDepositModifier(engine).generate(generator, null, null, rng, 0, 0, false, null);
 

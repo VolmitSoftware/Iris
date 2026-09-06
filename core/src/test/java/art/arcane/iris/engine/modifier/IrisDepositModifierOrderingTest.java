@@ -88,7 +88,7 @@ public class IrisDepositModifierOrderingTest {
         RNG generatorRng = new RNG(0L).nextParallelRNG(0L);
         for (String name : List.of("dimension", "region", "biome")) {
             for (int i = 0; i < 25; i++) {
-                expectedSamples.add(name + ":" + generatorRng.nextParallelRNG(i + 1L).getSeed());
+                expectedSamples.add(name + ":" + IrisDepositModifier.clumpSeed(generatorRng.getSeed(), i));
             }
         }
         Collections.sort(expectedSamples);

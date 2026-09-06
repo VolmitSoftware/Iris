@@ -153,22 +153,21 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
 
     private DepositPlan plan(IrisDepositGenerator generator, RNG rng) {
         if (generator.getSpawnChance() < rng.d()) {
-            return new DepositPlan(generator, rng, false, 0);
+            return new DepositPlan(generator, rng.getSeed(), false, 0);
         }
         boolean ore = generator.isOre(getData());
         int attempts = rng.i(generator.getMinPerChunk(), generator.getMaxPerChunk() + 1);
-        return new DepositPlan(generator, rng, ore, attempts);
+        return new DepositPlan(generator, rng.getSeed(), ore, attempts);
     }
 
     private PreparedDeposit prepare(DepositPlan plan, int first, int limit, int cx, int cz, HeightMap he, ChunkContext context) {
         IrisDepositGenerator k = plan.generator();
-        RNG rng = plan.rng();
         boolean oreDeposit = plan.ore();
         boolean needsCaveBiome = oreDeposit || k.usesCaveBiomeFilter();
         IrisDimensionCarvingResolver.State carvingState = needsCaveBiome ? new IrisDimensionCarvingResolver.State() : null;
         List<PreparedClump> clumps = new ArrayList<>(limit - first);
         for (int l = first; l < limit; l++) {
-            RNG clumpRng = rng.nextParallelRNG(l + 1L);
+            RNG clumpRng = new RNG(clumpSeed(plan.seed(), l));
             if (k.getPerClumpSpawnChance() < clumpRng.d()) {
                 continue;
             }
@@ -492,7 +491,14 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
         return null;
     }
 
-    private record DepositPlan(IrisDepositGenerator generator, RNG rng, boolean ore, int attempts) {
+    static long clumpSeed(long seed, int attempt) {
+        long mixed = seed + 0x9e3779b97f4a7c15L * (attempt + 1L);
+        mixed = (mixed ^ (mixed >>> 30)) * 0xbf58476d1ce4e5b9L;
+        mixed = (mixed ^ (mixed >>> 27)) * 0x94d049bb133111ebL;
+        return mixed ^ (mixed >>> 31);
+    }
+
+    private record DepositPlan(IrisDepositGenerator generator, long seed, boolean ore, int attempts) {
     }
 
     private record PreparedDeposit(IrisDepositGenerator generator, boolean ore, List<PreparedClump> clumps) {

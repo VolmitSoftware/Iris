@@ -35,6 +35,14 @@ public final class BukkitUiMessages {
             "iris.bukkit.scoreboard.biome",
             C.AQUA + "Biome" + C.GRAY + ":  {biome}"
     );
+    public static final TextKey SCOREBOARD_BIOME_LOADING = TextKey.of(
+            "iris.bukkit.scoreboard.biome_loading",
+            "Loading"
+    );
+    public static final TextKey SCOREBOARD_BIOME_UNAVAILABLE = TextKey.of(
+            "iris.bukkit.scoreboard.biome_unavailable",
+            "Unavailable"
+    );
     public static final TextKey SCOREBOARD_HEIGHT = TextKey.of(
             "iris.bukkit.scoreboard.height",
             C.AQUA + "Height" + C.GRAY + ": {height}"
@@ -56,6 +64,8 @@ public final class BukkitUiMessages {
             SCOREBOARD_CARVING,
             SCOREBOARD_REGION,
             SCOREBOARD_BIOME,
+            SCOREBOARD_BIOME_LOADING,
+            SCOREBOARD_BIOME_UNAVAILABLE,
             SCOREBOARD_HEIGHT,
             SCOREBOARD_SLOPE,
             SCOREBOARD_BLOCK_UPDATES

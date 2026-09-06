@@ -645,6 +645,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         when(saved.resolveCaveBase(19, -3)).thenReturn(Optional.of(environment));
 
         assertSame(environment, engine.getBiomeEnvironment(19, 20, -3));
+        assertSame(environment, engine.getBiomeOrMantleEnvironment(19, 20, -3));
         assertSame(environment, engine.getSurfaceBiomeEnvironment(19, -3));
         assertSame(environment.biome(), engine.getBiome(19, 20, -3));
         assertSame(environment.biome(), engine.getBiomeOrMantle(19, 20, -3));

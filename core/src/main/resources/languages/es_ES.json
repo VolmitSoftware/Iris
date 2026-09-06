@@ -1358,6 +1358,8 @@
     "iris.bukkit.scoreboard.carving": "§dTallado§7: {state}",
     "iris.bukkit.scoreboard.region": "§bRegión§7: {region}",
     "iris.bukkit.scoreboard.biome": "§bBioma§7:  {biome}",
+    "iris.bukkit.scoreboard.biome_loading": "Cargando",
+    "iris.bukkit.scoreboard.biome_unavailable": "No disponible",
     "iris.bukkit.scoreboard.height": "§bAltura§7: {height}",
     "iris.bukkit.scoreboard.slope": "§bPendiente§7:  {slope}",
     "iris.bukkit.scoreboard.block_updates": "§bBUD/s§7: {updates}",

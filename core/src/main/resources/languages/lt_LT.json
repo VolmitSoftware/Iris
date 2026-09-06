@@ -1358,6 +1358,8 @@
     "iris.bukkit.scoreboard.carving": "§dRaižyti§7: {state}",
     "iris.bukkit.scoreboard.region": "§bRegionas§7: {region}",
     "iris.bukkit.scoreboard.biome": "§bBiomas§7:  {biome}",
+    "iris.bukkit.scoreboard.biome_loading": "Įkeliama",
+    "iris.bukkit.scoreboard.biome_unavailable": "Nepasiekiama",
     "iris.bukkit.scoreboard.height": "§bAukštis§7: {height}",
     "iris.bukkit.scoreboard.slope": "§bSpop§7:  {slope}",
     "iris.bukkit.scoreboard.block_updates": "§bBID/s§7: {updates}",

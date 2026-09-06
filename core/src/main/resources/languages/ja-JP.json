@@ -1358,6 +1358,8 @@
     "iris.bukkit.scoreboard.carving": "§dカービング§7: {state}",
     "iris.bukkit.scoreboard.region": "§bリージョン§7: {region}",
     "iris.bukkit.scoreboard.biome": "§bバイオーム§7:  {biome}",
+    "iris.bukkit.scoreboard.biome_loading": "読み込み中",
+    "iris.bukkit.scoreboard.biome_unavailable": "利用不可",
     "iris.bukkit.scoreboard.height": "§b高さ§7: {height}",
     "iris.bukkit.scoreboard.slope": "§bスロープ§7:  {slope}",
     "iris.bukkit.scoreboard.block_updates": "§bBUD/s§7: {updates}",

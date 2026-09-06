@@ -97,6 +97,10 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         return new BiomeEnvironment(0L, getBiome(x, y, z), getRegion(x, y, z), getDimension(), getData());
     }
 
+    default BiomeEnvironment getBiomeOrMantleEnvironment(int x, int y, int z) {
+        return new BiomeEnvironment(0L, getBiomeOrMantle(x, y, z), getRegion(x, y, z), getDimension(), getData());
+    }
+
     default BiomeEnvironment getSurfaceBiomeEnvironment(int x, int z) {
         return new BiomeEnvironment(0L, getSurfaceBiome(x, z), getRegion(x, z), getDimension(), getData());
     }

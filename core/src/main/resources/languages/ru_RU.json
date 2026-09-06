@@ -1358,6 +1358,8 @@
     "iris.bukkit.scoreboard.carving": "§dрезьба§7: {state}",
     "iris.bukkit.scoreboard.region": "§bрегион§7: {region}",
     "iris.bukkit.scoreboard.biome": "§bбиом§7:  {biome}",
+    "iris.bukkit.scoreboard.biome_loading": "Загрузка",
+    "iris.bukkit.scoreboard.biome_unavailable": "Недоступно",
     "iris.bukkit.scoreboard.height": "§bвысота§7: {height}",
     "iris.bukkit.scoreboard.slope": "§bСклон§7:  {slope}",
     "iris.bukkit.scoreboard.block_updates": "§bБУД/s§7: {updates}",

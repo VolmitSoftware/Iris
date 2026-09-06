@@ -1358,6 +1358,8 @@
     "iris.bukkit.scoreboard.carving": "§dעבודה§7: {state}",
     "iris.bukkit.scoreboard.region": "§bאזור§7: {region}",
     "iris.bukkit.scoreboard.biome": "§bביומי§7:  {biome}",
+    "iris.bukkit.scoreboard.biome_loading": "בטעינה",
+    "iris.bukkit.scoreboard.biome_unavailable": "לא זמין",
     "iris.bukkit.scoreboard.height": "§bגובה§7: {height}",
     "iris.bukkit.scoreboard.slope": "§bסלייפ§7:  {slope}",
     "iris.bukkit.scoreboard.block_updates": "§bBUD/s§7: {updates}",

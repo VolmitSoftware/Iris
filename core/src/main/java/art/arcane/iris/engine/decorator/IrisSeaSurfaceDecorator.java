@@ -39,6 +39,10 @@ public class IrisSeaSurfaceDecorator extends IrisEngineDecorator {
     @Override
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1,
                          Hunk<PlatformBlockState> data, IrisBiome biome, int height, int max) {
+        int maxBaseY = Math.min(max, Math.min(getEngine().getHeight(), data.getHeight()) - 1);
+        if (height < 0 || height >= maxBaseY) {
+            return;
+        }
         RNG rng = getRNG(realX, realZ);
         IrisDecorator decorator = DecoratorCore.pickDecorator(biome, getPart(), partRNG, rng, getData(), realX, realZ);
 
@@ -48,8 +52,7 @@ public class IrisSeaSurfaceDecorator extends IrisEngineDecorator {
 
         if (!decorator.isStacking()) {
             int targetY = height + 1;
-            if (height >= 0 && targetY < getEngine().getHeight()
-                    && DecoratorCore.canReplaceStackTarget(data.get(x, targetY, z), false)) {
+            if (DecoratorCore.canReplaceStackTarget(data.get(x, targetY, z), false)) {
                 PlatformBlockState block = decorator.getBlockData100(biome, rng, realX, height, realZ, getData());
                 if (block != null) {
                     data.set(x, targetY, z, block);
@@ -58,30 +61,15 @@ public class IrisSeaSurfaceDecorator extends IrisEngineDecorator {
             return;
         }
 
-        int stack = DecoratorCore.computeStack(decorator, rng, realX, realZ, getData(), max - height);
-
-        if (stack == 1) {
-            int targetY = height + 1;
-            if (targetY >= data.getHeight() || !DecoratorCore.canReplaceStackTarget(data.get(x, targetY, z), false)) {
-                return;
-            }
-
-            PlatformBlockState block = decorator.getBlockDataForTop(biome, rng, realX, height, realZ, getData());
-            if (block != null) {
-                data.set(x, targetY, z, block);
-            }
-            return;
-        }
-
-        int engineHeight = getEngine().getHeight();
+        int stack = Math.min(maxBaseY - height,
+                DecoratorCore.computeStack(decorator, rng, realX, realZ, getData(), max - height));
         for (int i = 0; i < stack; i++) {
             int h = height + i;
             int targetY = h + 1;
-            if (h >= max || targetY >= engineHeight
-                    || !DecoratorCore.canReplaceStackTarget(data.get(x, targetY, z), false)) {
+            if (!DecoratorCore.canReplaceStackTarget(data.get(x, targetY, z), false)) {
                 break;
             }
-            double threshold = ((double) i) / (stack - 1);
+            double threshold = stack == 1 ? 1.0 : ((double) i) / (stack - 1);
             PlatformBlockState block = threshold >= decorator.getTopThreshold()
                     ? decorator.getBlockDataForTop(biome, rng, realX, h, realZ, getData())
                     : decorator.getBlockData100(biome, rng, realX, h, realZ, getData());

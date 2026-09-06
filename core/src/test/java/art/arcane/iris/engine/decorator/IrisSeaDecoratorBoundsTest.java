@@ -77,16 +77,51 @@ public class IrisSeaDecoratorBoundsTest {
         assertNull(fixture.output.get(0, 4, 0));
     }
 
+    @Test
+    public void surfaceStackUsesTheShorterOutputHeight() {
+        Fixture fixture = new Fixture(8, true);
+        when(fixture.engine.getHeight()).thenReturn(64);
+        fixture.stacking(200, 30);
+
+        fixture.decorate(6, 64);
+
+        assertSame(fixture.top, fixture.output.get(0, 7, 0));
+    }
+
+    @Test
+    public void surfaceSingleRejectsOutputCeiling() {
+        Fixture fixture = new Fixture(8, true);
+        when(fixture.engine.getHeight()).thenReturn(64);
+
+        fixture.decorate(7, 64);
+
+        assertNull(fixture.output.get(0, 7, 0));
+    }
+
+    @Test
+    public void surfaceSingleStackRejectsNegativeBaseAndEngineCeiling() {
+        Fixture fixture = new Fixture(16, true);
+        when(fixture.engine.getHeight()).thenReturn(8);
+        fixture.stacking(1, 30);
+        when(fixture.decorator.isScaleStack()).thenReturn(false);
+
+        fixture.decorate(-1, 16);
+        fixture.decorate(7, 16);
+
+        assertNull(fixture.output.get(0, 0, 0));
+        assertNull(fixture.output.get(0, 8, 0));
+    }
+
     private static final class Fixture {
         private final IrisDecorator decorator = mock(IrisDecorator.class);
         private final IrisBiome biome = mock(IrisBiome.class);
         private final PlatformBlockState body = mock(PlatformBlockState.class);
         private final PlatformBlockState top = mock(PlatformBlockState.class);
+        private final Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
         private final Hunk<PlatformBlockState> output;
         private final IrisEngineDecorator placement;
 
         private Fixture(int height, boolean surface) {
-            Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
             when(engine.getHeight()).thenReturn(height);
             output = Hunk.newArrayHunk(1, height, 1);
             IrisDecorationPart part = surface ? IrisDecorationPart.SEA_SURFACE : IrisDecorationPart.SEA_FLOOR;

@@ -30,10 +30,12 @@ import art.arcane.iris.util.project.interpolation.Interpolation3D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Geometric transforms for {@link IrisObject}: rotation, scaling and the interpolated upscalers.
@@ -52,15 +54,23 @@ final class IrisObjectTransforms {
         self.writeLock.lock();
         try {
             VectorMap<PlatformBlockState> d = new VectorMap<>();
+            Set<IrisBlockVector> omitted = new HashSet<>();
 
-            for (var entry : self.blocks) {
-                d.put(r.rotate(entry.getKey(), spinx, spiny, spinz), r.rotate(entry.getValue(), spinx, spiny, spinz));
+            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : self.blocks) {
+                PlatformBlockState rotated = r.rotate(entry.getValue(), spinx, spiny, spinz);
+                if (rotated == null) {
+                    omitted.add(entry.getKey());
+                    continue;
+                }
+                d.put(r.rotate(entry.getKey(), spinx, spiny, spinz), rotated);
             }
 
             VectorMap<TileData> dx = new VectorMap<>();
 
-            for (var entry : self.states) {
-                dx.put(r.rotate(entry.getKey(), spinx, spiny, spinz), entry.getValue());
+            for (Map.Entry<IrisBlockVector, TileData> entry : self.states) {
+                if (!omitted.contains(entry.getKey())) {
+                    dx.put(r.rotate(entry.getKey(), spinx, spiny, spinz), entry.getValue());
+                }
             }
 
             self.blocks = d;
@@ -100,26 +110,27 @@ final class IrisObjectTransforms {
         VectorMap<TileData> placeTile = new VectorMap<>();
         VectorMap<IrisBlockVector> placeMax = savedOrigin && scale > 1 ? new VectorMap<>() : null;
 
-        IrisVector center = new IrisVector(self.getCenter().getX(), self.getCenter().getY(), self.getCenter().getZ());
-        if (self.getH() == 2) {
-            center = center.setY(center.getBlockY() + 0.5);
-        }
-        if (self.getW() == 2) {
-            center = center.setX(center.getBlockX() + 0.5);
-        }
-        if (self.getD() == 2) {
-            center = center.setZ(center.getBlockZ() + 0.5);
-        }
-
-        IrisObject oo = savedOrigin ? createOriginScaledObject(self, scale)
-                : new IrisObject((int) Math.ceil((self.w * scale) + (scale * 2)), (int) Math.ceil((self.h * scale) + (scale * 2)), (int) Math.ceil((self.d * scale) + (scale * 2)));
-        oo.setLoadKey(self.getLoadKey());
-        oo.setLoader(self.getLoader());
-        oo.setLoadFile(self.getLoadFile());
-
+        IrisVector center;
+        IrisObject oo;
         boolean hasTiles;
         self.readLock.lock();
         try {
+            center = new IrisVector(self.getCenter().getX(), self.getCenter().getY(), self.getCenter().getZ());
+            if (self.getH() == 2) {
+                center = center.setY(center.getBlockY() + 0.5);
+            }
+            if (self.getW() == 2) {
+                center = center.setX(center.getBlockX() + 0.5);
+            }
+            if (self.getD() == 2) {
+                center = center.setZ(center.getBlockZ() + 0.5);
+            }
+
+            oo = savedOrigin ? createOriginScaledObject(self, scale)
+                    : new IrisObject((int) Math.ceil((self.w * scale) + (scale * 2)), (int) Math.ceil((self.h * scale) + (scale * 2)), (int) Math.ceil((self.d * scale) + (scale * 2)));
+            oo.setLoadKey(self.getLoadKey());
+            oo.setLoader(self.getLoader());
+            oo.setLoadFile(self.getLoadFile());
             hasTiles = !self.states.isEmpty();
             for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : self.blocks) {
                 PlatformBlockState bd = entry.getValue();

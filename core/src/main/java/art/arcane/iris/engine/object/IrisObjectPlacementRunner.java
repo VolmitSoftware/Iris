@@ -533,6 +533,9 @@ final class IrisObjectPlacementRunner {
                 }
 
                 data = config.getRotation().rotate(data, spinx, spiny, spinz);
+                if (data == null) {
+                    continue;
+                }
                 xx = x + (int) Math.round(i.getX());
 
                 int yy = y + (int) Math.round(i.getY());

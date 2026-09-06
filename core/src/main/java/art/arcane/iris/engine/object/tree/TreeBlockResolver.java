@@ -23,6 +23,7 @@ import art.arcane.iris.engine.object.IrisMaterialPalette;
 import art.arcane.iris.engine.object.IrisProceduralBlocks;
 import art.arcane.iris.engine.object.IrisProceduralTree;
 import art.arcane.iris.engine.object.IrisTreeDecorator;
+import art.arcane.iris.engine.object.IrisTreeSecondaryLeaf;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.math.RNG;
@@ -106,16 +107,16 @@ public final class TreeBlockResolver {
     }
 
     private static String pickWeighted(IrisProceduralTree tree, RNG rng) {
-        int total = 0;
-        for (art.arcane.iris.engine.object.IrisTreeSecondaryLeaf s : tree.getWeightedSecondaryLeaves()) {
+        long total = 0;
+        for (IrisTreeSecondaryLeaf s : tree.getWeightedSecondaryLeaves()) {
             total += Math.max(0, s.getWeight());
         }
         if (total <= 0) {
             return null;
         }
         double r = rng.nextDouble() * total;
-        double cumulative = 0;
-        for (art.arcane.iris.engine.object.IrisTreeSecondaryLeaf s : tree.getWeightedSecondaryLeaves()) {
+        long cumulative = 0;
+        for (IrisTreeSecondaryLeaf s : tree.getWeightedSecondaryLeaves()) {
             cumulative += Math.max(0, s.getWeight());
             if (r < cumulative) {
                 return s.getBlock();

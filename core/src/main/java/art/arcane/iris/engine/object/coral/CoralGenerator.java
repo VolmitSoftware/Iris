@@ -88,16 +88,18 @@ public final class CoralGenerator {
 
     private static void buildFan(CoralCanvas canvas, IrisCoral coral, int height, long seed) {
         int half = Math.max(1, coral.getFanWidth());
-        for (int y = 0; y < height; y++) {
+        int tippedWidth = -1;
+        for (int y = height - 1; y >= 0; y--) {
             double t = y / (double) Math.max(1, height - 1);
             double profile = Math.sin(Math.PI * t);
             int w = (int) Math.round(half * profile);
             for (int dx = -w; dx <= w; dx++) {
                 canvas.set(dx, y, 0, CoralCanvas.Role.STRUCTURE);
+                if (Math.abs(dx) > tippedWidth) {
+                    placeTip(canvas, coral, dx, y, 0, seed + dx);
+                }
             }
-        }
-        for (int dx = -half; dx <= half; dx++) {
-            placeTip(canvas, coral, dx, height - 1, 0, seed + dx);
+            tippedWidth = Math.max(tippedWidth, w);
         }
     }
 

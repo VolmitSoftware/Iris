@@ -242,6 +242,10 @@ public interface INMSBinding {
         return false;
     }
 
+    default boolean pollChunkTask(World world) {
+        return false;
+    }
+
     default void flushChunkIO(World world) {
     }
 

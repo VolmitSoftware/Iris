@@ -474,7 +474,7 @@ final class DecoratorCore {
                 && (!caveSkipFluid || !B.isFluid(lower) && !B.isFluid(upper));
     }
 
-    private static int computeStack(IrisDecorator decorator, RNG rng, double realX, double realZ,
+    static int computeStack(IrisDecorator decorator, RNG rng, double realX, double realZ,
                                     IrisData irisData, int max) {
         int stack = decorator.getHeight(rng, realX, realZ, irisData);
         if (decorator.isScaleStack()) {

@@ -20,7 +20,6 @@ package art.arcane.iris.engine.object.fungi;
 
 import art.arcane.iris.engine.object.IrisFungus;
 import art.arcane.iris.engine.object.tree.TreeFunctions;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.math.Vector3i;
 
 import java.util.Map;
@@ -29,7 +28,7 @@ public final class FungusStemBuilder {
     private FungusStemBuilder() {
     }
 
-    public static double[] build(Map<Vector3i, PlatformBlockState> stemCells, IrisFungus fungus, int stemHeight, long seed) {
+    public static double[] build(Map<Vector3i, FungusCellRole> roles, IrisFungus fungus, int stemHeight, long seed) {
         int width = Math.max(1, Math.min(3, fungus.getStemWidth()));
         double maxLean = stemHeight * Math.tan(Math.toRadians(Math.max(0.0, fungus.getStemCurve())));
         double leanRad = Math.toRadians(fungus.getStemLeanAzimuth());
@@ -40,6 +39,7 @@ public final class FungusStemBuilder {
         double waveAzimuth = Math.toRadians(fungus.getStemLeanAzimuth() + 90.0);
         double waveX = Math.sin(waveAzimuth);
         double waveZ = Math.cos(waveAzimuth);
+        double wavePhase = TreeFunctions.valueNoise1D(seed, seed) * Math.PI * 2.0;
 
         double topCx = 0.0;
         double topCz = 0.0;
@@ -48,12 +48,16 @@ public final class FungusStemBuilder {
         for (int y = 0; y < stemHeight; y++) {
             double t = stemHeight <= 1 ? 0.0 : y / (double) (stemHeight - 1);
             double lean = maxLean * (t * t);
-            double wave = waveAmp * Math.sin(2.0 * Math.PI * wavePeriods * t + TreeFunctions.valueNoise1D(seed, seed) * Math.PI * 2.0);
+            double wave = waveAmp * Math.sin(2.0 * Math.PI * wavePeriods * t + wavePhase);
             double cx = lean * leanX + wave * waveX;
             double cz = lean * leanZ + wave * waveZ;
 
-            for (int[] xz : squarePositions(cx, cz, width)) {
-                stemCells.put(new Vector3i(xz[0], y, xz[1]), null);
+            int ox = (width % 2 == 1 ? (int) Math.round(cx) : (int) Math.floor(cx) + 1) - width / 2;
+            int oz = (width % 2 == 1 ? (int) Math.round(cz) : (int) Math.floor(cz) + 1) - width / 2;
+            for (int dx = 0; dx < width; dx++) {
+                for (int dz = 0; dz < width; dz++) {
+                    roles.put(new Vector3i(ox + dx, y, oz + dz), FungusCellRole.STEM);
+                }
             }
 
             topCx = cx;
@@ -61,35 +65,5 @@ public final class FungusStemBuilder {
         }
 
         return new double[]{topCx, topY, topCz};
-    }
-
-    static int[][] squarePositions(double cx, double cz, int width) {
-        if (width % 2 == 1) {
-            int half = width / 2;
-            int icx = (int) Math.round(cx);
-            int icz = (int) Math.round(cz);
-            int[][] out = new int[width * width][2];
-            int idx = 0;
-            for (int dx = -half; dx <= half; dx++) {
-                for (int dz = -half; dz <= half; dz++) {
-                    out[idx][0] = icx + dx;
-                    out[idx][1] = icz + dz;
-                    idx++;
-                }
-            }
-            return out;
-        }
-        int ox = (int) Math.floor(cx) - width / 2 + 1;
-        int oz = (int) Math.floor(cz) - width / 2 + 1;
-        int[][] out = new int[width * width][2];
-        int idx = 0;
-        for (int dx = 0; dx < width; dx++) {
-            for (int dz = 0; dz < width; dz++) {
-                out[idx][0] = ox + dx;
-                out[idx][1] = oz + dz;
-                idx++;
-            }
-        }
-        return out;
     }
 }

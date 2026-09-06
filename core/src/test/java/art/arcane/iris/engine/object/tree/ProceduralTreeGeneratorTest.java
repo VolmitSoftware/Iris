@@ -6,9 +6,11 @@ import art.arcane.iris.engine.object.IrisTreeBranches;
 import art.arcane.iris.engine.object.IrisTreeFunction;
 import art.arcane.iris.engine.object.IrisTreeLeafMode;
 import art.arcane.iris.engine.object.IrisTreeProfile;
+import art.arcane.iris.spi.PlatformBlockState;
 import org.junit.Test;
 
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,6 +20,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertSame;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ProceduralTreeGeneratorTest {
 
@@ -267,5 +272,24 @@ public class ProceduralTreeGeneratorTest {
             assertNull("leaves beyond distance 7 must remain unsupported",
                     distances.get(new TreeBlockCanvas.Vec(x, 0, 0)));
         }
+    }
+
+    @Test
+    public void disabledPlausibilityMakesDisconnectedLeavesPersistent() {
+        IrisProceduralTree tree = new IrisProceduralTree();
+        tree.setPlausible(false);
+        TreeBlockCanvas.Vec position = new TreeBlockCanvas.Vec(40, 20, -10);
+        PlatformBlockState leaf = mock(PlatformBlockState.class);
+        PlatformBlockState persistent = mock(PlatformBlockState.class);
+        PlatformBlockState supported = mock(PlatformBlockState.class);
+        when(leaf.key()).thenReturn("minecraft:oak_leaves[persistent=false,distance=7]");
+        when(leaf.withProperty("persistent", "true")).thenReturn(persistent);
+        when(persistent.withProperty("distance", "1")).thenReturn(supported);
+        Map<TreeBlockCanvas.Vec, PlatformBlockState> resolved = new HashMap<>();
+        resolved.put(position, leaf);
+
+        TreePlausibility.apply(resolved, Set.of(new TreeBlockCanvas.Vec(0, 0, 0)), Set.of(position), tree);
+
+        assertSame(supported, resolved.get(position));
     }
 }

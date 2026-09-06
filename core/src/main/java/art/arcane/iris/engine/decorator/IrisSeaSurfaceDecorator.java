@@ -58,10 +58,7 @@ public class IrisSeaSurfaceDecorator extends IrisEngineDecorator {
             return;
         }
 
-        int stack = decorator.getHeight(rng, realX, realZ, getData());
-        if (decorator.isScaleStack()) {
-            stack = (int) Math.ceil((double) (max - height) * ((double) stack / 100));
-        }
+        int stack = DecoratorCore.computeStack(decorator, rng, realX, realZ, getData(), max - height);
 
         if (stack == 1) {
             int targetY = height + 1;

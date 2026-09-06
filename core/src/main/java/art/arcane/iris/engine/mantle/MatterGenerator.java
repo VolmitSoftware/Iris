@@ -484,7 +484,11 @@ public interface MatterGenerator {
 
         @Override
         public boolean isReleasable() {
-            return task.future().isDone();
+            if (!task.future().isDone()) {
+                return false;
+            }
+            task.future().join();
+            return true;
         }
     }
 

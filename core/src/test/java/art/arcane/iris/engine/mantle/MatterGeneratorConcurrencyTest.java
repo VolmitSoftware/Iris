@@ -21,8 +21,11 @@ import art.arcane.iris.util.common.parallel.MultiBurst;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -213,6 +216,37 @@ public class MatterGeneratorConcurrencyTest {
         assertThrows(IllegalStateException.class,
                 () -> generator.generateContentMatter(0, 0, false, fixture.context));
         assertFalse(fixture.mantle.getChunk(0, 0).isFlagged(MantleFlag.PLANNED));
+    }
+
+    @Test
+    public void dispatcherPropagatesAnAlreadyFailedSharedComponent() {
+        IllegalStateException failure = new IllegalStateException("Shared component failed");
+        ExecutionException observed = sharedComponentFailure(CompletableFuture.failedFuture(failure), ExecutionException.class);
+        assertSame(failure, observed.getCause());
+    }
+
+    @Test
+    public void dispatcherPropagatesAnAlreadyCancelledSharedComponent() {
+        CompletableFuture<Void> cancelled = new CompletableFuture<>();
+        cancelled.cancel(false);
+        sharedComponentFailure(cancelled, CancellationException.class);
+    }
+
+    private <T extends Throwable> T sharedComponentFailure(CompletableFuture<Void> completion, Class<T> expectedFailure) {
+        GeneratorFixture fixture = new GeneratorFixture(true);
+        RecordingComponent component = new RecordingComponent(ReservedFlag.OBJECT, 0, 0);
+        TestMatterGenerator generator = fixture.generator(List.of(new MantlePass(List.of(component), 0, 0)));
+        MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(fixture.mantle, 0, 0, ReservedFlag.OBJECT);
+        MatterGenerator.IN_FLIGHT_COMPONENTS.put(key, completion);
+        try {
+            CompletableFuture<Void> generation = MultiBurst.burst.completeValueAsync(() -> {
+                generator.generateMatter(0, 0, true, fixture.context);
+                return null;
+            });
+            return assertThrows(expectedFailure, () -> generation.get(5L, TimeUnit.SECONDS));
+        } finally {
+            MatterGenerator.IN_FLIGHT_COMPONENTS.remove(key, completion);
+        }
     }
 
     private static void await(CountDownLatch latch) {

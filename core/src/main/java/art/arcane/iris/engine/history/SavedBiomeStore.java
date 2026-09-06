@@ -99,28 +99,30 @@ public final class SavedBiomeStore {
 
     public boolean claimAndPersist(SavedBiomeChunk chunk) throws IOException {
         SavedBiomeChunk required = Objects.requireNonNull(chunk, "chunk");
-        synchronized (regionLock(required.chunkX(), required.chunkZ())) {
-            Optional<SavedBiomeChunk> existing = get(required.chunkX(), required.chunkZ());
-            if (existing.isPresent()) {
-                if (!existing.get().equals(required)) {
-                    throw new IOException("Conflicting saved biome claim at chunk " + required.chunkX() + ", " + required.chunkZ());
-                }
+        Object lock = regionLock(required.chunkX(), required.chunkZ());
+        synchronized (lock) {
+            if (alreadyClaimed(required)) {
                 return false;
             }
-            byte[] body = encode(required);
+        }
+        byte[] body = encode(required);
+        byte[] record = ByteBuffer.allocate(body.length + 8)
+                .putInt(body.length).put(body).putInt(checksum(body)).array();
+        synchronized (lock) {
+            if (alreadyClaimed(required)) {
+                return false;
+            }
             RegionIndex region = region(required.chunkX(), required.chunkZ());
             ensureRegionFile(region);
             long offset;
             try (RandomAccessFile output = new RandomAccessFile(region.path.toFile(), "rw")) {
                 offset = output.length();
-                if (offset + body.length + 8L > MAXIMUM_REGION_BYTES) {
+                if (offset + record.length > MAXIMUM_REGION_BYTES) {
                     throw new IOException("Saved biome region exceeds its storage limit: " + region.path);
                 }
                 try {
                     output.seek(offset);
-                    output.writeInt(body.length);
-                    output.write(body);
-                    output.writeInt(checksum(body));
+                    output.write(record);
                     output.getChannel().force(true);
                 } catch (IOException failure) {
                     try {
@@ -200,6 +202,17 @@ public final class SavedBiomeStore {
         synchronized (chunks) {
             return cachedBytes;
         }
+    }
+
+    private boolean alreadyClaimed(SavedBiomeChunk chunk) throws IOException {
+        Optional<SavedBiomeChunk> existing = get(chunk.chunkX(), chunk.chunkZ());
+        if (existing.isEmpty()) {
+            return false;
+        }
+        if (!existing.get().equals(chunk)) {
+            throw new IOException("Conflicting saved biome claim at chunk " + chunk.chunkX() + ", " + chunk.chunkZ());
+        }
+        return true;
     }
 
     private RegionIndex region(int chunkX, int chunkZ) throws IOException {

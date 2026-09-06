@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.history;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -23,7 +24,7 @@ public final class NativeTerrainReceipt {
 
     public static byte[] encode(SavedTerrainChunk chunk, long activationId, String epochId) throws IOException {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        try (DataOutputStream output = new DataOutputStream(new GZIPOutputStream(bytes))) {
+        try (DataOutputStream output = new DataOutputStream(new BufferedOutputStream(new GZIPOutputStream(bytes)))) {
             output.writeInt(MAGIC);
             output.writeInt(VERSION);
             output.writeInt(chunk.chunkX());

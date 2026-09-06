@@ -20,10 +20,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
 
 public final class SavedBiomeRuntime implements AutoCloseable {
     private static final int MAXIMUM_QUERIES = 128;
@@ -36,6 +40,7 @@ public final class SavedBiomeRuntime implements AutoCloseable {
     private final Map<String, Definitions> definitions = new ConcurrentHashMap<>();
     private final LinkedHashMap<Long, PreparedQuery> queries = new LinkedHashMap<>(32, 0.75F, true);
     private final Map<Long, PendingQuery> pending = new HashMap<>();
+    private final ReentrantReadWriteLock consumption = new ReentrantReadWriteLock();
     private long queryBytes;
     private final ExecutorService reads = Executors.newFixedThreadPool(2, task -> {
         Thread thread = new Thread(task, "Iris Saved Biomes");
@@ -52,6 +57,31 @@ public final class SavedBiomeRuntime implements AutoCloseable {
 
     public Optional<BiomeEnvironment> resolve(int blockX, int worldY, int blockZ, boolean surface) {
         return resolve(blockX, worldY, blockZ, surface ? QueryKind.SURFACE : QueryKind.VOLUME);
+    }
+
+    public <T> T readSurfaceBiome(int blockX, int blockZ, Function<Optional<BiomeEnvironment>, T> reader)
+            throws InterruptedException {
+        Objects.requireNonNull(reader, "reader");
+        PreparedQuery prepared;
+        try {
+            prepared = queryAsync(Math.floorDiv(blockX, 16), Math.floorDiv(blockZ, 16)).get();
+        } catch (ExecutionException failure) {
+            Throwable cause = failure.getCause();
+            if (cause instanceof RuntimeException runtimeFailure) {
+                throw runtimeFailure;
+            }
+            if (cause instanceof Error error) {
+                throw error;
+            }
+            throw new IllegalStateException("Unable to prepare a saved biome preview.", cause);
+        }
+        consumption.readLock().lockInterruptibly();
+        try {
+            requireOpen();
+            return reader.apply(resolve(prepared, blockX, 0, blockZ, QueryKind.SURFACE));
+        } finally {
+            consumption.readLock().unlock();
+        }
     }
 
     public NativeBiomeSpawnSelection nativeSpawnSelection(int blockX, int worldY, int blockZ, String physicalBiomeKey) {
@@ -89,7 +119,10 @@ public final class SavedBiomeRuntime implements AutoCloseable {
     private Optional<BiomeEnvironment> resolve(int blockX, int worldY, int blockZ, QueryKind kind) {
         int chunkX = Math.floorDiv(blockX, 16);
         int chunkZ = Math.floorDiv(blockZ, 16);
-        PreparedQuery query = query(chunkX, chunkZ);
+        return resolve(query(chunkX, chunkZ), blockX, worldY, blockZ, kind);
+    }
+
+    private Optional<BiomeEnvironment> resolve(PreparedQuery query, int blockX, int worldY, int blockZ, QueryKind kind) {
         if (query.failure() != null) {
             throw query.failure();
         }
@@ -184,22 +217,27 @@ public final class SavedBiomeRuntime implements AutoCloseable {
                 pending.clear();
                 queryBytes = 0L;
             }
-            for (Definitions source : definitions.values()) {
-                try {
+            consumption.writeLock().lock();
+            try {
+                for (Definitions source : definitions.values()) {
                     try {
-                        source.data().unregisterEngine(engine);
-                    } finally {
-                        source.data().close();
-                    }
-                } catch (Throwable closeFailure) {
-                    if (failure == null) {
-                        failure = closeFailure;
-                    } else {
-                        failure.addSuppressed(closeFailure);
+                        try {
+                            source.data().unregisterEngine(engine);
+                        } finally {
+                            source.data().close();
+                        }
+                    } catch (Throwable closeFailure) {
+                        if (failure == null) {
+                            failure = closeFailure;
+                        } else {
+                            failure.addSuppressed(closeFailure);
+                        }
                     }
                 }
+                definitions.clear();
+            } finally {
+                consumption.writeLock().unlock();
             }
-            definitions.clear();
             if (failure != null) {
                 throw new IllegalStateException("Unable to close saved biome definitions", failure);
             }
@@ -229,20 +267,41 @@ public final class SavedBiomeRuntime implements AutoCloseable {
     }
 
     private PreparedQuery query(int chunkX, int chunkZ) {
+        synchronized (queries) {
+            requireOpen();
+            PreparedQuery cached = queries.get(key(chunkX, chunkZ));
+            if (cached != null) {
+                return cached;
+            }
+            queryAsync(chunkX, chunkZ);
+        }
+        throw loading(chunkX, chunkZ);
+    }
+
+    private CompletableFuture<PreparedQuery> queryAsync(int chunkX, int chunkZ) {
         long key = key(chunkX, chunkZ);
         synchronized (queries) {
             requireOpen();
             PreparedQuery cached = queries.get(key);
             if (cached != null) {
-                return cached;
+                return CompletableFuture.completedFuture(cached);
             }
-            if (!pending.containsKey(key) && pending.size() < MAXIMUM_PENDING_QUERIES) {
-                PendingQuery loading = new PendingQuery();
-                pending.put(key, loading);
-                reads.execute(() -> readQuery(chunkX, chunkZ, loading));
+            PendingQuery loading = pending.get(key);
+            if (loading != null) {
+                return loading.result;
             }
+            if (pending.size() >= MAXIMUM_PENDING_QUERIES) {
+                return CompletableFuture.failedFuture(loading(chunkX, chunkZ));
+            }
+            PendingQuery requested = new PendingQuery();
+            pending.put(key, requested);
+            reads.execute(() -> readQuery(chunkX, chunkZ, requested));
+            return requested.result;
         }
-        throw new SavedBiomeUnavailableException("Saved biome information is loading at chunk "
+    }
+
+    private static SavedBiomeUnavailableException loading(int chunkX, int chunkZ) {
+        return new SavedBiomeUnavailableException("Saved biome information is loading at chunk "
                 + chunkX + "," + chunkZ + ". Try again shortly.", true);
     }
 
@@ -269,11 +328,28 @@ public final class SavedBiomeRuntime implements AutoCloseable {
             }
             prepared = new PreparedQuery(Optional.empty(), Map.of(), Map.of(), new SavedBiomeUnavailableException(
                     "Unable to read the saved biome at chunk " + chunkX + "," + chunkZ + ".", failure), 512L);
+        } catch (Error failure) {
+            loading.result.completeExceptionally(failure);
+            throw failure;
         } finally {
+            boolean refresh;
             synchronized (queries) {
-                pending.remove(key, loading);
-                if (!closed && !loading.invalidated && prepared != null) {
-                    cacheQuery(key, prepared);
+                refresh = !closed && loading.invalidated;
+                if (refresh) {
+                    loading.invalidated = false;
+                    reads.execute(() -> readQuery(chunkX, chunkZ, loading));
+                } else {
+                    pending.remove(key, loading);
+                    if (!closed && prepared != null) {
+                        cacheQuery(key, prepared);
+                    }
+                }
+            }
+            if (!refresh) {
+                if (closed || prepared == null) {
+                    loading.result.completeExceptionally(new IllegalStateException("Saved biome runtime is closed."));
+                } else {
+                    loading.result.complete(prepared);
                 }
             }
         }
@@ -399,6 +475,7 @@ public final class SavedBiomeRuntime implements AutoCloseable {
     }
 
     private static final class PendingQuery {
+        private final CompletableFuture<PreparedQuery> result = new CompletableFuture<>();
         private boolean invalidated;
     }
 

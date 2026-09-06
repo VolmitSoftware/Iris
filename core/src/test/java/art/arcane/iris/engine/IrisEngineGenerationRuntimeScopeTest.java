@@ -45,7 +45,10 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -555,6 +558,109 @@ public class IrisEngineGenerationRuntimeScopeTest {
     }
 
     @Test
+    public void publishedRouterLookupDoesNotWaitForTheAttachmentMonitor() throws Exception {
+        RuntimeFixture active = runtime(1, 1D, 1D, 1D);
+        IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
+        GenerationHistoryRuntimeRouter router = historyRouter(engine);
+        engine.attachGenerationHistoryRuntimeRouter(router);
+        FutureTask<Optional<GenerationHistoryRuntimeRouter>> read = new FutureTask<>(engine::getGenerationHistoryRuntimeRouter);
+        Thread reader = new Thread(read, "History router lookup");
+
+        try {
+            synchronized (engine.generationHistoryRuntimeRouterLock) {
+                reader.start();
+                assertSame(router, read.get(5, TimeUnit.SECONDS).orElseThrow());
+            }
+        } finally {
+            reader.join(5_000L);
+            assertTrue("Router lookup did not finish", !reader.isAlive());
+        }
+    }
+
+    @Test
+    public void publishedCoordinateReadDoesNotWaitForTheAttachmentMonitor() throws Exception {
+        RuntimeFixture active = runtime(1, 1D, 1D, 1D);
+        IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
+        GenerationHistoryRuntimeRouter router = historyRouter(engine);
+        engine.attachGenerationHistoryRuntimeRouter(router);
+        GenerationHistoryRuntimeRouter.CoordinateScope scope = mock(GenerationHistoryRuntimeRouter.CoordinateScope.class);
+        when(router.openCoordinateScope(-17, 32)).thenReturn(scope);
+        FutureTask<GenerationHistoryRuntimeRouter.CoordinateScope> read =
+                new FutureTask<>(() -> engine.openGenerationHistoryCoordinateScope(-17, 32));
+        Thread reader = new Thread(read, "History coordinate read");
+
+        try {
+            synchronized (engine.generationHistoryRuntimeRouterLock) {
+                reader.start();
+                assertSame(scope, read.get(5, TimeUnit.SECONDS));
+            }
+        } finally {
+            reader.join(5_000L);
+            assertTrue("Coordinate read did not finish", !reader.isAlive());
+        }
+        verify(router).openCoordinateScope(-17, 32);
+    }
+
+    @Test
+    public void missingRouterReadWaitsForAttachmentPublication() throws Exception {
+        RuntimeFixture active = runtime(1, 1D, 1D, 1D);
+        IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
+        GenerationHistoryRuntimeRouter router = historyRouter(engine);
+        GenerationHistoryRuntimeRouter.CoordinateScope scope = mock(GenerationHistoryRuntimeRouter.CoordinateScope.class);
+        when(router.openCoordinateScope(-17, 32)).thenReturn(scope);
+        CountDownLatch started = new CountDownLatch(1);
+        FutureTask<GenerationHistoryRuntimeRouter.CoordinateScope> read = new FutureTask<>(() -> {
+            started.countDown();
+            return engine.openGenerationHistoryCoordinateScope(-17, 32);
+        });
+        Thread reader = new Thread(read, "Pending history attachment");
+
+        try {
+            synchronized (engine.generationHistoryRuntimeRouterLock) {
+                reader.start();
+                assertTrue(started.await(5, TimeUnit.SECONDS));
+                awaitBlocked(reader);
+                engine.attachGenerationHistoryRuntimeRouter(router);
+            }
+            assertSame(scope, read.get(5, TimeUnit.SECONDS));
+        } finally {
+            reader.join(5_000L);
+            assertTrue("Pending router read did not finish", !reader.isAlive());
+        }
+    }
+
+    @Test
+    public void detachedRouterReadRemainsFailClosedAcrossThreads() throws Exception {
+        RuntimeFixture active = runtime(1, 1D, 1D, 1D);
+        IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
+        GenerationHistoryRuntimeRouter router = historyRouter(engine);
+        engine.attachGenerationHistoryRuntimeRouter(router);
+        CountDownLatch started = new CountDownLatch(1);
+        FutureTask<GenerationHistoryRuntimeRouter.CoordinateScope> read = new FutureTask<>(() -> {
+            started.countDown();
+            return engine.openGenerationHistoryCoordinateScope(-17, 32);
+        });
+        Thread reader = new Thread(read, "Detached history read");
+
+        try {
+            synchronized (engine.generationHistoryRuntimeRouterLock) {
+                engine.detachGenerationHistoryRuntimeRouter(router);
+                reader.start();
+                assertTrue(started.await(5, TimeUnit.SECONDS));
+                awaitBlocked(reader);
+            }
+            ExecutionException failure = assertThrows(ExecutionException.class, () -> read.get(5, TimeUnit.SECONDS));
+            assertTrue(failure.getCause() instanceof IllegalStateException);
+            assertEquals("Iris generation-history runtime router is detached.", failure.getCause().getMessage());
+            assertTrue(engine.getGenerationHistoryRuntimeRouter().isEmpty());
+        } finally {
+            reader.join(5_000L);
+            assertTrue("Detached router read did not finish", !reader.isAlive());
+        }
+        verify(router, never()).openCoordinateScope(anyInt(), anyInt());
+    }
+
+    @Test
     public void transferredMantleIsNotClosedWithTheRetiredRuntime() throws Exception {
         RuntimeFixture active = runtime(1, 1D, 1D, 1D);
         IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
@@ -715,6 +821,14 @@ public class IrisEngineGenerationRuntimeScopeTest {
         when(router.engine()).thenReturn(engine);
         when(router.history()).thenReturn(history);
         return router;
+    }
+
+    private static void awaitBlocked(Thread thread) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
+        while (thread.getState() != Thread.State.BLOCKED && thread.isAlive() && System.nanoTime() < deadline) {
+            Thread.sleep(1L);
+        }
+        assertEquals(Thread.State.BLOCKED, thread.getState());
     }
 
     private static IrisEngine engine(

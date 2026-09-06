@@ -209,7 +209,12 @@ final class EngineRuntimeBuilder {
                 next.generation().mantle(),
                 null);
         if (retirementFailure != null) {
-            retirementFailure = engine.shutdownSequence.closeRuntime(next, retirementFailure);
+            Throwable cleanupFailure = engine.shutdownSequence.closeRuntime(
+                    next, previous == null ? null : previous.generation().mantle(), null);
+            if (cleanupFailure != null) {
+                engine.shutdownSequence.retainUnpublishedRuntime(next);
+                retirementFailure = EngineShutdownSequence.appendFailure(retirementFailure, cleanupFailure);
+            }
             engine.lifecycleState = LifecycleState.FAILED;
             throw new IllegalStateException("Failed to retire the previous Iris engine runtime.", retirementFailure);
         }
@@ -229,6 +234,7 @@ final class EngineRuntimeBuilder {
             engine.getClosing().set(true);
             engine.backgroundTasks.closeBackgroundTaskAdmission();
             engine.lifecycleState = LifecycleState.FAILED;
+            Throwable cleanupFailure = null;
             try {
                 engine.getGenerationSessions().sealAndAwait(
                         "failed world manager start",
@@ -236,11 +242,17 @@ final class EngineRuntimeBuilder {
                         true
                 );
             } catch (Throwable drainFailure) {
-                e.addSuppressed(drainFailure);
+                cleanupFailure = drainFailure;
             }
-            engine.shutdownSequence.closeRuntime(next, e);
-            if (engine.runtime == next) {
-                engine.runtime = null;
+            if (cleanupFailure == null) {
+                cleanupFailure = engine.shutdownSequence.closeRuntime(next, null);
+            }
+            if (cleanupFailure == null) {
+                if (engine.runtime == next) {
+                    engine.runtime = null;
+                }
+            } else {
+                e.addSuppressed(cleanupFailure);
             }
             throw new IllegalStateException("Failed to start the Iris world manager.", e);
         }

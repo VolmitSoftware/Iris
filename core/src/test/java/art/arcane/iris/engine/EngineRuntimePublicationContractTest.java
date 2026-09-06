@@ -33,9 +33,9 @@ public class EngineRuntimePublicationContractTest {
         int publishEnd = source.indexOf("private void scheduleRuntimeTasks", publishStart);
         String publish = source.substring(publishStart, publishEnd);
 
-        assertBefore(publish, "engine.getClosing().set(true)", "closeRuntime(next, e)");
-        assertBefore(publish, "closeBackgroundTaskAdmission()", "closeRuntime(next, e)");
-        assertBefore(publish, "sealAndAwait(", "closeRuntime(next, e)");
+        assertBefore(publish, "engine.getClosing().set(true)", "cleanupFailure = engine.shutdownSequence.closeRuntime(next, null)");
+        assertBefore(publish, "closeBackgroundTaskAdmission()", "cleanupFailure = engine.shutdownSequence.closeRuntime(next, null)");
+        assertBefore(publish, "sealAndAwait(", "cleanupFailure = engine.shutdownSequence.closeRuntime(next, null)");
     }
 
     @Test

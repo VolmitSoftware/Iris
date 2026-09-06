@@ -43,14 +43,14 @@ public class EngineShutdownOwnershipContractTest {
         String cleanup = source.substring(cleanupStart, cleanupEnd);
         int ownershipClose = cleanup.indexOf("NativeStructureOwnershipStore.close(engine)");
         int ownershipGate = cleanup.indexOf("if (ownershipFailure == null)", ownershipClose);
-        int detachedRelease = cleanup.indexOf("closeDetachedGenerationRuntimes(null)", ownershipGate);
-        int runtimeRelease = cleanup.indexOf("closeRuntime(engine.runtime, null)", ownershipGate);
+        int runtimeRelease = cleanup.indexOf("releaseRuntime(cleanupFailure)", ownershipGate);
+        int targetRelease = cleanup.indexOf("releaseTarget(cleanupFailure)", runtimeRelease);
         int closedPublication = cleanup.indexOf("engine.closed = true", ownershipGate);
 
         assertTrue(ownershipClose >= 0);
         assertTrue(ownershipGate > ownershipClose);
-        assertTrue(detachedRelease > ownershipGate);
-        assertTrue(runtimeRelease > detachedRelease);
+        assertTrue(runtimeRelease > ownershipGate);
+        assertTrue(targetRelease > runtimeRelease);
         assertTrue(closedPublication > ownershipGate);
     }
 

@@ -390,6 +390,33 @@ public final class GenerationHistoryRuntimeRouterTest {
     }
 
     @Test
+    public void closeCompletesWhileWorkersContinuouslyAcquireReadyRoutes() throws Exception {
+        Path world = temporaryFolder.newFolder("router-contended-close-world").toPath();
+        GenerationHistory history = createHistory(world, createPack("router-contended-close-pack", "alpha"));
+        IrisEngine engine = mock(IrisEngine.class);
+        FakeRuntimeFactory runtimes = new FakeRuntimeFactory();
+        IrisEngine.GenerationRuntimeBinding active = runtimes.binding(history, history.activeActivation());
+        when(engine.getActiveGenerationRuntimeBinding()).thenReturn(active);
+        ExecutorService executor = Executors.newFixedThreadPool(9);
+        CountDownLatch routing = new CountDownLatch(8);
+        CompletableFuture<?>[] workers = new CompletableFuture<?>[8];
+        try (GenerationHistoryRuntimeRouter router = GenerationHistoryRuntimeRouter.attach(
+                engine, history, (ignored, x, z) -> signature(x, z), runtimes)) {
+            for (int i = 0; i < workers.length; i++) {
+                workers[i] = CompletableFuture.runAsync(() -> routeUntilClosed(router, routing), executor);
+            }
+            assertTrue(routing.await(5, TimeUnit.SECONDS));
+            CompletableFuture.runAsync(router::close, executor).get(5, TimeUnit.SECONDS);
+            CompletableFuture.allOf(workers).get(5, TimeUnit.SECONDS);
+            verify(engine).detachGenerationHistoryRuntimeRouter(router);
+            verify(engine, never()).closeDetachedGenerationRuntime(active);
+        } finally {
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
     public void closeLeavesTheSingleDefaultRuntimeOwnedByTheEngine() throws Exception {
         Path world = temporaryFolder.newFolder("router-close-current-world").toPath();
         GenerationHistory history = createThreeActivationHistory(world, "router-close-current");
@@ -892,6 +919,24 @@ public final class GenerationHistoryRuntimeRouterTest {
         assertEquals(0, runtimes.loadCount(2L));
         verify(engine).setDefaultGenerationRuntime(runtimes.bindings.get(3L));
         router.close();
+    }
+
+    private static void routeUntilClosed(GenerationHistoryRuntimeRouter router, CountDownLatch routing) {
+        boolean started = false;
+        while (!Thread.currentThread().isInterrupted()) {
+            try (GenerationHistoryRuntimeRouter.RuntimeRoute route = router.openRoute(0, 0)) {
+                assertEquals(1L, route.activation().activationId());
+                if (!started) {
+                    started = true;
+                    routing.countDown();
+                }
+            } catch (IOException failure) {
+                throw new AssertionError(failure);
+            } catch (IllegalStateException closed) {
+                assertEquals("Generation-history runtime router is closed.", closed.getMessage());
+                return;
+            }
+        }
     }
 
     private AtomicReference<IrisEngine.GenerationRuntimeBinding> installScopeTracking(IrisEngine engine) {

@@ -20,6 +20,7 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.engine.data.cache.Cache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedWorldManager;
@@ -211,6 +212,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         if (getEngine().isClosed()) {
             return;
         }
+
+        INMS.get().reconcileNativeStructurePois(e);
 
         if (cleanupServiceStopped || cleanupService == null || cleanupService.isShutdown()) {
             return;

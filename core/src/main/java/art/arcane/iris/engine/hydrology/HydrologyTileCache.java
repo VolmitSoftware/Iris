@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -131,6 +132,7 @@ public final class HydrologyTileCache implements AutoCloseable {
      */
     public HydrologyTile get(HydrologyTileKey key) {
         Objects.requireNonNull(key, "key");
+        requireOpen();
         if (prefetchExecutor == null) {
             return planInline(key, cacheEpoch.get());
         }
@@ -156,7 +158,11 @@ public final class HydrologyTileCache implements AutoCloseable {
         }
         CacheLoadKey<HydrologyTileKey> loadKey = new CacheLoadKey<>(epoch, key);
         PendingLoad<HydrologyTile> owned = new PendingLoad<>(Thread.currentThread(), new CompletableFuture<>());
-        PendingLoad<HydrologyTile> existing = loading.putIfAbsent(loadKey, owned);
+        PendingLoad<HydrologyTile> existing;
+        synchronized (publicationLock) {
+            requireOpen();
+            existing = loading.putIfAbsent(loadKey, owned);
+        }
         if (existing != null) {
             return awaitLoad(existing);
         }
@@ -376,8 +382,43 @@ public final class HydrologyTileCache implements AutoCloseable {
 
     @Override
     public void close() {
-        closed.set(true);
+        ArrayList<CompletableFuture<?>> active = new ArrayList<>();
+        ArrayList<CompletableFuture<HydrologyTile>> queued = new ArrayList<>();
+        synchronized (publicationLock) {
+            for (PendingLoad<HydrologyTile> load : loading.values()) {
+                collectActiveLoad(active, load);
+            }
+            for (PendingLoad<ChunkColumns> load : composing.values()) {
+                collectActiveLoad(active, load);
+            }
+            closed.set(true);
+            planning.forEach((key, future) -> {
+                if (!loading.containsKey(key)) {
+                    queued.add(future);
+                }
+            });
+        }
+        for (CompletableFuture<HydrologyTile> future : queued) {
+            future.completeExceptionally(new CancellationException("Hydrology tile cache is closed."));
+        }
+        CompletableFuture.allOf(active.toArray(CompletableFuture<?>[]::new))
+                .handle((ignored, failure) -> null)
+                .join();
+        planning.clear();
         clear();
+    }
+
+    private static void collectActiveLoad(List<CompletableFuture<?>> active, PendingLoad<?> load) {
+        if (load.owner() == Thread.currentThread()) {
+            throw new IllegalStateException("Hydrology tile cache cannot close from an active load.");
+        }
+        active.add(load.future());
+    }
+
+    private void requireOpen() {
+        if (closed.get()) {
+            throw new CancellationException("Hydrology tile cache is closed.");
+        }
     }
 
     private boolean validSharedTile(HydrologyTile tile, SharedTileKey sharedKey) {
@@ -389,6 +430,7 @@ public final class HydrologyTileCache implements AutoCloseable {
     }
 
     private ChunkColumns chunkColumns(int blockX, int blockZ) {
+        requireOpen();
         int chunkX = Math.floorDiv(blockX, CHUNK_SIZE);
         int chunkZ = Math.floorDiv(blockZ, CHUNK_SIZE);
         long epoch = cacheEpoch.get();
@@ -420,7 +462,11 @@ public final class HydrologyTileCache implements AutoCloseable {
             return present;
         }
         PendingLoad<ChunkColumns> owned = new PendingLoad<>(Thread.currentThread(), new CompletableFuture<>());
-        PendingLoad<ChunkColumns> existing = composing.putIfAbsent(loadKey, owned);
+        PendingLoad<ChunkColumns> existing;
+        synchronized (publicationLock) {
+            requireOpen();
+            existing = composing.putIfAbsent(loadKey, owned);
+        }
         if (existing != null) {
             return awaitLoad(existing);
         }
@@ -652,6 +698,7 @@ public final class HydrologyTileCache implements AutoCloseable {
      */
     public List<HydrologyTile> tiles(List<HydrologyTileKey> keys) {
         Objects.requireNonNull(keys, "keys");
+        requireOpen();
         HydrologyTile[] loaded = new HydrologyTile[keys.size()];
         boolean missing = false;
         for (int index = 0; index < loaded.length; index++) {
@@ -724,17 +771,29 @@ public final class HydrologyTileCache implements AutoCloseable {
             return CompletableFuture.completedFuture(present);
         }
         CompletableFuture<HydrologyTile> future = new CompletableFuture<>();
-        CompletableFuture<HydrologyTile> existing = planning.putIfAbsent(loadKey, future);
+        CompletableFuture<HydrologyTile> existing;
+        synchronized (publicationLock) {
+            if (closed.get()) {
+                return CompletableFuture.failedFuture(new CancellationException("Hydrology tile cache is closed."));
+            }
+            existing = planning.putIfAbsent(loadKey, future);
+        }
         if (existing != null) {
             return existing;
         }
         try {
             prefetchExecutor.execute(() -> {
+                if (future.isDone()) {
+                    planning.remove(loadKey, future);
+                    return;
+                }
                 try {
                     future.complete(planInline(key, loadKey.epoch()));
                 } catch (Throwable failure) {
                     future.completeExceptionally(failure);
-                    IrisLogging.reportError(failure);
+                    if (!(failure instanceof CancellationException) || !closed.get()) {
+                        IrisLogging.reportError(failure);
+                    }
                 } finally {
                     planning.remove(loadKey, future);
                 }

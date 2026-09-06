@@ -570,19 +570,18 @@ public final class GenerationHistory {
     public GenerationStage openStage(int chunkX, int chunkZ) throws IOException {
         GenerationAdmission.StageLease lease = admission.enterStage();
         try {
-            synchronized (this) {
-                GenerationActivation activation = store.activeActivation();
-                GenerationEpoch epoch = requireEpoch(activation.epochId());
-                return new GenerationStage(
-                        this,
-                        chunkX,
-                        chunkZ,
-                        activation,
-                        epoch,
-                        paths.packRoot(epoch.epochId()),
-                        lease
-                );
-            }
+            GenerationManifest manifest = store.manifest();
+            GenerationActivation activation = manifest.activeActivation();
+            GenerationEpoch epoch = manifest.activeEpoch();
+            return new GenerationStage(
+                    this,
+                    chunkX,
+                    chunkZ,
+                    activation,
+                    epoch,
+                    paths.packRoot(epoch.epochId()),
+                    lease
+            );
         } catch (Throwable failure) {
             lease.close();
             if (failure instanceof IOException ioFailure) {

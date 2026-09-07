@@ -83,7 +83,12 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
         long seed = x * 341873128712L + z * 132897987541L;
         PreparedDeposit[] prepared = new PreparedDeposit[PREPARATION_BATCH_COUNT];
         int pending = 0;
+        IrisEngine generationEngine = getEngine() instanceof IrisEngine irisEngine
+                && irisEngine.hasGenerationRuntimeScope() ? irisEngine : null;
+        PreparationContext preparation = new PreparationContext(context, generationEngine,
+                generationEngine == null ? null : generationEngine.captureGenerationRuntimeBinding(), new Throwable[PREPARATION_BATCH_COUNT]);
         MantleChunk chunk = getEngine().getMantle().getMantle().getChunk(x, z).use();
+        Throwable callerFailure = null;
         try {
             for (int i = 0; i < generators.size(); i++) {
                 DepositPlan plan = plan(generators.get(i), rng.nextParallelRNG(seed * (i + 1L)));
@@ -92,19 +97,25 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
                     int limit = Math.min(plan.attempts(), first + CLUMPS_PER_BATCH);
                     int index = pending++;
                     burst.queue(scopedDepositTask(
-                            () -> prepared[index] = prepare(plan, firstAttempt, limit, x, z, null, context), context));
+                            () -> prepared[index] = prepare(plan, firstAttempt, limit, x, z, null, context), preparation, index));
                     if (pending == prepared.length) {
-                        completeBatches(burst, prepared, chunk, terrain, x, z, context);
+                        completeBatches(burst, prepared, chunk, terrain, x, z, preparation);
                         pending = 0;
                     }
                 }
             }
-            completeBatches(burst, prepared, chunk, terrain, x, z, context);
+            completeBatches(burst, prepared, chunk, terrain, x, z, preparation);
+        } catch (Throwable failure) {
+            callerFailure = failure;
+            throw failure;
         } finally {
             // complete() must run before release() even when queueing throws — already
             // submitted burst tasks must never write into a released chunk.
             try {
                 burst.complete();
+                if (callerFailure != null) {
+                    preparation.takeFailure(callerFailure);
+                }
             } finally {
                 chunk.release();
             }
@@ -112,29 +123,37 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
     }
 
     private void completeBatches(BurstExecutor burst, PreparedDeposit[] prepared, MantleChunk chunk,
-                                 Hunk<PlatformBlockState> terrain, int x, int z, ChunkContext context) {
+                                 Hunk<PlatformBlockState> terrain, int x, int z, PreparationContext preparation) {
         burst.complete();
-        try (IrisContext.Scope chunkScope = IrisContext.open(getEngine(), context.getGenerationSessionId(), context)) {
+        Throwable failure = preparation.takeFailure(null);
+        if (failure instanceof Error error) {
+            throw error;
+        }
+        if (failure instanceof RuntimeException exception) {
+            throw exception;
+        }
+        if (failure != null) {
+            throw new IllegalStateException("Deposit preparation failed", failure);
+        }
+        try (IrisContext.Scope chunkScope = IrisContext.open(getEngine(), preparation.chunk().getGenerationSessionId(), preparation.chunk())) {
             for (int i = 0; i < prepared.length; i++) {
                 PreparedDeposit deposit = prepared[i];
                 prepared[i] = null;
                 if (deposit != null) {
-                    place(deposit, chunk, terrain, x, z, null, context);
+                    place(deposit, chunk, terrain, x, z, null, preparation.chunk());
                 }
             }
         }
     }
 
-    private Runnable scopedDepositTask(Runnable task, ChunkContext context) {
-        IrisEngine generationEngine = getEngine() instanceof IrisEngine irisEngine
-                && irisEngine.hasGenerationRuntimeScope() ? irisEngine : null;
-        IrisEngine.GenerationRuntimeBinding binding = generationEngine == null
-                ? null : generationEngine.captureGenerationRuntimeBinding();
+    private Runnable scopedDepositTask(Runnable task, PreparationContext preparation, int index) {
         return () -> {
-            try (IrisEngine.GenerationRuntimeScope runtimeScope = generationEngine == null
-                    ? null : generationEngine.openGenerationRuntimeScope(binding);
-                 IrisContext.Scope chunkScope = IrisContext.open(getEngine(), context.getGenerationSessionId(), context)) {
+            try (IrisEngine.GenerationRuntimeScope runtimeScope = preparation.engine() == null
+                    ? null : preparation.engine().openGenerationRuntimeScope(preparation.binding());
+                 IrisContext.Scope chunkScope = IrisContext.open(getEngine(), preparation.chunk().getGenerationSessionId(), preparation.chunk())) {
                 task.run();
+            } catch (Throwable failure) {
+                preparation.failures()[index] = failure;
             }
         };
     }
@@ -496,6 +515,34 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
         mixed = (mixed ^ (mixed >>> 30)) * 0xbf58476d1ce4e5b9L;
         mixed = (mixed ^ (mixed >>> 27)) * 0x94d049bb133111ebL;
         return mixed ^ (mixed >>> 31);
+    }
+
+    private record PreparationContext(ChunkContext chunk, IrisEngine engine, IrisEngine.GenerationRuntimeBinding binding,
+                                      Throwable[] failures) {
+        private Throwable takeFailure(Throwable primary) {
+            for (int i = 0; i < failures.length; i++) {
+                Throwable failure = failures[i];
+                failures[i] = null;
+                if (failure == null || failure == primary) {
+                    continue;
+                }
+                if (primary == null) {
+                    primary = failure;
+                } else if (!isSuppressed(primary, failure)) {
+                    primary.addSuppressed(failure);
+                }
+            }
+            return primary;
+        }
+
+        private boolean isSuppressed(Throwable primary, Throwable failure) {
+            for (Throwable suppressed : primary.getSuppressed()) {
+                if (suppressed == failure) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     private record DepositPlan(IrisDepositGenerator generator, long seed, boolean ore, int attempts) {

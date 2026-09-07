@@ -7,7 +7,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalInt;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -24,6 +26,7 @@ public final class NativeTerrainReceipt {
 
     public static byte[] encode(SavedTerrainChunk chunk, long activationId, String epochId) throws IOException {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        UtfCache strings = new UtfCache();
         try (DataOutputStream output = new DataOutputStream(new BufferedOutputStream(new GZIPOutputStream(bytes)))) {
             output.writeInt(MAGIC);
             output.writeInt(VERSION);
@@ -37,7 +40,7 @@ public final class NativeTerrainReceipt {
                     if (!chunk.hasColumn(x, z)) {
                         continue;
                     }
-                    writeColumn(output, chunk.column((chunk.chunkX() << 4) + x, (chunk.chunkZ() << 4) + z));
+                    writeColumn(output, chunk.column((chunk.chunkX() << 4) + x, (chunk.chunkZ() << 4) + z), strings);
                 }
             }
         }
@@ -109,7 +112,7 @@ public final class NativeTerrainReceipt {
         }
     }
 
-    private static void writeColumn(DataOutputStream output, TerrainBoundarySignature signature) throws IOException {
+    private static void writeColumn(DataOutputStream output, TerrainBoundarySignature signature, UtfCache strings) throws IOException {
         output.writeInt(signature.surfaceHeight());
         output.writeInt(signature.oceanFloorHeight());
         output.writeInt(signature.fluidHeight().orElse(-1));
@@ -119,15 +122,15 @@ public final class NativeTerrainReceipt {
         output.writeInt(layout.sampleStep());
         output.writeInt(layout.sampleCount());
         for (int index = 0; index < layout.sampleCount(); index++) {
-            output.writeUTF(signature.biomeAtSample(index));
+            strings.write(output, signature.biomeAtSample(index));
         }
         BoundaryColumnGeometry geometry = signature.geometry();
         output.writeInt(geometry.minimumY());
         output.writeInt(geometry.palette().size());
         for (BoundaryColumnGeometry.Voxel voxel : geometry.palette()) {
-            output.writeUTF(voxel.stateKey());
+            strings.write(output, voxel.stateKey());
             output.writeByte(voxel.phase().ordinal());
-            output.writeUTF(voxel.fluidStateKey());
+            strings.write(output, voxel.fluidStateKey());
             output.writeBoolean(voxel.protectedContent());
         }
         int[] ends = geometry.runEnds();
@@ -193,5 +196,46 @@ public final class NativeTerrainReceipt {
     }
 
     public record Decoded(SavedTerrainChunk terrain, long activationId, String epochId) {
+    }
+
+    private static final class UtfCache {
+        private static final int MAXIMUM_ENTRIES = 256;
+        private static final int MAXIMUM_ENCODED_BYTES = 64 * 1024;
+
+        private final Map<String, byte[]> encoded = new HashMap<>();
+        private final ByteArrayOutputStream scratch = new ByteArrayOutputStream();
+        private final DataOutputStream encoder = new DataOutputStream(scratch);
+        private int encodedBytes;
+        private boolean entryLimitReached;
+
+        private void write(DataOutputStream output, String value) throws IOException {
+            if (entryLimitReached) {
+                output.writeUTF(value);
+                return;
+            }
+            byte[] cached = encoded.get(value);
+            if (cached != null) {
+                output.write(cached);
+                return;
+            }
+            if (encoded.size() >= MAXIMUM_ENTRIES) {
+                entryLimitReached = true;
+                encoded.clear();
+                output.writeUTF(value);
+                return;
+            }
+            if (value.length() > MAXIMUM_ENCODED_BYTES - encodedBytes - Short.BYTES) {
+                output.writeUTF(value);
+                return;
+            }
+            scratch.reset();
+            encoder.writeUTF(value);
+            if (scratch.size() <= MAXIMUM_ENCODED_BYTES - encodedBytes) {
+                byte[] bytes = scratch.toByteArray();
+                encoded.put(value, bytes);
+                encodedBytes += bytes.length;
+            }
+            scratch.writeTo(output);
+        }
     }
 }

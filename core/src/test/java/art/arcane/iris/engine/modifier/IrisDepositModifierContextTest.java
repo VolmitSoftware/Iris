@@ -35,11 +35,13 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -68,9 +70,9 @@ public class IrisDepositModifierContextTest {
         IrisEngine engine = mock(IrisEngine.class, RETURNS_DEEP_STUBS);
         try (Fixture fixture = new Fixture(engine, true)) {
             fixture.generateAndCheckCleanup();
-            verify(engine, times(3)).captureGenerationRuntimeBinding();
-            verify(engine, times(3)).openGenerationRuntimeScope(fixture.binding);
-            assertEquals(3, fixture.closedScopes.get());
+            verify(engine, times(1)).captureGenerationRuntimeBinding();
+            verify(engine, times(4)).openGenerationRuntimeScope(fixture.binding);
+            assertEquals(4, fixture.closedScopes.get());
         }
     }
 
@@ -88,6 +90,57 @@ public class IrisDepositModifierContextTest {
     public void nonIrisEngineWorkersStillReceiveTheirChunkContext() throws Exception {
         try (Fixture fixture = new Fixture(mock(Engine.class, RETURNS_DEEP_STUBS), false)) {
             fixture.generateAndCheckCleanup();
+        }
+    }
+
+    @Test
+    public void workerPreparationFailurePropagatesAfterAllScopesClose() throws Exception {
+        try (Fixture fixture = new Fixture(mock(IrisEngine.class, RETURNS_DEEP_STUBS), true)) {
+            IllegalStateException failure = new IllegalStateException("worker clump preparation failed");
+            doThrow(failure).when(fixture.dimensionDeposit).getClump(any(), any(), any());
+            assertSame(failure, assertThrows(IllegalStateException.class, () ->
+                    fixture.modifier.modify(32, -48, Hunk.newArrayHunk(16, 16, 16), true, fixture.context)));
+            verify(fixture.chunk).release();
+            assertEquals(4, fixture.closedScopes.get());
+            assertNull(IrisContext.get());
+        }
+    }
+
+    @Test
+    public void callerPlanFailureStillDrainsWorkersAndRestoresContext() throws Exception {
+        try (Fixture fixture = new Fixture(mock(IrisEngine.class, RETURNS_DEEP_STUBS), true)) {
+            IllegalStateException failure = new IllegalStateException("caller deposit plan failed");
+            doThrow(failure).when(fixture.biomeDeposit).getSpawnChance();
+            ChunkContext callerContext = mock(ChunkContext.class);
+            try (IrisContext.Scope ignored = IrisContext.open(fixture.engine, 19L, callerContext)) {
+                assertSame(failure, assertThrows(IllegalStateException.class, () ->
+                        fixture.modifier.modify(32, -48, Hunk.newArrayHunk(16, 16, 16), true, fixture.context)));
+                assertSame(callerContext, IrisContext.require().getChunkContext());
+                assertEquals(19L, IrisContext.require().getGenerationSessionId());
+            }
+            verify(fixture.chunk).release();
+            assertEquals(3, fixture.closedScopes.get());
+            assertEquals(10, fixture.completed.get());
+            assertNull(IrisContext.get());
+        }
+    }
+
+    @Test
+    public void callerFailureRetainsDistinctWorkerFailuresAfterDraining() throws Exception {
+        try (Fixture fixture = new Fixture(mock(IrisEngine.class, RETURNS_DEEP_STUBS), true)) {
+            IllegalStateException caller = new IllegalStateException("caller failure");
+            IllegalArgumentException firstWorker = new IllegalArgumentException("first worker failure");
+            UnsupportedOperationException secondWorker = new UnsupportedOperationException("second worker failure");
+            doThrow(firstWorker, secondWorker).when(fixture.dimensionDeposit).getClump(any(), any(), any());
+            doThrow(caller).when(fixture.biomeDeposit).getSpawnChance();
+            assertSame(caller, assertThrows(IllegalStateException.class, () ->
+                    fixture.modifier.modify(32, -48, Hunk.newArrayHunk(16, 16, 16), true, fixture.context)));
+            assertEquals(2, caller.getSuppressed().length);
+            assertSame(firstWorker, caller.getSuppressed()[0]);
+            assertSame(secondWorker, caller.getSuppressed()[1]);
+            verify(fixture.chunk).release();
+            assertEquals(3, fixture.closedScopes.get());
+            assertNull(IrisContext.get());
         }
     }
 
@@ -119,6 +172,8 @@ public class IrisDepositModifierContextTest {
         private final AtomicInteger completed = new AtomicInteger();
         private final AtomicInteger closedScopes = new AtomicInteger();
         private final IrisDepositModifier modifier;
+        private final IrisDepositGenerator dimensionDeposit = mock(IrisDepositGenerator.class);
+        private final IrisDepositGenerator biomeDeposit = mock(IrisDepositGenerator.class);
         private final MantleChunk<Matter> chunk;
 
         @SuppressWarnings("unchecked")
@@ -131,9 +186,7 @@ public class IrisDepositModifierContextTest {
             burst.setMulticore(true);
             when(engine.burst()).thenReturn(pool);
             when(pool.burst(true)).thenReturn(burst);
-            IrisDepositGenerator dimensionDeposit = mock(IrisDepositGenerator.class);
             IrisDepositGenerator regionDeposit = mock(IrisDepositGenerator.class);
-            IrisDepositGenerator biomeDeposit = mock(IrisDepositGenerator.class);
             when(engine.getDimension().getDeposits()).thenReturn(new KList<>(dimensionDeposit));
             when(context.getRegion().get(7, 7).getDeposits())
                     .thenReturn(new KList<>(regionDeposit));
@@ -178,12 +231,9 @@ public class IrisDepositModifierContextTest {
                     return clump;
                 }).when(generator).getClump(any(), any(), any());
             }
+            when(dimensionDeposit.getMinPerChunk()).thenReturn(9);
+            when(dimensionDeposit.getMaxPerChunk()).thenReturn(9);
             modifier = new IrisDepositModifier(engine);
-            doAnswer(invocation -> {
-                assertEquals(3, completed.get());
-                assertEquals(scoped ? 3 : 0, closedScopes.get());
-                return null;
-            }).when(chunk).release();
         }
 
         private void generateAndCheckCleanup() throws Exception {
@@ -194,7 +244,7 @@ public class IrisDepositModifierContextTest {
                 assertSame(callerContext, IrisContext.require().getChunkContext());
                 assertEquals(19L, IrisContext.require().getGenerationSessionId());
             }
-            assertEquals(3, completed.get());
+            assertEquals(11, completed.get());
             verify(chunk).release();
             executor.submit(() -> {
                 assertNull(IrisContext.get());

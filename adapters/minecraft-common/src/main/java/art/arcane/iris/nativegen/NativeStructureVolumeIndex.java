@@ -190,10 +190,11 @@ public final class NativeStructureVolumeIndex {
         int minZ = chunkZ << 4;
         int maxX = minX + 15;
         int maxZ = minZ + 15;
+        Integer pinnedRuntimeId = pinnedRuntimeId(engine);
         KList<NativeStructureVolume> volumes = null;
         for (int originX = chunkX - ORIGIN_REACH_CHUNKS; originX <= chunkX + ORIGIN_REACH_CHUNKS; originX++) {
             for (int originZ = chunkZ - ORIGIN_REACH_CHUNKS; originZ <= chunkZ + ORIGIN_REACH_CHUNKS; originZ++) {
-                for (NativeStructureVolume volume : originVolumes(engine, originX, originZ)) {
+                for (NativeStructureVolume volume : scopedOriginVolumes(engine, originX, originZ, pinnedRuntimeId)) {
                     if (!volume.intersectsRect(minX, minZ, maxX, maxZ)) {
                         continue;
                     }
@@ -205,6 +206,34 @@ public final class NativeStructureVolumeIndex {
             }
         }
         return volumes == null ? NativeStructureVolume.NONE : volumes;
+    }
+
+    private static Integer pinnedRuntimeId(Engine engine) {
+        if (!(engine instanceof IrisEngine irisEngine) || !irisEngine.hasGenerationRuntimeScope()) {
+            return null;
+        }
+        GenerationHistoryRuntimeRouter router = irisEngine.getGenerationHistoryRuntimeRouter().orElse(null);
+        if (router == null) {
+            return null;
+        }
+        GenerationHistoryRuntimeRouter.RuntimeOwnership ownership = router.currentRuntimeOwnership().orElse(null);
+        int runtimeId = runtimeId(engine);
+        return ownership != null && ownership.binding().runtimeId() == runtimeId ? runtimeId : null;
+    }
+
+    private KList<NativeStructureVolume> scopedOriginVolumes(
+            Engine engine, int chunkX, int chunkZ, Integer pinnedRuntimeId
+    ) {
+        if (pinnedRuntimeId != null) {
+            synchronized (originCache) {
+                KList<NativeStructureVolume> cached = originCache.get(
+                        new RuntimeChunkKey(pinnedRuntimeId, chunkKey(chunkX, chunkZ)));
+                if (cached != null) {
+                    return cached;
+                }
+            }
+        }
+        return originVolumes(engine, chunkX, chunkZ);
     }
 
     static long originWindowStripeMask(int chunkX, int chunkZ) {

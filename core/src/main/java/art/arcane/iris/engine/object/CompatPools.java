@@ -90,6 +90,16 @@ final class CompatPools {
                                                               String subjectType,
                                                               String subjectKey,
                                                               String field) {
+        return surviving(loader, keys, data, subjectType, subjectKey, field, null);
+    }
+
+    static <T extends IrisRegistrant> KList<String> surviving(ResourceLoader<T> loader,
+                                                              List<String> keys,
+                                                              IrisData data,
+                                                              String subjectType,
+                                                              String subjectKey,
+                                                              String field,
+                                                              Runnable unresolvedReference) {
         KList<String> kept = new KList<>();
 
         if (keys == null) {
@@ -104,6 +114,9 @@ final class CompatPools {
         for (int index = 0; index < keys.size(); index++) {
             String key = keys.get(index);
             T loaded = loader.load(key);
+            if (loaded == null && unresolvedReference != null) {
+                unresolvedReference.run();
+            }
 
             if (loaded != null && loaded.isCompatExcluded()) {
                 drop(data, loaded, subjectType, subjectKey, field + "[" + index + "] " + key, null);

@@ -13,9 +13,11 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterSlice;
+import art.arcane.volmlib.util.math.RNG;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,7 +34,7 @@ import static org.mockito.Mockito.mock;
 public class IrisCarveModifierBoundarySupportTest {
     @Test
     @SuppressWarnings("unchecked")
-    public void boundaryBiomeUsesCustomMatterAtItsOwnY() {
+    public void boundaryBiomeUsesCustomMatterAtItsOwnY() throws ReflectiveOperationException {
         IrisBiome customFloor = mock(IrisBiome.class);
         IrisBiome resolvedCeiling = mock(IrisBiome.class);
         IrisData data = mock(IrisData.class);
@@ -46,6 +48,9 @@ public class IrisCarveModifierBoundarySupportTest {
 
         IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
         doReturn(engine).when(modifier).getEngine();
+        Field rng = IrisCarveModifier.class.getDeclaredField("rng");
+        rng.setAccessible(true);
+        rng.set(modifier, new RNG(71L));
 
         MantleChunk<Matter> mantleChunk = mock(MantleChunk.class);
         Matter floorMatter = mock(Matter.class);

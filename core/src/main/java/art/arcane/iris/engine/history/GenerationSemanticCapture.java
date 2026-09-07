@@ -17,9 +17,8 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterStructurePOI;
 
-import java.util.HashSet;
+import java.util.BitSet;
 import java.util.Objects;
-import java.util.Set;
 
 public final class GenerationSemanticCapture {
     private static final int CHUNK_SIZE = 16;
@@ -137,7 +136,7 @@ public final class GenerationSemanticCapture {
         Mantle<Matter> mantle = engine.getMantle().getMantle();
         int minimumX = Math.multiplyExact(chunkX, CHUNK_SIZE);
         int minimumZ = Math.multiplyExact(chunkZ, CHUNK_SIZE);
-        Set<CavePosition> resolvedCaves = new HashSet<>();
+        BitSet resolvedCaves = new BitSet();
         mantle.iterateChunk(chunkX, chunkZ, MatterCavern.class, (localX, y, localZ, cavern) -> {
             if (!caveSpace.isOpen(localX, y, localZ)) {
                 return;
@@ -197,16 +196,17 @@ public final class GenerationSemanticCapture {
     private static void captureCave(
             Engine engine,
             ChunkGenerationSemantics.Builder semantics,
-            Set<CavePosition> resolvedCaves,
+            BitSet resolvedCaves,
             int blockX,
             int y,
             int blockZ,
             String explicitBiomeKey
     ) {
-        CavePosition position = new CavePosition(blockX, y, blockZ);
-        if (!resolvedCaves.add(position)) {
+        int position = (y << 8) | ((blockX & 15) << 4) | (blockZ & 15);
+        if (resolvedCaves.get(position)) {
             return;
         }
+        resolvedCaves.set(position);
         if (explicitBiomeKey != null && !explicitBiomeKey.isBlank()) {
             semantics.addCaveBiome(explicitBiomeKey);
             return;
@@ -259,6 +259,4 @@ public final class GenerationSemanticCapture {
         boolean isOpen(int localX, int internalY, int localZ);
     }
 
-    private record CavePosition(int x, int y, int z) {
-    }
 }

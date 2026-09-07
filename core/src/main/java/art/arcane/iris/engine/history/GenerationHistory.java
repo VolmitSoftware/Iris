@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -23,11 +24,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.stream.Stream;
 
 public final class GenerationHistory {
     private static final int MAXIMUM_CACHED_BOUNDARIES = 4;
     private static final int MAXIMUM_CACHED_TERRAIN_SIGNATURES = 4;
+    private static final int MAXIMUM_SEMANTIC_BATCH = 32;
+    private static final int MAXIMUM_PENDING_SEMANTIC_CLAIMS = 128;
 
     private final GenerationHistoryPaths paths;
     private final GenerationPackRepository packs;
@@ -41,6 +45,8 @@ public final class GenerationHistory {
     private final GenerationAdmission admission;
     private final Map<Long, GenerationBoundary> boundaryCache;
     private final Map<Long, TerrainBoundarySignatureStore.Snapshot> terrainSignatureCache;
+    private final ArrayBlockingQueue<PendingSemanticClaim> pendingSemanticClaims =
+            new ArrayBlockingQueue<>(MAXIMUM_PENDING_SEMANTIC_CLAIMS);
 
     private GenerationHistory(
             GenerationHistoryPaths paths,
@@ -594,12 +600,64 @@ public final class GenerationHistory {
         }
     }
 
-    public synchronized boolean claimGeneratedSemantics(
+    public boolean claimGeneratedSemantics(
             GenerationStage stage,
             ChunkGenerationSemantics update
     ) throws IOException {
-        GenerationStage requiredStage = Objects.requireNonNull(stage, "generation stage");
-        ChunkGenerationSemantics requiredUpdate = Objects.requireNonNull(update, "update");
+        PendingSemanticClaim pending = new PendingSemanticClaim(
+                Objects.requireNonNull(stage, "generation stage"),
+                Objects.requireNonNull(update, "update"));
+        while (!pendingSemanticClaims.offer(pending)) {
+            synchronized (this) {
+                persistPendingSemanticClaims();
+            }
+        }
+        synchronized (this) {
+            while (!pending.claim.completed) {
+                persistPendingSemanticClaims();
+            }
+            return pending.claim.result();
+        }
+    }
+
+    private void persistPendingSemanticClaims() {
+        List<PendingSemanticClaim> batch = new ArrayList<>(MAXIMUM_SEMANTIC_BATCH);
+        List<GenerationSemanticIndex.Claim> claims = new ArrayList<>(MAXIMUM_SEMANTIC_BATCH);
+        PendingSemanticClaim current = null;
+        try {
+            for (int count = 0; count < MAXIMUM_SEMANTIC_BATCH; count++) {
+                current = pendingSemanticClaims.poll();
+                if (current == null) {
+                    break;
+                }
+                batch.add(current);
+                try {
+                    validateSemanticClaim(current.stage, current.claim.update);
+                    claims.add(current.claim);
+                } catch (RuntimeException failure) {
+                    current.claim.fail(failure);
+                }
+                current = null;
+            }
+            semantics.claimAndPersistBatch(claims);
+        } catch (RuntimeException | Error failure) {
+            boolean reported = false;
+            if (current != null) {
+                reported = current.claim.fail(failure);
+            }
+            for (PendingSemanticClaim pending : batch) {
+                reported |= pending.claim.fail(failure);
+            }
+            while ((current = pendingSemanticClaims.poll()) != null) {
+                reported |= current.claim.fail(failure);
+            }
+            if (!reported) {
+                throw failure;
+            }
+        }
+    }
+
+    private void validateSemanticClaim(GenerationStage requiredStage, ChunkGenerationSemantics requiredUpdate) {
         requiredStage.requireOpen(this);
         if (!requiredUpdate.sealed()) {
             throw new IllegalArgumentException("Generated semantics must be sealed.");
@@ -611,14 +669,13 @@ public final class GenerationHistory {
         if (requiredUpdate.activationId() != requiredStage.activation().activationId()) {
             throw new IllegalArgumentException("Generated semantics activation does not match the open stage.");
         }
-        return semantics.claimAndPersist(requiredUpdate);
     }
 
     public synchronized void forEachRecordedSemantic(GenerationSemanticIndex.RecordConsumer consumer) throws IOException {
         semantics.forEachRecord(consumer);
     }
 
-    public synchronized Optional<ChunkGenerationSemantics> semantics(int chunkX, int chunkZ) {
+    public Optional<ChunkGenerationSemantics> semantics(int chunkX, int chunkZ) {
         return semantics.get(chunkX, chunkZ);
     }
 
@@ -663,7 +720,7 @@ public final class GenerationHistory {
         }
     }
 
-    public synchronized GenerationActivation resolveActivation(int chunkX, int chunkZ) {
+    public GenerationActivation resolveActivation(int chunkX, int chunkZ) {
         long activationId = ownership.resolve(
                 chunkX,
                 chunkZ,
@@ -1106,6 +1163,16 @@ public final class GenerationHistory {
                 return size() > maximumSize;
             }
         };
+    }
+
+    private static final class PendingSemanticClaim {
+        private final GenerationStage stage;
+        private final GenerationSemanticIndex.Claim claim;
+
+        private PendingSemanticClaim(GenerationStage stage, ChunkGenerationSemantics update) {
+            this.stage = stage;
+            this.claim = new GenerationSemanticIndex.Claim(update);
+        }
     }
 
     public static final class GenerationStage implements AutoCloseable {

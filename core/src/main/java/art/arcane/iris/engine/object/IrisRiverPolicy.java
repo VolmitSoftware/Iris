@@ -105,12 +105,16 @@ public class IrisRiverPolicy {
      * selection keeps its "explicitly clears the inherited selection" meaning; null (undeclared) stays null.
      */
     public KList<String> compatBiomes(KList<String> declared, IrisData data, String field) {
+        return compatBiomes(declared, data, field, null);
+    }
+
+    public KList<String> compatBiomes(KList<String> declared, IrisData data, String field, Runnable unresolvedReference) {
         if (declared == null) {
             return null;
         }
 
         return CompatPools.surviving(data == null ? null : data.getBiomeLoader(), declared, data,
-                "river policy", "", field);
+                "river policy", "", field, unresolvedReference);
     }
 
     public KSet<String> getAllBiomeIds() {

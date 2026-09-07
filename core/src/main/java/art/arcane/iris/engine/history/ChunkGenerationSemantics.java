@@ -5,6 +5,7 @@ import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Comparator;
 import java.util.Objects;
 import java.util.Set;
@@ -361,11 +362,11 @@ public final class ChunkGenerationSemantics {
             this.chunkX = chunkX;
             this.chunkZ = chunkZ;
             this.activationId = activationId;
-            surfaceBiomeKeys = new TreeSet<>();
-            caveBiomeKeys = new TreeSet<>();
-            regionKeys = new TreeSet<>();
-            riverProfileKeys = new TreeSet<>();
-            objectKeys = new TreeSet<>();
+            surfaceBiomeKeys = new HashSet<>();
+            caveBiomeKeys = new HashSet<>();
+            regionKeys = new HashSet<>();
+            riverProfileKeys = new HashSet<>();
+            objectKeys = new HashSet<>();
             riverFeatures = new TreeSet<>(RIVER_FEATURE_COMPARATOR);
             structures = new TreeSet<>(STRUCTURE_COMPARATOR);
             pointsOfInterest = new TreeSet<>(POI_COMPARATOR);
@@ -519,8 +520,11 @@ public final class ChunkGenerationSemantics {
         }
 
         private static void addKey(Set<String> target, String key, String kind) {
+            if (target.contains(Objects.requireNonNull(key, "key"))) {
+                return;
+            }
             String validated = requireResourceKey(key);
-            if (target.size() >= MAX_KEYS_PER_KIND && !target.contains(validated)) {
+            if (target.size() >= MAX_KEYS_PER_KIND) {
                 throw new IllegalArgumentException(
                         "A chunk cannot contain more than " + MAX_KEYS_PER_KIND + " " + kind + " keys"
                 );

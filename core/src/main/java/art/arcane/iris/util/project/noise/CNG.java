@@ -1088,7 +1088,6 @@ public class CNG {
     }
 
     private double getSignedNoise(double x, double z) {
-        ensureFastPathState();
         double scl = effectiveScale;
         NoiseGenerator localGenerator = generator;
         CNG localFracture = fracture;
@@ -1103,7 +1102,6 @@ public class CNG {
     }
 
     private double getSignedNoise(double x, double y, double z) {
-        ensureFastPathState();
         double scl = effectiveScale;
         NoiseGenerator localGenerator = generator;
         CNG localFracture = fracture;

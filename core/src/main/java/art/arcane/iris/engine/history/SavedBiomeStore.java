@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
@@ -42,20 +43,22 @@ public final class SavedBiomeStore {
     private static final int MAXIMUM_CACHED_REGIONS = 64;
     private static final int MAXIMUM_CACHED_CHUNKS = 128;
     private static final long MAXIMUM_CACHED_BYTES = 64L * 1024L * 1024L;
+    private static final int MAXIMUM_WRITE_BATCH = 64;
 
     private final Path dimensionRoot;
     private final Path directory;
-    private final Object[] regionLocks = new Object[64];
+    private final WriteStripe[] regionLocks = new WriteStripe[64];
     private final LinkedHashMap<Long, RegionIndex> regions = new LinkedHashMap<>(64, 0.75F, true);
     private final LinkedHashMap<Long, Optional<SavedBiomeChunk>> chunks = new LinkedHashMap<>(128, 0.75F, true);
     private long cachedBytes;
+    private volatile IOException writeFailure;
 
     private SavedBiomeStore(Path dimensionRoot) throws IOException {
         this.dimensionRoot = Objects.requireNonNull(dimensionRoot, "dimensionRoot").toAbsolutePath().normalize();
         directory = this.dimensionRoot.resolve("iris/generation/biomes");
         requireSafeAncestors();
         for (int index = 0; index < regionLocks.length; index++) {
-            regionLocks[index] = new Object();
+            regionLocks[index] = new WriteStripe();
         }
     }
 
@@ -76,6 +79,7 @@ public final class SavedBiomeStore {
             }
         }
         synchronized (regionLock(chunkX, chunkZ)) {
+            requireWritable();
             synchronized (chunks) {
                 Optional<SavedBiomeChunk> cached = chunks.get(chunkKey);
                 if (cached != null) {
@@ -99,46 +103,153 @@ public final class SavedBiomeStore {
 
     public boolean claimAndPersist(SavedBiomeChunk chunk) throws IOException {
         SavedBiomeChunk required = Objects.requireNonNull(chunk, "chunk");
-        Object lock = regionLock(required.chunkX(), required.chunkZ());
-        synchronized (lock) {
-            if (alreadyClaimed(required)) {
-                return false;
+        WriteStripe lock = regionLock(required.chunkX(), required.chunkZ());
+        if (!lock.writing) {
+            synchronized (lock) {
+                if (alreadyClaimed(required)) {
+                    return false;
+                }
             }
         }
         byte[] body = encode(required);
         byte[] record = ByteBuffer.allocate(body.length + 8)
                 .putInt(body.length).put(body).putInt(checksum(body)).array();
+        PendingWrite pending = new PendingWrite(required, record);
+        lock.pending.add(pending);
         synchronized (lock) {
-            if (alreadyClaimed(required)) {
-                return false;
+            if (!pending.completed) {
+                lock.writing = true;
+                try {
+                    while (!pending.completed) {
+                        persistPending(lock);
+                    }
+                } finally {
+                    lock.writing = false;
+                }
             }
-            RegionIndex region = region(required.chunkX(), required.chunkZ());
+            if (pending.failure != null) {
+                throw pending.failure;
+            }
+            return pending.persisted;
+        }
+    }
+
+    private void persistPending(WriteStripe stripe) {
+        Map<Long, List<PendingWrite>> batches = new LinkedHashMap<>();
+        PendingWrite grouping = null;
+        try {
+            for (int count = 0; count < MAXIMUM_WRITE_BATCH; count++) {
+                grouping = stripe.pending.poll();
+                if (grouping == null) {
+                    break;
+                }
+                long regionKey = key(grouping.chunk.chunkX() >> 5, grouping.chunk.chunkZ() >> 5);
+                batches.computeIfAbsent(regionKey, ignored -> new ArrayList<>()).add(grouping);
+                grouping = null;
+            }
+            for (List<PendingWrite> batch : batches.values()) {
+                persistBatch(batch);
+            }
+        } catch (RuntimeException | Error failure) {
+            IOException unavailable = new IOException("Saved biome append failed unexpectedly", failure);
+            writeFailure = unavailable;
+            if (grouping != null) {
+                grouping.failure = unavailable;
+                grouping.completed = true;
+            }
+            for (List<PendingWrite> batch : batches.values()) {
+                for (PendingWrite pending : batch) {
+                    if (!pending.completed) {
+                        pending.failure = unavailable;
+                        pending.completed = true;
+                    }
+                }
+            }
+            throw failure;
+        }
+    }
+
+    private void persistBatch(List<PendingWrite> batch) {
+        Map<Integer, PendingWrite> claimed = new LinkedHashMap<>();
+        try {
+            for (PendingWrite pending : batch) {
+                try {
+                    if (alreadyClaimed(pending.chunk)) {
+                        pending.completed = true;
+                        continue;
+                    }
+                    int slot = slot(pending.chunk.chunkX(), pending.chunk.chunkZ());
+                    PendingWrite previous = claimed.get(slot);
+                    if (previous == null) {
+                        claimed.put(slot, pending);
+                    } else if (!previous.chunk.equals(pending.chunk)) {
+                        throw new IOException("Conflicting saved biome claim at chunk "
+                                + pending.chunk.chunkX() + ", " + pending.chunk.chunkZ());
+                    }
+                } catch (IOException failure) {
+                    pending.failure = failure;
+                    pending.completed = true;
+                }
+            }
+            if (claimed.isEmpty()) {
+                return;
+            }
+            requireWritable();
+            SavedBiomeChunk first = batch.getFirst().chunk;
+            RegionIndex region = region(first.chunkX(), first.chunkZ());
             ensureRegionFile(region);
-            long offset;
+            long offset = 0L;
+            boolean durable = false;
             try (RandomAccessFile output = new RandomAccessFile(region.path.toFile(), "rw")) {
                 offset = output.length();
-                if (offset + record.length > MAXIMUM_REGION_BYTES) {
+                long length = 0L;
+                for (PendingWrite pending : claimed.values()) {
+                    length += pending.record.length;
+                }
+                if (offset + length > MAXIMUM_REGION_BYTES) {
                     throw new IOException("Saved biome region exceeds its storage limit: " + region.path);
                 }
                 try {
                     output.seek(offset);
-                    output.write(record);
+                    for (PendingWrite pending : claimed.values()) {
+                        output.write(pending.record);
+                    }
                     output.getChannel().force(true);
+                    durable = true;
                 } catch (IOException failure) {
                     try {
                         output.setLength(offset);
                         output.getChannel().force(true);
                     } catch (IOException rollback) {
                         failure.addSuppressed(rollback);
+                        writeFailure = failure;
                     }
                     throw failure;
                 }
+            } catch (IOException failure) {
+                if (durable) {
+                    writeFailure = failure;
+                }
+                throw failure;
             }
-            int slot = slot(required.chunkX(), required.chunkZ());
-            region.offsets[slot] = offset;
-            region.lengths[slot] = body.length;
-            cacheChunk(key(required.chunkX(), required.chunkZ()), Optional.of(required));
-            return true;
+            for (PendingWrite pending : claimed.values()) {
+                SavedBiomeChunk chunk = pending.chunk;
+                int slot = slot(chunk.chunkX(), chunk.chunkZ());
+                region.offsets[slot] = offset;
+                region.lengths[slot] = pending.record.length - 8;
+                cacheChunk(key(chunk.chunkX(), chunk.chunkZ()), Optional.of(chunk));
+                pending.persisted = true;
+                offset += pending.record.length;
+            }
+        } catch (IOException failure) {
+            for (PendingWrite pending : batch) {
+                if (!pending.completed) {
+                    pending.failure = failure;
+                }
+            }
+        }
+        for (PendingWrite pending : batch) {
+            pending.completed = true;
         }
     }
 
@@ -164,6 +275,7 @@ public final class SavedBiomeStore {
                 int regionX = parseRegionCoordinate(matcher.group(1));
                 int regionZ = parseRegionCoordinate(matcher.group(2));
                 synchronized (regionLock(regionX << 5, regionZ << 5)) {
+                    requireWritable();
                     RegionIndex region = region(regionX << 5, regionZ << 5);
                     boolean[] discarded = new boolean[1024];
                     int count = 0;
@@ -205,6 +317,7 @@ public final class SavedBiomeStore {
     }
 
     private boolean alreadyClaimed(SavedBiomeChunk chunk) throws IOException {
+        requireWritable();
         Optional<SavedBiomeChunk> existing = get(chunk.chunkX(), chunk.chunkZ());
         if (existing.isEmpty()) {
             return false;
@@ -440,7 +553,7 @@ public final class SavedBiomeStore {
         }
     }
 
-    private Object regionLock(int chunkX, int chunkZ) {
+    private WriteStripe regionLock(int chunkX, int chunkZ) {
         long key = key(chunkX >> 5, chunkZ >> 5);
         return regionLocks[(int) (key ^ (key >>> 32)) & (regionLocks.length - 1)];
     }
@@ -654,6 +767,30 @@ public final class SavedBiomeStore {
             }
         }
         throw new IOException("Invalid saved biome variable integer");
+    }
+
+    private void requireWritable() throws IOException {
+        if (writeFailure != null) {
+            throw new IOException("Saved biome writes are unavailable after an uncertain append", writeFailure);
+        }
+    }
+
+    private static final class WriteStripe {
+        private final ConcurrentLinkedQueue<PendingWrite> pending = new ConcurrentLinkedQueue<>();
+        private volatile boolean writing;
+    }
+
+    private static final class PendingWrite {
+        private final SavedBiomeChunk chunk;
+        private final byte[] record;
+        private boolean completed;
+        private boolean persisted;
+        private IOException failure;
+
+        private PendingWrite(SavedBiomeChunk chunk, byte[] record) {
+            this.chunk = chunk;
+            this.record = record;
+        }
     }
 
     private static final class DecodeBudget {

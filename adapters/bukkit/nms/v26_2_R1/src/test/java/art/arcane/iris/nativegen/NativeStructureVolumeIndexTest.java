@@ -3,6 +3,7 @@ package art.arcane.iris.nativegen;
 import art.arcane.iris.engine.IrisEngine;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
+import art.arcane.iris.engine.history.GenerationHistoryRuntimeRouter;
 import art.arcane.volmlib.util.collection.KList;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.HolderSet;
@@ -24,6 +25,7 @@ import java.lang.reflect.Proxy;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -39,8 +41,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class NativeStructureVolumeIndexTest {
     private static final String STRUCTURE_KEY = "minecraft:swamp_hut";
@@ -112,6 +116,47 @@ public class NativeStructureVolumeIndexTest {
         runtimeId.set(1);
         index.resolve(engine, 0, 0, 15, 15);
         assertEquals(867, resolver.resolutions());
+    }
+
+    @Test
+    public void pinnedRuntimeReusesCachedOriginsWithoutOpeningCoordinateScopes() throws Exception {
+        ScopedEngine scoped = scopedEngine(true, 1);
+        CountingResolver resolver = new CountingResolver(0, 0);
+        NativeStructureVolumeIndex index = NativeStructureVolumeIndex.forTesting(resolver);
+
+        KList<NativeStructureVolume> first = index.resolve(scoped.engine(), 0, 0, 15, 15);
+        assertEquals(289, scoped.scopes().get());
+        index.resolve(scoped.engine(), 16, 0, 31, 15);
+        assertEquals(306, resolver.resolutions());
+        assertEquals(306, scoped.scopes().get());
+        assertEquals(first, index.resolve(scoped.engine(), 0, 0, 15, 15));
+        assertEquals(306, scoped.scopes().get());
+    }
+
+    @Test
+    public void absentOrMismatchedRuntimeOwnershipKeepsCoordinateRouting() throws Exception {
+        ScopedEngine detached = scopedEngine(true, 1);
+        when(detached.engine().getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+        for (ScopedEngine scoped : List.of(scopedEngine(false, 1), scopedEngine(true, 0),
+                scopedEngine(true, 2), detached)) {
+            NativeStructureVolumeIndex index = NativeStructureVolumeIndex.forTesting(new CountingResolver(0, 0));
+            index.resolve(scoped.engine(), 0, 0, 15, 15);
+            index.resolve(scoped.engine(), 16, 0, 31, 15);
+            assertEquals(578, scoped.scopes().get());
+        }
+    }
+
+    @Test
+    public void retiredPinnedOriginsRebuildThroughCoordinateScopes() throws Exception {
+        ScopedEngine scoped = scopedEngine(true, 1);
+        CountingResolver resolver = new CountingResolver(0, 0);
+        NativeStructureVolumeIndex index = NativeStructureVolumeIndex.forTesting(resolver);
+
+        KList<NativeStructureVolume> first = index.resolve(scoped.engine(), 0, 0, 15, 15);
+        index.evictRuntime(1);
+        assertEquals(first, index.resolve(scoped.engine(), 0, 0, 15, 15));
+        assertEquals(578, resolver.resolutions());
+        assertEquals(578, scoped.scopes().get());
     }
 
     @Test
@@ -313,6 +358,27 @@ public class NativeStructureVolumeIndexTest {
         assertTrue(source.contains("queryCache.keySet().removeIf(key -> key.runtimeId() == runtimeId)"));
     }
 
+    private static ScopedEngine scopedEngine(boolean scoped, int ownerRuntimeId) throws Exception {
+        IrisEngine engine = mock(IrisEngine.class);
+        GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
+        when(engine.hasGenerationRuntimeScope()).thenReturn(scoped);
+        when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(engine.getCacheID()).thenReturn(1);
+        if (ownerRuntimeId != 0) {
+            IrisEngine.GenerationRuntimeBinding binding = mock(IrisEngine.GenerationRuntimeBinding.class);
+            when(binding.runtimeId()).thenReturn(ownerRuntimeId);
+            when(router.currentRuntimeOwnership()).thenReturn(Optional.of(
+                    new GenerationHistoryRuntimeRouter.RuntimeOwnership(1L, binding)));
+        }
+        AtomicInteger scopes = new AtomicInteger();
+        when(engine.openGenerationHistoryCoordinateScope(anyInt(), anyInt())).thenAnswer(invocation -> {
+            scopes.incrementAndGet();
+            return null;
+        });
+        return new ScopedEngine(engine, scopes);
+    }
+
+
     @SuppressWarnings("unchecked")
     private static Map<Engine, NativeStructureVolumeIndex> installedIndexes() throws Exception {
         Field indexes = NativeStructureVolumeIndex.class.getDeclaredField("INDEXES");
@@ -438,5 +504,7 @@ public class NativeStructureVolumeIndexTest {
                     0, 0, 0,
                     15, 255, 15));
         }
+    }
+    private record ScopedEngine(IrisEngine engine, AtomicInteger scopes) {
     }
 }

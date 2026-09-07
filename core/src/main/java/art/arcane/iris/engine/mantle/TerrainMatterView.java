@@ -42,6 +42,30 @@ public final class TerrainMatterView {
         }
     }
 
+    public static MatterCavern getComposedCavern(MantleChunk<Matter> chunk, int x, int y, int z) {
+        if (chunk == null || y < 0) {
+            return null;
+        }
+        synchronized (chunk) {
+            int section = y >> 4;
+            if (!chunk.exists(section)) {
+                return null;
+            }
+            Matter matter = chunk.get(section);
+            if (matter == null) {
+                return null;
+            }
+            PreObjectMatterCell cell = raw(matter, x, y, z, PreObjectMatterCell.class);
+            HydrologyCaveCell hydrology = cell != null && cell.hydrologyCaptured()
+                    ? cell.hydrology() : raw(matter, x, y, z, HydrologyCaveCell.class);
+            if (hydrology != null) {
+                return hydrology.asCavern();
+            }
+            return cell != null && cell.cavernCaptured()
+                    ? cell.cavern() : raw(matter, x, y, z, MatterCavern.class);
+        }
+    }
+
     public static <T> void iterate(MantleChunk<Matter> chunk, Class<T> type,
                                     Consumer4<Integer, Integer, Integer, T> consumer) {
         Objects.requireNonNull(chunk, "Terrain mantle chunk");
@@ -54,7 +78,8 @@ public final class TerrainMatterView {
         List<TerrainEntry<T>> entries = new ArrayList<>();
         synchronized (chunk) {
             chunk.iterate(type, (x, y, z, value) -> {
-                T original = get(chunk, x, y, z, type);
+                PreObjectMatterCell cell = raw(chunk, x, y, z, PreObjectMatterCell.class);
+                T original = cell != null && cell.captures(type) ? cell.original(type) : value;
                 if (original != null) {
                     entries.add(new TerrainEntry<>(x, y, z, original));
                 }
@@ -88,7 +113,10 @@ public final class TerrainMatterView {
             return null;
         }
         Matter matter = chunk.get(section);
-        return matter == null || !matter.hasSlice(type) ? null
-                : matter.<T>getSlice(type).get(x & 15, y & 15, z & 15);
+        return matter == null ? null : raw(matter, x, y, z, type);
+    }
+
+    private static <T> T raw(Matter matter, int x, int y, int z, Class<T> type) {
+        return !matter.hasSlice(type) ? null : matter.<T>getSlice(type).get(x & 15, y & 15, z & 15);
     }
 }

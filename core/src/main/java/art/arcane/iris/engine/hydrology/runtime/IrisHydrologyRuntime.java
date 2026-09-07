@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.hydrology.runtime;
 
+import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.engine.hydrology.HydrologyColumnSample;
 import art.arcane.iris.engine.hydrology.HydrologyDiagnosticCandidate;
@@ -78,6 +80,7 @@ import java.util.function.Predicate;
 public final class IrisHydrologyRuntime implements AutoCloseable {
     private static final int MAXIMUM_CACHE_TILES = 64;
     private static final int MAXIMUM_TERRAIN_SAMPLES = 65_536;
+    private static final int MAXIMUM_RESOLVED_POLICIES = 1024;
     private static final int MAXIMUM_FEATURE_SEARCH_TILES = 1_089;
     private static final int BIOME_PATCH_SCALE = 32;
     private static final long SURFACE_WIDTH_SALT = 0x5355524657494454L;
@@ -99,6 +102,9 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
     private final Object terrainSampleLock;
     private final Cache<HydrologyTileKey, Boolean> unplannedQueries = Caffeine.newBuilder()
             .maximumSize(MAXIMUM_CACHE_TILES)
+            .build();
+    private final Cache<PolicyKey, ResolvedPolicy> resolvedPolicies = Caffeine.newBuilder()
+            .maximumSize(MAXIMUM_RESOLVED_POLICIES)
             .build();
     private final LinkedHashMap<Long, HydrologyTerrainSample> terrainSamples;
 
@@ -483,6 +489,7 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
     public void close() {
         cache.close();
         unplannedQueries.invalidateAll();
+        resolvedPolicies.invalidateAll();
         routingTerrainSampler.close();
         synchronized (terrainSampleLock) {
             terrainSamples.clear();
@@ -571,9 +578,10 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
         boolean ocean = naturalSample.ocean();
         IrisBiome biome = naturalSample.biome();
         IrisRegion region = naturalSample.region();
-        EffectiveRiverPolicy policy = RiverPolicyResolver.resolve(context.dimension(), region, biome);
+        ResolvedPolicy resolvedPolicy = resolvePolicy(region, biome);
+        EffectiveRiverPolicy policy = resolvedPolicy.policy();
         String parentBiomeKey = requireBiomeKey(biome);
-        List<String> profiles = validProfiles(policy.profiles());
+        List<String> profiles = resolvedPolicy.profiles();
         int configuredFluidY = settings.underground().minimumFluidY()
                 + (settings.underground().maximumFluidY() - settings.underground().minimumFluidY()) / 2;
         if (!rivers.getUnderground().getFluidLevel().isFlat()) {
@@ -649,6 +657,35 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
             case REGION -> region == null ? null : "region:" + region.getLoadKey();
             case BIOME -> biome == null ? null : "biome:" + biome.getLoadKey();
         };
+    }
+
+    private ResolvedPolicy resolvePolicy(IrisRegion region, IrisBiome biome) {
+        IrisData data = policyData(region, biome);
+        ResourceLoader<IrisBiome> loader = data == null ? null : data.getBiomeLoader();
+        PolicyKey key = new PolicyKey(region, biome, data, loader);
+        ResolvedPolicy cached = resolvedPolicies.getIfPresent(key);
+        if (cached != null) {
+            return cached;
+        }
+        RiverPolicyResolver.Resolution resolution = RiverPolicyResolver.resolveWithStatus(context.dimension(), region, biome);
+        EffectiveRiverPolicy policy = resolution.policy();
+        ResolvedPolicy resolved = new ResolvedPolicy(policy, validProfiles(policy.profiles()));
+        if (resolution.complete() && data == policyData(region, biome)
+                && loader == (data == null ? null : data.getBiomeLoader())) {
+            resolvedPolicies.put(key, resolved);
+        }
+        return resolved;
+    }
+
+    private IrisData policyData(IrisRegion region, IrisBiome biome) {
+        IrisData data = biome == null ? null : biome.getLoader();
+        if (data == null && region != null) {
+            data = region.getLoader();
+        }
+        if (data == null) {
+            data = context.dimension().getLoader();
+        }
+        return data;
     }
 
     private List<String> validProfiles(List<String> requested) {
@@ -1230,4 +1267,22 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
         }
         return biome.getLoadKey();
     }
+
+    private record ResolvedPolicy(EffectiveRiverPolicy policy, List<String> profiles) {
+    }
+
+    private record PolicyKey(IrisRegion region, IrisBiome biome, IrisData data, ResourceLoader<IrisBiome> loader) {
+        @Override
+        public boolean equals(Object compared) {
+            return compared instanceof PolicyKey other
+                    && region == other.region && biome == other.biome && data == other.data && loader == other.loader;
+        }
+
+        @Override
+        public int hashCode() {
+            return ((31 * System.identityHashCode(region) + System.identityHashCode(biome)) * 31
+                    + System.identityHashCode(data)) * 31 + System.identityHashCode(loader);
+        }
+    }
+
 }

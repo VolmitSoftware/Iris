@@ -23,7 +23,9 @@ import art.arcane.iris.engine.history.GenerationAdmission;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisBiome;
+import art.arcane.iris.engine.object.IrisDimensionCarvingEntry;
 import art.arcane.iris.engine.object.IrisDimensionCarvingResolver;
+import art.arcane.iris.engine.object.IrisRange;
 import art.arcane.iris.engine.object.IrisWorld;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -32,7 +34,9 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.context.IrisContext;
+import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.project.stream.ProceduralStream;
+import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -88,6 +92,51 @@ public class IrisEngineGenerationRuntimeScopeTest {
     @AfterClass
     public static void unbindPlatform() {
         IrisPlatforms.unbind();
+    }
+
+    @Test
+    public void carvingResolverRestoresNestedRuntimeDefinitions() throws Exception {
+        RuntimeFixture active = runtime(1, 1D, 1D, 1D);
+        RuntimeFixture first = runtime(2, 2D, 2D, 2D);
+        RuntimeFixture second = runtime(3, 3D, 3D, 3D);
+        IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
+        IrisDimensionCarvingEntry root = mock(IrisDimensionCarvingEntry.class);
+        IrisDimensionCarvingEntry child = mock(IrisDimensionCarvingEntry.class);
+        when(root.isEnabled()).thenReturn(true);
+        when(root.getWorldYRange()).thenReturn(new IrisRange(-64, 320));
+        when(root.getChildRecursionDepth()).thenReturn(1);
+        when(root.getChildren()).thenReturn(new KList<>("child"));
+        when(child.isEnabled()).thenReturn(true);
+        CNG generator = mock(CNG.class);
+        when(generator.noiseFast2D(19D, -3D)).thenReturn(1D);
+        IrisBiome[] expected = new IrisBiome[3];
+        RuntimeFixture[] fixtures = {active, first, second};
+        for (int index = 0; index < fixtures.length; index++) {
+            RuntimeFixture fixture = fixtures[index];
+            IrisBiome parentBiome = mock(IrisBiome.class);
+            IrisBiome childBiome = mock(IrisBiome.class);
+            when(parentBiome.getRarity()).thenReturn(1);
+            when(childBiome.getRarity()).thenReturn(1);
+            when(root.getRealBiome(fixture.data)).thenReturn(parentBiome);
+            when(child.getRealBiome(fixture.data)).thenReturn(childBiome);
+            when(root.getChildrenGenerator(fixture.runtime.seedManager().getCarve() ^ 0x9E3779B97F4A7C15L,
+                    fixture.data)).thenReturn(generator);
+            when(fixture.dimension.getCarving()).thenReturn(new KList<>(root));
+            when(fixture.dimension.getCarvingEntryIndex()).thenReturn(Map.of("child", child));
+            expected[index] = childBiome;
+        }
+        IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
+        assertSame(expected[0], carvingBiome(engine, state));
+        try (IrisEngine.GenerationRuntimeScope outer = engine.openGenerationRuntimeScope(
+                detachedBinding(engine, first.runtime))) {
+            assertSame(expected[1], carvingBiome(engine, state));
+            try (IrisEngine.GenerationRuntimeScope inner = engine.openGenerationRuntimeScope(
+                    detachedBinding(engine, second.runtime))) {
+                assertSame(expected[2], carvingBiome(engine, state));
+            }
+            assertSame(expected[1], carvingBiome(engine, state));
+        }
+        assertSame(expected[0], carvingBiome(engine, state));
     }
 
     @Test
@@ -811,6 +860,12 @@ public class IrisEngineGenerationRuntimeScopeTest {
         }
         assertSame(active.data, engine.getData());
         assertSame(active.dimension, engine.getDimension());
+    }
+
+    private static IrisBiome carvingBiome(IrisEngine engine, IrisDimensionCarvingResolver.State state) {
+        IrisDimensionCarvingEntry root = IrisDimensionCarvingResolver.resolveRootEntry(engine, 80, state);
+        IrisDimensionCarvingEntry child = IrisDimensionCarvingResolver.resolveFromRoot(engine, root, 19, -3, state);
+        return IrisDimensionCarvingResolver.resolveEntryBiome(engine, child, state);
     }
 
     private static GenerationHistoryRuntimeRouter historyRouter(IrisEngine engine) {

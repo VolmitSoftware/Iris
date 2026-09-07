@@ -157,7 +157,13 @@ public class SavedBiomeStoreWriteTest {
             assertArrayEquals(original, Files.readAllBytes(regionPath(root)));
             assertTrue(store.get(1, 0).isEmpty());
             assertTrue(SavedBiomeStore.open(root).get(1, 0).isEmpty());
-            assertTrue(store.claimAndPersist(chunk(1, 3L)));
+            if (failRollback) {
+                assertSame(failure, assertThrows(IOException.class,
+                        () -> store.claimAndPersist(chunk(1, 3L))).getCause());
+                assertTrue(SavedBiomeStore.open(root).claimAndPersist(chunk(1, 3L)));
+            } else {
+                assertTrue(store.claimAndPersist(chunk(1, 3L)));
+            }
         }
     }
 

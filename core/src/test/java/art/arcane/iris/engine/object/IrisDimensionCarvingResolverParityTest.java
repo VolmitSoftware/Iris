@@ -40,6 +40,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -118,6 +119,7 @@ public class IrisDimensionCarvingResolverParityTest {
                     assertSame("entry mismatch at worldY=" + worldY + " worldX=" + worldX + " worldZ=" + worldZ, legacyResolved, statefulResolved);
                 }
             }
+            fixture.clearRecordedCalls();
         }
     }
 
@@ -138,6 +140,7 @@ public class IrisDimensionCarvingResolverParityTest {
                     assertSame("mixed entry mismatch at worldY=" + worldY + " worldX=" + worldX + " worldZ=" + worldZ, legacyResolved, statefulResolved);
                 }
             }
+            fixture.clearRecordedCalls();
         }
     }
 
@@ -154,6 +157,7 @@ public class IrisDimensionCarvingResolverParityTest {
                     assertSame("cave biome mismatch at x=" + x + " y=" + y + " z=" + z, defaultBiome, stateBiome);
                 }
             }
+            fixture.clearRecordedCalls();
         }
     }
 
@@ -174,6 +178,7 @@ public class IrisDimensionCarvingResolverParityTest {
                             secondPlan[columnIndex]
                     );
                 }
+                fixture.clearRecordedCalls();
             }
         }
     }
@@ -223,6 +228,26 @@ public class IrisDimensionCarvingResolverParityTest {
         dimension.set(replacement.engine.getDimension());
         data.set(replacement.engine.getData());
         assertSame(replacementExpected, IrisDimensionCarvingResolver.resolveRootEntry(engine, worldY));
+    }
+
+    @Test
+    public void explicitStateInvalidatesWhenOnlyEngineDataChanges() {
+        Fixture fixture = createFixture();
+        Engine engine = fixture.engine;
+        IrisData firstData = engine.getData();
+        IrisData replacementData = mock(IrisData.class);
+        IrisDimensionCarvingEntry entry = mock(IrisDimensionCarvingEntry.class);
+        IrisBiome firstBiome = new IrisBiome();
+        IrisBiome replacementBiome = new IrisBiome();
+        doReturn(firstBiome).when(entry).getRealBiome(firstData);
+        doReturn(replacementBiome).when(entry).getRealBiome(replacementData);
+        IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
+
+        assertSame(firstBiome, IrisDimensionCarvingResolver.resolveEntryBiome(engine, entry, state));
+        doReturn(replacementData).when(engine).getData();
+        assertSame(replacementBiome, IrisDimensionCarvingResolver.resolveEntryBiome(engine, entry, state));
+        doReturn(firstData).when(engine).getData();
+        assertSame(firstBiome, IrisDimensionCarvingResolver.resolveEntryBiome(engine, entry, state));
     }
 
     @Test
@@ -404,7 +429,9 @@ public class IrisDimensionCarvingResolverParityTest {
         doReturn(surfaceBiome).when(engine).getSurfaceBiome(anyInt(), anyInt());
         doReturn(fallbackBiome).when(engine).getCaveBiome(anyInt(), anyInt());
 
-        return new Fixture(engine);
+        return new Fixture(engine, new Object[]{engine, dimension, data, biomeLoader,
+                rootLowBiome, rootHighBiome, childABiome, childBBiome, childCBiome,
+                fallbackBiome, surfaceBiome});
     }
 
     private Fixture createMixedDepthFixture() {
@@ -490,7 +517,9 @@ public class IrisDimensionCarvingResolverParityTest {
         doReturn(surfaceBiome).when(engine).getSurfaceBiome(anyInt(), anyInt());
         doReturn(fallbackBiome).when(engine).getCaveBiome(anyInt(), anyInt());
 
-        return new Fixture(engine);
+        return new Fixture(engine, new Object[]{engine, dimension, data, biomeLoader,
+                rootLowBiome, rootHighBiome, childABiome, childBBiome, childCBiome,
+                childDBiome, childEBiome, childFBiome, childGBiome, fallbackBiome, surfaceBiome});
     }
 
     private IrisDimensionCarvingEntry[] buildColumnPlan(Engine engine, IrisDimensionCarvingEntry rootEntry, int chunkX, int chunkZ, IrisDimensionCarvingResolver.State state) {
@@ -660,7 +689,10 @@ public class IrisDimensionCarvingResolverParityTest {
         return Math.min(depth, MAX_CHILD_DEPTH);
     }
 
-    private record Fixture(Engine engine) {
+    private record Fixture(Engine engine, Object[] mocks) {
+        private void clearRecordedCalls() {
+            clearInvocations(mocks);
+        }
     }
 
     private record RetainedFixture(Engine engine, IrisDimensionCarvingEntry entry) {

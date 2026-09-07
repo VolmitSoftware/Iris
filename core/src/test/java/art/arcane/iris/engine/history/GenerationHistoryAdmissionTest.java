@@ -7,9 +7,19 @@ import org.mockito.MockedStatic;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
 import java.nio.channels.FileChannel;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,6 +33,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -55,10 +66,9 @@ public class GenerationHistoryAdmissionTest {
             });
             admitted.get(1, TimeUnit.SECONDS);
             assertFalse(persisted.isDone());
-            Future<?> observed = executor.submit(() -> history.semantics(1, 2));
-            assertThrows(TimeoutException.class, () -> observed.get(100, TimeUnit.MILLISECONDS));
+            Future<Optional<ChunkGenerationSemantics>> observed = executor.submit(() -> history.semantics(1, 2));
+            assertTrue(observed.get(1, TimeUnit.SECONDS).isEmpty());
             release.countDown();
-            observed.get(5, TimeUnit.SECONDS);
             assertTrue(persisted.get(5, TimeUnit.SECONDS));
             assertEquals(claim, history.semantics(1, 2).orElseThrow());
             assertEquals(claim, GenerationSemanticIndex.loadRequired(history.paths().dimensionRoot()).get(1, 2).orElseThrow());
@@ -165,12 +175,212 @@ public class GenerationHistoryAdmissionTest {
         }
     }
 
+    @Test
+    public void queuedClaimsShareOneForceAndRetainIndividualValidation() throws Exception {
+        GenerationHistory history = history();
+        GenerationAdmission.RuntimeLease runtime = history.retainRuntime();
+        List<GenerationHistory.GenerationStage> stages = new ArrayList<>();
+        for (int x : new int[]{1, 2, 3, 1, 1, 4, 32, 33}) {
+            stages.add(history.openStage(x, 0));
+        }
+        history.claimGeneratedSemantics(stages.getFirst(), claim(stages.getFirst()));
+        List<Thread> workers = new CopyOnWriteArrayList<>();
+        ExecutorService executor = Executors.newFixedThreadPool(stages.size(), task -> {
+            Thread thread = new Thread(task);
+            workers.add(thread);
+            return thread;
+        });
+        AtomicInteger forces = new AtomicInteger();
+        List<Future<Boolean>> results = new ArrayList<>();
+        try {
+            synchronized (history) {
+                for (int index = 0; index < stages.size(); index++) {
+                    GenerationHistory.GenerationStage stage = stages.get(index);
+                    ChunkGenerationSemantics update = index == 4
+                            ? ChunkGenerationSemantics.builder(1, 0, stage.activation().activationId())
+                                    .addSurfaceBiome("iris:conflict").seal().build()
+                            : claim(stage);
+                    results.add(executor.submit(() -> persistCountingForces(history, stage, update, forces)));
+                    awaitBlockedOnHistory(history, workers, index + 1);
+                }
+                stages.get(5).close();
+            }
+            assertFalse(results.get(0).get(5, TimeUnit.SECONDS));
+            assertTrue(results.get(1).get(5, TimeUnit.SECONDS));
+            assertTrue(results.get(2).get(5, TimeUnit.SECONDS));
+            assertFalse(results.get(3).get(5, TimeUnit.SECONDS));
+            assertTrue(assertThrows(ExecutionException.class, () -> results.get(4).get(5, TimeUnit.SECONDS))
+                    .getCause() instanceof IllegalStateException);
+            assertTrue(assertThrows(ExecutionException.class, () -> results.get(5).get(5, TimeUnit.SECONDS))
+                    .getCause() instanceof IllegalStateException);
+            assertTrue(results.get(6).get(5, TimeUnit.SECONDS));
+            assertTrue(results.get(7).get(5, TimeUnit.SECONDS));
+            assertEquals(2, forces.get());
+            GenerationSemanticIndex loaded = GenerationSemanticIndex.loadRequired(history.paths().dimensionRoot());
+            assertEquals(5, loaded.recordCount());
+            assertEquals(claim(stages.getFirst()), loaded.get(1, 0).orElseThrow());
+            assertTrue(loaded.get(4, 0).isEmpty());
+        } finally {
+            drain(executor);
+            for (GenerationHistory.GenerationStage stage : stages) {
+                stage.close();
+            }
+            runtime.close();
+        }
+    }
+
+    @Test
+    public void fullClaimQueueRetainsEveryAdmittedRequest() throws Exception {
+        GenerationHistory history = history();
+        GenerationAdmission.RuntimeLease runtime = history.retainRuntime();
+        List<GenerationHistory.GenerationStage> stages = new ArrayList<>();
+        List<Future<Boolean>> results = new ArrayList<>();
+        ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+        CountDownLatch started = new CountDownLatch(132);
+        try {
+            synchronized (history) {
+                for (int x = 0; x < 132; x++) {
+                    GenerationHistory.GenerationStage stage = history.openStage(x, 0);
+                    stages.add(stage);
+                    results.add(executor.submit(() -> {
+                        started.countDown();
+                        return history.claimGeneratedSemantics(stage, claim(stage));
+                    }));
+                }
+                assertTrue(started.await(5, TimeUnit.SECONDS));
+                Field queueField = GenerationHistory.class.getDeclaredField("pendingSemanticClaims");
+                queueField.setAccessible(true);
+                ArrayBlockingQueue<?> queue = (ArrayBlockingQueue<?>) queueField.get(history);
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
+                while (queue.remainingCapacity() != 0 && System.nanoTime() < deadline) {
+                    Thread.sleep(1L);
+                }
+                assertEquals(0, queue.remainingCapacity());
+                assertEquals(128, queue.size());
+            }
+            for (Future<Boolean> result : results) {
+                assertTrue(result.get(10, TimeUnit.SECONDS));
+            }
+            assertEquals(132, GenerationSemanticIndex.loadRequired(history.paths().dimensionRoot()).recordCount());
+        } finally {
+            drain(executor);
+            for (GenerationHistory.GenerationStage stage : stages) {
+                stage.close();
+            }
+            runtime.close();
+        }
+    }
+
+    @Test
+    public void unexpectedLaterBatchFailureReachesWaitersAndKeepsEarlierSuccess() throws Exception {
+        GenerationHistory history = history();
+        GenerationAdmission.RuntimeLease runtime = history.retainRuntime();
+        List<GenerationHistory.GenerationStage> stages = new ArrayList<>();
+        for (int x : new int[]{0, 32, 32, 64}) {
+            stages.add(history.openStage(x, 0));
+        }
+        List<Thread> workers = new CopyOnWriteArrayList<>();
+        ExecutorService executor = Executors.newFixedThreadPool(stages.size(), task -> {
+            Thread thread = new Thread(task);
+            workers.add(thread);
+            return thread;
+        });
+        IllegalStateException failure = new IllegalStateException("Unexpected second journal failure");
+        List<Future<Boolean>> results = new ArrayList<>();
+        try {
+            synchronized (history) {
+                for (int index = 0; index < stages.size(); index++) {
+                    GenerationHistory.GenerationStage stage = stages.get(index);
+                    results.add(executor.submit(() -> persistFailingRegion(history, stage, failure)));
+                    awaitBlockedOnHistory(history, workers, index + 1);
+                }
+            }
+            assertTrue(results.getFirst().get(5, TimeUnit.SECONDS));
+            for (int index = 1; index < results.size(); index++) {
+                Future<Boolean> result = results.get(index);
+                assertSame(failure, assertThrows(ExecutionException.class,
+                        () -> result.get(5, TimeUnit.SECONDS)).getCause());
+            }
+            assertThrows(IllegalStateException.class, () -> history.semantics(0, 0));
+            GenerationSemanticIndex loaded = GenerationSemanticIndex.loadRequired(history.paths().dimensionRoot());
+            assertEquals(1, loaded.recordCount());
+            assertEquals(claim(stages.getFirst()), loaded.get(0, 0).orElseThrow());
+        } finally {
+            drain(executor);
+            for (GenerationHistory.GenerationStage stage : stages) {
+                stage.close();
+            }
+            runtime.close();
+        }
+    }
+
+    private static boolean persistFailingRegion(GenerationHistory history, GenerationHistory.GenerationStage stage,
+                                               IllegalStateException failure) throws Exception {
+        try (MockedStatic<FileChannel> ignored = mockStatic(FileChannel.class, invocation -> {
+            FileChannel source = (FileChannel) invocation.callRealMethod();
+            Path path = invocation.getArgument(0);
+            if (invocation.getMethod().getParameterCount() != 2
+                    || !path.getFileName().toString().equals("r.1.0.iswal")) {
+                return source;
+            }
+            FileChannel intercepted = mock(FileChannel.class, delegatesTo(source));
+            doAnswer(write -> {
+                throw failure;
+            }).when(intercepted).write(any(ByteBuffer.class));
+            return intercepted;
+        })) {
+            return history.claimGeneratedSemantics(stage, claim(stage));
+        }
+    }
+
+    private static boolean persistCountingForces(GenerationHistory history, GenerationHistory.GenerationStage stage,
+                                                ChunkGenerationSemantics claim, AtomicInteger forces) throws Exception {
+        try (MockedStatic<FileChannel> ignored = mockStatic(FileChannel.class, invocation -> {
+            FileChannel source = (FileChannel) invocation.callRealMethod();
+            Path path = invocation.getArgument(0);
+            if (invocation.getMethod().getParameterCount() != 2
+                    || !path.getFileName().toString().endsWith(".iswal")) {
+                return source;
+            }
+            FileChannel intercepted = mock(FileChannel.class, delegatesTo(source));
+            doAnswer(force -> {
+                forces.incrementAndGet();
+                source.force(true);
+                return null;
+            }).when(intercepted).force(true);
+            return intercepted;
+        })) {
+            return history.claimGeneratedSemantics(stage, claim);
+        }
+    }
+
+    private static void awaitBlockedOnHistory(GenerationHistory history, List<Thread> workers, int count)
+            throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
+        while (System.nanoTime() < deadline) {
+            int blocked = 0;
+            for (Thread worker : workers) {
+                ThreadInfo info = ManagementFactory.getThreadMXBean().getThreadInfo(worker.threadId());
+                if (info != null && info.getThreadState() == Thread.State.BLOCKED
+                        && info.getLockInfo().getIdentityHashCode() == System.identityHashCode(history)) {
+                    blocked++;
+                }
+            }
+            if (blocked == count) {
+                return;
+            }
+            Thread.sleep(1L);
+        }
+        throw new AssertionError("Semantic claim callers did not queue behind the History monitor");
+    }
+
     private static boolean persistPaused(GenerationHistory history, GenerationHistory.GenerationStage stage,
                                          ChunkGenerationSemantics claim, CountDownLatch entered, CountDownLatch release) throws Exception {
         try (MockedStatic<FileChannel> ignored = mockStatic(FileChannel.class, invocation -> {
             FileChannel channel = (FileChannel) invocation.callRealMethod();
             Path path = invocation.getArgument(0);
-            if (!path.getFileName().toString().endsWith(".iswal")) {
+            if (invocation.getMethod().getParameterCount() != 2
+                    || !path.getFileName().toString().endsWith(".iswal")) {
                 return channel;
             }
             FileChannel intercepted = mock(FileChannel.class, delegatesTo(channel));

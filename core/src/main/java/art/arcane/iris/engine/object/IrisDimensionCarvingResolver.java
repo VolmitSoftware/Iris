@@ -28,7 +28,7 @@ public final class IrisDimensionCarvingResolver {
 
     public static IrisDimensionCarvingEntry resolveRootEntry(Engine engine, int worldY, State state) {
         State resolvedState = state == null ? threadState() : state;
-        resolvedState.bind(engine);
+        IrisData data = resolvedState.bind(engine);
         if (resolvedState.rootEntriesByWorldY.containsKey(worldY)) {
             return resolvedState.rootEntriesByWorldY.get(worldY);
         }
@@ -42,7 +42,7 @@ public final class IrisDimensionCarvingResolver {
 
         IrisDimensionCarvingEntry resolved = null;
         for (IrisDimensionCarvingEntry entry : entries) {
-            if (!isRootCandidate(engine, entry, worldY, resolvedState)) {
+            if (!isRootCandidate(data, entry, worldY, resolvedState)) {
                 continue;
             }
 
@@ -59,12 +59,12 @@ public final class IrisDimensionCarvingResolver {
 
     public static IrisDimensionCarvingEntry resolveFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldZ, State state) {
         State resolvedState = state == null ? threadState() : state;
-        resolvedState.bind(engine);
+        IrisData data = resolvedState.bind(engine);
         if (rootEntry == null) {
             return null;
         }
 
-        IrisBiome rootBiome = resolveEntryBiome(engine, rootEntry, resolvedState);
+        IrisBiome rootBiome = resolveBoundEntryBiome(data, rootEntry, resolvedState);
         if (rootBiome == null) {
             return null;
         }
@@ -78,7 +78,7 @@ public final class IrisDimensionCarvingResolver {
         IrisDimensionCarvingEntry current = rootEntry;
         int depth = remainingDepth;
         while (depth > 0) {
-            IrisDimensionCarvingEntry selected = selectChild(engine, current, worldX, worldZ, entryIndex, resolvedState);
+            IrisDimensionCarvingEntry selected = selectChild(engine, data, current, worldX, worldZ, entryIndex, resolvedState);
             if (selected == null || selected == current) {
                 break;
             }
@@ -107,17 +107,20 @@ public final class IrisDimensionCarvingResolver {
             return entry.getRealBiome(engine.getData());
         }
 
-        state.bind(engine);
+        return resolveBoundEntryBiome(state.bind(engine), entry, state);
+    }
+
+    private static IrisBiome resolveBoundEntryBiome(IrisData data, IrisDimensionCarvingEntry entry, State state) {
         if (state.biomeCache.containsKey(entry)) {
             return state.biomeCache.get(entry);
         }
 
-        IrisBiome biome = entry.getRealBiome(engine.getData());
+        IrisBiome biome = entry.getRealBiome(data);
         state.biomeCache.put(entry, biome);
         return biome;
     }
 
-    private static boolean isRootCandidate(Engine engine, IrisDimensionCarvingEntry entry, int worldY, State state) {
+    private static boolean isRootCandidate(IrisData data, IrisDimensionCarvingEntry entry, int worldY, State state) {
         if (entry == null || !entry.isEnabled()) {
             return false;
         }
@@ -127,11 +130,12 @@ public final class IrisDimensionCarvingResolver {
             return false;
         }
 
-        return resolveEntryBiome(engine, entry, state) != null;
+        return resolveBoundEntryBiome(data, entry, state) != null;
     }
 
     private static IrisDimensionCarvingEntry selectChild(
             Engine engine,
+            IrisData data,
             IrisDimensionCarvingEntry parent,
             int worldX,
             int worldZ,
@@ -143,14 +147,14 @@ public final class IrisDimensionCarvingResolver {
             return parent;
         }
 
-        IrisBiome parentBiome = resolveEntryBiome(engine, parent, state);
+        IrisBiome parentBiome = resolveBoundEntryBiome(data, parent, state);
         if (parentBiome == null) {
             return parent;
         }
 
         IrisRaritySelection<CarvingChoice> selectionPlan = state.selectionPlans.get(parent);
         if (selectionPlan == null) {
-            selectionPlan = buildSelectionPlan(engine, parent, parentBiome, entryIndex, state);
+            selectionPlan = buildSelectionPlan(data, parent, parentBiome, entryIndex, state);
             state.selectionPlans.put(parent, selectionPlan);
         }
 
@@ -159,7 +163,7 @@ public final class IrisDimensionCarvingResolver {
         }
 
         long seed = resolveChildSeed(engine, state);
-        CNG childGenerator = parent.getChildrenGenerator(seed, engine.getData());
+        CNG childGenerator = parent.getChildrenGenerator(seed, data);
         double sample = childGenerator.noiseFast2D(worldX, worldZ);
         CarvingChoice selected = selectionPlan.select(sample);
         if (selected == null || selected.entry == null) {
@@ -170,7 +174,7 @@ public final class IrisDimensionCarvingResolver {
     }
 
     private static IrisRaritySelection<CarvingChoice> buildSelectionPlan(
-            Engine engine,
+            IrisData data,
             IrisDimensionCarvingEntry parent,
             IrisBiome parentBiome,
             Map<String, IrisDimensionCarvingEntry> entryIndex,
@@ -189,7 +193,7 @@ public final class IrisDimensionCarvingResolver {
                     continue;
                 }
 
-                IrisBiome childBiome = resolveEntryBiome(engine, child, state);
+                IrisBiome childBiome = resolveBoundEntryBiome(data, child, state);
                 if (childBiome == null) {
                     continue;
                 }
@@ -256,13 +260,13 @@ public final class IrisDimensionCarvingResolver {
         private Map<String, IrisDimensionCarvingEntry> entryIndex;
         private Long childSeed;
 
-        private void bind(Engine engine) {
+        private IrisData bind(Engine engine) {
             IrisDimension dimension = engine.getDimension();
             IrisData data = engine.getData();
             if (references(engineIdentity, engine)
                     && references(dimensionIdentity, dimension)
                     && references(dataIdentity, data)) {
-                return;
+                return data;
             }
             engineIdentity = new WeakReference<>(engine);
             dimensionIdentity = new WeakReference<>(dimension);
@@ -272,6 +276,7 @@ public final class IrisDimensionCarvingResolver {
             biomeCache.clear();
             entryIndex = null;
             childSeed = null;
+            return data;
         }
 
         private static boolean references(WeakReference<?> identity, Object value) {

@@ -8,6 +8,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.StructurePlacementMarker;
 import art.arcane.iris.engine.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.engine.mantle.EngineMantle;
+import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.function.Consumer4;
@@ -20,6 +21,7 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -104,6 +106,55 @@ public final class GenerationSemanticCaptureTest {
                 new ChunkGenerationSemantics.BlockPosition(5, 12, 6)), checked);
         verify(filled, never()).fluidProfileKey();
         verify(fixture.engine, never()).getCaveBiome(anyInt(), anyInt(), anyInt());
+    }
+
+    @Test
+    public void cavePositionsRemainDistinctAcrossColumnsAndSectionBoundaries() {
+        Fixture fixture = new Fixture();
+        List<Integer> heights = List.of(0, 15, 16, 255, 256, 767, 4063);
+        Set<String> expected = new HashSet<>();
+        List<ChunkGenerationSemantics.BlockPosition> resolved = new ArrayList<>();
+        when(fixture.engine.getCaveBiome(anyInt(), anyInt(), anyInt())).thenAnswer(invocation -> {
+            int x = invocation.getArgument(0);
+            int y = invocation.getArgument(1);
+            int z = invocation.getArgument(2);
+            resolved.add(new ChunkGenerationSemantics.BlockPosition(x, y, z));
+            IrisBiome biome = new IrisBiome();
+            biome.setLoadKey(x + ":" + y + ":" + z);
+            return biome;
+        });
+        doAnswer(invocation -> {
+            Consumer4<Integer, Integer, Integer, MatterCavern> consumer = invocation.getArgument(3);
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    for (int y : heights) {
+                        consumer.accept(x, y, z, new MatterCavern(true, null, (byte) 0));
+                        expected.add((x - 32) + ":" + y + ":" + (z + 48));
+                    }
+                }
+            }
+            return null;
+        }).when(fixture.mantle).iterateChunk(eq(-2), eq(3), eq(MatterCavern.class), any());
+        HydrologyCaveCell duplicate = mock(HydrologyCaveCell.class);
+        when(duplicate.floodedBiomeKey()).thenReturn("iris:duplicate");
+        when(duplicate.fluidProfileKey()).thenReturn("iris:river");
+        doAnswer(invocation -> {
+            Consumer4<Integer, Integer, Integer, HydrologyCaveCell> consumer = invocation.getArgument(3);
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    for (int y : heights) {
+                        consumer.accept(x, y, z, duplicate);
+                    }
+                }
+            }
+            return null;
+        }).when(fixture.mantle).iterateChunk(eq(-2), eq(3), eq(HydrologyCaveCell.class), any());
+
+        ChunkGenerationSemantics captured = GenerationSemanticCapture.capture(fixture.engine, -2, 3, 5L);
+
+        assertEquals(expected, captured.caveBiomeKeys());
+        assertEquals(expected.size(), resolved.size());
+        assertEquals(Set.of("iris:river"), captured.riverProfileKeys());
     }
 
     @Test

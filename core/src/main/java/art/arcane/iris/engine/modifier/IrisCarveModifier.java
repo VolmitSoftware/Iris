@@ -153,6 +153,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
 
             PrecisionStopwatch applyStopwatch = PrecisionStopwatch.start();
             try {
+                IrisData wallData = getData();
                 walls.forEach((rx, yy, rz, cavern) -> {
                     HydrologyCaveCell hydrology = dataIfPresent(
                             mantleChunk, rx, yy, rz, HydrologyCaveCell.class);
@@ -167,7 +168,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
                             : resolveCustomBiome(customBiomeCache, customBiome);
 
                     if (biome != null) {
-                        PlatformBlockState data = biome.getWall().get(rng, worldX, yy, worldZ, getData());
+                        PlatformBlockState data = biome.getWall().get(rng, worldX, yy, worldZ, wallData);
                         int columnIndex = PowerOfTwoCoordinates.packLocal16(rx, rz);
 
                         if (data != null && B.isSolid(output.getRaw(rx, yy, rz)) && yy < surfaceHeights[columnIndex]) {
@@ -566,9 +567,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
     }
 
     private MatterCavern composedCavernAt(MantleChunk<Matter> mantleChunk, int x, int y, int z) {
-        MatterCavern baseline = dataIfPresent(mantleChunk, x, y, z, MatterCavern.class);
-        HydrologyCaveCell hydrology = dataIfPresent(mantleChunk, x, y, z, HydrologyCaveCell.class);
-        return composeCavern(baseline, hydrology);
+        return TerrainMatterView.getComposedCavern(mantleChunk, x, y, z);
     }
 
     private static <T> T dataIfPresent(MantleChunk<Matter> mantleChunk, int x, int y, int z, Class<T> type) {
@@ -875,12 +874,15 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
         Long2ObjectOpenHashMap<IrisBiome> caveBiomes = new Long2ObjectOpenHashMap<>(256);
         Map<String, IrisBiome> customBiomes = new HashMap<>();
         try {
-            for (int localX = 0; localX < output.getWidth(); localX++) {
-                for (int localZ = 0; localZ < output.getDepth(); localZ++) {
+            int width = output.getWidth();
+            int depth = output.getDepth();
+            int height = output.getHeight();
+            for (int localX = 0; localX < width; localX++) {
+                for (int localZ = 0; localZ < depth; localZ++) {
                     int worldX = blockX + localX;
                     int worldZ = blockZ + localZ;
                     int floor = -1;
-                    for (int y = 1; y < output.getHeight(); y++) {
+                    for (int y = 1; y < height; y++) {
                         PlatformBlockState state = output.getRaw(localX, y, localZ);
                         if (B.isSolid(state)) {
                             if (floor >= 0) {
@@ -1093,30 +1095,18 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
             return null;
         }
 
-        IrisBiome xPos = sampleCaveBiome(caveBiomeCache, x + CAVE_BIOME_BLEND_RADIUS, y, z, resolverState);
-        IrisBiome xNeg = sampleCaveBiome(caveBiomeCache, x - CAVE_BIOME_BLEND_RADIUS, y, z, resolverState);
-        IrisBiome zPos = sampleCaveBiome(caveBiomeCache, x, y, z + CAVE_BIOME_BLEND_RADIUS, resolverState);
-        IrisBiome zNeg = sampleCaveBiome(caveBiomeCache, x, y, z - CAVE_BIOME_BLEND_RADIUS, resolverState);
-
-        if (xPos == center && xNeg == center && zPos == center && zNeg == center) {
-            return center;
-        }
-
         int roll = Math.floorMod(rng.nextParallelRNG(BlockPosition.toLong(x, y, z)).nextInt(), CAVE_BIOME_BLEND_TOTAL_WEIGHT);
         if (roll < CAVE_BIOME_BLEND_CENTER_WEIGHT) {
             return center;
         }
         roll -= CAVE_BIOME_BLEND_CENTER_WEIGHT;
-        if (roll == 0) {
-            return xPos != null ? xPos : center;
-        }
-        if (roll == 1) {
-            return xNeg != null ? xNeg : center;
-        }
-        if (roll == 2) {
-            return zPos != null ? zPos : center;
-        }
-        return zNeg != null ? zNeg : center;
+        IrisBiome neighbor = switch (roll) {
+            case 0 -> sampleCaveBiome(caveBiomeCache, x + CAVE_BIOME_BLEND_RADIUS, y, z, resolverState);
+            case 1 -> sampleCaveBiome(caveBiomeCache, x - CAVE_BIOME_BLEND_RADIUS, y, z, resolverState);
+            case 2 -> sampleCaveBiome(caveBiomeCache, x, y, z + CAVE_BIOME_BLEND_RADIUS, resolverState);
+            default -> sampleCaveBiome(caveBiomeCache, x, y, z - CAVE_BIOME_BLEND_RADIUS, resolverState);
+        };
+        return neighbor != null ? neighbor : center;
     }
 
     private IrisBiome sampleCaveBiome(Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, int x, int y, int z, IrisDimensionCarvingResolver.State resolverState) {

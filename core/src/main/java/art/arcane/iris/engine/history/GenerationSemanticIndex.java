@@ -42,6 +42,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -85,10 +86,14 @@ public final class GenerationSemanticIndex {
     private final Long2IntOpenHashMap journalEntries;
     private final Long2IntOpenHashMap regionRecordCounts;
     private final ReentrantReadWriteLock lock;
+    private final ReentrantLock publicationLock;
     private final ShardPublisher publisher;
     private final PointerPublisher pointerPublisher;
     private final CatalogPublisher catalogPublisher;
     private long regionDecodeCount;
+    private volatile IOException journalFailure;
+    private long appendingRegionKey;
+    private RegionShard appendingBase;
 
     private GenerationSemanticIndex(
             Path dimensionRoot,
@@ -104,6 +109,7 @@ public final class GenerationSemanticIndex {
         journalEntries = new Long2IntOpenHashMap();
         regionRecordCounts = new Long2IntOpenHashMap();
         lock = new ReentrantReadWriteLock();
+        publicationLock = new ReentrantLock();
         this.publisher = publisher;
         this.pointerPublisher = pointerPublisher;
         this.catalogPublisher = catalogPublisher;
@@ -174,33 +180,99 @@ public final class GenerationSemanticIndex {
         if (!requiredClaim.sealed()) {
             throw new IllegalArgumentException("Generation semantic claims must be sealed.");
         }
+        Claim pending = new Claim(requiredClaim);
+        claimAndPersistBatch(List.of(pending));
+        return pending.result();
+    }
+
+    void claimAndPersistBatch(List<Claim> claims) {
         lock.writeLock().lock();
+        publicationLock.lock();
         try {
-            ChunkGenerationSemantics existing = getRecordLocked(
-                    requiredClaim.chunkX(),
-                    requiredClaim.chunkZ()
-            );
-            ChunkGenerationSemantics merged = existing == null
-                    ? requiredClaim
-                    : existing.merge(requiredClaim);
-            if (merged == existing || merged.equals(existing)) {
-                return false;
+            requireJournalUsable();
+            Map<Long, List<Claim>> batches = new LinkedHashMap<>();
+            for (Claim pending : claims) {
+                if (!pending.update.sealed()) {
+                    pending.fail(new IllegalArgumentException("Generation semantic claims must be sealed."));
+                    continue;
+                }
+                long regionKey = packRegion(pending.update.chunkX() >> 5, pending.update.chunkZ() >> 5);
+                batches.computeIfAbsent(regionKey, ignored -> new ArrayList<>()).add(pending);
             }
-            int regionX = requiredClaim.chunkX() >> 5;
-            int regionZ = requiredClaim.chunkZ() >> 5;
-            long regionKey = packRegion(regionX, regionZ);
-            RegionShard baseRegion = loadRegionLocked(regionKey, regionX, regionZ);
-            RegionShard nextRegion = baseRegion.withRecord(merged);
-            ensureStorageDirectory();
-            SemanticJournal.append(directory, regionX, regionZ, merged);
-            cacheRegion(regionKey, nextRegion);
-            if (existing == null) {
-                regionRecordCounts.addTo(regionKey, 1);
+            for (Map.Entry<Long, List<Claim>> batch : batches.entrySet()) {
+                persistClaimBatch(batch.getKey(), batch.getValue());
             }
-            journalEntries.addTo(regionKey, 1);
-            return true;
+        } catch (IOException failure) {
+            for (Claim pending : claims) {
+                pending.fail(failure);
+            }
+        } catch (RuntimeException | Error failure) {
+            journalFailure = new IOException("Generation semantic batch failed unexpectedly.", failure);
+            for (Claim pending : claims) {
+                pending.fail(failure);
+            }
+            throw failure;
         } finally {
+            publicationLock.unlock();
             lock.writeLock().unlock();
+        }
+    }
+
+    private void persistClaimBatch(long regionKey, List<Claim> claims) {
+        try {
+            requireJournalUsable();
+            int regionX = regionX(regionKey);
+            int regionZ = regionZ(regionKey);
+            RegionShard baseRegion = loadRegionLocked(regionKey, regionX, regionZ);
+            RegionShard nextRegion = baseRegion;
+            List<ChunkGenerationSemantics> updates = new ArrayList<>(claims.size());
+            for (Claim pending : claims) {
+                ChunkGenerationSemantics update = pending.update;
+                ChunkGenerationSemantics existing = nextRegion.get(update.chunkX(), update.chunkZ());
+                ChunkGenerationSemantics merged;
+                try {
+                    merged = existing == null ? update : existing.merge(update);
+                } catch (IllegalArgumentException | IllegalStateException failure) {
+                    pending.fail(failure);
+                    continue;
+                }
+                if (merged == existing || merged.equals(existing)) {
+                    pending.completed = existing == baseRegion.get(update.chunkX(), update.chunkZ());
+                    continue;
+                }
+                nextRegion = nextRegion.withRecord(merged);
+                updates.add(merged);
+                pending.persisted = true;
+            }
+            if (updates.isEmpty()) {
+                return;
+            }
+            ensureStorageDirectory();
+            appendingRegionKey = regionKey;
+            appendingBase = baseRegion;
+            publicationLock.unlock();
+            try {
+                SemanticJournal.append(directory, regionX, regionZ, updates);
+            } catch (JournalAppendFailure failure) {
+                journalFailure = failure;
+                throw failure;
+            } catch (RuntimeException | Error failure) {
+                journalFailure = new IOException("Generation semantic batch failed unexpectedly.", failure);
+                throw failure;
+            } finally {
+                publicationLock.lock();
+                appendingBase = null;
+            }
+            cacheRegion(regionKey, nextRegion);
+            regionRecordCounts.put(regionKey, nextRegion.recordCount());
+            journalEntries.addTo(regionKey, updates.size());
+            for (Claim pending : claims) {
+                pending.completed = true;
+            }
+        } catch (IOException failure) {
+            for (Claim pending : claims) {
+                pending.fail(failure);
+            }
         }
     }
 
@@ -213,6 +285,7 @@ public final class GenerationSemanticIndex {
             }
         }
         lock.writeLock().lock();
+        publicationLock.lock();
         try {
             compactJournals();
             int removed = 0;
@@ -248,19 +321,23 @@ public final class GenerationSemanticIndex {
             }
             return removed;
         } finally {
+            publicationLock.unlock();
             lock.writeLock().unlock();
         }
     }
 
     public void compactJournals() throws IOException {
         lock.writeLock().lock();
+        publicationLock.lock();
         try {
+            requireJournalUsable();
             ArrayList<Long> regionKeys = new ArrayList<>(journalEntries.keySet());
             regionKeys.sort(GenerationSemanticIndex::compareRegionKeys);
             for (long regionKey : regionKeys) {
                 compactJournal(regionKey);
             }
         } finally {
+            publicationLock.unlock();
             lock.writeLock().unlock();
         }
     }
@@ -271,7 +348,9 @@ public final class GenerationSemanticIndex {
         }
         SealedClaimConsumer requiredConsumer = Objects.requireNonNull(consumer, "sealed claim consumer");
         lock.writeLock().lock();
+        publicationLock.lock();
         try {
+            requireJournalUsable();
             for (long regionKey : allRegionKeys()) {
                 if (!loadSummaryLocked(regionKey).hasSealedActivation(activationId)) {
                     continue;
@@ -288,12 +367,13 @@ public final class GenerationSemanticIndex {
                 }
             }
         } finally {
+            publicationLock.unlock();
             lock.writeLock().unlock();
         }
     }
 
     public boolean hasSealedClaim(int chunkX, int chunkZ, long activationId) {
-        lock.writeLock().lock();
+        publicationLock.lock();
         try {
             ChunkGenerationSemantics semantics = getRecordLocked(chunkX, chunkZ);
             return semantics != null
@@ -302,14 +382,16 @@ public final class GenerationSemanticIndex {
         } catch (IOException error) {
             throw new IllegalStateException("Unable to resolve a sealed generation semantic claim.", error);
         } finally {
-            lock.writeLock().unlock();
+            publicationLock.unlock();
         }
     }
 
     public boolean recordAndPersist(ChunkGenerationSemantics update) throws IOException {
         ChunkGenerationSemantics requiredUpdate = Objects.requireNonNull(update, "update");
         lock.writeLock().lock();
+        publicationLock.lock();
         try {
+            requireJournalUsable();
             ChunkGenerationSemantics existing = getRecordLocked(
                     requiredUpdate.chunkX(),
                     requiredUpdate.chunkZ()
@@ -345,34 +427,39 @@ public final class GenerationSemanticIndex {
             deleteUnreferencedShard(regionX, regionZ, previousHash, shardHash);
             return true;
         } finally {
+            publicationLock.unlock();
             lock.writeLock().unlock();
         }
     }
 
     public Optional<ChunkGenerationSemantics> get(int chunkX, int chunkZ) {
-        lock.writeLock().lock();
+        publicationLock.lock();
         try {
             return Optional.ofNullable(getRecordLocked(chunkX, chunkZ));
         } catch (IOException error) {
             throw new IllegalStateException("Unable to load generation semantics for chunk "
                     + chunkX + "," + chunkZ + ".", error);
         } finally {
-            lock.writeLock().unlock();
+            publicationLock.unlock();
         }
     }
 
     public int recordCount() {
         lock.readLock().lock();
+        publicationLock.lock();
         try {
             return totalRecordCountLocked();
         } finally {
+            publicationLock.unlock();
             lock.readLock().unlock();
         }
     }
 
     public List<ChunkGenerationSemantics> recordsSnapshot() {
         lock.writeLock().lock();
+        publicationLock.lock();
         try {
+            requireJournalUsable();
             List<ChunkGenerationSemantics> snapshot = new ArrayList<>(totalRecordCountLocked());
             for (long regionKey : allRegionKeys()) {
                 RegionShard region = loadRegionLocked(
@@ -388,6 +475,7 @@ public final class GenerationSemanticIndex {
         } catch (IOException error) {
             throw new IllegalStateException("Unable to load generation semantic snapshot.", error);
         } finally {
+            publicationLock.unlock();
             lock.writeLock().unlock();
         }
     }
@@ -395,7 +483,9 @@ public final class GenerationSemanticIndex {
     public void forEachRecord(RecordConsumer consumer) throws IOException {
         RecordConsumer requiredConsumer = Objects.requireNonNull(consumer, "consumer");
         lock.writeLock().lock();
+        publicationLock.lock();
         try {
+            requireJournalUsable();
             for (long regionKey : allRegionKeys()) {
                 RegionShard region = loadRegionLocked(
                         regionKey,
@@ -407,33 +497,40 @@ public final class GenerationSemanticIndex {
                 }
             }
         } finally {
+            publicationLock.unlock();
             lock.writeLock().unlock();
         }
     }
 
     int cachedRegionCount() {
         lock.readLock().lock();
+        publicationLock.lock();
         try {
             return regions.size();
         } finally {
+            publicationLock.unlock();
             lock.readLock().unlock();
         }
     }
 
     long regionDecodeCount() {
         lock.readLock().lock();
+        publicationLock.lock();
         try {
             return regionDecodeCount;
         } finally {
+            publicationLock.unlock();
             lock.readLock().unlock();
         }
     }
 
     int cachedSummaryCount() {
         lock.readLock().lock();
+        publicationLock.lock();
         try {
             return summaries.size();
         } finally {
+            publicationLock.unlock();
             lock.readLock().unlock();
         }
     }
@@ -452,12 +549,14 @@ public final class GenerationSemanticIndex {
                 "eligibility"
         );
         lock.writeLock().lock();
+        publicationLock.lock();
         try {
             if (requiredQuery.kind() == SemanticKind.STRUCTURE) {
                 return findNearestStructure(requiredQuery, requiredEligibility);
             }
             return findNearestChunk(requiredQuery, requiredEligibility);
         } finally {
+            publicationLock.unlock();
             lock.writeLock().unlock();
         }
     }
@@ -472,6 +571,7 @@ public final class GenerationSemanticIndex {
                 "eligibility"
         );
         lock.writeLock().lock();
+        publicationLock.lock();
         try {
             RiverMatch best = null;
             BigInteger bestDistance = null;
@@ -540,6 +640,7 @@ public final class GenerationSemanticIndex {
         } catch (IOException error) {
             throw new IllegalStateException("Unable to search recorded river semantics.", error);
         } finally {
+            publicationLock.unlock();
             lock.writeLock().unlock();
         }
     }
@@ -874,6 +975,7 @@ public final class GenerationSemanticIndex {
     }
 
     private ChunkGenerationSemantics getRecordLocked(int chunkX, int chunkZ) throws IOException {
+        requireJournalUsable();
         long regionKey = packRegion(chunkX >> 5, chunkZ >> 5);
         if (!regionRecordCounts.containsKey(regionKey)) {
             return null;
@@ -882,6 +984,10 @@ public final class GenerationSemanticIndex {
     }
 
     private RegionShard loadRegionLocked(long regionKey, int regionX, int regionZ) throws IOException {
+        requireJournalUsable();
+        if (appendingBase != null && appendingRegionKey == regionKey) {
+            return appendingBase;
+        }
         RegionShard cached = regions.get(regionKey);
         if (cached != null) {
             return cached;
@@ -898,6 +1004,7 @@ public final class GenerationSemanticIndex {
     }
 
     private RegionSummary loadSummaryLocked(long regionKey) throws IOException {
+        requireJournalUsable();
         RegionSummary cached = summaries.get(regionKey);
         if (cached != null) {
             return cached;
@@ -956,6 +1063,12 @@ public final class GenerationSemanticIndex {
             Iterator<Map.Entry<Long, RegionSummary>> entries = summaries.entrySet().iterator();
             entries.next();
             entries.remove();
+        }
+    }
+
+    private void requireJournalUsable() throws IOException {
+        if (journalFailure != null) {
+            throw new IOException("Generation semantic journal requires recovery before further access.", journalFailure);
         }
     }
 
@@ -1165,7 +1278,8 @@ public final class GenerationSemanticIndex {
             ChunkGenerationSemantics.BlockPosition origin,
             int maximumChunkRadius,
             boolean orderByBlockDistance
-    ) {
+    ) throws IOException {
+        requireJournalUsable();
         int originChunkX = Math.floorDiv(origin.x(), 16);
         int originChunkZ = Math.floorDiv(origin.z(), 16);
         long minimumChunkX = (long) originChunkX - maximumChunkRadius;
@@ -1760,6 +1874,40 @@ public final class GenerationSemanticIndex {
         void publish(Path directory, Set<Long> regionKeys) throws IOException;
     }
 
+    static final class Claim {
+        final ChunkGenerationSemantics update;
+        boolean persisted;
+        boolean completed;
+        private Throwable failure;
+
+        Claim(ChunkGenerationSemantics update) {
+            this.update = update;
+        }
+
+        boolean fail(Throwable failure) {
+            if (!completed) {
+                this.failure = failure;
+                persisted = false;
+                completed = true;
+                return true;
+            }
+            return this.failure == failure;
+        }
+
+        boolean result() throws IOException {
+            if (failure instanceof IOException ioFailure) {
+                throw ioFailure;
+            }
+            if (failure instanceof RuntimeException runtimeFailure) {
+                throw runtimeFailure;
+            }
+            if (failure instanceof Error error) {
+                throw error;
+            }
+            return persisted;
+        }
+    }
+
     private static final class SemanticJournal {
         private static final int ENTRY_MAGIC = 0x4953574C;
         private static final int HEADER_BYTES = Integer.BYTES * 2;
@@ -1768,8 +1916,65 @@ public final class GenerationSemanticIndex {
                 Path directory,
                 int regionX,
                 int regionZ,
-                ChunkGenerationSemantics claim
+                List<ChunkGenerationSemantics> claims
         ) throws IOException {
+            Path file = directory.resolve(journalFileName(regionX, regionZ));
+            boolean created = !Files.exists(file, LinkOption.NOFOLLOW_LINKS);
+            if (!created && !Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+                throw invalid(file, "path is not a regular file");
+            }
+            FileChannel opened = FileChannel.open(
+                    file,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.WRITE
+            );
+            boolean uncertain = created;
+            boolean restored = false;
+            try (FileChannel channel = opened) {
+                long size = channel.size();
+                if (size > MAX_JOURNAL_BYTES) {
+                    throw invalid(file, "journal exceeds its size limit");
+                }
+                uncertain = true;
+                try {
+                    channel.position(size);
+                    long written = size;
+                    for (ChunkGenerationSemantics claim : claims) {
+                        ByteBuffer entry = encodeEntry(regionX, regionZ, claim);
+                        if (written > MAX_JOURNAL_BYTES - entry.remaining()) {
+                            throw invalid(file, "journal exceeds its size limit");
+                        }
+                        written += entry.remaining();
+                        while (entry.hasRemaining()) {
+                            channel.write(entry);
+                        }
+                    }
+                    channel.force(true);
+                    if (created) {
+                        RegionShard.forceDirectory(directory);
+                    }
+                } catch (IOException failure) {
+                    try {
+                        channel.truncate(size);
+                        channel.force(true);
+                        if (created) {
+                            RegionShard.forceDirectory(directory);
+                        }
+                        restored = true;
+                    } catch (IOException rollback) {
+                        failure.addSuppressed(rollback);
+                    }
+                    throw failure;
+                }
+            } catch (IOException failure) {
+                if (uncertain && !restored) {
+                    throw new JournalAppendFailure(file, failure);
+                }
+                throw failure;
+            }
+        }
+
+        private static ByteBuffer encodeEntry(int regionX, int regionZ, ChunkGenerationSemantics claim) throws IOException {
             RegionShard single = new RegionShard(regionX, regionZ).withRecord(claim);
             byte[] payload = single.encode();
             CRC32 checksum = new CRC32();
@@ -1780,30 +1985,7 @@ public final class GenerationSemanticIndex {
             entry.put(payload);
             entry.putInt((int) checksum.getValue());
             entry.flip();
-
-            Path file = directory.resolve(journalFileName(regionX, regionZ));
-            boolean created = !Files.exists(file, LinkOption.NOFOLLOW_LINKS);
-            if (!created && !Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
-                throw invalid(file, "path is not a regular file");
-            }
-            try (FileChannel channel = FileChannel.open(
-                    file,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.WRITE
-            )) {
-                long size = channel.size();
-                if (size > MAX_JOURNAL_BYTES - entry.remaining()) {
-                    throw invalid(file, "journal exceeds its size limit");
-                }
-                channel.position(size);
-                while (entry.hasRemaining()) {
-                    channel.write(entry);
-                }
-                channel.force(true);
-            }
-            if (created) {
-                RegionShard.forceDirectory(directory);
-            }
+            return entry;
         }
 
         private static Replay replay(Path file, int expectedRegionX, int expectedRegionZ) throws IOException {
@@ -1913,6 +2095,12 @@ public final class GenerationSemanticIndex {
                 int entryCount,
                 long validBytes
         ) {
+        }
+    }
+
+    private static final class JournalAppendFailure extends IOException {
+        private JournalAppendFailure(Path file, IOException cause) {
+            super("Generation semantic journal could not confirm a durable append or rollback: " + file, cause);
         }
     }
 

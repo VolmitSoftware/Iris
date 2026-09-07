@@ -71,7 +71,9 @@ public class KGeneratorsDataProvider extends ExternalDataProvider {
 
     @Override
     public boolean isValidProvider(@NotNull Identifier id, DataType dataType) {
-        if (dataType == DataType.ENTITY) return false;
-        return "kgenerators".equalsIgnoreCase(id.namespace());
+        if (dataType == DataType.ENTITY || !"kgenerators".equalsIgnoreCase(id.namespace())) {
+            return false;
+        }
+        return dataType == DataType.ITEM || Main.getGenerators().get(id.key()) != null;
     }
 }

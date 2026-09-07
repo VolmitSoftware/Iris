@@ -56,6 +56,7 @@ final class EngineShutdownSequence {
     private final Set<EngineTarget> incompleteTargets = Collections.synchronizedSet(
             Collections.newSetFromMap(new IdentityHashMap<>()));
     private boolean runtimeReleased;
+    private boolean worldManagerStopped;
     private boolean targetReleased;
     private boolean engineDataReleased;
     private boolean preservationReleased;
@@ -72,7 +73,10 @@ final class EngineShutdownSequence {
         if (!engine.beginShutdown()) {
             return;
         }
-        Throwable routerFailure = runCleanup(null, engine::closeAttachedGenerationHistoryRuntimeRouter);
+        Throwable routerFailure = stopWorldManager();
+        if (routerFailure == null) {
+            routerFailure = runCleanup(null, engine::closeAttachedGenerationHistoryRuntimeRouter);
+        }
         if (routerFailure != null) {
             synchronized (engine.lifecycleLock) {
                 engine.lifecycleState = LifecycleState.FAILED;
@@ -111,20 +115,16 @@ final class EngineShutdownSequence {
                 drainFailure = e;
             }
             if (drainFailure != null) {
-                // A drain timeout must not abandon teardown: the world manager is the lease
-                // producer, so stop it first, then re-drain briefly.
+                // A drain timeout must not abandon teardown: give remaining admitted work
+                // one final bounded drain before deciding whether resources can be released.
                 IrisLogging.warn("Iris generation did not drain for close on " + engine.getWorld().name()
-                        + "; stopping the world manager and retrying.");
-                Throwable managerFailure = engine.runtime == null
-                        ? null
-                        : runCleanup(null, engine.runtime.worldManager()::close);
+                        + "; waiting briefly for remaining work.");
                 try {
                     engine.getGenerationSessions().sealAndAwait("close-retry", CLOSE_RETRY_DRAIN_TIMEOUT_MILLIS, true);
                     drainFailure = null;
                 } catch (GenerationSessionException e) {
                     drainFailure = appendFailure(drainFailure, e);
                 }
-                drainFailure = appendFailure(drainFailure, managerFailure);
             }
             if (drainFailure != null) {
                 // A live lease may be mid-write, so the mantle must not be closed at it — but
@@ -322,7 +322,9 @@ final class EngineShutdownSequence {
         if (engineRuntime == null) {
             return failure;
         }
-        Throwable serviceFailure = runCleanup(null, engineRuntime.worldManager()::close);
+        Throwable serviceFailure = engineRuntime == engine.runtime
+                ? stopWorldManager()
+                : runCleanup(null, engineRuntime.worldManager()::close);
         serviceFailure = runCleanup(serviceFailure, engineRuntime.effects()::close);
         if (serviceFailure != null) {
             return appendFailure(failure, serviceFailure);
@@ -411,6 +413,17 @@ final class EngineShutdownSequence {
         }
         engine.runtime = null;
         runtimeReleased = true;
+        return failure;
+    }
+
+    private Throwable stopWorldManager() {
+        if (worldManagerStopped || engine.runtime == null) {
+            return null;
+        }
+        Throwable failure = runCleanup(null, engine.runtime.worldManager()::close);
+        if (failure == null) {
+            worldManagerStopped = true;
+        }
         return failure;
     }
 

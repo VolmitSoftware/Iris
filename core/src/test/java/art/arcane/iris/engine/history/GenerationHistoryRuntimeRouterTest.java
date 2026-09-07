@@ -1,7 +1,9 @@
 package art.arcane.iris.engine.history;
 
+import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.pack.AtomicDirectoryPublisher;
 import art.arcane.iris.engine.IrisEngine;
+import art.arcane.iris.engine.IrisEngineMantle;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisRegion;
@@ -17,6 +19,7 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -44,6 +47,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -178,6 +182,138 @@ public final class GenerationHistoryRuntimeRouterTest {
             assertEquals(Set.of(3L), runtimes.bindings.keySet());
         }
         router.close();
+    }
+
+    @Test
+    public void savedChunkMantlesShareRecordedStorageWithoutLoadingHistoricalRuntimes() throws Exception {
+        Path world = temporaryFolder.newFolder("router-saved-chunk-world").toPath();
+        GenerationHistory history = createThreeActivationHistory(world, "router-saved-chunk");
+        int recordedChunks = history.explicitChunkCount();
+        IrisEngine engine = mock(IrisEngine.class);
+        FakeRuntimeFactory runtimes = new FakeRuntimeFactory();
+        IrisEngine.GenerationRuntimeBinding active = runtimes.binding(history, history.activeActivation());
+        when(engine.getActiveGenerationRuntimeBinding()).thenReturn(active);
+        AtomicReference<IrisEngine.GenerationRuntimeBinding> scoped = installScopeTracking(engine);
+        EngineMantle activeEngineMantle = mock(EngineMantle.class);
+        Mantle<Matter> activeMantle = mock(Mantle.class);
+        when(engine.getMantle()).thenReturn(activeEngineMantle);
+        when(activeEngineMantle.getMantle()).thenReturn(activeMantle);
+        Map<File, IrisData> dataByPack = new HashMap<>();
+        Map<Path, Mantle<Matter>> storageByPath = new HashMap<>();
+        for (long activationId : List.of(1L, 2L)) {
+            dataByPack.put(history.packRoot(activationId).toFile(), mock(IrisData.class));
+            storageByPath.put(history.paths().activationMantleRoot(activationId), mock(Mantle.class));
+        }
+
+        try (MockedStatic<IrisData> data = mockStatic(IrisData.class);
+             MockedStatic<IrisEngineMantle> storage = mockStatic(IrisEngineMantle.class);
+             GenerationHistoryRuntimeRouter router = GenerationHistoryRuntimeRouter.attach(
+                     engine, history, (ignored, x, z) -> signature(x, z), runtimes)) {
+            data.when(() -> IrisData.openRuntime(any(File.class)))
+                    .thenAnswer(invocation -> dataByPack.get(invocation.getArgument(0, File.class)));
+            storage.when(() -> IrisEngineMantle.createMantle(any(), any(), any()))
+                    .thenAnswer(invocation -> storageByPath.get(invocation.getArgument(1, Path.class)));
+            for (int chunkX = 0; chunkX < 3; chunkX++) {
+                long activationId = chunkX + 1L;
+                Mantle<Matter> expected = activationId == 3L ? activeMantle
+                        : storageByPath.get(history.paths().activationMantleRoot(activationId));
+                try (GenerationHistoryRuntimeRouter.SavedChunkMantle first = router.openSavedChunkMantle(chunkX, 0)) {
+                    assertSame(expected, first.mantle());
+                    assertNull(scoped.get());
+                    try (GenerationHistoryRuntimeRouter.SavedChunkMantle second = router.openSavedChunkMantle(chunkX, 0)) {
+                        assertSame(first.mantle(), second.mantle());
+                    }
+                    verify(expected, never()).close();
+                }
+                if (activationId != 3L) {
+                    verify(expected).close();
+                    IrisData savedData = dataByPack.get(history.packRoot(activationId).toFile());
+                    verify(savedData).bindGenerationRegistryContract(history.resolveEpoch(chunkX, 0).registryContract());
+                    verify(savedData).registerEngine(engine);
+                    verify(savedData).unregisterEngine(engine);
+                    verify(savedData).close();
+                }
+                try (GenerationHistoryRuntimeRouter.RuntimeStage stage = router.openStage(chunkX, 0)) {
+                    assertEquals(3L, stage.activation().activationId());
+                    assertSame(active, scoped.get());
+                }
+                assertTrue(history.semantics(chunkX, 0).isEmpty());
+            }
+            storage.verify(() -> IrisEngineMantle.createMantle(any(), any(), any()), times(2));
+            assertEquals(recordedChunks, history.explicitChunkCount());
+            assertEquals(3L, history.activeActivation().activationId());
+            assertEquals(1L, history.resolveActivation(0, 0).activationId());
+            assertEquals(2L, history.resolveActivation(1, 0).activationId());
+            assertEquals(Set.of(3L), runtimes.bindings.keySet());
+            verify(activeMantle, never()).close();
+            verify(engine, never()).setDefaultGenerationRuntime(any());
+        }
+    }
+
+    @Test
+    public void savedChunkMantleOpensAfterItsGeneratorKernelIsNoLongerAvailable() throws Exception {
+        Path world = temporaryFolder.newFolder("router-saved-old-kernel-world").toPath();
+        Path pack = createPack("router-saved-old-kernel-pack", "alpha");
+        GenerationKernelRegistry.Version oldVersion = new GenerationKernelRegistry.Version(1, 1, 1);
+        GenerationKernelRegistry.Version currentVersion = new GenerationKernelRegistry.Version(2, 1, 1);
+        GenerationKernelRegistry kernels = kernels(currentVersion);
+        createHistory(world, pack, oldVersion, kernels);
+        writeRegion(Files.createDirectories(world.resolve("region")).resolve("r.0.0.mca"), new int[][]{{0, 0}});
+        GenerationHistory history = GenerationHistory.open(world,
+                new GenerationKernelRegistry(currentVersion, List.of(kernels.requireSupported(currentVersion))));
+        history.stageCurrentKernel(256);
+        promoteWithSignatures(history);
+        assertEquals(oldVersion, history.resolveEpoch(0, 0).kernelVersion());
+        IrisEngine engine = mock(IrisEngine.class);
+        FakeRuntimeFactory runtimes = new FakeRuntimeFactory();
+        IrisEngine.GenerationRuntimeBinding active = runtimes.binding(history, history.activeActivation());
+        when(engine.getActiveGenerationRuntimeBinding()).thenReturn(active);
+        IrisData savedData = mock(IrisData.class);
+        Mantle<Matter> savedStorage = mock(Mantle.class);
+        try (MockedStatic<IrisData> data = mockStatic(IrisData.class);
+             MockedStatic<IrisEngineMantle> storage = mockStatic(IrisEngineMantle.class);
+             GenerationHistoryRuntimeRouter router = GenerationHistoryRuntimeRouter.attach(
+                     engine, history, (ignored, x, z) -> signature(x, z), runtimes)) {
+            data.when(() -> IrisData.openRuntime(history.packRoot(1L).toFile())).thenReturn(savedData);
+            storage.when(() -> IrisEngineMantle.createMantle(any(), any(), any())).thenReturn(savedStorage);
+            try (GenerationHistoryRuntimeRouter.SavedChunkMantle saved = router.openSavedChunkMantle(0, 0)) {
+                assertSame(savedStorage, saved.mantle());
+            }
+            verify(savedStorage).close();
+            storage.verify(() -> IrisEngineMantle.createMantle(
+                    any(), eq(history.paths().activationMantleRoot(1L)), any()));
+            assertEquals(Set.of(2L), runtimes.bindings.keySet());
+            assertEquals(0, runtimes.loadCount(1L));
+            verify(engine, never()).openGenerationRuntimeScope(any());
+        }
+    }
+
+    @Test
+    public void savedChunkScopeRejectsReentrantCloseAndCutoverAfterThreadHandoff() throws Exception {
+        Path world = temporaryFolder.newFolder("router-saved-scope-world").toPath();
+        GenerationHistory history = createHistory(world, createPack("router-saved-scope-pack", "alpha"));
+        IrisEngine engine = mock(IrisEngine.class);
+        when(engine.isStudio()).thenReturn(true);
+        FakeRuntimeFactory runtimes = new FakeRuntimeFactory();
+        IrisEngine.GenerationRuntimeBinding active = runtimes.binding(history, history.activeActivation());
+        when(engine.getActiveGenerationRuntimeBinding()).thenReturn(active);
+        AtomicReference<IrisEngine.GenerationRuntimeBinding> scoped = installScopeTracking(engine);
+        EngineMantle engineMantle = mock(EngineMantle.class);
+        when(engine.getMantle()).thenReturn(engineMantle);
+        when(engineMantle.getMantle()).thenReturn(mock(Mantle.class));
+        try (GenerationHistoryRuntimeRouter router = GenerationHistoryRuntimeRouter.attach(
+                engine, history, (ignored, x, z) -> signature(x, z), runtimes);
+             GenerationHistoryRuntimeRouter.SavedChunkMantle saved = router.openSavedChunkMantle(0, 0)) {
+            saved.detachThread();
+            try (GenerationHistoryRuntimeRouter.SavedChunkMantle.Scope ignored = saved.openScope()) {
+                assertNull(scoped.get());
+                assertThrows(IllegalStateException.class, router::close);
+                assertThrows(IllegalStateException.class, saved::close);
+                assertThrows(IllegalStateException.class, () -> router.beginStudioCutover(1L));
+                assertThrows(IllegalStateException.class,
+                        () -> engine.getGenerationSessions().transitionGate().beginTransition(1L));
+            }
+        }
     }
 
     @Test

@@ -2,6 +2,7 @@ package art.arcane.iris.engine.platform;
 
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.iris.engine.IrisEngineMantle;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineMetrics;
@@ -9,12 +10,15 @@ import art.arcane.iris.engine.history.SavedBiomeUnavailableException;
 import art.arcane.iris.engine.object.IrisWorld;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.iris.util.project.matter.TileWrapper;
 import art.arcane.iris.util.project.matter.slices.PreObjectMatterTest;
 import art.arcane.volmlib.util.function.Consumer4;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.mantle.runtime.MantleDataAdapter;
 import art.arcane.volmlib.util.mantle.runtime.MantleHooks;
@@ -23,10 +27,12 @@ import art.arcane.volmlib.util.matter.MatterUpdate;
 import art.arcane.volmlib.util.matter.slices.UpdateMatter;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.junit.Test;
 import org.mockito.InOrder;
+import org.mockito.MockedStatic;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,16 +47,58 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class EngineBukkitOpsDeferredMaterializationTest {
+    @Test
+    @SuppressWarnings("unchecked")
+    public void savedMantlePlacementUsesCurrentProviderWithoutReadingCurrentMantle() {
+        Mantle<Matter> saved = mock(Mantle.class);
+        MantleDataAdapter<Matter> adapter = mock(MantleDataAdapter.class);
+        MantleChunk<Matter> stored = spy(new MantleChunk<>(1, 0, 0, adapter, MantleHooks.NONE));
+        Identifier identifier = Identifier.fromString("itemsadder:forest/amber_ore");
+        doAnswer(invocation -> {
+            Consumer4<Integer, Integer, Integer, Identifier> iterator = invocation.getArgument(1);
+            iterator.accept(1, 2, 3, identifier);
+            return null;
+        }).when(stored).iterate(eq(Identifier.class), any());
+        Engine engine = mock(Engine.class);
+        when(engine.getWorld()).thenReturn(mock(IrisWorld.class));
+        when(engine.getMetrics()).thenReturn(new EngineMetrics(8));
+        World world = mock(World.class);
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+        when(world.getMaxHeight()).thenReturn(16);
+        Chunk chunk = mock(Chunk.class);
+        when(chunk.getWorld()).thenReturn(world);
+        Block block = mock(Block.class);
+        when(chunk.getBlock(1, 2, 3)).thenReturn(block);
+        when(saved.isLoaded(chunk)).thenReturn(true);
+        when(saved.getChunk(chunk)).thenReturn(stored);
+        ExternalDataSVC provider = mock(ExternalDataSVC.class);
+
+        try (MockedStatic<J> scheduling = mockStatic(J.class);
+             MockedStatic<IrisServices> services = mockStatic(IrisServices.class)) {
+            scheduling.when(J::isPrimaryThread).thenReturn(true);
+            services.when(() -> IrisServices.get(ExternalDataSVC.class)).thenReturn(provider);
+
+            EngineBukkitOps.updateChunk(engine, chunk, saved);
+        }
+
+        verify(provider).processUpdate(engine, block, identifier);
+        verify(engine, never()).getMantle();
+        verify(stored).deleteSlices(Identifier.class);
+        assertTrue(stored.isFlagged(MantleFlag.ETCHED));
+    }
+
     @Test(timeout = 5000)
     public void loadingRetryPreservesPendingUpdatesWithoutRepeatingCompletedUpdates() {
         MantleChunk<Matter> mantleChunk = pendingUpdates();

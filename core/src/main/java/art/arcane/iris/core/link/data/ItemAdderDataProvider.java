@@ -3,12 +3,15 @@ package art.arcane.iris.core.link.data;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.link.ExternalDataProvider;
 import art.arcane.iris.core.link.Identifier;
+import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.spi.IrisServices;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.iris.util.common.data.IrisCustomData;
 import dev.lone.itemsadder.api.CustomBlock;
 import dev.lone.itemsadder.api.CustomStack;
 import dev.lone.itemsadder.api.Events.ItemsAdderLoadDataEvent;
+import dev.lone.itemsadder.api.ItemsAdder;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.event.EventHandler;
@@ -24,8 +27,7 @@ import java.util.stream.Collectors;
 
 public class ItemAdderDataProvider extends ExternalDataProvider implements Listener {
 
-    private volatile Set<String> itemNamespaces = Set.of();
-    private volatile Set<String> blockNamespaces = Set.of();
+    private volatile ContentRegistry content = new ContentRegistry(Set.of(), Set.of(), Set.of(), false);
 
     public ItemAdderDataProvider() {
         super("ItemsAdder");
@@ -33,22 +35,42 @@ public class ItemAdderDataProvider extends ExternalDataProvider implements Liste
 
     @Override
     public void init() {
-        updateNamespaces();
+        if (ItemsAdder.areItemsLoaded()) {
+            updateContent();
+        }
+    }
+
+    @Override
+    public boolean isReady() {
+        return super.isReady() && content.ready();
     }
 
     @EventHandler
     public void onLoadData(ItemsAdderLoadDataEvent event) {
-        updateNamespaces();
+        if (!updateContent()) {
+            return;
+        }
+        ExternalDataSVC service = IrisServices.getOrNull(ExternalDataSVC.class);
+        if (service != null) {
+            service.notifyContentChanged();
+        }
     }
 
     @NotNull
     @Override
     public BlockData getBlockData(@NotNull Identifier blockId, @NotNull KMap<String, String> state) throws MissingResourceException {
+        if (!state.isEmpty()) {
+            throw new MissingResourceException("ItemsAdder blocks do not expose Iris block properties.", blockId.namespace(), blockId.key());
+        }
         CustomBlock block = CustomBlock.getInstance(blockId.toString());
         if (block == null) {
             throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
         }
-        return IrisCustomData.of(block.getBaseBlockData(), blockId);
+        BlockData base = block.getBaseBlockData();
+        if (base == null) {
+            throw new MissingResourceException("Failed to find ItemsAdder block data.", blockId.namespace(), blockId.key());
+        }
+        return IrisCustomData.of(base, blockId);
     }
 
     @NotNull
@@ -63,46 +85,42 @@ public class ItemAdderDataProvider extends ExternalDataProvider implements Liste
 
     @Override
     public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
-        CustomBlock custom;
-        if ((custom = CustomBlock.place(blockId.toString(), block.getLocation())) == null)
-            return;
-        block.setBlockData(custom.getBaseBlockData(), false);
+        if (CustomBlock.place(blockId.toString(), block.getLocation()) == null) {
+            throw new MissingResourceException("Failed to place ItemsAdder block.", blockId.namespace(), blockId.key());
+        }
     }
 
     @Override
     public @NotNull Collection<@NotNull Identifier> getTypes(@NotNull DataType dataType) {
         return switch (dataType) {
             case ENTITY -> List.of();
-            case ITEM -> CustomStack.getNamespacedIdsInRegistry()
-                    .stream()
-                    .map(Identifier::fromString)
-                    .toList();
-            case BLOCK -> CustomBlock.getNamespacedIdsInRegistry()
-                    .stream()
-                    .map(Identifier::fromString)
-                    .toList();
+            case ITEM -> content.items();
+            case BLOCK -> content.blocks();
         };
-    }
-
-    private void updateNamespaces() {
-        try {
-            updateNamespaces(DataType.ITEM);
-            updateNamespaces(DataType.BLOCK);
-        } catch (Throwable e) {
-            IrisLogging.warn("Failed to update ItemAdder namespaces: " + e.getMessage());
-        }
-    }
-
-    private void updateNamespaces(DataType dataType) {
-        Set<String> namespaces = getTypes(dataType).stream().map(Identifier::namespace).collect(Collectors.toSet());
-        if (dataType == DataType.ITEM) itemNamespaces = namespaces;
-        else blockNamespaces = namespaces;
-        IrisLogging.debug("Updated ItemAdder namespaces: " + dataType + " - " + namespaces);
     }
 
     @Override
     public boolean isValidProvider(@NotNull Identifier id, DataType dataType) {
         if (dataType == DataType.ENTITY) return false;
-        return dataType == DataType.ITEM ? itemNamespaces.contains(id.namespace()) : blockNamespaces.contains(id.namespace());
+        return dataType == DataType.ITEM ? content.itemNamespaces().contains(id.namespace()) : content.blocks().contains(id);
+    }
+
+    private boolean updateContent() {
+        try {
+            Set<Identifier> items = CustomStack.getNamespacedIdsInRegistry().stream()
+                    .map(Identifier::fromString).collect(Collectors.toUnmodifiableSet());
+            Set<Identifier> blocks = CustomBlock.getNamespacedIdsInRegistry().stream()
+                    .map(Identifier::fromString).collect(Collectors.toUnmodifiableSet());
+            Set<String> itemNamespaces = items.stream().map(Identifier::namespace).collect(Collectors.toUnmodifiableSet());
+            content = new ContentRegistry(items, blocks, itemNamespaces, true);
+            IrisLogging.debug("Updated ItemsAdder content registry: " + items.size() + " items, " + blocks.size() + " blocks");
+            return true;
+        } catch (RuntimeException | LinkageError e) {
+            IrisLogging.reportError("Failed to update ItemsAdder content registry.", e);
+            return false;
+        }
+    }
+
+    private record ContentRegistry(Set<Identifier> items, Set<Identifier> blocks, Set<String> itemNamespaces, boolean ready) {
     }
 }

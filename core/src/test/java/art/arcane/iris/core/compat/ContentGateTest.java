@@ -165,6 +165,8 @@ public class ContentGateTest {
         assertEquals("minecraft:stone", ContentGate.normalizeState(" STONE "));
         assertEquals("minecraft:oak_log[axis=y]", ContentGate.normalizeState("Oak_Log[AXIS=Y]"));
         assertEquals("create:cogwheel", ContentGate.normalizeState("create:cogwheel"));
+        assertEquals("craftengine:forest/chair[randomYaw=true,variant=OakLarge]",
+                ContentGate.normalizeState("CraftEngine:Forest/Chair[randomYaw=true,variant=OakLarge]"));
         assertNull(ContentGate.normalizeState(null));
         assertNull(ContentGate.normalizeState("   "));
         assertEquals("minecraft:oak_log", ContentGate.baseKey("minecraft:oak_log[axis=y]"));

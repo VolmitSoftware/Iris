@@ -30,6 +30,17 @@ public class IrisStartupOrderingTest {
     }
 
     @Test
+    public void externalProvidersEnableBeforePackValidation() throws Exception {
+        String source = Files.readString(Path.of(System.getProperty("iris.startupSource")));
+        String enable = section(source, "private boolean enable()", "public void addShutdownHook()");
+
+        assertOrdered(enable,
+                "service.onEnable();",
+                "setContentChangeListener(generatorResolver::requestExternalContentRefresh)",
+                "generatorResolver.validateAllPacks();");
+    }
+
+    @Test
     public void restartRequiredStartupTerminatesAfterPluginInitialization() throws Exception {
         String source = Files.readString(Path.of(System.getProperty("iris.startupSource")));
         String onEnable = section(source, "public void onEnable()", "public void onDisable()");

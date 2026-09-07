@@ -24,6 +24,7 @@ public class PaperPluginMetadataTest {
             "PlaceholderAPI",
             "CraftEngine",
             "Nexo",
+            "Oraxen",
             "ItemsAdder",
             "SCore",
             "ExecutableItems",

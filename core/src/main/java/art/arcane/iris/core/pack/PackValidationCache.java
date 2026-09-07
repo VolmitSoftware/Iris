@@ -57,6 +57,7 @@ public final class PackValidationCache {
             PlatformRegistries registries = Objects.requireNonNull(
                     platform.registries(), "Pack validation platform registries");
             updateSorted(digest, registries.blockKeys());
+            updateSorted(digest, registries.blockTypeKeys());
             updateSorted(digest, registries.biomeKeys());
             updateSorted(digest, registries.itemKeys());
             updateSorted(digest, registries.entityKeys());

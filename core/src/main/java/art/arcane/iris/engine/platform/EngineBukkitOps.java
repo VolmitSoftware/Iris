@@ -101,6 +101,10 @@ public final class EngineBukkitOps {
     }
 
     public static void updateChunk(Engine engine, Chunk c) {
+        updateChunk(engine, c, engine.getMantle().getMantle());
+    }
+
+    public static void updateChunk(Engine engine, Chunk c, Mantle<Matter> mantle) {
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
                 if (c.getWorld().isChunkLoaded(c.getX() + x, c.getZ() + z))
@@ -110,7 +114,6 @@ public final class EngineBukkitOps {
                 return;
             }
         }
-        Mantle<Matter> mantle = engine.getMantle().getMantle();
         if (!mantle.isLoaded(c)) {
             String msg = "Mantle Chunk " + c.getX() + "," + c.getZ() + " is not loaded";
             IrisLogging.debug(msg);
@@ -118,7 +121,7 @@ public final class EngineBukkitOps {
         }
 
         if (!J.isFolia() && !J.isPrimaryThread()) {
-            CompletableFuture<?> scheduled = J.sfut(() -> updateChunk(engine, c));
+            CompletableFuture<?> scheduled = J.sfut(() -> updateChunk(engine, c, mantle));
             if (scheduled != null) {
                 try {
                     scheduled.join();

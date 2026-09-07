@@ -41,6 +41,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.util.Locale;
 import java.util.Map;
 
 @Accessors(chain = true)
@@ -76,12 +77,17 @@ public class IrisBlockData extends IrisRegistrant {
 
     public static IrisBlockData from(String j) {
         IrisBlockData b = new IrisBlockData();
-        String v = j.toLowerCase().trim();
+        String v = j.trim();
+        int bracket = v.indexOf('[');
+        String block = (bracket < 0 ? v : v.substring(0, bracket)).toLowerCase(Locale.ROOT);
+        b.setBlock(block);
 
-        if (v.contains("[")) {
+        if (bracket >= 0) {
             KList<String> props = new KList<>();
-            String rp = v.split("\\Q[\\E")[1].replaceAll("\\Q]\\E", "");
-            b.setBlock(v.split("\\Q[\\E")[0]);
+            String rp = v.substring(bracket + 1).replace("]", "");
+            if (!block.contains(":") || block.startsWith("minecraft:")) {
+                rp = rp.toLowerCase(Locale.ROOT);
+            }
 
             if (rp.contains(",")) {
                 props.add(rp.split("\\Q,\\E"));
@@ -93,8 +99,6 @@ public class IrisBlockData extends IrisRegistrant {
                 Object kg = filter(i.split("\\Q=\\E")[1]);
                 b.data.put(i.split("\\Q=\\E")[0], kg);
             }
-        } else {
-            b.setBlock(v);
         }
 
         return b;
@@ -116,7 +120,11 @@ public class IrisBlockData extends IrisRegistrant {
         }
 
         try {
-            return Double.valueOf(string).intValue();
+            double value = Double.parseDouble(string);
+            if (value >= Integer.MIN_VALUE && value <= Integer.MAX_VALUE && value == Math.rint(value)) {
+                return (int) value;
+            }
+            return value;
         } catch (Throwable ignored) {
             // Checks
         }
@@ -156,19 +164,13 @@ public class IrisBlockData extends IrisRegistrant {
                 PlatformBlockState customState = customData.getBlockData(data);
 
                 if (customState != null) {
-                    String st = customState.key();
-
-                    if (st.contains("[")) {
-                        st = st.split("\\Q[\\E")[0];
+                    if (getData().isEmpty()) {
+                        return customState;
                     }
 
-                    KMap<String, Object> cdata = customData.getData().copy();
-
-                    for (String i : getData().keySet()) {
-                        cdata.put(i, getData().get(i));
-                    }
-
-                    String sx = keyify(st) + computeProperties(cdata);
+                    IrisBlockData merged = IrisBlockData.from(customState.key());
+                    merged.getData().putAll(getData());
+                    String sx = merged.stateKey();
 
                     if (debug) {
                         IrisLogging.debug("Block Data used " + sx + " (CUSTOM)");

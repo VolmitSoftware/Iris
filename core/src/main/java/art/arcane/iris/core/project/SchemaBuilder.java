@@ -314,6 +314,10 @@ public class SchemaBuilder {
         return a;
     }
 
+    private static String definitionReference(String key) {
+        return "#/definitions/" + key.replace("~", "~0").replace("/", "~1");
+    }
+
     private static String stripNamespace(String key) {
         int idx = key.indexOf(':');
         return idx < 0 ? key : key.substring(idx + 1);
@@ -566,12 +570,12 @@ public class SchemaBuilder {
                                         .put("properties", new JSONObject()
                                                 .put(blockType, new JSONObject()
                                                         .put("type", "string")
-                                                        .put("$ref", "#/definitions/" + enumKey))))
+                                                        .put("$ref", definitionReference(enumKey)))))
                                 .put("then", new JSONObject()
                                         .put("properties", new JSONObject()
                                                 .put(k.getName(), new JSONObject()
                                                         .put("type", "object")
-                                                        .put("$ref", "#/definitions/" + propertiesKey))))
+                                                        .put("$ref", definitionReference(propertiesKey)))))
                                 .put("else", false));
 
                         if (!definitions.containsKey(enumKey)) {

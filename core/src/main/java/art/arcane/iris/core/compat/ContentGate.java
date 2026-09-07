@@ -382,20 +382,23 @@ public final class ContentGate {
         return merged.isEmpty() ? Map.of() : Collections.unmodifiableMap(merged);
     }
 
-    /** {@code namespace:name[props]} lowercased with the default namespace applied; null for blank input. */
+    /** Normalizes block names and vanilla properties, preserving external property case; null for blank input. */
     public static String normalizeState(String state) {
         if (state == null) {
             return null;
         }
-        String trimmed = state.trim().toLowerCase(Locale.ROOT);
+        String trimmed = state.trim();
         if (trimmed.isEmpty()) {
             return null;
         }
         int props = trimmed.indexOf('[');
-        String base = props < 0 ? trimmed : trimmed.substring(0, props);
+        String base = (props < 0 ? trimmed : trimmed.substring(0, props)).toLowerCase(Locale.ROOT);
         String rest = props < 0 ? "" : trimmed.substring(props);
         if (base.indexOf(':') < 0) {
             base = DEFAULT_NAMESPACE + ':' + base;
+        }
+        if (base.startsWith(DEFAULT_NAMESPACE + ':')) {
+            rest = rest.toLowerCase(Locale.ROOT);
         }
         return base + rest;
     }

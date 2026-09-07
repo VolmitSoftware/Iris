@@ -88,7 +88,7 @@ public final class ContentKeyValidator {
             return List.of();
         }
 
-        List<String> blockKeys = normalizeKeyList(registries.blockKeys());
+        List<String> blockKeys = normalizeKeyList(registries.blockTypeKeys());
         List<String> itemKeys = normalizeKeyList(registries.itemKeys());
         List<String> entityKeys = normalizeKeyList(registries.entityKeys());
 
@@ -432,7 +432,7 @@ public final class ContentKeyValidator {
             if (registries == null) {
                 return ContentKeyIssues.none();
             }
-            List<String> blockKeys = registries.blockKeys();
+            List<String> blockKeys = registries.blockTypeKeys();
             List<String> itemKeys = registries.itemKeys();
             List<String> entityKeys = registries.entityKeys();
             if (blockKeys == null || blockKeys.isEmpty() || itemKeys == null || itemKeys.isEmpty() || entityKeys == null || entityKeys.isEmpty()) {

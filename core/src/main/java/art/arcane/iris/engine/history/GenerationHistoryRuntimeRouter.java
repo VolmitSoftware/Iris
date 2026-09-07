@@ -2,9 +2,12 @@ package art.arcane.iris.engine.history;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisEngine;
+import art.arcane.iris.engine.IrisEngineMantle;
 import art.arcane.iris.engine.framework.EngineTarget;
 import art.arcane.iris.engine.framework.GenerationTransitionGate;
 import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.matter.Matter;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -28,6 +31,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
     private final ActivationRuntimeFactory runtimeFactory;
     private final LinkedHashMap<Long, RuntimeCacheEntry> bindings;
     private final Map<Long, RuntimeRetirement> retiringBindings;
+    private final Map<Long, SavedMantleEntry> savedMantles = new LinkedHashMap<>();
     private final ReentrantLock stateLock;
     private final Condition inactive;
     private final ThreadLocal<Integer> operationDepth;
@@ -265,6 +269,29 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         }
     }
 
+    public SavedChunkMantle openSavedChunkMantle(int chunkX, int chunkZ) throws IOException {
+        GenerationTransitionGate.Participation participation = engine.getGenerationSessions().transitionGate().enter();
+        boolean operation = false;
+        try {
+            enterRouteOperation();
+            operation = true;
+            GenerationHistory.GenerationStage stage = history.openSavedChunkStage(chunkX, chunkZ);
+            try {
+                SavedMantleAccess access = acquireSavedMantle(stage.activation(), stage.epoch());
+                return new SavedChunkMantle(this, new SavedChunkResources(stage, participation, access));
+            } catch (Throwable failure) {
+                stage.close();
+                throw failure;
+            }
+        } catch (Throwable failure) {
+            if (operation) {
+                leaveRouteOperation();
+            }
+            participation.close();
+            throw propagate(failure, "Unable to open saved Iris chunk mantle.");
+        }
+    }
+
     public RuntimeStage openStage(int chunkX, int chunkZ) throws IOException {
         RuntimeRoute route = openRoute(chunkX, chunkZ);
         try {
@@ -369,6 +396,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
             throw new IllegalStateException("Cannot close the generation-history router from an active route.");
         }
         List<RuntimeRetirement> retired = null;
+        List<SavedMantleEntry> saved = null;
         stateLock.lock();
         try {
             closed = true;
@@ -389,6 +417,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
                     }
                 }
                 bindings.clear();
+                saved = new ArrayList<>(savedMantles.values());
                 break;
             }
         } finally {
@@ -411,6 +440,13 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         } catch (Throwable retirementFailure) {
             failure = appendFailure(failure, retirementFailure);
         }
+        for (SavedMantleEntry entry : saved) {
+            try {
+                closeSavedMantle(entry);
+            } catch (Throwable closeFailure) {
+                failure = appendFailure(failure, closeFailure);
+            }
+        }
 
         stateLock.lock();
         try {
@@ -431,6 +467,164 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         return signatureSampler.open(engine);
     }
 
+    private SavedMantleAccess acquireSavedMantle(GenerationActivation activation, GenerationEpoch epoch) throws IOException {
+        SavedMantleEntry saved = null;
+        RuntimeCacheEntry runtime;
+        boolean loader = false;
+        stateLock.lock();
+        try {
+            while (true) {
+                awaitRetirementLocked(activation.activationId());
+                saved = savedMantles.get(activation.activationId());
+                if (saved == null || !saved.retiring) {
+                    break;
+                }
+                awaitSavedMantleChange(saved);
+            }
+            runtime = bindings.get(activation.activationId());
+            if (runtime != null) {
+                runtime.leases++;
+            } else {
+                if (saved == null) {
+                    saved = new SavedMantleEntry(activation.activationId());
+                    saved.loading = true;
+                    savedMantles.put(activation.activationId(), saved);
+                    activeLoads++;
+                    loader = true;
+                }
+                saved.leases++;
+            }
+        } finally {
+            stateLock.unlock();
+        }
+        if (runtime != null) {
+            RuntimeLease lease = awaitRuntime(runtime, activation.activationId());
+            try (IrisEngine.GenerationRuntimeScope ignored = engine.openGenerationRuntimeScope(lease.binding())) {
+                return new SavedMantleAccess(engine.getMantle().getMantle(), lease::close);
+            } catch (Throwable failure) {
+                lease.close();
+                throw failure;
+            }
+        }
+        SavedMantleEntry entry = saved;
+        if (loader) {
+            loadSavedMantle(entry, activation, epoch);
+        }
+        stateLock.lock();
+        try {
+            while (entry.loading) {
+                try {
+                    inactive.await();
+                } catch (InterruptedException failure) {
+                    Thread.currentThread().interrupt();
+                    entry.leases--;
+                    inactive.signalAll();
+                    throw new IOException("Interrupted while loading saved mantle for activation " + entry.activationId + ".", failure);
+                }
+            }
+            if (entry.failure != null) {
+                entry.leases--;
+                throw propagate(entry.failure, "Unable to load saved mantle for activation " + entry.activationId + ".");
+            }
+            return new SavedMantleAccess(entry.mantle, () -> releaseSavedMantle(entry));
+        } finally {
+            stateLock.unlock();
+        }
+    }
+
+    private void loadSavedMantle(SavedMantleEntry entry, GenerationActivation activation, GenerationEpoch epoch) {
+        IrisData data = null;
+        Mantle<Matter> mantle = null;
+        Throwable failure = null;
+        try {
+            data = IrisData.openRuntime(history.packRoot(activation.activationId()).toFile());
+            data.bindGenerationRegistryContract(epoch.registryContract());
+            data.registerEngine(engine);
+            IrisData savedData = data;
+            mantle = IrisEngineMantle.createMantle(engine, history.paths().activationMantleRoot(activation.activationId()), () -> savedData);
+        } catch (Throwable loadFailure) {
+            failure = loadFailure;
+            if (data != null) {
+                try {
+                    data.unregisterEngine(engine);
+                    data.close();
+                } catch (Throwable closeFailure) {
+                    failure = appendFailure(failure, closeFailure);
+                }
+            }
+        }
+        stateLock.lock();
+        try {
+            entry.data = data;
+            entry.mantle = mantle;
+            entry.failure = failure;
+            entry.loading = false;
+            activeLoads--;
+            if (failure != null) {
+                savedMantles.remove(entry.activationId, entry);
+            }
+            inactive.signalAll();
+        } finally {
+            stateLock.unlock();
+        }
+    }
+
+    private void releaseSavedMantle(SavedMantleEntry entry) {
+        stateLock.lock();
+        try {
+            if (entry.leases <= 0) {
+                throw new IllegalStateException("Saved mantle has no active lease.");
+            }
+            entry.leases--;
+            if (entry.leases > 0) {
+                return;
+            }
+            entry.retiring = true;
+        } finally {
+            stateLock.unlock();
+        }
+        closeSavedMantle(entry);
+    }
+
+    private void closeSavedMantle(SavedMantleEntry entry) {
+        Throwable failure = null;
+        try {
+            entry.mantle.close();
+            entry.data.unregisterEngine(engine);
+            entry.data.close();
+        } catch (Throwable closeFailure) {
+            failure = closeFailure;
+        }
+        stateLock.lock();
+        try {
+            entry.failure = failure;
+            if (failure == null) {
+                savedMantles.remove(entry.activationId, entry);
+            }
+            inactive.signalAll();
+        } finally {
+            stateLock.unlock();
+        }
+        if (failure != null) {
+            throw new IllegalStateException("Failed to close saved mantle for activation " + entry.activationId + ".", failure);
+        }
+    }
+
+    private void awaitSavedMantleChange(SavedMantleEntry entry) throws IOException {
+        if (entry.failure != null) {
+            throw propagate(entry.failure, "Saved mantle for activation " + entry.activationId + " is unavailable.");
+        }
+        if (closed) {
+            throw new IllegalStateException("Generation-history runtime router is closed.");
+        }
+        try {
+            inactive.await();
+        } catch (InterruptedException failure) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while awaiting saved mantle for activation " + entry.activationId + ".", failure);
+        }
+    }
+
     private RuntimeLease acquireRuntime(
             GenerationActivation activation,
             GenerationEpoch epoch
@@ -439,7 +633,14 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         boolean loader = false;
         stateLock.lock();
         try {
-            awaitRetirementLocked(activation.activationId());
+            while (true) {
+                awaitRetirementLocked(activation.activationId());
+                SavedMantleEntry saved = savedMantles.get(activation.activationId());
+                if (saved == null) {
+                    break;
+                }
+                awaitSavedMantleChange(saved);
+            }
             entry = bindings.get(activation.activationId());
             if (entry == null) {
                 entry = new RuntimeCacheEntry(activation.activationId());
@@ -821,6 +1022,139 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
             throw error;
         }
         throw new IllegalStateException("Failed to close the generation-history runtime router.", failure);
+    }
+
+    private static final class SavedMantleEntry {
+        private final long activationId;
+        private IrisData data;
+        private Mantle<Matter> mantle;
+        private Throwable failure;
+        private int leases;
+        private boolean loading;
+        private boolean retiring;
+
+        private SavedMantleEntry(long activationId) {
+            this.activationId = activationId;
+        }
+    }
+
+    private record SavedMantleAccess(Mantle<Matter> mantle, Runnable release) {
+    }
+
+    private record SavedChunkResources(GenerationHistory.GenerationStage stage,
+                                       GenerationTransitionGate.Participation participation,
+                                       SavedMantleAccess access) {
+    }
+
+    public static final class SavedChunkMantle implements AutoCloseable {
+        private final GenerationHistoryRuntimeRouter router;
+        private final SavedChunkResources resources;
+        private int activeScopes;
+        private boolean closed;
+
+        private SavedChunkMantle(GenerationHistoryRuntimeRouter router, SavedChunkResources resources) {
+            this.router = router;
+            this.resources = resources;
+        }
+
+        public Mantle<Matter> mantle() {
+            return resources.access().mantle();
+        }
+
+        public void detachThread() {
+            resources.participation().detachThread();
+        }
+
+        public Scope openScope() {
+            synchronized (this) {
+                if (closed) {
+                    throw new IllegalStateException("Saved chunk mantle is closed.");
+                }
+                activeScopes++;
+            }
+            try {
+                GenerationTransitionGate.Participation participation = resources.participation().attach();
+                router.enterRuntimeScope();
+                return new Scope(this, participation);
+            } catch (Throwable failure) {
+                releaseScope();
+                throw failure;
+            }
+        }
+
+        @Override
+        public synchronized void close() {
+            if (closed) {
+                return;
+            }
+            if (activeScopes > 0) {
+                throw new IllegalStateException("Saved chunk mantle still has active scopes.");
+            }
+            closed = true;
+            Throwable failure = null;
+            try {
+                resources.access().release().run();
+            } catch (Throwable closeFailure) {
+                failure = closeFailure;
+            }
+            try {
+                resources.stage().close();
+            } catch (Throwable closeFailure) {
+                failure = appendFailure(failure, closeFailure);
+            }
+            try {
+                router.leaveRouteOperation();
+            } catch (Throwable closeFailure) {
+                failure = appendFailure(failure, closeFailure);
+            }
+            try {
+                resources.participation().close();
+            } catch (Throwable closeFailure) {
+                failure = appendFailure(failure, closeFailure);
+            }
+            if (failure != null) {
+                throw new IllegalStateException("Failed to close saved chunk mantle.", failure);
+            }
+        }
+
+        private synchronized void releaseScope() {
+            if (activeScopes <= 0) {
+                throw new IllegalStateException("Saved chunk mantle has no active scope.");
+            }
+            activeScopes--;
+        }
+
+        public static final class Scope implements AutoCloseable {
+            private final SavedChunkMantle handle;
+            private final GenerationTransitionGate.Participation participation;
+            private final Thread owner = Thread.currentThread();
+            private boolean closed;
+
+            private Scope(SavedChunkMantle handle, GenerationTransitionGate.Participation participation) {
+                this.handle = handle;
+                this.participation = participation;
+            }
+
+            @Override
+            public void close() {
+                if (closed) {
+                    return;
+                }
+                if (Thread.currentThread() != owner) {
+                    throw new IllegalStateException("Saved chunk mantle scope closed from a different thread.");
+                }
+                closed = true;
+                try {
+                    handle.router.leaveRuntimeScope();
+                } finally {
+                    try {
+                        handle.releaseScope();
+                    } finally {
+                        participation.close();
+                    }
+                }
+            }
+        }
     }
 
     private static final class RuntimeCacheEntry {

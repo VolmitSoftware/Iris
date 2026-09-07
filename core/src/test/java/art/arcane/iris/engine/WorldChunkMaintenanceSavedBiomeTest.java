@@ -73,7 +73,7 @@ public class WorldChunkMaintenanceSavedBiomeTest {
         try (MockedStatic<IrisSettings> configured = mockStatic(IrisSettings.class);
              MockedStatic<EngineBukkitOps> updates = mockStatic(EngineBukkitOps.class)) {
             configured.when(IrisSettings::get).thenReturn(settings);
-            updates.when(() -> EngineBukkitOps.updateChunk(engine, chunk))
+            updates.when(() -> EngineBukkitOps.updateChunk(engine, chunk, mantle))
                     .thenThrow(failure).thenAnswer(invocation -> null);
 
             if (loading) {

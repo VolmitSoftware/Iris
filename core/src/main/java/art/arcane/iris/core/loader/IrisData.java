@@ -198,6 +198,21 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         }
     }
 
+    public static void invalidateLoadedContentRegistries(File source) {
+        Path requested = dataFolderIdentity(Objects.requireNonNull(source, "authoring pack source"));
+        for (Map.Entry<File, IrisData> entry : dataLoaders.entrySet()) {
+            IrisData data = entry.getValue();
+            if (dataFolderIdentity(entry.getKey()).equals(requested)) {
+                synchronized (data) {
+                    if (data.generationRegistryContract == null && data.getEngines().isEmpty()) {
+                        data.invalidateAuthoringResources();
+                        data.compatReport.clear();
+                    }
+                }
+            }
+        }
+    }
+
     private synchronized void invalidateAuthoringResources() {
         if (generationRegistryContract != null) {
             throw new IllegalStateException("Cannot invalidate an immutable generation pack as an authoring source.");

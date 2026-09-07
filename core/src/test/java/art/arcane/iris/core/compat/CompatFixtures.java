@@ -94,17 +94,17 @@ final class CompatFixtures {
         @Override
         public PlatformBlockState blockOrNull(String key, boolean warn) {
             blockLookups++;
-            String normalized = key.trim().toLowerCase(Locale.ROOT);
+            String normalized = key.trim();
             int props = normalized.indexOf('[');
-            String base = props < 0 ? normalized : normalized.substring(0, props);
+            String base = (props < 0 ? normalized : normalized.substring(0, props)).toLowerCase(Locale.ROOT);
+            String properties = props < 0 ? "" : normalized.substring(props);
             if (base.indexOf(':') < 0) {
                 base = "minecraft:" + base;
-                normalized = base + (props < 0 ? "" : normalized.substring(props));
             }
             if (missingBlocks.contains(base)) {
                 return null;
             }
-            return new FakeBlockState(normalized);
+            return new FakeBlockState(base + (base.startsWith("minecraft:") ? properties.toLowerCase(Locale.ROOT) : properties));
         }
 
         @Override

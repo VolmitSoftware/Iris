@@ -275,7 +275,7 @@ public class IrisEngineMantle implements EngineMantle {
         return true;
     }
 
-    private static Mantle<Matter> createMantle(
+    public static Mantle<Matter> createMantle(
             Engine engine,
             Path storageDirectory,
             Supplier<IrisData> dataSupplier

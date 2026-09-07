@@ -703,6 +703,7 @@ allprojects {
         maven { url = uri('https://jitpack.io') } // score
         maven { url = uri('https://repo.auxilor.io/repository/maven-releases/') } // eco
         maven { url = uri('https://repo.nexomc.com/releases/') } // nexo
+        maven { url = uri('https://repo.oraxen.com/releases/') }
         maven { url = uri('https://maven.devs.beer/') } // itemsadder
         maven { url = uri('https://repo.extendedclip.com/releases/') } // placeholderapi
         maven { url = uri('https://mvn.lumine.io/repository/maven-public/') } // mythic

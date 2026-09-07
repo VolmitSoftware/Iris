@@ -35,6 +35,7 @@ jaxen = "2.0.6" # https://central.sonatype.com/artifact/jaxen/jaxen
 
 # Third Party Integrations
 nexo = "1.25.0" # https://repo.nexomc.com/#/releases/com/nexomc/nexo
+oraxen = "1.218.0"
 itemsadder = "4.0.10" # https://github.com/LoneDev6/API-ItemsAdder
 placeholderApi = "2.11.6" # https://repo.extendedclip.com/#/releases/me/clip/placeholderapi
 score = "5.25.3.9" # https://github.com/Ssomar-Developement/SCore
@@ -95,6 +96,7 @@ jaxen = { module = "jaxen:jaxen", version.ref = "jaxen" }
 
 # Third Party Integrations
 nexo = { module = "com.nexomc:nexo", version.ref = "nexo" }
+oraxen = { module = "io.th0rgal:oraxen", version.ref = "oraxen" }
 itemsadder = { module = "dev.lone:api-itemsadder", version.ref = "itemsadder" }
 placeholderApi = { module = "me.clip:placeholderapi", version.ref = "placeholderApi" }
 score = { module = "com.github.Ssomar-Developement:SCore", version.ref = "score" }

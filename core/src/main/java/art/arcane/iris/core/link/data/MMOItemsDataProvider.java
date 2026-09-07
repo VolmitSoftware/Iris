@@ -116,8 +116,20 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
 
     @Override
     public boolean isValidProvider(@NotNull Identifier id, DataType dataType) {
-        if (dataType == DataType.ENTITY) return false;
-        return dataType == DataType.ITEM ? id.namespace().split("_", 2).length == 2 : id.namespace().equals("mmoitems");
+        if (dataType == DataType.ENTITY) {
+            return false;
+        }
+        if (dataType == DataType.ITEM) {
+            return id.namespace().split("_", 2).length == 2;
+        }
+        if (!id.namespace().equals("mmoitems")) {
+            return false;
+        }
+        try {
+            return api().getCustomBlocks().getBlock(Integer.parseInt(id.key())) != null;
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
     }
 
     private MMOItems api() {

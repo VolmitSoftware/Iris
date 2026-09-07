@@ -70,7 +70,7 @@ public final class BukkitBlockState implements PlatformBlockState {
 
     public static BukkitBlockState of(BlockData data) {
         if (data instanceof IrisCustomData custom) {
-            return new BukkitBlockState(data, custom.getAsString());
+            return new BukkitBlockState(data, custom.getCustom().toString());
         }
         BukkitBlockState fast = DATA_CACHE.get(data);
         if (fast != null) {
@@ -369,15 +369,14 @@ public final class BukkitBlockState implements PlatformBlockState {
 
     @Override
     public PlatformBlockState withProperty(String name, String value) {
-        String merged = mergeProperty(key, name, value);
-        BlockData resolved = Bukkit.createBlockData(merged);
-        // Re-attach the custom identity (as the proxy's own merge/clone cases do): the key of
-        // a custom state is the BASE block's string, so rebuilding from it alone silently
-        // downgraded custom blocks to vanilla on e.g. auto-waterlogging.
+        // Re-attach the custom identity (as the proxy's own merge/clone cases do) after
+        // editing the base block, so auto-waterlogging cannot turn custom blocks into vanilla.
         if (data instanceof IrisCustomData custom) {
+            String merged = mergeProperty(custom.getBase().getAsString(), name, value);
+            BlockData resolved = Bukkit.createBlockData(merged);
             return of(IrisCustomData.of(resolved, custom.getCustom()));
         }
-        return of(resolved);
+        return of(Bukkit.createBlockData(mergeProperty(key, name, value)));
     }
 
     @Override

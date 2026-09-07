@@ -20,6 +20,7 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.service.tree.BlockDropRouter;
+import art.arcane.iris.engine.history.SavedBiomeUnavailableException;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisBlockDrops;
 import art.arcane.iris.engine.object.IrisMarker;
@@ -52,21 +53,26 @@ final class WorldBlockDropRouter {
     }
 
     void onBlockBreak(BlockBreakEvent e) {
+        if (e.isCancelled()) {
+            return;
+        }
         if (e.getBlock().getWorld().equals(BukkitWorldBinding.world(manager.getTarget().getWorld()))) {
             int blockX = e.getBlock().getX();
             int mantleY = toMantleY(e.getBlock().getY(), manager.getEngine().getWorld().minHeight());
             int blockZ = e.getBlock().getZ();
 
-            KList<ItemStack> d = new KList<>();
-            IrisBiome b = EngineBukkitOps.getBiome(manager.getEngine(), e.getBlock().getLocation());
-            List<IrisBlockDrops> dropProviders = filterDrops(b.getBlockDrops(), e, manager.getData());
-
-            if (dropProviders.stream().noneMatch(IrisBlockDrops::isSkipParents)) {
-                IrisRegion r = EngineBukkitOps.getRegion(manager.getEngine(), e.getBlock().getLocation());
-                dropProviders.addAll(filterDrops(r.getBlockDrops(), e, manager.getData()));
-                dropProviders.addAll(filterDrops(manager.getEngine().getDimension().getBlockDrops(), e, manager.getData()));
+            List<IrisBlockDrops> dropProviders;
+            try {
+                dropProviders = resolveDropProviders(e);
+            } catch (SavedBiomeUnavailableException unavailable) {
+                e.setCancelled(true);
+                if (!unavailable.isLoading() || unavailable.getSuppressed().length != 0) {
+                    throw unavailable;
+                }
+                return;
             }
 
+            KList<ItemStack> d = new KList<>();
             dropProviders.forEach(provider -> provider.fillDrops(false, d));
 
             if (dropProviders.stream().anyMatch(IrisBlockDrops::isReplaceVanillaDrops)) {
@@ -130,5 +136,16 @@ final class WorldBlockDropRouter {
 
     private List<IrisBlockDrops> filterDrops(KList<IrisBlockDrops> drops, BlockBreakEvent e, IrisData data) {
         return new KList<>(drops.stream().filter(d -> d.shouldDropFor(e.getBlock().getBlockData(), data)).toList());
+    }
+
+    private List<IrisBlockDrops> resolveDropProviders(BlockBreakEvent event) {
+        IrisBiome biome = EngineBukkitOps.getBiome(manager.getEngine(), event.getBlock().getLocation());
+        List<IrisBlockDrops> providers = filterDrops(biome.getBlockDrops(), event, manager.getData());
+        if (providers.stream().noneMatch(IrisBlockDrops::isSkipParents)) {
+            IrisRegion region = EngineBukkitOps.getRegion(manager.getEngine(), event.getBlock().getLocation());
+            providers.addAll(filterDrops(region.getBlockDrops(), event, manager.getData()));
+            providers.addAll(filterDrops(manager.getEngine().getDimension().getBlockDrops(), event, manager.getData()));
+        }
+        return providers;
     }
 }

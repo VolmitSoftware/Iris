@@ -1,6 +1,8 @@
 package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.history.TerrainBoundarySignature;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.PlatformBlockState;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
@@ -39,7 +41,15 @@ public final class NativeTransitionColumn {
     }
 
     private static BlockState parse(String key) {
-        StringReader reader = new StringReader(key);
+        String nativeKey = key;
+        if (!key.startsWith("minecraft:") && IrisPlatforms.isBound()) {
+            PlatformBlockState logicalState = IrisPlatforms.get().registries().blockOrNull(key);
+            PlatformBlockState baseState = logicalState == null ? null : logicalState.placementBaseState();
+            if (baseState != null) {
+                nativeKey = baseState.key();
+            }
+        }
+        StringReader reader = new StringReader(nativeKey);
         try {
             BlockState state = BlockStateParser.parseForBlock(BuiltInRegistries.BLOCK, reader, false).blockState();
             if (reader.canRead()) {

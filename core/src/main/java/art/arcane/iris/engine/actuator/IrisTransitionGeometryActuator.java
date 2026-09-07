@@ -138,6 +138,7 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
         }
 
         private static BoundaryColumnGeometry.Voxel encode(PlatformBlockState state) {
+            String stateKey = state.key();
             boolean custom = state.isCustom();
             PlatformBlockState nativeState = state.placementBaseState();
             if (nativeState != null) {
@@ -149,7 +150,7 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
                     : state.isWaterLogged() ? "minecraft:water[level=0]" : "";
             boolean protectedContent = custom || state.isDecorant() || state.isFoliage() || state.isTreeBlock()
                     || state.hasTileEntity();
-            return new BoundaryColumnGeometry.Voxel(state.key(), phase, fluidKey, protectedContent);
+            return new BoundaryColumnGeometry.Voxel(stateKey, phase, fluidKey, protectedContent);
         }
     }
 }

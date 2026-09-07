@@ -81,6 +81,9 @@ dependencies {
 
     // Third Party Integrations
     compileOnly(libs.nexo)
+    compileOnly(libs.oraxen) {
+        transitive = false
+    }
     compileOnly(libs.itemsadder)
     compileOnly(libs.score)
     compileOnly(libs.mmoitems)
@@ -481,6 +484,29 @@ sourceSets {
             srcDir(generateTemplates.map { it.outputs })
         }
     }
+    externalProviderTest {
+        compileClasspath += sourceSets.test.compileClasspath + sourceSets.main.output
+        runtimeClasspath += sourceSets.test.runtimeClasspath + sourceSets.main.output
+    }
+}
+
+dependencies {
+    externalProviderTestImplementation(libs.oraxen) {
+        transitive = false
+    }
+    externalProviderTestImplementation(libs.itemsadder) {
+        transitive = false
+    }
+}
+
+tasks.register('externalProviderTest', Test) {
+    testClassesDirs = sourceSets.externalProviderTest.output.classesDirs
+    classpath = sourceSets.externalProviderTest.runtimeClasspath
+    jvmArgs('--add-modules', 'jdk.incubator.vector')
+}
+
+tasks.named('check').configure {
+    dependsOn('externalProviderTest')
 }
 
 tasks.register('bukkitPurityRatchet') {

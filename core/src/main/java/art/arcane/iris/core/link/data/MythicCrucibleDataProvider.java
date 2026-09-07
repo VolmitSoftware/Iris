@@ -138,7 +138,13 @@ public class MythicCrucibleDataProvider extends ExternalDataProvider {
 
     @Override
     public boolean isValidProvider(@NotNull Identifier key, DataType dataType) {
-        if (dataType == DataType.ENTITY) return false;
-        return key.namespace().equalsIgnoreCase("crucible");
+        if (dataType == DataType.ENTITY || !key.namespace().equalsIgnoreCase("crucible")) {
+            return false;
+        }
+        if (dataType == DataType.ITEM) {
+            return true;
+        }
+        CrucibleItem item = itemManager.getItem(key.key()).orElse(null);
+        return item != null && (item.getBlockData() != null || item.getFurnitureData() != null);
     }
 }

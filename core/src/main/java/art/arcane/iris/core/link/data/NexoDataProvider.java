@@ -140,7 +140,13 @@ public class NexoDataProvider extends ExternalDataProvider {
 
     @Override
     public boolean isValidProvider(@NotNull Identifier id, DataType dataType) {
-        if (dataType == DataType.ENTITY) return false;
-        return "nexo".equalsIgnoreCase(id.namespace());
+        if (!"nexo".equalsIgnoreCase(id.namespace())) {
+            return false;
+        }
+        return switch (dataType) {
+            case BLOCK -> NexoBlocks.isCustomBlock(id.key()) || NexoFurniture.isFurniture(id.key());
+            case ITEM -> NexoItems.exists(id.key());
+            case ENTITY -> false;
+        };
     }
 }

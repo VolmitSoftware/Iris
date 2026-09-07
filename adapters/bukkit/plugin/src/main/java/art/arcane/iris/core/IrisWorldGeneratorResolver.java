@@ -20,6 +20,7 @@ package art.arcane.iris.core;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.lifecycle.WorldLifecycleStaging;
+import art.arcane.iris.core.compat.CompatRegistry;
 import art.arcane.iris.core.lifecycle.WorldReplacementSeed;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.pack.BrokenPackException;
@@ -29,8 +30,11 @@ import art.arcane.iris.core.pack.PackValidationCache;
 import art.arcane.iris.core.pack.PackValidationRegistry;
 import art.arcane.iris.core.pack.PackValidationResult;
 import art.arcane.iris.core.pack.PackValidator;
+import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.engine.framework.EngineTarget;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisWorld;
 import art.arcane.iris.engine.history.GenerationEpoch;
@@ -42,6 +46,7 @@ import art.arcane.iris.engine.history.GenerationRegistryContract;
 import art.arcane.iris.engine.history.GenerationRegistryContractFactory;
 import art.arcane.iris.engine.platform.BukkitChunkGenerator;
 import art.arcane.iris.util.common.plugin.VolmitPlugin;
+import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.bukkit.WorldIdentity;
 import lombok.NonNull;
 import org.bukkit.Bukkit;
@@ -60,6 +65,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
@@ -72,17 +81,102 @@ public final class IrisWorldGeneratorResolver {
     private static final Object SNAPSHOT_VALIDATION_LOCK = new Object();
     private static final String IRIS_DIMENSION_NAMESPACE = "iris";
     private static final String PLOT_SQUARED_DISCOVERY_WORLD = "CheckingPlotSquaredGenerator";
+    private static final long EXTERNAL_CONTENT_STARTUP_TIMEOUT_SECONDS = 120L;
 
     private final VolmitPlugin plugin;
+    private final AtomicBoolean externalContentRefreshQueued = new AtomicBoolean();
+    private final AtomicBoolean externalContentRefreshRequested = new AtomicBoolean();
+    private final Map<Path, PendingSnapshot> pendingSnapshots = new ConcurrentHashMap<>();
 
     public IrisWorldGeneratorResolver(VolmitPlugin plugin) {
         this.plugin = plugin;
     }
 
     public void validateAllPacks() {
+        validateAllPacks(false);
+    }
+
+    public void requestExternalContentRefresh() {
+        externalContentRefreshRequested.set(true);
+        if (!externalContentRefreshQueued.compareAndSet(false, true)) {
+            return;
+        }
+        try {
+            J.a(this::runExternalContentRefresh);
+        } catch (RuntimeException | LinkageError error) {
+            externalContentRefreshQueued.set(false);
+            throw error;
+        }
+    }
+
+    public CompletableFuture<Void> startupWorldsReady() {
+        return CompletableFuture.allOf(pendingSnapshots.values().stream()
+                .map(PendingSnapshot::ready)
+                .toArray(CompletableFuture<?>[]::new));
+    }
+
+    private void runExternalContentRefresh() {
+        externalContentRefreshRequested.set(false);
+        try {
+            retryPendingSnapshots();
+            refreshExternalContent();
+        } catch (RuntimeException | LinkageError error) {
+            Iris.reportError("Failed to revalidate Iris packs after external content changed.", error);
+        } finally {
+            externalContentRefreshQueued.set(false);
+            if (externalContentRefreshRequested.get()) {
+                requestExternalContentRefresh();
+            }
+        }
+    }
+
+    private void retryPendingSnapshots() {
+        for (Map.Entry<Path, PendingSnapshot> entry : pendingSnapshots.entrySet()) {
+            PendingSnapshot pending = entry.getValue();
+            if (pending.contentReady().isDone()) {
+                continue;
+            }
+            try {
+                ExternalDataSVC external = IrisServices.getOrNull(ExternalDataSVC.class);
+                long revision = external == null ? 0L : external.contentRevision();
+                boolean wasPending = hasPendingExternalContent(PackValidationRegistry.get(entry.getKey()), external);
+                PackValidationRegistry.remove(entry.getKey());
+                IrisData.invalidateLoadedContentRegistries(entry.getKey().toFile());
+                PackValidationResult validation = validateSnapshot(entry.getKey().toFile());
+                if (external != null && revision != external.contentRevision()) {
+                    requestExternalContentRefresh();
+                    continue;
+                }
+                boolean stillPending = hasPendingExternalContent(validation, external);
+                if (wasPending && !stillPending) {
+                    requestExternalContentRefresh();
+                    continue;
+                }
+                if (stillPending) {
+                    continue;
+                }
+                PackValidationRegistry.requireLoadable(entry.getKey());
+                requireHistoricalDimension(pending.history(), entry.getKey().toFile(), pending.dimensionKey());
+                pending.contentReady().complete(null);
+            } catch (RuntimeException | LinkageError failure) {
+                pending.contentReady().completeExceptionally(failure);
+            }
+        }
+    }
+
+    synchronized void refreshExternalContent() {
+        for (File pack : PackDirectoryResolver.listVisiblePackDirectories(plugin.getDataFolder("packs"))) {
+            IrisData.invalidateLoadedContentRegistries(pack);
+        }
+        validateAllPacks(true);
+    }
+
+    private synchronized void validateAllPacks(boolean externalContentChanged) {
         File packsRoot = plugin.getDataFolder("packs");
         List<File> packDirs = PackDirectoryResolver.listVisiblePackDirectories(packsRoot);
-        PackValidationRegistry.clear();
+        if (!externalContentChanged) {
+            PackValidationRegistry.clear();
+        }
         List<String> packNames = packDirs.stream().map(File::getName).sorted().toList();
         Path cacheFile = IrisPlatforms.get().dataFile("cache", "pack-validation.json").toPath();
         ServerConfigurator.PackContentSnapshot contentSnapshot =
@@ -92,11 +186,13 @@ public final class IrisWorldGeneratorResolver {
         try {
             contentSnapshot = ServerConfigurator.computePackContentSnapshot(packsRoot);
             contextFingerprint = PackValidationCache.contextFingerprint();
-            cached = PackValidationCache.load(
-                    cacheFile,
-                    contentSnapshot.content(),
-                    contextFingerprint,
-                    packNames);
+            if (!externalContentChanged) {
+                cached = PackValidationCache.load(
+                        cacheFile,
+                        contentSnapshot.content(),
+                        contextFingerprint,
+                        packNames);
+            }
         } catch (RuntimeException exception) {
             Iris.reportError("Could not evaluate the persisted pack-validation cache", exception);
         }
@@ -136,6 +232,12 @@ public final class IrisWorldGeneratorResolver {
             String compatSummary = PackValidator.compatSummary(result, minecraftVersion);
             String compatSuffix = compatSummary.isEmpty() ? "" : " " + compatSummary;
             if (!result.isLoadable()) {
+                if (hasPendingExternalContent(result, IrisServices.getOrNull(ExternalDataSVC.class))
+                        && packDirectory != null
+                        && PackValidator.validateForDatapackBootstrap(packDirectory).isLoadable()) {
+                    Iris.info("Pack '" + result.getPackName() + "' is waiting for external block providers to initialize.");
+                    continue;
+                }
                 Iris.error("Pack '" + result.getPackName()
                         + "' FAILED validation - world and Studio creation with this pack will be refused. Reasons:");
                 for (String reason : result.getBlockingErrors()) {
@@ -226,6 +328,11 @@ public final class IrisWorldGeneratorResolver {
     }
 
     static PackValidationResult requireSnapshotLoadable(File packRoot) {
+        validateSnapshot(packRoot);
+        return PackValidationRegistry.requireLoadable(packRoot.toPath());
+    }
+
+    private static PackValidationResult validateSnapshot(File packRoot) {
         Path normalizedRoot = packRoot.toPath().toAbsolutePath().normalize();
         PackValidationResult result = PackValidationRegistry.get(normalizedRoot);
         if (result == null) {
@@ -255,7 +362,7 @@ public final class IrisWorldGeneratorResolver {
                 }
             }
         }
-        return PackValidationRegistry.requireLoadable(normalizedRoot);
+        return result;
     }
 
     @Nullable
@@ -493,6 +600,10 @@ public final class IrisWorldGeneratorResolver {
         long worldSeed = requireStoredWorldSeed(worldName, dimensionRoot);
         GenerationHistory history = requireGenerationHistory(dimensionRoot, id, worldSeed);
         File snapshotRoot = requireActivePack(history);
+        PackValidationResult validation = validateSnapshot(snapshotRoot);
+        if (hasPendingExternalContent(validation, IrisServices.getOrNull(ExternalDataSVC.class))) {
+            return deferFrozenWorldGenerator(worldName, worldKey, dimensionRoot, snapshotRoot, id, history);
+        }
         try {
             requireSnapshotLoadable(snapshotRoot);
         } catch (BrokenPackException exception) {
@@ -520,6 +631,61 @@ public final class IrisWorldGeneratorResolver {
         Iris.debug("Generator Config: " + world);
 
         return new BukkitChunkGenerator(world, false, snapshotRoot, dimension.getLoadKey(), history);
+    }
+
+    static boolean hasPendingExternalContent(PackValidationResult validation, ExternalDataSVC external) {
+        return validation != null && external != null && validation.getCompatFindings().stream()
+                .anyMatch(finding -> finding.registry() == CompatRegistry.BLOCK
+                        && external.hasPendingBlockProvider(finding.key()));
+    }
+
+    private BukkitChunkGenerator deferFrozenWorldGenerator(
+            String worldName,
+            NamespacedKey worldKey,
+            File dimensionRoot,
+            File snapshotRoot,
+            String dimensionKey,
+            GenerationHistory history
+    ) {
+        PackValidationResult structural = PackValidator.validateForDatapackBootstrap(snapshotRoot);
+        if (!structural.isLoadable()) {
+            throw new BrokenPackException(snapshotRoot.toString(), structural.getBlockingErrors());
+        }
+        IrisData data = IrisData.openDatapackCompiler(snapshotRoot);
+        try {
+            IrisDimension dimension = requireHistoricalDimension(history, data, dimensionKey);
+            GenerationEpoch.DimensionContract contract = history.activeEpoch().dimensionContract();
+            IrisWorld world = IrisWorld.builder()
+                    .platformIdentity(worldKey.toString())
+                    .name(worldName)
+                    .seed(history.activeEpoch().worldSeed())
+                    .worldFolder(dimensionRoot)
+                    .minHeight(contract.minHeight())
+                    .maxHeight(Math.addExact(contract.minHeight(), contract.height()))
+                    .build();
+            Path snapshotPath = snapshotRoot.toPath().toAbsolutePath().normalize();
+            CompletableFuture<Void> contentReady = new CompletableFuture<>();
+            BukkitChunkGenerator generator = new BukkitChunkGenerator(
+                    world, false, snapshotRoot, dimensionKey, history);
+            generator.deferStartup(new EngineTarget(world, dimension, data), contentReady);
+            PendingSnapshot pending = new PendingSnapshot(history, dimensionKey, contentReady, generator.getStartupReady());
+            if (pendingSnapshots.putIfAbsent(snapshotPath, pending) != null) {
+                generator.closeAsync();
+                throw new IllegalStateException("Iris snapshot already has a deferred startup: " + snapshotPath);
+            }
+            contentReady.orTimeout(EXTERNAL_CONTENT_STARTUP_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            pending.ready().whenComplete((ignored, failure) -> {
+                if (failure == null) {
+                    pendingSnapshots.remove(snapshotPath, pending);
+                }
+            });
+            Iris.info("Waiting for external block providers before initializing Iris world '" + worldName + "'.");
+            requestExternalContentRefresh();
+            return generator;
+        } catch (RuntimeException | LinkageError failure) {
+            data.close();
+            throw failure;
+        }
     }
 
     private static GenerationHistory requireGenerationHistory(
@@ -588,25 +754,36 @@ public final class IrisWorldGeneratorResolver {
             File packRoot,
             String dimensionKey
     ) {
+        return requireHistoricalDimension(history, IrisData.get(packRoot), dimensionKey);
+    }
+
+    private static IrisDimension requireHistoricalDimension(
+            GenerationHistory history,
+            IrisData data,
+            String dimensionKey
+    ) {
         GenerationEpoch epoch = history.activeEpoch();
         if (!epoch.dimensionContract().dimensionKey().equals(dimensionKey)) {
             throw new IllegalStateException("Configured dimension " + dimensionKey
                     + " does not match active generation history dimension "
                     + epoch.dimensionContract().dimensionKey() + ".");
         }
-        IrisData data = IrisData.get(packRoot);
         IrisDimension dimension = data.getDimensionLoader().load(dimensionKey, false);
         if (dimension == null) {
-            throw new IllegalStateException("Immutable Iris generation pack at " + packRoot
+            throw new IllegalStateException("Immutable Iris generation pack at " + data.getDataFolder()
                     + " does not contain dimension " + dimensionKey + ".");
         }
         GenerationEpoch.DimensionContract actualContract = GenerationEpochContractFactory.createForEpoch(
                 dimension, dimensionTypeKey(data, dimension), epoch);
         if (!epoch.dimensionContract().equals(actualContract)) {
             throw new IllegalStateException("Immutable Iris generation pack dimension contract changed at "
-                    + packRoot + ".");
+                    + data.getDataFolder() + ".");
         }
         return dimension;
+    }
+
+    private record PendingSnapshot(GenerationHistory history, String dimensionKey,
+                                   CompletableFuture<Void> contentReady, CompletableFuture<Void> ready) {
     }
 
     private static GenerationEpoch.DimensionContract captureDimensionContract(

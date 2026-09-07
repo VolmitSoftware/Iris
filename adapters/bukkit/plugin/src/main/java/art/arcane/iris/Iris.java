@@ -671,9 +671,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         IrisServices.register(IrisCompat.class, compat);
         ServerConfigurator.configure();
         StartupValidationOutcome datapackValidation = DatapackIngestService.validateOnStartup();
-        if (datapackValidation == StartupValidationOutcome.READY) {
-            generatorResolver.validateAllPacks();
-        }
         IrisSafeguard.execute();
         getSender().setTag(getTag());
         // A cosmetic banner must never abort the bootstrap.
@@ -727,12 +724,16 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 Iris.reportError("Failed to register listener for " + service.getClass().getSimpleName() + ".", e);
             }
         }
+        if (datapackValidation == StartupValidationOutcome.READY) {
+            IrisServices.get(ExternalDataSVC.class).setContentChangeListener(generatorResolver::requestExternalContentRefresh);
+            generatorResolver.validateAllPacks();
+        }
         addShutdownHook();
         pendingWorldReplacements.processPendingStartupReplacements();
         pendingWorldDeletes.processPendingStartupWorldDeletes();
 
         if (J.isFolia() && IrisStartupValidation.isReady()) {
-            J.s(() -> worldReconciler.checkForBukkitWorlds(s -> true), 1);
+            J.s(this::reconcileStartupWorlds, 1);
         }
 
         J.s(() -> {
@@ -747,7 +748,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 autoStartStudio();
             }
             if (!J.isFolia() && IrisStartupValidation.isReady()) {
-                worldReconciler.checkForBukkitWorlds(s -> true);
+                reconcileStartupWorlds();
             }
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
             // The mantle stores block values as PlatformBlockState, so a BlockData retention can never
@@ -755,6 +756,16 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             IrisToolbelt.retainMantleDataForSlice(TreeBlockMaterial.class.getCanonicalName());
         });
         return true;
+    }
+
+    private void reconcileStartupWorlds() {
+        generatorResolver.startupWorldsReady().whenComplete((ignored, failure) -> {
+            if (failure != null) {
+                Iris.reportError("Could not resume Iris startup world reconciliation.", failure);
+                return;
+            }
+            J.s(() -> worldReconciler.checkForBukkitWorlds(s -> true));
+        });
     }
 
     public void addShutdownHook() {

@@ -2,6 +2,10 @@ package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.history.BoundaryColumnGeometry;
 import art.arcane.iris.engine.history.TerrainBoundarySignature;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.spi.PlatformRegistries;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Direction;
 import net.minecraft.server.Bootstrap;
@@ -13,6 +17,7 @@ import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.levelgen.Heightmap;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
 import java.util.List;
 import java.util.OptionalInt;
@@ -20,12 +25,39 @@ import java.util.OptionalInt;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 public final class NativeTransitionColumnTest {
     @BeforeClass
     public static void bootstrap() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
+    }
+
+    @Test
+    public void customKeysUseCarrierForNativeColumnsAndHeightmaps() {
+        String key = "itemsadder:rocks/ruby_ore";
+        PlatformBlockState custom = mock(PlatformBlockState.class);
+        PlatformBlockState carrier = mock(PlatformBlockState.class);
+        when(custom.placementBaseState()).thenReturn(carrier);
+        when(carrier.key()).thenReturn("minecraft:oak_log[axis=z]");
+        IrisPlatform platform = mock(IrisPlatform.class);
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(platform.registries()).thenReturn(registries);
+        when(registries.blockOrNull(key)).thenReturn(custom);
+        LevelHeightAccessor height = LevelHeightAccessor.create(-16, 32);
+        TerrainBoundarySignature signature = signature(key);
+
+        try (MockedStatic<IrisPlatforms> platforms = mockStatic(IrisPlatforms.class)) {
+            platforms.when(IrisPlatforms::isBound).thenReturn(true);
+            platforms.when(IrisPlatforms::get).thenReturn(platform);
+            NoiseColumn column = NativeTransitionColumn.column(signature, height);
+
+            assertEquals(Direction.Axis.Z, column.getBlock(-15).getValue(RotatedPillarBlock.AXIS));
+            assertEquals(-14, NativeTransitionColumn.height(signature, Heightmap.Types.OCEAN_FLOOR_WG, height));
+        }
     }
 
     @Test

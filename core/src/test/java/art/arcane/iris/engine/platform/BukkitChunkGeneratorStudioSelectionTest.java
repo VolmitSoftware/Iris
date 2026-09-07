@@ -19,6 +19,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -202,6 +203,8 @@ public class BukkitChunkGeneratorStudioSelectionTest {
             field(generator, "studio", true);
             field(generator, "world", world);
             field(generator, "setup", setup);
+            field(generator, "startupContentReady", CompletableFuture.completedFuture(null));
+            field(generator, "startupReady", CompletableFuture.completedFuture(null));
             field(generator, "lock", new ReentrantLock());
             field(generator, "targetCache", new AtomicCache<EngineTarget>());
             field(generator, "populators", new KList<>());

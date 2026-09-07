@@ -35,6 +35,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -58,6 +59,57 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public final class ResolvedTerrainProviderTest {
+    @Test
+    public void cachedTransitionTerrainRetainsDeferredBlocksWhenCopied() {
+        Fixture fixture = new Fixture();
+        String key = "itemsadder:rocks/ruby_ore";
+        PlatformBlockState custom = Fixture.block(key, false);
+        when(custom.isCustom()).thenReturn(true);
+        when(custom.placementBaseState()).thenReturn(fixture.stone);
+        when(custom.deferredPlacementKey()).thenReturn(key);
+        TransitionGenerationPlan plan = mock(TransitionGenerationPlan.class);
+        when(plan.hasTransitionAtChunk(0, 0)).thenReturn(true);
+        when(plan.newEpochWeightAt(anyInt(), anyInt())).thenReturn(1D);
+        when(fixture.complex.getTransitionGenerationPlan()).thenReturn(plan);
+        fixture.terrainOverride = (x, z, blocks, biomes, multicore, context) -> {
+            for (int localX = 0; localX < 16; localX++) {
+                for (int localZ = 0; localZ < 16; localZ++) {
+                    context.setTerrainHeight(localX, localZ, 2);
+                    for (int y = 0; y < 16; y++) {
+                        blocks.setRaw(localX, y, localZ, y == 2 ? custom : y < 2 ? fixture.stone : fixture.air);
+                        biomes.setRaw(localX, y, localZ, fixture.biome);
+                    }
+                }
+            }
+        };
+        TerrainBoundarySignature captured = fixture.provider.column(0, 0);
+        assertEquals(key, captured.geometry().voxelAt(2).stateKey());
+        IrisPlatform platform = mock(IrisPlatform.class);
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(platform.registries()).thenReturn(registries);
+        when(registries.blockOrNull(key)).thenReturn(custom);
+        when(registries.blockOrNull("minecraft:stone")).thenReturn(fixture.stone);
+        when(registries.blockOrNull("minecraft:air")).thenReturn(fixture.air);
+        when(registries.biome("minecraft:plains")).thenReturn(fixture.biome);
+        ChunkContext context = new ChunkContext(0, 0, fixture.complex, false, ChunkContext.PrefillPlan.NONE, null);
+        AtomicInteger customWrites = new AtomicInteger();
+        Hunk<PlatformBlockState> blocks = Hunk.<PlatformBlockState>newArrayHunk(16, 16, 16).listen((x, y, z, state) -> {
+            if (state.isCustom()) {
+                customWrites.incrementAndGet();
+            }
+        });
+        try (MockedStatic<IrisPlatforms> platforms = mockStatic(IrisPlatforms.class);
+             IrisContext.Scope ignored = IrisContext.open(fixture.engine, 5L, context)) {
+            platforms.when(IrisPlatforms::get).thenReturn(platform);
+            fixture.provider.generate(fixture.mode, 0, 0, blocks, Hunk.newArrayHunk(16, 16, 16), false, context);
+        }
+
+        assertEquals(256, customWrites.get());
+        assertSame(custom, blocks.getRaw(0, 2, 0));
+        assertEquals(key, blocks.getRaw(0, 2, 0).deferredPlacementKey());
+        assertEquals(Integer.valueOf(1), fixture.computations.get("0,0"));
+    }
+
     @Test
     public void cachedSpeculativeFloatingIdentityIsPublishedOnlyByActualGeneration() throws Exception {
         Fixture fixture = new Fixture();

@@ -18,11 +18,14 @@
 
 package art.arcane.iris.platform.bukkit;
 
+import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockProperty;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.util.common.data.IrisCustomData;
+import art.arcane.iris.util.project.matter.slices.PlatformBlockMatter;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Server;
@@ -34,6 +37,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -118,6 +125,39 @@ public class BukkitSpiConformanceTest {
     public void blockStateKeyMatchesCanonicalString() {
         BlockData data = blockData("iristest:key_block[facing=north,lit=true]");
         assertEquals("iristest:key_block[facing=north,lit=true]", BukkitBlockState.of(data).key());
+    }
+
+    @Test
+    public void customStateKeepsProviderIdentityAndProperties() throws Exception {
+        BlockData base = blockData("minecraft:note_block[instrument=harp,note=5,powered=false]");
+        Identifier identifier = Identifier.fromString("craftengine:forest/amber_log[axis=x]");
+        PlatformBlockState state = BukkitBlockState.of(IrisCustomData.of(base, identifier));
+
+        assertEquals(identifier.toString(), state.key());
+        assertEquals(identifier.toString(), state.deferredPlacementKey());
+        assertEquals("craftengine", state.namespace());
+        assertEquals("craftengine:forest/amber_log", state.materialKey());
+        assertEquals(base.getAsString(), state.placementBaseState().key());
+        assertTrue(state.isCustom());
+
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        new PlatformBlockMatter().writeNode(state, new DataOutputStream(bytes));
+        assertEquals(identifier.toString(), new DataInputStream(new ByteArrayInputStream(bytes.toByteArray())).readUTF());
+    }
+
+    @Test
+    public void customCarrierPropertyChangeKeepsProviderPropertiesSeparate() {
+        BlockData base = blockData("minecraft:oak_slab[type=bottom,waterlogged=false]");
+        Identifier identifier = Identifier.fromString("itemsadder:forest/amber_slab");
+        PlatformBlockState state = BukkitBlockState.of(IrisCustomData.of(base, identifier));
+
+        PlatformBlockState merged = state.withProperty("waterlogged", "true");
+
+        assertEquals(identifier.toString(), merged.key());
+        assertEquals(identifier.toString(), merged.deferredPlacementKey());
+        assertEquals("minecraft:oak_slab[type=bottom,waterlogged=true]", merged.placementBaseState().key());
+        assertEquals("minecraft:oak_slab[type=bottom,waterlogged=false]", state.placementBaseState().key());
+        assertTrue(merged.isCustom());
     }
 
     @Test

@@ -3,6 +3,10 @@ package art.arcane.iris.core.pack;
 import art.arcane.iris.core.compat.CompatAction;
 import art.arcane.iris.core.compat.CompatFinding;
 import art.arcane.iris.core.compat.CompatRegistry;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.spi.PlatformStructureHooks;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.Assume;
@@ -22,6 +26,8 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class PackValidationCacheTest {
     @Rule
@@ -212,6 +218,30 @@ public class PackValidationCacheTest {
             assertEquals(List.of("missing structure"), expected.getReasons());
         } finally {
             PackValidationRegistry.clear();
+        }
+    }
+
+    @Test
+    public void externalBlockAvailabilityChangesValidationContext() {
+        IrisPlatform previous = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
+        IrisPlatforms.unbind();
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        IrisPlatform platform = mock(IrisPlatform.class);
+        when(platform.registries()).thenReturn(registries);
+        when(platform.structureHooks()).thenReturn(mock(PlatformStructureHooks.class));
+        when(registries.blockKeys()).thenReturn(List.of("minecraft:stone"));
+        when(registries.blockTypeKeys()).thenReturn(List.of("minecraft:stone"));
+        IrisPlatforms.bind(platform);
+        try {
+            String before = PackValidationCache.contextFingerprint();
+            when(registries.blockTypeKeys()).thenReturn(List.of("minecraft:stone", "oraxen:oraxen/caveblock"));
+
+            assertNotEquals(before, PackValidationCache.contextFingerprint());
+        } finally {
+            IrisPlatforms.unbind();
+            if (previous != null) {
+                IrisPlatforms.bind(previous);
+            }
         }
     }
 }

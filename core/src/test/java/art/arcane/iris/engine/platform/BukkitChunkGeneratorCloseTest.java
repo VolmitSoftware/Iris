@@ -89,6 +89,7 @@ public class BukkitChunkGeneratorCloseTest {
 
         private CloseFixture() throws Exception {
             setField(generator, "closeFuture", new AtomicReference<CompletableFuture<Void>>());
+            setField(generator, "startupReady", CompletableFuture.completedFuture(null));
             setField(generator, "engine", engine);
             setField(generator, "folder", mock(ReactiveFolder.class));
             setField(generator, "populators", new KList<BlockPopulator>());

@@ -213,6 +213,9 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             return;
         }
 
+        if (generated) {
+            chunkMaintenance.invalidateMaterialization(e.getX(), e.getZ());
+        }
         INMS.get().reconcileNativeStructurePois(e);
 
         if (cleanupServiceStopped || cleanupService == null || cleanupService.isShutdown()) {
@@ -274,9 +277,14 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     public synchronized void close() {
         Throwable failure = null;
         try {
-            super.close();
+            chunkMaintenance.close();
         } catch (Throwable e) {
             failure = e;
+        }
+        try {
+            super.close();
+        } catch (Throwable e) {
+            failure = appendCloseFailure(failure, e);
         }
         if (!looperStopped) {
             try {

@@ -18,6 +18,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ContentKeyValidatorTest {
     private static PlatformRegistries registries() {
@@ -85,6 +87,37 @@ public class ContentKeyValidatorTest {
         assertEquals("minecraft:not_a_real_block", error.key());
         assertEquals(ContentRegistry.BLOCK, error.registry());
         assertTrue(error.namespaceLoaded());
+    }
+
+    @Test
+    public void validateAcceptsNativeAndQualifiedExternalBlockTypes() {
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(registries.blockKeys()).thenReturn(List.of("minecraft:stone"));
+        when(registries.blockTypeKeys()).thenReturn(List.of("minecraft:stone", "oraxen:caveblock",
+                "oraxen:oraxen/caveblock", "custom:marble", "itemsadder:custom/marble"));
+
+        List<ContentKeyError> errors = ContentKeyValidator.validate(registries,
+                List.of("stone", "oraxen:caveblock", "oraxen:oraxen/caveblock",
+                        "custom:marble", "itemsadder:custom/marble"), List.of(), List.of());
+
+        assertTrue(errors.toString(), errors.isEmpty());
+    }
+
+    @Test
+    public void validateStillReportsMissingExternalBlockTypes() {
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(registries.blockKeys()).thenReturn(List.of("minecraft:stone"));
+        when(registries.blockTypeKeys()).thenReturn(List.of("minecraft:stone", "oraxen:oraxen/caveblock"));
+
+        List<ContentKeyError> errors = ContentKeyValidator.validate(registries,
+                List.of("oraxen:oraxen/caveblok", "itemsadder:custom/marble"), List.of(), List.of());
+
+        assertEquals(2, errors.size());
+        assertEquals("oraxen:oraxen/caveblok", errors.get(0).key());
+        assertTrue(errors.get(0).namespaceLoaded());
+        assertEquals("oraxen:oraxen/caveblock", errors.get(0).suggestion());
+        assertEquals("itemsadder:custom/marble", errors.get(1).key());
+        assertFalse(errors.get(1).namespaceLoaded());
     }
 
     @Test
@@ -275,7 +308,7 @@ public class ContentKeyValidatorTest {
 
         @Override
         public List<String> blockTypeKeys() {
-            return List.of();
+            return blocks;
         }
 
         @Override

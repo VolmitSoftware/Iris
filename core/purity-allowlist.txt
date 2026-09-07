@@ -35,6 +35,7 @@ art/arcane/iris/core/link/data/MMOItemsDataProvider.java
 art/arcane/iris/core/link/data/MythicCrucibleDataProvider.java
 art/arcane/iris/core/link/data/MythicMobsDataProvider.java
 art/arcane/iris/core/link/data/NexoDataProvider.java
+art/arcane/iris/core/link/data/OraxenDataProvider.java
 art/arcane/iris/core/nms/INMS.java
 art/arcane/iris/core/nms/INMSBinding.java
 art/arcane/iris/core/nms/MinecraftVersion.java

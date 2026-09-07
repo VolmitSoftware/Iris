@@ -31,6 +31,7 @@ public class ExternalDataSVCRegistryTest {
         assertEquals(List.of(
                 "CraftEngine",
                 "Nexo",
+                "Oraxen",
                 "ItemsAdder",
                 "ExecutableItems",
                 "MMOItems",

@@ -7,6 +7,8 @@ import org.bukkit.Chunk;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
+import java.lang.reflect.Field;
+
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
@@ -34,8 +36,11 @@ public class IrisWorldManagerNativePoiTest {
     }
 
     @Test
-    public void chunkLoadPropagatesPoiFailuresToTheRuntimeEventReporter() {
+    public void chunkLoadPropagatesPoiFailuresToTheRuntimeEventReporter() throws Exception {
         IrisWorldManager manager = mock(IrisWorldManager.class, CALLS_REAL_METHODS);
+        Field maintenance = IrisWorldManager.class.getDeclaredField("chunkMaintenance");
+        maintenance.setAccessible(true);
+        maintenance.set(manager, new WorldChunkMaintenance(manager));
         Engine engine = mock(Engine.class);
         Chunk chunk = mock(Chunk.class);
         INMSBinding binding = mock(INMSBinding.class);

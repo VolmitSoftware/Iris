@@ -2,9 +2,15 @@ package art.arcane.iris.core;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.lifecycle.WorldLifecycleStaging;
+import art.arcane.iris.core.compat.CompatAction;
+import art.arcane.iris.core.compat.CompatFinding;
+import art.arcane.iris.core.compat.CompatRegistry;
+import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.iris.core.pack.BrokenPackException;
 import art.arcane.iris.core.pack.PackValidationRegistry;
 import art.arcane.iris.core.pack.PackValidationResult;
+import art.arcane.iris.util.common.plugin.VolmitPlugin;
+import art.arcane.iris.util.common.scheduling.J;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,7 +28,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
@@ -36,11 +44,30 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
 
 public class IrisWorldGeneratorResolverTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Test
+    public void snapshotDeferralRequiresAnUnresolvedBlockWithAPendingProvider() {
+        ExternalDataSVC external = mock(ExternalDataSVC.class);
+        when(external.hasPendingBlockProvider("itemsadder:example/stone")).thenReturn(true);
+        PackValidationResult unavailable = new PackValidationResult("pack", List.of("unavailable"), List.of(), 1L,
+                List.of(new CompatFinding(CompatRegistry.BLOCK, "itemsadder:example/stone",
+                        CompatAction.EXCLUDED, "biome", "main", "layers[0]")), "26.2");
+
+        assertTrue(IrisWorldGeneratorResolver.hasPendingExternalContent(unavailable, external));
+        when(external.hasPendingBlockProvider("itemsadder:example/stone")).thenReturn(false);
+        assertFalse(IrisWorldGeneratorResolver.hasPendingExternalContent(unavailable, external));
+        assertFalse(IrisWorldGeneratorResolver.hasPendingExternalContent(unavailable, null));
+        assertFalse(IrisWorldGeneratorResolver.hasPendingExternalContent(
+                new PackValidationResult("vanilla", List.of(), List.of(), 1L), external));
+    }
 
     @After
     public void clearValidationState() {
@@ -81,6 +108,36 @@ public class IrisWorldGeneratorResolverTest {
         PackValidationResult invalid = PackValidationRegistry.get(packRoot.toPath());
         assertNotNull(invalid);
         assertFalse(invalid.getBlockingErrors().toString(), invalid.isLoadable());
+    }
+
+    @Test
+    public void providerEventsCoalesceAndRefreshAgainAfterAnInFlightChange() {
+        IrisWorldGeneratorResolver resolver = spy(new IrisWorldGeneratorResolver(mock(VolmitPlugin.class)));
+        List<Runnable> tasks = new ArrayList<>();
+        AtomicInteger passes = new AtomicInteger();
+        doAnswer(invocation -> {
+            if (passes.incrementAndGet() == 1) {
+                resolver.requestExternalContentRefresh();
+                assertTrue(tasks.isEmpty());
+            }
+            return null;
+        }).when(resolver).refreshExternalContent();
+        try (MockedStatic<J> scheduler = mockStatic(J.class)) {
+            scheduler.when(() -> J.a(any(Runnable.class))).thenAnswer(invocation -> {
+                tasks.add(invocation.getArgument(0, Runnable.class));
+                return null;
+            });
+
+            resolver.requestExternalContentRefresh();
+            resolver.requestExternalContentRefresh();
+            assertEquals(1, tasks.size());
+            tasks.removeFirst().run();
+            assertEquals(1, passes.get());
+            assertEquals(1, tasks.size());
+            tasks.removeFirst().run();
+            assertEquals(2, passes.get());
+            assertTrue(tasks.isEmpty());
+        }
     }
 
     @Test

@@ -94,6 +94,50 @@ public class EngineShutdownDrainTest {
     }
 
     @Test
+    public void queuedWorldManagerRoutesAreCancelledBeforeRouterDrain() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        AtomicBoolean queuedRoute = new AtomicBoolean(true);
+        doAnswer(invocation -> {
+            queuedRoute.set(false);
+            return null;
+        }).when(fixture.manager).close();
+        doAnswer(invocation -> {
+            assertFalse("Router drain must not wait for a queued region callback", queuedRoute.get());
+            return null;
+        }).when(fixture.engine).closeAttachedGenerationHistoryRuntimeRouter();
+
+        try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class)) {
+            fixture.shutdown.close();
+        }
+
+        InOrder shutdownOrder = inOrder(fixture.manager, fixture.engine, fixture.sessions);
+        shutdownOrder.verify(fixture.manager).close();
+        shutdownOrder.verify(fixture.engine).closeAttachedGenerationHistoryRuntimeRouter();
+        shutdownOrder.verify(fixture.sessions).sealAndAwait("close", IrisEngine.SESSION_DRAIN_TIMEOUT_MILLIS, true);
+        verify(fixture.manager).close();
+        assertTrue(fixture.engine.closed);
+    }
+
+    @Test
+    public void failedWorldManagerStopPreventsRouterDrainAndCanBeRetried() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        doThrow(new IllegalStateException("World manager still has work")).doNothing().when(fixture.manager).close();
+
+        assertThrows(IllegalStateException.class, fixture.shutdown::close);
+        verify(fixture.engine, never()).closeAttachedGenerationHistoryRuntimeRouter();
+        verify(fixture.mantle, never()).close();
+        assertFalse(fixture.engine.closed);
+
+        try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class)) {
+            fixture.shutdown.close();
+        }
+
+        verify(fixture.manager, times(2)).close();
+        verify(fixture.engine).closeAttachedGenerationHistoryRuntimeRouter();
+        assertTrue(fixture.engine.closed);
+    }
+
+    @Test
     public void successfulEngineCloseAllowsTheSameWorldToPrepareGenerationAgain() throws Exception {
         GenerationHistory history = history();
         ShutdownFixture fixture = new ShutdownFixture();

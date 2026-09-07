@@ -574,11 +574,19 @@ public final class GenerationHistory {
     }
 
     public GenerationStage openStage(int chunkX, int chunkZ) throws IOException {
+        return openStage(chunkX, chunkZ, false);
+    }
+
+    GenerationStage openSavedChunkStage(int chunkX, int chunkZ) throws IOException {
+        return openStage(chunkX, chunkZ, true);
+    }
+
+    private GenerationStage openStage(int chunkX, int chunkZ, boolean savedChunk) throws IOException {
         GenerationAdmission.StageLease lease = admission.enterStage();
         try {
             GenerationManifest manifest = store.manifest();
-            GenerationActivation activation = manifest.activeActivation();
-            GenerationEpoch epoch = manifest.activeEpoch();
+            GenerationActivation activation = savedChunk ? resolveActivation(chunkX, chunkZ) : manifest.activeActivation();
+            GenerationEpoch epoch = savedChunk ? requireEpoch(activation.epochId()) : manifest.activeEpoch();
             return new GenerationStage(
                     this,
                     chunkX,

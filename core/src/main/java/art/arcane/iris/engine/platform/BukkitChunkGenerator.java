@@ -146,6 +146,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private volatile Throwable initializationFailure;
     private volatile IrisDimension validatedDimension;
     private volatile IrisDimensionRuntimeContract validatedWorldContract;
+    private volatile EngineTarget startupTarget;
+    private volatile CompletableFuture<Void> startupContentReady = CompletableFuture.completedFuture(null);
+    private volatile CompletableFuture<Void> startupReady = CompletableFuture.completedFuture(null);
     private volatile boolean closing;
     @Setter
     private volatile StudioGenerator studioGenerator;
@@ -195,6 +198,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         }
         BukkitPlatform.volmitPlugin().unregisterListener(this);
         world.setRawWorldSeed(event.getWorld().getSeed());
+        if (startupTarget != null) {
+            startupContentReady.whenComplete((ignored, failure) ->
+                    J.s(() -> resumeDeferredStartup(event.getWorld(), failure)));
+            return;
+        }
         if (initialize(event.getWorld())) return;
 
         IrisLogging.warn("Failed to get Engine for " + event.getWorld().getName() + " re-trying...");
@@ -203,6 +211,73 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 IrisLogging.error("Failed to get Engine for " + event.getWorld().getName() + "!");
             }
         }, 10);
+    }
+
+    public void deferStartup(EngineTarget target, CompletableFuture<Void> contentReady) {
+        if (setup.get() || startupTarget != null) {
+            throw new IllegalStateException("Iris generator startup has already begun.");
+        }
+        startupTarget = Objects.requireNonNull(target);
+        startupContentReady = Objects.requireNonNull(contentReady);
+        startupReady = new CompletableFuture<>();
+    }
+
+    private void resumeDeferredStartup(World runtimeWorld, Throwable failure) {
+        lock.lock();
+        try {
+            closeStartupTarget();
+            if (closing) {
+                startupReady.completeExceptionally(new IllegalStateException("Iris generator closed during startup."));
+                return;
+            }
+            if (failure != null) {
+                initializationFailure = failure;
+                spawnChunks.completeExceptionally(failure);
+                initialSpawnReady.completeExceptionally(failure);
+                startupReady.completeExceptionally(failure);
+                IrisLogging.reportError("External block providers did not become available for Iris world '"
+                        + world.name() + "'; generation remains locked.", failure);
+                Bukkit.shutdown();
+                return;
+            }
+            if (!initialize(runtimeWorld)) {
+                throw new IllegalStateException("Iris engine initialization did not complete for '" + world.name() + "'.");
+            }
+            startupReady.complete(null);
+        } catch (RuntimeException | Error initializationError) {
+            initializationFailure = initializationError;
+            spawnChunks.completeExceptionally(initializationError);
+            initialSpawnReady.completeExceptionally(initializationError);
+            startupReady.completeExceptionally(initializationError);
+            Bukkit.shutdown();
+            throw initializationError;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void closeStartupTarget() {
+        EngineTarget target = startupTarget;
+        startupTarget = null;
+        if (target != null) {
+            target.getData().close();
+        }
+    }
+
+    private void requireStartupContentReady() {
+        if (startupReady.isCompletedExceptionally()) {
+            startupReady.join();
+        }
+        boolean initializationPending = startupTarget != null
+                || !startupReady.isDone() && !lock.isHeldByCurrentThread();
+        requireStartupContentReady(startupContentReady, initializationPending);
+    }
+
+    static void requireStartupContentReady(CompletableFuture<Void> ready, boolean initializationPending) {
+        if (!ready.isDone() || initializationPending) {
+            throw new IllegalStateException("Iris generation is waiting for external block providers to initialize.");
+        }
+        ready.join();
     }
 
     private boolean initialize(World world) {
@@ -579,6 +654,10 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public EngineTarget getTarget() {
         if (engine != null) return engine.getTarget();
+        EngineTarget pendingTarget = startupTarget;
+        if (pendingTarget != null) {
+            return pendingTarget;
+        }
 
         return targetCache.aquireOrThrow(() -> {
             if (generationHistory != null) {
@@ -621,6 +700,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     private Engine getEngine(WorldInfo world) {
         throwIfInitializationFailed();
+        requireStartupContentReady();
         validateAndBindWorld(world);
         if (setup.get()) {
             return getEngine();
@@ -763,6 +843,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 }
                 folder.clear();
                 populators.clear();
+                closeStartupTarget();
+                startupReady.completeExceptionally(new IllegalStateException("Iris generator closed during startup."));
             });
         } catch (Throwable throwable) {
             if (!alreadyClosing) {
@@ -1079,6 +1161,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     public void touch(World world) {
+        if (!startupReady.isDone() || startupReady.isCompletedExceptionally()) {
+            return;
+        }
         getEngine(world);
     }
 
@@ -1274,7 +1359,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         return shouldGenerateNativeStructures(
                 isAuthoringStudio(),
                 studioEntryBootstrapActive.get(),
-                initializationFailure != null);
+                initializationFailure != null || startupTarget != null);
     }
 
     static boolean shouldGenerateNativeStructures(

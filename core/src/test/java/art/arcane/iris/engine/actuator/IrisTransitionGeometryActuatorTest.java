@@ -4,6 +4,8 @@ import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.history.BoundaryColumnGeometry;
 import art.arcane.iris.engine.history.BoundaryGeometryInfluence;
+import art.arcane.iris.engine.history.NativeTerrainReceipt;
+import art.arcane.iris.engine.history.SavedTerrainChunk;
 import art.arcane.iris.engine.history.TransitionGenerationPlan;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -20,6 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -53,6 +57,34 @@ public class IrisTransitionGeometryActuatorTest {
         if (previous != null) {
             IrisPlatforms.bind(previous);
         }
+    }
+
+    @Test
+    public void boundaryReceiptRetainsCustomKeyAndCarrierPhysics() throws Exception {
+        String key = "itemsadder:rocks/ruby_ore";
+        PlatformBlockState carrier = state("minecraft:oak_slab[type=bottom,waterlogged=true]", false);
+        when(carrier.isWaterLogged()).thenReturn(true);
+        PlatformBlockState custom = state(key, false);
+        when(custom.isCustom()).thenReturn(true);
+        when(custom.placementBaseState()).thenReturn(carrier);
+        Hunk<PlatformBlockState> blocks = filled();
+        blocks.setRaw(0, 3, 0, custom);
+        Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(16, 16, 16);
+        PlatformBiome biome = mock(PlatformBiome.class);
+        when(biome.key()).thenReturn("minecraft:plains");
+        biomes.fill(biome);
+        ChunkContext context = mock(ChunkContext.class);
+        when(context.getRoundedHeight(anyInt(), anyInt())).thenReturn(3);
+
+        SavedTerrainChunk captured = IrisTransitionGeometryActuator.capture(0, 0, blocks, biomes, 0, context, true);
+        byte[] encoded = NativeTerrainReceipt.encode(captured, 7, "epoch");
+        SavedTerrainChunk restored = NativeTerrainReceipt.decode(encoded, "minecraft:noise").terrain();
+        BoundaryColumnGeometry.Voxel voxel = restored.column(0, 0).geometry().voxelAt(3);
+
+        assertEquals(key, voxel.stateKey());
+        assertEquals(BoundaryColumnGeometry.Phase.SOLID, voxel.phase());
+        assertEquals("minecraft:water[level=0]", voxel.fluidStateKey());
+        assertTrue(voxel.protectedContent());
     }
 
     @Test

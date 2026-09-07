@@ -1,12 +1,16 @@
 package art.arcane.iris.util.common.data;
 
+import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.collection.KList;
 
 public class B {
-    private static volatile PlatformRegistries registries;
+    private static volatile BoundRegistries bound;
+
+    private record BoundRegistries(IrisPlatform platform, PlatformRegistries registries) {
+    }
 
     public static PlatformBlockState getState(String bdxf) {
         return registries().block(bdxf);
@@ -117,13 +121,18 @@ public class B {
     }
 
     private static PlatformRegistries registries() {
-        PlatformRegistries cached = registries;
-        if (cached != null) {
-            return cached;
+        BoundRegistries cached = bound;
+        if (cached != null && !IrisPlatforms.isBound()) {
+            return cached.registries();
         }
 
-        PlatformRegistries resolved = IrisPlatforms.get().registries();
-        registries = resolved;
-        return resolved;
+        IrisPlatform platform = IrisPlatforms.get();
+        if (cached != null && cached.platform() == platform) {
+            return cached.registries();
+        }
+
+        BoundRegistries resolved = new BoundRegistries(platform, platform.registries());
+        bound = resolved;
+        return resolved.registries();
     }
 }

@@ -108,7 +108,7 @@ public class IrisStaticObjectLayerTest {
                 entry("replacement", 0, 100, 0).setBore(true));
 
         IrisStaticObjectLayer.Block center = block(layer, 0, 164, 0);
-        assertSame(IrisObject.States.AIR, center.state());
+        assertSame(IrisObject.States.air(), center.state());
         assertNull(center.tile());
         assertEquals(1, chest.getStates().size());
     }

@@ -126,7 +126,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         int resultY = lineObject(3).place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L), data);
 
-        List<BlockWrite> airWrites = placer.writesOf(IrisObject.States.AIR);
+        List<BlockWrite> airWrites = placer.writesOf(IrisObject.States.air());
         assertFalse(airWrites.isEmpty());
         assertTrue(airWrites.stream().allMatch(write -> write.y() >= resultY && write.y() <= resultY));
         assertTrue(airWrites.stream().allMatch(write -> write.x() == 0));
@@ -194,7 +194,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         object.place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L), data);
 
-        List<BlockWrite> snowWrites = placer.writesOf(IrisObject.States.SNOW_LAYERS[0]);
+        List<BlockWrite> snowWrites = placer.writesOf(IrisObject.States.snowLayer(0));
         assertEquals(1, snowWrites.size());
         assertEquals(ANCHOR_Y, snowWrites.get(0).y());
     }
@@ -202,7 +202,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
     @Test
     public void debugPlacementDoesNotMutateSmartBoreCache() {
         IrisObject object = new IrisObject(1, 1, 1);
-        object.setUnsigned(0, 0, 0, IrisObject.States.VAIR);
+        object.setUnsigned(0, 0, 0, IrisObject.States.vair());
         object.setSmartBored(true);
         IrisObjectPlacement placement = placement();
         placement.setSmartBore(true);
@@ -214,9 +214,9 @@ public class IrisObjectPlacementRunnerRegressionTest {
         object.place(0, ANCHOR_Y, 0, normal, placement, new RNG(2L), data);
 
         PlatformBlockState cachedState = object.getBlocks().get(object.getSigned(0, 0, 0));
-        assertSame(IrisObject.States.VAIR, cachedState);
-        if (IrisObject.States.VAIR != IrisObject.States.VAIR_DEBUG) {
-            assertTrue(cachedState != IrisObject.States.VAIR_DEBUG);
+        assertSame(IrisObject.States.vair(), cachedState);
+        if (IrisObject.States.vair() != IrisObject.States.vairDebug()) {
+            assertTrue(cachedState != IrisObject.States.vairDebug());
         }
     }
 

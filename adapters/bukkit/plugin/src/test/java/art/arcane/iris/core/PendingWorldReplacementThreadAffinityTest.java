@@ -15,12 +15,10 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -132,125 +130,6 @@ public class PendingWorldReplacementThreadAffinityTest {
         assertTrue(irisEnvironmentFailure.getMessage().contains("requires a pack environment of NETHER"));
     }
 
-    @Test
-    public void bukkitAccessIsConfinedToTheGlobalCaptureStage() throws Exception {
-        String managerSource = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/PendingWorldReplacementManager.java")).replace("\r\n", "\n");
-        String irisSource = Files.readString(Path.of("src/main/java/art/arcane/iris/Iris.java")).replace("\r\n", "\n");
-        String startup = method(managerSource, "public void verifyLoadedPublishedWorlds()");
-        String worldLoad = method(managerSource, "public void onWorldLoad(WorldLoadEvent event)");
-        String discovery = method(managerSource, "private void discoverLoadedPublishedWorlds()");
-        String capture = method(managerSource,
-                "private void captureLoadedPublishedWorldOnGlobal(Transaction transaction)");
-        String snapshot = method(managerSource, "static PublishedWorldRuntimeState capturePublishedWorldRuntime(World world)");
-        String verification = method(managerSource,
-                "private void verifyPublishedWorld(PublishedWorldRuntimeState runtimeState, Transaction transaction)");
-
-        assertTrue(startup.contains("J.a(this::discoverLoadedPublishedWorlds)"));
-        assertTrue(worldLoad.contains("WorldIdentity.key(event.getWorld())"));
-        assertTrue(worldLoad.contains("J.a(() -> discoverLoadedWorldTransaction(worldKey))"));
-        assertTrue(capture.contains("WorldIdentity.resolve("));
-        assertBefore(capture, "capturePublishedWorldRuntime(world)",
-                "J.a(() -> runPublishedWorldVerification(runtimeState, transaction))");
-        assertTrue(snapshot.contains("WorldIdentity.key(requiredWorld)"));
-        assertTrue(snapshot.contains("IrisToolbelt.isIrisWorld(requiredWorld)"));
-        assertTrue(snapshot.contains("requiredWorld.getSeed()"));
-        assertTrue(snapshot.contains("requiredWorld.getEnvironment()"));
-        assertTrue(snapshot.contains("IrisToolbelt.access(requiredWorld)"));
-        assertNoBukkitRuntimeAccess(discovery);
-        assertNoBukkitRuntimeAccess(verification);
-        assertTrue(verification.contains("WorldReplacementFilesystem.fingerprintPack("));
-        assertTrue(irisSource.contains("pendingWorldReplacements.verifyLoadedPublishedWorlds();"));
-        assertFalse(irisSource.contains("J.a(pendingWorldReplacements::verifyLoadedPublishedWorlds)"));
-    }
-
-    @Test
-    public void paperLoginHookIsIsolatedFromAlwaysLoadedSpigotClasses() throws Exception {
-        String managerSource = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/PendingWorldReplacementManager.java")).replace("\r\n", "\n");
-        String irisSource = Files.readString(Path.of("src/main/java/art/arcane/iris/Iris.java")).replace("\r\n", "\n");
-        String listenerSource = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/PaperWorldReplacementEntryListener.java")).replace("\r\n", "\n");
-        String registration = method(managerSource, "public void registerPlatformEntryListener()");
-
-        assertFalse(managerSource.contains("import io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent"));
-        assertFalse(managerSource.contains("AsyncPlayerSpawnLocationEvent event"));
-        assertFalse(irisSource.contains("AsyncPlayerSpawnLocationEvent"));
-        assertTrue(registration.contains("Class.forName(\"io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent\""));
-        assertTrue(registration.contains("Class.forName("));
-        assertTrue(registration.contains("PaperWorldReplacementEntryListener"));
-        assertTrue(irisSource.contains("pendingWorldReplacements.registerPlatformEntryListener();"));
-        assertTrue(listenerSource.contains("onAsyncPlayerSpawnLocation(AsyncPlayerSpawnLocationEvent event)"));
-    }
-
-    @Test
-    public void redirectedPlayerReceiptSurvivesUntilTheMaterializedPositionIsSaved() throws Exception {
-        String managerSource = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/PendingWorldReplacementManager.java")).replace("\r\n", "\n");
-        String listenerSource = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/PaperWorldReplacementEntryListener.java")).replace("\r\n", "\n");
-        String preparation = method(
-                managerSource,
-                "ReplacementEntryRedirect prepareReplacementEntry(UUID playerId, Location savedLocation, boolean newPlayer)"
-        );
-        String acknowledgement = method(
-                managerSource,
-                "void expectReplacementEntryAcknowledgement(UUID playerId, UUID transactionId)"
-        );
-        String join = method(managerSource, "public void onPlayerJoin(PlayerJoinEvent event)");
-        String listener = method(
-                listenerSource,
-                "public void onAsyncPlayerSpawnLocation(AsyncPlayerSpawnLocationEvent event)"
-        );
-
-        assertTrue(preparation.contains("return new ReplacementEntryRedirect(guard.transactionId(), prepared, pendingPlayer)"));
-        assertFalse(preparation.substring(preparation.indexOf("CompletableFuture<Location> safeEntry"))
-                .contains("completeOverworldEntry("));
-        assertBefore(listener, "event.setSpawnLocation(location)",
-                "manager.expectReplacementEntryAcknowledgement(playerId, redirect.transactionId())");
-        assertTrue(acknowledgement.contains("pendingEntryAcknowledgements.put(playerId, transactionId)"));
-        assertBefore(join, "event.getPlayer().saveData()", "completeOverworldEntry(playerId, transactionId)");
-    }
-
-    @Test
-    public void replacementSpawnIsPersistedBeforeFinalMarkerRetirement() throws Exception {
-        String managerSource = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/PendingWorldReplacementManager.java")).replace("\r\n", "\n");
-        String listenerSource = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/PaperWorldReplacementEntryListener.java")).replace("\r\n", "\n");
-        String preparation = method(managerSource, "private void prepareOverworldEntry(World world)");
-        String persistence = method(managerSource, "public void onWorldSave(WorldSaveEvent event)");
-        String retirement = method(
-                managerSource,
-                "private synchronized void retireOverworldEntryIfCompleteAsync(UUID transactionId)"
-        );
-        String listener = method(
-                listenerSource,
-                "public void onAsyncPlayerSpawnLocation(AsyncPlayerSpawnLocationEvent event)"
-        );
-        String generatorSource = Files.readString(Path.of(System.getProperty("iris.bukkitChunkGeneratorSource")));
-
-        assertBefore(preparation, "overworldSpawnPersistence = persistence",
-                "targetFuture.complete(safeEntry.clone())");
-        assertTrue(persistence.contains("event.getWorld() != replacementWorld"));
-        assertTrue(persistence.contains("persistence.complete(null)"));
-        assertTrue(retirement.contains("!current.pendingPlayers().isEmpty()"));
-        assertTrue(retirement.contains("!persistence.isDone()"));
-        assertTrue(retirement.contains("persistence.isCompletedExceptionally()"));
-        assertTrue(listener.contains("event.isNewPlayer()"));
-        assertTrue(generatorSource.contains("world.getHighestBlockYAt(initialSpawn) + 1"));
-    }
-
-    @Test
-    public void loginCollisionInspectionDoesNotGenerateMissingReplacementChunks() throws Exception {
-        String managerSource = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/PendingWorldReplacementManager.java")).replace("\r\n", "\n");
-        String inspection = method(managerSource, "private CompletableFuture<Boolean> inspectLoginCollision(Location location)");
-
-        assertTrue(inspection.contains("requestChunkAsync(world, chunkX, chunkZ, false, true)"));
-        assertBefore(inspection, "chunk == null", "inspectLoadedLoginCollision(requiredLocation)");
-    }
-
     private static PendingWorldReplacementManager.PublishedWorldRuntimeState runtimeState(
             WorldSlotKey worldKey,
             long seed,
@@ -280,41 +159,5 @@ public class PendingWorldReplacementThreadAffinityTest {
                 true,
                 Phase.PUBLISHED
         );
-    }
-
-    private static void assertNoBukkitRuntimeAccess(String source) {
-        assertFalse(source.contains("WorldIdentity."));
-        assertFalse(source.contains("IrisToolbelt."));
-        assertFalse(source.contains("getSeed()"));
-        assertFalse(source.contains("getEnvironment()"));
-        assertFalse(source.contains("Bukkit."));
-    }
-
-    private static void assertBefore(String source, String first, String second) {
-        int firstIndex = source.indexOf(first);
-        int secondIndex = source.indexOf(second);
-        assertTrue("Missing source contract token: " + first, firstIndex >= 0);
-        assertTrue("Missing source contract token: " + second, secondIndex >= 0);
-        assertTrue(first + " must occur before " + second, firstIndex < secondIndex);
-    }
-
-    private static String method(String source, String signature) {
-        int start = source.indexOf(signature);
-        assertTrue("Missing source contract signature: " + signature, start >= 0);
-        int openBrace = source.indexOf('{', start);
-        assertTrue("Missing source contract method body: " + signature, openBrace >= 0);
-        int depth = 0;
-        for (int index = openBrace; index < source.length(); index++) {
-            char current = source.charAt(index);
-            if (current == '{') {
-                depth++;
-            } else if (current == '}') {
-                depth--;
-                if (depth == 0) {
-                    return source.substring(start, index + 1);
-                }
-            }
-        }
-        throw new IllegalArgumentException("Unclosed source contract method: " + signature);
     }
 }

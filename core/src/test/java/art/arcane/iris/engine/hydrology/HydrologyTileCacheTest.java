@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ExecutionException;
@@ -1138,7 +1139,7 @@ public class HydrologyTileCacheTest {
         List<HydrologyTileKey> planned = java.util.Collections.synchronizedList(new ArrayList<>());
         doAnswer(invocation -> {
             peak.accumulateAndGet(inFlight.incrementAndGet(), Math::max);
-            Thread.sleep(20L);
+            awaitConcurrentPlan(inFlight, 20L);
             planned.add(invocation.getArgument(0));
             inFlight.decrementAndGet();
             return tile;
@@ -1159,6 +1160,36 @@ public class HydrologyTileCacheTest {
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    private static void awaitConcurrentPlan(AtomicInteger inFlight, long boundMillis) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(boundMillis);
+        while (inFlight.get() < 2 && System.nanoTime() < deadline) {
+            Thread.sleep(1L);
+        }
+    }
+
+    private static void awaitParkedCallers(List<Thread> callers, int expected) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (System.nanoTime() < deadline) {
+            if (callers.size() == expected && allParked(callers)) {
+                return;
+            }
+            Thread.sleep(1L);
+        }
+        throw new AssertionError("Callers did not park on the in-flight plan");
+    }
+
+    private static boolean allParked(List<Thread> callers) {
+        for (Thread caller : callers) {
+            Thread.State state = caller.getState();
+            if (state != Thread.State.WAITING
+                    && state != Thread.State.TIMED_WAITING
+                    && state != Thread.State.BLOCKED) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Test
@@ -1198,11 +1229,15 @@ public class HydrologyTileCacheTest {
             HydrologyTileKey key = new HydrologyTileKey(5, 5);
             ExecutorService callers = Executors.newFixedThreadPool(3);
             try {
+                List<Thread> callerThreads = new CopyOnWriteArrayList<>();
                 List<Future<List<HydrologyTile>>> results = new ArrayList<>();
                 for (int caller = 0; caller < 3; caller++) {
-                    results.add(callers.submit(() -> cache.tiles(List.of(key))));
+                    results.add(callers.submit(() -> {
+                        callerThreads.add(Thread.currentThread());
+                        return cache.tiles(List.of(key));
+                    }));
                 }
-                Thread.sleep(100L);
+                awaitParkedCallers(callerThreads, 3);
                 release.countDown();
                 for (Future<List<HydrologyTile>> result : results) {
                     assertSame(tile, result.get(5, TimeUnit.SECONDS).getFirst());

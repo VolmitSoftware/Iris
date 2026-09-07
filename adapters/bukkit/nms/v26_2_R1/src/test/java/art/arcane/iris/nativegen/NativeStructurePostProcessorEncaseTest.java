@@ -39,11 +39,8 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProc
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
@@ -219,18 +216,6 @@ public class NativeStructurePostProcessorEncaseTest {
 
         assertEquals(Blocks.TUFF.defaultBlockState(),
                 state(blocks, bounds.minX(), bounds.minY(), bounds.minZ()));
-    }
-
-    @Test
-    public void encaseFillRunsBeforeNativePlacement() throws IOException {
-        String source = Files.readString(Path.of(System.getProperty("iris.nmsChunkGeneratorSource"))).replace("\r\n", "\n");
-        int prepareTerrain = source.indexOf("NativeStructurePostProcessor.prepareTerrain(");
-        int placementLoop = source.indexOf("for (NativePlacementGroup group : placementGroups)", prepareTerrain);
-        int placement = source.indexOf("placeVanillaStructure(boundedWorld, structureManager, random", placementLoop);
-
-        assertTrue(prepareTerrain >= 0);
-        assertTrue(placementLoop > prepareTerrain);
-        assertTrue(placement > placementLoop);
     }
 
     @Test

@@ -286,7 +286,7 @@ final class IrisObjectTransforms {
                         }) >= 0.5) {
                             b.put(new IrisBlockVector(x, y, z), nearestBlockData(v, nearestBlocks, x, y, z));
                         } else {
-                            b.put(new IrisBlockVector(x, y, z), IrisObject.States.AIR);
+                            b.put(new IrisBlockVector(x, y, z), IrisObject.States.air());
                         }
                     }
                 }
@@ -323,7 +323,7 @@ final class IrisObjectTransforms {
                         }) >= 0.5) {
                             b.put(new IrisBlockVector(x, y, z), nearestBlockData(v, nearestBlocks, x, y, z));
                         } else {
-                            b.put(new IrisBlockVector(x, y, z), IrisObject.States.AIR);
+                            b.put(new IrisBlockVector(x, y, z), IrisObject.States.air());
                         }
                     }
                 }
@@ -364,7 +364,7 @@ final class IrisObjectTransforms {
                         }, tension, bias) >= 0.5) {
                             b.put(new IrisBlockVector(x, y, z), nearestBlockData(v, nearestBlocks, x, y, z));
                         } else {
-                            b.put(new IrisBlockVector(x, y, z), IrisObject.States.AIR);
+                            b.put(new IrisBlockVector(x, y, z), IrisObject.States.air());
                         }
                     }
                 }

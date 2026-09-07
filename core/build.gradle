@@ -136,12 +136,12 @@ dependencies {
     testImplementation(libs.multiverseCore)
 }
 
+int coreTestForks = Math.max(1, Integer.parseInt(providers.gradleProperty('testForks')
+    .getOrElse(String.valueOf(Math.max(1, (int) (Runtime.runtime.availableProcessors() / 2))))))
+
 tasks.named('test').configure {
     maxHeapSize = '1g'
-    systemProperty('iris.packBenchmarkingSource', file('src/main/java/art/arcane/iris/core/tools/IrisPackBenchmarking.java').absolutePath)
-    systemProperty('iris.irisToolbeltSource', file('src/main/java/art/arcane/iris/core/tools/IrisToolbelt.java').absolutePath)
-    systemProperty('iris.irisCreatorSource', file('src/main/java/art/arcane/iris/core/tools/IrisCreator.java').absolutePath)
-    systemProperty('iris.bukkitChunkGeneratorSource', file('src/main/java/art/arcane/iris/engine/platform/BukkitChunkGenerator.java').absolutePath)
+    maxParallelForks = coreTestForks
 }
 
 java {
@@ -245,30 +245,6 @@ tasks.named('test', Test).configure {
 }
 
 configurations.matching { it.name.startsWith('slim') }.all { }
-
-List<String> requestedTasks = gradle.startParameter.taskNames
-boolean runningOnlyTestTasks = !requestedTasks.isEmpty()
-    && requestedTasks.every { String taskName -> taskName.toLowerCase().contains('test') }
-if (runningOnlyTestTasks) {
-    TaskProvider<Task> processResourcesTask = tasks.named('processResources')
-    tasks.named('classes').configure { Task classesTask ->
-        Set<Object> dependencies = new LinkedHashSet<Object>(classesTask.getDependsOn())
-        dependencies.removeIf { Object dependency ->
-            if (dependency instanceof TaskProvider) {
-                return ((TaskProvider<?>) dependency).name == processResourcesTask.name
-            }
-            if (dependency instanceof Task) {
-                return ((Task) dependency).name == processResourcesTask.name
-            }
-            String dependencyName = String.valueOf(dependency)
-            return dependencyName == 'processResources' || dependencyName.endsWith(':processResources')
-        }
-        classesTask.setDependsOn(dependencies)
-    }
-    processResourcesTask.configure { Task task ->
-        task.enabled = false
-    }
-}
 
 // VolmLib packages that Iris forked into art.arcane.iris.util.project.* or replaced outright. Every
 // class in each of these packages is unreachable from every other class shipped in the Bukkit jar,

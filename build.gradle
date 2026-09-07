@@ -132,27 +132,6 @@ nmsBindings.each { key, value ->
             }
             testRuntimeOnly(project(':core'))
         }
-
-        tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
-            systemProperty('iris.nmsChunkGeneratorSource',
-                rootProject.file("adapters/bukkit/nms/${key}/src/main/java/art/arcane/iris/core/nms/${key}/IrisChunkGenerator.java").absolutePath)
-            systemProperty('iris.nmsBindingSource',
-                rootProject.file("adapters/bukkit/nms/${key}/src/main/java/art/arcane/iris/core/nms/${key}/NMSBinding.java").absolutePath)
-            systemProperty('iris.nativeStructurePostProcessorSource',
-                rootProject.file('adapters/minecraft-common/src/main/java/art/arcane/iris/nativegen/NativeStructurePostProcessor.java').absolutePath)
-            systemProperty('iris.nativeStructureStartInjectorSource',
-                rootProject.file('adapters/minecraft-common/src/main/java/art/arcane/iris/nativegen/NativeStructureStartInjector.java').absolutePath)
-            systemProperty('iris.nativeStructureGenerationKeysSource',
-                rootProject.file('adapters/minecraft-common/src/main/java/art/arcane/iris/nativegen/NativeStructureGenerationKeys.java').absolutePath)
-            systemProperty('iris.nativeStructureVolumeIndexSource',
-                rootProject.file('adapters/minecraft-common/src/main/java/art/arcane/iris/nativegen/NativeStructureVolumeIndex.java').absolutePath)
-            systemProperty('iris.customBiomeSource',
-                rootProject.file("adapters/bukkit/nms/${key}/src/main/java/art/arcane/iris/core/nms/${key}/CustomBiomeSource.java").absolutePath)
-            systemProperty('iris.vanillaStructureBiomesSource',
-                rootProject.file("adapters/bukkit/nms/${key}/src/main/java/art/arcane/iris/core/nms/${key}/VanillaStructureBiomes.java").absolutePath)
-            systemProperty('iris.moddedStructureHooksSource',
-                rootProject.file('adapters/modded-common/src/main/java/art/arcane/iris/modded/ModdedStructureHooks.java').absolutePath)
-        }
     }
 }
 

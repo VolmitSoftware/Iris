@@ -607,7 +607,7 @@ public class HydrologyPlannerGlobalInvariantTest {
             assertTrue(sources.stream().anyMatch((HydrologyPoint point) -> point.x() >= 0));
             assertTrue(sources.stream().anyMatch((HydrologyPoint point) -> point.z() < 0));
             ArrayList<HydrologyTileKey> positiveKeys = new ArrayList<>();
-            for (HydrologyTileKey key : keys) {
+            for (HydrologyTileKey key : tileKeys(1)) {
                 positiveKeys.add(new HydrologyTileKey(key.tileX(), key.tileZ() + 8));
             }
             HydrologyPlanner positivePlanner = new HydrologyPlanner(

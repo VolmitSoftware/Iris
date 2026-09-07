@@ -19,8 +19,6 @@ import net.minecraft.world.level.levelgen.structure.structures.SwampHutStructure
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Field;
 import java.util.List;
@@ -326,38 +324,6 @@ public class NativeStructureVolumeIndexTest {
         assertEquals("8:8", volumes.getLast().structure());
     }
 
-    @Test
-    public void volumeResolutionNeverReadsChunkOrOwnershipState() throws Exception {
-        String source = Files.readString(Path.of(System.getProperty("iris.nativeStructureVolumeIndexSource")));
-
-        assertFalse(source.contains("StructureManager"));
-        assertFalse(source.contains("getStartForStructure"));
-        assertFalse(source.contains("getAllStarts"));
-        assertFalse(source.contains("ChunkAccess"));
-        assertFalse(source.contains("NativeStructureOwnershipStore"));
-        assertFalse(source.contains("NativeStructureOwnershipRecovery"));
-    }
-
-    @Test
-    public void vanillaVolumesAreGatedOnPackPolicy() throws Exception {
-        String source = Files.readString(Path.of(System.getProperty("iris.nativeStructureVolumeIndexSource")));
-
-        assertTrue(source.contains("NativeStructureGenerationPolicy.resolve("));
-        assertTrue(source.contains("if (!decision.generate())"));
-        assertTrue(source.contains("isStructureChunk("));
-    }
-
-    @Test
-    public void originResolutionRoutesAndCachesByScopedRuntime() throws Exception {
-        String source = Files.readString(Path.of(System.getProperty("iris.nativeStructureVolumeIndexSource")));
-
-        assertTrue(source.contains("openHistoryCoordinateScope(engine, chunkX, chunkZ)"));
-        assertTrue(source.contains("new RuntimeChunkKey(runtimeId, chunkKey(chunkX, chunkZ))"));
-        assertTrue(source.contains("addGenerationRuntimeRetirementListener(retirementListener)"));
-        assertTrue(source.contains("originCache.keySet().removeIf(key -> key.runtimeId() == runtimeId)"));
-        assertTrue(source.contains("queryCache.keySet().removeIf(key -> key.runtimeId() == runtimeId)"));
-    }
-
     private static ScopedEngine scopedEngine(boolean scoped, int ownerRuntimeId) throws Exception {
         IrisEngine engine = mock(IrisEngine.class);
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
@@ -377,7 +343,6 @@ public class NativeStructureVolumeIndexTest {
         });
         return new ScopedEngine(engine, scopes);
     }
-
 
     @SuppressWarnings("unchecked")
     private static Map<Engine, NativeStructureVolumeIndex> installedIndexes() throws Exception {

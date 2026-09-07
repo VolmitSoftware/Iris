@@ -10,6 +10,8 @@ import art.arcane.iris.util.common.math.IrisBlockVector;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -18,9 +20,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
@@ -32,23 +36,41 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class JigsawStudioGraphEditorResizeTest {
+    private static final String STRUCTURE_KEY = "resize/planar";
+
+    @ClassRule
+    public static final TemporaryFolder prototypeFolder = new TemporaryFolder();
+
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    private static Path prototypePackRoot;
+
+    @BeforeClass
+    public static void createPrototypeProject() throws Exception {
+        prototypePackRoot = prototypeFolder.newFolder("prototype").toPath();
+        JigsawStudioProjectCreator.Options options = new JigsawStudioProjectCreator.Options(
+                STRUCTURE_KEY,
+                JigsawStudioMode.PLANAR_JIGSAW,
+                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
+                new JigsawStudioCellDimensions(16, 16, 16));
+        assertTrue(JigsawStudioProjectCreator.create(prototypePackRoot, options).successful());
+        JigsawStudioGraphEditor.duplicateActiveFamily(
+                prototypePackRoot,
+                STRUCTURE_KEY,
+                planarSources(STRUCTURE_KEY),
+                "variant-2");
+    }
+
     @Test
     public void resizesOnlyTheRequestedVariantWithinWorkcellCapacity() throws Exception {
-        Path packRoot = createPlanarProject("resize/atomic");
-        JigsawStudioGraphEditor.duplicateActiveFamily(
-                packRoot,
-                "resize/atomic",
-                planarSources("resize/atomic"),
-                "variant-2");
+        Path packRoot = createPlanarProjectWithVariantFamily();
 
         JigsawStudioGraphEditor.VariantResizeResult result =
                 JigsawStudioGraphEditor.resizePieceObject(
                         packRoot,
-                        "resize/atomic",
-                        "resize/atomic/variants/corner/variant-2",
+                        STRUCTURE_KEY,
+                        "resize/planar/variants/corner/variant-2",
                         new JigsawStudioCellDimensions(7, 4, 9));
 
         assertTrue(result.writeResult().successful());
@@ -56,19 +78,19 @@ public class JigsawStudioGraphEditorResizeTest {
         assertEquals(new JigsawStudioCellDimensions(7, 4, 9), result.dimensions());
         assertEquals(2, result.relocatedConnectors());
         assertEquals(new IrisBlockVector(16, 16, 16), IrisObject.sampleSize(
-                packRoot.resolve("objects/resize/atomic/corner.iob").toFile()));
+                packRoot.resolve("objects/resize/planar/corner.iob").toFile()));
         assertEquals(new IrisBlockVector(7, 4, 9), IrisObject.sampleSize(
-                packRoot.resolve("objects/resize/atomic/variants/corner/variant-2.iob").toFile()));
+                packRoot.resolve("objects/resize/planar/variants/corner/variant-2.iob").toFile()));
         assertEquals(new IrisBlockVector(16, 16, 16), IrisObject.sampleSize(
-                packRoot.resolve("objects/resize/atomic/end.iob").toFile()));
+                packRoot.resolve("objects/resize/planar/end.iob").toFile()));
 
-        JsonObject structure = readJson(packRoot.resolve("structures/resize/atomic.json"));
+        JsonObject structure = readJson(packRoot.resolve("structures/resize/planar.json"));
         JsonObject workcell = workcell(structure.getAsJsonArray("planarWorkcells"), "CORNER");
         assertEquals(16, workcell.get("width").getAsInt());
         assertEquals(16, workcell.get("height").getAsInt());
         assertEquals(16, workcell.get("depth").getAsInt());
         JsonArray connectors = readJson(packRoot.resolve(
-                        "jigsaw-pieces/resize/atomic/variants/corner/variant-2.json"))
+                        "jigsaw-pieces/resize/planar/variants/corner/variant-2.json"))
                 .getAsJsonArray("connectors");
         assertEquals(new IrisPosition(3, 2, 0), connectorPosition(connectors, "NORTH_NEGATIVE_Z"));
         assertEquals(new IrisPosition(6, 2, 4), connectorPosition(connectors, "EAST_POSITIVE_X"));
@@ -76,14 +98,9 @@ public class JigsawStudioGraphEditorResizeTest {
 
     @Test
     public void capacityChangesNeverRewriteVariantObjects() throws Exception {
-        Path packRoot = createPlanarProject("resize/capacity");
-        JigsawStudioGraphEditor.duplicateActiveFamily(
-                packRoot,
-                "resize/capacity",
-                planarSources("resize/capacity"),
-                "variant-2");
-        Path sourceObject = packRoot.resolve("objects/resize/capacity/corner.iob");
-        Path familyObject = packRoot.resolve("objects/resize/capacity/variants/corner/variant-2.iob");
+        Path packRoot = createPlanarProjectWithVariantFamily();
+        Path sourceObject = packRoot.resolve("objects/resize/planar/corner.iob");
+        Path familyObject = packRoot.resolve("objects/resize/planar/variants/corner/variant-2.iob");
         byte[] sourceBefore = Files.readAllBytes(sourceObject);
         byte[] familyBefore = Files.readAllBytes(familyObject);
 
@@ -91,7 +108,7 @@ public class JigsawStudioGraphEditorResizeTest {
                 IOException.class,
                 () -> JigsawStudioGraphEditor.updatePlanarWorkcellCapacity(
                         packRoot,
-                        "resize/capacity",
+                        STRUCTURE_KEY,
                         JigsawPlanarArchetype.CORNER,
                         new JigsawStudioCellDimensions(7, 4, 9)));
 
@@ -102,7 +119,7 @@ public class JigsawStudioGraphEditorResizeTest {
         JigsawStudioGraphEditor.WorkcellCapacityResult result =
                 JigsawStudioGraphEditor.updatePlanarWorkcellCapacity(
                         packRoot,
-                        "resize/capacity",
+                        STRUCTURE_KEY,
                         JigsawPlanarArchetype.CORNER,
                         new JigsawStudioCellDimensions(24, 18, 20));
 
@@ -110,7 +127,7 @@ public class JigsawStudioGraphEditorResizeTest {
         assertEquals(2, result.checkedVariants());
         assertArrayEquals(sourceBefore, Files.readAllBytes(sourceObject));
         assertArrayEquals(familyBefore, Files.readAllBytes(familyObject));
-        JsonObject structure = readJson(packRoot.resolve("structures/resize/capacity.json"));
+        JsonObject structure = readJson(packRoot.resolve("structures/resize/planar.json"));
         JsonObject workcell = workcell(structure.getAsJsonArray("planarWorkcells"), "CORNER");
         assertEquals(24, workcell.get("width").getAsInt());
         assertEquals(18, workcell.get("height").getAsInt());
@@ -191,15 +208,24 @@ public class JigsawStudioGraphEditorResizeTest {
         assertSame(collision, blockAt(source, 3, 1, 0));
     }
 
-    private Path createPlanarProject(String structureKey) throws Exception {
-        Path packRoot = temporaryFolder.newFolder(structureKey.replace('/', '-')).toPath();
-        JigsawStudioProjectCreator.Options options = new JigsawStudioProjectCreator.Options(
-                structureKey,
-                JigsawStudioMode.PLANAR_JIGSAW,
-                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
-                new JigsawStudioCellDimensions(16, 16, 16));
-        assertTrue(JigsawStudioProjectCreator.create(packRoot, options).successful());
+    private Path createPlanarProjectWithVariantFamily() throws Exception {
+        Path packRoot = temporaryFolder.newFolder("pack").toPath();
+        copyTree(prototypePackRoot, packRoot);
         return packRoot;
+    }
+
+    private static void copyTree(Path source, Path target) throws IOException {
+        try (Stream<Path> entries = Files.walk(source)) {
+            for (Path entry : entries.toList()) {
+                Path destination = target.resolve(source.relativize(entry).toString());
+                if (Files.isDirectory(entry)) {
+                    Files.createDirectories(destination);
+                } else {
+                    Files.createDirectories(destination.getParent());
+                    Files.copy(entry, destination, StandardCopyOption.COPY_ATTRIBUTES);
+                }
+            }
+        }
     }
 
     private static IrisJigsawPiece endPiece(IrisDirection direction, IrisPosition position) {

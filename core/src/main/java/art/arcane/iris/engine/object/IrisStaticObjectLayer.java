@@ -168,7 +168,7 @@ public final class IrisStaticObjectLayer {
         @Override
         public PlatformBlockState get(int x, int y, int z) {
             Block block = block(x, y, z);
-            return block == null ? IrisObject.States.AIR : block.state();
+            return block == null ? IrisObject.States.air() : block.state();
         }
 
         @Override

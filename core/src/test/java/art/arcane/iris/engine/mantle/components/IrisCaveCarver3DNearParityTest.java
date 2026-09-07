@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
@@ -63,6 +64,9 @@ public class IrisCaveCarver3DNearParityTest {
     private static Method aquiferCupSupportMethod;
     private static Method deepAdaptivePlaneMethod;
     private static Field baseDensityField;
+    private static Field detailDensityField;
+    private static Field modulesField;
+    private static Field moduleDensityField;
     private static Field engineField;
     private static Field dataField;
     private static Field profileField;
@@ -97,6 +101,12 @@ public class IrisCaveCarver3DNearParityTest {
         deepAdaptivePlaneMethod.setAccessible(true);
         baseDensityField = IrisCaveCarver3D.class.getDeclaredField("baseDensity");
         baseDensityField.setAccessible(true);
+        detailDensityField = IrisCaveCarver3D.class.getDeclaredField("detailDensity");
+        detailDensityField.setAccessible(true);
+        modulesField = IrisCaveCarver3D.class.getDeclaredField("modules");
+        modulesField.setAccessible(true);
+        moduleDensityField = CaveFieldModuleState.class.getDeclaredField("density");
+        moduleDensityField.setAccessible(true);
         engineField = IrisCaveCarver3D.class.getDeclaredField("engine");
         engineField.setAccessible(true);
         dataField = IrisCaveCarver3D.class.getDeclaredField("data");
@@ -774,30 +784,29 @@ public class IrisCaveCarver3DNearParityTest {
         double[] columnWeights = fullWeights();
         int[] precomputedSurfaceHeights = filledHeights(92);
         IrisRange worldYRange = new IrisRange(0D, 96D);
+        AtomicLong optimizedSamples = new AtomicLong();
+        AtomicLong naiveSamples = new AtomicLong();
+        countSkippableSamples(optimizedCarver, optimizedSamples);
+        countSkippableSamples(naiveCarver, naiveSamples);
 
-        for (int warmup = 0; warmup < 4; warmup++) {
-            runOptimizedOnce(optimizedCarver, 3, -2, columnWeights, worldYRange, precomputedSurfaceHeights, 128);
-            runNaiveOnce(naiveCarver, 3, -2, columnWeights, worldYRange, precomputedSurfaceHeights, 128);
-        }
+        WriterCapture optimizedCapture = createWriterCapture(128);
+        int optimizedCarved = optimizedCarver.carve(optimizedCapture.writer, 3, -2, columnWeights, 0D, 0D,
+                worldYRange, precomputedSurfaceHeights);
+        WriterCapture naiveCapture = createWriterCapture(128);
+        int naiveCarved = carveNaiveExact(naiveCarver, naiveCapture.writer, 3, -2, columnWeights,
+                worldYRange, precomputedSurfaceHeights);
 
-        long optimizedTime = Long.MAX_VALUE;
-        long naiveTime = Long.MAX_VALUE;
-        for (int iteration = 0; iteration < 10; iteration++) {
-            if ((iteration & 1) == 0) {
-                optimizedTime = Math.min(optimizedTime, runOptimizedOnce(optimizedCarver, 3, -2, columnWeights, worldYRange, precomputedSurfaceHeights, 128));
-                naiveTime = Math.min(naiveTime, runNaiveOnce(naiveCarver, 3, -2, columnWeights, worldYRange, precomputedSurfaceHeights, 128));
-                continue;
-            }
+        assertTrue(optimizedCarved > 0);
+        assertEquals(naiveCarved, optimizedCarved);
+        assertEquals(naiveCapture.carvedCells, optimizedCapture.carvedCells);
+        assertEquals(naiveCapture.carvedLiquids, optimizedCapture.carvedLiquids);
 
-            naiveTime = Math.min(naiveTime, runNaiveOnce(naiveCarver, 3, -2, columnWeights, worldYRange, precomputedSurfaceHeights, 128));
-            optimizedTime = Math.min(optimizedTime, runOptimizedOnce(optimizedCarver, 3, -2, columnWeights, worldYRange, precomputedSurfaceHeights, 128));
-        }
-
-        // Fastest of ten alternating runs, not the sum: one scheduling hiccup decides a summed comparison.
-        // The bar is deliberately well under the measured ratio; a loaded machine reaches 1.6x while a
-        // regression that drops the skip logic lands at 1.0x, which is what this guard has to catch.
-        double speedup = naiveTime / (double) optimizedTime;
-        assertTrue("expected at least 1.4x speedup but was " + speedup, speedup >= 1.4D);
+        long optimizedSampleCount = optimizedSamples.get();
+        long naiveSampleCount = naiveSamples.get();
+        assertTrue(optimizedSampleCount > 0L);
+        double sampleRatio = naiveSampleCount / (double) optimizedSampleCount;
+        assertTrue("expected at least 1.4x fewer detail and module samples but was " + sampleRatio,
+                sampleRatio >= 1.4D);
     }
 
     @Test
@@ -879,26 +888,16 @@ public class IrisCaveCarver3DNearParityTest {
         assertEquals(optimizedCapture.carvedLiquids, naiveCapture.carvedLiquids);
     }
 
-    private long runOptimizedOnce(IrisCaveCarver3D carver, int chunkX, int chunkZ, double[] columnWeights, IrisRange worldYRange, int[] precomputedSurfaceHeights, int worldHeight) {
-        WriterCapture capture = createWriterCapture(worldHeight);
-        long start = System.nanoTime();
-        carver.carve(capture.writer, chunkX, chunkZ, columnWeights, 0D, 0D, worldYRange, precomputedSurfaceHeights);
-        long elapsed = System.nanoTime() - start;
-        assertTrue(!capture.carvedCells.isEmpty());
-        return elapsed;
+    private void countSkippableSamples(IrisCaveCarver3D carver, AtomicLong samples) throws Exception {
+        detailDensityField.set(carver, new CountingCNG((CNG) detailDensityField.get(carver), samples));
+        CaveFieldModuleState[] modules = (CaveFieldModuleState[]) modulesField.get(carver);
+        for (CaveFieldModuleState module : modules) {
+            moduleDensityField.set(module, new CountingCNG((CNG) moduleDensityField.get(module), samples));
+        }
     }
 
     private double sampleDensity(IrisCaveCarver3D carver, int x, int y, int z) throws Exception {
         return (double) sampleDensityMethod.invoke(carver, x, y, z);
-    }
-
-    private long runNaiveOnce(IrisCaveCarver3D carver, int chunkX, int chunkZ, double[] columnWeights, IrisRange worldYRange, int[] precomputedSurfaceHeights, int worldHeight) throws Exception {
-        WriterCapture capture = createWriterCapture(worldHeight);
-        long start = System.nanoTime();
-        int carved = carveNaiveExact(carver, capture.writer, chunkX, chunkZ, columnWeights, worldYRange, precomputedSurfaceHeights);
-        long elapsed = System.nanoTime() - start;
-        assertTrue(carved > 0);
-        return elapsed;
     }
 
     private int carveNaiveExact(IrisCaveCarver3D carver, MantleWriter writer, int chunkX, int chunkZ, double[] columnWeights, IrisRange worldYRange, int[] precomputedSurfaceHeights) throws Exception {
@@ -1514,6 +1513,23 @@ public class IrisCaveCarver3DNearParityTest {
             }
         }
         return min;
+    }
+
+    private static final class CountingCNG extends CNG {
+        private final CNG delegate;
+        private final AtomicLong samples;
+
+        private CountingCNG(CNG delegate, AtomicLong samples) {
+            super(new RNG(41_117L));
+            this.delegate = delegate;
+            this.samples = samples;
+        }
+
+        @Override
+        public double noiseFastSigned3D(double x, double y, double z) {
+            samples.incrementAndGet();
+            return delegate.noiseFastSigned3D(x, y, z);
+        }
     }
 
     private static final class CoordinateDensityCNG extends CNG {

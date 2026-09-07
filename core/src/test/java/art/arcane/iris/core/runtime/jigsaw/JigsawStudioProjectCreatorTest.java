@@ -13,6 +13,8 @@ import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -21,7 +23,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -31,8 +35,28 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class JigsawStudioProjectCreatorTest {
+    private static final JigsawStudioProjectCreator.Options DEFAULT_PLANAR_OPTIONS =
+            new JigsawStudioProjectCreator.Options(
+                    "settlement/test",
+                    JigsawStudioMode.PLANAR_JIGSAW,
+                    JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
+                    new JigsawStudioCellDimensions(16, 16, 16));
+
+    @ClassRule
+    public static final TemporaryFolder prototypeFolder = new TemporaryFolder();
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    private static Path defaultPlanarPrototype;
+
+    @BeforeClass
+    public static void createPrototypeProject() throws Exception {
+        defaultPlanarPrototype = prototypeFolder.newFolder("planar-prototype").toPath();
+        assertTrue(JigsawStudioProjectCreator.create(
+                defaultPlanarPrototype,
+                DEFAULT_PLANAR_OPTIONS).successful());
+    }
 
     @Test
     public void createsCompletePlanarProjectAtomicallyWithoutOverwritingIt() throws Exception {
@@ -146,24 +170,18 @@ public class JigsawStudioProjectCreatorTest {
 
     @Test
     public void defaultIrisPlanarProjectCanEnableMandatoryCaps() throws Exception {
-        Path temporaryDirectory = temporaryFolder.getRoot().toPath();
-        JigsawStudioProjectCreator.Options options = new JigsawStudioProjectCreator.Options(
-                "caps/default",
-                JigsawStudioMode.PLANAR_JIGSAW,
-                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
-                new JigsawStudioCellDimensions(16, 16, 16));
+        Path temporaryDirectory = createDefaultPlanarProject();
 
-        assertTrue(JigsawStudioProjectCreator.create(temporaryDirectory, options).successful());
         assertTrue(JigsawStudioStructureEditor.updateRequireCaps(
                 temporaryDirectory,
-                "caps/default",
+                "settlement/test",
                 true).successful());
 
         JsonObject structure = JsonParser.parseString(Files.readString(
-                temporaryDirectory.resolve("structures/caps/default.json"),
+                temporaryDirectory.resolve("structures/settlement/test.json"),
                 StandardCharsets.UTF_8)).getAsJsonObject();
         JsonObject end = JsonParser.parseString(Files.readString(
-                temporaryDirectory.resolve("jigsaw-pieces/caps/default/end.json"),
+                temporaryDirectory.resolve("jigsaw-pieces/settlement/test/end.json"),
                 StandardCharsets.UTF_8)).getAsJsonObject();
         assertTrue(structure.get("requireCaps").getAsBoolean());
         assertEquals("FAIL_ASSEMBLY", structure.get("branchFailurePolicy").getAsString());
@@ -266,13 +284,7 @@ public class JigsawStudioProjectCreatorTest {
 
     @Test
     public void updatesOwnedPoolThroughWholeGraphTransaction() throws Exception {
-        Path temporaryDirectory = temporaryFolder.getRoot().toPath();
-        JigsawStudioProjectCreator.Options options = new JigsawStudioProjectCreator.Options(
-                "settlement/test",
-                JigsawStudioMode.PLANAR_JIGSAW,
-                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
-                new JigsawStudioCellDimensions(16, 16, 16));
-        assertTrue(JigsawStudioProjectCreator.create(temporaryDirectory, options).successful());
+        Path temporaryDirectory = createDefaultPlanarProject();
         Path pool = temporaryDirectory.resolve("jigsaw-pools/settlement/test/pieces.json");
 
         StructureWriteResult terminalPool = JigsawStudioGraphEditor.createPool(
@@ -479,13 +491,7 @@ public class JigsawStudioProjectCreatorTest {
 
     @Test
     public void duplicatesVariantsAndEditsOnePinnedPoolEntry() throws Exception {
-        Path temporaryDirectory = temporaryFolder.getRoot().toPath();
-        JigsawStudioProjectCreator.Options options = new JigsawStudioProjectCreator.Options(
-                "settlement/test",
-                JigsawStudioMode.PLANAR_JIGSAW,
-                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
-                new JigsawStudioCellDimensions(16, 16, 16));
-        assertTrue(JigsawStudioProjectCreator.create(temporaryDirectory, options).successful());
+        Path temporaryDirectory = createDefaultPlanarProject();
 
         List<String> pools = JigsawStudioGraphEditor.ownedPoolKeys(
                 temporaryDirectory,
@@ -551,5 +557,22 @@ public class JigsawStudioProjectCreatorTest {
                 temporaryDirectory.resolve("jigsaw-pools/settlement/test/pieces.json"),
                 StandardCharsets.UTF_8)).getAsJsonObject();
         assertEquals(5, afterRemoval.getAsJsonArray("pieces").size());
+    }
+
+    private Path createDefaultPlanarProject() throws IOException {
+        Path packRoot = temporaryFolder.getRoot().toPath();
+        try (Stream<Path> entries = Files.walk(defaultPlanarPrototype)) {
+            for (Path entry : entries.toList()) {
+                Path destination = packRoot.resolve(
+                        defaultPlanarPrototype.relativize(entry).toString());
+                if (Files.isDirectory(entry)) {
+                    Files.createDirectories(destination);
+                } else {
+                    Files.createDirectories(destination.getParent());
+                    Files.copy(entry, destination, StandardCopyOption.COPY_ATTRIBUTES);
+                }
+            }
+        }
+        return packRoot;
     }
 }

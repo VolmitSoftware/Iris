@@ -21,6 +21,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -30,10 +32,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -43,13 +47,31 @@ import static org.junit.Assert.assertTrue;
 
 public class JigsawStudioResourceBundleAssemblerTest {
     private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final String STRUCTURE_KEY = "fort";
+
+    @ClassRule
+    public static final TemporaryFolder prototypeFolder = new TemporaryFolder();
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    private static Path prototypePackRoot;
+
+    @BeforeClass
+    public static void createPrototypeProject() throws Exception {
+        prototypePackRoot = prototypeFolder.newFolder("prototype").toPath();
+        JigsawStudioProjectCreator.Options options = new JigsawStudioProjectCreator.Options(
+                STRUCTURE_KEY,
+                JigsawStudioMode.SPATIAL_JIGSAW,
+                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
+                new JigsawStudioCellDimensions(4, 4, 4));
+        StructureWriteResult result = JigsawStudioProjectCreator.create(prototypePackRoot, options);
+        assertTrue(result.successful());
+    }
+
     @Test
     public void assemblesAndAtomicallyOverwritesTheWholeOwnedGraph() throws Exception {
-        Path packRoot = createProject("fort");
+        Path packRoot = createProject();
         Path structurePath = packRoot.resolve("structures/fort.json");
         byte[] structureBefore = Files.readAllBytes(structurePath);
         IrisJigsawConnector connector = connector();
@@ -120,8 +142,8 @@ public class JigsawStudioResourceBundleAssemblerTest {
 
     @Test
     public void capturePreservesAbsentDefaultsAndUnknownPieceMetadata() throws Exception {
-        Path packRoot = createProject("preserved");
-        String pieceResource = "jigsaw-pieces/preserved/start.json";
+        Path packRoot = createProject();
+        String pieceResource = "jigsaw-pieces/fort/start.json";
         Path piecePath = packRoot.resolve(pieceResource);
         JsonObject source = JsonParser.parseString(
                 Files.readString(piecePath, StandardCharsets.UTF_8)).getAsJsonObject();
@@ -135,8 +157,8 @@ public class JigsawStudioResourceBundleAssemblerTest {
         JigsawStudioResourceBundleAssembler.Assembly unchangedAssembly =
                 JigsawStudioResourceBundleAssembler.assemble(
                         packRoot,
-                        "preserved",
-                        "preserved/start",
+                        STRUCTURE_KEY,
+                        "fort/start",
                         emptyObject(),
                         List.copyOf(sourcePiece.getConnectors()),
                         false);
@@ -144,14 +166,14 @@ public class JigsawStudioResourceBundleAssemblerTest {
                 sourceContent,
                 unchangedAssembly.bundle().resources().get(pieceResource).content());
         IrisJigsawConnector updated = connector()
-                .setPool("preserved/start")
+                .setPool("fort/start")
                 .setName("iris:updated");
 
         JigsawStudioResourceBundleAssembler.Assembly assembly =
                 JigsawStudioResourceBundleAssembler.assemble(
                         packRoot,
-                        "preserved",
-                        "preserved/start",
+                        STRUCTURE_KEY,
+                        "fort/start",
                         emptyObject(),
                         List.of(updated),
                         false);
@@ -172,15 +194,15 @@ public class JigsawStudioResourceBundleAssemblerTest {
 
     @Test
     public void refusesAProjectWithoutAnOwnershipManifest() throws Exception {
-        Path packRoot = createProject("unowned");
+        Path packRoot = createProject();
         StructureTransactionWriter writer = new StructureTransactionWriter(packRoot);
-        Files.delete(writer.ownershipManifestPath(new StructureKey("iris", "unowned")));
+        Files.delete(writer.ownershipManifestPath(new StructureKey("iris", STRUCTURE_KEY)));
 
         IOException exception = assertThrows(IOException.class,
                 () -> JigsawStudioResourceBundleAssembler.assemble(
                         packRoot,
-                        "unowned",
-                        "unowned/start",
+                        STRUCTURE_KEY,
+                        "fort/start",
                         emptyObject(),
                         List.of(connector()),
                         false));
@@ -190,16 +212,16 @@ public class JigsawStudioResourceBundleAssemblerTest {
 
     @Test
     public void refusesManagedDatapackOwnershipWithoutAssemblingAStudioSave() throws Exception {
-        Path packRoot = createProject("managed");
-        Path objectPath = packRoot.resolve("objects/managed/start.iob");
+        Path packRoot = createProject();
+        Path objectPath = packRoot.resolve("objects/fort/start.iob");
         byte[] before = Files.readAllBytes(objectPath);
-        markManagedDatapack(packRoot, "managed");
+        markManagedDatapack(packRoot, STRUCTURE_KEY);
 
         IOException exception = assertThrows(IOException.class,
                 () -> JigsawStudioResourceBundleAssembler.assemble(
                         packRoot,
-                        "managed",
-                        "managed/start",
+                        STRUCTURE_KEY,
+                        "fort/start",
                         emptyObject(),
                         List.of(connector()),
                         false));
@@ -211,16 +233,16 @@ public class JigsawStudioResourceBundleAssemblerTest {
 
     @Test
     public void writerRejectsAResourceModifiedOutsideTheOwnershipTransaction() throws Exception {
-        Path packRoot = createProject("modified");
-        Path piecePath = packRoot.resolve("jigsaw-pieces/modified/start.json");
+        Path packRoot = createProject();
+        Path piecePath = packRoot.resolve("jigsaw-pieces/fort/start.json");
         Files.writeString(piecePath, Files.readString(piecePath, StandardCharsets.UTF_8) + "\n");
         JigsawStudioResourceBundleAssembler.Assembly assembly =
                 JigsawStudioResourceBundleAssembler.assemble(
                         packRoot,
-                        "modified",
-                        "modified/start",
+                        STRUCTURE_KEY,
+                        "fort/start",
                         emptyObject(),
-                        List.of(connector().setPool("modified/start")),
+                        List.of(connector().setPool("fort/start")),
                         false);
 
         StructureWriteResult result = new StructureTransactionWriter(packRoot)
@@ -231,16 +253,24 @@ public class JigsawStudioResourceBundleAssemblerTest {
         assertFalse(result.conflicts().isEmpty());
     }
 
-    private Path createProject(String structureKey) throws Exception {
-        Path packRoot = temporaryFolder.newFolder(structureKey).toPath();
-        JigsawStudioProjectCreator.Options options = new JigsawStudioProjectCreator.Options(
-                structureKey,
-                JigsawStudioMode.SPATIAL_JIGSAW,
-                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
-                new JigsawStudioCellDimensions(4, 4, 4));
-        StructureWriteResult result = JigsawStudioProjectCreator.create(packRoot, options);
-        assertTrue(result.successful());
+    private Path createProject() throws Exception {
+        Path packRoot = temporaryFolder.newFolder("pack").toPath();
+        copyTree(prototypePackRoot, packRoot);
         return packRoot;
+    }
+
+    private static void copyTree(Path source, Path target) throws IOException {
+        try (Stream<Path> entries = Files.walk(source)) {
+            for (Path entry : entries.toList()) {
+                Path destination = target.resolve(source.relativize(entry).toString());
+                if (Files.isDirectory(entry)) {
+                    Files.createDirectories(destination);
+                } else {
+                    Files.createDirectories(destination.getParent());
+                    Files.copy(entry, destination, StandardCopyOption.COPY_ATTRIBUTES);
+                }
+            }
+        }
     }
 
     private static void markManagedDatapack(Path packRoot, String structureKey) throws IOException {

@@ -389,7 +389,7 @@ final class IrisObjectPlacementRunner {
             for (int i = worldBounds.minX(); i <= worldBounds.maxX(); i++) {
                 for (int j = worldBounds.minY() - config.getBoreExtendMinY(); j <= worldBounds.maxY() + config.getBoreExtendMaxY(); j++) {
                     for (int k = worldBounds.minZ(); k <= worldBounds.maxZ(); k++) {
-                        placer.set(i, j, k, IrisObject.States.AIR);
+                        placer.set(i, j, k, IrisObject.States.air());
                     }
                 }
             }
@@ -472,16 +472,16 @@ final class IrisObjectPlacementRunner {
                 } catch (Throwable e) {
                     IrisLogging.reportError(e);
                     IrisLogging.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + self.getLoadKey() + " (cme)");
-                    d = IrisObject.States.AIR;
+                    d = IrisObject.States.air();
                 }
 
                 if (d == null) {
                     IrisLogging.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + self.getLoadKey() + " (null)");
-                    d = IrisObject.States.AIR;
+                    d = IrisObject.States.air();
                 }
 
-                if (placer.isDebugSmartBore() && IrisObject.States.VAIR.equals(d)) {
-                    d = IrisObject.States.VAIR_DEBUG;
+                if (placer.isDebugSmartBore() && IrisObject.States.vair().equals(d)) {
+                    d = IrisObject.States.vairDebug();
                 }
 
                 PlatformBlockState data = d;
@@ -660,12 +660,12 @@ final class IrisObjectPlacementRunner {
                     } catch (Throwable e) {
                         IrisLogging.reportError(e);
                         IrisLogging.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + self.getLoadKey() + " (stilt cme)");
-                        sourceData = IrisObject.States.AIR;
+                        sourceData = IrisObject.States.air();
                     }
 
                     if (sourceData == null) {
                         IrisLogging.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + self.getLoadKey() + " (stilt null)");
-                        sourceData = IrisObject.States.AIR;
+                        sourceData = IrisObject.States.air();
                     }
 
                     if (!IrisObjectShaping.shouldStilt(sourceData)) {
@@ -852,7 +852,7 @@ final class IrisObjectPlacementRunner {
 
                 if (config.getSnow() > 0) {
                     int height = rngx.i(0, (int) (config.getSnow() * 7));
-                    placer.set(vx, vy + 1, vz, IrisObject.States.SNOW_LAYERS[Math.max(Math.min(height, 7), 0)]);
+                    placer.set(vx, vy + 1, vz, IrisObject.States.snowLayer(Math.max(Math.min(height, 7), 0)));
                 }
             }
         }
@@ -1096,7 +1096,7 @@ final class IrisObjectPlacementRunner {
                 if (targetY > origY) {
                     PlatformBlockState fill = complex != null ? complex.getRockStream().get(cx, cz) : null;
                     if (B.isAir(fill)) {
-                        fill = IrisObject.States.STONE;
+                        fill = IrisObject.States.stone();
                     }
                     for (int yy = origY + 1; yy <= targetY; yy++) {
                         placer.set(cx, yy, cz, fill);
@@ -1105,7 +1105,7 @@ final class IrisObjectPlacementRunner {
                     boolean inside = IrisObjectVacuum.outset(dx, lowX, highX) == 0 && IrisObjectVacuum.outset(dz, lowZ, highZ) == 0;
                     int carveFloor = IrisObjectVacuum.carveFloorY(targetY, topY, inside);
                     for (int yy = origY; yy >= carveFloor; yy--) {
-                        placer.set(cx, yy, cz, IrisObject.States.AIR);
+                        placer.set(cx, yy, cz, IrisObject.States.air());
                     }
                 }
             }

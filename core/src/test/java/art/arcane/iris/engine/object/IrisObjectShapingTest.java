@@ -55,8 +55,8 @@ public class IrisObjectShapingTest {
             for (int index = 0; index < 36; index++) {
                 Cell cell = new Cell(offset + random.nextInt(6), offset + random.nextInt(6), offset + random.nextInt(6));
                 PlatformBlockState state = switch (index % 3) {
-                    case 0 -> IrisObject.States.AIR;
-                    case 1 -> IrisObject.States.VAIR;
+                    case 0 -> IrisObject.States.air();
+                    case 1 -> IrisObject.States.vair();
                     default -> stone;
                 };
                 object.getBlocks().put(cell.vector(), state);
@@ -97,7 +97,7 @@ public class IrisObjectShapingTest {
                     continue;
                 }
                 for (int position = start.coordinate(axis); position <= end.coordinate(axis); position++) {
-                    blocks.putIfAbsent(start.with(axis, position), IrisObject.States.VAIR);
+                    blocks.putIfAbsent(start.with(axis, position), IrisObject.States.vair());
                 }
             }
         }

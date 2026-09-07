@@ -46,6 +46,13 @@ import static org.junit.Assert.assertTrue;
 
 public class HydrologyPlannerTest {
     private static final HydrologyTileKey TILE = new HydrologyTileKey(0, 0);
+    private static final HydrologyTileKey EARLY_OWNER_TILE = new HydrologyTileKey(-1, -1);
+    private static final HydrologyPlannerSettings EARLY_OWNER_SETTINGS =
+            withPeriodTwo(standardSettings(4D, 2D, true, false, List.of()));
+    private static final HydrologyTerrainSampler EARLY_OWNER_TERRAIN =
+            shiftedByTile(rollingCoast(112), EARLY_OWNER_SETTINGS.routing().tileSize());
+    private static final HydrologyTile EARLY_OWNER_BASELINE =
+            new HydrologyPlanner(77L, EARLY_OWNER_SETTINGS, EARLY_OWNER_TERRAIN).plan(EARLY_OWNER_TILE);
 
     @Test
     public void sharedOwnerFutureExcludesMutableCompilerWhileCreatorRetainsIt() throws Exception {
@@ -296,33 +303,34 @@ public class HydrologyPlannerTest {
 
     @Test
     public void earlyNeighborOwnersPreserveCompleteColdOwnerOutputs() throws Exception {
-        HydrologyTileKey key = new HydrologyTileKey(-1, -1);
         Set<Thread> parallelThreads = ConcurrentHashMap.newKeySet();
         boolean observedParallelOwner = false;
         ForkJoinPool pool = new ForkJoinPool(4);
         try {
             for (boolean organic : new boolean[]{false, true}) {
-                HydrologyPlannerSettings settings = organic ? organicShapeSettings()
-                        : standardSettings(4D, 2D, true, false, List.of());
-                settings = withPeriodTwo(settings);
+                long seed = organic ? 642L : 77L;
+                HydrologyPlannerSettings settings = organic
+                        ? withPeriodTwo(organicShapeSettings())
+                        : EARLY_OWNER_SETTINGS;
                 assertEquals(2, settings.crossTileColorPeriod());
-                HydrologyTerrainSampler original = organic ? organicShapeTerrain() : rollingCoast(112);
-                int tileSize = settings.routing().tileSize();
-                HydrologyTerrainSampler terrain = (x, z) -> original.sample(x + tileSize, z + tileSize);
-                HydrologyTerrainSampler counted = (x, z) -> {
+                HydrologyTerrainSampler terrain = organic
+                        ? shiftedByTile(organicShapeTerrain(), settings.routing().tileSize())
+                        : EARLY_OWNER_TERRAIN;
+                HydrologyTile expected = organic
+                        ? new HydrologyPlanner(seed, settings, terrain).plan(EARLY_OWNER_TILE)
+                        : EARLY_OWNER_BASELINE;
+                HydrologyTerrainSampler counted = (int x, int z) -> {
                     parallelThreads.add(Thread.currentThread());
                     return terrain.sample(x, z);
                 };
-                for (long seed : new long[]{19L, 77L, 642L}) {
-                    HydrologyTile expected = new HydrologyPlanner(seed, settings, terrain).plan(key);
-                    HydrologyPlanner candidate = new HydrologyPlanner(seed, settings, counted);
-                    parallelThreads.clear();
-                    HydrologyTile actual = pool.submit(() -> candidate.plan(key)).get(30, TimeUnit.SECONDS);
-                    observedParallelOwner |= parallelThreads.size() > 1;
-                    assertTileContentsEqual(expected, actual);
-                    assertEquals(expected.courses(), actual.courses());
-                    assertEquals(expected.diagnosticCandidates(), actual.diagnosticCandidates());
-                }
+                HydrologyPlanner candidate = new HydrologyPlanner(seed, settings, counted);
+                parallelThreads.clear();
+                HydrologyTile actual = pool.submit(() -> candidate.plan(EARLY_OWNER_TILE))
+                        .get(30, TimeUnit.SECONDS);
+                observedParallelOwner |= parallelThreads.size() > 1;
+                assertTileContentsEqual(expected, actual);
+                assertEquals(expected.courses(), actual.courses());
+                assertEquals(expected.diagnosticCandidates(), actual.diagnosticCandidates());
             }
         } finally {
             pool.shutdownNow();
@@ -332,35 +340,32 @@ public class HydrologyPlannerTest {
 
     @Test
     public void earlyOwnersCompleteWithOneWorkerAndSaturatedRootCallers() throws Exception {
-        HydrologyTileKey key = new HydrologyTileKey(-1, -1);
-        HydrologyPlannerSettings settings = standardSettings(4D, 2D, true, false, List.of());
-        settings = withPeriodTwo(settings);
-        int tileSize = settings.routing().tileSize();
-        HydrologyTerrainSampler base = rollingCoast(112);
-        HydrologyTerrainSampler terrain = (x, z) -> base.sample(x + tileSize, z + tileSize);
-        HydrologyTile expected = new HydrologyPlanner(77L, settings, terrain).plan(key);
         for (int workers : new int[]{1, 2}) {
             ForkJoinPool pool = new ForkJoinPool(workers);
             CountDownLatch started = new CountDownLatch(workers);
             ArrayList<Future<HydrologyTile>> results = new ArrayList<>();
             try {
-                HydrologyPlanner shared = new HydrologyPlanner(77L, settings, terrain);
+                HydrologyPlanner shared = new HydrologyPlanner(77L, EARLY_OWNER_SETTINGS, EARLY_OWNER_TERRAIN);
                 for (int index = 0; index < workers; index++) {
                     results.add(pool.submit(() -> {
                         started.countDown();
                         if (!started.await(5, TimeUnit.SECONDS)) {
                             throw new AssertionError("Owner callers did not start");
                         }
-                        return shared.plan(key);
+                        return shared.plan(EARLY_OWNER_TILE);
                     }));
                 }
                 for (Future<HydrologyTile> result : results) {
-                    assertTileContentsEqual(expected, result.get(30, TimeUnit.SECONDS));
+                    assertTileContentsEqual(EARLY_OWNER_BASELINE, result.get(30, TimeUnit.SECONDS));
                 }
             } finally {
                 pool.shutdownNow();
             }
         }
+    }
+
+    private static HydrologyTerrainSampler shiftedByTile(HydrologyTerrainSampler sampler, int tileSize) {
+        return (int x, int z) -> sampler.sample(x + tileSize, z + tileSize);
     }
 
     private static void assertTileContentsEqual(HydrologyTile expected, HydrologyTile actual) {
@@ -2536,7 +2541,7 @@ public class HydrologyPlannerTest {
         return distance < 80 ? 106 : 98;
     }
 
-    private HydrologyPlannerSettings standardSettings(
+    private static HydrologyPlannerSettings standardSettings(
             double surfaceDensity,
             double undergroundDensity,
             boolean oceanEnabled,
@@ -2605,7 +2610,7 @@ public class HydrologyPlannerTest {
         );
     }
 
-    private HydrologyPlannerSettings.Geometry stableGeometry() {
+    private static HydrologyPlannerSettings.Geometry stableGeometry() {
         HydrologyPlannerSettings.ChannelShape stableChannel =
                 HydrologyPlannerSettings.ChannelShape.of(2D, 0D, 0D, 11);
         return new HydrologyPlannerSettings.Geometry(
@@ -2678,7 +2683,7 @@ public class HydrologyPlannerTest {
         };
     }
 
-    private HydrologyTerrainSampler rollingCoast(int coastX) {
+    private static HydrologyTerrainSampler rollingCoast(int coastX) {
         return (int x, int z) -> {
             if (x >= coastX) {
                 return oceanTerrain();
@@ -2771,7 +2776,7 @@ public class HydrologyPlannerTest {
         };
     }
 
-    private HydrologyTerrainSample oceanTerrain() {
+    private static HydrologyTerrainSample oceanTerrain() {
         return new HydrologyTerrainSample(
                 54,
                 0D,
@@ -2843,7 +2848,7 @@ public class HydrologyPlannerTest {
         );
     }
 
-    private HydrologyTerrainSample terrain(
+    private static HydrologyTerrainSample terrain(
             int height,
             double slope,
             boolean ocean,

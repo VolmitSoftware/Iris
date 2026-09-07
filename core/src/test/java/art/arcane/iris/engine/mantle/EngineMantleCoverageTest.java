@@ -1,13 +1,21 @@
 package art.arcane.iris.engine.mantle;
 
 import art.arcane.iris.engine.IrisEngineMantle;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,6 +26,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Answers.CALLS_REAL_METHODS;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -25,6 +34,28 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class EngineMantleCoverageTest {
+    @Before
+    public void bindPlatform() {
+        IrisPlatforms.unbind();
+        Map<String, PlatformBlockState> states = new HashMap<>();
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(registries.block(anyString())).thenAnswer(invocation -> states.computeIfAbsent(
+                invocation.getArgument(0),
+                key -> {
+                    PlatformBlockState state = mock(PlatformBlockState.class);
+                    when(state.key()).thenReturn(key);
+                    return state;
+                }));
+        IrisPlatform platform = mock(IrisPlatform.class);
+        when(platform.registries()).thenReturn(registries);
+        IrisPlatforms.bind(platform);
+    }
+
+    @After
+    public void unbindPlatform() {
+        IrisPlatforms.unbind();
+    }
+
     @Test
     public void zeroRadiusCleansOnlyItsRealChunkOnce() {
         CoverageFixture fixture = fixture(0);

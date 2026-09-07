@@ -12,6 +12,8 @@ import static org.junit.Assert.assertTrue;
 
 public class HydrologyPlannerTributaryTest {
     private static final HydrologyTileKey TILE = new HydrologyTileKey(0, 0);
+    private static final HydrologyTile SPLIT_TILE =
+            new HydrologyPlanner(19L, settings(1), HydrologyPlannerTributaryTest::valley).plan(TILE);
 
     @Test
     public void heightOnlySamplingPreservesSurfacePlansWithFewerSlopeSamples() {
@@ -51,7 +53,7 @@ public class HydrologyPlannerTributaryTest {
         HydrologyTerrainSampler terrain = HydrologyPlannerTributaryTest::valley;
 
         HydrologyTile single = new HydrologyPlanner(19L, settings(0), terrain).plan(TILE);
-        HydrologyTile split = new HydrologyPlanner(19L, settings(1), terrain).plan(TILE);
+        HydrologyTile split = SPLIT_TILE;
 
         List<RiverCourse> singleCourses = surface(single);
         List<RiverCourse> splitCourses = surface(split);
@@ -302,9 +304,7 @@ public class HydrologyPlannerTributaryTest {
     }
     @Test
     public void aTributaryOwnsOnlyTheDrainageUpstreamOfItsJunctionAndMeetsTheStemWater() {
-        HydrologyTerrainSampler terrain = HydrologyPlannerTributaryTest::valley;
-
-        HydrologyTile split = new HydrologyPlanner(19L, settings(1), terrain).plan(TILE);
+        HydrologyTile split = SPLIT_TILE;
 
         List<RiverCourse> courses = surface(split);
         assertEquals(split.diagnosticCandidates().toString(), 2, courses.size());

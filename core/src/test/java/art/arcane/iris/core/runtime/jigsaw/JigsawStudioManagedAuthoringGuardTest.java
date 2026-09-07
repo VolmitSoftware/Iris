@@ -5,6 +5,8 @@ import art.arcane.iris.core.structure.authoring.StructureKey;
 import art.arcane.iris.core.structure.authoring.StructureOwnershipManifest;
 import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.core.structure.authoring.StructureWriteResult;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -13,9 +15,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
@@ -23,39 +27,58 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class JigsawStudioManagedAuthoringGuardTest {
+    private static final String STRUCTURE_KEY = "managed/project";
+
+    @ClassRule
+    public static final TemporaryFolder prototypeFolder = new TemporaryFolder();
+
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    private static Path prototypePackRoot;
+
+    @BeforeClass
+    public static void createPrototypeProject() throws Exception {
+        prototypePackRoot = prototypeFolder.newFolder("prototype").toPath();
+        JigsawStudioProjectCreator.Options options = new JigsawStudioProjectCreator.Options(
+                STRUCTURE_KEY,
+                JigsawStudioMode.PLANAR_JIGSAW,
+                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
+                new JigsawStudioCellDimensions(16, 16, 16));
+        StructureWriteResult result = JigsawStudioProjectCreator.create(prototypePackRoot, options);
+        assertTrue(result.successful());
+    }
+
     @Test
     public void graphEditorRejectsManagedDatapackOwnership() throws Exception {
-        Path packRoot = createManagedProject("managed/graph");
+        Path packRoot = createManagedProject();
 
         IOException lookupFailure = assertThrows(IOException.class,
-                () -> JigsawStudioGraphEditor.ownedPoolKeys(packRoot, "managed/graph"));
+                () -> JigsawStudioGraphEditor.ownedPoolKeys(packRoot, STRUCTURE_KEY));
         IOException editFailure = assertThrows(IOException.class,
                 () -> JigsawStudioGraphEditor.createPool(
                         packRoot,
-                        "managed/graph",
-                        "managed/graph/terminal",
+                        STRUCTURE_KEY,
+                        "managed/project/terminal",
                         ""));
 
         assertManagedGuidance(lookupFailure);
         assertManagedGuidance(editFailure);
-        assertFalse(Files.exists(packRoot.resolve("jigsaw-pools/managed/graph/terminal.json")));
+        assertFalse(Files.exists(packRoot.resolve("jigsaw-pools/managed/project/terminal.json")));
     }
 
     @Test
     public void poolEditorRejectsManagedDatapackOwnershipWithoutChangingThePool() throws Exception {
-        Path packRoot = createManagedProject("managed/pool");
-        Path poolPath = packRoot.resolve("jigsaw-pools/managed/pool/start.json");
+        Path packRoot = createManagedProject();
+        Path poolPath = packRoot.resolve("jigsaw-pools/managed/project/start.json");
         byte[] before = Files.readAllBytes(poolPath);
 
         IOException failure = assertThrows(IOException.class,
                 () -> JigsawStudioPoolEditor.updateWeight(
                         packRoot,
-                        "managed/pool",
-                        "managed/pool/start",
-                        "managed/pool/start",
+                        STRUCTURE_KEY,
+                        "managed/project/start",
+                        "managed/project/start",
                         9));
 
         assertManagedGuidance(failure);
@@ -64,14 +87,14 @@ public class JigsawStudioManagedAuthoringGuardTest {
 
     @Test
     public void structureEditorRejectsManagedDatapackOwnershipWithoutChangingRules() throws Exception {
-        Path packRoot = createManagedProject("managed/rules");
-        Path structurePath = packRoot.resolve("structures/managed/rules.json");
+        Path packRoot = createManagedProject();
+        Path structurePath = packRoot.resolve("structures/managed/project.json");
         byte[] before = Files.readAllBytes(structurePath);
 
         IOException failure = assertThrows(IOException.class,
                 () -> JigsawStudioStructureEditor.updateLimits(
                         packRoot,
-                        "managed/rules",
+                        STRUCTURE_KEY,
                         12,
                         6));
 
@@ -81,8 +104,8 @@ public class JigsawStudioManagedAuthoringGuardTest {
 
     @Test
     public void centralAccessRuleMatchesManagedDatapackProvenanceOnly() throws Exception {
-        Path packRoot = createProject("managed/access");
-        StructureOwnershipManifest created = readManifest(packRoot, "managed/access");
+        Path packRoot = createProject();
+        StructureOwnershipManifest created = readManifest(packRoot, STRUCTURE_KEY);
 
         assertTrue(JigsawStudioAuthoringAccess.isEditable(created));
 
@@ -95,36 +118,44 @@ public class JigsawStudioManagedAuthoringGuardTest {
 
     @Test
     public void projectDeletionRejectsManagedDatapackOwnership() throws Exception {
-        Path packRoot = createManagedProject("managed/deletion");
+        Path packRoot = createManagedProject();
 
         IOException failure = assertThrows(
                 IOException.class,
-                () -> JigsawStudioProjectDeletionService.inspect(packRoot, "managed/deletion"));
+                () -> JigsawStudioProjectDeletionService.inspect(packRoot, STRUCTURE_KEY));
 
         assertManagedGuidance(failure);
-        assertTrue(Files.exists(packRoot.resolve("structures/managed/deletion.json")));
+        assertTrue(Files.exists(packRoot.resolve("structures/managed/project.json")));
     }
 
-    private Path createManagedProject(String structureKey) throws Exception {
-        Path packRoot = createProject(structureKey);
-        StructureOwnershipManifest manifest = readManifest(packRoot, structureKey);
+    private Path createManagedProject() throws Exception {
+        Path packRoot = createProject();
+        StructureOwnershipManifest manifest = readManifest(packRoot, STRUCTURE_KEY);
         StructureTransactionWriter writer = new StructureTransactionWriter(packRoot);
         Files.write(
-                writer.ownershipManifestPath(StructureKey.parse(structureKey, "iris")),
+                writer.ownershipManifestPath(StructureKey.parse(STRUCTURE_KEY, "iris")),
                 withManagedProvenance(manifest).toJson());
         return packRoot;
     }
 
-    private Path createProject(String structureKey) throws Exception {
-        Path packRoot = temporaryFolder.newFolder(structureKey.replace('/', '-')).toPath();
-        JigsawStudioProjectCreator.Options options = new JigsawStudioProjectCreator.Options(
-                structureKey,
-                JigsawStudioMode.PLANAR_JIGSAW,
-                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
-                new JigsawStudioCellDimensions(16, 16, 16));
-        StructureWriteResult result = JigsawStudioProjectCreator.create(packRoot, options);
-        assertTrue(result.successful());
+    private Path createProject() throws Exception {
+        Path packRoot = temporaryFolder.newFolder("pack").toPath();
+        copyTree(prototypePackRoot, packRoot);
         return packRoot;
+    }
+
+    private static void copyTree(Path source, Path target) throws IOException {
+        try (Stream<Path> entries = Files.walk(source)) {
+            for (Path entry : entries.toList()) {
+                Path destination = target.resolve(source.relativize(entry).toString());
+                if (Files.isDirectory(entry)) {
+                    Files.createDirectories(destination);
+                } else {
+                    Files.createDirectories(destination.getParent());
+                    Files.copy(entry, destination, StandardCopyOption.COPY_ATTRIBUTES);
+                }
+            }
+        }
     }
 
     private static StructureOwnershipManifest readManifest(

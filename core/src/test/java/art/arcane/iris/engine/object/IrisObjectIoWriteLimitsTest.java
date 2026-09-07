@@ -2,6 +2,7 @@ package art.arcane.iris.engine.object;
 
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.math.IrisBlockVector;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -9,7 +10,6 @@ import org.junit.rules.TemporaryFolder;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Proxy;
 import java.nio.file.Files;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -18,25 +18,18 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class IrisObjectIoWriteLimitsTest {
+    private static IrisObject oversizedPaletteObject;
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
+    @BeforeClass
+    public static void buildSharedObjects() {
+        oversizedPaletteObject = objectWithDistinctStates(32_768);
+    }
+
     private static PlatformBlockState state(String key) {
-        return (PlatformBlockState) Proxy.newProxyInstance(
-                IrisObjectIoWriteLimitsTest.class.getClassLoader(),
-                new Class<?>[]{PlatformBlockState.class},
-                (proxy, method, args) -> switch (method.getName()) {
-                    case "key" -> key;
-                    case "toString" -> key;
-                    case "hashCode" -> key.hashCode();
-                    case "equals" -> proxy == args[0];
-                    default -> switch (method.getReturnType().getName()) {
-                        case "boolean" -> false;
-                        case "int" -> 0;
-                        case "double" -> 0D;
-                        default -> null;
-                    };
-                });
+        return new KeyedBlockState(key);
     }
 
     private static IrisObject objectWithDistinctStates(int paletteSize) {
@@ -60,7 +53,7 @@ public class IrisObjectIoWriteLimitsTest {
 
     @Test
     public void rejectsPaletteOverflowInsteadOfWrappingTheShort() {
-        IrisObject object = objectWithDistinctStates(32_768);
+        IrisObject object = oversizedPaletteObject;
 
         try {
             IrisObjectIO.write(object, new ByteArrayOutputStream());
@@ -103,7 +96,7 @@ public class IrisObjectIoWriteLimitsTest {
         IrisObjectIO.write(valid, file);
         byte[] before = Files.readAllBytes(file.toPath());
 
-        IrisObject oversized = objectWithDistinctStates(32_768);
+        IrisObject oversized = oversizedPaletteObject;
         try {
             IrisObjectIO.write(oversized, file);
             fail("expected the oversized write to be rejected");
@@ -112,5 +105,173 @@ public class IrisObjectIoWriteLimitsTest {
 
         assertArrayEquals("a rejected write must not truncate the previous object", before,
                 Files.readAllBytes(file.toPath()));
+    }
+
+    private static final class KeyedBlockState implements PlatformBlockState {
+        private final String key;
+
+        private KeyedBlockState(String key) {
+            this.key = key;
+        }
+
+        @Override
+        public String key() {
+            return key;
+        }
+
+        @Override
+        public String namespace() {
+            return null;
+        }
+
+        @Override
+        public String materialKey() {
+            return null;
+        }
+
+        @Override
+        public boolean isAir() {
+            return false;
+        }
+
+        @Override
+        public boolean isSolid() {
+            return false;
+        }
+
+        @Override
+        public boolean isOccluding() {
+            return false;
+        }
+
+        @Override
+        public boolean isCustom() {
+            return false;
+        }
+
+        @Override
+        public String deferredPlacementKey() {
+            return null;
+        }
+
+        @Override
+        public PlatformBlockState placementBaseState() {
+            return null;
+        }
+
+        @Override
+        public boolean isFluid() {
+            return false;
+        }
+
+        @Override
+        public boolean isWater() {
+            return false;
+        }
+
+        @Override
+        public boolean isWaterLogged() {
+            return false;
+        }
+
+        @Override
+        public boolean isLit() {
+            return false;
+        }
+
+        @Override
+        public boolean isUpdatable() {
+            return false;
+        }
+
+        @Override
+        public boolean isFoliage() {
+            return false;
+        }
+
+        @Override
+        public boolean isTreeBlock() {
+            return false;
+        }
+
+        @Override
+        public boolean isFoliagePlantable() {
+            return false;
+        }
+
+        @Override
+        public boolean isDecorant() {
+            return false;
+        }
+
+        @Override
+        public boolean isStorage() {
+            return false;
+        }
+
+        @Override
+        public boolean isStorageChest() {
+            return false;
+        }
+
+        @Override
+        public boolean isOre() {
+            return false;
+        }
+
+        @Override
+        public boolean isDeepSlate() {
+            return false;
+        }
+
+        @Override
+        public boolean isVineBlock() {
+            return false;
+        }
+
+        @Override
+        public boolean canPlaceOnto(PlatformBlockState onto) {
+            return false;
+        }
+
+        @Override
+        public boolean matches(PlatformBlockState state) {
+            return false;
+        }
+
+        @Override
+        public boolean isAirOrFluid() {
+            return false;
+        }
+
+        @Override
+        public boolean hasTileEntity() {
+            return false;
+        }
+
+        @Override
+        public PlatformBlockState withProperty(String name, String value) {
+            return null;
+        }
+
+        @Override
+        public Object nativeHandle() {
+            return null;
+        }
+
+        @Override
+        public int hashCode() {
+            return key.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return this == other;
+        }
+
+        @Override
+        public String toString() {
+            return key;
+        }
     }
 }

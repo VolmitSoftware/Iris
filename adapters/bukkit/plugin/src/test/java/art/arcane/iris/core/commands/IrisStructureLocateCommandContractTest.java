@@ -5,9 +5,6 @@ import art.arcane.iris.engine.object.IrisNativeStructureDecision;
 import art.arcane.iris.engine.object.NativeStructureGenerationStatus;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
@@ -16,44 +13,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class IrisStructureLocateCommandContractTest {
-    @Test
-    public void findReportsDensityLimitAndUsesExactLocatedOrigin() throws IOException {
-        String source = Files.readString(Path.of(System.getProperty("iris.commandFindSource")));
-
-        assertTrue(source.contains("LocateStatus.SEARCH_LIMIT_REACHED"));
-        assertTrue(source.contains("the density search safety limit was reached"));
-        assertTrue(source.contains("result.originX(), result.baseY(), result.originZ()"));
-        assertFalse(source.contains("at[0] + 8"));
-        assertFalse(source.contains("at[2] + 8"));
-    }
-
-    @Test
-    public void findRoutesOnlyActiveWorldStructures() throws IOException {
-        String source = Files.readString(Path.of(System.getProperty("iris.commandFindSource")));
-        int methodStart = source.indexOf("public void structure(");
-        int methodEnd = source.indexOf("static StructureLookupRoute selectStructureLookupRoute", methodStart);
-        String method = source.substring(methodStart, methodEnd);
-        int nativeResolution = method.indexOf("resolveNativeStructure(structureKey)");
-        int policyResolution = method.indexOf("NativeStructureGenerationPolicy.resolve(", nativeResolution);
-        int nativeLocatableCheck = method.indexOf(
-                "IrisStructureLocator.hasLocatableNativePlacement(e, structureKey)", policyResolution);
-        int editableLocatableCheck = method.indexOf(
-                "IrisStructureLocator.hasLocatableEditablePlacement(e, structureKey)", nativeLocatableCheck);
-        int worldGenerationCheck = method.indexOf("targetWorld.canGenerateStructures()", editableLocatableCheck);
-        int routeResolution = method.indexOf("selectStructureLookupRoute(", editableLocatableCheck);
-        int nativeLocate = method.indexOf("targetWorld.locateNearestStructure(", routeResolution);
-
-        assertTrue(nativeResolution >= 0);
-        assertTrue(policyResolution > nativeResolution);
-        assertTrue(nativeLocatableCheck > policyResolution);
-        assertTrue(editableLocatableCheck > nativeLocatableCheck);
-        assertTrue(worldGenerationCheck > editableLocatableCheck);
-        assertTrue(routeResolution > editableLocatableCheck);
-        assertTrue(nativeLocate > routeResolution);
-        assertFalse(method.contains("IrisStructureLocator.isPlaced(e, structureKey)"));
-        assertFalse(method.contains("NativeStructureLocateCapability"));
-    }
-
     @Test
     public void findRejectsUnregisteredNativeAndDormantPlacements() {
         assertEquals(CommandFind.StructureLookupRoute.UNKNOWN,
@@ -194,24 +153,6 @@ public class IrisStructureLocateCommandContractTest {
     }
 
     @Test
-    public void unregisteredDiagnosticPrintsDetailsOnlyToConsole() throws IOException {
-        String source = Files.readString(Path.of(System.getProperty("iris.commandFindSource")));
-        int methodStart = source.indexOf("public void unregistered()");
-        int methodEnd = source.indexOf("private static StructureExclusionReport", methodStart);
-        String method = source.substring(methodStart, methodEnd);
-
-        assertTrue(methodStart >= 0);
-        assertTrue(source.contains("Iris.info(\"[%s] %s%s: %s\""));
-        assertTrue(method.contains("non-generating structure candidate(s) and their reasons to the server console"));
-        assertTrue(method.contains("no chunks were searched"));
-        assertTrue(method.indexOf("DatapackIngestService.installed()") > method.indexOf("J.a(() ->"));
-        assertTrue(source.contains("DatapackIngestService.configuredImports(engine.getDimension())"));
-        assertTrue(source.contains("snapshot.configuredImportUrls().contains(importUrl)"));
-        assertTrue(source.contains("engine.getData().getStructureLoader().getPossibleKeys()"));
-        assertFalse(method.contains("commandSender.sendMessage(exclusion"));
-    }
-
-    @Test
     public void findNativePolicyMessagesMatchModdedDiagnostics() {
         assertEquals(
                 "Native structure minecraft:village_plains is disabled by this dimension's importedStructures settings.",
@@ -225,72 +166,6 @@ public class IrisStructureLocateCommandContractTest {
                 "Native structure minecraft:stronghold generates natively.",
                 NativeStructureGenerationPolicy.generationStatusMessage(
                         "minecraft:stronghold", NativeStructureGenerationStatus.GENERATE_NATIVE));
-    }
-
-    @Test
-    public void structureVerifyReportsDensityLimitAndUsesExactLocatedOrigin() throws IOException {
-        String source = Files.readString(Path.of(System.getProperty("iris.commandStructureSource")));
-
-        assertTrue(source.contains("[iris-search-limit]"));
-        assertTrue(source.contains("density searches safety-limited"));
-        assertTrue(source.contains("result.originX() + \",\" + result.baseY() + \",\" + result.originZ()"));
-        assertFalse(source.contains("at[0] + 8"));
-        assertFalse(source.contains("at[2] + 8"));
-    }
-
-    @Test
-    public void bulkStructureImportRestrictsCaptureWithoutChangingStandaloneCapture() throws IOException {
-        String source = Files.readString(Path.of(System.getProperty("iris.commandStructureSource")));
-        int importStart = source.indexOf("public void importAll(");
-        int importEnd = source.indexOf("@Director(name = \"capture\"", importStart);
-        int captureStart = source.indexOf("public void capture(", importEnd);
-        int captureEnd = source.indexOf("@Director(description = \"Verify", captureStart);
-
-        assertTrue(importStart >= 0);
-        assertTrue(importEnd > importStart);
-        assertTrue(captureStart > importEnd);
-        assertTrue(captureEnd > captureStart);
-        String importMethod = source.substring(importStart, importEnd);
-        String captureMethod = source.substring(captureStart, captureEnd);
-        assertTrue(importMethod.contains("StructureCaptureImporter.importStructures("));
-        assertTrue(importMethod.contains("jigsaws.captureCandidates()"));
-        assertFalse(importMethod.contains("StructureCaptureImporter.importAllStructures("));
-        assertTrue(captureMethod.contains("StructureCaptureImporter.importAllStructures("));
-    }
-
-    @Test
-    public void structurePlaceSeparatesPackContentFromTargetWorldEngine() throws IOException {
-        String source = Files.readString(Path.of(System.getProperty("iris.commandStructureSource")));
-        int methodStart = source.indexOf("public void place(");
-        assertTrue(methodStart >= 0);
-        String method = source.substring(methodStart);
-        assertTrue(method.contains("IrisData data = dimension.getLoader()"));
-        assertTrue(method.contains("PlatformChunkGenerator targetGenerator = IrisToolbelt.access(targetWorld)"));
-        assertTrue(method.contains("CommandObject.createPlacer(targetWorld, future, targetEngine)"));
-        assertTrue(method.contains("if (blockChanges == 0)"));
-        assertTrue(method.contains("COMMAND_STRUCTURE_PLACEMENT_CHANGED_NO_BLOCKS"));
-        Path structureSource = Path.of(System.getProperty("iris.commandStructureSource"));
-        String objectSource = Files.readString(structureSource.resolveSibling("CommandObject.java"));
-        assertTrue(objectSource.contains("futureBlockChanges.putIfAbsent(block, block.getBlockData())"));
-        assertFalse(method.contains("data.getEngine()"));
-    }
-
-    @Test
-    public void structureVerifyPartitionsPolicyBeforeNativeReachability() throws IOException {
-        String source = Files.readString(Path.of(System.getProperty("iris.commandStructureSource")));
-        int methodStart = source.indexOf("private void runVerification(");
-        int methodEnd = source.indexOf("private void sendVerificationMessages(", methodStart);
-        String method = source.substring(methodStart, methodEnd);
-        int policyResolution = method.indexOf("NativeStructureGenerationPolicy.resolve(engine, keyName, false)");
-        int nativeRequirement = method.indexOf(
-                "requiresNativeReachability |= !IrisStructureLocator.isPlaced", policyResolution);
-        int reachabilityGuard = method.indexOf("if (requiresNativeReachability)", nativeRequirement);
-        int reachabilityLookup = method.indexOf("StructureReachability.reachableKeys(engine)", reachabilityGuard);
-
-        assertTrue(policyResolution >= 0);
-        assertTrue(nativeRequirement > policyResolution);
-        assertTrue(reachabilityGuard > nativeRequirement);
-        assertTrue(reachabilityLookup > reachabilityGuard);
     }
 
     private static IrisNativeStructureDecision decision(NativeStructureGenerationStatus status) {

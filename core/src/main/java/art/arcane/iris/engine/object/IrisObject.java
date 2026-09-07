@@ -25,6 +25,8 @@ import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.common.data.VectorMap;
@@ -68,11 +70,54 @@ import java.util.function.BiConsumer;
 public class IrisObject extends IrisRegistrant {
     protected static final IrisVector HALF = new IrisVector(0.5, 0.5, 0.5);
     static final class States {
-        static final PlatformBlockState AIR = B.getState("CAVE_AIR");
-        static final PlatformBlockState STONE = B.getState("STONE");
-        static final PlatformBlockState VAIR = B.getState("VOID_AIR");
-        static final PlatformBlockState VAIR_DEBUG = B.getState("COBWEB");
-        static final PlatformBlockState[] SNOW_LAYERS = new PlatformBlockState[]{B.getState("minecraft:snow[layers=1]"), B.getState("minecraft:snow[layers=2]"), B.getState("minecraft:snow[layers=3]"), B.getState("minecraft:snow[layers=4]"), B.getState("minecraft:snow[layers=5]"), B.getState("minecraft:snow[layers=6]"), B.getState("minecraft:snow[layers=7]"), B.getState("minecraft:snow[layers=8]")};
+        private static volatile Bound bound;
+
+        private record Bound(
+                IrisPlatform platform,
+                PlatformBlockState air,
+                PlatformBlockState stone,
+                PlatformBlockState vair,
+                PlatformBlockState vairDebug,
+                PlatformBlockState[] snowLayers) {
+        }
+
+        private static Bound bound() {
+            IrisPlatform platform = IrisPlatforms.get();
+            Bound current = bound;
+            if (current != null && current.platform() == platform) {
+                return current;
+            }
+
+            Bound resolved = new Bound(
+                    platform,
+                    B.getState("CAVE_AIR"),
+                    B.getState("STONE"),
+                    B.getState("VOID_AIR"),
+                    B.getState("COBWEB"),
+                    new PlatformBlockState[]{B.getState("minecraft:snow[layers=1]"), B.getState("minecraft:snow[layers=2]"), B.getState("minecraft:snow[layers=3]"), B.getState("minecraft:snow[layers=4]"), B.getState("minecraft:snow[layers=5]"), B.getState("minecraft:snow[layers=6]"), B.getState("minecraft:snow[layers=7]"), B.getState("minecraft:snow[layers=8]")});
+            bound = resolved;
+            return resolved;
+        }
+
+        static PlatformBlockState air() {
+            return bound().air();
+        }
+
+        static PlatformBlockState stone() {
+            return bound().stone();
+        }
+
+        static PlatformBlockState vair() {
+            return bound().vair();
+        }
+
+        static PlatformBlockState vairDebug() {
+            return bound().vairDebug();
+        }
+
+        static PlatformBlockState snowLayer(int layerIndex) {
+            return bound().snowLayers()[layerIndex];
+        }
     }
     protected transient final Lock readLock;
     protected transient final Lock writeLock;
@@ -354,7 +399,7 @@ public class IrisObject extends IrisRegistrant {
         readLock.lock();
         try {
             for (IrisBlockVector i : blocks.keys()) {
-                at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i.getX(), i.getY(), i.getZ()).getBlock().setBlockData((BlockData) States.AIR.nativeHandle(), false);
+                at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i.getX(), i.getY(), i.getZ()).getBlock().setBlockData((BlockData) States.air().nativeHandle(), false);
             }
         } finally {
             readLock.unlock();

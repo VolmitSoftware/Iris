@@ -12,9 +12,6 @@ import java.util.Map;
 import java.util.Random;
 
 import static org.junit.Assert.assertSame;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.withSettings;
-import static org.mockito.Mockito.when;
 
 public class IrisObjectTransformsNearestBlockIndexTest {
     @Test
@@ -22,7 +19,7 @@ public class IrisObjectTransformsNearestBlockIndexTest {
         VectorMap<PlatformBlockState> blocks = new VectorMap<>();
         Random random = new Random(812734L);
         for (int i = 0; i < 120; i++) {
-            PlatformBlockState state = mock(PlatformBlockState.class, withSettings().stubOnly());
+            PlatformBlockState state = new SolidBlockState(false);
             blocks.put(new IrisBlockVector(
                     random.nextInt(25) - 12,
                     random.nextInt(25) - 12,
@@ -30,8 +27,7 @@ public class IrisObjectTransformsNearestBlockIndexTest {
             ), state);
         }
 
-        PlatformBlockState explicitAir = mock(PlatformBlockState.class, withSettings().stubOnly());
-        when(explicitAir.isAir()).thenReturn(true);
+        PlatformBlockState explicitAir = new SolidBlockState(true);
         blocks.put(new IrisBlockVector(0, 0, 0), explicitAir);
         IrisObjectTransforms.NearestBlockIndex index = IrisObjectTransforms.NearestBlockIndex.create(blocks);
         List<Map.Entry<IrisBlockVector, PlatformBlockState>> candidates = new ArrayList<>();
@@ -55,8 +51,7 @@ public class IrisObjectTransformsNearestBlockIndexTest {
     @Test
     public void emptyIndexRetainsMissingAndExplicitAirFallbacks() {
         VectorMap<PlatformBlockState> blocks = new VectorMap<>();
-        PlatformBlockState explicitAir = mock(PlatformBlockState.class, withSettings().stubOnly());
-        when(explicitAir.isAir()).thenReturn(true);
+        PlatformBlockState explicitAir = new SolidBlockState(true);
         blocks.put(new IrisBlockVector(1, 2, 3), explicitAir);
         IrisObjectTransforms.NearestBlockIndex index = IrisObjectTransforms.NearestBlockIndex.create(blocks);
 
@@ -88,5 +83,158 @@ public class IrisObjectTransformsNearestBlockIndexTest {
             }
         }
         return result;
+    }
+
+    private static final class SolidBlockState implements PlatformBlockState {
+        private final boolean air;
+
+        private SolidBlockState(boolean air) {
+            this.air = air;
+        }
+
+        @Override
+        public String key() {
+            return null;
+        }
+
+        @Override
+        public String namespace() {
+            return null;
+        }
+
+        @Override
+        public String materialKey() {
+            return null;
+        }
+
+        @Override
+        public boolean isAir() {
+            return air;
+        }
+
+        @Override
+        public boolean isSolid() {
+            return false;
+        }
+
+        @Override
+        public boolean isOccluding() {
+            return false;
+        }
+
+        @Override
+        public boolean isCustom() {
+            return false;
+        }
+
+        @Override
+        public String deferredPlacementKey() {
+            return null;
+        }
+
+        @Override
+        public PlatformBlockState placementBaseState() {
+            return null;
+        }
+
+        @Override
+        public boolean isFluid() {
+            return false;
+        }
+
+        @Override
+        public boolean isWater() {
+            return false;
+        }
+
+        @Override
+        public boolean isWaterLogged() {
+            return false;
+        }
+
+        @Override
+        public boolean isLit() {
+            return false;
+        }
+
+        @Override
+        public boolean isUpdatable() {
+            return false;
+        }
+
+        @Override
+        public boolean isFoliage() {
+            return false;
+        }
+
+        @Override
+        public boolean isTreeBlock() {
+            return false;
+        }
+
+        @Override
+        public boolean isFoliagePlantable() {
+            return false;
+        }
+
+        @Override
+        public boolean isDecorant() {
+            return false;
+        }
+
+        @Override
+        public boolean isStorage() {
+            return false;
+        }
+
+        @Override
+        public boolean isStorageChest() {
+            return false;
+        }
+
+        @Override
+        public boolean isOre() {
+            return false;
+        }
+
+        @Override
+        public boolean isDeepSlate() {
+            return false;
+        }
+
+        @Override
+        public boolean isVineBlock() {
+            return false;
+        }
+
+        @Override
+        public boolean canPlaceOnto(PlatformBlockState onto) {
+            return false;
+        }
+
+        @Override
+        public boolean matches(PlatformBlockState state) {
+            return false;
+        }
+
+        @Override
+        public boolean isAirOrFluid() {
+            return false;
+        }
+
+        @Override
+        public boolean hasTileEntity() {
+            return false;
+        }
+
+        @Override
+        public PlatformBlockState withProperty(String name, String value) {
+            return null;
+        }
+
+        @Override
+        public Object nativeHandle() {
+            return null;
+        }
     }
 }

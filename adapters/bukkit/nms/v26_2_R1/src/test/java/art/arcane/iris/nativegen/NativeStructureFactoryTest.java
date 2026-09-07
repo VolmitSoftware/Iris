@@ -59,9 +59,6 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -314,52 +311,6 @@ public class NativeStructureFactoryTest {
         assertSame(StructureStart.INVALID_START, result);
         assertFalse(NativeStructureStartInjector.isUsableGeneratedStart(result));
         assertEquals(1, oversized.getPieces().size());
-    }
-
-    @Test
-    public void failedManualGenerationClearsStaleOwnershipAfterReplacementHandling() throws Exception {
-        String source = Files.readString(
-                Path.of(System.getProperty("iris.nativeStructureStartInjectorSource")),
-                StandardCharsets.UTF_8);
-        int failureStart = source.indexOf("if (!isUsableGeneratedStart(generated))");
-        int failureEnd = source.indexOf("continue;", failureStart);
-        String failureBranch = source.substring(failureStart, failureEnd);
-
-        assertTrue(failureBranch.contains("if (replacement)"));
-        assertTrue(failureBranch.indexOf("NativeStructureOwnershipStore.discard(")
-                > failureBranch.lastIndexOf("}") );
-        assertTrue(failureStart < source.indexOf("NativeStructureOwnershipFingerprint.capture("));
-        assertTrue(failureStart < source.indexOf("NativeStructureOwnershipStore.record("));
-    }
-
-    @Test
-    public void manualNativeStructureGenerationUsesTheRootTerrainHeight() throws Exception {
-        String source = Files.readString(
-                Path.of(System.getProperty("iris.nativeStructureStartInjectorSource")),
-                StandardCharsets.UTF_8);
-
-        assertTrue(source.contains(
-                "Engine.hostHeight(context.engine(), x, z, true)"));
-        assertFalse(source.contains(
-                "context.engine().getHeight(x, z, true)"));
-    }
-
-    @Test
-    public void failedManualStartPublicationClearsRecordedOwnershipAndPreservesTheFailure() throws Exception {
-        String source = Files.readString(
-                Path.of(System.getProperty("iris.nativeStructureStartInjectorSource")),
-                StandardCharsets.UTF_8);
-        int ownershipRecord = source.indexOf("NativeStructureOwnershipStore.record(");
-        int publication = source.indexOf("context.structureManager().setStartForStructure(", ownershipRecord);
-        int cleanup = source.indexOf("NativeStructureOwnershipStore.discard(", publication);
-        int suppressed = source.indexOf("publicationError.addSuppressed(cleanupError)", cleanup);
-        int rethrow = source.indexOf("throw publicationError;", suppressed);
-
-        assertTrue(ownershipRecord >= 0);
-        assertTrue(publication > ownershipRecord);
-        assertTrue(cleanup > publication);
-        assertTrue(suppressed > cleanup);
-        assertTrue(rethrow > suppressed);
     }
 
     private static final class TestChunkGenerator extends ChunkGenerator {

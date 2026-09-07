@@ -12,6 +12,8 @@ import art.arcane.iris.engine.history.GenerationHistory;
 import art.arcane.iris.engine.history.GenerationPackFingerprint;
 import art.arcane.iris.engine.history.GenerationRegistryContract;
 import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -19,8 +21,10 @@ import org.junit.rules.TemporaryFolder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -31,14 +35,26 @@ public class WorldReplacementBootstrapTest {
     private static final WorldSlotKey WORLD_KEY = WorldSlotKey.minecraft("the_nether");
     private static final long SEED = 4242424242L;
 
+    @ClassRule
+    public static final TemporaryFolder prototypeFolder = new TemporaryFolder();
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    private static Path underworldStagePrototype;
 
     private Path serverRoot;
     private Path dataDirectory;
     private Path levelRoot;
     private Path bukkitConfiguration;
     private ExactWorldSlotPathPolicy.Target target;
+
+    @BeforeClass
+    public static void createStagePrototype() throws Exception {
+        Path base = prototypeFolder.newFolder("underworld-stage").toPath();
+        underworldStagePrototype = base.resolve("stage");
+        createStagedHistory(underworldStagePrototype, "underworld", "replacement", SEED);
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -489,7 +505,7 @@ public class WorldReplacementBootstrapTest {
         if (originalPresent) {
             writeOriginalTarget(paths, originalContent);
         }
-        Path pack = createStagedHistory(paths.stage(), "underworld", "replacement", SEED);
+        Path pack = copyUnderworldStage(paths.stage());
         String fingerprint = WorldReplacementFilesystem.fingerprintPack(pack);
         Transaction transaction = new Transaction(
                 id,
@@ -561,7 +577,27 @@ public class WorldReplacementBootstrapTest {
         return Files.readString(activePackRoot(worldDirectory).resolve("dimensions/underworld.json"));
     }
 
-    private Path createStagedHistory(Path world, String dimensionKey, String content, long seed)
+    private static Path copyUnderworldStage(Path world) throws Exception {
+        Path source = world.resolveSibling(world.getFileName() + ".underworld.pack-source");
+        Path dimension = source.resolve("dimensions/underworld.json");
+        Files.createDirectories(dimension.getParent());
+        Files.writeString(dimension, "replacement");
+        try (Stream<Path> entries = Files.walk(underworldStagePrototype)) {
+            for (Path entry : entries.toList()) {
+                Path destination = world.resolve(
+                        underworldStagePrototype.relativize(entry).toString());
+                if (Files.isDirectory(entry)) {
+                    Files.createDirectories(destination);
+                } else {
+                    Files.createDirectories(destination.getParent());
+                    Files.copy(entry, destination, StandardCopyOption.COPY_ATTRIBUTES);
+                }
+            }
+        }
+        return activePackRoot(world);
+    }
+
+    private static Path createStagedHistory(Path world, String dimensionKey, String content, long seed)
             throws Exception {
         Path source = world.resolveSibling(world.getFileName() + "." + dimensionKey + ".pack-source");
         Path dimension = source.resolve("dimensions").resolve(dimensionKey + ".json");

@@ -54,7 +54,7 @@ final class IrisObjectShaping {
 
     private static void ensureSmartBoredLocked(IrisObject self) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        PlatformBlockState vair = IrisObject.States.VAIR;
+        PlatformBlockState vair = IrisObject.States.vair();
         int applied = 0;
         IrisBlockVector max = new IrisBlockVector(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
         IrisBlockVector min = new IrisBlockVector(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);

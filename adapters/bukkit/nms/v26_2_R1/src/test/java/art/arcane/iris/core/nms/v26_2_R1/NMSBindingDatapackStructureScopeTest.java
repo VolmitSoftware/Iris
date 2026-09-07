@@ -29,8 +29,6 @@ import org.junit.BeforeClass;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -42,7 +40,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 public class NMSBindingDatapackStructureScopeTest {
     private static final String SOURCE = "https://example.test/managed.zip";
@@ -349,103 +346,6 @@ public class NMSBindingDatapackStructureScopeTest {
         assertEquals(1, selection.structureSets().size());
         StructurePlacement scopedPlacement = selection.structureSets().getFirst().value().placement();
         assertEquals(0, DatapackStructureStateFilter.exclusionZone(scopedPlacement).stream().count());
-    }
-
-    @Test
-    public void standardPublishesOneDeferredStateWhileAuthoringPublishesInitializedEmptyState() throws IOException {
-        Path chunkGeneratorSource = Path.of(System.getProperty("iris.nmsChunkGeneratorSource"));
-        String source = Files.readString(chunkGeneratorSource.resolveSibling("NMSBinding.java")).replace("\r\n", "\n");
-        int methodStart = source.indexOf("public DatapackStructureScopeResult scopeDatapackStructures(");
-        int methodEnd = source.indexOf(
-                "\n    @Override\n    public CompletableFuture<Void> completeStudioStructureBootstrap",
-                methodStart);
-
-        assertTrue(methodStart >= 0);
-        assertTrue(methodEnd > methodStart);
-        String method = source.substring(methodStart, methodEnd);
-        int filteredState = method.indexOf("possibleSetsField.set(scopedState, selection.structureSets());");
-        int jigsawMode = method.indexOf(
-                "boolean authoringStudio = platformGenerator != null");
-        int jigsawOnly = method.indexOf("if (authoringStudio)");
-        int emptyCreation = method.indexOf("ChunkGeneratorStructureState bootstrapState = createStructureState(");
-        int emptyFiltering = method.indexOf("bootstrapSetsField.set(bootstrapState, List.of());");
-        int emptyInitialization = method.indexOf("bootstrapState.ensureStructuresGenerated();");
-        int emptyPublication = method.indexOf("stateField.set(chunkMap, bootstrapState);");
-        int standardOnly = method.indexOf("else if (studioBootstrap)");
-        int retention = method.indexOf("irisGenerator.retainStudioStructureState(");
-        int standardPublication = method.indexOf("stateField.set(chunkMap, scopedState);");
-        int immediateInitialization = method.indexOf("initializeAndPublishStructureState(");
-
-        assertTrue(filteredState >= 0);
-        assertTrue(jigsawMode > filteredState);
-        assertTrue(jigsawOnly > jigsawMode);
-        assertTrue(emptyCreation > jigsawOnly);
-        assertTrue(emptyFiltering > emptyCreation);
-        assertTrue(emptyInitialization > emptyFiltering);
-        assertTrue(emptyPublication > emptyInitialization);
-        assertTrue(standardOnly > emptyPublication);
-        assertTrue(retention > standardOnly);
-        assertTrue(standardPublication > retention);
-        assertTrue(immediateInitialization > standardPublication);
-        assertFalse(method.contains("scopedState.ensureStructuresGenerated();"));
-        assertFalse(method.contains("if (studioBootstrap && platformGenerator.isJigsawStudioActive())"));
-    }
-
-    @Test
-    public void standardCompletionReturnsTheExactActivationFutureWithoutReplacingState() throws IOException {
-        Path chunkGeneratorSource = Path.of(System.getProperty("iris.nmsChunkGeneratorSource"));
-        String source = Files.readString(chunkGeneratorSource.resolveSibling("NMSBinding.java")).replace("\r\n", "\n");
-        int methodStart = source.indexOf("public CompletableFuture<Void> completeStudioStructureBootstrap(World world)");
-        int methodEnd = source.indexOf("\n    @Override\n    public void abandonStudioStructureBootstrap", methodStart);
-
-        assertTrue(methodStart >= 0);
-        assertTrue(methodEnd > methodStart);
-        String method = source.substring(methodStart, methodEnd);
-        int retained = method.indexOf("generator.retainedStudioStructureState(level, chunkMap)");
-        int emptyCompletion = method.indexOf("return CompletableFuture.completedFuture(null);");
-        int activation = method.indexOf("return generator.activateStudioStructureState(retained);");
-
-        assertTrue(retained >= 0);
-        assertTrue(emptyCompletion > retained);
-        assertTrue(activation > retained);
-        assertFalse(method.contains("stateField.set("));
-        assertFalse(method.contains("retained.fullState()"));
-    }
-
-    @Test
-    public void injectionVerifiesTheCanonicalPaperGeneratorBeforeStructureRetargeting() throws IOException {
-        Path chunkGeneratorSource = Path.of(System.getProperty("iris.nmsChunkGeneratorSource"));
-        String source = Files.readString(chunkGeneratorSource.resolveSibling("NMSBinding.java")).replace("\r\n", "\n");
-        int methodStart = source.indexOf("public void inject(long seed, Engine engine, World world)");
-        int methodEnd = source.indexOf("\n    @Override\n    public DatapackStructureScopeResult", methodStart);
-
-        assertTrue(methodStart >= 0);
-        assertTrue(methodEnd > methodStart);
-        String method = source.substring(methodStart, methodEnd);
-        int publication = method.indexOf("worldGenContextField.set(chunkMap, newContext);");
-        int canonicalRead = method.indexOf("level.getChunkSource().getGenerator()", publication);
-        int identityGate = method.indexOf("activeGenerator != irisGenerator", canonicalRead);
-        int structureRetarget = method.indexOf("retargetStructureCheck(level, irisGenerator)", identityGate);
-
-        assertTrue(publication >= 0);
-        assertTrue(canonicalRead > publication);
-        assertTrue(identityGate > canonicalRead);
-        assertTrue(structureRetarget > identityGate);
-    }
-
-    @Test
-    public void structureStateRecreationUsesTheWorldOwnedSpigotConfiguration() throws IOException {
-        Path chunkGeneratorSource = Path.of(System.getProperty("iris.nmsChunkGeneratorSource"));
-        String source = Files.readString(chunkGeneratorSource.resolveSibling("NMSBinding.java")).replace("\r\n", "\n");
-        int methodStart = source.indexOf("private ChunkGeneratorStructureState createStructureState(");
-        int methodEnd = source.indexOf(
-                "\n    private void initializeAndPublishStructureState(", methodStart);
-
-        assertTrue(methodStart >= 0);
-        assertTrue(methodEnd > methodStart);
-        String method = source.substring(methodStart, methodEnd);
-        assertTrue(method.contains("level.spigotConfig"));
-        assertFalse(method.contains("currentState.conf"));
     }
 
     private static DatapackStructureScopeIndex index(

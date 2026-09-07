@@ -6,6 +6,8 @@ import art.arcane.iris.engine.history.GenerationHistory;
 import art.arcane.iris.engine.history.GenerationPackFingerprint;
 import art.arcane.iris.engine.history.GenerationRegistryContract;
 import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -16,6 +18,7 @@ import java.net.UnixDomainSocketAddress;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -30,8 +33,20 @@ public class WorldReplacementFilesystemTest {
     private static final UUID TRANSACTION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final UUID OTHER_TRANSACTION_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
+    @ClassRule
+    public static final TemporaryFolder prototypeFolder = new TemporaryFolder();
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    private static StagePrototype replacementStage;
+    private static StagePrototype originalStage;
+
+    @BeforeClass
+    public static void createStagePrototypes() throws Exception {
+        replacementStage = createStagePrototype("replacement");
+        originalStage = createStagePrototype("original-stage");
+    }
 
     @Test
     public void publishesReplacementAndRetainsOriginalBackup() throws Exception {
@@ -501,20 +516,59 @@ public class WorldReplacementFilesystemTest {
         Path contentFile = source.resolve("dimensions/underworld.json");
         Files.createDirectories(contentFile.getParent());
         Files.writeString(contentFile, content);
+        StagePrototype prototype = stagePrototype(content);
+        copyTree(prototype.stage(), paths.stage());
+        return prototype.fingerprint();
+    }
+
+    private static StagePrototype stagePrototype(String content) {
+        if ("replacement".equals(content)) {
+            return replacementStage;
+        }
+        if ("original-stage".equals(content)) {
+            return originalStage;
+        }
+        throw new AssertionError("No staged generation history prototype for " + content);
+    }
+
+    private static StagePrototype createStagePrototype(String content) throws Exception {
+        Path base = prototypeFolder.newFolder("stage-" + content).toPath();
+        Path source = base.resolve("pack-source");
+        Path contentFile = source.resolve("dimensions/underworld.json");
+        Files.createDirectories(contentFile.getParent());
+        Files.writeString(contentFile, content);
         String generationFingerprint = GenerationPackFingerprint.compute(
                 source,
                 GenerationPackFingerprint.CURRENT_VERSION
         );
-        Files.createDirectory(paths.stage());
+        Path stage = base.resolve("stage");
+        Files.createDirectory(stage);
         GenerationHistory history = GenerationHistory.create(
-                paths.stage(),
+                stage,
                 source,
                 generationFingerprint,
                 42L,
                 generationContract("underworld"),
                 GenerationRegistryContract.empty()
         );
-        return WorldReplacementFilesystem.fingerprintPack(history.activePackRoot());
+        return new StagePrototype(stage, WorldReplacementFilesystem.fingerprintPack(history.activePackRoot()));
+    }
+
+    private static void copyTree(Path source, Path target) throws IOException {
+        try (Stream<Path> entries = Files.walk(source)) {
+            for (Path entry : entries.toList()) {
+                Path destination = target.resolve(source.relativize(entry).toString());
+                if (Files.isDirectory(entry)) {
+                    Files.createDirectories(destination);
+                } else {
+                    Files.createDirectories(destination.getParent());
+                    Files.copy(entry, destination, StandardCopyOption.COPY_ATTRIBUTES);
+                }
+            }
+        }
+    }
+
+    private record StagePrototype(Path stage, String fingerprint) {
     }
 
     private void writeOriginalTarget(WorldReplacementFilesystem.ReplacementPaths paths, String content) throws Exception {

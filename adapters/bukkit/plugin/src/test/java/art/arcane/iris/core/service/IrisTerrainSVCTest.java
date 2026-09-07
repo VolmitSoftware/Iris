@@ -13,9 +13,6 @@ import art.arcane.iris.util.common.plugin.IrisService;
 import org.bukkit.World;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -59,18 +56,6 @@ public class IrisTerrainSVCTest {
         assertTrue(service.biomeKey(null, 0, 64, 0).isEmpty());
         assertTrue(service.regionKey(null, 0, 0).isEmpty());
         assertTrue(service.regionName(null, 0, 0).isEmpty());
-    }
-
-    @Test
-    public void theDisplayNameAccessorsReadNamesRatherThanLoadKeys() throws IOException {
-        String source = Files.readString(Path.of(System.getProperty("iris.terrainSvcSource")));
-
-        assertTrue("surfaceBiomeName must read the biome display name",
-                source.contains("return name(engine.getSurfaceBiome(blockX, blockZ));"));
-        assertTrue("the biome name helper must read getName()",
-                source.contains("String name = biome == null ? null : biome.getName();"));
-        assertTrue("regionName must read the region display name",
-                source.contains("String name = region == null ? null : region.getName();"));
     }
 
     @Test

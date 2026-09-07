@@ -65,14 +65,7 @@ public class ObjectStudioGeometryTest {
         RegistryAccess access = mock(RegistryAccess.class, invocation -> {
             if (invocation.getMethod().getName().equals("getRegistry")) {
                 if (registered.get() == null) {
-                    Registry<Biome> biomes = mock(Registry.class, lookup -> {
-                        if (lookup.getMethod().getName().equals("getOrThrow")) {
-                            Key key = lookup.getArgument(0);
-                            return biome(key);
-                        }
-                        return RETURNS_DEFAULTS.answer(lookup);
-                    });
-                    registered.set(biomes);
+                    registered.set(biomeRegistry());
                 }
                 return registered.get();
             }
@@ -88,8 +81,26 @@ public class ObjectStudioGeometryTest {
              MockedStatic<InternalAPIBridge> internals = mockStatic(InternalAPIBridge.class)) {
             registries.when(RegistryAccess::registryAccess).thenReturn(access);
             internals.when(InternalAPIBridge::get).thenReturn(bridge);
-            Class.forName(ObjectStudioGenerator.class.getName(), true, ObjectStudioGenerator.class.getClassLoader());
+            ClassLoader loader = ObjectStudioGenerator.class.getClassLoader();
+            Class.forName(Registry.class.getName(), true, loader);
+            Class.forName(Biome.class.getName(), true, loader);
+            Class.forName(ObjectStudioGenerator.class.getName(), true, loader);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Registry<Biome> biomeRegistry() {
+        return (Registry<Biome>) Proxy.newProxyInstance(Registry.class.getClassLoader(),
+                new Class<?>[]{Registry.class},
+                (proxy, method, arguments) -> switch (method.getName()) {
+                    case "getOrThrow" -> biome((Key) arguments[0]);
+                    case "hashCode" -> System.identityHashCode(proxy);
+                    case "equals" -> proxy == arguments[0];
+                    case "toString" -> "iris-object-studio-biome-registry";
+                    case "size" -> 0;
+                    case "hasTag" -> false;
+                    default -> null;
+                });
     }
 
     @Test

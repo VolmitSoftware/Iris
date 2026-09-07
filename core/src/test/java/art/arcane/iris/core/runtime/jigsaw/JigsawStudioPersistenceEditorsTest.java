@@ -16,6 +16,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -24,10 +26,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -36,26 +40,55 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class JigsawStudioPersistenceEditorsTest {
+    private static final String PLANAR_KEY = "studio/planar";
+    private static final String SPATIAL_KEY = "studio/spatial";
+
+    @ClassRule
+    public static final TemporaryFolder prototypeFolder = new TemporaryFolder();
+
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    private static Path planarPrototype;
+    private static Path spatialPrototype;
+
+    @BeforeClass
+    public static void createPrototypeProjects() throws Exception {
+        planarPrototype = prototypeFolder.newFolder("planar-prototype").toPath();
+        assertTrue(JigsawStudioProjectCreator.create(
+                planarPrototype,
+                new JigsawStudioProjectCreator.Options(
+                        PLANAR_KEY,
+                        JigsawStudioMode.PLANAR_JIGSAW,
+                        JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
+                        new JigsawStudioCellDimensions(16, 16, 16))).successful());
+        spatialPrototype = prototypeFolder.newFolder("spatial-prototype").toPath();
+        assertTrue(JigsawStudioProjectCreator.create(
+                spatialPrototype,
+                new JigsawStudioProjectCreator.Options(
+                        SPATIAL_KEY,
+                        JigsawStudioMode.SPATIAL_JIGSAW,
+                        JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
+                        new JigsawStudioCellDimensions(16, 16, 16))).successful());
+    }
+
     @Test
     public void createsCoherentThemeSetAndAppliesAtomicMetadataEditors() throws Exception {
-        Path packRoot = createPlanarProject("theme/test");
+        Path packRoot = createPlanarProject();
 
         JigsawStudioPoolEditor.WeightUpdate weight = JigsawStudioPoolEditor.updateWeightAtIndex(
                 packRoot,
-                "theme/test",
-                "theme/test/pieces",
+                "studio/planar",
+                "studio/planar/pieces",
                 0,
-                "theme/test/end",
+                "studio/planar/end",
                 4);
         JigsawStudioPoolEditor.ChanceUpdate chance = JigsawStudioPoolEditor.updateChanceAtIndex(
                 packRoot,
-                "theme/test",
-                "theme/test/pieces",
+                "studio/planar",
+                "studio/planar/pieces",
                 0,
-                "theme/test/end",
+                "studio/planar/end",
                 0.35D);
 
         assertTrue(weight.changed());
@@ -63,60 +96,60 @@ public class JigsawStudioPersistenceEditorsTest {
 
         JigsawStudioGraphEditor.VariantFamilyCreation creation = JigsawStudioGraphEditor.duplicateActiveFamily(
                 packRoot,
-                "theme/test",
-                planarSources("theme/test"),
+                "studio/planar",
+                planarSources("studio/planar"),
                 "variant-2");
 
         assertTrue(creation.writeResult().successful());
         assertEquals(6, creation.pieceKeysByWorkcell().size());
         assertEquals(
-                "theme/test/variants/end/variant-2",
+                "studio/planar/variants/end/variant-2",
                 creation.pieceKeysByWorkcell().get(JigsawPlanarArchetype.END.stableId()));
-        JsonObject piecePool = readJson(packRoot.resolve("jigsaw-pools/theme/test/pieces.json"));
+        JsonObject piecePool = readJson(packRoot.resolve("jigsaw-pools/studio/planar/pieces.json"));
         JsonArray entries = piecePool.getAsJsonArray("pieces");
-        assertEquals("theme/test/end", entries.get(0).getAsJsonObject().get("piece").getAsString());
-        assertEquals("theme/test/variants/end/variant-2",
+        assertEquals("studio/planar/end", entries.get(0).getAsJsonObject().get("piece").getAsString());
+        assertEquals("studio/planar/variants/end/variant-2",
                 entries.get(1).getAsJsonObject().get("piece").getAsString());
         assertEquals(4, entries.get(1).getAsJsonObject().get("weight").getAsInt());
         assertEquals(0.35D, entries.get(1).getAsJsonObject().get("chance").getAsDouble(), 0D);
         JsonObject duplicatedEnd = readJson(
-                packRoot.resolve("jigsaw-pieces/theme/test/variants/end/variant-2.json"));
+                packRoot.resolve("jigsaw-pieces/studio/planar/variants/end/variant-2.json"));
         assertEquals(1, duplicatedEnd.getAsJsonArray("themes").size());
         assertEquals("variant-2", duplicatedEnd.getAsJsonArray("themes").get(0).getAsString());
 
         assertTrue(JigsawStudioGraphEditor.updatePieceThemes(
                 packRoot,
-                "theme/test",
-                "theme/test/blank",
+                "studio/planar",
+                "studio/planar/blank",
                 List.of()).successful());
         JigsawStudioPieceRules terminalRules = new JigsawStudioPieceRules(0, 30, 0, 0, true);
         assertTrue(JigsawStudioGraphEditor.updatePieceRules(
                 packRoot,
-                "theme/test",
-                "theme/test/end",
+                "studio/planar",
+                "studio/planar/end",
                 terminalRules).successful());
         assertTrue(JigsawStudioGraphEditor.updatePieceRules(
                 packRoot,
-                "theme/test",
-                "theme/test/variants/end/variant-2",
+                "studio/planar",
+                "studio/planar/variants/end/variant-2",
                 terminalRules).successful());
         assertTrue(JigsawStudioStructureEditor.updateThemeSets(
                 packRoot,
-                "theme/test",
+                "studio/planar",
                 List.of(
                         new IrisJigsawThemeSet("variant-1", 2),
                         new IrisJigsawThemeSet("variant-2", 3))).successful());
         assertTrue(JigsawStudioStructureEditor.updateRequireCaps(
                 packRoot,
-                "theme/test",
+                "studio/planar",
                 true).successful());
 
-        JsonObject structure = readJson(packRoot.resolve("structures/theme/test.json"));
+        JsonObject structure = readJson(packRoot.resolve("structures/studio/planar.json"));
         assertTrue(structure.get("requireCaps").getAsBoolean());
         assertEquals("FAIL_ASSEMBLY", structure.get("branchFailurePolicy").getAsString());
         assertEquals(3, structure.getAsJsonArray("themeSets").get(1)
                 .getAsJsonObject().get("weight").getAsInt());
-        JsonObject savedRules = readJson(packRoot.resolve("jigsaw-pieces/theme/test/end.json"))
+        JsonObject savedRules = readJson(packRoot.resolve("jigsaw-pieces/studio/planar/end.json"))
                 .getAsJsonObject("rules");
         assertTrue(savedRules.get("terminal").getAsBoolean());
     }
@@ -150,53 +183,53 @@ public class JigsawStudioPersistenceEditorsTest {
 
     @Test
     public void duplicateEndVariantCopiesPiecesAndCapsMembershipsExactly() throws Exception {
-        Path packRoot = createPlanarProject("variant/end");
-        String sourcePiece = "variant/end/end";
-        String targetPiece = "variant/end/variants/end/variant-2";
+        Path packRoot = createPlanarProject();
+        String sourcePiece = "studio/planar/end";
+        String targetPiece = "studio/planar/variants/end/variant-2";
         assertTrue(JigsawStudioPoolEditor.updateWeightAtIndex(
                 packRoot,
-                "variant/end",
-                "variant/end/pieces",
+                "studio/planar",
+                "studio/planar/pieces",
                 0,
                 sourcePiece,
                 4).changed());
         assertTrue(JigsawStudioPoolEditor.updateChanceAtIndex(
                 packRoot,
-                "variant/end",
-                "variant/end/pieces",
+                "studio/planar",
+                "studio/planar/pieces",
                 0,
                 sourcePiece,
                 0.35D).changed());
         assertTrue(JigsawStudioPoolEditor.updateWeightAtIndex(
                 packRoot,
-                "variant/end",
-                "variant/end/caps",
+                "studio/planar",
+                "studio/planar/caps",
                 0,
                 sourcePiece,
                 7).changed());
         assertTrue(JigsawStudioPoolEditor.updateChanceAtIndex(
                 packRoot,
-                "variant/end",
-                "variant/end/caps",
+                "studio/planar",
+                "studio/planar/caps",
                 0,
                 sourcePiece,
                 0.8D).changed());
 
         StructureWriteResult duplicated = JigsawStudioGraphEditor.duplicatePiece(
                 packRoot,
-                "variant/end",
+                "studio/planar",
                 sourcePiece,
                 targetPiece);
 
         assertTrue(duplicated.successful());
         assertMembershipCopy(
-                packRoot.resolve("jigsaw-pools/variant/end/pieces.json"),
+                packRoot.resolve("jigsaw-pools/studio/planar/pieces.json"),
                 sourcePiece,
                 targetPiece,
                 4,
                 0.35D);
         assertMembershipCopy(
-                packRoot.resolve("jigsaw-pools/variant/end/caps.json"),
+                packRoot.resolve("jigsaw-pools/studio/planar/caps.json"),
                 sourcePiece,
                 targetPiece,
                 7,
@@ -209,53 +242,53 @@ public class JigsawStudioPersistenceEditorsTest {
 
     @Test
     public void newCrossVariantCopiesStartAndPiecesMembershipsExactly() throws Exception {
-        Path packRoot = createPlanarProject("variant/cross");
-        String sourcePiece = "variant/cross/cross";
-        String targetPiece = "variant/cross/variants/cross/variant-2";
+        Path packRoot = createPlanarProject();
+        String sourcePiece = "studio/planar/cross";
+        String targetPiece = "studio/planar/variants/cross/variant-2";
         assertTrue(JigsawStudioPoolEditor.updateWeightAtIndex(
                 packRoot,
-                "variant/cross",
-                "variant/cross/start",
+                "studio/planar",
+                "studio/planar/start",
                 0,
                 sourcePiece,
                 9).changed());
         assertTrue(JigsawStudioPoolEditor.updateChanceAtIndex(
                 packRoot,
-                "variant/cross",
-                "variant/cross/start",
+                "studio/planar",
+                "studio/planar/start",
                 0,
                 sourcePiece,
                 0.6D).changed());
         assertTrue(JigsawStudioPoolEditor.updateWeightAtIndex(
                 packRoot,
-                "variant/cross",
-                "variant/cross/pieces",
+                "studio/planar",
+                "studio/planar/pieces",
                 4,
                 sourcePiece,
                 5).changed());
         assertTrue(JigsawStudioPoolEditor.updateChanceAtIndex(
                 packRoot,
-                "variant/cross",
-                "variant/cross/pieces",
+                "studio/planar",
+                "studio/planar/pieces",
                 4,
                 sourcePiece,
                 0.45D).changed());
 
         StructureWriteResult created = JigsawStudioGraphEditor.createBlankVariant(
                 packRoot,
-                "variant/cross",
+                "studio/planar",
                 sourcePiece,
                 targetPiece);
 
         assertTrue(created.successful());
         assertMembershipCopy(
-                packRoot.resolve("jigsaw-pools/variant/cross/start.json"),
+                packRoot.resolve("jigsaw-pools/studio/planar/start.json"),
                 sourcePiece,
                 targetPiece,
                 9,
                 0.6D);
         assertMembershipCopy(
-                packRoot.resolve("jigsaw-pools/variant/cross/pieces.json"),
+                packRoot.resolve("jigsaw-pools/studio/planar/pieces.json"),
                 sourcePiece,
                 targetPiece,
                 5,
@@ -267,16 +300,16 @@ public class JigsawStudioPersistenceEditorsTest {
 
     @Test
     public void deletesExactVariantMembershipsButProtectsFinalEnabledArchetype() throws Exception {
-        Path packRoot = createPlanarProject("delete/variant");
+        Path packRoot = createPlanarProject();
         JigsawStudioGraphEditor.VariantFamilyCreation creation = JigsawStudioGraphEditor.duplicateActiveFamily(
                 packRoot,
-                "delete/variant",
-                planarSources("delete/variant"),
+                "studio/planar",
+                planarSources("studio/planar"),
                 "variant-2");
         String corner = creation.pieceKeysByWorkcell().get(JigsawPlanarArchetype.CORNER.stableId());
 
         JigsawStudioGraphEditor.PieceDeletionResult deleted =
-                JigsawStudioGraphEditor.deletePieceVariant(packRoot, "delete/variant", corner);
+                JigsawStudioGraphEditor.deletePieceVariant(packRoot, "studio/planar", corner);
 
         assertTrue(deleted.writeResult().successful());
         assertEquals(1, deleted.removedPoolMemberships());
@@ -290,23 +323,23 @@ public class JigsawStudioPersistenceEditorsTest {
                 IOException.class,
                 () -> JigsawStudioGraphEditor.deletePieceVariant(
                         packRoot,
-                        "delete/variant",
-                        "delete/variant/corner"));
+                        "studio/planar",
+                        "studio/planar/corner"));
         assertTrue(failure.getMessage().contains("final variant for enabled planar workcell"));
     }
 
     @Test
     public void projectDeletionPlansBlockReferencesAndRejectStaleGraphs() throws Exception {
-        Path packRoot = createPlanarProject("delete/project");
+        Path packRoot = createPlanarProject();
         Path biome = packRoot.resolve("biomes/reference.json");
         Files.createDirectories(biome.getParent());
         Files.writeString(
                 biome,
-                "{\"structures\":[{\"structures\":[\"delete/project\"]}]}",
+                "{\"structures\":[{\"structures\":[\"studio/planar\"]}]}",
                 StandardCharsets.UTF_8);
 
         JigsawStudioProjectDeletionService.DeletionPlan blocked =
-                JigsawStudioProjectDeletionService.inspect(packRoot, "delete/project");
+                JigsawStudioProjectDeletionService.inspect(packRoot, "studio/planar");
 
         assertFalse(blocked.deletable());
         assertEquals("biomes/reference.json", blocked.blockers().getFirst().ownerPath());
@@ -316,11 +349,11 @@ public class JigsawStudioPersistenceEditorsTest {
 
         Files.delete(biome);
         JigsawStudioProjectDeletionService.DeletionPlan stale =
-                JigsawStudioProjectDeletionService.inspect(packRoot, "delete/project");
+                JigsawStudioProjectDeletionService.inspect(packRoot, "studio/planar");
         assertTrue(stale.deletable());
         assertTrue(JigsawStudioStructureEditor.updateLimits(
                 packRoot,
-                "delete/project",
+                "studio/planar",
                 9,
                 8).successful());
         IOException staleFailure = assertThrows(
@@ -329,21 +362,21 @@ public class JigsawStudioPersistenceEditorsTest {
         assertTrue(staleFailure.getMessage().contains("changed after deletion was inspected"));
 
         JigsawStudioProjectDeletionService.DeletionPlan current =
-                JigsawStudioProjectDeletionService.inspect(packRoot, "delete/project");
+                JigsawStudioProjectDeletionService.inspect(packRoot, "studio/planar");
         JigsawStudioProjectDeletionService.ProjectDeletionResult deleted =
                 JigsawStudioProjectDeletionService.delete(current);
 
         assertTrue(deleted.manifestRemoved());
         assertTrue(deleted.removedResourceCount() > 0);
-        assertFalse(Files.exists(packRoot.resolve("structures/delete/project.json")));
-        assertFalse(Files.exists(packRoot.resolve("jigsaw-pools/delete/project/start.json")));
+        assertFalse(Files.exists(packRoot.resolve("structures/studio/planar.json")));
+        assertFalse(Files.exists(packRoot.resolve("jigsaw-pools/studio/planar/start.json")));
     }
 
     @Test
     public void projectDeletionRejectsCoordinatedReferenceWrittenAfterInspectionWithoutRemovingOwnedBytes()
             throws Exception {
-        String structureKey = "delete/coordinated-race";
-        Path packRoot = createPlanarProject(structureKey);
+        String structureKey = "studio/planar";
+        Path packRoot = createPlanarProject();
         JigsawStudioProjectDeletionService.DeletionPlan plan =
                 JigsawStudioProjectDeletionService.inspect(packRoot, structureKey);
         StructureTransactionWriter writer = new StructureTransactionWriter(packRoot);
@@ -378,8 +411,8 @@ public class JigsawStudioPersistenceEditorsTest {
 
     @Test
     public void projectDeletionThroughSymbolicPackRootFindsReverseReferences() throws Exception {
-        String structureKey = "delete/symbolic-blocked";
-        Path packRoot = createPlanarProject(structureKey);
+        String structureKey = "studio/planar";
+        Path packRoot = createPlanarProject();
         Path biome = packRoot.resolve("biomes/reference.json");
         Files.createDirectories(biome.getParent());
         Files.writeString(
@@ -400,8 +433,8 @@ public class JigsawStudioPersistenceEditorsTest {
 
     @Test
     public void projectDeletionThroughSymbolicPackRootRemovesCompleteOwnedClosure() throws Exception {
-        String structureKey = "delete/symbolic-complete";
-        Path packRoot = createPlanarProject(structureKey);
+        String structureKey = "studio/planar";
+        Path packRoot = createPlanarProject();
         StructureTransactionWriter writer = new StructureTransactionWriter(packRoot);
         Path manifestPath = writer.ownershipManifestPath(StructureKey.parse(structureKey, "iris"));
         StructureOwnershipManifest manifest = StructureOwnershipManifest.fromJson(
@@ -424,72 +457,60 @@ public class JigsawStudioPersistenceEditorsTest {
 
     @Test
     public void chanceUpdateRejectsStaleMembershipIdentityAndInvalidBounds() throws Exception {
-        Path packRoot = createPlanarProject("chance/test");
+        Path packRoot = createPlanarProject();
 
         assertThrows(
                 IllegalArgumentException.class,
                 () -> JigsawStudioPoolEditor.updateChanceAtIndex(
                         packRoot,
-                        "chance/test",
-                        "chance/test/pieces",
+                        "studio/planar",
+                        "studio/planar/pieces",
                         0,
-                        "chance/test/end",
+                        "studio/planar/end",
                         Double.NaN));
         IOException stale = assertThrows(
                 IOException.class,
                 () -> JigsawStudioPoolEditor.updateChanceAtIndex(
                         packRoot,
-                        "chance/test",
-                        "chance/test/pieces",
+                        "studio/planar",
+                        "studio/planar/pieces",
                         0,
-                        "chance/test/straight",
+                        "studio/planar/straight",
                         0.5D));
         assertTrue(stale.getMessage().contains("changed before the update"));
     }
 
     @Test
     public void createsSpatialThemeSetFromTheSelectedSpatialWorkcellSource() throws Exception {
-        Path packRoot = temporaryFolder.newFolder("spatial-theme").toPath();
-        JigsawStudioProjectCreator.Options options = new JigsawStudioProjectCreator.Options(
-                "spatial/theme",
-                JigsawStudioMode.SPATIAL_JIGSAW,
-                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
-                new JigsawStudioCellDimensions(16, 16, 16));
-        assertTrue(JigsawStudioProjectCreator.create(packRoot, options).successful());
+        Path packRoot = createSpatialProject("spatial-theme");
 
         JigsawStudioGraphEditor.VariantFamilyCreation creation = JigsawStudioGraphEditor.duplicateActiveFamily(
                 packRoot,
-                "spatial/theme",
-                Map.of(JigsawStudioLayout.SPATIAL_WORKCELL_ID, "spatial/theme/start"),
+                "studio/spatial",
+                Map.of(JigsawStudioLayout.SPATIAL_WORKCELL_ID, "studio/spatial/start"),
                 "variant-2");
 
         assertTrue(creation.writeResult().successful());
         assertEquals(
-                "spatial/theme/variants/spatial/variant-2",
+                "studio/spatial/variants/spatial/variant-2",
                 creation.pieceKeysByWorkcell().get(JigsawStudioLayout.SPATIAL_WORKCELL_ID));
-        JsonObject pool = readJson(packRoot.resolve("jigsaw-pools/spatial/theme/start.json"));
+        JsonObject pool = readJson(packRoot.resolve("jigsaw-pools/studio/spatial/start.json"));
         assertEquals(8, pool.getAsJsonArray("pieces").size());
     }
 
     @Test
     public void createsSpatialThemeSetAcrossEveryDedicatedSpatialWorkcell() throws Exception {
-        Path packRoot = temporaryFolder.newFolder("spatial-theme-row").toPath();
-        JigsawStudioProjectCreator.Options options = new JigsawStudioProjectCreator.Options(
-                "spatial/row",
-                JigsawStudioMode.SPATIAL_JIGSAW,
-                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
-                new JigsawStudioCellDimensions(15, 15, 15));
-        assertTrue(JigsawStudioProjectCreator.create(packRoot, options).successful());
+        Path packRoot = createSpatialProject("spatial-theme-row");
 
         Map<String, String> sources = new LinkedHashMap<>();
-        sources.put(JigsawStudioLayout.SPATIAL_WORKCELL_ID, "spatial/row/start");
+        sources.put(JigsawStudioLayout.SPATIAL_WORKCELL_ID, "studio/spatial/start");
         for (int connectorCount = 1; connectorCount <= 6; connectorCount++) {
-            String pieceKey = "spatial/row/connectors-" + connectorCount;
+            String pieceKey = "studio/spatial/connectors-" + connectorCount;
             sources.put(JigsawStudioLayout.SPATIAL_WORKCELL_ID + "/" + pieceKey, pieceKey);
         }
         JigsawStudioGraphEditor.VariantFamilyCreation creation = JigsawStudioGraphEditor.duplicateActiveFamily(
                 packRoot,
-                "spatial/row",
+                "studio/spatial",
                 sources,
                 "variant-2");
 
@@ -499,56 +520,50 @@ public class JigsawStudioPersistenceEditorsTest {
             assertTrue(Files.isRegularFile(packRoot.resolve("jigsaw-pieces/" + targetPieceKey + ".json")));
             assertTrue(Files.isRegularFile(packRoot.resolve("objects/" + targetPieceKey + ".iob")));
         }
-        JsonObject pool = readJson(packRoot.resolve("jigsaw-pools/spatial/row/start.json"));
+        JsonObject pool = readJson(packRoot.resolve("jigsaw-pools/studio/spatial/start.json"));
         assertEquals(14, pool.getAsJsonArray("pieces").size());
     }
 
     @Test
     public void persistsVariantPlanarWorkcellAndSpatialWorkcellLabelsWithoutRewritingObjects() throws Exception {
-        Path planarRoot = createPlanarProject("labels/planar");
-        Path planarObject = planarRoot.resolve("objects/labels/planar/end.iob");
-        Path planarPool = planarRoot.resolve("jigsaw-pools/labels/planar/pieces.json");
+        Path planarRoot = createPlanarProject();
+        Path planarObject = planarRoot.resolve("objects/studio/planar/end.iob");
+        Path planarPool = planarRoot.resolve("jigsaw-pools/studio/planar/pieces.json");
         byte[] objectBefore = Files.readAllBytes(planarObject);
         byte[] poolBefore = Files.readAllBytes(planarPool);
 
         assertTrue(JigsawStudioGraphEditor.updatePieceDisplayName(
                 planarRoot,
-                "labels/planar",
-                "labels/planar/end",
+                "studio/planar",
+                "studio/planar/end",
                 "Grand Longhouse").successful());
         assertTrue(JigsawStudioStructureEditor.updateWorkcellDisplayName(
                 planarRoot,
-                "labels/planar",
+                "studio/planar",
                 JigsawPlanarArchetype.END,
                 "Village Entrances").successful());
 
         assertArrayEquals(objectBefore, Files.readAllBytes(planarObject));
         assertArrayEquals(poolBefore, Files.readAllBytes(planarPool));
         assertEquals("Grand Longhouse", readJson(planarRoot.resolve(
-                "jigsaw-pieces/labels/planar/end.json")).get("displayName").getAsString());
-        JsonObject planarStructure = readJson(planarRoot.resolve("structures/labels/planar.json"));
+                "jigsaw-pieces/studio/planar/end.json")).get("displayName").getAsString());
+        JsonObject planarStructure = readJson(planarRoot.resolve("structures/studio/planar.json"));
         assertEquals("Village Entrances", workcell(
                 planarStructure.getAsJsonArray("planarWorkcells"),
                 "END").get("displayName").getAsString());
 
-        Path spatialRoot = temporaryFolder.newFolder("labels-spatial").toPath();
-        JigsawStudioProjectCreator.Options spatialOptions = new JigsawStudioProjectCreator.Options(
-                "labels/spatial",
-                JigsawStudioMode.SPATIAL_JIGSAW,
-                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
-                new JigsawStudioCellDimensions(16, 16, 16));
-        assertTrue(JigsawStudioProjectCreator.create(spatialRoot, spatialOptions).successful());
-        Path spatialObject = spatialRoot.resolve("objects/labels/spatial/start.iob");
+        Path spatialRoot = createSpatialProject("labels-spatial");
+        Path spatialObject = spatialRoot.resolve("objects/studio/spatial/start.iob");
         byte[] spatialBefore = Files.readAllBytes(spatialObject);
 
         assertTrue(JigsawStudioStructureEditor.updateSpatialWorkcellDisplayName(
                 spatialRoot,
-                "labels/spatial",
+                "studio/spatial",
                 "Stronghold Rooms").successful());
 
         assertArrayEquals(spatialBefore, Files.readAllBytes(spatialObject));
         assertEquals("Stronghold Rooms", readJson(spatialRoot.resolve(
-                "structures/labels/spatial.json")).get("spatialWorkcellDisplayName").getAsString());
+                "structures/studio/spatial.json")).get("spatialWorkcellDisplayName").getAsString());
     }
 
     @Test
@@ -565,15 +580,27 @@ public class JigsawStudioPersistenceEditorsTest {
                 () -> JigsawStudioGraphEditor.normalizeDisplayName("§aFormatted"));
     }
 
-    private Path createPlanarProject(String structureKey) throws Exception {
-        Path packRoot = temporaryFolder.newFolder(structureKey.replace('/', '-')).toPath();
-        JigsawStudioProjectCreator.Options options = new JigsawStudioProjectCreator.Options(
-                structureKey,
-                JigsawStudioMode.PLANAR_JIGSAW,
-                JigsawStudioCompatibilityTarget.IRIS_EXTENDED,
-                new JigsawStudioCellDimensions(16, 16, 16));
-        StructureWriteResult result = JigsawStudioProjectCreator.create(packRoot, options);
-        assertTrue(result.successful());
+    private Path createPlanarProject() throws Exception {
+        return copyPrototype(planarPrototype, "planar-pack");
+    }
+
+    private Path createSpatialProject(String folderName) throws Exception {
+        return copyPrototype(spatialPrototype, folderName);
+    }
+
+    private Path copyPrototype(Path prototype, String folderName) throws IOException {
+        Path packRoot = temporaryFolder.newFolder(folderName).toPath();
+        try (Stream<Path> entries = Files.walk(prototype)) {
+            for (Path entry : entries.toList()) {
+                Path destination = packRoot.resolve(prototype.relativize(entry).toString());
+                if (Files.isDirectory(entry)) {
+                    Files.createDirectories(destination);
+                } else {
+                    Files.createDirectories(destination.getParent());
+                    Files.copy(entry, destination, StandardCopyOption.COPY_ATTRIBUTES);
+                }
+            }
+        }
         return packRoot;
     }
 

@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class SettingsHotloadWatchTest {
     private static final String PERMISSION = "iris.all";
@@ -319,19 +320,25 @@ public class SettingsHotloadWatchTest {
         }
     }
 
-    private String captureErrorsWhilePolling(String expected, long durationMillis) throws Exception {
+    private String captureErrorsWhilePolling(String expected, long duplicateWindowMillis) throws Exception {
         PrintStream originalError = System.err;
         ByteArrayOutputStream captured = new ByteArrayOutputStream();
         try (PrintStream capture = new PrintStream(captured, true, StandardCharsets.UTF_8)) {
             System.setErr(capture);
-            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(durationMillis);
-            boolean found = false;
-            while (System.nanoTime() < deadline) {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(4L);
+            while (!captured.toString(StandardCharsets.UTF_8).contains(expected)) {
+                if (System.nanoTime() >= deadline) {
+                    fail("Timed out after 4000ms waiting for the hotload diagnostic '" + expected
+                            + "'; captured stderr was: " + captured.toString(StandardCharsets.UTF_8));
+                }
                 watch.checkConfigHotload();
-                found |= captured.toString(StandardCharsets.UTF_8).contains(expected);
-                Thread.sleep(25L);
+                Thread.sleep(10L);
             }
-            assertTrue(found);
+            long duplicateDeadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(duplicateWindowMillis);
+            while (System.nanoTime() < duplicateDeadline) {
+                watch.checkConfigHotload();
+                Thread.sleep(10L);
+            }
         } finally {
             System.setErr(originalError);
         }

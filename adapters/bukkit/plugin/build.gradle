@@ -59,15 +59,9 @@ tasks.named('jar', Jar).configure {
 }
 
 tasks.named('test').configure {
-    systemProperty('iris.commandFindSource', file('src/main/java/art/arcane/iris/core/commands/CommandFind.java').absolutePath)
-    systemProperty('iris.commandStructureSource', file('src/main/java/art/arcane/iris/core/commands/CommandStructure.java').absolutePath)
-    systemProperty('iris.commandIrisSource', file('src/main/java/art/arcane/iris/core/commands/CommandIris.java').absolutePath)
-    systemProperty('iris.bukkitChunkGeneratorSource', rootProject.file('core/src/main/java/art/arcane/iris/engine/platform/BukkitChunkGenerator.java').absolutePath)
     systemProperty('iris.pregeneratorJobSource', rootProject.file('core/src/main/java/art/arcane/iris/core/gui/PregeneratorJob.java').absolutePath)
     systemProperty('iris.bukkitEnginePlatformHooksSource', file('src/main/java/art/arcane/iris/core/runtime/BukkitEnginePlatformHooks.java').absolutePath)
     systemProperty('iris.engineSvcSource', file('src/main/java/art/arcane/iris/core/service/IrisEngineSVC.java').absolutePath)
-    systemProperty('iris.jigsawStudioSvcSource', rootProject.file('core/src/main/java/art/arcane/iris/core/service/JigsawStudioService.java').absolutePath)
-    systemProperty('iris.studioSvcSource', rootProject.file('core/src/main/java/art/arcane/iris/core/service/StudioSVC.java').absolutePath)
     systemProperty('iris.terrainSvcSource', file('src/main/java/art/arcane/iris/core/service/IrisTerrainSVC.java').absolutePath)
     systemProperty('iris.apiEventSvcSource', file('src/main/java/art/arcane/iris/core/service/IrisApiEventSVC.java').absolutePath)
     systemProperty('iris.worldInfoFactorySource', file('src/main/java/art/arcane/iris/core/service/terrain/IrisWorldInfoFactory.java').absolutePath)

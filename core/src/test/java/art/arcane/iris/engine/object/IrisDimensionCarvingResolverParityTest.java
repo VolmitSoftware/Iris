@@ -4,12 +4,9 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
+import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.Server;
-import org.bukkit.block.data.BlockData;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -19,7 +16,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -27,7 +23,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Logger;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -38,7 +33,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
@@ -53,28 +47,7 @@ public class IrisDimensionCarvingResolverParityTest {
 
     @BeforeClass
     public static void setupBukkit() {
-        if (Bukkit.getServer() != null) {
-            return;
-        }
-
-        Server server = mock(Server.class);
-        doReturn(Logger.getLogger("IrisTest")).when(server).getLogger();
-        doReturn("IrisTestServer").when(server).getName();
-        doReturn("1.0").when(server).getVersion();
-        doReturn("1.0").when(server).getBukkitVersion();
-        doAnswer((InvocationOnMock invocation) -> namedBlockData(invocation.getArgument(0, Material.class).name().toLowerCase(Locale.ROOT))).when(server).createBlockData(any(Material.class));
-        doAnswer((InvocationOnMock invocation) -> namedBlockData(invocation.getArgument(0, String.class))).when(server).createBlockData(anyString());
-        try {
-            Bukkit.setServer(server);
-        } catch (Throwable ignored) {
-        }
-    }
-
-    private static BlockData namedBlockData(String key) {
-        String canonical = key.indexOf(':') >= 0 ? key : "minecraft:" + key;
-        BlockData data = mock(BlockData.class);
-        doReturn(canonical).when(data).getAsString();
-        return data;
+        BukkitTestServer.install();
     }
 
     @Test

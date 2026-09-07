@@ -126,7 +126,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         DataKey key = new DataKey(x, y, z, PlatformBlockState.class);
         Object value = overlay.get(key);
         if (value == CLEARED) {
-            return EngineMantle.AIR;
+            return EngineMantle.AIR.get();
         }
         return value instanceof PlatformBlockState state
                 ? state

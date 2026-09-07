@@ -24,12 +24,11 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockProperty;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.util.common.data.IrisCustomData;
 import art.arcane.iris.util.project.matter.slices.PlatformBlockMatter;
 import io.papermc.paper.registry.RegistryAccess;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
@@ -38,7 +37,6 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -46,10 +44,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -57,29 +53,12 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 public class BukkitSpiConformanceTest {
     @BeforeClass
     public static void setup() {
-        Server server = Bukkit.getServer();
-        if (server == null) {
-            server = mock(Server.class);
-            doReturn(Logger.getLogger("IrisTest")).when(server).getLogger();
-            doReturn("IrisTestServer").when(server).getName();
-            doReturn("1.0").when(server).getVersion();
-            doReturn("1.0").when(server).getBukkitVersion();
-            doAnswer((InvocationOnMock invocation) -> blockData("minecraft:" + invocation.getArgument(0, Material.class).name().toLowerCase(Locale.ROOT))).when(server).createBlockData(any(Material.class));
-            try {
-                Bukkit.setServer(server);
-            } catch (Throwable ignored) {
-            }
-        }
-        doAnswer((InvocationOnMock invocation) -> blockData(invocation.getArgument(0))).when(server).createBlockData(anyString());
+        BukkitTestServer.install();
     }
 
     @Before
@@ -93,10 +72,7 @@ public class BukkitSpiConformanceTest {
     }
 
     private static BlockData blockData(String asString) {
-        BlockData data = mock(BlockData.class);
-        doReturn(asString).when(data).getAsString();
-        doReturn(asString).when(data).getAsString(anyBoolean());
-        return data;
+        return BukkitTestServer.blockData(asString);
     }
 
     private static PlatformRegistries registries() {

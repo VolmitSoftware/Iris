@@ -6,8 +6,11 @@ import art.arcane.iris.core.pack.AtomicDirectoryPublisher;
 import art.arcane.iris.core.pack.BrokenPackException;
 import art.arcane.iris.core.pack.PackValidationRegistry;
 import art.arcane.iris.core.pack.PackValidationResult;
+import art.arcane.iris.engine.framework.PreservationRegistry;
+import art.arcane.iris.spi.IrisServices;
 import org.junit.Assume;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -26,14 +29,21 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class StudioSVCWorldPackPublishTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    @Before
+    public void registerPreservationService() {
+        IrisServices.register(PreservationRegistry.class, mock(PreservationRegistry.class));
+    }
+
     @After
     public void clearValidationRegistry() {
         PackValidationRegistry.clear();
+        IrisServices.remove(PreservationRegistry.class);
     }
 
     @Test

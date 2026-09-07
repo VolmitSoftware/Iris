@@ -25,6 +25,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
+import art.arcane.iris.util.common.data.BoundBlockState;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
@@ -35,9 +36,7 @@ import art.arcane.volmlib.util.math.RNG;
  * JSON, so its fields stay put and only the behavior lives here.
  */
 final class IrisBiomeLayerGenerator {
-    private static final class States {
-        private static final PlatformBlockState BARRIER = B.getState("BARRIER");
-    }
+    private static final BoundBlockState BARRIER = BoundBlockState.of("BARRIER");
 
     private IrisBiomeLayerGenerator() {
     }
@@ -96,7 +95,7 @@ final class IrisBiomeLayerGenerator {
 
             if (dim.isExplodeBiomePalettes()) {
                 for (int j = 0; j < dim.getExplodeBiomePaletteSize(); j++) {
-                    data.add(States.BARRIER);
+                    data.add(BARRIER.get());
 
                     if (data.size() >= maxDepth) {
                         break;
@@ -143,7 +142,7 @@ final class IrisBiomeLayerGenerator {
 
             if (dim.isExplodeBiomePalettes()) {
                 for (int j = 0; j < dim.getExplodeBiomePaletteSize(); j++) {
-                    data.add(States.BARRIER);
+                    data.add(BARRIER.get());
 
                     if (data.size() >= maxDepth) {
                         break;

@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -264,10 +265,7 @@ public final class IrisObjectIO {
      * write path now rejects them with a descriptive error before any byte is written.
      */
     static void validateWritable(IrisObject self) throws IOException {
-        KList<String> palette = new KList<>();
-        for (PlatformBlockState i : self.blocks.values()) {
-            palette.addIfMissing(i.key());
-        }
+        Palette palette = buildPalette(self);
         if (palette.size() > MAX_PALETTE_ENTRIES) {
             throw new IOException("Object '" + self.getLoadKey() + "' has " + palette.size()
                     + " distinct block states; the .iob format supports at most " + MAX_PALETTE_ENTRIES + ".");
@@ -278,6 +276,14 @@ public final class IrisObjectIO {
         for (var entry : self.states) {
             requireShortCoordinates(self, "tile", entry.getKey());
         }
+    }
+
+    private static Palette buildPalette(IrisObject self) {
+        Palette palette = new Palette();
+        for (PlatformBlockState i : self.blocks.values()) {
+            palette.add(i.key());
+        }
+        return palette;
     }
 
     private static void requireShortCoordinates(IrisObject self, String kind, IrisBlockVector position) throws IOException {
@@ -305,15 +311,11 @@ public final class IrisObjectIO {
         dos.writeInt(self.h);
         dos.writeInt(self.d);
         dos.writeUTF("Iris V2 IOB;");
-        KList<String> palette = new KList<>();
-
-        for (PlatformBlockState i : self.blocks.values()) {
-            palette.addIfMissing(i.key());
-        }
+        Palette palette = buildPalette(self);
 
         dos.writeShort(palette.size());
 
-        for (String i : palette) {
+        for (String i : palette.keys()) {
             dos.writeUTF(i);
         }
 
@@ -363,17 +365,13 @@ public final class IrisObjectIO {
                     dos.writeInt(self.d);
                     dos.writeUTF("Iris V2 IOB;");
 
-                    KList<String> palette = new KList<>();
-
-                    for (PlatformBlockState i : self.blocks.values()) {
-                        palette.addIfMissing(i.key());
-                        ++c;
-                    }
+                    Palette palette = buildPalette(self);
+                    c += self.blocks.size();
                     total -= self.blocks.size() - palette.size();
 
                     dos.writeShort(palette.size());
 
-                    for (String i : palette) {
+                    for (String i : palette.keys()) {
                         dos.writeUTF(i);
                         ++c;
                     }
@@ -456,6 +454,31 @@ public final class IrisObjectIO {
     private static class HeaderException extends IOException {
         public HeaderException() {
             super("Invalid Header");
+        }
+    }
+
+    private static final class Palette {
+        private final KList<String> keys = new KList<>();
+        private final Map<String, Integer> index = new HashMap<>();
+
+        private void add(String key) {
+            index.computeIfAbsent(key, k -> {
+                keys.add(k);
+                return keys.size() - 1;
+            });
+        }
+
+        private int indexOf(String key) {
+            Integer found = index.get(key);
+            return found == null ? -1 : found;
+        }
+
+        private int size() {
+            return keys.size();
+        }
+
+        private KList<String> keys() {
+            return keys;
         }
     }
 }

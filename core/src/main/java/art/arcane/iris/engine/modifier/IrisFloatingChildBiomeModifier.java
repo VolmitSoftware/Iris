@@ -55,8 +55,6 @@ import java.util.Optional;
 
 import java.util.IdentityHashMap;
 
-import static art.arcane.iris.engine.mantle.EngineMantle.AIR;
-
 public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<PlatformBlockState> {
     public static final long FLOATING_BASE_SEED_SALT = 0x5EED_F107_00F1B10CL;
     private static final Runnable NOOP_DECORATION_MISS = () -> {

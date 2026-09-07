@@ -20,10 +20,12 @@ package art.arcane.iris.core.pack;
 
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.engine.framework.PreservationRegistry;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisEnvironment;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.spi.PlatformStructureHooks;
 import org.junit.Assume;
 import org.junit.After;
@@ -92,6 +94,7 @@ public class PackDownloaderTest {
         when(structureHooks.templatePoolKeys()).thenReturn(List.of("minecraft:empty"));
         IrisPlatforms.bind(platform);
         IrisSettings.settings = new IrisSettings();
+        IrisServices.register(PreservationRegistry.class, mock(PreservationRegistry.class));
     }
 
     @After
@@ -102,6 +105,7 @@ public class PackDownloaderTest {
         }
         IrisSettings.settings = previousSettings;
         PackValidationRegistry.clear();
+        IrisServices.remove(PreservationRegistry.class);
     }
 
     @Test

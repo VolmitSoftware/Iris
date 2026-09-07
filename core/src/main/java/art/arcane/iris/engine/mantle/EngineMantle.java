@@ -34,9 +34,9 @@ import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.engine.hydrology.cave.HydrologyCaveStorage;
 import art.arcane.iris.engine.object.IrisPosition;
+import art.arcane.iris.util.common.data.BoundBlockState;
 import art.arcane.iris.util.project.matter.PreObjectMatterCell;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.iris.util.project.hunk.Hunk;
@@ -61,7 +61,7 @@ import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 
 public interface EngineMantle extends MatterGenerator {
-    PlatformBlockState AIR = B.getState("AIR");
+    BoundBlockState AIR = BoundBlockState.of("AIR");
 
     Mantle<Matter> getMantle();
 
@@ -161,7 +161,7 @@ public interface EngineMantle extends MatterGenerator {
                 return natural;
             }
         }
-        return block == null ? AIR : block;
+        return block == null ? AIR.get() : block;
     }
 
     default boolean isPreventingDecay() {

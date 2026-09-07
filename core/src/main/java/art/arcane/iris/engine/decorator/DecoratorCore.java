@@ -413,7 +413,7 @@ final class DecoratorCore {
             if (mantle != null) {
                 rs = mantle.getMantle().get(x + f.getModX(), yy, z + f.getModZ(), PlatformBlockState.class);
             }
-            BlockData r = rs == null ? (BlockData) EngineMantle.AIR.nativeHandle() : (BlockData) rs.nativeHandle();
+            BlockData r = rs == null ? (BlockData) EngineMantle.AIR.get().nativeHandle() : (BlockData) rs.nativeHandle();
             if (r.isFaceSturdy(f.getOppositeFace(), BlockSupport.FULL)) {
                 if (data.getAllowedFaces().contains(f)) {
                     found = true;

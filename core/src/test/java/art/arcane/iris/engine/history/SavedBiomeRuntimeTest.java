@@ -66,7 +66,7 @@ public class SavedBiomeRuntimeTest {
 
     @After
     public void restoreServices() {
-        IrisServices.clear();
+        IrisServices.remove(PreservationRegistry.class);
         IrisSettings.settings = previousSettings;
     }
 

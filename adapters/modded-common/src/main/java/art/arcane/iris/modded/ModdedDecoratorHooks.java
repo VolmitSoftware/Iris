@@ -59,7 +59,7 @@ public final class ModdedDecoratorHooks implements DecoratorPlatformHooks.FaceFi
             if (mantle != null) {
                 rs = mantle.getMantle().get(x + f.getStepX(), yy, z + f.getStepZ(), PlatformBlockState.class);
             }
-            BlockState r = rs == null ? (BlockState) EngineMantle.AIR.nativeHandle() : (BlockState) rs.nativeHandle();
+            BlockState r = rs == null ? (BlockState) EngineMantle.AIR.get().nativeHandle() : (BlockState) rs.nativeHandle();
             if (isFaceSturdy(r, f.getOpposite())) {
                 BooleanProperty property = allowed.get(f.getSerializedName());
                 if (property != null) {

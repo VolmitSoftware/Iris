@@ -6,6 +6,7 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.util.project.matter.IrisMatterSupport;
 import art.arcane.iris.util.project.matter.PreObjectMatterCell;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -14,10 +15,6 @@ import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterSlice;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.Server;
-import org.bukkit.block.data.BlockData;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -28,8 +25,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.Locale;
-import java.util.logging.Logger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -38,9 +33,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -54,20 +46,7 @@ public class MantleWriterPreObjectJournalTest {
 
     @BeforeClass
     public static void setUpBukkit() {
-        if (Bukkit.getServer() != null) {
-            return;
-        }
-        Server server = mock(Server.class);
-        doReturn(Logger.getLogger("IrisTest")).when(server).getLogger();
-        doReturn("IrisTestServer").when(server).getName();
-        doReturn("1.0").when(server).getVersion();
-        doReturn("1.0").when(server).getBukkitVersion();
-        doAnswer(invocation -> blockData(invocation.getArgument(0, Material.class).name()
-                .toLowerCase(Locale.ROOT))).when(server).createBlockData(any(Material.class));
-        try {
-            Bukkit.setServer(server);
-        } catch (Throwable ignored) {
-        }
+        BukkitTestServer.install();
     }
 
     @Before
@@ -230,9 +209,4 @@ public class MantleWriterPreObjectJournalTest {
         }
     }
 
-    private static BlockData blockData(String key) {
-        BlockData data = mock(BlockData.class);
-        doReturn("minecraft:" + key).when(data).getAsString();
-        return data;
-    }
 }

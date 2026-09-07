@@ -487,7 +487,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             return resolvedBlock(resolved.get(), y);
         }
         PlatformBlockState block = getPrerequisiteDataIfPresent(x, y, z, PlatformBlockState.class);
-        return block == null ? AIR : block;
+        return block == null ? AIR.get() : block;
     }
 
     public boolean isPrerequisiteCarved(int x, int y, int z) {
@@ -856,7 +856,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             }
         }
         if (block == null)
-            return AIR;
+            return AIR.get();
         return block;
     }
 

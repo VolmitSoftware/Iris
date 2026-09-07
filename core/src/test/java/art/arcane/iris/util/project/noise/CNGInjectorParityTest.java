@@ -1,52 +1,20 @@
 package art.arcane.iris.util.project.noise;
 
+import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.volmlib.util.function.NoiseInjector;
 import art.arcane.volmlib.util.math.RNG;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.Server;
-import org.bukkit.block.data.BlockData;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.logging.Logger;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 
 public class CNGInjectorParityTest {
     @BeforeClass
     public static void setupBukkit() {
-        if (Bukkit.getServer() != null) {
-            return;
-        }
-
-        Server server = mock(Server.class);
-        doReturn(Logger.getLogger("IrisTest")).when(server).getLogger();
-        doReturn("IrisTestServer").when(server).getName();
-        doReturn("1.0").when(server).getVersion();
-        doReturn("1.0").when(server).getBukkitVersion();
-        doAnswer((InvocationOnMock invocation) -> namedBlockData(invocation.getArgument(0, Material.class).name().toLowerCase(Locale.ROOT))).when(server).createBlockData(any(Material.class));
-        doAnswer((InvocationOnMock invocation) -> namedBlockData(invocation.getArgument(0, String.class))).when(server).createBlockData(anyString());
-        try {
-            Bukkit.setServer(server);
-        } catch (Throwable ignored) {
-        }
-    }
-
-    private static BlockData namedBlockData(String key) {
-        String canonical = key.indexOf(':') >= 0 ? key : "minecraft:" + key;
-        BlockData data = mock(BlockData.class);
-        doReturn(canonical).when(data).getAsString();
-        return data;
+        BukkitTestServer.install();
     }
 
     @Test

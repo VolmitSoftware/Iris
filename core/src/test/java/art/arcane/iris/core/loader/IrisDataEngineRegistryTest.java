@@ -36,7 +36,7 @@ public class IrisDataEngineRegistryTest {
         if (data != null) {
             data.close();
         }
-        IrisServices.clear();
+        IrisServices.remove(PreservationRegistry.class);
     }
 
     @Test

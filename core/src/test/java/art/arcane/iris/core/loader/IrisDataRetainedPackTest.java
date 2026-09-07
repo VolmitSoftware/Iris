@@ -37,7 +37,7 @@ public class IrisDataRetainedPackTest {
         if (retained != null) {
             retained.close();
         }
-        IrisServices.clear();
+        IrisServices.remove(PreservationRegistry.class);
     }
 
     @Test

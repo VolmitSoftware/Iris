@@ -78,4 +78,8 @@ public final class IrisPlatforms {
     public static boolean isBound() {
         return platform != null;
     }
+
+    public static IrisPlatform getOrNull() {
+        return platform;
+    }
 }

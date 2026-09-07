@@ -34,6 +34,7 @@ import art.arcane.iris.engine.object.IrisOreGeneratorBounds;
 import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.iris.engine.object.IrisRiverMaterialConfig;
 import art.arcane.iris.engine.object.IrisSurfaceRiverBankConfig;
+import art.arcane.iris.util.common.data.BoundBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.project.context.ChunkedDataCache;
 import art.arcane.iris.util.project.context.ChunkContext;
@@ -42,11 +43,10 @@ import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
 import lombok.Getter;
 
 public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBlockState> {
-    private static final PlatformBlockState BEDROCK = B.getState("BEDROCK");
+    private static final BoundBlockState BEDROCK = BoundBlockState.of("BEDROCK");
     @Getter
     private final RNG rng;
     @Getter
@@ -161,7 +161,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
 
             for (int i = topY; i >= 0; i--) {
                 if (i == 0 && bedrockEnabled) {
-                    h.setRaw(xf, i, zf, BEDROCK);
+                    h.setRaw(xf, i, zf, BEDROCK.get());
                     lastBedrock = i;
                     continue;
                 }
@@ -256,7 +256,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
 
                     for (int y = chunkHeight - 1; y >= upperSurfaceY; y--) {
                         if (y == chunkHeight - 1 && bedrockEnabled) {
-                            h.setRaw(xf, y, zf, BEDROCK);
+                            h.setRaw(xf, y, zf, BEDROCK.get());
                             continue;
                         }
                         if (y == upperSurfaceY && upperMappedSurface != null) {

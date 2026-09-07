@@ -39,7 +39,7 @@ public class PregenCacheExecutorRegistrationTest {
 
     @After
     public void clearServices() {
-        IrisServices.clear();
+        IrisServices.remove(PreservationRegistry.class);
     }
 
     @Test

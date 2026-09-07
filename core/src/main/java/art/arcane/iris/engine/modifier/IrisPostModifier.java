@@ -25,6 +25,7 @@ import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisProceduralBlocks;
 import art.arcane.iris.engine.object.IrisSlopeClip;
+import art.arcane.iris.util.common.data.BoundBlockState;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.hunk.Hunk;
@@ -34,9 +35,7 @@ import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.iris.spi.PlatformBlockState;
 
 public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState> {
-    private static final class States {
-        private static final PlatformBlockState AIR = B.getState("AIR");
-    }
+    private static final BoundBlockState AIR = BoundBlockState.of("AIR");
 
     private final RNG rng;
 
@@ -136,7 +135,7 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
         g += hd < h - 1 ? 1 : 0;
 
         if (!river && g == 4 && isAir(x, h - 1, z, originX, originZ, currentData)) {
-            setPostBlock(x, h, z, States.AIR, originX, originZ, currentData);
+            setPostBlock(x, h, z, AIR.get(), originX, originZ, currentData);
 
             for (int i = h - 1; i > 0; i--) {
                 if (!isAir(x, i, z, originX, originZ, currentData)) {
@@ -296,7 +295,7 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
             PlatformBlockState onto = getPostBlock(x, h, z, originX, originZ, currentData);
 
             if (!B.canPlaceOnto(b, onto) && !B.isDecorant(b)) {
-                setPostBlock(x, h + 1, z, States.AIR, originX, originZ, currentData);
+                setPostBlock(x, h + 1, z, AIR.get(), originX, originZ, currentData);
             }
         }
     }
@@ -366,6 +365,6 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
     public PlatformBlockState getPostBlock(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> h) {
         PlatformBlockState b = h.getClosest(x - originX, y, z - originZ);
 
-        return b == null ? States.AIR : b;
+        return b == null ? AIR.get() : b;
     }
 }

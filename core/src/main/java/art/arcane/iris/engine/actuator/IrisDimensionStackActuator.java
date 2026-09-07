@@ -29,7 +29,7 @@ import art.arcane.iris.engine.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
+import art.arcane.iris.util.common.data.BoundBlockState;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.iris.util.project.matter.TileWrapper;
@@ -49,8 +49,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class IrisDimensionStackActuator extends EngineAssignedActuator<PlatformBlockState> {
-    private static final PlatformBlockState AIR = B.getState("AIR");
-    private static final PlatformBlockState BEDROCK = B.getState("BEDROCK");
+    private static final BoundBlockState AIR = BoundBlockState.of("AIR");
+    private static final BoundBlockState BEDROCK = BoundBlockState.of("BEDROCK");
     private static final List<Class<?>> REPLACED_METADATA = List.of(
             TileWrapper.class,
             Identifier.class,
@@ -161,7 +161,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Pla
         );
         for (int y = minimumY; y <= maximumY; y++) {
             metadata.clear(localX, y, localZ);
-            output.setRaw(localX, y, localZ, AIR);
+            output.setRaw(localX, y, localZ, AIR.get());
         }
     }
 
@@ -199,7 +199,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Pla
         for (int y = layer.renderMaxY(); y >= layer.renderMinY(); y--) {
             int sourceY = y - layer.localBaseY();
             if (sourceY == 0 && dimension.isBedrock()) {
-                writeBlock(output, metadata, localX, y, localZ, BEDROCK);
+                writeBlock(output, metadata, localX, y, localZ, BEDROCK.get());
                 continue;
             }
             if (sourceY > layer.normalTerrainHeight() && sourceY <= layer.fluidHeight()) {

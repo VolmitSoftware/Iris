@@ -44,7 +44,7 @@ public class IrisDataAuthoringCacheTest {
         if (epoch != null) {
             epoch.close();
         }
-        IrisServices.clear();
+        IrisServices.remove(PreservationRegistry.class);
         IrisSettings.settings = previousSettings;
     }
 

@@ -36,7 +36,7 @@ public class IrisDataDatapackCompilerCacheTest {
         if (runtimeData != null) {
             runtimeData.close();
         }
-        IrisServices.clear();
+        IrisServices.remove(PreservationRegistry.class);
     }
 
     @Test

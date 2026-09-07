@@ -26,13 +26,13 @@ import art.arcane.iris.engine.framework.WrongEngineBroException;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.platform.studio.EnginedStudioGenerator;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
+import art.arcane.iris.util.common.data.BoundBlockState;
 import art.arcane.iris.util.project.context.IrisContext;
 
 import java.util.Objects;
 
 public class BiomeBuffetGenerator extends EnginedStudioGenerator {
-    private static final PlatformBlockState FLOOR = B.getState("BARRIER");
+    private static final BoundBlockState FLOOR = BoundBlockState.of("BARRIER");
     private final IrisBiome[] biomes;
     private final int width;
     private final int biomeSize;
@@ -66,7 +66,7 @@ public class BiomeBuffetGenerator extends EnginedStudioGenerator {
         if (biome == null) {
             try (GenerationSessionLease lease = engine.acquireGenerationLease("bukkit_biome_buffet_stage");
                  IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
-                tc.setRegion(0, 0, 0, 16, 1, 16, FLOOR);
+                tc.setRegion(0, 0, 0, 16, 1, 16, FLOOR.get());
             }
             return;
         }

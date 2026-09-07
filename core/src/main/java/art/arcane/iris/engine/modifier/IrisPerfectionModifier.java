@@ -22,6 +22,7 @@ import art.arcane.iris.engine.decorator.IrisSpeleothems;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedModifier;
 import art.arcane.iris.engine.object.IrisProceduralBlocks;
+import art.arcane.iris.util.common.data.BoundBlockState;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.hunk.Hunk;
@@ -36,22 +37,20 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlockState> {
-    private static final class States {
-        private static final PlatformBlockState AIR = B.getState("AIR");
-        private static final PlatformBlockState WATER = B.getState("WATER");
-        private static final Map<String, PlatformBlockState> ORE_BASES = buildOreBases();
-    }
+    private static final BoundBlockState AIR = BoundBlockState.of("AIR");
+    private static final BoundBlockState WATER = BoundBlockState.of("WATER");
+    private static final Map<String, BoundBlockState> ORE_BASES = buildOreBases();
 
     public IrisPerfectionModifier(Engine engine) {
         super(engine, "Perfection");
     }
 
-    private static Map<String, PlatformBlockState> buildOreBases() {
-        Map<String, PlatformBlockState> map = new HashMap<>();
-        PlatformBlockState stone = B.getState("STONE");
-        PlatformBlockState deepslate = B.getState("DEEPSLATE");
-        PlatformBlockState netherrack = B.getState("NETHERRACK");
-        PlatformBlockState blackstone = B.getState("BLACKSTONE");
+    private static Map<String, BoundBlockState> buildOreBases() {
+        Map<String, BoundBlockState> map = new HashMap<>();
+        BoundBlockState stone = BoundBlockState.of("STONE");
+        BoundBlockState deepslate = BoundBlockState.of("DEEPSLATE");
+        BoundBlockState netherrack = BoundBlockState.of("NETHERRACK");
+        BoundBlockState blackstone = BoundBlockState.of("BLACKSTONE");
         map.put("minecraft:coal_ore", stone);
         map.put("minecraft:copper_ore", stone);
         map.put("minecraft:iron_ore", stone);
@@ -106,7 +105,7 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlock
                         for (int k = top; k >= 0; k--) {
                             PlatformBlockState b = output.get(finalI, k, j);
                             if (IrisSpeleothems.isSpike(b)) {
-                                b = normalizeSpike(b, output, finalI, j, k, States.AIR, States.WATER);
+                                b = normalizeSpike(b, output, finalI, j, k, AIR.get(), WATER.get());
                             }
                             boolean now = b != null && !(B.isAir(b) || B.isFluid(b));
 
@@ -148,10 +147,10 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlock
 
                                 if (remove) {
                                     changed.set(true);
-                                    output.set(finalI, k, j, States.AIR);
+                                    output.set(finalI, k, j, AIR.get());
 
                                     if (remove2) {
-                                        output.set(finalI, k - 1, j, States.AIR);
+                                        output.set(finalI, k - 1, j, AIR.get());
                                     }
                                 }
                             }
@@ -211,9 +210,9 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlock
                         if (block == null) {
                             continue;
                         }
-                        PlatformBlockState base = States.ORE_BASES.get(baseKey(block));
+                        BoundBlockState base = ORE_BASES.get(baseKey(block));
                         if (base != null) {
-                            output.set(finalI, k, j, base);
+                            output.set(finalI, k, j, base.get());
                         }
                     }
                 }

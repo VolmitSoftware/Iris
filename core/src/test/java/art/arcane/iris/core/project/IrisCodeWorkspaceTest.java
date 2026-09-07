@@ -61,7 +61,7 @@ public class IrisCodeWorkspaceTest {
             data.close();
             data = null;
         }
-        IrisServices.clear();
+        IrisServices.remove(PreservationRegistry.class);
         IrisPlatforms.unbind();
         if (previousPlatform != null) {
             IrisPlatforms.bind(previousPlatform);

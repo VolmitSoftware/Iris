@@ -2,10 +2,9 @@ package art.arcane.iris.core.runtime;
 
 import art.arcane.iris.core.lifecycle.CapabilitySnapshot;
 import art.arcane.iris.core.lifecycle.ServerFamily;
+import art.arcane.iris.testsupport.BukkitTestServer;
 import org.bukkit.Bukkit;
-import org.bukkit.Server;
 import org.bukkit.World;
-import org.bukkit.plugin.PluginManager;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -14,28 +13,14 @@ import java.lang.reflect.Proxy;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 
 public class WorldRuntimeControlServiceTimeLockTest {
     @Before
     public void ensureBukkitServer() {
-        if (Bukkit.getServer() != null) {
-            return;
-        }
-
-        Server server = mock(Server.class);
-        PluginManager pluginManager = mock(PluginManager.class);
-        doReturn(pluginManager).when(server).getPluginManager();
-        doReturn(Logger.getLogger("WorldRuntimeControlServiceTimeLockTest")).when(server).getLogger();
-        try {
-            Bukkit.setServer(server);
-        } catch (Throwable ignored) {
-        }
+        BukkitTestServer.install();
     }
 
     @Test

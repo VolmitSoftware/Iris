@@ -20,7 +20,7 @@ package art.arcane.iris.util.project.hunk.view;
 
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
+import art.arcane.iris.util.common.data.BoundBlockState;
 import art.arcane.iris.util.common.data.IrisCustomData;
 import art.arcane.iris.util.project.hunk.storage.AtomicHunk;
 import org.bukkit.block.data.BlockData;
@@ -28,9 +28,7 @@ import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 @SuppressWarnings("ClassCanBeRecord")
 public class ChunkDataHunkHolder extends AtomicHunk<PlatformBlockState> {
-    private static final class States {
-        private static final PlatformBlockState AIR = B.getState("AIR");
-    }
+    private static final BoundBlockState AIR = BoundBlockState.of("AIR");
 
     private final ChunkData chunk;
 
@@ -63,12 +61,12 @@ public class ChunkDataHunkHolder extends AtomicHunk<PlatformBlockState> {
     @Override
     public PlatformBlockState getRaw(int x, int y, int z) {
         if (y < 0 || y >= getHeight()) {
-            return States.AIR;
+            return AIR.get();
         }
 
         PlatformBlockState b = super.getRaw(x, y, z);
 
-        return b != null ? b : States.AIR;
+        return b != null ? b : AIR.get();
     }
 
     public PlatformBlockState getStoredRaw(int x, int y, int z) {

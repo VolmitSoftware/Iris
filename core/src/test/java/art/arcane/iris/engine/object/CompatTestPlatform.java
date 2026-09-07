@@ -69,7 +69,7 @@ final class CompatTestPlatform {
     }
 
     void unbind() {
-        IrisServices.clear();
+        IrisServices.remove(PreservationRegistry.class);
         IrisPlatforms.unbind();
         if (previous != null) {
             IrisPlatforms.bind(previous);

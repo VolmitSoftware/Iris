@@ -629,6 +629,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         lock.lock();
 
         try {
+            throwIfInitializationFailed();
             if (setup.get()) {
                 return getEngine();
             }
@@ -636,6 +637,19 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
             getWorld().setRawWorldSeed(world.getSeed());
             setupEngine();
+            try {
+                computeStudioGenerator();
+            } catch (Throwable failure) {
+                initializationFailure = failure;
+                try {
+                    engine.close();
+                } catch (Throwable closeFailure) {
+                    if (failure != closeFailure) {
+                        failure.addSuppressed(closeFailure);
+                    }
+                }
+                throw propagateEngineSetupFailure(failure);
+            }
             setup.set(true);
             this.hotloader = shouldRunStudioHotload(studio, closing, jigsawStudioActive) ? new Looper() {
                 @Override
@@ -935,11 +949,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         if (engine != expectedEngine) {
             throw new IllegalStateException("Iris noise generation belongs to a replaced engine runtime.");
         }
-        computeStudioGenerator();
+        StudioGenerator selected = computeStudioGenerator();
         if (engine != expectedEngine) {
             throw new IllegalStateException("Iris noise generation changed engine runtime during Studio resolution.");
         }
-        return studioGenerator;
+        return selected;
     }
 
     public void withExclusiveControl(Runnable r) {
@@ -1077,10 +1091,10 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
         try {
             Engine engine = getEngine(world);
-            computeStudioGenerator();
+            StudioGenerator selected = computeStudioGenerator();
             TerrainChunk tc = TerrainChunk.create(d);
-            if (studioGenerator != null) {
-                studioGenerator.generateChunk(engine, tc, x, z);
+            if (selected != null) {
+                selected.generateChunk(engine, tc, x, z);
             } else {
                 ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(d);
                 Hunk<PlatformBiome> biomes = Hunk.viewBiomes(tc);
@@ -1191,7 +1205,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         }
     }
 
-    private void computeStudioGenerator() {
+    private StudioGenerator computeStudioGenerator() {
+        if (!studio) {
+            return studioGenerator;
+        }
+        return computeStudioGeneratorForStudio();
+    }
+
+    private synchronized StudioGenerator computeStudioGeneratorForStudio() {
         String packKey = getEngine().getDimension().getLoadKey();
         JigsawStudioActivation.Request jigsawRequest = studio
                 ? JigsawStudioActivation.getGeneratorRequest(packKey)
@@ -1204,7 +1225,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                     lastJigsawStudioRequestId = jigsawRequest.requestId();
                     lastMode = null;
                 }
-                return;
+                return studioGenerator;
             }
         }
         if (lastJigsawStudioRequestId != null) {
@@ -1221,9 +1242,10 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             desired = StudioMode.OBJECT_BUFFET;
         }
         if (!desired.equals(lastMode)) {
-            lastMode = desired;
             desired.inject(this);
+            lastMode = desired;
         }
+        return studioGenerator;
     }
 
     @NotNull

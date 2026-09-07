@@ -107,7 +107,7 @@ public class ObjectStudioSaveService implements IrisService {
         }
 
         String packKey = engine.getDimension() == null ? null : engine.getDimension().getLoadKey();
-        studios.put(world.getUID(), new ActiveStudio(world.getUID(), layout, objectsDirs, packKey));
+        studios.put(world.getUID(), new ActiveStudio(world.getUID(), generator, objectsDirs, packKey));
         IrisLogging.debug("Object Studio live-save registered: world=%s cells=%d packs=%d",
                 world.getName(), layout.cells().size(), objectsDirs.size());
     }
@@ -219,7 +219,7 @@ public class ObjectStudioSaveService implements IrisService {
             return;
         }
 
-        IrisObject snapshot = new IrisObject(cell.w(), cell.h(), cell.d());
+        IrisObject snapshot = studio.generator.createCapture(cell);
         int originX = cell.originX();
         int originY = cell.originY();
         int originZ = cell.originZ();
@@ -324,14 +324,16 @@ public class ObjectStudioSaveService implements IrisService {
 
     private static final class ActiveStudio {
         final UUID worldId;
+        final ObjectStudioGenerator generator;
         final ObjectStudioLayout layout;
         final Map<String, File> objectsDirs;
         final String packKey;
         final Map<String, Long> hashes = new ConcurrentHashMap<>();
 
-        ActiveStudio(UUID worldId, ObjectStudioLayout layout, Map<String, File> objectsDirs, String packKey) {
+        ActiveStudio(UUID worldId, ObjectStudioGenerator generator, Map<String, File> objectsDirs, String packKey) {
             this.worldId = worldId;
-            this.layout = layout;
+            this.generator = generator;
+            this.layout = generator.getLayout();
             this.objectsDirs = objectsDirs;
             this.packKey = packKey;
         }

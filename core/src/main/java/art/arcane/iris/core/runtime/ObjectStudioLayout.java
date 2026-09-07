@@ -159,6 +159,17 @@ public final class ObjectStudioLayout {
                         c.getInt("h"),
                         c.getInt("d")
                 );
+                IrisData source = sources.get(pack);
+                File objectFile = source == null ? null : source.getObjectLoader().findFile(cell.key());
+                if (objectFile == null) {
+                    return null;
+                }
+                IrisBlockVector size = IrisObject.sampleSize(objectFile);
+                if (cell.w() != Math.max(1, size.getBlockX())
+                        || cell.h() != Math.max(1, size.getBlockY())
+                        || cell.d() != Math.max(1, size.getBlockZ())) {
+                    return null;
+                }
                 stored.add(cell);
                 storedIds.add(cell.pack() + "/" + cell.key());
             }
@@ -215,6 +226,26 @@ public final class ObjectStudioLayout {
 
     public int padding() {
         return padding;
+    }
+
+    public ObjectStudioLayout atFloor(int floorY) {
+        int originY = Math.addExact(floorY, 1);
+        boolean unchanged = true;
+        for (GridCell cell : cells) {
+            if (cell.originY() != originY) {
+                unchanged = false;
+                break;
+            }
+        }
+        if (unchanged) {
+            return this;
+        }
+        List<GridCell> placed = new ArrayList<>(cells.size());
+        for (GridCell cell : cells) {
+            placed.add(new GridCell(cell.pack(), cell.key(), cell.originX(), originY, cell.originZ(),
+                    cell.w(), cell.h(), cell.d()));
+        }
+        return new ObjectStudioLayout(padding, rowWidthCap, placed);
     }
 
     public List<GridCell> cells() {

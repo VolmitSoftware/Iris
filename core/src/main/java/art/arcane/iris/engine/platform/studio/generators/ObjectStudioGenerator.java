@@ -60,7 +60,7 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
     private final PlatformBlockState marker;
     private final AtomicBoolean layoutBuilt = new AtomicBoolean(false);
     private final Object layoutLock = new Object();
-    private final Map<String, IrisObject> objectCache = new ConcurrentHashMap<>();
+    private final Map<String, DisplayObject> objectCache = new ConcurrentHashMap<>();
     private final Map<String, IrisData> packData = new ConcurrentHashMap<>();
     private volatile ObjectStudioLayout layout;
 
@@ -130,7 +130,7 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
 
             paintFrame(cell, tc, plinthY, chunkWorldX, chunkWorldZ, minHeight, maxHeight);
 
-            IrisObject object = loadObject(cell);
+            DisplayObject object = loadObject(cell);
             if (object != null) {
                 placeSlice(object, cell, tc, chunkWorldX, chunkWorldZ, minHeight, maxHeight);
             }
@@ -196,14 +196,9 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
         }
     }
 
-    private void placeSlice(IrisObject object, GridCell cell, TerrainChunk tc, int chunkWorldX, int chunkWorldZ, int minHeight, int maxHeight) {
-        VectorMap<PlatformBlockState> blocks = object.getBlocks();
+    private void placeSlice(DisplayObject object, GridCell cell, TerrainChunk tc, int chunkWorldX, int chunkWorldZ, int minHeight, int maxHeight) {
+        VectorMap<PlatformBlockState> blocks = object.source().getBlocks();
         if (blocks == null || blocks.isEmpty()) return;
-
-        Vector3i center = object.getCenter();
-        int centerX = center == null ? 0 : center.getBlockX();
-        int centerY = center == null ? 0 : center.getBlockY();
-        int centerZ = center == null ? 0 : center.getBlockZ();
 
         int originX = cell.originX();
         int originY = cell.originY();
@@ -211,9 +206,9 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
 
         for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : blocks) {
             IrisBlockVector signed = entry.getKey();
-            int worldX = originX + signed.getBlockX() + centerX;
-            int worldY = originY + signed.getBlockY() + centerY;
-            int worldZ = originZ + signed.getBlockZ() + centerZ;
+            int worldX = originX + signed.getBlockX() - object.minimumX();
+            int worldY = originY + signed.getBlockY() - object.minimumY();
+            int worldZ = originZ + signed.getBlockZ() - object.minimumZ();
 
             if (worldX < chunkWorldX || worldX > chunkWorldX + 15) continue;
             if (worldZ < chunkWorldZ || worldZ > chunkWorldZ + 15) continue;
@@ -226,17 +221,29 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
         }
     }
 
-    private IrisObject loadObject(GridCell cell) {
+    public IrisObject createCapture(GridCell cell) {
+        DisplayObject displayed = loadObject(cell);
+        if (displayed == null) {
+            throw new IllegalStateException("Object Studio source is unavailable: " + cell.pack() + "/" + cell.key());
+        }
+        IrisObject capture = new IrisObject(cell.w(), cell.h(), cell.d());
+        capture.setCenter(new Vector3i(-displayed.minimumX(), -displayed.minimumY(), -displayed.minimumZ()));
+        return capture;
+    }
+
+    private DisplayObject loadObject(GridCell cell) {
         String cacheKey = cell.pack() + "/" + cell.key();
-        IrisObject cached = objectCache.get(cacheKey);
+        DisplayObject cached = objectCache.get(cacheKey);
         if (cached != null) return cached;
         IrisData data = packData.get(cell.pack());
         if (data == null) return null;
         IrisObject loaded = data.getObjectLoader().load(cell.key());
         if (loaded != null) {
-            objectCache.put(cacheKey, loaded);
+            DisplayObject displayed = DisplayObject.of(loaded);
+            DisplayObject existing = objectCache.putIfAbsent(cacheKey, displayed);
+            return existing == null ? displayed : existing;
         }
-        return loaded;
+        return null;
     }
 
     public Map<String, IrisData> getPackData() {
@@ -257,6 +264,9 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
                 layout = resumed;
             } else {
                 layout = ObjectStudioLayout.build(sources, padding);
+            }
+            layout = layout.atFloor(Math.max(engine.getMinHeight(), ObjectStudioLayout.FLOOR_Y));
+            if (layout != resumed) {
                 layout.save(layoutFile);
             }
             layoutBuilt.set(true);
@@ -299,5 +309,27 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
             maxZ = Math.max(maxZ, cell.originZ() + cell.d());
         }
         return new IrisBlockVector(maxX, 0, maxZ);
+    }
+
+    private record DisplayObject(IrisObject source, int minimumX, int minimumY, int minimumZ) {
+        private static DisplayObject of(IrisObject object) {
+            int minimumX = Integer.MAX_VALUE;
+            int minimumY = Integer.MAX_VALUE;
+            int minimumZ = Integer.MAX_VALUE;
+            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : object.getBlocks()) {
+                if (entry.getValue() == null) {
+                    continue;
+                }
+                IrisBlockVector position = entry.getKey();
+                minimumX = Math.min(minimumX, position.getBlockX());
+                minimumY = Math.min(minimumY, position.getBlockY());
+                minimumZ = Math.min(minimumZ, position.getBlockZ());
+            }
+            if (minimumX == Integer.MAX_VALUE) {
+                Vector3i center = object.getCenter();
+                return new DisplayObject(object, -center.getBlockX(), -center.getBlockY(), -center.getBlockZ());
+            }
+            return new DisplayObject(object, minimumX, minimumY, minimumZ);
+        }
     }
 }

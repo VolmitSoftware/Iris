@@ -54,6 +54,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -93,22 +94,22 @@ final class WorldEntitySpawner {
         }
 
         if (manager.cl.flip()) {
+            CompletableFuture<Integer> future = new CompletableFuture<>();
             try {
                 World realWorld = BukkitWorldBinding.world(manager.getEngine().getWorld());
                 if (realWorld == null) {
                     manager.entityCount = 0;
                     manager.entityCountValid = false;
                 } else {
-                    CompletableFuture<Integer> future = new CompletableFuture<>();
-                    boolean scheduled = J.runGlobal(() -> {
-                        try {
-                            future.complete(livingEntityCount(realWorld));
-                        } catch (Throwable ex) {
-                            future.completeExceptionally(ex);
-                        }
-                    });
+                    boolean scheduled = J.runGlobal(managedCompletion(
+                            "bukkit_world_manager_entity_count", future, () -> livingEntityCount(realWorld)));
                     if (scheduled) {
-                        manager.entityCount = future.get(2, TimeUnit.SECONDS);
+                        Integer count = future.get(2, TimeUnit.SECONDS);
+                        if (count == null || manager.getEngine().isClosing() || manager.getEngine().isClosed()) {
+                            manager.entityCountValid = false;
+                            return false;
+                        }
+                        manager.entityCount = count;
                         manager.entityCountValid = true;
                         resetEntityCountFailures();
                     } else {
@@ -126,6 +127,8 @@ final class WorldEntitySpawner {
                 reportEntityCountFailure("Failed to count entities; pausing Iris entity spawning until a complete count is available.", cause);
             } catch (Throwable e) {
                 reportEntityCountFailure("Failed to count entities; pausing Iris entity spawning until a complete count is available.", e);
+            } finally {
+                future.complete(null);
             }
         }
 
@@ -193,7 +196,7 @@ final class WorldEntitySpawner {
             return false;
         }
 
-        CompletableFuture<Void> future = new CompletableFuture<>();
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
         AtomicBoolean failureReported = new AtomicBoolean();
         future.whenComplete((ignored, failure) -> {
             if (failure != null) {
@@ -202,32 +205,28 @@ final class WorldEntitySpawner {
         });
         boolean scheduled;
         try {
-            scheduled = J.runRegion(world, chunkX, chunkZ, () -> {
-                try {
-                    if (!world.isChunkLoaded(chunkX, chunkZ) || !Chunks.isSafe(world, chunkX, chunkZ)) {
-                        future.complete(null);
-                        return;
-                    }
-
-                    spawnIn(world.getChunkAt(chunkX, chunkZ), initial);
-                    future.complete(null);
-                } catch (Throwable e) {
-                    future.completeExceptionally(e);
-                }
-            });
+            scheduled = J.runRegion(world, chunkX, chunkZ, managedCompletion(
+                    "bukkit_world_manager_entity_spawn", future, () -> {
+                        if (!world.isChunkLoaded(chunkX, chunkZ) || !Chunks.isSafe(world, chunkX, chunkZ)) {
+                            return true;
+                        }
+                        spawnIn(world.getChunkAt(chunkX, chunkZ), initial);
+                        return true;
+                    }));
         } catch (Throwable e) {
+            future.complete(null);
             IrisLogging.reportError("Failed to schedule an Iris entity spawn for chunk " + chunkX + "," + chunkZ + ".", e);
             return false;
         }
 
         if (!scheduled) {
+            future.complete(null);
             IrisLogging.debug("Skipped Iris entity spawning because the region task was not accepted for chunk " + chunkX + "," + chunkZ + ".");
             return false;
         }
 
         try {
-            future.get(5, TimeUnit.SECONDS);
-            return true;
+            return Boolean.TRUE.equals(future.get(5, TimeUnit.SECONDS));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return false;
@@ -238,7 +237,26 @@ final class WorldEntitySpawner {
             Throwable cause = e.getCause() == null ? e : e.getCause();
             reportSpawnFailure(chunkX, chunkZ, cause, failureReported);
             return false;
+        } finally {
+            future.complete(null);
         }
+    }
+
+    private <T> Runnable managedCompletion(String operation, CompletableFuture<T> future, Supplier<T> task) {
+        Runnable managed = manager.managedTask(operation, () -> {
+            if (!future.isDone()) {
+                future.complete(task.get());
+            }
+        }, () -> future.complete(null));
+        return () -> {
+            try {
+                managed.run();
+            } catch (Throwable failure) {
+                if (!future.completeExceptionally(failure)) {
+                    IrisLogging.reportError("Failed to finish " + operation + ".", failure);
+                }
+            }
+        };
     }
 
     private void reportEntityCountFailure(String message, Throwable error) {

@@ -20,6 +20,7 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.iris.engine.history.SavedBiomeUnavailableException;
 import art.arcane.iris.engine.platform.EngineBukkitOps;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.spi.IrisLogging;
@@ -262,7 +263,7 @@ final class WorldChunkMaintenance {
         }
     }
 
-    private void updateChunkRegion(World world, int chunkX, int chunkZ) {
+    void updateChunkRegion(World world, int chunkX, int chunkZ) {
         if (world == null || !world.isChunkLoaded(chunkX, chunkZ) || !Chunks.isSafe(world, chunkX, chunkZ)) {
             return;
         }
@@ -274,7 +275,14 @@ final class WorldChunkMaintenance {
                 warmupMantleChunkAsync(chunkX, chunkZ);
                 return;
             }
-            EngineBukkitOps.updateChunk(manager.getEngine(), chunk);
+            try {
+                EngineBukkitOps.updateChunk(manager.getEngine(), chunk);
+            } catch (SavedBiomeUnavailableException unavailable) {
+                if (!unavailable.isLoading() || unavailable.getSuppressed().length != 0) {
+                    throw unavailable;
+                }
+                return;
+            }
         }
 
         if (manager.entitySpawner.isEntitySpawningEnabledForCurrentWorld()) {

@@ -3815,16 +3815,15 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             message(player, "Iris Jigsaw Studio is not active in this world.");
             return false;
         }
-        List<JigsawStudioBounds> bounds = new ArrayList<>(pieces.size());
+        List<JigsawStudioPreviewRenderer.PreviewBounds> bounds = new ArrayList<>(pieces.size());
         for (PlacedStructurePiece piece : pieces) {
-            int width = Math.addExact(Math.subtractExact(piece.getMaxX(), piece.getMinX()), 1);
-            int height = Math.addExact(Math.subtractExact(piece.getMaxY(), piece.getMinY()), 1);
-            int depth = Math.addExact(Math.subtractExact(piece.getMaxZ(), piece.getMinZ()), 1);
-            bounds.add(new JigsawStudioBounds(
+            bounds.add(new JigsawStudioPreviewRenderer.PreviewBounds(
                     piece.getMinX(),
                     piece.getMinY(),
                     piece.getMinZ(),
-                    new JigsawStudioCellDimensions(width, height, depth)));
+                    piece.getMaxX(),
+                    piece.getMaxY(),
+                    piece.getMaxZ()));
         }
         assemblyPreviews.put(player.getUniqueId(), new AssemblyPreview(
                 player.getWorld().getUID(),
@@ -7552,10 +7551,6 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             return;
         }
         JigsawStudioPreviewRenderer.PreviewBounds preview = evaluation.previewBounds();
-        JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(
-                preview.maximumX() - preview.minimumX() + 1,
-                preview.maximumY() - preview.minimumY() + 1,
-                preview.maximumZ() - preview.minimumZ() + 1);
         Color color = switch (evaluation.state()) {
             case VALID -> ASSEMBLY_PREVIEW_COLOR;
             case PENDING, WARNING, STALE -> LIVE_PREVIEW_WARNING_COLOR;
@@ -7564,11 +7559,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         drawBounds(
                 player,
                 playerLocation,
-                new JigsawStudioBounds(
-                        preview.minimumX(),
-                        preview.minimumY(),
-                        preview.minimumZ(),
-                        dimensions),
+                preview,
                 color,
                 0.85F,
                 2.0D,
@@ -7589,7 +7580,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             assemblyPreviews.remove(player.getUniqueId(), preview);
             return;
         }
-        for (JigsawStudioBounds bounds : preview.bounds()) {
+        for (JigsawStudioPreviewRenderer.PreviewBounds bounds : preview.bounds()) {
             drawBounds(player, playerLocation, bounds, ASSEMBLY_PREVIEW_COLOR, 0.85F, 2.0D, budget);
             if (budget.empty()) {
                 return;
@@ -7682,12 +7673,26 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             double step,
             ParticleBudget budget
     ) {
-        double minX = bounds.originX();
-        double minY = bounds.originY();
-        double minZ = bounds.originZ();
-        double maxX = bounds.maxX() + 1.0D;
-        double maxY = bounds.maxY() + 1.0D;
-        double maxZ = bounds.maxZ() + 1.0D;
+        drawBounds(player, playerLocation, new JigsawStudioPreviewRenderer.PreviewBounds(
+                bounds.originX(), bounds.originY(), bounds.originZ(), bounds.maxX(), bounds.maxY(), bounds.maxZ()),
+                color, size, step, budget);
+    }
+
+    private static void drawBounds(
+            Player player,
+            Location playerLocation,
+            JigsawStudioPreviewRenderer.PreviewBounds bounds,
+            Color color,
+            float size,
+            double step,
+            ParticleBudget budget
+    ) {
+        double minX = bounds.minimumX();
+        double minY = bounds.minimumY();
+        double minZ = bounds.minimumZ();
+        double maxX = bounds.maximumX() + 1.0D;
+        double maxY = bounds.maximumY() + 1.0D;
+        double maxZ = bounds.maximumZ() + 1.0D;
         drawLine(player, playerLocation, minX, minY, minZ, maxX, minY, minZ, color, size, step, budget);
         drawLine(player, playerLocation, minX, minY, maxZ, maxX, minY, maxZ, color, size, step, budget);
         drawLine(player, playerLocation, minX, maxY, minZ, maxX, maxY, minZ, color, size, step, budget);
@@ -8657,7 +8662,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
     private record AssemblyPreview(
             UUID worldId,
             long expiresAtMillis,
-            List<JigsawStudioBounds> bounds
+            List<JigsawStudioPreviewRenderer.PreviewBounds> bounds
     ) {
         AssemblyPreview {
             Objects.requireNonNull(worldId, "Jigsaw Studio preview world");

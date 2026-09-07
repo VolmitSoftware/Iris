@@ -60,6 +60,7 @@ import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterUpdate;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import io.papermc.lib.PaperLib;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -228,12 +229,33 @@ public final class EngineBukkitOps {
             }
         }
 
-        mantleChunk.iterate(MatterUpdate.class, (x, yf, z, value) -> {
-            int y = yf + engine.getWorld().minHeight();
-            if (value != null && value.isUpdate()) {
-                dispatcher.update(x, y, z);
+        IntArrayList completed = new IntArrayList();
+        try {
+            mantleChunk.iterate(MatterUpdate.class, (x, yf, z, value) -> {
+                int y = yf + engine.getWorld().minHeight();
+                if (value != null && value.isUpdate()) {
+                    dispatcher.update(x, y, z);
+                    completed.add((yf << 8) | ((x & 15) << 4) | (z & 15));
+                }
+            });
+        } catch (RuntimeException | Error failure) {
+            try {
+                for (int index = 0; index < completed.size(); index++) {
+                    int position = completed.getInt(index);
+                    int y = position >>> 8;
+                    Matter section = mantleChunk.get(y >> 4);
+                    if (section != null && section.hasSlice(MatterUpdate.class)) {
+                        section.<MatterUpdate>getSlice(MatterUpdate.class)
+                                .set((position >> 4) & 15, y & 15, position & 15, null);
+                    }
+                }
+            } catch (RuntimeException | Error cleanupFailure) {
+                if (cleanupFailure != failure) {
+                    failure.addSuppressed(cleanupFailure);
+                }
             }
-        });
+            throw failure;
+        }
         mantleChunk.deleteSlices(MatterUpdate.class);
         engine.getMetrics().getUpdates().put(stopwatch.getMilliseconds());
     }

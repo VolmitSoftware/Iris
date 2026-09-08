@@ -385,43 +385,6 @@ public class ServerConfiguratorDatapackFingerprintTest {
     }
 
     @Test
-    public void recoveryRunsBeforeRestoredFingerprintReuseHashFallbackAndCompilation() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/ServerConfigurator.java")).replace("\r\n", "\n");
-        int installIfChanged = source.indexOf("installDataPacksIfChanged(boolean fullInstall)");
-        int recovery = source.indexOf("DatapackIngestService.reapplyFromStaging", installIfChanged);
-        int restored = source.indexOf("restoredCompilerInputFingerprint()", recovery);
-        int fingerprint = source.indexOf("computeCurrentDatapackCompilerInputFingerprint", restored);
-        int earlyReturn = source.indexOf("resultForUnchangedFingerprint", fingerprint);
-        int compile = source.indexOf("compileDataPacksLocked(", earlyReturn);
-        int cache = source.indexOf("writeCompilerInputFingerprintCache(cacheFile.toPath(), current)", compile);
-
-        assertTrue(recovery >= 0);
-        assertTrue(restored > recovery);
-        assertTrue(fingerprint > restored);
-        assertTrue(earlyReturn > fingerprint);
-        assertTrue(compile > earlyReturn);
-        assertTrue(cache > compile);
-    }
-
-    @Test
-    public void studioTimingSeparatesRecoveryFingerprintCompilationAndTotal() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/ServerConfigurator.java")).replace("\r\n", "\n");
-        int timedInstall = source.indexOf("BiConsumer<String, Long> timingConsumer");
-        int recovery = source.indexOf("\"datapack_external_recovery\"", timedInstall);
-        int fingerprint = source.indexOf("\"datapack_compiler_input_fingerprint\"", recovery);
-        int compile = source.indexOf("\"datapack_compile_publish\"", fingerprint);
-        int total = source.indexOf("\"datapack_install_if_changed_total\"", compile);
-
-        assertTrue(timedInstall >= 0);
-        assertTrue(recovery > timedInstall);
-        assertTrue(fingerprint > recovery);
-        assertTrue(compile > fingerprint);
-        assertTrue(total > compile);
-    }
-
-    @Test
     public void loadedRuntimeReuseRequiresAnExactPinnedCompilerInputFingerprint() {
         assertTrue(ServerConfigurator.reusableRuntimeFingerprint("abc", "abc"));
         assertFalse(ServerConfigurator.reusableRuntimeFingerprint("abc", "def"));

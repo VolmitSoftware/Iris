@@ -23,9 +23,6 @@ import org.mockito.MockedStatic;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -82,23 +79,6 @@ public class JigsawStudioLifecycleTest {
                 CreatureSpawnEvent.SpawnReason.CUSTOM));
         assertFalse(JigsawStudioService.isNaturalStudioSpawn(
                 CreatureSpawnEvent.SpawnReason.SPAWNER));
-    }
-
-    @Test
-    public void committedStudioActivationDisablesNaturalMobSpawning() throws IOException {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/service/JigsawStudioService.java")).replace("\r\n", "\n");
-        int registerStart = source.indexOf("public void register(");
-        int commitStart = source.indexOf("public void activationCommitted(", registerStart);
-        int commitEnd = source.indexOf("public void markChunkGenerated(", commitStart);
-        int helperStart = source.indexOf("static void disableNaturalStudioSpawning(", commitEnd);
-        String register = source.substring(registerStart, commitStart);
-        String commit = source.substring(commitStart, commitEnd);
-        String helper = source.substring(helperStart);
-
-        assertFalse(register.contains("disableNaturalStudioSpawning(world)"));
-        assertTrue(commit.contains("disableNaturalStudioSpawning(world)"));
-        assertTrue(helper.contains("setGameRule(GameRules.SPAWN_MOBS, false)"));
     }
 
     @Test

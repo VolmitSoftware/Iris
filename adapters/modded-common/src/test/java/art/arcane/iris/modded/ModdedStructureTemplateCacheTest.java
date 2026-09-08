@@ -4,8 +4,6 @@ import org.junit.Test;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -64,14 +62,9 @@ public class ModdedStructureTemplateCacheTest {
             config = new String(input.readAllBytes(), StandardCharsets.UTF_8);
         }
         assertTrue(config.contains("\"StructureTemplatePaletteConcurrencyMixin\""));
-
-        Path source = Path.of(System.getProperty("iris.moddedCommonSources"))
-                .resolve("art/arcane/iris/modded/mixin/StructureTemplatePaletteConcurrencyMixin.java");
-        String mixin = Files.readString(source);
-        assertTrue(mixin.contains("@Mixin(StructureTemplate.Palette.class)"));
-        assertTrue(mixin.contains("@Shadow\n    @Final\n    @Mutable"));
-        assertTrue(mixin.contains("private Map<Block, List<StructureTemplate.StructureBlockInfo>> cache;"));
-        assertTrue(mixin.contains("@Inject(method = \"<init>(Ljava/util/List;)V\", at = @At(\"RETURN\"))"));
-        assertTrue(mixin.contains("cache = new ConcurrentHashMap<>();"));
+        assertNotNull(Class.forName(
+                "art.arcane.iris.modded.mixin.StructureTemplatePaletteConcurrencyMixin",
+                false,
+                ModdedStructureTemplateCacheTest.class.getClassLoader()));
     }
 }

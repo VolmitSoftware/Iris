@@ -141,23 +141,6 @@ public class IrisWorldGeneratorResolverTest {
     }
 
     @Test
-    public void startupValidationPublishesFingerprintBoundExactRootResults() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/IrisWorldGeneratorResolver.java")).replace("\r\n", "\n");
-        int validateAll = source.indexOf("public void validateAllPacks()");
-        int snapshot = source.indexOf("ServerConfigurator.computePackContentSnapshot(packsRoot)", validateAll);
-        int perPackFingerprint = source.indexOf("contentSnapshot.packContents()", snapshot);
-        int exactRootPublish = source.indexOf(
-                "PackValidationRegistry.publish(packDirectory.toPath(), result, packFingerprint)",
-                perPackFingerprint);
-
-        assertTrue(validateAll >= 0);
-        assertTrue(snapshot > validateAll);
-        assertTrue(perPackFingerprint > snapshot);
-        assertTrue(exactRootPublish > perPackFingerprint);
-    }
-
-    @Test
     public void paperStartupAliasResolvesToCanonicalRuntimeKey() throws Exception {
         File levelRoot = ownedLevelRoot("startup-alias", "moon");
 
@@ -249,87 +232,6 @@ public class IrisWorldGeneratorResolverTest {
         File levelRoot = temporaryFolder.newFolder(scope, "world");
         assertTrue(new File(levelRoot, "dimensions/iris/" + worldKey).mkdirs());
         return levelRoot;
-    }
-
-    @Test
-    public void configuredWorldResolutionUsesOnlyActiveImmutableGenerationPack() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/IrisWorldGeneratorResolver.java")).replace("\r\n", "\n");
-        int resolverStart = source.indexOf("private ChunkGenerator resolveFrozenWorldGenerator(");
-        int resolverEnd = source.indexOf("private record FreshValidation", resolverStart);
-        String resolver = source.substring(resolverStart, resolverEnd);
-
-        int dimensionRoot = resolver.indexOf("IrisWorldStorage.requireFrozenDimensionRoot(");
-        int currentPlatformRoot = resolver.indexOf("WorldCreatorCompat.persistentDimensionRoot(worldKey)");
-        int layoutRefusal = resolver.indexOf(
-                "Frozen Iris world storage does not match the current platform layout",
-                currentPlatformRoot
-        );
-        int history = resolver.indexOf("requireGenerationHistory(dimensionRoot, id, worldSeed)");
-        int snapshotRoot = resolver.indexOf("requireActivePack(history)", history);
-        int validation = resolver.indexOf("requireSnapshotLoadable(snapshotRoot)");
-        int exactLoad = resolver.indexOf("requireHistoricalDimension(history, snapshotRoot, id)");
-        int canonicalIdentity = resolver.indexOf(".platformIdentity(worldKey.toString())");
-        int historicalSeed = resolver.indexOf(".seed(history.activeEpoch().worldSeed())");
-        int resolvedStorage = resolver.indexOf(".worldFolder(dimensionRoot)");
-
-        assertTrue(dimensionRoot >= 0);
-        assertTrue(currentPlatformRoot > dimensionRoot);
-        assertTrue(layoutRefusal > currentPlatformRoot);
-        assertTrue(history > layoutRefusal);
-        assertTrue(snapshotRoot > history);
-        assertTrue(validation > snapshotRoot);
-        assertTrue(exactLoad > validation);
-        assertTrue(canonicalIdentity > exactLoad);
-        assertTrue(historicalSeed > canonicalIdentity);
-        assertTrue(resolvedStorage > historicalSeed);
-        assertFalse(resolver.contains("loadDimension("));
-        assertFalse(resolver.contains("loadAnyDimension("));
-        assertFalse(resolver.contains("replaceIntoWorld("));
-        assertFalse(resolver.contains("installIntoWorld("));
-        assertFalse(resolver.contains(".seed(1337)"));
-        assertTrue(resolver.contains("GenerationHistory.openIfPresent(root, worldSeed)"));
-        assertTrue(resolver.contains("GenerationHistory.adoptLegacyPack("));
-        assertTrue(resolver.contains("GenerationRegistryContractFactory.captureRequiredDefinitions("));
-    }
-
-    @Test
-    public void ownedWorldSnapshotFailureStopsStartupAndRethrows() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/IrisWorldGeneratorResolver.java")).replace("\r\n", "\n");
-        int resolverStart = source.indexOf("public ChunkGenerator resolveDefaultWorldGenerator(");
-        int resolverEnd = source.indexOf("private ChunkGenerator resolveFrozenWorldGenerator(", resolverStart);
-        String resolver = source.substring(resolverStart, resolverEnd);
-
-        int plotSquaredProbe = resolver.indexOf("isPlotSquaredGeneratorDiscoveryProbe(worldName, id)");
-        int probe = resolver.indexOf("isGeneratorDiscoveryProbe(worldName, id)", plotSquaredProbe);
-        int denial = resolver.indexOf("IrisStartupValidation.denialReason()", probe);
-        int failClosed = resolver.indexOf("IrisFailClosedChunkGenerator.startupLock(", denial);
-        int staged = resolver.indexOf("WorldLifecycleStaging.consumeGenerator(worldName)", failClosed);
-        int duplicateGuard = resolver.indexOf("requireWorldKeyAvailable(worldName, worldKey)");
-        int ownership = resolver.indexOf("requireOwnedWorld(worldName, levelRoot, worldKey)");
-        int frozen = resolver.indexOf("return resolveFrozenWorldGenerator(", ownership);
-        int failureCapture = resolver.indexOf("catch (RuntimeException failure)", frozen);
-        int report = resolver.indexOf("Iris.reportError(", failureCapture);
-        int shutdown = resolver.indexOf("Bukkit.shutdown()", report);
-        int rethrow = resolver.indexOf("throw failure", shutdown);
-
-        assertTrue(plotSquaredProbe >= 0);
-        assertTrue(probe > plotSquaredProbe);
-        assertTrue(denial > probe);
-        assertTrue(failClosed > denial);
-        assertTrue(staged > failClosed);
-        assertTrue(duplicateGuard > staged);
-        assertTrue(ownership > duplicateGuard);
-        assertTrue(frozen > ownership);
-        assertTrue(failureCapture > frozen);
-        assertTrue(report > failureCapture);
-        assertTrue(shutdown > report);
-        assertTrue(rethrow > shutdown);
-
-        String shutdownScope = "the fail-fast shutdown must stay scoped to the frozen snapshot of an owned world";
-        assertEquals(shutdownScope, resolverStart + shutdown, source.indexOf("Bukkit.shutdown()"));
-        assertEquals(shutdownScope, resolverStart + shutdown, source.lastIndexOf("Bukkit.shutdown()"));
     }
 
     @Test

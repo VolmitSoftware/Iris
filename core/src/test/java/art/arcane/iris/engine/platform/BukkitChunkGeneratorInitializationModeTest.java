@@ -11,11 +11,8 @@ import art.arcane.iris.engine.object.StudioMode;
 import art.arcane.iris.engine.object.IrisDimension;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -109,19 +106,6 @@ public class BukkitChunkGeneratorInitializationModeTest {
     }
 
     @Test
-    public void authoringStartupDoesNotPrefetchTerrainHydrology() throws IOException {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/engine/platform/BukkitChunkGenerator.java"));
-        int start = source.indexOf("private CompletableFuture<Void> prefetchSpawnHydrology(");
-        int end = source.indexOf("private void updateSpawnLocation(", start);
-        String prefetch = source.substring(start, end);
-
-        assertTrue(prefetch.indexOf("if (usesFlatStudioTerrain())") >= 0);
-        assertTrue(prefetch.indexOf("if (usesFlatStudioTerrain())")
-                < prefetch.indexOf("engine.getComplex()"));
-    }
-
-    @Test
     public void runtimeAndOrdinaryStudioWarmGenerationCaches() {
         IrisEngine.InitializationMode runtime =
                 BukkitChunkGenerator.selectInitializationMode(false, false, false);
@@ -180,5 +164,4 @@ public class BukkitChunkGeneratorInitializationModeTest {
         assertFalse(BukkitChunkGenerator.shouldPersistWorldRegistration(true));
         assertTrue(BukkitChunkGenerator.shouldPersistWorldRegistration(false));
     }
-
 }

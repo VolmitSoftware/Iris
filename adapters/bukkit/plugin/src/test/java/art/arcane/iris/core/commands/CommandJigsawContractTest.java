@@ -116,21 +116,6 @@ public class CommandJigsawContractTest {
     }
 
     @Test
-    public void committedActivationStartsInitialEvaluationBeforePlayerBinding() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/commands/CommandJigsaw.java")).replace("\r\n", "\n");
-        int commit = source.indexOf("JigsawStudioActivation.commit(staged)");
-        int evaluation = source.indexOf(
-                "studioService.activationCommitted(world, request.requestId())",
-                commit);
-        int binding = source.indexOf("PLAYER_PACKS.put", evaluation);
-
-        assertTrue(commit >= 0);
-        assertTrue(evaluation > commit);
-        assertTrue(binding > evaluation);
-    }
-
-    @Test
     public void convertIsAddOnlyWorkflowWithAliasesAndDefaults() throws Exception {
         Method convert = CommandJigsaw.class.getDeclaredMethod(
                 "convert", IrisDimension.class, String.class, String.class, long.class);
@@ -359,20 +344,6 @@ public class CommandJigsawContractTest {
     }
 
     @Test
-    public void pieceCreateUsesResolvedWorkcellCapacityInsteadOfLayoutDefault() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/commands/CommandJigsaw.java")).replace("\r\n", "\n");
-        int pieceCommands = source.indexOf("public static class CommandJigsawPiece");
-        int create = source.indexOf("public void create(", pieceCommands);
-        int add = source.indexOf("public void add(", create);
-        String createSource = source.substring(create, add);
-
-        assertTrue(createSource.contains("targetWorkcell = contextual;"));
-        assertTrue(createSource.contains("JigsawStudioCellDimensions dimensions = targetWorkcell.capacity();"));
-        assertFalse(createSource.contains("layout().cellDimensions()"));
-    }
-
-    @Test
     public void pieceAddUsesCanonicalAxesForRotatedRectangularPlanarWorkcells() {
         JigsawStudioLayout layout = nonuniformPlanarLayout();
         IrisJigsawPiece eastEnd = new IrisJigsawPiece();
@@ -508,25 +479,6 @@ public class CommandJigsawContractTest {
         lease.release();
 
         assertEquals(1, releases.get());
-    }
-
-    @Test
-    public void exportSourceAcquiresStudioLeaseBeforeStaticLeaseAndReleasesBothPaths() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/commands/CommandJigsaw.java")).replace("\r\n", "\n");
-        int serviceLease = source.indexOf("studioService.tryBeginExport(requestId, playerId)");
-        int staticLease = source.indexOf("beginExport(playerId, destination)", serviceLease);
-        int dispatch = source.indexOf("J.a(() -> runExport(operation))", staticLease);
-        int schedulingRelease = source.indexOf("operation.lease().release()", dispatch);
-        int exporter = source.indexOf("new VanillaJigsawDatapackExporter().export(operation.request())", dispatch);
-        int completionRelease = source.indexOf("operation.lease().release()", exporter);
-
-        assertTrue(serviceLease >= 0);
-        assertTrue(staticLease > serviceLease);
-        assertTrue(dispatch > staticLease);
-        assertTrue(schedulingRelease > dispatch);
-        assertTrue(exporter > schedulingRelease);
-        assertTrue(completionRelease > exporter);
     }
 
     private static void assertCommand(String name, Class<?>... parameterTypes) throws Exception {

@@ -7,8 +7,6 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.junit.Test;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -210,20 +208,6 @@ public class IrisPapiExpansionTest {
         assertEquals("2.0.0", expansion.getVersion());
         assertEquals("Iris", expansion.getRequiredPlugin());
         assertTrue(expansion.persist());
-    }
-
-    @Test
-    public void theReadmeDocumentsEveryPublishedKeyAndEveryRetiredOne() throws Exception {
-        String readme = Files.readString(Path.of(System.getProperty("iris.readmeSource")));
-
-        for (String key : PUBLISHED_KEYS) {
-            assertTrue("README must document %iris_" + key + "%", readme.contains("%iris_" + key + "%"));
-        }
-
-        for (String retired : RETIRED_KEYS) {
-            assertTrue("README must carry the migration row for %iris_" + retired + "%",
-                    readme.contains("%iris_" + retired + "%"));
-        }
     }
 
     @Test

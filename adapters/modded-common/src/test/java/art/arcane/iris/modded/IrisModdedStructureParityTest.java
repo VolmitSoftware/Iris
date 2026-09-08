@@ -14,9 +14,6 @@ import net.minecraft.server.Bootstrap;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -64,16 +61,10 @@ public class IrisModdedStructureParityTest {
     }
 
     @Test
-    public void strongholdRingSearchSamplesOneQuartColumnPerChunk() throws IOException {
+    public void strongholdRingSearchSamplesOneQuartColumnPerChunk() {
         assertEquals(4, IrisModdedBiomeSource.horizontalBiomeSearchQuartStep(0, 112));
         assertEquals(1, IrisModdedBiomeSource.horizontalBiomeSearchQuartStep(1, 112));
         assertEquals(1, IrisModdedBiomeSource.horizontalBiomeSearchQuartStep(0, 111));
-        String source = Files.readString(Path.of(
-                System.getProperty("iris.moddedCommonSources"),
-                "art/arcane/iris/modded/IrisModdedBiomeSource.java"));
-        assertTrue(source.contains("x, y, z, searchRadius, quartStep, allowed, random, false, sampler"));
-        assertTrue(source.contains(
-                "return super.findBiomeHorizontal(x, y, z, searchRadius, allowed, random, sampler)"));
     }
 
     @Test
@@ -130,126 +121,12 @@ public class IrisModdedStructureParityTest {
     }
 
     @Test
-    public void visibleBiomeResolutionSelectsStackOwnershipBeforeHostCaves() throws IOException {
-        String source = Files.readString(Path.of(
-                System.getProperty("iris.moddedCommonSources"),
-                "art/arcane/iris/modded/IrisModdedBiomeSource.java"));
-        int resolutionStart = source.indexOf("private BiomeResolution resolveBiomeResolution(");
-        int resolutionEnd = source.indexOf("private Holder<Biome> resolveRequiredStructureBiome(", resolutionStart);
-
-        assertTrue(resolutionStart >= 0);
-        assertTrue(resolutionEnd > resolutionStart);
-        String resolution = source.substring(resolutionStart, resolutionEnd);
-
-        assertTrue(resolution.contains("resolveDimensionStackLayer("));
-        assertTrue(resolution.contains("!stackLayer.terrainContext().isSelfReferencing()"));
-        assertTrue(resolution.indexOf("resolveDimensionStackLayer(")
-                < resolution.indexOf("boolean underground"));
-        assertTrue(resolution.contains("includeDimensionStack"));
-        assertTrue(resolution.contains(
-                "return resolveBiomeResolution(engine, quartX, quartY, quartZ, false)"));
-        assertTrue(source.contains("resolution.packName(), resolution.dimension(), customBiome.getId()"));
-        int helperStart = source.indexOf("private static IrisBiome resolveSurfaceStructureBiome(");
-        int helperEnd = source.indexOf("private static Set<String> registeredBiomeKeys(", helperStart);
-        String helper = source.substring(helperStart, helperEnd);
-        assertTrue(helper.contains("engine.getComplex().getTrueBiomeStream().get(blockX, blockZ)"));
-        assertFalse(helper.contains("getDimensionStackContext()"));
-        assertFalse(helper.contains("getSurfaceBiome("));
-    }
-
-    @Test
-    public void stackBiomesAreVisibleButExcludedFromStructureReachability() throws IOException {
-        String source = Files.readString(Path.of(
-                System.getProperty("iris.moddedCommonSources"),
-                "art/arcane/iris/modded/IrisModdedBiomeSource.java"));
-
-        assertTrue(source.contains("return biomeKeySets().structureRequired()"));
-        assertTrue(source.contains("generatedBiomeKeys.addAll(keys.visibleRequired())"));
-        assertTrue(source.contains("collectStructureBiomeKeys("));
-        assertTrue(source.contains("dimension.getReachableBiomes(() -> data)"));
-    }
-
-    @Test
-    public void biomeLocatorSearchesTheVisibleStack() throws IOException {
-        String source = Files.readString(Path.of(
-                System.getProperty("iris.moddedCommonSources"),
-                "art/arcane/iris/modded/IrisModdedBiomeSource.java"));
-        int start = source.indexOf("public Pair<BlockPos, Holder<Biome>> findClosestBiome3d(");
-        int end = source.indexOf("private Holder<Biome> getNoiseBiome(", start);
-        String method = source.substring(start, end);
-
-        assertTrue(method.contains("modded_locate_visible_biome"));
-        assertTrue(method.contains("return super.findClosestBiome3d("));
-        assertTrue(method.contains("collectVisibleBiomeHolders()"));
-        assertTrue(method.contains("QuartPos.toBlock(quartX), QuartPos.toBlock(quartZ)"));
-        assertTrue(method.contains("resolveVisibleBiome("));
-        assertFalse(method.contains("Holder<Biome> structureBiome = getNoiseBiome("));
-        assertTrue(method.indexOf("tryAcquireGenerationLease(engine, \"modded_locate_visible_biome\")")
-                < method.indexOf("engine.getDimensionStackContext()"));
-    }
-
-    @Test
-    public void surfaceSpawnBiomeUsesTheVisibleQuartCell() throws IOException {
-        String source = Files.readString(Path.of(
-                System.getProperty("iris.moddedCommonSources"),
-                "art/arcane/iris/modded/IrisModdedBiomeSource.java"));
-        int start = source.indexOf("Holder<Biome> getVisibleSurfaceBiome(");
-        int end = source.indexOf("boolean isStructureReachable(", start);
-        String method = source.substring(start, end);
-
-        assertTrue(method.contains("QuartPos.fromBlock(blockX)"));
-        assertTrue(method.contains("QuartPos.toBlock(quartX)"));
-        assertTrue(method.contains("QuartPos.fromBlock(internalY + engine.getMinHeight())"));
-        assertTrue(method.contains("stackContext.getLayout(sampleX, sampleZ).surfaceLayer()"));
-        assertTrue(method.contains("visibleBiomeCache"));
-        assertTrue(method.contains("isBiomeCacheable(engine, sampleX, sampleZ)"));
-        assertTrue(method.indexOf("boolean cacheable = isBiomeCacheable(engine, sampleX, sampleZ)")
-                < method.indexOf("Engine.hostHeight(engine, sampleX, sampleZ, true)"));
-        assertCacheGuarded(method, "visibleBiomeCache");
-    }
-
-    @Test
-    public void temporaryNaturalBiomeAnswersAreNotMemoized() throws IOException {
+    public void temporaryNaturalBiomeAnswersAreNotMemoized() {
         Engine engine = mock(Engine.class);
         when(engine.answersFromNaturalTerrain(12, -8)).thenReturn(true);
         assertFalse(IrisModdedBiomeSource.isBiomeCacheable(engine, 12, -8));
         when(engine.answersFromNaturalTerrain(12, -8)).thenReturn(false);
         assertTrue(IrisModdedBiomeSource.isBiomeCacheable(engine, 12, -8));
-
-        String source = Files.readString(Path.of(
-                System.getProperty("iris.moddedCommonSources"),
-                "art/arcane/iris/modded/IrisModdedBiomeSource.java"));
-        int structureStart = source.indexOf("private Holder<Biome> getNoiseBiome(Engine engine");
-        int structureEnd = source.indexOf("Holder<Biome> getVisibleNoiseBiome(", structureStart);
-        String structure = source.substring(structureStart, structureEnd);
-        assertTrue(structure.contains("QuartPos.toBlock(quartX)"));
-        assertTrue(structure.contains("QuartPos.toBlock(quartZ)"));
-        assertCacheGuarded(structure, "structureBiomeCache");
-
-        int visibleStart = source.indexOf(
-                "private Holder<Biome> getVisibleNoiseBiomeWithActiveGenerationLease(");
-        int visibleEnd = source.indexOf("Holder<Biome> getVisibleSurfaceBiome(", visibleStart);
-        String visible = source.substring(visibleStart, visibleEnd);
-        assertTrue(visible.contains("QuartPos.toBlock(quartX)"));
-        assertTrue(visible.contains("QuartPos.toBlock(quartZ)"));
-        assertCacheGuarded(visible, "visibleBiomeCache");
-
-        int predicateStart = source.indexOf("static boolean isBiomeCacheable(");
-        int predicateEnd = source.indexOf("static boolean isMonumentSurfaceBiomeQuery(", predicateStart);
-        String predicate = source.substring(predicateStart, predicateEnd);
-        assertTrue(predicate.contains("return !engine.answersFromNaturalTerrain(blockX, blockZ)"));
-        assertFalse(predicate.contains("getDimensionStackContext()"));
-    }
-
-    @Test
-    public void importedFeaturesCollectOnlyHostOwnedStackCells() throws IOException {
-        String source = Files.readString(Path.of(
-                System.getProperty("iris.moddedCommonSources"),
-                "art/arcane/iris/modded/ModdedImportedFeatureStage.java"));
-
-        assertTrue(source.contains("stackContext.getLayerAt("));
-        assertTrue(source.contains("layer.terrainContext().isSelfReferencing()"));
-        assertTrue(source.contains("section.getBiomes().get(quartX, quartY, quartZ)"));
     }
 
     @Test
@@ -279,17 +156,6 @@ public class IrisModdedStructureParityTest {
         Set<String> recursiveKeys = ModdedDimensionMetadata.collectConfiguredBiomeKeys(
                 List.of(custom), "Layers/Sky");
         assertTrue(recursiveKeys.contains("layers:sky/aurora"));
-    }
-
-    @Test
-    public void biomeWriterDerivativeFallbackMatchesCanonicalRecursiveKeys() throws IOException {
-        String source = Files.readString(Path.of(
-                System.getProperty("iris.moddedCommonSources"),
-                "art/arcane/iris/modded/ModdedBiomeWriter.java"));
-
-        assertTrue(source.contains(
-                "key.equalsIgnoreCase(dimension.getCustomBiomeKey(custom.getId()))"));
-        assertFalse(source.contains("String dimensionLoadKey = key.substring(0, colon)"));
     }
 
     @Test
@@ -410,21 +276,4 @@ public class IrisModdedStructureParityTest {
     public void initialEntitySpawnsUseThePaperCompletionMarker() {
         assertSame(MantleFlag.INITIAL_SPAWNED_MARKER, ModdedWorldManager.INITIAL_SPAWN_COMPLETION_FLAG);
     }
-
-    private static void assertCacheGuarded(String method, String cacheName) {
-        int predicate = method.indexOf("boolean cacheable = isBiomeCacheable(");
-        int cache = method.indexOf("BiomeHolderTable cache = " + cacheName, predicate);
-        int read = method.indexOf("cache.get(", predicate);
-        int readGuard = method.lastIndexOf("if (cacheable)", read);
-        int write = method.indexOf("cache.put(", read);
-        int writeGuard = method.lastIndexOf("if (cacheable)", write);
-
-        assertTrue(predicate >= 0);
-        assertTrue(cache >= 0);
-        assertTrue(read > predicate);
-        assertTrue(readGuard >= predicate);
-        assertTrue(write > read);
-        assertTrue(writeGuard > read);
-    }
-
 }

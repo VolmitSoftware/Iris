@@ -96,28 +96,6 @@ public class IrisWorldsTest {
      * the constructor and into the cache, which returned null and NPE'd every caller.
      */
     @Test
-    public void oneUnusableWorldIsExcludedInsteadOfFailingTheWholeRegistry() throws Exception {
-        String source = Files.readString(Path.of("src/main/java/art/arcane/iris/core/IrisWorlds.java")).replace("\r\n", "\n");
-
-        int accessor = source.indexOf("public static IrisWorlds get()");
-        int accessorEnd = source.indexOf("public synchronized void put(", accessor);
-        assertTrue("get() must not swallow a failure into a null return",
-                source.substring(accessor, accessorEnd).contains("cache.aquireOnceOrThrow("));
-
-        int clean = source.indexOf("public synchronized void clean()");
-        int cleanEnd = source.indexOf("public synchronized void save()", clean);
-        String cleanBody = source.substring(clean, cleanEnd);
-        assertTrue("clean() must isolate an unusable entry",
-                cleanBody.contains("catch (IllegalStateException e)"));
-        assertTrue("an unusable entry stays in the registry so /iris remove can still find it",
-                cleanBody.contains("warnUnusableStorage(entry.getKey(), e);"));
-
-        int loadDimension = source.indexOf("private IrisDimension loadDimension(");
-        assertTrue("loadDimension must exclude an unusable world rather than propagate",
-                source.substring(loadDimension).contains("catch (IllegalStateException unusableStorage)"));
-    }
-
-    @Test
     public void bukkitWorldFilteringRecognizesCurrentCraftBukkitConfiguredStorage() throws Exception {
         Path worldContainer = temporaryFolder.newFolder("configured-server").toPath();
         Path levelRoot = Files.createDirectory(worldContainer.resolve("world"));

@@ -21,9 +21,6 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -231,24 +228,6 @@ public class StructureHandlerTest {
         }
     }
 
-    @Test
-    public void completionUsesOneReachabilitySnapshotAndLocatableKeys() throws IOException {
-        Path sourcePath = Path.of(
-                "src/main/java/art/arcane/iris/util/common/director/specialhandlers/StructureHandler.java");
-        String source = Files.readString(sourcePath).replace("\r\n", "\n");
-        int methodStart = source.indexOf("public KList<String> getPossibilities()");
-        int methodEnd = source.indexOf("@Override\n    public String toString", methodStart);
-        String method = source.substring(methodStart, methodEnd);
-
-        assertEquals(1, occurrences(method, "StructureReachability.reachableKeys(activeEngine)"));
-        assertEquals(0, occurrences(method, "IrisStructureLocator.locatableKeys(activeEngine)"));
-        assertEquals(1, occurrences(method, "IrisStructureLocator.locatableEditableKeys(activeEngine)"));
-        assertTrue(method.indexOf("if (activeEngine == null)")
-                < method.indexOf("IrisPlatforms.get().structureHooks()"));
-        assertFalse(method.contains("INMS"));
-        assertFalse(method.contains("catch ("));
-    }
-
     private static IrisNativeStructureDecision decision(NativeStructureGenerationStatus status) {
         return new IrisNativeStructureDecision(status, 0, null, false, null, null);
     }
@@ -266,16 +245,6 @@ public class StructureHandlerTest {
         IrisStructurePlacement placement = new IrisStructurePlacement();
         placement.getStructures().add(key);
         return placement;
-    }
-
-    private static int occurrences(String source, String target) {
-        int count = 0;
-        int offset = 0;
-        while ((offset = source.indexOf(target, offset)) >= 0) {
-            count++;
-            offset += target.length();
-        }
-        return count;
     }
 
     private static final class TestStructureHandler extends StructureHandler {

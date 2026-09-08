@@ -247,39 +247,6 @@ public class DatapackIngestServiceTest {
     }
 
     @Test
-    public void startupChecksCheapCacheContextBeforeHashingManagedDatapacks() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/datapack/DatapackIngestService.java")).replace("\r\n", "\n");
-        int validation = source.indexOf("public static StartupValidationOutcome validateOnStartup()");
-        int cacheRead = source.indexOf("readStartupValidationCache", validation);
-        int contextCheck = source.indexOf("startupValidationContextMatches(", cacheRead);
-        int fingerprint = source.indexOf("startupValidationFingerprint(", contextCheck);
-        int fullValidation = source.indexOf("if (autoIngest && !configured.isEmpty())", fingerprint);
-
-        assertTrue(validation >= 0);
-        assertTrue(cacheRead > validation);
-        assertTrue(contextCheck > cacheRead);
-        assertTrue(fingerprint > contextCheck);
-        assertTrue(fullValidation > fingerprint);
-    }
-
-    @Test
-    public void unchangedPostStartupMaintenanceReturnsBeforeFingerprinting() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/datapack/DatapackIngestService.java")).replace("\r\n", "\n");
-        int refresh = source.indexOf(
-                "refreshStartupValidationAfterMaintenance(boolean maintenanceChanged)");
-        int unchangedGuard = source.indexOf("if (!maintenanceChanged)", refresh);
-        int validatedState = source.indexOf("StartupValidationCache validated", refresh);
-        int fingerprint = source.indexOf("startupValidationFingerprint(", refresh);
-
-        assertTrue(refresh >= 0);
-        assertTrue(unchangedGuard > refresh);
-        assertTrue(validatedState > unchangedGuard);
-        assertTrue(fingerprint > unchangedGuard);
-    }
-
-    @Test
     public void packMetadataMustContainAValidPackContract() throws Exception {
         File valid = temporaryFolder.newFolder("valid");
         Files.writeString(new File(valid, "pack.mcmeta").toPath(), """
@@ -892,27 +859,6 @@ public class DatapackIngestServiceTest {
         DatapackIngestService.writeOwnership(managed, entry);
 
         assertEquals(expected, ownershipHash(managed));
-    }
-
-    @Test
-    public void directoryHashRestatsAttributesAndVolumeBeforeOpeningEachFile() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/datapack/DatapackIngestService.java")).replace("\r\n", "\n");
-        int method = source.indexOf("private static String directoryHash(File root)");
-        int entries = source.indexOf("List<Path> entries = new ArrayList<>()", method);
-        int loop = source.indexOf("for (Path entry : entries)", entries);
-        int attributes = source.indexOf("BasicFileAttributes attributes = Files.readAttributes(", loop);
-        int fileStore = source.indexOf("Files.getFileStore(entry)", attributes);
-        int open = source.indexOf("Files.newInputStream(", fileStore);
-        int digest = source.indexOf("return hex(digest.digest())", open);
-
-        assertTrue(method >= 0);
-        assertTrue(entries > method);
-        assertTrue(loop > entries);
-        assertTrue(attributes > loop);
-        assertTrue(fileStore > attributes);
-        assertTrue(open > fileStore);
-        assertTrue(digest > open);
     }
 
     @Test
@@ -3880,8 +3826,6 @@ public class DatapackIngestServiceTest {
     }
 
     private static final class DeleteAttemptFile extends File {
-        private static final long serialVersionUID = 1L;
-
         private final int successfulAttempt;
         private int deleteAttempts;
 

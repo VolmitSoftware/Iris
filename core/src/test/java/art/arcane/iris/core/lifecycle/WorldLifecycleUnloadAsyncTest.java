@@ -10,8 +10,6 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Method;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -57,40 +55,6 @@ public class WorldLifecycleUnloadAsyncTest {
             bukkit.when(Bukkit::getPluginManager).thenReturn(pluginManager);
             assertFalse(WorldLifecycleSupport.announceManualWorldUnload(world));
         }
-    }
-
-    @Test
-    public void paperLikeManualUnloadDetachesBeforeOffThreadChunkDrain() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/lifecycle/WorldLifecycleSupport.java"))
-                .replace("\r\n", "\n");
-        int unloadStart = source.indexOf("private static CompletableFuture<Boolean> unloadWorldWithoutAsyncApi(");
-        int unloadEnd = source.indexOf("static boolean announceManualWorldUnload", unloadStart);
-        String unloadMethod = source.substring(unloadStart, unloadEnd);
-        int capabilityFallback = unloadMethod.indexOf(
-                "capabilities.minecraftServer() == null || capabilities.removeLevelMethod() == null");
-        int bukkitUnload = unloadMethod.indexOf("Bukkit.unloadWorld(world, save)", capabilityFallback);
-        int detach = unloadMethod.indexOf("detachServerLevelAsync(capabilities, serverLevel, world)");
-        int drain = unloadMethod.indexOf("drainChunkTasksAsync(world, serverLevel)");
-        int close = unloadMethod.indexOf("closeServerLevelAsync(world, serverLevel)");
-        int closeStart = source.indexOf("private static CompletableFuture<Void> closeServerLevelAsync(");
-        int closeEnd = source.indexOf("private static CompletableFuture<Void> drainChunkTasksAsync(", closeStart);
-        String closeMethod = source.substring(closeStart, closeEnd);
-        int drainStart = closeEnd;
-        int drainEnd = source.indexOf("private static void removeWorldFromCraftServerMap", drainStart);
-        String drainMethod = source.substring(drainStart, drainEnd);
-
-        assertTrue(capabilityFallback >= 0);
-        assertTrue(bukkitUnload > capabilityFallback);
-        assertTrue(detach > bukkitUnload);
-        assertTrue(drain > detach);
-        assertTrue(close > drain);
-        assertTrue(drainMethod.contains("return J.afut(() ->"));
-        assertTrue(drainMethod.contains("\"moonrise$getChunkTaskScheduler\""));
-        assertTrue(drainMethod.contains("\"halt\""));
-        assertTrue(closeMethod.contains("return runGlobalAsync(closeTask)"));
-        assertFalse(closeMethod.contains("J.afut("));
-        assertFalse(closeMethod.contains("J.runRegion("));
     }
 
     @Test

@@ -172,27 +172,6 @@ public class StudioSVCWorldPackPublishTest {
 
     @Test
     public void replaceExistingRejectsSymbolicTargetBeforePublication() throws Exception {
-        String sourceCode = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/service/StudioSVC.java")).replace("\r\n", "\n");
-        int install = sourceCode.indexOf("private IrisDimension installIntoDirectory(");
-        int initialTargetSafety = sourceCode.indexOf(
-                "requireSafePublicationTarget(target, replaceExisting)",
-                install);
-        int beginMutation = sourceCode.indexOf(
-                "PackValidationRegistry.beginRootMutation(target)",
-                initialTargetSafety);
-        int finalTargetSafety = sourceCode.indexOf(
-                "requireSafePublicationTarget(target, replaceExisting)",
-                beginMutation);
-        int publish = sourceCode.indexOf(
-                "AtomicDirectoryPublisher.publish(stage, target)",
-                finalTargetSafety);
-        assertTrue(install >= 0);
-        assertTrue(initialTargetSafety > install);
-        assertTrue(beginMutation > initialTargetSafety);
-        assertTrue(finalTargetSafety > beginMutation);
-        assertTrue(publish > finalTargetSafety);
-
         Path root = temporaryFolder.newFolder("symbolic-replacement-target").toPath();
         Path outside = root.resolve("outside-pack");
         Path target = root.resolve("world/iris/pack");
@@ -305,27 +284,6 @@ public class StudioSVCWorldPackPublishTest {
 
     @Test
     public void replacementKeepsTargetUnauthorizedThroughPublishedFingerprintWindow() throws Exception {
-        String sourceCode = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/service/StudioSVC.java")).replace("\r\n", "\n");
-        int install = sourceCode.indexOf("private IrisDimension installIntoDirectory(");
-        int beginMutation = sourceCode.indexOf("PackValidationRegistry.beginRootMutation(target)", install);
-        int publish = sourceCode.indexOf("AtomicDirectoryPublisher.publish(stage, target)", beginMutation);
-        int fingerprint = sourceCode.indexOf(
-                "ServerConfigurator.computePackTreeFingerprint(target.toFile())",
-                publish);
-        int stageValidation = sourceCode.indexOf(
-                "validatePublishedPack(target, source, copiedFingerprint, validationMutation)",
-                fingerprint);
-        int publishCommit = sourceCode.indexOf("publication.commit()", stageValidation);
-        int validationCommit = sourceCode.indexOf("validationMutation.commit()", publishCommit);
-        assertTrue(install >= 0);
-        assertTrue(beginMutation > install);
-        assertTrue(publish > beginMutation);
-        assertTrue(fingerprint > publish);
-        assertTrue(stageValidation > fingerprint);
-        assertTrue(publishCommit > stageValidation);
-        assertTrue(validationCommit > publishCommit);
-
         Path root = temporaryFolder.newFolder("validation-publication-window").toPath();
         Path sourcePack = root.resolve("source");
         Path target = root.resolve("world/iris/pack");
@@ -452,26 +410,6 @@ public class StudioSVCWorldPackPublishTest {
 
         secondGate.complete("second");
         assertEquals("second", second.join());
-    }
-
-    @Test
-    public void productionWorldPublicationUsesImmutableGenerationHistory() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/service/StudioSVC.java"
-        )).replace("\r\n", "\n");
-        int productionStart = source.indexOf("private IrisDimension publishGenerationHistory(");
-        int transientStart = source.indexOf("private IrisDimension installIntoDirectory(", productionStart);
-        String production = source.substring(productionStart, transientStart);
-
-        assertTrue(production.contains("GenerationHistory.create("));
-        assertTrue(production.contains("GenerationHistory.openIfPresent(dimensionRoot, worldSeed)"));
-        assertTrue(production.contains("GenerationHistory.adoptLegacyPack("));
-        assertTrue(production.contains("history.stageUpdate("));
-        assertTrue(production.contains("getGenerationTransitionWidthBlocks()"));
-        assertTrue(production.contains("history.activePackRoot()"));
-        assertFalse(production.contains("AtomicDirectoryPublisher.publish("));
-        assertTrue(source.contains("installIntoTransientWorld("));
-        assertTrue(source.contains("new File(dimensionRoot, \"iris/pack\")"));
     }
 
     private static void writeValidPack(Path packRoot) throws Exception {

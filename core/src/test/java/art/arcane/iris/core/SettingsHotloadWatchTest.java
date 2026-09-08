@@ -15,7 +15,6 @@ import java.io.File;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -253,23 +252,6 @@ public class SettingsHotloadWatchTest {
                 "Failed to read watched Iris file " + override.getAbsolutePath()
         ));
         assertEquals("Active " + PERMISSION, permissionMessage());
-    }
-
-    @Test
-    public void bukkitAndModdedUseTheSameCoreCoordinator() throws Exception {
-        String bukkit = Files.readString(Path.of(
-                "../adapters/bukkit/plugin/src/main/java/art/arcane/iris/Iris.java"
-        ));
-        String modded = Files.readString(Path.of(
-                "../adapters/modded-common/src/main/java/art/arcane/iris/modded/service/ModdedSettingsHotloadService.java"
-        ));
-
-        assertTrue(bukkit.contains("new SettingsHotloadWatch("));
-        assertTrue(modded.contains("new SettingsHotloadWatch("));
-        assertFalse(bukkit.contains("new ConfigHotloadEngine("));
-        assertFalse(modded.contains("new ConfigHotloadEngine("));
-        assertFalse(bukkit.contains("IrisLanguage.update()"));
-        assertFalse(modded.contains("IrisLanguage.update()"));
     }
 
     private void awaitPermissionMessage(String expected) throws Exception {

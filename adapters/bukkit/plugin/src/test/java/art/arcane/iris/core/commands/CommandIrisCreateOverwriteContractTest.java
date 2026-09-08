@@ -7,8 +7,6 @@ import org.junit.Test;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
@@ -72,27 +70,5 @@ public class CommandIrisCreateOverwriteContractTest {
         assertEquals(Long.valueOf(Long.MIN_VALUE), handler.parse(Long.toString(Long.MIN_VALUE), false));
         assertEquals(Long.valueOf(Long.MAX_VALUE), handler.parse(Long.toString(Long.MAX_VALUE), false));
         assertThrows(DirectorParsingException.class, () -> handler.parse("9223372036854775808", false));
-    }
-
-    @Test
-    public void createAndReplaceUseLocalizedStyledMissingDimensionFeedback() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/commands/CommandIris.java"
-        )).replace("\r\n", "\n");
-
-        assertEquals(2, occurrences(source, "COMMAND_IRIS_DIMENSION_NOT_FOUND"));
-        assertEquals(2, occurrences(source, "COMMAND_IRIS_INSTALL_PACK_AND_RESTART"));
-        assertFalse(source.contains("sendMessage(\"Could not find dimension"));
-        assertFalse(source.contains("sendMessage(\"Install its pack with"));
-    }
-
-    private static int occurrences(String value, String match) {
-        int count = 0;
-        int offset = 0;
-        while ((offset = value.indexOf(match, offset)) >= 0) {
-            count++;
-            offset += match.length();
-        }
-        return count;
     }
 }

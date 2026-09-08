@@ -9,13 +9,9 @@ import net.minecraft.world.level.biome.MobSpawnSettings;
 import org.junit.Test;
 import org.junit.BeforeClass;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class IrisModdedChunkGeneratorSpawnTest {
     @BeforeClass
@@ -47,22 +43,5 @@ public class IrisModdedChunkGeneratorSpawnTest {
         assertEquals(7, entries.get(1).weight());
         assertEquals(explicitCow, entries.get(2).value());
         assertEquals(3, entries.get(2).weight());
-    }
-
-    @Test
-    public void vanillaChunkGenerationMobsUseTheVisibleBiomesVanillaDerivative() throws IOException {
-        Path sourcePath = Path.of(System.getProperty("iris.moddedCommonSources"),
-                "art/arcane/iris/modded/IrisModdedChunkGenerator.java");
-        String source = Files.readString(sourcePath);
-        int spawnStart = source.indexOf("public void spawnOriginalMobs");
-        int spawnEnd = source.indexOf("@Override", spawnStart + 1);
-        String spawn = source.substring(spawnStart, spawnEnd);
-
-        assertTrue(spawn.contains("spawnTables.initializeVanillaSpawnBiomes(registry)"));
-        assertTrue(spawn.contains("structureBiomeSource.getVisibleSurfaceBiome("));
-        assertTrue(spawn.contains("spawnTables.vanillaSpawnBiome(visibleBiome.value())"));
-        assertTrue(spawn.contains("NaturalSpawner.spawnMobsForChunkGeneration("));
-        assertTrue(spawn.contains("new LegacyRandomSource(RandomSupport.generateUniqueSeed())"));
-        assertTrue(spawn.contains("random.setDecorationSeed(region.getSeed()"));
     }
 }

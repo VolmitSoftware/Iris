@@ -22,6 +22,7 @@ dependencies {
     testImplementation(libs.paper.api)
     testImplementation(libs.bstats)
     testImplementation(project(':core'))
+    testImplementation(testFixtures(project(':core')))
     testImplementation(volmLibCoordinate) {
         transitive = false
     }

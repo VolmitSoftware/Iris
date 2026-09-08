@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets
 plugins {
     id 'java'
     id 'java-library'
+    id 'java-test-fixtures'
     alias(libs.plugins.shadow)
     alias(libs.plugins.slimjar)
 }
@@ -129,6 +130,10 @@ dependencies {
     slim(libs.byteBuddy.agent)
     slim(libs.dom4j)
     slim(libs.jaxen)
+
+    testFixturesImplementation('junit:junit:4.13.2')
+    testFixturesImplementation('org.mockito:mockito-core:5.23.0')
+    testFixturesCompileOnly(libs.paper.api)
 
     testImplementation('junit:junit:4.13.2')
     testImplementation('org.mockito:mockito-core:5.23.0')
@@ -232,7 +237,7 @@ tasks.named('compileJava', JavaCompile).configure {
 tasks.named('test', Test).configure {
     jvmArgs('--add-modules', 'jdk.incubator.vector')
     dependsOn(languageSourceManifestTask)
-    classpath = files(layout.buildDirectory.dir('generated/language-source')) + files('src/main/resources') + classpath
+    classpath = files(layout.buildDirectory.dir('generated/language-source')) + files('src/main/resources') + sourceSets.main.output + classpath
 }
 
 configurations.matching { it.name.startsWith('slim') }.all { }

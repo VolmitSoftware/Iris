@@ -6,6 +6,7 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Direction;
 import net.minecraft.server.Bootstrap;
@@ -16,6 +17,7 @@ import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.levelgen.Heightmap;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
@@ -30,6 +32,9 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 public final class NativeTransitionColumnTest {
+    @Rule
+    public final PlatformLeakGuard leakGuard = PlatformLeakGuard.clean();
+
     @BeforeClass
     public static void bootstrap() {
         SharedConstants.tryDetectVersion();

@@ -2,7 +2,7 @@ package art.arcane.iris.modded.localization;
 
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.localization.IrisMessages;
-import art.arcane.iris.modded.testsupport.ProjectPaths;
+import art.arcane.iris.testsupport.ProjectPaths;
 import art.arcane.volmlib.util.localization.MessageKey;
 import art.arcane.volmlib.util.localization.VolmitLocales;
 import com.google.gson.JsonObject;

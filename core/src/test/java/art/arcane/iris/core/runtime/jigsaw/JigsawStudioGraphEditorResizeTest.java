@@ -6,6 +6,7 @@ import art.arcane.iris.engine.object.IrisJigsawPiece;
 import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.iris.engine.object.IrisPosition;
 import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.testsupport.DurabilityMode;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -36,6 +37,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class JigsawStudioGraphEditorResizeTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     private static final String STRUCTURE_KEY = "resize/planar";
 
     @ClassRule

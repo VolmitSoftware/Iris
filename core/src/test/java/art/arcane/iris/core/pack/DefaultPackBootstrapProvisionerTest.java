@@ -3,9 +3,11 @@ package art.arcane.iris.core.pack;
 import art.arcane.iris.core.lifecycle.BukkitStartupPaths;
 import art.arcane.iris.engine.history.GenerationRegistryContractFactory;
 import art.arcane.iris.engine.object.IrisBiomeCustom;
+import art.arcane.iris.testsupport.DurabilityMode;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.Assume;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -39,6 +41,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class DefaultPackBootstrapProvisionerTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     @Test
     public void startupDoesNotRequireOrDownloadDefaultPacks() {
         assertTrue(DefaultPackBootstrapProvisioner.defaultPacks().isEmpty());

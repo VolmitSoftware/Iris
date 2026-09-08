@@ -1,6 +1,8 @@
 package art.arcane.iris.engine.history;
 
+import art.arcane.iris.testsupport.DurabilityMode;
 import art.arcane.iris.util.nbt.common.mca.MCAFile;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -22,6 +24,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public final class WorldChunkInventoryTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     private static final int SECTOR_BYTES = 4_096;
 
     @Rule

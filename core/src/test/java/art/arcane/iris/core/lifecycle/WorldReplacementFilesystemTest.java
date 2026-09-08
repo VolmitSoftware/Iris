@@ -5,6 +5,7 @@ import art.arcane.iris.engine.history.GenerationEpochContractFactory;
 import art.arcane.iris.engine.history.GenerationHistory;
 import art.arcane.iris.engine.history.GenerationPackFingerprint;
 import art.arcane.iris.engine.history.GenerationRegistryContract;
+import art.arcane.iris.testsupport.DurabilityMode;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -30,6 +31,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class WorldReplacementFilesystemTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     private static final UUID TRANSACTION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final UUID OTHER_TRANSACTION_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
 

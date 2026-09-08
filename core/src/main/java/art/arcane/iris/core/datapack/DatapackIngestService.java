@@ -37,6 +37,7 @@ import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisImportedStructureControl;
 import art.arcane.iris.util.common.format.C;
+import art.arcane.iris.util.common.io.Durability;
 import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.io.IO;
@@ -5396,17 +5397,25 @@ public final class DatapackIngestService {
     }
 
     private static void forceFile(Path file) throws IOException {
+        if (!Durability.enabled()) {
+            return;
+        }
+
         try (FileChannel channel = FileChannel.open(file, StandardOpenOption.WRITE)) {
-            channel.force(true);
+            Durability.force(channel);
         }
     }
 
     private static void forceDirectoryIfSupported(Path directory) throws IOException {
+        if (!Durability.enabled()) {
+            return;
+        }
+
         if (!Files.getFileStore(directory).supportsFileAttributeView("posix")) {
             return;
         }
         try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
-            channel.force(true);
+            Durability.force(channel);
         }
     }
 

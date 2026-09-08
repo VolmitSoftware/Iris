@@ -9,10 +9,12 @@ import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.iris.engine.framework.GenerationSessionManager;
 import art.arcane.iris.engine.mantle.EngineMantle;
+import art.arcane.iris.testsupport.DurabilityMode;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.matter.Matter;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -57,6 +59,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public final class GenerationHistoryRuntimeRouterTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 

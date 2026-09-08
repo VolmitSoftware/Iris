@@ -1,8 +1,10 @@
 package art.arcane.iris.engine.history;
 
+import art.arcane.iris.testsupport.DurabilityMode;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.junit.Assume;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -31,6 +33,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class GenerationHistoryStoreTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     private static final String PACK_A = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     private static final String PACK_B = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
     private static final Clock CLOCK = Clock.fixed(Instant.ofEpochMilli(123456789L), ZoneOffset.UTC);

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.structure.authoring;
 
+import art.arcane.iris.util.common.io.Durability;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.FileChannel;
@@ -70,17 +71,25 @@ interface StructureFileOperations {
     }
 
     default void forceFile(Path path) throws IOException {
+        if (!Durability.enabled()) {
+            return;
+        }
+
         try (FileChannel channel = FileChannel.open(path, StandardOpenOption.WRITE)) {
-            channel.force(true);
+            Durability.force(channel);
         }
     }
 
     default void forceDirectory(Path path) throws IOException {
+        if (!Durability.enabled()) {
+            return;
+        }
+
         if (!Files.getFileStore(path).supportsFileAttributeView("posix")) {
             return;
         }
         try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ)) {
-            channel.force(true);
+            Durability.force(channel);
         }
     }
 }

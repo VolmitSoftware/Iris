@@ -10,6 +10,7 @@ import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.core.structure.authoring.StructureWriteMode;
 import art.arcane.iris.core.structure.authoring.StructureWriteResult;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.testsupport.DurabilityMode;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.io.IO;
 import com.google.gson.Gson;
@@ -18,6 +19,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpServer;
 import org.bukkit.Server;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.Assume;
@@ -54,6 +56,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class DatapackIngestServiceTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     private interface PaperLikeServer extends Server {
         String getMinecraftVersion();
     }

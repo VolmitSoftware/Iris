@@ -1,6 +1,8 @@
 package art.arcane.iris.engine.history;
 
+import art.arcane.iris.testsupport.DurabilityMode;
 import org.junit.Assume;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -19,6 +21,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public final class ChunkGenerationOwnershipTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 

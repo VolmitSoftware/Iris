@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.history;
 
 import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
+import art.arcane.iris.util.common.io.Durability;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -1949,14 +1950,14 @@ public final class GenerationSemanticIndex {
                             channel.write(entry);
                         }
                     }
-                    channel.force(true);
+                    Durability.force(channel);
                     if (created) {
                         RegionShard.forceDirectory(directory);
                     }
                 } catch (IOException failure) {
                     try {
                         channel.truncate(size);
-                        channel.force(true);
+                        Durability.force(channel);
                         if (created) {
                             RegionShard.forceDirectory(directory);
                         }
@@ -2079,7 +2080,7 @@ public final class GenerationSemanticIndex {
 
         private static void truncateTail(RandomAccessFile file, long length) throws IOException {
             file.setLength(length);
-            file.getFD().sync();
+            Durability.force(file.getFD());
         }
 
         private static IOException invalid(Path file, String reason) {
@@ -2951,16 +2952,20 @@ public final class GenerationSemanticIndex {
                 while (buffer.hasRemaining()) {
                     channel.write(buffer);
                 }
-                channel.force(true);
+                Durability.force(channel);
             }
         }
 
         private static void forceDirectory(Path directory) throws IOException {
+            if (!Durability.enabled()) {
+                return;
+            }
+
             if (File.separatorChar == '\\') {
                 return;
             }
             try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
-                channel.force(true);
+                Durability.force(channel);
             } catch (UnsupportedOperationException error) {
                 throw new IOException("Generation semantic directory cannot be durability-synced", error);
             }

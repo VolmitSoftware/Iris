@@ -55,8 +55,9 @@ public final class IrisStaticObjectLayer {
                 if (object == null) {
                     throw new IllegalArgumentException("Object '" + entry.getObject() + "' could not be loaded");
                 }
-                if (entry.getScale() != 1D) {
-                    object = object.scaledAroundOrigin(entry.getScale(), entry.getScaleInterpolation());
+                double scale = entry.resolveScale(dimension);
+                if (scale != 1D) {
+                    object = object.scaledAroundOrigin(scale, entry.getScaleInterpolation());
                 } else if (entry.isSmartBore()) {
                     object = object.copy();
                 }

@@ -150,7 +150,8 @@ public class TreeSVC implements IrisService {
         }
 
         saplingPlane.forEach(block -> block.setType(Material.AIR));
-        IrisObject object = worldAccess.getData().getObjectLoader().load(pool.getRandom(RNG.r));
+        IrisObject object = placement.scaleObject(RNG.r,
+                worldAccess.getData().getObjectLoader().load(pool.getRandom(RNG.r)), dimension);
 
         if (object == null) {
             return;

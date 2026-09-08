@@ -186,6 +186,10 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(16)
     @Desc("Minimum surface-support buffer, in blocks, applied to every surface object placement in this dimension. A placement may ask for more but never less.")
     private int objectSurfaceSupportBuffer = 2;
+    @MinNumber(IrisObjectScale.MINIMUM_FACTOR)
+    @MaxNumber(IrisObjectScale.MAXIMUM_FACTOR)
+    @Desc("Default size factor for objects in this dimension. 0.5 halves their size and 2 doubles it. Any explicit object or placement scale, including 1, overrides this factor. Jigsaw structures are excluded.")
+    private double allObjectScaleFactor = 1D;
     @Desc("The world environment")
     private IrisEnvironment environment = IrisEnvironment.NORMAL;
     @RegistryListResource(IrisRegion.class)
@@ -317,6 +321,16 @@ public class IrisDimension extends IrisRegistrant {
 
     public IrisStaticObjectLayer getStaticObjectLayer(IrisData data) {
         return staticObjectLayer.aquire(() -> IrisStaticObjectLayer.compile(this, data));
+    }
+
+    public double getAllObjectScaleFactor() {
+        return IrisObjectScale.requireValidFactor(allObjectScaleFactor, "allObjectScaleFactor");
+    }
+
+    public IrisDimension setAllObjectScaleFactor(double factor) {
+        allObjectScaleFactor = IrisObjectScale.requireValidFactor(factor, "allObjectScaleFactor");
+        staticObjectLayer.reset();
+        return this;
     }
 
     /**

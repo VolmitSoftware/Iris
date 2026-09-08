@@ -40,8 +40,8 @@ public class IrisStaticObject {
     private IrisStaticObjectRotation rotation = new IrisStaticObjectRotation();
     @MinNumber(MINIMUM_SCALE)
     @MaxNumber(MAXIMUM_SCALE)
-    @Desc("Fixed size multiplier. 1 preserves the saved size, 0.5 halves it and 2 doubles it.")
-    private double scale = 1D;
+    @Desc("Explicit fixed size multiplier. When omitted, the dimension's allObjectScaleFactor applies. An explicit 1 preserves the saved size.")
+    private Double scale;
     @Desc("Interpolation used when enlarging the object. NONE preserves blocky shapes.")
     private IrisObjectPlacementScaleInterpolator scaleInterpolation = IrisObjectPlacementScaleInterpolator.NONE;
     @ArrayType(type = IrisObjectReplace.class)
@@ -74,9 +74,8 @@ public class IrisStaticObject {
             throw new IllegalArgumentException("rotation must be an object.");
         }
         rotation.validate();
-        if (!Double.isFinite(scale) || scale < MINIMUM_SCALE || scale > MAXIMUM_SCALE) {
-            throw new IllegalArgumentException("scale must be finite and between "
-                    + MINIMUM_SCALE + " and " + MAXIMUM_SCALE + ".");
+        if (scale != null) {
+            IrisObjectScale.requireValidFactor(scale, "scale");
         }
         if (scaleInterpolation == null) {
             throw new IllegalArgumentException("scaleInterpolation must be a supported interpolation mode.");
@@ -141,10 +140,21 @@ public class IrisStaticObject {
                 .setMode(ObjectPlaceMode.STRUCTURE_PIECE)
                 .setForcePlace(true)
                 .setRotation(rotation.toRotation())
-                .setScale(new IrisObjectScale().setSize(scale).setInterpolation(scaleInterpolation))
+                .setScale(scale == null ? null
+                        : new IrisObjectScale().setSize(scale).setInterpolation(scaleInterpolation))
                 .setEdit(new KList<>(edit))
                 .setBore(bore)
                 .setSmartBore(smartBore);
+    }
+
+    public IrisStaticObject setScale(Double scale) {
+        this.scale = scale == null ? null : IrisObjectScale.requireValidFactor(scale, "scale");
+        return this;
+    }
+
+    public double resolveScale(IrisDimension dimension) {
+        return scale == null ? dimension.getAllObjectScaleFactor()
+                : IrisObjectScale.requireValidFactor(scale, "scale");
     }
 
     private static void validateEdit(IrisObjectReplace replacement, int index) {

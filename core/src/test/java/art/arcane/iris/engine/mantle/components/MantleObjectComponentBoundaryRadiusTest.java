@@ -96,7 +96,7 @@ public class MantleObjectComponentBoundaryRadiusTest {
                 .setRotation(IrisObjectRotation.of(90, 0, 0))
                 .setTranslate(new IrisObjectTranslate().setX(3).setY(4));
 
-        assertEquals(53, MantleObjectComponent.calculatePlacementReach(new IrisBlockVector(5, 48, 7), placement));
+        assertEquals(53, MantleObjectComponent.calculatePlacementReach(new IrisBlockVector(5, 48, 7), placement, 1D));
     }
 
     @Test
@@ -107,7 +107,7 @@ public class MantleObjectComponentBoundaryRadiusTest {
                 .setMode(ObjectPlaceMode.VACUUM)
                 .setVacuumSettings(new IrisVacuumSettings().setRadius(12));
 
-        assertEquals(43, MantleObjectComponent.calculatePlacementReach(new IrisBlockVector(5, 4, 3), placement));
+        assertEquals(39, MantleObjectComponent.calculatePlacementReach(new IrisBlockVector(5, 4, 3), placement, placement.getMaximumScale(null)));
     }
 
     @Test
@@ -124,6 +124,30 @@ public class MantleObjectComponentBoundaryRadiusTest {
                 100,
                 200));
         verify(complex).allowsNewGenerationFootprint(95, 195, 105, 205);
+    }
+
+    @Test
+    public void inheritedRadiusMatchesScaledFrameAndExplicitScaleOverridesIt() {
+        IrisDimension dimension = new IrisDimension().setAllObjectScaleFactor(2D);
+        IrisObjectPlacement inherited = new IrisObjectPlacement();
+        IrisBlockVector size = new IrisBlockVector(8, 8, 8);
+        assertEquals(16, MantleObjectComponent.calculatePlacementReach(size, inherited,
+                inherited.getMaximumScale(dimension)));
+        dimension.setAllObjectScaleFactor(0.5D);
+        assertEquals(4, MantleObjectComponent.calculatePlacementReach(size, inherited,
+                inherited.getMaximumScale(dimension)));
+        inherited.setScale(new IrisObjectScale().setSize(1D));
+        assertEquals(8, MantleObjectComponent.calculatePlacementReach(size, inherited,
+                inherited.getMaximumScale(dimension)));
+    }
+
+    @Test
+    public void alreadyScaledObjectFootprintDoesNotApplyScaleTwice() {
+        IrisComplex complex = mock(IrisComplex.class);
+        IrisObject object = new IrisObject(20, 20, 20);
+        IrisObjectPlacement placement = new IrisObjectPlacement().setScale(new IrisObjectScale().setSize(2D));
+        MantleObjectComponent.allowsObjectPlacement(complex, object, placement, 100, 200);
+        verify(complex).allowsNewGenerationFootprint(80, 180, 120, 220);
     }
 
     @Test
@@ -185,6 +209,7 @@ public class MantleObjectComponentBoundaryRadiusTest {
         when(region.getObjects()).thenReturn(new KList<>());
         when(region.getProceduralObjects()).thenReturn(proceduralObjects);
         IrisDimension dimension = mock(IrisDimension.class);
+        when(dimension.getAllObjectScaleFactor()).thenReturn(1D);
         when(dimension.getAllRegions(any())).thenReturn(new KList<>(region));
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>());
         Engine engine = mock(Engine.class);
@@ -215,10 +240,12 @@ public class MantleObjectComponentBoundaryRadiusTest {
         when(upperRegion.getObjects()).thenReturn(new KList<>());
         when(upperRegion.getProceduralObjects()).thenReturn(proceduralObjects);
         IrisDimension baseDimension = mock(IrisDimension.class);
+        when(baseDimension.getAllObjectScaleFactor()).thenReturn(1D);
         when(baseDimension.isUpperDimensionObjects()).thenReturn(true);
         when(baseDimension.getAllRegions(any())).thenReturn(new KList<>());
         when(baseDimension.getReachableBiomes(any())).thenReturn(new KList<>());
         IrisDimension upperDimension = mock(IrisDimension.class);
+        when(upperDimension.getAllObjectScaleFactor()).thenReturn(1D);
         when(upperDimension.getAllRegions(any())).thenReturn(new KList<>(upperRegion));
         when(upperDimension.getReachableBiomes(any())).thenReturn(new KList<>());
         UpperDimensionContext upperContext = mock(UpperDimensionContext.class);
@@ -252,6 +279,7 @@ public class MantleObjectComponentBoundaryRadiusTest {
                 .setTranslate(new IrisObjectTranslate().setX(32));
         IrisBiome biome = new IrisBiome().setObjects(new KList<>(placement));
         IrisDimension dimension = mock(IrisDimension.class);
+        when(dimension.getAllObjectScaleFactor()).thenReturn(1D);
         when(dimension.isUseMantle()).thenReturn(true);
         when(dimension.getAllRegions(any())).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>(biome));

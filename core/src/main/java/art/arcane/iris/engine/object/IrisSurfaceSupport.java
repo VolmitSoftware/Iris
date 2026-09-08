@@ -24,11 +24,20 @@ public final class IrisSurfaceSupport {
                                        IrisObjectTranslate translate, IrisObjectRotation rotation,
                                        int spinX, int spinY, int spinZ,
                                        List<IrisBlockVector> supportOffsets, int buffer, int minSolidDepth) {
+        return isUnsupported(placer, data, x, z, translate, rotation, spinX, spinY, spinZ,
+                supportOffsets, buffer, minSolidDepth, null);
+    }
+
+    static boolean isUnsupported(IObjectPlacer placer, IrisData data, int x, int z,
+                                 IrisObjectTranslate translate, IrisObjectRotation rotation,
+                                 int spinX, int spinY, int spinZ,
+                                 List<IrisBlockVector> supportOffsets, int buffer, int minSolidDepth,
+                                 IrisPaintSurfaceProjection projection) {
         Stencil stencil = STENCIL.get();
         if (!stencil.build(supportOffsets, translate, rotation, spinX, spinY, spinZ, Math.max(0, buffer))) {
             return true;
         }
-        return stencil.anyColumnUnsupported(placer, data, x, z, Math.max(1, minSolidDepth));
+        return stencil.anyColumnUnsupported(placer, data, x, z, Math.max(1, minSolidDepth), projection);
     }
 
     public static boolean intersectsHydrology(IObjectPlacer placer, int x, int z,
@@ -165,13 +174,14 @@ public final class IrisSurfaceSupport {
         }
 
         /** Centre-outward so the common failure, a hole right under the anchor, costs one column. */
-        private boolean anyColumnUnsupported(IObjectPlacer placer, IrisData data, int x, int z, int minSolidDepth) {
+        private boolean anyColumnUnsupported(IObjectPlacer placer, IrisData data, int x, int z, int minSolidDepth,
+                                             IrisPaintSurfaceProjection projection) {
             int maxRing = Math.max(
                     Math.max(centerX, width - 1 - centerX),
                     Math.max(centerZ, depth - 1 - centerZ));
             for (int ring = 0; ring <= maxRing; ring++) {
                 if (ring == 0) {
-                    if (isColumnUnsupported(placer, data, x, z, centerX, centerZ, minSolidDepth)) {
+                    if (isColumnUnsupported(placer, data, x, z, centerX, centerZ, minSolidDepth, projection)) {
                         return true;
                     }
                     continue;
@@ -182,14 +192,14 @@ public final class IrisSurfaceSupport {
                 int lowZ = centerZ - ring;
                 int highZ = centerZ + ring;
                 for (int sx = lowX; sx <= highX; sx++) {
-                    if (isColumnUnsupported(placer, data, x, z, sx, lowZ, minSolidDepth)
-                            || isColumnUnsupported(placer, data, x, z, sx, highZ, minSolidDepth)) {
+                    if (isColumnUnsupported(placer, data, x, z, sx, lowZ, minSolidDepth, projection)
+                            || isColumnUnsupported(placer, data, x, z, sx, highZ, minSolidDepth, projection)) {
                         return true;
                     }
                 }
                 for (int sz = lowZ + 1; sz < highZ; sz++) {
-                    if (isColumnUnsupported(placer, data, x, z, lowX, sz, minSolidDepth)
-                            || isColumnUnsupported(placer, data, x, z, highX, sz, minSolidDepth)) {
+                    if (isColumnUnsupported(placer, data, x, z, lowX, sz, minSolidDepth, projection)
+                            || isColumnUnsupported(placer, data, x, z, highX, sz, minSolidDepth, projection)) {
                         return true;
                     }
                 }
@@ -214,7 +224,8 @@ public final class IrisSurfaceSupport {
         }
 
         private boolean isColumnUnsupported(IObjectPlacer placer, IrisData data, int x, int z,
-                                            int stencilX, int stencilZ, int minSolidDepth) {
+                                            int stencilX, int stencilZ, int minSolidDepth,
+                                            IrisPaintSurfaceProjection projection) {
             if (stencilX < 0 || stencilX >= width || stencilZ < 0 || stencilZ >= depth
                     || !cells[(stencilX * depth) + stencilZ]) {
                 return false;
@@ -222,9 +233,14 @@ public final class IrisSurfaceSupport {
 
             int columnX = x + minX + stencilX;
             int columnZ = z + minZ + stencilZ;
-            int surfaceY = placer.getHighest(columnX, columnZ, data, true);
+            int surfaceY = projection == null ? placer.getHighest(columnX, columnZ, data, true)
+                    : projection.surfaceY(columnX, columnZ);
+            if (surfaceY == IrisPaintSurfaceProjection.MISSING) {
+                return false;
+            }
             for (int below = 0; below < minSolidDepth; below++) {
-                if (placer.isCarved(columnX, surfaceY - below, columnZ)) {
+                if (placer.isCarved(columnX, surfaceY - below, columnZ)
+                        || projection != null && !placer.isSurfaceSolid(columnX, surfaceY - below, columnZ)) {
                     return true;
                 }
             }

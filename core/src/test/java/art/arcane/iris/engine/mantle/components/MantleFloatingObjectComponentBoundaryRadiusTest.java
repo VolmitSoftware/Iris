@@ -66,6 +66,7 @@ public class MantleFloatingObjectComponentBoundaryRadiusTest {
                 .setFloatingObjects(new KList<>(placement));
         IrisBiome biome = new IrisBiome().setFloatingChildBiomes(new KList<>(floatingChild));
         IrisDimension dimension = mock(IrisDimension.class);
+        when(dimension.getAllObjectScaleFactor()).thenReturn(1D);
         when(dimension.getReachableBiomes(org.mockito.ArgumentMatchers.any())).thenReturn(new KList<>(biome));
 
         ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
@@ -80,5 +81,7 @@ public class MantleFloatingObjectComponentBoundaryRadiusTest {
         when(engineMantle.getData()).thenReturn(data);
 
         assertEquals(33, new MantleFloatingObjectComponent(engineMantle).getRadius());
+        when(dimension.getAllObjectScaleFactor()).thenReturn(2D);
+        assertEquals(34, new MantleFloatingObjectComponent(engineMantle).getRadius());
     }
 }

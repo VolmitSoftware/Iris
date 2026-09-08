@@ -477,8 +477,9 @@ public class IrisStructureComponent extends IrisMantleComponent {
         if (object == null) {
             return;
         }
-        int horizontalSpan = Math.max(1, Math.max(object.getW(), object.getD()));
-        int verticalSpan = Math.max(1, object.getH());
+        double scale = Math.max(1D, getDimension().getAllObjectScaleFactor());
+        int horizontalSpan = scaledMarkerSpan(Math.max(object.getW(), object.getD()), scale);
+        int verticalSpan = scaledMarkerSpan(object.getH(), scale);
         ObjectMarkerBounds search = intersections.expand(horizontalSpan - 1, verticalSpan - 1, worldHeight);
         KList<ObjectBlockPosition> positions = new KList<>();
         int minChunkX = Math.floorDiv(search.minX, 16);
@@ -514,6 +515,11 @@ public class IrisStructureComponent extends IrisMantleComponent {
     static boolean isOrdinaryObjectMarker(String marker) {
         StructurePlacementMarker.Decoded decoded = StructurePlacementMarker.decode(marker);
         return decoded != null && !decoded.structureAware();
+    }
+
+    static int scaledMarkerSpan(int dimension, double scale) {
+        return scale <= 1D ? Math.max(1, dimension)
+                : (int) Math.ceil(Math.max(1, dimension) * scale);
     }
 
     static ObjectMarkerBounds markerSearchBounds(int minX, int minY, int minZ,

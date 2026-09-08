@@ -415,7 +415,8 @@ public final class ModdedObjectCommands {
         placement.setRotation(IrisObjectRotation.of(0, rotation, 0));
         ModdedObjectPlacer placer = new ModdedObjectPlacer(level, engine);
         try {
-            object.place(target.getX(), target.getY() + object.getCenter().getY(), target.getZ(), placer, placement, new RNG(), null);
+            object = placement.scaleObject(new RNG(), object, engine == null ? null : engine.getDimension());
+            object.place(target.getX(), target.getY() + object.getCenter().getY(), target.getZ(), placer, placement, new RNG(), object.getLoader());
         } catch (Throwable e) {
             ModdedIrisLog.error("Iris paste failed for {}", key, e);
             ModdedObjectUndo.record(player == null ? ModdedObjectUndo.CONSOLE : player.getUUID(), level, placer.undoSnapshot());

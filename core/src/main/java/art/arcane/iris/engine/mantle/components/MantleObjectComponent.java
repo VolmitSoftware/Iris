@@ -622,7 +622,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             IObjectPlacer placer = golden ? new GoldenDebugObjectPlacer(basePlacer, scope + "/" + p.getName()) : basePlacer;
             int density = Math.max(1, p.getDensity());
             for (int i = 0; i < density; i++) {
-                IrisObject variant = p.getVariantObject(getData(), rng);
+                IrisObject variant = placement.scaleObject(rng, p.getVariantObject(getData(), rng), getDimension());
                 if (variant == null) {
                     if (golden) {
                         IrisLogging.debug("Goldendebug procedural pick: chunk=" + x + "," + z
@@ -887,7 +887,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
         for (int i = 0; i < density; i++) {
             attempts++;
-            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(complex, rng));
+            IrisObject v = objectPlacement.scaleObject(rng, objectPlacement.getObject(complex, rng), getDimension());
             if (v == null) {
                 nullObjects++;
                 if (traceRegen) {
@@ -1030,7 +1030,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
         for (int i = 0; i < density; i++) {
             attempts++;
-            IrisObject object = objectPlacement.getScale().get(rng, objectPlacement.getObject(complex, rng));
+            IrisObject object = objectPlacement.scaleObject(rng, objectPlacement.getObject(complex, rng), getDimension());
             if (object == null) {
                 nullObjects++;
                 if (traceRegen) {
@@ -1261,7 +1261,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         int density = objectPlacement.getDensity(rng, minX, minZ, getData());
 
         for (int i = 0; i < density; i++) {
-            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(complex, rng));
+            IrisObject v = objectPlacement.scaleObject(rng, objectPlacement.getObject(upperCtx, rng), upperCtx.getDimension());
             if (v == null) {
                 continue;
             }
@@ -1647,7 +1647,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
     private Set<String> guessPlacedKeys(RNG rng, int x, int z, IrisObjectPlacement objectPlacement) {
         Set<String> f = new KSet<>();
         for (int i = 0; i < objectPlacement.getDensity(rng, x, z, getData()); i++) {
-            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
+            IrisObject v = objectPlacement.scaleObject(rng, objectPlacement.getObject(getComplex(), rng), getDimension());
             if (v == null) {
                 continue;
             }
@@ -1708,11 +1708,12 @@ public class MantleObjectComponent extends IrisMantleComponent {
             }
             radius = Math.max(radius, computePlacementRadius(
                     region.getObjects(),
+                    dimension,
                     dataProvider,
                     sizeCache,
                     warnedLargeObjects
             ));
-            radius = Math.max(radius, computeProceduralRadius(region.getProceduralObjects(), dataProvider));
+            radius = Math.max(radius, computeProceduralRadius(region.getProceduralObjects(), dimension, dataProvider));
         }
         for (IrisBiome biome : dimension.getReachableBiomes(dataProvider)) {
             if (biome == null) {
@@ -1720,17 +1721,19 @@ public class MantleObjectComponent extends IrisMantleComponent {
             }
             radius = Math.max(radius, computePlacementRadius(
                     biome.getObjects(),
+                    dimension,
                     dataProvider,
                     sizeCache,
                     warnedLargeObjects
             ));
-            radius = Math.max(radius, computeProceduralRadius(biome.getProceduralObjects(), dataProvider));
+            radius = Math.max(radius, computeProceduralRadius(biome.getProceduralObjects(), dimension, dataProvider));
         }
         return radius;
     }
 
     private int computePlacementRadius(
             KList<IrisObjectPlacement> placements,
+            IrisDimension dimension,
             DataProvider dataProvider,
             KMap<String, IrisBlockVector> sizeCache,
             KSet<String> warnedLargeObjects
@@ -1746,7 +1749,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     if (size == null) {
                         continue;
                     }
-                    int reach = calculatePlacementReach(size, placement);
+                    int reach = calculatePlacementReach(size, placement, placement.getMaximumScale(dimension));
                     if (reach > 128 && warnedLargeObjects.add(objectKey)) {
                         IrisLogging.warn("Object " + objectKey + " has a large placement reach (" + reach + " blocks) and may increase memory usage!");
                     }
@@ -1759,7 +1762,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         return radius;
     }
 
-    private int computeProceduralRadius(IrisProceduralObjects procedural, DataProvider dataProvider) {
+    private int computeProceduralRadius(IrisProceduralObjects procedural, IrisDimension dimension, DataProvider dataProvider) {
         if (procedural == null || procedural.isEmpty()) {
             return 0;
         }
@@ -1778,13 +1781,13 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     continue;
                 }
                 IrisBlockVector size = new IrisBlockVector(variant.getW(), variant.getH(), variant.getD());
-                radius = Math.max(radius, calculatePlacementReach(size, objectPlacement));
+                radius = Math.max(radius, calculatePlacementReach(size, objectPlacement, objectPlacement.getMaximumScale(dimension)));
             }
         }
         return radius;
     }
 
-    static int calculatePlacementReach(IrisBlockVector size, IrisObjectPlacement placement) {
+    static int calculatePlacementReach(IrisBlockVector size, IrisObjectPlacement placement, double scale) {
         if (size == null) {
             return 0;
         }
@@ -1792,7 +1795,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
             return Math.max(Math.abs(size.getBlockX()), Math.abs(size.getBlockZ()));
         }
 
-        double scale = placement.getScale() != null ? Math.max(1D, placement.getScale().getMaxScale()) : 1D;
         int width = scaledDimension(size.getBlockX(), scale);
         int height = scaledDimension(size.getBlockY(), scale);
         int depth = scaledDimension(size.getBlockZ(), scale);
@@ -1823,7 +1825,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         }
         int reach = calculatePlacementReach(
                 new IrisBlockVector(object.getW(), object.getH(), object.getD()),
-                placement);
+                placement, 1D);
         return complex.allowsNewGenerationFootprint(
                 saturatedOffset(anchorX, -reach),
                 saturatedOffset(anchorZ, -reach),
@@ -1838,10 +1840,10 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     private static int scaledDimension(int dimension, double scale) {
         int absoluteDimension = Math.abs(dimension);
-        if (scale <= 1D) {
+        if (scale == 1D) {
             return absoluteDimension;
         }
-        return (int) Math.ceil((absoluteDimension * scale) + (scale * 2D));
+        return (int) Math.ceil(absoluteDimension * scale);
     }
 
     private static int calculateTranslationReach(IrisObjectTranslate translate, IrisObjectRotation rotation, boolean rotateVertically) {

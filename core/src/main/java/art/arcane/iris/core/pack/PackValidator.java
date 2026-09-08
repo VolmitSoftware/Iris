@@ -86,9 +86,10 @@ public final class PackValidator {
         return validate(packFolder, false);
     }
 
-    public static void requireValidStaticObjects(File packFolder, String dimensionKey, JSONObject dimension) {
+    public static void requireValidObjectSettings(File packFolder, String dimensionKey, JSONObject dimension) {
         List<String> errors = new ArrayList<>();
         PackDimensionValidator.validateStaticObjects(packFolder, dimensionKey, dimension, errors);
+        PackDimensionValidator.validateObjectScaleFactor(dimensionKey, dimension, errors);
         if (!errors.isEmpty()) {
             throw new IllegalArgumentException(String.join("; ", errors));
         }

@@ -188,7 +188,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
             if (raw == null) {
                 continue;
             }
-            IrisObject obj0 = placement.getScale().get(rng, raw);
+            IrisObject obj0 = placement.scaleObject(rng, raw, getDimension());
             if (obj0 == null) {
                 continue;
             }
@@ -248,7 +248,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
             if (raw == null) {
                 continue;
             }
-            IrisObject obj0 = placement.getScale().get(rng, raw);
+            IrisObject obj0 = placement.scaleObject(rng, raw, getDimension());
             if (obj0 == null) {
                 continue;
             }
@@ -340,7 +340,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
             if (raw == null) {
                 continue;
             }
-            IrisObject obj0 = placement.getScale().get(rng, raw);
+            IrisObject obj0 = placement.scaleObject(rng, raw, getDimension());
             if (obj0 == null) {
                 continue;
             }
@@ -628,7 +628,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                         size = IrisObject.sampleSize(file);
                         sizeCache.put(objectKey, size);
                     }
-                    int reach = MantleObjectComponent.calculatePlacementReach(size, placement);
+                    int reach = MantleObjectComponent.calculatePlacementReach(size, placement, placement.getMaximumScale(getDimension()));
                     if (reach > 128 && warnedLargeObjects.add(objectKey)) {
                         IrisLogging.warn("Floating object " + objectKey + " has a large placement reach (" + reach + " blocks) and may increase memory usage!");
                     }

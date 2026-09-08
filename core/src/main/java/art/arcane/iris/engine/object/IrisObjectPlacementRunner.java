@@ -125,6 +125,7 @@ final class IrisObjectPlacementRunner {
         boolean preventingDecay = placer.isPreventingDecay();
         boolean waterlogCandidate = config.isWaterloggable() || config.isUnderwater();
         boolean rawStructurePiece = config.getMode() == ObjectPlaceMode.STRUCTURE_PIECE;
+        boolean paint = yv < 0 && config.getMode() == ObjectPlaceMode.PAINT;
         boolean organicFloor = config.getMode() == ObjectPlaceMode.ORGANIC_STILT;
         boolean ceilingHang = config.getMode() == ObjectPlaceMode.CEILING_HANG;
         boolean organic = organicFloor || ceilingHang;
@@ -257,7 +258,10 @@ final class IrisObjectPlacementRunner {
                     }
                 }
             } else if (config.getMode().equals(ObjectPlaceMode.PAINT)) {
-                y = placer.getHighest(x, z, self.getLoader(), config.isUnderwater()) + rty;
+                int anchorX = x + (translating ? (int) Math.round(translateOffset.getX()) : 0);
+                int anchorZ = z + (translating ? (int) Math.round(translateOffset.getZ()) : 0);
+                y = (c != null ? c.getSurface()
+                        : placer.getHighest(anchorX, anchorZ, self.getLoader(), config.isUnderwater())) + rty;
                 if (!config.isForcePlace()) {
                     if (shouldBailForCarvingAnchor(placer, config, x, y, z)) {
                         bail = true;
@@ -302,12 +306,30 @@ final class IrisObjectPlacementRunner {
             return -1;
         }
 
+        IrisPaintSurfaceProjection paintProjection = null;
+        KList<IrisBlockVector> paintSupport = null;
+        if (paint) {
+            int buffer = config.isRequireSurfaceSupport() ? Math.max(0, config.getSurfaceSupportBuffer()) : 0;
+            int anchorX = x + (translating ? (int) Math.round(translateOffset.getX()) : 0);
+            int anchorZ = z + (translating ? (int) Math.round(translateOffset.getZ()) : 0);
+            paintProjection = IrisPaintSurfaceProjection.create(placer, new IrisPaintSurfaceProjection.Request(
+                    self.getLoader(), x + placementBounds.minX() - buffer, x + placementBounds.maxX() + buffer,
+                    z + placementBounds.minZ() - buffer, z + placementBounds.maxZ() + buffer,
+                    anchorX, y - rty, anchorZ, config.isUnderwater(), config.getHeightmap() != null));
+            if (paintProjection == null) {
+                return -1;
+            }
+            paintSupport = transformedPaintSupport(spin, translateOffset, surfaceWarp, warpHalf, x, y + yrand, z);
+        }
+
         if (yv < 0
                 && config.getCarvingSupport().supportsSurface()
                 && config.getMode() != ObjectPlaceMode.FLOATING
                 && !rawStructurePiece
-                && IrisSurfaceSupport.intersectsHydrology(oplacer, x, z, config.getTranslate(),
-                        config.getRotation(), spinx, spiny, spinz, self.getSurfaceSupportOffsets())) {
+                && (paint ? IrisSurfaceSupport.intersectsHydrology(oplacer, x, z, null, null,
+                        0, 0, 0, paintSupport)
+                        : IrisSurfaceSupport.intersectsHydrology(oplacer, x, z, config.getTranslate(),
+                        config.getRotation(), spinx, spiny, spinz, self.getSurfaceSupportOffsets()))) {
             return -1;
         }
 
@@ -325,9 +347,12 @@ final class IrisObjectPlacementRunner {
                 && !config.isUnderwater()
                 && !config.isOnwater()
                 && config.isRequireSurfaceSupport()
-                && IrisSurfaceSupport.isUnsupported(oplacer, self.getLoader(), x, z, config.getTranslate(),
+                && (paint ? IrisSurfaceSupport.isUnsupported(oplacer, self.getLoader(), x, z, null, null,
+                        0, 0, 0, paintSupport, config.getSurfaceSupportBuffer(), config.getSurfaceSupportDepth(),
+                        paintProjection)
+                        : IrisSurfaceSupport.isUnsupported(oplacer, self.getLoader(), x, z, config.getTranslate(),
                         config.getRotation(), spinx, spiny, spinz, self.getSurfaceSupportOffsets(),
-                        config.getSurfaceSupportBuffer(), config.getSurfaceSupportDepth())) {
+                        config.getSurfaceSupportBuffer(), config.getSurfaceSupportDepth()))) {
             return -1;
         }
 
@@ -351,22 +376,27 @@ final class IrisObjectPlacementRunner {
         }
 
         if (!rawStructurePiece && nativeStructureVetoes(placer, config, spin, placementBounds, translating, translateOffset, ceilingHang,
-                yv < 0 && config.getMode() == ObjectPlaceMode.PAINT, warpMargin, x, y + yrand, z)) {
+                paintProjection, surfaceWarp, warpHalf, yrand, warpMargin, x, y + yrand, z)) {
             return -1;
         }
 
-        boolean paint = yv < 0 && config.getMode() == ObjectPlaceMode.PAINT;
         WorldBounds worldBounds = null;
         if (config.isBore() || (!config.isForcePlace() && !rawStructurePiece
                 && (!config.getAllowedCollisions().isEmpty() || !config.getForbiddenCollisions().isEmpty()))) {
-            worldBounds = resolveWorldBounds(placer, config, placementBounds, paint, x, y + yrand, z);
+            worldBounds = resolveWorldBounds(placementBounds, paintProjection, yrand, x, y + yrand, z);
         }
 
         if (!config.isForcePlace() && !rawStructurePiece && (!config.getAllowedCollisions().isEmpty() || !config.getForbiddenCollisions().isEmpty())) {
             Engine engine = requireDataEngine(rdata, "collision settings");
             for (int i = worldBounds.minX(); i <= worldBounds.maxX(); i++) {
-                for (int j = worldBounds.minY(); j <= worldBounds.maxY(); j++) {
-                    for (int k = worldBounds.minZ(); k <= worldBounds.maxZ(); k++) {
+                for (int k = worldBounds.minZ(); k <= worldBounds.maxZ(); k++) {
+                    int surface = paint ? paintProjection.surfaceY(i, k) : 0;
+                    if (surface == IrisPaintSurfaceProjection.MISSING) {
+                        continue;
+                    }
+                    int minimumY = paint ? surface + placementBounds.minY() + Math.floorDiv(self.h, 2) + yrand : worldBounds.minY();
+                    int maximumY = paint ? surface + placementBounds.maxY() + Math.floorDiv(self.h, 2) + yrand : worldBounds.maxY();
+                    for (int j = minimumY; j <= maximumY; j++) {
                         String placementMarker = placer.getData(i, j, k, String.class);
                         PlacedObject p = engine.resolveObjectPlacementMarker(i, k, placementMarker);
                         if (p == null) continue;
@@ -387,8 +417,14 @@ final class IrisObjectPlacementRunner {
 
         if (config.isBore()) {
             for (int i = worldBounds.minX(); i <= worldBounds.maxX(); i++) {
-                for (int j = worldBounds.minY() - config.getBoreExtendMinY(); j <= worldBounds.maxY() + config.getBoreExtendMaxY(); j++) {
-                    for (int k = worldBounds.minZ(); k <= worldBounds.maxZ(); k++) {
+                for (int k = worldBounds.minZ(); k <= worldBounds.maxZ(); k++) {
+                    int surface = paint ? paintProjection.surfaceY(i, k) : 0;
+                    if (surface == IrisPaintSurfaceProjection.MISSING) {
+                        continue;
+                    }
+                    int minimumY = paint ? surface + placementBounds.minY() + Math.floorDiv(self.h, 2) + yrand : worldBounds.minY();
+                    int maximumY = paint ? surface + placementBounds.maxY() + Math.floorDiv(self.h, 2) + yrand : worldBounds.maxY();
+                    for (int j = minimumY - config.getBoreExtendMinY(); j <= maximumY + config.getBoreExtendMaxY(); j++) {
                         placer.set(i, j, k, IrisObject.States.air());
                     }
                 }
@@ -546,8 +582,14 @@ final class IrisObjectPlacementRunner {
                     zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getZ() + z, i.getY() + y, i.getX() + x);
                 }
 
-                if (yv < 0 && (config.getMode().equals(ObjectPlaceMode.PAINT)) && !B.isVineBlock(data)) {
-                    yy = (int) Math.round(i.getY()) + Math.floorDiv(self.h, 2) + placer.getHighest(xx, zz, self.getLoader(), config.isUnderwater());
+                if (paint) {
+                    int surface = paintProjection.surfaceY(xx, zz);
+                    if (surface == IrisPaintSurfaceProjection.MISSING) {
+                        continue;
+                    }
+                    if (!B.isVineBlock(data)) {
+                        yy = (int) Math.round(i.getY()) + Math.floorDiv(self.h, 2) + surface + yrand;
+                    }
                 }
 
                 if (config.isMeld() && !rawStructurePiece && !placer.isSolid(xx, yy, zz)) {
@@ -864,6 +906,26 @@ final class IrisObjectPlacementRunner {
         return !wouldReplace && (rawStructurePiece || !air);
     }
 
+    private KList<IrisBlockVector> transformedPaintSupport(SpinKernel spin, IrisBlockVector translateOffset,
+                                                          CNG warp, double half, int x, int y, int z) {
+        KList<IrisBlockVector> offsets = new KList<>();
+        for (IrisBlockVector source : self.getSurfaceSupportOffsets()) {
+            IrisBlockVector offset = source.clone();
+            spin.rotate(offset);
+            if (translateOffset != null) {
+                offset.add(translateOffset);
+            }
+            int worldX = x + (int) Math.round(offset.getX());
+            int worldZ = z + (int) Math.round(offset.getZ());
+            if (warp != null) {
+                worldX += warp.fitDouble(-half, half, offset.getX() + x, offset.getY() + y, offset.getZ() + z);
+                worldZ += warp.fitDouble(-half, half, offset.getZ() + z, offset.getY() + y, offset.getX() + x);
+            }
+            offsets.add(new IrisBlockVector(worldX - x, 0, worldZ - z));
+        }
+        return offsets;
+    }
+
     private TransformedBounds transformedBounds(SpinKernel spin, boolean translating, IrisBlockVector translateOffset,
                                                 boolean ceilingHang, int margin) {
         int sourceMinX = -self.getCenter().getBlockX();
@@ -909,13 +971,13 @@ final class IrisObjectPlacementRunner {
         return new TransformedBounds(minX - margin, maxX + margin, minY, maxY, minZ - margin, maxZ + margin);
     }
 
-    private WorldBounds resolveWorldBounds(IObjectPlacer placer, IrisObjectPlacement config, TransformedBounds bounds,
-                                           boolean paint, int x, int y, int z) {
+    private WorldBounds resolveWorldBounds(TransformedBounds bounds, IrisPaintSurfaceProjection projection,
+                                           int randomY, int x, int y, int z) {
         int minX = x + bounds.minX();
         int maxX = x + bounds.maxX();
         int minZ = z + bounds.minZ();
         int maxZ = z + bounds.maxZ();
-        if (!paint) {
+        if (projection == null) {
             return new WorldBounds(minX, maxX, y + bounds.minY(), y + bounds.maxY(), minZ, maxZ);
         }
 
@@ -923,12 +985,15 @@ final class IrisObjectPlacementRunner {
         int maximumSurface = Integer.MIN_VALUE;
         for (int worldX = minX; worldX <= maxX; worldX++) {
             for (int worldZ = minZ; worldZ <= maxZ; worldZ++) {
-                int surface = placer.getHighest(worldX, worldZ, self.getLoader(), config.isUnderwater());
+                int surface = projection.surfaceY(worldX, worldZ);
+                if (surface == IrisPaintSurfaceProjection.MISSING) {
+                    continue;
+                }
                 minimumSurface = Math.min(minimumSurface, surface);
                 maximumSurface = Math.max(maximumSurface, surface);
             }
         }
-        int paintOffset = Math.floorDiv(self.h, 2);
+        int paintOffset = Math.floorDiv(self.h, 2) + randomY;
         return new WorldBounds(minX, maxX, minimumSurface + bounds.minY() + paintOffset,
                 maximumSurface + bounds.maxY() + paintOffset, minZ, maxZ);
     }
@@ -960,7 +1025,8 @@ final class IrisObjectPlacementRunner {
      */
     private boolean nativeStructureVetoes(IObjectPlacer placer, IrisObjectPlacement config, SpinKernel spin, TransformedBounds bounds,
                                           boolean translating, IrisBlockVector translateOffset, boolean ceilingHang,
-                                          boolean paint, int warpMargin, int x, int y, int z) {
+                                          IrisPaintSurfaceProjection projection, CNG surfaceWarp, double warpHalf,
+                                          int randomY, int warpMargin, int x, int y, int z) {
         Engine engine = placer.getEngine();
         if (engine == null) {
             return false;
@@ -976,8 +1042,8 @@ final class IrisObjectPlacementRunner {
         }
 
         int worldY = y + engine.getMinHeight();
-        int envelopeMinY = paint ? Integer.MIN_VALUE : worldY + bounds.minY() - warpMargin;
-        int envelopeMaxY = paint ? Integer.MAX_VALUE : worldY + bounds.maxY() + warpMargin;
+        int envelopeMinY = projection != null ? Integer.MIN_VALUE : worldY + bounds.minY() - warpMargin;
+        int envelopeMaxY = projection != null ? Integer.MAX_VALUE : worldY + bounds.maxY() + warpMargin;
         boolean envelopeMeetsPiece = false;
         for (NativeStructureVolume volume : volumes) {
             if (volume.intersects(minX, envelopeMinY, minZ, maxX, envelopeMaxY, maxZ)) {
@@ -1010,14 +1076,24 @@ final class IrisObjectPlacementRunner {
 
                 int xx = x + (int) Math.round(i.getX());
                 int zz = z + (int) Math.round(i.getZ());
-                int yy = paint
-                        ? (int) Math.round(i.getY()) + Math.floorDiv(self.h, 2)
-                                + placer.getHighest(xx, zz, self.getLoader(), config.isUnderwater())
-                        : y + (int) Math.round(i.getY());
+                int yy = y + (int) Math.round(i.getY());
+                if (projection != null) {
+                    if (surfaceWarp != null) {
+                        xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getX() + x, i.getY() + y, i.getZ() + z);
+                        zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getZ() + z, i.getY() + y, i.getX() + x);
+                    }
+                    int surface = projection.surfaceY(xx, zz);
+                    if (surface == IrisPaintSurfaceProjection.MISSING) {
+                        continue;
+                    }
+                    if (!B.isVineBlock(state)) {
+                        yy = (int) Math.round(i.getY()) + Math.floorDiv(self.h, 2) + surface + randomY;
+                    }
+                }
                 int worldBlockY = yy + engine.getMinHeight();
 
                 for (NativeStructureVolume volume : volumes) {
-                    if (volume.containsWithin(xx, worldBlockY, zz, warpMargin)) {
+                    if (volume.containsWithin(xx, worldBlockY, zz, projection == null ? warpMargin : 0)) {
                         return true;
                     }
                 }

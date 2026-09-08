@@ -2,12 +2,14 @@ package art.arcane.iris.engine.object;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.NativeStructureVolume;
 import art.arcane.iris.engine.framework.PlacedObject;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
+import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.RNG;
@@ -37,7 +39,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -279,6 +283,133 @@ public class IrisObjectPlacementRunnerRegressionTest {
         assertEquals(1, object.getStates().size());
     }
 
+    @Test
+    public void paintFollowsTheLowerLedgeBeneathADistantRoof() {
+        RecordingPlacer placer = new RecordingPlacer(null);
+        placer.terrain(1, 0, 0, 80, 150, 160);
+        placer.terrain(2, 0, 0, 80, 150, 160);
+        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.PAINT)
+                .setRequireSurfaceSupport(true).setSurfaceSupportBuffer(0);
+
+        assertEquals(80, lineObject(5).place(0, -1, 0, placer, placement, new RNG(2L), data));
+
+        assertEquals(5, placer.writes().size());
+        assertTrue(placer.writes().stream().allMatch(write -> write.y() == 80));
+    }
+
+    @Test
+    public void paintClipsAtACliffWithoutReachingThePatchBeyondIt() {
+        RecordingPlacer placer = new RecordingPlacer(null);
+        placer.terrain(1, 0, 0, 20);
+        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.PAINT);
+
+        lineObject(5).place(0, -1, 0, placer, placement, new RNG(2L), data);
+
+        assertEquals(3, placer.writes().size());
+        assertTrue(placer.writes().stream().allMatch(write -> write.x() <= 0 && write.y() == 80));
+    }
+
+    @Test
+    public void paintAccumulatesNormalAscendingAndDescendingSlopeSteps() {
+        RecordingPlacer placer = new RecordingPlacer(null);
+        for (int x = -6; x <= 6; x++) {
+            placer.terrain(x, 0, 0, 80 + x * 3);
+        }
+
+        lineObject(13).place(0, -1, 0, placer, placement().setMode(ObjectPlaceMode.PAINT), new RNG(2L), data);
+
+        assertEquals(13, placer.writes().size());
+        assertTrue(placer.writes().stream().allMatch(write -> write.y() == 80 + write.x() * 3));
+    }
+
+    @Test
+    public void paintingAndBoringCannotFeedBackIntoTheSurfaceProjection() {
+        RecordingPlacer placer = new RecordingPlacer(null);
+        placer.highestFollowsWrites = true;
+        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.PAINT).setBore(true);
+
+        boxObject(1, 3, 1).place(0, -1, 0, placer, placement, new RNG(2L), data);
+
+        assertEquals(3, placer.writesOf(solid).size());
+        assertTrue(placer.writes().stream().allMatch(write -> write.y() >= 80 && write.y() <= 82));
+    }
+
+    @Test
+    public void paintUsesTranslatedAnchorAndMatchingRandomizedBoreBounds() {
+        RecordingPlacer placer = new RecordingPlacer(null);
+        placer.terrain(0, -3, 0, 108);
+        placer.terrain(0, -4, 0, 110);
+        placer.terrain(0, -5, 0, 112);
+        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.PAINT).setBore(true)
+                .setRotation(IrisObjectRotation.of(0, 90, 0))
+                .setTranslate(new IrisObjectTranslate().setX(4).setY(5).setYRandom(3));
+        RNG rng = mock(RNG.class);
+        when(rng.i(0, 3)).thenReturn(3);
+
+        assertEquals(113, lineObject(3).place(0, -1, 0, placer, placement, rng, data));
+
+        assertEquals(3, placer.writesOf(solid).size());
+        assertEquals(3, placer.writesOf(IrisObject.States.air()).size());
+        assertTrue(placer.writes().stream().allMatch(write -> write.x() == 0
+                && write.z() >= -5 && write.z() <= -3 && write.y() == 110 - (write.z() + 4) * 2 + 8));
+    }
+
+    @Test
+    public void nativeVetoUsesTheSelectedLedgeAndRandomTranslationOffset() {
+        RecordingPlacer placer = new RecordingPlacer(engine);
+        placer.terrain(1, 0, 0, 80, 150, 160);
+        when(engine.getMinHeight()).thenReturn(-64);
+        when(engine.getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(
+                new KList<>(NativeStructureVolume.of("test", 1, 21, 0, 1, 21, 0)));
+        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.PAINT).setForcePlace(true)
+                .setTranslate(new IrisObjectTranslate().setY(2).setYRandom(3));
+        RNG rng = mock(RNG.class);
+        when(rng.i(0, 3)).thenReturn(3);
+
+        assertEquals(-1, lineObject(3).place(0, -1, 0, placer, placement, rng, data));
+        assertTrue(placer.writes().isEmpty());
+
+        when(engine.getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(
+                new KList<>(NativeStructureVolume.of("test", 1, 101, 0, 1, 101, 0)));
+        assertEquals(83, lineObject(3).place(0, -1, 0, placer, placement, rng, data));
+        assertTrue(placer.writes().stream().allMatch(write -> write.y() == 85));
+    }
+
+    @Test
+    public void warpedPaintAndNativeVetoUseTheSameFinalColumns() {
+        RecordingPlacer placer = new RecordingPlacer(engine);
+        for (int x = 1; x <= 3; x++) {
+            placer.terrain(x, 2, 0, 80, 150, 160);
+        }
+        IrisObjectPlacement placement = spy(placement().setMode(ObjectPlaceMode.PAINT).setForcePlace(true)
+                .setWarp(new IrisGeneratorStyle(NoiseStyle.SIMPLEX).setMultiplier(4)));
+        CNG warp = mock(CNG.class);
+        when(warp.fitDouble(anyDouble(), anyDouble(), anyDouble(), anyDouble(), anyDouble())).thenReturn(2D);
+        doReturn(warp).when(placement).getSurfaceWarp(any(RNG.class), any());
+        when(engine.getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(
+                new KList<>(NativeStructureVolume.of("test", 3, 80, 2, 3, 80, 2)));
+
+        assertEquals(-1, lineObject(3).place(0, -1, 0, placer, placement, new RNG(2L), data));
+        assertTrue(placer.writes().isEmpty());
+
+        when(engine.getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(NativeStructureVolume.NONE);
+        lineObject(3).place(0, -1, 0, placer, placement, new RNG(2L), data);
+        assertEquals(3, placer.writes().size());
+        assertTrue(placer.writes().stream().allMatch(write -> write.x() >= 1 && write.x() <= 3
+                && write.z() == 2 && write.y() == 80));
+    }
+
+    @Test
+    public void paintSupportChecksTheThicknessOfTheSelectedLowerLedge() {
+        RecordingPlacer placer = new RecordingPlacer(null);
+        placer.terrain(1, 0, 0, 20, 80, 80, 150, 160);
+        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.PAINT)
+                .setRequireSurfaceSupport(true).setSurfaceSupportBuffer(0).setSurfaceSupportDepth(2);
+
+        assertEquals(-1, lineObject(3).place(0, -1, 0, placer, placement, new RNG(2L), data));
+        assertTrue(placer.writes().isEmpty());
+    }
+
     private IrisObjectPlacement placement() {
         IrisObjectPlacement placement = new IrisObjectPlacement();
         placement.setMode(ObjectPlaceMode.CENTER_HEIGHT);
@@ -326,9 +457,11 @@ public class IrisObjectPlacementRunnerRegressionTest {
         private final Map<String, PlatformBlockState> world = new HashMap<>();
         private final Map<String, Object> data = new HashMap<>();
         private final List<String> sampledColumns = new ArrayList<>();
+        private final Map<String, int[]> terrain = new HashMap<>();
         private final Engine engine;
         private int failAfterWrites = Integer.MAX_VALUE;
         private boolean debugSmartBore;
+        private boolean highestFollowsWrites;
 
         private RecordingPlacer(Engine engine) {
             this.engine = engine;
@@ -340,6 +473,16 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         private void setDebugSmartBore(boolean debugSmartBore) {
             this.debugSmartBore = debugSmartBore;
+        }
+
+        private void terrain(int x, int z, int... spans) {
+            terrain.put(x + ":" + z, spans);
+        }
+
+        private int highest(int x, int z) {
+            int[] spans = terrain.get(x + ":" + z);
+            return (spans == null ? ANCHOR_Y : spans[spans.length - 1])
+                    + (highestFollowsWrites && !writes.isEmpty() ? 1000 : 0);
         }
 
         private List<BlockWrite> writes() {
@@ -357,13 +500,13 @@ public class IrisObjectPlacementRunnerRegressionTest {
         @Override
         public int getHighest(int x, int z, IrisData data) {
             sampledColumns.add(x + ":" + z);
-            return ANCHOR_Y;
+            return highest(x, z);
         }
 
         @Override
         public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
             sampledColumns.add(x + ":" + z);
-            return ANCHOR_Y;
+            return highest(x, z);
         }
 
         @Override
@@ -387,6 +530,20 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         @Override
         public boolean isCarved(int x, int y, int z) {
+            return false;
+        }
+
+        @Override
+        public boolean isSurfaceSolid(int x, int y, int z) {
+            int[] spans = terrain.get(x + ":" + z);
+            if (spans == null) {
+                return y >= 0 && y <= ANCHOR_Y;
+            }
+            for (int index = 0; index < spans.length; index += 2) {
+                if (y >= spans[index] && y <= spans[index + 1]) {
+                    return true;
+                }
+            }
             return false;
         }
 

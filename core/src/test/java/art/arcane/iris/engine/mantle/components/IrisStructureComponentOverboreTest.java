@@ -8,6 +8,14 @@ import static org.junit.Assert.assertTrue;
 
 public class IrisStructureComponentOverboreTest {
     @Test
+    public void enlargedTreeSearchCoversPaddedScaleWithoutEnlargingShrunkTrees() {
+        assertEquals(4, IrisStructureComponent.scaledMarkerSpan(4, 1D));
+        assertEquals(4, IrisStructureComponent.scaledMarkerSpan(4, 0.5D));
+        assertEquals(8, IrisStructureComponent.scaledMarkerSpan(4, 2D));
+        assertEquals(20, IrisStructureComponent.scaledMarkerSpan(10, 2D));
+    }
+
+    @Test
     public void ordinaryMarkersAreSeparatedFromStructureMarkers() {
         assertTrue(IrisStructureComponent.isOrdinaryObjectMarker("trees/oak@42"));
         assertFalse(IrisStructureComponent.isOrdinaryObjectMarker(

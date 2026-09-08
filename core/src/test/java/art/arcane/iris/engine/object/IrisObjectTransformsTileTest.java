@@ -216,6 +216,56 @@ public class IrisObjectTransformsTileTest {
     }
 
     @Test
+    public void fractionalReductionIncludesTheOuterSavedVoxelEdge() {
+        IrisObject source = new IrisObject(4, 1, 1);
+        source.setUnsigned(3, 0, 0, state("minecraft:chest"));
+        source.setUnsignedTile(3, 0, 0, tile("minecraft:chest", "edge"));
+
+        IrisObject scaled = source.scaledAroundOrigin(0.75D, IrisObjectPlacementScaleInterpolator.NONE);
+
+        assertEquals(2, scaled.getBlocks().size());
+        assertEquals("minecraft:chest", scaled.getBlocks().get(new IrisBlockVector(1, 0, 0)).materialKey());
+        assertEquals("edge", scaled.getStates().get(new IrisBlockVector(1, 0, 0)).getProperties().get("name"));
+        assertEquals(1, scaled.getAABB().max().getX());
+    }
+
+    @Test
+    public void fractionalScaleWinnersDoNotDependOnSourceInsertionOrder() {
+        for (boolean savedOrigin : new boolean[]{false, true}) {
+            IrisObject ascending = collisionSource(false);
+            IrisObject descending = collisionSource(true);
+            IrisObject first = savedOrigin
+                    ? ascending.scaledAroundOrigin(0.5D, IrisObjectPlacementScaleInterpolator.NONE)
+                    : ascending.scaled(0.5D, IrisObjectPlacementScaleInterpolator.NONE);
+            IrisObject second = savedOrigin
+                    ? descending.scaledAroundOrigin(0.5D, IrisObjectPlacementScaleInterpolator.NONE)
+                    : descending.scaled(0.5D, IrisObjectPlacementScaleInterpolator.NONE);
+
+            assertEquals(2, first.getBlocks().size());
+            assertEquals(1, first.getStates().size());
+            assertEquals("minecraft:stone", first.getBlocks().get(new IrisBlockVector(-1, 0, 0)).materialKey());
+            assertEquals("winner", first.getStates().get(new IrisBlockVector(0, 0, 0)).getProperties().get("name"));
+            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : first.getBlocks()) {
+                assertEquals(entry.getValue().materialKey(), second.getBlocks().get(entry.getKey()).materialKey());
+                assertEquals(first.getStates().get(entry.getKey()), second.getStates().get(entry.getKey()));
+            }
+        }
+    }
+
+    private static IrisObject collisionSource(boolean reverse) {
+        IrisObject source = new IrisObject(4, 1, 1);
+        for (int index = 0; index < 4; index++) {
+            int x = reverse ? 3 - index : index;
+            String material = x == 1 ? "minecraft:stone" : "minecraft:chest";
+            source.setUnsigned(x, 0, 0, state(material));
+            if (x != 1) {
+                source.setUnsignedTile(x, 0, 0, tile(material, x == 3 ? "winner" : "overwritten"));
+            }
+        }
+        return source;
+    }
+
+    @Test
     public void untypedTilesRemainAttachedToTheirScaledSourceMaterial() {
         IrisObject source = new IrisObject(1, 1, 1);
         TileData tile = mock(TileData.class);

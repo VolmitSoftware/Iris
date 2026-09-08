@@ -162,8 +162,8 @@ public class IrisObjectPlacement {
     private KList<IrisObjectReplace> edit = new KList<>();
     @Desc("Translate this object's placement")
     private IrisObjectTranslate translate = new IrisObjectTranslate();
-    @Desc("Scale Objects")
-    private IrisObjectScale scale = new IrisObjectScale();
+    @Desc("Explicit object scale. When omitted, the dimension's allObjectScaleFactor applies. Any authored scale, including size 1, overrides that factor.")
+    private IrisObjectScale scale;
     @ArrayType(min = 1, type = IrisObjectLoot.class)
     @Desc("The loot tables to apply to these objects")
     private KList<IrisObjectLoot> loot = new KList<>();
@@ -361,6 +361,18 @@ public class IrisObjectPlacement {
         }
 
         return data.getObjectLoader().load(pool.get(random.nextInt(pool.size())));
+    }
+
+    public IrisObject scaleObject(RNG random, IrisObject object, IrisDimension dimension) {
+        return scale == null
+                ? IrisObjectScale.getFixed(object, dimension == null ? 1D : dimension.getAllObjectScaleFactor())
+                : scale.get(random, object);
+    }
+
+    public double getMaximumScale(IrisDimension dimension) {
+        return scale == null
+                ? dimension == null ? 1D : dimension.getAllObjectScaleFactor()
+                : scale.getMaxScale();
     }
 
     public boolean matches(IrisTreeSize size, TreeType type) {

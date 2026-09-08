@@ -38,6 +38,7 @@ import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.iris.engine.object.IrisObjectPlacement;
 import art.arcane.iris.engine.object.IrisObjectPlacementScaleInterpolator;
 import art.arcane.iris.engine.object.IrisObjectRotation;
+import art.arcane.iris.engine.object.IrisObjectScale;
 import art.arcane.iris.engine.object.TileData;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -51,6 +52,7 @@ import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.iris.util.common.director.specialhandlers.ObjectHandler;
+import art.arcane.iris.util.common.director.specialhandlers.ObjectScaleHandler;
 import art.arcane.iris.util.common.director.specialhandlers.ObjectTargetHandler;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.iris.util.common.math.Direction;
@@ -551,17 +553,21 @@ public class CommandObject implements DirectorExecutor {
             boolean edit,
             @Param(description = "The amount of degrees to rotate by", descriptionKey = "iris.director.commandobject.param.amount_degrees_rotate_by", defaultValue = "0")
             int rotate,
-            @Param(description = "The factor by which to scale the object placement", descriptionKey = "iris.director.commandobject.param.factor_by_which_scale_object_placement", defaultValue = "1")
-            double scale
+            @Param(description = "Explicit scale factor, or dimension to inherit the current Iris world's factor", descriptionKey = "iris.director.commandobject.param.factor_by_which_scale_object_placement", defaultValue = "dimension", customHandler = ObjectScaleHandler.class)
+            Double scale
 //            ,
 //            @Param(description = "The scale interpolator to use", descriptionKey = "iris.director.commandobject.param.scale_interpolator_use", defaultValue = "none")
 //            IrisObjectPlacementScaleInterpolator interpolator
     ) {
         IrisObject o = IrisData.loadAnyObject(object, data());
+        Engine placementEngine = engine();
+        double factor = scale == null
+                ? placementEngine == null ? 1D : placementEngine.getDimension().getAllObjectScaleFactor()
+                : IrisObjectScale.requireValidFactor(scale, "scale");
         double maxScale = Double.max(10 - o.getBlocks().size() / 10000d, 1);
-        if (scale > maxScale) {
+        if (factor > maxScale) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_OBJECT_INDICATED_SCALE_EXCEEDS_MAXIMUM_DOWNSCALED_MAXIMUM, MessageArgument.untrusted("maxScale", maxScale)));
-            scale = maxScale;
+            factor = maxScale;
         }
 
         IrisObjectPlacement placement = new IrisObjectPlacement();
@@ -581,14 +587,16 @@ public class CommandObject implements DirectorExecutor {
 
         Map<Block, BlockData> futureChanges = new HashMap<>();
 
-        if (scale != 1) {
-            o = o.scaled(scale, IrisObjectPlacementScaleInterpolator.TRICUBIC);
+        if (factor != 1D) {
+            o = scale == null ? IrisObjectScale.getFixed(o, factor)
+                    : new IrisObjectScale().setSize(factor)
+                    .setInterpolation(IrisObjectPlacementScaleInterpolator.TRICUBIC).get(new RNG(), o);
         }
 
         // Block writes must run on the thread owning the target chunk; the undo log stays global.
         final IrisObject placed = o;
         if (!J.runAt(block, () -> {
-            placed.place(block.getBlockX(), block.getBlockY() + (int) placed.getCenter().getY(), block.getBlockZ(), createPlacer(block.getWorld(), futureChanges, null), placement, new RNG(), null);
+            placed.place(block.getBlockX(), block.getBlockY() + (int) placed.getCenter().getY(), block.getBlockZ(), createPlacer(block.getWorld(), futureChanges, null), placement, new RNG(), placed.getLoader());
             J.runGlobal(() -> Iris.service(ObjectSVC.class).addChanges(futureChanges));
 
             if (!edit) {

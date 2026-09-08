@@ -19,6 +19,7 @@
 package art.arcane.iris.core.pack;
 
 import art.arcane.iris.engine.object.IrisDimensionType;
+import art.arcane.iris.engine.object.IrisObjectScale;
 import art.arcane.iris.engine.object.IrisWorldBoundary;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
@@ -57,6 +58,7 @@ final class PackDimensionValidator {
             validateDimensionHeights(packFolder, dimensionKey, dimJson, blockingErrors);
             validateWorldBoundary(dimensionKey, dimJson, blockingErrors);
             validateStaticObjects(packFolder, dimensionKey, dimJson, blockingErrors);
+            validateObjectScaleFactor(dimensionKey, dimJson, blockingErrors);
             validateDimensionStack(packFolder, dimensionKey, dimJson, dimensionKeys, blockingErrors);
 
             JSONArray regionsArray = dimJson.optJSONArray("regions");
@@ -100,6 +102,11 @@ final class PackDimensionValidator {
                 blockingErrors.add("Dimension '" + dimensionKey + "' has no resolvable regions.");
             }
         }
+    }
+
+    static void validateObjectScaleFactor(String dimensionKey, JSONObject dimension, List<String> errors) {
+        validateFiniteNumber(dimension, "allObjectScaleFactor", IrisObjectScale.MINIMUM_FACTOR,
+                IrisObjectScale.MAXIMUM_FACTOR, "Dimension '" + dimensionKey + "'", errors);
     }
 
     static void validateDimensionStack(File packFolder, String dimensionKey, JSONObject dimension, Set<String> dimensionKeys,

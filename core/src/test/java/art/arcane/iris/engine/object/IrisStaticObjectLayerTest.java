@@ -82,6 +82,41 @@ public class IrisStaticObjectLayerTest {
     }
 
     @Test
+    public void globalScalingKeepsSavedOriginsAndExplicitEntrySizes() {
+        IrisObject cube = object("cube", 4, 4, 4);
+        for (int x = -2; x < 2; x++) {
+            for (int y = -2; y < 2; y++) {
+                for (int z = -2; z < 2; z++) {
+                    cube.getBlocks().put(new IrisBlockVector(x, y, z), state("minecraft:stone"));
+                }
+            }
+        }
+        for (double factor : new double[]{2D, 0.5D}) {
+            IrisDimension dimension = new IrisDimension().setAllObjectScaleFactor(factor)
+                    .setStaticObjects(new KList<>(entry("cube", 16, 100, 16),
+                            entry("cube", 48, 100, 16).setScale(1D),
+                            entry("cube", 80, 100, 16).setScale(1D / factor)));
+            IrisStaticObjectLayer layer = dimension.getStaticObjectLayer(data);
+            int[] counts = new int[3];
+            for (int chunkX = 0; chunkX < 6; chunkX++) {
+                for (int chunkZ = 0; chunkZ < 2; chunkZ++) {
+                    counts[chunkX / 2] += layer.blocks(chunkX, chunkZ).size();
+                }
+            }
+            assertEquals(factor == 2D ? 512 : 8, counts[0]);
+            assertEquals(64, counts[1]);
+            assertEquals(factor == 2D ? 8 : 512, counts[2]);
+            int halfWidth = factor == 2D ? 4 : 1;
+            assertTrue(layer.contains(16 - halfWidth, 164 - halfWidth, 16 - halfWidth));
+            assertFalse(layer.contains(15 - halfWidth, 164 - halfWidth, 16 - halfWidth));
+            dimension.setAllObjectScaleFactor(1D);
+            assertNotSame(layer, dimension.getStaticObjectLayer(data));
+        }
+        assertEquals(64, cube.getBlocks().size());
+        assertEquals(4, cube.getW());
+    }
+
+    @Test
     public void rotatedNegativeCoordinatesAndMinusOneYUseExactWorldOrigin() {
         IrisObject object = object("cross", 5, 3, 5);
         object.getBlocks().put(new IrisBlockVector(-2, -1, 0), state("minecraft:gold_block"));

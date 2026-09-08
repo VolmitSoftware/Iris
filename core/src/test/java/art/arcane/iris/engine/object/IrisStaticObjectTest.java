@@ -9,6 +9,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -23,7 +24,7 @@ public class IrisStaticObjectTest {
         assertEquals(ObjectPlaceMode.STRUCTURE_PIECE, placement.getMode());
         assertTrue(placement.isForcePlace());
         assertFalse(placement.getRotation().isEnabled());
-        assertFalse(placement.getScale().shouldScale());
+        assertNull(placement.getScale());
         assertEquals(new IrisPosition(100, 100, -100), object.getPosition());
     }
 
@@ -69,8 +70,8 @@ public class IrisStaticObjectTest {
         assertThrows(IllegalArgumentException.class, () -> new IrisStaticObject().validate(-64, 320));
         assertThrows(IllegalArgumentException.class, () -> validObject().setPosition(null).validate(-64, 320));
         assertThrows(IllegalArgumentException.class, () -> validObject().setScale(Double.NaN).validate(-64, 320));
-        assertThrows(IllegalArgumentException.class, () -> validObject().setScale(0).validate(-64, 320));
-        assertThrows(IllegalArgumentException.class, () -> validObject().setScale(51).validate(-64, 320));
+        assertThrows(IllegalArgumentException.class, () -> validObject().setScale(0D).validate(-64, 320));
+        assertThrows(IllegalArgumentException.class, () -> validObject().setScale(51D).validate(-64, 320));
         assertThrows(IllegalArgumentException.class, () -> validObject().setRotation(null).validate(-64, 320));
         assertThrows(IllegalArgumentException.class,
                 () -> validObject().setRotation(new IrisStaticObjectRotation().setY(-361)).validate(-64, 320));

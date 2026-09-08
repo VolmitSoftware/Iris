@@ -43,6 +43,8 @@ import java.util.Map;
 @Desc("Scale objects")
 @Data
 public class IrisObjectScale {
+    public static final double MINIMUM_FACTOR = 0.01D;
+    public static final double MAXIMUM_FACTOR = 50D;
     private static final long CACHE_MIN_ESTIMATED_BYTES = 16L * 1024L * 1024L;
     private static final long CACHE_MAX_ESTIMATED_BYTES = 64L * 1024L * 1024L;
     private static final long CACHE_ENTRY_ESTIMATED_BYTES = 512L;
@@ -88,15 +90,32 @@ public class IrisObjectScale {
         return minimumScale != 1 || maximumScale != 1;
     }
 
+    public IrisObjectScale setSize(double size) {
+        this.size = requireValidFactor(size, "size");
+        return this;
+    }
+
+    public IrisObjectScale setMinimumScale(double minimumScale) {
+        this.minimumScale = requireValidFactor(minimumScale, "minimumScale");
+        return this;
+    }
+
+    public IrisObjectScale setMaximumScale(double maximumScale) {
+        this.maximumScale = requireValidFactor(maximumScale, "maximumScale");
+        return this;
+    }
+
     public int getMaxSizeFor(int indim) {
         return (int) Math.ceil(getMaxScale() * indim);
     }
 
     public double getMaxScale() {
-        if (size != 1) {
-            return size;
+        ScaleRequest request = snapshotRequest();
+        if (!request.shouldScale()) {
+            return 1D;
         }
-        return Math.max(minimumScale, maximumScale);
+        return request.size() != 1D ? request.size()
+                : Math.max(request.minimumScale(), request.maximumScale());
     }
 
     public IrisObject get(RNG rng, IrisObject origin) {
@@ -109,7 +128,27 @@ public class IrisObjectScale {
             return origin;
         }
 
-        int variantIndex = request.selectVariant(rng);
+        return get(origin, request, request.selectVariant(rng));
+    }
+
+    public static IrisObject getFixed(IrisObject origin, double factor) {
+        requireValidFactor(factor, "Object scale");
+        if (origin == null || factor == 1D) {
+            return origin;
+        }
+        return get(origin, new ScaleRequest(factor, 1D, 1D, 7,
+                IrisObjectPlacementScaleInterpolator.NONE), 0);
+    }
+
+    public static double requireValidFactor(double factor, String name) {
+        if (!Double.isFinite(factor) || factor < MINIMUM_FACTOR || factor > MAXIMUM_FACTOR) {
+            throw new IllegalArgumentException(name + " must be finite and between "
+                    + MINIMUM_FACTOR + " and " + MAXIMUM_FACTOR + ".");
+        }
+        return factor;
+    }
+
+    private static IrisObject get(IrisObject origin, ScaleRequest request, int variantIndex) {
         CacheKey key = CACHE.key(origin, request, variantIndex);
         CacheLookup lookup = CACHE.lookup(key);
         if (lookup.variant() != null) {
@@ -145,6 +184,9 @@ public class IrisObjectScale {
     }
 
     private ScaleRequest snapshotRequest() {
+        requireValidFactor(size, "size");
+        requireValidFactor(minimumScale, "minimumScale");
+        requireValidFactor(maximumScale, "maximumScale");
         IrisObjectPlacementScaleInterpolator configuredInterpolation = interpolation == null
                 ? IrisObjectPlacementScaleInterpolator.NONE
                 : interpolation;

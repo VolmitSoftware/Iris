@@ -1,17 +1,18 @@
 package art.arcane.iris.core.pregenerator.methods;
 
+import art.arcane.iris.core.pregenerator.PregenAdmissionGate;
 import org.junit.Test;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -101,13 +102,13 @@ public class AsyncPregenMethodConcurrencyCapTest {
 
     @Test
     public void closeDrainWaitsPastWarningIntervalsUntilEveryPermitReturns() throws Exception {
-        Semaphore semaphore = new Semaphore(0);
+        PregenAdmissionGate gate = new PregenAdmissionGate(2, 5L, System::currentTimeMillis);
+        assertNotNull(gate.admit(() -> false, () -> false));
+        assertNotNull(gate.admit(() -> false, () -> false));
         AtomicInteger warnings = new AtomicInteger();
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
-            Future<Boolean> drain = executor.submit(() -> AsyncPregenMethod.awaitDrain(
-                    semaphore,
-                    2,
+            Future<Boolean> drain = executor.submit(() -> gate.awaitDrain(
                     10L,
                     TimeUnit.MILLISECONDS,
                     warnings::incrementAndGet
@@ -116,11 +117,12 @@ public class AsyncPregenMethodConcurrencyCapTest {
             while (warnings.get() == 0) {
                 Thread.onSpinWait();
             }
-            semaphore.release(2);
+            gate.release();
+            gate.release();
 
             assertFalse(drain.get(1L, TimeUnit.SECONDS));
             assertTrue(warnings.get() > 0);
-            assertEquals(0, semaphore.availablePermits());
+            assertEquals(2, gate.availablePermits());
         } finally {
             executor.shutdownNow();
         }

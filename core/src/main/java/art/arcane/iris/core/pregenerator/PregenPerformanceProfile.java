@@ -28,8 +28,11 @@ import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.iris.util.project.stream.utility.CachedDoubleStream2D;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class PregenPerformanceProfile {
+    private static final AtomicInteger PARALLELISM_HOLDERS = new AtomicInteger();
+
     private PregenPerformanceProfile() {
     }
 
@@ -45,10 +48,31 @@ public final class PregenPerformanceProfile {
         }
 
         if (MultiBurst.burst.raiseParallelism(pregenBurstParallelism(Runtime.getRuntime().availableProcessors()))) {
+            PARALLELISM_HOLDERS.incrementAndGet();
             changed = true;
         }
 
         return changed;
+    }
+
+    /**
+     * Releases one hold on the pregeneration burst parallelism. The pool returns to the parallelism it had
+     * before the first pregeneration raised it once the last concurrent job releases its hold.
+     */
+    public static boolean restore() {
+        while (true) {
+            int holders = PARALLELISM_HOLDERS.get();
+            if (holders <= 0) {
+                return false;
+            }
+            if (PARALLELISM_HOLDERS.compareAndSet(holders, holders - 1)) {
+                return holders == 1 && MultiBurst.burst.restoreParallelism();
+            }
+        }
+    }
+
+    static int parallelismHolders() {
+        return PARALLELISM_HOLDERS.get();
     }
 
     public static void apply(Engine engine) {

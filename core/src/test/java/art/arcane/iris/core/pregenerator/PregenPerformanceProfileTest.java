@@ -107,4 +107,41 @@ public class PregenPerformanceProfileTest {
         assertEquals(before + 1, MultiBurst.burst.parallelism());
         assertFalse(MultiBurst.burst.raiseParallelism(before));
     }
+
+    @Test
+    public void restoringBurstParallelismReturnsThePoolToItsPrePregenerationSize() {
+        int before = MultiBurst.ioBurst.parallelism();
+        assertTrue(MultiBurst.ioBurst.raiseParallelism(before + 3));
+        assertEquals(before + 3, MultiBurst.ioBurst.parallelism());
+
+        assertTrue(MultiBurst.ioBurst.restoreParallelism());
+        assertEquals(before, MultiBurst.ioBurst.parallelism());
+        assertFalse(MultiBurst.ioBurst.restoreParallelism());
+        assertEquals(before, MultiBurst.ioBurst.parallelism());
+    }
+
+    @Test
+    public void aSecondRaiseKeepsTheOriginalBaselineSoOneRestoreIsEnough() {
+        int before = MultiBurst.ioBurst.parallelism();
+        assertTrue(MultiBurst.ioBurst.raiseParallelism(before + 2));
+        assertTrue(MultiBurst.ioBurst.raiseParallelism(before + 5));
+
+        assertTrue(MultiBurst.ioBurst.restoreParallelism());
+        assertEquals(before, MultiBurst.ioBurst.parallelism());
+    }
+
+    @Test
+    public void theBurstParallelismHoldIsReleasedByAMatchingRestore() {
+        while (PregenPerformanceProfile.parallelismHolders() > 0) {
+            PregenPerformanceProfile.restore();
+        }
+        assertFalse(PregenPerformanceProfile.restore());
+        assertEquals(0, PregenPerformanceProfile.parallelismHolders());
+
+        PregenPerformanceProfile.apply();
+        int holders = PregenPerformanceProfile.parallelismHolders();
+        PregenPerformanceProfile.restore();
+
+        assertEquals(Math.max(0, holders - 1), PregenPerformanceProfile.parallelismHolders());
+    }
 }

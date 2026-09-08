@@ -229,10 +229,6 @@ public final class Tasks {
         return Bukkit.getServer();
     }
 
-    /**
-     * Matched against every registered plugin rather than asked for by exact name: a plugin.yml decides its
-     * own capitalization, and asking the plugin manager for "dynmap" misses a build that registers "Dynmap".
-     */
     private static Set<String> installedIncompatiblePlugins() {
         Set<String> found = new LinkedHashSet<>();
         Plugin[] plugins = server().getPluginManager().getPlugins();

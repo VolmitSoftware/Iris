@@ -4,14 +4,6 @@ import art.arcane.iris.core.safeguard.Mode;
 
 import java.util.List;
 
-/**
- * What one startup check found: the severity it reached, the console lines it wants printed, and - for a
- * Danger result only - the reason the runtime is locked.
- * <p>
- * The lock reason is mandatory on {@link #danger(String, Diagnostic...)} because Danger is what stops player
- * login, world creation and generation, and an operator has to be told which check did that and what fixes
- * it. A check cannot reach Danger without answering that.
- */
 public record CheckResult(Mode mode, String lockReason, List<Diagnostic> diagnostics) {
     public CheckResult {
         if (mode == null) {

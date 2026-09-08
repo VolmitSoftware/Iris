@@ -496,9 +496,6 @@ public final class IrisWorldGeneratorResolver {
             Iris.debug("Using staged runtime generator for " + worldName);
             return stagedGenerator;
         }
-        // A world Iris created staged its generator above and installed the injection on the way in. This
-        // is a world configured outside Iris, and Bukkit asks for its generator before it builds the level,
-        // so this is the last point at which the injection it needs can still be installed in time.
         RuntimeInjection.installIfDeferred();
         startupLock = startupLockedGenerator(worldName);
         if (startupLock != null) {

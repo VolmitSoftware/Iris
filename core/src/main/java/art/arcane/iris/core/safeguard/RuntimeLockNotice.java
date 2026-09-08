@@ -2,13 +2,6 @@ package art.arcane.iris.core.safeguard;
 
 import java.util.List;
 
-/**
- * The operator lines a boot prints when Iris enabled but its runtime is locked.
- * <p>
- * The Danger banner states the mode; this states the consequence. A locked runtime that still enabled is not
- * covered by the vanilla-fallback refusal - that only runs when enable itself fails - so without this the
- * only evidence is the first chunk request throwing hours later.
- */
 public final class RuntimeLockNotice {
     private RuntimeLockNotice() {
     }

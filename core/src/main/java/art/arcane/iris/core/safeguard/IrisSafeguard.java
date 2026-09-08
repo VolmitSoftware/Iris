@@ -74,8 +74,6 @@ public final class IrisSafeguard {
         mode = currentMode;
         count = issueCount;
 
-        // Danger is the lock. Recognising one check by its id and letting every other critical failure
-        // through was how a no-op NMS binding or a missing dimension type reached an open login queue.
         if (currentMode == Mode.UNSTABLE) {
             IrisStartupValidation.markRuntimeInvalid(lockReason == null ? GENERIC_LOCK_REASON : lockReason);
             return;
@@ -96,10 +94,6 @@ public final class IrisSafeguard {
         return attachment;
     }
 
-    /**
-     * The per-check record for {@code /iris debugdump}. Without it a support report carried the server and
-     * plugin state but not one word about which startup check put the server in the mode it is in.
-     */
     public static String debugReport() {
         StringBuilder builder = new StringBuilder();
         builder.append("Startup safeguard: ").append(mode.getId())

@@ -52,9 +52,6 @@ public final class WorldLifecycleService {
         this.worldBackendByKey = new ConcurrentHashMap<>();
     }
 
-    /**
-     * Drops the cached snapshot so the next boot in this JVM builds one against the server it is running on.
-     */
     public static void reset() {
         synchronized (WorldLifecycleService.class) {
             instance = null;

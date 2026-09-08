@@ -378,8 +378,6 @@ public class WandSVC implements IrisService {
         activePlayers.clear();
         ticksUntilPlayerRescan = 0;
         taskId = J.ar(this::tickAll, 1);
-        // Building the templates reaches the item and enchantment registries, which costs more than the
-        // rest of this service's startup put together and is only needed to recognise a pre-marker wand.
         J.s(() -> {
             wand = createWand();
             dust = createDust();

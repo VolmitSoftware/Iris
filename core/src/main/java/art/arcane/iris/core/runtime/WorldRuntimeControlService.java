@@ -76,9 +76,6 @@ public final class WorldRuntimeControlService {
                 + ", " + backend.describeCapabilities();
     }
 
-    /**
-     * Drops the cached snapshot so the next boot in this JVM builds one against the server it is running on.
-     */
     public static void reset() {
         synchronized (WorldRuntimeControlService.class) {
             instance = null;

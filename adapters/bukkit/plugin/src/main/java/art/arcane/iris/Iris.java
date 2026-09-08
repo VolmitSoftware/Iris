@@ -717,9 +717,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         IrisServices.register(ManagedWorldLoader.class, (ManagedWorldLoader) this::loadManagedWorld);
         SettingsHotloadWatch watch = new SettingsHotloadWatch(getDataFile("iris.json"));
         settingsHotloadWatch = watch;
-        // Off the boot thread, because a stale cache/temp can hold a whole abandoned pack import and
-        // deleting it recursively is unbounded. Every pack import waits this sweep out instead, which is
-        // the invariant that mattered: a delete running underneath an import truncated it mid-copy.
         StudioSVC.gateDownloadsOnStaleTempCleanup(MultiBurst.ioBurst.completeValueAsync(() -> {
             IO.delete(getTemp());
             return null;
@@ -793,11 +790,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         return true;
     }
 
-    /**
-     * Where the enable thread went, so a boot that got slower can be attributed to a phase rather than to
-     * Iris in general. The total is a lifecycle milestone and lands in logs/latest.log; the breakdown is
-     * for whoever is looking.
-     */
     private static final class EnableTimings {
         private static final int REPORTED_SERVICES = 3;
 
@@ -946,11 +938,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         reportLockedRuntime();
     }
 
-    /**
-     * refuseVanillaFallback only ever runs when enable itself failed. A boot that enabled into Danger Mode
-     * keeps every configured Iris world bound to a generator that throws, and until now said so nowhere
-     * after the banner.
-     */
     private static void reportLockedRuntime() {
         String denial = IrisStartupValidation.denialReason().orElse(null);
         if (denial == null) {
@@ -1131,11 +1118,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         }
     }
 
-    /**
-     * A disabled plugin must not stay reachable through a static. Everything that reads these either runs
-     * while Iris is enabled or already handles their absence; the platform binding outlives them because
-     * core still logs through it until finishTerminalCleanup unbinds it.
-     */
     private static void releaseStatics() {
         linkMultiverseCore = null;
         compat = null;

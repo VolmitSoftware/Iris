@@ -117,11 +117,6 @@ public class StudioSVC implements IrisService {
     private PackDownloadExecution activeDownload;
     private boolean downloadAdmissionOpen;
 
-    /**
-     * Binds the stale cache/temp sweep a boot starts in the background. Pack imports stage through that
-     * folder, so a delete running underneath one truncates it; the import waits the sweep out instead of
-     * the boot waiting for the sweep.
-     */
     public static void gateDownloadsOnStaleTempCleanup(CompletableFuture<Void> cleanup) {
         staleTempCleanup = cleanup == null ? CompletableFuture.completedFuture(null) : cleanup;
     }

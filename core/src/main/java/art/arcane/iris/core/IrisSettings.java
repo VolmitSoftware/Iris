@@ -308,12 +308,6 @@ public class IrisSettings {
         public boolean debug = false;
         public boolean dumpMantleOnError = false;
         public boolean disableNMS = false;
-        /**
-         * Attach the Java agent and install the server-code injection while Iris enables, instead of the
-         * first time a world Iris generates is about to load. Boot-time injection costs roughly a second
-         * on a server that may never load an Iris world; turn this on to pay it up front and have the
-         * startup safeguard verify it.
-         */
         public boolean eagerRuntimeInjection = false;
         public boolean splashLogoStartup = true;
         public boolean useConsoleCustomColors = true;

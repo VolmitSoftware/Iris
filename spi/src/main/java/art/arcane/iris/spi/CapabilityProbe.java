@@ -18,30 +18,10 @@
 
 package art.arcane.iris.spi;
 
-/**
- * Runs a lookup whose failure means "this optional API, plugin or server capability is not here" and answers
- * with a fallback instead of throwing.
- * <p>
- * This is the only sanctioned form of a quiet catch in Iris. A probe states the capability it was looking
- * for, and a miss is recorded at {@link LogLevel#DEBUG} with the failure's class and message, so an operator
- * running with debug on can tell a genuinely absent API apart from one that broke while being reached. Every
- * other catch - world lifecycle, world replacement, runtime control, safeguard, service enable and disable,
- * generation - reports through {@link IrisLogging#reportError(String, Throwable)} with the full trace.
- * <p>
- * Internal to Iris; not a published integration surface.
- */
 public final class CapabilityProbe {
     private CapabilityProbe() {
     }
 
-    /**
-     * Resolves {@code probe}, or returns {@code unavailable} when it throws.
-     *
-     * @param capability  what was being looked for, for the debug record - for example
-     *                    {@code "world#getChunkAtAsync"}
-     * @param probe       the lookup; any {@link Throwable} it raises means the capability is absent
-     * @param unavailable the value that stands for an absent capability
-     */
     public static <T> T attempt(String capability, Probe<T> probe, T unavailable) {
         try {
             return probe.resolve();
@@ -51,9 +31,6 @@ public final class CapabilityProbe {
         }
     }
 
-    /**
-     * Runs {@code attempt} and reports whether it completed, for a probe whose only result is that it worked.
-     */
     public static boolean succeeds(String capability, Attempt attempt) {
         try {
             attempt.run();

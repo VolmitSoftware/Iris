@@ -7,6 +7,7 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioPieceRules;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolAction;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioToolPayload;
 import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.common.scheduling.J;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -15,6 +16,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
@@ -41,6 +43,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class JigsawStudioMenuControllerTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     private static final UUID WORLD_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final UUID REQUEST_ID = UUID.fromString("77777777-7777-7777-7777-777777777777");
     private static final JigsawStudioPieceRules RULES = new JigsawStudioPieceRules(1, 12, 2, 8, false);

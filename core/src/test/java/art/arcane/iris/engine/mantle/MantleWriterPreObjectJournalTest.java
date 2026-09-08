@@ -7,6 +7,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.BukkitTestServer;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.project.matter.IrisMatterSupport;
 import art.arcane.iris.util.project.matter.PreObjectMatterCell;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -18,6 +19,7 @@ import art.arcane.volmlib.util.matter.MatterSlice;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.concurrent.CountDownLatch;
@@ -37,6 +39,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class MantleWriterPreObjectJournalTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     private static final int X = 2;
     private static final int Y = 5;
     private static final int Z = 4;

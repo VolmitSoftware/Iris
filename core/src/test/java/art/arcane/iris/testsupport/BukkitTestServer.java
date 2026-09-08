@@ -5,6 +5,9 @@ import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.plugin.PluginManager;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 import org.mockito.invocation.InvocationOnMock;
 
 import java.util.Locale;
@@ -18,6 +21,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 public final class BukkitTestServer {
+    private static final String DEFAULT_NAME = "IrisTestServer";
+    private static final String DEFAULT_VERSION = "1.0";
     private static final Object LOCK = new Object();
     private static volatile Server installed;
 
@@ -46,9 +51,7 @@ public final class BukkitTestServer {
             Server server = mock(Server.class);
             doReturn(Logger.getLogger("IrisTest")).when(server).getLogger();
             doReturn(mock(PluginManager.class)).when(server).getPluginManager();
-            doReturn("IrisTestServer").when(server).getName();
-            doReturn("1.0").when(server).getVersion();
-            doReturn("1.0").when(server).getBukkitVersion();
+            applyBranding(server, DEFAULT_NAME, DEFAULT_VERSION);
             doAnswer((InvocationOnMock invocation) -> blockData(invocation.getArgument(0, Material.class).name().toLowerCase(Locale.ROOT)))
                     .when(server).createBlockData(any(Material.class));
             doAnswer((InvocationOnMock invocation) -> blockData(invocation.getArgument(0, String.class)))
@@ -67,11 +70,49 @@ public final class BukkitTestServer {
         }
     }
 
-    public static void brand(String name, String version) {
-        Server server = install();
+    public static ServerBranding branding() {
+        return new ServerBranding();
+    }
+
+    private static void applyBranding(Server server, String name, String version) {
         doReturn(name).when(server).getName();
         doReturn(version).when(server).getVersion();
         doReturn(version).when(server).getBukkitVersion();
+    }
+
+    public static final class ServerBranding implements TestRule {
+        private boolean applied;
+
+        private ServerBranding() {
+        }
+
+        public void set(String name, String version) {
+            applyBranding(install(), name, version);
+            applied = true;
+        }
+
+        @Override
+        public Statement apply(Statement base, Description description) {
+            return new Statement() {
+                @Override
+                public void evaluate() throws Throwable {
+                    try {
+                        base.evaluate();
+                    } finally {
+                        restore();
+                    }
+                }
+            };
+        }
+
+        private void restore() {
+            if (!applied) {
+                return;
+            }
+
+            applied = false;
+            applyBranding(install(), DEFAULT_NAME, DEFAULT_VERSION);
+        }
     }
 
     public static BlockData blockData(String key) {

@@ -9,17 +9,13 @@ import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisDimensionCarvingResolver;
 import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.iris.engine.object.IrisWorld;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -30,27 +26,13 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 public class IrisCarveModifierInferenceIsolationTest {
-    @BeforeClass
-    public static void bindPlatform() {
-        IrisPlatforms.unbind();
-        PlatformBlockState block = mock(PlatformBlockState.class);
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        doReturn(block).when(registries).block(anyString());
-        IrisPlatform platform = mock(IrisPlatform.class);
-        doReturn(registries).when(platform).registries();
-        IrisPlatforms.bind(platform);
-    }
-
-    @AfterClass
-    public static void unbindPlatform() {
-        IrisPlatforms.unbind();
-    }
+    @ClassRule
+    public static final PlatformBinding PLATFORM = PlatformBinding.mockPlatform();
 
     @Test
     @SuppressWarnings("unchecked")

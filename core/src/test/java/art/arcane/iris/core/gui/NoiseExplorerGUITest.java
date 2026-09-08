@@ -3,7 +3,9 @@ package art.arcane.iris.core.gui;
 import art.arcane.iris.engine.framework.MeteredCache;
 import art.arcane.iris.engine.framework.PreservationRegistry;
 import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.function.NoiseProvider;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import javax.swing.SwingUtilities;
@@ -20,6 +22,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public final class NoiseExplorerGUITest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Test
     public void openingInitialSourceBuildsSamplerExactlyOnce() throws Exception {
         AtomicInteger factoryCalls = new AtomicInteger();

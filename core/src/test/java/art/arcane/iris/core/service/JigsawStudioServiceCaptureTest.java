@@ -36,6 +36,7 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.iris.util.common.plugin.VolmitPlugin;
@@ -72,6 +73,7 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
@@ -115,6 +117,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class JigsawStudioServiceCaptureTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
 
     @Test
     public void shutdownQuiesceIsIdempotentAndResetsOnEnable() throws Exception {

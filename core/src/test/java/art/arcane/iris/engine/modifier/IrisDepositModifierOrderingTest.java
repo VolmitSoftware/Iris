@@ -9,6 +9,7 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.iris.util.common.parallel.BurstExecutor;
@@ -22,6 +23,7 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
@@ -48,6 +50,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class IrisDepositModifierOrderingTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Before
     public void bindPlatform() {
         IrisPlatforms.unbind();

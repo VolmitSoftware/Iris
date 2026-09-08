@@ -17,11 +17,11 @@ import static org.mockito.Mockito.when;
  * Shared fixtures for the version-content pool cascade tests. The gate walker (lane L1) is not exercised here: the
  * tests stamp {@code compat} on a registrant directly, which is exactly what the walker stores.
  */
-final class CompatFixtures {
+final class PackCompatFixtures {
     static final String MISSING_BLOCK = "minecraft:sulfur";
     static final String MISSING_ENTITY = "minecraft:camel";
 
-    private CompatFixtures() {
+    private PackCompatFixtures() {
     }
 
     static IrisData data(PackCompatReport report) {

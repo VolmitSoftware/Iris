@@ -3,8 +3,10 @@ package art.arcane.iris.core.lifecycle;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.LogLevel;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.nio.file.Path;
@@ -22,6 +24,9 @@ import static org.mockito.Mockito.mock;
  * console and the runtime log but never the instance's logs/latest.log - the only log most operators read.
  */
 public class MissingWorldStorageLogTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     private final List<String> emitted = new ArrayList<>();
     private final List<LogLevel> levels = new ArrayList<>();
     private IrisPlatform previousPlatform;

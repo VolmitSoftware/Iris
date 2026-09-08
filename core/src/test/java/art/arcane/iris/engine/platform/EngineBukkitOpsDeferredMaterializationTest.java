@@ -13,6 +13,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.iris.util.project.matter.TileWrapper;
 import art.arcane.iris.util.project.matter.slices.PreObjectMatterTest;
@@ -30,6 +31,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.MockedStatic;
@@ -59,6 +61,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class EngineBukkitOpsDeferredMaterializationTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Test
     @SuppressWarnings("unchecked")
     public void savedMantlePlacementUsesCurrentProviderWithoutReadingCurrentMantle() {

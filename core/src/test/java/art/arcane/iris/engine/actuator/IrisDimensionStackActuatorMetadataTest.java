@@ -7,6 +7,7 @@ import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.engine.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.engine.mantle.TerrainMatterView;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.project.matter.IrisMatterSupport;
 import art.arcane.iris.util.project.matter.slices.PreObjectMatterTest;
 import art.arcane.volmlib.util.matter.IrisMatter;
@@ -23,6 +24,7 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterSlice;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import static org.mockito.ArgumentMatchers.anyString;
@@ -32,6 +34,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class IrisDimensionStackActuatorMetadataTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Before
     public void bindPlatform() {
         IrisPlatforms.unbind();

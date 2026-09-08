@@ -7,9 +7,11 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockProperty;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.List;
@@ -20,6 +22,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ExternalBlockSchemaTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     private static final String QUALIFIED_BLOCK = "craftengine:example/ores/copper";
 
     private IrisPlatform previous;

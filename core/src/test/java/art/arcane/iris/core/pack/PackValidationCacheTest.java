@@ -7,6 +7,8 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformStructureHooks;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.Assume;
@@ -30,6 +32,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class PackValidationCacheTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 

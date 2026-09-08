@@ -9,6 +9,8 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.hydrology.cave.HydrologyCavePlan;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -23,6 +25,9 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class HydrologyPlannerCrossTileCaveAdmissionIntegrationTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     private static final long SEED = 77L;
     private static final List<TilePair> ADJACENT_PAIRS = List.of(
             new TilePair(new HydrologyTileKey(0, -2), new HydrologyTileKey(0, -1)),

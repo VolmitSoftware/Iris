@@ -17,8 +17,10 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformStructureHooks;
 import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.LinkedHashSet;
@@ -36,6 +38,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class StructureHandlerTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Test
     public void registeredEligibilityMatchesFindExecutionTruthTable() {
         IrisNativeStructureDecision replacement = decision(NativeStructureGenerationStatus.REPLACED_BY_IRIS);

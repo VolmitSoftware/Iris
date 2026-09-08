@@ -3,7 +3,9 @@ package art.arcane.iris.core.pregenerator.cache;
 import art.arcane.iris.engine.framework.MeteredCache;
 import art.arcane.iris.engine.framework.PreservationRegistry;
 import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import org.junit.After;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.File;
@@ -16,6 +18,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class PregenCacheExecutorRegistrationTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     private static final class RecordingPreservation implements PreservationRegistry {
         private final List<ExecutorService> executors = new CopyOnWriteArrayList<>();
 

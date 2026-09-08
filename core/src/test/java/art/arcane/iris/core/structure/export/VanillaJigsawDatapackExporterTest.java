@@ -20,6 +20,7 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.nbt.io.NBTUtil;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
@@ -28,6 +29,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -53,6 +55,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class VanillaJigsawDatapackExporterTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     private static PlatformBlockState stone;
 
     @Rule

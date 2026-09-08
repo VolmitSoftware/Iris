@@ -12,10 +12,10 @@ import org.junit.Test;
 
 import java.util.Map;
 
-import static art.arcane.iris.engine.object.CompatFixtures.MISSING_BLOCK;
-import static art.arcane.iris.engine.object.CompatFixtures.excludeBlock;
-import static art.arcane.iris.engine.object.CompatFixtures.find;
-import static art.arcane.iris.engine.object.CompatFixtures.region;
+import static art.arcane.iris.engine.object.PackCompatFixtures.MISSING_BLOCK;
+import static art.arcane.iris.engine.object.PackCompatFixtures.excludeBlock;
+import static art.arcane.iris.engine.object.PackCompatFixtures.find;
+import static art.arcane.iris.engine.object.PackCompatFixtures.region;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 public class IrisDimensionCompatRegionTest {
     @SuppressWarnings("unchecked")
     private static IrisData dataWith(PackCompatReport report, IrisRegion... regions) {
-        IrisData data = CompatFixtures.data(report);
+        IrisData data = PackCompatFixtures.data(report);
         ResourceLoader<IrisRegion> regionLoader = mock(ResourceLoader.class);
         when(data.getRegionLoader()).thenReturn(regionLoader);
         for (IrisRegion region : regions) {

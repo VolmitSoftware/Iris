@@ -1,13 +1,10 @@
 package art.arcane.iris.core.tools;
 
 import art.arcane.iris.engine.object.IrisObject;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.util.common.math.IrisBlockVector;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.ArrayDeque;
@@ -22,11 +19,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TreePlausibilizerTest {
+    @ClassRule
+    public static final PlatformBinding PLATFORM = PlatformBinding.mockPlatform();
+
     private static final String OAK_LOG = "minecraft:oak_log[axis=y]";
     private static final String BIRCH_LOG = "minecraft:birch_log[axis=y]";
     private static final String OAK_LEAVES = "minecraft:oak_leaves[distance=7,persistent=true,waterlogged=false]";
@@ -40,22 +37,6 @@ public class TreePlausibilizerTest {
     };
 
     private record Pos(int x, int y, int z) {
-    }
-
-    @BeforeClass
-    public static void bindPlatform() {
-        IrisPlatforms.unbind();
-        PlatformBlockState defaultBlock = mock(PlatformBlockState.class);
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(registries.block(anyString())).thenReturn(defaultBlock);
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.bind(platform);
-    }
-
-    @AfterClass
-    public static void unbindPlatform() {
-        IrisPlatforms.unbind();
     }
 
     private static final class TestState implements PlatformBlockState {

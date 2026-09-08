@@ -4,16 +4,14 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.util.common.math.Vector3i;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -23,11 +21,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class NativeStructureObjectVetoTest {
+    @Rule
+    public final PlatformBinding platform = PlatformBinding.mockPlatform();
+
     private static final int SURFACE_Y = 80;
 
     private IrisData data;
@@ -36,14 +36,6 @@ public class NativeStructureObjectVetoTest {
 
     @Before
     public void bindPlatform() {
-        IrisPlatforms.unbind();
-        PlatformBlockState block = mock(PlatformBlockState.class);
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        when(registries.block(anyString())).thenReturn(block);
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.bind(platform);
-
         log = state("minecraft:oak_log", true);
         @SuppressWarnings("unchecked")
         ProceduralStream<Double> heightStream = mock(ProceduralStream.class);
@@ -56,11 +48,6 @@ public class NativeStructureObjectVetoTest {
         volumes();
         data = mock(IrisData.class);
         when(data.getEngine()).thenReturn(engine);
-    }
-
-    @After
-    public void unbindPlatform() {
-        IrisPlatforms.unbind();
     }
 
     @Test

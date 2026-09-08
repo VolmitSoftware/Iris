@@ -7,17 +7,13 @@ import art.arcane.iris.engine.mantle.MantlePass;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.mantle.MatterGenerator;
 import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -27,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -36,21 +31,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class MantleCarvingComponentBoundaryRadiusTest {
-    @Before
-    public void bindPlatform() {
-        IrisPlatforms.unbind();
-        PlatformBlockState block = mock(PlatformBlockState.class);
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        when(registries.block(anyString())).thenReturn(block);
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.bind(platform);
-    }
-
-    @After
-    public void unbindPlatform() {
-        IrisPlatforms.unbind();
-    }
+    @Rule
+    public final PlatformBinding platform = PlatformBinding.mockPlatform();
 
     @Test
     public void boundaryWallResolutionSchedulesAdjacentCarvingChunks() {

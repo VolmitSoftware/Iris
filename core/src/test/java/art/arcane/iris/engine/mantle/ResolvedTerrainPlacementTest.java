@@ -8,6 +8,7 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.project.matter.IrisMatterSupport;
 import art.arcane.iris.util.project.matter.PreObjectMatterCell;
 import art.arcane.iris.util.project.matter.slices.PreObjectMatterTest;
@@ -17,6 +18,7 @@ import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.List;
@@ -39,6 +41,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ResolvedTerrainPlacementTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     private EngineMantle engineMantle;
     private Mantle<Matter> mantle;
     private PlatformBlockState stone;

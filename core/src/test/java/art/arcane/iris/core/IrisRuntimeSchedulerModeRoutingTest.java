@@ -1,6 +1,7 @@
 package art.arcane.iris.core;
 
 import art.arcane.iris.testsupport.BukkitTestServer;
+import org.junit.Rule;
 import org.junit.Test;
 
 
@@ -9,6 +10,9 @@ import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mockingDetails;
 
 public class IrisRuntimeSchedulerModeRoutingTest {
+    @Rule
+    public final BukkitTestServer.ServerBranding branding = BukkitTestServer.branding();
+
     @Test
     public void autoResolvesToPaperLikeOnPurpurBranding() {
         installServer("Purpur", "git-Purpur-2562 (MC: 26.2)");
@@ -55,6 +59,6 @@ public class IrisRuntimeSchedulerModeRoutingTest {
 
     private void installServer(String name, String version) {
         assumeTrue(mockingDetails(BukkitTestServer.install()).isMock());
-        BukkitTestServer.brand(name, version);
+        branding.set(name, version);
     }
 }

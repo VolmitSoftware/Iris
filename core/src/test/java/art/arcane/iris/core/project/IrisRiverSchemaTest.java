@@ -8,6 +8,7 @@ import art.arcane.iris.engine.object.IrisBlockData;
 import art.arcane.iris.engine.object.IrisExpression;
 import art.arcane.iris.engine.object.IrisHydrology;
 import art.arcane.iris.engine.object.IrisRiverPolicy;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.json.JSONArray;
@@ -17,6 +18,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformRegistries;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -30,6 +32,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class IrisRiverSchemaTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     private IrisPlatform previousPlatform;
 
     @Before

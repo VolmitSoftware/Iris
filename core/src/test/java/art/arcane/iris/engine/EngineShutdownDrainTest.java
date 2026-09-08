@@ -27,6 +27,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.DurabilityMode;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -71,6 +72,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class EngineShutdownDrainTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @ClassRule
     public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
 

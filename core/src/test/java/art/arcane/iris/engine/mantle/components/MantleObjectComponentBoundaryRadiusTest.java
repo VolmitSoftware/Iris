@@ -28,6 +28,7 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.collection.KList;
@@ -36,6 +37,7 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -59,6 +61,9 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 
 public class MantleObjectComponentBoundaryRadiusTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 

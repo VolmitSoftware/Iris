@@ -14,10 +14,10 @@ import org.junit.Test;
 
 import java.util.Map;
 
-import static art.arcane.iris.engine.object.CompatFixtures.MISSING_ENTITY;
-import static art.arcane.iris.engine.object.CompatFixtures.entity;
-import static art.arcane.iris.engine.object.CompatFixtures.excludeEntity;
-import static art.arcane.iris.engine.object.CompatFixtures.find;
+import static art.arcane.iris.engine.object.PackCompatFixtures.MISSING_ENTITY;
+import static art.arcane.iris.engine.object.PackCompatFixtures.entity;
+import static art.arcane.iris.engine.object.PackCompatFixtures.excludeEntity;
+import static art.arcane.iris.engine.object.PackCompatFixtures.find;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 public class IrisSpawnerCompatTest {
     @SuppressWarnings("unchecked")
     private static IrisData dataWith(PackCompatReport report, IrisEntity... entities) {
-        IrisData data = CompatFixtures.data(report);
+        IrisData data = PackCompatFixtures.data(report);
         ResourceLoader<IrisEntity> entityLoader = mock(ResourceLoader.class);
         when(data.getEntityLoader()).thenReturn(entityLoader);
         for (IrisEntity entity : entities) {

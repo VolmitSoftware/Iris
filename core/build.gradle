@@ -321,8 +321,6 @@ List<String> unusedVolmLibClasses = [
     'art/arcane/volmlib/util/director/DirectorNodeBase',
     'art/arcane/volmlib/util/director/DirectorParameterBase',
     'art/arcane/volmlib/util/director/theme/DirectorThemes',
-    'art/arcane/volmlib/util/interpolation/InterpolationMethod',
-    'art/arcane/volmlib/util/interpolation/IrisInterpolation',
     'art/arcane/volmlib/util/math/INode',
     'art/arcane/volmlib/util/math/IrisMathHelper',
     'art/arcane/volmlib/util/math/KochanekBartelsInterpolation',

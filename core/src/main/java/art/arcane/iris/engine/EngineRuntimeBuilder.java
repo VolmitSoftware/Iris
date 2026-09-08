@@ -277,6 +277,13 @@ final class EngineRuntimeBuilder {
             throw propagate(failure);
         }
         EngineRuntime next = new EngineRuntime(previous.generation(), effects, worldManager);
+        try {
+            worldManager.start();
+        } catch (Throwable failure) {
+            failure = EngineShutdownSequence.runCleanup(failure, worldManager::close);
+            failure = EngineShutdownSequence.runCleanup(failure, effects::close);
+            throw new IllegalStateException("Failed to start the replacement Studio world manager.", failure);
+        }
         Throwable retirementFailure = EngineShutdownSequence.runCleanup(null, previous.worldManager()::close);
         retirementFailure = EngineShutdownSequence.runCleanup(retirementFailure, previous.effects()::close);
         if (retirementFailure != null) {
@@ -285,7 +292,6 @@ final class EngineRuntimeBuilder {
             throw new IllegalStateException("Failed to retire Studio runtime services.", retirementFailure);
         }
         engine.runtime = next;
-        worldManager.start();
         engine.getGenerationSessions().activateNextSession();
         engine.lifecycleState = LifecycleState.RUNNING;
         engine.getClosing().set(false);

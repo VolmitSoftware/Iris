@@ -46,7 +46,7 @@ mythic = "5.12.1"
 mythic-crucible = "2.2.0"
 kgenerators = "7.3" # https://repo.codemc.io/repository/maven-public/me/kryniowesegryderiusz/kgenerators-core/maven-metadata.xml
 multiverseCore = "5.8.0"
-craftengine = "26.7.3" # https://github.com/Xiao-MoMi/craft-engine/releases
+craftengine = "26.8.2" # https://github.com/Xiao-MoMi/craft-engine/releases
 
 # Fabric API (net.fabricmc.fabric-api) - each module is independently versioned
 fabricApi-base = "2.0.4+ece063239e"

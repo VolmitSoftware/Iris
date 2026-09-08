@@ -180,6 +180,20 @@ public class ExternalDataSVC implements IrisService {
         }
     }
 
+    public BlockData captureBlockData(BlockData blockData) {
+        Objects.requireNonNull(blockData);
+        if (blockData instanceof IrisCustomData) {
+            return blockData;
+        }
+        for (ExternalDataProvider provider : activeProviders) {
+            Optional<Identifier> identifier = provider.identifyBlock(blockData);
+            if (identifier.isPresent()) {
+                return IrisCustomData.of(blockData, qualifyBlockId(provider, identifier.get()));
+            }
+        }
+        return blockData;
+    }
+
     public Optional<BlockData> getBlockData(final Identifier key) {
         Pair<Identifier, KMap<String, String>> pair;
         try {
@@ -242,6 +256,15 @@ public class ExternalDataSVC implements IrisService {
             throw new MissingResourceException("No matching provider found for external block placement.", blockId.namespace(), blockId.key());
         }
         match.provider().processUpdate(engine, block, buildState(match.identifier(), state.getB()));
+    }
+
+    public boolean placeBlock(Block block, Identifier blockId) {
+        Pair<Identifier, KMap<String, String>> state = parseState(blockId);
+        BlockProvider match = findBlockProvider(state.getA());
+        if (match == null) {
+            throw new MissingResourceException("No matching provider found for external block placement.", blockId.namespace(), blockId.key());
+        }
+        return match.provider().placeBlock(block, buildState(match.identifier(), state.getB()));
     }
 
     public Entity spawnMob(Location location, Identifier mobId) {

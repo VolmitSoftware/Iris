@@ -41,8 +41,11 @@ public class PaperPluginMetadataTest {
     private static final List<String> JOINED_PLUGIN_IDS = OPTIONAL_PLUGIN_IDS.stream()
             .filter(pluginId -> !"ExecutableItems".equals(pluginId) && !"Multiverse-Core".equals(pluginId))
             .toList();
+    private static final List<String> UNORDERED_PLUGIN_IDS = List.of(
+            "MythicLib", "MMOItems", "MythicMobs", "MythicCrucible");
     private static final List<String> BUKKIT_SOFT_DEPEND_IDS = OPTIONAL_PLUGIN_IDS.stream()
             .filter(pluginId -> !"Multiverse-Core".equals(pluginId))
+            .filter(pluginId -> !UNORDERED_PLUGIN_IDS.contains(pluginId))
             .toList();
 
     @Test
@@ -72,7 +75,8 @@ public class PaperPluginMetadataTest {
                 + "    description: Allows survival players to fell Iris-managed trees with an axe.\n"
                 + "    default: op"));
         for (String pluginId : JOINED_PLUGIN_IDS) {
-            assertTrue(metadata.contains(optionalDependencyBlock(pluginId, "BEFORE", true)));
+            String loadOrder = UNORDERED_PLUGIN_IDS.contains(pluginId) ? "OMIT" : "BEFORE";
+            assertTrue(metadata.contains(optionalDependencyBlock(pluginId, loadOrder, true)));
         }
         assertTrue(metadata.contains(optionalDependencyBlock("ExecutableItems", "BEFORE", false)));
         assertTrue(metadata.contains(optionalDependencyBlock("Multiverse-Core", "AFTER", true)));

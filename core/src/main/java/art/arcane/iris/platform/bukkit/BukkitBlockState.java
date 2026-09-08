@@ -18,14 +18,24 @@
 
 package art.arcane.iris.platform.bukkit;
 
+import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.nms.INMS;
+import art.arcane.iris.core.nms.container.Pair;
+import art.arcane.iris.core.service.ExternalDataSVC;
+import art.arcane.iris.engine.object.IrisObjectRotation;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.IrisCustomData;
+import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.collection.KMap;
+import org.bukkit.Axis;
 import org.bukkit.Bukkit;
 import org.bukkit.Tag;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,6 +43,15 @@ import java.util.concurrent.ConcurrentHashMap;
  * Interned Bukkit adapter for a neutral block state backed by BlockData.
  */
 public final class BukkitBlockState implements PlatformBlockState {
+    private static final Map<String, BlockFace> CUSTOM_NAMED_FACES = Map.of(
+            "north", BlockFace.NORTH, "south", BlockFace.SOUTH,
+            "east", BlockFace.EAST, "west", BlockFace.WEST,
+            "up", BlockFace.UP, "down", BlockFace.DOWN);
+    private static final List<BlockFace> CUSTOM_ROTATION_FACES = List.of(
+            BlockFace.SOUTH, BlockFace.SOUTH_SOUTH_WEST, BlockFace.SOUTH_WEST, BlockFace.WEST_SOUTH_WEST,
+            BlockFace.WEST, BlockFace.WEST_NORTH_WEST, BlockFace.NORTH_WEST, BlockFace.NORTH_NORTH_WEST,
+            BlockFace.NORTH, BlockFace.NORTH_NORTH_EAST, BlockFace.NORTH_EAST, BlockFace.EAST_NORTH_EAST,
+            BlockFace.EAST, BlockFace.EAST_SOUTH_EAST, BlockFace.SOUTH_EAST, BlockFace.SOUTH_SOUTH_EAST);
     private static final ConcurrentHashMap<String, BukkitBlockState> CACHE = new ConcurrentHashMap<>();
     // Front cache keyed on the BlockData itself (CraftBlockData equals/hashCode delegate to
     // the canonical NMS state): a hit skips getAsString(), which built the full property
@@ -80,6 +99,64 @@ public final class BukkitBlockState implements PlatformBlockState {
         BukkitBlockState state = CACHE.computeIfAbsent(key, (String k) -> new BukkitBlockState(data, k));
         DATA_CACHE.putIfAbsent(data, state);
         return state;
+    }
+
+    public static BlockData rotateCustomData(IrisObjectRotation objectRotation, IrisCustomData custom, int spinxx, int spinyy, int spinzz) {
+        Pair<Identifier, KMap<String, String>> parsed = ExternalDataSVC.parseState(custom.getCustom());
+        KMap<String, String> original = parsed.getB();
+        if (original.isEmpty()) {
+            return null;
+        }
+        KMap<String, String> rotated = new KMap<>(original);
+        int spinx = (int) (90D * Math.ceil(Math.abs((spinxx % 360D) / 90D)));
+        int spiny = (int) (90D * Math.ceil(Math.abs((spinyy % 360D) / 90D)));
+        int spinz = (int) (90D * Math.ceil(Math.abs((spinzz % 360D) / 90D)));
+        boolean oriented = false;
+        String facing = original.get("facing");
+        if (facing != null && CUSTOM_NAMED_FACES.containsKey(facing)) {
+            BlockFace face = objectRotation.getFace(rotateFace(objectRotation, CUSTOM_NAMED_FACES.get(facing), spinx, spiny, spinz));
+            rotated.put("facing", face.name().toLowerCase(Locale.ROOT));
+            oriented = true;
+        }
+        Axis axis = switch (original.getOrDefault("axis", "")) {
+            case "x" -> Axis.X;
+            case "y" -> Axis.Y;
+            case "z" -> Axis.Z;
+            default -> null;
+        };
+        if (axis != null) {
+            Axis result = objectRotation.getAxis(rotateFace(objectRotation, objectRotation.faceForAxis(axis), spinx, spiny, spinz));
+            rotated.put("axis", result.name().toLowerCase(Locale.ROOT));
+            oriented = true;
+        }
+        int rotation = rotationIndex(original.get("rotation"));
+        if (rotation >= 0) {
+            BlockFace face = objectRotation.getHexFace(rotateFace(objectRotation, CUSTOM_ROTATION_FACES.get(rotation), spinx, spiny, spinz));
+            int result = CUSTOM_ROTATION_FACES.indexOf(face);
+            if (result >= 0) {
+                rotated.put("rotation", Integer.toString(result));
+            }
+            oriented = true;
+        }
+        for (Map.Entry<String, BlockFace> entry : CUSTOM_NAMED_FACES.entrySet()) {
+            String value = original.get(entry.getKey());
+            if (value == null) {
+                continue;
+            }
+            String destination = objectRotation.getFace(rotateFace(objectRotation, entry.getValue(), spinx, spiny, spinz)).name().toLowerCase(Locale.ROOT);
+            if (original.containsKey(destination)) {
+                rotated.put(destination, value);
+            }
+            oriented = true;
+        }
+        if (!oriented) {
+            return null;
+        }
+        if (rotated.equals(original)) {
+            return custom;
+        }
+        BlockData resolved = BukkitBlockResolution.resolveOrNull(ExternalDataSVC.buildState(parsed.getA(), rotated).toString());
+        return resolved instanceof IrisCustomData ? resolved : custom;
     }
 
     @Override
@@ -369,9 +446,17 @@ public final class BukkitBlockState implements PlatformBlockState {
 
     @Override
     public PlatformBlockState withProperty(String name, String value) {
-        // Re-attach the custom identity (as the proxy's own merge/clone cases do) after
-        // editing the base block, so auto-waterlogging cannot turn custom blocks into vanilla.
         if (data instanceof IrisCustomData custom) {
+            if (ExternalDataSVC.parseState(custom.getCustom()).getB().containsKey(name)) {
+                String merged = mergeProperty(key, name, value);
+                BlockData resolved = BukkitBlockResolution.resolveOrNull(merged);
+                if (!(resolved instanceof IrisCustomData)) {
+                    throw new IllegalArgumentException("Cannot resolve custom block state " + merged);
+                }
+                return of(resolved);
+            }
+            // Re-attach the custom identity (as the proxy's own merge/clone cases do) after
+            // editing the base block, so auto-waterlogging cannot turn custom blocks into vanilla.
             String merged = mergeProperty(custom.getBase().getAsString(), name, value);
             BlockData resolved = Bukkit.createBlockData(merged);
             return of(IrisCustomData.of(resolved, custom.getCustom()));
@@ -382,5 +467,21 @@ public final class BukkitBlockState implements PlatformBlockState {
     @Override
     public Object nativeHandle() {
         return data;
+    }
+
+    private static IrisBlockVector rotateFace(IrisObjectRotation objectRotation, BlockFace face, int spinx, int spiny, int spinz) {
+        return objectRotation.rotate(new IrisBlockVector(face.getModX(), face.getModY(), face.getModZ()), spinx, spiny, spinz);
+    }
+
+    private static int rotationIndex(String value) {
+        if (value == null) {
+            return -1;
+        }
+        try {
+            int rotation = Integer.parseInt(value);
+            return rotation >= 0 && rotation < CUSTOM_ROTATION_FACES.size() ? rotation : -1;
+        } catch (NumberFormatException ignored) {
+            return -1;
+        }
     }
 }

@@ -263,6 +263,76 @@ public class GenerationBoundaryStoreTest {
     }
 
     @Test
+    public void repeatedRegionQueriesDoNotWaitForBoundaryIteration() throws Exception {
+        GenerationBoundaryStore store = new GenerationBoundaryStore(
+                temporaryFolder.newFolder("boundary-warm-region").toPath());
+        GenerationBoundary boundary = store.publishPacked(1L,
+                new long[]{GenerationBoundary.packChunk(-1, -1)});
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        ExecutorService queries = Executors.newSingleThreadExecutor();
+        ExecutorService iterator = Executors.newSingleThreadExecutor();
+        try {
+            assertTrue(queries.submit(() -> boundary.isHistoricalChunk(-1, -1)).get(5, TimeUnit.SECONDS));
+            Future<?> iteration = iterator.submit(() -> {
+                boundary.forEachHistoricalChunk((x, z) -> {
+                    entered.countDown();
+                    try {
+                        assertTrue(release.await(5, TimeUnit.SECONDS));
+                    } catch (InterruptedException interruption) {
+                        Thread.currentThread().interrupt();
+                        throw new IOException("Interrupted boundary iteration", interruption);
+                    }
+                });
+                return null;
+            });
+            assertTrue(entered.await(5, TimeUnit.SECONDS));
+            Future<Boolean> warm = queries.submit(() -> {
+                for (int x = -32; x < -1; x++) {
+                    assertFalse(boundary.isHistoricalChunk(x, -1));
+                }
+                return boundary.isHistoricalChunk(-1, -1);
+            });
+            assertTrue(warm.get(3, TimeUnit.SECONDS));
+            assertFalse(iteration.isDone());
+            release.countDown();
+            iteration.get(5, TimeUnit.SECONDS);
+            assertEquals(1, boundary.cachedRegionCount());
+        } finally {
+            release.countDown();
+            queries.shutdownNow();
+            iterator.shutdownNow();
+            assertTrue(queries.awaitTermination(5, TimeUnit.SECONDS));
+            assertTrue(iterator.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void lastRegionChangesPreserveMissingBitsAndCoordinateExtremes() throws Exception {
+        GenerationBoundaryStore store = new GenerationBoundaryStore(
+                temporaryFolder.newFolder("boundary-region-transitions").toPath());
+        List<GenerationBoundary.ChunkCoordinate> chunks = List.of(
+                new GenerationBoundary.ChunkCoordinate(-33, -1),
+                new GenerationBoundary.ChunkCoordinate(-32, -32),
+                new GenerationBoundary.ChunkCoordinate(0, 0),
+                new GenerationBoundary.ChunkCoordinate(31, -32),
+                new GenerationBoundary.ChunkCoordinate(32, 31),
+                new GenerationBoundary.ChunkCoordinate(Integer.MIN_VALUE, Integer.MAX_VALUE),
+                new GenerationBoundary.ChunkCoordinate(Integer.MAX_VALUE, Integer.MIN_VALUE));
+        GenerationBoundary boundary = store.publish(1L, chunks);
+        for (int pass = 0; pass < 3; pass++) {
+            for (GenerationBoundary.ChunkCoordinate chunk : chunks) {
+                assertTrue(boundary.isHistoricalChunk(chunk.chunkX(), chunk.chunkZ()));
+                int neighbor = chunk.chunkX() == Integer.MAX_VALUE ? chunk.chunkX() - 1 : chunk.chunkX() + 1;
+                assertFalse(boundary.isHistoricalChunk(neighbor, chunk.chunkZ()));
+                assertFalse(boundary.isHistoricalChunk(1024, -5555));
+                assertTrue(boundary.isHistoricalChunk(chunk.chunkX(), chunk.chunkZ()));
+            }
+        }
+        assertTrue(boundary.cachedRegionCount() <= 64);
+    }
+
+    @Test
     public void knownRegionHitsKeepAccessOrderAndEvictedMasksAreRevalidated() throws Exception {
         GenerationBoundaryStore store = new GenerationBoundaryStore(temporaryFolder.newFolder("boundary-cache-revalidation").toPath());
         long[] chunks = new long[65];

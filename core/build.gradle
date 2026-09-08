@@ -453,6 +453,18 @@ sourceSets {
 }
 
 dependencies {
+    externalProviderTestImplementation(libs.craftengine.core) {
+        transitive = false
+    }
+    externalProviderTestImplementation(libs.craftengine.bukkit) {
+        transitive = false
+    }
+    externalProviderTestImplementation('net.momirealms:sparrow-nbt:0.22')
+    externalProviderTestImplementation('net.momirealms:sparrow-util:0.121')
+    externalProviderTestImplementation('net.momirealms:sparrow-reflection:0.33')
+    externalProviderTestImplementation('net.momirealms:sparrow-yaml:1.0.18')
+    externalProviderTestImplementation('net.momirealms:antigrieflib:1.0.17')
+    externalProviderTestImplementation('org.incendo:cloud-core:2.0.0')
     externalProviderTestImplementation(libs.oraxen) {
         transitive = false
     }

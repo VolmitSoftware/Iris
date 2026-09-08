@@ -24,6 +24,7 @@ import art.arcane.iris.core.compat.MissingBlockState;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.util.common.data.IrisCustomData;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -72,6 +73,7 @@ public class IrisObjectRotation {
 
     private static final class Faces {
         private static final List<BlockFace> WALL_FACES = List.of(BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST);
+
     }
 
     @Desc("If this rotator is enabled or not")
@@ -298,7 +300,16 @@ public class IrisObjectRotation {
         }
 
         BlockData original = (BlockData) state.nativeHandle();
-        if (!canRotate() || !canRotateBlockData(original)) {
+        if (!canRotate()) {
+            return state;
+        }
+        if (original instanceof IrisCustomData custom) {
+            BlockData rotated = BukkitBlockState.rotateCustomData(this, custom, spinx, spiny, spinz);
+            if (rotated != null) {
+                return rotated == original ? state : BukkitBlockState.of(rotated);
+            }
+        }
+        if (!canRotateBlockData(original)) {
             return state;
         }
 
@@ -317,6 +328,12 @@ public class IrisObjectRotation {
     }
 
     public BlockData rotate(BlockData dd, int spinxx, int spinyy, int spinzz) {
+        if (canRotate() && dd instanceof IrisCustomData custom) {
+            BlockData rotated = BukkitBlockState.rotateCustomData(this, custom, spinxx, spinyy, spinzz);
+            if (rotated != null) {
+                return rotated;
+            }
+        }
         BlockData d = dd;
         try {
             int spinx = (int) (90D * (Math.ceil(Math.abs((spinxx % 360D) / 90D))));

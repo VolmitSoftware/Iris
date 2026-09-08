@@ -27,6 +27,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.BiomeEnvironment;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.EngineLifecycleTasks;
 import art.arcane.iris.engine.history.SavedBiomeUnavailableException;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.volmlib.util.board.Board;
@@ -498,8 +499,13 @@ public class BoardSVC implements IrisService, BoardProvider {
                 return;
             }
 
+            EngineLifecycleTasks.run(engine, "bukkit_studio_scoreboard",
+                    () -> updateOrdinary(engine, loc, world.getMinHeight()));
+        }
+
+        private void updateOrdinary(Engine engine, Location loc, int minimumY) {
             int x = loc.getBlockX();
-            int y = loc.getBlockY() - world.getMinHeight();
+            int y = loc.getBlockY() - minimumY;
             int z = loc.getBlockZ();
 
             List<String> lines = new ArrayList<>(this.lines.size());

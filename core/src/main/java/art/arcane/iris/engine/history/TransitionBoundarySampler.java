@@ -3,21 +3,26 @@ package art.arcane.iris.engine.history;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 final class TransitionBoundarySampler {
     private static final int NEIGHBOUR_COUNT = 4;
-    private static final int MAXIMUM_CACHED_CHUNKS = 8;
+    private static final int MAXIMUM_CACHED_CHUNKS = 512;
+    private static final int MAXIMUM_CACHED_CANDIDATES = 32_768;
 
     private final int terrainWidth;
     private final int searchWidth;
     private final TerrainBoundarySignatureStore.Snapshot signatures;
     private final LinkedHashMap<Long, CandidateIndex> chunkCandidates;
+    private final Map<Long, CompletableFuture<CandidateIndex>> pendingCandidates = new HashMap<>();
     private final ThreadLocal<ChunkCache> cache;
+    private int cachedCandidates;
     private long candidateBuildCount;
 
     TransitionBoundarySampler(
@@ -35,12 +40,7 @@ final class TransitionBoundarySampler {
     }
 
     TransitionGenerationPlan.TerrainSample sample(int blockX, int blockZ) {
-        ChunkCache chunkCache = cache.get();
-        int chunkX = Math.floorDiv(blockX, GenerationBoundary.CHUNK_SIZE);
-        int chunkZ = Math.floorDiv(blockZ, GenerationBoundary.CHUNK_SIZE);
-        if (chunkCache.chunkX != chunkX || chunkCache.chunkZ != chunkZ) {
-            chunkCache.reset(chunkX, chunkZ, candidatesForChunk(chunkX, chunkZ));
-        }
+        ChunkCache chunkCache = chunkCache(blockX, blockZ);
         int localX = Math.floorMod(blockX, GenerationBoundary.CHUNK_SIZE);
         int localZ = Math.floorMod(blockZ, GenerationBoundary.CHUNK_SIZE);
         int index = localX * GenerationBoundary.CHUNK_SIZE + localZ;
@@ -58,9 +58,7 @@ final class TransitionBoundarySampler {
     }
 
     BoundaryGeometryInfluence geometryAt(int blockX, int blockZ) {
-        CandidateIndex candidates = candidatesForChunk(
-                Math.floorDiv(blockX, GenerationBoundary.CHUNK_SIZE),
-                Math.floorDiv(blockZ, GenerationBoundary.CHUNK_SIZE));
+        CandidateIndex candidates = chunkCache(blockX, blockZ).candidates;
         Nearest nearest = candidates.nearest(blockX, blockZ, square(terrainWidth));
         if (nearest.count == 0 || nearest.distancesSquared[0] >= square(terrainWidth)) {
             return BoundaryGeometryInfluence.none();
@@ -132,31 +130,57 @@ final class TransitionBoundarySampler {
 
     private CandidateIndex candidatesForChunk(int chunkX, int chunkZ) {
         long chunkKey = pack(chunkX, chunkZ);
+        CompletableFuture<CandidateIndex> pending;
+        boolean builder;
         synchronized (this) {
             CandidateIndex existing = chunkCandidates.get(chunkKey);
             if (existing != null) {
                 return existing;
             }
+            pending = pendingCandidates.get(chunkKey);
+            builder = pending == null;
+            if (builder) {
+                pending = new CompletableFuture<>();
+                pendingCandidates.put(chunkKey, pending);
+            }
         }
-        CandidateIndex built = CandidateIndex.build(signatures.nearestCandidatesForChunk(
-                chunkX,
-                chunkZ,
-                searchWidth
-        ));
-        synchronized (this) {
-            CandidateIndex raced = chunkCandidates.get(chunkKey);
-            if (raced != null) {
-                return raced;
+        if (!builder) {
+            return pending.join();
+        }
+        try {
+            CandidateIndex built = CandidateIndex.build(signatures.nearestCandidatesForChunk(
+                    chunkX, chunkZ, searchWidth));
+            synchronized (this) {
+                chunkCandidates.put(chunkKey, built);
+                cachedCandidates += built.size;
+                candidateBuildCount++;
+                while (chunkCandidates.size() > MAXIMUM_CACHED_CHUNKS
+                        || cachedCandidates > MAXIMUM_CACHED_CANDIDATES) {
+                    Iterator<Map.Entry<Long, CandidateIndex>> entries = chunkCandidates.entrySet().iterator();
+                    cachedCandidates -= entries.next().getValue().size;
+                    entries.remove();
+                }
             }
-            chunkCandidates.put(chunkKey, built);
-            candidateBuildCount++;
-            while (chunkCandidates.size() > MAXIMUM_CACHED_CHUNKS) {
-                Iterator<Map.Entry<Long, CandidateIndex>> entries = chunkCandidates.entrySet().iterator();
-                entries.next();
-                entries.remove();
-            }
+            pending.complete(built);
             return built;
+        } catch (RuntimeException | Error failure) {
+            pending.completeExceptionally(failure);
+            throw failure;
+        } finally {
+            synchronized (this) {
+                pendingCandidates.remove(chunkKey, pending);
+            }
         }
+    }
+
+    private ChunkCache chunkCache(int blockX, int blockZ) {
+        ChunkCache chunkCache = cache.get();
+        int chunkX = Math.floorDiv(blockX, GenerationBoundary.CHUNK_SIZE);
+        int chunkZ = Math.floorDiv(blockZ, GenerationBoundary.CHUNK_SIZE);
+        if (chunkCache.chunkX != chunkX || chunkCache.chunkZ != chunkZ) {
+            chunkCache.reset(chunkX, chunkZ, candidatesForChunk(chunkX, chunkZ));
+        }
+        return chunkCache;
     }
 
     private static double weightedHeight(Nearest nearest, boolean surface) {
@@ -208,12 +232,14 @@ final class TransitionBoundarySampler {
     }
 
     private static final class CandidateIndex {
-        private static final CandidateIndex EMPTY = new CandidateIndex(null);
+        private static final CandidateIndex EMPTY = new CandidateIndex(null, 0);
 
         private final Node root;
+        private final int size;
 
-        private CandidateIndex(Node root) {
+        private CandidateIndex(Node root, int size) {
             this.root = root;
+            this.size = size;
         }
 
         private static CandidateIndex build(List<TerrainBoundarySignature> candidates) {
@@ -221,7 +247,7 @@ final class TransitionBoundarySampler {
                 return EMPTY;
             }
             TerrainBoundarySignature[] values = candidates.toArray(new TerrainBoundarySignature[0]);
-            return new CandidateIndex(build(values, 0, values.length, 0));
+            return new CandidateIndex(build(values, 0, values.length, 0), values.length);
         }
 
         private Nearest nearest(int blockX, int blockZ, double maximumDistanceSquared) {

@@ -11,12 +11,8 @@ softdepend:
   - ItemsAdder
   - SCore
   - ExecutableItems
-  - MythicLib
-  - MMOItems
   - eco
   - EcoItems
-  - MythicMobs
-  - MythicCrucible
   - KGenerators
   - WorldEdit
 loadbefore: [ Multiverse-Core ]

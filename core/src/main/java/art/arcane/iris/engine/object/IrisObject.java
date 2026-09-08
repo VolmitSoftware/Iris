@@ -22,13 +22,16 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.compat.CompatStatus;
 import art.arcane.iris.core.compat.ContentGate;
 import art.arcane.iris.core.loader.IrisRegistrant;
+import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
+import art.arcane.iris.util.common.data.IrisCustomData;
 import art.arcane.iris.util.common.data.VectorMap;
 import art.arcane.iris.util.common.math.AxisAlignedBB;
 import art.arcane.iris.util.common.math.IrisBlockVector;
@@ -288,6 +291,10 @@ public class IrisObject extends IrisRegistrant {
             states.remove(v);
         } else {
             BlockData data = block.getBlockData();
+            ExternalDataSVC externalData = IrisServices.getOrNull(ExternalDataSVC.class);
+            if (externalData != null) {
+                data = externalData.captureBlockData(data);
+            }
             blocks.put(v, BukkitBlockState.of(data));
             TileData state = TileData.getTileState(block, legacy);
             if (state != null) {
@@ -363,10 +370,10 @@ public class IrisObject extends IrisRegistrant {
     public void place(Location at) {
         readLock.lock();
         try {
-            for (var entry : blocks) {
-                var i = entry.getKey();
+            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : blocks) {
+                IrisBlockVector i = entry.getKey();
                 Block b = at.clone().add(0, getCenter().getY(), 0).add(i.getX(), i.getY(), i.getZ()).getBlock();
-                b.setBlockData((BlockData) Objects.requireNonNull(entry.getValue()).nativeHandle(), false);
+                placeBlock(b, (BlockData) Objects.requireNonNull(entry.getValue()).nativeHandle());
 
                 if (states.containsKey(i)) {
                     IrisLogging.info(Objects.requireNonNull(states.get(i)).toString());
@@ -381,10 +388,10 @@ public class IrisObject extends IrisRegistrant {
     public void placeCenterY(Location at) {
         readLock.lock();
         try {
-            for (var entry : blocks) {
-                var i = entry.getKey();
+            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : blocks) {
+                IrisBlockVector i = entry.getKey();
                 Block b = at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i.getX(), i.getY(), i.getZ()).getBlock();
-                b.setBlockData((BlockData) Objects.requireNonNull(entry.getValue()).nativeHandle(), false);
+                placeBlock(b, (BlockData) Objects.requireNonNull(entry.getValue()).nativeHandle());
 
                 if (states.containsKey(i)) {
                     Objects.requireNonNull(states.get(i)).toBukkitTry(b);
@@ -405,6 +412,7 @@ public class IrisObject extends IrisRegistrant {
             readLock.unlock();
         }
     }
+
 
     public int volume() {
         return blocks.size();
@@ -429,4 +437,18 @@ public class IrisObject extends IrisRegistrant {
     public CompatStatus evaluateCompat(ContentGate gate) {
         return CompatStatus.OK;
     }
+    private static void placeBlock(Block block, BlockData data) {
+        if (data instanceof IrisCustomData custom) {
+            ExternalDataSVC external = IrisServices.getOrNull(ExternalDataSVC.class);
+            if (external != null && external.placeBlock(block, custom.getCustom())) {
+                return;
+            }
+            block.setBlockData(custom.getBase(), false);
+            IrisLogging.warnOnce("object-paste:external:" + custom.getCustom(),
+                    "Direct placement of %s is unavailable; only its base block was placed.", custom.getCustom());
+            return;
+        }
+        block.setBlockData(data, false);
+    }
+
 }

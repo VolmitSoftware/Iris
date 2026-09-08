@@ -26,12 +26,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.IntConsumer;
 
@@ -289,6 +293,87 @@ public class NativeStructureVolumeIndexTest {
             resolver.release();
             executor.shutdownNow();
         }
+    }
+
+    @Test
+    public void contendedNativeWindowsAllowQueuedTerrainWorkToRun() throws Exception {
+        assertQueuedTerrainCanComplete(false);
+    }
+
+    @Test
+    public void interruptedNativeWindowWaitStillAcquiresAndReleasesOnce() throws Exception {
+        assertQueuedTerrainCanComplete(true);
+    }
+
+    private static void assertQueuedTerrainCanComplete(boolean interruptWaiter) throws Exception {
+        CountDownLatch ownerEntered = new CountDownLatch(1);
+        CompletableFuture<Void> terrain = new CompletableFuture<>();
+        AtomicBoolean firstOrigin = new AtomicBoolean(true);
+        AtomicBoolean interruptedAfterQuery = new AtomicBoolean();
+        NativeStructureVolumeIndex index = NativeStructureVolumeIndex.forTesting((engine, chunkX, chunkZ) -> {
+            if (firstOrigin.compareAndSet(true, false)) {
+                ownerEntered.countDown();
+                terrain.join();
+            }
+            return new KList<>(new NativeStructureVolume(chunkX + ":" + chunkZ,
+                    -256, 0, -256, 256, 100, 256));
+        });
+        ExecutorService owner = Executors.newSingleThreadExecutor();
+        ForkJoinPool workers = new ForkJoinPool(2);
+        AtomicReference<Thread> firstWaiter = new AtomicReference<>();
+        AtomicReference<Thread> secondWaiter = new AtomicReference<>();
+        try {
+            Future<KList<NativeStructureVolume>> original = owner.submit(
+                    () -> index.resolve(null, 0, 0, 15, 15));
+            assertTrue(ownerEntered.await(5, TimeUnit.SECONDS));
+            Future<KList<NativeStructureVolume>> adjacent = workers.submit(() -> {
+                firstWaiter.set(Thread.currentThread());
+                KList<NativeStructureVolume> result = index.resolve(null, 16, 0, 31, 15);
+                interruptedAfterQuery.set(Thread.currentThread().isInterrupted());
+                return result;
+            });
+            Future<KList<NativeStructureVolume>> next = workers.submit(() -> {
+                secondWaiter.set(Thread.currentThread());
+                return index.resolve(null, 32, 0, 47, 15);
+            });
+            awaitOriginWindowWaiter(firstWaiter);
+            awaitOriginWindowWaiter(secondWaiter);
+            if (interruptWaiter) {
+                firstWaiter.get().interrupt();
+            }
+
+            Future<?> terrainTask = workers.submit(() -> terrain.complete(null));
+            terrainTask.get(3, TimeUnit.SECONDS);
+            assertEquals(289, original.get(3, TimeUnit.SECONDS).size());
+            KList<NativeStructureVolume> adjacentVolumes = adjacent.get(3, TimeUnit.SECONDS);
+            assertEquals(289, adjacentVolumes.size());
+            assertEquals(adjacentVolumes, index.resolve(null, 16, 0, 31, 15));
+            assertEquals(289, next.get(3, TimeUnit.SECONDS).size());
+            assertEquals(interruptWaiter, interruptedAfterQuery.get());
+        } finally {
+            terrain.complete(null);
+            owner.shutdownNow();
+            workers.shutdownNow();
+            assertTrue(owner.awaitTermination(5, TimeUnit.SECONDS));
+            assertTrue(workers.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
+
+    private static void awaitOriginWindowWaiter(AtomicReference<Thread> reference) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (System.nanoTime() < deadline) {
+            Thread thread = reference.get();
+            if (thread != null && thread.getState() == Thread.State.WAITING) {
+                for (StackTraceElement frame : thread.getStackTrace()) {
+                    if (frame.getClassName().equals(NativeStructureVolumeIndex.class.getName())
+                            && frame.getMethodName().equals("lockOriginWindow")) {
+                        return;
+                    }
+                }
+            }
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+        }
+        throw new AssertionError("Native query did not wait for the occupied origin window");
     }
 
     @Test

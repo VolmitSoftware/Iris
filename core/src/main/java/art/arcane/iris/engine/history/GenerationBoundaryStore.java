@@ -619,6 +619,7 @@ public final class GenerationBoundaryStore {
         private final long[] regionKeys;
         private final Long2ObjectOpenHashMap<String> shardHashes;
         private final LinkedHashMap<Long, byte[]> masks;
+        private final ThreadLocal<RegionMask> lastRegion = new ThreadLocal<>();
 
         private MaskSource(
                 Path directory,
@@ -634,13 +635,21 @@ public final class GenerationBoundaryStore {
         @Override
         public boolean contains(int chunkX, int chunkZ) throws IOException {
             long regionKey = packRegion(chunkX >> 5, chunkZ >> 5);
-            String hash = shardHashes.get(regionKey);
-            if (hash == null) {
-                return false;
+            RegionMask region = lastRegion.get();
+            if (region == null || region.key() != regionKey) {
+                String hash = shardHashes.get(regionKey);
+                byte[] loaded = null;
+                if (hash != null) {
+                    synchronized (this) {
+                        loaded = load(regionKey, hash);
+                    }
+                }
+                region = new RegionMask(regionKey, loaded);
+                lastRegion.set(region);
             }
-            byte[] mask;
-            synchronized (this) {
-                mask = load(regionKey, hash);
+            byte[] mask = region.mask();
+            if (mask == null) {
+                return false;
             }
             int localIndex = (Math.floorMod(chunkZ, REGION_SIDE) << 5)
                     | Math.floorMod(chunkX, REGION_SIDE);
@@ -685,6 +694,9 @@ public final class GenerationBoundaryStore {
                 entries.remove();
             }
             return loaded;
+        }
+
+        private record RegionMask(long key, byte[] mask) {
         }
     }
 

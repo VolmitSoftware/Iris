@@ -195,6 +195,10 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         return isClosed();
     }
 
+    default boolean isShuttingDown() {
+        return isClosed() || isClosing();
+    }
+
     double getMaxBiomeObjectDensity();
 
     double getMaxBiomeDecoratorDensity();

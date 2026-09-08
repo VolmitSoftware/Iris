@@ -1460,6 +1460,13 @@ public class IrisEngine implements Engine {
     }
 
     @Override
+    public boolean isShuttingDown() {
+        LifecycleState state = lifecycleState;
+        return closed || state == LifecycleState.CLOSING
+                || state == LifecycleState.CLOSED || state == LifecycleState.FAILED;
+    }
+
+    @Override
     public void recycle() {
         if (closing.get() || closed) {
             return;

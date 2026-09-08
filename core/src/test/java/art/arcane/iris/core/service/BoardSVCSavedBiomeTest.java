@@ -7,6 +7,8 @@ import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.BiomeEnvironment;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.GenerationSessionManager;
+import art.arcane.iris.engine.framework.GenerationTransitionGate;
 import art.arcane.iris.engine.history.SavedBiomeUnavailableException;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.object.IrisBiome;
@@ -35,7 +37,14 @@ import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
 import java.util.ArrayDeque;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -192,6 +201,70 @@ public class BoardSVCSavedBiomeTest {
             assertTrue(fixture.lines().contains("Loading"));
             assertFalse(fixture.lines().contains("Jigsaw Studio"));
             assertEquals(1, fixture.ticks.size());
+        }
+    }
+
+    @Test
+    public void ordinaryRefreshLeavesOwnerThreadAvailableForStudioCheckpoint() throws Exception {
+        GenerationSessionManager sessions = new GenerationSessionManager(true);
+        AtomicInteger height = new AtomicInteger(70);
+        AtomicInteger checkpoints = new AtomicInteger();
+        ExecutorService owner = Executors.newSingleThreadExecutor();
+        ExecutorService reloader = Executors.newSingleThreadExecutor();
+        Fixture fixture = null;
+        try {
+            fixture = owner.submit(() -> {
+                Fixture created = new Fixture();
+                when(created.engine.getGenerationSessions()).thenReturn(sessions);
+                when(created.engine.getHeight(8, 8)).thenAnswer(invocation -> {
+                    try (GenerationTransitionGate.Participation ignored = sessions.transitionGate().enter()) {
+                        return height.get();
+                    }
+                });
+                created.service.updatePlayer(created.player);
+                return created;
+            }).get(3L, TimeUnit.SECONDS);
+            Fixture board = fixture;
+            List<String> previous = board.service.getLines(board.player);
+            assertTrue(board.lines().contains("70"));
+
+            CompletableFuture<Void> cutover = CompletableFuture.runAsync(() -> {
+                try (GenerationTransitionGate.Transition ignored = sessions.transitionGate().beginTransition(2_000L)) {
+                    sessions.sealAndAwait("Studio generation cutover", 2_000L);
+                    Future<?> refresh = owner.submit(board::tick);
+                    owner.submit(checkpoints::incrementAndGet).get(2L, TimeUnit.SECONDS);
+                    refresh.get(2L, TimeUnit.SECONDS);
+                    assertEquals(previous, board.service.getLines(board.player));
+                    verify(board.engine, times(2)).getGeneratedPerSecond();
+                    verify(board.engine, times(1)).getBiomeOrMantleEnvironment(8, 160, 8);
+                    verify(board.engine, times(1)).getHeight(8, 8);
+                    height.set(85);
+                    sessions.activateNextSession();
+                } catch (Exception failure) {
+                    throw new IllegalStateException(failure);
+                }
+            }, reloader);
+            cutover.get(3L, TimeUnit.SECONDS);
+
+            assertEquals(1, checkpoints.get());
+            owner.submit(board::tick).get(2L, TimeUnit.SECONDS);
+            assertTrue(board.lines().contains("85"));
+            assertEquals(1, board.ticks.size());
+            assertEquals(0, sessions.activeLeases());
+            verify(board.engine, times(2)).getBiomeOrMantleEnvironment(8, 160, 8);
+            verify(board.engine, times(2)).getHeight(8, 8);
+        } finally {
+            try {
+                if (fixture != null) {
+                    Fixture board = fixture;
+                    owner.submit(board::close).get(2L, TimeUnit.SECONDS);
+                }
+            } finally {
+                owner.shutdownNow();
+                reloader.shutdownNow();
+                assertTrue(owner.awaitTermination(2L, TimeUnit.SECONDS));
+                assertTrue(reloader.awaitTermination(2L, TimeUnit.SECONDS));
+            }
         }
     }
 

@@ -39,6 +39,9 @@ import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntConsumer;
@@ -516,8 +519,27 @@ public final class NativeStructureVolumeIndex {
         long pending = stripeMask;
         while (pending != 0L) {
             int stripe = Long.numberOfTrailingZeros(pending);
-            originWindowStripes[stripe].lock();
+            lockOriginStripe(originWindowStripes[stripe]);
             pending &= pending - 1L;
+        }
+    }
+
+    private static void lockOriginStripe(ReentrantLock lock) {
+        if (lock.tryLock()) {
+            return;
+        }
+        if (!ForkJoinTask.inForkJoinPool()) {
+            lock.lock();
+            return;
+        }
+        OriginLockBlocker blocker = new OriginLockBlocker(lock);
+        try {
+            ForkJoinPool.managedBlock(blocker);
+        } catch (InterruptedException interruption) {
+            Thread.currentThread().interrupt();
+            blocker.block();
+        } catch (RejectedExecutionException exhaustedPool) {
+            blocker.block();
         }
     }
 
@@ -527,6 +549,32 @@ public final class NativeStructureVolumeIndex {
             int stripe = Long.SIZE - 1 - Long.numberOfLeadingZeros(pending);
             originWindowStripes[stripe].unlock();
             pending &= ~(1L << stripe);
+        }
+    }
+
+    private static final class OriginLockBlocker implements ForkJoinPool.ManagedBlocker {
+        private final ReentrantLock lock;
+        private boolean acquired;
+
+        private OriginLockBlocker(ReentrantLock lock) {
+            this.lock = lock;
+        }
+
+        @Override
+        public boolean block() {
+            if (!acquired) {
+                lock.lock();
+                acquired = true;
+            }
+            return true;
+        }
+
+        @Override
+        public boolean isReleasable() {
+            if (!acquired) {
+                acquired = lock.tryLock();
+            }
+            return acquired;
         }
     }
 

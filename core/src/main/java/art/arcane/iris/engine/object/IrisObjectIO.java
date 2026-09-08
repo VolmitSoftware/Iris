@@ -138,7 +138,7 @@ public final class IrisObjectIO {
         for (int i = 0; i < s; i++) {
             IrisBlockVector pos = new IrisBlockVector(din.readShort(), din.readShort(), din.readShort());
             PlatformBlockState data = resolvePaletteState(self, din.readUTF());
-            if (isStructureMarker(data)) {
+            if (isExcludedObjectBlock(data)) {
                 continue;
             }
             self.blocks.put(pos, data);
@@ -151,7 +151,7 @@ public final class IrisObjectIO {
             int size = din.readInt();
 
             for (int i = 0; i < size; i++) {
-                self.states.put(new IrisBlockVector(din.readShort(), din.readShort(), din.readShort()), TileData.read(din));
+                readTile(self, din);
             }
         } catch (Throwable e) {
             IrisLogging.reportError(e);
@@ -189,7 +189,7 @@ public final class IrisObjectIO {
         for (i = 0; i < s; i++) {
             IrisBlockVector pos = new IrisBlockVector(din.readShort(), din.readShort(), din.readShort());
             PlatformBlockState data = resolved[din.readShort()];
-            if (isStructureMarker(data)) {
+            if (isExcludedObjectBlock(data)) {
                 continue;
             }
             self.blocks.put(pos, data);
@@ -198,7 +198,15 @@ public final class IrisObjectIO {
         s = din.readInt();
 
         for (i = 0; i < s; i++) {
-            self.states.put(new IrisBlockVector(din.readShort(), din.readShort(), din.readShort()), TileData.read(din));
+            readTile(self, din);
+        }
+    }
+
+    private static void readTile(IrisObject self, DataInputStream input) throws IOException {
+        IrisBlockVector position = new IrisBlockVector(input.readShort(), input.readShort(), input.readShort());
+        TileData tile = TileData.read(input);
+        if (self.blocks.get(position) != null) {
+            self.states.put(position, tile);
         }
     }
 
@@ -251,12 +259,13 @@ public final class IrisObjectIO {
         return B.getState(key);
     }
 
-    private static boolean isStructureMarker(PlatformBlockState data) {
+    private static boolean isExcludedObjectBlock(PlatformBlockState data) {
         if (data == null) {
             return false;
         }
         String material = IrisObjectShaping.materialKey(data);
-        return material.equals("minecraft:jigsaw") || material.equals("minecraft:structure_block") || material.equals("minecraft:structure_void");
+        return material.equals("minecraft:jigsaw") || material.equals("minecraft:structure_block")
+                || material.equals("minecraft:structure_void") || material.equals("minecraft:moving_piston");
     }
 
     /**

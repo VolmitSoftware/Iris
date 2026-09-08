@@ -131,8 +131,9 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void on(PlayerTeleportEvent e) {
+        Engine engine = getEngine();
         if (!BukkitPlatform.isPaperServer()
-                || !getEngine().isStudio()
+                || !engine.isStudio()
                 || e.getCause() != PlayerTeleportEvent.TeleportCause.COMMAND) {
             return;
         }
@@ -142,6 +143,10 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
         if (destination == null || targetWorld == null || !targetWorld.equals(destination.getWorld())) {
             return;
         }
+        if (engine.isShuttingDown()) {
+            e.setCancelled(true);
+            return;
+        }
 
         int chunkX = destination.getBlockX() >> 4;
         int chunkZ = destination.getBlockZ() >> 4;
@@ -149,7 +154,7 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
             return;
         }
 
-        runManagerTask("bukkit_world_manager_teleport_event", () -> teleportAsync(e));
+        teleportAsync(e);
     }
 
     @EventHandler

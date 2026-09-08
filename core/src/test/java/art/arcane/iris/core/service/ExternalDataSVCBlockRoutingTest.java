@@ -15,6 +15,7 @@ import org.junit.Test;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.MissingResourceException;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -29,6 +30,43 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ExternalDataSVCBlockRoutingTest {
+    @Test
+    public void directPlacementRetainsQualifiedProviderAndProperties() throws Exception {
+        Identifier nativeId = Identifier.fromString("default:palm_log");
+        Identifier stateId = Identifier.fromString("default:palm_log[axis=x]");
+        ExternalDataProvider provider = provider("CraftEngine", nativeId);
+        Block block = mock(Block.class);
+        when(provider.placeBlock(block, stateId)).thenReturn(true);
+
+        assertEquals(true, service(provider).placeBlock(block,
+                Identifier.fromString("craftengine:default/palm_log[axis=x]")));
+        verify(provider).placeBlock(block, stateId);
+    }
+
+    @Test
+    public void capturedBlocksRetainSemanticPropertiesAndProviderIdentity() throws Exception {
+        Identifier id = Identifier.fromString("example:palm_log[axis=x]");
+        ExternalDataProvider provider = provider("CraftEngine", id);
+        BlockData base = mock(BlockData.class);
+        when(base.getAsString()).thenReturn("craftengine:custom_18");
+        when(provider.identifyBlock(base)).thenReturn(Optional.of(id));
+        ExternalDataSVC service = service(provider);
+
+        IrisCustomData captured = (IrisCustomData) service.captureBlockData(base);
+
+        assertSame(base, captured.getBase());
+        assertEquals("craftengine:example/palm_log[axis=x]", captured.getCustom().toString());
+        assertSame(captured, service.captureBlockData(captured));
+    }
+
+    @Test
+    public void vanillaCaptureKeepsOriginalBlockData() throws Exception {
+        ExternalDataProvider provider = provider("CraftEngine", Identifier.fromString("example:wood"));
+        BlockData base = mock(BlockData.class);
+
+        assertSame(base, service(provider).captureBlockData(base));
+    }
+
     @Test
     public void nativeLookupPinsProviderAndRetainsPropertiesUntilPlacement() throws Exception {
         Identifier nativeId = Identifier.fromString("example:wood");

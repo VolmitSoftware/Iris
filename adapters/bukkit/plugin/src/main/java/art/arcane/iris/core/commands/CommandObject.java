@@ -26,6 +26,7 @@ import art.arcane.iris.core.pack.PackDirectoryResolver;
 import art.arcane.iris.core.runtime.ObjectStudioActivation;
 import art.arcane.iris.core.runtime.StudioOpenCoordinator;
 import art.arcane.iris.core.runtime.WorldRuntimeControlService;
+import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.iris.core.service.ObjectSVC;
 import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.core.service.WandSVC;
@@ -41,6 +42,8 @@ import art.arcane.iris.engine.object.IrisObjectRotation;
 import art.arcane.iris.engine.object.IrisObjectScale;
 import art.arcane.iris.engine.object.TileData;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
+import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.data.Cuboid;
 import art.arcane.iris.util.common.data.IrisCustomData;
@@ -223,11 +226,19 @@ public class CommandObject implements DirectorExecutor {
                 //Prevent blocks being set in or bellow bedrock
                 if (y <= world.getMinHeight() || block.getType() == Material.BEDROCK) return;
 
-                futureBlockChanges.putIfAbsent(block, block.getBlockData());
+                ExternalDataSVC external = IrisServices.getOrNull(ExternalDataSVC.class);
+                futureBlockChanges.computeIfAbsent(block, target -> {
+                    BlockData previous = target.getBlockData();
+                    return external == null ? previous : external.captureBlockData(previous);
+                });
 
                 if (d instanceof IrisCustomData data) {
+                    if (external != null && external.placeBlock(block, data.getCustom())) {
+                        return;
+                    }
                     block.setBlockData(data.getBase(), false);
-                    Iris.warn("Tried to place custom block at " + x + ", " + y + ", " + z + " which is not supported!");
+                    IrisLogging.warnOnce("object-paste:external:" + data.getCustom(),
+                            "Direct placement of %s is unavailable; only its base block was placed.", data.getCustom());
                 } else block.setBlockData(d, false);
             }
 

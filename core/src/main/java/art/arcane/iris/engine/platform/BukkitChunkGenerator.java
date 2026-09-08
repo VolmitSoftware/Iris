@@ -1122,13 +1122,23 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         Runnable activeOperation = Objects.requireNonNull(operation, "Exclusive control operation");
         CompletableFuture<Void> outward = Objects.requireNonNull(future, "Exclusive control future");
         TimeUnit activeUnit = Objects.requireNonNull(unit, "Exclusive control timeout unit");
+        if (outward.isCancelled()) {
+            return;
+        }
+        ExclusiveControlAcquisition acquisition = new ExclusiveControlAcquisition(Thread.currentThread());
+        outward.whenComplete((ignored, completionFailure) -> {
+            if (outward.isCancelled()) {
+                acquisition.cancel();
+            }
+        });
         boolean acquired = false;
         Throwable failure = null;
         try {
-            acquired = activeGate.tryAcquireExclusive(
-                    acquisitionTimeout,
-                    activeUnit,
-                    outward::isCancelled);
+            try {
+                acquired = activeGate.tryAcquireExclusive(acquisitionTimeout, activeUnit);
+            } finally {
+                acquisition.stopWaiting();
+            }
             if (!acquired) {
                 if (!outward.isCancelled()) {
                     failure = new TimeoutException("Timed out waiting for exclusive Iris generation control after "
@@ -1138,7 +1148,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 activeOperation.run();
             }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            if (!acquisition.interruptedByCancellation()) {
+                Thread.currentThread().interrupt();
+            }
             if (!outward.isCancelled()) {
                 failure = e;
             }
@@ -1447,30 +1459,12 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             permits.acquire(permitCount);
         }
 
-        boolean tryAcquireExclusive(
-                long timeout,
-                TimeUnit unit,
-                BooleanSupplier cancelled
-        ) throws InterruptedException {
+        boolean tryAcquireExclusive(long timeout, TimeUnit unit) throws InterruptedException {
             if (timeout <= 0L) {
                 throw new IllegalArgumentException("Exclusive generation control timeout must be positive.");
             }
             TimeUnit activeUnit = Objects.requireNonNull(unit, "Exclusive generation control timeout unit");
-            BooleanSupplier cancellation = Objects.requireNonNull(cancelled, "Exclusive generation control cancellation");
-            long timeoutNanos = activeUnit.toNanos(timeout);
-            long started = System.nanoTime();
-            long remainingNanos = timeoutNanos;
-            long cancellationPollNanos = TimeUnit.MILLISECONDS.toNanos(50L);
-            while (!cancellation.getAsBoolean() && remainingNanos > 0L) {
-                if (permits.tryAcquire(
-                        permitCount,
-                        Math.min(remainingNanos, cancellationPollNanos),
-                        TimeUnit.NANOSECONDS)) {
-                    return true;
-                }
-                remainingNanos = timeoutNanos - (System.nanoTime() - started);
-            }
-            return false;
+            return permits.tryAcquire(permitCount, timeout, activeUnit);
         }
 
         void releaseExclusive() {
@@ -1488,6 +1482,34 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         private IllegalStateException rejected(String operation) {
             return new IllegalStateException("Iris generation stage " + operation
                     + " was rejected while the generator is closing.");
+        }
+    }
+
+    private static final class ExclusiveControlAcquisition {
+        private final Thread waiter;
+        private boolean waiting = true;
+        private boolean cancellationInterrupt;
+
+        private ExclusiveControlAcquisition(Thread waiter) {
+            this.waiter = waiter;
+        }
+
+        private synchronized void cancel() {
+            if (waiting && !waiter.isInterrupted()) {
+                cancellationInterrupt = true;
+                waiter.interrupt();
+            }
+        }
+
+        private synchronized void stopWaiting() {
+            waiting = false;
+            if (cancellationInterrupt) {
+                Thread.interrupted();
+            }
+        }
+
+        private synchronized boolean interruptedByCancellation() {
+            return cancellationInterrupt;
         }
     }
 

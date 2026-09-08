@@ -18,6 +18,9 @@
 
 package art.arcane.iris.core.service;
 
+import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.util.common.data.IrisCustomData;
 import art.arcane.iris.util.common.plugin.IrisService;
 import art.arcane.iris.util.common.scheduling.J;
 import lombok.Getter;
@@ -81,7 +84,11 @@ public class ObjectSVC implements IrisService {
             int amount = 0;
             while (it.hasNext()) {
                 Map.Entry<Block, BlockData> entry = it.next();
-                entry.getKey().setBlockData(entry.getValue(), false);
+                Block block = entry.getKey();
+                BlockData data = entry.getValue();
+                if (!J.runAt(block.getLocation(), () -> restoreBlock(block, data))) {
+                    IrisLogging.warn("Could not schedule object undo at %d, %d, %d.", block.getX(), block.getY(), block.getZ());
+                }
                 it.remove();
 
                 if (++amount >= 200) {
@@ -93,5 +100,17 @@ public class ObjectSVC implements IrisService {
                 J.s(() -> revert(blocks), 1);
             }
         });
+    }
+
+    private static void restoreBlock(Block block, BlockData data) {
+        if (data instanceof IrisCustomData custom) {
+            ExternalDataSVC external = IrisServices.getOrNull(ExternalDataSVC.class);
+            if (external != null && external.placeBlock(block, custom.getCustom())) {
+                return;
+            }
+            block.setBlockData(custom.getBase(), false);
+            return;
+        }
+        block.setBlockData(data, false);
     }
 }

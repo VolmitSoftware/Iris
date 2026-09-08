@@ -314,6 +314,68 @@ public class BukkitChunkGeneratorGenerationStageGateTest {
     }
 
     @Test
+    public void timedExclusiveRetainsPriorityDuringStaggeredGenerationDrain() throws Exception {
+        BukkitChunkGenerator.GenerationStageGate gate =
+                new BukkitChunkGenerator.GenerationStageGate(3, () -> false);
+        BukkitChunkGenerator.GenerationStagePermit first = gate.acquireStage("first-active");
+        BukkitChunkGenerator.GenerationStagePermit last = gate.acquireStage("last-active");
+        CompletableFuture<Void> outward = new CompletableFuture<>();
+        CountDownLatch exclusiveEntered = new CountDownLatch(1);
+        CountDownLatch releaseExclusive = new CountDownLatch(1);
+        CountDownLatch readerEntered = new CountDownLatch(1);
+        List<String> order = new CopyOnWriteArrayList<>();
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+
+        try {
+            Future<?> exclusive = executor.submit(() -> BukkitChunkGenerator.completeExclusiveControlFuture(
+                    gate,
+                    () -> {
+                        order.add("exclusive");
+                        exclusiveEntered.countDown();
+                        try {
+                            assertTrue(releaseExclusive.await(2L, TimeUnit.SECONDS));
+                        } catch (InterruptedException failure) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException(failure);
+                        }
+                    },
+                    outward,
+                    2L,
+                    TimeUnit.SECONDS));
+            awaitQueueLength(gate, 1);
+            Runnable reader = () -> {
+                try (BukkitChunkGenerator.GenerationStagePermit ignored = gate.acquireStage("later-reader")) {
+                    order.add("reader");
+                    readerEntered.countDown();
+                }
+            };
+            Future<?> firstReader = executor.submit(reader);
+            Future<?> secondReader = executor.submit(reader);
+            awaitQueueLength(gate, 3);
+
+            assertFalse(readerEntered.await(150L, TimeUnit.MILLISECONDS));
+            first.close();
+            assertFalse(readerEntered.await(150L, TimeUnit.MILLISECONDS));
+            last.close();
+            assertTrue(exclusiveEntered.await(2L, TimeUnit.SECONDS));
+            assertEquals(1L, readerEntered.getCount());
+            releaseExclusive.countDown();
+            exclusive.get(2L, TimeUnit.SECONDS);
+            outward.get(2L, TimeUnit.SECONDS);
+            firstReader.get(2L, TimeUnit.SECONDS);
+            secondReader.get(2L, TimeUnit.SECONDS);
+            assertEquals(List.of("exclusive", "reader", "reader"), order);
+            assertEquals(3, gate.availablePermits());
+        } finally {
+            first.close();
+            last.close();
+            releaseExclusive.countDown();
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(2L, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
     public void timedExclusiveControlDoesNotReleaseAnUnacquiredPermit() throws Exception {
         AtomicBoolean closing = new AtomicBoolean(false);
         BukkitChunkGenerator.GenerationStageGate gate =
@@ -355,16 +417,19 @@ public class BukkitChunkGeneratorGenerationStageGateTest {
         BukkitChunkGenerator.GenerationStagePermit stage = gate.acquireStage("cancellation-holder");
         CompletableFuture<Void> outward = new CompletableFuture<>();
         AtomicBoolean operationRan = new AtomicBoolean(false);
+        AtomicBoolean interruptedAfterCancellation = new AtomicBoolean(true);
         ExecutorService executor = Executors.newSingleThreadExecutor();
 
         try {
-            Future<?> operation = executor.submit(() ->
-                    BukkitChunkGenerator.completeExclusiveControlFuture(
-                            gate,
-                            () -> operationRan.set(true),
-                            outward,
-                            30L,
-                            TimeUnit.SECONDS));
+            Future<?> operation = executor.submit(() -> {
+                BukkitChunkGenerator.completeExclusiveControlFuture(
+                        gate,
+                        () -> operationRan.set(true),
+                        outward,
+                        30L,
+                        TimeUnit.SECONDS);
+                interruptedAfterCancellation.set(Thread.currentThread().isInterrupted());
+            });
             awaitQueueLength(gate, 1);
 
             assertTrue(outward.cancel(true));
@@ -372,11 +437,86 @@ public class BukkitChunkGeneratorGenerationStageGateTest {
 
             assertTrue(outward.isCancelled());
             assertFalse(operationRan.get());
+            assertFalse(interruptedAfterCancellation.get());
             assertEquals(0, gate.availablePermits());
         } finally {
             stage.close();
             assertEquals(1, gate.availablePermits());
             executor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void externalInterruptStillRestoresTheAcquisitionWorkerFlag() throws Exception {
+        BukkitChunkGenerator.GenerationStageGate gate =
+                new BukkitChunkGenerator.GenerationStageGate(1, () -> false);
+        BukkitChunkGenerator.GenerationStagePermit stage = gate.acquireStage("interrupt-holder");
+        CompletableFuture<Void> outward = new CompletableFuture<>();
+        AtomicReference<Thread> worker = new AtomicReference<>();
+        AtomicBoolean interruptedAfterAcquisition = new AtomicBoolean(false);
+        AtomicBoolean operationRan = new AtomicBoolean(false);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+
+        try {
+            Future<?> operation = executor.submit(() -> {
+                worker.set(Thread.currentThread());
+                BukkitChunkGenerator.completeExclusiveControlFuture(gate, () -> operationRan.set(true),
+                        outward, 30L, TimeUnit.SECONDS);
+                interruptedAfterAcquisition.set(Thread.currentThread().isInterrupted());
+            });
+            awaitQueueLength(gate, 1);
+            worker.get().interrupt();
+            operation.get(2L, TimeUnit.SECONDS);
+
+            ExecutionException failure = assertThrows(ExecutionException.class,
+                    () -> outward.get(2L, TimeUnit.SECONDS));
+            assertTrue(failure.getCause() instanceof InterruptedException);
+            assertTrue(interruptedAfterAcquisition.get());
+            assertFalse(operationRan.get());
+            assertEquals(0, gate.availablePermits());
+        } finally {
+            stage.close();
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(2L, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void cancellationAfterAcquisitionDoesNotInterruptTheRunningOperation() throws Exception {
+        BukkitChunkGenerator.GenerationStageGate gate =
+                new BukkitChunkGenerator.GenerationStageGate(1, () -> false);
+        CompletableFuture<Void> outward = new CompletableFuture<>();
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicBoolean interrupted = new AtomicBoolean(false);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+
+        try {
+            Future<?> operation = executor.submit(() -> {
+                BukkitChunkGenerator.completeExclusiveControlFuture(gate, () -> {
+                    entered.countDown();
+                    try {
+                        assertTrue(release.await(2L, TimeUnit.SECONDS));
+                    } catch (InterruptedException failure) {
+                        interrupted.set(true);
+                        Thread.currentThread().interrupt();
+                    }
+                }, outward, 30L, TimeUnit.SECONDS);
+                interrupted.compareAndSet(false, Thread.currentThread().isInterrupted());
+            });
+            assertTrue(entered.await(2L, TimeUnit.SECONDS));
+            assertTrue(outward.cancel(true));
+            assertEquals(0, gate.availablePermits());
+            release.countDown();
+            operation.get(2L, TimeUnit.SECONDS);
+
+            assertFalse(interrupted.get());
+            assertTrue(outward.isCancelled());
+            assertEquals(1, gate.availablePermits());
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(2L, TimeUnit.SECONDS));
         }
     }
 

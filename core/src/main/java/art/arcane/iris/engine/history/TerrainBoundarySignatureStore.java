@@ -46,6 +46,9 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.PriorityQueue;
 import java.util.TreeSet;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.zip.CRC32;
 
 public final class TerrainBoundarySignatureStore {
@@ -936,8 +939,9 @@ public final class TerrainBoundarySignatureStore {
         private final Long2ObjectOpenHashMap<CellReference> cells;
         private final Long2ObjectOpenHashMap<long[]> cellsBySuperCell;
         private final LinkedHashMap<Long, List<TerrainBoundarySignature>> cache;
-        private long catalogProbes;
-        private long shardLoads;
+        private final Map<Long, CompletableFuture<List<TerrainBoundarySignature>>> pendingLoads = new HashMap<>();
+        private final LongAdder catalogProbes = new LongAdder();
+        private final LongAdder shardLoads = new LongAdder();
 
         private CellSource(
                 Path directory,
@@ -951,7 +955,7 @@ public final class TerrainBoundarySignatureStore {
             this.cache = new LinkedHashMap<>(MAXIMUM_CACHED_SHARDS, 0.75F, true);
         }
 
-        private synchronized TerrainBoundarySignature signatureAt(int blockX, int blockZ) throws IOException {
+        private TerrainBoundarySignature signatureAt(int blockX, int blockZ) throws IOException {
             int cellX = Math.floorDiv(blockX, CELL_SIZE);
             int cellZ = Math.floorDiv(blockZ, CELL_SIZE);
             long cellKey = pack(cellX, cellZ);
@@ -967,7 +971,7 @@ public final class TerrainBoundarySignatureStore {
             return null;
         }
 
-        private synchronized List<TerrainBoundarySignature> all() throws IOException {
+        private List<TerrainBoundarySignature> all() throws IOException {
             ArrayList<TerrainBoundarySignature> signatures = new ArrayList<>();
             for (long cellKey : cellKeys) {
                 signatures.addAll(load(cellKey, cells.get(cellKey)));
@@ -978,7 +982,7 @@ public final class TerrainBoundarySignatureStore {
             return List.copyOf(signatures);
         }
 
-        private synchronized List<TerrainBoundarySignature> nearestCandidatesForChunk(
+        private List<TerrainBoundarySignature> nearestCandidatesForChunk(
                 int chunkX,
                 int chunkZ,
                 int searchWidth
@@ -1019,7 +1023,7 @@ public final class TerrainBoundarySignatureStore {
             return nearest.candidates();
         }
 
-        private synchronized boolean intersectsTerrainBand(BlockBounds footprint, int width) throws IOException {
+        private boolean intersectsTerrainBand(BlockBounds footprint, int width) throws IOException {
             double distanceSquared = (double) width * width;
             return visitSuperCells(footprint.expanded(width - 1L), superKey -> {
                 if (footprint.distanceSquared(BlockBounds.cell(superKey, CELL_SIZE * SUPER_CELL_SIZE))
@@ -1050,7 +1054,7 @@ public final class TerrainBoundarySignatureStore {
             long height = (long) maximumZ - minimumZ + 1L;
             if (width > cellsBySuperCell.size() / height) {
                 for (long key : cellsBySuperCell.keySet()) {
-                    catalogProbes++;
+                    catalogProbes.increment();
                     if (cellX(key) >= minimumX && cellX(key) <= maximumX
                             && cellZ(key) >= minimumZ && cellZ(key) <= maximumZ
                             && visitor.visit(key)) {
@@ -1061,7 +1065,7 @@ public final class TerrainBoundarySignatureStore {
             }
             for (long x = minimumX; x <= maximumX; x++) {
                 for (long z = minimumZ; z <= maximumZ; z++) {
-                    catalogProbes++;
+                    catalogProbes.increment();
                     long key = pack((int) x, (int) z);
                     if (cellsBySuperCell.containsKey(key) && visitor.visit(key)) {
                         return true;
@@ -1072,33 +1076,61 @@ public final class TerrainBoundarySignatureStore {
         }
 
         private List<TerrainBoundarySignature> load(long cellKey, CellReference reference) throws IOException {
-            List<TerrainBoundarySignature> cached = cache.get(cellKey);
-            if (cached != null) {
-                return cached;
+            CompletableFuture<List<TerrainBoundarySignature>> pending;
+            boolean loader;
+            synchronized (this) {
+                List<TerrainBoundarySignature> cached = cache.get(cellKey);
+                if (cached != null) {
+                    return cached;
+                }
+                pending = pendingLoads.get(cellKey);
+                loader = pending == null;
+                if (loader) {
+                    pending = new CompletableFuture<>();
+                    pendingLoads.put(cellKey, pending);
+                }
             }
-            Path shard = directory.resolve(shardFileName(reference.hash()));
-            requireRegularFile(shard, "Terrain boundary shard");
-            List<TerrainBoundarySignature> loaded = CellShard.read(
-                    shard,
-                    reference.hash(),
-                    cellX(cellKey),
-                    cellZ(cellKey)
-            );
-            if (loaded.size() != reference.count()) {
-                throw new IOException("Terrain boundary shard count does not match its catalog entry");
+            if (!loader) {
+                try {
+                    return pending.join();
+                } catch (CompletionException failure) {
+                    if (failure.getCause() instanceof IOException io) {
+                        throw io;
+                    }
+                    throw failure;
+                }
             }
-            shardLoads++;
-            cache.put(cellKey, loaded);
-            trim(cache);
-            return loaded;
+            try {
+                Path shard = directory.resolve(shardFileName(reference.hash()));
+                requireRegularFile(shard, "Terrain boundary shard");
+                List<TerrainBoundarySignature> loaded = CellShard.read(
+                        shard, reference.hash(), cellX(cellKey), cellZ(cellKey));
+                if (loaded.size() != reference.count()) {
+                    throw new IOException("Terrain boundary shard count does not match its catalog entry");
+                }
+                synchronized (this) {
+                    shardLoads.increment();
+                    cache.put(cellKey, loaded);
+                    trim(cache);
+                }
+                pending.complete(loaded);
+                return loaded;
+            } catch (IOException | RuntimeException | Error failure) {
+                pending.completeExceptionally(failure);
+                throw failure;
+            } finally {
+                synchronized (this) {
+                    pendingLoads.remove(cellKey, pending);
+                }
+            }
         }
 
-        private synchronized long catalogProbeCount() {
-            return catalogProbes;
+        private long catalogProbeCount() {
+            return catalogProbes.sum();
         }
 
-        private synchronized long shardLoadCount() {
-            return shardLoads;
+        private long shardLoadCount() {
+            return shardLoads.sum();
         }
 
         private synchronized int cachedShardCount() {

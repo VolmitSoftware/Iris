@@ -8,6 +8,7 @@ import java.util.function.LongPredicate;
 import art.arcane.iris.engine.DimensionStackContext;
 import art.arcane.iris.engine.DimensionStackLayout;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.EngineLifecycleTasks;
 import art.arcane.iris.engine.framework.GenerationSessionException;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
@@ -930,6 +931,13 @@ public class IrisChunkGenerator extends CustomChunkGenerator implements LongPred
 
     @Override
     public WeightedList<MobSpawnSettings.SpawnerData> getMobsAt(Holder<Biome> holder, StructureManager structuremanager, MobCategory enumcreaturetype, BlockPos blockposition) {
+        return EngineLifecycleTasks.call(engine, "bukkit_nms_mob_spawns",
+                () -> getAdmittedMobsAt(holder, structuremanager, enumcreaturetype, blockposition),
+                WeightedList.of(List.of()));
+    }
+
+    private WeightedList<MobSpawnSettings.SpawnerData> getAdmittedMobsAt(
+            Holder<Biome> holder, StructureManager structuremanager, MobCategory enumcreaturetype, BlockPos blockposition) {
         NativeBiomeSpawnSelection selection = NativeBiomeSpawnSelection.at(
                 engine, blockposition.getX(), blockposition.getY(), blockposition.getZ(),
                 holder.unwrapKey().map(key -> key.identifier().toString()).orElse(""));
@@ -937,9 +945,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator implements LongPred
             return WeightedList.of(List.of());
         }
         try (GenerationHistoryRuntimeRouter.CoordinateScope route = openHistoryCoordinateScope(
-                     blockposition.getX(), blockposition.getZ(), "bukkit_nms_mob_spawns");
-             GenerationSessionLease lease = requireGenerationLease("bukkit_nms_mob_spawns");
-             IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
+                     blockposition.getX(), blockposition.getZ(), "bukkit_nms_mob_spawns")) {
             return getMobsAtWithActiveRuntime(holder, structuremanager, enumcreaturetype, blockposition, selection);
         }
     }

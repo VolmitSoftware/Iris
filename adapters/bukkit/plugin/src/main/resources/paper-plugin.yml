@@ -53,11 +53,11 @@ dependencies:
       required: false
       join-classpath: false
     MythicLib:
-      load: BEFORE
+      load: OMIT
       required: false
       join-classpath: true
     MMOItems:
-      load: BEFORE
+      load: OMIT
       required: false
       join-classpath: true
     eco:
@@ -69,11 +69,11 @@ dependencies:
       required: false
       join-classpath: true
     MythicMobs:
-      load: BEFORE
+      load: OMIT
       required: false
       join-classpath: true
     MythicCrucible:
-      load: BEFORE
+      load: OMIT
       required: false
       join-classpath: true
     KGenerators:

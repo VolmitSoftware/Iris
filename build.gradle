@@ -442,6 +442,7 @@ Set<String> knownBukkitSupertypeClasses = [
     'art/arcane/iris/core/events/IrisLootEvent$2.class',
     'art/arcane/iris/core/link/data/ItemAdderDataProvider.class',
     'art/arcane/iris/core/link/data/MythicMobsDataProvider.class',
+    'art/arcane/iris/core/link/data/OraxenDataProvider.class',
     'art/arcane/iris/core/link/MultiverseGuardListener.class',
     'art/arcane/iris/engine/framework/EngineAssignedWorldManager.class',
     'art/arcane/iris/engine/object/IrisEntity$BukkitOps$1.class',

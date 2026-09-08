@@ -72,7 +72,7 @@ public class DatapackIngestServiceTest {
         doReturn("26.2").when(server).getMinecraftVersion();
         doReturn("26.2.build.33").when(server).getBukkitVersion();
 
-        assertEquals("26.2", DatapackSupport.serverMcVersion(server));
+        assertEquals("26.2", DatapackIngestService.serverMcVersion(server));
     }
 
     @Test
@@ -80,7 +80,7 @@ public class DatapackIngestServiceTest {
         Server server = mock(Server.class);
         doReturn("1.21.4-R0.1-SNAPSHOT").when(server).getBukkitVersion();
 
-        assertEquals("1.21.4", DatapackSupport.serverMcVersion(server));
+        assertEquals("1.21.4", DatapackIngestService.serverMcVersion(server));
     }
 
     @Test

@@ -19,13 +19,10 @@
 package art.arcane.iris.core.datapack;
 
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.core.nms.MinecraftVersion;
 import art.arcane.iris.util.common.io.Durability;
 import art.arcane.iris.util.common.plugin.VolmitSender;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import org.bukkit.Bukkit;
-import org.bukkit.Server;
 
 import java.io.File;
 import java.io.IOException;
@@ -128,15 +125,6 @@ final class DatapackSupport {
             return false;
         }
         throw new IOException("Cannot determine " + purpose + " state at " + path);
-    }
-
-    static String serverMcVersion() {
-        return serverMcVersion(Bukkit.getServer());
-    }
-
-    static String serverMcVersion(Server server) {
-        MinecraftVersion detected = MinecraftVersion.detect(server);
-        return detected == null ? null : detected.value();
     }
 
     static String safe(String value) {

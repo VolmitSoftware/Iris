@@ -95,7 +95,7 @@ final class DatapackStartupValidation {
         List<String> urls = configured.stream().sorted().toList();
         boolean autoIngest = IrisSettings.get().getGeneral().autoIngestDatapacks;
         boolean stripOverrides = DatapackPackMetadata.resolveStripOverrides();
-        String mcVersion = DatapackSupport.serverMcVersion();
+        String mcVersion = DatapackIngestService.serverMcVersion();
         int irisVersion = IrisPlatforms.get().irisVersionNumber();
         if (!startupValidationContextMatches(
                 validated, mcVersion, irisVersion, autoIngest, stripOverrides, urls)) {

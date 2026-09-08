@@ -18,12 +18,6 @@
 
 package art.arcane.iris.core.datapack;
 
-import art.arcane.iris.core.datapack.DatapackIngestService.StructureScopeResources;
-import art.arcane.iris.core.datapack.DatapackIngestService.StartupValidationOutcome;
-import art.arcane.iris.core.datapack.DatapackIngestService.Report;
-import art.arcane.iris.core.datapack.DatapackIngestService.ReapplyStatus;
-import art.arcane.iris.core.datapack.DatapackIngestService.ReapplyOutcome;
-import art.arcane.iris.core.datapack.DatapackIngestService.Entry;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.core.IrisStartupValidation;
@@ -31,6 +25,7 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.ServerConfigurator;
 import art.arcane.iris.core.datapack.ModrinthResolver.ResolvedDatapack;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.nms.MinecraftVersion;
 import art.arcane.iris.core.project.IrisProject;
 import art.arcane.iris.core.project.IrisCodeWorkspace;
 import art.arcane.iris.engine.object.IrisDimension;
@@ -38,6 +33,8 @@ import art.arcane.iris.util.common.format.C;
 import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.io.IO;
+import org.bukkit.Bukkit;
+import org.bukkit.Server;
 
 import java.io.File;
 import java.io.IOException;
@@ -78,7 +75,7 @@ public final class DatapackIngestService {
         List<String> urls = configured.stream().sorted().toList();
         boolean autoIngest = IrisSettings.get().getGeneral().autoIngestDatapacks;
         boolean stripOverrides = DatapackPackMetadata.resolveStripOverrides();
-        String mcVersion = DatapackSupport.serverMcVersion();
+        String mcVersion = serverMcVersion();
         int irisVersion = IrisPlatforms.get().irisVersionNumber();
         File root = IrisPlatforms.get().dataFolder("datapacks");
         KList<File> worldFolders = ServerConfigurator.getDatapacksFolder();
@@ -154,6 +151,15 @@ public final class DatapackIngestService {
         refreshWorkspaces();
         boolean maintenanceChanged = DatapackStructureImports.autoImportDatapackStructures();
         DatapackStartupValidation.refreshStartupValidationAfterMaintenance(maintenanceChanged);
+    }
+
+    static String serverMcVersion() {
+        return serverMcVersion(Bukkit.getServer());
+    }
+
+    static String serverMcVersion(Server server) {
+        MinecraftVersion detected = MinecraftVersion.detect(server);
+        return detected == null ? null : detected.value();
     }
 
     public static void refreshWorkspaces() {
@@ -244,7 +250,7 @@ public final class DatapackIngestService {
         }
 
         KList<File> worldFolders = ServerConfigurator.getDatapacksFolder();
-        String mcVersion = DatapackSupport.serverMcVersion();
+        String mcVersion = serverMcVersion();
         try {
             DatapackScratchRecovery.recoverTransactions(root, worldFolders);
         } catch (IOException e) {

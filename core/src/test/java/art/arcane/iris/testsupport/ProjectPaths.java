@@ -69,7 +69,8 @@ public final class ProjectPaths {
         Path current = moduleRoot;
 
         while (current != null) {
-            if (Files.isRegularFile(current.resolve("settings.gradle"))) {
+            if (Files.isRegularFile(current.resolve("settings.gradle"))
+                    && Files.isDirectory(current.resolve("core/src/main/java"))) {
                 return current;
             }
 

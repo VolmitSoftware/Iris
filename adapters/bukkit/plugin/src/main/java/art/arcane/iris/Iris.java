@@ -87,6 +87,7 @@ import art.arcane.iris.engine.framework.PreservationRegistry;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
 import art.arcane.iris.engine.object.IrisCompat;
 import art.arcane.iris.core.safeguard.IrisSafeguard;
+import art.arcane.iris.core.safeguard.RuntimeLockNotice;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisLogging;
@@ -305,10 +306,11 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             return;
         }
 
-        StackWalker.StackFrame frame = null;
+        StackWalker.StackFrame frame;
         try {
             frame = DEBUG_STACK_WALKER.walk(stream -> stream.skip(1).findFirst().orElse(null));
-        } catch (Throwable ignored) {
+        } catch (Throwable unavailable) {
+            frame = null;
         }
 
         if (frame == null) {
@@ -444,7 +446,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             try {
                 IrisSettings currentSettings = IrisSettings.settings != null ? IrisSettings.settings : IrisSettings.get();
                 debug = currentSettings != null && currentSettings.getGeneral().isDebug();
-            } catch (Throwable ignored) {
+            } catch (Throwable unreadable) {
                 debug = false;
             }
         }
@@ -625,7 +627,9 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         MultiBurst.burst.reopen();
         MultiBurst.ioBurst.reopen();
         IrisLanguage.initialize();
-        debugDump = BukkitDebugDump.create(this);
+        debugDump = BukkitDebugDump.create(this, new BukkitDebugDump.Options(
+                () -> true,
+                () -> IrisSafeguard::debugReport));
         languageSwitcher = BukkitLanguageSwitcher.register(this, IrisLanguage.selections(),
                 new BukkitLanguageSwitcher.Options("iris", "iris.all",
                         DirectorMiniMenu.Theme.irisGreen(), IrisLanguage.directorResolver(), IrisLanguage.editorOptions()));
@@ -866,6 +870,30 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                     .orElse("Iris startup validation requires a restart.");
             startupBoundaryRestart.set(true);
             ServerConfigurator.restartAtStartupBoundary(restartReason);
+            return;
+        }
+        reportLockedRuntime();
+    }
+
+    /**
+     * refuseVanillaFallback only ever runs when enable itself failed. A boot that enabled into Danger Mode
+     * keeps every configured Iris world bound to a generator that throws, and until now said so nowhere
+     * after the banner.
+     */
+    private static void reportLockedRuntime() {
+        String denial = IrisStartupValidation.denialReason().orElse(null);
+        if (denial == null) {
+            return;
+        }
+        boolean managedStorage;
+        try {
+            managedStorage = IrisWorldStorage.hasManagedWorldStorage(IrisWorldStorage.levelRoot());
+        } catch (Throwable unavailable) {
+            Iris.reportError("Could not inspect Iris world storage while reporting the locked runtime.", unavailable);
+            managedStorage = false;
+        }
+        for (String line : RuntimeLockNotice.compose(denial, managedStorage)) {
+            Iris.error(line);
         }
     }
 

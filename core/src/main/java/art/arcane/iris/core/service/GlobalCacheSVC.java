@@ -63,7 +63,9 @@ public class GlobalCacheSVC implements IrisService {
             activeTrimmer.interrupt();
             try {
                 activeTrimmer.join(TRIMMER_JOIN_MS);
-            } catch (InterruptedException ignored) {
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                IrisLogging.warn("Interrupted while waiting for the global cache trimmer to stop.");
             }
             if (activeTrimmer.isAlive()) {
                 IrisLogging.warn("Global cache trimmer did not stop within " + TRIMMER_JOIN_MS + "ms.");

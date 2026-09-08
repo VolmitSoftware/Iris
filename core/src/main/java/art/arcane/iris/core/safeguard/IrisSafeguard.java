@@ -1,10 +1,10 @@
 package art.arcane.iris.core.safeguard;
 
 import art.arcane.iris.core.IrisStartupValidation;
+import art.arcane.iris.core.safeguard.task.CheckResult;
 import art.arcane.iris.core.safeguard.task.Diagnostic;
 import art.arcane.iris.core.safeguard.task.Task;
 import art.arcane.iris.core.safeguard.task.Tasks;
-import art.arcane.iris.core.safeguard.task.ValueWithDiagnostics;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.format.C;
 
@@ -15,7 +15,10 @@ import java.util.List;
 import java.util.Map;
 
 public final class IrisSafeguard {
-    private static Map<Task, ValueWithDiagnostics<Mode>> results = Collections.emptyMap();
+    private static final String GENERIC_LOCK_REASON =
+            "An Iris startup check failed. Resolve the startup errors and restart the server.";
+
+    private static Map<Task, CheckResult> results = Collections.emptyMap();
     private static Map<String, String> context = Collections.emptyMap();
     private static Map<String, List<String>> attachment = Collections.emptyMap();
     private static Mode mode = Mode.STABLE;
@@ -27,40 +30,40 @@ public final class IrisSafeguard {
     public static void execute() {
         IrisStartupValidation.beginRuntimeValidation();
         List<Task> tasks = Tasks.getTasks();
-        LinkedHashMap<Task, ValueWithDiagnostics<Mode>> resultValues = new LinkedHashMap<>(tasks.size());
+        LinkedHashMap<Task, CheckResult> resultValues = new LinkedHashMap<>(tasks.size());
         LinkedHashMap<String, String> contextValues = new LinkedHashMap<>(tasks.size());
         LinkedHashMap<String, List<String>> attachmentValues = new LinkedHashMap<>(tasks.size());
         Mode currentMode = Mode.STABLE;
+        String lockReason = null;
         int issueCount = 0;
 
         for (Task task : tasks) {
-            ValueWithDiagnostics<Mode> result;
+            CheckResult result;
             try {
                 result = task.run();
             } catch (Throwable e) {
-                boolean injectionFailure = "injection".equals(task.getId());
-                if (injectionFailure) {
-                    IrisStartupValidation.markRuntimeInvalid("Iris runtime injection failed. Resolve the startup errors and restart the server.");
-                }
-                IrisLogging.reportError(e);
-                result = new ValueWithDiagnostics<>(
-                        injectionFailure ? Mode.UNSTABLE : Mode.WARNING,
-                        new Diagnostic(Diagnostic.Logger.ERROR, "Error while running task " + task.getId(), e)
-                );
+                IrisLogging.reportError("Iris startup check \"" + task.getId() + "\" failed to run.", e);
+                Diagnostic diagnostic = new Diagnostic(Diagnostic.Logger.ERROR,
+                        "Error while running task " + task.getId(), e);
+                result = task.failureMode() == Mode.UNSTABLE
+                        ? CheckResult.danger(failureLockReason(task), diagnostic)
+                        : CheckResult.warning(diagnostic);
             }
 
-            currentMode = currentMode.highest(result.getValue());
+            currentMode = currentMode.highest(result.mode());
+            if (result.mode() == Mode.UNSTABLE && lockReason == null) {
+                lockReason = result.lockReason();
+            }
             resultValues.put(task, result);
-            contextValues.put(task.getId(), result.getValue().getId());
+            contextValues.put(task.getId(), result.mode().getId());
 
             List<String> lines = new ArrayList<>();
-            for (Diagnostic diagnostic : result.getDiagnostics()) {
-                String[] split = diagnostic.toString().split("\\n");
-                Collections.addAll(lines, split);
+            for (Diagnostic diagnostic : result.diagnostics()) {
+                Collections.addAll(lines, diagnostic.toString().split("\\n"));
             }
             attachmentValues.put(task.getId(), lines);
 
-            if (result.getValue() != Mode.STABLE) {
+            if (result.mode() != Mode.STABLE) {
                 issueCount++;
             }
         }
@@ -70,6 +73,15 @@ public final class IrisSafeguard {
         attachment = Collections.unmodifiableMap(attachmentValues);
         mode = currentMode;
         count = issueCount;
+
+        // Danger is the lock. Recognising one check by its id and letting every other critical failure
+        // through was how a no-op NMS binding or a missing dimension type reached an open login queue.
+        if (currentMode == Mode.UNSTABLE) {
+            IrisStartupValidation.markRuntimeInvalid(lockReason == null ? GENERIC_LOCK_REASON : lockReason);
+            return;
+        }
+
+        IrisStartupValidation.markRuntimeReady();
     }
 
     public static Mode mode() {
@@ -84,6 +96,23 @@ public final class IrisSafeguard {
         return attachment;
     }
 
+    /**
+     * The per-check record for {@code /iris debugdump}. Without it a support report carried the server and
+     * plugin state but not one word about which startup check put the server in the mode it is in.
+     */
+    public static String debugReport() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Startup safeguard: ").append(mode.getId())
+                .append(" (").append(count).append(" issues)");
+        for (Map.Entry<String, String> entry : context.entrySet()) {
+            builder.append('\n').append("  ").append(entry.getKey()).append(": ").append(entry.getValue());
+            for (String line : attachment.getOrDefault(entry.getKey(), List.of())) {
+                builder.append('\n').append("    ").append(line);
+            }
+        }
+        return builder.toString();
+    }
+
     public static void printReports() {
         switch (mode) {
             case STABLE -> IrisLogging.info(C.BLUE + "0 Conflicts found");
@@ -91,7 +120,7 @@ public final class IrisSafeguard {
             case UNSTABLE -> IrisLogging.error(C.DARK_RED + "%s Issues found", count);
         }
 
-        for (ValueWithDiagnostics<Mode> value : results.values()) {
+        for (CheckResult value : results.values()) {
             // Without the stack trace: Diagnostic.Logger splits on newlines, so a trace became one log
             // record per frame at the diagnostic's own severity. Traces go through reportError.
             value.log(true, false);
@@ -104,6 +133,11 @@ public final class IrisSafeguard {
             case WARNING -> warning();
             case UNSTABLE -> unstable();
         }
+    }
+
+    private static String failureLockReason(Task task) {
+        String declared = task.failureLockReason();
+        return declared == null || declared.isBlank() ? GENERIC_LOCK_REASON : declared;
     }
 
     // A log record carries a level, so a blank record renders as an empty [WARN] line and a rule of

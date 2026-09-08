@@ -102,8 +102,10 @@ public class MultiverseSVC implements IrisService {
         guard = null;
         try {
             BukkitPlatform.volmitPlugin().unregisterListener(listener);
-        } catch (Throwable ignored) {
+        } catch (Throwable alreadyUnregistered) {
             // Shutdown ordering already unregisters every handler.
+            IrisLogging.debug("Multiverse guard listener was already unregistered: "
+                    + alreadyUnregistered.getClass().getName());
         }
     }
 }

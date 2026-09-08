@@ -1104,7 +1104,8 @@ public final class PendingWorldReplacementManager implements Listener {
                     Iris.instance.getServer().getAllowEnd()
             );
         } catch (Throwable failure) {
-            Iris.debug("Could not capture vanilla-slot availability yet: " + detail(failure));
+            Iris.reportError("Could not capture vanilla-slot availability at startup;"
+                    + " world replacement staging will resolve it on demand.", failure);
         }
     }
 

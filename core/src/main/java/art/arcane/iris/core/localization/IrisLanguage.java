@@ -1,6 +1,7 @@
 package art.arcane.iris.core.localization;
 
 import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.spi.CapabilityProbe;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.director.DirectorTextResolver;
@@ -212,11 +213,10 @@ public final class IrisLanguage {
         if (root == null) {
             return false;
         }
-        try {
-            return overrideFile(root, configuredLocale()).equals(file.getAbsoluteFile());
-        } catch (RuntimeException ignored) {
-            return false;
-        }
+        File overrideRoot = root;
+        return CapabilityProbe.attempt("locale override path",
+                () -> overrideFile(overrideRoot, configuredLocale()).equals(file.getAbsoluteFile()),
+                Boolean.FALSE);
     }
 
     private static boolean applyReload(File root, String requestedLocale, SnapshotCapture capture) {

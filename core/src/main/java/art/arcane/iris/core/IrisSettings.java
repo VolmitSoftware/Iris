@@ -107,6 +107,8 @@ public class IrisSettings {
             try {
                 IO.writeAll(s, new JSONObject(new Gson().toJson(loaded)).toString(4));
             } catch (IOException e) {
+                IrisLogging.reportError("Could not rewrite " + s.getAbsolutePath()
+                        + "; settings changes made in game will not survive a restart.", e);
             }
         } catch (Throwable ee) {
             // IrisLogging.reportError(ee); causes a self-reference & stackoverflow

@@ -471,7 +471,9 @@ public final class MultiverseGuardListener implements Listener {
             for (String line : lines) {
                 target.sendMessage(line);
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable undeliverable) {
+            IrisLogging.debug("Falling back to plain delivery for a Multiverse guard message: "
+                    + describe(undeliverable));
             for (String line : lines) {
                 ComponentMessenger.sendSection(sender, line);
             }

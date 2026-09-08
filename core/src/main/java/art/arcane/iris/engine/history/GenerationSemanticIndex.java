@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.history;
 
 import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
+import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.io.Durability;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -1465,9 +1466,16 @@ public final class GenerationSemanticIndex {
         if (previousHash == null || previousHash.equals(currentHash)) {
             return;
         }
+        Path unreferenced = directory.resolve(fileName(regionX, regionZ, previousHash));
         try {
-            Files.deleteIfExists(directory.resolve(fileName(regionX, regionZ, previousHash)));
-        } catch (IOException ignored) {
+            Files.deleteIfExists(unreferenced);
+        } catch (IOException failure) {
+            if (IrisLogging.warnOnce("generation-semantics-shard-delete",
+                    "Could not delete the superseded generation semantics shard %s; stale shards accumulate on disk.",
+                    unreferenced)) {
+                IrisLogging.reportError("Could not delete the superseded generation semantics shard "
+                        + unreferenced + ".", failure);
+            }
         }
     }
 

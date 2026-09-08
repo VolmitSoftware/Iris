@@ -15,6 +15,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mockStatic;
 
 public class IrisSafeguardTest {
@@ -30,9 +31,11 @@ public class IrisSafeguardTest {
     @Test
     public void injectionExceptionRevokesReadinessAndReportsUnstableRuntime() {
         IllegalStateException injectionFailure = new IllegalStateException("Java agent unavailable");
-        Task injection = Task.of("injection", () -> {
-            throw injectionFailure;
-        });
+        Task injection = Task.critical("injection",
+                "Iris runtime injection failed. Resolve the startup errors and restart the server.",
+                () -> {
+                    throw injectionFailure;
+                });
         IrisStartupValidation.begin();
         IrisStartupValidation.markDatapacksReady();
         IrisStartupValidation.markPacksReady();
@@ -53,7 +56,7 @@ public class IrisSafeguardTest {
             assertEquals("Iris runtime injection failed. Resolve the startup errors and restart the server.",
                     IrisStartupValidation.denialReason().orElseThrow());
             assertThrows(IllegalStateException.class, IrisStartupValidation::requireWorldCreationReady);
-            logging.verify(() -> IrisLogging.reportError(injectionFailure));
+            logging.verify(() -> IrisLogging.reportError(anyString(), org.mockito.ArgumentMatchers.same(injectionFailure)));
         }
     }
 }

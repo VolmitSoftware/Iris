@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.project;
 
+import art.arcane.iris.spi.CapabilityProbe;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockProperty;
@@ -126,13 +127,9 @@ public class SchemaBuilder {
         if (cached != null) {
             return cached;
         }
-        JSONArray built;
-        try {
-            built = new JSONArray(GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames());
-        } catch (Throwable e) {
-            IrisLogging.debug("Schema font family enumeration unavailable: " + e.getMessage());
-            built = new JSONArray();
-        }
+        JSONArray built = CapabilityProbe.attempt("java.awt font families",
+                () -> new JSONArray(GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames()),
+                new JSONArray());
         fontTypes = built;
         return built;
     }

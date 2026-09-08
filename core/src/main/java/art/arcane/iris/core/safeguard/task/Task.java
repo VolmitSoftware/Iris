@@ -1,47 +1,62 @@
 package art.arcane.iris.core.safeguard.task;
 
 import art.arcane.iris.core.safeguard.Mode;
-import art.arcane.volmlib.util.format.Form;
 
-import java.util.Locale;
 import java.util.function.Supplier;
 
+/**
+ * One startup check, plus the severity its own failure carries.
+ * <p>
+ * A check declares whether it is advisory or critical at the point it is written, so nothing downstream has
+ * to recognise a check by its id to decide what a failure means. An advisory check that throws is a Warning
+ * and leaves the runtime open; a critical one that throws is Danger and locks the runtime with the reason it
+ * carries here.
+ */
 public abstract class Task {
     private final String id;
-    private final String name;
+    private final Mode failureMode;
+    private final String failureLockReason;
 
-    public Task(String id) {
-        this(id, Form.capitalizeWords(id.replace(" ", "_").toLowerCase(Locale.ROOT)));
-    }
-
-    public Task(String id, String name) {
+    protected Task(String id, Mode failureMode, String failureLockReason) {
         this.id = id;
-        this.name = name;
+        this.failureMode = failureMode;
+        this.failureLockReason = failureLockReason;
     }
 
     public String getId() {
         return id;
     }
 
-    public String getName() {
-        return name;
+    public Mode failureMode() {
+        return failureMode;
     }
 
-    public abstract ValueWithDiagnostics<Mode> run();
+    public String failureLockReason() {
+        return failureLockReason;
+    }
 
-    public static Task of(String id, String name, Supplier<ValueWithDiagnostics<Mode>> action) {
-        return new Task(id, name) {
+    public abstract CheckResult run();
+
+    /**
+     * A check whose failure degrades Iris but leaves it usable.
+     */
+    public static Task advisory(String id, Supplier<CheckResult> action) {
+        return new Task(id, Mode.WARNING, null) {
             @Override
-            public ValueWithDiagnostics<Mode> run() {
+            public CheckResult run() {
                 return action.get();
             }
         };
     }
 
-    public static Task of(String id, Supplier<ValueWithDiagnostics<Mode>> action) {
-        return new Task(id) {
+    /**
+     * A check whose failure means Iris cannot safely run. {@code throwLockReason} is what an operator is told
+     * when the check itself throws rather than returning a result.
+     */
+    public static Task critical(String id, String throwLockReason, Supplier<CheckResult> action) {
+        return new Task(id, Mode.UNSTABLE, throwLockReason) {
             @Override
-            public ValueWithDiagnostics<Mode> run() {
+            public CheckResult run() {
                 return action.get();
             }
         };

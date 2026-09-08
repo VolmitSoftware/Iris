@@ -6,6 +6,8 @@ import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.nms.INMSBinding;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
+import art.arcane.iris.spi.CapabilityProbe;
+import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.bukkit.WorldIdentity;
 import art.arcane.volmlib.util.scheduling.FoliaScheduler;
@@ -412,7 +414,9 @@ final class WorldLifecycleSupport {
         try {
             Method closeMethod = levelStorageAccess.getClass().getMethod("close");
             closeMethod.invoke(levelStorageAccess);
-        } catch (Throwable ignored) {
+        } catch (Throwable failure) {
+            IrisLogging.reportError("Failed to close the level storage access; the world session lock may still be held.",
+                    unwrap(failure));
         }
     }
 
@@ -712,11 +716,8 @@ final class WorldLifecycleSupport {
         if (server == null) {
             return false;
         }
-        try {
-            Method method = server.getClass().getMethod("isGlobalTickThread");
-            return Boolean.TRUE.equals(method.invoke(server));
-        } catch (Throwable ignored) {
-            return false;
-        }
+        return CapabilityProbe.attempt("server#isGlobalTickThread",
+                () -> Boolean.TRUE.equals(server.getClass().getMethod("isGlobalTickThread").invoke(server)),
+                Boolean.FALSE);
     }
 }

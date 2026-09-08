@@ -45,7 +45,8 @@ final class EngineDiagnostics {
                         + (version == null || version.isBlank() ? "unknown" : version));
             }
         } catch (Throwable e) {
-            IrisLogging.debug("Pack compat summary failed: " + e.getMessage());
+            IrisLogging.reportError("Failed to report pack compatibility for an Iris world;"
+                    + " the world keeps generating and the summary is missing.", e);
         }
     }
 

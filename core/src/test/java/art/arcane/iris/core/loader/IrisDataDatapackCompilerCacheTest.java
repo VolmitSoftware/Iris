@@ -3,8 +3,10 @@ package art.arcane.iris.core.loader;
 import art.arcane.iris.engine.framework.MeteredCache;
 import art.arcane.iris.engine.framework.PreservationRegistry;
 import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -17,6 +19,9 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class IrisDataDatapackCompilerCacheTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 

@@ -331,12 +331,12 @@ public class HydrologyPlannerSettingsTest {
         );
         HydrologyTerrainSample terrainWithoutUndergroundRiverCave = HydrologyTerrainSample.openLand(100, 1D, "parent");
 
-        assertFalse(HydrologyPlanner.deepSiteFits(terrainWithoutUndergroundRiverCave, deepFluid, 3, 3, 0));
-        assertTrue(HydrologyPlanner.deepSiteFits(terrainWithoutUndergroundRiverCave, deepFluid, 3, 3, -64));
-        assertTrue(HydrologyPlanner.deepSiteFits(terrainWithoutUndergroundRiverCave, deepFluid, 4, 3, 0));
-        assertTrue(HydrologyPlanner.deepSiteFits(terrainWithoutUndergroundRiverCave, deepFluid, 80, 3, 0));
-        assertFalse(HydrologyPlanner.deepSiteFits(terrainWithoutUndergroundRiverCave, deepFluid, 96, 3, 0));
-        assertFalse(HydrologyPlanner.deepSiteFits(
+        assertFalse(HydrologyFeatureSitePlanner.deepSiteFits(terrainWithoutUndergroundRiverCave, deepFluid, 3, 3, 0));
+        assertTrue(HydrologyFeatureSitePlanner.deepSiteFits(terrainWithoutUndergroundRiverCave, deepFluid, 3, 3, -64));
+        assertTrue(HydrologyFeatureSitePlanner.deepSiteFits(terrainWithoutUndergroundRiverCave, deepFluid, 4, 3, 0));
+        assertTrue(HydrologyFeatureSitePlanner.deepSiteFits(terrainWithoutUndergroundRiverCave, deepFluid, 80, 3, 0));
+        assertFalse(HydrologyFeatureSitePlanner.deepSiteFits(terrainWithoutUndergroundRiverCave, deepFluid, 96, 3, 0));
+        assertFalse(HydrologyFeatureSitePlanner.deepSiteFits(
                 HydrologyTerrainSample.ocean(50, "ocean"),
                 deepFluid,
                 40,

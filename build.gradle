@@ -164,6 +164,7 @@ nmsBindings.each { key, value ->
             testImplementation('junit:junit:4.13.2')
             testImplementation('org.mockito:mockito-core:5.23.0')
             testImplementation(project(':core'))
+            testImplementation(testFixtures(project(':core')))
             testCompileOnly(volmLibCoordinate) {
                 transitive = false
             }
@@ -599,7 +600,6 @@ List<String> requiredBukkitArtifactEntries = [
     'art/arcane/iris/engine/platform/PlatformChunkGenerator.class',
     'art/arcane/iris/core/lifecycle/WorldLifecycleStaging.class',
     'art/arcane/iris/util/simd/VectorSimdKernels.class',
-    'art/arcane/iris/util/simd/VectorNoiseKernels2D.class',
     'art/arcane/iris/util/project/agent/Agent.class',
     'art/arcane/iris/util/common/misc/getHardware.class',
     'art/arcane/volmlib/util/io/JarScanner.class',

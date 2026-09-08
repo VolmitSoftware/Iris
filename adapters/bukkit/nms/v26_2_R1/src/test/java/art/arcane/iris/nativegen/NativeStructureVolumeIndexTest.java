@@ -32,6 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.IntConsumer;
 
 import static org.junit.Assert.assertEquals;
@@ -218,7 +219,7 @@ public class NativeStructureVolumeIndexTest {
                     if (cleared) {
                         break;
                     }
-                    Thread.sleep(1);
+                    LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10L));
                 }
                 assertTrue("Origin eviction did not complete before the query cache lock", cleared);
                 resolver.release();

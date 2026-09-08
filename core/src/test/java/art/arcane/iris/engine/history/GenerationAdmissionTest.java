@@ -1,10 +1,12 @@
 package art.arcane.iris.engine.history;
 
+import art.arcane.iris.testsupport.Await;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -14,6 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
@@ -38,7 +41,7 @@ public class GenerationAdmissionTest {
         });
 
         assertTrue(requested.await(5L, TimeUnit.SECONDS));
-        Thread.sleep(100L);
+        assertThrows(TimeoutException.class, () -> cutover.get(100L, TimeUnit.MILLISECONDS));
         assertFalse(cutover.isDone());
         stage.close();
         cutover.get(5L, TimeUnit.SECONDS);
@@ -246,12 +249,14 @@ public class GenerationAdmissionTest {
         }
     }
 
-    private static void awaitWaiting(Thread thread) throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
-        while (thread.getState() != Thread.State.WAITING && System.nanoTime() < deadline) {
+    private static void awaitWaiting(Thread thread) {
+        Await.reached("the generation operation to reach the admission gate", Duration.ofSeconds(5L), () -> {
+            if (thread.getState() == Thread.State.WAITING) {
+                return true;
+            }
             assertTrue("Generation operation completed before reaching the admission gate.", thread.isAlive());
-            Thread.sleep(1L);
-        }
+            return false;
+        });
         assertEquals("Generation operation did not reach the admission gate.", Thread.State.WAITING, thread.getState());
     }
 

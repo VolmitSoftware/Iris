@@ -194,22 +194,22 @@ public class HydrologyRouteTurnCacheTest {
     }
 
     private static final class Solver {
-        private final HydrologyPlanner planner = mock(HydrologyPlanner.class, CALLS_REAL_METHODS);
+        private final HydrologyRouteGeometry geometry = mock(HydrologyRouteGeometry.class, CALLS_REAL_METHODS);
         private final Constructor<?> candidateConstructor;
         private final Object tangent;
         private final Method solve;
         private final Method indices;
 
         private Solver() throws Exception {
-            Class<?> direction = Class.forName(HydrologyPlanner.class.getName() + "$Direction");
+            Class<?> direction = RouteDirection.class;
             Constructor<?> directionConstructor = direction.getDeclaredConstructor(double.class, double.class);
             directionConstructor.setAccessible(true);
             tangent = directionConstructor.newInstance(1D, 0D);
-            Class<?> candidate = Class.forName(HydrologyPlanner.class.getName() + "$RouteCandidate");
+            Class<?> candidate = RouteCandidate.class;
             candidateConstructor = candidate.getDeclaredConstructor(HydrologyPoint.class, double.class, double.class,
                     double.class, direction, boolean.class);
             candidateConstructor.setAccessible(true);
-            solve = HydrologyPlanner.class.getDeclaredMethod("selectCurvatureAwareTerrainRoute", List.class,
+            solve = HydrologyRouteGeometry.class.getDeclaredMethod("selectCurvatureAwareTerrainRoute", List.class,
                     double.class, double.class, double.class, double[][].class, double[][][].class, double[][][][].class);
             solve.setAccessible(true);
             indices = solve.getReturnType().getDeclaredMethod("indices");
@@ -226,7 +226,7 @@ public class HydrologyRouteTurnCacheTest {
                 }
                 layers.add(candidates);
             }
-            return (int[]) indices.invoke(solve.invoke(planner, layers, 12D, maximumTurn, 12D,
+            return (int[]) indices.invoke(solve.invoke(geometry, layers, 12D, maximumTurn, 12D,
                     fixture.penalties(), fixture.transitions(), cache));
         }
     }

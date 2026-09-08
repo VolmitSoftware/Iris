@@ -4,6 +4,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
+import art.arcane.iris.testsupport.Await;
 import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
@@ -14,6 +15,7 @@ import org.mockito.invocation.InvocationOnMock;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +24,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertFalse;
@@ -281,17 +284,18 @@ public class IrisDimensionCarvingResolverParityTest {
                 new WeakReference<>(fixture.engine()));
     }
 
-    private static void awaitCollection(LifetimeReferences references) throws InterruptedException {
-        for (int attempt = 0; attempt < 100; attempt++) {
+    private static void awaitCollection(LifetimeReferences references) {
+        AtomicInteger attempt = new AtomicInteger();
+        Await.reached("the thread-local State and Engine to be collected", Duration.ofSeconds(5L), () -> {
             System.gc();
             if (references.state().get() == null
                     && references.engine().get() == null) {
-                return;
+                return true;
             }
             byte[] pressure = new byte[1_048_576];
-            pressure[0] = (byte) attempt;
-            Thread.sleep(10L);
-        }
+            pressure[0] = (byte) attempt.incrementAndGet();
+            return false;
+        });
         assertTrue("Thread-local State was retained", references.state().get() == null);
         assertTrue("Engine was retained", references.engine().get() == null);
     }

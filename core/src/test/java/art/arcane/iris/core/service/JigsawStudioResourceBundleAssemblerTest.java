@@ -17,6 +17,7 @@ import art.arcane.iris.engine.object.IrisJigsawPiece;
 import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.iris.engine.object.IrisPosition;
 import art.arcane.iris.engine.object.JigsawJoint;
+import art.arcane.iris.testsupport.DurabilityMode;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -46,6 +47,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class JigsawStudioResourceBundleAssemblerTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String STRUCTURE_KEY = "fort";
 

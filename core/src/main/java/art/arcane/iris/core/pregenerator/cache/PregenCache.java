@@ -6,10 +6,6 @@ import art.arcane.volmlib.util.documentation.RegionCoordinates;
 import java.io.File;
 
 public interface PregenCache {
-    default boolean isThreadSafe() {
-        return false;
-    }
-
     @ChunkCoordinates
     boolean isChunkCached(int x, int z);
 
@@ -32,16 +28,10 @@ public interface PregenCache {
     }
 
     default PregenCache sync() {
-        if (isThreadSafe()) return this;
-        return new SynchronizedCache(this);
+        return this;
     }
 
     PregenCache EMPTY = new PregenCache() {
-        @Override
-        public boolean isThreadSafe() {
-            return true;
-        }
-
         @Override
         public boolean isChunkCached(int x, int z) {
             return false;

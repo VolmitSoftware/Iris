@@ -8,6 +8,7 @@ import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.format.MemoryMonitor;
 import art.arcane.volmlib.util.scheduling.FoliaScheduler;
@@ -17,6 +18,7 @@ import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.scheduler.BukkitScheduler;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
@@ -45,6 +47,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class PregeneratorJobShutdownDispatchTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Test
     public void pluginDisableCanJoinAWorkerAlreadyDispatchingSaving() throws Exception {
         try (Fixture fixture = new Fixture()) {

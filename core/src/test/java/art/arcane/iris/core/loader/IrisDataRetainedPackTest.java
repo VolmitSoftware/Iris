@@ -5,8 +5,10 @@ import art.arcane.iris.engine.history.GenerationRegistryContract;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -20,6 +22,9 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
 
 public class IrisDataRetainedPackTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 

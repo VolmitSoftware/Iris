@@ -5,8 +5,10 @@ import art.arcane.iris.engine.hydrology.runtime.IrisHydrologyRuntime;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import org.bukkit.block.data.BlockData;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
@@ -29,6 +31,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 public class ChunkContextPrefillPlanTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Test
     public void noCavePrefillSkipsCaveCacheFill() {
         AtomicInteger caveCalls = new AtomicInteger();

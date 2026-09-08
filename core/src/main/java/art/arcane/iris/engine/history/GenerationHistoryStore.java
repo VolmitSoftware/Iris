@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.history;
 
+import art.arcane.iris.util.common.io.Durability;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -282,7 +283,7 @@ public final class GenerationHistoryStore {
                 while (buffer.hasRemaining()) {
                     channel.write(buffer);
                 }
-                channel.force(true);
+                Durability.force(channel);
             }
             try {
                 if (replaceExisting) {
@@ -352,7 +353,7 @@ public final class GenerationHistoryStore {
                 while (buffer.hasRemaining()) {
                     channel.write(buffer);
                 }
-                channel.force(true);
+                Durability.force(channel);
             }
             try {
                 Files.move(temporary, metadata, StandardCopyOption.ATOMIC_MOVE);
@@ -439,11 +440,15 @@ public final class GenerationHistoryStore {
     }
 
     private static void forceDirectory(Path directory) throws IOException {
+        if (!Durability.enabled()) {
+            return;
+        }
+
         if (File.separatorChar == '\\') {
             return;
         }
         try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
-            channel.force(true);
+            Durability.force(channel);
         } catch (UnsupportedOperationException exception) {
             throw new IOException("Generation history directory cannot be durability-synced: " + directory, exception);
         }

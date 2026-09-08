@@ -17,6 +17,7 @@ import art.arcane.iris.engine.hydrology.runtime.IrisHydrologyRuntime;
 import art.arcane.iris.engine.history.GenerationSemanticIndex;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.iris.util.project.stream.interpolation.Interpolated;
 import art.arcane.volmlib.util.collection.KList;
@@ -24,6 +25,7 @@ import art.arcane.volmlib.util.math.Position2;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.File;
@@ -50,6 +52,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class HintedLocatorTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     private static boolean boundPlatform;
 
     @BeforeClass

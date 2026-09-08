@@ -75,8 +75,8 @@ public class WandSVC implements IrisService {
     private static final int MS_PER_TICK = Integer.parseInt(System.getProperty("iris.ms_per_tick", "30"));
     private static final int PLAYER_RESCAN_INTERVAL_TICKS = 100;
 
-    private static ItemStack dust;
-    private static ItemStack wand;
+    private static volatile ItemStack dust;
+    private static volatile ItemStack wand;
 
     private final Map<UUID, Player> activePlayers = new ConcurrentHashMap<>();
     private final AtomicBoolean playerRescanScheduled = new AtomicBoolean(false);
@@ -374,12 +374,14 @@ public class WandSVC implements IrisService {
 
     @Override
     public void onEnable() {
-        wand = createWand();
-        dust = createDust();
         enabled = true;
         activePlayers.clear();
         ticksUntilPlayerRescan = 0;
         taskId = J.ar(this::tickAll, 1);
+        J.s(() -> {
+            wand = createWand();
+            dust = createDust();
+        });
     }
 
     @Override
@@ -389,6 +391,8 @@ public class WandSVC implements IrisService {
             J.car(taskId);
             taskId = -1;
         }
+        wand = null;
+        dust = null;
         activePlayers.clear();
         playerRescanScheduled.set(false);
     }
@@ -607,7 +611,8 @@ public class WandSVC implements IrisService {
             return false;
         }
         Byte marker = is.getItemMeta().getPersistentDataContainer().get(dustKey(), PersistentDataType.BYTE);
-        return (marker != null && marker == (byte) 1) || is.isSimilar(dust);
+        ItemStack template = dust;
+        return (marker != null && marker == (byte) 1) || (template != null && is.isSimilar(template));
     }
 
     private static NamespacedKey wandKey() {

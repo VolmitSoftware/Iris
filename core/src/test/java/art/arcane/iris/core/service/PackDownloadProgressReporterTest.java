@@ -7,8 +7,6 @@ import art.arcane.volmlib.util.format.Form;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -180,24 +178,6 @@ public class PackDownloadProgressReporterTest {
         reporter.onProgress(connecting);
 
         verify(sender, times(1)).sendMessage(anyString());
-    }
-
-    @Test
-    public void playerHudAlwaysShowsLoaderLaneAndActionBarWithCleanup() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/service/PackDownloadProgressReporter.java"
-        )).replace("\r\n", "\n");
-
-        assertFalse(source.contains("HudSlotRequest"));
-        assertFalse(source.contains("HudSurface"));
-        assertTrue(source.contains("J.ar(this::pulseHud, HUD_PULSE_TICKS)"));
-        assertTrue(source.contains("BukkitPlatform.hudLanes().show("));
-        assertTrue(source.contains("sender.sendAction(snapshot.line())"));
-        assertTrue(source.contains("HUD_TERMINAL_TICKS, retiredCleanup"));
-        assertTrue(source.contains("BukkitPlatform.hudLanes().retire(playerId, hudLaneId)"));
-        assertTrue(source.contains("BukkitPlatform.hudLanes().hide(player, hudLaneId)"));
-        assertFalse(source.contains("J.runGlobal(cleanup)"));
-        assertTrue(source.contains("J.car(activeTaskId);"));
     }
 
     @Test

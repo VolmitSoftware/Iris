@@ -5,9 +5,11 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.project.hunk.view.ChunkDataHunkHolder;
 import org.bukkit.generator.ChunkGenerator;
 import org.junit.After;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -24,6 +26,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class PlatformStateRebindTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     private static final List<String> CONVERTED = List.of(
             "art.arcane.iris.engine.actuator.IrisDimensionStackActuator",
             "art.arcane.iris.engine.actuator.IrisTerrainNormalActuator",

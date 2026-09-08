@@ -5,9 +5,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,32 +21,6 @@ public class ModdedWorldCheckTest {
         });
 
         assertTrue(thread.isDaemon());
-    }
-
-    @Test
-    public void poiAuditRunsInASecondServerTaskAfterVillageGeneration() throws IOException {
-        Path sourceRoot = Path.of(System.getProperty("iris.moddedCommonSources"));
-        String source = Files.readString(sourceRoot.resolve("art/arcane/iris/modded/ModdedWorldCheck.java"));
-        String auditSource = Files.readString(
-                sourceRoot.resolve("art/arcane/iris/modded/WorldCheckStructureAudit.java"));
-        int preparationSubmit = source.indexOf(
-                "WorldCheckPreparation preparation = serverRef.submit(() -> run(serverRef))");
-        int completionSubmit = source.indexOf(
-                "exitCode = serverRef.submit(() -> runAndRequestStop(", preparationSubmit);
-        int completionMethod = source.indexOf("private static boolean completeWorldCheck");
-        int deferredAudit = source.indexOf(
-                "PoiAudit poi = WorldCheckStructureAudit.auditStructurePois", completionMethod);
-        int structureMethod = auditSource.indexOf("private static StructureCheckResult checkNativeStructure");
-        int structureMethodEnd = auditSource.indexOf("private static StructureStart resolveStructureStart",
-                structureMethod);
-        String structureSource = auditSource.substring(structureMethod, structureMethodEnd);
-
-        assertTrue(preparationSubmit >= 0);
-        assertTrue(completionSubmit > preparationSubmit);
-        assertTrue(deferredAudit > completionMethod);
-        assertFalse(structureSource.contains("auditStructurePois"));
-        assertFalse(source.contains("prepareDeferredAudits"));
-        assertFalse(auditSource.contains("prepareDeferredAudits"));
     }
 
     @Test

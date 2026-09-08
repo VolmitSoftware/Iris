@@ -18,6 +18,8 @@
 
 package art.arcane.iris.core.structure.authoring;
 
+import art.arcane.iris.testsupport.DurabilityMode;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.Assume;
@@ -40,6 +42,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class StructureTransactionWriterTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     private static final StructureKey TARGET_KEY = StructureKey.parse("iris_test:temple");
     private static final StructureKey SOURCE_KEY = StructureKey.parse("minecraft:trial_chambers");
 

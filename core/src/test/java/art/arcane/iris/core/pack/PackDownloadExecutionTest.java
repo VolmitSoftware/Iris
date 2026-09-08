@@ -61,11 +61,12 @@ public class PackDownloadExecutionTest {
     public void cancellationInterruptsRunningWorkOutsidePublication() throws Exception {
         LifecycleOperationCoordinator.Lease lease = mock(LifecycleOperationCoordinator.Lease.class);
         CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch neverReleased = new CountDownLatch(1);
         AtomicBoolean interrupted = new AtomicBoolean();
         PackDownloadExecution execution = new PackDownloadExecution(lease, cancellation -> {
             started.countDown();
             try {
-                Thread.sleep(TimeUnit.SECONDS.toMillis(30L));
+                neverReleased.await(30L, TimeUnit.SECONDS);
             } catch (InterruptedException exception) {
                 interrupted.set(true);
                 Thread.currentThread().interrupt();

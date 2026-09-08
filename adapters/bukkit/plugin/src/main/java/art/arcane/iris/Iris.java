@@ -39,6 +39,7 @@ import art.arcane.iris.core.SettingsHotloadWatch;
 import art.arcane.iris.core.ServerConfigurator;
 import art.arcane.iris.core.datapack.DatapackIngestService;
 import art.arcane.iris.core.datapack.DatapackIngestService.StartupValidationOutcome;
+import art.arcane.iris.core.lifecycle.IrisRuntimeStatics;
 import art.arcane.iris.core.lifecycle.ManagedWorldLoader;
 import art.arcane.iris.core.lifecycle.MissingWorldStorageLog;
 import art.arcane.iris.core.lifecycle.PaperLibBootstrap;
@@ -87,6 +88,7 @@ import art.arcane.iris.engine.framework.PreservationRegistry;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
 import art.arcane.iris.engine.object.IrisCompat;
 import art.arcane.iris.core.safeguard.IrisSafeguard;
+import art.arcane.iris.core.safeguard.RuntimeLockNotice;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisLogging;
@@ -147,6 +149,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -159,6 +162,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener, ReloadAware {
@@ -215,16 +219,23 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     private volatile ServerShutdownBoundary serverShutdownBoundary;
 
     public static VolmitSender getSender() {
-        if (sender == null) {
-            sender = new VolmitSender(Bukkit.getConsoleSender());
-            sender.setTag(instance.getTag());
+        VolmitSender current = sender;
+        if (current == null) {
+            Iris plugin = instance;
+            current = new VolmitSender(Bukkit.getConsoleSender());
+            current.setTag(plugin == null ? IrisSafeguard.mode().tag("") : plugin.getTag());
+            sender = current;
         }
-        return sender;
+        return current;
     }
 
     @SuppressWarnings("unchecked")
     public static <T> T service(Class<T> c) {
-        return (T) instance.services.get(c);
+        Iris plugin = instance;
+        if (plugin == null || plugin.services == null) {
+            throw new IllegalStateException("Iris is disabled; " + c.getSimpleName() + " is unavailable");
+        }
+        return (T) plugin.services.get(c);
     }
 
     public static void callEvent(Event e) {
@@ -263,7 +274,11 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     }
 
     public static File getTemp() {
-        return instance.getDataFolder("cache", "temp");
+        Iris plugin = instance;
+        if (plugin == null) {
+            throw new IllegalStateException("Iris is disabled; the temp folder is unavailable");
+        }
+        return plugin.getDataFolder("cache", "temp");
     }
 
     public static void msg(String string) {
@@ -305,10 +320,11 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             return;
         }
 
-        StackWalker.StackFrame frame = null;
+        StackWalker.StackFrame frame;
         try {
             frame = DEBUG_STACK_WALKER.walk(stream -> stream.skip(1).findFirst().orElse(null));
-        } catch (Throwable ignored) {
+        } catch (Throwable unavailable) {
+            frame = null;
         }
 
         if (frame == null) {
@@ -444,7 +460,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             try {
                 IrisSettings currentSettings = IrisSettings.settings != null ? IrisSettings.settings : IrisSettings.get();
                 debug = currentSettings != null && currentSettings.getGeneral().isDebug();
-            } catch (Throwable ignored) {
+            } catch (Throwable unreadable) {
                 debug = false;
             }
         }
@@ -541,11 +557,11 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 Iris::msg,
                 Iris::reportError,
                 (event) -> Iris.callEvent((org.bukkit.event.Event) event),
-                () -> Iris.instance.getDataFolder(),
-                (path) -> Iris.instance.getDataFile(path),
-                () -> Iris.instance.getJarFile(),
-                () -> Iris.instance.getIrisVersion(),
-                () -> Iris.instance.getMCVersion()));
+                this::getDataFolder,
+                this::getDataFile,
+                this::getJarFile,
+                this::getIrisVersion,
+                this::getMCVersion));
         SlimJar.load();
     }
 
@@ -612,6 +628,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             J.s(() -> Bukkit.getPluginManager().disablePlugin(this), 1);
             return false;
         }
+        EnableTimings timings = new EnableTimings();
         alreadyDrained.set(false);
         postStopFinisherStarted.set(false);
         serverStopTeardownDeferred.set(false);
@@ -625,12 +642,15 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         MultiBurst.burst.reopen();
         MultiBurst.ioBurst.reopen();
         IrisLanguage.initialize();
-        debugDump = BukkitDebugDump.create(this);
+        debugDump = BukkitDebugDump.create(this, new BukkitDebugDump.Options(
+                () -> true,
+                () -> IrisSafeguard::debugReport));
         languageSwitcher = BukkitLanguageSwitcher.register(this, IrisLanguage.selections(),
                 new BukkitLanguageSwitcher.Options("iris", "iris.all",
                         DirectorMiniMenu.Theme.irisGreen(), IrisLanguage.directorResolver(), IrisLanguage.editorOptions()));
         PaperLibBootstrap.install();
         SimdSupport.install();
+        timings.mark("bootstrap");
         services = new KMap<>();
         BukkitPlatform.hostHud(new HudActionBar(this), new HudBossBarLane());
         // Explicit, ordered service list: the previous reflective jar scan gave hash-ordered
@@ -669,9 +689,13 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         IrisServices.register(PreservationRegistry.class, services.get(PreservationSVC.class));
         compat = IrisCompat.configured(getDataFile("compat.json"));
         IrisServices.register(IrisCompat.class, compat);
+        timings.mark("services");
         ServerConfigurator.configure();
+        timings.mark("serverConfig");
         StartupValidationOutcome datapackValidation = DatapackIngestService.validateOnStartup();
+        timings.mark("datapacks");
         IrisSafeguard.execute();
+        timings.mark("safeguard");
         getSender().setTag(getTag());
         // A cosmetic banner must never abort the bootstrap.
         J.attempt(this::splash);
@@ -680,6 +704,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         // Paper's bootstrap runs before any plugin logger exists, so orphan-storage warnings raised there
         // never reach logs/latest.log. Replay them once now that the platform log is up.
         MissingWorldStorageLog.replayToPlatformLog();
+        timings.mark("splash");
         tickets = new ChunkTickets();
         linkMultiverseCore = new MultiverseCoreLink();
         IrisServices.register(MultiverseCoreLink.class, linkMultiverseCore);
@@ -692,18 +717,21 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         IrisServices.register(ManagedWorldLoader.class, (ManagedWorldLoader) this::loadManagedWorld);
         SettingsHotloadWatch watch = new SettingsHotloadWatch(getDataFile("iris.json"));
         settingsHotloadWatch = watch;
-        // Stale-temp cleanup must complete before services enable: StudioSVC.onEnable downloads
-        // packs through cache/temp on an async thread, and a concurrent delete of that folder
-        // truncated pack imports mid-copy (partial packs/<key> without dimensions/).
-        IO.delete(getTemp());
+        StudioSVC.gateDownloadsOnStaleTempCleanup(MultiBurst.ioBurst.completeValueAsync(() -> {
+            IO.delete(getTemp());
+            return null;
+        }));
+        timings.mark("tempSweep");
         // One throwing service must not abort the bootstrap: the steps after this loop
         // (listeners, shutdown hook, replacement journals) are the safety-critical ones.
         // Only services that actually enabled get listeners and a later onDisable.
         enabledServices.clear();
         for (IrisService service : orderedServices) {
+            long serviceStartedAt = System.nanoTime();
             try {
                 service.onEnable();
                 enabledServices.add(service);
+                timings.markService(service.getClass().getSimpleName(), serviceStartedAt);
             } catch (Throwable e) {
                 // A service failure is NOT a datapack validation failure: the admission gate
                 // must never lock every login over a broken cosmetic service. Log loudly,
@@ -724,10 +752,12 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 Iris.reportError("Failed to register listener for " + service.getClass().getSimpleName() + ".", e);
             }
         }
+        timings.mark("serviceEnable");
         if (datapackValidation == StartupValidationOutcome.READY) {
             IrisServices.get(ExternalDataSVC.class).setContentChangeListener(generatorResolver::requestExternalContentRefresh);
             generatorResolver.validateAllPacks();
         }
+        timings.mark("packValidation");
         addShutdownHook();
         pendingWorldReplacements.processPendingStartupReplacements();
         pendingWorldDeletes.processPendingStartupWorldDeletes();
@@ -755,7 +785,44 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             // match a slice type; the block-state slice is deliberately never retainable (regenerable, huge).
             IrisToolbelt.retainMantleDataForSlice(TreeBlockMaterial.class.getCanonicalName());
         });
+        timings.mark("startupTasks");
+        timings.report();
         return true;
+    }
+
+    private static final class EnableTimings {
+        private static final int REPORTED_SERVICES = 3;
+
+        private final long startedAt = System.nanoTime();
+        private final StringBuilder phases = new StringBuilder();
+        private final Map<String, Long> serviceMillis = new LinkedHashMap<>();
+        private long lastMark = startedAt;
+
+        private void mark(String phase) {
+            long now = System.nanoTime();
+            if (!phases.isEmpty()) {
+                phases.append(' ');
+            }
+            phases.append(phase).append('=').append(TimeUnit.NANOSECONDS.toMillis(now - lastMark)).append("ms");
+            lastMark = now;
+        }
+
+        private void markService(String service, long serviceStartedAt) {
+            serviceMillis.put(service, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - serviceStartedAt));
+        }
+
+        private void report() {
+            IrisLogging.notice("Enabled in %dms (%s)",
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt), phases);
+            String slowest = serviceMillis.entrySet().stream()
+                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                    .limit(REPORTED_SERVICES)
+                    .map(entry -> entry.getKey() + "=" + entry.getValue() + "ms")
+                    .collect(Collectors.joining(" "));
+            if (!slowest.isBlank()) {
+                IrisLogging.notice("Slowest services: %s", slowest);
+            }
+        }
     }
 
     private void reconcileStartupWorlds() {
@@ -866,6 +933,25 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                     .orElse("Iris startup validation requires a restart.");
             startupBoundaryRestart.set(true);
             ServerConfigurator.restartAtStartupBoundary(restartReason);
+            return;
+        }
+        reportLockedRuntime();
+    }
+
+    private static void reportLockedRuntime() {
+        String denial = IrisStartupValidation.denialReason().orElse(null);
+        if (denial == null) {
+            return;
+        }
+        boolean managedStorage;
+        try {
+            managedStorage = IrisWorldStorage.hasManagedWorldStorage(IrisWorldStorage.levelRoot());
+        } catch (Throwable unavailable) {
+            Iris.reportError("Could not inspect Iris world storage while reporting the locked runtime.", unavailable);
+            managedStorage = false;
+        }
+        for (String line : RuntimeLockNotice.compose(denial, managedStorage)) {
+            Iris.error(line);
         }
     }
 
@@ -1027,8 +1113,17 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 Iris.reportError("Failed to close Iris I/O workers.", failure);
             }
             clearQueues();
-            IrisServices.clear();
+            IrisRuntimeStatics.reset();
+            releaseStatics();
         }
+    }
+
+    private static void releaseStatics() {
+        linkMultiverseCore = null;
+        compat = null;
+        tickets = null;
+        sender = null;
+        instance = null;
     }
 
     private void quiesceRuntimeForServerShutdown(String reason) {
@@ -1173,6 +1268,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                     failure.printStackTrace(SHUTDOWN_ERRORS);
                 }
             }
+            BukkitPlatform.releaseHost();
         }
     }
 
@@ -1367,7 +1463,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     }
 
     public int getIrisVersion() {
-        String input = Iris.instance.getDescription().getVersion();
+        String input = getDescription().getVersion();
         int hyphenIndex = input.indexOf('-');
         if (hyphenIndex != -1) {
             String result = input.substring(0, hyphenIndex);

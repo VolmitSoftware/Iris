@@ -2,6 +2,11 @@ package art.arcane.iris.purity;
 
 import art.arcane.iris.engine.object.annotations.Snippet;
 import org.junit.Test;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
@@ -10,7 +15,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,8 +26,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -74,13 +76,12 @@ public class PackTypeBukkitPurityGateTest {
     /** See {@link #theGateStillCatchesAClassThatNeedsBukkit()}. */
     private static final String BUKKIT_DEPENDENT_CANARY = "art.arcane.iris.engine.object.IrisObjectRotation$Faces";
     private static final String OBJECT_PACKAGE = "art/arcane/iris/engine/object";
-    private static final Path IRIS_DATA_SOURCE =
-            Paths.get("src", "main", "java", "art", "arcane", "iris", "core", "loader", "IrisData.java");
+    private static final String IRIS_DATA = "art.arcane.iris.core.loader.IrisData";
 
     /**
      * Every type handed to {@code registerLoader} in {@code IrisData.hotloaded()} - i.e. every root
      * type Gson deserializes from a pack. Kept literal on purpose; {@link
-     * #registeredRootListMatchesIrisData()} fails if the source drifts away from it.
+     * #registeredRootListMatchesIrisData()} fails if the compiled registrations drift away from it.
      */
     private static final List<String> GSON_REGISTERED_ROOTS = List.of(
             "art.arcane.iris.engine.object.IrisLootTable",
@@ -140,21 +141,52 @@ public class PackTypeBukkitPurityGateTest {
 
     @Test
     public void registeredRootListMatchesIrisData() throws Exception {
-        if (!Files.isRegularFile(IRIS_DATA_SOURCE)) {
-            return;
-        }
-        String source = Files.readString(IRIS_DATA_SOURCE, StandardCharsets.UTF_8);
-        Matcher matcher = Pattern.compile("registerLoader\\((\\w+)\\.class").matcher(source);
-        Set<String> inSource = new TreeSet<>();
-        while (matcher.find()) {
-            inSource.add(matcher.group(1));
-        }
+        byte[] bytes = BukkitHidingClassLoader.readClassBytes(getClass().getClassLoader(), IRIS_DATA);
+        assertNotNull("no class bytes for " + IRIS_DATA, bytes);
+
+        Set<String> registered = new TreeSet<>();
+        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9) {
+            @Override
+            public MethodVisitor visitMethod(
+                    int access,
+                    String name,
+                    String descriptor,
+                    String signature,
+                    String[] exceptions
+            ) {
+                return new MethodVisitor(Opcodes.ASM9) {
+                    private String pendingRegistrant;
+
+                    @Override
+                    public void visitLdcInsn(Object value) {
+                        if (value instanceof Type type && type.getSort() == Type.OBJECT) {
+                            pendingRegistrant = type.getClassName();
+                        }
+                    }
+
+                    @Override
+                    public void visitMethodInsn(
+                            int opcode,
+                            String owner,
+                            String methodName,
+                            String methodDescriptor,
+                            boolean isInterface
+                    ) {
+                        if ("registerLoader".equals(methodName) && pendingRegistrant != null) {
+                            registered.add(pendingRegistrant.substring(pendingRegistrant.lastIndexOf('.') + 1));
+                        }
+                        pendingRegistrant = null;
+                    }
+                };
+            }
+        }, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+
         Set<String> inTest = new TreeSet<>();
         for (String name : GSON_REGISTERED_ROOTS) {
             inTest.add(name.substring(name.lastIndexOf('.') + 1));
         }
         assertEquals("IrisData registers a different set of pack roots than this gate covers - "
-                + "add the new type to GSON_REGISTERED_ROOTS", inTest, inSource);
+                + "add the new type to GSON_REGISTERED_ROOTS", inTest, registered);
     }
 
     @Test

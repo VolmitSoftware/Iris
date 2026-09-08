@@ -7,10 +7,8 @@ import art.arcane.iris.core.pack.PackValidationResult;
 import art.arcane.volmlib.util.director.compat.DirectorAnnotationCompatibility;
 import art.arcane.volmlib.util.director.runtime.DirectorNodeDescriptor;
 import art.arcane.volmlib.util.director.runtime.DirectorParameterDescriptor;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
-import org.junit.After;
-import org.junit.Before;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.List;
@@ -20,22 +18,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class CommandPackCompatTest {
-    private IrisPlatform previousPlatform;
-
-    /** The persisted Minecraft version is only used when no platform is bound, so pin that here. */
-    @Before
-    public void unbindPlatform() {
-        previousPlatform = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
-        IrisPlatforms.unbind();
-    }
-
-    @After
-    public void rebindPlatform() {
-        IrisPlatforms.unbind();
-        if (previousPlatform != null) {
-            IrisPlatforms.bind(previousPlatform);
-        }
-    }
+    @Rule
+    public final PlatformLeakGuard leakGuard = PlatformLeakGuard.clean();
 
     private static CompatFinding block(CompatAction action, String subjectKey) {
         return new CompatFinding(

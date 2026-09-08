@@ -5,8 +5,11 @@ import art.arcane.iris.engine.IrisEngine;
 import art.arcane.iris.engine.framework.BiomeEnvironment;
 import art.arcane.iris.engine.framework.PreservationRegistry;
 import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.testsupport.Await;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -15,6 +18,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +43,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class SavedBiomeRuntimeTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -263,10 +270,8 @@ public class SavedBiomeRuntimeTest {
             consumption.writeLock().lock();
             Future<Boolean> rendered = caller.submit(() -> runtime.readSurfaceBiome(0, 0, Optional::isEmpty));
             try {
-                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
-                while (runtime.cachedQueryCount() == 0 && System.nanoTime() < deadline) {
-                    Thread.sleep(1L);
-                }
+                Await.reached("the background preview to cache its query", Duration.ofSeconds(5L),
+                        () -> runtime.cachedQueryCount() != 0);
                 assertEquals(1, runtime.cachedQueryCount());
                 for (int chunkX = 1; chunkX <= 130; chunkX++) {
                     int requestedX = chunkX;
@@ -451,11 +456,9 @@ public class SavedBiomeRuntimeTest {
         when(history.semantics(anyInt(), anyInt())).thenReturn(Optional.empty());
     }
 
-    private static void awaitIdle(SavedBiomeRuntime runtime) throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
-        while (runtime.pendingQueryCount() != 0 && System.nanoTime() < deadline) {
-            Thread.sleep(1L);
-        }
+    private static void awaitIdle(SavedBiomeRuntime runtime) {
+        Await.reached("the runtime to drain its pending queries", Duration.ofSeconds(5L),
+                () -> runtime.pendingQueryCount() == 0);
         assertEquals(0, runtime.pendingQueryCount());
     }
 

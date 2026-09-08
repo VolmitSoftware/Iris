@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntSupplier;
 
 public class MultiBurst extends MultiBurstSupport {
@@ -21,6 +22,7 @@ public class MultiBurst extends MultiBurstSupport {
      * plans never pin the workers that chunk generation's short stage and mantle tasks need.
      */
     public static final MultiBurst hydrology = new MultiBurst("Iris Hydrology", () -> Math.max(2, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())));
+    private final AtomicInteger parallelismBaseline = new AtomicInteger();
 
     public MultiBurst() {
         this("Iris");
@@ -41,13 +43,35 @@ public class MultiBurst extends MultiBurstSupport {
     /**
      * Raises the pool's parallelism to at least {@code target} workers. Pregeneration fans every
      * chunk's stages and mantle windows into this pool while some tasks block on unmanaged waits,
-     * so a pregeneration box wants more workers than cores; the pool never shrinks back.
+     * so a pregeneration box wants more workers than cores. {@link #restoreParallelism()} puts it back.
      */
     public boolean raiseParallelism(int target) {
         if (!(service() instanceof ForkJoinPool pool) || target <= pool.getParallelism()) {
             return false;
         }
+        parallelismBaseline.compareAndSet(0, pool.getParallelism());
         pool.setParallelism(target);
+        return true;
+    }
+
+    /**
+     * Returns the pool to the parallelism it had before the first {@link #raiseParallelism(int)} that took
+     * effect. A pool that was never raised, or that is not a {@link ForkJoinPool}, is left alone.
+     */
+    public boolean restoreParallelism() {
+        int baseline = parallelismBaseline.getAndSet(0);
+        if (baseline <= 0 || !(service() instanceof ForkJoinPool pool) || pool.getParallelism() <= baseline) {
+            return false;
+        }
+
+        try {
+            pool.setParallelism(baseline);
+        } catch (RuntimeException e) {
+            IrisLogging.reportError("Iris could not return the burst pool to its pre-pregeneration parallelism of "
+                    + baseline + "; it stays at " + pool.getParallelism() + ".", e);
+            return false;
+        }
+
         return true;
     }
 

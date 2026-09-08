@@ -17,11 +17,13 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
@@ -59,6 +61,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public final class ResolvedTerrainProviderTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Test
     public void cachedTransitionTerrainRetainsDeferredBlocksWhenCopied() {
         Fixture fixture = new Fixture();

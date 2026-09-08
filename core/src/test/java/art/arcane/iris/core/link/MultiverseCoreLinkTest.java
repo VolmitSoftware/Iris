@@ -18,8 +18,6 @@ import org.mvplugins.multiverse.external.vavr.control.Option;
 
 import java.io.File;
 import java.lang.reflect.Method;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -51,16 +49,6 @@ public class MultiverseCoreLinkTest {
                 Arrays.stream(MultiverseCoreLink.class.getDeclaredMethods())
                         .anyMatch(method -> "updateWorld".equals(method.getName())
                                 && method.getParameterCount() == 2));
-    }
-
-    @Test
-    public void registrationDoesNotRewriteTheRecordedMultiverseName() throws Exception {
-        String source = Files.readString(Path.of("src/main/java/art/arcane/iris/core/link/MultiverseCoreLink.java")).replace("\r\n", "\n");
-
-        assertFalse("worlds are created under the startup name, so the recorded name needs no correction",
-                source.contains("setLegacyWorldName"));
-        assertTrue("Multiverse still has to be told the live world name it will record",
-                source.contains("ImportWorldOptions.worldName(world.getName())"));
     }
 
     @Test

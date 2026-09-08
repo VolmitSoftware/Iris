@@ -6,7 +6,9 @@ import art.arcane.iris.engine.history.GenerationEpochContractFactory;
 import art.arcane.iris.engine.history.GenerationHistory;
 import art.arcane.iris.engine.history.GenerationPackFingerprint;
 import art.arcane.iris.engine.history.GenerationRegistryContract;
+import art.arcane.iris.testsupport.DurabilityMode;
 import org.junit.Assume;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -26,6 +28,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class IrisDatapackCompilerInputFingerprintTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 

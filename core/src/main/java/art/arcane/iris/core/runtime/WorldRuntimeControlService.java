@@ -1,5 +1,6 @@
 package art.arcane.iris.core.runtime;
 
+import art.arcane.iris.spi.CapabilityProbe;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.core.IrisSettings;
@@ -30,7 +31,6 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.VoxelShape;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -74,6 +74,12 @@ public final class WorldRuntimeControlService {
         this.capabilityDescription = "family=" + capabilities.serverFamily().id()
                 + ", backend=" + backend.backendName()
                 + ", " + backend.describeCapabilities();
+    }
+
+    public static void reset() {
+        synchronized (WorldRuntimeControlService.class) {
+            instance = null;
+        }
     }
 
     public static WorldRuntimeControlService get() {
@@ -192,7 +198,8 @@ public final class WorldRuntimeControlService {
             backend.syncTime(world);
             return true;
         } catch (Throwable e) {
-            IrisLogging.debug("Runtime time lock skipped for world \"" + world.getName() + "\": " + e.getMessage());
+            IrisLogging.reportError("Failed to lock the clock of world \"" + world.getName()
+                    + "\" to noon; the world keeps its own time.", e);
             return false;
         }
     }
@@ -621,21 +628,16 @@ public final class WorldRuntimeControlService {
                 continue;
             }
 
-            try {
-                Field field = GameRule.class.getField(name);
-                Object value = field.get(null);
-                if (value instanceof GameRule<?> gameRule && Integer.class.equals(gameRule.getType())) {
-                    return (GameRule<Integer>) gameRule;
-                }
-            } catch (Throwable ignored) {
+            Object declared = CapabilityProbe.attempt("GameRule." + name,
+                    () -> GameRule.class.getField(name).get(null), null);
+            if (declared instanceof GameRule<?> gameRule && Integer.class.equals(gameRule.getType())) {
+                return (GameRule<Integer>) gameRule;
             }
 
-            try {
-                GameRule<?> byName = GameRule.getByName(name);
-                if (byName != null && Integer.class.equals(byName.getType())) {
-                    return (GameRule<Integer>) byName;
-                }
-            } catch (Throwable ignored) {
+            GameRule<?> byName = CapabilityProbe.attempt("GameRule#getByName(" + name + ")",
+                    () -> GameRule.getByName(name), null);
+            if (byName != null && Integer.class.equals(byName.getType())) {
+                return (GameRule<Integer>) byName;
             }
         }
 
@@ -657,12 +659,10 @@ public final class WorldRuntimeControlService {
                 continue;
             }
 
-            try {
-                GameRule<?> byName = GameRule.getByName(availableRule);
-                if (byName != null && Integer.class.equals(byName.getType())) {
-                    return (GameRule<Integer>) byName;
-                }
-            } catch (Throwable ignored) {
+            GameRule<?> byName = CapabilityProbe.attempt("GameRule#getByName(" + availableRule + ")",
+                    () -> GameRule.getByName(availableRule), null);
+            if (byName != null && Integer.class.equals(byName.getType())) {
+                return (GameRule<Integer>) byName;
             }
         }
 
@@ -681,21 +681,16 @@ public final class WorldRuntimeControlService {
                 continue;
             }
 
-            try {
-                Field field = GameRule.class.getField(name);
-                Object value = field.get(null);
-                if (value instanceof GameRule<?> gameRule && Boolean.class.equals(gameRule.getType())) {
-                    return (GameRule<Boolean>) gameRule;
-                }
-            } catch (Throwable ignored) {
+            Object declared = CapabilityProbe.attempt("GameRule." + name,
+                    () -> GameRule.class.getField(name).get(null), null);
+            if (declared instanceof GameRule<?> gameRule && Boolean.class.equals(gameRule.getType())) {
+                return (GameRule<Boolean>) gameRule;
             }
 
-            try {
-                GameRule<?> byName = GameRule.getByName(name);
-                if (byName != null && Boolean.class.equals(byName.getType())) {
-                    return (GameRule<Boolean>) byName;
-                }
-            } catch (Throwable ignored) {
+            GameRule<?> byName = CapabilityProbe.attempt("GameRule#getByName(" + name + ")",
+                    () -> GameRule.getByName(name), null);
+            if (byName != null && Boolean.class.equals(byName.getType())) {
+                return (GameRule<Boolean>) byName;
             }
         }
 
@@ -717,12 +712,10 @@ public final class WorldRuntimeControlService {
                 continue;
             }
 
-            try {
-                GameRule<?> byName = GameRule.getByName(availableRule);
-                if (byName != null && Boolean.class.equals(byName.getType())) {
-                    return (GameRule<Boolean>) byName;
-                }
-            } catch (Throwable ignored) {
+            GameRule<?> byName = CapabilityProbe.attempt("GameRule#getByName(" + availableRule + ")",
+                    () -> GameRule.getByName(availableRule), null);
+            if (byName != null && Boolean.class.equals(byName.getType())) {
+                return (GameRule<Boolean>) byName;
             }
         }
 

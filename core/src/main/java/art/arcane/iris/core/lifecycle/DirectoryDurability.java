@@ -2,6 +2,7 @@ package art.arcane.iris.core.lifecycle;
 
 import art.arcane.iris.spi.IrisLogging;
 
+import art.arcane.iris.util.common.io.Durability;
 import java.io.File;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -19,11 +20,15 @@ final class DirectoryDurability {
     }
 
     static void forceDirectoryRequired(Path directory) throws IOException {
+        if (!Durability.enabled()) {
+            return;
+        }
+
         if (File.separatorChar == '\\') {
             return;
         }
         try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
-            channel.force(true);
+            Durability.force(channel);
         } catch (UnsupportedOperationException failure) {
             throw new IOException("Directory durability sync is unavailable for " + directory + ".", failure);
         }

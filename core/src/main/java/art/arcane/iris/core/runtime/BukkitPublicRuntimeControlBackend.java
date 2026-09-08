@@ -1,6 +1,7 @@
 package art.arcane.iris.core.runtime;
 
 import art.arcane.iris.core.lifecycle.CapabilitySnapshot;
+import art.arcane.iris.spi.CapabilityProbe;
 import io.papermc.lib.PaperLib;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -56,14 +57,12 @@ final class BukkitPublicRuntimeControlBackend implements WorldRuntimeControlBack
         }
 
         if (capabilities.chunkAtAsyncMethod() != null) {
-            try {
-                Object result = capabilities.chunkAtAsyncMethod().invoke(world, chunkX, chunkZ, generate);
-                if (result instanceof CompletableFuture<?>) {
-                    @SuppressWarnings("unchecked")
-                    CompletableFuture<Chunk> future = (CompletableFuture<Chunk>) result;
-                    return future;
-                }
-            } catch (Throwable ignored) {
+            Object result = CapabilityProbe.attempt("world#getChunkAtAsync",
+                    () -> capabilities.chunkAtAsyncMethod().invoke(world, chunkX, chunkZ, generate), null);
+            if (result instanceof CompletableFuture<?>) {
+                @SuppressWarnings("unchecked")
+                CompletableFuture<Chunk> future = (CompletableFuture<Chunk>) result;
+                return future;
             }
         }
 

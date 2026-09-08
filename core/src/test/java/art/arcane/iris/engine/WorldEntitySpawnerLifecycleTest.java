@@ -12,11 +12,16 @@ import art.arcane.iris.engine.framework.GenerationSessionManager;
 import art.arcane.iris.engine.object.IrisWorld;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.testsupport.Await;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
@@ -41,8 +46,9 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -50,6 +56,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class WorldEntitySpawnerLifecycleTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Test
     public void queuedSpawnIsDiscardedWhenTheManagerCloses() throws Exception {
         try (Fixture fixture = new Fixture()) {
@@ -162,14 +171,26 @@ public class WorldEntitySpawnerLifecycleTest {
             when(fixture.world.isChunkLoaded(7, -4)).thenThrow(failure);
             Future<Boolean> waiting = fixture.spawn(false, true);
             Runnable task = fixture.nextTask();
+            AtomicReference<String> reportedContext = new AtomicReference<>();
+            AtomicReference<Throwable> reportedCause = new AtomicReference<>();
+            IrisPlatform platform = mock(IrisPlatform.class);
+            doAnswer(invocation -> {
+                reportedContext.set(invocation.getArgument(0));
+                reportedCause.set(invocation.getArgument(1));
+                return null;
+            }).when(platform).reportError(anyString(), any(Throwable.class));
+            IrisPlatforms.bind(platform);
 
-            try (MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
+            try {
                 task.run();
-                logging.verify(() -> IrisLogging.reportError(
-                        eq("Failed to spawn Iris entities in chunk 7,-4."), same(failure)));
+                assertFalse(waiting.get(1L, TimeUnit.SECONDS));
+                Await.until("the spawn failure report", () -> reportedCause.get() != null);
+            } finally {
+                IrisPlatforms.unbind();
             }
 
-            assertFalse(waiting.get(1L, TimeUnit.SECONDS));
+            assertEquals("Failed to spawn Iris entities in chunk 7,-4.", reportedContext.get());
+            assertSame(failure, reportedCause.get());
             assertEquals(0, fixture.sessions.activeLeases());
         }
     }

@@ -1,7 +1,9 @@
 package art.arcane.iris.engine.history;
 
 import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
+import art.arcane.iris.testsupport.DurabilityMode;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -26,6 +28,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public final class GenerationSemanticIndexTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 

@@ -4,6 +4,7 @@ import art.arcane.iris.core.link.MultiverseCoreLink;
 import art.arcane.iris.core.link.MultiverseGuardListener;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.util.common.plugin.VolmitPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
@@ -11,6 +12,7 @@ import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
 import org.junit.After;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
@@ -24,6 +26,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class MultiverseSVCTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @After
     public void unbindLink() {
         IrisServices.remove(MultiverseCoreLink.class);

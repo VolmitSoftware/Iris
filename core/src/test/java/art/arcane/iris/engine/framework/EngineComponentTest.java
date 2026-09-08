@@ -19,8 +19,10 @@
 package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.math.RollingSequence;
 import org.junit.After;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,6 +30,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.assertSame;
 
 public class EngineComponentTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @After
     public void removeCleanup() {
         IrisServices.remove(EngineComponentCleanup.class);

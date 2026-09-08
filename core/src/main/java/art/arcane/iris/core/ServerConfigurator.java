@@ -158,6 +158,16 @@ public class ServerConfigurator {
         }
     }
 
+    public static void resetLoadedDatapackRuntime() {
+        synchronized (DATAPACK_INSTALL_LOCK) {
+            loadedDatapackRuntimeReady = false;
+            loadedDatapackCompilerInputFingerprint = "";
+            loadedDatapackRegistryRequirements = Map.of();
+            loadedDatapackRuntimeGeneration++;
+            loadedDatapackRestartRequired = false;
+        }
+    }
+
     public static LoadedDatapackRuntimeInvalidation invalidateLoadedDatapackRuntime() {
         synchronized (DATAPACK_INSTALL_LOCK) {
             boolean wasReady = loadedDatapackRuntimeReady;

@@ -28,13 +28,8 @@ import art.arcane.iris.engine.object.IrisFloatingChildBiomes;
 import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.iris.engine.object.IrisObjectPlacement;
 import art.arcane.iris.engine.object.IrisObjectTranslate;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.volmlib.util.collection.KList;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -44,29 +39,15 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class MantleFloatingObjectComponentBoundaryRadiusTest {
     @Rule
+    public final PlatformBinding platform = PlatformBinding.mockPlatform();
+
+    @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-    @Before
-    public void bindPlatform() {
-        IrisPlatforms.unbind();
-        PlatformBlockState block = mock(PlatformBlockState.class);
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        when(registries.block(anyString())).thenReturn(block);
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.bind(platform);
-    }
-
-    @After
-    public void unbindPlatform() {
-        IrisPlatforms.unbind();
-    }
 
     @Test
     @SuppressWarnings("unchecked")

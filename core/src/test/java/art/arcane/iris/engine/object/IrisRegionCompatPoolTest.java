@@ -13,10 +13,10 @@ import org.junit.Test;
 
 import java.util.Map;
 
-import static art.arcane.iris.engine.object.CompatFixtures.MISSING_BLOCK;
-import static art.arcane.iris.engine.object.CompatFixtures.biome;
-import static art.arcane.iris.engine.object.CompatFixtures.excludeBlock;
-import static art.arcane.iris.engine.object.CompatFixtures.find;
+import static art.arcane.iris.engine.object.PackCompatFixtures.MISSING_BLOCK;
+import static art.arcane.iris.engine.object.PackCompatFixtures.biome;
+import static art.arcane.iris.engine.object.PackCompatFixtures.excludeBlock;
+import static art.arcane.iris.engine.object.PackCompatFixtures.find;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 public class IrisRegionCompatPoolTest {
     @SuppressWarnings("unchecked")
     private static IrisData dataWith(PackCompatReport report, IrisBiome... biomes) {
-        IrisData data = CompatFixtures.data(report);
+        IrisData data = PackCompatFixtures.data(report);
         ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
         when(data.getBiomeLoader()).thenReturn(biomeLoader);
         for (IrisBiome biome : biomes) {
@@ -46,7 +46,7 @@ public class IrisRegionCompatPoolTest {
         IrisBiome plains = biome("land/plains");
         IrisBiome sulfur = excludeBlock(biome("cave/sulfur-grotto"));
         IrisData data = dataWith(report, plains, sulfur);
-        IrisRegion region = CompatFixtures.region("overworld");
+        IrisRegion region = PackCompatFixtures.region("overworld");
         region.setLoader(data);
         region.setLandBiomes(new KList<>("land/plains", "cave/sulfur-grotto"));
 
@@ -66,7 +66,7 @@ public class IrisRegionCompatPoolTest {
         PackCompatReport report = new PackCompatReport();
         IrisBiome shore = biome("shore/sand");
         IrisData data = dataWith(report, shore);
-        IrisRegion region = CompatFixtures.region("overworld");
+        IrisRegion region = PackCompatFixtures.region("overworld");
         region.setLoader(data);
         region.setSeaBiomes(new KList<>("sea/gone"));
         region.setShoreBiomes(new KList<>("shore/sand"));
@@ -86,7 +86,7 @@ public class IrisRegionCompatPoolTest {
         sulfur.setChildren(new KList<>("cave/sulfur-deep"));
         IrisBiome sulfurDeep = biome("cave/sulfur-deep");
         IrisData data = dataWith(report, plains, sulfur, sulfurDeep);
-        IrisRegion region = CompatFixtures.region("overworld");
+        IrisRegion region = PackCompatFixtures.region("overworld");
         region.setLoader(data);
         region.setLandBiomes(new KList<>("land/plains"));
         region.setCaveBiomes(new KList<>("cave/sulfur-grotto"));
@@ -102,7 +102,7 @@ public class IrisRegionCompatPoolTest {
         PackCompatReport report = new PackCompatReport();
         IrisBiome sulfur = excludeBlock(biome("cave/sulfur-flats"));
         IrisData data = dataWith(report, sulfur);
-        IrisRegion region = CompatFixtures.region("sulfur-lands");
+        IrisRegion region = PackCompatFixtures.region("sulfur-lands");
         region.setLoader(data);
         region.setLandBiomes(new KList<>("cave/sulfur-flats"));
 
@@ -122,7 +122,7 @@ public class IrisRegionCompatPoolTest {
         IrisBiome plains = biome("land/plains");
         IrisBiome sulfur = excludeBlock(biome("cave/sulfur-flats"));
         IrisData data = dataWith(report, plains, sulfur);
-        IrisRegion region = CompatFixtures.region("overworld");
+        IrisRegion region = PackCompatFixtures.region("overworld");
         region.setLoader(data);
         region.setLandBiomes(new KList<>("land/plains", "cave/sulfur-flats"));
 
@@ -133,7 +133,7 @@ public class IrisRegionCompatPoolTest {
     public void evaluateCompatDoesNotExcludeRegionThatNeverDeclaredLandBiomes() {
         PackCompatReport report = new PackCompatReport();
         IrisData data = dataWith(report);
-        IrisRegion region = CompatFixtures.region("empty");
+        IrisRegion region = PackCompatFixtures.region("empty");
         region.setLoader(data);
 
         assertFalse(region.evaluateCompat(gate(report)).excluded());

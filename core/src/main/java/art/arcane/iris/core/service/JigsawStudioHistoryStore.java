@@ -12,6 +12,7 @@ import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.core.structure.authoring.StructureWriteOptions;
 import art.arcane.iris.core.structure.authoring.StructureWriteResult;
 import art.arcane.iris.engine.framework.structure.StructureResourceBundleGraphCompiler;
+import art.arcane.iris.util.common.io.Durability;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -303,7 +304,7 @@ final class JigsawStudioHistoryStore {
                 while (buffer.hasRemaining()) {
                     channel.write(buffer);
                 }
-                channel.force(true);
+                Durability.force(channel);
             }
             try {
                 Files.move(
@@ -374,6 +375,10 @@ final class JigsawStudioHistoryStore {
     }
 
     private static void forceDirectory(Path directory) throws IOException {
+        if (!Durability.enabled()) {
+            return;
+        }
+
         // A directory can only be opened and fsynced on a POSIX filesystem; Windows rejects the
         // open outright. Matches DirectoryDurability and DatapackIngestService, which already
         // skip the barrier there.
@@ -381,7 +386,7 @@ final class JigsawStudioHistoryStore {
             return;
         }
         try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
-            channel.force(true);
+            Durability.force(channel);
         }
     }
 

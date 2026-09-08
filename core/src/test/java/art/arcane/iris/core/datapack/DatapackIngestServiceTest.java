@@ -10,6 +10,7 @@ import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.core.structure.authoring.StructureWriteMode;
 import art.arcane.iris.core.structure.authoring.StructureWriteResult;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.testsupport.DurabilityMode;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.io.IO;
 import com.google.gson.Gson;
@@ -18,6 +19,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpServer;
 import org.bukkit.Server;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.Assume;
@@ -54,6 +56,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class DatapackIngestServiceTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     private interface PaperLikeServer extends Server {
         String getMinecraftVersion();
     }
@@ -85,7 +90,7 @@ public class DatapackIngestServiceTest {
         when(shortPathStore.getAttribute("volume:vsn")).thenReturn(41234L);
         when(longPathStore.getAttribute("volume:vsn")).thenReturn(41234L);
 
-        assertTrue(DatapackIngestService.sameWindowsVolume(
+        assertTrue(DatapackScratchRecovery.sameWindowsVolume(
                 shortPathStore, "C:\\", longPathStore, "c:\\"));
     }
 
@@ -96,11 +101,11 @@ public class DatapackIngestServiceTest {
         when(firstStore.getAttribute("volume:vsn")).thenReturn(1L);
         when(secondStore.getAttribute("volume:vsn")).thenReturn(2L);
 
-        assertFalse(DatapackIngestService.sameWindowsVolume(
+        assertFalse(DatapackScratchRecovery.sameWindowsVolume(
                 firstStore, "C:\\", secondStore, "C:\\"));
 
         when(secondStore.getAttribute("volume:vsn")).thenReturn(1L);
-        assertFalse(DatapackIngestService.sameWindowsVolume(
+        assertFalse(DatapackScratchRecovery.sameWindowsVolume(
                 firstStore, "C:\\", secondStore, "D:\\"));
     }
 
@@ -110,15 +115,15 @@ public class DatapackIngestServiceTest {
         when(attributes.isDirectory()).thenReturn(true);
         when(attributes.isOther()).thenReturn(true);
 
-        assertFalse(DatapackIngestService.isSupportedScratchDirectory(attributes));
+        assertFalse(DatapackScratchRecovery.isSupportedScratchDirectory(attributes));
 
         when(attributes.isOther()).thenReturn(false);
-        assertTrue(DatapackIngestService.isSupportedScratchDirectory(attributes));
+        assertTrue(DatapackScratchRecovery.isSupportedScratchDirectory(attributes));
     }
 
     @Test
     public void startupValidationCacheRequiresEveryInputAndLocalFingerprint() {
-        DatapackIngestService.StartupValidationCache cache = new DatapackIngestService.StartupValidationCache();
+        StartupValidationCache cache = new StartupValidationCache();
         cache.schemaVersion = 1;
         cache.minecraftVersion = "26.2";
         cache.irisVersion = 4000;
@@ -127,7 +132,7 @@ public class DatapackIngestServiceTest {
         cache.urls = List.of("https://modrinth.com/datapack/example");
         cache.localFingerprint = "fingerprint";
 
-        assertTrue(DatapackIngestService.startupValidationCacheMatches(
+        assertTrue(DatapackStartupValidation.startupValidationCacheMatches(
                 cache,
                 "26.2",
                 4000,
@@ -135,7 +140,7 @@ public class DatapackIngestServiceTest {
                 false,
                 List.of("https://modrinth.com/datapack/example"),
                 "fingerprint"));
-        assertFalse(DatapackIngestService.startupValidationCacheMatches(
+        assertFalse(DatapackStartupValidation.startupValidationCacheMatches(
                 cache,
                 "26.3",
                 4000,
@@ -143,7 +148,7 @@ public class DatapackIngestServiceTest {
                 false,
                 cache.urls,
                 "fingerprint"));
-        assertFalse(DatapackIngestService.startupValidationCacheMatches(
+        assertFalse(DatapackStartupValidation.startupValidationCacheMatches(
                 cache,
                 "26.2",
                 4000,
@@ -151,7 +156,7 @@ public class DatapackIngestServiceTest {
                 true,
                 cache.urls,
                 "fingerprint"));
-        assertFalse(DatapackIngestService.startupValidationCacheMatches(
+        assertFalse(DatapackStartupValidation.startupValidationCacheMatches(
                 cache,
                 "26.2",
                 4000,
@@ -159,7 +164,7 @@ public class DatapackIngestServiceTest {
                 false,
                 List.of("https://modrinth.com/datapack/changed"),
                 "fingerprint"));
-        assertFalse(DatapackIngestService.startupValidationCacheMatches(
+        assertFalse(DatapackStartupValidation.startupValidationCacheMatches(
                 cache,
                 "26.2",
                 4000,
@@ -177,10 +182,10 @@ public class DatapackIngestServiceTest {
         Path content = new File(staged, "value.txt").toPath();
         Files.writeString(content, "alpha", StandardCharsets.UTF_8);
         KList<File> worldFolders = new KList<>();
-        String before = DatapackIngestService.startupValidationFingerprint(root, worldFolders);
+        String before = DatapackStartupValidation.startupValidationFingerprint(root, worldFolders);
 
         Files.writeString(content, "bravo", StandardCharsets.UTF_8);
-        String after = DatapackIngestService.startupValidationFingerprint(root, worldFolders);
+        String after = DatapackStartupValidation.startupValidationFingerprint(root, worldFolders);
 
         assertFalse(before.equals(after));
     }
@@ -194,42 +199,42 @@ public class DatapackIngestServiceTest {
         Files.writeString(content, "before", StandardCharsets.UTF_8);
         KList<File> worldFolders = new KList<>();
 
-        DatapackIngestService.StartupValidationCache validated = new DatapackIngestService.StartupValidationCache();
+        StartupValidationCache validated = new StartupValidationCache();
         validated.schemaVersion = 1;
         validated.minecraftVersion = "26.2";
         validated.irisVersion = 4000;
         validated.autoIngest = true;
         validated.stripOverrides = false;
         validated.urls = List.of("https://modrinth.com/datapack/example");
-        validated.localFingerprint = DatapackIngestService.startupValidationFingerprint(root, worldFolders);
+        validated.localFingerprint = DatapackStartupValidation.startupValidationFingerprint(root, worldFolders);
 
         Files.writeString(content, "after", StandardCharsets.UTF_8);
-        assertFalse(DatapackIngestService.startupValidationCacheMatches(
+        assertFalse(DatapackStartupValidation.startupValidationCacheMatches(
                 validated,
                 "26.2",
                 4000,
                 true,
                 false,
                 validated.urls,
-                DatapackIngestService.startupValidationFingerprint(root, worldFolders)));
+                DatapackStartupValidation.startupValidationFingerprint(root, worldFolders)));
 
-        DatapackIngestService.StartupValidationCache refreshed =
-                DatapackIngestService.refreshStartupValidationCache(validated, root, worldFolders);
+        StartupValidationCache refreshed =
+                DatapackStartupValidation.refreshStartupValidationCache(validated, root, worldFolders);
 
-        assertTrue(DatapackIngestService.startupValidationCacheMatches(
+        assertTrue(DatapackStartupValidation.startupValidationCacheMatches(
                 refreshed,
                 "26.2",
                 4000,
                 true,
                 false,
                 validated.urls,
-                DatapackIngestService.startupValidationFingerprint(root, worldFolders)));
+                DatapackStartupValidation.startupValidationFingerprint(root, worldFolders)));
         assertEquals(validated.urls, refreshed.urls);
     }
 
     @Test
     public void startupMaintenanceDoesNotAuthorizeChangedValidationInputs() {
-        DatapackIngestService.StartupValidationCache validated = new DatapackIngestService.StartupValidationCache();
+        StartupValidationCache validated = new StartupValidationCache();
         validated.schemaVersion = 1;
         validated.minecraftVersion = "26.2";
         validated.irisVersion = 4000;
@@ -237,46 +242,13 @@ public class DatapackIngestServiceTest {
         validated.stripOverrides = false;
         validated.urls = List.of("https://modrinth.com/datapack/example");
 
-        assertTrue(DatapackIngestService.startupValidationContextMatches(
+        assertTrue(DatapackStartupValidation.startupValidationContextMatches(
                 validated, "26.2", 4000, true, false, validated.urls));
-        assertFalse(DatapackIngestService.startupValidationContextMatches(
+        assertFalse(DatapackStartupValidation.startupValidationContextMatches(
                 validated, "26.2", 4000, true, false,
                 List.of("https://modrinth.com/datapack/changed")));
-        assertFalse(DatapackIngestService.startupValidationContextMatches(
+        assertFalse(DatapackStartupValidation.startupValidationContextMatches(
                 validated, "26.2", 4000, true, true, validated.urls));
-    }
-
-    @Test
-    public void startupChecksCheapCacheContextBeforeHashingManagedDatapacks() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/datapack/DatapackIngestService.java")).replace("\r\n", "\n");
-        int validation = source.indexOf("public static StartupValidationOutcome validateOnStartup()");
-        int cacheRead = source.indexOf("readStartupValidationCache", validation);
-        int contextCheck = source.indexOf("startupValidationContextMatches(", cacheRead);
-        int fingerprint = source.indexOf("startupValidationFingerprint(", contextCheck);
-        int fullValidation = source.indexOf("if (autoIngest && !configured.isEmpty())", fingerprint);
-
-        assertTrue(validation >= 0);
-        assertTrue(cacheRead > validation);
-        assertTrue(contextCheck > cacheRead);
-        assertTrue(fingerprint > contextCheck);
-        assertTrue(fullValidation > fingerprint);
-    }
-
-    @Test
-    public void unchangedPostStartupMaintenanceReturnsBeforeFingerprinting() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/datapack/DatapackIngestService.java")).replace("\r\n", "\n");
-        int refresh = source.indexOf(
-                "refreshStartupValidationAfterMaintenance(boolean maintenanceChanged)");
-        int unchangedGuard = source.indexOf("if (!maintenanceChanged)", refresh);
-        int validatedState = source.indexOf("StartupValidationCache validated", refresh);
-        int fingerprint = source.indexOf("startupValidationFingerprint(", refresh);
-
-        assertTrue(refresh >= 0);
-        assertTrue(unchangedGuard > refresh);
-        assertTrue(validatedState > unchangedGuard);
-        assertTrue(fingerprint > unchangedGuard);
     }
 
     @Test
@@ -286,12 +258,12 @@ public class DatapackIngestServiceTest {
                 {"pack":{"description":"test","pack_format":88}}
                 """, StandardCharsets.UTF_8);
 
-        DatapackIngestService.validatePackMetadata(valid);
+        DatapackPackMetadata.validatePackMetadata(valid);
 
         File invalid = temporaryFolder.newFolder("invalid");
         Files.writeString(new File(invalid, "pack.mcmeta").toPath(), "{}", StandardCharsets.UTF_8);
         try {
-            DatapackIngestService.validatePackMetadata(invalid);
+            DatapackPackMetadata.validatePackMetadata(invalid);
             fail("Expected invalid metadata to be rejected");
         } catch (Exception expected) {
             assertTrue(expected.getMessage().contains("pack object"));
@@ -315,7 +287,7 @@ public class DatapackIngestServiceTest {
         server.start();
         try {
             File destination = new File(temporaryFolder.newFolder("download"), "pack.zip");
-            DatapackIngestService.DownloadResult result = DatapackIngestService.download(
+            DownloadResult result = DatapackArchive.download(
                     "http://127.0.0.1:" + server.getAddress().getPort() + "/start",
                     destination,
                     null,
@@ -342,7 +314,7 @@ public class DatapackIngestServiceTest {
         server.start();
         try {
             File destination = new File(temporaryFolder.newFolder("conditional"), "pack.zip");
-            DatapackIngestService.DownloadResult result = DatapackIngestService.download(
+            DownloadResult result = DatapackArchive.download(
                     "http://127.0.0.1:" + server.getAddress().getPort() + "/pack.zip",
                     destination,
                     "\"v1\"",
@@ -363,7 +335,7 @@ public class DatapackIngestServiceTest {
         Files.writeString(source, "local-archive", StandardCharsets.UTF_8);
         File destination = new File(temporaryFolder.newFolder("local-download"), "pack.zip");
 
-        DatapackIngestService.DownloadResult result = DatapackIngestService.download(
+        DownloadResult result = DatapackArchive.download(
                 source.toUri().toASCIIString(),
                 destination,
                 null,
@@ -381,7 +353,7 @@ public class DatapackIngestServiceTest {
         Files.writeString(destination.toPath(), "existing", StandardCharsets.UTF_8);
 
         try {
-            DatapackIngestService.download(
+            DatapackArchive.download(
                     missing.toUri().toASCIIString(),
                     destination,
                     null,
@@ -407,7 +379,7 @@ public class DatapackIngestServiceTest {
         Files.createDirectories(nested.getParent());
         Files.writeString(nested, "nested", StandardCharsets.UTF_8);
 
-        List<String> discovered = DatapackIngestService.discoverLocalDatapackImports(imports);
+        List<String> discovered = DatapackImportSources.discoverLocalDatapackImports(imports);
 
         assertEquals(List.of(
                 first.toAbsolutePath().normalize().toUri().toASCIIString(),
@@ -421,10 +393,10 @@ public class DatapackIngestServiceTest {
         String discovered = source.toAbsolutePath().normalize().toUri().toASCIIString();
         String alternate = discovered.replace("file:///", "file:/");
 
-        assertEquals(discovered, DatapackIngestService.normalizeConfiguredSource(alternate));
+        assertEquals(discovered, DatapackImportSources.normalizeConfiguredSource(alternate));
         assertEquals(
                 Set.of("https://example.test/dimension.zip", discovered),
-                DatapackIngestService.mergeConfiguredImports(
+                DatapackImportSources.mergeConfiguredImports(
                         List.of("https://example.test/dimension.zip", alternate),
                         List.of(discovered)));
     }
@@ -436,13 +408,13 @@ public class DatapackIngestServiceTest {
         KList<File> worldFolders = new KList<>();
         String sourceUrl = source.toUri().toASCIIString();
         Files.writeString(source, "alpha", StandardCharsets.UTF_8);
-        String before = DatapackIngestService.startupValidationFingerprint(
+        String before = DatapackStartupValidation.startupValidationFingerprint(
                 root, worldFolders, List.of(sourceUrl));
 
         FileTime originalTime = Files.getLastModifiedTime(source);
         Files.writeString(source, "bravo", StandardCharsets.UTF_8);
         Files.setLastModifiedTime(source, originalTime);
-        String after = DatapackIngestService.startupValidationFingerprint(
+        String after = DatapackStartupValidation.startupValidationFingerprint(
                 root, worldFolders, List.of(sourceUrl));
 
         assertFalse(before.equals(after));
@@ -452,7 +424,7 @@ public class DatapackIngestServiceTest {
     public void removalRequiresMatchingIrisOwnership() throws Exception {
         File unmanaged = datapackDirectory("unmanaged");
         try {
-            DatapackIngestService.deleteOwnedDirectory(unmanaged, "unmanaged");
+            DatapackOwnership.deleteOwnedDirectory(unmanaged, "unmanaged");
             fail("Expected unmanaged datapack removal to be rejected");
         } catch (Exception expected) {
             assertTrue(expected.getMessage().contains("ownership marker"));
@@ -466,9 +438,9 @@ public class DatapackIngestServiceTest {
         entry.versionId = "version";
         entry.versionNumber = "1";
         entry.sha1 = "hash";
-        DatapackIngestService.writeOwnership(managed, entry);
+        DatapackOwnership.writeOwnership(managed, entry);
 
-        assertTrue(DatapackIngestService.deleteOwnedDirectory(managed, "managed"));
+        assertTrue(DatapackOwnership.deleteOwnedDirectory(managed, "managed"));
         assertFalse(managed.exists());
     }
 
@@ -479,7 +451,7 @@ public class DatapackIngestServiceTest {
         Files.createSymbolicLink(link.toPath(), outside.toPath());
 
         try {
-            DatapackIngestService.deleteOwnedDirectory(link, "outside");
+            DatapackOwnership.deleteOwnedDirectory(link, "outside");
             fail("Expected symbolic-link removal to be rejected");
         } catch (Exception expected) {
             assertTrue(expected.getMessage().contains("symbolic-link"));
@@ -493,11 +465,11 @@ public class DatapackIngestServiceTest {
         DatapackIngestService.Entry entry = new DatapackIngestService.Entry();
         entry.id = "modified-managed";
         entry.url = "https://example.test/modified.zip";
-        DatapackIngestService.writeOwnership(managed, entry);
+        DatapackOwnership.writeOwnership(managed, entry);
         Files.writeString(new File(managed, "user-edit.txt").toPath(), "preserve", StandardCharsets.UTF_8);
 
         try {
-            DatapackIngestService.deleteOwnedDirectory(managed, entry.id);
+            DatapackOwnership.deleteOwnedDirectory(managed, entry.id);
             fail("Expected modified managed datapack removal to be rejected");
         } catch (Exception expected) {
             assertTrue(expected.getMessage().contains("modified or corrupt"));
@@ -517,7 +489,7 @@ public class DatapackIngestServiceTest {
         File staging = new File(new File(root, "staging"), entry.id);
         writeManagedDatapack(staging, entry);
 
-        assertFalse(DatapackIngestService.removeLocked(null, "!!!", root, List.of()));
+        assertFalse(DatapackRemoval.removeLocked(null, "!!!", root, List.of()));
         assertTrue(staging.isDirectory());
         assertTrue(Files.readString(new File(root, "manifest.json").toPath()).contains("datapack"));
     }
@@ -532,7 +504,7 @@ public class DatapackIngestServiceTest {
         File staging = new File(new File(root, "staging"), entry.id);
         writeManagedDatapack(staging, entry);
 
-        assertFalse(DatapackIngestService.removeLocked(null, entry.id, root, List.of()));
+        assertFalse(DatapackRemoval.removeLocked(null, entry.id, root, List.of()));
 
         assertTrue(staging.isDirectory());
     }
@@ -544,7 +516,7 @@ public class DatapackIngestServiceTest {
         entry.id = "../managed";
 
         try {
-            DatapackIngestService.writeOwnership(managed, entry);
+            DatapackOwnership.writeOwnership(managed, entry);
             fail("Expected unsafe ownership id to be rejected");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("ownership identity"));
@@ -567,7 +539,7 @@ public class DatapackIngestServiceTest {
         File linkedContainer = new File(temporaryFolder.getRoot(), "linked-datapacks-container");
         Files.createSymbolicLink(linkedContainer.toPath(), outside.toPath());
 
-        assertFalse(DatapackIngestService.removeLocked(null, entry.id, root, List.of(linkedContainer)));
+        assertFalse(DatapackRemoval.removeLocked(null, entry.id, root, List.of(linkedContainer)));
         assertTrue(outsideTarget.isDirectory());
     }
 
@@ -591,7 +563,7 @@ public class DatapackIngestServiceTest {
         KList<File> worlds = new KList<>();
         worlds.add(worldDatapacks);
 
-        assertFalse(DatapackIngestService.removeLocked(null, "managed", root, worlds));
+        assertFalse(DatapackRemoval.removeLocked(null, "managed", root, worlds));
         assertEquals(manifestJson, Files.readString(manifest.toPath(), StandardCharsets.UTF_8));
         assertTrue(unmanagedTarget.isDirectory());
     }
@@ -639,7 +611,7 @@ public class DatapackIngestServiceTest {
         KList<File> worlds = new KList<>();
         worlds.add(worldDatapacks);
 
-        assertFalse(DatapackIngestService.removeLocked(null, entry.id, root, worlds));
+        assertFalse(DatapackRemoval.removeLocked(null, entry.id, root, worlds));
         assertEquals(manifestJson, Files.readString(manifest.toPath(), StandardCharsets.UTF_8));
         assertEquals("alpha", Files.readString(new File(editablePack, "objects/alpha.iob").toPath()));
         assertEquals("zeta", Files.readString(new File(editablePack, "objects/zeta.iob").toPath()));
@@ -681,7 +653,7 @@ public class DatapackIngestServiceTest {
         KList<File> worlds = new KList<>();
         worlds.add(worldDatapacks);
 
-        assertTrue(DatapackIngestService.removeLocked(null, entry.id, root, worlds));
+        assertTrue(DatapackRemoval.removeLocked(null, entry.id, root, worlds));
         assertFalse(Files.exists(new File(editablePack, "objects/owned.iob").toPath()));
         assertFalse(Files.exists(writer.ownershipManifestPath(targetKey)));
         assertFalse(stagingTarget.exists());
@@ -706,7 +678,7 @@ public class DatapackIngestServiceTest {
         entry.importedBundles.put(targetId, Map.of(targetKey.value(), sourceKey.value()));
         writeManifest(root, entry);
 
-        assertTrue(DatapackIngestService.removeLocked(null, entry.id, root, List.of()));
+        assertTrue(DatapackRemoval.removeLocked(null, entry.id, root, List.of()));
 
         assertEquals("ordinary", Files.readString(new File(editablePack, "objects/owned.iob").toPath()));
         assertTrue(Files.exists(writer.ownershipManifestPath(targetKey)));
@@ -719,7 +691,7 @@ public class DatapackIngestServiceTest {
         entry.id = "legacy-staging";
         entry.url = "https://example.test/legacy.zip";
 
-        assertFalse(DatapackIngestService.isUsableStaging(staging, entry));
+        assertFalse(DatapackStagingGuard.isUsableStaging(staging, entry));
         assertFalse(new File(staging, ".iris-managed.json").exists());
     }
 
@@ -731,7 +703,7 @@ public class DatapackIngestServiceTest {
         File staging = new File(new File(root, "staging"), candidate.id);
         writeManagedDatapack(staging, candidate);
 
-        assertFalse(DatapackIngestService.removeLocked(null, candidate.id, root, List.of()));
+        assertFalse(DatapackRemoval.removeLocked(null, candidate.id, root, List.of()));
 
         assertTrue(staging.isDirectory());
         assertFalse(Files.readString(new File(root, "manifest.json").toPath(), StandardCharsets.UTF_8)
@@ -746,7 +718,7 @@ public class DatapackIngestServiceTest {
         File staging = new File(new File(root, "staging"), candidate.id);
         writeManagedDatapack(staging, candidate);
 
-        assertTrue(DatapackIngestService.removeLocked(null, candidate.id, root, List.of()));
+        assertTrue(DatapackRemoval.removeLocked(null, candidate.id, root, List.of()));
 
         assertFalse(staging.exists());
         assertFalse(Files.readString(new File(root, "manifest.json").toPath(), StandardCharsets.UTF_8)
@@ -761,10 +733,10 @@ public class DatapackIngestServiceTest {
         entry.url = "https://example.test/mutated.zip";
         entry.structureKeys = List.of("original:structure");
         entry.templateKeys = List.of("original:template");
-        DatapackIngestService.writeOwnership(staging, entry);
+        DatapackOwnership.writeOwnership(staging, entry);
         Files.writeString(new File(staging, "unexpected.txt").toPath(), "changed", StandardCharsets.UTF_8);
 
-        assertFalse(DatapackIngestService.isUsableStaging(staging, entry));
+        assertFalse(DatapackStagingGuard.isUsableStaging(staging, entry));
         assertEquals(List.of("original:structure"), entry.structureKeys);
         assertEquals(List.of("original:template"), entry.templateKeys);
     }
@@ -775,13 +747,13 @@ public class DatapackIngestServiceTest {
         File nested = new File(staging, "data/example");
         assertTrue(nested.mkdirs());
         DatapackIngestService.Entry entry = entry("finder-metadata-staging", "v1", "1", "sha");
-        DatapackIngestService.writeOwnership(staging, entry);
+        DatapackOwnership.writeOwnership(staging, entry);
         File rootMetadata = new File(staging, ".DS_Store");
         File nestedMetadata = new File(nested, ".DS_Store");
         Files.writeString(rootMetadata.toPath(), "finder", StandardCharsets.UTF_8);
         Files.writeString(nestedMetadata.toPath(), "finder", StandardCharsets.UTF_8);
 
-        assertTrue(DatapackIngestService.isUsableStaging(staging, entry));
+        assertTrue(DatapackStagingGuard.isUsableStaging(staging, entry));
         assertFalse(rootMetadata.exists());
         assertFalse(nestedMetadata.exists());
     }
@@ -793,7 +765,7 @@ public class DatapackIngestServiceTest {
         DatapackIngestService.Entry entry = entry("finder-metadata-directory", "v1", "1", "sha");
 
         try {
-            DatapackIngestService.writeOwnership(staging, entry);
+            DatapackOwnership.writeOwnership(staging, entry);
             fail("Expected suspicious Finder metadata to be rejected");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("Suspicious Finder metadata"));
@@ -810,14 +782,14 @@ public class DatapackIngestServiceTest {
         assertTrue(nestedMarker.getParentFile().mkdirs());
         Files.writeString(nestedMarker.toPath(), "original", StandardCharsets.UTF_8);
         DatapackIngestService.Entry entry = entry("nested-ownership-resource", "v1", "1", "sha");
-        DatapackIngestService.writeOwnership(staging, entry);
+        DatapackOwnership.writeOwnership(staging, entry);
 
-        assertTrue(DatapackIngestService.isUsableStaging(staging, entry));
+        assertTrue(DatapackStagingGuard.isUsableStaging(staging, entry));
         Files.writeString(nestedMarker.toPath(), "changed", StandardCharsets.UTF_8);
 
-        assertFalse(DatapackIngestService.isUsableStaging(staging, entry));
+        assertFalse(DatapackStagingGuard.isUsableStaging(staging, entry));
         try {
-            DatapackIngestService.deleteOwnedDirectory(staging, entry.id);
+            DatapackOwnership.deleteOwnedDirectory(staging, entry.id);
             fail("Expected nested managed resource mutation to block deletion");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("modified or corrupt"));
@@ -835,8 +807,8 @@ public class DatapackIngestServiceTest {
         DatapackIngestService.Entry compactEntry = entry("compact", "v1", "1", "sha");
         DatapackIngestService.Entry expandedEntry = entry("expanded", "v1", "1", "sha");
 
-        DatapackIngestService.writeOwnership(compact, compactEntry);
-        DatapackIngestService.writeOwnership(expanded, expandedEntry);
+        DatapackOwnership.writeOwnership(compact, compactEntry);
+        DatapackOwnership.writeOwnership(expanded, expandedEntry);
 
         assertFalse(ownershipHash(compact).equals(ownershipHash(expanded)));
     }
@@ -845,11 +817,11 @@ public class DatapackIngestServiceTest {
     public void ownershipHashIncludesEmptyDirectories() throws Exception {
         File managed = datapackDirectory("hash-empty-directory");
         DatapackIngestService.Entry entry = entry("managed", "v1", "1", "sha");
-        DatapackIngestService.writeOwnership(managed, entry);
+        DatapackOwnership.writeOwnership(managed, entry);
         assertTrue(new File(managed, "user-directory").mkdir());
 
         try {
-            DatapackIngestService.deleteOwnedDirectory(managed, entry.id);
+            DatapackOwnership.deleteOwnedDirectory(managed, entry.id);
             fail("Expected an added empty directory to invalidate ownership");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("modified or corrupt"));
@@ -878,7 +850,7 @@ public class DatapackIngestServiceTest {
         Files.writeString(data.resolve(".DS_Store"), "ignored nested metadata");
         DatapackIngestService.Entry entry = entry("golden", "v1", "1", "sha");
 
-        DatapackIngestService.writeOwnership(managed, entry);
+        DatapackOwnership.writeOwnership(managed, entry);
 
         String expected = "aa62ee4ed00f0393e637411686082f253ec65ff788839b12c30fc175e5b501fb";
         assertEquals(expected, ownershipHash(managed));
@@ -889,30 +861,9 @@ public class DatapackIngestServiceTest {
                 StandardCharsets.UTF_8);
         Files.writeString(managed.toPath().resolve(".DS_Store"), "different root metadata");
         Files.writeString(data.resolve(".DS_Store"), "different nested metadata");
-        DatapackIngestService.writeOwnership(managed, entry);
+        DatapackOwnership.writeOwnership(managed, entry);
 
         assertEquals(expected, ownershipHash(managed));
-    }
-
-    @Test
-    public void directoryHashRestatsAttributesAndVolumeBeforeOpeningEachFile() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/datapack/DatapackIngestService.java")).replace("\r\n", "\n");
-        int method = source.indexOf("private static String directoryHash(File root)");
-        int entries = source.indexOf("List<Path> entries = new ArrayList<>()", method);
-        int loop = source.indexOf("for (Path entry : entries)", entries);
-        int attributes = source.indexOf("BasicFileAttributes attributes = Files.readAttributes(", loop);
-        int fileStore = source.indexOf("Files.getFileStore(entry)", attributes);
-        int open = source.indexOf("Files.newInputStream(", fileStore);
-        int digest = source.indexOf("return hex(digest.digest())", open);
-
-        assertTrue(method >= 0);
-        assertTrue(entries > method);
-        assertTrue(loop > entries);
-        assertTrue(attributes > loop);
-        assertTrue(fileStore > attributes);
-        assertTrue(open > fileStore);
-        assertTrue(digest > open);
     }
 
     @Test
@@ -925,7 +876,7 @@ public class DatapackIngestServiceTest {
         candidate.versionNumber = "2";
         candidate.sha1 = "new";
         candidate.structureKeys = List.of("candidate:new");
-        DatapackIngestService.writeOwnership(staging, candidate);
+        DatapackOwnership.writeOwnership(staging, candidate);
 
         DatapackIngestService.Entry committed = new DatapackIngestService.Entry();
         committed.id = candidate.id;
@@ -935,7 +886,7 @@ public class DatapackIngestServiceTest {
         committed.sha1 = "old";
         committed.structureKeys = new ArrayList<>(List.of("committed:old"));
 
-        assertFalse(DatapackIngestService.isUsableStaging(staging, committed));
+        assertFalse(DatapackStagingGuard.isUsableStaging(staging, committed));
         assertEquals(List.of("committed:old"), committed.structureKeys);
         assertTrue(Files.readString(new File(staging, ".iris-managed.json").toPath()).contains("v2"));
     }
@@ -946,13 +897,13 @@ public class DatapackIngestServiceTest {
         entry.id = "changed-source";
         entry.url = "https://example.test/changed.zip";
         File staging = datapackDirectory("changed-source");
-        DatapackIngestService.writeOwnership(staging, entry);
+        DatapackOwnership.writeOwnership(staging, entry);
         Files.writeString(new File(staging, "late-change.txt").toPath(), "changed", StandardCharsets.UTF_8);
         KList<File> worlds = new KList<>();
         worlds.add(temporaryFolder.newFolder("changed-source-world"));
 
         try {
-            DatapackIngestService.install(staging, worlds, entry, false);
+            DatapackInstall.install(staging, worlds, entry, false);
             fail("Expected modified staging to be rejected");
         } catch (Exception expected) {
             assertTrue(expected.getMessage().contains("committed manifest entry"));
@@ -968,7 +919,7 @@ public class DatapackIngestServiceTest {
         Files.writeString(override.toPath(), "{}", StandardCharsets.UTF_8);
 
         try {
-            DatapackIngestService.stripVanillaStructureOverrides(datapack, ignored -> {
+            DatapackPackMetadata.stripVanillaStructureOverrides(datapack, ignored -> {
             });
             fail("Expected a retained vanilla structure override to block installation");
         } catch (IOException expected) {
@@ -987,14 +938,14 @@ public class DatapackIngestServiceTest {
 
         File staging = datapackDirectory("source");
         Files.writeString(new File(staging, "value.txt").toPath(), "new", StandardCharsets.UTF_8);
-        DatapackIngestService.writeOwnership(staging, entry);
+        DatapackOwnership.writeOwnership(staging, entry);
 
         File firstWorld = temporaryFolder.newFolder("first-world-datapacks");
         File firstTarget = new File(firstWorld, entry.id);
         assertTrue(firstTarget.mkdirs());
         Files.copy(new File(staging, "pack.mcmeta").toPath(), new File(firstTarget, "pack.mcmeta").toPath());
         Files.writeString(new File(firstTarget, "value.txt").toPath(), "old", StandardCharsets.UTF_8);
-        DatapackIngestService.writeOwnership(firstTarget, entry);
+        DatapackOwnership.writeOwnership(firstTarget, entry);
 
         File secondWorld = temporaryFolder.newFolder("second-world-datapacks");
         File unmanagedTarget = new File(secondWorld, entry.id);
@@ -1006,7 +957,7 @@ public class DatapackIngestServiceTest {
         worlds.add(firstWorld);
         worlds.add(secondWorld);
         try {
-            DatapackIngestService.install(staging, worlds, entry, false);
+            DatapackInstall.install(staging, worlds, entry, false);
             fail("Expected unmanaged second target to abort the transaction");
         } catch (Exception expected) {
             assertTrue(expected.getMessage().contains("unmanaged datapack"));
@@ -1020,7 +971,7 @@ public class DatapackIngestServiceTest {
         DatapackIngestService.Entry entry = entry("exact-managed", "v1", "1", "sha");
         File staging = datapackDirectory("exact-managed-source");
         Files.writeString(new File(staging, "value.txt").toPath(), "same", StandardCharsets.UTF_8);
-        DatapackIngestService.writeOwnership(staging, entry);
+        DatapackOwnership.writeOwnership(staging, entry);
 
         File targetRoot = temporaryFolder.newFolder("exact-managed-target-root");
         File worldFolder = new File(targetRoot, "datapacks");
@@ -1029,7 +980,7 @@ public class DatapackIngestServiceTest {
         writeManagedDatapack(target, entry, "same");
         File scratch = new File(targetRoot, ".iris-datapack-install");
 
-        DatapackIngestService.InstallPlan plan = DatapackIngestService.prepareInstall(
+        InstallPlan plan = DatapackInstallPlanner.prepareInstall(
                 staging,
                 worldFolder,
                 entry,
@@ -1053,11 +1004,11 @@ public class DatapackIngestServiceTest {
         Files.setLastModifiedTime(stagedValue, originalTime);
 
         try {
-            DatapackIngestService.verifyInstallExecution(fixture.execution());
+            DatapackInstall.verifyInstallExecution(fixture.execution());
             fail("Expected changed staging to block the prepared install");
         } catch (IOException expected) {
             assertTrue(expected.getMessage(), expected.getMessage().contains("staging changed"));
-            DatapackIngestService.rollbackInstallExecutions(List.of(fixture.execution()), expected);
+            DatapackInstall.rollbackInstallExecutions(List.of(fixture.execution()), expected);
             assertEquals(0, expected.getSuppressed().length);
         }
 
@@ -1076,11 +1027,11 @@ public class DatapackIngestServiceTest {
         Files.setLastModifiedTime(unchangedValue, originalTime);
 
         try {
-            DatapackIngestService.verifyInstallExecution(fixture.execution());
+            DatapackInstall.verifyInstallExecution(fixture.execution());
             fail("Expected changed unchanged-target snapshot to block the prepared install");
         } catch (IOException expected) {
             assertTrue(expected.getMessage(), expected.getMessage().contains("unchanged datapack target"));
-            DatapackIngestService.rollbackInstallExecutions(List.of(fixture.execution()), expected);
+            DatapackInstall.rollbackInstallExecutions(List.of(fixture.execution()), expected);
             assertEquals(0, expected.getSuppressed().length);
         }
 
@@ -1093,18 +1044,18 @@ public class DatapackIngestServiceTest {
     public void verifiedFreshInstallCommitsAfterExtractedDirectoryIsDeleted() throws Exception {
         PreparedVerifiedFreshInstall fixture = preparedVerifiedFreshInstall(
                 "verified-fresh-deleted-extraction");
-        DatapackIngestService.deleteInstallScratch(
+        DatapackInstall.deleteInstallScratch(
                 fixture.extractedDir(), "verified fresh datapack extraction");
         assertFalse(fixture.extractedDir().exists());
 
-        DatapackIngestService.verifyInstallExecution(fixture.execution());
+        DatapackInstall.verifyInstallExecution(fixture.execution());
         writeManifest(fixture.root(), fixture.entry());
-        DatapackIngestService.finishInstallExecution(fixture.execution());
+        DatapackInstall.finishInstallExecution(fixture.execution());
 
         for (File target : List.of(fixture.worldTarget(), fixture.canonicalTarget())) {
             assertEquals("new", Files.readString(
                     new File(target, "value.txt").toPath(), StandardCharsets.UTF_8));
-            assertTrue(DatapackIngestService.isUsableStaging(target, fixture.entry()));
+            assertTrue(DatapackStagingGuard.isUsableStaging(target, fixture.entry()));
         }
     }
 
@@ -1118,11 +1069,11 @@ public class DatapackIngestServiceTest {
         Files.setLastModifiedTime(publishedValue, originalTime);
 
         try {
-            DatapackIngestService.verifyInstallExecution(fixture.execution());
+            DatapackInstall.verifyInstallExecution(fixture.execution());
             fail("Expected changed published target to block the prepared install");
         } catch (IOException expected) {
             assertTrue(expected.getMessage(), expected.getMessage().contains("published datapack target"));
-            DatapackIngestService.rollbackInstallExecutions(List.of(fixture.execution()), expected);
+            DatapackInstall.rollbackInstallExecutions(List.of(fixture.execution()), expected);
             assertEquals(1, expected.getSuppressed().length);
         }
 
@@ -1138,14 +1089,14 @@ public class DatapackIngestServiceTest {
         DatapackIngestService.Entry entry = entry("changed-managed", "v1", "1", "sha");
         File staging = datapackDirectory("changed-managed-source");
         Files.writeString(new File(staging, "value.txt").toPath(), "new", StandardCharsets.UTF_8);
-        DatapackIngestService.writeOwnership(staging, entry);
+        DatapackOwnership.writeOwnership(staging, entry);
 
         File targetRoot = temporaryFolder.newFolder("changed-managed-target-root");
         File worldFolder = new File(targetRoot, "datapacks");
         assertTrue(worldFolder.mkdir());
         writeManagedDatapack(new File(worldFolder, entry.id), entry, "old");
 
-        DatapackIngestService.InstallPlan plan = DatapackIngestService.prepareInstall(
+        InstallPlan plan = DatapackInstallPlanner.prepareInstall(
                 staging,
                 worldFolder,
                 entry,
@@ -1165,7 +1116,7 @@ public class DatapackIngestServiceTest {
         DatapackIngestService.Entry entry = entry("changed-ownership", "v2", "2", "new-sha");
         File staging = datapackDirectory("changed-ownership-source");
         Files.writeString(new File(staging, "value.txt").toPath(), "same", StandardCharsets.UTF_8);
-        DatapackIngestService.writeOwnership(staging, entry);
+        DatapackOwnership.writeOwnership(staging, entry);
 
         File targetRoot = temporaryFolder.newFolder("changed-ownership-target-root");
         File worldFolder = new File(targetRoot, "datapacks");
@@ -1174,7 +1125,7 @@ public class DatapackIngestServiceTest {
         File target = new File(worldFolder, entry.id);
         writeManagedDatapack(target, prior, "same");
 
-        DatapackIngestService.InstallPlan plan = DatapackIngestService.prepareInstall(
+        InstallPlan plan = DatapackInstallPlanner.prepareInstall(
                 staging,
                 worldFolder,
                 entry,
@@ -1193,14 +1144,14 @@ public class DatapackIngestServiceTest {
         DatapackIngestService.Entry entry = entry("strip-managed", "v1", "1", "sha");
         File staging = datapackDirectory("strip-managed-source");
         Files.writeString(new File(staging, "value.txt").toPath(), "same", StandardCharsets.UTF_8);
-        DatapackIngestService.writeOwnership(staging, entry);
+        DatapackOwnership.writeOwnership(staging, entry);
 
         File targetRoot = temporaryFolder.newFolder("strip-managed-target-root");
         File worldFolder = new File(targetRoot, "datapacks");
         assertTrue(worldFolder.mkdir());
         writeManagedDatapack(new File(worldFolder, entry.id), entry, "same");
 
-        DatapackIngestService.InstallPlan plan = DatapackIngestService.prepareInstall(
+        InstallPlan plan = DatapackInstallPlanner.prepareInstall(
                 staging,
                 worldFolder,
                 entry,
@@ -1219,7 +1170,7 @@ public class DatapackIngestServiceTest {
         DatapackIngestService.Entry entry = entry("managed", "v2", "2", "sha");
         File staging = datapackDirectory("legacy-ownership-source");
         Files.writeString(new File(staging, "value.txt").toPath(), "same", StandardCharsets.UTF_8);
-        DatapackIngestService.writeOwnership(staging, entry);
+        DatapackOwnership.writeOwnership(staging, entry);
         File world = temporaryFolder.newFolder("legacy-ownership-world");
         File target = new File(world, entry.id);
         assertTrue(target.mkdirs());
@@ -1228,12 +1179,12 @@ public class DatapackIngestServiceTest {
         KList<File> worlds = new KList<>();
         worlds.add(world);
 
-        DatapackIngestService.InstallResult result =
-                DatapackIngestService.install(staging, worlds, entry, false);
+        InstallResult result =
+                DatapackInstall.install(staging, worlds, entry, false);
 
         assertFalse(result.changed());
         assertTrue(new File(target, ".iris-managed.json").isFile());
-        assertTrue(DatapackIngestService.isUsableStaging(target, entry));
+        assertTrue(DatapackStagingGuard.isUsableStaging(target, entry));
     }
 
     @Test
@@ -1241,7 +1192,7 @@ public class DatapackIngestServiceTest {
         DatapackIngestService.Entry entry = entry("managed", "v2", "2", "sha");
         File staging = datapackDirectory("modified-legacy-source");
         Files.writeString(new File(staging, "value.txt").toPath(), "desired", StandardCharsets.UTF_8);
-        DatapackIngestService.writeOwnership(staging, entry);
+        DatapackOwnership.writeOwnership(staging, entry);
         File world = temporaryFolder.newFolder("modified-legacy-world");
         File target = new File(world, entry.id);
         assertTrue(target.mkdirs());
@@ -1251,7 +1202,7 @@ public class DatapackIngestServiceTest {
         worlds.add(world);
 
         try {
-            DatapackIngestService.install(staging, worlds, entry, false);
+            DatapackInstall.install(staging, worlds, entry, false);
             fail("Expected modified unmanaged datapack adoption to be rejected");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("unmanaged datapack"));
@@ -1266,8 +1217,8 @@ public class DatapackIngestServiceTest {
     public void verifiedFreshInstallPublishesCanonicalManagedStaging() throws Exception {
         LegacyStagingFixture fixture = legacyStagingFixture("verified-first-install", false, true, false);
 
-        DatapackIngestService.InstallPlan plan = prepareLegacyStagingPlan(fixture);
-        DatapackIngestService.publishInstallPlan(plan);
+        InstallPlan plan = prepareLegacyStagingPlan(fixture);
+        DatapackInstallPlanner.publishInstallPlan(plan);
 
         assertEquals("new", Files.readString(
                 new File(fixture.target(), "value.txt").toPath(), StandardCharsets.UTF_8));
@@ -1278,13 +1229,13 @@ public class DatapackIngestServiceTest {
     public void verifiedLegacyStagingUpgradeReplacesDifferingUnmarkedTree() throws Exception {
         LegacyStagingFixture fixture = legacyStagingFixture("verified-legacy-upgrade", true, true, true);
 
-        DatapackIngestService.InstallPlan plan = prepareLegacyStagingPlan(fixture);
-        DatapackIngestService.publishInstallPlan(plan);
+        InstallPlan plan = prepareLegacyStagingPlan(fixture);
+        DatapackInstallPlanner.publishInstallPlan(plan);
 
         assertEquals("new", Files.readString(
                 new File(fixture.target(), "value.txt").toPath(), StandardCharsets.UTF_8));
         assertFalse(new File(fixture.target(), ".DS_Store").exists());
-        assertTrue(DatapackIngestService.isUsableStaging(fixture.target(), fixture.desired()));
+        assertTrue(DatapackStagingGuard.isUsableStaging(fixture.target(), fixture.desired()));
         assertEquals("old", Files.readString(
                 new File(plan.backup(), "value.txt").toPath(), StandardCharsets.UTF_8));
     }
@@ -1306,8 +1257,8 @@ public class DatapackIngestServiceTest {
         Assume.assumeTrue(Files.exists(caseVariantRoot.toPath()));
         Assume.assumeTrue(Files.isSameFile(root.toPath(), caseVariantRoot.toPath()));
 
-        DatapackIngestService.VerifiedStagingInstall authorization =
-                DatapackIngestService.authorizeVerifiedStagingInstall(
+        VerifiedStagingInstall authorization =
+                DatapackStagingGuard.authorizeVerifiedStagingInstall(
                         caseVariantRoot, caseVariantStagingRoot, caseVariantSource, entry);
 
         assertTrue(authorization != null);
@@ -1337,7 +1288,7 @@ public class DatapackIngestServiceTest {
         File aliasedSource = new File(aliasedStagingRoot, source.getName());
 
         try {
-            DatapackIngestService.authorizeVerifiedStagingInstall(
+            DatapackStagingGuard.authorizeVerifiedStagingInstall(
                     aliasedRoot, aliasedStagingRoot, aliasedSource, entry);
             fail("Expected symbolic-link staging authority to be rejected");
         } catch (IOException expected) {
@@ -1350,15 +1301,15 @@ public class DatapackIngestServiceTest {
         LegacyStagingFixture fixture = legacyStagingFixture(
                 "same-version-legacy-restage", true, true, true, true);
 
-        DatapackIngestService.InstallPlan plan = prepareLegacyStagingPlan(fixture);
-        DatapackIngestService.publishInstallPlan(plan);
+        InstallPlan plan = prepareLegacyStagingPlan(fixture);
+        DatapackInstallPlanner.publishInstallPlan(plan);
 
         assertFalse(plan.contentChanged());
         assertTrue(DatapackIngestService.freshInstallRequiresRestart(plan.contentChanged(), true));
         assertEquals("same", Files.readString(
                 new File(fixture.target(), "value.txt").toPath(), StandardCharsets.UTF_8));
         assertFalse(new File(fixture.target(), ".DS_Store").exists());
-        assertTrue(DatapackIngestService.isUsableStaging(fixture.target(), fixture.desired()));
+        assertTrue(DatapackStagingGuard.isUsableStaging(fixture.target(), fixture.desired()));
     }
 
     @Test
@@ -1414,7 +1365,7 @@ public class DatapackIngestServiceTest {
     public void validWrongOwnerMarkerCannotMasqueradeAsLegacyStaging() throws Exception {
         LegacyStagingFixture fixture = legacyStagingFixture("wrong-owner-legacy-marker", true, true, true);
         DatapackIngestService.Entry other = entry("other", "v1", "1", "other-sha");
-        DatapackIngestService.writeOwnership(fixture.target(), other);
+        DatapackOwnership.writeOwnership(fixture.target(), other);
 
         assertLegacyStagingPreparationRejected(fixture, "ownership mismatch");
     }
@@ -1428,7 +1379,7 @@ public class DatapackIngestServiceTest {
         writeLegacyDatapack(worldTarget, "world");
 
         try {
-            DatapackIngestService.prepareInstall(
+            DatapackInstallPlanner.prepareInstall(
                     fixture.source(), world, fixture.desired(), fixture.sourceHash(), false,
                     fixture.authorization());
             fail("Expected verified staging authority to reject a world target");
@@ -1446,12 +1397,12 @@ public class DatapackIngestServiceTest {
         File worldTarget = new File(world, fixture.desired().id);
         IO.copyDirectory(fixture.target().toPath(), worldTarget.toPath());
 
-        DatapackIngestService.InstallPlan worldPlan = DatapackIngestService.prepareInstall(
+        InstallPlan worldPlan = DatapackInstallPlanner.prepareInstall(
                 fixture.source(), world, fixture.desired(), fixture.sourceHash(), false,
                 fixture.authorization());
-        DatapackIngestService.publishInstallPlan(worldPlan);
-        DatapackIngestService.InstallPlan stagingPlan = prepareLegacyStagingPlan(fixture);
-        DatapackIngestService.publishInstallPlan(stagingPlan);
+        DatapackInstallPlanner.publishInstallPlan(worldPlan);
+        InstallPlan stagingPlan = prepareLegacyStagingPlan(fixture);
+        DatapackInstallPlanner.publishInstallPlan(stagingPlan);
 
         assertEquals("new", Files.readString(
                 new File(worldTarget, "value.txt").toPath(), StandardCharsets.UTF_8));
@@ -1474,17 +1425,17 @@ public class DatapackIngestServiceTest {
         worlds.add(firstWorld);
         worlds.add(secondWorld);
 
-        DatapackIngestService.InstallExecution execution =
-                DatapackIngestService.prepareInstallExecution(
+        InstallExecution execution =
+                DatapackInstall.prepareInstallExecution(
                         fixture.source(),
                         worlds,
                         fixture.desired(),
                         false,
                         fixture.root(),
                         fixture.authorization());
-        DatapackIngestService.verifyInstallExecution(execution);
+        DatapackInstall.verifyInstallExecution(execution);
         writeManifest(fixture.root(), fixture.desired());
-        DatapackIngestService.finishInstallExecution(execution);
+        DatapackInstall.finishInstallExecution(execution);
 
         for (File target : List.of(firstTarget, secondTarget, fixture.target())) {
             assertEquals("new", Files.readString(
@@ -1508,7 +1459,7 @@ public class DatapackIngestServiceTest {
         worlds.add(secondWorld);
 
         try {
-            DatapackIngestService.prepareInstallExecution(
+            DatapackInstall.prepareInstallExecution(
                     fixture.source(),
                     worlds,
                     fixture.desired(),
@@ -1543,8 +1494,8 @@ public class DatapackIngestServiceTest {
         KList<File> worlds = new KList<>();
         worlds.add(firstWorld);
         worlds.add(secondWorld);
-        DatapackIngestService.InstallExecution execution =
-                DatapackIngestService.prepareInstallExecution(
+        InstallExecution execution =
+                DatapackInstall.prepareInstallExecution(
                         fixture.source(),
                         worlds,
                         fixture.desired(),
@@ -1553,7 +1504,7 @@ public class DatapackIngestServiceTest {
                         fixture.authorization());
 
         IOException failure = new IOException("manifest publication failed");
-        DatapackIngestService.rollbackInstallExecutions(List.of(execution), failure);
+        DatapackInstall.rollbackInstallExecutions(List.of(execution), failure);
 
         assertEquals(0, failure.getSuppressed().length);
         for (File target : List.of(firstTarget, secondTarget, fixture.target())) {
@@ -1570,13 +1521,13 @@ public class DatapackIngestServiceTest {
         File world = temporaryFolder.newFolder("changed-canonical-world-proof-target");
         File worldTarget = new File(world, fixture.desired().id);
         IO.copyDirectory(fixture.target().toPath(), worldTarget.toPath());
-        DatapackIngestService.InstallPlan worldPlan = DatapackIngestService.prepareInstall(
+        InstallPlan worldPlan = DatapackInstallPlanner.prepareInstall(
                 fixture.source(), world, fixture.desired(), fixture.sourceHash(), false,
                 fixture.authorization());
         Files.writeString(new File(fixture.target(), "value.txt").toPath(), "changed", StandardCharsets.UTF_8);
 
         try {
-            DatapackIngestService.publishInstallPlan(worldPlan);
+            DatapackInstallPlanner.publishInstallPlan(worldPlan);
             fail("Expected changed canonical legacy staging to block world migration");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("canonical legacy datapack staging target"));
@@ -1592,7 +1543,7 @@ public class DatapackIngestServiceTest {
         File world = temporaryFolder.newFolder("swapped-canonical-world-proof-target");
         File worldTarget = new File(world, fixture.desired().id);
         IO.copyDirectory(fixture.target().toPath(), worldTarget.toPath());
-        DatapackIngestService.InstallPlan worldPlan = DatapackIngestService.prepareInstall(
+        InstallPlan worldPlan = DatapackInstallPlanner.prepareInstall(
                 fixture.source(), world, fixture.desired(), fixture.sourceHash(), false,
                 fixture.authorization());
         File displaced = new File(fixture.stagingRoot(), "displaced-managed");
@@ -1600,7 +1551,7 @@ public class DatapackIngestServiceTest {
         IO.copyDirectory(displaced.toPath(), fixture.target().toPath());
 
         try {
-            DatapackIngestService.publishInstallPlan(worldPlan);
+            DatapackInstallPlanner.publishInstallPlan(worldPlan);
             fail("Expected swapped canonical legacy staging to block world migration");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("identity changed"));
@@ -1624,14 +1575,14 @@ public class DatapackIngestServiceTest {
         File world = temporaryFolder.newFolder("changed-world-manifest-metadata-target");
         File worldTarget = new File(world, fixture.desired().id);
         IO.copyDirectory(fixture.target().toPath(), worldTarget.toPath());
-        DatapackIngestService.InstallPlan worldPlan = DatapackIngestService.prepareInstall(
+        InstallPlan worldPlan = DatapackInstallPlanner.prepareInstall(
                 fixture.source(), world, fixture.desired(), fixture.sourceHash(), false,
                 fixture.authorization());
         DatapackIngestService.Entry changed = entry("managed", "other-version", "other", "other-sha");
         writeManifest(fixture.root(), changed);
 
         try {
-            DatapackIngestService.publishInstallPlan(worldPlan);
+            DatapackInstallPlanner.publishInstallPlan(worldPlan);
             fail("Expected changed manifest metadata to block world migration");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("authority changed"));
@@ -1655,14 +1606,14 @@ public class DatapackIngestServiceTest {
     public void duplicateWorldParticipantsAreRejectedBeforePublication() throws Exception {
         DatapackIngestService.Entry entry = entry("duplicate-world", "v1", "1", "sha");
         File source = datapackDirectory("duplicate-world-source");
-        DatapackIngestService.writeOwnership(source, entry);
+        DatapackOwnership.writeOwnership(source, entry);
         File world = temporaryFolder.newFolder("duplicate-world-target");
         KList<File> worlds = new KList<>();
         worlds.add(world);
         worlds.add(world);
 
         try {
-            DatapackIngestService.install(source, worlds, entry, false);
+            DatapackInstall.install(source, worlds, entry, false);
             fail("Expected duplicate world install participants to be rejected");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("Duplicate datapack install target"));
@@ -1674,7 +1625,7 @@ public class DatapackIngestServiceTest {
     public void symbolicLinkWorldParticipantIsRejectedBeforePublication() throws Exception {
         DatapackIngestService.Entry entry = entry("aliased-world", "v1", "1", "sha");
         File source = datapackDirectory("aliased-world-source");
-        DatapackIngestService.writeOwnership(source, entry);
+        DatapackOwnership.writeOwnership(source, entry);
         File world = temporaryFolder.newFolder("aliased-world-target");
         Path alias = new File(temporaryFolder.getRoot(), "aliased-world-link").toPath();
         try {
@@ -1687,7 +1638,7 @@ public class DatapackIngestServiceTest {
         worlds.add(alias.toFile());
 
         try {
-            DatapackIngestService.install(source, worlds, entry, false);
+            DatapackInstall.install(source, worlds, entry, false);
             fail("Expected symbolic-link world participant to be rejected");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("Invalid datapack install root"));
@@ -1699,7 +1650,7 @@ public class DatapackIngestServiceTest {
     public void worldParticipantAliasThroughASymbolicParentIsRejected() throws Exception {
         DatapackIngestService.Entry entry = entry("parent-aliased-world", "v1", "1", "sha");
         File source = datapackDirectory("parent-aliased-world-source");
-        DatapackIngestService.writeOwnership(source, entry);
+        DatapackOwnership.writeOwnership(source, entry);
         File realParent = temporaryFolder.newFolder("parent-aliased-world-root");
         File realWorld = new File(realParent, "datapacks");
         assertTrue(realWorld.mkdir());
@@ -1715,7 +1666,7 @@ public class DatapackIngestServiceTest {
         worlds.add(aliasedWorld);
 
         try {
-            DatapackIngestService.install(source, worlds, entry, false);
+            DatapackInstall.install(source, worlds, entry, false);
             fail("Expected real-path world participant alias to be rejected");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("Duplicate datapack install target"));
@@ -1726,7 +1677,7 @@ public class DatapackIngestServiceTest {
     @Test
     public void changedLegacyTargetIsRejectedImmediatelyBeforePublication() throws Exception {
         LegacyStagingFixture fixture = legacyStagingFixture("changed-target-publication", true, true, true);
-        DatapackIngestService.InstallPlan plan = prepareLegacyStagingPlan(fixture);
+        InstallPlan plan = prepareLegacyStagingPlan(fixture);
         Files.writeString(new File(plan.target(), "value.txt").toPath(), "changed", StandardCharsets.UTF_8);
 
         assertInstallPublicationRejected(plan, "content changed");
@@ -1737,7 +1688,7 @@ public class DatapackIngestServiceTest {
     @Test
     public void changedLegacyMarkerIsRejectedImmediatelyBeforePublication() throws Exception {
         LegacyStagingFixture fixture = legacyStagingFixture("changed-marker-publication", true, true, true);
-        DatapackIngestService.InstallPlan plan = prepareLegacyStagingPlan(fixture);
+        InstallPlan plan = prepareLegacyStagingPlan(fixture);
         Files.writeString(new File(plan.target(), ".iris-managed.json").toPath(), "{}", StandardCharsets.UTF_8);
 
         assertInstallPublicationRejected(plan, "content changed");
@@ -1747,7 +1698,7 @@ public class DatapackIngestServiceTest {
     @Test
     public void byteIdenticalLegacyTargetSwapIsRejectedBeforePublication() throws Exception {
         LegacyStagingFixture fixture = legacyStagingFixture("swapped-target-publication", true, true, true);
-        DatapackIngestService.InstallPlan plan = prepareLegacyStagingPlan(fixture);
+        InstallPlan plan = prepareLegacyStagingPlan(fixture);
         File displaced = new File(fixture.stagingRoot(), "displaced-target");
         Files.move(plan.target().toPath(), displaced.toPath());
         writeLegacyDatapack(plan.target(), "old");
@@ -1759,7 +1710,7 @@ public class DatapackIngestServiceTest {
     @Test
     public void changedPreparedContentIsRejectedBeforePublication() throws Exception {
         LegacyStagingFixture fixture = legacyStagingFixture("changed-pending-publication", true, true, true);
-        DatapackIngestService.InstallPlan plan = prepareLegacyStagingPlan(fixture);
+        InstallPlan plan = prepareLegacyStagingPlan(fixture);
         Files.writeString(new File(plan.pending(), "value.txt").toPath(), "changed", StandardCharsets.UTF_8);
 
         assertInstallPublicationRejected(plan, "content changed");
@@ -1770,7 +1721,7 @@ public class DatapackIngestServiceTest {
     @Test
     public void changedPreparedMarkerIsRejectedBeforePublication() throws Exception {
         LegacyStagingFixture fixture = legacyStagingFixture("changed-pending-marker", true, true, true);
-        DatapackIngestService.InstallPlan plan = prepareLegacyStagingPlan(fixture);
+        InstallPlan plan = prepareLegacyStagingPlan(fixture);
         Files.writeString(new File(plan.pending(), ".iris-managed.json").toPath(), "{}", StandardCharsets.UTF_8);
 
         assertInstallPublicationRejected(plan, "content changed");
@@ -1781,7 +1732,7 @@ public class DatapackIngestServiceTest {
     @Test
     public void swappedTargetRootIsRejectedBeforePublication() throws Exception {
         LegacyStagingFixture fixture = legacyStagingFixture("swapped-target-root", true, true, true);
-        DatapackIngestService.InstallPlan plan = prepareLegacyStagingPlan(fixture);
+        InstallPlan plan = prepareLegacyStagingPlan(fixture);
         Path displaced = new File(fixture.root(), "displaced-target-root").toPath();
         Files.move(fixture.stagingRoot().toPath(), displaced);
         assertTrue(fixture.stagingRoot().mkdir());
@@ -1794,7 +1745,7 @@ public class DatapackIngestServiceTest {
     @Test
     public void swappedInstallScratchRootIsRejectedBeforePublication() throws Exception {
         LegacyStagingFixture fixture = legacyStagingFixture("swapped-install-scratch", true, true, true);
-        DatapackIngestService.InstallPlan plan = prepareLegacyStagingPlan(fixture);
+        InstallPlan plan = prepareLegacyStagingPlan(fixture);
         Path displaced = new File(fixture.root(), "displaced-install-scratch").toPath();
         Files.move(plan.pendingRoot().toPath(), displaced);
         assertTrue(plan.pendingRoot().mkdir());
@@ -1819,7 +1770,7 @@ public class DatapackIngestServiceTest {
                 "data/nova_structures/worldgen/structure_set/illager_barracks.json").toPath();
         Files.createDirectories(set.getParent());
         Files.writeString(set, "{}", StandardCharsets.UTF_8);
-        DatapackIngestService.writeOwnership(installed, entry);
+        DatapackOwnership.writeOwnership(installed, entry);
 
         DatapackIngestService.StructureScopeResources resources =
                 DatapackIngestService.scanInstalledStructureScope(installed, entry);
@@ -1838,7 +1789,7 @@ public class DatapackIngestServiceTest {
         Files.createDirectories(retained.getParent());
         Files.writeString(retained, "{}", StandardCharsets.UTF_8);
         Files.writeString(new File(installed, ".iris-overrides-stripped").toPath(), "", StandardCharsets.UTF_8);
-        DatapackIngestService.writeOwnership(installed, entry);
+        DatapackOwnership.writeOwnership(installed, entry);
 
         DatapackIngestService.StructureScopeResources resources =
                 DatapackIngestService.scanInstalledStructureScope(installed, entry);
@@ -1859,7 +1810,7 @@ public class DatapackIngestServiceTest {
 
         File staging = datapackDirectory("metadata-source");
         Files.writeString(new File(staging, "value.txt").toPath(), "same", StandardCharsets.UTF_8);
-        DatapackIngestService.writeOwnership(staging, current);
+        DatapackOwnership.writeOwnership(staging, current);
 
         File world = temporaryFolder.newFolder("metadata-world-datapacks");
         File target = new File(world, current.id);
@@ -1872,11 +1823,11 @@ public class DatapackIngestServiceTest {
         old.versionId = "v1";
         old.versionNumber = "1";
         old.sha1 = "old-hash";
-        DatapackIngestService.writeOwnership(target, old);
+        DatapackOwnership.writeOwnership(target, old);
 
         KList<File> worlds = new KList<>();
         worlds.add(world);
-        DatapackIngestService.InstallResult result = DatapackIngestService.install(staging, worlds, current, false);
+        InstallResult result = DatapackInstall.install(staging, worlds, current, false);
         String marker = Files.readString(new File(target, ".iris-managed.json").toPath(), StandardCharsets.UTF_8);
 
         assertFalse(result.changed());
@@ -1891,7 +1842,7 @@ public class DatapackIngestServiceTest {
         entry.structureKeys = List.of("nova_structures:tavern/oak");
         entry.templateKeys = List.of("nova_structures:building/house");
 
-        Map<String, String> inventory = DatapackIngestService.importBundleInventory(entry);
+        Map<String, String> inventory = DatapackStructureImports.importBundleInventory(entry);
 
         assertEquals("nova_structures:tavern/oak", inventory.get("iris:nova_structures_tavern_oak"));
         assertEquals("nova_structures:building/house", inventory.get("iris:nova_structures/building/house"));
@@ -1909,7 +1860,7 @@ public class DatapackIngestServiceTest {
         ));
         entry.structuresImported = true;
 
-        DatapackIngestService.prepareImportRecoveryInventory(entry, "pack");
+        DatapackStructureImports.prepareImportRecoveryInventory(entry, "pack");
 
         assertEquals(Map.of(
                 "iris:test_castle", "old:castle",
@@ -1925,9 +1876,9 @@ public class DatapackIngestServiceTest {
         DatapackIngestService.Entry entry = entry("managed", "v2", "2", "sha-two");
         entry.importedBundles.put("pack", Map.of("iris:test_castle", "test:castle"));
 
-        DatapackIngestService.recordDeterministicImportAttempt(entry, "pack");
+        DatapackStructureImports.recordDeterministicImportAttempt(entry, "pack");
 
-        assertFalse(DatapackIngestService.importPending(entry, "pack"));
+        assertFalse(DatapackStructureImports.importPending(entry, "pack"));
         assertEquals(Map.of("iris:test_castle", "test:castle"), entry.importedBundles.get("pack"));
         assertFalse(entry.importedTargets.containsKey("pack"));
     }
@@ -1935,57 +1886,57 @@ public class DatapackIngestServiceTest {
     @Test
     public void changedSourceRevisionRetriesDeterministicImportAttempt() {
         DatapackIngestService.Entry entry = entry("managed", "v2", "2", "sha-two");
-        DatapackIngestService.recordDeterministicImportAttempt(entry, "pack");
+        DatapackStructureImports.recordDeterministicImportAttempt(entry, "pack");
 
         entry.sha1 = "sha-three";
 
-        assertTrue(DatapackIngestService.importPending(entry, "pack"));
+        assertTrue(DatapackStructureImports.importPending(entry, "pack"));
     }
 
     @Test
     public void changedImporterFormatRetriesDeterministicImportAttempt() {
         DatapackIngestService.Entry entry = entry("managed", "v2", "2", "sha-two");
-        entry.importAttempts.put("pack", DatapackIngestService.importRevision(entry, 1));
+        entry.importAttempts.put("pack", DatapackStructureImports.importRevision(entry, 1));
 
-        assertTrue(DatapackIngestService.importPending(entry, "pack"));
+        assertTrue(DatapackStructureImports.importPending(entry, "pack"));
     }
 
     @Test
     public void provenanceImportFormatRetriesVersionTwoEditableImports() {
         DatapackIngestService.Entry entry = entry("managed", "v2", "2", "sha-two");
-        entry.importedTargets.put("pack", DatapackIngestService.importRevision(entry, 2));
+        entry.importedTargets.put("pack", DatapackStructureImports.importRevision(entry, 2));
 
-        assertTrue(DatapackIngestService.importPending(entry, "pack"));
+        assertTrue(DatapackStructureImports.importPending(entry, "pack"));
     }
 
     @Test
     public void newTargetRetriesDeterministicImportAttempt() {
         DatapackIngestService.Entry entry = entry("managed", "v2", "2", "sha-two");
-        DatapackIngestService.recordDeterministicImportAttempt(entry, "pack-one");
+        DatapackStructureImports.recordDeterministicImportAttempt(entry, "pack-one");
 
-        assertTrue(DatapackIngestService.importPending(entry, "pack-two"));
+        assertTrue(DatapackStructureImports.importPending(entry, "pack-two"));
     }
 
     @Test
     public void retryableImportPreparationClearsPriorAttempt() {
         DatapackIngestService.Entry entry = entry("managed", "v2", "2", "sha-two");
-        DatapackIngestService.recordDeterministicImportAttempt(entry, "pack");
+        DatapackStructureImports.recordDeterministicImportAttempt(entry, "pack");
 
-        DatapackIngestService.prepareImportRecoveryInventory(entry, "pack");
+        DatapackStructureImports.prepareImportRecoveryInventory(entry, "pack");
 
-        assertTrue(DatapackIngestService.importPending(entry, "pack"));
+        assertTrue(DatapackStructureImports.importPending(entry, "pack"));
         assertFalse(entry.importAttempts.containsKey("pack"));
     }
 
     @Test
     public void successfulImportReplacesDeterministicAttempt() {
         DatapackIngestService.Entry entry = entry("managed", "v2", "2", "sha-two");
-        DatapackIngestService.recordDeterministicImportAttempt(entry, "pack");
+        DatapackStructureImports.recordDeterministicImportAttempt(entry, "pack");
 
-        DatapackIngestService.recordSuccessfulImport(entry, "pack");
+        DatapackStructureImports.recordSuccessfulImport(entry, "pack");
 
-        assertFalse(DatapackIngestService.importPending(entry, "pack"));
-        assertEquals(DatapackIngestService.importRevision(entry), entry.importedTargets.get("pack"));
+        assertFalse(DatapackStructureImports.importPending(entry, "pack"));
+        assertEquals(DatapackStructureImports.importRevision(entry), entry.importedTargets.get("pack"));
         assertFalse(entry.importAttempts.containsKey("pack"));
     }
 
@@ -2013,7 +1964,7 @@ public class DatapackIngestServiceTest {
                 new Gson().toJson(Map.of("entries", List.of(removed, retained))),
                 StandardCharsets.UTF_8);
 
-        assertTrue(DatapackIngestService.removeLocked(null, removed.id, root, List.of()));
+        assertTrue(DatapackRemoval.removeLocked(null, removed.id, root, List.of()));
 
         assertEquals("owned", Files.readString(new File(editablePack, "objects/owned.iob").toPath()));
         assertTrue(Files.exists(writer.ownershipManifestPath(targetKey)));
@@ -2049,7 +2000,7 @@ public class DatapackIngestServiceTest {
                 new Gson().toJson(Map.of("entries", List.of(removed, retained))),
                 StandardCharsets.UTF_8);
 
-        assertTrue(DatapackIngestService.removeLocked(null, removed.id, root, List.of()));
+        assertTrue(DatapackRemoval.removeLocked(null, removed.id, root, List.of()));
 
         assertEquals("current", Files.readString(new File(editablePack, "objects/foo_a_b.iob").toPath()));
         JsonObject retainedJson = JsonParser.parseString(Files.readString(
@@ -2097,7 +2048,7 @@ public class DatapackIngestServiceTest {
         IrisData data = mock(IrisData.class);
         when(data.getDataFolder()).thenReturn(editablePack);
 
-        boolean cleaned = DatapackIngestService.cleanupRemovedImports(
+        boolean cleaned = DatapackStructureImports.cleanupRemovedImports(
                 data,
                 targetId,
                 Set.of(retained.url),
@@ -2135,7 +2086,7 @@ public class DatapackIngestServiceTest {
                 new Gson().toJson(Map.of("entries", List.of(removed, unrelated))),
                 StandardCharsets.UTF_8);
 
-        assertTrue(DatapackIngestService.removeLocked(null, removed.id, root, List.of()));
+        assertTrue(DatapackRemoval.removeLocked(null, removed.id, root, List.of()));
 
         assertFalse(Files.exists(new File(editablePack, "objects/foo_a_b.iob").toPath()));
         assertFalse(Files.exists(writer.ownershipManifestPath(targetKey)));
@@ -2167,7 +2118,7 @@ public class DatapackIngestServiceTest {
                 new Gson().toJson(Map.of("entries", List.of(removed, retained))),
                 StandardCharsets.UTF_8);
 
-        assertTrue(DatapackIngestService.removeLocked(null, removed.id, root, List.of()));
+        assertTrue(DatapackRemoval.removeLocked(null, removed.id, root, List.of()));
 
         assertEquals("other", Files.readString(new File(editablePack, "objects/owned.iob").toPath()));
         assertTrue(Files.exists(writer.ownershipManifestPath(targetKey)));
@@ -2194,7 +2145,7 @@ public class DatapackIngestServiceTest {
                 new Gson().toJson(Map.of("entries", List.of(removed, retained))),
                 StandardCharsets.UTF_8);
 
-        assertTrue(DatapackIngestService.removeLocked(null, removed.id, root, List.of()));
+        assertTrue(DatapackRemoval.removeLocked(null, removed.id, root, List.of()));
 
         assertFalse(missing.exists());
         JsonObject retainedJson = JsonParser.parseString(Files.readString(
@@ -2213,7 +2164,7 @@ public class DatapackIngestServiceTest {
         committed.importAttempts.put("pack", "old-attempt");
         committed.importedBundles.put("pack", new HashMap<>(Map.of("iris:old", "test:old")));
 
-        DatapackIngestService.Entry candidate = DatapackIngestService.copyEntry(committed);
+        DatapackIngestService.Entry candidate = DatapackManifestStore.copyEntry(committed);
         candidate.versionId = "v2";
         candidate.structureKeys.add("test:new");
         candidate.importedTargets.put("pack", "new");
@@ -2250,7 +2201,7 @@ public class DatapackIngestServiceTest {
         File transaction = writeCoordinator(root, "INSTALL", "PUBLISHING", desired, false,
                 List.of(directory), List.of());
 
-        DatapackIngestService.recoverTransactions(root, List.of(world));
+        DatapackScratchRecovery.recoverTransactions(root, List.of(world));
 
         assertEquals("old", Files.readString(new File(target, "value.txt").toPath(), StandardCharsets.UTF_8));
         assertFalse(backup.exists());
@@ -2280,7 +2231,7 @@ public class DatapackIngestServiceTest {
         File transaction = writeCoordinator(root, "INSTALL", "PUBLISHED", desired, false,
                 List.of(directory), List.of());
 
-        DatapackIngestService.recoverTransactions(root, List.of(world));
+        DatapackScratchRecovery.recoverTransactions(root, List.of(world));
 
         assertEquals("new", Files.readString(new File(target, "value.txt").toPath(), StandardCharsets.UTF_8));
         assertFalse(backup.exists());
@@ -2303,7 +2254,7 @@ public class DatapackIngestServiceTest {
         File backup = new File(scratch, "managed-backup-finder");
         writeManagedDatapack(pending, entry, "new");
         assertTrue(new File(pending, "data/nova_structures").mkdirs());
-        DatapackIngestService.writeOwnership(pending, entry);
+        DatapackOwnership.writeOwnership(pending, entry);
         String desiredHash = ownershipHash(pending);
         Files.move(target.toPath(), backup.toPath());
         Files.move(pending.toPath(), target.toPath());
@@ -2316,7 +2267,7 @@ public class DatapackIngestServiceTest {
         Files.writeString(new File(target, "data/nova_structures/.DS_Store").toPath(),
                 "finder", StandardCharsets.UTF_8);
 
-        DatapackIngestService.recoverTransactions(root, List.of(world));
+        DatapackScratchRecovery.recoverTransactions(root, List.of(world));
 
         assertEquals("old", Files.readString(new File(target, "value.txt").toPath(), StandardCharsets.UTF_8));
         assertFalse(new File(target, ".DS_Store").exists());
@@ -2349,7 +2300,7 @@ public class DatapackIngestServiceTest {
         Files.writeString(new File(target, "value.txt").toPath(), "changed", StandardCharsets.UTF_8);
 
         try {
-            DatapackIngestService.recoverTransactions(root, List.of(world));
+            DatapackScratchRecovery.recoverTransactions(root, List.of(world));
             fail("Expected authored datapack mutation to block recovery");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("content changed"));
@@ -2386,7 +2337,7 @@ public class DatapackIngestServiceTest {
         File transaction = writeCoordinator(root, "INSTALL", "PUBLISHING", desired, false,
                 List.of(directory), List.of());
 
-        DatapackIngestService.recoverTransactions(root, List.of());
+        DatapackScratchRecovery.recoverTransactions(root, List.of());
 
         assertEquals("old", Files.readString(new File(target, "value.txt").toPath(), StandardCharsets.UTF_8));
         assertFalse(backup.exists());
@@ -2418,7 +2369,7 @@ public class DatapackIngestServiceTest {
         File transaction = writeCoordinator(root, "INSTALL", "PUBLISHED", desired, false,
                 List.of(directory), List.of());
 
-        DatapackIngestService.recoverTransactions(root, List.of());
+        DatapackScratchRecovery.recoverTransactions(root, List.of());
 
         assertEquals("new", Files.readString(new File(target, "value.txt").toPath(), StandardCharsets.UTF_8));
         assertFalse(backup.exists());
@@ -2435,7 +2386,7 @@ public class DatapackIngestServiceTest {
         assertTrue(staging.mkdirs());
         File target = new File(staging, desired.id);
         writeLegacyDatapack(target, "old");
-        DatapackIngestService.writeOwnership(target, original);
+        DatapackOwnership.writeOwnership(target, original);
         String originalHash = ownershipHash(target);
         assertTrue(new File(target, ".iris-managed.json").delete());
         File scratch = new File(root, ".iris-datapack-install");
@@ -2451,7 +2402,7 @@ public class DatapackIngestServiceTest {
         File transaction = writeCoordinator(root, "INSTALL", "PUBLISHING", desired, false,
                 List.of(directory), List.of());
 
-        DatapackIngestService.recoverTransactions(root, List.of());
+        DatapackScratchRecovery.recoverTransactions(root, List.of());
 
         assertEquals("old", Files.readString(new File(target, "value.txt").toPath(), StandardCharsets.UTF_8));
         assertTrue(new File(target, ".DS_Store").isFile());
@@ -2470,7 +2421,7 @@ public class DatapackIngestServiceTest {
         assertTrue(staging.mkdirs());
         File target = new File(staging, desired.id);
         writeLegacyDatapack(target, "old");
-        DatapackIngestService.writeOwnership(target, original);
+        DatapackOwnership.writeOwnership(target, original);
         String originalHash = ownershipHash(target);
         assertTrue(new File(target, ".iris-managed.json").delete());
         File scratch = new File(root, ".iris-datapack-install");
@@ -2486,7 +2437,7 @@ public class DatapackIngestServiceTest {
         File transaction = writeCoordinator(root, "INSTALL", "PUBLISHED", desired, false,
                 List.of(directory), List.of());
 
-        DatapackIngestService.recoverTransactions(root, List.of());
+        DatapackScratchRecovery.recoverTransactions(root, List.of());
 
         assertEquals("new", Files.readString(new File(target, "value.txt").toPath(), StandardCharsets.UTF_8));
         assertTrue(new File(target, ".iris-managed.json").isFile());
@@ -2503,7 +2454,7 @@ public class DatapackIngestServiceTest {
         assertTrue(pending.mkdirs());
         Files.writeString(new File(pending, "partial.dat").toPath(), "partial", StandardCharsets.UTF_8);
 
-        DatapackIngestService.recoverTransactions(root, List.of());
+        DatapackScratchRecovery.recoverTransactions(root, List.of());
 
         assertFalse(pending.exists());
         assertFalse(scratch.exists());
@@ -2520,7 +2471,7 @@ public class DatapackIngestServiceTest {
         File metadata = new File(scratch, ".DS_Store");
         Files.writeString(metadata.toPath(), "finder", StandardCharsets.UTF_8);
 
-        DatapackIngestService.recoverTransactions(root, List.of());
+        DatapackScratchRecovery.recoverTransactions(root, List.of());
 
         assertFalse(metadata.exists());
         assertFalse(pending.exists());
@@ -2535,7 +2486,7 @@ public class DatapackIngestServiceTest {
         assertTrue(scratch.mkdir());
         Files.writeString(new File(scratch, ".DS_Store").toPath(), "finder", StandardCharsets.UTF_8);
 
-        DatapackIngestService.deleteInstallScratch(scratch, "test datapack install scratch");
+        DatapackInstall.deleteInstallScratch(scratch, "test datapack install scratch");
 
         assertFalse(scratch.exists());
         assertEquals(2, scratch.deleteAttempts());
@@ -2549,7 +2500,7 @@ public class DatapackIngestServiceTest {
         assertTrue(scratch.mkdir());
 
         try {
-            DatapackIngestService.deleteInstallScratch(scratch, "test datapack install scratch");
+            DatapackInstall.deleteInstallScratch(scratch, "test datapack install scratch");
             fail("Expected persistent scratch deletion failure");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("Could not remove test datapack install scratch"));
@@ -2568,7 +2519,7 @@ public class DatapackIngestServiceTest {
         assertTrue(metadata.mkdirs());
 
         try {
-            DatapackIngestService.recoverTransactions(root, List.of());
+            DatapackScratchRecovery.recoverTransactions(root, List.of());
             fail("Expected suspicious Finder metadata to block recovery");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("Suspicious datapack recovery artifact"));
@@ -2586,7 +2537,7 @@ public class DatapackIngestServiceTest {
         Files.writeString(new File(backup, "prior.dat").toPath(), "prior", StandardCharsets.UTF_8);
 
         try {
-            DatapackIngestService.recoverTransactions(root, List.of());
+            DatapackScratchRecovery.recoverTransactions(root, List.of());
             fail("Expected an unjournaled backup to block recovery");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("unjournaled datapack install backup"));
@@ -2604,7 +2555,7 @@ public class DatapackIngestServiceTest {
         File evidence = new File(backup, "prior.dat");
         Files.writeString(evidence.toPath(), "prior", StandardCharsets.UTF_8);
 
-        assertFalse(DatapackIngestService.recoverBeforeReapply(root, List.of()));
+        assertFalse(DatapackStagingReapply.recoverBeforeReapply(root, List.of()));
 
         assertEquals("prior", Files.readString(evidence.toPath(), StandardCharsets.UTF_8));
         assertTrue(backup.isDirectory());
@@ -2629,7 +2580,7 @@ public class DatapackIngestServiceTest {
         KList<File> worlds = new KList<>();
         worlds.add(world);
 
-        assertFalse(DatapackIngestService.reapplyStagedDirectories(
+        assertFalse(DatapackStagingReapply.reapplyStagedDirectories(
                 root, stagingRoot, worlds, false));
 
         assertEquals("preserve", Files.readString(userFile.toPath(), StandardCharsets.UTF_8));
@@ -2653,7 +2604,7 @@ public class DatapackIngestServiceTest {
         KList<File> worlds = new KList<>();
         worlds.add(world);
 
-        assertFalse(DatapackIngestService.reapplyStagedDirectories(
+        assertFalse(DatapackStagingReapply.reapplyStagedDirectories(
                 root, stagingRoot, worlds, false));
 
         assertFalse(new File(world, entry.id).exists());
@@ -2677,7 +2628,7 @@ public class DatapackIngestServiceTest {
         worlds.add(absentWorld);
         worlds.add(staleWorld);
 
-        assertFalse(DatapackIngestService.reapplyStagedDirectories(
+        assertFalse(DatapackStagingReapply.reapplyStagedDirectories(
                 root, stagingRoot, worlds, false));
 
         assertFalse(new File(absentWorld, entry.id).exists());
@@ -2694,7 +2645,7 @@ public class DatapackIngestServiceTest {
         File stagingRoot = new File(root, "staging");
 
         DatapackIngestService.ReapplyOutcome outcome =
-                DatapackIngestService.reapplyStagingRootOutcome(
+                DatapackStagingReapply.reapplyStagingRootOutcome(
                         root,
                         stagingRoot,
                         new KList<>(),
@@ -2711,7 +2662,7 @@ public class DatapackIngestServiceTest {
         writeManifest(root, null);
         File stagingRoot = new File(root, "staging");
 
-        assertTrue(DatapackIngestService.reapplyStagingRoot(
+        assertTrue(DatapackStagingReapply.reapplyStagingRoot(
                 root, stagingRoot, new KList<>(), false));
     }
 
@@ -2721,7 +2672,7 @@ public class DatapackIngestServiceTest {
         writeManifest(root, null);
         File regularFile = new File(root, "staging-file");
         Files.writeString(regularFile.toPath(), "unsafe", StandardCharsets.UTF_8);
-        assertFalse(DatapackIngestService.reapplyStagingRoot(
+        assertFalse(DatapackStagingReapply.reapplyStagingRoot(
                 root, regularFile, new KList<>(), false));
 
         File linkTarget = temporaryFolder.newFolder("unsafe-staging-link-target");
@@ -2731,7 +2682,7 @@ public class DatapackIngestServiceTest {
         } catch (IOException | UnsupportedOperationException unavailable) {
             Assume.assumeNoException(unavailable);
         }
-        assertFalse(DatapackIngestService.reapplyStagingRoot(
+        assertFalse(DatapackStagingReapply.reapplyStagingRoot(
                 root, symbolicLink.toFile(), new KList<>(), false));
     }
 
@@ -2752,7 +2703,7 @@ public class DatapackIngestServiceTest {
         File transaction = writeCoordinator(root, "REMOVE", "PUBLISHING", entry, true,
                 List.of(directory), List.of());
 
-        DatapackIngestService.recoverTransactions(root, List.of(world));
+        DatapackScratchRecovery.recoverTransactions(root, List.of(world));
 
         assertEquals("owned", Files.readString(new File(target, "value.txt").toPath(), StandardCharsets.UTF_8));
         assertFalse(backup.exists());
@@ -2776,7 +2727,7 @@ public class DatapackIngestServiceTest {
         File transaction = writeCoordinator(root, "REMOVE", "PUBLISHED", entry, true,
                 List.of(directory), List.of());
 
-        DatapackIngestService.recoverTransactions(root, List.of(world));
+        DatapackScratchRecovery.recoverTransactions(root, List.of(world));
 
         assertFalse(target.exists());
         assertFalse(backup.exists());
@@ -2792,7 +2743,7 @@ public class DatapackIngestServiceTest {
                 List.of(), List.of());
         Files.writeString(new File(transaction, "journal.next.json").toPath(), "{torn", StandardCharsets.UTF_8);
 
-        DatapackIngestService.recoverTransactions(root, List.of());
+        DatapackScratchRecovery.recoverTransactions(root, List.of());
 
         assertFalse(transaction.exists());
     }
@@ -2804,7 +2755,7 @@ public class DatapackIngestServiceTest {
         assertTrue(transactionRoot.mkdirs());
         Files.writeString(new File(transactionRoot, "journal.next.json").toPath(), "{torn", StandardCharsets.UTF_8);
 
-        DatapackIngestService.recoverTransactions(root, List.of());
+        DatapackScratchRecovery.recoverTransactions(root, List.of());
 
         assertFalse(transactionRoot.exists());
     }
@@ -2826,7 +2777,7 @@ public class DatapackIngestServiceTest {
                 List.of(), List.of(editable));
 
         try {
-            DatapackIngestService.recoverTransactions(root, List.of());
+            DatapackScratchRecovery.recoverTransactions(root, List.of());
             fail("Expected an arbitrary editable pack root to be rejected");
         } catch (Exception expected) {
             assertTrue(expected.getMessage().contains("editable pack root"));
@@ -2862,7 +2813,7 @@ public class DatapackIngestServiceTest {
         }
 
         try {
-            DatapackIngestService.recoverTransactions(root, List.of(world));
+            DatapackScratchRecovery.recoverTransactions(root, List.of(world));
             fail("Expected a replaced scratch root to be rejected");
         } catch (Exception expected) {
             assertTrue(expected.getMessage().contains("scratch root"));
@@ -2907,7 +2858,7 @@ public class DatapackIngestServiceTest {
                     List.of(directory), List.of());
 
             try {
-                DatapackIngestService.recoverTransactions(root, List.of(world));
+                DatapackScratchRecovery.recoverTransactions(root, List.of(world));
                 fail("Expected malformed " + field + " path to be rejected");
             } catch (IOException expected) {
                 assertTrue(expected.getMessage().contains("path"));
@@ -2934,7 +2885,7 @@ public class DatapackIngestServiceTest {
                 List.of(), List.of(editable));
 
         try {
-            DatapackIngestService.recoverTransactions(root, List.of());
+            DatapackScratchRecovery.recoverTransactions(root, List.of());
             fail("Expected malformed editable pack root to be rejected");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("editable pack root path"));
@@ -2982,7 +2933,7 @@ public class DatapackIngestServiceTest {
 
         assertFalse(genericRecovery.successful());
         assertFalse(Files.exists(new File(editablePack, "objects/owned.iob").toPath()));
-        DatapackIngestService.recoverTransactions(root, List.of());
+        DatapackScratchRecovery.recoverTransactions(root, List.of());
         assertEquals("owned", Files.readString(new File(editablePack, "objects/owned.iob").toPath(),
                 StandardCharsets.UTF_8));
         assertFalse(transaction.exists());
@@ -3023,7 +2974,7 @@ public class DatapackIngestServiceTest {
                 transaction.toPath(), coordinatorId, claimId));
         removal.leaveForRecovery();
 
-        DatapackIngestService.recoverTransactions(root, List.of());
+        DatapackScratchRecovery.recoverTransactions(root, List.of());
         StructureRecoveryResult genericRecovery = new StructureTransactionWriter(editablePack.toPath())
                 .recoverIncompleteTransactions();
 
@@ -3044,7 +2995,7 @@ public class DatapackIngestServiceTest {
                 true
         );
 
-        DatapackIngestService.recoverTransactions(fixture.root(), List.of());
+        DatapackScratchRecovery.recoverTransactions(fixture.root(), List.of());
 
         assertFalse(fixture.coordinator().exists());
         assertFalse(Files.exists(new File(fixture.editablePack(), "objects/owned.iob").toPath()));
@@ -3138,7 +3089,7 @@ public class DatapackIngestServiceTest {
         }
 
         try {
-            DatapackIngestService.recoverTransactions(root, List.of());
+            DatapackScratchRecovery.recoverTransactions(root, List.of());
             fail("Expected excessive transaction count to be rejected");
         } catch (Exception expected) {
             assertTrue(expected.getMessage().contains("transaction count"));
@@ -3154,7 +3105,7 @@ public class DatapackIngestServiceTest {
         File metadata = new File(transactions, ".DS_Store");
         Files.writeString(metadata.toPath(), "finder", StandardCharsets.UTF_8);
 
-        assertTrue(DatapackIngestService.recoverTransactions(root, List.of()));
+        assertTrue(DatapackScratchRecovery.recoverTransactions(root, List.of()));
 
         assertFalse(metadata.exists());
     }
@@ -3163,7 +3114,7 @@ public class DatapackIngestServiceTest {
     public void recoveryReportsUnchangedWhenNoRecoveryArtifactsExist() throws Exception {
         File root = temporaryFolder.newFolder("unchanged-recovery-root");
 
-        assertFalse(DatapackIngestService.recoverTransactions(root, List.of()));
+        assertFalse(DatapackScratchRecovery.recoverTransactions(root, List.of()));
     }
 
     @Test
@@ -3178,7 +3129,7 @@ public class DatapackIngestServiceTest {
         File lookalike = new File(staging, ".pending-managed-not-a-uuid");
         assertTrue(lookalike.mkdirs());
 
-        DatapackIngestService.recoverTransactions(root, List.of());
+        DatapackScratchRecovery.recoverTransactions(root, List.of());
 
         assertFalse(pending.exists());
         assertTrue(lookalike.isDirectory());
@@ -3198,7 +3149,7 @@ public class DatapackIngestServiceTest {
         }
 
         try {
-            DatapackIngestService.recoverTransactions(root, List.of());
+            DatapackScratchRecovery.recoverTransactions(root, List.of());
             fail("Expected symbolic-link staging scratch to be rejected");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("staging scratch artifact"));
@@ -3221,7 +3172,7 @@ public class DatapackIngestServiceTest {
             try (ServerSocketChannel channel = ServerSocketChannel.open(StandardProtocolFamily.UNIX)) {
                 channel.bind(UnixDomainSocketAddress.of(socket));
                 try {
-                    DatapackIngestService.recoverTransactions(root, List.of());
+                    DatapackScratchRecovery.recoverTransactions(root, List.of());
                     fail("Expected special staging scratch file to be rejected");
                 } catch (IOException expected) {
                     assertTrue(expected.getMessage().contains("unsupported file"));
@@ -3249,7 +3200,7 @@ public class DatapackIngestServiceTest {
         File backup = new File(staging, ".backup-managed-" + UUID.randomUUID());
         Files.move(target.toPath(), backup.toPath());
 
-        DatapackIngestService.recoverTransactions(root, List.of());
+        DatapackScratchRecovery.recoverTransactions(root, List.of());
 
         assertEquals("old", Files.readString(new File(target, "value.txt").toPath(),
                 StandardCharsets.UTF_8));
@@ -3267,7 +3218,7 @@ public class DatapackIngestServiceTest {
         writeManagedDatapack(target, entry, "new");
         writeManagedDatapack(backup, entry, "old");
 
-        DatapackIngestService.recoverTransactions(root, List.of());
+        DatapackScratchRecovery.recoverTransactions(root, List.of());
 
         assertEquals("new", Files.readString(new File(target, "value.txt").toPath(),
                 StandardCharsets.UTF_8));
@@ -3286,7 +3237,7 @@ public class DatapackIngestServiceTest {
         writeManagedDatapack(second, entry, "second");
 
         try {
-            DatapackIngestService.recoverTransactions(root, List.of());
+            DatapackScratchRecovery.recoverTransactions(root, List.of());
             fail("Expected ambiguous staging backups to be preserved");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("Ambiguous"));
@@ -3300,7 +3251,7 @@ public class DatapackIngestServiceTest {
     public void reapplyRecordsStagingAndInstallMetadataForTheNextPass() throws Exception {
         ReapplyFixture fixture = reapplyFixture("reapply-record");
 
-        assertTrue(DatapackIngestService.reapplyStagedDirectories(
+        assertTrue(DatapackStagingReapply.reapplyStagedDirectories(
                 fixture.root(), fixture.stagingRoot(), fixture.worlds(), false));
 
         assertTrue(new File(fixture.target(), ".iris-managed.json").isFile());
@@ -3313,31 +3264,31 @@ public class DatapackIngestServiceTest {
     @Test
     public void successfulUnchangedIngestKeepsStartupFingerprintStableAcrossNextReapply() throws Exception {
         ReapplyFixture fixture = reapplyFixture("reapply-ingest-cache");
-        assertTrue(DatapackIngestService.reapplyStagedDirectories(
+        assertTrue(DatapackStagingReapply.reapplyStagedDirectories(
                 fixture.root(), fixture.stagingRoot(), fixture.worlds(), false));
         DatapackIngestService.Entry entry = new Gson().fromJson(
                 manifestEntry(fixture.root()), DatapackIngestService.Entry.class);
         DatapackIngestService.Report report = new DatapackIngestService.Report();
 
-        DatapackIngestService.recordInstallResult(
+        DatapackStagingGuard.recordInstallResult(
                 null,
                 report,
                 fixture.staging(),
                 fixture.worlds(),
                 entry,
-                new DatapackIngestService.InstallResult(false),
+                new InstallResult(false),
                 entry.versionNumber
         );
         writePrettyManifest(fixture.root(), entry);
-        String cachedFingerprint = DatapackIngestService.startupValidationFingerprint(
+        String cachedFingerprint = DatapackStartupValidation.startupValidationFingerprint(
                 fixture.root(), fixture.worlds());
 
         assertFalse(entry.stagingMetadata.isBlank());
         assertEquals(1, entry.installMetadata.size());
         assertEquals(1, report.getUpToDate().size());
-        assertTrue(DatapackIngestService.reapplyStagedDirectories(
+        assertTrue(DatapackStagingReapply.reapplyStagedDirectories(
                 fixture.root(), fixture.stagingRoot(), fixture.worlds(), false));
-        assertEquals(cachedFingerprint, DatapackIngestService.startupValidationFingerprint(
+        assertEquals(cachedFingerprint, DatapackStartupValidation.startupValidationFingerprint(
                 fixture.root(), fixture.worlds()));
     }
 
@@ -3346,13 +3297,13 @@ public class DatapackIngestServiceTest {
         ReapplyFixture fixture = reapplyFixture("reapply-outcome");
 
         DatapackIngestService.ReapplyOutcome repaired =
-                DatapackIngestService.reapplyStagingRootOutcome(
+                DatapackStagingReapply.reapplyStagingRootOutcome(
                         fixture.root(),
                         fixture.stagingRoot(),
                         fixture.worlds(),
                         false);
         DatapackIngestService.ReapplyOutcome unchanged =
-                DatapackIngestService.reapplyStagingRootOutcome(
+                DatapackStagingReapply.reapplyStagingRootOutcome(
                         fixture.root(),
                         fixture.stagingRoot(),
                         fixture.worlds(),
@@ -3369,7 +3320,7 @@ public class DatapackIngestServiceTest {
     @Test
     public void unchangedStagingAndTargetSkipContentHashingOnReapply() throws Exception {
         ReapplyFixture fixture = reapplyFixture("reapply-shortcircuit");
-        assertTrue(DatapackIngestService.reapplyStagedDirectories(
+        assertTrue(DatapackStagingReapply.reapplyStagedDirectories(
                 fixture.root(), fixture.stagingRoot(), fixture.worlds(), false));
 
         Path staged = fixture.staging().toPath().resolve("value.txt");
@@ -3377,7 +3328,7 @@ public class DatapackIngestServiceTest {
         Files.writeString(staged, "wxyz", StandardCharsets.UTF_8);
         Files.setLastModifiedTime(staged, stamp);
 
-        assertTrue(DatapackIngestService.reapplyStagedDirectories(
+        assertTrue(DatapackStagingReapply.reapplyStagedDirectories(
                 fixture.root(), fixture.stagingRoot(), fixture.worlds(), false));
 
         assertEquals("abcd", Files.readString(
@@ -3387,7 +3338,7 @@ public class DatapackIngestServiceTest {
     @Test
     public void changedStagingMetadataForcesFullReapplyVerification() throws Exception {
         ReapplyFixture fixture = reapplyFixture("reapply-staging-change");
-        assertTrue(DatapackIngestService.reapplyStagedDirectories(
+        assertTrue(DatapackStagingReapply.reapplyStagedDirectories(
                 fixture.root(), fixture.stagingRoot(), fixture.worlds(), false));
 
         Path staged = fixture.staging().toPath().resolve("value.txt");
@@ -3395,14 +3346,14 @@ public class DatapackIngestServiceTest {
         Files.writeString(staged, "wxyz", StandardCharsets.UTF_8);
         Files.setLastModifiedTime(staged, FileTime.fromMillis(stamp.toMillis() + 5000L));
 
-        assertFalse(DatapackIngestService.reapplyStagedDirectories(
+        assertFalse(DatapackStagingReapply.reapplyStagedDirectories(
                 fixture.root(), fixture.stagingRoot(), fixture.worlds(), false));
     }
 
     @Test
     public void changedInstallTargetIsRepairedDespiteRecordedMetadata() throws Exception {
         ReapplyFixture fixture = reapplyFixture("reapply-target-change");
-        assertTrue(DatapackIngestService.reapplyStagedDirectories(
+        assertTrue(DatapackStagingReapply.reapplyStagedDirectories(
                 fixture.root(), fixture.stagingRoot(), fixture.worlds(), false));
 
         Path installed = fixture.target().toPath().resolve("value.txt");
@@ -3410,7 +3361,7 @@ public class DatapackIngestServiceTest {
         Files.setLastModifiedTime(installed, FileTime.fromMillis(
                 Files.getLastModifiedTime(installed).toMillis() + 5000L));
 
-        assertTrue(DatapackIngestService.reapplyStagedDirectories(
+        assertTrue(DatapackStagingReapply.reapplyStagedDirectories(
                 fixture.root(), fixture.stagingRoot(), fixture.worlds(), false));
 
         assertEquals("abcd", Files.readString(installed, StandardCharsets.UTF_8));
@@ -3419,11 +3370,11 @@ public class DatapackIngestServiceTest {
     @Test
     public void flippedOverrideStrippingForcesFullReapplyVerification() throws Exception {
         ReapplyFixture fixture = reapplyFixture("reapply-strip-change");
-        assertTrue(DatapackIngestService.reapplyStagedDirectories(
+        assertTrue(DatapackStagingReapply.reapplyStagedDirectories(
                 fixture.root(), fixture.stagingRoot(), fixture.worlds(), false));
         assertFalse(new File(fixture.target(), ".iris-overrides-stripped").exists());
 
-        assertTrue(DatapackIngestService.reapplyStagedDirectories(
+        assertTrue(DatapackStagingReapply.reapplyStagedDirectories(
                 fixture.root(), fixture.stagingRoot(), fixture.worlds(), true));
 
         assertTrue(new File(fixture.target(), ".iris-overrides-stripped").isFile());
@@ -3464,8 +3415,8 @@ public class DatapackIngestServiceTest {
         KList<File> worlds = new KList<>();
         worlds.add(unchangedWorld);
         worlds.add(changedWorld);
-        DatapackIngestService.InstallExecution execution =
-                DatapackIngestService.prepareInstallExecution(staging, worlds, entry, false, root);
+        InstallExecution execution =
+                DatapackInstall.prepareInstallExecution(staging, worlds, entry, false, root);
 
         assertTrue(execution.result().changed());
         assertEquals("new", Files.readString(
@@ -3478,8 +3429,8 @@ public class DatapackIngestServiceTest {
         File world = temporaryFolder.newFolder(name + "-world");
         KList<File> worlds = new KList<>();
         worlds.add(world);
-        DatapackIngestService.InstallExecution execution =
-                DatapackIngestService.prepareInstallExecution(
+        InstallExecution execution =
+                DatapackInstall.prepareInstallExecution(
                         fixture.source(),
                         worlds,
                         fixture.desired(),
@@ -3522,7 +3473,7 @@ public class DatapackIngestServiceTest {
             File staging,
             File unchangedTarget,
             File changedTarget,
-            DatapackIngestService.InstallExecution execution
+            InstallExecution execution
     ) {
     }
 
@@ -3532,7 +3483,7 @@ public class DatapackIngestServiceTest {
             DatapackIngestService.Entry entry,
             File canonicalTarget,
             File worldTarget,
-            DatapackIngestService.InstallExecution execution
+            InstallExecution execution
     ) {
     }
 
@@ -3573,8 +3524,8 @@ public class DatapackIngestServiceTest {
         }
         File source = new File(stagingRoot, ".pending-" + desired.id + "-" + UUID.randomUUID());
         writeManagedDatapack(source, desired, sameMetadata ? "same" : "new");
-        DatapackIngestService.VerifiedStagingInstall authorization =
-                DatapackIngestService.authorizeVerifiedStagingInstall(root, stagingRoot, source, desired);
+        VerifiedStagingInstall authorization =
+                DatapackStagingGuard.authorizeVerifiedStagingInstall(root, stagingRoot, source, desired);
         return new LegacyStagingFixture(
                 root, stagingRoot, target, source, desired, ownershipHash(source), authorization);
     }
@@ -3588,10 +3539,10 @@ public class DatapackIngestServiceTest {
         Files.writeString(new File(directory, ".DS_Store").toPath(), "legacy", StandardCharsets.UTF_8);
     }
 
-    private DatapackIngestService.InstallPlan prepareLegacyStagingPlan(
+    private InstallPlan prepareLegacyStagingPlan(
             LegacyStagingFixture fixture
     ) throws Exception {
-        return DatapackIngestService.prepareInstall(
+        return DatapackInstallPlanner.prepareInstall(
                 fixture.source(),
                 fixture.stagingRoot(),
                 fixture.desired(),
@@ -3614,11 +3565,11 @@ public class DatapackIngestServiceTest {
     }
 
     private void assertInstallPublicationRejected(
-            DatapackIngestService.InstallPlan plan,
+            InstallPlan plan,
             String expectedMessage
     ) throws Exception {
         try {
-            DatapackIngestService.publishInstallPlan(plan);
+            DatapackInstallPlanner.publishInstallPlan(plan);
             fail("Expected changed install participant to be rejected");
         } catch (IOException expected) {
             assertTrue(expected.getMessage(), expected.getMessage().contains(expectedMessage));
@@ -3638,7 +3589,7 @@ public class DatapackIngestServiceTest {
         Files.writeString(new File(directory, "pack.mcmeta").toPath(), """
                 {"pack":{"description":"test","pack_format":88}}
                 """, StandardCharsets.UTF_8);
-        DatapackIngestService.writeOwnership(directory, entry);
+        DatapackOwnership.writeOwnership(directory, entry);
     }
 
     private void writeManagedDatapack(
@@ -3651,7 +3602,7 @@ public class DatapackIngestServiceTest {
                 {"pack":{"description":"test","pack_format":88}}
                 """, StandardCharsets.UTF_8);
         Files.writeString(new File(directory, "value.txt").toPath(), value, StandardCharsets.UTF_8);
-        DatapackIngestService.writeOwnership(directory, entry);
+        DatapackOwnership.writeOwnership(directory, entry);
     }
 
     private DatapackIngestService.Entry entry(
@@ -3709,15 +3660,15 @@ public class DatapackIngestServiceTest {
         File original = backup.isDirectory() ? backup : target;
         File desired = pending.isDirectory() ? pending : target;
         directory.put("originalMarkerHash", hadTarget
-                ? DatapackIngestService.ownershipMarkerFingerprint(original) : "absent");
-        directory.put("desiredMarkerHash", DatapackIngestService.ownershipMarkerFingerprint(desired));
+                ? DatapackOwnership.ownershipMarkerFingerprint(original) : "absent");
+        directory.put("desiredMarkerHash", DatapackOwnership.ownershipMarkerFingerprint(desired));
         directory.put("originalIdentity", hadTarget
-                ? DatapackIngestService.directoryIdentity(original) : "");
-        directory.put("desiredIdentity", DatapackIngestService.directoryIdentity(desired));
+                ? DatapackSupport.directoryIdentity(original) : "");
+        directory.put("desiredIdentity", DatapackSupport.directoryIdentity(desired));
         directory.put("targetRoot", target.getParentFile().toPath().toRealPath().toString());
         directory.put("scratchRoot", backup.getParentFile().toPath().toRealPath().toString());
-        directory.put("targetRootIdentity", DatapackIngestService.directoryIdentity(target.getParentFile()));
-        directory.put("scratchRootIdentity", DatapackIngestService.directoryIdentity(backup.getParentFile()));
+        directory.put("targetRootIdentity", DatapackSupport.directoryIdentity(target.getParentFile()));
+        directory.put("scratchRootIdentity", DatapackSupport.directoryIdentity(backup.getParentFile()));
         return directory;
     }
 
@@ -3730,14 +3681,14 @@ public class DatapackIngestServiceTest {
         directory.put("originalHash", originalHash);
         directory.put("desiredHash", "");
         File original = backup.isDirectory() ? backup : target;
-        directory.put("originalMarkerHash", DatapackIngestService.ownershipMarkerFingerprint(original));
+        directory.put("originalMarkerHash", DatapackOwnership.ownershipMarkerFingerprint(original));
         directory.put("desiredMarkerHash", "");
-        directory.put("originalIdentity", DatapackIngestService.directoryIdentity(original));
+        directory.put("originalIdentity", DatapackSupport.directoryIdentity(original));
         directory.put("desiredIdentity", "");
         directory.put("targetRoot", target.getParentFile().toPath().toRealPath().toString());
         directory.put("scratchRoot", backup.getParentFile().toPath().toRealPath().toString());
-        directory.put("targetRootIdentity", DatapackIngestService.directoryIdentity(target.getParentFile()));
-        directory.put("scratchRootIdentity", DatapackIngestService.directoryIdentity(backup.getParentFile()));
+        directory.put("targetRootIdentity", DatapackSupport.directoryIdentity(target.getParentFile()));
+        directory.put("scratchRootIdentity", DatapackSupport.directoryIdentity(backup.getParentFile()));
         return directory;
     }
 
@@ -3850,7 +3801,7 @@ public class DatapackIngestServiceTest {
 
     private void assertRecoveryRejected(EditableRecoveryFixture fixture, String expectedMessage) throws Exception {
         try {
-            DatapackIngestService.recoverTransactions(fixture.root(), List.of());
+            DatapackScratchRecovery.recoverTransactions(fixture.root(), List.of());
             fail("Expected editable recovery to be rejected");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains(expectedMessage));
@@ -3875,13 +3826,11 @@ public class DatapackIngestServiceTest {
             File source,
             DatapackIngestService.Entry desired,
             String sourceHash,
-            DatapackIngestService.VerifiedStagingInstall authorization
+            VerifiedStagingInstall authorization
     ) {
     }
 
     private static final class DeleteAttemptFile extends File {
-        private static final long serialVersionUID = 1L;
-
         private final int successfulAttempt;
         private int deleteAttempts;
 

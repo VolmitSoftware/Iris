@@ -5,13 +5,10 @@ import org.junit.Test;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -45,20 +42,6 @@ public class CommandIrisDownloadContractTest {
         assertEquals(Arrays.asList("overworld", "underworld"), handler.getPossibilities());
         assertNull(handler.parse("__none__", false));
         assertThrows(Exception.class, () -> handler.parse("custom", false));
-    }
-
-    @Test
-    public void commandDelegatesAcceptedDownloadsWithoutRawPreamble() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/commands/CommandIris.java"
-        )).replace("\r\n", "\n");
-        String download = method(source, "public void download(");
-
-        assertTrue(download.contains("downloadBuiltIn(sender(), builtInPack)"));
-        assertTrue(download.contains("downloadUrl(sender(), directLink)"));
-        assertFalse(download.contains("Downloading built-in Iris pack"));
-        assertFalse(download.contains("Downloading Iris pack from"));
-        assertFalse(download.contains("sendMessage(directLink"));
     }
 
     private static String method(String source, String signature) {

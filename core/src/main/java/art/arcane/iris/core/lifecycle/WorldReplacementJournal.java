@@ -5,6 +5,7 @@ import art.arcane.iris.core.IrisWorldStorage;
 import art.arcane.iris.core.WorldSlotKey;
 import art.arcane.iris.core.lifecycle.BukkitWorldConfiguration.WorldGeneratorSnapshot;
 
+import art.arcane.iris.util.common.io.Durability;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -345,7 +346,7 @@ public final class WorldReplacementJournal {
                 while (buffer.hasRemaining()) {
                     channel.write(buffer);
                 }
-                channel.force(true);
+                Durability.force(channel);
             }
             forceDirectoryRequired(parent);
             try {

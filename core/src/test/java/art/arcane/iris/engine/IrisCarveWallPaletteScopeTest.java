@@ -24,11 +24,16 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
@@ -47,25 +52,27 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 
+@RunWith(Parameterized.class)
 public class IrisCarveWallPaletteScopeTest {
-    @Test
-    public void naturalWallsUseOneSelectedDataLookup() throws Exception {
-        verifyWalls(Mode.NATURAL);
+    @Parameters(name = "{0}")
+    public static Collection<Object[]> scopes() {
+        return List.of(
+                new Object[]{Mode.NATURAL},
+                new Object[]{Mode.CONTENT},
+                new Object[]{Mode.DETACHED},
+                new Object[]{Mode.ASSEMBLY}
+        );
+    }
+
+    private final Mode mode;
+
+    public IrisCarveWallPaletteScopeTest(Mode mode) {
+        this.mode = mode;
     }
 
     @Test
-    public void contentWallsRestoreDataAfterNestedSampling() throws Exception {
-        verifyWalls(Mode.CONTENT);
-    }
-
-    @Test
-    public void detachedWallsUseDetachedData() throws Exception {
-        verifyWalls(Mode.DETACHED);
-    }
-
-    @Test
-    public void assemblyWallsUseUnpublishedData() throws Exception {
-        verifyWalls(Mode.ASSEMBLY);
+    public void wallsUseTheDataOfTheirGenerationScope() throws Exception {
+        verifyWalls(mode);
     }
 
     private static void verifyWalls(Mode mode) throws Exception {
@@ -159,7 +166,7 @@ public class IrisCarveWallPaletteScopeTest {
         return runtime;
     }
 
-    private enum Mode {
+    enum Mode {
         NATURAL,
         CONTENT,
         DETACHED,

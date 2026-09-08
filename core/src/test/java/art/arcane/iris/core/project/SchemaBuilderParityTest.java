@@ -55,12 +55,14 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
 import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.File;
@@ -76,6 +78,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class SchemaBuilderParityTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     private static final List<String> POTION_KEYS = List.of("minecraft:speed", "minecraft:slow_falling", "sniffer_mod:mega_boost");
     private static final List<String> ENCHANT_KEYS = List.of("minecraft:sharpness", "cool_mod:vorpal");
     private static final List<String> ITEM_KEYS = List.of("minecraft:stone", "minecraft:diamond_sword", "cool_mod:ruby");

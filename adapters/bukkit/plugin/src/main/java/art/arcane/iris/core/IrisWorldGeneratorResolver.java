@@ -30,6 +30,7 @@ import art.arcane.iris.core.pack.PackValidationCache;
 import art.arcane.iris.core.pack.PackValidationRegistry;
 import art.arcane.iris.core.pack.PackValidationResult;
 import art.arcane.iris.core.pack.PackValidator;
+import art.arcane.iris.core.runtime.RuntimeInjection;
 import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -486,16 +487,19 @@ public final class IrisWorldGeneratorResolver {
             Iris.debug("Generator discovery probe for loaded world " + worldName);
             return IrisFailClosedChunkGenerator.discoveryProbe(worldName);
         }
-        Optional<String> startupDenial = IrisStartupValidation.denialReason();
-        if (startupDenial.isPresent()) {
-            Iris.warn("Keeping configured Iris world '" + worldName
-                    + "' generation-locked: " + startupDenial.get());
-            return IrisFailClosedChunkGenerator.startupLock(worldName, startupDenial.get());
+        ChunkGenerator startupLock = startupLockedGenerator(worldName);
+        if (startupLock != null) {
+            return startupLock;
         }
         ChunkGenerator stagedGenerator = WorldLifecycleStaging.consumeGenerator(worldName);
         if (stagedGenerator != null) {
             Iris.debug("Using staged runtime generator for " + worldName);
             return stagedGenerator;
+        }
+        RuntimeInjection.installIfDeferred();
+        startupLock = startupLockedGenerator(worldName);
+        if (startupLock != null) {
+            return startupLock;
         }
         Iris.debug("Default World Generator Called for " + worldName + " using ID: " + id);
         if (id == null || id.isEmpty()) id = IrisSettings.get().getGenerator().getDefaultWorldType();
@@ -514,6 +518,17 @@ public final class IrisWorldGeneratorResolver {
             Bukkit.shutdown();
             throw failure;
         }
+    }
+
+    @Nullable
+    private static ChunkGenerator startupLockedGenerator(String worldName) {
+        Optional<String> startupDenial = IrisStartupValidation.denialReason();
+        if (startupDenial.isEmpty()) {
+            return null;
+        }
+        Iris.warn("Keeping configured Iris world '" + worldName
+                + "' generation-locked: " + startupDenial.get());
+        return IrisFailClosedChunkGenerator.startupLock(worldName, startupDenial.get());
     }
 
     private static boolean isPlotSquaredGeneratorDiscoveryProbe(String worldName, String id) {

@@ -22,6 +22,8 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.IrisPaperLikeBackendMode;
 import art.arcane.iris.core.IrisRuntimeSchedulerMode;
 import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.core.pregenerator.PregenAdmissionGate;
+import art.arcane.iris.core.pregenerator.PregenDiagnostics;
 import art.arcane.iris.core.pregenerator.PregenListener;
 import art.arcane.iris.core.pregenerator.PregenMantleBackpressure;
 import art.arcane.iris.core.pregenerator.PregeneratorMethod;
@@ -50,7 +52,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -67,6 +68,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private static final int ADAPTIVE_RECOVERY_INTERVAL = 8;
     private static final long CLOSE_DRAIN_WARNING_SECONDS = 60L;
     private static final long FLUSH_TIMEOUT_SECONDS = 120L;
+    private static final long ADMISSION_WAIT_BOUND_MS = 500L;
     private final World world;
     private final IrisRuntimeSchedulerMode runtimeSchedulerMode;
     private final IrisPaperLikeBackendMode paperLikeBackendMode;
@@ -81,7 +83,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final String chunkAccessMode;
     private final ChunkRequestExecutor executor;
     private final Executor slowRequestExecutor;
-    private final Semaphore semaphore;
+    private final PregenAdmissionGate admission;
     private final int threads;
     private final int slowRequestWarningSeconds;
     private final int slowRequestWarnIntervalMs;
@@ -110,7 +112,6 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final AtomicLong lastProgressAt = new AtomicLong(M.ms());
     private final AtomicBoolean closing = new AtomicBoolean();
     private final AtomicBoolean holdsWorkerBoost = new AtomicBoolean();
-    private final Object permitMonitor = new Object();
     private volatile Engine metricsEngine;
     private volatile Mantle cachedMantle;
     private final PregenMantleBackpressure backpressure;
@@ -160,7 +161,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         this.runtimeCpuThreads = detectedCpuThreads;
         this.effectiveWorkerThreads = workerThreadsForCap;
         this.recommendedRuntimeConcurrencyCap = configuredThreads;
-        this.semaphore = new Semaphore(this.threads, true);
+        this.admission = new PregenAdmissionGate(this.threads, ADMISSION_WAIT_BOUND_MS, M::ms);
         this.slowRequestWarningSeconds = pregen.getChunkLoadTimeoutSeconds();
         this.slowRequestExecutor = CompletableFuture.delayedExecutor(this.slowRequestWarningSeconds, TimeUnit.SECONDS);
         this.slowRequestWarnIntervalMs = pregen.getTimeoutWarnIntervalMs();
@@ -212,7 +213,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             if (coreThreads instanceof Thread[] threadsArray) {
                 return threadsArray.length;
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            PregenDiagnostics.probeFailed("moonrise worker pool size", e);
         }
 
         return -1;
@@ -238,7 +240,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             int resolved = radius > 0 ? Math.max(1, (int) Math.ceil(radius / 32.0)) : 2;
             evictionWindowRegions = resolved;
             return resolved;
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            PregenDiagnostics.probeFailed("mantle radius for eviction window", e);
             return 2;
         }
     }
@@ -431,7 +434,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private void unloadChunkSafely(int cx, int cz) {
         try {
             world.removePluginChunkTicket(cx, cz, BukkitPlatform.plugin());
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            IrisLogging.reportError("Async pregen could not release the plugin chunk ticket at " + cx + "," + cz
+                    + " in world " + world.getName() + "; the chunk stays pinned in memory.", e);
         }
 
         try {
@@ -492,11 +497,12 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     private Chunk onChunkFutureFailure(int x, int z, Throwable throwable) {
-        try {
-            IrisLogging.warn("Failed async pregen chunk load at " + x + "," + z + ". " + metricsSnapshot());
+        IrisLogging.reportError("Failed async pregen chunk load at " + x + "," + z + ".", throwable);
 
-            IrisLogging.reportError(throwable);
+        try {
+            IrisLogging.warn("Async pregen state at the failed chunk " + x + "," + z + ". " + metricsSnapshot());
         } catch (Throwable e) {
+            PregenDiagnostics.probeFailed("pregen metrics snapshot", e);
         }
 
         return null;
@@ -521,11 +527,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         } catch (Throwable e) {
             IrisLogging.reportError(e);
         } finally {
-            try {
-                markFinished(success);
-            } finally {
-                semaphore.release();
-            }
+            markFinished(success);
         }
     }
 
@@ -581,7 +583,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             int next = Math.max(adaptiveMinInFlightLimit, current - 1);
             if (adaptiveInFlightLimit.compareAndSet(current, next)) {
                 logAdaptiveLimit("decrease", next);
-                notifyPermitWaiters();
+                admission.wake();
                 return;
             }
         }
@@ -597,7 +599,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             int next = nextAdaptiveInFlightLimit(current, threads);
             if (adaptiveInFlightLimit.compareAndSet(current, next)) {
                 logAdaptiveLimit("increase", next);
-                notifyPermitWaiters();
+                admission.wake();
                 return;
             }
         }
@@ -683,7 +685,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private String metricsSnapshot() {
         long stalledFor = Math.max(0L, M.ms() - lastProgressAt.get());
         return "world=" + world.getName()
-                + " permits=" + semaphore.availablePermits() + "/" + threads
+                + " permits=" + admission.availablePermits() + "/" + threads
                 + " adaptiveLimit=" + adaptiveInFlightLimit.get()
                 + " inFlight=" + inFlight.get()
                 + " submitted=" + submitted.get()
@@ -710,13 +712,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         if (after < 0) {
             inFlight.compareAndSet(after, 0);
         }
-        notifyPermitWaiters();
-    }
-
-    private void notifyPermitWaiters() {
-        synchronized (permitMonitor) {
-            permitMonitor.notifyAll();
-        }
+        admission.release();
+        backpressure.signalProgress();
     }
 
     private void recordAdaptiveWait(long waitedMs) {
@@ -738,7 +735,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         if (engine != null) {
             try {
                 engine.getMantle().cleanupChunksCoveredBy(x, z, true, listener::onChunkCleaned);
-            } catch (Throwable ignored) {
+            } catch (Throwable e) {
+                IrisLogging.reportError("Async pregen mantle cleanup failed at chunk " + x + "," + z
+                        + " in world " + world.getName() + "; tectonic plates for that chunk stay resident.", e);
             }
         }
     }
@@ -759,7 +758,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 metricsEngine = resolvedEngine;
             }
             return resolvedEngine;
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            PregenDiagnostics.probeFailed("engine access for world " + world.getName(), e);
             return null;
         }
     }
@@ -809,14 +809,12 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     @Override
     public void close() {
         closing.set(true);
-        notifyPermitWaiters();
+        admission.wake();
 
         // A stop request interrupts the pregen worker; shield the drain and flush so chunks still hit disk.
         boolean interrupted = Thread.interrupted();
         try {
-            interrupted |= awaitDrain(
-                    semaphore,
-                    threads,
+            interrupted |= admission.awaitDrain(
                     CLOSE_DRAIN_WARNING_SECONDS,
                     TimeUnit.SECONDS,
                     () -> IrisLogging.warn("Async pregen is still draining outstanding chunks. " + metricsSnapshot())
@@ -830,26 +828,6 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         } finally {
             if (interrupted) {
                 Thread.currentThread().interrupt();
-            }
-        }
-    }
-
-    static boolean awaitDrain(
-            Semaphore semaphore,
-            int permits,
-            long warningInterval,
-            TimeUnit timeUnit,
-            Runnable onWait
-    ) {
-        boolean interrupted = false;
-        while (true) {
-            try {
-                if (semaphore.tryAcquire(permits, warningInterval, timeUnit)) {
-                    return interrupted;
-                }
-                onWait.run();
-            } catch (InterruptedException e) {
-                interrupted = true;
             }
         }
     }
@@ -881,35 +859,24 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             return;
         }
 
+        PregenAdmissionGate.Wait waited;
         try {
-            long waitStart = M.ms();
-            synchronized (permitMonitor) {
-                while (inFlight.get() >= adaptiveInFlightLimit.get()) {
-                    if (isCancelled()) {
-                        return;
-                    }
-
-                    permitMonitor.wait(500L);
-                }
-            }
-            long adaptiveWait = Math.max(0L, M.ms() - waitStart);
-            if (adaptiveWait > 0L) {
-                recordAdaptiveWait(adaptiveWait);
-            }
-
-            long permitWaitStart = M.ms();
-            while (!semaphore.tryAcquire(1, TimeUnit.SECONDS)) {
-                if (isCancelled()) {
-                    return;
-                }
-            }
-            long permitWait = Math.max(0L, M.ms() - permitWaitStart);
-            if (permitWait > 0L) {
-                recordPermitWait(permitWait);
-            }
+            waited = admission.admit(() -> inFlight.get() >= adaptiveInFlightLimit.get(), this::isCancelled);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return;
+        }
+
+        if (waited == null) {
+            return;
+        }
+
+        if (waited.adaptiveMs() > 0L) {
+            recordAdaptiveWait(waited.adaptiveMs());
+        }
+
+        if (waited.permitMs() > 0L) {
+            recordPermitWait(waited.permitMs());
         }
 
         regionPending.computeIfAbsent(rkey(x >> 5, z >> 5), k -> new AtomicInteger(1)).incrementAndGet();
@@ -1094,7 +1061,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 requestMonitoredChunkAsync(x, z)
                         .whenComplete((chunk, throwable) -> completeChunk(x, z, listener, chunk, throwable));
                 return;
-            } catch (Throwable ignored) {
+            } catch (Throwable e) {
+                PregenDiagnostics.probeFailed("folia direct chunk request at " + x + "," + z
+                        + ", falling back to a region task", e);
             }
 
             Runnable regionTask = () -> {

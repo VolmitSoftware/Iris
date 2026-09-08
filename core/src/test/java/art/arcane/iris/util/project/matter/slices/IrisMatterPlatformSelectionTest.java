@@ -2,7 +2,9 @@ package art.arcane.iris.util.project.matter.slices;
 
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import org.bukkit.World;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
@@ -11,6 +13,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class IrisMatterPlatformSelectionTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Test
     public void hybridClasspathDoesNotEnableBukkitMatterIoForModdedPlatform() {
         IrisPlatform platform = mock(IrisPlatform.class);

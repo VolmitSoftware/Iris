@@ -2,9 +2,11 @@ package art.arcane.iris.core.gui;
 
 import art.arcane.iris.engine.framework.render.IrisRenderer;
 import art.arcane.iris.engine.framework.render.RenderType;
+import art.arcane.iris.testsupport.Await;
 import org.junit.Test;
 
 import java.awt.image.BufferedImage;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -86,7 +88,8 @@ public class VisionRenderControllerTest {
         VisionRenderController.RenderSpec spec = spec(renderer, RenderType.BIOME, 1L, 0D, 0D, 4D, 128, 128);
         try {
             VisionRenderController.Frame first = controller.request(spec);
-            assertTrue(await(() -> controller.progress(first).ready() == controller.progress(first).total(), 2_000L));
+            Await.until("the first render to report every tile ready", Duration.ofSeconds(2L),
+                    () -> controller.progress(first).ready() == controller.progress(first).total());
             int rendered = calls.get();
 
             VisionRenderController.Frame cached = controller.request(spec);
@@ -108,7 +111,8 @@ public class VisionRenderControllerTest {
         VisionRenderController controller = controller(2);
         try {
             VisionRenderController.Frame first = controller.request(spec(renderer, RenderType.BIOME, 1L, 16D, 16D, 4D, 128, 128));
-            assertTrue(await(() -> controller.progress(first).ready() == controller.progress(first).total(), 2_000L));
+            Await.until("the first render to report every tile ready", Duration.ofSeconds(2L),
+                    () -> controller.progress(first).ready() == controller.progress(first).total());
             Set<VisionRenderController.TileKey> firstKeys = keys(first);
 
             VisionRenderController.Frame panned = controller.request(spec(renderer, RenderType.BIOME, 1L, 20D, 20D, 4D, 128, 128));
@@ -248,16 +252,5 @@ public class VisionRenderControllerTest {
                 width,
                 height
         );
-    }
-
-    private static boolean await(BooleanSupplier condition, long timeoutMillis) throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
-        while (System.nanoTime() < deadline) {
-            if (condition.getAsBoolean()) {
-                return true;
-            }
-            Thread.sleep(5L);
-        }
-        return condition.getAsBoolean();
     }
 }

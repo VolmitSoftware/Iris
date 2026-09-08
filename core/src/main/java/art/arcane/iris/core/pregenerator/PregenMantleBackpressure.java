@@ -22,6 +22,9 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.math.M;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -33,6 +36,8 @@ public final class PregenMantleBackpressure {
     private final Runnable onBudgetTimeout;
     private final Supplier<String> diagnostics;
     private final BooleanSupplier cancelled;
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Condition progressed = lock.newCondition();
 
     public PregenMantleBackpressure(Supplier<Mantle> mantleSupplier, int maxResidentTectonicPlates, int waitMs, long timeoutMs, Runnable onBudgetTimeout, Supplier<String> diagnostics) {
         this(mantleSupplier, maxResidentTectonicPlates, waitMs, timeoutMs, onBudgetTimeout, diagnostics, () -> false);
@@ -108,10 +113,7 @@ public final class PregenMantleBackpressure {
                         + "), freed " + freed + " last pass, waited " + elapsed + "ms.");
             }
 
-            try {
-                Thread.sleep(waitMs);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+            if (!awaitProgress()) {
                 return;
             }
         }
@@ -154,12 +156,31 @@ public final class PregenMantleBackpressure {
                         + (mantle != null ? " (" + mantle.getLoadedRegionCount() + " plates resident)" : "") + ".");
             }
 
-            try {
-                Thread.sleep(waitMs);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+            if (!awaitProgress()) {
                 return;
             }
+        }
+    }
+
+    public void signalProgress() {
+        lock.lock();
+        try {
+            progressed.signalAll();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private boolean awaitProgress() {
+        lock.lock();
+        try {
+            progressed.await(waitMs, TimeUnit.MILLISECONDS);
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -170,7 +191,8 @@ public final class PregenMantleBackpressure {
 
         try {
             return cancelled.getAsBoolean();
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            PregenDiagnostics.probeFailed("pregen cancellation state", e);
             return false;
         }
     }
@@ -178,7 +200,8 @@ public final class PregenMantleBackpressure {
     private Mantle resolveMantle() {
         try {
             return mantleSupplier.get();
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            PregenDiagnostics.probeFailed("mantle handle for backpressure", e);
             return null;
         }
     }

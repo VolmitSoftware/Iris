@@ -9,6 +9,7 @@ import art.arcane.iris.engine.framework.structure.StructureGraphCompilation;
 import art.arcane.iris.engine.framework.structure.StructureResourceBundleGraphCompiler;
 import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.iris.engine.object.IrisPosition;
+import art.arcane.iris.testsupport.DurabilityMode;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.JsonObject;
@@ -35,6 +36,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class JigsawStudioProjectCreatorTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     private static final JigsawStudioProjectCreator.Options DEFAULT_PLANAR_OPTIONS =
             new JigsawStudioProjectCreator.Options(
                     "settlement/test",

@@ -1,5 +1,6 @@
 package art.arcane.iris.core.link;
 
+import art.arcane.iris.spi.CapabilityProbe;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.volmlib.util.data.Cuboid;
@@ -63,12 +64,7 @@ public class WorldEditLink {
             return true;
         }
 
-        boolean present;
-        try {
-            present = detector.getAsBoolean();
-        } catch (Throwable ignored) {
-            return false;
-        }
+        boolean present = CapabilityProbe.attempt("WorldEdit", detector::getAsBoolean, Boolean.FALSE);
 
         if (present) {
             active.aquire(() -> Boolean.TRUE);

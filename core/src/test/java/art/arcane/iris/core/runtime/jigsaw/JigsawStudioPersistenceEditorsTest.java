@@ -10,6 +10,7 @@ import art.arcane.iris.core.structure.authoring.StructureWriteMode;
 import art.arcane.iris.core.structure.authoring.StructureWriteResult;
 import art.arcane.iris.engine.object.IrisJigsawThemeSet;
 import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.testsupport.DurabilityMode;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -40,6 +41,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class JigsawStudioPersistenceEditorsTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     private static final String PLANAR_KEY = "studio/planar";
     private static final String SPATIAL_KEY = "studio/spatial";
 

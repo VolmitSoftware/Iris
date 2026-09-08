@@ -11,6 +11,7 @@ import art.arcane.iris.engine.history.GenerationEpochContractFactory;
 import art.arcane.iris.engine.history.GenerationHistory;
 import art.arcane.iris.engine.history.GenerationPackFingerprint;
 import art.arcane.iris.engine.history.GenerationRegistryContract;
+import art.arcane.iris.testsupport.DurabilityMode;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -32,6 +33,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class WorldReplacementBootstrapTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     private static final WorldSlotKey WORLD_KEY = WorldSlotKey.minecraft("the_nether");
     private static final long SEED = 4242424242L;
 

@@ -24,6 +24,8 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformStructureHooks;
 import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.List;
@@ -35,6 +37,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class StructureReachabilityContractTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Test
     public void reachableKeysRejectsNullEngine() {
         assertThrows(NullPointerException.class, () -> StructureReachability.reachableKeys(null));

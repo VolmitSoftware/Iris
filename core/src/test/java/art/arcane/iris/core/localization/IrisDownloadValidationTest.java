@@ -1,5 +1,6 @@
 package art.arcane.iris.core.localization;
 
+import art.arcane.iris.testsupport.ProjectPaths;
 import art.arcane.volmlib.util.localization.LocaleOverlay;
 import art.arcane.volmlib.util.localization.LocalizationValidator;
 import art.arcane.volmlib.util.localization.RemoteLanguageCatalog;
@@ -111,7 +112,7 @@ public class IrisDownloadValidationTest {
     }
 
     private String completeCatalog() throws IOException {
-        return Files.readString(Path.of("src/main/resources/languages", LOCALE + ".json"));
+        return Files.readString(ProjectPaths.moduleFile("src/main/resources/languages").resolve(LOCALE + ".json"));
     }
 
     private String incompleteCatalog(String complete) {

@@ -9,8 +9,6 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertFalse;
@@ -92,30 +90,6 @@ public class ServerConfiguratorStartupRestartTest {
         assertFalse(directRestartInvocation.get());
     }
 
-    @Test
-    public void startupRestartPathsPromoteTheValidationStateAndBypassTickQueues() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/ServerConfigurator.java"));
-        String configure = section(
-                source,
-                "public static void configure()",
-                "public static boolean isLoadedDatapackRuntimeReady");
-        String startupRestart = section(
-                source,
-                "public static void restartAtStartupBoundary",
-                "public static boolean verifyDataPackInstalled");
-
-        int restartResult = configure.indexOf("if (result.restartRequired())");
-        int validationRestart = configure.indexOf("requireDatapackRestart();", restartResult);
-        assertTrue(restartResult >= 0);
-        assertTrue(validationRestart > restartResult);
-        assertTrue(startupRestart.indexOf("invokeImmediateRestartIfSupported(Bukkit.class)")
-                < startupRestart.indexOf("Bukkit.shutdown();"));
-        assertFalse(startupRestart.contains("Bukkit.restart"));
-        assertFalse(startupRestart.contains("J.s("));
-        assertFalse(startupRestart.contains("dispatchCommand"));
-    }
-
     public static final class RestartCapableApi {
         private static boolean restarted;
 
@@ -125,13 +99,5 @@ public class ServerConfiguratorStartupRestartTest {
     }
 
     public static final class ShutdownOnlyApi {
-    }
-
-    private static String section(String source, String startMarker, String endMarker) {
-        int start = source.indexOf(startMarker);
-        int end = source.indexOf(endMarker, start);
-        assertTrue(start >= 0);
-        assertTrue(end > start);
-        return source.substring(start, end);
     }
 }

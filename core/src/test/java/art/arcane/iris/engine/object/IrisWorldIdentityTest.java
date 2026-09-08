@@ -1,25 +1,37 @@
 package art.arcane.iris.engine.object;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+
+import java.util.Collection;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
+@RunWith(Parameterized.class)
 public class IrisWorldIdentityTest {
-    @Test
-    public void usesPlatformIdentity() {
-        IrisWorld world = IrisWorld.builder()
-                .platformIdentity("iris:bukkit")
-                .build();
+    @Parameters(name = "{0}")
+    public static Collection<Object[]> identities() {
+        return List.of(
+                new Object[]{"iris:bukkit"},
+                new Object[]{"minecraft:the_nether"}
+        );
+    }
 
-        assertEquals("iris:bukkit", world.identity());
+    private final String platformIdentity;
+
+    public IrisWorldIdentityTest(String platformIdentity) {
+        this.platformIdentity = platformIdentity;
     }
 
     @Test
-    public void preservesModdedIdentity() {
+    public void preservesThePlatformIdentity() {
         IrisWorld world = IrisWorld.builder()
-                .platformIdentity("minecraft:the_nether")
+                .platformIdentity(platformIdentity)
                 .build();
 
-        assertEquals("minecraft:the_nether", world.identity());
+        assertEquals(platformIdentity, world.identity());
     }
 }

@@ -35,6 +35,9 @@ import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.Looper;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -43,6 +46,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public class IrisPregenerator {
     private static final double INVALID = 9223372036854775807d;
     private static final AtomicLong JOB_SEQUENCE = new AtomicLong(0L);
+    private static final long GATE_WAIT_MS = 50L;
+    private static final long RECLAIM_WAIT_MS = 150L;
     private final long jobId;
     private final PregenTask task;
     private final PregeneratorMethod generator;
@@ -50,6 +55,8 @@ public class IrisPregenerator {
     private final Looper ticker;
     private final AtomicBoolean paused;
     private final AtomicBoolean shutdown;
+    private final ReentrantLock stateLock = new ReentrantLock();
+    private final Condition stateChanged = stateLock.newCondition();
     private final PregenRateTracker rateTracker;
     private final KList<Integer> chunksPerSecondHistory;
     private final AtomicLong generated;
@@ -193,6 +200,7 @@ public class IrisPregenerator {
 
     public void close() {
         shutdown.set(true);
+        signalState();
     }
 
     public void start() {
@@ -295,6 +303,7 @@ public class IrisPregenerator {
                 reclaimTectonicPlates(mantle);
             }
         });
+        shutdownStep("parallelism", PregenPerformanceProfile::restore);
         shutdownStep("protocol", () -> {
             IrisProtocolServer protocolServer = IrisServices.getOrNull(IrisProtocolServer.class);
             if (protocolServer != null) {
@@ -337,7 +346,7 @@ public class IrisPregenerator {
             }
 
             previousLoaded = loaded;
-            J.sleep(150);
+            awaitStateChange(RECLAIM_WAIT_MS);
         }
 
         int loadedAfter = mantle.getLoadedRegionCount();
@@ -348,7 +357,7 @@ public class IrisPregenerator {
 
     private void visitRegion(int x, int z, boolean regions) {
         while (paused.get() && !shutdown.get()) {
-            J.sleep(50);
+            awaitStateChange(GATE_WAIT_MS);
         }
 
         if (shutdown.get()) {
@@ -376,7 +385,7 @@ public class IrisPregenerator {
                     if (!paused.get()) {
                         reclaimHeapPressure();
                     }
-                    J.sleep(50);
+                    awaitStateChange(GATE_WAIT_MS);
                 }
 
                 if (shutdown.get()) {
@@ -439,10 +448,32 @@ public class IrisPregenerator {
 
     public void pause() {
         paused.set(true);
+        signalState();
     }
 
     public void resume() {
         paused.set(false);
+        signalState();
+    }
+
+    private void signalState() {
+        stateLock.lock();
+        try {
+            stateChanged.signalAll();
+        } finally {
+            stateLock.unlock();
+        }
+    }
+
+    private void awaitStateChange(long millis) {
+        stateLock.lock();
+        try {
+            stateChanged.await(millis, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            stateLock.unlock();
+        }
     }
 
     private PregenListener listenify(PregenListener listener) {

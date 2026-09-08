@@ -4,8 +4,10 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.framework.PreservationRegistry;
 import art.arcane.iris.engine.object.IrisGenerator;
 import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -22,6 +24,9 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class IrisDataAuthoringCacheTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Rule
     public final TemporaryFolder temporary = new TemporaryFolder();
 

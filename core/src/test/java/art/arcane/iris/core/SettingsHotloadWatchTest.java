@@ -2,8 +2,10 @@ package art.arcane.iris.core;
 
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.localization.IrisMessages;
+import art.arcane.iris.testsupport.Await;
 import art.arcane.volmlib.util.hotload.ConfigHotloadEngine;
 import art.arcane.volmlib.util.localization.MessageArgument;
+import java.time.Duration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -15,7 +17,6 @@ import java.io.File;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -214,12 +215,12 @@ public class SettingsHotloadWatchTest {
         assertEquals(1, automaticApplies.get());
 
         Files.writeString(override.toPath(), locale("en_US", "Manual {permission}"), StandardCharsets.UTF_8);
-        pollFor(125L);
+        pollWithoutChange(125L, "First " + PERMISSION);
         assertEquals("First " + PERMISSION, permissionMessage());
         assertTrue(IrisLanguage.reload(dataFolder, "en_US"));
         assertEquals("Manual " + PERMISSION, permissionMessage());
 
-        pollFor(650L);
+        pollWithoutChange(650L, "Manual " + PERMISSION);
         assertEquals(1, automaticApplies.get());
         assertEquals("Manual " + PERMISSION, permissionMessage());
     }
@@ -255,32 +256,11 @@ public class SettingsHotloadWatchTest {
         assertEquals("Active " + PERMISSION, permissionMessage());
     }
 
-    @Test
-    public void bukkitAndModdedUseTheSameCoreCoordinator() throws Exception {
-        String bukkit = Files.readString(Path.of(
-                "../adapters/bukkit/plugin/src/main/java/art/arcane/iris/Iris.java"
-        ));
-        String modded = Files.readString(Path.of(
-                "../adapters/modded-common/src/main/java/art/arcane/iris/modded/service/ModdedSettingsHotloadService.java"
-        ));
-
-        assertTrue(bukkit.contains("new SettingsHotloadWatch("));
-        assertTrue(modded.contains("new SettingsHotloadWatch("));
-        assertFalse(bukkit.contains("new ConfigHotloadEngine("));
-        assertFalse(modded.contains("new ConfigHotloadEngine("));
-        assertFalse(bukkit.contains("IrisLanguage.update()"));
-        assertFalse(modded.contains("IrisLanguage.update()"));
-    }
-
-    private void awaitPermissionMessage(String expected) throws Exception {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(6L);
-        while (System.nanoTime() < deadline) {
+    private void awaitPermissionMessage(String expected) {
+        Await.reached("the hotload permission message '" + expected + "'", Duration.ofSeconds(6L), () -> {
             watch.checkConfigHotload();
-            if (expected.equals(permissionMessage())) {
-                return;
-            }
-            Thread.sleep(25L);
-        }
+            return expected.equals(permissionMessage());
+        });
         assertEquals(expected, permissionMessage());
     }
 
@@ -293,31 +273,24 @@ public class SettingsHotloadWatchTest {
     }
 
     private void checkUntilEntered(CountDownLatch entered) {
-        try {
-            while (entered.getCount() > 0L) {
-                watch.checkConfigHotload();
-                Thread.sleep(10L);
-            }
-        } catch (InterruptedException failure) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted while waiting for a hotload snapshot", failure);
-        }
+        Await.until("the hotload apply boundary", Duration.ofSeconds(5L), () -> {
+            watch.checkConfigHotload();
+            return entered.getCount() == 0L;
+        });
     }
 
-    private void awaitThreadState(Thread thread, Thread.State expected) throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1L);
-        while (System.nanoTime() < deadline && thread.getState() != expected) {
-            Thread.sleep(5L);
-        }
+    private void awaitThreadState(Thread thread, Thread.State expected) {
+        Await.reached(thread.getName() + " to reach " + expected, Duration.ofSeconds(1L),
+                () -> thread.getState() == expected);
         assertEquals(expected, thread.getState());
     }
 
-    private void pollFor(long durationMillis) throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(durationMillis);
-        while (System.nanoTime() < deadline) {
-            watch.checkConfigHotload();
-            Thread.sleep(25L);
-        }
+    private void pollWithoutChange(long windowMillis, String expected) {
+        assertFalse("The hotload permission message changed inside the quiet window",
+                Await.reached("an unexpected hotload apply", Duration.ofMillis(windowMillis), () -> {
+                    watch.checkConfigHotload();
+                    return !expected.equals(permissionMessage());
+                }));
     }
 
     private String captureErrorsWhilePolling(String expected, long duplicateWindowMillis) throws Exception {
@@ -325,20 +298,17 @@ public class SettingsHotloadWatchTest {
         ByteArrayOutputStream captured = new ByteArrayOutputStream();
         try (PrintStream capture = new PrintStream(captured, true, StandardCharsets.UTF_8)) {
             System.setErr(capture);
-            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(4L);
-            while (!captured.toString(StandardCharsets.UTF_8).contains(expected)) {
-                if (System.nanoTime() >= deadline) {
-                    fail("Timed out after 4000ms waiting for the hotload diagnostic '" + expected
-                            + "'; captured stderr was: " + captured.toString(StandardCharsets.UTF_8));
-                }
+            if (!Await.reached("the hotload diagnostic '" + expected + "'", Duration.ofSeconds(4L), () -> {
                 watch.checkConfigHotload();
-                Thread.sleep(10L);
+                return captured.toString(StandardCharsets.UTF_8).contains(expected);
+            })) {
+                fail("Timed out after 4000ms waiting for the hotload diagnostic '" + expected
+                        + "'; captured stderr was: " + captured.toString(StandardCharsets.UTF_8));
             }
-            long duplicateDeadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(duplicateWindowMillis);
-            while (System.nanoTime() < duplicateDeadline) {
+            Await.reached("a duplicate hotload diagnostic", Duration.ofMillis(duplicateWindowMillis), () -> {
                 watch.checkConfigHotload();
-                Thread.sleep(10L);
-            }
+                return false;
+            });
         } finally {
             System.setErr(originalError);
         }

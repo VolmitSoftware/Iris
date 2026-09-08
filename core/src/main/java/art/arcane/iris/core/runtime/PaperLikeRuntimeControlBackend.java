@@ -1,6 +1,8 @@
 package art.arcane.iris.core.runtime;
 
 import art.arcane.iris.core.lifecycle.CapabilitySnapshot;
+import art.arcane.iris.spi.CapabilityProbe;
+import art.arcane.iris.spi.IrisLogging;
 import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -57,7 +59,9 @@ final class PaperLikeRuntimeControlBackend implements WorldRuntimeControlBackend
             if (value instanceof Number number) {
                 return OptionalLong.of(number.longValue());
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable failure) {
+            IrisLogging.reportError("Failed to read the runtime day time of world \"" + world.getName()
+                    + "\" through " + strategy.description() + ".", failure);
         }
 
         return OptionalLong.empty();
@@ -107,7 +111,9 @@ final class PaperLikeRuntimeControlBackend implements WorldRuntimeControlBackend
             }
 
             strategy.syncMethod().invoke(serverHandle);
-        } catch (Throwable ignored) {
+        } catch (Throwable failure) {
+            IrisLogging.reportError("Failed to push the runtime day time of world \""
+                    + (world == null ? "unknown" : world.getName()) + "\" to its players.", failure);
         }
     }
 
@@ -161,42 +167,42 @@ final class PaperLikeRuntimeControlBackend implements WorldRuntimeControlBackend
             return TimeAccessStrategy.unsupported();
         }
 
-        try {
-            Method handleMethod = resolveZeroArgMethod(world.getClass(), "getHandle");
-            if (handleMethod == null) {
-                return TimeAccessStrategy.unsupported();
-            }
+        return CapabilityProbe.attempt("runtime world clock", () -> resolveTimeAccess(world),
+                TimeAccessStrategy.unsupported());
+    }
 
-            Object handle = handleMethod.invoke(world);
-            if (handle == null) {
-                return TimeAccessStrategy.unsupported();
-            }
-
-            Method readMethod = resolveZeroArgMethod(handle.getClass(), "getDayTime");
-            Method writeMethod = resolveLongArgMethod(handle.getClass(), "setDayTime");
-            if (readMethod != null && writeMethod != null) {
-                return TimeAccessStrategy.forHandle(handleMethod, readMethod, writeMethod, "runtime_handle#setDayTime");
-            }
-
-            Method levelDataMethod = resolveZeroArgMethod(handle.getClass(), "serverLevelData");
-            if (levelDataMethod == null) {
-                levelDataMethod = resolveZeroArgMethod(handle.getClass(), "getLevelData");
-            }
-            if (levelDataMethod != null) {
-                Object levelData = levelDataMethod.invoke(handle);
-                if (levelData != null) {
-                    Method levelDataReadMethod = resolveZeroArgMethod(levelData.getClass(), "getDayTime");
-                    Method levelDataWriteMethod = resolveLongArgMethod(levelData.getClass(), "setDayTime");
-                    if (levelDataReadMethod != null && levelDataWriteMethod != null) {
-                        return TimeAccessStrategy.forLevelData(handleMethod, levelDataMethod, levelDataReadMethod, levelDataWriteMethod, "world_data#setDayTime");
-                    }
-                }
-            }
-
-            return TimeAccessStrategy.unsupported(handleMethod);
-        } catch (Throwable ignored) {
+    private TimeAccessStrategy resolveTimeAccess(World world) throws ReflectiveOperationException {
+        Method handleMethod = resolveZeroArgMethod(world.getClass(), "getHandle");
+        if (handleMethod == null) {
             return TimeAccessStrategy.unsupported();
         }
+
+        Object handle = handleMethod.invoke(world);
+        if (handle == null) {
+            return TimeAccessStrategy.unsupported();
+        }
+
+        Method readMethod = resolveZeroArgMethod(handle.getClass(), "getDayTime");
+        Method writeMethod = resolveLongArgMethod(handle.getClass(), "setDayTime");
+        if (readMethod != null && writeMethod != null) {
+            return TimeAccessStrategy.forHandle(handleMethod, readMethod, writeMethod, "runtime_handle#setDayTime");
+        }
+
+        Method levelDataMethod = resolveZeroArgMethod(handle.getClass(), "serverLevelData");
+        if (levelDataMethod == null) {
+            levelDataMethod = resolveZeroArgMethod(handle.getClass(), "getLevelData");
+        }
+        if (levelDataMethod != null) {
+            Object levelData = levelDataMethod.invoke(handle);
+            if (levelData != null) {
+                Method levelDataReadMethod = resolveZeroArgMethod(levelData.getClass(), "getDayTime");
+                Method levelDataWriteMethod = resolveLongArgMethod(levelData.getClass(), "setDayTime");
+                if (levelDataReadMethod != null && levelDataWriteMethod != null) {
+                    return TimeAccessStrategy.forLevelData(handleMethod, levelDataMethod, levelDataReadMethod, levelDataWriteMethod, "world_data#setDayTime");
+                }
+            }
+        }
+        return TimeAccessStrategy.unsupported(handleMethod);
     }
 
     private static Method resolveZeroArgMethod(Class<?> type, String name) {
@@ -283,13 +289,11 @@ final class PaperLikeRuntimeControlBackend implements WorldRuntimeControlBackend
         }
 
         private static Method resolveCraftServerMethod(String name) {
-            try {
+            return CapabilityProbe.attempt("craft server#" + name, () -> {
                 Method method = Bukkit.getServer().getClass().getMethod(name);
                 method.setAccessible(true);
                 return method;
-            } catch (Throwable ignored) {
-                return null;
-            }
+            }, null);
         }
 
         private static Method resolveServerMethod(Method serverHandleMethod, String name) {
@@ -297,7 +301,7 @@ final class PaperLikeRuntimeControlBackend implements WorldRuntimeControlBackend
                 return null;
             }
 
-            try {
+            return CapabilityProbe.attempt("minecraft server#" + name, () -> {
                 Object craftServer = Bukkit.getServer();
                 if (craftServer == null) {
                     return null;
@@ -311,9 +315,7 @@ final class PaperLikeRuntimeControlBackend implements WorldRuntimeControlBackend
                 Method method = serverHandle.getClass().getMethod(name);
                 method.setAccessible(true);
                 return method;
-            } catch (Throwable ignored) {
-                return null;
-            }
+            }, null);
         }
     }
 }

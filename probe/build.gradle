@@ -21,6 +21,7 @@ dependencies {
     implementation(project(':core'))
     compileOnly(libs.spigot)
     testImplementation('junit:junit:4.13.2')
+    testImplementation(testFixtures(project(':core')))
     testImplementation(volmLibCoordinate) {
         transitive = false
     }

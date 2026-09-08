@@ -18,12 +18,17 @@
 
 package art.arcane.iris.spi;
 
+import art.arcane.iris.testsupport.PlatformLeakGuard;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
 public class IrisServicesTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     @Test
     public void removeThenReregisterRebindsService() {
         Sample first = new Sample();

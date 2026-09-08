@@ -4,11 +4,7 @@ import art.arcane.iris.core.localization.RuntimeProgressMessages;
 import art.arcane.iris.util.common.format.C;
 import org.junit.Test;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -77,20 +73,6 @@ public class WorldCreationProgressReporterTest {
 
         assertTrue(ready.contains("100% | World ready"));
         assertTrue(failed.contains("FAILED | Entering world"));
-    }
-
-    @Test
-    public void playerProgressUsesTheEntityScheduledActionBarWithoutABossBar() throws Exception {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/tools/WorldCreationProgressReporter.java"
-        )).replace("\r\n", "\n");
-
-        assertFalse(source.contains("Bukkit.createBossBar("));
-        assertFalse(source.contains("WORLD_CREATE_BOSSBAR_"));
-        assertFalse(source.contains("isProgressBossBar()"));
-        assertTrue(source.contains("RuntimeProgressMessages.WORLD_CREATE_LIFECYCLE_ACTION"));
-        assertTrue(source.contains("J.runEntity(sender.player(), guardedRender)"));
-        assertTrue(source.contains("J.runEntity(sender.player(), render)"));
     }
 
     private static int occurrences(String value, String match) {

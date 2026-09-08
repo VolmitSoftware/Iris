@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.history;
 
+import art.arcane.iris.testsupport.Await;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -11,6 +12,7 @@ import java.lang.reflect.Field;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
@@ -207,10 +209,8 @@ public class SavedBiomeStoreBatchTest {
                 for (SavedBiomeChunk chunk : chunks) {
                     results.add(workers.submit(() -> claim(store, root, control, chunk)));
                 }
-                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-                while (pending.size() != chunks.size() && System.nanoTime() < deadline) {
-                    Thread.sleep(1L);
-                }
+                Await.reached("every claim to queue behind the region write", Duration.ofSeconds(5L),
+                        () -> pending.size() == chunks.size());
                 assertEquals(chunks.size(), pending.size());
             } finally {
                 writingField.setBoolean(stripe, false);

@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.history;
 
+import art.arcane.iris.testsupport.DurabilityMode;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -20,6 +22,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class TransitionGenerationPlanTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 

@@ -133,6 +133,8 @@ public final class NoiseRenderCoordinatorTest {
         AtomicReference<Throwable> failure = new AtomicReference<>();
         AtomicReference<String> samplingThread = new AtomicReference<>();
         AtomicBoolean sampledOnEdt = new AtomicBoolean();
+        AtomicBoolean renderFinished = new AtomicBoolean();
+        CountDownLatch sampledAfterCompletion = new CountDownLatch(1);
         AtomicInteger samples = new AtomicInteger();
         NoiseRenderCoordinator coordinator = new NoiseRenderCoordinator(2, new NoiseRenderCoordinator.Listener() {
             @Override
@@ -154,6 +156,9 @@ public final class NoiseRenderCoordinatorTest {
         try {
             NoiseProvider sampler = (x, z) -> {
                 samples.incrementAndGet();
+                if (renderFinished.get()) {
+                    sampledAfterCompletion.countDown();
+                }
                 samplingThread.compareAndSet(null, Thread.currentThread().getName());
                 sampledOnEdt.compareAndSet(false, SwingUtilities.isEventDispatchThread());
                 return x + z;
@@ -177,7 +182,8 @@ public final class NoiseRenderCoordinatorTest {
             assertFalse(sampledOnEdt.get());
             assertTrue(samplingThread.get().startsWith("Iris Noise Renderer"));
             int completedSamples = samples.get();
-            Thread.sleep(150L);
+            renderFinished.set(true);
+            assertFalse(sampledAfterCompletion.await(150L, TimeUnit.MILLISECONDS));
             assertEquals(completedSamples, samples.get());
         } finally {
             coordinator.close();

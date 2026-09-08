@@ -73,15 +73,9 @@ public class IrisModLanguageAssetsTest {
 
     private Set<String> resourceFiles() throws Exception {
         URL resource = IrisModLanguageAssetsTest.class.getClassLoader().getResource(ROOT);
-        Path directory;
-        if (resource != null && "file".equals(resource.getProtocol())) {
-            directory = Path.of(resource.toURI());
-        } else {
-            String sources = System.getProperty("iris.moddedCommonSources");
-            assertNotNull("Missing mod language resource directory and source root", sources);
-            directory = Path.of(sources).getParent()
-                    .resolve("resources").resolve(ROOT);
-        }
+        assertNotNull("Missing mod language resource directory: " + ROOT, resource);
+        assertEquals("Mod language resources must resolve to a directory on disk", "file", resource.getProtocol());
+        Path directory = Path.of(resource.toURI());
         try (Stream<Path> paths = Files.list(directory)) {
             return paths
                     .filter(Files::isRegularFile)

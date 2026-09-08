@@ -2,6 +2,7 @@ package art.arcane.iris.modded.localization;
 
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.localization.IrisMessages;
+import art.arcane.iris.testsupport.ProjectPaths;
 import art.arcane.volmlib.util.localization.MessageKey;
 import art.arcane.volmlib.util.localization.VolmitLocales;
 import com.google.gson.JsonObject;
@@ -27,7 +28,7 @@ public class ModdedMessageContributorTest {
 
     @Test
     public void completeLoaderCatalogStillMatchesEveryDownloadableLocale() throws Exception {
-        Path sourceRoot = Path.of("../../core/src/main/resources/languages");
+        Path sourceRoot = ProjectPaths.repositoryFile("core/src/main/resources/languages");
         for (String locale : VolmitLocales.nonEnglish()) {
             JsonObject document = JsonParser.parseString(Files.readString(sourceRoot.resolve(locale + ".json")))
                     .getAsJsonObject();

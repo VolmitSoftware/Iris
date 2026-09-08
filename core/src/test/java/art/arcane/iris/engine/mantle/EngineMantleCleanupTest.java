@@ -3,10 +3,8 @@ package art.arcane.iris.engine.mantle;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
 import art.arcane.iris.engine.hydrology.cave.HydrologyCaveCell;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.util.project.matter.PreObjectMatterCell;
 import art.arcane.iris.util.project.matter.TileWrapper;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
@@ -15,7 +13,7 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.InOrder;
 
@@ -27,7 +25,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Answers.CALLS_REAL_METHODS;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -38,20 +35,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class EngineMantleCleanupTest {
-    @Before
-    public void bindPlatform() {
-        IrisPlatforms.unbind();
-        PlatformBlockState block = mock(PlatformBlockState.class);
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        when(registries.block(anyString())).thenReturn(block);
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.bind(platform);
-    }
+    @Rule
+    public final PlatformBinding platform = PlatformBinding.mockPlatform();
 
     @After
     public void unbindPlatform() {
-        IrisPlatforms.unbind();
         MantleSliceRetention.clearForTesting();
     }
 

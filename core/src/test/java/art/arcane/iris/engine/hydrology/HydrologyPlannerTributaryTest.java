@@ -108,7 +108,7 @@ public class HydrologyPlannerTributaryTest {
         ArrayList<HydraulicSegment> segments = new ArrayList<>(List.of(new HydraulicSegment(
                 1L, 7L, HydrologyFeatureType.SURFACE_POOL, 120, 120, 4, 2, false, false, List.copyOf(centerline))));
 
-        planner.levelApproach(segments, 100);
+        planner.tributaries.levelApproach(segments, 100);
 
         List<HydrologyPoint> graded = new ArrayList<>();
         int previousHead = Integer.MAX_VALUE;
@@ -146,7 +146,7 @@ public class HydrologyPlannerTributaryTest {
         ArrayList<HydraulicSegment> segments = new ArrayList<>(List.of(new HydraulicSegment(
                 1L, 7L, HydrologyFeatureType.SURFACE_POOL, 120, 120, 4, 2, false, false, List.copyOf(centerline))));
 
-        planner.levelApproach(segments, 112);
+        planner.tributaries.levelApproach(segments, 112);
 
         List<HydrologyPoint> graded = segments.getFirst().centerline();
         assertEquals(13, graded.size());

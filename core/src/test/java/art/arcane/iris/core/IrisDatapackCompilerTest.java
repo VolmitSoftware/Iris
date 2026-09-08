@@ -17,8 +17,10 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformGenerationRegistry;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.DurabilityMode;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.json.JSONObject;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.Assume;
@@ -42,6 +44,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class IrisDatapackCompilerTest {
+    @ClassRule
+    public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 

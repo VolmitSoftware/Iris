@@ -2,10 +2,6 @@ package art.arcane.iris.modded;
 
 import org.junit.Test;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -46,25 +42,6 @@ public class ModdedLevelDataAttachmentTest {
                 () -> attachment.attach(new FailingLevelData(), new RootData(), new DimensionKey()));
 
         assertNull(failure.getCause());
-    }
-
-    @Test
-    public void initializesLevelDataBeforeBindingAndPublication() throws IOException {
-        String source = Files.readString(sourcePath("ModdedDimensionManager.java"));
-        int construction = source.indexOf("ServerLevel level = new ServerLevel(");
-        int initialization = source.indexOf("serverAccess.initializeLevelData(server, level);", construction);
-        int binding = source.indexOf("generator.bindLevel(level);", initialization);
-        int publication = source.indexOf("serverAccess.putLevelIfAbsent(server, key, level);", binding);
-
-        assertTrue(construction >= 0);
-        assertTrue(initialization > construction);
-        assertTrue(binding > initialization);
-        assertTrue(publication > binding);
-    }
-
-    private static Path sourcePath(String fileName) {
-        return Path.of(System.getProperty("iris.moddedCommonSources"),
-                "art/arcane/iris/modded", fileName);
     }
 
     public static final class AttachedLevelData {

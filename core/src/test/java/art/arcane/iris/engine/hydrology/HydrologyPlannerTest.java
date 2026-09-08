@@ -536,7 +536,7 @@ public class HydrologyPlannerTest {
     }
 
     private static AutoCloseable earlyAdmission(HydrologyPlanner planner, HydrologyTileKey key) throws Exception {
-        Class<?> contextType = Class.forName(HydrologyPlanner.class.getName() + "$CrossTileResolutionContext");
+        Class<?> contextType = CrossTileResolutionContext.class;
         Constructor<?> contextConstructor = contextType.getDeclaredConstructor(HydrologyTileKey.class, long.class, int.class);
         contextConstructor.setAccessible(true);
         Object context = contextConstructor.newInstance(key, 64L, 4096);
@@ -631,8 +631,8 @@ public class HydrologyPlannerTest {
 
     @Test
     public void biomeIncisionMultiplierCannotExceedTheConfiguredSurfaceMaximum() {
-        assertEquals(6, HydrologyPlanner.permittedSurfaceIncision(6, 2D));
-        assertEquals(3, HydrologyPlanner.permittedSurfaceIncision(6, 0.5D));
+        assertEquals(6, HydrologySourcePlanner.permittedSurfaceIncision(6, 2D));
+        assertEquals(3, HydrologySourcePlanner.permittedSurfaceIncision(6, 0.5D));
     }
 
     @Test
@@ -709,12 +709,12 @@ public class HydrologyPlannerTest {
 
     @Test
     public void fallbackSourceTargetCannotExceedAvailableOutlets() {
-        assertEquals(1, HydrologyPlanner.effectiveSourceTarget(true, 8, 1));
-        assertEquals(0, HydrologyPlanner.effectiveSourceTarget(true, 8, 0));
-        assertEquals(8, HydrologyPlanner.effectiveSourceTarget(false, 8, 1));
+        assertEquals(1, HydrologySourcePlanner.effectiveSourceTarget(true, 8, 1));
+        assertEquals(0, HydrologySourcePlanner.effectiveSourceTarget(true, 8, 0));
+        assertEquals(8, HydrologySourcePlanner.effectiveSourceTarget(false, 8, 1));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> HydrologyPlanner.effectiveSourceTarget(true, -1, 1)
+                () -> HydrologySourcePlanner.effectiveSourceTarget(true, -1, 1)
         );
     }
 
@@ -1507,7 +1507,7 @@ public class HydrologyPlannerTest {
             int outlet = random.nextInt(11) - 3;
 
             boolean expected = bruteForceUndergroundHeads(minimum, maximum, outlet, 0, Integer.MAX_VALUE);
-            boolean actual = HydrologyPlanner.solveUndergroundHeads(
+            boolean actual = HydrologyUndergroundCoursePlanner.solveUndergroundHeads(
                     preferred,
                     minimum,
                     maximum,
@@ -3424,31 +3424,31 @@ public class HydrologyPlannerTest {
     }
 
     private double anchorScore(HydrologyPlanner planner, HydrologyTerrainSample terrain, int x, int z) throws Exception {
-        Class<?> nodeType = Class.forName(HydrologyPlanner.class.getName() + "$GridNode");
+        Class<?> nodeType = HydrologyGridNode.class;
         Constructor<?> constructor = nodeType.getDeclaredConstructor(int.class, int.class, int.class,
                 int.class, int.class, long.class, HydrologyTerrainSample.class);
         constructor.setAccessible(true);
         Object node = constructor.newInstance(0, 0, 0, 0, 0, 719L, terrain);
-        Method method = HydrologyPlanner.class.getDeclaredMethod("anchorScore", nodeType,
+        Method method = HydrologyRouteGeometry.class.getDeclaredMethod("anchorScore", nodeType,
                 int.class, int.class, int.class, int.class, double.class);
         method.setAccessible(true);
-        return (double) method.invoke(planner, node, x, z, 0, 0, 0.3D);
+        return (double) method.invoke(planner.routeGeometry, node, x, z, 0, 0, 0.3D);
     }
 
     private List<?> routeCandidates(HydrologyPlanner planner) throws Exception {
-        Class<?> directionType = Class.forName(HydrologyPlanner.class.getName() + "$Direction");
+        Class<?> directionType = RouteDirection.class;
         Constructor<?> directionConstructor = directionType.getDeclaredConstructor(double.class, double.class);
         directionConstructor.setAccessible(true);
         Object direction = directionConstructor.newInstance(1D, 0D);
-        Class<?> positionType = Class.forName(HydrologyPlanner.class.getName() + "$RoutePosition");
+        Class<?> positionType = RoutePosition.class;
         Constructor<?> positionConstructor = positionType.getDeclaredConstructor(double.class, double.class,
                 double.class, double.class, directionType);
         positionConstructor.setAccessible(true);
         Object position = positionConstructor.newInstance(0D, 0D, 100D, 0D, direction);
-        Method method = HydrologyPlanner.class.getDeclaredMethod("routeCandidates", long.class, long.class,
+        Method method = HydrologyRouteGeometry.class.getDeclaredMethod("routeCandidates", long.class, long.class,
                 positionType, double.class, int.class, int.class, String.class);
         method.setAccessible(true);
-        return (List<?>) method.invoke(planner, 1L, 2L, position, 0.5D, 4, 1, null);
+        return (List<?>) method.invoke(planner.routeGeometry, 1L, 2L, position, 0.5D, 4, 1, null);
     }
 
     private static final class CountingNaturalSampler implements HydrologyNaturalTerrainSampler {

@@ -1,5 +1,6 @@
 package art.arcane.iris.core.localization;
 
+import art.arcane.iris.testsupport.ProjectPaths;
 import art.arcane.volmlib.util.localization.LocalizationCandidate;
 import art.arcane.volmlib.util.localization.LocalizationSnapshot;
 import art.arcane.volmlib.util.localization.PluginLanguageEditor;
@@ -49,7 +50,7 @@ public class IrisLanguageEditorTest {
         assertTrue(IrisLanguage.reload(directory, "en_US"));
         Path cache = IrisLanguage.remote(directory).cacheFile("fr_FR");
         Files.createDirectories(cache.getParent());
-        Files.copy(Path.of("src/main/resources/languages/fr_FR.json"), cache);
+        Files.copy(ProjectPaths.moduleFile("src/main/resources/languages/fr_FR.json"), cache);
         PluginLanguageEditor.Options options = IrisLanguage.editorOptions();
         LocalizationSnapshot english = LocalizationSnapshot.create(
                 LocalizationCandidate.english(IrisLanguage.catalog(), PluralSelector.oneOther()));
@@ -106,7 +107,7 @@ public class IrisLanguageEditorTest {
 
     @Test
     public void incompleteDownloadedLocaleCanBeEditedWithoutBeingSelected() throws Exception {
-        byte[] complete = Files.readAllBytes(Path.of("src/main/resources/languages/fr_FR.json"));
+        byte[] complete = Files.readAllBytes(ProjectPaths.moduleFile("src/main/resources/languages/fr_FR.json"));
         AtomicInteger requests = new AtomicInteger();
         Field remoteField = IrisLanguage.class.getDeclaredField("remote");
         remoteField.setAccessible(true);

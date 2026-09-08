@@ -6,9 +6,13 @@ on**. The Volmit dev/test machines are Apple Silicon, where the wide-SIMD path
 (4+ double lanes) does not exist. Copy the built artifact to a Windows/x86 box
 (AVX2 = 4 lanes, AVX-512 = 8 lanes) and run it to get real numbers for that CPU.
 
-The six kernel classes are copied verbatim (logic byte-for-byte) from
-`Iris/core/.../util/simd/`. This tool is intentionally a duplicate so it builds
-and runs on its own with no Gradle, no VolmLib, and no Iris on the classpath.
+The three array kernel classes are copied verbatim (logic byte-for-byte) from
+`Iris/core/.../util/simd/`. The three 2D noise kernel classes are a candidate
+implementation that Iris does not ship: it measured 0.07x against scalar on
+2-lane NEON and was removed, and this harness keeps it so the same question can be
+answered on a wider CPU before anyone rebuilds it. This tool is intentionally a
+duplicate so it builds and runs on its own with no Gradle, no VolmLib, and no Iris
+on the classpath.
 
 ## Requirements
 
@@ -98,7 +102,8 @@ run.bat --mode both      (default)
   throughput will be (cache behavior, allocation, and surrounding code differ in
   the real engine).
 - **Effort 1 array kernels** (`roundToInt` / `sum` / `max`) run unconditionally
-  in real Iris. **Effort 2 noise** (`simplexFractalFBM`) is currently unwired in
-  Iris and gated to 4+ double lanes; this tool force-measures it regardless.
+  in real Iris. **Effort 2 noise** (`simplexFractalFBM`) is not part of
+  Iris; this tool force-measures the candidate kernel regardless of the 4+ double
+  lane gate.
 - Vector-API auto-vectorization and cost depend heavily on the JDK version and
   CPU. Run on the actual target hardware; do not extrapolate across machines.

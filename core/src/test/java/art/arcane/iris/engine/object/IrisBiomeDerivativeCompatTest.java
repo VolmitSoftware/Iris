@@ -12,7 +12,7 @@ import static org.junit.Assert.assertEquals;
 public class IrisBiomeDerivativeCompatTest {
     @Test
     public void droppedVanillaDerivativeFallsBackToDerivative() {
-        IrisBiome biome = CompatFixtures.biome("cave/sulfur-grotto");
+        IrisBiome biome = PackCompatFixtures.biome("cave/sulfur-grotto");
         biome.setDerivative("minecraft:dripstone_caves");
         biome.setVanillaDerivative("minecraft:sulfur_caves");
 
@@ -25,7 +25,7 @@ public class IrisBiomeDerivativeCompatTest {
 
     @Test
     public void blankVanillaDerivativeFallsBackToDerivative() {
-        IrisBiome biome = CompatFixtures.biome("cave/sulfur-grotto");
+        IrisBiome biome = PackCompatFixtures.biome("cave/sulfur-grotto");
         biome.setDerivative("minecraft:dripstone_caves");
         biome.setVanillaDerivative("");
 

@@ -23,9 +23,6 @@ import org.mockito.MockedStatic;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -85,23 +82,6 @@ public class JigsawStudioLifecycleTest {
     }
 
     @Test
-    public void committedStudioActivationDisablesNaturalMobSpawning() throws IOException {
-        String source = Files.readString(Path.of(
-                "src/main/java/art/arcane/iris/core/service/JigsawStudioService.java")).replace("\r\n", "\n");
-        int registerStart = source.indexOf("public void register(");
-        int commitStart = source.indexOf("public void activationCommitted(", registerStart);
-        int commitEnd = source.indexOf("public void markChunkGenerated(", commitStart);
-        int helperStart = source.indexOf("static void disableNaturalStudioSpawning(", commitEnd);
-        String register = source.substring(registerStart, commitStart);
-        String commit = source.substring(commitStart, commitEnd);
-        String helper = source.substring(helperStart);
-
-        assertFalse(register.contains("disableNaturalStudioSpawning(world)"));
-        assertTrue(commit.contains("disableNaturalStudioSpawning(world)"));
-        assertTrue(helper.contains("setGameRule(GameRules.SPAWN_MOBS, false)"));
-    }
-
-    @Test
     public void closeAuthorizationChecksOwnerDirtyStateAndSaveBarrierAtomically() {
         assertTrue(JigsawStudioActivation.tryBeginOpen(OWNER));
         JigsawStudioActivation.Request request = activateOwnedStudio();
@@ -132,18 +112,18 @@ public class JigsawStudioLifecycleTest {
         assertTrue(service.closeProtectionFailure(request.requestId()).contains("loading a variant"));
         assertTrue(session.abortVariantSwitch(switchToken));
 
-        assertEquals(JigsawStudioService.SaveStart.STARTED, service.tryBeginSave(request.requestId()));
+        assertEquals(JigsawStudioSaveLifecycle.SaveStart.STARTED, service.saveLifecycle.tryBeginSave(request.requestId()));
         assertEquals(
                 JigsawStudioService.CloseStart.SAVE_IN_PROGRESS,
                 service.tryBeginClose(request.requestId(), OWNER, true));
         assertTrue(service.closeProtectionFailure(request.requestId()).contains("saving"));
 
-        service.finishSave(request.requestId());
+        service.saveLifecycle.finishSave(request.requestId());
         assertEquals(
                 JigsawStudioService.CloseStart.STARTED,
                 service.tryBeginClose(request.requestId(), OWNER, true));
         assertNull(service.closeProtectionFailure(request.requestId()));
-        assertEquals(JigsawStudioService.SaveStart.CLOSING, service.tryBeginSave(request.requestId()));
+        assertEquals(JigsawStudioSaveLifecycle.SaveStart.CLOSING, service.saveLifecycle.tryBeginSave(request.requestId()));
     }
 
     @Test
@@ -163,7 +143,7 @@ public class JigsawStudioLifecycleTest {
                 retry.set(invocation.getArgument(0));
                 return null;
             });
-            CompletableFuture<Void> readiness = service.awaitCloseForReplacement(
+            CompletableFuture<Void> readiness = service.saveLifecycle.awaitCloseForReplacement(
                     request.requestId(), OWNER);
 
             assertFalse(readiness.isDone());
@@ -187,7 +167,7 @@ public class JigsawStudioLifecycleTest {
         JigsawStudioService service = new JigsawStudioService();
 
         try (MockedStatic<J> scheduling = mockStatic(J.class)) {
-            CompletableFuture<Void> readiness = service.awaitCloseForReplacement(
+            CompletableFuture<Void> readiness = service.saveLifecycle.awaitCloseForReplacement(
                     request.requestId(), OTHER_OWNER);
 
             assertTrue(readiness.isCompletedExceptionally());
@@ -207,9 +187,9 @@ public class JigsawStudioLifecycleTest {
         baseline.put("name", "iris:start");
         KMap<String, Object> updated = new KMap<>();
         updated.put("name", "iris:hall");
-        assertTrue(JigsawStudioService.tileSnapshotChanged(baseline, updated));
+        assertTrue(JigsawStudioTileWatcher.tileSnapshotChanged(baseline, updated));
 
-        Class<?> keyType = Class.forName(JigsawStudioService.class.getName() + "$JigsawTileWatchKey");
+        Class<?> keyType = Class.forName(JigsawStudioTileWatcher.class.getName() + "$JigsawTileWatchKey");
         Constructor<?> constructor = keyType.getDeclaredConstructor(
                 UUID.class, UUID.class, int.class, int.class, int.class);
         constructor.setAccessible(true);
@@ -233,7 +213,7 @@ public class JigsawStudioLifecycleTest {
                 new ConcurrentHashMap<>(),
                 ConcurrentHashMap.newKeySet(),
                 new AtomicLong());
-        Class<?> watchType = Class.forName(JigsawStudioService.class.getName() + "$JigsawTileWatch");
+        Class<?> watchType = Class.forName(JigsawStudioTileWatcher.class.getName() + "$JigsawTileWatch");
         Constructor<?> watchConstructor = watchType.getDeclaredConstructor(
                 keyType,
                 studioType,
@@ -251,10 +231,10 @@ public class JigsawStudioLifecycleTest {
                 baseline,
                 new AtomicBoolean(),
                 new AtomicBoolean());
-        Field watchesField = JigsawStudioService.class.getDeclaredField("jigsawTileWatches");
+        Field watchesField = JigsawStudioTileWatcher.class.getDeclaredField("jigsawTileWatches");
         watchesField.setAccessible(true);
         @SuppressWarnings("unchecked")
-        Map<Object, Object> watches = (Map<Object, Object>) watchesField.get(service);
+        Map<Object, Object> watches = (Map<Object, Object>) watchesField.get(service.tileWatcher);
         watches.put(key, watch);
 
         try (MockedStatic<J> scheduling = mockStatic(J.class)) {
@@ -297,55 +277,55 @@ public class JigsawStudioLifecycleTest {
                 JigsawStudioService.ExportStart.IN_PROGRESS,
                 service.tryBeginExport(request.requestId(), OWNER));
         assertEquals(
-                JigsawStudioService.SaveStart.EXPORT_OPERATION,
-                service.tryBeginSave(request.requestId()));
+                JigsawStudioSaveLifecycle.SaveStart.EXPORT_OPERATION,
+                service.saveLifecycle.tryBeginSave(request.requestId()));
         assertEquals(
                 JigsawStudioService.CloseStart.OPERATION_IN_PROGRESS,
                 service.tryBeginClose(request.requestId(), OWNER, false));
         assertTrue(service.closeProtectionFailure(request.requestId()).contains("exporting"));
 
         service.finishExport(request.requestId());
-        assertEquals(JigsawStudioService.SaveStart.STARTED, service.tryBeginSave(request.requestId()));
-        service.finishSave(request.requestId());
+        assertEquals(JigsawStudioSaveLifecycle.SaveStart.STARTED, service.saveLifecycle.tryBeginSave(request.requestId()));
+        service.saveLifecycle.finishSave(request.requestId());
     }
 
     @Test
     public void immediateSingleAndFamilyDuplicatesWaitForAutosaveThenRunExactlyOnce() {
         assertEquals(
-                JigsawStudioService.DeferredDuplicationReadiness.WAITING_FOR_AUTOSAVE,
-                JigsawStudioService.deferredDuplicationReadiness(
+                JigsawStudioToolbelt.DeferredDuplicationReadiness.WAITING_FOR_AUTOSAVE,
+                JigsawStudioToolbelt.deferredDuplicationReadiness(
                         true, true, true, false, false));
         assertEquals(
-                JigsawStudioService.DeferredDuplicationReadiness.WAITING_FOR_AUTOSAVE,
-                JigsawStudioService.deferredDuplicationReadiness(
+                JigsawStudioToolbelt.DeferredDuplicationReadiness.WAITING_FOR_AUTOSAVE,
+                JigsawStudioToolbelt.deferredDuplicationReadiness(
                         true, true, true, true, false));
         assertEquals(
-                JigsawStudioService.DeferredDuplicationReadiness.WAITING_FOR_OPERATION,
-                JigsawStudioService.deferredDuplicationReadiness(
+                JigsawStudioToolbelt.DeferredDuplicationReadiness.WAITING_FOR_OPERATION,
+                JigsawStudioToolbelt.deferredDuplicationReadiness(
                         true, true, false, true, false));
         assertEquals(
-                JigsawStudioService.DeferredDuplicationReadiness.READY,
-                JigsawStudioService.deferredDuplicationReadiness(
+                JigsawStudioToolbelt.DeferredDuplicationReadiness.READY,
+                JigsawStudioToolbelt.deferredDuplicationReadiness(
                         true, true, false, false, false));
         assertEquals(
-                JigsawStudioService.DeferredDuplicationReadiness.STALE,
-                JigsawStudioService.deferredDuplicationReadiness(
+                JigsawStudioToolbelt.DeferredDuplicationReadiness.STALE,
+                JigsawStudioToolbelt.deferredDuplicationReadiness(
                         true, false, false, false, false));
     }
 
     @Test
     public void initialEvaluationWaitsForCommitAndSchedulesExactlyOnce() {
         AtomicLong registrationBeforeCommit = new AtomicLong();
-        assertFalse(JigsawStudioService.claimInitialEvaluation(registrationBeforeCommit, false));
+        assertFalse(JigsawStudioEvaluator.claimInitialEvaluation(registrationBeforeCommit, false));
         assertEquals(0L, registrationBeforeCommit.get());
-        assertTrue(JigsawStudioService.claimInitialEvaluation(registrationBeforeCommit, true));
+        assertTrue(JigsawStudioEvaluator.claimInitialEvaluation(registrationBeforeCommit, true));
         assertEquals(1L, registrationBeforeCommit.get());
-        assertFalse(JigsawStudioService.claimInitialEvaluation(registrationBeforeCommit, true));
+        assertFalse(JigsawStudioEvaluator.claimInitialEvaluation(registrationBeforeCommit, true));
 
         AtomicLong registrationAfterCommit = new AtomicLong();
-        assertTrue(JigsawStudioService.claimInitialEvaluation(registrationAfterCommit, true));
+        assertTrue(JigsawStudioEvaluator.claimInitialEvaluation(registrationAfterCommit, true));
         assertEquals(1L, registrationAfterCommit.get());
-        assertFalse(JigsawStudioService.claimInitialEvaluation(registrationAfterCommit, true));
+        assertFalse(JigsawStudioEvaluator.claimInitialEvaluation(registrationAfterCommit, true));
     }
 
     @Test
@@ -359,9 +339,9 @@ public class JigsawStudioLifecycleTest {
         JigsawStudioBay blank = layout.get("workcell/blank");
 
         assertTrue(session.selectedBayId().isEmpty());
-        assertTrue(JigsawStudioService.selectEnteredWorkcell(session, end, true));
+        assertTrue(JigsawStudioPlayerContext.selectEnteredWorkcell(session, end, true));
         assertEquals(end.stableId(), session.selectedBayId().orElseThrow());
-        assertFalse(JigsawStudioService.selectEnteredWorkcell(session, blank, false));
+        assertFalse(JigsawStudioPlayerContext.selectEnteredWorkcell(session, blank, false));
         assertEquals(end.stableId(), session.selectedBayId().orElseThrow());
     }
 

@@ -204,8 +204,10 @@ public class MultiverseCoreLink {
             try {
                 worldKey = WorldIdentity.parse(entry.getKey());
                 worldName = IrisWorldStorage.configuredWorldName(worldKey, levelName);
-            } catch (Throwable ignored) {
+            } catch (Throwable unreadable) {
                 // Not a world with a Bukkit startup name; Multiverse cannot be holding an entry for it.
+                IrisLogging.debug("Skipping Iris world registry entry " + entry.getKey()
+                        + " for Multiverse reconciliation: " + describe(unreadable));
                 continue;
             }
             try {
@@ -324,8 +326,8 @@ public class MultiverseCoreLink {
         try {
             return IrisWorlds.get().getWorlds().get(worldKey.toString());
         } catch (Throwable unreadable) {
-            IrisLogging.debug("Could not read the Iris world registry for " + worldKey + ": "
-                    + describe(unreadable));
+            IrisLogging.reportError("Could not read the Iris world registry for " + worldKey
+                    + "; Multiverse keeps whatever generator it already recorded.", unreadable);
             return null;
         }
     }
@@ -382,7 +384,8 @@ public class MultiverseCoreLink {
             IrisDimension dimension = IrisWorlds.get().getDimension(worldKey.toString(), pack);
             return dimension == null ? null : BukkitEnvironment.from(dimension.getEnvironment());
         } catch (Throwable unreadable) {
-            IrisLogging.debug("Could not read the Iris dimension for " + worldKey + ": " + describe(unreadable));
+            IrisLogging.reportError("Could not read the Iris dimension for " + worldKey
+                    + "; Multiverse keeps whatever environment it already recorded.", unreadable);
             return null;
         }
     }

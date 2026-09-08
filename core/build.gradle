@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets
 plugins {
     id 'java'
     id 'java-library'
+    id 'java-test-fixtures'
     alias(libs.plugins.shadow)
     alias(libs.plugins.slimjar)
 }
@@ -129,6 +130,10 @@ dependencies {
     slim(libs.byteBuddy.agent)
     slim(libs.dom4j)
     slim(libs.jaxen)
+
+    testFixturesImplementation('junit:junit:4.13.2')
+    testFixturesImplementation('org.mockito:mockito-core:5.23.0')
+    testFixturesCompileOnly(libs.paper.api)
 
     testImplementation('junit:junit:4.13.2')
     testImplementation('org.mockito:mockito-core:5.23.0')
@@ -232,7 +237,7 @@ tasks.named('compileJava', JavaCompile).configure {
 tasks.named('test', Test).configure {
     jvmArgs('--add-modules', 'jdk.incubator.vector')
     dependsOn(languageSourceManifestTask)
-    classpath = files(layout.buildDirectory.dir('generated/language-source')) + files('src/main/resources') + classpath
+    classpath = files(layout.buildDirectory.dir('generated/language-source')) + files('src/main/resources') + sourceSets.main.output + classpath
 }
 
 configurations.matching { it.name.startsWith('slim') }.all { }
@@ -264,8 +269,6 @@ List<String> supersededVolmLibPackages = [
     'art/arcane/volmlib/util/reflect/**',
     'art/arcane/volmlib/util/documentation/**',
     'art/arcane/iris/core/report/**',
-    'art/arcane/iris/util/common/inventorygui/**',
-    'art/arcane/iris/util/common/board/**',
     'art/arcane/volmlib/integration/VaultEconomy*.class'
 ]
 
@@ -318,8 +321,6 @@ List<String> unusedVolmLibClasses = [
     'art/arcane/volmlib/util/director/DirectorNodeBase',
     'art/arcane/volmlib/util/director/DirectorParameterBase',
     'art/arcane/volmlib/util/director/theme/DirectorThemes',
-    'art/arcane/volmlib/util/interpolation/InterpolationMethod',
-    'art/arcane/volmlib/util/interpolation/IrisInterpolation',
     'art/arcane/volmlib/util/math/INode',
     'art/arcane/volmlib/util/math/IrisMathHelper',
     'art/arcane/volmlib/util/math/KochanekBartelsInterpolation',
@@ -329,11 +330,6 @@ List<String> unusedVolmLibClasses = [
     'art/arcane/volmlib/util/board/BoardUpdateTask',
     'art/arcane/volmlib/util/bukkit/Placeholders',
     'art/arcane/volmlib/util/hunk/HunkFactory',
-    'art/arcane/volmlib/util/hunk/storage/ArrayHunk',
-    'art/arcane/volmlib/util/hunk/storage/AtomicDoubleHunk',
-    'art/arcane/volmlib/util/hunk/storage/AtomicIntegerHunk',
-    'art/arcane/volmlib/util/hunk/storage/AtomicLongHunk',
-    'art/arcane/volmlib/util/hunk/storage/SynchronizedArrayHunk',
     'art/arcane/volmlib/util/hunk/view/BiomeForceBridge',
     'art/arcane/volmlib/util/hunk/view/BiomeGridForceSupport',
     'art/arcane/volmlib/util/hunk/view/BiomeGridHunkHolder',
@@ -393,7 +389,6 @@ List<String> unusedVolmLibClasses = [
     'art/arcane/iris/engine/object/IPostBlockAccess',
     'art/arcane/iris/engine/object/IrisPotionEffect',
     'art/arcane/iris/engine/platform/DummyChunkGenerator',
-    'art/arcane/iris/util/common/math/VectorMath',
     'art/arcane/iris/util/common/parallel/GridLock',
     'art/arcane/iris/util/common/reflect/W',
     'art/arcane/iris/util/slimjar/BuildConstants',

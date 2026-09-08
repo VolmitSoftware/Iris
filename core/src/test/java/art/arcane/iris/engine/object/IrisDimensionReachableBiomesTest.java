@@ -176,7 +176,7 @@ public class IrisDimensionReachableBiomesTest {
                 .setLandBiomes(new KList<>("plains"))
                 .setCaveBiomes(new KList<>("carving/sulfur"));
         IrisBiome plains = biome("plains");
-        IrisBiome sulfur = CompatFixtures.excludeBlock(biome("carving/sulfur"))
+        IrisBiome sulfur = PackCompatFixtures.excludeBlock(biome("carving/sulfur"))
                 .setChildren(new KList<>("carving/sulfur-hollows"));
 
         IrisData data = mock(IrisData.class);

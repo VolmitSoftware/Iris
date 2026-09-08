@@ -2,27 +2,23 @@ package art.arcane.iris.engine.hydrology.cave;
 
 import art.arcane.iris.engine.hydrology.HydrologyObservedPlannedSurface;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalLong;
-import java.util.Queue;
 import java.util.Set;
 import java.util.function.BiPredicate;
 
 public final class HydrologyCaveContainmentPlanner {
-    private static final int MAXIMUM_INITIAL_GUARD_INDEX_SIZE = 16_384;
-    private static final List<CavePosition> DIRECTIONS = List.of(
+    static final int MAXIMUM_INITIAL_GUARD_INDEX_SIZE = 16_384;
+
+    static final List<CavePosition> DIRECTIONS = List.of(
             new CavePosition(1, 0, 0),
             new CavePosition(-1, 0, 0),
             new CavePosition(0, 1, 0),
@@ -30,8 +26,14 @@ public final class HydrologyCaveContainmentPlanner {
             new CavePosition(0, 0, 1),
             new CavePosition(0, 0, -1)
     );
-    private static final Comparator<HydrologyCaveSource> SOURCE_PRIORITY =
+
+    static final Comparator<HydrologyCaveSource> SOURCE_PRIORITY =
             HydrologyCaveConflictPolicy.sourcePriority();
+    final HydrologyCaveChamberPlanner chambers;
+
+    public HydrologyCaveContainmentPlanner() {
+        this.chambers = new HydrologyCaveChamberPlanner(this);
+    }
 
     public HydrologyCavePlan plan(
             CaveVoxelView view,
@@ -47,27 +49,27 @@ public final class HydrologyCaveContainmentPlanner {
             return rejected(source, sourceRejection);
         }
 
-        PathResult throat = buildThroat(view, source, settings);
+        CavePathResult throat = chambers.buildThroat(view, source, settings);
         if (throat.rejection() != HydrologyCaveRejection.NONE) {
             return rejected(source, throat.rejection());
         }
 
         return switch (source.mode()) {
-            case CLOSED_COMPONENT -> planClosedComponent(view, source, settings, throat.positions());
-            case GENERATED_GROTTO -> planGeneratedGrotto(view, source, settings, throat.positions());
-            case GROTTO_OR_CLOSED_COMPONENT -> planGrottoOrClosedComponent(
+            case CLOSED_COMPONENT -> chambers.planClosedComponent(view, source, settings, throat.positions());
+            case GENERATED_GROTTO -> chambers.planGeneratedGrotto(view, source, settings, throat.positions());
+            case GROTTO_OR_CLOSED_COMPONENT -> chambers.planGrottoOrClosedComponent(
                     view,
                     source,
                     settings,
                     throat.positions()
             );
-            case WATERFALL_POOL -> planWaterfallPool(
+            case WATERFALL_POOL -> chambers.planWaterfallPool(
                     view,
                     source,
                     settings,
                     throat.positions()
             );
-            case DEEP_POOL -> planDeepPool(view, source, settings, throat.positions());
+            case DEEP_POOL -> chambers.planDeepPool(view, source, settings, throat.positions());
         };
     }
 
@@ -133,7 +135,7 @@ public final class HydrologyCaveContainmentPlanner {
             ValidationCache validationCache,
             HydrologyObservedPlannedSurface plannedSurface
     ) {
-        ValidationBatch batch = validateBatch(
+        CaveValidationBatch batch = validateBatch(
                 view,
                 candidates,
                 validationCache,
@@ -203,7 +205,7 @@ public final class HydrologyCaveContainmentPlanner {
         ).plans();
     }
 
-    private ValidationBatch validateBatch(
+    CaveValidationBatch validateBatch(
             CaveVoxelView view,
             Collection<HydrologyCaveCandidate> candidates,
             ValidationCache validationCache,
@@ -252,26 +254,19 @@ public final class HydrologyCaveContainmentPlanner {
                     claims.putIfAbsent(position, claimGroup));
         }
 
-        return new ValidationBatch(
+        return new CaveValidationBatch(
                 List.copyOf(plans),
                 combinedActions,
                 combinedPreconditions
         );
     }
 
-    private record ValidationBatch(
-            List<HydrologyCavePlan> plans,
-            Map<CavePosition, HydrologyCaveAction> actions,
-            Map<CavePosition, CaveVoxelPrecondition> baselinePreconditions
-    ) {
-    }
-
     public static final class ValidationCache {
         private static final int DEFAULT_MAXIMUM_ENTRIES = 256;
         private static final long DEFAULT_MAXIMUM_RETAINED_POSITIONS = 262_144L;
 
-        private final IdentityHashMap<HydrologyCaveCandidate, CachedValidation> validations;
-        private final HashMap<HydrologyCaveCandidate, CachedValidation> equivalentValidations;
+        private final IdentityHashMap<HydrologyCaveCandidate, CaveCachedValidation> validations;
+        private final HashMap<HydrologyCaveCandidate, CaveCachedValidation> equivalentValidations;
         private final int maximumEntries;
         private final long maximumRetainedPositions;
         private long retainedPositions;
@@ -302,7 +297,7 @@ public final class HydrologyCaveContainmentPlanner {
                 HydrologyObservedPlannedSurface plannedSurface,
                 boolean exposureValidated
         ) {
-            CachedValidation cached = validations.get(candidate);
+            CaveCachedValidation cached = validations.get(candidate);
             if (cached == null) {
                 cached = equivalentValidations.get(candidate);
                 if (cached != null) {
@@ -323,14 +318,14 @@ public final class HydrologyCaveContainmentPlanner {
             boolean observeColumnsOnly = plannedSurface != null;
             RecordingCaveVoxelView recording = new RecordingCaveVoxelView(view, observeColumnsOnly);
             HydrologyCavePlan plan = planner.validate(recording, candidate, exposureValidated);
-            ViewObservations viewObservations = recording.snapshot();
-            SurfaceObservations surfaceObservations = plannedSurface == null
-                    ? SurfaceObservations.empty()
-                    : SurfaceObservations.capture(viewObservations, plannedSurface);
+            CaveViewObservations viewObservations = recording.snapshot();
+            CaveSurfaceObservations surfaceObservations = plannedSurface == null
+                    ? CaveSurfaceObservations.empty()
+                    : CaveSurfaceObservations.capture(viewObservations, plannedSurface);
             if (observeColumnsOnly) {
-                viewObservations = ViewObservations.empty();
+                viewObservations = CaveViewObservations.empty();
             }
-            CachedValidation validation = new CachedValidation(plan, viewObservations, surfaceObservations);
+            CaveCachedValidation validation = new CaveCachedValidation(plan, viewObservations, surfaceObservations);
             retain(candidate, validation);
             return plan;
         }
@@ -345,7 +340,7 @@ public final class HydrologyCaveContainmentPlanner {
             misses = 0L;
         }
 
-        private void retain(HydrologyCaveCandidate candidate, CachedValidation validation) {
+        private void retain(HydrologyCaveCandidate candidate, CaveCachedValidation validation) {
             long weight = validation.retainedPositions();
             if (weight > maximumRetainedPositions) {
                 return;
@@ -359,12 +354,12 @@ public final class HydrologyCaveContainmentPlanner {
             retainedPositions += weight;
         }
 
-        private void remove(CachedValidation cached) {
+        private void remove(CaveCachedValidation cached) {
             validations.entrySet().removeIf(
-                    (Map.Entry<HydrologyCaveCandidate, CachedValidation> entry) -> entry.getValue() == cached
+                    (Map.Entry<HydrologyCaveCandidate, CaveCachedValidation> entry) -> entry.getValue() == cached
             );
             equivalentValidations.entrySet().removeIf(
-                    (Map.Entry<HydrologyCaveCandidate, CachedValidation> entry) -> entry.getValue() == cached
+                    (Map.Entry<HydrologyCaveCandidate, CaveCachedValidation> entry) -> entry.getValue() == cached
             );
             retainedPositions -= cached.retainedPositions();
         }
@@ -380,176 +375,11 @@ public final class HydrologyCaveContainmentPlanner {
         }
     }
 
-    private static final class RecordingCaveVoxelView implements CaveVoxelView {
-        private static final byte IN_WORLD = 0;
-        private static final byte VOXEL = 1;
-        private static final byte OPEN_TO_SURFACE = 2;
-        private static final byte ABOVE_TERRAIN_SURFACE = 3;
-
-        private final CaveVoxelView delegate;
-        private final boolean observeColumnsOnly;
-        private CavePosition[] positions;
-        private byte[] operations;
-        private byte[] values;
-        private CavePositionIndex[] observed;
-        private int size;
-
-        private RecordingCaveVoxelView(CaveVoxelView delegate, boolean observeColumnsOnly) {
-            this.delegate = delegate;
-            this.observeColumnsOnly = observeColumnsOnly;
-            this.positions = new CavePosition[1024];
-            this.operations = observeColumnsOnly ? new byte[0] : new byte[1024];
-            this.values = observeColumnsOnly ? new byte[0] : new byte[1024];
-            this.observed = observeColumnsOnly
-                    ? new CavePositionIndex[]{new CavePositionIndex()}
-                    : new CavePositionIndex[]{
-                            new CavePositionIndex(),
-                            new CavePositionIndex(),
-                            new CavePositionIndex(),
-                            new CavePositionIndex()
-                    };
-        }
-
-        @Override
-        public boolean isInWorld(CavePosition position) {
-            boolean result = delegate.isInWorld(position);
-            add(position, IN_WORLD, result ? 1 : 0);
-            return result;
-        }
-
-        @Override
-        public CaveVoxel voxelAt(CavePosition position) {
-            CaveVoxel result = delegate.voxelAt(position);
-            add(position, VOXEL, result.ordinal());
-            return result;
-        }
-
-        @Override
-        public boolean isOpenToSurface(CavePosition position) {
-            boolean result = delegate.isOpenToSurface(position);
-            add(position, OPEN_TO_SURFACE, result ? 1 : 0);
-            return result;
-        }
-
-        @Override
-        public boolean isAboveTerrainSurface(CavePosition position) {
-            boolean result = delegate.isAboveTerrainSurface(position);
-            add(position, ABOVE_TERRAIN_SURFACE, result ? 1 : 0);
-            return result;
-        }
-
-        private void add(CavePosition position, byte operation, int value) {
-            int observedIndex = observeColumnsOnly ? 0 : operation;
-            int observedY = observeColumnsOnly ? 0 : position.y();
-            if (!observed[observedIndex].add(position.x(), observedY, position.z())) {
-                return;
-            }
-            if (size == positions.length) {
-                int expandedSize = Math.multiplyExact(size, 2);
-                positions = Arrays.copyOf(positions, expandedSize);
-                if (!observeColumnsOnly) {
-                    operations = Arrays.copyOf(operations, expandedSize);
-                    values = Arrays.copyOf(values, expandedSize);
-                }
-            }
-            positions[size] = position;
-            if (!observeColumnsOnly) {
-                operations[size] = operation;
-                values[size] = (byte) value;
-            }
-            size++;
-        }
-
-        private ViewObservations snapshot() {
-            observed = null;
-            if (positions.length == 1024) {
-                return new ViewObservations(
-                        Arrays.copyOf(positions, size),
-                        observeColumnsOnly ? operations : Arrays.copyOf(operations, size),
-                        observeColumnsOnly ? values : Arrays.copyOf(values, size),
-                        size
-                );
-            }
-            return new ViewObservations(positions, operations, values, size);
-        }
-    }
-
-    private record CachedValidation(
-            HydrologyCavePlan plan,
-            ViewObservations viewObservations,
-            SurfaceObservations surfaceObservations
-    ) {
-        private long retainedPositions() {
-            return Math.max(1L, (long) plan.actions().size()
-                    + plan.baselinePreconditions().size()
-                    + viewObservations.size()
-                    + surfaceObservations.observations().size());
-        }
-    }
-
-    private record SurfaceObservations(
-            List<HydrologyObservedPlannedSurface.Observation> observations
-    ) {
-        private static SurfaceObservations empty() {
-            return new SurfaceObservations(List.of());
-        }
-
-        private static SurfaceObservations capture(
-                ViewObservations viewObservations,
-                HydrologyObservedPlannedSurface plannedSurface
-        ) {
-            ArrayList<HydrologyObservedPlannedSurface.Observation> observations = new ArrayList<>();
-            for (int index = 0; index < viewObservations.size(); index++) {
-                CavePosition position = viewObservations.positions()[index];
-                observations.addAll(plannedSurface.observationsAt(position.x(), position.z()));
-            }
-            return new SurfaceObservations(List.copyOf(observations));
-        }
-
-        private boolean matches(HydrologyObservedPlannedSurface plannedSurface) {
-            for (HydrologyObservedPlannedSurface.Observation observation : observations) {
-                if (!observation.matches(plannedSurface)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
-
-    private record ViewObservations(
-            CavePosition[] positions,
-            byte[] operations,
-            byte[] values,
-            int size
-    ) {
-        private static ViewObservations empty() {
-            return new ViewObservations(new CavePosition[0], new byte[0], new byte[0], 0);
-        }
-
-        private boolean matches(CaveVoxelView view) {
-            for (int index = 0; index < size; index++) {
-                CavePosition position = positions[index];
-                int actual = switch (operations[index]) {
-                    case RecordingCaveVoxelView.IN_WORLD -> view.isInWorld(position) ? 1 : 0;
-                    case RecordingCaveVoxelView.VOXEL -> view.voxelAt(position).ordinal();
-                    case RecordingCaveVoxelView.OPEN_TO_SURFACE -> view.isOpenToSurface(position) ? 1 : 0;
-                    case RecordingCaveVoxelView.ABOVE_TERRAIN_SURFACE ->
-                            view.isAboveTerrainSurface(position) ? 1 : 0;
-                    default -> throw new IllegalStateException("Unknown cave view operation.");
-                };
-                if (actual != Byte.toUnsignedInt(values[index])) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
-
     public HydrologyCavePlan validate(CaveVoxelView view, HydrologyCaveCandidate candidate) {
         return validate(view, candidate, false);
     }
 
-    private HydrologyCavePlan validate(
+    HydrologyCavePlan validate(
             CaveVoxelView view,
             HydrologyCaveCandidate candidate,
             boolean exposureValidated
@@ -614,7 +444,7 @@ public final class HydrologyCaveContainmentPlanner {
         return accepted(source, actions, preconditions);
     }
 
-    private boolean exceedsFloodVolume(
+    boolean exceedsFloodVolume(
             Map<CavePosition, HydrologyCaveAction> actions,
             int maximumFloodVolume
     ) {
@@ -630,7 +460,7 @@ public final class HydrologyCaveContainmentPlanner {
         return false;
     }
 
-    private boolean eligibleForTerrainSurfaceCheck(
+    boolean eligibleForTerrainSurfaceCheck(
             CaveVoxelView view,
             HydrologyCaveSource source,
             HydrologyCavePlannerSettings settings,
@@ -640,7 +470,7 @@ public final class HydrologyCaveContainmentPlanner {
                 && validateBounds(source, settings, position) == HydrologyCaveRejection.NONE;
     }
 
-    private boolean isPlannedVolumeAboveTerrainSurface(
+    boolean isPlannedVolumeAboveTerrainSurface(
             CaveVoxelView view,
             HydrologyCaveCandidate candidate,
             CavePositionIndex actionIndex,
@@ -674,7 +504,7 @@ public final class HydrologyCaveContainmentPlanner {
         return false;
     }
 
-    private HydrologyCaveRejection validatePlannedPosition(
+    HydrologyCaveRejection validatePlannedPosition(
             CaveVoxelView view,
             HydrologyCaveSource source,
             HydrologyCavePlannerSettings settings,
@@ -701,7 +531,7 @@ public final class HydrologyCaveContainmentPlanner {
         return HydrologyCaveRejection.NONE;
     }
 
-    private HydrologyCaveRejection addPlannedBoundaryGuards(
+    HydrologyCaveRejection addPlannedBoundaryGuards(
             CaveVoxelView view,
             HydrologyCaveSource source,
             HydrologyCavePlannerSettings settings,
@@ -777,7 +607,7 @@ public final class HydrologyCaveContainmentPlanner {
         return HydrologyCaveRejection.NONE;
     }
 
-    private HydrologyCaveRejection validateIntentionalOpening(
+    HydrologyCaveRejection validateIntentionalOpening(
             CaveVoxelView view,
             HydrologyCaveSource source,
             HydrologyCavePlannerSettings settings,
@@ -803,7 +633,7 @@ public final class HydrologyCaveContainmentPlanner {
         return HydrologyCaveRejection.NONE;
     }
 
-    private OptionalLong findConflictingSourceId(
+    OptionalLong findConflictingSourceId(
             HydrologyCaveCandidate candidate,
             Map<CavePosition, HydrologyCaveAction> actions,
             Map<CavePosition, CaveClaimGroup> claimedBy,
@@ -826,797 +656,7 @@ public final class HydrologyCaveContainmentPlanner {
         return winner == null ? OptionalLong.empty() : OptionalLong.of(winner.sourceId());
     }
 
-    private HydrologyCavePlan planGrottoOrClosedComponent(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            List<CavePosition> throat
-    ) {
-        CaveVoxel targetVoxel = voxelAt(view, source.target());
-        if (isFluidReachable(targetVoxel, settings)) {
-            return planClosedComponent(view, source, settings, throat);
-        }
-        if (targetVoxel == CaveVoxel.LAVA) {
-            return rejected(source, HydrologyCaveRejection.LAVA_CONTACT);
-        }
-        if (targetVoxel == CaveVoxel.INCOMPATIBLE_FLUID) {
-            return rejected(source, HydrologyCaveRejection.INCOMPATIBLE_FLUID);
-        }
-        return planGeneratedGrotto(view, source, settings, throat);
-    }
-
-    private HydrologyCavePlan planWaterfallPool(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            List<CavePosition> throat
-    ) {
-        if (!view.isOpenToSurface(source.target())) {
-            return planGrottoOrClosedComponent(view, source, settings, throat);
-        }
-        HydrologyCaveRejection dryThroatRejection = validateDryThroatContacts(view, source, throat);
-        if (dryThroatRejection != HydrologyCaveRejection.NONE) {
-            return rejected(source, dryThroatRejection);
-        }
-        HydrologyCaveRejection shaftRejection = validateWaterfallShaft(view, source, settings, throat);
-        if (shaftRejection != HydrologyCaveRejection.NONE) {
-            return rejected(source, shaftRejection);
-        }
-        CaveVoxel targetVoxel = voxelAt(view, source.target());
-        if (!isFluidReachable(targetVoxel, settings)) {
-            return rejected(source, rejectionForTarget(targetVoxel, settings));
-        }
-
-        Map<CavePosition, HydrologyCaveAction> actions = new LinkedHashMap<>();
-        addThroatActions(actions, throat, source);
-        addSealGuards(view, source, actions);
-        return accepted(view, source, actions);
-    }
-
-    private HydrologyCavePlan planClosedComponent(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            List<CavePosition> throat
-    ) {
-        HydrologyCaveRejection dryThroatRejection = validateDryThroatContacts(view, source, throat);
-        if (dryThroatRejection != HydrologyCaveRejection.NONE) {
-            return rejected(source, dryThroatRejection);
-        }
-        HydrologyCaveRejection waterfallRejection = validateWaterfallShaft(view, source, settings, throat);
-        if (waterfallRejection != HydrologyCaveRejection.NONE) {
-            return rejected(source, waterfallRejection);
-        }
-
-        CaveVoxel targetVoxel = voxelAt(view, source.target());
-        if (!isFluidReachable(targetVoxel, settings)) {
-            return rejected(source, rejectionForTarget(targetVoxel, settings));
-        }
-
-        ComponentResult component = resolveClosedComponent(view, source, settings, throat);
-        if (component.rejection() != HydrologyCaveRejection.NONE) {
-            return rejected(source, component.rejection());
-        }
-
-        Map<CavePosition, HydrologyCaveAction> actions = new LinkedHashMap<>();
-        addThroatActions(actions, throat, source);
-        for (CavePosition position : component.positions()) {
-            actions.put(position, HydrologyCaveAction.WET_SOURCE);
-        }
-        addSealGuards(view, source, actions);
-        return accepted(view, source, actions);
-    }
-
-    private HydrologyCaveRejection validateDryThroatContacts(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            List<CavePosition> throat
-    ) {
-        Set<CavePosition> throatPositions = Set.copyOf(throat);
-        for (CavePosition position : throat) {
-            if (position.y() <= source.waterHeadY()) {
-                continue;
-            }
-            for (CavePosition direction : DIRECTIONS) {
-                CavePosition neighbor = position.offset(direction.x(), direction.y(), direction.z());
-                if (throatPositions.contains(neighbor) || isInletOpening(source, neighbor)) {
-                    continue;
-                }
-                if (!view.isInWorld(neighbor)) {
-                    return HydrologyCaveRejection.WORLD_BOUNDARY;
-                }
-                CaveVoxel voxel = voxelAt(view, neighbor);
-                if (voxel == CaveVoxel.LAVA) {
-                    return HydrologyCaveRejection.LAVA_CONTACT;
-                }
-                if (voxel == CaveVoxel.COMPATIBLE_FLUID) {
-                    return HydrologyCaveRejection.EXISTING_FLUID;
-                }
-                if (voxel == CaveVoxel.INCOMPATIBLE_FLUID) {
-                    return HydrologyCaveRejection.INCOMPATIBLE_FLUID;
-                }
-            }
-        }
-        return HydrologyCaveRejection.NONE;
-    }
-
-    private HydrologyCaveRejection validateWaterfallShaft(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            List<CavePosition> throat
-    ) {
-        if (source.mode() != HydrologyCaveMode.WATERFALL_POOL) {
-            return HydrologyCaveRejection.NONE;
-        }
-
-        Set<CavePosition> throatPositions = Set.copyOf(throat);
-        for (CavePosition position : throat) {
-            if (position.y() <= source.waterHeadY()) {
-                continue;
-            }
-            for (CavePosition direction : DIRECTIONS) {
-                CavePosition neighbor = position.offset(direction.x(), direction.y(), direction.z());
-                if (throatPositions.contains(neighbor) || isInletOpening(source, neighbor)) {
-                    continue;
-                }
-                if (!view.isInWorld(neighbor)) {
-                    return HydrologyCaveRejection.WORLD_BOUNDARY;
-                }
-                HydrologyCaveRejection boundsRejection = validateBounds(source, settings, neighbor);
-                if (boundsRejection != HydrologyCaveRejection.NONE) {
-                    return boundsRejection;
-                }
-                CaveVoxel voxel = voxelAt(view, neighbor);
-                HydrologyCaveRejection hazard = rejectionForHazard(voxel, settings);
-                if (hazard != HydrologyCaveRejection.NONE) {
-                    return hazard;
-                }
-                if (voxel != CaveVoxel.SOLID) {
-                    return HydrologyCaveRejection.WATERFALL_SHAFT_OPEN;
-                }
-            }
-        }
-        return HydrologyCaveRejection.NONE;
-    }
-
-    private HydrologyCavePlan planGeneratedGrotto(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            List<CavePosition> throat
-    ) {
-        GrottoResult grotto = buildGrotto(source, settings);
-        if (grotto.rejection() != HydrologyCaveRejection.NONE) {
-            return rejected(source, grotto.rejection());
-        }
-        Set<CavePosition> chamber = grotto.positions();
-
-        Set<CavePosition> carve = new LinkedHashSet<>(chamber.size() + throat.size());
-        carve.addAll(chamber);
-        carve.addAll(throat);
-        HydrologyCaveRejection carveRejection = validateGeneratedCarve(view, source, settings, carve);
-        if (carveRejection != HydrologyCaveRejection.NONE) {
-            return rejected(source, carveRejection);
-        }
-
-        BoundaryResult boundary = validateGeneratedBoundary(view, source, settings, carve);
-        if (boundary.rejection() != HydrologyCaveRejection.NONE) {
-            return rejected(source, boundary.rejection());
-        }
-
-        Map<CavePosition, HydrologyCaveAction> actions = new LinkedHashMap<>();
-        addChamberActions(actions, chamber, source.waterHeadY());
-        addThroatActions(actions, throat, source);
-        for (CavePosition position : boundary.sealGuards()) {
-            actions.put(position, HydrologyCaveAction.SEAL_GUARD);
-        }
-        return accepted(view, source, actions);
-    }
-
-    private HydrologyCavePlan planDeepPool(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            List<CavePosition> throat
-    ) {
-        GrottoResult grotto = buildGrotto(source, settings);
-        if (grotto.rejection() != HydrologyCaveRejection.NONE) {
-            return rejected(source, grotto.rejection());
-        }
-        Set<CavePosition> chamber = grotto.positions();
-        Set<CavePosition> carve = new LinkedHashSet<>(chamber.size() + throat.size());
-        carve.addAll(chamber);
-        carve.addAll(throat);
-
-        HydrologyCaveRejection carveRejection = validateDeepPoolCarve(view, source, settings, carve);
-        if (carveRejection != HydrologyCaveRejection.NONE) {
-            return rejected(source, carveRejection);
-        }
-        BoundaryResult boundary = validateDeepPoolBoundary(view, source, settings, carve);
-        if (boundary.rejection() != HydrologyCaveRejection.NONE) {
-            return rejected(source, boundary.rejection());
-        }
-
-        Map<CavePosition, HydrologyCaveAction> actions = new LinkedHashMap<>();
-        addChamberActions(actions, chamber, source.waterHeadY());
-        addThroatActions(actions, throat, source);
-        for (CavePosition position : boundary.sealGuards()) {
-            actions.put(position, HydrologyCaveAction.SEAL_GUARD);
-        }
-        return accepted(view, source, actions);
-    }
-
-    private HydrologyCaveRejection validateDeepPoolCarve(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            Set<CavePosition> carve
-    ) {
-        for (CavePosition position : carve) {
-            if (!view.isInWorld(position)) {
-                return HydrologyCaveRejection.WORLD_BOUNDARY;
-            }
-            HydrologyCaveRejection boundsRejection = validateBounds(source, settings, position);
-            if (boundsRejection != HydrologyCaveRejection.NONE) {
-                return boundsRejection;
-            }
-            CaveVoxel voxel = voxelAt(view, position);
-            HydrologyCaveRejection hazard = rejectionForHazard(voxel, settings);
-            if (hazard != HydrologyCaveRejection.NONE) {
-                return hazard;
-            }
-            if (voxel == CaveVoxel.SOLID) {
-                continue;
-            }
-            if (position.y() > source.waterHeadY()
-                    && voxel == CaveVoxel.CAVE_AIR
-                    && !view.isOpenToSurface(position)) {
-                continue;
-            }
-            return HydrologyCaveRejection.GROTTO_INTERSECTION;
-        }
-        return HydrologyCaveRejection.NONE;
-    }
-
-    private BoundaryResult validateDeepPoolBoundary(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            Set<CavePosition> carve
-    ) {
-        Set<CavePosition> guards = new LinkedHashSet<>();
-        for (CavePosition position : carve) {
-            for (CavePosition direction : DIRECTIONS) {
-                CavePosition neighbor = position.offset(direction.x(), direction.y(), direction.z());
-                if (carve.contains(neighbor)) {
-                    continue;
-                }
-                if (!view.isInWorld(neighbor)) {
-                    return BoundaryResult.rejected(HydrologyCaveRejection.WORLD_BOUNDARY);
-                }
-                HydrologyCaveRejection boundsRejection = validateBounds(source, settings, neighbor);
-                if (boundsRejection != HydrologyCaveRejection.NONE) {
-                    return BoundaryResult.rejected(boundsRejection);
-                }
-                CaveVoxel voxel = voxelAt(view, neighbor);
-                HydrologyCaveRejection hazard = rejectionForHazard(voxel, settings);
-                if (hazard != HydrologyCaveRejection.NONE) {
-                    return BoundaryResult.rejected(hazard);
-                }
-                if (voxel == CaveVoxel.SOLID) {
-                    guards.add(neighbor);
-                    continue;
-                }
-                if (neighbor.y() > source.waterHeadY()
-                        && voxel == CaveVoxel.CAVE_AIR
-                        && !view.isOpenToSurface(neighbor)) {
-                    continue;
-                }
-                return BoundaryResult.rejected(HydrologyCaveRejection.GROTTO_SHELL_OPEN);
-            }
-        }
-        return BoundaryResult.accepted(guards);
-    }
-
-    private ComponentResult resolveClosedComponent(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            List<CavePosition> throat
-    ) {
-        Queue<CavePosition> queue = new ArrayDeque<>();
-        Set<CavePosition> queued = new LinkedHashSet<>();
-        int visitedCount = 0;
-
-        queue.add(source.target());
-        queued.add(source.target());
-        HydrologyCaveRejection seedRejection = addThroatContacts(view, source, settings, throat, queue, queued);
-        if (seedRejection != HydrologyCaveRejection.NONE) {
-            return ComponentResult.rejected(seedRejection);
-        }
-
-        while (!queue.isEmpty()) {
-            CavePosition position = queue.remove();
-            HydrologyCaveRejection positionRejection = validateReachablePosition(view, source, settings, position);
-            if (positionRejection != HydrologyCaveRejection.NONE) {
-                return ComponentResult.rejected(positionRejection);
-            }
-            if (++visitedCount > settings.maxFloodVolume()) {
-                return ComponentResult.rejected(HydrologyCaveRejection.VOLUME_LIMIT);
-            }
-
-            for (CavePosition direction : DIRECTIONS) {
-                CavePosition neighbor = position.offset(direction.x(), direction.y(), direction.z());
-                HydrologyCaveRejection neighborRejection = inspectReachableNeighbor(
-                        view,
-                        source,
-                        settings,
-                        neighbor,
-                        queue,
-                        queued
-                );
-                if (neighborRejection != HydrologyCaveRejection.NONE) {
-                    return ComponentResult.rejected(neighborRejection);
-                }
-            }
-        }
-
-        return ComponentResult.accepted(queued);
-    }
-
-    private HydrologyCaveRejection addThroatContacts(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            List<CavePosition> throat,
-            Queue<CavePosition> queue,
-            Set<CavePosition> queued
-    ) {
-        for (CavePosition position : throat) {
-            if (position.y() > source.waterHeadY()) {
-                continue;
-            }
-            for (CavePosition direction : DIRECTIONS) {
-                CavePosition neighbor = position.offset(direction.x(), direction.y(), direction.z());
-                HydrologyCaveRejection rejection = inspectReachableNeighbor(
-                        view,
-                        source,
-                        settings,
-                        neighbor,
-                        queue,
-                        queued
-                );
-                if (rejection != HydrologyCaveRejection.NONE) {
-                    return rejection;
-                }
-            }
-        }
-        return HydrologyCaveRejection.NONE;
-    }
-
-    private HydrologyCaveRejection inspectReachableNeighbor(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            CavePosition position,
-            Queue<CavePosition> queue,
-            Set<CavePosition> queued
-    ) {
-        if (position.y() > source.waterHeadY()) {
-            return inspectAboveHeadNeighbor(view, source, position);
-        }
-        if (!view.isInWorld(position)) {
-            return HydrologyCaveRejection.WORLD_BOUNDARY;
-        }
-
-        CaveVoxel voxel = voxelAt(view, position);
-        HydrologyCaveRejection hazard = rejectionForHazard(voxel, settings);
-        if (hazard != HydrologyCaveRejection.NONE) {
-            return hazard;
-        }
-        if (!isFluidReachable(voxel, settings)) {
-            return HydrologyCaveRejection.NONE;
-        }
-
-        HydrologyCaveRejection boundsRejection = validateBounds(source, settings, position);
-        if (boundsRejection != HydrologyCaveRejection.NONE) {
-            return boundsRejection;
-        }
-        if (queued.add(position)) {
-            queue.add(position);
-        }
-        return HydrologyCaveRejection.NONE;
-    }
-
-    private HydrologyCaveRejection inspectAboveHeadNeighbor(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            CavePosition position
-    ) {
-        if (isInletOpening(source, position) || !view.isInWorld(position)) {
-            return HydrologyCaveRejection.NONE;
-        }
-        CaveVoxel voxel = voxelAt(view, position);
-        return switch (voxel) {
-            case LAVA -> HydrologyCaveRejection.LAVA_CONTACT;
-            case COMPATIBLE_FLUID -> HydrologyCaveRejection.EXISTING_FLUID;
-            case INCOMPATIBLE_FLUID -> HydrologyCaveRejection.INCOMPATIBLE_FLUID;
-            default -> HydrologyCaveRejection.NONE;
-        };
-    }
-
-    private HydrologyCaveRejection validateReachablePosition(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            CavePosition position
-    ) {
-        if (!view.isInWorld(position)) {
-            return HydrologyCaveRejection.WORLD_BOUNDARY;
-        }
-        HydrologyCaveRejection boundsRejection = validateBounds(source, settings, position);
-        if (boundsRejection != HydrologyCaveRejection.NONE) {
-            return boundsRejection;
-        }
-        if (view.isOpenToSurface(position)) {
-            return HydrologyCaveRejection.OPEN_SURFACE;
-        }
-        CaveVoxel voxel = voxelAt(view, position);
-        HydrologyCaveRejection hazard = rejectionForHazard(voxel, settings);
-        if (hazard != HydrologyCaveRejection.NONE) {
-            return hazard;
-        }
-        return isFluidReachable(voxel, settings)
-                ? HydrologyCaveRejection.NONE
-                : HydrologyCaveRejection.NO_CAVE_TARGET;
-    }
-
-    private PathResult buildThroat(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings
-    ) {
-        CavePosition entry = source.entry();
-        CavePosition target = source.target();
-        int deltaX = target.x() - entry.x();
-        int deltaY = target.y() - entry.y();
-        int deltaZ = target.z() - entry.z();
-        int movesX = Math.abs(deltaX);
-        int movesY = Math.abs(deltaY);
-        int movesZ = Math.abs(deltaZ);
-        int length = movesX + movesY + movesZ;
-        if (length > settings.maxThroatLength()) {
-            return PathResult.rejected(HydrologyCaveRejection.THROAT_LIMIT);
-        }
-
-        int stepX = Integer.signum(deltaX);
-        int stepY = Integer.signum(deltaY);
-        int stepZ = Integer.signum(deltaZ);
-        int usedX = 0;
-        int usedY = 0;
-        int usedZ = 0;
-        CavePosition current = entry;
-        List<CavePosition> positions = new ArrayList<>(length + 1);
-
-        while (true) {
-            HydrologyCaveRejection positionRejection = validateThroatPosition(view, source, settings, current);
-            if (positionRejection != HydrologyCaveRejection.NONE) {
-                return PathResult.rejected(positionRejection);
-            }
-            positions.add(current);
-            if (current.equals(target)) {
-                return expandThroat(view, source, settings, positions);
-            }
-
-            int axis = selectNextAxis(source.sourceId(), movesX, movesY, movesZ, usedX, usedY, usedZ);
-            if (axis == 0) {
-                current = current.offset(stepX, 0, 0);
-                usedX++;
-            } else if (axis == 1) {
-                current = current.offset(0, stepY, 0);
-                usedY++;
-            } else {
-                current = current.offset(0, 0, stepZ);
-                usedZ++;
-            }
-        }
-    }
-
-    private PathResult expandThroat(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            List<CavePosition> centerline
-    ) {
-        int radius = settings.throatRadius();
-        int extent = radius - 1;
-        int radiusSquared = radius * radius;
-        Set<CavePosition> expanded = new LinkedHashSet<>();
-        for (CavePosition center : centerline) {
-            for (int dx = -extent; dx <= extent; dx++) {
-                for (int dy = -extent; dy <= extent; dy++) {
-                    for (int dz = -extent; dz <= extent; dz++) {
-                        if ((dx * dx) + (dy * dy) + (dz * dz) >= radiusSquared) {
-                            continue;
-                        }
-                        CavePosition position = center.offset(dx, dy, dz);
-                        if (position.y() > source.entry().y()) {
-                            continue;
-                        }
-                        HydrologyCaveRejection rejection = validateThroatPosition(view, source, settings, position);
-                        if (rejection != HydrologyCaveRejection.NONE) {
-                            return PathResult.rejected(rejection);
-                        }
-                        expanded.add(position);
-                        if (expanded.size() > settings.maxFloodVolume()) {
-                            return PathResult.rejected(HydrologyCaveRejection.VOLUME_LIMIT);
-                        }
-                    }
-                }
-            }
-        }
-        return PathResult.accepted(List.copyOf(expanded));
-    }
-
-    private int selectNextAxis(
-            long sourceId,
-            int movesX,
-            int movesY,
-            int movesZ,
-            int usedX,
-            int usedY,
-            int usedZ
-    ) {
-        double scoreX = nextAxisScore(movesX, usedX);
-        double scoreY = nextAxisScore(movesY, usedY);
-        double scoreZ = nextAxisScore(movesZ, usedZ);
-        double minimum = Math.min(scoreX, Math.min(scoreY, scoreZ));
-        int tieOffset = Math.floorMod(sourceId, 3);
-        for (int offset = 0; offset < 3; offset++) {
-            int axis = (tieOffset + offset) % 3;
-            double score = axis == 0 ? scoreX : axis == 1 ? scoreY : scoreZ;
-            if (score == minimum) {
-                return axis;
-            }
-        }
-        throw new IllegalStateException("No remaining throat axis");
-    }
-
-    private double nextAxisScore(int moves, int used) {
-        if (used >= moves) {
-            return Double.POSITIVE_INFINITY;
-        }
-        return ((2D * used) + 1D) / moves;
-    }
-
-    private HydrologyCaveRejection validateThroatPosition(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            CavePosition position
-    ) {
-        if (!view.isInWorld(position)) {
-            return HydrologyCaveRejection.WORLD_BOUNDARY;
-        }
-        HydrologyCaveRejection boundsRejection = validateBounds(source, settings, position);
-        if (boundsRejection != HydrologyCaveRejection.NONE) {
-            return boundsRejection;
-        }
-        return rejectionForHazard(voxelAt(view, position), settings);
-    }
-
-    private GrottoResult buildGrotto(HydrologyCaveSource source, HydrologyCavePlannerSettings settings) {
-        int horizontalRadius = settings.grottoHorizontalRadius();
-        int verticalRadius = settings.grottoVerticalRadius();
-        Set<CavePosition> candidates = new LinkedHashSet<>();
-
-        for (int dx = -horizontalRadius; dx <= horizontalRadius; dx++) {
-            for (int dy = -verticalRadius; dy <= verticalRadius; dy++) {
-                for (int dz = -horizontalRadius; dz <= horizontalRadius; dz++) {
-                    if (settings.grottoShape().contains(source, settings, dx, dy, dz)) {
-                        candidates.add(source.target().offset(dx, dy, dz));
-                        if (candidates.size() > settings.maxFloodVolume()) {
-                            return GrottoResult.rejected(HydrologyCaveRejection.VOLUME_LIMIT);
-                        }
-                    }
-                }
-            }
-        }
-        candidates.add(source.target());
-        for (int offset = 1; offset <= settings.dryHeadroom(); offset++) {
-            CavePosition headroom = new CavePosition(
-                    source.target().x(), source.waterHeadY() + offset, source.target().z());
-            if (Math.abs(headroom.y() - source.target().y()) > verticalRadius) {
-                return GrottoResult.rejected(HydrologyCaveRejection.DRY_HEADROOM_LIMIT);
-            }
-            candidates.add(headroom);
-            if (candidates.size() > settings.maxFloodVolume()) {
-                return GrottoResult.rejected(HydrologyCaveRejection.VOLUME_LIMIT);
-            }
-        }
-        return GrottoResult.accepted(connectedGrotto(source.target(), candidates));
-    }
-
-    private Set<CavePosition> connectedGrotto(CavePosition target, Set<CavePosition> candidates) {
-        Queue<CavePosition> queue = new ArrayDeque<>();
-        Set<CavePosition> connected = new LinkedHashSet<>();
-        queue.add(target);
-        connected.add(target);
-        while (!queue.isEmpty()) {
-            CavePosition position = queue.remove();
-            for (CavePosition direction : DIRECTIONS) {
-                CavePosition neighbor = position.offset(direction.x(), direction.y(), direction.z());
-                if (candidates.contains(neighbor) && connected.add(neighbor)) {
-                    queue.add(neighbor);
-                }
-            }
-        }
-        return connected;
-    }
-
-    private HydrologyCaveRejection validateGeneratedCarve(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            Set<CavePosition> carve
-    ) {
-        for (CavePosition position : carve) {
-            if (!view.isInWorld(position)) {
-                return HydrologyCaveRejection.WORLD_BOUNDARY;
-            }
-            HydrologyCaveRejection boundsRejection = validateBounds(source, settings, position);
-            if (boundsRejection != HydrologyCaveRejection.NONE) {
-                return boundsRejection;
-            }
-            CaveVoxel voxel = voxelAt(view, position);
-            if (isGeneratedInletCarve(view, source, settings, position, voxel)) {
-                continue;
-            }
-            HydrologyCaveRejection hazard = rejectionForHazard(voxel, settings);
-            if (hazard != HydrologyCaveRejection.NONE) {
-                return hazard;
-            }
-            if (voxel != CaveVoxel.SOLID) {
-                return HydrologyCaveRejection.GROTTO_INTERSECTION;
-            }
-        }
-        return HydrologyCaveRejection.NONE;
-    }
-
-    private BoundaryResult validateGeneratedBoundary(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            Set<CavePosition> carve
-    ) {
-        Set<CavePosition> guards = new LinkedHashSet<>();
-        for (CavePosition position : carve) {
-            for (CavePosition direction : DIRECTIONS) {
-                CavePosition neighbor = position.offset(direction.x(), direction.y(), direction.z());
-                if (carve.contains(neighbor)) {
-                    continue;
-                }
-                if (isInletOpening(source, neighbor)
-                        || isGeneratedInletOpening(view, source, settings, neighbor)) {
-                    continue;
-                }
-                if (!view.isInWorld(neighbor)) {
-                    return BoundaryResult.rejected(HydrologyCaveRejection.WORLD_BOUNDARY);
-                }
-                HydrologyCaveRejection boundsRejection = validateBounds(source, settings, neighbor);
-                if (boundsRejection != HydrologyCaveRejection.NONE) {
-                    return BoundaryResult.rejected(boundsRejection);
-                }
-                CaveVoxel voxel = voxelAt(view, neighbor);
-                HydrologyCaveRejection hazard = rejectionForHazard(voxel, settings);
-                if (hazard != HydrologyCaveRejection.NONE) {
-                    return BoundaryResult.rejected(hazard);
-                }
-                if (voxel != CaveVoxel.SOLID) {
-                    return BoundaryResult.rejected(HydrologyCaveRejection.GROTTO_SHELL_OPEN);
-                }
-                guards.add(neighbor);
-            }
-        }
-        return BoundaryResult.accepted(guards);
-    }
-
-    private void addChamberActions(
-            Map<CavePosition, HydrologyCaveAction> actions,
-            Collection<CavePosition> positions,
-            int waterHeadY
-    ) {
-        for (CavePosition position : positions) {
-            HydrologyCaveAction action = position.y() <= waterHeadY
-                    ? HydrologyCaveAction.WET_SOURCE
-                    : HydrologyCaveAction.DRY_AIR;
-            actions.put(position, action);
-        }
-    }
-
-    private void addThroatActions(
-            Map<CavePosition, HydrologyCaveAction> actions,
-            Collection<CavePosition> throat,
-            HydrologyCaveSource source
-    ) {
-        for (CavePosition position : throat) {
-            HydrologyCaveAction action;
-            if (position.y() <= source.waterHeadY()) {
-                action = HydrologyCaveAction.WET_SOURCE;
-            } else if (source.mode() == HydrologyCaveMode.WATERFALL_POOL
-                    || source.mode() == HydrologyCaveMode.GENERATED_GROTTO) {
-                action = HydrologyCaveAction.FALLING_FLUID;
-            } else {
-                action = HydrologyCaveAction.DRY_AIR;
-            }
-            actions.put(position, action);
-        }
-    }
-
-    private void addSealGuards(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            Map<CavePosition, HydrologyCaveAction> actions
-    ) {
-        Set<CavePosition> guards = new LinkedHashSet<>();
-        for (CavePosition position : List.copyOf(actions.keySet())) {
-            for (CavePosition direction : DIRECTIONS) {
-                CavePosition neighbor = position.offset(direction.x(), direction.y(), direction.z());
-                if (actions.containsKey(neighbor)
-                        || isInletOpening(source, neighbor)
-                        || !view.isInWorld(neighbor)) {
-                    continue;
-                }
-                if (voxelAt(view, neighbor) == CaveVoxel.SOLID) {
-                    guards.add(neighbor);
-                }
-            }
-        }
-        for (CavePosition guard : guards) {
-            actions.put(guard, HydrologyCaveAction.SEAL_GUARD);
-        }
-    }
-
-    private boolean isInletOpening(HydrologyCaveSource source, CavePosition position) {
-        return position.equals(source.entry().offset(0, 1, 0));
-    }
-
-    private boolean isGeneratedInletCarve(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            CavePosition position,
-            CaveVoxel voxel
-    ) {
-        if (voxel != CaveVoxel.CAVE_AIR && voxel != CaveVoxel.COMPATIBLE_FLUID) {
-            return false;
-        }
-        int extent = Math.max(0, settings.throatRadius() - 1);
-        long deltaX = (long) position.x() - source.entry().x();
-        long deltaZ = (long) position.z() - source.entry().z();
-        return position.y() >= source.entry().y() - extent
-                && position.y() <= source.entry().y()
-                && deltaX * deltaX + deltaZ * deltaZ <= (long) extent * extent
-                && view.isOpenToSurface(position);
-    }
-
-    private boolean isGeneratedInletOpening(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings,
-            CavePosition position
-    ) {
-        int radius = Math.max(1, settings.throatRadius());
-        long deltaX = (long) position.x() - source.entry().x();
-        long deltaZ = (long) position.z() - source.entry().z();
-        return position.y() >= source.entry().y()
-                && position.y() <= source.entry().y() + 1
-                && deltaX * deltaX + deltaZ * deltaZ < (long) radius * radius
-                && view.isOpenToSurface(position);
-    }
-
-    private HydrologyCaveRejection validateSource(HydrologyCaveSource source) {
+    HydrologyCaveRejection validateSource(HydrologyCaveSource source) {
         if (source.entry().y() < source.waterHeadY()) {
             return HydrologyCaveRejection.INVALID_SOURCE;
         }
@@ -1629,7 +669,7 @@ public final class HydrologyCaveContainmentPlanner {
         return HydrologyCaveRejection.NONE;
     }
 
-    private HydrologyCaveRejection validateBounds(
+    HydrologyCaveRejection validateBounds(
             HydrologyCaveSource source,
             HydrologyCavePlannerSettings settings,
             CavePosition position
@@ -1658,7 +698,7 @@ public final class HydrologyCaveContainmentPlanner {
         return HydrologyCaveRejection.NONE;
     }
 
-    private HydrologyCaveRejection rejectionForTarget(
+    HydrologyCaveRejection rejectionForTarget(
             CaveVoxel voxel,
             HydrologyCavePlannerSettings settings
     ) {
@@ -1666,7 +706,7 @@ public final class HydrologyCaveContainmentPlanner {
         return hazard == HydrologyCaveRejection.NONE ? HydrologyCaveRejection.NO_CAVE_TARGET : hazard;
     }
 
-    private HydrologyCaveRejection rejectionForHazard(
+    HydrologyCaveRejection rejectionForHazard(
             CaveVoxel voxel,
             HydrologyCavePlannerSettings settings
     ) {
@@ -1682,7 +722,7 @@ public final class HydrologyCaveContainmentPlanner {
         };
     }
 
-    private boolean isFluidReachable(CaveVoxel voxel, HydrologyCavePlannerSettings settings) {
+    boolean isFluidReachable(CaveVoxel voxel, HydrologyCavePlannerSettings settings) {
         return voxel == CaveVoxel.CAVE_AIR
                 || (voxel == CaveVoxel.COMPATIBLE_FLUID
                 && settings.existingFluidPolicy() != HydrologyCaveFluidPolicy.REJECT_EXISTING)
@@ -1690,11 +730,11 @@ public final class HydrologyCaveContainmentPlanner {
                 && settings.existingFluidPolicy() == HydrologyCaveFluidPolicy.REPLACE_CONTAINED);
     }
 
-    private CaveVoxel voxelAt(CaveVoxelView view, CavePosition position) {
+    CaveVoxel voxelAt(CaveVoxelView view, CavePosition position) {
         return Objects.requireNonNull(view.voxelAt(position));
     }
 
-    private OptionalLong findWinningSourceId(
+    OptionalLong findWinningSourceId(
             Set<CavePosition> positions,
             Map<CavePosition, HydrologyCaveSource> claimedBy
     ) {
@@ -1711,7 +751,7 @@ public final class HydrologyCaveContainmentPlanner {
         return winner == null ? OptionalLong.empty() : OptionalLong.of(winner.sourceId());
     }
 
-    private HydrologyCavePlan accepted(
+    HydrologyCavePlan accepted(
             CaveVoxelView view,
             HydrologyCaveSource source,
             Map<CavePosition, HydrologyCaveAction> actions
@@ -1726,7 +766,7 @@ public final class HydrologyCaveContainmentPlanner {
         return accepted(source, actions, preconditions);
     }
 
-    private HydrologyCavePlan accepted(
+    HydrologyCavePlan accepted(
             HydrologyCaveSource source,
             Map<CavePosition, HydrologyCaveAction> actions,
             Map<CavePosition, CaveVoxelPrecondition> preconditions
@@ -1740,7 +780,7 @@ public final class HydrologyCaveContainmentPlanner {
         );
     }
 
-    private HydrologyCavePlan acceptedDecision(HydrologyCaveSource source) {
+    HydrologyCavePlan acceptedDecision(HydrologyCaveSource source) {
         return new HydrologyCavePlan(
                 source,
                 HydrologyCaveRejection.NONE,
@@ -1750,7 +790,7 @@ public final class HydrologyCaveContainmentPlanner {
         );
     }
 
-    private HydrologyCavePlan rejected(HydrologyCaveSource source, HydrologyCaveRejection rejection) {
+    HydrologyCavePlan rejected(HydrologyCaveSource source, HydrologyCaveRejection rejection) {
         return new HydrologyCavePlan(
                 source,
                 rejection,
@@ -1760,7 +800,7 @@ public final class HydrologyCaveContainmentPlanner {
         );
     }
 
-    private HydrologyCavePlan rejectedOverlap(HydrologyCaveSource source, long winnerSourceId) {
+    HydrologyCavePlan rejectedOverlap(HydrologyCaveSource source, long winnerSourceId) {
         return new HydrologyCavePlan(
                 source,
                 HydrologyCaveRejection.OVERLAPPING_SOURCE,
@@ -1768,73 +808,5 @@ public final class HydrologyCaveContainmentPlanner {
                 Map.of(),
                 OptionalLong.of(winnerSourceId)
         );
-    }
-
-    private record PathResult(List<CavePosition> positions, HydrologyCaveRejection rejection) {
-        private static PathResult accepted(List<CavePosition> positions) {
-            return new PathResult(List.copyOf(positions), HydrologyCaveRejection.NONE);
-        }
-
-        private static PathResult rejected(HydrologyCaveRejection rejection) {
-            return new PathResult(List.of(), rejection);
-        }
-    }
-
-    private record IndependentDecision(
-            HydrologyCaveRejection rejection,
-            List<CavePosition> guards
-    ) {
-        private static IndependentDecision accepted(List<CavePosition> guards) {
-            return new IndependentDecision(HydrologyCaveRejection.NONE, List.copyOf(guards));
-        }
-
-        private static IndependentDecision rejected(HydrologyCaveRejection rejection) {
-            return new IndependentDecision(rejection, List.of());
-        }
-    }
-
-    private record ComponentResult(Set<CavePosition> positions, HydrologyCaveRejection rejection) {
-        private static ComponentResult accepted(Set<CavePosition> positions) {
-            return new ComponentResult(
-                    Collections.unmodifiableSet(new LinkedHashSet<>(positions)),
-                    HydrologyCaveRejection.NONE
-            );
-        }
-
-        private static ComponentResult rejected(HydrologyCaveRejection rejection) {
-            return new ComponentResult(Set.of(), rejection);
-        }
-    }
-
-    private record BoundaryResult(Set<CavePosition> sealGuards, HydrologyCaveRejection rejection) {
-        private static BoundaryResult accepted(Set<CavePosition> sealGuards) {
-            return new BoundaryResult(
-                    Collections.unmodifiableSet(new LinkedHashSet<>(sealGuards)),
-                    HydrologyCaveRejection.NONE
-            );
-        }
-
-        private static BoundaryResult rejected(HydrologyCaveRejection rejection) {
-            return new BoundaryResult(Set.of(), rejection);
-        }
-    }
-
-    private record GrottoResult(Set<CavePosition> positions, HydrologyCaveRejection rejection) {
-        private static GrottoResult accepted(Set<CavePosition> positions) {
-            return new GrottoResult(
-                    Collections.unmodifiableSet(new LinkedHashSet<>(positions)),
-                    HydrologyCaveRejection.NONE
-            );
-        }
-
-        private static GrottoResult rejected(HydrologyCaveRejection rejection) {
-            return new GrottoResult(Set.of(), rejection);
-        }
-    }
-
-    private record CaveClaimGroup(
-            HydrologyCaveCandidate candidate,
-            Map<CavePosition, HydrologyCaveAction> actions
-    ) {
     }
 }

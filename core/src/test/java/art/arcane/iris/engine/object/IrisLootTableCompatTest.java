@@ -14,8 +14,8 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Map;
 
-import static art.arcane.iris.engine.object.CompatFixtures.find;
-import static art.arcane.iris.engine.object.CompatFixtures.lootTable;
+import static art.arcane.iris.engine.object.PackCompatFixtures.find;
+import static art.arcane.iris.engine.object.PackCompatFixtures.lootTable;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 public class IrisLootTableCompatTest {
     @SuppressWarnings("unchecked")
     private static IrisData dataWith(PackCompatReport report, IrisLootTable... tables) {
-        IrisData data = CompatFixtures.data(report);
+        IrisData data = PackCompatFixtures.data(report);
         ResourceLoader<IrisLootTable> lootLoader = mock(ResourceLoader.class);
         when(data.getLootLoader()).thenReturn(lootLoader);
         for (IrisLootTable table : tables) {
@@ -43,7 +43,7 @@ public class IrisLootTableCompatTest {
     public void evaluateCompatExcludesTableWhoseEntriesWereAllDropped() {
         PackCompatReport report = new PackCompatReport();
         IrisLootTable table = lootTable("chest/sulfur-cache");
-        table.setLoader(CompatFixtures.data(report));
+        table.setLoader(PackCompatFixtures.data(report));
         // The gate walker drops every entry with a missing item and hands the cascade its reasons.
         CompatStatus walked = new CompatStatus(false, List.of(new CompatFinding(CompatRegistry.ITEM,
                 "minecraft:sulfur_dust", CompatAction.DROPPED, "loot", "chest/sulfur-cache", "loot[0]")));
@@ -62,7 +62,7 @@ public class IrisLootTableCompatTest {
     public void evaluateCompatKeepsTableWithSurvivingEntries() {
         PackCompatReport report = new PackCompatReport();
         IrisLootTable table = lootTable("chest/mixed");
-        table.setLoader(CompatFixtures.data(report));
+        table.setLoader(PackCompatFixtures.data(report));
         table.setLoot(new KList<>(new IrisLoot()));
         CompatStatus walked = new CompatStatus(false, List.of(new CompatFinding(CompatRegistry.ITEM,
                 "minecraft:sulfur_dust", CompatAction.DROPPED, "loot", "chest/mixed", "loot[1]")));
@@ -74,7 +74,7 @@ public class IrisLootTableCompatTest {
     public void evaluateCompatKeepsTableThatNeverDeclaredLoot() {
         PackCompatReport report = new PackCompatReport();
         IrisLootTable table = lootTable("chest/empty");
-        table.setLoader(CompatFixtures.data(report));
+        table.setLoader(PackCompatFixtures.data(report));
 
         assertFalse(table.evaluateCompat(gate(report)).excluded());
         assertTrue(report.isEmpty());
@@ -84,7 +84,7 @@ public class IrisLootTableCompatTest {
     public void lootReferenceSkipsExcludedAndUnloadableTables() {
         PackCompatReport report = new PackCompatReport();
         IrisLootTable kept = lootTable("chest/common");
-        IrisLootTable excluded = CompatFixtures.exclude(lootTable("chest/sulfur-cache"),
+        IrisLootTable excluded = PackCompatFixtures.exclude(lootTable("chest/sulfur-cache"),
                 CompatRegistry.ITEM, "minecraft:sulfur_dust");
         IrisData data = dataWith(report, kept, excluded);
         IrisLootReference reference = new IrisLootReference()

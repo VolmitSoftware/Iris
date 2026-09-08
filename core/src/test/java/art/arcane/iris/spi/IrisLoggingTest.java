@@ -1,7 +1,9 @@
 package art.arcane.iris.spi;
 
+import art.arcane.iris.testsupport.PlatformLeakGuard;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -24,6 +26,9 @@ import static org.mockito.Mockito.verify;
  * exactly one warning and would otherwise repeat per block, per sample or per chunk.
  */
 public class IrisLoggingTest {
+    @ClassRule
+    public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
+
     private final List<LogLevel> levels = new ArrayList<>();
     private final List<String> messages = new ArrayList<>();
     private IrisPlatform capturingPlatform;

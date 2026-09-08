@@ -2,7 +2,10 @@ package art.arcane.iris.core.runtime;
 
 import art.arcane.iris.core.lifecycle.CapabilitySnapshot;
 import art.arcane.iris.core.lifecycle.ServerFamily;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.testsupport.BukkitTestServer;
+import org.mockito.ArgumentCaptor;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.junit.Before;
@@ -15,7 +18,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class WorldRuntimeControlServiceTimeLockTest {
     @Before
@@ -45,6 +52,32 @@ public class WorldRuntimeControlServiceTimeLockTest {
 
         assertFalse(applied);
         assertTrue(setTimeCalled.get());
+    }
+
+    /**
+     * A runtime that refuses the clock write used to leave a single debug line with no trace, so a world
+     * stuck at night looked like a pack setting rather than a rejected reflective call.
+     */
+    @Test
+    public void reportsTheFailureWhenTheRuntimeClockSetterThrows() throws Exception {
+        IrisPlatform previousPlatform = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
+        IrisPlatforms.unbind();
+        IrisPlatform capturingPlatform = mock(IrisPlatform.class);
+        IrisPlatforms.bind(capturingPlatform);
+        try {
+            World world = createWorldProxy("rejecting-clock", false, new AtomicBoolean(false), new AtomicLong(0L), true);
+
+            assertFalse(createService().applyNoonTimeLock(world));
+
+            ArgumentCaptor<Throwable> reported = ArgumentCaptor.forClass(Throwable.class);
+            verify(capturingPlatform).reportError(contains("rejecting-clock"), reported.capture());
+            assertNotNull(reported.getValue());
+        } finally {
+            IrisPlatforms.unbind();
+            if (previousPlatform != null) {
+                IrisPlatforms.bind(previousPlatform);
+            }
+        }
     }
 
     @Test

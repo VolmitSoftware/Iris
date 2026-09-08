@@ -1,14 +1,12 @@
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.List;
@@ -19,29 +17,24 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class EngineModeBurstAroundTest {
+    @ClassRule
+    public static final PlatformBinding PLATFORM = PlatformBinding.mockPlatform();
+
     private static IrisSettings previousSettings;
 
     @BeforeClass
     public static void bindPlatform() {
         previousSettings = IrisSettings.settings;
         IrisSettings.settings = new IrisSettings();
-        IrisPlatforms.unbind();
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(registries.block(anyString())).thenReturn(mock(PlatformBlockState.class));
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.bind(platform);
     }
 
     @AfterClass
     public static void unbindPlatform() {
-        IrisPlatforms.unbind();
         IrisSettings.settings = previousSettings;
     }
 

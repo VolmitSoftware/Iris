@@ -1,5 +1,6 @@
 package art.arcane.iris.core.lifecycle;
 
+import art.arcane.iris.spi.CapabilityProbe;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.FoliaScheduler;
 import org.bukkit.Bukkit;
@@ -202,33 +203,28 @@ public final class CapabilitySnapshot {
             removeLevelMethod = null;
         }
 
-        Method unloadWorldAsyncMethod = null;
-        try {
-            if (bukkitServer != null) {
-                unloadWorldAsyncMethod = CapabilityResolution.resolveMethod(bukkitServer.getClass(), "unloadWorldAsync", method -> {
+        Object resolvedServer = bukkitServer;
+        Method unloadWorldAsyncMethod = resolvedServer == null ? null : CapabilityProbe.attempt(
+                "server#unloadWorldAsync",
+                () -> CapabilityResolution.resolveMethod(resolvedServer.getClass(), "unloadWorldAsync", method -> {
                     Class<?>[] params = method.getParameterTypes();
                     return params.length == 3
                             && World.class.equals(params[0])
                             && boolean.class.equals(params[1])
                             && "Consumer".equals(params[2].getSimpleName());
-                });
-            }
-        } catch (Throwable ignored) {
-            unloadWorldAsyncMethod = null;
-        }
+                }),
+                null);
 
-        Method chunkAtAsyncMethod = null;
-        try {
-            chunkAtAsyncMethod = CapabilityResolution.resolveMethod(World.class, "getChunkAtAsync", method -> {
-                Class<?>[] params = method.getParameterTypes();
-                return params.length == 3
-                        && int.class.equals(params[0])
-                        && int.class.equals(params[1])
-                        && boolean.class.equals(params[2]);
-            });
-        } catch (Throwable ignored) {
-            chunkAtAsyncMethod = null;
-        }
+        Method chunkAtAsyncMethod = CapabilityProbe.attempt(
+                "world#getChunkAtAsync",
+                () -> CapabilityResolution.resolveMethod(World.class, "getChunkAtAsync", method -> {
+                    Class<?>[] params = method.getParameterTypes();
+                    return params.length == 3
+                            && int.class.equals(params[0])
+                            && int.class.equals(params[1])
+                            && boolean.class.equals(params[2]);
+                }),
+                null);
 
         return new CapabilitySnapshot(
                 serverFamily,
@@ -436,12 +432,8 @@ public final class CapabilitySnapshot {
     }
 
     private static boolean hasCanvasRuntime() {
-        try {
-            Class.forName("io.canvasmc.canvas.region.WorldRegionizer");
-            return true;
-        } catch (Throwable ignored) {
-            return false;
-        }
+        return CapabilityProbe.succeeds("io.canvasmc.canvas.region.WorldRegionizer",
+                () -> Class.forName("io.canvasmc.canvas.region.WorldRegionizer"));
     }
 
     private static boolean containsIgnoreCase(String value, String needle) {
@@ -452,14 +444,10 @@ public final class CapabilitySnapshot {
     }
 
     private static Object[] resolveWorldsProvider() throws Throwable {
-        try {
-            Class<?> worldsProviderClass = Class.forName("net.thenextlvl.worlds.api.WorldsProvider");
-            Class<?> levelStemClass = Class.forName("net.thenextlvl.worlds.api.generator.LevelStem");
-            Class<?> generatorTypeClass = Class.forName("net.thenextlvl.worlds.api.generator.GeneratorType");
-            Object provider = Bukkit.getServicesManager().load(worldsProviderClass);
-            String resolution = provider == null ? "inactive(service not registered)" : "active(service=" + provider.getClass().getName() + ")";
-            return new Object[]{provider, levelStemClass, generatorTypeClass, resolution};
-        } catch (Throwable ignored) {
+        Object[] direct = CapabilityProbe.attempt("net.thenextlvl.worlds.api.WorldsProvider",
+                CapabilitySnapshot::loadWorldsProvider, null);
+        if (direct != null) {
+            return direct;
         }
 
         Collection<Class<?>> knownServices = Bukkit.getServicesManager().getKnownServices();
@@ -488,6 +476,15 @@ public final class CapabilitySnapshot {
         }
 
         return new Object[]{null, null, null, "inactive(service scan found nothing)"};
+    }
+
+    private static Object[] loadWorldsProvider() throws ClassNotFoundException {
+        Class<?> worldsProviderClass = Class.forName("net.thenextlvl.worlds.api.WorldsProvider");
+        Class<?> levelStemClass = Class.forName("net.thenextlvl.worlds.api.generator.LevelStem");
+        Class<?> generatorTypeClass = Class.forName("net.thenextlvl.worlds.api.generator.GeneratorType");
+        Object provider = Bukkit.getServicesManager().load(worldsProviderClass);
+        String resolution = provider == null ? "inactive(service not registered)" : "active(service=" + provider.getClass().getName() + ")";
+        return new Object[]{provider, levelStemClass, generatorTypeClass, resolution};
     }
 
 }

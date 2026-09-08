@@ -4,6 +4,8 @@ import art.arcane.iris.engine.DimensionStackContext;
 import art.arcane.iris.engine.DimensionStackLayout;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.testsupport.IrisRuntimeState;
+import org.junit.AfterClass;
 import org.junit.Test;
 
 import java.io.File;
@@ -20,6 +22,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public final class DimensionStackSuperflatProbeTest {
+    @AfterClass
+    public static void releaseProbeRuntime() {
+        IrisRuntimeState.reset();
+    }
+
     private static final long SEED = 1_337L;
     private static final long ALTERNATE_SEED = 8_675_309L;
     private static final int WORLD_HEIGHT = 128;

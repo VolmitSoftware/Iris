@@ -3,14 +3,12 @@ package art.arcane.iris.engine.object;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.math.RNG;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -23,13 +21,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class IrisObjectSurfaceSupportPlacementTest {
+    @Rule
+    public final PlatformBinding platform = PlatformBinding.mockPlatform();
+
     private static final int SURFACE_Y = 80;
 
     private IrisData data;
@@ -38,14 +38,6 @@ public class IrisObjectSurfaceSupportPlacementTest {
 
     @Before
     public void bindPlatform() {
-        IrisPlatforms.unbind();
-        PlatformBlockState block = mock(PlatformBlockState.class);
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        when(registries.block(anyString())).thenReturn(block);
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.bind(platform);
-
         @SuppressWarnings("unchecked")
         ProceduralStream<Double> heightStream = mock(ProceduralStream.class);
         when(heightStream.get(anyDouble(), anyDouble())).thenReturn((double) SURFACE_Y);
@@ -57,11 +49,6 @@ public class IrisObjectSurfaceSupportPlacementTest {
         when(engine.getDimension()).thenReturn(new IrisDimension());
         data = mock(IrisData.class);
         when(data.getEngine()).thenReturn(engine);
-    }
-
-    @After
-    public void unbindPlatform() {
-        IrisPlatforms.unbind();
     }
 
     @Test

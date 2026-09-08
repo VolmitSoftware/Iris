@@ -485,43 +485,49 @@ tasks.named('check').configure {
     dependsOn('externalProviderTest')
 }
 
-tasks.register('bukkitPurityRatchet') {
-    group = 'verification'
-    description = 'Fails if files outside core/purity-allowlist.txt import org.bukkit (the allowlist only shrinks).'
-    File allowlistFile = project.file('purity-allowlist.txt')
-    File sourceRoot = project.file('src/main/java')
-    inputs.file(allowlistFile)
-    inputs.dir(sourceRoot)
-    doLast {
-        Set<String> allowed = allowlistFile.readLines().findAll { String line -> !line.isBlank() }.toSet()
-        List<String> offenders = new ArrayList<>()
-        List<String> coupled = new ArrayList<>()
-        sourceRoot.eachFileRecurse { File f ->
-            if (!f.name.endsWith('.java')) {
-                return
-            }
-            if (f.text.contains('org.bukkit')) {
-                String rel = sourceRoot.toPath().relativize(f.toPath()).toString()
-                coupled.add(rel)
-                if (!allowed.contains(rel)) {
-                    offenders.add(rel)
+Closure<Void> registerPurityRatchet = { String taskName, String label, String forbiddenPackage, String allowlistName ->
+    tasks.register(taskName) {
+        group = 'verification'
+        description = "Fails if files outside core/${allowlistName} import ${forbiddenPackage} (the allowlist only shrinks)."
+        File allowlistFile = project.file(allowlistName)
+        File sourceRoot = project.file('src/main/java')
+        inputs.file(allowlistFile)
+        inputs.dir(sourceRoot)
+        doLast {
+            Set<String> allowed = allowlistFile.readLines().findAll { String line -> !line.isBlank() }.toSet()
+            List<String> offenders = new ArrayList<>()
+            List<String> coupled = new ArrayList<>()
+            sourceRoot.eachFileRecurse { File f ->
+                if (!f.name.endsWith('.java')) {
+                    return
+                }
+                if (f.text.contains(forbiddenPackage)) {
+                    String rel = sourceRoot.toPath().relativize(f.toPath()).toString()
+                    coupled.add(rel)
+                    if (!allowed.contains(rel)) {
+                        offenders.add(rel)
+                    }
                 }
             }
-        }
-        if (!offenders.isEmpty()) {
-            throw new GradleException("Bukkit purity ratchet violated - new org.bukkit coupling in:\n  " + offenders.join('\n  ') + "\nDecouple these files or (only with strong justification) add them to core/purity-allowlist.txt")
-        }
-        int shrunk = allowed.size() - coupled.size()
-        if (shrunk > 0) {
-            println("Purity ratchet: " + coupled.size() + " coupled files (" + shrunk + " fewer than allowlist - consider tightening core/purity-allowlist.txt)")
-        } else {
-            println("Purity ratchet: " + coupled.size() + " coupled files (at allowlist ceiling)")
+            if (!offenders.isEmpty()) {
+                throw new GradleException(label + " purity ratchet violated - new " + forbiddenPackage + " coupling in:\n  " + offenders.join('\n  ') + "\nDecouple these files or (only with strong justification) add them to core/" + allowlistName)
+            }
+            int shrunk = allowed.size() - coupled.size()
+            if (shrunk > 0) {
+                println(label + " purity ratchet: " + coupled.size() + " coupled files (" + shrunk + " fewer than allowlist - consider tightening core/" + allowlistName + ")")
+            } else {
+                println(label + " purity ratchet: " + coupled.size() + " coupled files (at allowlist ceiling)")
+            }
         }
     }
+    return null
 }
 
+registerPurityRatchet('bukkitPurityRatchet', 'Bukkit', 'org.bukkit', 'purity-allowlist.txt')
+registerPurityRatchet('minecraftPurityRatchet', 'Minecraft', 'net.minecraft', 'minecraft-purity-allowlist.txt')
+
 tasks.named('check').configure {
-    dependsOn('bukkitPurityRatchet')
+    dependsOn('bukkitPurityRatchet', 'minecraftPurityRatchet')
 }
 
 apply from: rootProject.file('gradle/generation-build-revision.gradle')

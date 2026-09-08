@@ -84,7 +84,6 @@ art/arcane/iris/core/tools/IrisPackBenchmarking.java
 art/arcane/iris/core/tools/IrisReflectiveAPI.java
 art/arcane/iris/core/tools/IrisToolbelt.java
 art/arcane/iris/core/tools/IrisWorldCreator.java
-art/arcane/iris/core/tools/WorldCreationProgressReporter.java
 art/arcane/iris/engine/IrisEngineEffects.java
 art/arcane/iris/engine/IrisWorldManager.java
 art/arcane/iris/engine/MarkerSpawnScanner.java

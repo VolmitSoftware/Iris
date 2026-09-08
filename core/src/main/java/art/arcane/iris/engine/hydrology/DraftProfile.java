@@ -7,10 +7,10 @@ import art.arcane.iris.spi.IrisLogging;
  * selection, settling, publication passes, and the time spent waiting on lower-rank neighbour drafts.
  */
 final class DraftProfile {
-    final long[] phaseNanos = new long[DraftPhase.values().length];
-    long dependencyNanos;
-    int dependencies;
-    int admissions;
+    private final long[] phaseNanos = new long[DraftPhase.values().length];
+    private long dependencyNanos;
+    private int dependencies;
+    private int admissions;
     int earlyOwners;
     int routeCalls;
     int routeSolves;

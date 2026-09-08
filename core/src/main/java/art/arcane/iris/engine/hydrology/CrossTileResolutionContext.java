@@ -8,10 +8,10 @@ import java.util.Set;
 
 final class CrossTileResolutionContext {
     final Map<HydrologyTileKey, CrossTileResolvedOwner> resolved;
-    final Set<HydrologyTileKey> resolving;
+    private final Set<HydrologyTileKey> resolving;
     final HydrologyTileKey root;
-    final long maximumTileOffset;
-    final int maximumOwners;
+    private final long maximumTileOffset;
+    private final int maximumOwners;
     int iterations;
 
     CrossTileResolutionContext(

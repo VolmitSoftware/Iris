@@ -9,13 +9,13 @@ final class SourceSelection {
     final boolean surface;
     final List<SourceCandidate> candidates;
     final SourceAdmissionSelection admission;
-    final int guaranteedMinimum;
+    private final int guaranteedMinimum;
     final int maximumOptionalRejections;
     final int targetCount;
     final ArrayList<Integer> selectedCandidateIndices;
     final boolean[] selectedCandidates;
-    final boolean[] attemptedCandidates;
-    int rejectedOptionalCandidates;
+    private final boolean[] attemptedCandidates;
+    private int rejectedOptionalCandidates;
 
     SourceSelection(
             boolean surface,
@@ -130,7 +130,7 @@ final class SourceSelection {
         return changed;
     }
 
-    Set<Long> acceptedSourceNodeIds(List<RiverCourse> acceptedCourses) {
+    private Set<Long> acceptedSourceNodeIds(List<RiverCourse> acceptedCourses) {
         RiverCourseType expectedType = surface ? RiverCourseType.SURFACE : RiverCourseType.UNDERGROUND;
         HashSet<Long> accepted = new HashSet<>();
         for (RiverCourse course : acceptedCourses) {
@@ -141,7 +141,7 @@ final class SourceSelection {
         return accepted;
     }
 
-    int nextRequiredCandidate() {
+    private int nextRequiredCandidate() {
         for (int candidateIndex = 0; candidateIndex < candidates.size(); candidateIndex++) {
             SourceCandidate candidate = candidates.get(candidateIndex);
             if (candidate.required()
@@ -154,7 +154,7 @@ final class SourceSelection {
         return -1;
     }
 
-    int nextAdmittedCandidate() {
+    private int nextAdmittedCandidate() {
         if (rejectedOptionalCandidates >= maximumOptionalRejections) {
             return -1;
         }

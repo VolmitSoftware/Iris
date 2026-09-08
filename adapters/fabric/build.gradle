@@ -17,8 +17,13 @@
  */
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.gradle.api.file.DeleteSpec
+import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.file.FileTree
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.jvm.toolchain.JavaLanguageVersion
+
+import javax.inject.Inject
 
 buildscript {
     repositories {
@@ -37,6 +42,13 @@ plugins {
 }
 
 apply plugin: 'art.arcane.volmit-packaging'
+
+interface IrisFileOperations {
+    @Inject
+    FileSystemOperations getFileSystemOperations()
+}
+
+IrisFileOperations irisFileOperations = objects.newInstance(IrisFileOperations)
 
 apply from: file('../../gradle/modded-generation-build-revision.gradle')
 
@@ -230,10 +242,10 @@ loom {
 }
 
 processResources {
-    inputs.property('version', project.version)
+    inputs.property('version', irisVersion)
     inputs.property('minecraftVersion', minecraftVersion)
     filesMatching('fabric.mod.json') {
-        expand('version': project.version, 'minecraftVersion': minecraftVersion)
+        expand('version': irisVersion, 'minecraftVersion': minecraftVersion)
     }
 }
 
@@ -254,13 +266,17 @@ Map<String, String> nestedFabricApiJars = [
     'fabric-permission-api-v1'   : 'fabric-permission-api-v1.jar'
 ]
 
+FileTree staleLoaderJars = fileTree(layout.buildDirectory.dir('libs')) {
+    include('Iris v* [Fabric] *.jar')
+    include('iris-fabric-*.jar')
+}
+File legacyLoaderJar = layout.buildDirectory.file("libs/Iris-${project.version}+mc${minecraftVersion}-fabric.jar").get().asFile
+
 tasks.named('shadowJar', ShadowJar).configure {
     doFirst {
-        delete(fileTree(layout.buildDirectory.dir('libs')) {
-            include('Iris v* [Fabric] *.jar')
-            include('iris-fabric-*.jar')
-        })
-        delete(layout.buildDirectory.file("libs/Iris-${project.version}+mc${minecraftVersion}-fabric.jar"))
+        irisFileOperations.fileSystemOperations.delete { DeleteSpec spec ->
+            spec.delete(staleLoaderJars, legacyLoaderJar)
+        }
     }
     archiveFileName.set(irisArtifactName('Fabric', "${minecraftVersion}+${fabricLoaderVersion}"))
     configurations = [project.configurations.named('bundle').get()]

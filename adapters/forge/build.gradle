@@ -17,8 +17,13 @@
  */
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.gradle.api.file.DeleteSpec
+import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.file.FileTree
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.jvm.toolchain.JavaLanguageVersion
+
+import javax.inject.Inject
 
 buildscript {
     repositories {
@@ -37,6 +42,13 @@ plugins {
 }
 
 apply plugin: 'art.arcane.volmit-packaging'
+
+interface IrisFileOperations {
+    @Inject
+    FileSystemOperations getFileSystemOperations()
+}
+
+IrisFileOperations irisFileOperations = objects.newInstance(IrisFileOperations)
 
 apply from: file('../../gradle/modded-generation-build-revision.gradle')
 
@@ -232,20 +244,24 @@ tasks.named('test').configure {
 }
 
 processResources {
-    inputs.property('version', project.version)
+    inputs.property('version', irisVersion)
     inputs.property('minecraftVersion', minecraftVersion)
     filesMatching('META-INF/mods.toml') {
-        expand('version': project.version, 'minecraftVersion': minecraftVersion)
+        expand('version': irisVersion, 'minecraftVersion': minecraftVersion)
     }
 }
 
+FileTree staleLoaderJars = fileTree(layout.buildDirectory.dir('libs')) {
+    include('Iris v* [Forge] *.jar')
+    include('iris-forge-*.jar')
+}
+File legacyLoaderJar = layout.buildDirectory.file("libs/Iris-${project.version}+mc${minecraftVersion}-forge.jar").get().asFile
+
 tasks.named('shadowJar', ShadowJar).configure {
     doFirst {
-        delete(fileTree(layout.buildDirectory.dir('libs')) {
-            include('Iris v* [Forge] *.jar')
-            include('iris-forge-*.jar')
-        })
-        delete(layout.buildDirectory.file("libs/Iris-${project.version}+mc${minecraftVersion}-forge.jar"))
+        irisFileOperations.fileSystemOperations.delete { DeleteSpec spec ->
+            spec.delete(staleLoaderJars, legacyLoaderJar)
+        }
     }
     manifest {
         // FML 26.2 has no TOML mixin handling at all (ModFileParser reads neither [[mixins]] nor

@@ -1,8 +1,14 @@
+import org.gradle.api.file.CopySpec
+import org.gradle.api.file.DeleteSpec
+import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.file.FileTree
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.jvm.tasks.Jar
 import org.gradle.jvm.toolchain.JavaLanguageVersion
+
+import javax.inject.Inject
 
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
@@ -51,6 +57,13 @@ plugins {
 apply plugin: 'art.arcane.volmit-packaging'
 apply from: file('gradle/runtime-relocations.gradle')
 
+interface IrisFileOperations {
+    @Inject
+    FileSystemOperations getFileSystemOperations()
+}
+
+IrisFileOperations irisFileOperations = objects.newInstance(IrisFileOperations)
+
 group = 'art.arcane'
 version = providers.gradleProperty('irisVersion').getOrElse('4.1.0-26.2')
 
@@ -91,6 +104,24 @@ String neoForgeArtifactName = irisArtifactName('NeoForge', "${minecraftVersion}+
 Map<String, String> runtimeDownloadRelocations = (Map<String, String>) ext.runtimeDownloadRelocations
 List<String> runtimeDownloadedPrefixes = (List<String>) ext.runtimeDownloadedPrefixes
 File pluginOutDirectory = layout.projectDirectory.dir('../PluginOuts').asFile
+File legacyBukkitJar = layout.buildDirectory.file("libs/Iris-${project.version}.jar").get().asFile
+File bukkitArtifact = layout.buildDirectory.file("libs/${bukkitArtifactName}").get().asFile
+File consumerBukkitArtifact = layout.buildDirectory.file("consumer/${bukkitArtifactName}").get().asFile
+File fabricArtifact = layout.projectDirectory.file("adapters/fabric/build/libs/${fabricArtifactName}").asFile
+File forgeArtifact = layout.projectDirectory.file("adapters/forge/build/libs/${forgeArtifactName}").asFile
+File neoForgeArtifact = layout.projectDirectory.file("adapters/neoforge/build/libs/${neoForgeArtifactName}").asFile
+File consumerDirectory = layout.buildDirectory.dir('consumer').get().asFile
+FileTree staleConsumerBukkitJars = fileTree(consumerDirectory) {
+    include('Iris v* [CraftBukkit] *.jar')
+}
+Map<String, FileTree> staleOutJars = [
+    CraftBukkit: 'Iris v* [CraftBukkit] *.jar',
+    Fabric     : 'Iris v* [Fabric] *.jar',
+    Forge      : 'Iris v* [Forge] *.jar',
+    NeoForge   : 'Iris v* [NeoForge] *.jar'
+].collectEntries { String platform, String pattern ->
+    [(platform): fileTree(pluginOutDirectory) { include(pattern) }]
+}
 apply plugin: ApiGenerator
 
 // Where `buildAll` drops the per-platform jars for a local test server. Use the approved sibling
@@ -161,7 +192,7 @@ tasks.named('jar', Jar).configure {
         exclude('languages/**')
     }
     doFirst {
-        delete(layout.buildDirectory.file("libs/Iris-${project.version}.jar"))
+        irisFileOperations.fileSystemOperations.delete { DeleteSpec spec -> spec.delete(legacyBukkitJar) }
     }
     archiveFileName.set(bukkitArtifactName)
 }
@@ -172,9 +203,7 @@ tasks.register('iris', Copy) {
     from(layout.buildDirectory.file("libs/${bukkitArtifactName}"))
     into(layout.buildDirectory.dir('consumer'))
     doFirst {
-        delete(fileTree(layout.buildDirectory.dir('consumer').get()) {
-            include('Iris v* [CraftBukkit] *.jar')
-        })
+        irisFileOperations.fileSystemOperations.delete { DeleteSpec spec -> spec.delete(staleConsumerBukkitJars) }
     }
 }
 
@@ -183,27 +212,20 @@ tasks.register('buildSwiftSwamp') {
     description = 'Builds every platform jar and drops them in the local BUILDS output directory.'
     outputs.upToDateWhen { false }
     dependsOn('iris', 'verifyModdedArtifacts')
+    File swiftSwampOut = file('C://VolmitSoftware/BUILDS')
+    Map<String, File> swiftSwampSources = [
+        'Iris.jar'         : consumerBukkitArtifact,
+        'Iris-Fabric.jar'  : fabricArtifact,
+        'Iris-Forge.jar'   : forgeArtifact,
+        'Iris-Neoforge.jar': neoForgeArtifact
+    ]
     doLast {
-        File swiftSwampOut = file('C://VolmitSoftware/BUILDS')
-        copy {
-            from(layout.buildDirectory.file("consumer/${bukkitArtifactName}"))
-            into(swiftSwampOut)
-            rename { String ignored -> 'Iris.jar' }
-        }
-        copy {
-            from(layout.projectDirectory.file("adapters/fabric/build/libs/${fabricArtifactName}"))
-            into(swiftSwampOut)
-            rename { String ignored -> 'Iris-Fabric.jar' }
-        }
-        copy {
-            from(layout.projectDirectory.file("adapters/forge/build/libs/${forgeArtifactName}"))
-            into(swiftSwampOut)
-            rename { String ignored -> 'Iris-Forge.jar' }
-        }
-        copy {
-            from(layout.projectDirectory.file("adapters/neoforge/build/libs/${neoForgeArtifactName}"))
-            into(swiftSwampOut)
-            rename { String ignored -> 'Iris-Neoforge.jar' }
+        swiftSwampSources.each { String target, File source ->
+            irisFileOperations.fileSystemOperations.copy { CopySpec spec ->
+                spec.from(source)
+                spec.into(swiftSwampOut)
+                spec.rename { String ignored -> target }
+            }
         }
         println('')
         println('=== Iris buildSwiftSwamp -> ' + swiftSwampOut + ' ===')
@@ -219,11 +241,11 @@ tasks.register('buildBukkit', Copy) {
     dependsOn('jar')
     from(layout.buildDirectory.file("libs/${bukkitArtifactName}"))
     into(pluginOutDirectory)
+    File legacyOutJar = new File(pluginOutDirectory, "Iris-${project.version}+mc${minecraftVersion}.jar")
     doFirst {
-        delete(fileTree(pluginOutDirectory) {
-            include('Iris v* [CraftBukkit] *.jar')
-        })
-        delete(new File(pluginOutDirectory, "Iris-${project.version}+mc${minecraftVersion}.jar"))
+        irisFileOperations.fileSystemOperations.delete { DeleteSpec spec ->
+            spec.delete(staleOutJars['CraftBukkit'], legacyOutJar)
+        }
     }
 }
 
@@ -326,11 +348,11 @@ tasks.register('buildFabric', Copy) {
     dependsOn('fabricJar')
     from(layout.projectDirectory.file("adapters/fabric/build/libs/${fabricArtifactName}"))
     into(pluginOutDirectory)
+    File legacyOutJar = new File(pluginOutDirectory, "Iris-${project.version}+mc${minecraftVersion}-fabric.jar")
     doFirst {
-        delete(fileTree(pluginOutDirectory) {
-            include('Iris v* [Fabric] *.jar')
-        })
-        delete(new File(pluginOutDirectory, "Iris-${project.version}+mc${minecraftVersion}-fabric.jar"))
+        irisFileOperations.fileSystemOperations.delete { DeleteSpec spec ->
+            spec.delete(staleOutJars['Fabric'], legacyOutJar)
+        }
     }
 }
 
@@ -364,11 +386,11 @@ tasks.register('buildForge', Copy) {
     dependsOn('forgeJar')
     from(layout.projectDirectory.file("adapters/forge/build/libs/${forgeArtifactName}"))
     into(pluginOutDirectory)
+    File legacyOutJar = new File(pluginOutDirectory, "Iris-${project.version}+mc${minecraftVersion}-forge.jar")
     doFirst {
-        delete(fileTree(pluginOutDirectory) {
-            include('Iris v* [Forge] *.jar')
-        })
-        delete(new File(pluginOutDirectory, "Iris-${project.version}+mc${minecraftVersion}-forge.jar"))
+        irisFileOperations.fileSystemOperations.delete { DeleteSpec spec ->
+            spec.delete(staleOutJars['Forge'], legacyOutJar)
+        }
     }
 }
 
@@ -402,11 +424,11 @@ tasks.register('buildNeoforge', Copy) {
     dependsOn('neoforgeJar')
     from(layout.projectDirectory.file("adapters/neoforge/build/libs/${neoForgeArtifactName}"))
     into(pluginOutDirectory)
+    File legacyOutJar = new File(pluginOutDirectory, "Iris-${project.version}+mc${minecraftVersion}-neoforge.jar")
     doFirst {
-        delete(fileTree(pluginOutDirectory) {
-            include('Iris v* [NeoForge] *.jar')
-        })
-        delete(new File(pluginOutDirectory, "Iris-${project.version}+mc${minecraftVersion}-neoforge.jar"))
+        irisFileOperations.fileSystemOperations.delete { DeleteSpec spec ->
+            spec.delete(staleOutJars['NeoForge'], legacyOutJar)
+        }
     }
 }
 
@@ -452,7 +474,7 @@ Set<String> bukkitCoupledCoreClasses = bukkitPurityAllowlist.readLines()
 tasks.register('verifyFabricArtifact') {
     group = 'verification'
     dependsOn('fabricJar')
-    File artifact = layout.projectDirectory.file("adapters/fabric/build/libs/${fabricArtifactName}").asFile
+    File artifact = fabricArtifact
     inputs.file(artifact)
     inputs.file(bukkitPurityAllowlist)
     doLast {
@@ -470,7 +492,7 @@ tasks.register('verifyFabricArtifact') {
 tasks.register('verifyForgeArtifact') {
     group = 'verification'
     dependsOn('forgeJar')
-    File artifact = layout.projectDirectory.file("adapters/forge/build/libs/${forgeArtifactName}").asFile
+    File artifact = forgeArtifact
     inputs.file(artifact)
     inputs.file(bukkitPurityAllowlist)
     doLast {
@@ -487,7 +509,7 @@ tasks.register('verifyForgeArtifact') {
 tasks.register('verifyNeoforgeArtifact') {
     group = 'verification'
     dependsOn('neoforgeJar')
-    File artifact = layout.projectDirectory.file("adapters/neoforge/build/libs/${neoForgeArtifactName}").asFile
+    File artifact = neoForgeArtifact
     inputs.file(artifact)
     inputs.file(bukkitPurityAllowlist)
     doLast {
@@ -539,7 +561,7 @@ List<String> requiredBukkitArtifactEntries = [
 tasks.register('verifyBukkitArtifact') {
     group = 'verification'
     dependsOn('jar')
-    File artifact = layout.buildDirectory.file("libs/${bukkitArtifactName}").get().asFile
+    File artifact = bukkitArtifact
     inputs.file(artifact)
     doLast {
         BukkitArtifactVerifier.verify(
@@ -590,46 +612,29 @@ tasks.register('buildAll') {
     group = 'iris'
     outputs.upToDateWhen { false }
     dependsOn('iris', 'verifyModdedArtifacts', 'buildAllToOut')
+    Map<String, List<Object>> consumerDrops = [
+        (bukkitConsumerPath)  : ['Iris.jar', consumerBukkitArtifact],
+        (fabricConsumerPath)  : ['Iris-Fabric.jar', fabricArtifact],
+        (forgeConsumerPath)   : ['Iris-Forge.jar', forgeArtifact],
+        (neoForgeConsumerPath): ['Iris-Neoforge.jar', neoForgeArtifact]
+    ]
     doLast {
-        delete(
-            file("${bukkitConsumerPath}/Iris-Fabric.jar"),
-            file("${bukkitConsumerPath}/Iris-Forge.jar"),
-            file("${bukkitConsumerPath}/Iris-Neoforge.jar")
-        )
-        copy {
-            from(layout.buildDirectory.file("consumer/${bukkitArtifactName}"))
-            into(bukkitConsumerPath)
-            rename { String ignored -> 'Iris.jar' }
-        }
-        delete(
-            file("${fabricConsumerPath}/Iris.jar"),
-            file("${fabricConsumerPath}/Iris-Forge.jar"),
-            file("${fabricConsumerPath}/Iris-Neoforge.jar")
-        )
-        copy {
-            from(layout.projectDirectory.file("adapters/fabric/build/libs/${fabricArtifactName}"))
-            into(fabricConsumerPath)
-            rename { String ignored -> 'Iris-Fabric.jar' }
-        }
-        delete(
-            file("${forgeConsumerPath}/Iris.jar"),
-            file("${forgeConsumerPath}/Iris-Fabric.jar"),
-            file("${forgeConsumerPath}/Iris-Neoforge.jar")
-        )
-        copy {
-            from(layout.projectDirectory.file("adapters/forge/build/libs/${forgeArtifactName}"))
-            into(forgeConsumerPath)
-            rename { String ignored -> 'Iris-Forge.jar' }
-        }
-        delete(
-            file("${neoForgeConsumerPath}/Iris.jar"),
-            file("${neoForgeConsumerPath}/Iris-Fabric.jar"),
-            file("${neoForgeConsumerPath}/Iris-Forge.jar")
-        )
-        copy {
-            from(layout.projectDirectory.file("adapters/neoforge/build/libs/${neoForgeArtifactName}"))
-            into(neoForgeConsumerPath)
-            rename { String ignored -> 'Iris-Neoforge.jar' }
+        consumerDrops.each { String consumerPath, List<Object> drop ->
+            String keep = (String) drop.get(0)
+            File source = (File) drop.get(1)
+            irisFileOperations.fileSystemOperations.delete { DeleteSpec spec ->
+                consumerDrops.values().each { List<Object> other ->
+                    String name = (String) other.get(0)
+                    if (name != keep) {
+                        spec.delete(new File(consumerPath, name))
+                    }
+                }
+            }
+            irisFileOperations.fileSystemOperations.copy { CopySpec spec ->
+                spec.from(source)
+                spec.into(consumerPath)
+                spec.rename { String ignored -> keep }
+            }
         }
         println('')
         println("=== Iris buildAll -> ${consumerLocation} ===")

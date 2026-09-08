@@ -5,6 +5,7 @@ import art.arcane.iris.engine.object.IrisObjectRotation;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -19,6 +20,11 @@ public final class StubPlatformStateTest {
         IrisPlatforms.unbind();
         IrisPlatforms.bind(new StubPlatform());
         StubPlatform.bindGenerationStateHandlers();
+    }
+
+    @AfterClass
+    public static void unbindPlatform() {
+        IrisPlatforms.unbind();
     }
 
     @Test

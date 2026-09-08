@@ -18,41 +18,10 @@
 
 package art.arcane.iris.util.project.hunk.storage;
 
-import art.arcane.iris.engine.data.cache.Cache;
 import art.arcane.iris.util.project.hunk.Hunk;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
 
-import java.util.Arrays;
-
-@SuppressWarnings("Lombok")
-@Data
-@EqualsAndHashCode(callSuper = false)
-public class ArrayHunk<T> extends StorageHunk<T> implements Hunk<T> {
-    private final T[] data;
-
-    @SuppressWarnings("unchecked")
+public class ArrayHunk<T> extends art.arcane.volmlib.util.hunk.storage.ArrayHunk<T> implements Hunk<T> {
     public ArrayHunk(int w, int h, int d) {
         super(w, h, d);
-        data = (T[]) new Object[w * h * d];
-    }
-
-    @Override
-    public void setRaw(int x, int y, int z, T t) {
-        data[index(x, y, z)] = t;
-    }
-
-    @Override
-    public T getRaw(int x, int y, int z) {
-        return data[index(x, y, z)];
-    }
-
-    private int index(int x, int y, int z) {
-        return Cache.to1D(x, y, z, getWidth(), getHeight());
-    }
-
-    @Override
-    public void fill(T t) {
-        Arrays.fill(data, t);
     }
 }

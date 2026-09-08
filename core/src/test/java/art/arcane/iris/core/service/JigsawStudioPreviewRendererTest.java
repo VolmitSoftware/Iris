@@ -79,10 +79,10 @@ public class JigsawStudioPreviewRendererTest {
                 10,
                 IrisObjectRotation.of(0, 0, 0));
 
-        PlacedStructurePiece planar = JigsawStudioService.alignPreviewPieces(
+        PlacedStructurePiece planar = JigsawStudioEvaluator.alignPreviewPieces(
                 List.of(source),
                 JigsawStudioMode.PLANAR_JIGSAW).getFirst();
-        PlacedStructurePiece spatial = JigsawStudioService.alignPreviewPieces(
+        PlacedStructurePiece spatial = JigsawStudioEvaluator.alignPreviewPieces(
                 List.of(source),
                 JigsawStudioMode.SPATIAL_JIGSAW).getFirst();
 

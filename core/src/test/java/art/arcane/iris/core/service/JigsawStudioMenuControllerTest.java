@@ -571,14 +571,14 @@ public class JigsawStudioMenuControllerTest {
         when(world.getUID()).thenReturn(worldId);
         when(location.getWorld()).thenReturn(world);
 
-        Field menuField = JigsawStudioService.class.getDeclaredField("menuController");
+        Field menuField = JigsawStudioToolbelt.class.getDeclaredField("menuController");
         menuField.setAccessible(true);
-        menuField.set(service, menu);
+        menuField.set(service.toolbelt, menu);
         IrisServices.register(BoardSVC.class, board);
         try (MockedStatic<J> scheduling = mockStatic(J.class)) {
             scheduling.when(() -> J.isOwnedByCurrentRegion(player)).thenReturn(true);
 
-            service.onPlayerChangedWorld(event);
+            service.protectionListener.onPlayerChangedWorld(event);
 
             verify(menu).close(player);
             verify(board).clearJigsawContext(player);

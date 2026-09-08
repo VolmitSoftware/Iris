@@ -81,10 +81,10 @@ public class JigsawStudioVisualizationBoundsTest {
         List<Emission> preview = emissions(fixture.player());
         clearInvocations(fixture.player());
 
-        Method draw = JigsawStudioService.class.getDeclaredMethod("drawBounds", Player.class, Location.class,
-                JigsawStudioBounds.class, Color.class, float.class, double.class, nested("ParticleBudget"));
+        Method draw = JigsawStudioVisualization.class.getDeclaredMethod("drawBounds", Player.class, Location.class,
+                JigsawStudioBounds.class, Color.class, float.class, double.class, visualizationNested("ParticleBudget"));
         draw.setAccessible(true);
-        Field color = JigsawStudioService.class.getDeclaredField("ASSEMBLY_PREVIEW_COLOR");
+        Field color = JigsawStudioVisualization.class.getDeclaredField("ASSEMBLY_PREVIEW_COLOR");
         color.setAccessible(true);
         invoke(draw, null, fixture.player(), viewer, bounds, color.get(null), 0.85F, 2.0D, budget(384));
 
@@ -122,10 +122,10 @@ public class JigsawStudioVisualizationBoundsTest {
             assertTrue(fixture.service().showAssemblyPreview(fixture.player(), List.of(piece)));
         }
 
-        Method draw = JigsawStudioService.class.getDeclaredMethod("drawAssemblyPreview", Player.class,
-                Location.class, nested("ParticleBudget"));
+        Method draw = JigsawStudioVisualization.class.getDeclaredMethod("drawAssemblyPreview", Player.class,
+                Location.class, visualizationNested("ParticleBudget"));
         draw.setAccessible(true);
-        invoke(draw, fixture.service(), fixture.player(), new Location(fixture.world(), 201, 65, 201), budget(384));
+        invoke(draw, fixture.service().visualization, fixture.player(), new Location(fixture.world(), 201, 65, 201), budget(384));
 
         assertTrue(emissions(fixture.player()).stream().anyMatch(emission ->
                 emission.x() == 201 && emission.y() == 65 && emission.z() == 201));
@@ -157,24 +157,24 @@ public class JigsawStudioVisualizationBoundsTest {
         Object studio = constructor.newInstance(worldId, world, mock(Engine.class), generator,
                 new ConcurrentHashMap<>(), ConcurrentHashMap.newKeySet(), new AtomicLong());
         JigsawStudioService service = new JigsawStudioService();
-        map(service, "studios").put(worldId, studio);
+        map(service, JigsawStudioService.class, "studios").put(worldId, studio);
         return new Fixture(service, player, world, requestId, studio);
     }
 
     private static void evaluate(Fixture fixture, JigsawStudioPreviewRenderer.PreviewBounds bounds) throws Exception {
-        map(fixture.service(), "evaluations").put(fixture.requestId(), new JigsawStudioGraphEvaluation(
+        map(fixture.service().evaluator, JigsawStudioEvaluator.class, "evaluations").put(fixture.requestId(), new JigsawStudioGraphEvaluation(
                 fixture.requestId(), 1, 1337, JigsawStudioEvaluationState.VALID, "", 2, "", bounds));
     }
 
     private static void drawLive(Fixture fixture, Location viewer, int remaining) throws Exception {
-        Method draw = JigsawStudioService.class.getDeclaredMethod("drawLivePreview", Player.class, Location.class,
-                nested("ActiveStudio"), nested("ParticleBudget"));
+        Method draw = JigsawStudioVisualization.class.getDeclaredMethod("drawLivePreview", Player.class, Location.class,
+                nested("ActiveStudio"), visualizationNested("ParticleBudget"));
         draw.setAccessible(true);
-        invoke(draw, fixture.service(), fixture.player(), viewer, fixture.studio(), budget(remaining));
+        invoke(draw, fixture.service().visualization, fixture.player(), viewer, fixture.studio(), budget(remaining));
     }
 
     private static Object budget(int remaining) throws Exception {
-        Constructor<?> constructor = nested("ParticleBudget").getDeclaredConstructor(int.class);
+        Constructor<?> constructor = visualizationNested("ParticleBudget").getDeclaredConstructor(int.class);
         constructor.setAccessible(true);
         return constructor.newInstance(remaining);
     }
@@ -184,10 +184,14 @@ public class JigsawStudioVisualizationBoundsTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static Map<UUID, Object> map(JigsawStudioService service, String name) throws Exception {
-        Field field = JigsawStudioService.class.getDeclaredField(name);
+    private static Map<UUID, Object> map(Object target, Class<?> owner, String name) throws Exception {
+        Field field = owner.getDeclaredField(name);
         field.setAccessible(true);
-        return (Map<UUID, Object>) field.get(service);
+        return (Map<UUID, Object>) field.get(target);
+    }
+
+    private static Class<?> visualizationNested(String name) throws ClassNotFoundException {
+        return Class.forName(JigsawStudioVisualization.class.getName() + "$" + name);
     }
 
     private static void invoke(Method method, Object target, Object... arguments) throws Exception {

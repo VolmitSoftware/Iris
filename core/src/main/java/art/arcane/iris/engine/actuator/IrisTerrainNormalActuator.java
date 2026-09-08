@@ -22,6 +22,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedActuator;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.engine.hydrology.HydrologyColumnSample;
@@ -84,6 +85,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
         IrisDimension dimension = getDimension();
         IrisData data = getData();
         IrisComplex complex = getComplex();
+        ProceduralStream<Double> riverWaterSurfaceStream = complex.getRiverWaterSurfaceStream();
         RNG localRng = rng;
         boolean bedrockEnabled = dimension.isBedrock();
         boolean hideOres = dimension.isHideOresForHiddenOre();
@@ -117,7 +119,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
             int he = Math.min(chunkHeight, context.getRoundedHeight(xf, zf));
             int surfaceFluidHeight = Math.min(
                     chunkHeight,
-                    (int) Math.round(complex.getRiverWaterSurfaceStream().get(realX, realZ))
+                    (int) Math.round(riverWaterSurfaceStream.getDouble(realX, realZ))
             );
             int hf = Math.max(surfaceFluidHeight, he);
             if (hf < 0) {
@@ -128,10 +130,10 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
             HydrologyColumnSample hydrology = complex.sampleHydrologyColumn(realX, realZ);
             HydrologyColumnLayer hydrologyFluid = hydrology == null
                     ? null
-                    : hydrology.primarySurfaceFluidLayer().orElse(null);
+                    : hydrology.primarySurfaceFluidLayerOrNull();
             HydrologyColumnLayer hydrologyTerrain = hydrology == null
                     ? null
-                    : hydrology.primarySurfaceLayer().orElse(null);
+                    : hydrology.primarySurfaceLayerOrNull();
             int cut = exposeCutStrata
                     && hydrologyTerrain != null
                     && hydrologyTerrain.terrainOwned()

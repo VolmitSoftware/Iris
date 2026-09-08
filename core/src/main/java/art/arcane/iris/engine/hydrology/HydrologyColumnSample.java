@@ -92,10 +92,18 @@ public record HydrologyColumnSample(
     }
 
     public Optional<HydrologyColumnLayer> primarySurfaceLayer() {
-        return selectSurfaceLayer(false);
+        return Optional.ofNullable(selectSurfaceLayer(false));
     }
 
     public Optional<HydrologyColumnLayer> primarySurfaceFluidLayer() {
+        return Optional.ofNullable(selectSurfaceLayer(true));
+    }
+
+    public HydrologyColumnLayer primarySurfaceLayerOrNull() {
+        return selectSurfaceLayer(false);
+    }
+
+    public HydrologyColumnLayer primarySurfaceFluidLayerOrNull() {
         return selectSurfaceLayer(true);
     }
 
@@ -120,11 +128,10 @@ public record HydrologyColumnSample(
     }
 
     public int terrainHeight() {
-        Optional<HydrologyColumnLayer> layer = primarySurfaceLayer();
-        if (layer.isEmpty()) {
+        HydrologyColumnLayer primary = selectSurfaceLayer(false);
+        if (primary == null) {
             return naturalHeight;
         }
-        HydrologyColumnLayer primary = layer.get();
         if (primary.channel()) {
             return primary.bedY();
         }
@@ -147,7 +154,7 @@ public record HydrologyColumnSample(
         return new HydrologyRenderSample(x, z, features);
     }
 
-    private Optional<HydrologyColumnLayer> selectSurfaceLayer(boolean fluidOnly) {
+    private HydrologyColumnLayer selectSurfaceLayer(boolean fluidOnly) {
         HydrologyColumnLayer selected = null;
         for (HydrologyColumnLayer layer : layers) {
             if (layer.oceanApron() || !layer.feature().type().isSurface()) {
@@ -164,7 +171,7 @@ public record HydrologyColumnSample(
                 selected = layer;
             }
         }
-        return Optional.ofNullable(selected);
+        return selected;
     }
 
     private static int surfaceRolePriority(HydrologyColumnLayer layer) {

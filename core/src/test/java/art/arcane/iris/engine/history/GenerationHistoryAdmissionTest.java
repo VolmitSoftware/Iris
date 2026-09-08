@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.history;
 
+import art.arcane.iris.testsupport.Await;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -13,6 +14,7 @@ import java.nio.channels.FileChannel;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -251,10 +253,8 @@ public class GenerationHistoryAdmissionTest {
                 Field queueField = GenerationHistory.class.getDeclaredField("pendingSemanticClaims");
                 queueField.setAccessible(true);
                 ArrayBlockingQueue<?> queue = (ArrayBlockingQueue<?>) queueField.get(history);
-                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
-                while (queue.remainingCapacity() != 0 && System.nanoTime() < deadline) {
-                    Thread.sleep(1L);
-                }
+                Await.reached("the claim queue to reach capacity", Duration.ofSeconds(5L),
+                        () -> queue.remainingCapacity() == 0);
                 assertEquals(0, queue.remainingCapacity());
                 assertEquals(128, queue.size());
             }
@@ -354,24 +354,21 @@ public class GenerationHistoryAdmissionTest {
         }
     }
 
-    private static void awaitBlockedOnHistory(GenerationHistory history, List<Thread> workers, int count)
-            throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
-        while (System.nanoTime() < deadline) {
-            int blocked = 0;
-            for (Thread worker : workers) {
-                ThreadInfo info = ManagementFactory.getThreadMXBean().getThreadInfo(worker.threadId());
-                if (info != null && info.getThreadState() == Thread.State.BLOCKED
-                        && info.getLockInfo().getIdentityHashCode() == System.identityHashCode(history)) {
-                    blocked++;
-                }
+    private static void awaitBlockedOnHistory(GenerationHistory history, List<Thread> workers, int count) {
+        Await.until("semantic claim callers to queue behind the History monitor", Duration.ofSeconds(5L),
+                () -> blockedOnHistory(history, workers) == count);
+    }
+
+    private static int blockedOnHistory(GenerationHistory history, List<Thread> workers) {
+        int blocked = 0;
+        for (Thread worker : workers) {
+            ThreadInfo info = ManagementFactory.getThreadMXBean().getThreadInfo(worker.threadId());
+            if (info != null && info.getThreadState() == Thread.State.BLOCKED
+                    && info.getLockInfo().getIdentityHashCode() == System.identityHashCode(history)) {
+                blocked++;
             }
-            if (blocked == count) {
-                return;
-            }
-            Thread.sleep(1L);
         }
-        throw new AssertionError("Semantic claim callers did not queue behind the History monitor");
+        return blocked;
     }
 
     private static boolean persistPaused(GenerationHistory history, GenerationHistory.GenerationStage stage,

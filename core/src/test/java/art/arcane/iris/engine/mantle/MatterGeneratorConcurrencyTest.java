@@ -3,10 +3,8 @@ package art.arcane.iris.engine.mantle;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.Await;
+import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
@@ -16,9 +14,11 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
@@ -43,7 +43,6 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -52,24 +51,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class MatterGeneratorConcurrencyTest {
+    @ClassRule
+    public static final PlatformBinding PLATFORM = PlatformBinding.mockPlatform();
+
     private static IrisSettings previousSettings;
 
     @BeforeClass
     public static void bindPlatform() {
         previousSettings = IrisSettings.settings;
         IrisSettings.settings = new IrisSettings();
-        IrisPlatforms.unbind();
-        PlatformBlockState defaultBlock = mock(PlatformBlockState.class);
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(registries.block(anyString())).thenReturn(defaultBlock);
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.bind(platform);
     }
 
     @AfterClass
     public static void unbindPlatform() {
-        IrisPlatforms.unbind();
         IrisSettings.settings = previousSettings;
     }
 
@@ -592,10 +586,8 @@ public class MatterGeneratorConcurrencyTest {
             return null;
         });
 
-        long deadline = System.currentTimeMillis() + 10_000L;
-        while (secondCompleted.size() < 7 && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10L);
-        }
+        Await.reached("the second generation to finish its own seven chunks", Duration.ofSeconds(10L),
+                () -> secondCompleted.size() >= 7);
         // The second generation's window is x 1..3, z -1..1. The first generation finished (1,-1)
         // before parking on (1,0), so the second one owns the remaining seven chunks and must
         // complete all of them while (1,0) is still held instead of blocking on it first.

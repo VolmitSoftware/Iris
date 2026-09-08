@@ -1,10 +1,12 @@
 package art.arcane.iris.engine.hydrology;
 
+import art.arcane.iris.testsupport.Await;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.volmlib.util.cache.CacheKey;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -137,10 +139,7 @@ public class HydrologyTileCacheTest {
         Field field = HydrologyTileCache.class.getDeclaredField("closed");
         field.setAccessible(true);
         AtomicBoolean closed = (AtomicBoolean) field.get(cache);
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        while (!closed.get() && System.nanoTime() < deadline) {
-            Thread.sleep(1);
-        }
+        Await.reached("the cache to finish closing", Duration.ofSeconds(5L), closed::get);
         assertTrue(closed.get());
     }
 
@@ -1162,22 +1161,13 @@ public class HydrologyTileCacheTest {
         }
     }
 
-    private static void awaitConcurrentPlan(AtomicInteger inFlight, long boundMillis) throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(boundMillis);
-        while (inFlight.get() < 2 && System.nanoTime() < deadline) {
-            Thread.sleep(1L);
-        }
+    private static void awaitConcurrentPlan(AtomicInteger inFlight, long boundMillis) {
+        Await.reached("a second plan to run concurrently", Duration.ofMillis(boundMillis), () -> inFlight.get() >= 2);
     }
 
-    private static void awaitParkedCallers(List<Thread> callers, int expected) throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        while (System.nanoTime() < deadline) {
-            if (callers.size() == expected && allParked(callers)) {
-                return;
-            }
-            Thread.sleep(1L);
-        }
-        throw new AssertionError("Callers did not park on the in-flight plan");
+    private static void awaitParkedCallers(List<Thread> callers, int expected) {
+        Await.until("callers to park on the in-flight plan", Duration.ofSeconds(5L),
+                () -> callers.size() == expected && allParked(callers));
     }
 
     private static boolean allParked(List<Thread> callers) {

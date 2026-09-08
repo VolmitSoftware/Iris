@@ -6,10 +6,8 @@ import art.arcane.iris.engine.history.GenerationHistoryRuntimeRouter.SavedChunkM
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.platform.EngineBukkitOps;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.testsupport.Await;
+import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -17,13 +15,13 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.Optional;
@@ -52,26 +50,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class WorldChunkMaintenanceRoutingTest {
-    private static IrisPlatform previousPlatform;
+    @ClassRule
+    public static final PlatformBinding PLATFORM = PlatformBinding.mockPlatform();
 
-    @BeforeClass
-    public static void bindPlatform() {
-        previousPlatform = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
-        IrisPlatforms.unbind();
-        IrisPlatform platform = mock(IrisPlatform.class);
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        when(platform.registries()).thenReturn(registries);
-        when(registries.block(anyString())).thenReturn(mock(PlatformBlockState.class));
-        IrisPlatforms.bind(platform);
-    }
-
-    @AfterClass
-    public static void restorePlatform() {
-        IrisPlatforms.unbind();
-        if (previousPlatform != null) {
-            IrisPlatforms.bind(previousPlatform);
-        }
-    }
 
     @Test
     public void materializesTheSavedOwnerAndKeepsSpawningAfterCompletion() throws Exception {
@@ -372,10 +353,7 @@ public class WorldChunkMaintenanceRoutingTest {
 
         private void awaitRelease() throws InterruptedException {
             assertTrue("Saved mantle handle was not released", released.tryAcquire(5L, TimeUnit.SECONDS));
-            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
-            while (!pending.isEmpty() && System.nanoTime() < deadline) {
-                Thread.sleep(1L);
-            }
+            Await.reached("the saved mantle cleanup to finish", Duration.ofSeconds(5L), pending::isEmpty);
             assertTrue("Saved mantle cleanup did not finish", pending.isEmpty());
         }
 

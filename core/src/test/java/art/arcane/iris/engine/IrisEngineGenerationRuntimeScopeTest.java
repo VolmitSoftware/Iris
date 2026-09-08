@@ -7,6 +7,8 @@ import art.arcane.iris.engine.framework.BiomeEnvironment;
 import art.arcane.iris.engine.history.SavedBiomeRuntime;
 import art.arcane.iris.engine.history.SavedBiomeUnavailableException;
 import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.testsupport.Await;
+import art.arcane.iris.testsupport.PlatformBinding;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import art.arcane.iris.engine.framework.EngineMode;
@@ -27,23 +29,19 @@ import art.arcane.iris.engine.object.IrisDimensionCarvingEntry;
 import art.arcane.iris.engine.object.IrisDimensionCarvingResolver;
 import art.arcane.iris.engine.object.IrisRange;
 import art.arcane.iris.engine.object.IrisWorld;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
+import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -65,7 +63,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doCallRealMethod;
@@ -78,21 +75,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class IrisEngineGenerationRuntimeScopeTest {
-    @BeforeClass
-    public static void bindPlatform() {
-        IrisPlatforms.unbind();
-        PlatformBlockState block = mock(PlatformBlockState.class);
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        when(registries.block(anyString())).thenReturn(block);
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.bind(platform);
-    }
-
-    @AfterClass
-    public static void unbindPlatform() {
-        IrisPlatforms.unbind();
-    }
+    @ClassRule
+    public static final PlatformBinding PLATFORM = PlatformBinding.mockPlatform();
 
     @Test
     public void carvingResolverRestoresNestedRuntimeDefinitions() throws Exception {
@@ -878,11 +862,9 @@ public class IrisEngineGenerationRuntimeScopeTest {
         return router;
     }
 
-    private static void awaitBlocked(Thread thread) throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
-        while (thread.getState() != Thread.State.BLOCKED && thread.isAlive() && System.nanoTime() < deadline) {
-            Thread.sleep(1L);
-        }
+    private static void awaitBlocked(Thread thread) {
+        Await.reached("the reader to block on the engine lifecycle lock", Duration.ofSeconds(5L),
+                () -> thread.getState() == Thread.State.BLOCKED || !thread.isAlive());
         assertEquals(Thread.State.BLOCKED, thread.getState());
     }
 

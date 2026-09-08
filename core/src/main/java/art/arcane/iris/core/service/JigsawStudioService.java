@@ -156,7 +156,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-public final class JigsawStudioService implements IrisService, JigsawStudioMenuController.Actions {
+public final class JigsawStudioService implements IrisService, JigsawStudioMenuActions {
     private static final int AUTOSAVE_DEBOUNCE_TICKS = 40;
     private static final int AUTOSAVE_RETRY_TICKS = 5;
     private static final int REPLACEMENT_CLOSE_WAIT_TICKS = 2_400;
@@ -3185,14 +3185,14 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         }
         return duplicateActiveFamily(
                 player,
-                JigsawStudioMenuController.nextThemeSetKey(state.get().themeSets()));
+                JigsawStudioMenuFormat.nextThemeSetKey(state.get().themeSets()));
     }
 
     private boolean duplicateFamilyFromTool(Player player) {
         Optional<JigsawStudioMenuState> state = menuState(player);
         return state.isPresent() && duplicateActiveFamily(
                 player,
-                JigsawStudioMenuController.nextThemeSetKey(state.get().themeSets()));
+                JigsawStudioMenuFormat.nextThemeSetKey(state.get().themeSets()));
     }
 
     private boolean toggleRequireCapsFromTool(Player player) {

@@ -57,13 +57,13 @@ public class JigsawStudioMenuControllerTest {
             values.add(index);
         }
 
-        assertEquals(1, JigsawStudioMenuController.pageCount(0, 28));
-        assertEquals(1, JigsawStudioMenuController.pageCount(28, 28));
-        assertEquals(2, JigsawStudioMenuController.pageCount(29, 28));
-        assertEquals(List.of(0, 1, 2), JigsawStudioMenuController.page(values, -10, 3));
-        assertEquals(List.of(54, 55, 56), JigsawStudioMenuController.page(values, 999, 3));
+        assertEquals(1, JigsawStudioMenuFormat.pageCount(0, 28));
+        assertEquals(1, JigsawStudioMenuFormat.pageCount(28, 28));
+        assertEquals(2, JigsawStudioMenuFormat.pageCount(29, 28));
+        assertEquals(List.of(0, 1, 2), JigsawStudioMenuFormat.page(values, -10, 3));
+        assertEquals(List.of(54, 55, 56), JigsawStudioMenuFormat.page(values, 999, 3));
         assertThrows(IllegalArgumentException.class,
-                () -> JigsawStudioMenuController.pageCount(1, 0));
+                () -> JigsawStudioMenuFormat.pageCount(1, 0));
     }
 
     @Test
@@ -86,7 +86,7 @@ public class JigsawStudioMenuControllerTest {
                 false,
                 List.of(active));
 
-        assertEquals(ChatColor.GREEN + "Autosaved", JigsawStudioMenuController.workcellStatus(fresh));
+        assertEquals(ChatColor.GREEN + "Autosaved", JigsawStudioMenuFormat.workcellStatus(fresh));
     }
 
     @Test
@@ -97,11 +97,11 @@ public class JigsawStudioMenuControllerTest {
                 List.of(),
                 List.of());
 
-        assertEquals(Material.JIGSAW, JigsawStudioMenuController.variantMaterial(active));
+        assertEquals(Material.JIGSAW, JigsawStudioMenuFormat.variantMaterial(active));
         assertEquals(Material.EMERALD,
-                JigsawStudioMenuController.evaluationMaterial(JigsawStudioEvaluationState.VALID));
+                JigsawStudioMenuFormat.evaluationMaterial(JigsawStudioEvaluationState.VALID));
         assertEquals(Material.TARGET,
-                JigsawStudioMenuController.RuleField.MINIMUM_PLACEMENTS.material());
+                JigsawStudioMenuFormat.RuleField.MINIMUM_PLACEMENTS.material());
     }
 
     @Test
@@ -217,33 +217,33 @@ public class JigsawStudioMenuControllerTest {
 
         assertEquals(
                 new JigsawStudioCellDimensions(25, 12, 18),
-                JigsawStudioMenuController.adjustedDimensions(
+                JigsawStudioMenuFormat.adjustedDimensions(
                         dimensions,
-                        JigsawStudioMenuController.DimensionAxis.WIDTH,
+                        JigsawStudioMenuFormat.DimensionAxis.WIDTH,
                         1).orElseThrow());
         assertEquals(
                 new JigsawStudioCellDimensions(24, 20, 18),
-                JigsawStudioMenuController.adjustedDimensions(
+                JigsawStudioMenuFormat.adjustedDimensions(
                         dimensions,
-                        JigsawStudioMenuController.DimensionAxis.HEIGHT,
+                        JigsawStudioMenuFormat.DimensionAxis.HEIGHT,
                         8).orElseThrow());
         assertEquals(
                 new JigsawStudioCellDimensions(24, 12, 10),
-                JigsawStudioMenuController.adjustedDimensions(
+                JigsawStudioMenuFormat.adjustedDimensions(
                         dimensions,
-                        JigsawStudioMenuController.DimensionAxis.DEPTH,
+                        JigsawStudioMenuFormat.DimensionAxis.DEPTH,
                         -8).orElseThrow());
-        assertTrue(JigsawStudioMenuController.adjustedDimensions(
+        assertTrue(JigsawStudioMenuFormat.adjustedDimensions(
                 new JigsawStudioCellDimensions(1, 1, 1),
-                JigsawStudioMenuController.DimensionAxis.WIDTH,
+                JigsawStudioMenuFormat.DimensionAxis.WIDTH,
                 -1).isEmpty());
-        assertTrue(JigsawStudioMenuController.adjustedDimensions(
+        assertTrue(JigsawStudioMenuFormat.adjustedDimensions(
                 new JigsawStudioCellDimensions(128, 1, 1),
-                JigsawStudioMenuController.DimensionAxis.WIDTH,
+                JigsawStudioMenuFormat.DimensionAxis.WIDTH,
                 1).isEmpty());
-        assertThrows(IllegalArgumentException.class, () -> JigsawStudioMenuController.adjustedDimensions(
+        assertThrows(IllegalArgumentException.class, () -> JigsawStudioMenuFormat.adjustedDimensions(
                 dimensions,
-                JigsawStudioMenuController.DimensionAxis.WIDTH,
+                JigsawStudioMenuFormat.DimensionAxis.WIDTH,
                 0));
     }
 
@@ -251,21 +251,22 @@ public class JigsawStudioMenuControllerTest {
     public void stagesMultipleCellSizeEditsAndAppliesOneRelayoutWithoutClosing() throws Exception {
         UUID playerId = UUID.fromString("55555555-5555-5555-5555-555555555555");
         Player player = mock(Player.class);
-        JigsawStudioMenuController.Actions actions = mock(JigsawStudioMenuController.Actions.class);
+        JigsawStudioMenuActions actions = mock(JigsawStudioMenuActions.class);
         JigsawStudioMenuState.Variant active = variant("pieces/corner", true, List.of(), List.of());
         JigsawStudioMenuState.Workcell workcell = workcell(active);
         JigsawStudioMenuState state = state(JigsawStudioMenuState.Evaluation.pending(), workcell);
         JigsawStudioMenuController controller = new JigsawStudioMenuController(
                 mock(JavaPlugin.class),
                 actions);
-        Method resize = JigsawStudioMenuController.class.getDeclaredMethod(
+        JigsawStudioWorkcellMenu workcellMenu = new JigsawStudioWorkcellMenu(controller);
+        Method resize = JigsawStudioWorkcellMenu.class.getDeclaredMethod(
                 "resizeWorkcell",
                 Player.class,
                 UUID.class,
                 String.class,
-                JigsawStudioMenuController.DimensionAxis.class,
+                JigsawStudioMenuFormat.DimensionAxis.class,
                 int.class);
-        Method apply = JigsawStudioMenuController.class.getDeclaredMethod(
+        Method apply = JigsawStudioWorkcellMenu.class.getDeclaredMethod(
                 "applyWorkcellResize",
                 Player.class,
                 UUID.class,
@@ -280,18 +281,18 @@ public class JigsawStudioMenuControllerTest {
                 new JigsawStudioCellDimensions(25, 20, 18))).thenReturn(true);
 
         resize.invoke(
-                controller,
+                workcellMenu,
                 player,
                 REQUEST_ID,
                 workcell.stableId(),
-                JigsawStudioMenuController.DimensionAxis.WIDTH,
+                JigsawStudioMenuFormat.DimensionAxis.WIDTH,
                 1);
         resize.invoke(
-                controller,
+                workcellMenu,
                 player,
                 REQUEST_ID,
                 workcell.stableId(),
-                JigsawStudioMenuController.DimensionAxis.HEIGHT,
+                JigsawStudioMenuFormat.DimensionAxis.HEIGHT,
                 8);
 
         verify(actions, never()).updateWorkcellDimensions(
@@ -304,7 +305,7 @@ public class JigsawStudioMenuControllerTest {
                     any(Runnable.class),
                     eq(2))).thenReturn(true);
 
-            apply.invoke(controller, player, REQUEST_ID, workcell.stableId());
+            apply.invoke(workcellMenu, player, REQUEST_ID, workcell.stableId());
 
             verify(actions).updateWorkcellDimensions(
                     player,
@@ -319,7 +320,7 @@ public class JigsawStudioMenuControllerTest {
         JigsawStudioMenuState.Workcell source = workcell(active);
         JigsawStudioCellDimensions capacity = new JigsawStudioCellDimensions(31, 19, 27);
 
-        JigsawStudioMenuState.Workcell staged = JigsawStudioMenuController.withCapacity(source, capacity);
+        JigsawStudioMenuState.Workcell staged = JigsawStudioMenuFormat.withCapacity(source, capacity);
 
         assertEquals(capacity, staged.capacity());
         assertEquals(source.stableId(), staged.stableId());
@@ -335,12 +336,12 @@ public class JigsawStudioMenuControllerTest {
                 new JigsawStudioMenuState.ThemeSet("seasonal", 4),
                 new JigsawStudioMenuState.ThemeSet("variant-2", 2));
 
-        assertEquals("variant-3", JigsawStudioMenuController.nextThemeSetKey(themeSets));
-        assertEquals("variant-1", JigsawStudioMenuController.nextThemeSetKey(List.of()));
-        assertEquals(Integer.valueOf(12), JigsawStudioMenuController.adjustedPositiveValue(4, 8).orElseThrow());
-        assertTrue(JigsawStudioMenuController.adjustedPositiveValue(4, -8).isEmpty());
+        assertEquals("variant-3", JigsawStudioMenuFormat.nextThemeSetKey(themeSets));
+        assertEquals("variant-1", JigsawStudioMenuFormat.nextThemeSetKey(List.of()));
+        assertEquals(Integer.valueOf(12), JigsawStudioMenuFormat.adjustedPositiveValue(4, 8).orElseThrow());
+        assertTrue(JigsawStudioMenuFormat.adjustedPositiveValue(4, -8).isEmpty());
         assertThrows(IllegalArgumentException.class,
-                () -> JigsawStudioMenuController.adjustedPositiveValue(4, 0));
+                () -> JigsawStudioMenuFormat.adjustedPositiveValue(4, 0));
     }
 
     @Test
@@ -349,10 +350,10 @@ public class JigsawStudioMenuControllerTest {
                 new JigsawStudioMenuState.ThemeSet("variant-1", 3),
                 new JigsawStudioMenuState.ThemeSet("variant-2", 1));
 
-        assertEquals("75.0%", JigsawStudioMenuController.themeSelectionPercent(
+        assertEquals("75.0%", JigsawStudioMenuFormat.themeSelectionPercent(
                 themes,
                 themes.getFirst()));
-        assertEquals("25.0%", JigsawStudioMenuController.themeSelectionPercent(
+        assertEquals("25.0%", JigsawStudioMenuFormat.themeSelectionPercent(
                 themes,
                 themes.getLast()));
     }
@@ -361,47 +362,47 @@ public class JigsawStudioMenuControllerTest {
     public void editsPieceRuleFieldsWithinRuntimeBounds() {
         assertEquals(
                 new JigsawStudioPieceRules(2, 12, 2, 8, false),
-                JigsawStudioMenuController.adjustedRules(
+                JigsawStudioMenuFormat.adjustedRules(
                         RULES,
-                        JigsawStudioMenuController.RuleField.MINIMUM_DEPTH,
+                        JigsawStudioMenuFormat.RuleField.MINIMUM_DEPTH,
                         1).orElseThrow());
         assertEquals(
                 new JigsawStudioPieceRules(1, 17, 2, 8, false),
-                JigsawStudioMenuController.adjustedRules(
+                JigsawStudioMenuFormat.adjustedRules(
                         RULES,
-                        JigsawStudioMenuController.RuleField.MAXIMUM_DEPTH,
+                        JigsawStudioMenuFormat.RuleField.MAXIMUM_DEPTH,
                         5).orElseThrow());
         assertEquals(
                 new JigsawStudioPieceRules(1, 12, 3, 8, false),
-                JigsawStudioMenuController.adjustedRules(
+                JigsawStudioMenuFormat.adjustedRules(
                         RULES,
-                        JigsawStudioMenuController.RuleField.MINIMUM_PLACEMENTS,
+                        JigsawStudioMenuFormat.RuleField.MINIMUM_PLACEMENTS,
                         1).orElseThrow());
         assertEquals(
                 new JigsawStudioPieceRules(1, 12, 2, 24, false),
-                JigsawStudioMenuController.adjustedRules(
+                JigsawStudioMenuFormat.adjustedRules(
                         RULES,
-                        JigsawStudioMenuController.RuleField.MAXIMUM_PLACEMENTS,
+                        JigsawStudioMenuFormat.RuleField.MAXIMUM_PLACEMENTS,
                         16).orElseThrow());
         assertEquals(
                 new JigsawStudioPieceRules(0, 30, 0, 0, false),
-                JigsawStudioMenuController.adjustedRules(
+                JigsawStudioMenuFormat.adjustedRules(
                         new JigsawStudioPieceRules(0, 30, 0, 512, false),
-                        JigsawStudioMenuController.RuleField.MAXIMUM_PLACEMENTS,
+                        JigsawStudioMenuFormat.RuleField.MAXIMUM_PLACEMENTS,
                         1).orElseThrow());
         assertEquals(
                 new JigsawStudioPieceRules(0, 30, 0, 512, false),
-                JigsawStudioMenuController.adjustedRules(
+                JigsawStudioMenuFormat.adjustedRules(
                         new JigsawStudioPieceRules(0, 30, 0, 0, false),
-                        JigsawStudioMenuController.RuleField.MAXIMUM_PLACEMENTS,
+                        JigsawStudioMenuFormat.RuleField.MAXIMUM_PLACEMENTS,
                         -1).orElseThrow());
-        assertTrue(JigsawStudioMenuController.adjustedRules(
+        assertTrue(JigsawStudioMenuFormat.adjustedRules(
                 RULES,
-                JigsawStudioMenuController.RuleField.MINIMUM_DEPTH,
+                JigsawStudioMenuFormat.RuleField.MINIMUM_DEPTH,
                 12).isEmpty());
         assertEquals(
                 new JigsawStudioPieceRules(1, 12, 2, 8, true),
-                JigsawStudioMenuController.withTerminal(RULES, true));
+                JigsawStudioMenuFormat.withTerminal(RULES, true));
     }
 
     @Test
@@ -424,23 +425,23 @@ public class JigsawStudioMenuControllerTest {
         JigsawStudioMenuState.Workcell corner = workcell(active, List.of(active, inactive));
         JigsawStudioMenuState state = state(JigsawStudioMenuState.Evaluation.pending(), corner);
 
-        List<JigsawStudioMenuController.ToolboxTool> tools = JigsawStudioMenuController.toolboxTools(
+        List<JigsawStudioToolboxMenu.ToolboxTool> tools = JigsawStudioToolboxMenu.toolboxTools(
                 state,
                 corner);
-        JigsawStudioMenuController.ToolboxTool preview = tool(tools, JigsawStudioToolAction.PREVIEW_GRAPH, 0);
-        JigsawStudioMenuController.ToolboxTool chanceIncrease = tool(
+        JigsawStudioToolboxMenu.ToolboxTool preview = tool(tools, JigsawStudioToolAction.PREVIEW_GRAPH, 0);
+        JigsawStudioToolboxMenu.ToolboxTool chanceIncrease = tool(
                 tools,
                 JigsawStudioToolAction.ADJUST_VARIANT_CHANCE,
                 JigsawStudioMenuController.CHANCE_STEP_PERCENTAGE_POINTS);
-        JigsawStudioMenuController.ToolboxTool delete = tool(
+        JigsawStudioToolboxMenu.ToolboxTool delete = tool(
                 tools,
                 JigsawStudioToolAction.DELETE_VARIANT,
                 0);
-        JigsawStudioMenuController.ToolboxTool newThemeSet = tools.stream()
+        JigsawStudioToolboxMenu.ToolboxTool newThemeSet = tools.stream()
                 .filter(tool -> tool.payload().action() == JigsawStudioToolAction.DUPLICATE_FAMILY)
                 .findFirst()
                 .orElseThrow();
-        JigsawStudioMenuController.ToolboxTool pieceRules = tools.stream()
+        JigsawStudioToolboxMenu.ToolboxTool pieceRules = tools.stream()
                 .filter(tool -> tool.payload().action() == JigsawStudioToolAction.SET_PIECE_RULES)
                 .findFirst()
                 .orElseThrow();
@@ -489,7 +490,7 @@ public class JigsawStudioMenuControllerTest {
                 JigsawStudioMenuState.Evaluation.pending(),
                 List.of(room));
 
-        List<JigsawStudioMenuController.ToolboxTool> tools = JigsawStudioMenuController.toolboxTools(state, room);
+        List<JigsawStudioToolboxMenu.ToolboxTool> tools = JigsawStudioToolboxMenu.toolboxTools(state, room);
 
         assertTrue(tools.stream().anyMatch(tool -> tool.payload().action()
                 == JigsawStudioToolAction.RESIZE_WORKCELL));
@@ -519,7 +520,7 @@ public class JigsawStudioMenuControllerTest {
                 JigsawStudioMenuState.Evaluation.pending(),
                 List.of(corner));
 
-        List<JigsawStudioMenuController.ToolboxTool> tools = JigsawStudioMenuController.toolboxTools(state, corner);
+        List<JigsawStudioToolboxMenu.ToolboxTool> tools = JigsawStudioToolboxMenu.toolboxTools(state, corner);
 
         assertFalse(state.irisExtended());
         assertTrue(tools.stream().noneMatch(tool -> tool.payload().action() == JigsawStudioToolAction.SET_THEME));
@@ -536,7 +537,7 @@ public class JigsawStudioMenuControllerTest {
     @Test
     public void openMarshalsToThePlayerRegionBeforeReadingStudioState() {
         Player player = mock(Player.class);
-        JigsawStudioMenuController.Actions actions = mock(JigsawStudioMenuController.Actions.class);
+        JigsawStudioMenuActions actions = mock(JigsawStudioMenuActions.class);
         JigsawStudioMenuController controller = new JigsawStudioMenuController(
                 mock(JavaPlugin.class),
                 actions);
@@ -649,12 +650,12 @@ public class JigsawStudioMenuControllerTest {
                 memberships);
     }
 
-    private JigsawStudioMenuController.ToolboxTool tool(
-            List<JigsawStudioMenuController.ToolboxTool> tools,
+    private JigsawStudioToolboxMenu.ToolboxTool tool(
+            List<JigsawStudioToolboxMenu.ToolboxTool> tools,
             JigsawStudioToolAction action,
             int amount
     ) {
-        Optional<JigsawStudioMenuController.ToolboxTool> match = tools.stream()
+        Optional<JigsawStudioToolboxMenu.ToolboxTool> match = tools.stream()
                 .filter(tool -> tool.payload().action() == action && tool.payload().amount() == amount)
                 .findFirst();
         return match.orElseThrow();

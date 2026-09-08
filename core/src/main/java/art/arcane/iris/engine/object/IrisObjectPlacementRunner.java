@@ -68,7 +68,6 @@ final class IrisObjectPlacementRunner {
         Objects.requireNonNull(rdata, "Object placement data is required.");
 
         IObjectPlacer placer = config.getHeightmap() != null ? new HeightmapObjectPlacer(rng, x, yv, z, config, oplacer) : oplacer;
-        ObjectPlacementConditions util = new ObjectPlacementConditions(config, placer, self);
 
         boolean evaluateSlopeCondition = !config.isForcePlace() && !config.getSlopeCondition().isDefault();
         if (evaluateSlopeCondition || config.isRotateTowardsSlope()) {
@@ -124,9 +123,9 @@ final class IrisObjectPlacementRunner {
         int yrand = config.getTranslate().getYRandom();
         yrand = yrand > 0 ? rng.i(0, yrand) : yrand < 0 ? rng.i(yrand, 0) : yrand;
         int warpMargin = warped ? (int) Math.ceil(Math.abs(config.getWarp().getMultiplier()) / 2D) : 0;
-        TransformedBounds placementBounds = util.transformedBounds(spin, translating, translateOffset, ceilingHang, warpMargin);
-
-        PlacementContext context = new PlacementContext(config, rdata, placer, c, rng, spin, self, placementBounds, x, -1, z, yv, rty);
+        PlacementContext context = new PlacementContext(config, rdata, placer, c, rng, spin, self, x, z, yv, rty);
+        TransformedBounds placementBounds = context.transformedBounds(spin, translating, translateOffset, ceilingHang, warpMargin);
+        PlacementState state = new PlacementState(-1, placementBounds);
 
 //        if (config.isFromBottom()) {
 //            // todo Convert this to a dedicated mode.
@@ -137,26 +136,26 @@ final class IrisObjectPlacementRunner {
 //                }
 //            }
 //        } else
-        PlacementBehavior behavior = config.getMode().createBehavior(context, util);
+        PlacementModule behavior = config.getMode().createBehavior(context, state);
 
         if (yv < 0) {
             behavior.setHeight();
 
         } else {
-            context.y = yv;
+            state.y = yv;
             if (!config.isForcePlace() && !rawStructurePiece) {
-                if (util.shouldBailForCarvingAnchor(context.x, context.y, context.z)) {
-                    context.bail = true;
+                if (context.shouldBailForCarvingAnchor(context.x, state.y, context.z)) {
+                    state.bail = true;
                 }
             }
         }
 
         if (yv >= 0 && config.isBottom() && !rawStructurePiece) {
-            context.y += Math.floorDiv(self.h, 2);
+            state.y += Math.floorDiv(self.h, 2);
             CarvingMode carvingMode = config.getCarvingSupport();
             if (!config.isForcePlace() && !carvingMode.equals(CarvingMode.CARVING_ONLY)) {
-                if (util.shouldBailForCarvingAnchor(context.x, context.y, context.z)) {
-                    context.bail = true;
+                if (context.shouldBailForCarvingAnchor(context.x, state.y, context.z)) {
+                    state.bail = true;
                 }
             }
         }
@@ -169,12 +168,12 @@ final class IrisObjectPlacementRunner {
                 && config.getCarvingSupport().supportsSurface()
                 && placer.getEngine() != null
                 && placer.getEngine().getDimension().isBedrock()
-                && context.y <= 1) {
-            warnImplausibleBedrockPlacement(placer, config, context.x, context.y, context.z);
+                && state.y <= 1) {
+            warnImplausibleBedrockPlacement(placer, config, context.x, state.y, context.z);
             return -1;
         }
 
-        if (context.bail && !config.isForcePlace()) {
+        if (state.bail && !config.isForcePlace()) {
             return -1;
         }
 
@@ -208,24 +207,24 @@ final class IrisObjectPlacementRunner {
             return -1;
         }
 
-        if (!config.isForcePlace() && !rawStructurePiece && config.isUnderwater() && context.y + rty + ty >= placer.getFluidHeight()) {
+        if (!config.isForcePlace() && !rawStructurePiece && config.isUnderwater() && state.y + rty + ty >= placer.getFluidHeight()) {
             return -1;
         }
 
-        if (!config.isForcePlace() && !rawStructurePiece && !config.getClamp().canPlace(context.y + rty + ty, context.y - rty + ty)) {
+        if (!config.isForcePlace() && !rawStructurePiece && !config.getClamp().canPlace(state.y + rty + ty, state.y - rty + ty)) {
             return -1;
         }
 
         if (!rawStructurePiece && nativeStructureVetoes(placer, config, spin, translating, translateOffset, ceilingHang,
-                yv < 0 && config.getMode() == ObjectPlaceMode.PAINT, warpMargin, context.x, context.y + yrand, context.z)) {
+                yv < 0 && config.getMode() == ObjectPlaceMode.PAINT, warpMargin, context.x, state.y + yrand, context.z)) {
             return -1;
         }
 
         boolean paint = yv < 0 && config.getMode() == ObjectPlaceMode.PAINT;
-        ObjectPlacementConditions.WorldBounds worldBounds = null;
+        PlacementContext.WorldBounds worldBounds = null;
         if (config.isBore() || (!config.isForcePlace() && !rawStructurePiece
                 && (!config.getAllowedCollisions().isEmpty() || !config.getForbiddenCollisions().isEmpty()))) {
-            worldBounds = util.resolveWorldBounds(placementBounds, paint, context.x, context.y + yrand, context.z);
+            worldBounds = context.resolveWorldBounds(state.bounds, paint, context.x, state.y + yrand, context.z);
         }
 
         if (!config.isForcePlace() && !rawStructurePiece && (!config.getAllowedCollisions().isEmpty() || !config.getForbiddenCollisions().isEmpty())) {
@@ -248,7 +247,7 @@ final class IrisObjectPlacementRunner {
             }
         }
 
-        context.y += yrand;
+        state.y += yrand;
 
         if (config.isBore()) {
             for (int i = worldBounds.minX(); i <= worldBounds.maxX(); i++) {
@@ -266,7 +265,7 @@ final class IrisObjectPlacementRunner {
         int vacuumHighest = Integer.MIN_VALUE;
         self.readLock.lock();
 
-        ObjectBlockPass pass = new ObjectBlockPass(context, behavior);
+        ObjectBlockPass pass = new ObjectBlockPass(context, state, behavior, listener);
         ObjectMarkerPlacement markerPlacer = null;
 
         try {
@@ -335,14 +334,14 @@ final class IrisObjectPlacementRunner {
                         if (rng.chance(j.getChance())) {
                             for (PlatformBlockState k : j.getFind(rdata)) {
                                 if (j.isExact() ? k.matches(data) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(data))) {
-                                    PlatformBlockState newData = j.getReplace(rng, i.getX() + context.x, i.getY() + context.y, i.getZ() + context.z, rdata);
+                                    PlatformBlockState newData = j.getReplace(rng, i.getX() + context.x, i.getY() + state.y, i.getZ() + context.z, rdata);
 
                                     if (IrisObjectShaping.materialKey(newData).equals(IrisObjectShaping.materialKey(data)) && !(newData.isCustom() || data.isCustom()))
                                         data = BlockDataMergeSupport.merge(data, newData);
                                     else
                                         data = newData;
 
-                                    Optional<TileData> t = j.getReplace().getTile(rng, context.x, context.y, context.z, rdata);
+                                    Optional<TileData> t = j.getReplace().getTile(rng, context.x, state.y, context.z, rdata);
                                     if (t.isPresent()) {
                                         tile = t.get();
                                     }
@@ -357,12 +356,12 @@ final class IrisObjectPlacementRunner {
                 data = config.getRotation().rotate(data, spinx, spiny, spinz);
                 xx = context.x + (int) Math.round(i.getX());
 
-                int yy = context.y + (int) Math.round(i.getY());
+                int yy = state.y + (int) Math.round(i.getY());
                 zz = context.z + (int) Math.round(i.getZ());
 
                 if (warped) {
-                    xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getX() + context.x, i.getY() + context.y, i.getZ() + context.z);
-                    zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getZ() + context.z, i.getY() + context.y, i.getX() + context.x);
+                    xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getX() + context.x, i.getY() + state.y, i.getZ() + context.z);
+                    zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getZ() + context.z, i.getY() + state.y, i.getX() + context.x);
                 }
 
                 if (yv < 0 && (config.getMode().equals(ObjectPlaceMode.PAINT)) && !B.isVineBlock(data)) {
@@ -373,7 +372,7 @@ final class IrisObjectPlacementRunner {
                     continue;
                 }
 
-                if (waterlogCandidate && IrisProceduralBlocks.hasProperty(data, "waterlogged") && util.shouldAutoWaterlogBlock(yv, xx, yy, zz)) {
+                if (waterlogCandidate && IrisProceduralBlocks.hasProperty(data, "waterlogged") && pass.shouldAutoWaterlogBlock(yv, xx, yy, zz)) {
                     data = data.withProperty("waterlogged", "true");
                 }
 
@@ -455,7 +454,7 @@ final class IrisObjectPlacementRunner {
             }
         }
 
-        return context.y;
+        return state.y;
     }
 
     static boolean shouldPlaceObjectBlock(boolean rawStructurePiece, boolean air, boolean wouldReplace) {

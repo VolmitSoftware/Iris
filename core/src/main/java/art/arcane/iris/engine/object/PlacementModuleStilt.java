@@ -7,7 +7,7 @@ import art.arcane.iris.util.common.data.VectorMap;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.iris.util.project.noise.CNG;
 
-public class PlacementBehaviorStilt extends PlacementBehavior {
+public class PlacementModuleStilt extends PlacementModule {
 
     private boolean fast;
     private boolean erode;
@@ -20,7 +20,7 @@ public class PlacementBehaviorStilt extends PlacementBehavior {
         ORGANIC
     }
 
-    public PlacementBehaviorStilt(Mode mode, boolean fast) {
+    public PlacementModuleStilt(Mode mode, boolean fast) {
         this.mode = mode;
         this.fast = fast;
     }
@@ -28,22 +28,22 @@ public class PlacementBehaviorStilt extends PlacementBehavior {
     @Override
     public void setHeight() {
         switch (mode) {
-            case CENTER, ORGANIC -> ObjectPlaceMode.CENTER_HEIGHT.createBehavior(context, util).setHeight();
+            case CENTER, ORGANIC -> ObjectPlaceMode.CENTER_HEIGHT.createBehavior(context, state).setHeight();
             case ERODE -> {
                 // Only handled in post
             }
             case MIN -> {
                 if (fast) {
-                    ObjectPlaceMode.FAST_MIN_HEIGHT.createBehavior(context, util).setHeight();
+                    ObjectPlaceMode.FAST_MIN_HEIGHT.createBehavior(context, state).setHeight();
                 } else {
-                    ObjectPlaceMode.MIN_HEIGHT.createBehavior(context, util).setHeight();
+                    ObjectPlaceMode.MIN_HEIGHT.createBehavior(context, state).setHeight();
                 }
             }
             case DEFAULT -> {
                 if (fast) {
-                    ObjectPlaceMode.FAST_MAX_HEIGHT.createBehavior(context, util).setHeight();
+                    ObjectPlaceMode.FAST_MAX_HEIGHT.createBehavior(context, state).setHeight();
                 } else {
-                    ObjectPlaceMode.MAX_HEIGHT.createBehavior(context, util).setHeight();
+                    ObjectPlaceMode.MAX_HEIGHT.createBehavior(context, state).setHeight();
                 }
             }
         }
@@ -101,7 +101,7 @@ public class PlacementBehaviorStilt extends PlacementBehavior {
     private void applyOrganic(int targetLayer, boolean ceilingHang) {
         var settings = context.config.getStiltSettings();
 
-        int startY = targetLayer + context.y;
+        int startY = targetLayer + state.y;
         int maxScan = settings != null ? Math.max(1, settings.getOrganicMaxScan()) : 48;
         int jitterMax = settings != null ? Math.max(0, settings.getOrganicJitter()) : 3;
         double scratch = settings != null ? Math.max(0, Math.min(1, settings.getOrganicScratch())) : 0.55;
@@ -197,7 +197,7 @@ public class PlacementBehaviorStilt extends PlacementBehavior {
 
                 PlatformBlockState d = sourceData;
                 if (settings != null && settings.getPalette() != null) {
-                    d = context.config.getStiltSettings().getPalette().get(rng, context.x, context.y, context.z, context.rdata);
+                    d = context.config.getStiltSettings().getPalette().get(rng, context.x, state.y, context.z, context.rdata);
                 } else {
                     String mat = IrisObjectShaping.materialKey(d);
                     if (mat.equals("minecraft:grass_block") || mat.equals("minecraft:mycelium") || mat.equals("minecraft:podzol") || mat.equals("minecraft:dirt_path")) {
@@ -247,8 +247,8 @@ public class PlacementBehaviorStilt extends PlacementBehavior {
                 zz = context.z + (int) Math.round(i.getZ());
 
                 if (warped) {
-                    xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getX() + context.x, i.getY() + context.y, i.getZ() + context.z);
-                    zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getZ() + context.z, i.getY() + context.y, i.getX() + context.x);
+                    xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getX() + context.x, i.getY() + state.y, i.getZ() + context.z);
+                    zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getZ() + context.z, i.getY() + state.y, i.getX() + context.x);
                 }
 
                 if (organic) {
@@ -285,8 +285,8 @@ public class PlacementBehaviorStilt extends PlacementBehavior {
                         break;
                     }
                     if (context.config.getMode() == ObjectPlaceMode.ERODE_STILT) {
-                        int depth = (lowest + context.y) - j;
-                        int totalDepth = (lowest + context.y) - lowerBound;
+                        int depth = (lowest + state.y) - j;
+                        int totalDepth = (lowest + state.y) - lowerBound;
                         double depthRatio = totalDepth > 0 ? (double) depth / totalDepth : 0;
                         if (depthRatio > 0.4) {
                             long hash = ((long) (xx * 341873128712L) ^ ((long) j * 132897987541L) ^ ((long) zz * 735791245321L));

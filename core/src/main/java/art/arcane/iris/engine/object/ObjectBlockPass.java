@@ -10,7 +10,6 @@ import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.Position2;
-import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,17 +22,20 @@ class ObjectBlockPass {
     private BiConsumer<BlockPosition, PlatformBlockState> listener;
 
     private PlacementContext context;
+    private PlacementState state;
     private VectorMap<PlatformBlockState> blocks;
     private VectorMap<TileData> states;
     private  ObjectMarkerPlacement markerPlacer;
-    private PlacementBehavior behavior;
+    private PlacementModule behavior;
 
      ObjectBlockPass(
              PlacementContext context,
-             PlacementBehavior behavior,
+             PlacementState state,
+             PlacementModule behavior,
              BiConsumer<BlockPosition, PlatformBlockState> listener
      ) {
         this.context = context;
+        this.state = state;
         this.behavior = behavior;
         this.listener = listener;
         this.blocks = context.self.blocks;
@@ -92,12 +94,12 @@ class ObjectBlockPass {
 
             data = context.spin.rotate(data);
             xx = context.x + (int) Math.round(vector.getX());
-            int yy = context.y + (int) Math.round(vector.getY());
+            int yy = state.y + (int) Math.round(vector.getY());
             zz = context.z + (int) Math.round(vector.getZ());
 
             if (!context.config.getWarp().isFlat()) {
-                xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, vector.getX() + context.x, vector.getY() + context.y, vector.getZ() + context.z);
-                zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, vector.getZ() + context.z, vector.getY() + context.y, vector.getX() + context.x);
+                xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, vector.getX() + context.x, vector.getY() + state.y, vector.getZ() + context.z);
+                zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, vector.getZ() + context.z, vector.getY() + state.y, vector.getX() + context.x);
             }
 
             if (context.yv < 0 && (is(ObjectPlaceMode.PAINT)) && !B.isVineBlock(data)) {
@@ -177,14 +179,14 @@ class ObjectBlockPass {
             if (context.rng.chance(j.getChance())) {
                 for (PlatformBlockState k : j.getFind(context.rdata)) {
                     if (j.isExact() ? k.matches(data) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(data))) {
-                        PlatformBlockState newData = j.getReplace(context.rng, vector.getX() + context.x, vector.getY() + context.y, vector.getZ() + context.z, context.rdata);
+                        PlatformBlockState newData = j.getReplace(context.rng, vector.getX() + context.x, vector.getY() + state.y, vector.getZ() + context.z, context.rdata);
 
                         if (IrisObjectShaping.materialKey(newData).equals(IrisObjectShaping.materialKey(data)) && !(newData.isCustom() || data.isCustom()))
                             data = BlockDataMergeSupport.merge(data, newData);
                         else
                             data = newData;
 
-                        Optional<TileData> t = j.getReplace().getTile(context.rng, context.x, context.y, context.z, context.rdata);
+                        Optional<TileData> t = j.getReplace().getTile(context.rng, context.x, state.y, context.z, context.rdata);
                         if (t.isPresent()) {
                             tile = t.get();
                         }

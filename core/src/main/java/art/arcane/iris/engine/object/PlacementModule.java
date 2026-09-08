@@ -4,14 +4,18 @@ import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.VectorMap;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 
-public abstract class PlacementBehavior {
+public abstract class PlacementModule {
     PlacementContext context;
-    ObjectPlacementConditions util;
+    PlacementState state;
 
-    final PlacementBehavior load(PlacementContext context, ObjectPlacementConditions util) {
+    final PlacementModule load(PlacementContext context, PlacementState state) {
         this.context = context;
-        this.util = util;
+        this.state = state;
         return this;
+    }
+
+    void install() {
+
     }
 
     void setHeight() {}

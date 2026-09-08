@@ -22,6 +22,7 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.IrisPaperLikeBackendMode;
 import art.arcane.iris.core.IrisRuntimeSchedulerMode;
 import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.core.pregenerator.PregenDiagnostics;
 import art.arcane.iris.core.pregenerator.PregenListener;
 import art.arcane.iris.core.pregenerator.PregenMantleBackpressure;
 import art.arcane.iris.core.pregenerator.PregeneratorMethod;
@@ -212,7 +213,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             if (coreThreads instanceof Thread[] threadsArray) {
                 return threadsArray.length;
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            PregenDiagnostics.probeFailed("moonrise worker pool size", e);
         }
 
         return -1;
@@ -238,7 +240,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             int resolved = radius > 0 ? Math.max(1, (int) Math.ceil(radius / 32.0)) : 2;
             evictionWindowRegions = resolved;
             return resolved;
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            PregenDiagnostics.probeFailed("mantle radius for eviction window", e);
             return 2;
         }
     }
@@ -431,7 +434,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private void unloadChunkSafely(int cx, int cz) {
         try {
             world.removePluginChunkTicket(cx, cz, BukkitPlatform.plugin());
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            IrisLogging.reportError("Async pregen could not release the plugin chunk ticket at " + cx + "," + cz
+                    + " in world " + world.getName() + "; the chunk stays pinned in memory.", e);
         }
 
         try {
@@ -492,11 +497,12 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     private Chunk onChunkFutureFailure(int x, int z, Throwable throwable) {
-        try {
-            IrisLogging.warn("Failed async pregen chunk load at " + x + "," + z + ". " + metricsSnapshot());
+        IrisLogging.reportError("Failed async pregen chunk load at " + x + "," + z + ".", throwable);
 
-            IrisLogging.reportError(throwable);
+        try {
+            IrisLogging.warn("Async pregen state at the failed chunk " + x + "," + z + ". " + metricsSnapshot());
         } catch (Throwable e) {
+            PregenDiagnostics.probeFailed("pregen metrics snapshot", e);
         }
 
         return null;
@@ -738,7 +744,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         if (engine != null) {
             try {
                 engine.getMantle().cleanupChunksCoveredBy(x, z, true, listener::onChunkCleaned);
-            } catch (Throwable ignored) {
+            } catch (Throwable e) {
+                IrisLogging.reportError("Async pregen mantle cleanup failed at chunk " + x + "," + z
+                        + " in world " + world.getName() + "; tectonic plates for that chunk stay resident.", e);
             }
         }
     }
@@ -759,7 +767,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 metricsEngine = resolvedEngine;
             }
             return resolvedEngine;
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            PregenDiagnostics.probeFailed("engine access for world " + world.getName(), e);
             return null;
         }
     }
@@ -1094,7 +1103,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 requestMonitoredChunkAsync(x, z)
                         .whenComplete((chunk, throwable) -> completeChunk(x, z, listener, chunk, throwable));
                 return;
-            } catch (Throwable ignored) {
+            } catch (Throwable e) {
+                PregenDiagnostics.probeFailed("folia direct chunk request at " + x + "," + z
+                        + ", falling back to a region task", e);
             }
 
             Runnable regionTask = () -> {

@@ -20,6 +20,7 @@ package art.arcane.iris.core.pregenerator.methods;
 
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.nms.INMS;
+import art.arcane.iris.core.pregenerator.PregenDiagnostics;
 import art.arcane.iris.core.pregenerator.PregenListener;
 import art.arcane.iris.core.pregenerator.PregeneratorMethod;
 import art.arcane.iris.core.tools.IrisToolbelt;
@@ -102,7 +103,8 @@ public class MedievalPregenMethod implements PregeneratorMethod {
             if (cached != null) {
                 cachedEngine = cached;
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            PregenDiagnostics.probeFailed("engine access for world " + world.getName(), e);
         }
         return cached;
     }

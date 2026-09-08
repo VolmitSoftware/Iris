@@ -68,6 +68,10 @@ String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate')
     .get()
 String useLocalVolmLib = providers.gradleProperty('useLocalVolmLib').getOrElse('true')
 String localVolmLibDirectory = providers.gradleProperty('localVolmLibDirectory').getOrNull()
+boolean useMavenLocal = providers.gradleProperty('useMavenLocal')
+    .orElse(useLocalVolmLib.equalsIgnoreCase('true') ? 'false' : 'true')
+    .map { String value -> value.equalsIgnoreCase('true') }
+    .get()
 Closure<String> loaderDisplayVersion = { String loaderVersion ->
     String coordinatePrefix = "${minecraftVersion}-"
     if (loaderVersion.startsWith(coordinatePrefix)) {
@@ -675,7 +679,9 @@ allprojects {
     }
 
     repositories {
-        mavenLocal()
+        if (useMavenLocal) {
+            mavenLocal()
+        }
         mavenCentral()
         maven { url = uri('https://repo.papermc.io/repository/maven-public/') }
         maven { url = uri('https://repo.codemc.org/repository/maven-public/') }

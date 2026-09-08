@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisDimensionCarvingResolver;
 import art.arcane.volmlib.util.math.BlockPosition;
@@ -127,6 +128,7 @@ public class IrisCarveModifierBiomeBlendTest {
     private static IrisCarveModifier modifier(Engine engine, RNG rng) throws ReflectiveOperationException {
         IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
         doReturn(engine).when(modifier).getEngine();
+        doReturn(mock(IrisComplex.class)).when(modifier).getComplex();
         Field field = IrisCarveModifier.class.getDeclaredField("rng");
         field.setAccessible(true);
         field.set(modifier, rng);

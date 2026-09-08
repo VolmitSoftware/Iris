@@ -34,6 +34,7 @@ import art.arcane.iris.engine.object.IrisOreGeneratorBounds;
 import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.iris.engine.object.IrisRiverMaterialConfig;
 import art.arcane.iris.engine.object.IrisSurfaceRiverBankConfig;
+import art.arcane.iris.engine.terrain.Terrain3DColumn;
 import art.arcane.iris.util.common.data.BoundBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.project.context.ChunkedDataCache;
@@ -47,6 +48,7 @@ import lombok.Getter;
 
 public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBlockState> {
     private static final BoundBlockState BEDROCK = BoundBlockState.of("BEDROCK");
+    private static final BoundBlockState AIR = BoundBlockState.of("AIR");
     @Getter
     private final RNG rng;
     @Getter
@@ -132,6 +134,10 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
             HydrologyColumnLayer hydrologyTerrain = hydrology == null
                     ? null
                     : hydrology.primarySurfaceLayer().orElse(null);
+            Terrain3DColumn terrainColumn = complex.terrainColumn(realX, realZ, hydrology);
+            int terrainSpan = terrainColumn == null ? -1 : terrainColumn.spanCount() - 1;
+            int layerSurfaceY = he;
+            int layerCeilingY = 0;
             int cut = exposeCutStrata
                     && hydrologyTerrain != null
                     && hydrologyTerrain.terrainOwned()
@@ -157,6 +163,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
             boolean hasSurfaceOres = biomeSurfaceOreBounds.hasOres() || regionSurfaceOreBounds.hasOres() || dimensionSurfaceOreBounds.hasOres();
             boolean hasUndergroundOres = biomeUndergroundOreBounds.hasOres() || regionUndergroundOreBounds.hasOres() || dimensionUndergroundOreBounds.hasOres();
             KList<PlatformBlockState> blocks = null;
+            KList<PlatformBlockState> ceilingBlocks = null;
             KList<PlatformBlockState> fblocks = null;
 
             for (int i = topY; i >= 0; i--) {
@@ -164,6 +171,20 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
                     h.setRaw(xf, i, zf, BEDROCK.get());
                     lastBedrock = i;
                     continue;
+                }
+
+                if (terrainColumn != null && i <= he) {
+                    while (terrainSpan >= 0 && i < terrainColumn.ceiling(terrainSpan)) {
+                        terrainSpan--;
+                        blocks = null;
+                        ceilingBlocks = null;
+                    }
+                    if (terrainSpan < 0 || i > terrainColumn.floor(terrainSpan)) {
+                        h.setRaw(xf, i, zf, AIR.get());
+                        continue;
+                    }
+                    layerSurfaceY = terrainColumn.floor(terrainSpan);
+                    layerCeilingY = terrainColumn.ceiling(terrainSpan);
                 }
 
                 PlatformBlockState ore = null;
@@ -198,13 +219,25 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
                 }
 
                 if (i <= he) {
-                    int depth = he - i;
+                    int depth = layerSurfaceY - i;
                     if (depth == 0 && mappedSurfaceBlock != null) {
                         h.setRaw(xf, i, zf, mappedSurfaceBlock);
                         continue;
                     }
                     if (blocks == null) {
-                        blocks = biome.generateLayers(dimension, realX, realZ, localRng, he + cut, he + cut, data, complex);
+                        blocks = biome.generateLayers(dimension, realX, realZ, localRng,
+                                layerSurfaceY + cut, layerSurfaceY + cut, data, complex);
+                    }
+
+                    if (layerCeilingY > 0 && depth >= 2 && i - layerCeilingY < 2) {
+                        if (ceilingBlocks == null) {
+                            ceilingBlocks = biome.generateCeilingLayers(dimension, realX, realZ, localRng,
+                                    2, layerCeilingY, data, complex);
+                        }
+                        int ceilingDepth = i - layerCeilingY;
+                        h.setRaw(xf, i, zf, ceilingBlocks.hasIndex(ceilingDepth)
+                                ? ceilingBlocks.get(ceilingDepth) : rock);
+                        continue;
                     }
 
                     if (blocks.hasIndex(depth + cut)) {
@@ -241,29 +274,41 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
             }
 
             if (upperContext != null) {
-                int upperSurfaceY = upperContext.getEffectiveSurfaceY(realX, realZ);
+                UpperDimensionContext.Column upperColumn = upperContext.sampleColumn(realX, realZ);
+                int upperSurfaceY = upperColumn.surfaceY();
 
                 if (upperSurfaceY < chunkHeight - 1) {
                     IrisBiome upperBiome = upperContext.getUpperBiome(realX, realZ);
                     PlatformBlockState upperRock = upperContext.getRockBlock(realX, realZ);
                     PlatformBlockState upperMappedSurface = upperContext.getSurfaceBlock(realX, realZ);
-                    int upperThickness = chunkHeight - 1 - upperSurfaceY;
-                    KList<PlatformBlockState> upperBlocks = upperBiome != null
-                            ? upperBiome.generateLayers(upperContext.getDimension(),
-                            realX, realZ, localRng, upperThickness, upperThickness,
-                            upperContext.getData(), complex)
-                            : null;
+                    KList<PlatformBlockState> upperBlocks = null;
+                    int paletteSourceY = -1;
 
                     for (int y = chunkHeight - 1; y >= upperSurfaceY; y--) {
                         if (y == chunkHeight - 1 && bedrockEnabled) {
                             h.setRaw(xf, y, zf, BEDROCK.get());
                             continue;
                         }
-                        if (y == upperSurfaceY && upperMappedSurface != null) {
+                        if (!upperColumn.isSolid(y)) {
+                            h.setRaw(xf, y, zf, AIR.get());
+                            continue;
+                        }
+                        int faceY = upperColumn.faceY(y);
+                        int sourceSurfaceY = upperColumn.height() - 1 - faceY;
+                        if (sourceSurfaceY != paletteSourceY) {
+                            paletteSourceY = sourceSurfaceY;
+                            upperBlocks = null;
+                        }
+                        if (y == faceY && upperMappedSurface != null) {
                             h.setRaw(xf, y, zf, upperMappedSurface);
                             continue;
                         }
-                        int depthFromFace = y - upperSurfaceY;
+                        int depthFromFace = y - faceY;
+                        if (upperBlocks == null && upperBiome != null) {
+                            upperBlocks = upperBiome.generateLayersWithSlope(upperContext.getDimension(),
+                                    realX, realZ, localRng, sourceSurfaceY, sourceSurfaceY,
+                                    upperContext.getData(), upperContext.getSurfaceSlopeStream(sourceSurfaceY));
+                        }
                         if (upperBlocks != null && upperBlocks.hasIndex(depthFromFace)) {
                             h.setRaw(xf, y, zf, upperBlocks.get(depthFromFace));
                         } else {

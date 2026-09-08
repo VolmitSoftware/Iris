@@ -331,7 +331,8 @@ public class DimensionStackLayoutTest {
                 null,
                 null,
                 terrainHeight,
-                fluidHeight
+                fluidHeight,
+                null
         );
     }
 }

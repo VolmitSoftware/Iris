@@ -24,6 +24,7 @@ import art.arcane.iris.engine.image.IrisImageMapRuntime;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.terrain.Terrain3DColumn;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.DataProvider;
 import art.arcane.iris.util.project.stream.ProceduralStream;
@@ -93,6 +94,26 @@ public class UpperDimensionContext implements DataProvider {
     }
 
     public int getEffectiveSurfaceY(int x, int z) {
+        int surfaceY = effectiveEnvelopeY(x, z);
+        Terrain3DColumn column = terrainContext.terrainColumn(x, z);
+        return clipSurfaceY(column, ceilingLayout.height(), surfaceY);
+    }
+
+    public Column sampleColumn(int x, int z) {
+        Terrain3DColumn column = terrainContext.terrainColumn(x, z);
+        return new Column(ceilingLayout.height(),
+                clipSurfaceY(column, ceilingLayout.height(), effectiveEnvelopeY(x, z)), column);
+    }
+
+    private static int clipSurfaceY(Terrain3DColumn column, int height, int surfaceY) {
+        if (column == null || surfaceY >= height) {
+            return surfaceY;
+        }
+        int top = column.highestSolidY(height - 1 - surfaceY);
+        return top <= 0 ? height : height - 1 - top;
+    }
+
+    private int effectiveEnvelopeY(int x, int z) {
         double depth = Math.max(
                 0D,
                 Math.min(ceilingLayout.height() - 1D, terrainContext.getNormalTerrainHeight(x, z))
@@ -127,6 +148,10 @@ public class UpperDimensionContext implements DataProvider {
         return terrainContext.getSurfaceBlock(x, z);
     }
 
+    public ProceduralStream<Double> getSurfaceSlopeStream(int sourceY) {
+        return terrainContext.getSurfaceSlopeStream(sourceY);
+    }
+
     public IrisDimension getDimension() {
         return terrainContext.getDimension();
     }
@@ -138,6 +163,24 @@ public class UpperDimensionContext implements DataProvider {
 
     public boolean isSelfReferencing() {
         return terrainContext.isSelfReferencing();
+    }
+
+    public record Column(int height, int surfaceY, Terrain3DColumn terrain) {
+        public boolean ownsY(int y) {
+            return y >= surfaceY && y < height;
+        }
+
+        public boolean isSolid(int y) {
+            return ownsY(y) && (terrain == null || terrain.isSolid(height - 1 - y));
+        }
+
+        public int faceY(int y) {
+            if (!isSolid(y)) {
+                return -1;
+            }
+            return terrain == null ? surfaceY
+                    : Math.max(surfaceY, height - 1 - terrain.surfaceY(height - 1 - y));
+        }
     }
 
     record CeilingLayout(int height, int minimumGap) {

@@ -3,12 +3,14 @@ package art.arcane.iris.engine.modifier;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisDimensionCarvingResolver;
 import art.arcane.iris.engine.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.engine.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
@@ -48,6 +50,7 @@ public class IrisCarveModifierBoundarySupportTest {
 
         IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
         doReturn(engine).when(modifier).getEngine();
+        doReturn(mock(IrisComplex.class)).when(modifier).getComplex();
         Field rng = IrisCarveModifier.class.getDeclaredField("rng");
         rng.setAccessible(true);
         rng.set(modifier, new RNG(71L));
@@ -79,6 +82,25 @@ public class IrisCarveModifierBoundarySupportTest {
 
         assertSame(customFloor, floor);
         assertSame(resolvedCeiling, ceiling);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void terrainOpeningKeepsItsSurfaceBiomeOverCaveMatter() {
+        IrisBiome surface = new IrisBiome();
+        IrisComplex complex = mock(IrisComplex.class);
+        ProceduralStream<IrisBiome> biomes = mock(ProceduralStream.class);
+        doReturn(true).when(complex).isTerrain3DOpening(40, 42, 44);
+        doReturn(biomes).when(complex).getTrueBiomeStream();
+        doReturn(surface).when(biomes).get(40, 44);
+        IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
+        doReturn(complex).when(modifier).getComplex();
+
+        IrisBiome biome = modifier.resolveCaveBoundaryBiome(
+                new MatterCavern(true, "carving/deep", (byte) 0), 40, 42, 44,
+                new IrisDimensionCarvingResolver.State(), new Long2ObjectOpenHashMap<>(), new HashMap<>());
+
+        assertSame(surface, biome);
     }
 
     @Test

@@ -788,9 +788,9 @@ public class HydrologyCaveContainmentPlannerTest {
         );
         HydrologyCaveContainmentPlanner.ValidationCache cache =
                 new HydrologyCaveContainmentPlanner.ValidationCache();
-        HydrologyObservedPlannedSurface initialSurface = observedSurface(32);
-        HydrologyObservedPlannedSurface matchingSurface = observedSurface(32);
-        HydrologyObservedPlannedSurface changedSurface = observedSurface(9);
+        HydrologyObservedPlannedSurface initialSurface = observedSurface(32, true);
+        HydrologyObservedPlannedSurface matchingSurface = observedSurface(32, true);
+        HydrologyObservedPlannedSurface changedSurface = observedSurface(9, true);
 
         HydrologyCavePlan initial = planner.validateAll(
                 plannedSurfaceView(initialSurface),
@@ -817,6 +817,31 @@ public class HydrologyCaveContainmentPlannerTest {
                 changedSurface
         ).plans().getFirst();
 
+        assertEquals(HydrologyCaveRejection.OPEN_SURFACE, changed.rejection());
+        assertEquals(1L, cache.hits());
+        assertEquals(2L, cache.misses());
+    }
+
+    @Test
+    public void plannedSurfaceCacheInvalidatesEqualHeightWhenTerrainOwnershipChanges() {
+        CavePosition center = position(0, 10, 0);
+        HydrologyCaveCandidate candidate = candidate(
+                204L, 10, "water", Map.of(center, HydrologyCaveAction.WET_SOURCE), settings());
+        HydrologyCaveContainmentPlanner.ValidationCache cache =
+                new HydrologyCaveContainmentPlanner.ValidationCache();
+        HydrologyObservedPlannedSurface initialSurface = observedSurface(32, true);
+        HydrologyObservedPlannedSurface matchingSurface = observedSurface(32, true);
+        HydrologyObservedPlannedSurface changedSurface = observedSurface(32, false);
+
+        HydrologyCavePlan initial = planner.validateAll(plannedSurfaceView(initialSurface),
+                List.of(candidate), cache, initialSurface).plans().getFirst();
+        HydrologyCavePlan cached = planner.validateAll(plannedSurfaceView(matchingSurface),
+                List.of(candidate), cache, matchingSurface).plans().getFirst();
+        HydrologyCavePlan changed = planner.validateAll(plannedSurfaceView(changedSurface),
+                List.of(candidate), cache, changedSurface).plans().getFirst();
+
+        assertTrue(initial.accepted());
+        assertEquals(initial, cached);
         assertEquals(HydrologyCaveRejection.OPEN_SURFACE, changed.rejection());
         assertEquals(1L, cache.hits());
         assertEquals(2L, cache.misses());
@@ -1228,9 +1253,18 @@ public class HydrologyCaveContainmentPlannerTest {
         return new CavePosition(x, y, z);
     }
 
-    private HydrologyObservedPlannedSurface observedSurface(int resolvedHeight) {
-        HydrologyCaveVoxelViewFactory.PlannedSurface surface =
-                (int x, int z, int naturalHeight) -> resolvedHeight;
+    private HydrologyObservedPlannedSurface observedSurface(int resolvedHeight, boolean terrainOwned) {
+        HydrologyCaveVoxelViewFactory.PlannedSurface surface = new HydrologyCaveVoxelViewFactory.PlannedSurface() {
+            @Override
+            public int resolve(int x, int z, int naturalHeight) {
+                return resolvedHeight;
+            }
+
+            @Override
+            public boolean ownsTerrain(int x, int z) {
+                return terrainOwned;
+            }
+        };
         return new HydrologyObservedPlannedSurface(surface);
     }
 
@@ -1253,7 +1287,8 @@ public class HydrologyCaveContainmentPlannerTest {
 
             @Override
             public boolean isAboveTerrainSurface(CavePosition position) {
-                return position.y() > surface.resolve(position.x(), position.z(), 32);
+                return !surface.ownsTerrain(position.x(), position.z())
+                        || position.y() > surface.resolve(position.x(), position.z(), 32);
             }
         };
     }

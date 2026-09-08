@@ -24,9 +24,16 @@ import art.arcane.iris.engine.object.IrisObjectMarker;
 import art.arcane.iris.engine.object.IrisObjectPlacement;
 import art.arcane.iris.engine.object.IrisStaticObject;
 import art.arcane.volmlib.util.collection.KSet;
+import art.arcane.volmlib.util.io.IO;
+import art.arcane.volmlib.util.json.JSONObject;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 /**
  * Shared key collection for the pack packagers. Both the Bukkit re-serializing compiler and the
@@ -36,6 +43,26 @@ import java.util.function.Function;
  */
 public final class PackExportClosure {
     private PackExportClosure() {
+    }
+
+    public static String copySnippets(File packFolder, File targetFolder) throws IOException {
+        Path sourceRoot = new File(packFolder, "snippet").toPath();
+        if (!Files.isDirectory(sourceRoot)) {
+            return "";
+        }
+        Path targetRoot = new File(targetFolder, "snippet").toPath();
+        StringBuilder hashes = new StringBuilder();
+        try (Stream<Path> files = Files.walk(sourceRoot)) {
+            for (Path source : files.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().endsWith(".json"))
+                    .sorted()
+                    .toList()) {
+                String json = new JSONObject(IO.readAll(source.toFile())).toString(0);
+                IO.writeAll(targetRoot.resolve(sourceRoot.relativize(source)).toFile(), json);
+                hashes.append(IO.hash(json));
+            }
+        }
+        return hashes.toString();
     }
 
     public static KSet<String> collectDimensionKeys(IrisDimension dimension) {

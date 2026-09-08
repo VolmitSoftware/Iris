@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.actuator.IrisDecorantActuator;
 import art.arcane.iris.engine.decorator.IrisCeilingDecorator;
 import art.arcane.iris.engine.decorator.IrisSurfaceDecorator;
@@ -176,6 +177,7 @@ public class IrisNaturalCaveScanTest {
             Mantle<Matter> mantle = mock(Mantle.class);
             chunk = mock(MantleChunk.class);
             doReturn(engine).when(modifier).getEngine();
+            doReturn(mock(IrisComplex.class)).when(modifier).getComplex();
             doReturn(32).when(engine).getHeight();
             doReturn(new SeedManager(1337L)).when(engine).getSeedManager();
             doReturn(engineMantle).when(engine).getMantle();

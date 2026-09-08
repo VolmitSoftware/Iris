@@ -4,6 +4,7 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioMode;
 import art.arcane.iris.core.tools.IrisToolbelt;
+import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.BiomeEnvironment;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.history.SavedBiomeUnavailableException;
@@ -107,6 +108,7 @@ public class BoardSVCSavedBiomeTest {
             when(natural.getName()).thenReturn("Natural cave");
             when(flooded.getName()).thenReturn("Flooded cave");
             when(fixture.engine.getHeight(8, 8)).thenReturn(200);
+            when(fixture.engine.getComplex()).thenReturn(mock(IrisComplex.class));
             when(fixture.engine.getCaveBiome(8, 160, 8)).thenReturn(natural);
             when(fixture.engine.getCaveOrMantleBiome(8, 160, 8)).thenReturn(flooded);
             when(fixture.engine.getDimension()).thenReturn(fixture.environment.dimension());

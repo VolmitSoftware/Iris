@@ -1,0 +1,5 @@
+{
+  "seed": 310,
+  "interpolator": {"function": "NONE", "horizontalScale": 1},
+  "composite": [{"seed": 310, "style": {"style": "FLAT"}}]
+}

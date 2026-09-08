@@ -219,7 +219,7 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(256)
     @Desc("Minimum air gap in blocks between the lower terrain surface and the upper terrain surface.")
     private int upperDimensionGap = 32;
-    @Desc("When true, cave carving will cut through the upper dimension terrain. When false, the upper terrain is a solid untouched mass.")
+    @Desc("When true, cave carving cuts through the upper dimension terrain. When false, cave carving leaves the upper terrain unchanged, including its biome terrain3D openings.")
     private boolean upperDimensionCarving = false;
     @Desc("When true, objects from the mantle (structures, trees, etc.) can be placed in the upper dimension terrain zone. When false, the upper terrain is protected from object placement.")
     private boolean upperDimensionObjects = false;

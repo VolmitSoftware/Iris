@@ -508,12 +508,7 @@ public final class HydrologyCaveContainmentPlanner {
 
         private boolean matches(HydrologyObservedPlannedSurface plannedSurface) {
             for (HydrologyObservedPlannedSurface.Observation observation : observations) {
-                int resolvedHeight = plannedSurface.resolve(
-                        observation.x(),
-                        observation.z(),
-                        observation.naturalHeight()
-                );
-                if (resolvedHeight != observation.resolvedHeight()) {
+                if (!observation.matches(plannedSurface)) {
                     return false;
                 }
             }

@@ -146,10 +146,18 @@ public class HydrologyPlannerCrossTileCaveAdmissionIntegrationTest {
     }
 
     private void assertMaterializedPreconditions(HydrologyTile tile, HydrologyTerrainSampler terrain) {
-        HydrologyCaveVoxelViewFactory.PlannedSurface surface = (int x, int z, int naturalHeight) ->
-                tile.footprint().sample(x, z)
-                        .map(HydrologyColumnSample::terrainHeight)
-                        .orElse(naturalHeight);
+        HydrologyCaveVoxelViewFactory.PlannedSurface surface = new HydrologyCaveVoxelViewFactory.PlannedSurface() {
+            @Override
+            public int resolve(int x, int z, int naturalHeight) {
+                return tile.footprint().sample(x, z).map(HydrologyColumnSample::terrainHeight).orElse(naturalHeight);
+            }
+
+            @Override
+            public boolean ownsTerrain(int x, int z) {
+                HydrologyColumnSample sample = tile.footprint().sample(x, z).orElse(null);
+                return sample != null && sample.primarySurfaceLayer().isPresent();
+            }
+        };
         CaveVoxelView view = new PlannedSurfaceCaveView(terrain, surface);
         for (HydrologyCavePlan plan : tile.cavePlans()) {
             for (Map.Entry<CavePosition, CaveVoxelPrecondition> entry

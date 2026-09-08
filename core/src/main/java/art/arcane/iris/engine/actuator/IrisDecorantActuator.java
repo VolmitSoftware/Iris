@@ -30,6 +30,7 @@ import art.arcane.iris.engine.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.engine.hydrology.HydrologyColumnSample;
 import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
 import art.arcane.iris.engine.object.IrisBiome;
+import art.arcane.iris.engine.terrain.Terrain3DColumn;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
@@ -228,6 +229,11 @@ public class IrisDecorantActuator extends EngineAssignedActuator<PlatformBlockSt
                     getSurfaceDecorator().decorate(i, j, realX, realZ, output, biome, height, getEngine().getHeight() - height);
                 }
 
+                Terrain3DColumn terrainColumn = getComplex().terrainColumn(realX, realZ, hydrology);
+                if (terrainColumn != null) {
+                    decorateTerrainLedges(output, terrainColumn, biome, i, j, realX, realZ);
+                }
+
 
                 if (cave != null && cave.getDecorators().isNotEmpty()) {
                     for (int k = Math.min(height, output.getHeight() - 1); k > 0; k--) {
@@ -254,6 +260,24 @@ public class IrisDecorantActuator extends EngineAssignedActuator<PlatformBlockSt
 
     private boolean shouldRayDecorate() {
         return false; // TODO CAVES
+    }
+
+    private void decorateTerrainLedges(Hunk<PlatformBlockState> output, Terrain3DColumn column,
+                                       IrisBiome biome, int localX, int localZ, int worldX, int worldZ) {
+        for (int span = 0; span + 1 < column.spanCount(); span++) {
+            int floorY = column.floor(span);
+            int ceilingY = column.ceiling(span + 1);
+            int headroom = ceilingY - floorY - 1;
+            if (headroom < 1 || !PREDICATE_SOLID.test(output.getRaw(localX, floorY, localZ))) {
+                continue;
+            }
+            getSurfaceDecorator().decorate(localX, localZ, worldX, worldZ,
+                    output, biome, floorY, headroom);
+            if (PREDICATE_SOLID.test(output.getRaw(localX, ceilingY, localZ))) {
+                getCeilingDecorator().decorate(localX, localZ, worldX, worldZ,
+                        output, biome, ceilingY - 1, headroom);
+            }
+        }
     }
 
     enum ShorelineDecorationMode {

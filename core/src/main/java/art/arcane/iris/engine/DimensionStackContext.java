@@ -30,6 +30,7 @@ public final class DimensionStackContext {
     private final List<DimensionTerrainContext> layersBottomToTop;
     private final List<SeamOffsetSampler> seamOffsetSamplersBottomToTop;
     private final Cache<Long, DimensionStackLayout> layoutCache;
+    private final boolean volumetric;
 
     private DimensionStackContext(ContextState state) {
         engine = state.engine();
@@ -41,6 +42,7 @@ public final class DimensionStackContext {
         layersTopToBottom = List.copyOf(reversed);
         seamOffsetSamplersBottomToTop = List.copyOf(state.seamOffsetSamplersBottomToTop());
         layoutCache = Caffeine.newBuilder().maximumSize(LAYOUT_CACHE_SIZE).build();
+        volumetric = layersBottomToTop.stream().anyMatch(DimensionTerrainContext::hasTerrain3D);
     }
 
     public static DimensionStackContext create(Engine engine, IrisDimensionStack stack) {
@@ -191,7 +193,8 @@ public final class DimensionStackContext {
                     column.fluidBlock(),
                     column.surfaceBlock(),
                     normalTerrainHeight,
-                    fluidHeight
+                    fluidHeight,
+                    column.terrainColumn()
             ));
         }
 
@@ -244,6 +247,11 @@ public final class DimensionStackContext {
     }
 
     private long sampleTopHeights(int x, int z) {
+        if (volumetric) {
+            DimensionStackLayout layout = getLayout(x, z);
+            return ((long) layout.clippedStackTerrainTopY() << 32)
+                    | (layout.clippedStackTopY() & 0xFFFFFFFFL);
+        }
         boolean naturalFallback = usesTemporaryNaturalFallback(x, z);
         int baseY = 0;
         int renderedTerrainTopY = Integer.MIN_VALUE;

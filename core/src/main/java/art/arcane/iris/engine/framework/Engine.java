@@ -18,6 +18,8 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.engine.terrain.Terrain3DColumn;
+
 
 
 import art.arcane.iris.core.IrisSettings;
@@ -116,6 +118,34 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     default @Nullable DimensionStackContext getDimensionStackContext() {
         return null;
+    }
+
+    default boolean isAdditionalTerrainOwned(int x, int y, int z) {
+        DimensionStackContext stack = getDimensionStackContext();
+        if (stack != null && stack.getLayout(x, z).isHostFeatureProtectedY(y)) {
+            return true;
+        }
+        UpperDimensionContext upper = getUpperContext();
+        return upper != null && y >= upper.getEffectiveSurfaceY(x, z) && y < getHeight();
+    }
+
+    default boolean isTerrainSurfaceSolid(int x, int y, int z) {
+        DimensionStackContext stack = getDimensionStackContext();
+        if (stack != null) {
+            DimensionStackLayout layout = stack.getLayout(x, z);
+            if (layout.isHostFeatureProtectedY(y)) {
+                return layout.isSolid(y);
+            }
+        }
+        UpperDimensionContext upper = getUpperContext();
+        if (upper != null) {
+            UpperDimensionContext.Column column = upper.sampleColumn(x, z);
+            if (column.ownsY(y)) {
+                return column.isSolid(y);
+            }
+        }
+        Terrain3DColumn column = getComplex().terrainColumn(x, z);
+        return column == null || column.isSolid(y);
     }
 
     EngineMode getMode();
@@ -615,12 +645,12 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             if (y > bottomLayer.renderMaxY()) {
                 return bottomLayer.biome();
             }
-            if (y <= bottomLayer.clippedSurfaceY() - 2) {
+            if (y <= bottomLayer.clippedSurfaceY() - 2 && !getComplex().isTerrain3DSurface(x, y, z)) {
                 return getCaveBiome(x, y, z);
             }
             return bottomLayer.biome();
         }
-        if (y <= getHeight(x, z) - 2) {
+        if (y <= getHeight(x, z) - 2 && !getComplex().isTerrain3DSurface(x, y, z)) {
             return getCaveBiome(x, y, z);
         }
 
@@ -639,12 +669,12 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             if (y > bottomLayer.renderMaxY()) {
                 return bottomLayer.biome();
             }
-            if (y <= bottomLayer.clippedSurfaceY() - 2) {
+            if (y <= bottomLayer.clippedSurfaceY() - 2 && !getComplex().isTerrain3DSurface(x, y, z)) {
                 return getCaveOrMantleBiome(x, y, z);
             }
             return bottomLayer.biome();
         }
-        if (y <= getHeight(x, z) - 2) {
+        if (y <= getHeight(x, z) - 2 && !getComplex().isTerrain3DSurface(x, y, z)) {
             return getCaveOrMantleBiome(x, y, z);
         }
 

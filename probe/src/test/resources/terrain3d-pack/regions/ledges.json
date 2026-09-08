@@ -1,0 +1,6 @@
+{
+  "name": "Ledges",
+  "landBiomes": ["ledges"],
+  "seaBiomes": ["ledges"],
+  "shoreBiomes": ["ledges"]
+}

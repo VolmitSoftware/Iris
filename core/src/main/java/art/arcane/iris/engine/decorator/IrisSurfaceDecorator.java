@@ -43,11 +43,14 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
         this.partRNG = new RNG(DecoratorCore.partSeed(getSeed(), IrisDecorationPart.NONE));
     }
 
-    protected boolean isSlopeValid(IrisDecorator decorator, int realX, int realZ) {
+    protected boolean isSlopeValid(IrisDecorator decorator, int realX, int height, int realZ) {
         if (decorator.isForcePlace() || decorator.getSlopeCondition().isDefault()) {
             return true;
         }
-        return decorator.getSlopeCondition().isValid(getComplex().getSlopeStream().get(realX, realZ));
+        double slope = getComplex().hasTerrain3D()
+                ? getComplex().terrainSurfaceSlope(realX, height, realZ)
+                : getComplex().getSlopeStream().getDouble(realX, realZ);
+        return decorator.getSlopeCondition().isValid(slope);
     }
 
     @BlockCoordinates
@@ -73,7 +76,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
         RNG rng = getRNG(realX, realZ);
         IrisDecorator decorator = DecoratorCore.pickDecorator(biome, getPart(), partRNG, rng, getData(), realX, realZ);
 
-        if (decorator == null || !isSlopeValid(decorator, realX, realZ)) {
+        if (decorator == null || !isSlopeValid(decorator, realX, height, realZ)) {
             return;
         }
 

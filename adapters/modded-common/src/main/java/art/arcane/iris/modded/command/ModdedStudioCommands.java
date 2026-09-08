@@ -73,8 +73,6 @@ import org.zeroturnaround.zip.ZipUtil;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -997,7 +995,7 @@ public final class ModdedStudioCommands {
         for (String key : Stream.of(dm.getExpressionLoader().getPossibleKeys()).sorted().toList()) {
             hashes.append(copyJson(folder, "expressions", key, dm.getExpressionLoader().findFile(key)));
         }
-        hashes.append(copyStyleSnippets(packFolder, folder));
+        hashes.append(PackExportClosure.copySnippets(packFolder, folder));
         for (String key : regionKeys) {
             hashes.append(copyJson(folder, "regions", key, dm.getRegionLoader().findFile(key)));
         }
@@ -1058,25 +1056,6 @@ public final class ModdedStudioCommands {
             ModdedIrisLog.error("Iris package failed to write {}/{}", category, key, e);
             return "";
         }
-    }
-
-    private static String copyStyleSnippets(File packFolder, File folder) throws IOException {
-        Path sourceRoot = new File(packFolder, "snippet/style").toPath();
-        if (!Files.isDirectory(sourceRoot)) {
-            return "";
-        }
-        StringBuilder hashes = new StringBuilder();
-        try (Stream<Path> files = Files.walk(sourceRoot)) {
-            for (Path source : files.filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName().toString().endsWith(".json"))
-                    .sorted()
-                    .toList()) {
-                String relative = sourceRoot.relativize(source).toString().replace(File.separatorChar, '/');
-                String key = relative.substring(0, relative.length() - ".json".length());
-                hashes.append(copyJson(folder, "snippet/style", key, source.toFile()));
-            }
-        }
-        return hashes.toString();
     }
 
     private static int regions(CommandSourceStack source, int radius) {

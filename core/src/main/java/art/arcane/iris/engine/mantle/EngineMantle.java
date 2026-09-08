@@ -144,7 +144,8 @@ public interface EngineMantle extends MatterGenerator {
         if (hydrology != null) {
             return hydrology.carves();
         }
-        return getMantle().get(x, h, z, MatterCavern.class) != null;
+        return getMantle().get(x, h, z, MatterCavern.class) != null
+                || getComplex().isTerrain3DOpening(x, h, z);
     }
 
     default PlatformBlockState get(int x, int y, int z) {

@@ -1,0 +1,17 @@
+{
+  "name": "Ledges",
+  "derivative": "minecraft:plains",
+  "vanillaDerivative": "minecraft:plains",
+  "layers": [{"palette": [{"block": "minecraft:stone"}]}],
+  "generators": [{"generator": "flat", "min": 128, "max": 128}],
+  "terrain3D": {
+    "amplitude": 64,
+    "horizontalScale": 96,
+    "verticalScale": 16,
+    "minimumSlope": 0,
+    "slopeFade": 1,
+    "fluidClearance": 0,
+    "fluidFade": 1,
+    "crackDepth": 0
+  }
+}

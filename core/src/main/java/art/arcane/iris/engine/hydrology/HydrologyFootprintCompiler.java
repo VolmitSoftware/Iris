@@ -2039,9 +2039,7 @@ final class HydrologyFootprintCompiler {
             if (materializedSurface == null) {
                 return surfaceRaster;
             }
-            return (int x, int z, int naturalHeight) -> materializedSurface.sample(x, z)
-                    .map(HydrologyColumnSample::terrainHeight)
-                    .orElse(naturalHeight);
+            return new MaterializedSurface(materializedSurface);
         }
 
         HydrologyColumnSample surfaceColumnAt(int x, int z, int naturalHeight) {
@@ -2100,6 +2098,19 @@ final class HydrologyFootprintCompiler {
         }
     }
 
+    private record MaterializedSurface(RiverFootprint footprint) implements HydrologyCaveVoxelViewFactory.PlannedSurface {
+        @Override
+        public int resolve(int x, int z, int naturalHeight) {
+            return footprint.sample(x, z).map(HydrologyColumnSample::terrainHeight).orElse(naturalHeight);
+        }
+
+        @Override
+        public boolean ownsTerrain(int x, int z) {
+            HydrologyColumnSample sample = footprint.sample(x, z).orElse(null);
+            return sample != null && sample.primarySurfaceLayer().isPresent();
+        }
+    }
+
     private final class SurfaceRasterIndex implements HydrologyCaveVoxelViewFactory.PlannedSurface {
         private final Long2ObjectOpenHashMap<HydrologyColumnSample> surfaceColumns;
         private final Long2IntOpenHashMap validationNaturalHeights;
@@ -2138,6 +2149,12 @@ final class HydrologyFootprintCompiler {
                 return validationNaturalHeights.get(packed);
             }
             return naturalHeight;
+        }
+
+        @Override
+        public boolean ownsTerrain(int x, int z) {
+            HydrologyColumnSample sample = surfaceColumns.get(RiverFootprint.pack(x, z));
+            return sample != null && sample.primarySurfaceLayer().isPresent();
         }
 
         private HydrologyColumnSample surfaceColumnAt(int x, int z, int naturalHeight) {

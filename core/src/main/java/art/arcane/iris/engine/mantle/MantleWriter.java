@@ -29,6 +29,7 @@ import art.arcane.iris.core.tools.WorldMaintenance;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.IrisComplex;
+import art.arcane.iris.engine.terrain.Terrain3DColumn;
 import art.arcane.iris.engine.history.TransitionGenerationPlan;
 import art.arcane.iris.engine.history.TerrainBoundarySignature;
 import art.arcane.iris.engine.history.BoundaryColumnGeometry;
@@ -499,7 +500,8 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         if (hydrology != null) {
             return hydrology.carves();
         }
-        return getPrerequisiteDataIfPresent(x, y, z, MatterCavern.class) != null;
+        return getPrerequisiteDataIfPresent(x, y, z, MatterCavern.class) != null
+                || engineMantle.getComplex().isTerrain3DOpening(x, y, z);
     }
 
     public byte[] getPrerequisiteCarvedColumn(int x, int z, int height) {
@@ -511,6 +513,17 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         byte[] carvedColumn = new byte[cappedHeight];
         if (cappedHeight <= 0) {
             return carvedColumn;
+        }
+
+        Terrain3DColumn terrainColumn = engineMantle.getComplex().terrainColumn(x, z);
+        if (terrainColumn != null) {
+            int maximumY = Math.min(cappedHeight, terrainColumn.topY());
+            for (int y = Math.max(0, terrainColumn.minY()); y < maximumY; y++) {
+                if (!terrainColumn.isSolid(y)
+                        && !engineMantle.getEngine().isAdditionalTerrainOwned(x, y, z)) {
+                    carvedColumn[y] = 1;
+                }
+            }
         }
 
         MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
@@ -885,7 +898,8 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         if (hydrology != null) {
             return hydrology.carves();
         }
-        return getDataIfPresent(x, y, z, MatterCavern.class) != null;
+        return getDataIfPresent(x, y, z, MatterCavern.class) != null
+                || engineMantle.getComplex().isTerrain3DOpening(x, y, z);
     }
 
     private byte[] resolvedCarvedColumn(TerrainBoundarySignature column, int height) {
@@ -931,6 +945,16 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         byte[] carvedColumn = new byte[cappedHeight];
         if (cappedHeight <= 0) {
             return carvedColumn;
+        }
+
+        Terrain3DColumn terrainColumn = engineMantle.getComplex().terrainColumn(x, z);
+        if (terrainColumn != null) {
+            int maximumY = Math.min(cappedHeight, terrainColumn.topY());
+            for (int y = terrainColumn.minY(); y < maximumY; y++) {
+                if (!terrainColumn.isSolid(y) && !engineMantle.getEngine().isAdditionalTerrainOwned(x, y, z)) {
+                    carvedColumn[y] = 1;
+                }
+            }
         }
 
         MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
@@ -980,8 +1004,11 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     @Override
     public boolean isSurfaceSolid(int x, int y, int z) {
         Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
-        return resolved.isEmpty() || resolved.get().geometry()
-                .voxelAt(y + engineMantle.getEngine().getMinHeight()).phase() == BoundaryColumnGeometry.Phase.SOLID;
+        if (resolved.isPresent()) {
+            return resolved.get().geometry()
+                    .voxelAt(y + engineMantle.getEngine().getMinHeight()).phase() == BoundaryColumnGeometry.Phase.SOLID;
+        }
+        return engineMantle.getEngine().isTerrainSurfaceSolid(x, y, z);
     }
 
     @Override

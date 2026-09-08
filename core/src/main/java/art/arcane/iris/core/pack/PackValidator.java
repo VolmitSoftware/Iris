@@ -129,6 +129,7 @@ public final class PackValidator {
         addDistinct(blockingErrors, hydrologyValidation.errors());
         addDistinct(warnings, hydrologyValidation.warnings());
         blockingErrors.addAll(PackCaveProfileValidator.validateLegacyFields(packFolder));
+        addDistinct(blockingErrors, PackTerrain3DValidator.validate(packFolder));
         PackLootValidator.LootGraphIssues lootIssues = PackLootValidator.validateLootGraph(packFolder);
         addDistinct(blockingErrors, lootIssues.errors());
         addDistinct(warnings, lootIssues.warnings());

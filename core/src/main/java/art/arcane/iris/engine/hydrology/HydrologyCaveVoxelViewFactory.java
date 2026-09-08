@@ -6,8 +6,9 @@ import art.arcane.iris.engine.hydrology.cave.CaveVoxelView;
 public interface HydrologyCaveVoxelViewFactory {
     CaveVoxelView create(PlannedSurface plannedSurface);
 
-    @FunctionalInterface
     interface PlannedSurface {
         int resolve(int x, int z, int naturalHeight);
+
+        boolean ownsTerrain(int x, int z);
     }
 }

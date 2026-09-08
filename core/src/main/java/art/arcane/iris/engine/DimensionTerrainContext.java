@@ -11,6 +11,8 @@ import art.arcane.iris.engine.object.IrisGenerator;
 import art.arcane.iris.engine.object.IrisInterpolator;
 import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.iris.engine.object.IrisShapedGeneratorStyle;
+import art.arcane.iris.engine.terrain.Terrain3DColumn;
+import art.arcane.iris.engine.terrain.Terrain3DRuntime;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.DataProvider;
@@ -48,6 +50,8 @@ public final class DimensionTerrainContext implements DataProvider {
     private final IrisImageMapRuntime imageMapRuntime;
     private final boolean selfReferencing;
     private final SelfFallback selfFallback;
+    private final Terrain3DRuntime terrain3D;
+    private final boolean naturalSelf;
 
     private DimensionTerrainContext(ContextState state) {
         engine = state.engine();
@@ -64,6 +68,8 @@ public final class DimensionTerrainContext implements DataProvider {
         imageMapRuntime = state.imageMapRuntime();
         selfReferencing = state.selfReferencing();
         selfFallback = state.selfFallback();
+        terrain3D = state.terrain3D();
+        naturalSelf = state.naturalSelf();
     }
 
     public static DimensionTerrainContext forStack(Engine engine, IrisDimension dimension) {
@@ -130,7 +136,9 @@ public final class DimensionTerrainContext implements DataProvider {
                 fluidBlockSampler,
                 complex.getImageMapRuntime(),
                 true,
-                selfFallback
+                selfFallback,
+                null,
+                natural
         ));
     }
 
@@ -175,7 +183,7 @@ public final class DimensionTerrainContext implements DataProvider {
             focusRegion.getNaturalBiomes(dataProvider).forEach(biome -> registerBiomeGenerators(
                     biome, dataProvider, allBiomes, generators));
         } else {
-            for (IrisRegion region : dimension.getAllRegions(dataProvider)) {
+            for (IrisRegion region : terrainRegions(dimension.getAllRegions(dataProvider), imageMapRuntime)) {
                 preparedRegions.add(region);
                 region.getNaturalBiomes(dataProvider).forEach(biome -> registerBiomeGenerators(
                         biome, dataProvider, allBiomes, generators));
@@ -351,9 +359,6 @@ public final class DimensionTerrainContext implements DataProvider {
             return mappedTerrainHeight(imageMapRuntime, proceduralHeight, x, z);
         }, Interpolated.DOUBLE).cache2DDouble(
                 cachePrefix + "ImageMappedHeightStream", engine, cacheSize);
-        ProceduralStream<Double> slopeStream = heightStream.slope(3)
-                .cache2DDouble(cachePrefix + "SlopeStream", engine, cacheSize);
-
         ProceduralStream<IrisBiome> finalBiomeStream = focusBiome == null
                 ? heightStream.convertAware2D((height, x, z) -> {
                     IrisBiome mappedBiome = imageMapRuntime.sampleBiome(x, z);
@@ -381,6 +386,24 @@ public final class DimensionTerrainContext implements DataProvider {
                         Interpolated.of(value -> 0D, value -> focusBiome)
                 ).cache2D(cachePrefix + "FinalBiomeStreamFocus", engine, cacheSize);
 
+        boolean terrain3DEnabled = false;
+        for (IrisBiome biome : allBiomes) {
+            if (biome.getTerrain3D() != null) {
+                biome.getTerrain3D().validate();
+                terrain3DEnabled |= biome.getTerrain3D().isEnabled();
+            }
+        }
+        Terrain3DRuntime terrain3D = !terrain3DEnabled ? null : new Terrain3DRuntime(
+                new Terrain3DRuntime.Sources(heightStream::getDouble, finalBiomeStream::get),
+                new Terrain3DRuntime.Options(engine.getSeedManager().getTerrain() ^ seedOffset,
+                        localHeight, fluidHeight, dimensionData, true, Math.max(4096, cacheSize))
+        );
+        ProceduralStream<Double> shapedHeightStream = terrain3D == null ? heightStream
+                : ProceduralStream.ofDouble((x, z) -> shapedHeight(terrain3D, x, z))
+                .cache2DDouble(cachePrefix + "Terrain3DHeightStream", engine, cacheSize);
+        ProceduralStream<Double> slopeStream = shapedHeightStream.slope(3)
+                .cache2DDouble(cachePrefix + "SlopeStream", engine, cacheSize);
+
         ProceduralStream<PlatformBlockState> rockStream = dimension.getRockPalette()
                 .getLayerGenerator(rng.nextParallelRNG(45), dimensionData).stream()
                 .select(dimension.getRockPalette().getBlockData(dimensionData));
@@ -399,7 +422,7 @@ public final class DimensionTerrainContext implements DataProvider {
                 dimension,
                 dimensionData,
                 localHeight,
-                heightStream,
+                shapedHeightStream,
                 slopeStream,
                 ProceduralStream.ofDouble((x, z) -> fluidHeight),
                 finalBiomeStream,
@@ -408,7 +431,9 @@ public final class DimensionTerrainContext implements DataProvider {
                 fluidBlockSampler,
                 imageMapRuntime,
                 false,
-                null
+                null,
+                terrain3D,
+                false
         ));
     }
 
@@ -425,6 +450,22 @@ public final class DimensionTerrainContext implements DataProvider {
                 generators.computeIfAbsent(generator.getInterpolator(), key -> new HashSet<>()).add(generator);
             }
         });
+    }
+
+    static KList<IrisRegion> terrainRegions(Iterable<IrisRegion> declared, IrisImageMapRuntime imageMaps) {
+        KList<IrisRegion> regions = new KList<>();
+        Set<IrisRegion> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (IrisRegion region : declared) {
+            if (!region.isCompatExcluded() && seen.add(region)) {
+                regions.add(region);
+            }
+        }
+        for (IrisRegion region : imageMaps.getMappedRegions()) {
+            if (!region.isCompatExcluded() && seen.add(region)) {
+                regions.add(region);
+            }
+        }
+        return regions;
     }
 
     static IrisRegion mappedRegion(
@@ -629,6 +670,32 @@ public final class DimensionTerrainContext implements DataProvider {
         return getNormalTerrainHeight(x, z, usesNaturalFallback(x, z));
     }
 
+    public boolean hasTerrain3D() {
+        return selfReferencing ? engine.getComplex().hasTerrain3D() : terrain3D != null;
+    }
+
+    public Terrain3DColumn terrainColumn(int x, int z) {
+        return terrainColumn(x, z, usesNaturalFallback(x, z));
+    }
+
+    Terrain3DColumn terrainColumn(int x, int z, boolean naturalFallback) {
+        if (selfReferencing) {
+            return naturalSelf || naturalFallback
+                    ? engine.getComplex().naturalTerrainColumn(x, z)
+                    : engine.getComplex().terrainColumn(x, z);
+        }
+        if (terrain3D == null) {
+            return null;
+        }
+        Terrain3DColumn column = terrain3D.column(x, z);
+        return column.shaped() ? column : null;
+    }
+
+    private static double shapedHeight(Terrain3DRuntime runtime, double x, double z) {
+        Terrain3DColumn column = runtime.column((int) Math.floor(x), (int) Math.floor(z));
+        return column.shaped() ? column.topY() : column.baseHeight();
+    }
+
     double getNormalTerrainHeight(double x, double z, boolean naturalFallback) {
         if (naturalFallback && selfFallback != null) {
             return selfFallback.heightStream().getDouble(x, z);
@@ -649,6 +716,25 @@ public final class DimensionTerrainContext implements DataProvider {
 
     public ProceduralStream<Double> getSlopeStream() {
         return slopeStream;
+    }
+
+    public ProceduralStream<Double> getSurfaceSlopeStream(int sourceY) {
+        return !hasTerrain3D() ? slopeStream : ProceduralStream.ofDouble((x, z) ->
+                surfaceSlope((int) Math.floor(x), sourceY, (int) Math.floor(z)));
+    }
+
+    double surfaceSlope(int x, int sourceY, int z) {
+        Terrain3DColumn column = terrainColumn(x, z);
+        if (column == null || sourceY >= column.topY() || column.surfaceY(sourceY) != sourceY) {
+            return slopeStream.getDouble(x, z);
+        }
+        return IrisComplex.calculateNaturalSlope(sourceY,
+                nearbySurfaceHeight(x + 3, sourceY, z), nearbySurfaceHeight(x, sourceY, z + 3));
+    }
+
+    private double nearbySurfaceHeight(int x, int sourceY, int z) {
+        Terrain3DColumn column = terrainColumn(x, z);
+        return column == null ? getNormalTerrainHeight(x, z) : column.nearestSurfaceY(sourceY);
     }
 
     public IrisBiome getBiome(double x, double z) {
@@ -710,7 +796,8 @@ public final class DimensionTerrainContext implements DataProvider {
                 getRegion(x, z),
                 getRockBlock(x, z),
                 getFluidBlock(x, z, naturalFallback),
-                getSurfaceBlock(x, z)
+                getSurfaceBlock(x, z),
+                terrainColumn((int) Math.floor(x), (int) Math.floor(z), naturalFallback)
         );
     }
 
@@ -739,7 +826,9 @@ public final class DimensionTerrainContext implements DataProvider {
             FluidBlockSampler fluidBlockSampler,
             IrisImageMapRuntime imageMapRuntime,
             boolean selfReferencing,
-            SelfFallback selfFallback
+            SelfFallback selfFallback,
+            Terrain3DRuntime terrain3D,
+            boolean naturalSelf
     ) {
     }
 
@@ -758,7 +847,8 @@ public final class DimensionTerrainContext implements DataProvider {
             IrisRegion region,
             PlatformBlockState rockBlock,
             PlatformBlockState fluidBlock,
-            PlatformBlockState surfaceBlock
+            PlatformBlockState surfaceBlock,
+            Terrain3DColumn terrainColumn
     ) {
     }
 }

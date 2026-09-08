@@ -96,18 +96,14 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
         CaveVoxelView caveView = new MantleHydrologyCaveVoxelView(
                 writer.getMantle(),
                 writer.getMantle().getWorldHeight(),
-                (x, z) -> {
-                    HydrologyColumnSample sample = complex.sampleHydrologyColumn(x, z);
-                    return sample == null
-                            ? (int) Math.round(complex.getNaturalHeightStream().getDouble(x, z))
-                            : sample.terrainHeight();
-                },
+                new MantleHydrologyCaveVoxelView.TerrainSources((x, z) -> MantleHydrologyCaveVoxelView.terrainColumn(
+                        complex, complex.sampleHydrologyColumn(x, z), x, z), complex::isNaturalTerrainSolid,
                 (inputChunkX, inputChunkZ) -> MantleHydrologyCaveVoxelView.generateCarvingInput(
                         getEngineMantle(),
                         complex,
                         inputChunkX,
                         inputChunkZ
-                )
+                ))
         );
         Publication publication = compilePublication(
                 chunkX,

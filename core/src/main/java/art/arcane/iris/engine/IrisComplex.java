@@ -53,6 +53,8 @@ import art.arcane.iris.engine.object.IrisHydrology;
 import art.arcane.iris.engine.object.IrisRiverHydrology;
 import art.arcane.iris.engine.object.IrisRiverProfile;
 import art.arcane.iris.engine.object.IrisShapedGeneratorStyle;
+import art.arcane.iris.engine.terrain.Terrain3DColumn;
+import art.arcane.iris.engine.terrain.Terrain3DRuntime;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBiome;
@@ -94,8 +96,8 @@ import java.nio.file.Path;
 import java.util.function.BiFunction;
 
 @Data
-@EqualsAndHashCode(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "hydrologyRuntime", "imageMapRuntime"})
-@ToString(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "hydrologyRuntime", "imageMapRuntime"})
+@EqualsAndHashCode(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "hydrologyRuntime", "imageMapRuntime", "terrainEngine", "terrain3D"})
+@ToString(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "hydrologyRuntime", "imageMapRuntime", "terrainEngine", "terrain3D"})
 public class IrisComplex implements DataProvider {
     private static final NoiseBounds ZERO_NOISE_BOUNDS = new NoiseBounds(0D, 0D);
     private static final AtomicLong lastBoundsFailureLog = new AtomicLong(0L);
@@ -149,6 +151,11 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<IrisBiome> trueBiomeStream;
     private ProceduralStream<PlatformBiome> trueBiomeDerivativeStream;
     private ProceduralStream<Double> naturalHeightStream;
+    private ProceduralStream<Double> baseTerrainHeightStream;
+    @Getter(AccessLevel.NONE)
+    private final transient Engine terrainEngine;
+    @Getter(AccessLevel.NONE)
+    private transient Terrain3DRuntime terrain3D;
     private ProceduralStream<Double> unblendedNaturalHeightStream;
     private final ResolvedTerrainProvider resolvedTerrain;
     private ProceduralStream<Double> placementHeightStream;
@@ -199,6 +206,7 @@ public class IrisComplex implements DataProvider {
     }
 
     IrisComplex(Engine engine, boolean simple, TransitionGenerationPlan transitionGenerationPlan) {
+        terrainEngine = engine;
         this.transitionGenerationPlan = transitionGenerationPlan;
         this.resolvedTerrain = new ResolvedTerrainProvider(engine);
         int cacheSize = noiseCacheSize(engine, IrisSettings.get().getPerformance().getNoiseCacheSize());
@@ -324,10 +332,27 @@ public class IrisComplex implements DataProvider {
                     return mapped == null ? biome : mapped;
                 })
                 .cache2D("imageMappedBaseBiomeStream", engine, cacheSize);
-        unblendedNaturalHeightStream = ProceduralStream.of(
+        baseTerrainHeightStream = ProceduralStream.of(
                 (x, z) -> sampleUnblendedNaturalTerrainHeight(engine, x, z),
                 Interpolated.DOUBLE
-        ).cache2DDouble("unblendedNaturalHeightStream", engine, cacheSize);
+        ).cache2DDouble("baseTerrainHeightStream", engine, cacheSize);
+        boolean terrain3DEnabled = false;
+        for (IrisBiome biome : generatorBiomes) {
+            if (biome.getTerrain3D() != null) {
+                biome.getTerrain3D().validate();
+                terrain3DEnabled |= biome.getTerrain3D().isEnabled();
+            }
+        }
+        terrain3D = !terrain3DEnabled ? null : new Terrain3DRuntime(
+                new Terrain3DRuntime.Sources(
+                        (x, z) -> baseTerrainHeightStream.getDouble(x, z),
+                        this::sampleTerrain3DBiome),
+                new Terrain3DRuntime.Options(engine.getSeedManager().getTerrain(), engine.getHeight(),
+                        fluidHeight, data, terrain3DEnabled, Math.max(4_096, cacheSize)));
+        unblendedNaturalHeightStream = terrain3DEnabled
+                ? ProceduralStream.ofDouble(this::sampleTerrain3DHeight)
+                        .cache2DDouble("unblendedNaturalHeightStream", engine, cacheSize)
+                : baseTerrainHeightStream;
         naturalHeightStream = unblendedNaturalHeightStream;
         naturalTrueBiomeStream = focusBiome != null ? ProceduralStream.of((x, y) -> focusBiome, Interpolated.of(a -> 0D,
                         b -> focusBiome))
@@ -491,7 +516,95 @@ public class IrisComplex implements DataProvider {
     }
 
     private double sampleNaturalTerrainHeight(Engine engine, double x, double z) {
-        return sampleUnblendedNaturalTerrainHeight(engine, x, z);
+        return terrain3D != null && terrain3D.active()
+                ? sampleTerrain3DHeight(x, z)
+                : sampleUnblendedNaturalTerrainHeight(engine, x, z);
+    }
+
+    private double sampleTerrain3DHeight(double x, double z) {
+        Terrain3DColumn column = terrain3D.column(blockCoordinate(x), blockCoordinate(z));
+        return column.shaped() ? column.topY() : column.baseHeight();
+    }
+
+    private IrisBiome sampleTerrain3DBiome(int x, int z) {
+        if (focusBiome != null) {
+            return focusBiome;
+        }
+        IrisBiome mapped = imageMapRuntime.sampleBiome(x, z);
+        return mapped == null
+                ? fixBiomeType(baseTerrainHeightStream.getDouble(x, z), baseBiomeStream.get(x, z),
+                        regionStream.get(x, z), (double) x, (double) z, fluidHeight)
+                : mapped;
+    }
+
+    public Terrain3DColumn naturalTerrainColumn(int x, int z) {
+        if (terrain3D == null || !terrain3D.active()) {
+            return null;
+        }
+        Terrain3DColumn column = terrain3D.column(x, z);
+        return column.shaped() ? column : null;
+    }
+
+    public boolean hasTerrain3D() {
+        return terrain3D != null && terrain3D.active();
+    }
+
+    public Terrain3DColumn terrainColumn(int x, int z, HydrologyColumnSample hydrology) {
+        if (hydrology != null) {
+            HydrologyColumnLayer layer = hydrology.primarySurfaceLayer().orElse(null);
+            if (layer != null && layer.terrainOwned()) {
+                return null;
+            }
+        }
+        return naturalTerrainColumn(x, z);
+    }
+
+    public Terrain3DColumn terrainColumn(int x, int z) {
+        if (terrain3D == null || !terrain3D.active()) {
+            return null;
+        }
+        if (terrainEngine != null && terrainEngine.answersFromNaturalTerrain(x, z)) {
+            return naturalTerrainColumn(x, z);
+        }
+        return terrainColumn(x, z, sampleHydrologyColumn(x, z));
+    }
+
+    public boolean isTerrain3DOpening(int x, int y, int z) {
+        Terrain3DColumn column = terrainColumn(x, z);
+        return column != null && y >= column.minY() && y < column.topY() && !column.isSolid(y)
+                && (terrainEngine == null || !terrainEngine.isAdditionalTerrainOwned(x, y, z));
+    }
+
+    public boolean isNaturalTerrainSolid(int x, int y, int z) {
+        Terrain3DColumn column = naturalTerrainColumn(x, z);
+        return column == null ? y <= naturalTrueHeight(x, z) : column.isSolid(y);
+    }
+
+    public boolean isTerrain3DSurface(int x, int y, int z) {
+        Terrain3DColumn column = terrainColumn(x, z);
+        if (column == null || y < column.minY()) {
+            return false;
+        }
+        if (!column.isSolid(y)) {
+            return true;
+        }
+        int surface = column.surfaceY(y);
+        return surface >= y && surface - y < 2;
+    }
+
+    public double terrainSurfaceSlope(int x, int surfaceY, int z) {
+        Terrain3DColumn column = terrainColumn(x, z);
+        if (column == null || surfaceY >= column.topY() || column.surfaceY(surfaceY) != surfaceY) {
+            return getSlopeStream().getDouble(x, z);
+        }
+        return calculateNaturalSlope(surfaceY,
+                nearbyTerrainSurfaceHeight(x + 3, surfaceY, z),
+                nearbyTerrainSurfaceHeight(x, surfaceY, z + 3));
+    }
+
+    private double nearbyTerrainSurfaceHeight(int x, int surfaceY, int z) {
+        Terrain3DColumn column = terrainColumn(x, z);
+        return column == null ? getPlacementHeightStream().getDouble(x, z) : column.nearestSurfaceY(surfaceY);
     }
 
     private double sampleUnblendedNaturalTerrainHeight(Engine engine, double x, double z) {
@@ -1735,6 +1848,9 @@ public class IrisComplex implements DataProvider {
     }
 
     public void close() {
+        if (terrain3D != null) {
+            terrain3D.clear();
+        }
         if (hydrologyRuntime != null) {
             hydrologyRuntime.close();
         }

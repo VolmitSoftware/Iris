@@ -25,12 +25,30 @@ public final class HydrologyObservedPlannedSurface implements HydrologyCaveVoxel
             observations.put(key, column);
         }
         for (Observation observation : column) {
-            if (observation.naturalHeight() == naturalHeight) {
+            if (observation instanceof HeightObservation height && height.naturalHeight() == naturalHeight) {
                 return resolvedHeight;
             }
         }
-        column.add(new Observation(x, z, naturalHeight, resolvedHeight));
+        column.add(new HeightObservation(x, z, naturalHeight, resolvedHeight));
         return resolvedHeight;
+    }
+
+    @Override
+    public boolean ownsTerrain(int x, int z) {
+        boolean owned = delegate.ownsTerrain(x, z);
+        long key = RiverFootprint.pack(x, z);
+        ArrayList<Observation> column = observations.get(key);
+        if (column == null) {
+            column = new ArrayList<>(1);
+            observations.put(key, column);
+        }
+        for (Observation observation : column) {
+            if (observation instanceof OwnershipObservation) {
+                return owned;
+            }
+        }
+        column.add(new OwnershipObservation(x, z, owned));
+        return owned;
     }
 
     public List<Observation> observationsAt(int x, int z) {
@@ -38,11 +56,26 @@ public final class HydrologyObservedPlannedSurface implements HydrologyCaveVoxel
         return column == null ? List.of() : List.copyOf(column);
     }
 
-    public record Observation(
+    public sealed interface Observation permits HeightObservation, OwnershipObservation {
+        boolean matches(HydrologyCaveVoxelViewFactory.PlannedSurface surface);
+    }
+
+    public record HeightObservation(
             int x,
             int z,
             int naturalHeight,
             int resolvedHeight
-    ) {
+    ) implements Observation {
+        @Override
+        public boolean matches(HydrologyCaveVoxelViewFactory.PlannedSurface surface) {
+            return surface.resolve(x, z, naturalHeight) == resolvedHeight;
+        }
+    }
+
+    public record OwnershipObservation(int x, int z, boolean terrainOwned) implements Observation {
+        @Override
+        public boolean matches(HydrologyCaveVoxelViewFactory.PlannedSurface surface) {
+            return surface.ownsTerrain(x, z) == terrainOwned;
+        }
     }
 }

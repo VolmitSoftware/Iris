@@ -60,6 +60,7 @@ public class MantleWriterOverlayTest {
         IrisPlatforms.bind(platform);
 
         engineMantle = mock(EngineMantle.class);
+        when(engineMantle.getComplex()).thenReturn(mock(IrisComplex.class));
         Engine engine = mock(Engine.class);
         dimension = mock(IrisDimension.class);
         mantle = mock(Mantle.class);

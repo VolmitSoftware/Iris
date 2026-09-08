@@ -1255,6 +1255,10 @@ public class HydrologyFootprintCompilerTest {
         ).compile(courses);
 
         for (HydrologyColumnSample sample : full.columns().values()) {
+            assertEquals(sample.primarySurfaceLayer().isPresent(),
+                    validation.plannedSurface().ownsTerrain(sample.x(), sample.z()));
+            assertEquals(sample.primarySurfaceLayer().isPresent(),
+                    validation.withMaterializedSurface(full).plannedSurface().ownsTerrain(sample.x(), sample.z()));
             assertEquals(
                     "planned surface at " + sample.x() + "," + sample.z(),
                     sample.terrainHeight(),
@@ -1294,6 +1298,8 @@ public class HydrologyFootprintCompilerTest {
         }
         assertEquals(91, validation.plannedSurface().resolve(80, 80, 91));
         assertEquals(92, validation.plannedSurface().resolve(80, 80, 92));
+        assertFalse(validation.plannedSurface().ownsTerrain(80, 80));
+        assertFalse(validation.withMaterializedSurface(full).plannedSurface().ownsTerrain(80, 80));
     }
 
     @Test

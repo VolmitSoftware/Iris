@@ -15,13 +15,13 @@ import art.arcane.iris.engine.mantle.TerrainMatterView;
 import art.arcane.iris.engine.object.IrisProceduralBlocks;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.context.ChunkContext;
-import art.arcane.volmlib.util.function.Function2;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import java.util.Objects;
@@ -33,11 +33,12 @@ public final class MantleHydrologyCaveVoxelView implements CaveVoxelView {
 
     private final Mantle<Matter> mantle;
     private final int worldHeight;
-    private final Function2<Integer, Integer, Integer> surfaceHeight;
+    private final ColumnSource terrainColumns;
+    private final SolidSource naturalSolid;
     private final BiConsumer<Integer, Integer> chunkLoader;
     private final LongOpenHashSet loadedChunks;
     private final Long2IntOpenHashMap openFloorCache;
-    private final Long2IntOpenHashMap surfaceHeightCache;
+    private final Long2ObjectOpenHashMap<TerrainColumn> terrainCache;
 
     public MantleHydrologyCaveVoxelView(
             Engine engine,
@@ -71,8 +72,10 @@ public final class MantleHydrologyCaveVoxelView implements CaveVoxelView {
         this(
                 engineMantle.getMantle(),
                 engineMantle.getMantle().getWorldHeight(),
-                (x, z) -> plannedSurfaceHeight(complex, footprint, x, z),
-                (chunkX, chunkZ) -> generateCarvingInput(engineMantle, complex, chunkX, chunkZ)
+                new TerrainSources(
+                        (x, z) -> terrainColumn(complex, footprint.sample(x, z).orElse(null), x, z),
+                        complex::isNaturalTerrainSolid,
+                        (chunkX, chunkZ) -> generateCarvingInput(engineMantle, complex, chunkX, chunkZ))
         );
     }
 
@@ -84,33 +87,32 @@ public final class MantleHydrologyCaveVoxelView implements CaveVoxelView {
         this(
                 engineMantle.getMantle(),
                 engineMantle.getMantle().getWorldHeight(),
-                (x, z) -> plannedSurface.resolve(
+                new TerrainSources((x, z) -> new TerrainColumn(plannedSurface.resolve(
                         x,
                         z,
                         (int) Math.round(complex.getNaturalHeightStream().getDouble(x, z))
-                ),
-                (chunkX, chunkZ) -> generateCarvingInput(engineMantle, complex, chunkX, chunkZ)
+                ), plannedSurface.ownsTerrain(x, z)), complex::isNaturalTerrainSolid,
+                        (chunkX, chunkZ) -> generateCarvingInput(engineMantle, complex, chunkX, chunkZ))
         );
     }
 
     MantleHydrologyCaveVoxelView(
             Mantle<Matter> mantle,
             int worldHeight,
-            Function2<Integer, Integer, Integer> surfaceHeight,
-            BiConsumer<Integer, Integer> chunkLoader
+            TerrainSources sources
     ) {
         this.mantle = Objects.requireNonNull(mantle);
         if (worldHeight < 3) {
             throw new IllegalArgumentException("worldHeight must be at least three");
         }
         this.worldHeight = worldHeight;
-        this.surfaceHeight = Objects.requireNonNull(surfaceHeight);
-        this.chunkLoader = Objects.requireNonNull(chunkLoader);
+        this.terrainColumns = Objects.requireNonNull(sources.columns());
+        this.naturalSolid = Objects.requireNonNull(sources.naturalSolid());
+        this.chunkLoader = Objects.requireNonNull(sources.chunkLoader());
         this.loadedChunks = new LongOpenHashSet();
         this.openFloorCache = new Long2IntOpenHashMap();
         this.openFloorCache.defaultReturnValue(CACHE_MISS);
-        this.surfaceHeightCache = new Long2IntOpenHashMap();
-        this.surfaceHeightCache.defaultReturnValue(CACHE_MISS);
+        this.terrainCache = new Long2ObjectOpenHashMap<>();
     }
 
     @Override
@@ -140,7 +142,9 @@ public final class MantleHydrologyCaveVoxelView implements CaveVoxelView {
                     ? CaveVoxel.LAVA
                     : CaveVoxel.INCOMPATIBLE_FLUID;
         }
-        return position.y() > surfaceY(position.x(), position.z())
+        TerrainColumn terrain = column(position.x(), position.z());
+        return position.y() > terrain.surfaceHeight()
+                || !terrain.terrainOwned() && !naturalSolid.test(position.x(), position.y(), position.z())
                 ? CaveVoxel.CAVE_AIR
                 : CaveVoxel.SOLID;
     }
@@ -187,14 +191,21 @@ public final class MantleHydrologyCaveVoxelView implements CaveVoxelView {
     }
 
     private int surfaceY(int x, int z) {
+        return column(x, z).surfaceHeight();
+    }
+
+    private TerrainColumn column(int x, int z) {
         long key = RiverFootprint.pack(x, z);
-        int cached = surfaceHeightCache.get(key);
-        if (cached != CACHE_MISS) {
+        TerrainColumn cached = terrainCache.get(key);
+        if (cached != null) {
             return cached;
         }
-        int resolved = Math.max(1, Math.min(worldHeight - 2, surfaceHeight.apply(x, z)));
-        surfaceHeightCache.put(key, resolved);
-        return resolved;
+        TerrainColumn sampled = Objects.requireNonNull(terrainColumns.sample(x, z));
+        int height = Math.clamp(sampled.surfaceHeight(), 1, worldHeight - 2);
+        TerrainColumn bounded = height == sampled.surfaceHeight() ? sampled
+                : new TerrainColumn(height, sampled.terrainOwned());
+        terrainCache.put(key, bounded);
+        return bounded;
     }
 
     private <T> T dataIfPresent(CavePosition position, Class<T> type) {
@@ -207,16 +218,16 @@ public final class MantleHydrologyCaveVoxelView implements CaveVoxelView {
         return TerrainMatterView.get(mantle, position.x(), position.y(), position.z(), type);
     }
 
-    private static int plannedSurfaceHeight(
+    static TerrainColumn terrainColumn(
             IrisComplex complex,
-            RiverFootprint footprint,
+            HydrologyColumnSample sample,
             int x,
             int z
     ) {
-        HydrologyColumnSample sample = footprint.sample(x, z).orElse(null);
-        return sample == null
+        int surfaceHeight = sample == null
                 ? (int) Math.round(complex.getNaturalHeightStream().getDouble(x, z))
                 : sample.terrainHeight();
+        return new TerrainColumn(surfaceHeight, sample != null && sample.primarySurfaceLayer().isPresent());
     }
 
     static void generateCarvingInput(
@@ -262,5 +273,22 @@ public final class MantleHydrologyCaveVoxelView implements CaveVoxelView {
 
     static boolean requiresCarvingInput(Mantle<Matter> mantle, int chunkX, int chunkZ) {
         return !mantle.hasFlag(chunkX, chunkZ, ReservedFlag.CARVED);
+    }
+
+    record TerrainSources(ColumnSource columns,
+                          SolidSource naturalSolid, BiConsumer<Integer, Integer> chunkLoader) {
+    }
+
+    record TerrainColumn(int surfaceHeight, boolean terrainOwned) {
+    }
+
+    @FunctionalInterface
+    interface ColumnSource {
+        TerrainColumn sample(int x, int z);
+    }
+
+    @FunctionalInterface
+    interface SolidSource {
+        boolean test(int x, int y, int z);
     }
 }

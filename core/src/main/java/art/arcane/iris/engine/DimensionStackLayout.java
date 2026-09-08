@@ -2,6 +2,7 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.terrain.Terrain3DColumn;
 import art.arcane.iris.spi.PlatformBlockState;
 
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ public final class DimensionStackLayout {
     private final int stackTopY;
     private final int clippedStackTerrainTopY;
     private final int clippedStackTopY;
+    private final boolean volumetric;
 
     private DimensionStackLayout(LayoutState state) {
         layersBottomToTop = List.copyOf(state.layersBottomToTop());
@@ -25,6 +27,7 @@ public final class DimensionStackLayout {
         stackTopY = state.stackTopY();
         clippedStackTerrainTopY = state.clippedStackTerrainTopY();
         clippedStackTopY = state.clippedStackTopY();
+        volumetric = layersBottomToTop.stream().anyMatch(layer -> layer.terrainColumn() != null);
     }
 
     static DimensionStackLayout create(
@@ -80,6 +83,15 @@ public final class DimensionStackLayout {
             int renderMinY = Math.max(0, baseY);
             int renderMaxY = Math.min(outputMaxY, contentTopY);
             boolean visible = renderMinY <= renderMaxY;
+            int clippedSurfaceY = clip(surfaceY, outputMaxY);
+            if (input.terrainColumn() != null) {
+                int maximumSourceY = Math.clamp((long) renderMaxY - baseY,
+                        Integer.MIN_VALUE, Integer.MAX_VALUE);
+                int sourceY = input.terrainColumn().highestSolidY(maximumSourceY);
+                int visibleY = saturatedAdd(baseY, sourceY);
+                clippedSurfaceY = sourceY >= 0 && visibleY >= renderMinY && visible
+                        ? visibleY : -1;
+            }
             Layer layer = new Layer(
                     input.terrainContext(),
                     input.biome(),
@@ -97,9 +109,10 @@ public final class DimensionStackLayout {
                     seamOffsetBelow,
                     renderMinY,
                     renderMaxY,
-                    clip(surfaceY, outputMaxY),
+                    clippedSurfaceY,
                     clip(fluidY, outputMaxY),
-                    visible
+                    visible,
+                    input.terrainColumn()
             );
             layers.add(layer);
             stackTerrainTopY = Math.max(stackTerrainTopY, surfaceY);
@@ -122,6 +135,14 @@ public final class DimensionStackLayout {
             }
         }
 
+        boolean volumetric = false;
+        for (Layer layer : layers) {
+            volumetric |= layer.terrainColumn() != null;
+        }
+        if (volumetric) {
+            renderedTerrainTopY = highestVisibleY(layers, outputMaxY, false);
+            renderedContentTopY = highestVisibleY(layers, outputMaxY, true);
+        }
         return new DimensionStackLayout(new LayoutState(
                 layers,
                 stackTerrainTopY,
@@ -182,6 +203,33 @@ public final class DimensionStackLayout {
         return layer.clippedSurfaceY();
     }
 
+    private static int highestVisibleY(List<Layer> layers, int maximumY, boolean includeFluid) {
+        int highest = -1;
+        for (int sourceIndex = 0; sourceIndex < layers.size(); sourceIndex++) {
+            Layer source = layers.get(sourceIndex);
+            int candidate = includeFluid ? source.highestContentY(maximumY) : source.highestSolidY(maximumY);
+            int index = sourceIndex + 1;
+            while (candidate > highest && index < layers.size()) {
+                Layer overlay = layers.get(index);
+                Layer lower = layers.get(index - 1);
+                int nextMaximum = candidate;
+                if (overlay.containsRenderedY(candidate)) {
+                    nextMaximum = overlay.renderMinY() - 1;
+                } else if ((long) candidate > lower.contentTopY() && (long) candidate < overlay.localBaseY()) {
+                    nextMaximum = lower.contentTopY();
+                }
+                if (nextMaximum < candidate) {
+                    candidate = includeFluid ? source.highestContentY(nextMaximum) : source.highestSolidY(nextMaximum);
+                    index = sourceIndex + 1;
+                } else {
+                    index++;
+                }
+            }
+            highest = Math.max(highest, candidate);
+        }
+        return highest;
+    }
+
     public List<Layer> layersBottomToTop() {
         return layersBottomToTop;
     }
@@ -207,6 +255,10 @@ public final class DimensionStackLayout {
     }
 
     public Layer topTerrainLayer() {
+        if (volumetric) {
+            Layer owner = layerAt(clippedStackTerrainTopY);
+            return isSolid(clippedStackTerrainTopY) ? owner : null;
+        }
         Layer highest = null;
         int highestSurfaceY = Integer.MIN_VALUE;
         for (int layerIndex = 0; layerIndex < layersBottomToTop.size(); layerIndex++) {
@@ -278,6 +330,20 @@ public final class DimensionStackLayout {
         return owner;
     }
 
+    public boolean isSolid(int y) {
+        for (int index = layersBottomToTop.size() - 1; index > 0; index--) {
+            Layer layer = layersBottomToTop.get(index);
+            if (layer.containsRenderedY(y)) {
+                return layer.isSolid(y);
+            }
+            Layer lower = layersBottomToTop.get(index - 1);
+            if ((long) y > lower.contentTopY() && (long) y < layer.localBaseY()) {
+                return false;
+            }
+        }
+        return layersBottomToTop.get(0).isSolid(y);
+    }
+
     public boolean containsUpperLayerY(int y) {
         for (int layerIndex = 1; layerIndex < layersBottomToTop.size(); layerIndex++) {
             if (layersBottomToTop.get(layerIndex).containsRenderedY(y)) {
@@ -307,7 +373,8 @@ public final class DimensionStackLayout {
             PlatformBlockState fluidBlock,
             PlatformBlockState surfaceBlock,
             int normalTerrainHeight,
-            int fluidHeight
+            int fluidHeight,
+            Terrain3DColumn terrainColumn
     ) {
     }
 
@@ -330,10 +397,49 @@ public final class DimensionStackLayout {
             int renderMaxY,
             int clippedSurfaceY,
             int clippedFluidY,
-            boolean visible
+            boolean visible,
+            Terrain3DColumn terrainColumn
     ) {
         public boolean containsRenderedY(int y) {
             return visible && y >= renderMinY && y <= renderMaxY;
+        }
+
+        public boolean isSolid(int y) {
+            if (!containsRenderedY(y)) {
+                return false;
+            }
+            int sourceY = y - localBaseY;
+            return terrainColumn == null ? sourceY <= normalTerrainHeight : terrainColumn.isSolid(sourceY);
+        }
+
+        public int surfaceAt(int y) {
+            if (!isSolid(y)) {
+                return -1;
+            }
+            return terrainColumn == null ? surfaceY
+                    : saturatedAdd(localBaseY, terrainColumn.surfaceY(y - localBaseY));
+        }
+
+        public int highestSolidY(int maximumY) {
+            if (!visible || maximumY < renderMinY) {
+                return -1;
+            }
+            int maximumSourceY = Math.clamp((long) Math.min(maximumY, renderMaxY) - localBaseY,
+                    Integer.MIN_VALUE, Integer.MAX_VALUE);
+            int sourceY = terrainColumn == null ? Math.min(normalTerrainHeight, maximumSourceY)
+                    : terrainColumn.highestSolidY(maximumSourceY);
+            int worldY = saturatedAdd(localBaseY, sourceY);
+            return sourceY >= 0 && worldY >= renderMinY ? worldY : -1;
+        }
+
+        public int highestContentY(int maximumY) {
+            if (visible && fluidHeight > normalTerrainHeight) {
+                int fluidTop = Math.min(maximumY, Math.min(renderMaxY, fluidY));
+                if (fluidTop >= renderMinY && fluidTop > surfaceY) {
+                    return fluidTop;
+                }
+            }
+            return highestSolidY(maximumY);
         }
 
     }

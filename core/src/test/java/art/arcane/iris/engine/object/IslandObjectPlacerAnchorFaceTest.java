@@ -1,11 +1,31 @@
 package art.arcane.iris.engine.object;
 
 import art.arcane.iris.engine.mantle.components.IslandObjectPlacer;
+import art.arcane.iris.engine.mantle.MantleWriter;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class IslandObjectPlacerAnchorFaceTest {
+
+    @Test
+    public void islandMaskOwnsSurfaceSupportAboveRootTerrainAndInsideRootOpenings() {
+        FloatingIslandSample sample = sampleWithBottomAt(100, 0);
+        MantleWriter writer = mock(MantleWriter.class);
+        when(writer.isSurfaceSolid(0, 109, 0)).thenReturn(false);
+        when(writer.isCarved(0, 109, 0)).thenReturn(true);
+        IslandObjectPlacer placer = IslandObjectPlacer.top(writer, (x, z) -> sample, null, 109);
+
+        assertTrue(placer.isSurfaceSolid(0, 109, 0));
+        assertFalse(placer.isCarved(0, 109, 0));
+        assertFalse(placer.isSurfaceSolid(0, 108, 0));
+        assertTrue(placer.isCarved(0, 108, 0));
+        assertFalse(placer.isSurfaceSolid(0, 110, 0));
+    }
 
     private FloatingIslandSample sampleWithBottomAt(int baseY, int bottomOffset) {
         boolean[] mask = new boolean[10];

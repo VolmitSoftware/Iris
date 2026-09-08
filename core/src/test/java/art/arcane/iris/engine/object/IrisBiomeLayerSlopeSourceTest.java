@@ -28,6 +28,45 @@ public final class IrisBiomeLayerSlopeSourceTest {
         assertExplicitSlopeStreamControlsSurfacePaletteSelection(true);
     }
 
+    @Test
+    public void lowerLedgeSlopeControlsSurfacePaletteSelection() {
+        assertLowerLedgeSlopeControlsSurfacePaletteSelection(false);
+    }
+
+    @Test
+    public void lowerLedgeSlopeControlsLockedSurfacePaletteSelection() {
+        assertLowerLedgeSlopeControlsSurfacePaletteSelection(true);
+    }
+
+    private static void assertLowerLedgeSlopeControlsSurfacePaletteSelection(boolean lockLayers) {
+        IrisData data = mock(IrisData.class);
+        IrisComplex complex = mock(IrisComplex.class);
+        IrisBiomePaletteLayer grass = mock(IrisBiomePaletteLayer.class);
+        CNG heightGenerator = mock(CNG.class);
+        PlatformBlockState block = mock(PlatformBlockState.class);
+        RNG rng = new RNG(19L);
+        IrisBiome biome = new IrisBiome().setLockLayers(lockLayers).setLayers(new KList<>(grass));
+        when(complex.hasTerrain3D()).thenReturn(true);
+        when(complex.terrainSurfaceSlope(12, 32, -8)).thenReturn(0D);
+        when(complex.terrainSurfaceSlope(12, 96, -8)).thenReturn(5D);
+        when(grass.getZoom()).thenReturn(1D);
+        when(grass.getMinHeight()).thenReturn(1);
+        when(grass.getMaxHeight()).thenReturn(1);
+        when(grass.getSlopeCondition()).thenReturn(new IrisSlopeClip(0D, 2.6D));
+        when(grass.getHeightGenerator(any(RNG.class), same(data))).thenReturn(heightGenerator);
+        when(heightGenerator.fit(1, 1, 12D, -8D)).thenReturn(1);
+        when(grass.get(rng, 0, 12D, 0D, -8D, data)).thenReturn(block);
+
+        KList<PlatformBlockState> ledge = biome.generateLayers(
+                new IrisDimension(), 12D, -8D, rng, 1, 32, data, complex);
+        KList<PlatformBlockState> cap = biome.generateLayers(
+                new IrisDimension(), 12D, -8D, rng, 1, 96, data, complex);
+
+        assertEquals(1, ledge.size());
+        assertSame(block, ledge.get(0));
+        assertTrue(cap.isEmpty());
+    }
+
     @SuppressWarnings("unchecked")
     private static void assertExplicitSlopeStreamControlsSurfacePaletteSelection(boolean lockLayers) {
         IrisData data = mock(IrisData.class);

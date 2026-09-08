@@ -1,0 +1,11 @@
+{
+  "name": "Volumetric terrain fixture",
+  "version": 1,
+  "mode": {"type": "OVERWORLD"},
+  "regions": ["ledges"],
+  "environment": "NORMAL",
+  "dimensionHeight": {"min": 0, "max": 256},
+  "logicalHeight": 256,
+  "fluidHeight": 0,
+  "caveProfile": {"enabled": false}
+}

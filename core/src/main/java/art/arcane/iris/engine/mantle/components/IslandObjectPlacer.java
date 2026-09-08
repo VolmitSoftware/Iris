@@ -98,12 +98,16 @@ public final class IslandObjectPlacer implements IObjectPlacer {
 
     @Override
     public boolean isCarved(int x, int y, int z) {
+        FloatingIslandSample sample = samples.sample(x, z);
+        if (sample != null && y >= sample.islandBaseY && y < sample.islandBaseY + sample.solidMask.length) {
+            return !sample.solidMask[y - sample.islandBaseY];
+        }
         return wrapped.isCarved(x, y, z);
     }
 
     @Override
     public boolean isSurfaceSolid(int x, int y, int z) {
-        return wrapped.isSurfaceSolid(x, y, z);
+        return samples.sample(x, z) == null ? wrapped.isSurfaceSolid(x, y, z) : isSolid(x, y, z);
     }
 
     @Override

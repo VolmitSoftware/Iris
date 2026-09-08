@@ -68,6 +68,8 @@ final class IrisBiomeLayerGenerator {
         }
 
         KList<CNG> heightGenerators = getLayerHeightGenerators(biome, random, rdata);
+        double surfaceSlope = 0D;
+        boolean sampledSlope = false;
 
         for (int i = 0; i < layerCount; i++) {
             IrisBiomePaletteLayer layer = layers.get(i);
@@ -78,7 +80,11 @@ final class IrisBiomeLayerGenerator {
             IrisSlopeClip sc = layer.getSlopeCondition();
 
             if (!sc.isDefault()) {
-                if (!sc.isValid(resolveSlopeStream(complex, slopeStream).getDouble(wx, wz))) {
+                if (!sampledSlope) {
+                    surfaceSlope = resolveSurfaceSlope(complex, slopeStream, wx, height, wz);
+                    sampledSlope = true;
+                }
+                if (!sc.isValid(surfaceSlope)) {
                     d = 0;
                 }
             }
@@ -171,6 +177,8 @@ final class IrisBiomeLayerGenerator {
 
         if (layerCount > 0) {
             KList<CNG> heightGenerators = getLayerHeightGenerators(biome, random, rdata);
+            double surfaceSlope = 0D;
+            boolean sampledSlope = false;
 
             for (int i = 0; i < layerCount; i++) {
                 IrisBiomePaletteLayer layer = layers.get(i);
@@ -181,7 +189,11 @@ final class IrisBiomeLayerGenerator {
                 IrisSlopeClip sc = layer.getSlopeCondition();
 
                 if (!sc.isDefault()) {
-                    if (!sc.isValid(resolveSlopeStream(complex, slopeStream).getDouble(wx, wz))) {
+                    if (!sampledSlope) {
+                        surfaceSlope = resolveSurfaceSlope(complex, slopeStream, wx, height, wz);
+                        sampledSlope = true;
+                    }
+                    if (!sc.isValid(surfaceSlope)) {
                         d = 0;
                     }
                 }
@@ -206,11 +218,19 @@ final class IrisBiomeLayerGenerator {
         return real;
     }
 
-    private static ProceduralStream<Double> resolveSlopeStream(
+    private static double resolveSurfaceSlope(
             IrisComplex complex,
-            ProceduralStream<Double> slopeStream
+            ProceduralStream<Double> slopeStream,
+            double x,
+            int height,
+            double z
     ) {
-        return slopeStream == null ? complex.getSlopeStream() : slopeStream;
+        if (slopeStream != null) {
+            return slopeStream.getDouble(x, z);
+        }
+        return complex.hasTerrain3D()
+                ? complex.terrainSurfaceSlope((int) Math.floor(x), height, (int) Math.floor(z))
+                : complex.getSlopeStream().getDouble(x, z);
     }
 
     static KList<PlatformBlockState> generateSeaLayers(IrisBiome biome, double wx, double wz, RNG random, int maxDepth, IrisData rdata) {

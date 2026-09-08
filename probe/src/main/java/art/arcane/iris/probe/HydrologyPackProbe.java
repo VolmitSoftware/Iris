@@ -5,6 +5,7 @@ import art.arcane.iris.engine.hydrology.HydrologyCandidateKind;
 import art.arcane.iris.engine.hydrology.HydrologyCandidateRejection;
 import art.arcane.iris.engine.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.engine.hydrology.HydrologyColumnSample;
+import art.arcane.iris.engine.hydrology.HydrologyCaveVoxelViewFactory;
 import art.arcane.iris.engine.hydrology.DrainageEdge;
 import art.arcane.iris.engine.hydrology.DrainageNode;
 import art.arcane.iris.engine.hydrology.HydrologyDiagnosticCandidate;
@@ -3844,9 +3845,18 @@ public final class HydrologyPackProbe {
         CaveVoxelView view = new MantleHydrologyCaveVoxelView(
                 engine,
                 engine.getComplex(),
-                (int x, int z, int naturalHeight) -> runtime.sample(x, z)
-                        .map(HydrologyColumnSample::terrainHeight)
-                        .orElse(naturalHeight)
+                new HydrologyCaveVoxelViewFactory.PlannedSurface() {
+                    @Override
+                    public int resolve(int x, int z, int naturalHeight) {
+                        return runtime.sample(x, z).map(HydrologyColumnSample::terrainHeight).orElse(naturalHeight);
+                    }
+
+                    @Override
+                    public boolean ownsTerrain(int x, int z) {
+                        HydrologyColumnSample sample = runtime.sample(x, z).orElse(null);
+                        return sample != null && sample.primarySurfaceLayer().isPresent();
+                    }
+                }
         );
         int minimumX = chunkX << 4;
         int minimumZ = chunkZ << 4;

@@ -13,6 +13,10 @@ String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate')
     .orElse('com.github.VolmitSoftware:VolmLib:master-SNAPSHOT')
     .get()
 
+configurations {
+    studioProbeApi
+}
+
 dependencies {
     implementation(project(':core'))
     compileOnly(libs.spigot)
@@ -36,6 +40,9 @@ dependencies {
     runtimeOnly(libs.oshi)
     runtimeOnly(libs.byteBuddy.core)
     runtimeOnly(libs.byteBuddy.agent)
+    studioProbeApi(libs.spigot) {
+        transitive = false
+    }
 }
 
 tasks.named('run', JavaExec).configure {
@@ -84,6 +91,37 @@ Provider<String> probeJfr = providers.gradleProperty('probeJfr')
 Provider<String> probeTileX = providers.gradleProperty('probeTileX')
 Provider<String> probeTileZ = providers.gradleProperty('probeTileZ')
 Provider<String> probeOutput = providers.gradleProperty('probeOutput')
+Provider<String> probeStrictGeometry = providers.gradleProperty('probeStrictGeometry').orElse('false')
+
+tasks.register('terrain3DProbe', JavaExec) {
+    group = 'verification'
+    description = 'Generates real pack chunks, verifies volumetric terrain spans and required biome overhang coverage, and exports actual block cross-sections.'
+    mainClass = 'art.arcane.iris.probe.Terrain3DProbe'
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
+    dependsOn(':core:compileJava')
+    doFirst {
+        Map<String, Provider<String>> required = [
+            probePack: probePack,
+            probeDimension: probeDimension,
+            probeSeed: probeSeed,
+            probeMinimumChunkX: probeMinimumChunkX,
+            probeMaximumChunkX: probeMaximumChunkX,
+            probeMinimumChunkZ: probeMinimumChunkZ,
+            probeMaximumChunkZ: probeMaximumChunkZ,
+            probeRequiredCoverage: probeRequiredCoverage,
+            probeOutput: probeOutput
+        ]
+        required.each { String name, Provider<String> value ->
+            if (!value.isPresent() || value.get().isBlank()) {
+                throw new GradleException("terrain3DProbe requires -P${name}=<value>")
+            }
+        }
+        args(probePack.get(), probeDimension.get(), probeSeed.get(), probeMinimumChunkX.get(),
+            probeMaximumChunkX.get(), probeMinimumChunkZ.get(), probeMaximumChunkZ.get(),
+            probeRequiredCoverage.get(), probeOutput.get(), probeStrictGeometry.get(), probeStudio.get())
+    }
+}
 
 tasks.register('genProbe', JavaExec) {
     group = 'verification'
@@ -221,8 +259,9 @@ tasks.register('riverTransectProbe', JavaExec) {
     }
 }
 
-['hydrologyProbe', 'genProbe', 'hydrologyPackProbe', 'generationOrderProbe', 'riverTransectProbe'].each { String taskName ->
+['hydrologyProbe', 'genProbe', 'hydrologyPackProbe', 'generationOrderProbe', 'riverTransectProbe', 'terrain3DProbe'].each { String taskName ->
     tasks.named(taskName, JavaExec).configure { JavaExec task ->
+        classpath += configurations.studioProbeApi
         doFirst {
             if (probeJfr.isPresent()) {
                 String requestedPath = probeJfr.get()

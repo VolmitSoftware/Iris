@@ -180,7 +180,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Pla
         IrisBiome biome = layer.biome();
         int surfaceDepth = Math.max(0, layer.normalTerrainHeight());
         int fluidDepth = Math.max(0, layer.fluidHeight() - layer.normalTerrainHeight());
-        KList<PlatformBlockState> surfaceBlocks = biome == null
+        KList<PlatformBlockState> surfaceBlocks = biome == null || layer.terrainColumn() != null
                 ? null
                 : biome.generateLayersWithSlope(
                         dimension,
@@ -192,6 +192,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Pla
                         data,
                         terrainContext.getSlopeStream()
                 );
+        int paletteSurfaceY = layer.normalTerrainHeight();
         KList<PlatformBlockState> seaBlocks = biome == null || fluidDepth == 0
                 ? null
                 : biome.generateSeaLayers(worldX, worldZ, rng, fluidDepth, data);
@@ -215,13 +216,26 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Pla
             if (sourceY > layer.normalTerrainHeight()) {
                 continue;
             }
-            int depth = layer.surfaceY() - y;
+            if (!layer.isSolid(y)) {
+                writeBlock(output, metadata, localX, y, localZ, AIR.get());
+                continue;
+            }
+            int depth = layer.surfaceAt(y) - y;
+            int sourceSurfaceY = sourceY + depth;
+            if (sourceSurfaceY != paletteSurfaceY) {
+                paletteSurfaceY = sourceSurfaceY;
+                surfaceBlocks = null;
+            }
             if (depth == 0 && layer.surfaceBlock() != null) {
                 writeBlock(output, metadata, localX, y, localZ, layer.surfaceBlock());
-            } else if (surfaceBlocks != null && surfaceBlocks.hasIndex(depth)) {
-                writeBlock(output, metadata, localX, y, localZ, surfaceBlocks.get(depth));
             } else {
-                writeBlock(output, metadata, localX, y, localZ, layer.rockBlock());
+                if (surfaceBlocks == null && biome != null) {
+                    surfaceBlocks = biome.generateLayersWithSlope(dimension, worldX, worldZ, rng,
+                            sourceSurfaceY, sourceSurfaceY, data, terrainContext.getSurfaceSlopeStream(sourceSurfaceY));
+                }
+                writeBlock(output, metadata, localX, y, localZ,
+                        surfaceBlocks != null && surfaceBlocks.hasIndex(depth)
+                                ? surfaceBlocks.get(depth) : layer.rockBlock());
             }
         }
     }

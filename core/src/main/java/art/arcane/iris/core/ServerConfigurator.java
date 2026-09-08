@@ -158,6 +158,20 @@ public class ServerConfigurator {
         }
     }
 
+    /**
+     * Forgets what the previous boot loaded, so an enable in the same JVM recompiles and revalidates rather
+     * than trusting a fingerprint taken against a server that is gone.
+     */
+    public static void resetLoadedDatapackRuntime() {
+        synchronized (DATAPACK_INSTALL_LOCK) {
+            loadedDatapackRuntimeReady = false;
+            loadedDatapackCompilerInputFingerprint = "";
+            loadedDatapackRegistryRequirements = Map.of();
+            loadedDatapackRuntimeGeneration++;
+            loadedDatapackRestartRequired = false;
+        }
+    }
+
     public static LoadedDatapackRuntimeInvalidation invalidateLoadedDatapackRuntime() {
         synchronized (DATAPACK_INSTALL_LOCK) {
             boolean wasReady = loadedDatapackRuntimeReady;

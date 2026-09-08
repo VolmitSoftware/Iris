@@ -103,6 +103,19 @@ public final class BukkitPlatform implements IrisPlatform {
         PLUGIN = plugin;
     }
 
+    /**
+     * Drops every reference this class holds to the disabled plugin. Called last in the adapter's teardown,
+     * after core has stopped logging through the host bridge, so a disabled plugin instance is not reachable
+     * from a static for the life of the JVM.
+     */
+    public static void releaseHost() {
+        PLUGIN = null;
+        HUD_BAR = null;
+        HUD_LANES = null;
+        CONSOLE = null;
+        BRIDGE = null;
+    }
+
     public static Plugin plugin() {
         Plugin plugin = PLUGIN;
         if (plugin == null) {

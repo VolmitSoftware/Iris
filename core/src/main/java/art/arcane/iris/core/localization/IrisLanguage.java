@@ -429,6 +429,8 @@ public final class IrisLanguage {
     }
 
     public static synchronized void shutdown() {
+        dataFolder = null;
+        PLAIN_MEMO.set(null);
         PluginLanguageService current = selections;
         selections = null;
         if (current != null) {

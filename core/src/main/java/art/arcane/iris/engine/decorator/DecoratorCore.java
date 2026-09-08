@@ -50,6 +50,7 @@ final class DecoratorCore {
 
     static final ThreadLocal<PlaceOpts> SCRATCH_OPTS = ThreadLocal.withInitial(PlaceOpts::new);
 
+
     static final class PlaceOpts {
         boolean caveSkipFluid;
         boolean underwater;

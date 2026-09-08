@@ -147,8 +147,8 @@ public class JigsawStudioGraphEditorResizeTest {
         source.setUnsigned(4, 1, 1, stone);
         IrisJigsawPiece piece = endPiece(IrisDirection.EAST_POSITIVE_X, new IrisPosition(6, 1, 2));
 
-        JigsawStudioGraphEditor.PlanarPieceObjectResize result =
-                JigsawStudioGraphEditor.resizePlanarPieceObject(
+        JigsawStudioObjectResizer.PlanarPieceObjectResize result =
+                JigsawStudioObjectResizer.resizePlanarPieceObject(
                         source,
                         piece,
                         JigsawPlanarArchetype.END,
@@ -175,7 +175,7 @@ public class JigsawStudioGraphEditorResizeTest {
 
         IOException failure = assertThrows(
                 IOException.class,
-                () -> JigsawStudioGraphEditor.resizePlanarPieceObject(
+                () -> JigsawStudioObjectResizer.resizePlanarPieceObject(
                         source,
                         piece,
                         JigsawPlanarArchetype.BLANK,
@@ -199,7 +199,7 @@ public class JigsawStudioGraphEditorResizeTest {
 
         IOException failure = assertThrows(
                 IOException.class,
-                () -> JigsawStudioGraphEditor.resizePlanarPieceObject(
+                () -> JigsawStudioObjectResizer.resizePlanarPieceObject(
                         source,
                         piece,
                         JigsawPlanarArchetype.END,

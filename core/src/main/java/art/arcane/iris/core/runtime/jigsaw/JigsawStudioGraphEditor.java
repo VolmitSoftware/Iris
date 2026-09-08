@@ -19,8 +19,6 @@ import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.iris.engine.object.IrisPosition;
 import art.arcane.iris.engine.object.IrisStructure;
 import art.arcane.iris.engine.object.JigsawJoint;
-import art.arcane.iris.engine.object.TileData;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -38,16 +36,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 public final class JigsawStudioGraphEditor {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-
     private JigsawStudioGraphEditor() {
     }
 
@@ -82,7 +76,7 @@ public final class JigsawStudioGraphEditor {
             Path resourcePath = resolveOwnedResource(graph.root(), resource.getKey());
             byte[] content = Files.readAllBytes(resourcePath);
             if (resource.getKey().equals(poolResource)) {
-                content = addPoolEntry(content, normalizedPiece, weight, resourcePath);
+                content = JigsawStudioGraphDocuments.addPoolEntry(content, normalizedPiece, weight, resourcePath);
             }
             bundle.resource(resource.getKey(), content);
         }
@@ -106,7 +100,7 @@ public final class JigsawStudioGraphEditor {
             }
         }
         IrisObject object = new IrisObject(dimensions.width(), dimensions.height(), dimensions.depth());
-        bundle.textResource(pieceResource, GSON.toJson(piece) + "\n");
+        bundle.textResource(pieceResource, JigsawStudioGraphDocuments.GSON.toJson(piece) + "\n");
         bundle.resource(objectResource, JigsawStudioProjectCreator.serialize(object));
         return write(graph, bundle.build());
     }
@@ -157,15 +151,15 @@ public final class JigsawStudioGraphEditor {
         IrisStructure structure = readStructure(
                 resolveOwnedResource(graph.root(), structureResource),
                 structureResource);
-        Map<String, JigsawPlanarArchetype> expectedSources = expectedThemeSetSources(
+        Map<String, JigsawPlanarArchetype> expectedSources = JigsawStudioGraphDocuments.expectedThemeSetSources(
                 structure,
                 requestedSources.keySet());
-        requireExactThemeSetSources(requestedSources, expectedSources.keySet());
+        JigsawStudioGraphDocuments.requireExactThemeSetSources(requestedSources, expectedSources.keySet());
 
         Map<String, byte[]> resources = readOwnedResources(graph);
         resources.put(
                 structureResource,
-                appendThemeSet(resources.get(structureResource), themeKey, structureResource));
+                JigsawStudioGraphDocuments.appendThemeSet(resources.get(structureResource), themeKey, structureResource));
         Map<String, String> newPieceKeysByWorkcell = new LinkedHashMap<>();
         Map<String, String> newPieceKeysBySource = new LinkedHashMap<>();
         for (Map.Entry<String, JigsawPlanarArchetype> expected : expectedSources.entrySet()) {
@@ -210,11 +204,11 @@ public final class JigsawStudioGraphEditor {
                     + "/variants/" + variantFolder + "/" + themeKey;
             String targetPieceResource = "jigsaw-pieces/" + targetPieceKey + ".json";
             String targetObjectResource = "objects/" + targetPieceKey + ".iob";
-            requireAvailableThemeSetTarget(graph, targetPieceResource);
-            requireAvailableThemeSetTarget(graph, targetObjectResource);
+            JigsawStudioGraphInspector.requireAvailableThemeSetTarget(graph, targetPieceResource);
+            JigsawStudioGraphInspector.requireAvailableThemeSetTarget(graph, targetObjectResource);
             resources.put(
                     targetPieceResource,
-                    duplicatePieceForTheme(
+                    JigsawStudioGraphDocuments.duplicatePieceForTheme(
                             resources.get(sourcePieceResource),
                             targetPieceKey,
                             themeKey,
@@ -231,7 +225,7 @@ public final class JigsawStudioGraphEditor {
             }
             resources.put(
                     relativePath,
-                    duplicatePoolMemberships(
+                    JigsawStudioGraphDocuments.duplicatePoolMemberships(
                             resource.getValue(),
                             newPieceKeysBySource,
                             relativePath).content());
@@ -316,7 +310,7 @@ public final class JigsawStudioGraphEditor {
             bundle.resource(relativePath, Files.readAllBytes(resolveOwnedResource(graph.root(), relativePath)));
         }
         IrisJigsawPool pool = new IrisJigsawPool().setFallback(fallback);
-        bundle.textResource(poolResource, GSON.toJson(pool) + "\n");
+        bundle.textResource(poolResource, JigsawStudioGraphDocuments.GSON.toJson(pool) + "\n");
         return write(graph, bundle.build());
     }
 
@@ -342,7 +336,7 @@ public final class JigsawStudioGraphEditor {
                 }
                 JsonObject piece = parsed.getAsJsonObject();
                 piece.addProperty("rotatable", rotatable);
-                content = (GSON.toJson(piece) + "\n").getBytes(StandardCharsets.UTF_8);
+                content = (JigsawStudioGraphDocuments.GSON.toJson(piece) + "\n").getBytes(StandardCharsets.UTF_8);
             }
             bundle.resource(relativePath, content);
         }
@@ -355,7 +349,7 @@ public final class JigsawStudioGraphEditor {
             String pieceKey,
             List<String> themes
     ) throws IOException {
-        List<String> normalizedThemes = normalizeThemes(themes);
+        List<String> normalizedThemes = JigsawStudioGraphDocuments.normalizeThemes(themes);
         return updateOwnedPiece(
                 packRoot,
                 structureKey,
@@ -433,8 +427,8 @@ public final class JigsawStudioGraphEditor {
         String objectKey = JigsawStudioProjectCreator.Options.requireResourceKey(targetPiece.getObject());
         String objectResource = "objects/" + objectKey + ".iob";
         boolean removeObject = graph.manifest().resourceHashes().containsKey(objectResource)
-                && !otherOwnedPieceReferencesObject(graph, normalizedPiece, objectKey);
-        requireDeletableArchetype(graph, normalizedPiece, targetPiece);
+                && !JigsawStudioGraphInspector.otherOwnedPieceReferencesObject(graph, normalizedPiece, objectKey);
+        JigsawStudioGraphInspector.requireDeletableArchetype(graph, normalizedPiece, targetPiece);
 
         StructureResourceBundle.Builder bundle = graph.bundleBuilder();
         int removedMemberships = 0;
@@ -445,7 +439,7 @@ public final class JigsawStudioGraphEditor {
             }
             byte[] content = Files.readAllBytes(resolveOwnedResource(graph.root(), relativePath));
             if (relativePath.startsWith("jigsaw-pools/") && relativePath.endsWith(".json")) {
-                PoolEntryRemoval removal = removePoolEntries(content, normalizedPiece, relativePath);
+                JigsawStudioGraphDocuments.PoolEntryRemoval removal = JigsawStudioGraphDocuments.removePoolEntries(content, normalizedPiece, relativePath);
                 content = removal.content();
                 removedMemberships += removal.removedEntries();
                 if (removal.removedEntries() > 0) {
@@ -494,7 +488,7 @@ public final class JigsawStudioGraphEditor {
         if (!graph.manifest().resourceHashes().containsKey(objectResource)) {
             throw new IOException("Object '" + objectKey + "' is not owned by this jigsaw project");
         }
-        requireExclusiveObjectReference(graph, normalizedPiece, objectKey);
+        JigsawStudioGraphInspector.requireExclusiveObjectReference(graph, normalizedPiece, objectKey);
         Path objectPath = resolveOwnedResource(graph.root(), objectResource);
         IrisObject source = new IrisObject();
         source.read(objectPath.toFile());
@@ -514,20 +508,20 @@ public final class JigsawStudioGraphEditor {
             IrisJigsawWorkcellArchetype archetype = IrisJigsawWorkcellArchetype.fromPiece(piece);
             JigsawPlanarArchetype planarArchetype = JigsawPlanarArchetype.fromModel(archetype);
             int quarterTurns = archetype.sourceToCanonicalQuarterTurns(piece);
-            previousDimensions = canonicalDimensions(sourceDimensions, quarterTurns);
+            previousDimensions = JigsawStudioObjectResizer.canonicalDimensions(sourceDimensions, quarterTurns);
             PlanarJigsawWorkcellResolver.ResolvedWorkcell workcell =
                     PlanarJigsawWorkcellResolver.resolve(structure).get(archetype);
-            if (workcell == null || !workcell.contains(dimensionsPosition(targetDimensions))) {
+            if (workcell == null || !workcell.contains(JigsawStudioObjectResizer.dimensionsPosition(targetDimensions))) {
                 throw new IOException("Variant '" + normalizedPiece + "' size "
-                        + describeDimensions(targetDimensions) + " exceeds the "
+                        + JigsawStudioObjectResizer.describeDimensions(targetDimensions) + " exceeds the "
                         + planarArchetype.displayName() + " workcell capacity "
-                        + describeDimensions(new JigsawStudioCellDimensions(
+                        + JigsawStudioObjectResizer.describeDimensions(new JigsawStudioCellDimensions(
                         workcell == null ? 1 : workcell.width(),
                         workcell == null ? 1 : workcell.height(),
                         workcell == null ? 1 : workcell.depth()))
                         + "; increase that workcell capacity first");
             }
-            PlanarPieceObjectResize resized = resizePlanarPieceObject(
+            JigsawStudioObjectResizer.PlanarPieceObjectResize resized = JigsawStudioObjectResizer.resizePlanarPieceObject(
                     source,
                     piece,
                     planarArchetype,
@@ -537,8 +531,8 @@ public final class JigsawStudioGraphEditor {
             relocatedConnectors = resized.relocatedConnectors();
         } else {
             previousDimensions = sourceDimensions;
-            requireConnectorsInside(piece, targetDimensions, normalizedPiece);
-            resizedObject = resizeObject(source, targetDimensions, normalizedPiece);
+            JigsawStudioObjectResizer.requireConnectorsInside(piece, targetDimensions, normalizedPiece);
+            resizedObject = JigsawStudioObjectResizer.resizeObject(source, targetDimensions, normalizedPiece);
         }
 
         StructureResourceBundle.Builder bundle = graph.bundleBuilder();
@@ -547,7 +541,7 @@ public final class JigsawStudioGraphEditor {
             if (relativePath.equals(objectResource)) {
                 content = JigsawStudioProjectCreator.serialize(resizedObject);
             } else if (relativePath.equals(pieceResource)) {
-                content = (GSON.toJson(piece) + "\n").getBytes(StandardCharsets.UTF_8);
+                content = (JigsawStudioGraphDocuments.GSON.toJson(piece) + "\n").getBytes(StandardCharsets.UTF_8);
             } else {
                 content = Files.readAllBytes(resolveOwnedResource(graph.root(), relativePath));
             }
@@ -620,7 +614,7 @@ public final class JigsawStudioGraphEditor {
         try {
             writeResult = write(graph, bundle.build());
         } catch (RuntimeException exception) {
-            throw new IOException("Workcell capacity " + describeDimensions(targetDimensions)
+            throw new IOException("Workcell capacity " + JigsawStudioObjectResizer.describeDimensions(targetDimensions)
                     + " cannot contain every " + targetArchetype.displayName()
                     + " variant: " + failureMessage(exception), exception);
         }
@@ -636,7 +630,7 @@ public final class JigsawStudioGraphEditor {
     ) throws IOException {
         String normalizedPiece = JigsawStudioProjectCreator.Options.requireResourceKey(pieceKey);
         IrisPosition connectorPosition = Objects.requireNonNull(position, "Jigsaw connector position");
-        String normalizedChannel = normalizeChannel(channel);
+        String normalizedChannel = JigsawStudioGraphDocuments.normalizeChannel(channel);
         OwnedGraph graph = loadOwnedGraph(packRoot, structureKey);
         String pieceResource = "jigsaw-pieces/" + normalizedPiece + ".json";
         if (!graph.manifest().resourceHashes().containsKey(pieceResource)) {
@@ -649,7 +643,7 @@ public final class JigsawStudioGraphEditor {
             if (relativePath.equals(pieceResource)) {
                 IrisJigsawPiece piece;
                 try {
-                    piece = GSON.fromJson(new String(content, StandardCharsets.UTF_8), IrisJigsawPiece.class);
+                    piece = JigsawStudioGraphDocuments.GSON.fromJson(new String(content, StandardCharsets.UTF_8), IrisJigsawPiece.class);
                 } catch (RuntimeException exception) {
                     throw new IOException("Jigsaw piece is not valid JSON: " + pieceResource, exception);
                 }
@@ -662,7 +656,7 @@ public final class JigsawStudioGraphEditor {
                         found = true;
                     }
                 }
-                content = (GSON.toJson(piece) + "\n").getBytes(StandardCharsets.UTF_8);
+                content = (JigsawStudioGraphDocuments.GSON.toJson(piece) + "\n").getBytes(StandardCharsets.UTF_8);
             }
             bundle.resource(relativePath, content);
         }
@@ -689,59 +683,6 @@ public final class JigsawStudioGraphEditor {
         return new OwnedGraph(root, writer, manifest, StructureHash.sha256(manifestContent));
     }
 
-    private static Map<String, JigsawPlanarArchetype> expectedThemeSetSources(
-            IrisStructure structure,
-            Set<String> requestedStableIds
-    ) throws IOException {
-        Map<String, JigsawPlanarArchetype> expected = new LinkedHashMap<>();
-        if (structure.resolvedMode() == IrisJigsawMode.SPATIAL_JIGSAW) {
-            if (requestedStableIds.isEmpty()) {
-                throw new IOException("A spatial theme set requires at least one workcell source");
-            }
-            List<String> stableIds = new ArrayList<>(requestedStableIds);
-            stableIds.sort(Comparator.naturalOrder());
-            for (String stableId : stableIds) {
-                if (!stableId.equals(JigsawStudioLayout.SPATIAL_WORKCELL_ID)
-                        && !stableId.startsWith(JigsawStudioLayout.SPATIAL_WORKCELL_ID + "/")) {
-                    throw new IOException("Invalid spatial workcell source '" + stableId + "'");
-                }
-                expected.put(stableId, null);
-            }
-            return expected;
-        }
-        Map<IrisJigsawWorkcellArchetype, PlanarJigsawWorkcellResolver.ResolvedWorkcell> workcells;
-        try {
-            workcells = PlanarJigsawWorkcellResolver.resolve(structure);
-        } catch (IllegalArgumentException exception) {
-            throw new IOException("Planar workcell configuration is invalid: "
-                    + exception.getMessage(), exception);
-        }
-        for (JigsawPlanarArchetype archetype : JigsawPlanarArchetype.values()) {
-            PlanarJigsawWorkcellResolver.ResolvedWorkcell workcell = workcells.get(archetype.modelArchetype());
-            if (workcell != null && workcell.enabled()) {
-                expected.put(archetype.stableId(), archetype);
-            }
-        }
-        if (expected.isEmpty()) {
-            throw new IOException("A planar theme set requires at least one enabled workcell");
-        }
-        return expected;
-    }
-
-    private static void requireExactThemeSetSources(
-            Map<String, String> requestedSources,
-            Set<String> expectedStableIds
-    ) throws IOException {
-        Set<String> missing = new LinkedHashSet<>(expectedStableIds);
-        missing.removeAll(requestedSources.keySet());
-        Set<String> unexpected = new LinkedHashSet<>(requestedSources.keySet());
-        unexpected.removeAll(expectedStableIds);
-        if (!missing.isEmpty() || !unexpected.isEmpty()) {
-            throw new IOException("Theme-set sources must match enabled workcells exactly; missing="
-                    + missing + ", unexpected=" + unexpected);
-        }
-    }
-
     private static Map<String, byte[]> readOwnedResources(OwnedGraph graph) throws IOException {
         Map<String, byte[]> resources = new LinkedHashMap<>();
         for (String relativePath : graph.manifest().resourceHashes().keySet()) {
@@ -750,39 +691,6 @@ public final class JigsawStudioGraphEditor {
                     Files.readAllBytes(resolveOwnedResource(graph.root(), relativePath)));
         }
         return resources;
-    }
-
-    private static byte[] appendThemeSet(
-            byte[] content,
-            String themeKey,
-            String structureResource
-    ) throws IOException {
-        JsonElement parsed = JsonParser.parseString(new String(content, StandardCharsets.UTF_8));
-        if (!parsed.isJsonObject()) {
-            throw new IOException("Jigsaw structure is not a JSON object: " + structureResource);
-        }
-        JsonObject structure = parsed.getAsJsonObject();
-        JsonArray themeSets;
-        if (!structure.has("themeSets")) {
-            themeSets = new JsonArray();
-            structure.add("themeSets", themeSets);
-        } else if (!structure.get("themeSets").isJsonArray()) {
-            throw new IOException("Jigsaw structure has an invalid themeSets value: " + structureResource);
-        } else {
-            themeSets = structure.getAsJsonArray("themeSets");
-        }
-        for (JsonElement element : themeSets) {
-            if (element.isJsonObject()
-                    && element.getAsJsonObject().has("key")
-                    && themeKey.equals(element.getAsJsonObject().get("key").getAsString())) {
-                throw new IOException("Jigsaw structure already declares theme '" + themeKey + "'");
-            }
-        }
-        JsonObject theme = new JsonObject();
-        theme.addProperty("key", themeKey);
-        theme.addProperty("weight", 1);
-        themeSets.add(theme);
-        return (GSON.toJson(structure) + "\n").getBytes(StandardCharsets.UTF_8);
     }
 
     private static StructureWriteResult createVariantFromPiece(
@@ -801,8 +709,8 @@ public final class JigsawStudioGraphEditor {
         if (!graph.manifest().resourceHashes().containsKey(sourcePieceResource)) {
             throw new IOException("Source piece '" + normalizedSource + "' is not owned by this project");
         }
-        requireAvailableVariantTarget(graph, targetPieceResource);
-        requireAvailableVariantTarget(graph, targetObjectResource);
+        JigsawStudioGraphInspector.requireAvailableVariantTarget(graph, targetPieceResource);
+        JigsawStudioGraphInspector.requireAvailableVariantTarget(graph, targetObjectResource);
 
         Path sourcePiecePath = resolveOwnedResource(graph.root(), sourcePieceResource);
         byte[] sourcePieceContent = Files.readAllBytes(sourcePiecePath);
@@ -833,7 +741,7 @@ public final class JigsawStudioGraphEditor {
         for (String relativePath : graph.manifest().resourceHashes().keySet()) {
             byte[] content = Files.readAllBytes(resolveOwnedResource(graph.root(), relativePath));
             if (relativePath.startsWith("jigsaw-pools/") && relativePath.endsWith(".json")) {
-                PoolMembershipDuplication duplication = duplicatePoolMemberships(
+                JigsawStudioGraphDocuments.PoolMembershipDuplication duplication = JigsawStudioGraphDocuments.duplicatePoolMemberships(
                         content,
                         targetPieceKeysBySource,
                         relativePath);
@@ -848,111 +756,9 @@ public final class JigsawStudioGraphEditor {
         }
         bundle.resource(
                 targetPieceResource,
-                duplicatePieceForVariant(sourcePieceContent, normalizedTarget, sourcePieceResource));
+                JigsawStudioGraphDocuments.duplicatePieceForVariant(sourcePieceContent, normalizedTarget, sourcePieceResource));
         bundle.resource(targetObjectResource, targetObjectContent);
         return write(graph, bundle.build());
-    }
-
-    private static void requireAvailableVariantTarget(
-            OwnedGraph graph,
-            String relativePath
-    ) throws IOException {
-        StructureResourceBundle.validateRelativePath(relativePath);
-        Path target = graph.root().resolve(relativePath).normalize();
-        if (!target.startsWith(graph.root())) {
-            throw new IOException("Variant target escapes the pack root: " + relativePath);
-        }
-        if (graph.manifest().resourceHashes().containsKey(relativePath)
-                || Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
-            throw new IOException("Variant target already exists: " + relativePath);
-        }
-    }
-
-    private static void requireAvailableThemeSetTarget(
-            OwnedGraph graph,
-            String relativePath
-    ) throws IOException {
-        StructureResourceBundle.validateRelativePath(relativePath);
-        Path target = graph.root().resolve(relativePath).normalize();
-        if (!target.startsWith(graph.root())) {
-            throw new IOException("Theme-set target escapes the pack root: " + relativePath);
-        }
-        if (graph.manifest().resourceHashes().containsKey(relativePath)
-                || Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
-            throw new IOException("Theme-set target already exists: " + relativePath);
-        }
-    }
-
-    private static byte[] duplicatePieceForTheme(
-            byte[] content,
-            String targetPieceKey,
-            String themeKey,
-            String sourcePieceResource
-    ) throws IOException {
-        JsonElement parsed = JsonParser.parseString(new String(content, StandardCharsets.UTF_8));
-        if (!parsed.isJsonObject()) {
-            throw new IOException("Jigsaw piece is not a JSON object: " + sourcePieceResource);
-        }
-        JsonObject piece = parsed.getAsJsonObject().deepCopy();
-        piece.addProperty("object", targetPieceKey);
-        JsonArray themes = new JsonArray();
-        themes.add(themeKey);
-        piece.add("themes", themes);
-        return (GSON.toJson(piece) + "\n").getBytes(StandardCharsets.UTF_8);
-    }
-
-    private static byte[] duplicatePieceForVariant(
-            byte[] content,
-            String targetPieceKey,
-            String sourcePieceResource
-    ) throws IOException {
-        JsonElement parsed = JsonParser.parseString(new String(content, StandardCharsets.UTF_8));
-        if (!parsed.isJsonObject()) {
-            throw new IOException("Jigsaw piece is not a JSON object: " + sourcePieceResource);
-        }
-        JsonObject piece = parsed.getAsJsonObject().deepCopy();
-        piece.addProperty("object", targetPieceKey);
-        return (GSON.toJson(piece) + "\n").getBytes(StandardCharsets.UTF_8);
-    }
-
-    private static PoolMembershipDuplication duplicatePoolMemberships(
-            byte[] content,
-            Map<String, String> targetPieceKeysBySource,
-            String poolResource
-    ) throws IOException {
-        JsonElement parsed = JsonParser.parseString(new String(content, StandardCharsets.UTF_8));
-        if (!parsed.isJsonObject()) {
-            throw new IOException("Jigsaw pool is not a JSON object: " + poolResource);
-        }
-        JsonObject pool = parsed.getAsJsonObject();
-        JsonArray pieces = pool.getAsJsonArray("pieces");
-        if (pieces == null) {
-            throw new IOException("Jigsaw pool does not declare a pieces array: " + poolResource);
-        }
-        JsonArray expanded = new JsonArray();
-        int duplicatedEntries = 0;
-        for (JsonElement element : pieces) {
-            expanded.add(element.deepCopy());
-            if (!element.isJsonObject() || !element.getAsJsonObject().has("piece")) {
-                continue;
-            }
-            String sourcePieceKey = element.getAsJsonObject().get("piece").getAsString();
-            String targetPieceKey = targetPieceKeysBySource.get(sourcePieceKey);
-            if (targetPieceKey == null) {
-                continue;
-            }
-            JsonObject duplicate = element.getAsJsonObject().deepCopy();
-            duplicate.addProperty("piece", targetPieceKey);
-            expanded.add(duplicate);
-            duplicatedEntries++;
-        }
-        if (duplicatedEntries == 0) {
-            return new PoolMembershipDuplication(content, 0);
-        }
-        pool.add("pieces", expanded);
-        return new PoolMembershipDuplication(
-                (GSON.toJson(pool) + "\n").getBytes(StandardCharsets.UTF_8),
-                duplicatedEntries);
     }
 
     private static StructureWriteResult updateOwnedPiece(
@@ -977,28 +783,11 @@ public final class JigsawStudioGraphEditor {
                 }
                 JsonObject piece = parsed.getAsJsonObject();
                 editor.edit(piece, pieceResource);
-                content = (GSON.toJson(piece) + "\n").getBytes(StandardCharsets.UTF_8);
+                content = (JigsawStudioGraphDocuments.GSON.toJson(piece) + "\n").getBytes(StandardCharsets.UTF_8);
             }
             bundle.resource(relativePath, content);
         }
         return write(graph, bundle.build());
-    }
-
-    private static List<String> normalizeThemes(List<String> themes) {
-        Objects.requireNonNull(themes, "Jigsaw Studio piece themes");
-        Set<String> normalized = new LinkedHashSet<>();
-        for (String theme : themes) {
-            Objects.requireNonNull(theme, "Jigsaw Studio piece theme");
-            String key = theme.trim();
-            if (key.isEmpty() || !key.equals(theme)) {
-                throw new IllegalArgumentException(
-                        "Jigsaw Studio piece themes must be non-blank and whitespace-normalized");
-            }
-            if (!normalized.add(key)) {
-                throw new IllegalArgumentException("Duplicate Jigsaw Studio piece theme '" + key + "'");
-            }
-        }
-        return List.copyOf(normalized);
     }
 
     public static String normalizeDisplayName(String displayName) {
@@ -1017,129 +806,12 @@ public final class JigsawStudioGraphEditor {
         return normalized;
     }
 
-    private static boolean otherOwnedPieceReferencesObject(
-            OwnedGraph graph,
-            String targetPieceKey,
-            String objectKey
-    ) throws IOException {
-        for (String relativePath : graph.manifest().resourceHashes().keySet()) {
-            if (!relativePath.startsWith("jigsaw-pieces/") || !relativePath.endsWith(".json")) {
-                continue;
-            }
-            String pieceKey = resourceKey(relativePath, "jigsaw-pieces/", ".json");
-            if (pieceKey.equals(targetPieceKey)) {
-                continue;
-            }
-            IrisJigsawPiece piece = readPiece(resolveOwnedResource(graph.root(), relativePath), relativePath);
-            if (objectKey.equals(piece.getObject())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static void requireDeletableArchetype(
-            OwnedGraph graph,
-            String targetPieceKey,
-            IrisJigsawPiece targetPiece
-    ) throws IOException {
-        String structureResource = "structures/" + graph.manifest().structure().path() + ".json";
-        if (!graph.manifest().resourceHashes().containsKey(structureResource)) {
-            throw new IOException("The owned graph manifest does not include " + structureResource);
-        }
-        IrisStructure structure = readStructure(
-                resolveOwnedResource(graph.root(), structureResource),
-                structureResource);
-        if (structure.resolvedMode() == IrisJigsawMode.SPATIAL_JIGSAW) {
-            if (countOtherOwnedPieces(graph, targetPieceKey, null) == 0) {
-                throw new IOException("Cannot delete the final spatial jigsaw variant");
-            }
-            return;
-        }
-        IrisJigsawWorkcellArchetype archetype = IrisJigsawWorkcellArchetype.fromPiece(targetPiece);
-        Map<IrisJigsawWorkcellArchetype, PlanarJigsawWorkcellResolver.ResolvedWorkcell> workcells;
-        try {
-            workcells = PlanarJigsawWorkcellResolver.resolve(structure);
-        } catch (IllegalArgumentException exception) {
-            throw new IOException("Planar workcell configuration is invalid: "
-                    + exception.getMessage(), exception);
-        }
-        PlanarJigsawWorkcellResolver.ResolvedWorkcell workcell = workcells.get(archetype);
-        if (workcell != null && workcell.enabled()
-                && countOtherOwnedPieces(graph, targetPieceKey, archetype) == 0) {
-            throw new IOException("Cannot delete the final variant for enabled planar workcell "
-                    + JigsawPlanarArchetype.fromModel(archetype).stableId());
-        }
-    }
-
-    private static int countOtherOwnedPieces(
-            OwnedGraph graph,
-            String targetPieceKey,
-            IrisJigsawWorkcellArchetype archetype
-    ) throws IOException {
-        int count = 0;
-        for (String relativePath : graph.manifest().resourceHashes().keySet()) {
-            if (!relativePath.startsWith("jigsaw-pieces/") || !relativePath.endsWith(".json")) {
-                continue;
-            }
-            String pieceKey = resourceKey(relativePath, "jigsaw-pieces/", ".json");
-            if (pieceKey.equals(targetPieceKey)) {
-                continue;
-            }
-            if (archetype == null) {
-                count++;
-                continue;
-            }
-            IrisJigsawPiece piece = readPiece(resolveOwnedResource(graph.root(), relativePath), relativePath);
-            if (IrisJigsawWorkcellArchetype.fromPiece(piece) == archetype) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    private static PoolEntryRemoval removePoolEntries(
-            byte[] content,
-            String pieceKey,
-            String poolResource
-    ) throws IOException {
-        JsonElement parsed = JsonParser.parseString(new String(content, StandardCharsets.UTF_8));
-        if (!parsed.isJsonObject()) {
-            throw new IOException("Jigsaw pool is not a JSON object: " + poolResource);
-        }
-        JsonObject pool = parsed.getAsJsonObject();
-        JsonArray pieces = pool.getAsJsonArray("pieces");
-        if (pieces == null) {
-            throw new IOException("Jigsaw pool does not declare a pieces array: " + poolResource);
-        }
-        int removed = 0;
-        for (int index = pieces.size() - 1; index >= 0; index--) {
-            JsonElement entry = pieces.get(index);
-            if (entry.isJsonObject()
-                    && entry.getAsJsonObject().has("piece")
-                    && pieceKey.equals(entry.getAsJsonObject().get("piece").getAsString())) {
-                pieces.remove(index);
-                removed++;
-            }
-        }
-        if (removed == 0) {
-            return new PoolEntryRemoval(content, 0);
-        }
-        return new PoolEntryRemoval(
-                (GSON.toJson(pool) + "\n").getBytes(StandardCharsets.UTF_8),
-                removed);
-    }
-
-    private static String resourceKey(String relativePath, String prefix, String suffix) {
-        return relativePath.substring(prefix.length(), relativePath.length() - suffix.length());
-    }
-
     private static String failureMessage(RuntimeException exception) {
         String message = exception.getMessage();
         return message == null || message.isBlank() ? exception.getClass().getSimpleName() : message;
     }
 
-    private static Path resolveOwnedResource(Path root, String relativePath) throws IOException {
+    static Path resolveOwnedResource(Path root, String relativePath) throws IOException {
         StructureResourceBundle.validateRelativePath(relativePath);
         Path resource = root.resolve(relativePath).normalize();
         if (!resource.startsWith(root) || !Files.isRegularFile(resource, LinkOption.NOFOLLOW_LINKS)) {
@@ -1148,38 +820,9 @@ public final class JigsawStudioGraphEditor {
         return resource;
     }
 
-    private static byte[] addPoolEntry(
-            byte[] content,
-            String pieceKey,
-            int weight,
-            Path poolPath
-    ) throws IOException {
-        JsonElement parsed = JsonParser.parseString(new String(content, StandardCharsets.UTF_8));
-        if (!parsed.isJsonObject()) {
-            throw new IOException("Jigsaw pool is not a JSON object: " + poolPath);
-        }
-        JsonObject pool = parsed.getAsJsonObject();
-        if (!pool.has("pieces") || !pool.get("pieces").isJsonArray()) {
-            throw new IOException("Jigsaw pool does not declare a pieces array: " + poolPath);
-        }
-        JsonArray pieces = pool.getAsJsonArray("pieces");
-        for (JsonElement element : pieces) {
-            if (element.isJsonObject()
-                    && element.getAsJsonObject().has("piece")
-                    && pieceKey.equals(element.getAsJsonObject().get("piece").getAsString())) {
-                throw new IOException("Pool already references piece '" + pieceKey + "'");
-            }
-        }
-        JsonObject entry = new JsonObject();
-        entry.addProperty("piece", pieceKey);
-        entry.addProperty("weight", weight);
-        pieces.add(entry);
-        return (GSON.toJson(pool) + "\n").getBytes(StandardCharsets.UTF_8);
-    }
-
-    private static IrisJigsawPiece readPiece(Path path, String resource) throws IOException {
+    static IrisJigsawPiece readPiece(Path path, String resource) throws IOException {
         try {
-            IrisJigsawPiece piece = GSON.fromJson(Files.readString(path, StandardCharsets.UTF_8),
+            IrisJigsawPiece piece = JigsawStudioGraphDocuments.GSON.fromJson(Files.readString(path, StandardCharsets.UTF_8),
                     IrisJigsawPiece.class);
             if (piece == null) {
                 throw new IOException("Jigsaw piece is empty: " + resource);
@@ -1190,9 +833,9 @@ public final class JigsawStudioGraphEditor {
         }
     }
 
-    private static IrisStructure readStructure(Path path, String resource) throws IOException {
+    static IrisStructure readStructure(Path path, String resource) throws IOException {
         try {
-            IrisStructure structure = GSON.fromJson(
+            IrisStructure structure = JigsawStudioGraphDocuments.GSON.fromJson(
                     Files.readString(path, StandardCharsets.UTF_8),
                     IrisStructure.class);
             if (structure == null) {
@@ -1202,524 +845,6 @@ public final class JigsawStudioGraphEditor {
         } catch (RuntimeException exception) {
             throw new IOException("Jigsaw structure is not valid JSON: " + resource, exception);
         }
-    }
-
-    private static void requireExclusiveObjectReference(
-            OwnedGraph graph,
-            String activePieceKey,
-            String objectKey
-    ) throws IOException {
-        for (String relativePath : graph.manifest().resourceHashes().keySet()) {
-            if (!relativePath.startsWith("jigsaw-pieces/") || !relativePath.endsWith(".json")) {
-                continue;
-            }
-            String pieceKey = relativePath.substring(
-                    "jigsaw-pieces/".length(),
-                    relativePath.length() - ".json".length());
-            if (pieceKey.equals(activePieceKey)) {
-                continue;
-            }
-            IrisJigsawPiece piece = readPiece(resolveOwnedResource(graph.root(), relativePath), relativePath);
-            if (objectKey.equals(piece.getObject())) {
-                throw new IOException("Object '" + objectKey + "' is shared by piece '" + pieceKey
-                        + "'; duplicate the active variant before resizing its object bounds");
-            }
-        }
-    }
-
-    static PlanarPieceObjectResize resizePlanarPieceObject(
-            IrisObject source,
-            IrisJigsawPiece piece,
-            JigsawPlanarArchetype archetype,
-            JigsawStudioCellDimensions dimensions,
-            String pieceKey
-    ) throws IOException {
-        IrisObject sourceObject = Objects.requireNonNull(source, "Planar Jigsaw Studio source object");
-        IrisJigsawPiece targetPiece = Objects.requireNonNull(piece, "Planar Jigsaw Studio piece");
-        JigsawPlanarArchetype targetArchetype = Objects.requireNonNull(
-                archetype,
-                "Planar Jigsaw Studio archetype");
-        JigsawStudioCellDimensions targetDimensions = Objects.requireNonNull(
-                dimensions,
-                "Planar Jigsaw Studio target dimensions");
-        String targetPieceKey = pieceKey == null || pieceKey.isBlank() ? "unknown" : pieceKey;
-        if (targetDimensions.width() < 3 || targetDimensions.depth() < 3) {
-            throw new IllegalArgumentException(
-                    "Planar Jigsaw Studio workcell width and depth must each be at least 3 blocks");
-        }
-        if (sourceObject.getW() < 1 || sourceObject.getH() < 1 || sourceObject.getD() < 1) {
-            throw new IOException("Planar piece '" + targetPieceKey + "' has invalid object dimensions");
-        }
-        if (IrisJigsawWorkcellArchetype.fromPiece(targetPiece) != targetArchetype.modelArchetype()) {
-            throw new IOException("Planar piece '" + targetPieceKey + "' does not belong to "
-                    + targetArchetype.stableId());
-        }
-
-        int quarterTurns = targetArchetype.modelArchetype().sourceToCanonicalQuarterTurns(targetPiece);
-        JigsawStudioCellDimensions sourceDimensions = new JigsawStudioCellDimensions(
-                sourceObject.getW(),
-                sourceObject.getH(),
-                sourceObject.getD());
-        JigsawStudioCellDimensions canonicalDimensions = canonicalDimensions(sourceDimensions, quarterTurns);
-        Map<LocalPosition, PlatformBlockState> canonicalBlocks = canonicalBlocks(
-                sourceObject,
-                quarterTurns,
-                targetPieceKey);
-        Map<LocalPosition, TileData> canonicalTiles = canonicalTiles(
-                sourceObject,
-                quarterTurns,
-                targetPieceKey);
-        List<IrisJigsawConnector> connectors = targetPiece.getConnectors();
-        if (connectors == null) {
-            throw new IOException("Planar piece '" + targetPieceKey + "' has no connector list");
-        }
-        List<ConnectorResize> connectorResizes = planConnectorResizes(
-                connectors,
-                sourceDimensions,
-                canonicalDimensions,
-                targetDimensions,
-                quarterTurns,
-                targetPieceKey);
-        relocateConnectorPayloads(canonicalBlocks, canonicalTiles, connectorResizes, targetPieceKey);
-        requireContentInsideTarget(canonicalBlocks, canonicalTiles, targetDimensions, targetPieceKey);
-
-        JigsawStudioCellDimensions resizedSourceDimensions = sourceDimensions(targetDimensions, quarterTurns);
-        IrisObject resizedObject = rebuildSourceObject(
-                canonicalBlocks,
-                canonicalTiles,
-                resizedSourceDimensions,
-                quarterTurns,
-                targetPieceKey);
-        int relocatedConnectors = 0;
-        for (ConnectorResize connectorResize : connectorResizes) {
-            LocalPosition sourcePosition = toSource(
-                    connectorResize.targetCanonical(),
-                    resizedSourceDimensions,
-                    quarterTurns);
-            connectorResize.connector().setPosition(sourcePosition.toIrisPosition());
-            if (!connectorResize.sourceCanonical().equals(connectorResize.targetCanonical())) {
-                relocatedConnectors++;
-            }
-        }
-        return new PlanarPieceObjectResize(resizedObject, relocatedConnectors);
-    }
-
-    private static Map<LocalPosition, PlatformBlockState> canonicalBlocks(
-            IrisObject source,
-            int quarterTurns,
-            String pieceKey
-    ) throws IOException {
-        Map<LocalPosition, PlatformBlockState> blocks = new LinkedHashMap<>();
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : source.getBlocks()) {
-            LocalPosition sourcePosition = unsignedPosition(entry.getKey(), source);
-            requireInside(sourcePosition, source.getW(), source.getH(), source.getD(),
-                    "stored block", pieceKey);
-            PlatformBlockState state = entry.getValue();
-            if (state == null) {
-                throw new IOException("Planar piece '" + pieceKey + "' contains a null stored block state");
-            }
-            LocalPosition canonicalPosition = toCanonical(
-                    sourcePosition,
-                    source.getW(),
-                    source.getD(),
-                    quarterTurns);
-            if (blocks.putIfAbsent(canonicalPosition, state) != null) {
-                throw new IOException("Planar piece '" + pieceKey
-                        + "' maps more than one stored block to " + canonicalPosition.describe());
-            }
-        }
-        return blocks;
-    }
-
-    private static Map<LocalPosition, TileData> canonicalTiles(
-            IrisObject source,
-            int quarterTurns,
-            String pieceKey
-    ) throws IOException {
-        Map<LocalPosition, TileData> tiles = new LinkedHashMap<>();
-        for (Map.Entry<IrisBlockVector, TileData> entry : source.getStates()) {
-            LocalPosition sourcePosition = unsignedPosition(entry.getKey(), source);
-            requireInside(sourcePosition, source.getW(), source.getH(), source.getD(),
-                    "tile data", pieceKey);
-            TileData tile = entry.getValue();
-            if (tile == null) {
-                throw new IOException("Planar piece '" + pieceKey + "' contains null tile data");
-            }
-            LocalPosition canonicalPosition = toCanonical(
-                    sourcePosition,
-                    source.getW(),
-                    source.getD(),
-                    quarterTurns);
-            if (tiles.putIfAbsent(canonicalPosition, tile.clone()) != null) {
-                throw new IOException("Planar piece '" + pieceKey
-                        + "' maps more than one tile payload to " + canonicalPosition.describe());
-            }
-        }
-        return tiles;
-    }
-
-    private static List<ConnectorResize> planConnectorResizes(
-            List<IrisJigsawConnector> connectors,
-            JigsawStudioCellDimensions sourceDimensions,
-            JigsawStudioCellDimensions canonicalDimensions,
-            JigsawStudioCellDimensions targetDimensions,
-            int quarterTurns,
-            String pieceKey
-    ) throws IOException {
-        List<ConnectorResize> planned = new ArrayList<>(connectors.size());
-        Set<LocalPosition> sourcePositions = new LinkedHashSet<>();
-        Set<LocalPosition> targetPositions = new LinkedHashSet<>();
-        IrisPosition sourceSize = dimensionsPosition(sourceDimensions);
-        IrisPosition canonicalSize = dimensionsPosition(canonicalDimensions);
-        IrisPosition targetSize = dimensionsPosition(targetDimensions);
-        for (int index = 0; index < connectors.size(); index++) {
-            IrisJigsawConnector connector = connectors.get(index);
-            if (connector == null || connector.getPosition() == null || connector.getDirection() == null
-                    || connector.getDirection().isVertical()) {
-                throw new IOException("Planar piece '" + pieceKey + "' contains invalid connector " + index);
-            }
-            LocalPosition sourcePosition = LocalPosition.from(connector.getPosition());
-            requireInside(
-                    sourcePosition,
-                    sourceDimensions.width(),
-                    sourceDimensions.height(),
-                    sourceDimensions.depth(),
-                    "connector " + index,
-                    pieceKey);
-            if (!sourcePositions.add(sourcePosition)) {
-                throw new IOException("Planar piece '" + pieceKey
-                        + "' has multiple connectors at " + sourcePosition.describe());
-            }
-            LocalPosition sourceCanonical = toCanonical(
-                    sourcePosition,
-                    sourceDimensions.width(),
-                    sourceDimensions.depth(),
-                    quarterTurns);
-            IrisDirection canonicalDirection = rotateHorizontalDirection(
-                    connector.getDirection(),
-                    quarterTurns);
-            LocalPosition expectedSource = LocalPosition.from(IrisJigsawConnector.canonicalPlanarPosition(
-                    sourceSize,
-                    connector.getDirection()));
-            LocalPosition expectedCanonical = LocalPosition.from(IrisJigsawConnector.canonicalPlanarPosition(
-                    canonicalSize,
-                    canonicalDirection));
-            boolean canonicalConnector = sourcePosition.equals(expectedSource)
-                    || sourceCanonical.equals(expectedCanonical);
-            LocalPosition targetCanonical = canonicalConnector
-                    ? LocalPosition.from(IrisJigsawConnector.canonicalPlanarPosition(
-                    targetSize,
-                    canonicalDirection))
-                    : sourceCanonical;
-            if (!inside(targetCanonical, targetDimensions)) {
-                throw new IOException("Planar piece '" + pieceKey + "' connector " + index + " at "
-                        + sourceCanonical.describe() + " would be cropped by the requested workcell bounds");
-            }
-            if (!targetPositions.add(targetCanonical)) {
-                throw new IOException("Planar piece '" + pieceKey
-                        + "' would place multiple connectors at " + targetCanonical.describe());
-            }
-            planned.add(new ConnectorResize(connector, sourceCanonical, targetCanonical));
-        }
-        return List.copyOf(planned);
-    }
-
-    private static void relocateConnectorPayloads(
-            Map<LocalPosition, PlatformBlockState> blocks,
-            Map<LocalPosition, TileData> tiles,
-            List<ConnectorResize> connectorResizes,
-            String pieceKey
-    ) throws IOException {
-        Set<LocalPosition> relocatedSources = new LinkedHashSet<>();
-        for (ConnectorResize connectorResize : connectorResizes) {
-            if (tiles.containsKey(connectorResize.sourceCanonical())
-                    || tiles.containsKey(connectorResize.targetCanonical())) {
-                throw new IOException("Planar piece '" + pieceKey + "' has tile data at connector position "
-                        + connectorResize.sourceCanonical().describe()
-                        + "; connector tile data cannot be resized safely");
-            }
-            if (!connectorResize.sourceCanonical().equals(connectorResize.targetCanonical())) {
-                relocatedSources.add(connectorResize.sourceCanonical());
-            }
-        }
-        for (ConnectorResize connectorResize : connectorResizes) {
-            if (connectorResize.sourceCanonical().equals(connectorResize.targetCanonical())) {
-                continue;
-            }
-            if (blocks.containsKey(connectorResize.targetCanonical())
-                    && !relocatedSources.contains(connectorResize.targetCanonical())) {
-                throw new IOException("Planar piece '" + pieceKey + "' cannot relocate connector from "
-                        + connectorResize.sourceCanonical().describe() + " to "
-                        + connectorResize.targetCanonical().describe()
-                        + " because the destination contains a stored block");
-            }
-        }
-        List<BlockRelocation> payloads = new ArrayList<>(relocatedSources.size());
-        for (ConnectorResize connectorResize : connectorResizes) {
-            if (connectorResize.sourceCanonical().equals(connectorResize.targetCanonical())) {
-                continue;
-            }
-            boolean present = blocks.containsKey(connectorResize.sourceCanonical());
-            PlatformBlockState state = blocks.remove(connectorResize.sourceCanonical());
-            payloads.add(new BlockRelocation(connectorResize.targetCanonical(), state, present));
-        }
-        for (BlockRelocation payload : payloads) {
-            if (!payload.present()) {
-                continue;
-            }
-            if (blocks.putIfAbsent(payload.target(), payload.state()) != null) {
-                throw new IOException("Planar piece '" + pieceKey
-                        + "' has colliding connector block payloads at " + payload.target().describe());
-            }
-        }
-    }
-
-    private static void requireContentInsideTarget(
-            Map<LocalPosition, PlatformBlockState> blocks,
-            Map<LocalPosition, TileData> tiles,
-            JigsawStudioCellDimensions dimensions,
-            String pieceKey
-    ) throws IOException {
-        for (LocalPosition position : blocks.keySet()) {
-            if (!inside(position, dimensions)) {
-                throw new IOException("Planar piece '" + pieceKey + "' has a stored block, including explicit air, at "
-                        + position.describe() + " that would be cropped by the requested workcell bounds");
-            }
-        }
-        for (LocalPosition position : tiles.keySet()) {
-            if (!inside(position, dimensions)) {
-                throw new IOException("Planar piece '" + pieceKey + "' has tile data at "
-                        + position.describe() + " that would be cropped by the requested workcell bounds");
-            }
-        }
-    }
-
-    private static IrisObject rebuildSourceObject(
-            Map<LocalPosition, PlatformBlockState> canonicalBlocks,
-            Map<LocalPosition, TileData> canonicalTiles,
-            JigsawStudioCellDimensions sourceDimensions,
-            int quarterTurns,
-            String pieceKey
-    ) throws IOException {
-        IrisObject resized = new IrisObject(
-                sourceDimensions.width(),
-                sourceDimensions.height(),
-                sourceDimensions.depth());
-        Set<LocalPosition> sourcePositions = new LinkedHashSet<>();
-        for (Map.Entry<LocalPosition, PlatformBlockState> entry : canonicalBlocks.entrySet()) {
-            LocalPosition sourcePosition = toSource(entry.getKey(), sourceDimensions, quarterTurns);
-            if (!sourcePositions.add(sourcePosition)) {
-                throw new IOException("Planar piece '" + pieceKey
-                        + "' maps multiple stored blocks to " + sourcePosition.describe());
-            }
-            resized.setUnsigned(
-                    sourcePosition.x(),
-                    sourcePosition.y(),
-                    sourcePosition.z(),
-                    entry.getValue());
-        }
-        sourcePositions.clear();
-        for (Map.Entry<LocalPosition, TileData> entry : canonicalTiles.entrySet()) {
-            LocalPosition sourcePosition = toSource(entry.getKey(), sourceDimensions, quarterTurns);
-            if (!sourcePositions.add(sourcePosition)) {
-                throw new IOException("Planar piece '" + pieceKey
-                        + "' maps multiple tile payloads to " + sourcePosition.describe());
-            }
-            resized.setUnsignedTile(
-                    sourcePosition.x(),
-                    sourcePosition.y(),
-                    sourcePosition.z(),
-                    entry.getValue().clone());
-        }
-        return resized;
-    }
-
-    private static LocalPosition unsignedPosition(IrisBlockVector signed, IrisObject object) {
-        return new LocalPosition(
-                signed.getBlockX() + object.getCenter().getBlockX(),
-                signed.getBlockY() + object.getCenter().getBlockY(),
-                signed.getBlockZ() + object.getCenter().getBlockZ());
-    }
-
-    private static JigsawStudioCellDimensions canonicalDimensions(
-            JigsawStudioCellDimensions source,
-            int quarterTurns
-    ) {
-        return Math.floorMod(quarterTurns, 2) == 0
-                ? source
-                : new JigsawStudioCellDimensions(source.depth(), source.height(), source.width());
-    }
-
-    private static JigsawStudioCellDimensions sourceDimensions(
-            JigsawStudioCellDimensions canonical,
-            int quarterTurns
-    ) {
-        return Math.floorMod(quarterTurns, 2) == 0
-                ? canonical
-                : new JigsawStudioCellDimensions(canonical.depth(), canonical.height(), canonical.width());
-    }
-
-    private static LocalPosition toCanonical(
-            LocalPosition source,
-            int sourceWidth,
-            int sourceDepth,
-            int quarterTurns
-    ) {
-        return switch (Math.floorMod(quarterTurns, 4)) {
-            case 0 -> source;
-            case 1 -> new LocalPosition(sourceDepth - 1 - source.z(), source.y(), source.x());
-            case 2 -> new LocalPosition(
-                    sourceWidth - 1 - source.x(),
-                    source.y(),
-                    sourceDepth - 1 - source.z());
-            case 3 -> new LocalPosition(source.z(), source.y(), sourceWidth - 1 - source.x());
-            default -> throw new IllegalStateException("Unreachable planar object rotation");
-        };
-    }
-
-    private static LocalPosition toSource(
-            LocalPosition canonical,
-            JigsawStudioCellDimensions sourceDimensions,
-            int quarterTurns
-    ) {
-        return switch (Math.floorMod(quarterTurns, 4)) {
-            case 0 -> canonical;
-            case 1 -> new LocalPosition(
-                    canonical.z(),
-                    canonical.y(),
-                    sourceDimensions.depth() - 1 - canonical.x());
-            case 2 -> new LocalPosition(
-                    sourceDimensions.width() - 1 - canonical.x(),
-                    canonical.y(),
-                    sourceDimensions.depth() - 1 - canonical.z());
-            case 3 -> new LocalPosition(
-                    sourceDimensions.width() - 1 - canonical.z(),
-                    canonical.y(),
-                    canonical.x());
-            default -> throw new IllegalStateException("Unreachable planar object rotation");
-        };
-    }
-
-    private static IrisDirection rotateHorizontalDirection(IrisDirection direction, int quarterTurns) {
-        JigsawPlanarDirection planarDirection = switch (direction) {
-            case NORTH_NEGATIVE_Z -> JigsawPlanarDirection.NORTH;
-            case EAST_POSITIVE_X -> JigsawPlanarDirection.EAST;
-            case SOUTH_POSITIVE_Z -> JigsawPlanarDirection.SOUTH;
-            case WEST_NEGATIVE_X -> JigsawPlanarDirection.WEST;
-            case UP_POSITIVE_Y, DOWN_NEGATIVE_Y -> throw new IllegalArgumentException(
-                    "Planar connector direction must be horizontal");
-        };
-        return planarDirection.rotateClockwise(quarterTurns).irisDirection();
-    }
-
-    private static IrisPosition dimensionsPosition(JigsawStudioCellDimensions dimensions) {
-        return new IrisPosition(dimensions.width(), dimensions.height(), dimensions.depth());
-    }
-
-    private static boolean inside(LocalPosition position, JigsawStudioCellDimensions dimensions) {
-        return inside(position, dimensions.width(), dimensions.height(), dimensions.depth());
-    }
-
-    private static boolean inside(LocalPosition position, int width, int height, int depth) {
-        return position.x() >= 0 && position.x() < width
-                && position.y() >= 0 && position.y() < height
-                && position.z() >= 0 && position.z() < depth;
-    }
-
-    private static void requireInside(
-            LocalPosition position,
-            int width,
-            int height,
-            int depth,
-            String content,
-            String pieceKey
-    ) throws IOException {
-        if (!inside(position, width, height, depth)) {
-            throw new IOException("Planar piece '" + pieceKey + "' has " + content + " at "
-                    + position.describe() + " outside its object bounds");
-        }
-    }
-
-    static IrisObject resizeObject(
-            IrisObject source,
-            JigsawStudioCellDimensions dimensions,
-            String pieceKey
-    ) throws IOException {
-        IrisObject object = Objects.requireNonNull(source, "Jigsaw Studio source object");
-        JigsawStudioCellDimensions target = Objects.requireNonNull(
-                dimensions,
-                "Jigsaw Studio target object dimensions");
-        String normalizedPiece = pieceKey == null || pieceKey.isBlank() ? "unknown" : pieceKey;
-        IrisObject resized = new IrisObject(target.width(), target.height(), target.depth());
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : object.getBlocks()) {
-            IrisBlockVector position = entry.getKey();
-            LocalPosition unsigned = unsignedPosition(position, object);
-            if (!inside(unsigned, target)) {
-                throw new IOException("Spatial piece '" + normalizedPiece
-                        + "' has a stored block, including explicit air, at " + unsigned.describe()
-                        + " that would be cropped by the requested variant size");
-            }
-            resized.setUnsigned(
-                    unsigned.x(),
-                    unsigned.y(),
-                    unsigned.z(),
-                    entry.getValue());
-        }
-        for (Map.Entry<IrisBlockVector, TileData> entry : object.getStates()) {
-            IrisBlockVector position = entry.getKey();
-            LocalPosition unsigned = unsignedPosition(position, object);
-            if (!inside(unsigned, target)) {
-                throw new IOException("Spatial piece '" + normalizedPiece + "' has tile data at "
-                        + unsigned.describe() + " that would be cropped by the requested variant size");
-            }
-            resized.setUnsignedTile(
-                    unsigned.x(),
-                    unsigned.y(),
-                    unsigned.z(),
-                    entry.getValue().clone());
-        }
-        return resized;
-    }
-
-    private static void requireConnectorsInside(
-            IrisJigsawPiece piece,
-            JigsawStudioCellDimensions dimensions,
-            String pieceKey
-    ) throws IOException {
-        if (piece.getConnectors() == null) {
-            throw new IOException("Spatial piece '" + pieceKey + "' has no connector list");
-        }
-        for (int index = 0; index < piece.getConnectors().size(); index++) {
-            IrisJigsawConnector connector = piece.getConnectors().get(index);
-            if (connector == null || connector.getPosition() == null) {
-                throw new IOException("Spatial piece '" + pieceKey + "' contains invalid connector " + index);
-            }
-            LocalPosition position = LocalPosition.from(connector.getPosition());
-            if (!inside(position, dimensions)) {
-                throw new IOException("Spatial piece '" + pieceKey + "' connector " + index + " at "
-                        + position.describe() + " would be cropped by the requested variant size");
-            }
-        }
-    }
-
-    private static String describeDimensions(JigsawStudioCellDimensions dimensions) {
-        return dimensions.width() + "x" + dimensions.height() + "x" + dimensions.depth();
-    }
-
-    private static String normalizeChannel(String channel) {
-        String normalized = channel == null ? "" : channel.trim();
-        if (normalized.equalsIgnoreCase("none")) {
-            return "";
-        }
-        if (normalized.length() > 128) {
-            throw new IllegalArgumentException("Jigsaw connector channels cannot exceed 128 characters");
-        }
-        for (int index = 0; index < normalized.length(); index++) {
-            if (Character.isWhitespace(normalized.charAt(index))) {
-                throw new IllegalArgumentException("Jigsaw connector channels cannot contain whitespace");
-            }
-        }
-        return normalized;
     }
 
     private static StructureWriteResult write(OwnedGraph graph, StructureResourceBundle bundle) throws IOException {
@@ -1804,80 +929,18 @@ public final class JigsawStudioGraphEditor {
         void edit(JsonObject piece, String pieceResource) throws IOException;
     }
 
-    private record PoolEntryRemoval(byte[] content, int removedEntries) {
-        private PoolEntryRemoval {
-            Objects.requireNonNull(content, "Jigsaw Studio pool entry removal content");
-            if (removedEntries < 0) {
-                throw new IllegalArgumentException("Removed jigsaw pool entry count cannot be negative");
-            }
-        }
-    }
-
-    private record PoolMembershipDuplication(byte[] content, int duplicatedEntries) {
-        private PoolMembershipDuplication {
-            Objects.requireNonNull(content, "Jigsaw Studio duplicated pool content");
-            if (duplicatedEntries < 0) {
-                throw new IllegalArgumentException("Duplicated pool membership count cannot be negative");
-            }
-        }
-    }
-
     private enum VariantObjectMode {
         COPY_SOURCE,
         EMPTY_SOURCE_SIZE
     }
 
-    record PlanarPieceObjectResize(IrisObject object, int relocatedConnectors) {
-        PlanarPieceObjectResize {
-            Objects.requireNonNull(object, "Resized planar Jigsaw Studio object");
-            if (relocatedConnectors < 0) {
-                throw new IllegalArgumentException("Relocated connector count cannot be negative");
-            }
-        }
-    }
-
-    private record ConnectorResize(
-            IrisJigsawConnector connector,
-            LocalPosition sourceCanonical,
-            LocalPosition targetCanonical
-    ) {
-        private ConnectorResize {
-            Objects.requireNonNull(connector, "Planar Jigsaw Studio connector");
-            Objects.requireNonNull(sourceCanonical, "Planar Jigsaw Studio source connector position");
-            Objects.requireNonNull(targetCanonical, "Planar Jigsaw Studio target connector position");
-        }
-    }
-
-    private record BlockRelocation(LocalPosition target, PlatformBlockState state, boolean present) {
-        private BlockRelocation {
-            Objects.requireNonNull(target, "Planar Jigsaw Studio connector block target");
-            if (present) {
-                Objects.requireNonNull(state, "Planar Jigsaw Studio connector block state");
-            }
-        }
-    }
-
-    private record LocalPosition(int x, int y, int z) {
-        private static LocalPosition from(IrisPosition position) {
-            return new LocalPosition(position.getX(), position.getY(), position.getZ());
-        }
-
-        private IrisPosition toIrisPosition() {
-            return new IrisPosition(x, y, z);
-        }
-
-        private String describe() {
-            return x + "," + y + "," + z;
-        }
-    }
-
-    private record OwnedGraph(
+    record OwnedGraph(
             Path root,
             StructureTransactionWriter writer,
             StructureOwnershipManifest manifest,
             String expectedManifestHash
     ) {
-        private StructureResourceBundle.Builder bundleBuilder() {
+        StructureResourceBundle.Builder bundleBuilder() {
             return StructureResourceBundle.builder(manifest.structure())
                     .source(manifest.source())
                     .backend(manifest.backend())

@@ -43,6 +43,8 @@ public final class ModdedArtifactVerifier {
     // Only the Bukkit platform binding is allowed to sit on org.bukkit types, and the modded jars
     // exclude it outright. Kept as an exemption so the same check can run over the Bukkit artifact.
     private static final String BUKKIT_PLATFORM_PREFIX = "art/arcane/iris/platform/bukkit/";
+    // VolmLib is a separate library with its own build; Iris' core purity ratchet does not govern it.
+    private static final String SHARED_LIBRARY_PREFIX = "art/arcane/volmlib/";
     private static final String BUKKIT_TYPE_PREFIX = "org/bukkit/";
     private static final String FABRIC_METADATA = "fabric.mod.json";
     private static final String NEOFORGE_METADATA = "META-INF/neoforge.mods.toml";
@@ -65,12 +67,14 @@ public final class ModdedArtifactVerifier {
     }
 
     /**
-     * @param bukkitSupertypeBaseline entry names (as they appear in the jar) that are known to
-     *                                extend or implement an {@code org.bukkit} type. New offenders
-     *                                outside this frozen set fail the build; entries that disappear
-     *                                from the artifact are not an error.
+     * @param bukkitCoupledCoreClasses top-level internal class names (no {@code .class} suffix, no
+     *                                 nested-class part) whose source file is listed in
+     *                                 core/purity-allowlist.txt. A class with an {@code org.bukkit}
+     *                                 supertype is accepted only when it is one of those, sits under
+     *                                 the Bukkit platform package, or comes from VolmLib. Anything
+     *                                 else is new Bukkit coupling in core and fails the build.
      */
-    public static void verify(File artifact, List<String> requiredEntries, Set<String> bukkitSupertypeBaseline) {
+    public static void verify(File artifact, List<String> requiredEntries, Set<String> bukkitCoupledCoreClasses) {
         if (!artifact.isFile()) {
             throw new GradleException("Missing modded Iris artifact: " + artifact.getAbsolutePath());
         }
@@ -129,7 +133,8 @@ public final class ModdedArtifactVerifier {
                     }
                 }
                 if (!name.startsWith(BUKKIT_PLATFORM_PREFIX)
-                        && !bukkitSupertypeBaseline.contains(name)
+                        && !name.startsWith(SHARED_LIBRARY_PREFIX)
+                        && !bukkitCoupledCoreClasses.contains(topLevelClass(name))
                         && hasBukkitSupertype(classFile)) {
                     bukkitSupertypeClasses.add(name);
                 }
@@ -154,7 +159,8 @@ public final class ModdedArtifactVerifier {
             }
             if (!bukkitSupertypeClasses.isEmpty()) {
                 throw new GradleException(artifact.getName() + " ships classes with an org.bukkit supertype outside "
-                        + BUKKIT_PLATFORM_PREFIX + ": " + preview(bukkitSupertypeClasses));
+                        + BUKKIT_PLATFORM_PREFIX + " whose source is not declared Bukkit-coupled in"
+                        + " core/purity-allowlist.txt: " + preview(bukkitSupertypeClasses));
             }
 
             verifyNestedJarDeclarations(artifact, jar, shippedNestedJars);
@@ -249,6 +255,12 @@ public final class ModdedArtifactVerifier {
                         + MAX_MIXIN_COMPATIBILITY_LEVEL);
             }
         }
+    }
+
+    private static String topLevelClass(String entryName) {
+        String internalName = entryName.substring(0, entryName.length() - ".class".length());
+        int nested = internalName.indexOf('$');
+        return nested < 0 ? internalName : internalName.substring(0, nested);
     }
 
     private static boolean hasBukkitSupertype(byte[] classFile) {

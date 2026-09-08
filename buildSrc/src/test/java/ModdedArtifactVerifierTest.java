@@ -253,14 +253,51 @@ public class ModdedArtifactVerifierTest {
     }
 
     @Test
-    public void acceptsBaselinedBukkitSupertype() throws Exception {
-        String entryName = "art/arcane/iris/engine/platform/BukkitChunkGenerator.class";
+    public void acceptsBukkitSupertypeDeclaredInThePurityAllowlist() throws Exception {
         Map<String, byte[]> entries = validEntries();
-        entries.put(entryName, classExtending("art/arcane/iris/engine/platform/BukkitChunkGenerator",
-                "org/bukkit/generator/ChunkGenerator"));
+        entries.put("art/arcane/iris/engine/platform/BukkitChunkGenerator.class",
+                classExtending("art/arcane/iris/engine/platform/BukkitChunkGenerator",
+                        "org/bukkit/generator/ChunkGenerator"));
         File artifact = createArtifact(entries);
 
-        ModdedArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, Set.of(entryName));
+        ModdedArtifactVerifier.verify(artifact, REQUIRED_ENTRIES,
+                Set.of("art/arcane/iris/engine/platform/BukkitChunkGenerator"));
+    }
+
+    @Test
+    public void acceptsBukkitSupertypeOnNestedClassOfAllowlistedSource() throws Exception {
+        Map<String, byte[]> entries = validEntries();
+        entries.put("art/arcane/iris/engine/object/IrisEntity$BukkitOps$1.class",
+                classImplementing("art/arcane/iris/engine/object/IrisEntity$BukkitOps$1",
+                        "org/bukkit/event/Listener"));
+        File artifact = createArtifact(entries);
+
+        ModdedArtifactVerifier.verify(artifact, REQUIRED_ENTRIES,
+                Set.of("art/arcane/iris/engine/object/IrisEntity"));
+    }
+
+    @Test
+    public void acceptsBukkitSupertypeFromSharedLibrary() throws Exception {
+        Map<String, byte[]> entries = validEntries();
+        entries.put("art/arcane/volmlib/util/bukkit/Events.class",
+                classImplementing("art/arcane/volmlib/util/bukkit/Events", "org/bukkit/event/Listener"));
+        File artifact = createArtifact(entries);
+
+        ModdedArtifactVerifier.verify(artifact, REQUIRED_ENTRIES);
+    }
+
+    @Test
+    public void rejectsBukkitSupertypeMissingFromThePurityAllowlist() throws Exception {
+        Map<String, byte[]> entries = validEntries();
+        entries.put("art/arcane/iris/core/link/data/OraxenDataProvider.class",
+                classImplementing("art/arcane/iris/core/link/data/OraxenDataProvider",
+                        "org/bukkit/event/Listener"));
+        File artifact = createArtifact(entries);
+
+        GradleException failure = assertThrows(GradleException.class,
+                () -> ModdedArtifactVerifier.verify(artifact, REQUIRED_ENTRIES,
+                        Set.of("art/arcane/iris/core/link/data/ItemAdderDataProvider")));
+        assertTrue(failure.getMessage().contains("core/purity-allowlist.txt"));
     }
 
     private Map<String, byte[]> validEntries() {

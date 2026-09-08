@@ -440,44 +440,21 @@ List<String> commonModdedArtifactEntries = [
     'assets/irisworldgen/icon.png'
 ]
 
-// Frozen inventory of shipped classes that extend or implement an org.bukkit type. They come from
-// core and VolmLib, sit on Bukkit-only code paths the mod loaders never resolve, and are inert dead
-// weight rather than a boot hazard - excluding them means chasing the whole core reference graph.
-// The verifier fails on anything NEW outside this set, which is the part that would be a regression.
-// Shrinking the set (WP4 deletions, retypes) needs no edit here; growing it does.
-Set<String> knownBukkitSupertypeClasses = [
-    'art/arcane/iris/core/events/IrisEngineEvent.class',
-    'art/arcane/iris/core/events/IrisLootEvent.class',
-    'art/arcane/iris/core/events/IrisLootEvent$1.class',
-    'art/arcane/iris/core/events/IrisLootEvent$2.class',
-    'art/arcane/iris/core/link/data/ItemAdderDataProvider.class',
-    'art/arcane/iris/core/link/data/MythicMobsDataProvider.class',
-    'art/arcane/iris/core/link/data/OraxenDataProvider.class',
-    'art/arcane/iris/core/link/MultiverseGuardListener.class',
-    'art/arcane/iris/engine/framework/EngineAssignedWorldManager.class',
-    'art/arcane/iris/engine/object/IrisEntity$BukkitOps$1.class',
-    'art/arcane/iris/engine/object/LegacyTileData$SignTags$1.class',
-    'art/arcane/iris/engine/platform/BukkitChunkGenerator.class',
-    'art/arcane/iris/engine/platform/DummyBiomeProvider.class',
-    'art/arcane/iris/engine/platform/DummyChunkGenerator.class',
-    'art/arcane/iris/util/common/data/IrisCustomData.class',
-    'art/arcane/iris/util/common/plugin/IrisService.class',
-    'art/arcane/iris/util/common/plugin/VolmitPlugin.class',
-    'art/arcane/iris/util/common/plugin/VolmitSender.class',
-    'art/arcane/iris/util/common/plugin/chunk/ChunkTickets.class',
-    'art/arcane/volmlib/util/board/BoardUpdateTask.class',
-    'art/arcane/volmlib/util/bukkit/Events.class',
-    'art/arcane/volmlib/util/data/Cuboid.class',
-    'art/arcane/volmlib/util/data/InvertedBiomeGrid.class',
-    'art/arcane/volmlib/util/data/IrisBiomeStorage.class',
-    'art/arcane/volmlib/util/inventorygui/UIWindow.class'
-] as Set
+// The modded jars ship the Bukkit-only code paths inert - excluding them means chasing the whole core
+// reference graph. What must not slip in is new Bukkit coupling in core, which core already declares
+// in purity-allowlist.txt, so the baseline is read from there instead of frozen by hand.
+File bukkitPurityAllowlist = layout.projectDirectory.file('core/purity-allowlist.txt').asFile
+Set<String> bukkitCoupledCoreClasses = bukkitPurityAllowlist.readLines()
+    .findAll { String line -> !line.isBlank() }
+    .collect { String line -> line.trim() - ~/\.java$/ }
+    .toSet()
 
 tasks.register('verifyFabricArtifact') {
     group = 'verification'
     dependsOn('fabricJar')
     File artifact = layout.projectDirectory.file("adapters/fabric/build/libs/${fabricArtifactName}").asFile
     inputs.file(artifact)
+    inputs.file(bukkitPurityAllowlist)
     doLast {
         List<String> requiredEntries = commonModdedArtifactEntries + [
             'fabric.mod.json',
@@ -485,7 +462,7 @@ tasks.register('verifyFabricArtifact') {
             'irisworldgen.accesswidener',
             'art/arcane/iris/fabric/IrisFabricBootstrap.class'
         ]
-        ModdedArtifactVerifier.verify(artifact, requiredEntries, knownBukkitSupertypeClasses)
+        ModdedArtifactVerifier.verify(artifact, requiredEntries, bukkitCoupledCoreClasses)
         logger.lifecycle("Verified ${artifact.name} packaging, mixin compat, and nested jars")
     }
 }
@@ -495,13 +472,14 @@ tasks.register('verifyForgeArtifact') {
     dependsOn('forgeJar')
     File artifact = layout.projectDirectory.file("adapters/forge/build/libs/${forgeArtifactName}").asFile
     inputs.file(artifact)
+    inputs.file(bukkitPurityAllowlist)
     doLast {
         List<String> requiredEntries = commonModdedArtifactEntries + [
             'META-INF/mods.toml',
             'META-INF/accesstransformer.cfg',
             'art/arcane/iris/forge/IrisForgeBootstrap.class'
         ]
-        ModdedArtifactVerifier.verify(artifact, requiredEntries, knownBukkitSupertypeClasses)
+        ModdedArtifactVerifier.verify(artifact, requiredEntries, bukkitCoupledCoreClasses)
         logger.lifecycle("Verified ${artifact.name} packaging, mixin compat, and nested jars")
     }
 }
@@ -511,13 +489,14 @@ tasks.register('verifyNeoforgeArtifact') {
     dependsOn('neoforgeJar')
     File artifact = layout.projectDirectory.file("adapters/neoforge/build/libs/${neoForgeArtifactName}").asFile
     inputs.file(artifact)
+    inputs.file(bukkitPurityAllowlist)
     doLast {
         List<String> requiredEntries = commonModdedArtifactEntries + [
             'META-INF/neoforge.mods.toml',
             'META-INF/accesstransformer.cfg',
             'art/arcane/iris/neoforge/IrisNeoForgeBootstrap.class'
         ]
-        ModdedArtifactVerifier.verify(artifact, requiredEntries, knownBukkitSupertypeClasses)
+        ModdedArtifactVerifier.verify(artifact, requiredEntries, bukkitCoupledCoreClasses)
         logger.lifecycle("Verified ${artifact.name} packaging, mixin compat, and nested jars")
     }
 }

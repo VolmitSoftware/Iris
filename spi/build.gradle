@@ -11,6 +11,10 @@ java {
     }
 }
 
+dependencies {
+    testImplementation('junit:junit:4.13.2')
+}
+
 tasks.named('jar', Jar).configure {
     archiveBaseName.set('iris-spi')
 }

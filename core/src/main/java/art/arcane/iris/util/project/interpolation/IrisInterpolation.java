@@ -63,26 +63,6 @@ public class IrisInterpolation {
         return a + (parametric(f, v) * (b - a));
     }
 
-    public static double blerp(double a, double b, double c, double d, double tx, double ty, InterpolationType type) {
-        if (type.equals(InterpolationType.LINEAR)) {
-            return blerp(a, b, c, d, tx, ty);
-        }
-
-        if (type.equals(InterpolationType.BEZIER)) {
-            return blerpBezier(a, b, c, d, tx, ty);
-        }
-
-        if (type.equals(InterpolationType.PARAMETRIC_2)) {
-            return blerpParametric(a, b, c, d, tx, ty, 2);
-        }
-
-        if (type.equals(InterpolationType.PARAMETRIC_4)) {
-            return blerpParametric(a, b, c, d, tx, ty, 4);
-        }
-
-        return 0;
-    }
-
     public static double blerpBezier(double a, double b, double c, double d, double tx, double ty) {
         return lerpBezier(lerpBezier(a, b, tx), lerpBezier(c, d, tx), ty);
     }

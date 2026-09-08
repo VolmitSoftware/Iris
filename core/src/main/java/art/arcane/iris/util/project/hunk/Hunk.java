@@ -36,6 +36,7 @@ import art.arcane.volmlib.util.hunk.HunkCoreSupport;
 import art.arcane.volmlib.util.hunk.HunkInterpolationSupport;
 import art.arcane.volmlib.util.hunk.HunkMutationSupport;
 import art.arcane.volmlib.util.hunk.HunkSectionSupport;
+import art.arcane.volmlib.util.hunk.HunkFace;
 import art.arcane.volmlib.util.hunk.HunkLike;
 import art.arcane.iris.util.project.hunk.storage.ArrayHunk;
 import art.arcane.iris.util.project.hunk.storage.AtomicDoubleHunk;

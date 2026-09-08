@@ -269,8 +269,6 @@ List<String> supersededVolmLibPackages = [
     'art/arcane/volmlib/util/reflect/**',
     'art/arcane/volmlib/util/documentation/**',
     'art/arcane/iris/core/report/**',
-    'art/arcane/iris/util/common/inventorygui/**',
-    'art/arcane/iris/util/common/board/**',
     'art/arcane/volmlib/integration/VaultEconomy*.class'
 ]
 
@@ -398,7 +396,6 @@ List<String> unusedVolmLibClasses = [
     'art/arcane/iris/engine/object/IPostBlockAccess',
     'art/arcane/iris/engine/object/IrisPotionEffect',
     'art/arcane/iris/engine/platform/DummyChunkGenerator',
-    'art/arcane/iris/util/common/math/VectorMath',
     'art/arcane/iris/util/common/parallel/GridLock',
     'art/arcane/iris/util/common/reflect/W',
     'art/arcane/iris/util/slimjar/BuildConstants',

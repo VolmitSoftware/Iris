@@ -188,9 +188,6 @@ art/arcane/iris/util/common/director/handlers/VectorHandler.java
 art/arcane/iris/util/common/director/handlers/WorldHandler.java
 art/arcane/iris/util/common/director/specialhandlers/NullablePlayerHandler.java
 art/arcane/iris/util/common/format/C.java
-art/arcane/iris/util/common/inventorygui/UIStaticDecorator.java
-art/arcane/iris/util/common/inventorygui/Window.java
-art/arcane/iris/util/common/inventorygui/WindowResolution.java
 art/arcane/iris/util/common/math/AxisAlignedBB.java
 art/arcane/iris/util/common/math/Direction.java
 art/arcane/iris/util/common/math/VectorMath.java

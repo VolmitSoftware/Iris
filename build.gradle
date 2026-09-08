@@ -227,9 +227,10 @@ tasks.register('buildBukkit', Copy) {
     }
 }
 
-// The three loader jars come out of nested standalone Gradle builds driven through Exec. Their own
-// Gradle builds own the complete incremental model, so always launch them instead of allowing an
-// incomplete outer input inventory to publish stale jars.
+// The three loader jars come out of nested standalone Gradle builds driven through Exec. The outer
+// task therefore has to carry the full inventory of what those builds read: every shared source tree,
+// every build script and version file they load, and the local VolmLib checkout when the composite
+// resolves one. Anything missing from that list publishes a stale jar.
 Closure<File> resolveLocalVolmLibDirectory = { ->
     String configured = localVolmLibDirectory != null && !localVolmLibDirectory.isBlank()
         ? localVolmLibDirectory
@@ -262,13 +263,18 @@ List<Object> moddedSharedInputs = []
     'adapters/client-common/src',
     'core/src/main',
     'core/build.gradle',
+    'core/agent/src',
+    'core/agent/build.gradle',
     'spi/src/main',
     'spi/build.gradle',
     'build.gradle',
     'settings.gradle',
     'gradle.properties',
+    'lombok.config',
     'gradle/libs.versions.toml',
-    'gradle/volmlib-resolution.settings.gradle'
+    'gradle/volmlib-resolution.settings.gradle',
+    'gradle/generation-build-revision.gradle',
+    'gradle/modded-generation-build-revision.gradle'
 ].each { String path -> moddedSharedInputs.add(layout.projectDirectory.file(path).asFile) }
 File localVolmLibCheckout = useLocalVolmLib.equalsIgnoreCase('true') ? resolveLocalVolmLibDirectory() : null
 if (localVolmLibCheckout != null) {
@@ -287,8 +293,6 @@ Closure<Void> declareModdedJarIo = { Exec task, String adapter, String artifactN
     task.inputs.property('volmLibCoordinate', volmLibCoordinate)
     task.inputs.property('localVolmLibCheckout', localVolmLibCheckout == null ? '' : localVolmLibCheckout.absolutePath)
     task.outputs.file(layout.projectDirectory.file("adapters/${adapter}/build/libs/${artifactName}"))
-    task.outputs.upToDateWhen { false }
-    task.outputs.cacheIf { false }
     return null
 }
 

@@ -88,20 +88,19 @@ public class SimdSupportStatusTest {
     }
 
     @Test
-    public void aNarrowCpuIsReportedAsUnprofitableRatherThanDisabled() {
-        String status = SimdSupport.noiseKernelStatus(false, "scalar", true, null, true);
+    public void aCpuWithoutAUsableVectorShapeIsReportedAsSuchRatherThanDisabled() {
+        String status = SimdSupport.kernelStatus(false, "scalar", true, null, true);
 
-        assertTrue(status, status.contains("4 double lanes"));
+        assertTrue(status, status.contains("no usable vector shape"));
         assertFalse(status, status.contains("performance.simdKernels=false"));
     }
 
     @Test
-    public void installStatesTheLiveKernelSelectionForBothKernelSets() {
+    public void installStatesTheLiveKernelSelection() {
         SimdSupport.install();
 
-        assertTrue(emitted.toString(), emitted.size() >= 2);
+        assertTrue(emitted.toString(), emitted.size() >= 1);
         assertTrue(emitted.toString(), emitted.contains("SIMD: " + SimdSupport.kernelStatus()));
-        assertTrue(emitted.toString(), emitted.contains("SIMD: " + SimdSupport.noiseKernelStatus()));
     }
 
     @Test
@@ -111,6 +110,5 @@ public class SimdSupportStatusTest {
         }
 
         assertFalse(SimdSupport.kernelStatus(), SimdSupport.kernelStatus().contains("performance.simdKernels=false"));
-        assertFalse(SimdSupport.noiseKernelStatus(), SimdSupport.noiseKernelStatus().contains("performance.simdKernels=false"));
     }
 }

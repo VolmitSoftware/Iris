@@ -359,7 +359,7 @@ public class VolmitSender implements CommandSender {
     @NotNull
     @Override
     public Component name() {
-        return s.name();
+        return Component.text(getName());
     }
 
     @Override

@@ -84,7 +84,7 @@ String fabricArtifactName = irisArtifactName('Fabric', "${minecraftVersion}+${lo
 String forgeArtifactName = irisArtifactName('Forge', "${minecraftVersion}+${loaderDisplayVersion(forgeVersion)}")
 String neoForgeArtifactName = irisArtifactName('NeoForge', "${minecraftVersion}+${loaderDisplayVersion(neoForgeVersion)}")
 File pluginOutDirectory = layout.projectDirectory.dir('../PluginOuts').asFile
-long maximumBukkitArtifactBytes = 8_000_000L
+long maximumBukkitArtifactBytes = 7_600_000L
 apply plugin: ApiGenerator
 
 // Where `buildAll` drops the per-platform jars for a local test server. Use the approved sibling
@@ -746,6 +746,26 @@ pluginPackaging {
             releaseCompression = providers.gradleProperty('compactRelease').map { it.toBoolean() }.getOrElse(false)
             prunePrefixes = ['art/arcane/volmlib/']
             keepPrefixes = ['art/arcane/volmlib/util/matter/slices/']
+            shrinkRules = [file('packaging/shrink.pro')]
+            shrinkLibraries.from(provider { project(':core').configurations.compileClasspath })
+            shrinkLibraries.from(provider { project(':adapters:bukkit:plugin').configurations.compileClasspath })
+            shrinkLibraries.from(provider { project(':adapters:bukkit:nms:v26_2_R1').configurations.compileClasspath })
+            shrinkRelocations = [
+                'com.dfsek.paralithic': 'art.arcane.iris.util.paralithic',
+                'com.google.gson': 'art.arcane.iris.util.gson',
+                'com.googlecode.concurrentlinkedhashmap': 'art.arcane.iris.util.lru',
+                'io.papermc.lib': 'art.arcane.iris.util.paper',
+                'net.kyori': 'art.arcane.iris.util.kyori',
+                'org.bstats': 'art.arcane.iris.util.metrics',
+                'org.apache.maven': 'art.arcane.iris.util.maven',
+                'org.codehaus.plexus': 'art.arcane.iris.util.plexus',
+                'org.eclipse.sisu': 'art.arcane.iris.util.sisu',
+                'org.eclipse.aether': 'art.arcane.iris.util.aether',
+                'com.google.inject': 'art.arcane.iris.util.guice',
+                'org.dom4j': 'art.arcane.iris.util.dom4j',
+                'org.jaxen': 'art.arcane.iris.util.jaxen',
+                'com.github.benmanes.caffeine': 'art.arcane.iris.util.caffeine'
+            ]
         }
     }
 }

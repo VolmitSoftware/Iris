@@ -19,10 +19,10 @@ public class HydrologyRouteLengthsTest {
                     int[] parent = forest(width, random);
                     HydrologyPlannerSettings.Routing routing = routing(spacing, maximumLength);
                     assertArrayEquals(walks(parent, width, routing),
-                            HydrologyPlanner.routeLengths(parent, width, routing));
+                            HydrologySourcePlanner.routeLengths(parent, width, routing));
                     reverse(parent);
                     assertArrayEquals(walks(parent, width, routing),
-                            HydrologyPlanner.routeLengths(parent, width, routing));
+                            HydrologySourcePlanner.routeLengths(parent, width, routing));
                 }
             }
         }
@@ -32,7 +32,7 @@ public class HydrologyRouteLengthsTest {
     public void exactLengthLimitAndMissingOutletsKeepTheirBounds() {
         int[] parent = {1, 2, 3, 4, -1, -1, -1, -1, -1};
         assertArrayEquals(new int[]{Integer.MAX_VALUE, 12, 8, 4, 0, 0, 0, 0, 0},
-                HydrologyPlanner.routeLengths(parent, 9, routing(4, 12)));
+                HydrologySourcePlanner.routeLengths(parent, 9, routing(4, 12)));
     }
 
     @Test
@@ -48,11 +48,11 @@ public class HydrologyRouteLengthsTest {
             }
         }
         parent[parent.length - 1] = -1;
-        int[] lengths = HydrologyPlanner.routeLengths(parent, width, routing(4, Integer.MAX_VALUE));
+        int[] lengths = HydrologySourcePlanner.routeLengths(parent, width, routing(4, Integer.MAX_VALUE));
         assertEquals((parent.length - 1) * 4, lengths[0]);
         assertEquals(0, lengths[lengths.length - 1]);
         reverse(parent);
-        lengths = HydrologyPlanner.routeLengths(parent, width, routing(4, Integer.MAX_VALUE));
+        lengths = HydrologySourcePlanner.routeLengths(parent, width, routing(4, Integer.MAX_VALUE));
         assertEquals((parent.length - 1) * 4, lengths[lengths.length - 1]);
         assertEquals(0, lengths[0]);
     }
@@ -60,7 +60,7 @@ public class HydrologyRouteLengthsTest {
     @Test
     public void cyclesFailBeforeTheyCanStallPlanning() {
         assertThrows(IllegalStateException.class,
-                () -> HydrologyPlanner.routeLengths(new int[]{1, 0}, 2, routing(4, 128)));
+                () -> HydrologySourcePlanner.routeLengths(new int[]{1, 0}, 2, routing(4, 128)));
     }
 
     private static int[] forest(int width, Random random) {

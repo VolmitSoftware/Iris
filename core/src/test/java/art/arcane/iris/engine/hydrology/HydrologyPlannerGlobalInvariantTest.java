@@ -188,7 +188,7 @@ public class HydrologyPlannerGlobalInvariantTest {
                     globallyAdmitted[candidateIndex] = random.nextBoolean();
                 }
 
-                HydrologyPlanner.SourceAdmissionSelection lazy = HydrologyPlanner.selectSourceAdmissions(
+                SourceAdmissionSelection lazy = HydrologySourcePlanner.selectSourceAdmissions(
                         candidateCount,
                         target,
                         guaranteed,
@@ -208,7 +208,7 @@ public class HydrologyPlannerGlobalInvariantTest {
     public void lazyAdmissionStopsGlobalEvaluationWhenQuotaIsFilled() {
         AtomicInteger evaluations = new AtomicInteger();
 
-        HydrologyPlanner.SourceAdmissionSelection selection = HydrologyPlanner.selectSourceAdmissions(
+        SourceAdmissionSelection selection = HydrologySourcePlanner.selectSourceAdmissions(
                 256,
                 1,
                 0,

@@ -723,10 +723,10 @@ public final class GenerationHistoryRuntimeRouterTest {
                     assertThrows(IllegalStateException.class, route::close);
                 }
             }, executor);
-            CompletableFuture<Void> completion = work.whenComplete((ignored, failure) -> {
+            CompletableFuture<Void> completion = work.whenCompleteAsync((ignored, failure) -> {
                 completionThread.set(Thread.currentThread());
                 route.close();
-            });
+            }, executor);
             completion.get(5L, TimeUnit.SECONDS);
         } finally {
             executor.shutdownNow();

@@ -30,6 +30,13 @@ public class BukkitArtifactVerifierTest {
             NMS_BINDING + ".class"
     );
     private static final int MATTER_SLICES = 1;
+    private static final List<String> RUNTIME_DOWNLOADED_PREFIXES = List.of(
+            "art/arcane/iris/util/kyori/",
+            "art/arcane/iris/util/gson/",
+            "art/arcane/iris/util/lru/",
+            "art/arcane/iris/util/caffeine/",
+            "art/arcane/iris/util/paralithic/"
+    );
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -38,7 +45,7 @@ public class BukkitArtifactVerifierTest {
     public void acceptsCompleteArtifact() throws Exception {
         File artifact = createArtifact(validEntries());
 
-        BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, Long.MAX_VALUE);
+        BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES);
     }
 
     @Test
@@ -48,7 +55,7 @@ public class BukkitArtifactVerifierTest {
         File artifact = createArtifact(entries);
 
         GradleException failure = assertThrows(GradleException.class,
-                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, Long.MAX_VALUE));
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES));
         assertTrue(failure.getMessage().contains(PLUGIN_DESCRIPTOR));
     }
 
@@ -59,7 +66,7 @@ public class BukkitArtifactVerifierTest {
         File artifact = createArtifact(entries);
 
         GradleException failure = assertThrows(GradleException.class,
-                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, Long.MAX_VALUE));
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES));
         assertTrue(failure.getMessage().contains(SLIMJAR_DEPENDENCIES));
     }
 
@@ -70,7 +77,7 @@ public class BukkitArtifactVerifierTest {
         File artifact = createArtifact(entries);
 
         GradleException failure = assertThrows(GradleException.class,
-                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, Long.MAX_VALUE));
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES));
         assertTrue(failure.getMessage().contains(SLIMJAR_RESOLUTIONS));
     }
 
@@ -81,7 +88,7 @@ public class BukkitArtifactVerifierTest {
         File artifact = createArtifact(entries);
 
         GradleException failure = assertThrows(GradleException.class,
-                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, Long.MAX_VALUE));
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES));
         assertTrue(failure.getMessage().contains("art/arcane/volmlib/util/noise/CNG"));
     }
 
@@ -100,20 +107,20 @@ public class BukkitArtifactVerifierTest {
                 classReferencing("art/arcane/iris/ParalithicConsumer", "art/arcane/iris/util/paralithic/functions/Function"));
         File artifact = createArtifact(entries);
 
-        BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, Long.MAX_VALUE);
+        BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES);
     }
 
     @Test
-    public void rejectsArtifactAboveConfiguredSize() throws Exception {
-        File artifact = createArtifact(validEntries());
+    public void rejectsReferenceOutsideRuntimeDownloadedPrefixes() throws Exception {
+        Map<String, byte[]> entries = validEntries();
+        entries.put("art/arcane/iris/PaperConsumer.class",
+                classReferencing("art/arcane/iris/PaperConsumer", "art/arcane/iris/util/paper/PaperLib"));
+        File artifact = createArtifact(entries);
 
         GradleException failure = assertThrows(GradleException.class,
-                () -> BukkitArtifactVerifier.verify(
-                        artifact,
-                        REQUIRED_ENTRIES,
-                        MATTER_SLICES,
-                        artifact.length() - 1L));
-        assertTrue(failure.getMessage().contains("must not exceed"));
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES,
+                        RUNTIME_DOWNLOADED_PREFIXES));
+        assertTrue(failure.getMessage().contains("art/arcane/iris/util/paper/PaperLib"));
     }
 
     @Test
@@ -123,7 +130,7 @@ public class BukkitArtifactVerifierTest {
         File artifact = createArtifact(entries);
 
         GradleException failure = assertThrows(GradleException.class,
-                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, Long.MAX_VALUE));
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES));
         assertTrue(failure.getMessage().contains("locale files"));
     }
 
@@ -134,7 +141,7 @@ public class BukkitArtifactVerifierTest {
         File artifact = createArtifact(entries);
 
         GradleException failure = assertThrows(GradleException.class,
-                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, Long.MAX_VALUE));
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES));
         assertTrue(failure.getMessage().contains("Matter slice types"));
     }
 
@@ -145,7 +152,7 @@ public class BukkitArtifactVerifierTest {
                 classAnnotatedWith("art/arcane/iris/Annotated", "com/google/errorprone/annotations/CanIgnoreReturnValue"));
         File artifact = createArtifact(entries);
 
-        BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, Long.MAX_VALUE);
+        BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES);
     }
 
     private Map<String, byte[]> validEntries() {

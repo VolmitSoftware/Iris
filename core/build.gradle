@@ -33,6 +33,8 @@ plugins {
     alias(libs.plugins.slimjar)
 }
 
+apply from: rootProject.file('gradle/runtime-relocations.gradle')
+
 def lib = 'art.arcane.iris.util'
 String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate')
     .orElse('com.github.VolmitSoftware:VolmLib:master-SNAPSHOT')
@@ -158,20 +160,9 @@ slimJar {
         )
     ]
 
-    relocate('com.dfsek.paralithic', "${lib}.paralithic")
-    relocate('com.google.gson', "${lib}.gson")
-    relocate('com.googlecode.concurrentlinkedhashmap', "${lib}.lru")
-    relocate('io.papermc.lib', "${lib}.paper")
-    relocate('net.kyori', "${lib}.kyori")
-    relocate('org.bstats', "${lib}.metrics")
-    relocate('org.apache.maven', "${lib}.maven")
-    relocate('org.codehaus.plexus', "${lib}.plexus")
-    relocate('org.eclipse.sisu', "${lib}.sisu")
-    relocate('org.eclipse.aether', "${lib}.aether")
-    relocate('com.google.inject', "${lib}.guice")
-    relocate('org.dom4j', "${lib}.dom4j")
-    relocate('org.jaxen', "${lib}.jaxen")
-    relocate('com.github.benmanes.caffeine', "${lib}.caffeine")
+    for (Map.Entry<String, String> relocation : runtimeDownloadRelocations.entrySet()) {
+        relocate(relocation.getKey(), relocation.getValue())
+    }
 }
 
 def embeddedAgentJar = project(':core:agent').tasks.named('jar', Jar)

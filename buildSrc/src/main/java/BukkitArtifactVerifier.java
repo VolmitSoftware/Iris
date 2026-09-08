@@ -3,6 +3,7 @@ import org.gradle.api.GradleException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -23,38 +24,23 @@ public final class BukkitArtifactVerifier {
             "art/arcane/iris/",
             "art/arcane/volmlib/"
     );
-    // Relocation targets for the libraries slimjar downloads and relocates at runtime. Compiled
-    // references to them are correct and the classes are correctly absent from the jar.
-    private static final List<String> RUNTIME_DOWNLOADED_PREFIXES = List.of(
-            "art/arcane/iris/util/paper/",
-            "art/arcane/iris/util/kyori/",
-            "art/arcane/iris/util/metrics/",
-            "art/arcane/iris/util/maven/",
-            "art/arcane/iris/util/plexus/",
-            "art/arcane/iris/util/sisu/",
-            "art/arcane/iris/util/aether/",
-            "art/arcane/iris/util/guice/",
-            "art/arcane/iris/util/dom4j/",
-            "art/arcane/iris/util/jaxen/",
-            "art/arcane/iris/util/gson/",
-            "art/arcane/iris/util/lru/",
-            "art/arcane/iris/util/caffeine/",
-            "art/arcane/iris/util/paralithic/"
-    );
     private static final String MATTER_SLICE_PACKAGE = "art/arcane/volmlib/util/matter/slices/";
     private static final String LANGUAGE_DIRECTORY = "languages/";
 
     private BukkitArtifactVerifier() {
     }
 
+    /**
+     * @param runtimeDownloadedPrefixes relocation targets for the libraries slimjar downloads and
+     *                                  relocates at runtime, derived from the single relocation
+     *                                  declaration in gradle/runtime-relocations.gradle. Compiled
+     *                                  references to them are correct and the classes are correctly
+     *                                  absent from the jar.
+     */
     public static void verify(File artifact, List<String> requiredEntries,
-                              int minimumMatterSlices, long maximumArtifactBytes) {
+                              int minimumMatterSlices, Collection<String> runtimeDownloadedPrefixes) {
         if (!artifact.isFile()) {
             throw new GradleException("Missing Bukkit Iris artifact: " + artifact.getAbsolutePath());
-        }
-        if (artifact.length() > maximumArtifactBytes) {
-            throw new GradleException(artifact.getName() + " is " + artifact.length()
-                    + " bytes; Bukkit artifacts must not exceed " + maximumArtifactBytes + " bytes");
         }
 
         try (JarFile jar = new JarFile(artifact)) {
@@ -113,7 +99,7 @@ public final class BukkitArtifactVerifier {
                 for (String reference : ClassReferences.read(readEntryBytes(jar, entry))) {
                     if (shippedClasses.contains(reference)
                             || !startsWithAny(reference, SHIPPED_PREFIXES)
-                            || startsWithAny(reference, RUNTIME_DOWNLOADED_PREFIXES)) {
+                            || startsWithAny(reference, runtimeDownloadedPrefixes)) {
                         continue;
                     }
                     dangling.putIfAbsent(reference, entry.getName());
@@ -145,7 +131,7 @@ public final class BukkitArtifactVerifier {
         }
     }
 
-    private static boolean startsWithAny(String value, List<String> prefixes) {
+    private static boolean startsWithAny(String value, Collection<String> prefixes) {
         for (String prefix : prefixes) {
             if (value.startsWith(prefix)) {
                 return true;

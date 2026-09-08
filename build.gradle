@@ -446,6 +446,56 @@ tasks.named('neoforgeJar').configure {
     mustRunAfter(tasks.named('forgeJar'))
 }
 
+// adapters/modded-common has no build of its own: its sources are compiled by each loader wrapper, so
+// its tests only run when one of those wrappers is asked for `test`. The Fabric wrapper is the one
+// that runs them as plain JUnit - NeoForge's moddev unit-test harness boots the mod through FML's
+// transforming class loader and dies on a split-package ServiceConfigurationError before any test
+// starts. One loader is enough: the sources are identical across all three.
+tasks.register('moddedTest', Exec) {
+    group = 'verification'
+    description = 'Runs the adapters/modded-common test suite through the Fabric adapter build.'
+    workingDir = layout.projectDirectory.dir('adapters/fabric').asFile
+    String wrapperScript = System.getProperty('os.name').toLowerCase().contains('windows') ? 'gradlew.bat' : 'gradlew'
+    List<String> command = [
+        layout.projectDirectory.file(wrapperScript).asFile.absolutePath,
+        'test',
+        '--console=plain',
+        "-PirisVersion=${project.version}",
+        "-PminecraftVersion=${minecraftVersion}",
+        "-PfabricLoaderVersion=${fabricLoaderVersion}",
+        "-PuseLocalVolmLib=${useLocalVolmLib}",
+        "-PvolmLibCoordinate=${volmLibCoordinate}"
+    ]
+    if (localVolmLibDirectory != null && !localVolmLibDirectory.isBlank()) {
+        command.add("-PlocalVolmLibDirectory=${localVolmLibDirectory}")
+    }
+    commandLine(command)
+    inputs.files(moddedSharedInputs).withPropertyName('moddedSharedSources')
+    inputs.files(
+        layout.projectDirectory.file('adapters/fabric/src').asFile,
+        layout.projectDirectory.file('adapters/fabric/build.gradle').asFile,
+        layout.projectDirectory.file('adapters/fabric/settings.gradle').asFile
+    ).withPropertyName('adapterSources')
+    inputs.property('irisVersion', project.version.toString())
+    inputs.property('minecraftVersion', minecraftVersion)
+    inputs.property('fabricLoaderVersion', fabricLoaderVersion)
+    inputs.property('useLocalVolmLib', useLocalVolmLib)
+    inputs.property('volmLibCoordinate', volmLibCoordinate)
+    inputs.property('localVolmLibCheckout', localVolmLibCheckout == null ? '' : localVolmLibCheckout.absolutePath)
+    outputs.dir(layout.projectDirectory.dir('adapters/fabric/build/test-results/test'))
+    mustRunAfter(tasks.named('jar'))
+    mustRunAfter(project(':core').tasks.named('check'))
+    mustRunAfter(project(':spi').tasks.named('jar'))
+}
+
+tasks.named('fabricJar').configure {
+    mustRunAfter(tasks.named('moddedTest'))
+}
+
+tasks.named('check').configure {
+    dependsOn('moddedTest')
+}
+
 List<String> commonModdedArtifactEntries = [
     'META-INF/iris/generation-kernels/catalog.tsv',
     'META-INF/iris/generation-kernels/abi-1.revision',

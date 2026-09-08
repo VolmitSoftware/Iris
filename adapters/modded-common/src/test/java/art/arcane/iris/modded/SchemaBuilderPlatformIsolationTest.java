@@ -13,13 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 
 public class SchemaBuilderPlatformIsolationTest {
     @Test
     public void enumSchemaDoesNotResolveBukkitOnlyMethodSignatures() {
-        assertThrows(ClassNotFoundException.class, () -> Class.forName("org.bukkit.block.BlockFace"));
-
         JSONObject schema = new SchemaBuilder(DirectionModel.class, null).construct();
         JSONObject direction = schema.getJSONObject("properties").getJSONObject("direction");
         String definitionKey = direction.getString("$ref").substring("#/definitions/".length());

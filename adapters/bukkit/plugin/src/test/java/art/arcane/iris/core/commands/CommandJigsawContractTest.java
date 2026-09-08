@@ -108,10 +108,10 @@ public class CommandJigsawContractTest {
         BrokenPackException failure = new BrokenPackException(
                 "overworld", List.of("Biome 'broken' has no resolvable regions."));
 
-        assertTrue(CommandJigsaw.isExpectedOpenDenial(failure));
-        assertTrue(CommandJigsaw.isExpectedOpenDenial(
+        assertTrue(CommandJigsawOpen.isExpectedOpenDenial(failure));
+        assertTrue(CommandJigsawOpen.isExpectedOpenDenial(
                 new CompletionException(failure)));
-        assertFalse(CommandJigsaw.isExpectedOpenDenial(
+        assertFalse(CommandJigsawOpen.isExpectedOpenDenial(
                 new IllegalStateException("Unexpected Studio failure")));
     }
 
@@ -138,20 +138,20 @@ public class CommandJigsawContractTest {
 
     @Test
     public void adoptionCommandsExposeTwoStepPlanContract() throws Exception {
-        Method inspect = CommandJigsaw.CommandJigsawAdopt.class.getDeclaredMethod(
+        Method inspect = CommandJigsawAdopt.class.getDeclaredMethod(
                 "inspect", IrisDimension.class, String.class, String.class, String.class);
-        Method apply = CommandJigsaw.CommandJigsawAdopt.class.getDeclaredMethod("apply", String.class);
+        Method apply = CommandJigsawAdopt.class.getDeclaredMethod("apply", String.class);
         Parameter[] inspectParameters = inspect.getParameters();
 
         assertNotNull(inspect.getAnnotation(Director.class));
         assertNotNull(apply.getAnnotation(Director.class));
         assertParameter(inspectParameters[2], "auto", null);
-        assertParameter(inspectParameters[3], "auto", CommandJigsaw.JigsawAdoptionStrategyHandler.class);
-        assertEquals(CommandJigsaw.JigsawAdoptionPlanHandler.class,
+        assertParameter(inspectParameters[3], "auto", CommandJigsawAdopt.JigsawAdoptionStrategyHandler.class);
+        assertEquals(CommandJigsawAdopt.JigsawAdoptionPlanHandler.class,
                 apply.getParameters()[0].getAnnotation(Param.class).customHandler());
 
-        CommandJigsaw.JigsawAdoptionStrategyHandler strategyHandler =
-                new CommandJigsaw.JigsawAdoptionStrategyHandler();
+        CommandJigsawAdopt.JigsawAdoptionStrategyHandler strategyHandler =
+                new CommandJigsawAdopt.JigsawAdoptionStrategyHandler();
         assertEquals(List.of("auto", "in-place", "clone"), strategyHandler.getPossibilities());
         assertEquals("in-place", strategyHandler.parse("claim", false));
         assertEquals("clone", strategyHandler.parse("copy", false));
@@ -163,14 +163,14 @@ public class CommandJigsawContractTest {
         Path root = temporaryFolder.newFolder("adoption-provenance").toPath();
 
         assertEquals(IrisStructureAdoptionInputKind.UNOWNED_IRIS,
-                CommandJigsaw.adoptionInputKind(root, "unowned"));
+                CommandJigsawAdopt.adoptionInputKind(root, "unowned"));
         writeManifest(root, "datapack-created", StructureSource.Kind.DATAPACK,
                 StructureOwnershipManifest.Provenance.created());
         assertEquals(IrisStructureAdoptionInputKind.UNOWNED_IRIS,
-                CommandJigsaw.adoptionInputKind(root, "datapack-created"));
+                CommandJigsawAdopt.adoptionInputKind(root, "datapack-created"));
         writeManifest(root, "managed-provenance", StructureSource.Kind.IRIS, managedProvenance());
         assertEquals(IrisStructureAdoptionInputKind.MANAGED_DATAPACK,
-                CommandJigsaw.adoptionInputKind(root, "managed-provenance"));
+                CommandJigsawAdopt.adoptionInputKind(root, "managed-provenance"));
     }
 
     @Test
@@ -275,70 +275,70 @@ public class CommandJigsawContractTest {
 
     @Test
     public void exposesNestedPieceVariantAndPreviewCommands() throws Exception {
-        assertNotNull(CommandJigsaw.CommandJigsawPool.class
+        assertNotNull(CommandJigsawPool.class
                 .getDeclaredMethod("create", String.class, String.class)
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawConnector.class
+        assertNotNull(CommandJigsawConnector.class
                 .getDeclaredMethod("channel", String.class)
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawPiece.class
+        assertNotNull(CommandJigsawPiece.class
                 .getDeclaredMethod("create", String.class, String.class, int.class)
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawPiece.class
+        assertNotNull(CommandJigsawPiece.class
                 .getDeclaredMethod("add", String.class, String.class, int.class)
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawPiece.class
+        assertNotNull(CommandJigsawPiece.class
                 .getDeclaredMethod("remove", String.class)
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawPiece.class
+        assertNotNull(CommandJigsawPiece.class
                 .getDeclaredMethod("rotatable", boolean.class)
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawPiece.class
+        assertNotNull(CommandJigsawPiece.class
                 .getDeclaredMethod("expand")
                 .getAnnotation(Director.class));
         assertEquals("Resize the selected piece object exactly to workcell capacity",
-                CommandJigsaw.CommandJigsawPiece.class
+                CommandJigsawPiece.class
                         .getDeclaredMethod("expand")
                         .getAnnotation(Director.class)
                         .description());
-        assertNotNull(CommandJigsaw.CommandJigsawVariant.class
+        assertNotNull(CommandJigsawVariant.class
                 .getDeclaredMethod("weight", String.class, int.class)
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawVariant.class
+        assertNotNull(CommandJigsawVariant.class
                 .getDeclaredMethod("resize", int.class, int.class, int.class)
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawVariant.class
+        assertNotNull(CommandJigsawVariant.class
                 .getDeclaredMethod("label", String.class)
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawVariant.class
+        assertNotNull(CommandJigsawVariant.class
                 .getDeclaredMethod("labelReset")
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawVariant.class
+        assertNotNull(CommandJigsawVariant.class
                 .getDeclaredMethod("duplicate")
                 .getAnnotation(Director.class));
-        Method duplicateFamily = CommandJigsaw.CommandJigsawVariant.class
+        Method duplicateFamily = CommandJigsawVariant.class
                 .getDeclaredMethod("duplicateFamily", String.class);
         assertNotNull(duplicateFamily.getAnnotation(Director.class));
         assertParameter(duplicateFamily.getParameters()[0], "next", null);
-        assertNotNull(CommandJigsaw.CommandJigsawWorkcell.class
+        assertNotNull(CommandJigsawWorkcell.class
                 .getDeclaredMethod("capacity", int.class, int.class, int.class)
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawWorkcell.class
+        assertNotNull(CommandJigsawWorkcell.class
                 .getDeclaredMethod("label", String.class)
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawWorkcell.class
+        assertNotNull(CommandJigsawWorkcell.class
                 .getDeclaredMethod("labelReset")
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawRules.class
+        assertNotNull(CommandJigsawRules.class
                 .getDeclaredMethod("limits", int.class, int.class)
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawRules.class
+        assertNotNull(CommandJigsawRules.class
                 .getDeclaredMethod("fallback", String.class, String.class)
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawPreview.class
+        assertNotNull(CommandJigsawPreview.class
                 .getDeclaredMethod("assemble", long.class)
                 .getAnnotation(Director.class));
-        assertNotNull(CommandJigsaw.CommandJigsawPreview.class
+        assertNotNull(CommandJigsawPreview.class
                 .getDeclaredMethod("gotoPreview")
                 .getAnnotation(Director.class));
     }
@@ -393,14 +393,14 @@ public class CommandJigsawContractTest {
     public void everyExecutableCommandRejectsNonPlayerOrigins() {
         Class<?>[] commandTypes = {
                 CommandJigsaw.class,
-                CommandJigsaw.CommandJigsawConnector.class,
-                CommandJigsaw.CommandJigsawPool.class,
-                CommandJigsaw.CommandJigsawPiece.class,
-                CommandJigsaw.CommandJigsawVariant.class,
-                CommandJigsaw.CommandJigsawWorkcell.class,
-                CommandJigsaw.CommandJigsawRules.class,
-                CommandJigsaw.CommandJigsawPreview.class,
-                CommandJigsaw.CommandJigsawAdopt.class
+                CommandJigsawConnector.class,
+                CommandJigsawPool.class,
+                CommandJigsawPiece.class,
+                CommandJigsawVariant.class,
+                CommandJigsawWorkcell.class,
+                CommandJigsawRules.class,
+                CommandJigsawPreview.class,
+                CommandJigsawAdopt.class
         };
 
         for (Class<?> commandType : commandTypes) {
@@ -417,17 +417,17 @@ public class CommandJigsawContractTest {
     public void exportOutputIsOneSafeChildArtifact() {
         Path root = Path.of("build", "jigsaw-exports").toAbsolutePath().normalize();
 
-        assertEquals(root.resolve("village.zip"), CommandJigsaw.resolveExportDestination(
+        assertEquals(root.resolve("village.zip"), CommandJigsawExports.resolveExportDestination(
                 root, "village", VanillaJigsawExportFormat.ZIP));
-        assertEquals(root.resolve("village"), CommandJigsaw.resolveExportDestination(
+        assertEquals(root.resolve("village"), CommandJigsawExports.resolveExportDestination(
                 root, "village", VanillaJigsawExportFormat.DIRECTORY));
-        assertThrows(IllegalArgumentException.class, () -> CommandJigsaw.resolveExportDestination(
+        assertThrows(IllegalArgumentException.class, () -> CommandJigsawExports.resolveExportDestination(
                 root, "", VanillaJigsawExportFormat.DIRECTORY));
-        assertThrows(IllegalArgumentException.class, () -> CommandJigsaw.resolveExportDestination(
+        assertThrows(IllegalArgumentException.class, () -> CommandJigsawExports.resolveExportDestination(
                 root, ".", VanillaJigsawExportFormat.DIRECTORY));
-        assertThrows(IllegalArgumentException.class, () -> CommandJigsaw.resolveExportDestination(
+        assertThrows(IllegalArgumentException.class, () -> CommandJigsawExports.resolveExportDestination(
                 root, "../all-exports", VanillaJigsawExportFormat.DIRECTORY));
-        assertThrows(IllegalArgumentException.class, () -> CommandJigsaw.resolveExportDestination(
+        assertThrows(IllegalArgumentException.class, () -> CommandJigsawExports.resolveExportDestination(
                 root, "nested/export", VanillaJigsawExportFormat.DIRECTORY));
     }
 
@@ -438,42 +438,42 @@ public class CommandJigsawContractTest {
         Path firstDestination = Path.of("build", "jigsaw-exports", "first.zip");
         Path secondDestination = Path.of("build", "jigsaw-exports", "second.zip");
 
-        assertEquals(true, CommandJigsaw.beginExport(firstPlayer, firstDestination));
+        assertEquals(true, CommandJigsawExports.beginExport(firstPlayer, firstDestination));
         try {
-            assertEquals(false, CommandJigsaw.beginExport(firstPlayer, secondDestination));
-            assertEquals(false, CommandJigsaw.beginExport(secondPlayer, firstDestination));
+            assertEquals(false, CommandJigsawExports.beginExport(firstPlayer, secondDestination));
+            assertEquals(false, CommandJigsawExports.beginExport(secondPlayer, firstDestination));
         } finally {
-            CommandJigsaw.finishExport(firstPlayer, firstDestination);
+            CommandJigsawExports.finishExport(firstPlayer, firstDestination);
         }
 
-        assertEquals(true, CommandJigsaw.beginExport(secondPlayer, firstDestination));
-        CommandJigsaw.finishExport(secondPlayer, firstDestination);
+        assertEquals(true, CommandJigsawExports.beginExport(secondPlayer, firstDestination));
+        CommandJigsawExports.finishExport(secondPlayer, firstDestination);
     }
 
     @Test
     public void exportStartFailuresHavePreciseOperatorMessages() {
         assertEquals("The active Jigsaw Studio is no longer available.",
-                CommandJigsaw.exportStartError(JigsawStudioService.ExportStart.NOT_ACTIVE));
+                CommandJigsawExports.exportStartError(JigsawStudioService.ExportStart.NOT_ACTIVE));
         assertEquals("Only the Jigsaw Studio owner can export this project.",
-                CommandJigsaw.exportStartError(JigsawStudioService.ExportStart.NOT_OWNER));
+                CommandJigsawExports.exportStartError(JigsawStudioService.ExportStart.NOT_OWNER));
         assertEquals("Wait for the pending autosave or discard the edits before exporting the on-disk graph.",
-                CommandJigsaw.exportStartError(JigsawStudioService.ExportStart.DIRTY));
+                CommandJigsawExports.exportStartError(JigsawStudioService.ExportStart.DIRTY));
         assertEquals("The active Jigsaw Studio is closing and cannot be exported.",
-                CommandJigsaw.exportStartError(JigsawStudioService.ExportStart.CLOSING));
+                CommandJigsawExports.exportStartError(JigsawStudioService.ExportStart.CLOSING));
         assertEquals("Wait for the current Jigsaw Studio save to finish before exporting.",
-                CommandJigsaw.exportStartError(JigsawStudioService.ExportStart.SAVE_IN_PROGRESS));
+                CommandJigsawExports.exportStartError(JigsawStudioService.ExportStart.SAVE_IN_PROGRESS));
         assertEquals("Wait for the current Jigsaw Studio operation to finish before exporting.",
-                CommandJigsaw.exportStartError(JigsawStudioService.ExportStart.OPERATION_IN_PROGRESS));
+                CommandJigsawExports.exportStartError(JigsawStudioService.ExportStart.OPERATION_IN_PROGRESS));
         assertEquals("A Jigsaw Studio export is already in progress.",
-                CommandJigsaw.exportStartError(JigsawStudioService.ExportStart.IN_PROGRESS));
+                CommandJigsawExports.exportStartError(JigsawStudioService.ExportStart.IN_PROGRESS));
         assertThrows(IllegalArgumentException.class,
-                () -> CommandJigsaw.exportStartError(JigsawStudioService.ExportStart.STARTED));
+                () -> CommandJigsawExports.exportStartError(JigsawStudioService.ExportStart.STARTED));
     }
 
     @Test
     public void exportLeaseReleaseActionRunsExactlyOnce() {
         AtomicInteger releases = new AtomicInteger();
-        CommandJigsaw.ExportLease lease = new CommandJigsaw.ExportLease(releases::incrementAndGet);
+        CommandJigsawExports.ExportLease lease = new CommandJigsawExports.ExportLease(releases::incrementAndGet);
 
         lease.release();
         lease.release();

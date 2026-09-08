@@ -1,6 +1,7 @@
 package art.arcane.iris.core.localization;
 
 import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.testsupport.ProjectPaths;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.volmlib.util.localization.LocaleOverlay;
 import art.arcane.volmlib.util.localization.LocalizationValidationResult;
@@ -117,7 +118,7 @@ public class IrisLanguageTest {
         for (String locale : VolmitLocales.nonEnglish()) {
             Path target = IrisLanguage.remote(dataFolder).cacheFile(locale);
             Files.createDirectories(target.getParent());
-            Files.copy(Path.of("src/main/resources/languages", locale + ".json"), target, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(ProjectPaths.moduleFile("src/main/resources/languages").resolve(locale + ".json"), target, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
@@ -127,7 +128,7 @@ public class IrisLanguageTest {
     }
 
     private LocaleOverlay loadSourceOverlay(String locale) throws Exception {
-        Path source = Path.of("src/main/resources/languages", locale + ".json");
+        Path source = ProjectPaths.moduleFile("src/main/resources/languages").resolve(locale + ".json");
         return IrisLanguage.parseDownloadedOverlay(source.toString(), locale, Files.readString(source));
     }
 

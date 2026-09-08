@@ -1,6 +1,7 @@
 package art.arcane.iris.core.lifecycle;
 
 import art.arcane.iris.core.ServerConfigurator;
+import art.arcane.iris.core.runtime.RuntimeInjection;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.util.common.scheduling.J;
@@ -85,6 +86,7 @@ public final class WorldLifecycleService {
     public CompletableFuture<World> create(WorldLifecycleRequest request) {
         WorldLifecycleBackend backend;
         try {
+            RuntimeInjection.installIfDeferred();
             if (request.callerKind() == WorldLifecycleCaller.FORCED_STUDIO) {
                 ServerConfigurator.requireWorldCreationReady(true);
             } else {

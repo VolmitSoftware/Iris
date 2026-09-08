@@ -2,7 +2,9 @@ package art.arcane.iris.core.safeguard.task;
 
 import art.arcane.iris.BuildConstants;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
+import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.IrisWorlds;
+import art.arcane.iris.core.runtime.RuntimeInjection;
 import art.arcane.iris.core.IrisWorldStorage;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.nms.v1X.NMSBinding1X;
@@ -128,28 +130,29 @@ public final class Tasks {
     });
 
     private static final Task INJECTION = Task.critical("injection", INJECTION_LOCK_REASON, () -> {
-        if (!INMS.isBound() || INMS.get() instanceof NMSBinding1X) {
-            return CheckResult.danger(NMS_LOCK_REASON,
-                    Diagnostic.Logger.ERROR.create("Code Injection"),
-                    Diagnostic.Logger.ERROR.create("- Runtime injection was skipped because Iris has no usable NMS binding."));
+        if (!IrisSettings.get().getGeneral().isEagerRuntimeInjection()) {
+            return CheckResult.stable(
+                    Diagnostic.Logger.INFO.create("Runtime Injection"),
+                    Diagnostic.Logger.INFO.create("- Deferred to the first world load. Set general.eagerRuntimeInjection to verify it during startup."));
         }
 
-        if (!Agent.install()) {
-            String agentLockReason = "Iris Java agent is unavailable. Add -javaagent:"
-                    + Agent.AGENT_JAR.getPath() + " to the JVM arguments before -jar and restart the server.";
-            return CheckResult.danger(agentLockReason,
+        RuntimeInjection.Outcome outcome = RuntimeInjection.install();
+        if (outcome.installed()) {
+            return CheckResult.stable();
+        }
+
+        return switch (outcome.failure()) {
+            case NO_BINDING -> CheckResult.danger(outcome.lockReason(),
+                    Diagnostic.Logger.ERROR.create("Code Injection"),
+                    Diagnostic.Logger.ERROR.create("- Runtime injection was skipped because Iris has no usable NMS binding."));
+            case AGENT -> CheckResult.danger(outcome.lockReason(),
                     Diagnostic.Logger.ERROR.create("Java Agent"),
                     Diagnostic.Logger.ERROR.create("- Add -javaagent:" + Agent.AGENT_JAR.getPath() + " before -jar in your startup command and restart the server."),
                     Diagnostic.Logger.ERROR.create("- Dynamic attachment requires -XX:+EnableDynamicAgentLoading and a host that permits JVM attachment."));
-        }
-
-        if (!INMS.get().injectBukkit()) {
-            return CheckResult.danger(INJECTION_LOCK_REASON,
+            case INJECTION, NONE -> CheckResult.danger(INJECTION_LOCK_REASON,
                     Diagnostic.Logger.ERROR.create("Code Injection"),
                     Diagnostic.Logger.ERROR.create("- Failed to inject code. Please contact support"));
-        }
-
-        return CheckResult.stable();
+        };
     });
 
     private static final Task DIMENSION_TYPES = Task.critical("dimensionTypes", DIMENSION_TYPE_LOCK_REASON, () -> {

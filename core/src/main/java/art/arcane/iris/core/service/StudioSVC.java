@@ -90,8 +90,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -106,11 +108,39 @@ public class StudioSVC implements IrisService {
     private static final Pattern PROJECT_NAME = Pattern.compile("[a-z0-9_-]+");
     private static final AtomicCache<Integer> counter = new AtomicCache<>();
     private final StudioTransitionQueue studioTransitions = new StudioTransitionQueue();
+    private static final long STALE_TEMP_CLEANUP_TIMEOUT_SECONDS = 120L;
+    private static volatile CompletableFuture<Void> staleTempCleanup = CompletableFuture.completedFuture(null);
+
     private final Object downloadAdmissionMonitor = new Object();
     private volatile IrisProject activeProject;
     private volatile CompletableFuture<StudioOpenCoordinator.StudioOpenResult> activeOpen;
     private PackDownloadExecution activeDownload;
     private boolean downloadAdmissionOpen;
+
+    /**
+     * Binds the stale cache/temp sweep a boot starts in the background. Pack imports stage through that
+     * folder, so a delete running underneath one truncates it; the import waits the sweep out instead of
+     * the boot waiting for the sweep.
+     */
+    public static void gateDownloadsOnStaleTempCleanup(CompletableFuture<Void> cleanup) {
+        staleTempCleanup = cleanup == null ? CompletableFuture.completedFuture(null) : cleanup;
+    }
+
+    private static void awaitStaleTempCleanup() {
+        CompletableFuture<Void> cleanup = staleTempCleanup;
+        if (cleanup.isDone()) {
+            return;
+        }
+
+        try {
+            cleanup.get(STALE_TEMP_CLEANUP_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            IrisLogging.reportError("Interrupted while waiting for the stale Iris temp sweep to finish.", interrupted);
+        } catch (ExecutionException | TimeoutException failure) {
+            IrisLogging.reportError("The stale Iris temp sweep did not finish; this pack import may race it.", failure);
+        }
+    }
 
     @Override
     public void onEnable() {
@@ -118,11 +148,14 @@ public class StudioSVC implements IrisService {
             activeDownload = null;
             downloadAdmissionOpen = true;
         }
-        String configuredPack = IrisSettings.get().getGenerator().getDefaultWorldType();
-        if (!PackDownloader.isPackPresent(getWorkspaceFolder(), configuredPack)) {
-            IrisLogging.warn("Default pack '" + configuredPack
-                    + "' is not installed. Install a built-in pack with /iris download pack=overworld or provide /iris download link=<zip-url>.");
-        }
+        MultiBurst.ioBurst.completeValueAsync(() -> {
+            String configuredPack = IrisSettings.get().getGenerator().getDefaultWorldType();
+            if (!PackDownloader.isPackPresent(getWorkspaceFolder(), configuredPack)) {
+                IrisLogging.warn("Default pack '" + configuredPack
+                        + "' is not installed. Install a built-in pack with /iris download pack=overworld or provide /iris download link=<zip-url>.");
+            }
+            return null;
+        });
     }
 
     @Override
@@ -1274,7 +1307,10 @@ public class StudioSVC implements IrisService {
 
             execution = new PackDownloadExecution(
                     lease,
-                    cancellation -> executePackMutation(mutation, reporter, failureMessage, cancellation)
+                    cancellation -> {
+                        awaitStaleTempCleanup();
+                        executePackMutation(mutation, reporter, failureMessage, cancellation);
+                    }
             );
             PackDownloadExecution trackedExecution = execution;
             execution.onCompletion(() -> {

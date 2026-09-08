@@ -149,6 +149,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -161,6 +162,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener, ReloadAware {
@@ -626,6 +628,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             J.s(() -> Bukkit.getPluginManager().disablePlugin(this), 1);
             return false;
         }
+        EnableTimings timings = new EnableTimings();
         alreadyDrained.set(false);
         postStopFinisherStarted.set(false);
         serverStopTeardownDeferred.set(false);
@@ -647,6 +650,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                         DirectorMiniMenu.Theme.irisGreen(), IrisLanguage.directorResolver(), IrisLanguage.editorOptions()));
         PaperLibBootstrap.install();
         SimdSupport.install();
+        timings.mark("bootstrap");
         services = new KMap<>();
         BukkitPlatform.hostHud(new HudActionBar(this), new HudBossBarLane());
         // Explicit, ordered service list: the previous reflective jar scan gave hash-ordered
@@ -685,9 +689,13 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         IrisServices.register(PreservationRegistry.class, services.get(PreservationSVC.class));
         compat = IrisCompat.configured(getDataFile("compat.json"));
         IrisServices.register(IrisCompat.class, compat);
+        timings.mark("services");
         ServerConfigurator.configure();
+        timings.mark("serverConfig");
         StartupValidationOutcome datapackValidation = DatapackIngestService.validateOnStartup();
+        timings.mark("datapacks");
         IrisSafeguard.execute();
+        timings.mark("safeguard");
         getSender().setTag(getTag());
         // A cosmetic banner must never abort the bootstrap.
         J.attempt(this::splash);
@@ -696,6 +704,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         // Paper's bootstrap runs before any plugin logger exists, so orphan-storage warnings raised there
         // never reach logs/latest.log. Replay them once now that the platform log is up.
         MissingWorldStorageLog.replayToPlatformLog();
+        timings.mark("splash");
         tickets = new ChunkTickets();
         linkMultiverseCore = new MultiverseCoreLink();
         IrisServices.register(MultiverseCoreLink.class, linkMultiverseCore);
@@ -708,18 +717,24 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         IrisServices.register(ManagedWorldLoader.class, (ManagedWorldLoader) this::loadManagedWorld);
         SettingsHotloadWatch watch = new SettingsHotloadWatch(getDataFile("iris.json"));
         settingsHotloadWatch = watch;
-        // Stale-temp cleanup must complete before services enable: StudioSVC.onEnable downloads
-        // packs through cache/temp on an async thread, and a concurrent delete of that folder
-        // truncated pack imports mid-copy (partial packs/<key> without dimensions/).
-        IO.delete(getTemp());
+        // Off the boot thread, because a stale cache/temp can hold a whole abandoned pack import and
+        // deleting it recursively is unbounded. Every pack import waits this sweep out instead, which is
+        // the invariant that mattered: a delete running underneath an import truncated it mid-copy.
+        StudioSVC.gateDownloadsOnStaleTempCleanup(MultiBurst.ioBurst.completeValueAsync(() -> {
+            IO.delete(getTemp());
+            return null;
+        }));
+        timings.mark("tempSweep");
         // One throwing service must not abort the bootstrap: the steps after this loop
         // (listeners, shutdown hook, replacement journals) are the safety-critical ones.
         // Only services that actually enabled get listeners and a later onDisable.
         enabledServices.clear();
         for (IrisService service : orderedServices) {
+            long serviceStartedAt = System.nanoTime();
             try {
                 service.onEnable();
                 enabledServices.add(service);
+                timings.markService(service.getClass().getSimpleName(), serviceStartedAt);
             } catch (Throwable e) {
                 // A service failure is NOT a datapack validation failure: the admission gate
                 // must never lock every login over a broken cosmetic service. Log loudly,
@@ -740,10 +755,12 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 Iris.reportError("Failed to register listener for " + service.getClass().getSimpleName() + ".", e);
             }
         }
+        timings.mark("serviceEnable");
         if (datapackValidation == StartupValidationOutcome.READY) {
             IrisServices.get(ExternalDataSVC.class).setContentChangeListener(generatorResolver::requestExternalContentRefresh);
             generatorResolver.validateAllPacks();
         }
+        timings.mark("packValidation");
         addShutdownHook();
         pendingWorldReplacements.processPendingStartupReplacements();
         pendingWorldDeletes.processPendingStartupWorldDeletes();
@@ -771,7 +788,49 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             // match a slice type; the block-state slice is deliberately never retainable (regenerable, huge).
             IrisToolbelt.retainMantleDataForSlice(TreeBlockMaterial.class.getCanonicalName());
         });
+        timings.mark("startupTasks");
+        timings.report();
         return true;
+    }
+
+    /**
+     * Where the enable thread went, so a boot that got slower can be attributed to a phase rather than to
+     * Iris in general. The total is a lifecycle milestone and lands in logs/latest.log; the breakdown is
+     * for whoever is looking.
+     */
+    private static final class EnableTimings {
+        private static final int REPORTED_SERVICES = 3;
+
+        private final long startedAt = System.nanoTime();
+        private final StringBuilder phases = new StringBuilder();
+        private final Map<String, Long> serviceMillis = new LinkedHashMap<>();
+        private long lastMark = startedAt;
+
+        private void mark(String phase) {
+            long now = System.nanoTime();
+            if (!phases.isEmpty()) {
+                phases.append(' ');
+            }
+            phases.append(phase).append('=').append(TimeUnit.NANOSECONDS.toMillis(now - lastMark)).append("ms");
+            lastMark = now;
+        }
+
+        private void markService(String service, long serviceStartedAt) {
+            serviceMillis.put(service, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - serviceStartedAt));
+        }
+
+        private void report() {
+            IrisLogging.notice("Enabled in %dms (%s)",
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt), phases);
+            String slowest = serviceMillis.entrySet().stream()
+                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                    .limit(REPORTED_SERVICES)
+                    .map(entry -> entry.getKey() + "=" + entry.getValue() + "ms")
+                    .collect(Collectors.joining(" "));
+            if (!slowest.isBlank()) {
+                IrisLogging.notice("Slowest services: %s", slowest);
+            }
+        }
     }
 
     private void reconcileStartupWorlds() {

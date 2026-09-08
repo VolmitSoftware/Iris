@@ -8,6 +8,12 @@ import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+
+import java.util.Collection;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -17,19 +23,25 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@RunWith(Parameterized.class)
 public final class IrisBiomeLayerSlopeSourceTest {
-    @Test
-    public void explicitSlopeStreamControlsSurfacePaletteSelection() {
-        assertExplicitSlopeStreamControlsSurfacePaletteSelection(false);
+    @Parameters(name = "lockLayers={0}")
+    public static Collection<Object[]> layerLocks() {
+        return List.of(
+                new Object[]{false},
+                new Object[]{true}
+        );
+    }
+
+    private final boolean lockLayers;
+
+    public IrisBiomeLayerSlopeSourceTest(boolean lockLayers) {
+        this.lockLayers = lockLayers;
     }
 
     @Test
-    public void explicitSlopeStreamControlsLockedSurfacePaletteSelection() {
-        assertExplicitSlopeStreamControlsSurfacePaletteSelection(true);
-    }
-
     @SuppressWarnings("unchecked")
-    private static void assertExplicitSlopeStreamControlsSurfacePaletteSelection(boolean lockLayers) {
+    public void explicitSlopeStreamControlsSurfacePaletteSelection() {
         IrisData data = mock(IrisData.class);
         IrisComplex hostComplex = mock(IrisComplex.class);
         ProceduralStream<Double> hostSlope = mock(ProceduralStream.class);

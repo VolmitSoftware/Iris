@@ -1,29 +1,38 @@
 package art.arcane.iris.engine.object;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+
+import java.util.Collection;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
+@RunWith(Parameterized.class)
 public class IrisBiomeCustomSpawnTest {
-    @Test
-    public void normalizesNamespacedEntityKey() {
-        IrisBiomeCustomSpawn spawn = new IrisBiomeCustomSpawn().setType(" Minecraft:Slime ");
+    @Parameters(name = "{0} -> {1}")
+    public static Collection<Object[]> keys() {
+        return List.of(
+                new Object[]{" Minecraft:Slime ", "minecraft:slime"},
+                new Object[]{"Slime", "minecraft:slime"},
+                new Object[]{"  ", null}
+        );
+    }
 
-        assertEquals("minecraft:slime", spawn.getTypeKey());
+    private final String authored;
+    private final String expectedKey;
+
+    public IrisBiomeCustomSpawnTest(String authored, String expectedKey) {
+        this.authored = authored;
+        this.expectedKey = expectedKey;
     }
 
     @Test
-    public void prefixesBareEntityKey() {
-        IrisBiomeCustomSpawn spawn = new IrisBiomeCustomSpawn().setType("Slime");
+    public void normalizesTheEntityKey() {
+        IrisBiomeCustomSpawn spawn = new IrisBiomeCustomSpawn().setType(authored);
 
-        assertEquals("minecraft:slime", spawn.getTypeKey());
-    }
-
-    @Test
-    public void returnsNullForBlankEntityKey() {
-        IrisBiomeCustomSpawn spawn = new IrisBiomeCustomSpawn().setType("  ");
-
-        assertNull(spawn.getTypeKey());
+        assertEquals(expectedKey, spawn.getTypeKey());
     }
 }

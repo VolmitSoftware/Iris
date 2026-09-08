@@ -6,11 +6,17 @@ import art.arcane.iris.engine.object.IrisInterpolator;
 import art.arcane.iris.util.project.interpolation.NoiseBounds;
 import art.arcane.iris.util.project.interpolation.NoiseBoundsProvider;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
@@ -19,109 +25,102 @@ import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Answers.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 
+@RunWith(Enclosed.class)
 public class IrisComplexGridBoundsCacheTest {
+    public static class CornerCache {
     @Test
-    public void gridBoundsCacheIsIsolatedPerComplex() throws Exception {
-        IrisComplex first = createComplex();
-        IrisComplex second = createComplex();
-        Method cornerBounds = cornerBoundsMethod();
+        public void gridBoundsCacheIsIsolatedPerComplex() throws Exception {
+            IrisComplex first = createComplex();
+            IrisComplex second = createComplex();
+            Method cornerBounds = cornerBoundsMethod();
 
-        long firstPacked = invokeCornerBounds(first, cornerBounds, new CountingInterpolator(1.25D, 2.5D), 64, -32);
-        long secondPacked = invokeCornerBounds(second, cornerBounds, new CountingInterpolator(10.25D, 20.5D), 64, -32);
+            long firstPacked = invokeCornerBounds(first, cornerBounds, new CountingInterpolator(1.25D, 2.5D), 64, -32);
+            long secondPacked = invokeCornerBounds(second, cornerBounds, new CountingInterpolator(10.25D, 20.5D), 64, -32);
 
-        assertNotEquals(firstPacked, secondPacked);
-        assertEquals(1.25F, unpackLow(firstPacked), 0D);
-        assertEquals(2.5F, unpackHigh(firstPacked), 0D);
-        assertEquals(10.25F, unpackLow(secondPacked), 0D);
-        assertEquals(20.5F, unpackHigh(secondPacked), 0D);
-    }
-
-    @Test
-    public void gridBoundsCacheReusesCornersWithinSameComplex() throws Exception {
-        IrisComplex complex = createComplex();
-        Method cornerBounds = cornerBoundsMethod();
-        CountingInterpolator interpolator = new CountingInterpolator(3.5D, 7.25D);
-
-        long firstPacked = invokeCornerBounds(complex, cornerBounds, interpolator, 128, 96);
-        long secondPacked = invokeCornerBounds(complex, cornerBounds, interpolator, 128, 96);
-
-        assertEquals(firstPacked, secondPacked);
-        assertEquals(1, interpolator.getInvocations());
-    }
+            assertNotEquals(firstPacked, secondPacked);
+            assertEquals(1.25F, unpackLow(firstPacked), 0D);
+            assertEquals(2.5F, unpackHigh(firstPacked), 0D);
+            assertEquals(10.25F, unpackLow(secondPacked), 0D);
+            assertEquals(20.5F, unpackHigh(secondPacked), 0D);
+        }
 
     @Test
-    public void nonFiniteCornerBoundsAreNeverCached() throws Exception {
-        IrisComplex complex = createComplex();
-        Method cornerBounds = cornerBoundsMethod();
-        CountingInterpolator interpolator = new CountingInterpolator(Double.NaN, 7.25D);
+        public void gridBoundsCacheReusesCornersWithinSameComplex() throws Exception {
+            IrisComplex complex = createComplex();
+            Method cornerBounds = cornerBoundsMethod();
+            CountingInterpolator interpolator = new CountingInterpolator(3.5D, 7.25D);
 
-        long firstPacked = invokeCornerBounds(complex, cornerBounds, interpolator, 128, 96);
-        long secondPacked = invokeCornerBounds(complex, cornerBounds, interpolator, 128, 96);
+            long firstPacked = invokeCornerBounds(complex, cornerBounds, interpolator, 128, 96);
+            long secondPacked = invokeCornerBounds(complex, cornerBounds, interpolator, 128, 96);
 
-        assertTrue(Double.isNaN(unpackLow(firstPacked)));
-        assertTrue(Double.isNaN(unpackLow(secondPacked)));
-        assertEquals(2, interpolator.getInvocations());
-    }
-
-    @Test
-    public void alignedGridSampleUsesOnlyTheContributingCorner() throws Exception {
-        IrisComplex complex = createComplex();
-        Method gridSampleBounds = gridSampleBoundsMethod();
-        CountingInterpolator interpolator = new CountingInterpolator(3.5D, 7.25D);
-
-        NoiseBounds bounds = invokeGridSampleBounds(complex, gridSampleBounds, interpolator, 64D, -32D);
-
-        assertEquals(3.5F, bounds.min(), 0D);
-        assertEquals(7.25F, bounds.max(), 0D);
-        assertEquals(1, interpolator.getInvocations());
-    }
+            assertEquals(firstPacked, secondPacked);
+            assertEquals(1, interpolator.getInvocations());
+        }
 
     @Test
-    public void horizontalGridAxisMatchesLegacyBilerpBitForBit() throws Exception {
-        IrisComplex complex = createComplex();
-        Method gridSampleBounds = gridSampleBoundsMethod();
-        CoordinateInterpolator interpolator = new CoordinateInterpolator();
-        double x = 67D;
-        double z = -32D;
+        public void nonFiniteCornerBoundsAreNeverCached() throws Exception {
+            IrisComplex complex = createComplex();
+            Method cornerBounds = cornerBoundsMethod();
+            CountingInterpolator interpolator = new CountingInterpolator(Double.NaN, 7.25D);
 
-        NoiseBounds actual = invokeGridSampleBounds(complex, gridSampleBounds, interpolator, x, z);
-        NoiseBounds expected = legacyGridSampleBounds(x, z);
+            long firstPacked = invokeCornerBounds(complex, cornerBounds, interpolator, 128, 96);
+            long secondPacked = invokeCornerBounds(complex, cornerBounds, interpolator, 128, 96);
 
-        assertBoundsBitsEqual(expected, actual);
-        assertEquals(2, interpolator.getInvocations());
-    }
-
-    @Test
-    public void verticalGridAxisMatchesLegacyBilerpBitForBitAtNegativeCoordinates() throws Exception {
-        IrisComplex complex = createComplex();
-        Method gridSampleBounds = gridSampleBoundsMethod();
-        CoordinateInterpolator interpolator = new CoordinateInterpolator();
-        double x = -32D;
-        double z = -29D;
-
-        NoiseBounds actual = invokeGridSampleBounds(complex, gridSampleBounds, interpolator, x, z);
-        NoiseBounds expected = legacyGridSampleBounds(x, z);
-
-        assertBoundsBitsEqual(expected, actual);
-        assertEquals(2, interpolator.getInvocations());
-    }
+            assertTrue(Double.isNaN(unpackLow(firstPacked)));
+            assertTrue(Double.isNaN(unpackLow(secondPacked)));
+            assertEquals(2, interpolator.getInvocations());
+        }
 
     @Test
-    public void interiorGridSampleMatchesLegacyBilerpBitForBit() throws Exception {
-        IrisComplex complex = createComplex();
-        Method gridSampleBounds = gridSampleBoundsMethod();
-        CoordinateInterpolator interpolator = new CoordinateInterpolator();
-        double x = -29D;
-        double z = 67D;
+        public void alignedGridSampleUsesOnlyTheContributingCorner() throws Exception {
+            IrisComplex complex = createComplex();
+            Method gridSampleBounds = gridSampleBoundsMethod();
+            CountingInterpolator interpolator = new CountingInterpolator(3.5D, 7.25D);
 
-        NoiseBounds actual = invokeGridSampleBounds(complex, gridSampleBounds, interpolator, x, z);
-        NoiseBounds expected = legacyGridSampleBounds(x, z);
+            NoiseBounds bounds = invokeGridSampleBounds(complex, gridSampleBounds, interpolator, 64D, -32D);
 
-        assertBoundsBitsEqual(expected, actual);
-        assertEquals(4, interpolator.getInvocations());
+            assertEquals(3.5F, bounds.min(), 0D);
+            assertEquals(7.25F, bounds.max(), 0D);
+            assertEquals(1, interpolator.getInvocations());
+        }
     }
 
-    private IrisComplex createComplex() throws Exception {
+    @RunWith(Parameterized.class)
+    public static class LegacyBilerpParity {
+        @Parameters(name = "x={0} z={1}")
+        public static Collection<Object[]> samples() {
+            return List.of(
+                    new Object[]{67D, -32D, 2},
+                    new Object[]{-32D, -29D, 2},
+                    new Object[]{-29D, 67D, 4}
+            );
+        }
+
+        private final double x;
+        private final double z;
+        private final int expectedInvocations;
+
+        public LegacyBilerpParity(double x, double z, int expectedInvocations) {
+            this.x = x;
+            this.z = z;
+            this.expectedInvocations = expectedInvocations;
+        }
+
+        @Test
+        public void gridSampleMatchesLegacyBilerpBitForBit() throws Exception {
+            IrisComplex complex = createComplex();
+            Method gridSampleBounds = gridSampleBoundsMethod();
+            CoordinateInterpolator interpolator = new CoordinateInterpolator();
+
+            NoiseBounds actual = invokeGridSampleBounds(complex, gridSampleBounds, interpolator, x, z);
+            NoiseBounds expected = legacyGridSampleBounds(x, z);
+
+            assertBoundsBitsEqual(expected, actual);
+            assertEquals(expectedInvocations, interpolator.getInvocations());
+        }
+    }
+
+    private static IrisComplex createComplex() throws Exception {
         IrisComplex complex = mock(IrisComplex.class, CALLS_REAL_METHODS);
 
         Field generatorBounds = IrisComplex.class.getDeclaredField("generatorBounds");
@@ -138,7 +137,7 @@ public class IrisComplexGridBoundsCacheTest {
         return complex;
     }
 
-    private Object newCache(Constructor<?> constructor) {
+    private static Object newCache(Constructor<?> constructor) {
         try {
             return constructor.newInstance();
         } catch (ReflectiveOperationException e) {
@@ -146,7 +145,7 @@ public class IrisComplexGridBoundsCacheTest {
         }
     }
 
-    private Method cornerBoundsMethod() throws Exception {
+    private static Method cornerBoundsMethod() throws Exception {
         Class<?> cacheClass = Class.forName("art.arcane.iris.engine.IrisComplex$GridBoundsCache");
         Method method = IrisComplex.class.getDeclaredMethod(
                 "cornerBounds",
@@ -162,7 +161,7 @@ public class IrisComplexGridBoundsCacheTest {
         return method;
     }
 
-    private Method gridSampleBoundsMethod() throws Exception {
+    private static Method gridSampleBoundsMethod() throws Exception {
         Method method = IrisComplex.class.getDeclaredMethod(
                 "gridSampleBounds",
                 Engine.class,
@@ -176,14 +175,14 @@ public class IrisComplexGridBoundsCacheTest {
         return method;
     }
 
-    private long invokeCornerBounds(IrisComplex complex, Method method, IrisInterpolator interpolator, int x, int z) throws Exception {
+    private static long invokeCornerBounds(IrisComplex complex, Method method, IrisInterpolator interpolator, int x, int z) throws Exception {
         Field gridBoundsCache = IrisComplex.class.getDeclaredField("gridBoundsCache");
         gridBoundsCache.setAccessible(true);
         ThreadLocal<?> cache = (ThreadLocal<?>) gridBoundsCache.get(complex);
         return (long) method.invoke(complex, cache.get(), null, interpolator, 0, new IrisGenerator[0], x, z);
     }
 
-    private NoiseBounds invokeGridSampleBounds(
+    private static NoiseBounds invokeGridSampleBounds(
             IrisComplex complex,
             Method method,
             IrisInterpolator interpolator,
@@ -193,7 +192,7 @@ public class IrisComplexGridBoundsCacheTest {
         return (NoiseBounds) method.invoke(complex, null, interpolator, 0, new IrisGenerator[0], x, z);
     }
 
-    private NoiseBounds legacyGridSampleBounds(double x, double z) {
+    private static NoiseBounds legacyGridSampleBounds(double x, double z) {
         int grid = 4;
         int xi = (int) Math.floor(x);
         int zi = (int) Math.floor(z);
@@ -212,14 +211,14 @@ public class IrisComplexGridBoundsCacheTest {
         );
     }
 
-    private NoiseBounds packedCoordinateBounds(int x, int z) {
+    private static NoiseBounds packedCoordinateBounds(int x, int z) {
         return new NoiseBounds(
                 (float) CoordinateInterpolator.low(x, z),
                 (float) CoordinateInterpolator.high(x, z)
         );
     }
 
-    private double legacyBiLerp(
+    private static double legacyBiLerp(
             double v00,
             double v10,
             double v01,
@@ -232,16 +231,16 @@ public class IrisComplexGridBoundsCacheTest {
         return a + ((b - a) * fz);
     }
 
-    private void assertBoundsBitsEqual(NoiseBounds expected, NoiseBounds actual) {
+    private static void assertBoundsBitsEqual(NoiseBounds expected, NoiseBounds actual) {
         assertEquals(Double.doubleToRawLongBits(expected.min()), Double.doubleToRawLongBits(actual.min()));
         assertEquals(Double.doubleToRawLongBits(expected.max()), Double.doubleToRawLongBits(actual.max()));
     }
 
-    private float unpackLow(long packed) {
+    private static float unpackLow(long packed) {
         return Float.intBitsToFloat((int) (packed >>> 32));
     }
 
-    private float unpackHigh(long packed) {
+    private static float unpackHigh(long packed) {
         return Float.intBitsToFloat((int) packed);
     }
 

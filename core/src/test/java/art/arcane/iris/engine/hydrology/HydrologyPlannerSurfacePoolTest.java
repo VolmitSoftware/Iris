@@ -115,7 +115,8 @@ public class HydrologyPlannerSurfacePoolTest {
                 List.of(new HydrologyPlannerSettings.SurfacePool(
                         "lava_pool", true, density, spacing, minimumRadius, maximumRadius, depth, 64, null)),
                         0D,
-                        HydrologyPlannerSettings.SeaCaves.disabled()
+                        HydrologyPlannerSettings.SeaCaves.disabled(),
+                        HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 }

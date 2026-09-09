@@ -1,5 +1,7 @@
 package art.arcane.iris.probe;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import art.arcane.iris.engine.hydrology.HydrologyColumnSample;
 import art.arcane.iris.engine.hydrology.HydrologyFeatureRef;
 import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
@@ -272,7 +274,8 @@ public final class HydrologyPlannerProbe {
                 HydrologyPlannerSettings.Geometry.defaults(),
                 List.of(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -314,7 +317,9 @@ public final class HydrologyPlannerProbe {
                     List.of("water"), List.of()
             ,
                 Double.NaN,
-                null, Double.NaN, true);
+                null, Double.NaN, true,
+                SurfaceRiverPolicy.INHERIT
+        );
         };
     }
 
@@ -367,7 +372,9 @@ public final class HydrologyPlannerProbe {
                     List.of("water"), List.of()
             ,
                 Double.NaN,
-                null, Double.NaN, true);
+                null, Double.NaN, true,
+                SurfaceRiverPolicy.INHERIT
+        );
         };
     }
 
@@ -493,7 +500,8 @@ public final class HydrologyPlannerProbe {
                 HydrologyPlannerSettings.Geometry.defaults(),
                 List.of(deepFluid), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -542,7 +550,8 @@ public final class HydrologyPlannerProbe {
                     Double.NaN,
                     null,
                     Double.NaN,
-                    true
+                    true,
+                    SurfaceRiverPolicy.INHERIT
             );
         };
     }
@@ -578,7 +587,9 @@ public final class HydrologyPlannerProbe {
                 List.of("water"), List.of()
         ,
                 Double.NaN,
-                null, Double.NaN, true);
+                null, Double.NaN, true,
+                SurfaceRiverPolicy.INHERIT
+        );
     }
 
     private static long[] parseSeeds(String[] arguments) {

@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.hydrology;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -80,7 +82,8 @@ public class StudioHydrologyTileStoreTest {
     }
 
     private HydrologyTile tile() {
-        HydrologyTerrainSample terrain = HydrologyTerrainSample.openLand(80, 0.25D, "plains");
+        HydrologyTerrainSample terrain = HydrologyTerrainSample.openLand(80, 0.25D, "plains")
+                .withSurfacePolicy(new SurfaceRiverPolicy("region:tropical", 8D, 160, 3, 3, 4, 128, 24));
         DrainageNode node = new DrainageNode(1L, 0, 0, terrain, 10D, 2L);
         RiverOutlet outlet = new RiverOutlet(
                 2L,

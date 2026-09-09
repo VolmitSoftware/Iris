@@ -46,6 +46,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
@@ -120,11 +121,18 @@ public final class ModdedEntitySpawner {
             return null;
         }
 
-        Entity entity = type.spawn(level, BlockPos.containing(x, y, z), reasonFor(irisEntity.getReason()));
+        Entity entity = spawnNative(type, level, BlockPos.containing(x, y, z), reasonFor(irisEntity.getReason()));
         if (entity != null) {
             entity.snapTo(x, y, z, 0F, 0F);
         }
         return entity;
+    }
+
+    static Entity spawnNative(EntityType<?> type, ServerLevel level, BlockPos position, EntitySpawnReason reason) {
+        if (level.getDifficulty() == Difficulty.PEACEFUL && !type.isAllowedInPeaceful()) {
+            return null;
+        }
+        return type.spawn(level, position, reason);
     }
 
     private static void applyConfig(Engine engine, IrisEntity irisEntity, Entity entity, ServerLevel level, int blockX, int blockY, int blockZ, RNG rng, boolean riseEffectActive) {

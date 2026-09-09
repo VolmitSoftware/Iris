@@ -447,7 +447,8 @@ public final class SavedBiomeRuntime implements AutoCloseable {
                 if (dimension == null) {
                     throw new IOException("Historical dimension is no longer supported: " + epoch.dimensionContract().dimensionKey());
                 }
-                Definitions loaded = new Definitions(data, dimension, NativeBiomeSpawnSelection.retainedDerivatives(data));
+                Definitions loaded = new Definitions(data, dimension, NativeBiomeSpawnSelection.retainedDerivatives(data),
+                        resolveFocusRegions(data, dimension));
                 definitions.put(epochId, loaded);
                 return loaded;
             } catch (Throwable failure) {
@@ -462,6 +463,41 @@ public final class SavedBiomeRuntime implements AutoCloseable {
         if (closed) {
             throw new IllegalStateException("Saved biome runtime is closed.");
         }
+    }
+
+    private static Map<String, IrisRegion> resolveFocusRegions(IrisData data, IrisDimension dimension) {
+        Map<String, IrisRegion> regions = new HashMap<>();
+        Set<String> dimensions = new HashSet<>();
+        dimensions.add(dimension.getLoadKey());
+        if (dimension.hasUpperDimension()) {
+            dimensions.add(dimension.getUpperDimension());
+        }
+        if (dimension.hasDimensionStack()) {
+            dimensions.addAll(dimension.getDimensionStack().getDimensions());
+        }
+        for (String key : dimensions) {
+            IrisDimension source = key.equals(dimension.getLoadKey()) ? dimension : data.getDimensionLoader().load(key);
+            if (source == null || source.isCompatExcluded()) {
+                continue;
+            }
+            if (source.getStudioMode().biomeSizeChunks() > 0) {
+                for (IrisBiome biome : source.getAllBiomes(() -> data)) {
+                    if (!biome.isCompatExcluded()) {
+                        IrisRegion region = source.resolveFocusRegion(biome, () -> data);
+                        regions.put(region.getLoadKey(), region);
+                    }
+                }
+            }
+            if (source.getFocus() == null || source.getFocus().isBlank()) {
+                continue;
+            }
+            IrisBiome focus = data.getBiomeLoader().load(source.getFocus());
+            if (focus != null && !focus.isCompatExcluded()) {
+                IrisRegion region = source.resolveFocusRegion(focus, () -> data);
+                regions.put(region.getLoadKey(), region);
+            }
+        }
+        return Map.copyOf(regions);
     }
 
     private static long key(int chunkX, int chunkZ) {
@@ -483,10 +519,14 @@ public final class SavedBiomeRuntime implements AutoCloseable {
         SURFACE, CAVE_BASE, VOLUME
     }
 
-    private record Definitions(IrisData data, IrisDimension dimension, Map<String, String> nativeDerivatives) {
+    private record Definitions(IrisData data, IrisDimension dimension, Map<String, String> nativeDerivatives,
+                               Map<String, IrisRegion> focusRegions) {
         private BiomeEnvironment environment(SavedBiomeChunk.Cell cell) {
             IrisBiome biome = data.getBiomeLoader().load(cell.biomeKey());
             IrisRegion region = data.getRegionLoader().load(cell.regionKey());
+            if (region == null) {
+                region = focusRegions.get(cell.regionKey());
+            }
             if (biome == null || region == null) {
                 throw new SavedBiomeUnavailableException("Historical biome " + cell.biomeKey() + " in region "
                         + cell.regionKey() + " is no longer supported for generation " + cell.activationId()

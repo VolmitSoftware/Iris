@@ -12,6 +12,7 @@ import net.minecraft.world.level.levelgen.structure.pools.SinglePoolElement;
 import net.minecraft.world.level.levelgen.structure.templatesystem.LiquidSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.structures.OceanMonumentPieces;
+import net.minecraft.world.level.levelgen.structure.structures.RuinedPortalPiece;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
@@ -48,6 +49,32 @@ final class NativeStructureReflection {
         }
         if (!resolved.trySetAccessible()) {
             throw new IllegalStateException("ScatteredFeaturePiece height-position field is inaccessible");
+        }
+        return resolved;
+    }
+
+    static RuinedPortalPiece.VerticalPlacement ruinedPortalVerticalPlacement(RuinedPortalPiece piece) {
+        try {
+            return (RuinedPortalPiece.VerticalPlacement) RuinedPortalPlacementAccess.FIELD.get(piece);
+        } catch (IllegalAccessException error) {
+            throw new IllegalStateException("Cannot read native ruined portal vertical placement", error);
+        }
+    }
+
+    private static Field resolveRuinedPortalPlacementField() {
+        Field resolved = null;
+        for (Field field : RuinedPortalPiece.class.getDeclaredFields()) {
+            if (Modifier.isStatic(field.getModifiers())
+                    || field.getType() != RuinedPortalPiece.VerticalPlacement.class) {
+                continue;
+            }
+            if (resolved != null) {
+                throw new IllegalStateException("RuinedPortalPiece has multiple vertical-placement fields");
+            }
+            resolved = field;
+        }
+        if (resolved == null || !resolved.trySetAccessible()) {
+            throw new IllegalStateException("RuinedPortalPiece vertical-placement field is inaccessible");
         }
         return resolved;
     }
@@ -305,6 +332,13 @@ final class NativeStructureReflection {
         static final Field FIELD = resolveMonumentChildPiecesField();
 
         private MonumentChildPiecesAccess() {
+        }
+    }
+
+    private static final class RuinedPortalPlacementAccess {
+        private static final Field FIELD = resolveRuinedPortalPlacementField();
+
+        private RuinedPortalPlacementAccess() {
         }
     }
 

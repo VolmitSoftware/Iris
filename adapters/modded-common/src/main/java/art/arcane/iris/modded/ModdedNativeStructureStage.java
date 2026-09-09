@@ -398,10 +398,7 @@ final class ModdedNativeStructureStage {
         }
         IrisStaticObjectLayer staticObjects = current.getDimension().getStaticObjectLayer(current.getData());
         Predicate<BlockPos> protectedPosition = nativeStructureProtection(current, staticObjects);
-        WorldGenLevel boundedWorld = staticObjects.isEmpty()
-                && current.getDimensionStackContext() == null
-                ? world
-                : ModdedNativeStructureWorldgenAccess.create(
+        WorldGenLevel boundedWorld = ModdedNativeStructureWorldgenAccess.create(
                 world, chunkPos, worldgenSurfaceHeight(current, world.getMinY()), worldgenFloorHeight(current, world.getMinY()),
                 current.getDimensionStackContext() != null,
                 protectedPosition);
@@ -413,11 +410,12 @@ final class ModdedNativeStructureStage {
                     "vegetation cleanup", nativeStructureBatchContext(placementGroups),
                     chunkPos.x(), chunkPos.z(), error);
         }
-        NativeStructureSurfaceFitter.VacuumFoundationPlan vacuumFoundationPlan;
+        NativeStructureSurfaceFitter.SurfaceTerrainPlan surfaceTerrainPlan;
         try {
-            vacuumFoundationPlan = NativeStructureSurfaceFitter.prepareSurfaceStructures(
+            surfaceTerrainPlan = NativeStructureSurfaceFitter.prepareSurfaceStructures(
                     boundedWorld, area, terrainTargets,
                     (x, z) -> Engine.hostHeight(current, x, z, true) + current.getMinHeight());
+            surfaceTerrainPlan.primeHeightmaps(chunk);
         } catch (Throwable error) {
             throw NativeStructureGenerationException.failure(
                     "terrain integration", nativeStructureBatchContext(placementGroups),
@@ -445,7 +443,7 @@ final class ModdedNativeStructureStage {
         }
         try {
             NativeStructureSurfaceFitter.repairVacuumFoundations(
-                    boundedWorld, area, vacuumFoundationPlan);
+                    boundedWorld, area, surfaceTerrainPlan);
         } catch (Throwable error) {
             throw NativeStructureGenerationException.failure(
                     "foundation repair", nativeStructureBatchContext(placementGroups),

@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.hydrology;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import art.arcane.iris.engine.hydrology.cave.HydrologyCavePlan;
 import org.junit.Test;
 
@@ -283,12 +285,13 @@ public class HydrologyPlannerSeaCaveTest {
                 "shore",
                 "dry",
                 "flooded",
-                List.of("beta", "alpha"),
+                List.of("default"),
                 List.of(),
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 
@@ -327,7 +330,8 @@ public class HydrologyPlannerSeaCaveTest {
                 List.of(),
                 List.of(),
                 surface.shoreWidth(),
-                seaCaves
+                seaCaves,
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 }

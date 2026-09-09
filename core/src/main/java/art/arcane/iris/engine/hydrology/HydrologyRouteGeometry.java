@@ -2,6 +2,7 @@ package art.arcane.iris.engine.hydrology;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,11 +34,12 @@ final class HydrologyRouteGeometry {
             HydrologySampledGrid grid,
             HydrologyRoutingPlan routing,
             HydrologyGridNode downstream,
-            RiverOutlet outlet
+            RiverOutlet outlet,
+            boolean surface
     ) {
         int continuationIndex = routing.parent()[downstream.index()];
         if (continuationIndex >= 0) {
-            return routeAnchor(grid.node(continuationIndex));
+            return routeAnchor(grid.node(continuationIndex), surface);
         }
         HydrologyPoint landward = outlet.landwardPoint();
         if (landward.x() != downstream.x() || landward.z() != downstream.z()) {
@@ -46,10 +48,12 @@ final class HydrologyRouteGeometry {
         return outlet.connectionPoint();
     }
 
-    HydrologyPoint routeAnchor(HydrologyGridNode node) {
+    HydrologyPoint routeAnchor(HydrologyGridNode node, boolean surface) {
         HydrologyPlanner.PlanningSamples samples = planner.planningSamples.get();
+        HashMap<Long, HydrologyPoint> anchors = samples == null ? null
+                : surface ? samples.surfaceRouteAnchors : samples.routeAnchors;
         if (samples != null) {
-            HydrologyPoint cached = samples.routeAnchors.get(node.id());
+            HydrologyPoint cached = anchors.get(node.id());
             if (cached != null) {
                 return cached;
             }
@@ -112,12 +116,13 @@ final class HydrologyRouteGeometry {
                 selected.z(),
                 desiredX,
                 desiredZ,
-                maximumOffsetRatio
+                maximumOffsetRatio,
+                surface
         );
         for (int[] offset : offsets) {
             int x = desiredX + offset[0];
             int z = desiredZ + offset[1];
-            double score = anchorScore(node, x, z, desiredX, desiredZ, maximumOffsetRatio);
+            double score = anchorScore(node, x, z, desiredX, desiredZ, maximumOffsetRatio, surface);
             if (score < selectedScore) {
                 HydrologyTerrainSample terrain = planner.sampleLandBasis(x, z);
                 selected = new HydrologyPoint(x, terrain.naturalHeight(), z);
@@ -125,7 +130,7 @@ final class HydrologyRouteGeometry {
             }
         }
         if (samples != null) {
-            samples.routeAnchors.put(node.id(), selected);
+            anchors.put(node.id(), selected);
         }
         return selected;
     }
@@ -136,7 +141,8 @@ final class HydrologyRouteGeometry {
             int z,
             int desiredX,
             int desiredZ,
-            double maximumOffsetRatio
+            double maximumOffsetRatio,
+            boolean surface
     ) {
         double distanceFromNode = StrictMath.hypot(x - node.x(), z - node.z());
         if (distanceFromNode > planner.settings.routing().sampleSpacing() * maximumOffsetRatio) {
@@ -145,6 +151,17 @@ final class HydrologyRouteGeometry {
         HydrologyTerrainSample terrain = planner.sampleLandBasisWithoutSlope(x, z);
         if (terrain == null || !terrain.transitAllowed() || !withinConfines(terrain, node.terrain().confinesKey())) {
             return Double.POSITIVE_INFINITY;
+        }
+        if (surface) {
+            int maximumDrop = Math.max(0, Math.min(planner.sourcePlanner.permittedSurfaceIncision(node.terrain()),
+                    planner.sourcePlanner.permittedSurfaceIncision(terrain))
+                    - planner.settings.surface().banks().sink() - planner.settings.surface().minimumDepth());
+            int drop = node.terrain().naturalHeight() - terrain.naturalHeight();
+            if (drop < 0 || drop > maximumDrop
+                    || !HydrologySurfaceProfiles.sharesProfile(node.terrain(), terrain)
+                    || !node.terrain().surfacePolicy().areaKey().equals(terrain.surfacePolicy().areaKey())) {
+                return Double.POSITIVE_INFINITY;
+            }
         }
         if (!planner.routePaths.traversableHop(node.naturalPoint(), new HydrologyPoint(x, terrain.naturalHeight(), z))) {
             return Double.POSITIVE_INFINITY;
@@ -166,7 +183,8 @@ final class HydrologyRouteGeometry {
             HydrologyPoint upstream,
             HydrologyPoint downstream,
             HydrologyPoint continuation,
-            int transverseCandidates
+            int transverseCandidates,
+            boolean surface
     ) {
         int refinement = planner.settings.routing().refinementSpacing();
         int effectiveTransverseCandidates = transverseCandidates;
@@ -222,7 +240,7 @@ final class HydrologyRouteGeometry {
                     nominal,
                     progress,
                     refinement,
-                    elevationTransition ? 0 : effectiveTransverseCandidates,
+                    elevationTransition && !surface ? 0 : effectiveTransverseCandidates,
                     upstreamTerrain == null ? null : upstreamTerrain.confinesKey()
             );
             if (candidates.isEmpty()) {
@@ -331,6 +349,8 @@ final class HydrologyRouteGeometry {
         if (terrain == null || !terrain.transitAllowed()) {
             return new RouteCandidate(
                     point,
+                    point.x(),
+                    point.z(),
                     0D,
                     Double.POSITIVE_INFINITY,
                     Double.POSITIVE_INFINITY,
@@ -341,6 +361,8 @@ final class HydrologyRouteGeometry {
         double terrainScore = routeTerrainScore(terrain);
         return new RouteCandidate(
                 new HydrologyPoint(point.x(), terrain.naturalHeight(), point.z()),
+                point.x(),
+                point.z(),
                 0D,
                 terrainScore,
                 terrainScore,
@@ -457,6 +479,8 @@ final class HydrologyRouteGeometry {
                     + HydrologyHash.unit(HydrologyHash.mix(planner.worldSeed, upstreamId, downstreamId, x, z)) * 1.0E-6D;
             RouteCandidate candidate = new RouteCandidate(
                     new HydrologyPoint(x, terrain.naturalHeight(), z),
+                    x,
+                    z,
                     offset,
                     localScore,
                     routeTerrainScore(terrain),
@@ -491,6 +515,8 @@ final class HydrologyRouteGeometry {
             )) * 1.0E-6D;
             RouteCandidate fallback = new RouteCandidate(
                     new HydrologyPoint(fallbackX, fallbackTerrain.naturalHeight(), fallbackZ),
+                    fallbackX,
+                    fallbackZ,
                     fallbackOffset,
                     localScore,
                     routeTerrainScore(fallbackTerrain),
@@ -535,6 +561,8 @@ final class HydrologyRouteGeometry {
             )) * 1.0E-6D;
             RouteCandidate candidate = new RouteCandidate(
                     new HydrologyPoint(x, estimate.height(), z),
+                    nominal.x() - nominal.tangent().z() * offset,
+                    nominal.z() + nominal.tangent().x() * offset,
                     offset,
                     localScore,
                     estimate.terrainScore(),
@@ -590,6 +618,8 @@ final class HydrologyRouteGeometry {
         if (terrain == null || !terrain.transitAllowed()) {
             return new RouteCandidate(
                     point,
+                    candidate.continuousX(),
+                    candidate.continuousZ(),
                     candidate.offset(),
                     Double.POSITIVE_INFINITY,
                     Double.POSITIVE_INFINITY,
@@ -601,6 +631,8 @@ final class HydrologyRouteGeometry {
         double exactLocalScore = candidate.localScore() - candidate.terrainScore() + terrainScore;
         return new RouteCandidate(
                 new HydrologyPoint(point.x(), terrain.naturalHeight(), point.z()),
+                candidate.continuousX(),
+                candidate.continuousZ(),
                 candidate.offset(),
                 exactLocalScore,
                 terrainScore,
@@ -887,10 +919,10 @@ final class HydrologyRouteGeometry {
                         }
                         double turnPenalty = candidateTurns[beforeIndex];
                         if (Double.isNaN(turnPenalty)) {
-                            double turn = HydrologyRoutePath.routeTurnDegrees(
-                                    beforeLayer.get(beforeIndex).point(),
-                                    previous.point(),
-                                    current.point()
+                            double turn = continuousTurnDegrees(
+                                    beforeLayer.get(beforeIndex),
+                                    previous,
+                                    current
                             );
                             turnPenalty = turn > maximumTurn
                                     ? Double.POSITIVE_INFINITY
@@ -1028,16 +1060,25 @@ final class HydrologyRouteGeometry {
         return excess * excess * turnCost / maximumTurn;
     }
 
+    double continuousTurnDegrees(RouteCandidate before, RouteCandidate center, RouteCandidate after) {
+        double incomingX = center.continuousX() - before.continuousX();
+        double incomingZ = center.continuousZ() - before.continuousZ();
+        double outgoingX = after.continuousX() - center.continuousX();
+        double outgoingZ = after.continuousZ() - center.continuousZ();
+        double length = StrictMath.hypot(incomingX, incomingZ) * StrictMath.hypot(outgoingX, outgoingZ);
+        if (length <= 0D) {
+            return 0D;
+        }
+        double cosine = (incomingX * outgoingX + incomingZ * outgoingZ) / length;
+        return StrictMath.toDegrees(StrictMath.acos(Math.max(-1D, Math.min(1D, cosine))));
+    }
+
     double surfaceRouteTransitionPenalty(
             RouteCandidate start,
             RouteCandidate end
     ) {
         int minimumBankDistance = planner.surfaceCourses.surfaceBankDistance(planner.settings.surface().minimumWidth());
         int maximumBankDistance = planner.surfaceCourses.surfaceBankDistance(planner.settings.surface().maximumWidth());
-        int maximumBankRise = Math.addExact(
-                planner.settings.surface().maximumIncision(),
-                (int) StrictMath.ceil(planner.settings.surface().banks().minimumBlendWidth() * 0.5D)
-        );
         RouteDirection tangent = planner.routePaths.direction(start.point().x(), start.point().z(), end.point().x(), end.point().z());
         int endpointCeiling = Math.max(start.point().y(), end.point().y());
         double penalty = 0D;
@@ -1068,7 +1109,7 @@ final class HydrologyRouteGeometry {
                     minimumBankDistance,
                     maximumBankDistance,
                     head,
-                    maximumBankRise
+                    planner.surfaceCourses.maximumSurfaceBankRise(terrain)
             );
         }
         if ((raster.size() - 1) % sampleStride != 0) {
@@ -1094,7 +1135,7 @@ final class HydrologyRouteGeometry {
                         minimumBankDistance,
                         maximumBankDistance,
                         head,
-                        maximumBankRise
+                        planner.surfaceCourses.maximumSurfaceBankRise(terrain)
                 );
             }
         }

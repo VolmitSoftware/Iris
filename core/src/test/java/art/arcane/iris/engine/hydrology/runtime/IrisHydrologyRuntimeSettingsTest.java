@@ -21,12 +21,67 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class IrisHydrologyRuntimeSettingsTest {
+    @Test
+    @SuppressWarnings("unchecked")
+    public void regionalSurfaceControlsFingerprintAllScopesAndExpandSpacingReach() {
+        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("tropical"));
+        IrisRegion tropical = new IrisRegion().setRiverPolicy(new IrisRiverPolicy().setSurfaceSourceDensity(8D)
+                .setSurfaceSourceSpacing(160).setSurfaceTributaries(3).setSurfaceInlandOutlets(3).setSurfaceCoastalOutlets(4));
+        tropical.setLoadKey("tropical");
+        IrisBiome volcanic = new IrisBiome().setRiverPolicy(new IrisRiverPolicy().setSurfaceCoastalOutlets(0));
+        volcanic.setLoadKey("volcanic");
+        IrisData data = mock(IrisData.class);
+        ResourceLoader<IrisRegion> regions = mock(ResourceLoader.class);
+        ResourceLoader<IrisBiome> biomes = mock(ResourceLoader.class);
+        when(data.getRegionLoader()).thenReturn(regions);
+        when(data.getBiomeLoader()).thenReturn(biomes);
+        when(regions.load("tropical")).thenReturn(tropical);
+        when(biomes.getPossibleKeys()).thenReturn(new String[]{"volcanic"});
+        when(biomes.loadAll(any(String[].class))).thenReturn(new KList<>(volcanic));
+
+        HydrologyPlannerSettings baseline = settings(dimension);
+        HydrologyPlannerSettings regional = IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> data);
+        assertEquals(HydrologyPlannerSettings.SurfacePolicyBounds.NONE, baseline.surfacePolicyBounds());
+        assertNotEquals(baseline.fingerprint(), regional.fingerprint());
+        assertEquals(384, regional.maximumSurfaceSourceSpacing());
+
+        volcanic.getRiverPolicy().setSurfaceSourceSpacing(1600);
+        HydrologyPlannerSettings widened = IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> data);
+        assertNotEquals(regional.fingerprint(), widened.fingerprint());
+        assertEquals(1600, widened.maximumSurfaceSourceSpacing());
+        assertTrue(widened.publicationRadius() >= 1600);
+        assertEquals(widened.fingerprint(), IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> data).fingerprint());
+
+        dimension.getRiverPolicy().setSurfaceInlandOutlets(7);
+        assertNotEquals(widened.fingerprint(), IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> data).fingerprint());
+    }
+
+    @Test
+    public void geometryOnlyPoliciesInvalidateThePlanWithoutChangingDimensionLimits() {
+        IrisDimension dimension = new IrisDimension();
+        HydrologyPlannerSettings baseline = settings(dimension);
+        dimension.getRiverPolicy().setSurfaceMinimumCourseLength(128);
+        HydrologyPlannerSettings shortened = settings(dimension);
+        assertNotEquals(baseline.fingerprint(), shortened.fingerprint());
+        assertEquals(baseline.routing().minimumSurfaceCourseLength(), shortened.routing().minimumSurfaceCourseLength());
+        assertEquals(baseline.maximumSurfaceSourceSpacing(), shortened.maximumSurfaceSourceSpacing());
+
+        dimension.getRiverPolicy().setSurfaceMaximumIncision(24);
+        HydrologyPlannerSettings deeper = settings(dimension);
+        assertNotEquals(shortened.fingerprint(), deeper.fingerprint());
+        assertEquals(baseline.surface().maximumIncision(), deeper.surface().maximumIncision());
+        assertEquals(deeper.fingerprint(), settings(dimension).fingerprint());
+        dimension.getRiverPolicy().setSurfaceMinimumCourseLength(null).setSurfaceMaximumIncision(null);
+        assertEquals(baseline.fingerprint(), settings(dimension).fingerprint());
+    }
+
     @Test
     public void deepChannelsRemainLocalWhenConfiguredSpacingIsLarge() {
         IrisDeepFluidConfig deepFluid = new IrisDeepFluidConfig()

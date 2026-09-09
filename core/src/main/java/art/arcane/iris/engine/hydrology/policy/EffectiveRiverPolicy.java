@@ -25,12 +25,14 @@ public record EffectiveRiverPolicy(
         Double shoreBiomeWidth,
         RiverConfinement confinement,
         Double shoreWidth,
-        Boolean erosion
+        Boolean erosion,
+        SurfaceRiverPolicy surfacePolicy
 ) {
     public EffectiveRiverPolicy {
         placement = Objects.requireNonNull(placement);
         routing = Objects.requireNonNull(routing);
         confinement = Objects.requireNonNull(confinement);
+        surfacePolicy = Objects.requireNonNull(surfacePolicy);
         if (shoreBiomeWidth != null && (!Double.isFinite(shoreBiomeWidth) || shoreBiomeWidth < 0D)) {
             throw new IllegalArgumentException("shoreBiomeWidth must be finite and non-negative.");
         }

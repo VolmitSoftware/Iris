@@ -105,11 +105,14 @@ public final class Terrain3DRuntime {
         if (amplitude + crackDepth <= 0D) {
             return Terrain3DColumn.unshaped(baseHeight, options.height());
         }
+        double densityHeight = baseHeight + interpolate(northWest.heightOffset(baseHeight),
+                northEast.heightOffset(baseHeight), southWest.heightOffset(baseHeight),
+                southEast.heightOffset(baseHeight), dx, dz);
         double crackWidth = interpolate(northWest.profile.crackWidth, northEast.profile.crackWidth,
                 southWest.profile.crackWidth, southEast.profile.crackWidth, dx, dz);
         int minimum = Math.max(Math.max(1, (int) Math.floor(options.fluidHeight()) + 1),
-                (int) Math.floor(baseHeight - amplitude - crackDepth));
-        int maximum = Math.min(options.height() - 1, (int) Math.ceil(baseHeight + amplitude));
+                (int) Math.floor(densityHeight - amplitude - crackDepth));
+        int maximum = Math.min(options.height() - 1, (int) Math.ceil(densityHeight + amplitude));
         if (minimum > maximum) {
             return Terrain3DColumn.unshaped(baseHeight, options.height());
         }
@@ -148,7 +151,7 @@ public final class Terrain3DRuntime {
                     double ridge = Math.max(0D, 1D - distance / crackWidth);
                     fissure = lerp(lowerDepth, upperDepth, dy) * ridge * ridge;
                 }
-                boolean solid = baseHeight + 0.5D - y + displacement - fissure >= 0D;
+                boolean solid = densityHeight + 0.5D - y + displacement - fissure >= 0D;
                 if (solid != previousSolid) {
                     if (count == boundaries.length) {
                         boundaries = Arrays.copyOf(boundaries, count * 2);
@@ -177,13 +180,13 @@ public final class Terrain3DRuntime {
         IrisBiome biome = sources.biomes().sample(x, z);
         CompiledProfile profile = profile(biome == null ? null : biome.getTerrain3D());
         if (profile == DISABLED) {
-            return new Anchor(x, z, profile, 0D);
+            return new Anchor(x, z, profile, 0D, 0D);
         }
         double height = baseHeight(x, z);
         double elevationStrength = smooth((height - options.fluidHeight() - profile.fluidClearance)
                 / profile.fluidFade);
         if (elevationStrength <= 0D) {
-            return new Anchor(x, z, profile, 0D);
+            return new Anchor(x, z, profile, height, 0D);
         }
         double slopeStrength = 1D;
         if (profile.minimumSlope > 0D) {
@@ -192,7 +195,7 @@ public final class Terrain3DRuntime {
             double slope = StrictMath.sqrt(east * east + south * south);
             slopeStrength = smooth((slope - profile.minimumSlope) / profile.slopeFade);
         }
-        return new Anchor(x, z, profile, elevationStrength * slopeStrength);
+        return new Anchor(x, z, profile, height, elevationStrength * slopeStrength);
     }
 
     private CompiledProfile profile(IrisTerrain3D config) {
@@ -322,13 +325,15 @@ public final class Terrain3DRuntime {
         private final int x;
         private final int z;
         private final CompiledProfile profile;
+        private final double height;
         private final double strength;
         private final AtomicReferenceArray<NodeSample> samples;
 
-        private Anchor(int x, int z, CompiledProfile profile, double strength) {
+        private Anchor(int x, int z, CompiledProfile profile, double height, double strength) {
             this.x = x;
             this.z = z;
             this.profile = profile;
+            this.height = height;
             this.strength = strength;
             samples = strength == 0D ? null
                     : new AtomicReferenceArray<>(Math.ceilDiv(options.height(), STEP) + 1);
@@ -340,6 +345,10 @@ public final class Terrain3DRuntime {
 
         private double crackDepth() {
             return profile.crackDepth * strength;
+        }
+
+        private double heightOffset(double baseHeight) {
+            return (height - baseHeight) * strength;
         }
 
         private NodeSample sample(int y) {

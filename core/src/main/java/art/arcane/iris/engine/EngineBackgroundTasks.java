@@ -19,7 +19,10 @@
 package art.arcane.iris.engine;
 
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.GenerationSessionManager;
 import art.arcane.iris.util.common.scheduling.J;
+import art.arcane.iris.util.project.context.IrisContext;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,7 +34,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static art.arcane.iris.engine.EngineShutdownSequence.appendFailure;
 import static art.arcane.iris.engine.EngineShutdownSequence.propagate;
@@ -47,19 +50,41 @@ final class EngineBackgroundTasks {
     private final Object backgroundTaskLock = new Object();
     private final List<TrackedBackgroundTask> backgroundTasks = new ArrayList<>();
     private boolean backgroundTaskAdmission;
+    private int activeDrains;
 
     boolean scheduleTrackedTask(Runnable task) {
+        return scheduleTrackedTask(task, false);
+    }
+
+    void scheduleAdmittedTask(Engine engine, Runnable task) {
+        IrisContext context = IrisContext.get();
+        GenerationSessionManager sessions = engine.getGenerationSessions();
+        if (context == null || context.getEngine() != engine || context.getGenerationSessionId() == 0L
+                || context.getGenerationSessionId() != engine.getGenerationSessionId()
+                || sessions == null || sessions.activeLeases() == 0) {
+            throw new IllegalStateException("Iris background continuation requires an active generation lease.");
+        }
+        scheduleTrackedTask(task, true);
+    }
+
+    private boolean scheduleTrackedTask(Runnable task, boolean admitted) {
         synchronized (backgroundTaskLock) {
             // A finished task is not outstanding work, however it finished. Retaining failed
             // entries made the NEXT transition's drain re-report a long-settled failure and
             // blocked close() from ever marking the engine closed.
-            backgroundTasks.removeIf(tracked -> tracked.completion.isDone());
-            if (!backgroundTaskAdmission) {
+            if (activeDrains == 0) {
+                backgroundTasks.removeIf(tracked -> tracked.completion.isDone());
+            }
+            if (!backgroundTaskAdmission && !admitted) {
                 return false;
             }
             TrackedBackgroundTask tracked = new TrackedBackgroundTask();
             Future<Void> future = J.a(() -> {
-                tracked.started.set(true);
+                // The pool behind J.a cannot stop a callable it already dequeued, so the claim is
+                // decided here: a cancellation that won the claim first means this body never runs.
+                if (!tracked.claim.compareAndSet(TrackedBackgroundTask.QUEUED, TrackedBackgroundTask.RUNNING)) {
+                    return null;
+                }
                 try {
                     task.run();
                     tracked.completion.complete(null);
@@ -83,21 +108,69 @@ final class EngineBackgroundTasks {
     }
 
     BackgroundTaskDrain drainBackgroundTasks(String reason) {
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(BACKGROUND_TASK_TIMEOUT_MILLIS);
+        Set<TrackedBackgroundTask> observed = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<TrackedBackgroundTask> settledAtEntry = Collections.newSetFromMap(new IdentityHashMap<>());
         List<TrackedBackgroundTask> tasks;
         synchronized (backgroundTaskLock) {
+            activeDrains++;
             tasks = List.copyOf(backgroundTasks);
-        }
-        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(BACKGROUND_TASK_TIMEOUT_MILLIS);
-        Throwable failure = null;
-        // Settled-set snapshot taken ONCE at drain entry: a per-iteration isDone() sample
-        // would also suppress tasks that failed while the drain was blocked on an earlier
-        // task, letting a real in-flight failure pass the transition unreported.
-        Set<TrackedBackgroundTask> settledAtEntry = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (TrackedBackgroundTask task : tasks) {
-            if (task.completion.isDone()) {
-                settledAtEntry.add(task);
+            for (TrackedBackgroundTask task : tasks) {
+                if (task.completion.isDone()) {
+                    settledAtEntry.add(task);
+                }
             }
         }
+        Throwable failure = null;
+        try {
+            while (true) {
+                failure = appendFailure(failure, drainTaskBatch(tasks, settledAtEntry, deadline, reason));
+                observed.addAll(tasks);
+                synchronized (backgroundTaskLock) {
+                    tasks = new ArrayList<>();
+                    for (TrackedBackgroundTask task : backgroundTasks) {
+                        if (!observed.contains(task)) {
+                            tasks.add(task);
+                        }
+                    }
+                    if (tasks.isEmpty()) {
+                        return new BackgroundTaskDrain(failure, allTasksComplete());
+                    }
+                }
+                if (System.nanoTime() >= deadline) {
+                    for (TrackedBackgroundTask task : tasks) {
+                        cancelBackgroundTask(task, reason);
+                    }
+                    failure = appendFailure(failure, new TimeoutException(
+                            "Timed out waiting for Iris background tasks during " + reason + "."));
+                    synchronized (backgroundTaskLock) {
+                        return new BackgroundTaskDrain(failure, allTasksComplete());
+                    }
+                }
+            }
+        } finally {
+            synchronized (backgroundTaskLock) {
+                activeDrains--;
+                if (activeDrains == 0) {
+                    backgroundTasks.removeIf(tracked -> tracked.completion.isDone());
+                }
+            }
+        }
+    }
+
+    private boolean allTasksComplete() {
+        for (TrackedBackgroundTask task : backgroundTasks) {
+            if (!task.completion.isDone()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private Throwable drainTaskBatch(List<TrackedBackgroundTask> tasks,
+                                     Set<TrackedBackgroundTask> settledAtEntry,
+                                     long deadline, String reason) {
+        Throwable failure = null;
         for (TrackedBackgroundTask task : tasks) {
             long remaining = deadline - System.nanoTime();
             if (remaining <= 0L) {
@@ -123,17 +196,16 @@ final class EngineBackgroundTasks {
                 }
             }
         }
-        boolean complete;
-        synchronized (backgroundTaskLock) {
-            backgroundTasks.removeIf(tracked -> tracked.completion.isDone());
-            complete = backgroundTasks.isEmpty();
-        }
-        return new BackgroundTaskDrain(failure, complete);
+        return failure;
     }
 
     private void cancelBackgroundTask(TrackedBackgroundTask task, String reason) {
+        boolean claimed = task.claim.compareAndSet(TrackedBackgroundTask.QUEUED, TrackedBackgroundTask.CANCELLED);
         Future<?> future = task.future;
-        if (future != null && future.cancel(true) && !task.started.get()) {
+        if (future != null) {
+            future.cancel(true);
+        }
+        if (claimed) {
             task.completion.completeExceptionally(
                     new IllegalStateException("Iris background task was cancelled before starting during " + reason + "."));
         }
@@ -162,7 +234,11 @@ final class EngineBackgroundTasks {
     }
 
     private static final class TrackedBackgroundTask {
-        private final AtomicBoolean started = new AtomicBoolean();
+        private static final int QUEUED = 0;
+        private static final int RUNNING = 1;
+        private static final int CANCELLED = 2;
+
+        private final AtomicInteger claim = new AtomicInteger(QUEUED);
         private final CompletableFuture<Void> completion = new CompletableFuture<>();
         private volatile Future<?> future;
     }

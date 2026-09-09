@@ -22,13 +22,18 @@ public class IrisStructureTerrain {
     private static final double MAX_EROSION_FREQUENCY = 1D;
     private static final double MAX_LOBE_FREQUENCY = 1D;
 
-    @Desc("Terrain operation. SOURCE applies the registered native structure's authored terrain adaptation and is a no-op for editable Iris structures. PRESERVE disables terrain integration. VACUUM raises terrain from processed rigid-template foundations at or below each authored ground plane with a 12-block falloff without lowering existing ground. BORE and FORCE_CARVE clear the requested envelope, while ENCASE fills it before placement so native shells are not lost to pre-carved air.")
+    @Desc("Terrain operation. SOURCE applies the registered native structure's authored terrain adaptation and is a no-op for editable Iris structures. PRESERVE disables terrain integration. FLATTEN cuts and fills exposed native foundations within flattenRange, blending across horizontalPadding blocks. VACUUM raises terrain from processed rigid-template foundations with a fixed 12-block falloff without lowering ground. BORE and FORCE_CARVE clear the requested envelope, while ENCASE fills it before placement.")
     private IrisStructureTerrainMode mode = IrisStructureTerrainMode.SOURCE;
 
     @MinNumber(0)
     @MaxNumber(128)
-    @Desc("Horizontal clearance around the assembled pieces for BORE, FORCE_CARVE, and ENCASE. VACUUM uses its fixed 12-block terrain falloff.")
+    @Desc("Horizontal clearance for BORE, FORCE_CARVE, and ENCASE, or the terrain blend distance for FLATTEN, in blocks. VACUUM uses its fixed 12-block terrain falloff.")
     private int horizontalPadding = 0;
+
+    @MinNumber(0)
+    @MaxNumber(128)
+    @Desc("Maximum vertical cut, fill, and foundation support depth for FLATTEN, in blocks. Other terrain modes ignore this setting.")
+    private int flattenRange = 64;
 
     @MinNumber(0)
     @MaxNumber(128)
@@ -72,6 +77,10 @@ public class IrisStructureTerrain {
 
     public IrisStructureCarveShape resolvedShape() {
         return shape == null ? IrisStructureCarveShape.BOX : shape;
+    }
+
+    public int resolvedFlattenRange() {
+        return Math.max(0, Math.min(128, flattenRange));
     }
 
     public double resolvedErosionStrength() {

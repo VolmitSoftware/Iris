@@ -22,8 +22,6 @@ import art.arcane.iris.util.project.stream.interpolation.Interpolated;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 
-import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -31,7 +29,6 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 public final class DimensionTerrainContext implements DataProvider {
     private static final NoiseBounds ZERO_NOISE_BOUNDS = new NoiseBounds(0D, 0D);
@@ -171,7 +168,7 @@ public final class DimensionTerrainContext implements DataProvider {
                 : configuredFocusBiome.withInferredType(InferredType.LAND);
         IrisRegion focusRegion = focusBiome == null
                 ? loadFocusRegion(dimension, dimensionData)
-                : findFocusRegion(focusBiome, dimension, dataProvider, dimensionData);
+                : dimension.resolveFocusRegion(focusBiome, dataProvider);
 
         Map<IrisInterpolator, Set<IrisGenerator>> generators = new HashMap<>();
         Set<IrisBiome> allBiomes = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -591,32 +588,6 @@ public final class DimensionTerrainContext implements DataProvider {
         }
         IrisRegion region = data.getRegionLoader().load(key);
         return region == null || region.isCompatExcluded() ? null : region;
-    }
-
-    private static IrisRegion findFocusRegion(
-            IrisBiome focusBiome,
-            IrisDimension dimension,
-            DataProvider dataProvider,
-            IrisData data
-    ) {
-        for (IrisRegion region : dimension.getAllRegions(dataProvider)) {
-            if (region.getAllBiomeIds().contains(focusBiome.getLoadKey())) {
-                return region;
-            }
-        }
-        String key = UUID.nameUUIDFromBytes((dimension.getLoadKey() + "\u0000" + focusBiome.getLoadKey())
-                .getBytes(StandardCharsets.UTF_8)).toString();
-        IrisRegion region = new IrisRegion();
-        region.getLandBiomes().add(focusBiome.getLoadKey());
-        region.getSeaBiomes().add(focusBiome.getLoadKey());
-        region.getShoreBiomes().add(focusBiome.getLoadKey());
-        region.setLoadKey(key);
-        region.setLoader(data);
-        region.setLoadFile(new File(
-                data.getDataFolder(),
-                data.getRegionLoader().getFolderName() + "/" + key + ".json"
-        ));
-        return region;
     }
 
     private static IrisBiome implode(

@@ -28,11 +28,14 @@ import art.arcane.iris.core.runtime.ObjectStudioLayout.GridCell;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisObject;
 import art.arcane.iris.engine.platform.studio.generators.ObjectStudioGenerator;
+import art.arcane.iris.engine.platform.studio.generators.ObjectStudioGenerator.ChunkTiles;
+import art.arcane.iris.engine.platform.studio.generators.ObjectStudioGenerator.PlacedTile;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.iris.util.common.plugin.IrisService;
 import art.arcane.iris.util.common.scheduling.J;
 import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -42,10 +45,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,6 +63,7 @@ public class ObjectStudioSaveService implements IrisService {
     private static ObjectStudioSaveService INSTANCE;
 
     private final Map<UUID, ActiveStudio> studios = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<Long, ChunkTiles>> pendingTiles = new ConcurrentHashMap<>();
 
     public static ObjectStudioSaveService get() {
         ObjectStudioSaveService svc = INSTANCE;
@@ -74,6 +80,7 @@ public class ObjectStudioSaveService implements IrisService {
     @Override
     public void onDisable() {
         studios.clear();
+        pendingTiles.clear();
         INSTANCE = null;
     }
 
@@ -114,6 +121,7 @@ public class ObjectStudioSaveService implements IrisService {
 
     public void unregister(World world) {
         if (world == null) return;
+        pendingTiles.remove(world.getUID());
         ActiveStudio removed = studios.remove(world.getUID());
         if (removed != null) {
             if (removed.packKey != null) {
@@ -126,6 +134,50 @@ public class ObjectStudioSaveService implements IrisService {
     @EventHandler
     public void onWorldUnload(WorldUnloadEvent event) {
         unregister(event.getWorld());
+    }
+
+    public void queueTiles(Engine engine, ChunkTiles tiles) {
+        World world = BukkitWorldBinding.world(engine.getTarget().getWorld());
+        if (world == null) {
+            throw new IllegalStateException("Object Studio tile data has no target world.");
+        }
+        pendingTiles.computeIfAbsent(world.getUID(), ignored -> new ConcurrentHashMap<>())
+                .put(chunkKey(tiles.chunkX(), tiles.chunkZ()), tiles);
+    }
+
+    @EventHandler
+    public void onChunkLoad(ChunkLoadEvent event) {
+        Chunk chunk = event.getChunk();
+        Map<Long, ChunkTiles> pending = pendingTiles.get(chunk.getWorld().getUID());
+        if (pending == null) {
+            return;
+        }
+        long key = chunkKey(chunk.getX(), chunk.getZ());
+        ChunkTiles tiles = pending.get(key);
+        if (tiles == null) {
+            return;
+        }
+        int restored = 0;
+        try {
+            for (PlacedTile tile : tiles.tiles()) {
+                Block block = chunk.getBlock(tile.x(), tile.y(), tile.z());
+                if (!tile.data().isApplicable(block.getBlockData()) || !tile.data().toBukkitTry(block)) {
+                    throw new IllegalStateException("Object Studio tile data could not be restored at "
+                            + block.getX() + "," + block.getY() + "," + block.getZ() + ".");
+                }
+                restored++;
+            }
+        } catch (Throwable failure) {
+            IrisLogging.reportError("Failed to restore Object Studio tile data in " + chunk.getWorld().getName()
+                    + " at chunk " + chunk.getX() + "," + chunk.getZ() + ".", failure);
+        } finally {
+            if (restored == tiles.tiles().size()) {
+                pending.remove(key, tiles);
+            } else if (restored > 0) {
+                pending.replace(key, tiles, new ChunkTiles(tiles.chunkX(), tiles.chunkZ(),
+                        List.copyOf(tiles.tiles().subList(restored, tiles.tiles().size()))));
+            }
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -156,6 +208,10 @@ public class ObjectStudioSaveService implements IrisService {
                 IrisLogging.reportError(e);
             }
         });
+    }
+
+    private static long chunkKey(int x, int z) {
+        return ((long) x << 32) | (z & 0xffffffffL);
     }
 
     private static GridCell findCellNear(ActiveStudio studio, int x, int z) {
@@ -218,6 +274,17 @@ public class ObjectStudioSaveService implements IrisService {
         if (!allChunksLoaded(world, cell)) {
             return;
         }
+        Map<Long, ChunkTiles> pending = pendingTiles.get(world.getUID());
+        if (pending != null) {
+            for (int x = cell.chunkMinX(); x <= cell.chunkMaxX(); x++) {
+                for (int z = cell.chunkMinZ(); z <= cell.chunkMaxZ(); z++) {
+                    if (pending.containsKey(chunkKey(x, z))) {
+                        throw new IllegalStateException("Object Studio tile data is not ready for "
+                                + cell.pack() + "/" + cell.key() + ".");
+                    }
+                }
+            }
+        }
 
         IrisObject snapshot = studio.generator.createCapture(cell);
         int originX = cell.originX();
@@ -271,6 +338,7 @@ public class ObjectStudioSaveService implements IrisService {
                     parent.mkdirs();
                 }
                 snapshot.write(targetFile);
+                IrisData.invalidateLoadedAuthoringResources(studio.objectsDirs.get(cell.pack()).getParentFile());
                 IrisLogging.debug("Object Studio saved: %s/%s (%dx%dx%d)",
                         cell.pack(), cell.key(), cell.w(), cell.h(), cell.d());
                 if (notify != null) {

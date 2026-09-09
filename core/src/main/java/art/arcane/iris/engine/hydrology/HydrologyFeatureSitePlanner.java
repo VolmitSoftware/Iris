@@ -253,7 +253,7 @@ final class HydrologyFeatureSitePlanner {
                     || !terrain.outletAllowed()) {
                 continue;
             }
-            HydrologyGridNode ocean = planner.outletPlanner.firstOceanNeighbor(grid, land);
+            HydrologyGridNode ocean = planner.outletPlanner.firstOceanNeighbor(grid, land, false);
             if (ocean == null) {
                 continue;
             }

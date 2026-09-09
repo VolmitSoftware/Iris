@@ -77,6 +77,7 @@ public class IrisPregenerator {
     private final AtomicLong failed;
     private final IrisPackBenchmarking benchmarking;
     private volatile PregenRates rates;
+    private boolean progressClosed;
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
         this.jobId = JOB_SEQUENCE.incrementAndGet();
@@ -123,7 +124,10 @@ public class IrisPregenerator {
         return Double.isFinite(d) && d != INVALID ? (long) d : 0;
     }
 
-    private void publishProgress(long now, boolean logProgress) {
+    private synchronized void publishProgress(long now, boolean logProgress) {
+        if (progressClosed) {
+            return;
+        }
         long generatedCount = generated.get();
         long total = totalChunks.get();
         rates = rateTracker.sample(generatedCount, now);
@@ -170,6 +174,14 @@ public class IrisPregenerator {
                     formatRate(rates.sixtySecond()),
                     cachedProgress ? " (cached)" : "",
                     Form.duration(eta, 2));
+        }
+    }
+
+    private synchronized void publishFinalProgress() {
+        try {
+            publishProgress(M.ms(), false);
+        } finally {
+            progressClosed = true;
         }
     }
 
@@ -297,6 +309,7 @@ public class IrisPregenerator {
         shutdownStep("generator", generator::close);
         Thread.interrupted();
         shutdownStep("ticker", ticker::interrupt);
+        shutdownStep("progress", this::publishFinalProgress);
         shutdownStep("mantle", () -> {
             Mantle mantle = getMantle();
             if (mantle != null) {

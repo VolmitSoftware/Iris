@@ -315,7 +315,8 @@ public class HydrologyFootprintCompilerTest {
                 HydrologyPlannerSettings.Geometry.defaults(),
                 List.of(deepFluid), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
         HydraulicSegment segment = new HydraulicSegment(
                 15L,
@@ -2163,7 +2164,9 @@ public class HydrologyFootprintCompilerTest {
         return new HydrologyPlannerSettings(
                 base.seaLevel(), base.routing(), base.surface(), base.hydraulics(), base.underground(),
                 base.outlets(), geometry, base.deepFluids(), base.surfacePools(), base.widestShoreBiomeWidth(),
-                base.seaCaves());
+                base.seaCaves(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
+        );
     }
 
     private static HydrologyPlannerSettings withUndergroundShape(HydrologyPlannerSettings.ChannelShape shape) {
@@ -2193,7 +2196,9 @@ public class HydrologyFootprintCompilerTest {
         return new HydrologyPlannerSettings(
                 base.seaLevel(), base.routing(), tunedSurface, base.hydraulics(), base.underground(),
                 base.outlets(), base.geometry(), base.deepFluids(), base.surfacePools(), base.widestShoreBiomeWidth(),
-                base.seaCaves());
+                base.seaCaves(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
+        );
     }
 
     private static HydrologyPlannerSettings seaCaveSettings(int maximumOceanApron, int chamberRadius) {
@@ -2227,7 +2232,8 @@ public class HydrologyFootprintCompilerTest {
                 base.deepFluids(),
                 base.surfacePools(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 

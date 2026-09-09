@@ -207,7 +207,7 @@ public class HydrologyRouteTurnCacheTest {
             tangent = directionConstructor.newInstance(1D, 0D);
             Class<?> candidate = RouteCandidate.class;
             candidateConstructor = candidate.getDeclaredConstructor(HydrologyPoint.class, double.class, double.class,
-                    double.class, direction, boolean.class);
+                    double.class, double.class, double.class, direction, boolean.class);
             candidateConstructor.setAccessible(true);
             solve = HydrologyRouteGeometry.class.getDeclaredMethod("selectCurvatureAwareTerrainRoute", List.class,
                     double.class, double.class, double.class, double[][].class, double[][][].class, double[][][][].class);
@@ -221,7 +221,8 @@ public class HydrologyRouteTurnCacheTest {
             for (int layer = 0; layer < fixture.points().length; layer++) {
                 ArrayList<Object> candidates = new ArrayList<>();
                 for (int candidate = 0; candidate < fixture.points()[layer].length; candidate++) {
-                    candidates.add(candidateConstructor.newInstance(fixture.points()[layer][candidate], 0D,
+                    HydrologyPoint point = fixture.points()[layer][candidate];
+                    candidates.add(candidateConstructor.newInstance(point, point.x(), point.z(), 0D,
                             fixture.scores()[layer][candidate], 0D, tangent, true));
                 }
                 layers.add(candidates);

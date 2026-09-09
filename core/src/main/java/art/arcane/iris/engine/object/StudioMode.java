@@ -52,15 +52,24 @@ public enum StudioMode {
     @Desc("Replaces terrain with the object studio: a flat polished-deepslate floor laying every pack object out on framed, end-rod-marked grid plinths. Bukkit studio worlds only.")
     OBJECT_BUFFET;
 
+    public int biomeSizeChunks() {
+        return switch (this) {
+            case BIOME_BUFFET_1x1 -> 1;
+            case BIOME_BUFFET_3x3 -> 3;
+            case BIOME_BUFFET_5x5 -> 5;
+            case BIOME_BUFFET_9x9 -> 9;
+            case BIOME_BUFFET_18x18 -> 18;
+            case BIOME_BUFFET_36x36 -> 36;
+            default -> 0;
+        };
+    }
+
     public void inject(BukkitChunkGenerator c) {
         switch (this) {
             case NORMAL, REGION_BUFFET -> c.setStudioGenerator(null);
-            case BIOME_BUFFET_1x1 -> c.setStudioGenerator(new BiomeBuffetGenerator(c.getEngine(), 1));
-            case BIOME_BUFFET_3x3 -> c.setStudioGenerator(new BiomeBuffetGenerator(c.getEngine(), 3));
-            case BIOME_BUFFET_5x5 -> c.setStudioGenerator(new BiomeBuffetGenerator(c.getEngine(), 5));
-            case BIOME_BUFFET_9x9 -> c.setStudioGenerator(new BiomeBuffetGenerator(c.getEngine(), 9));
-            case BIOME_BUFFET_18x18 -> c.setStudioGenerator(new BiomeBuffetGenerator(c.getEngine(), 18));
-            case BIOME_BUFFET_36x36 -> c.setStudioGenerator(new BiomeBuffetGenerator(c.getEngine(), 36));
+            case BIOME_BUFFET_1x1, BIOME_BUFFET_3x3, BIOME_BUFFET_5x5,
+                 BIOME_BUFFET_9x9, BIOME_BUFFET_18x18, BIOME_BUFFET_36x36 ->
+                    c.setStudioGenerator(new BiomeBuffetGenerator(c.getEngine()));
             case OBJECT_BUFFET -> c.setStudioGenerator(new ObjectStudioGenerator(c.getEngine()));
         }
     }

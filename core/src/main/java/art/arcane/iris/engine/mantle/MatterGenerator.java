@@ -29,6 +29,7 @@ import java.util.concurrent.TimeoutException;
 public interface MatterGenerator {
     MultiBurst DISPATCHER = MultiBurst.burst;
     ConcurrentHashMap<MatterTaskKey, MatterComponentTask> IN_FLIGHT_COMPONENTS = new ConcurrentHashMap<>();
+    int COMPONENT_SUBMISSION_BATCH_SIZE = Math.max(1, Math.min(8, Runtime.getRuntime().availableProcessors()));
     long COMPONENT_TASK_POLL_MS = 1000L;
     long COMPONENT_TASK_TIMEOUT_MS = Long.getLong("iris.mantle.componentTimeout", 120000L);
 
@@ -103,6 +104,9 @@ public interface MatterGenerator {
             // close() releases the cached chunks, even when a pass throws, or detached pool threads
             // write into released chunks.
             List<MatterComponentTask> outstandingTasks = null;
+            List<MatterComponentTask> submittedTasks = multicore && !DISPATCHER.ownsCurrentThread()
+                    ? new ArrayList<>(COMPONENT_SUBMISSION_BATCH_SIZE)
+                    : null;
 
             try {
                 for (MatterPassPlan passPlan : passPlans) {
@@ -223,7 +227,11 @@ public interface MatterGenerator {
                             if (asyncComponents) {
                                 for (int componentIndex = 0; componentIndex < eligibleComponentCount; componentIndex++) {
                                     MantleComponent component = eligibleComponents[componentIndex];
-                                    outstandingTasks.add(runComponentAsync(chunk, component, writer, finalPassX, finalPassZ, context));
+                                    outstandingTasks.add(runComponentAsync(
+                                            chunk, component, writer, finalPassX, finalPassZ, context, submittedTasks));
+                                    if (submittedTasks != null && submittedTasks.size() >= COMPONENT_SUBMISSION_BATCH_SIZE) {
+                                        awaitComponentTasks(submittedTasks);
+                                    }
                                 }
                             } else {
                                 for (int componentIndex = 0; componentIndex < eligibleComponentCount; componentIndex++) {
@@ -236,6 +244,9 @@ public interface MatterGenerator {
 
                     if (asyncComponents) {
                         awaitComponentTasks(outstandingTasks);
+                        if (submittedTasks != null) {
+                            submittedTasks.clear();
+                        }
                     }
                 }
 
@@ -365,7 +376,8 @@ public interface MatterGenerator {
             MantleWriter writer,
             int chunkX,
             int chunkZ,
-            ChunkContext context
+            ChunkContext context,
+            List<MatterComponentTask> submittedTasks
     ) {
         MantleFlag flag = component.getFlag();
         MatterTaskKey key = new MatterTaskKey(getMantle(), chunkX, chunkZ, flag);
@@ -397,6 +409,7 @@ public interface MatterGenerator {
                     chunkZ,
                     context,
                     callerContext)));
+            submittedTasks.add(task);
             return task;
         } catch (Throwable throwable) {
             task.cancel(throwable);

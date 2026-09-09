@@ -36,6 +36,7 @@ public final class ValleyProfileSolver {
         int[] crossMin = new int[count];
         int[] crossMax = new int[count];
         int[] centerNatural = new int[count];
+        int[] channelIncision = new int[count];
         double[] incisionMultiplier = new double[count];
         double roughness = surface.banks().roughness();
         int exposed = count;
@@ -52,6 +53,7 @@ public final class ValleyProfileSolver {
                 break;
             }
             centerNatural[station] = center.naturalHeight();
+            channelIncision[station] = center.surfacePolicy().maximumIncision(surface.maximumIncision());
             incisionMultiplier[station] = center.incisionMultiplier();
             double normalX = centerline.normalX(station);
             double normalZ = centerline.normalZ(station);
@@ -127,14 +129,13 @@ public final class ValleyProfileSolver {
         // headwater keeps its natural head.
         // Every head set here is at or below the terrain-supported head, so the course stays non-rising.
         HydrologyPlannerSettings.Inlet inlet = surface.banks().inlet();
-        int channelIncision = surface.maximumIncision();
-        int inletIncision = Math.max(channelIncision, inlet.maximumIncision());
         int rampStart = exposed;
         if (terminal == SurfaceTerminal.OCEAN_MOUTH && inlet.length() > 0) {
             int reach = Math.min(inlet.length(), (int) StrictMath.floor(exposed * inlet.courseFraction()));
             int inletStart = exposed;
             while (inletStart > 0 && exposed - inletStart < reach
-                    && cutFits(inletStart - 1, seaLevel, channel, centerNatural, incisionMultiplier, inletIncision)) {
+                    && cutFits(inletStart - 1, seaLevel, channel, centerNatural, incisionMultiplier,
+                    Math.max(channelIncision[inletStart - 1], inlet.maximumIncision()))) {
                 inletStart--;
             }
             for (int station = inletStart; station < exposed; station++) {
@@ -148,7 +149,8 @@ public final class ValleyProfileSolver {
                 if (head[station] <= target) {
                     continue;
                 }
-                if (!cutFits(station, target, channel, centerNatural, incisionMultiplier, inletIncision)) {
+                if (!cutFits(station, target, channel, centerNatural, incisionMultiplier,
+                        Math.max(channelIncision[station], inlet.maximumIncision()))) {
                     break;
                 }
                 head[station] = target;
@@ -163,7 +165,8 @@ public final class ValleyProfileSolver {
         int deepestCut = 0;
         boolean rejected = false;
         for (int station = 0; station < exposed; station++) {
-            int maximumIncision = station >= rampStart ? inletIncision : channelIncision;
+            int maximumIncision = station >= rampStart
+                    ? Math.max(channelIncision[station], inlet.maximumIncision()) : channelIncision[station];
             int cut = cut(station, head[station], channel, centerNatural);
             deepestCut = Math.max(deepestCut, cut);
             rejected |= cut > permitted(station, incisionMultiplier, maximumIncision);

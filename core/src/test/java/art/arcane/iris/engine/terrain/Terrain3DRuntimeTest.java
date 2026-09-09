@@ -85,6 +85,69 @@ public class Terrain3DRuntimeTest {
     }
 
     @Test
+    public void subLatticeHeightPeaksDoNotJumpBetweenSeparateDensityLedges() {
+        IrisBiome biome = new IrisBiome().setTerrain3D(profile());
+        Terrain3DRuntime.NoiseSource noise = (x, y, z) -> StrictMath.sin(y * StrictMath.PI / 16D);
+        Terrain3DRuntime reference = runtime(profile(), noise);
+        Terrain3DRuntime runtime = new Terrain3DRuntime(
+                new Terrain3DRuntime.Sources((x, z) -> Math.floorMod(x, 4) == 2
+                        && Math.floorMod(z, 4) == 2 ? 114D : 96D, (x, z) -> biome),
+                options(true), (style, seed) -> noise);
+
+        for (int x = -18; x <= 18; x++) {
+            Terrain3DColumn expected = reference.column(x, -14);
+            Terrain3DColumn actual = runtime.column(x, -14);
+            assertEquals(Math.floorMod(x, 4) == 2 ? 114D : 96D, actual.baseHeight(), 0D);
+            assertEquals(expected.topY(), actual.topY());
+            assertTrue(actual.spanCount() > 1);
+            for (int y = 1; y < 160; y++) {
+                assertEquals("at " + x + "," + y + ",-14", expected.isSolid(y), actual.isSolid(y));
+            }
+        }
+        Terrain3DColumn beforeClear = runtime.column(-14, -14);
+        runtime.clear();
+        assertEquals(beforeClear, runtime.column(-14, -14));
+    }
+
+    @Test
+    public void baseHeightCorrectionFadesIntoAnOmittedProfile() {
+        IrisBiome shaped = new IrisBiome().setTerrain3D(profile());
+        IrisBiome unchanged = new IrisBiome();
+        Terrain3DRuntime runtime = new Terrain3DRuntime(
+                new Terrain3DRuntime.Sources((x, z) -> Math.floorMod(x, 4) == 0 ? 96D : 116D,
+                        (x, z) -> x < 16 ? shaped : unchanged),
+                options(true), (style, seed) -> (x, y, z) -> 0D);
+
+        assertEquals(96, runtime.column(12, 0).topY());
+        assertEquals(101, runtime.column(13, 0).topY());
+        assertEquals(106, runtime.column(14, 0).topY());
+        assertEquals(111, runtime.column(15, 0).topY());
+        assertEquals(96, runtime.column(16, 0).topY());
+        assertEquals(116, runtime.column(17, 0).topY());
+        assertFalse(runtime.column(17, 0).shaped());
+    }
+
+    @Test
+    public void baseHeightCorrectionUsesTheExistingWaterAndSlopeFade() {
+        IrisBiome shore = new IrisBiome().setTerrain3D(profile().setFluidClearance(8).setFluidFade(16));
+        Terrain3DRuntime water = new Terrain3DRuntime(
+                new Terrain3DRuntime.Sources((x, z) -> Math.floorMod(x, 4) == 0 ? 48D : 64D,
+                        (x, z) -> shore),
+                new Terrain3DRuntime.Options(12, 256, 32, null, true, 4096),
+                (style, seed) -> (x, y, z) -> 0D);
+        assertEquals(56, water.column(2, 0).topY());
+        assertEquals(64D, water.column(2, 0).baseHeight(), 0D);
+
+        IrisBiome slope = new IrisBiome().setTerrain3D(profile().setMinimumSlope(0.25D).setSlopeFade(0.5D));
+        Terrain3DRuntime terrain = new Terrain3DRuntime(
+                new Terrain3DRuntime.Sources((x, z) -> 96D + x * 0.5D
+                        + (Math.floorMod(x, 4) == 0 ? 0D : 16D), (x, z) -> slope),
+                options(true), (style, seed) -> (x, y, z) -> 0D);
+        assertEquals(105, terrain.column(2, 0).topY());
+        assertEquals(113D, terrain.column(2, 0).baseHeight(), 0D);
+    }
+
+    @Test
     public void isolatedDensityPeakIsRemovedFromEveryColumnQuery() {
         Terrain3DRuntime runtime = runtime(profile(),
                 (x, y, z) -> x == 16D && y == 112D && z == -16D ? 1D : -1D);

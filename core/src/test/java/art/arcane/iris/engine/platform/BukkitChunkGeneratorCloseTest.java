@@ -3,6 +3,7 @@ package art.arcane.iris.engine.platform;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.io.ReactiveFolder;
+import art.arcane.volmlib.util.scheduling.Looper;
 import org.bukkit.generator.BlockPopulator;
 import org.junit.Test;
 
@@ -14,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -75,6 +77,42 @@ public class BukkitChunkGeneratorCloseTest {
         assertFalse(fixture.generator.isClosing());
     }
 
+    @Test
+    public void closeCancelsPendingWatcherBeforeQueuingExclusiveCleanup() throws Exception {
+        CloseFixture fixture = new CloseFixture();
+        CompletableFuture<Void> pending = new CompletableFuture<>();
+        fixture.watcherHotload.set(pending);
+        CompletableFuture<Void> cleanup = new CompletableFuture<>();
+        doAnswer(invocation -> {
+            assertTrue(fixture.generator.isClosing());
+            assertTrue(pending.isCancelled());
+            assertNull(fixture.watcherHotload.get());
+            return cleanup;
+        }).when(fixture.generator).withExclusiveControlFuture(any(Runnable.class));
+
+        CompletableFuture<Void> closed = fixture.generator.closeAsync();
+
+        assertFalse(closed.isDone());
+        cleanup.complete(null);
+        closed.join();
+    }
+
+    @Test
+    public void shutdownQuiesceCancelsPendingWatcherWithoutClosingGeneration() throws Exception {
+        CloseFixture fixture = new CloseFixture();
+        CompletableFuture<Void> pending = new CompletableFuture<>();
+        fixture.watcherHotload.set(pending);
+        Looper watcher = mock(Looper.class);
+        setField(fixture.generator, "hotloader", watcher);
+
+        fixture.generator.quiesceForServerShutdown();
+
+        assertTrue(pending.isCancelled());
+        assertNull(fixture.watcherHotload.get());
+        assertFalse(fixture.generator.isClosing());
+        verify(watcher).interrupt();
+    }
+
     private static void setField(BukkitChunkGenerator generator, String name, Object value) throws Exception {
         Field field = BukkitChunkGenerator.class.getDeclaredField(name);
         field.setAccessible(true);
@@ -85,10 +123,12 @@ public class BukkitChunkGeneratorCloseTest {
         private final BukkitChunkGenerator generator = mock(BukkitChunkGenerator.class, CALLS_REAL_METHODS);
         private final Engine engine = mock(Engine.class);
         private final AtomicReference<Runnable> operation = new AtomicReference<>();
+        private final AtomicReference<CompletableFuture<Void>> watcherHotload = new AtomicReference<>();
         private final ConcurrentLinkedQueue<CompletableFuture<Void>> operations = new ConcurrentLinkedQueue<>();
 
         private CloseFixture() throws Exception {
             setField(generator, "closeFuture", new AtomicReference<CompletableFuture<Void>>());
+            setField(generator, "watcherHotload", watcherHotload);
             setField(generator, "startupReady", CompletableFuture.completedFuture(null));
             setField(generator, "engine", engine);
             setField(generator, "folder", mock(ReactiveFolder.class));

@@ -1216,7 +1216,8 @@ public class HydrologyCaveCourseFilterTest {
                 base.deepFluids(),
                 base.surfacePools(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 

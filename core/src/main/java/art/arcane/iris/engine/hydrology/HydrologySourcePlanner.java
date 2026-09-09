@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.function.IntPredicate;
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
 
 final class HydrologySourcePlanner {
     private final HydrologyPlanner planner;
@@ -64,7 +65,6 @@ final class HydrologySourcePlanner {
     ) {
         // A surface river never climbs: any rise along its route becomes a cut of at least that rise,
         // so lattice edges that rise more than a small saddle are not drainage at all.
-        int maximumRise = surface ? maximumSurfaceEdgeRise() : Integer.MAX_VALUE;
         int nodeCount = grid.nodes().size();
         double[] potential = new double[nodeCount];
         int[] parent = new int[nodeCount];
@@ -93,12 +93,14 @@ final class HydrologySourcePlanner {
             for (HydrologyGridOffset offset : ROUTING_OFFSETS) {
                 HydrologyGridNode upstream = grid.nodeAt(downstream.gridX() + offset.x(), downstream.gridZ() + offset.z());
                 if (upstream == null || upstream.terrain().ocean() || !upstream.terrain().transitAllowed()
-                        || !upstream.terrain().drainsInto(downstream.terrain())) {
+                        || !upstream.terrain().drainsInto(downstream.terrain())
+                        || surface && !HydrologySurfaceProfiles.sharesProfile(upstream.terrain(), downstream.terrain())) {
                     // Confined ground only drains into its own area, so every course that starts or
                     // arrives there keeps to that area up to and including its outlet.
                     continue;
                 }
-                if (downstream.terrain().naturalHeight() - upstream.terrain().naturalHeight() > maximumRise) {
+                if (surface && downstream.terrain().naturalHeight() - upstream.terrain().naturalHeight()
+                        > maximumSurfaceEdgeRise(downstream.terrain())) {
                     continue;
                 }
                 double edgeCost = routeCost(
@@ -140,9 +142,14 @@ final class HydrologySourcePlanner {
      * Largest rise a surface drainage edge may take. Heads only fall, so a rise along a route becomes a cut
      * of at least that rise; the lattice may climb no more than the cut the valley solver still accepts.
      */
-    int maximumSurfaceEdgeRise() {
-        int permitted = planner.settings.surface().maximumIncision() - planner.settings.surface().banks().sink() - planner.settings.surface().minimumDepth();
+    int maximumSurfaceEdgeRise(HydrologyTerrainSample terrain) {
+        int permitted = permittedSurfaceIncision(terrain) - planner.settings.surface().banks().sink() - planner.settings.surface().minimumDepth();
         return Math.max(1, permitted);
+    }
+
+    int minimumCourseLength(HydrologyTerrainSample source, boolean surface) {
+        int fallback = planner.settings.routing().minimumCourseLength(surface);
+        return surface ? source.surfacePolicy().minimumCourseLength(fallback) : fallback;
     }
 
     HydrologyRoutingPlan requireOrganicSurface(HydrologyRoutingPlan routing) {
@@ -158,7 +165,7 @@ final class HydrologySourcePlanner {
 
     int permittedSurfaceIncision(HydrologyTerrainSample terrain) {
         return permittedSurfaceIncision(
-                planner.settings.surface().maximumIncision(),
+                terrain.surfacePolicy().maximumIncision(planner.settings.surface().maximumIncision()),
                 terrain.incisionMultiplier()
         );
     }
@@ -219,6 +226,7 @@ final class HydrologySourcePlanner {
             return SourceSelection.empty(surface);
         }
         long sourceSalt = surface ? SURFACE_SOURCE_SALT : UNDERGROUND_SOURCE_SALT;
+        HydrologySurfaceBudgets surfaceBudgets = surface ? HydrologySurfaceBudgets.sample(grid, sourceSettings) : null;
         ArrayList<SourceCandidate> candidates = new ArrayList<>();
         boolean hasRequiredCandidate = false;
         for (HydrologyGridNode node : grid.nodes()) {
@@ -228,7 +236,8 @@ final class HydrologySourcePlanner {
             HydrologyTerrainSample terrain = node.terrain();
             boolean allowed = surface ? terrain.surfaceSourceAllowed() : terrain.undergroundSourceAllowed();
             boolean required = surface ? terrain.surfaceSourceRequired() : terrain.undergroundSourceRequired();
-            if (!allowed || surface && terrain.naturalHeight() < sourceSettings.minimumElevation()) {
+            if (!allowed || surface && (terrain.naturalHeight() < sourceSettings.minimumElevation()
+                    || terrain.surfacePolicy().sourceDensity() != null && terrain.surfacePolicy().sourceDensity() == 0D)) {
                 continue;
             }
             double weight = surface ? terrain.surfaceSourceWeight() : terrain.undergroundSourceWeight();
@@ -246,7 +255,7 @@ final class HydrologySourcePlanner {
                         : HydrologyCandidateRejection.NO_DRAINAGE_PATH, diagnostics);
                 continue;
             }
-            if (!sourceOutletAllowed(node, routing, surface)) {
+            if (!sourceOutletAllowed(node, grid, routing, surface)) {
                 addSourceDiagnostic(node, surface, stable, HydrologyCandidateRejection.NO_LEGAL_OUTLET, diagnostics);
                 continue;
             }
@@ -259,7 +268,7 @@ final class HydrologySourcePlanner {
                 addSourceDiagnostic(node, surface, stable, HydrologyCandidateRejection.ROUTE_LIMIT, diagnostics);
                 continue;
             }
-            if (routeLength < planner.settings.routing().minimumCourseLength(surface)) {
+            if (routeLength < minimumCourseLength(terrain, surface)) {
                 addSourceDiagnostic(node, surface, stable, HydrologyCandidateRejection.COURSE_TOO_SHORT, diagnostics);
                 continue;
             }
@@ -271,6 +280,9 @@ final class HydrologySourcePlanner {
                     + HydrologyHash.unit(stable);
             candidates.add(new SourceCandidate(node.index(), stable, score, required));
             hasRequiredCandidate |= required;
+        }
+        if (surfaceBudgets != null && surfaceBudgets.overridden()) {
+            return selectLocalSurfaceSources(key, grid, routing, candidates, surfaceBudgets, enforceGlobalSpacing, routingContexts);
         }
         int target = expectedCount(sourceSettings.density(), HydrologyHash.mix(
                 planner.worldSeed,
@@ -334,9 +346,96 @@ final class HydrologySourcePlanner {
                 surface,
                 candidates,
                 admission,
-                admittedGuaranteed,
+                new int[]{admittedGuaranteed},
                 maximumOptionalRejections
         );
+    }
+
+    private SourceSelection selectLocalSurfaceSources(
+            HydrologyTileKey key,
+            HydrologySampledGrid grid,
+            HydrologyRoutingPlan routing,
+            List<SourceCandidate> candidates,
+            HydrologySurfaceBudgets budgets,
+            boolean enforceGlobalSpacing,
+            Map<HydrologyTileKey, SourceRoutingContext> routingContexts
+    ) {
+        candidates.sort(Comparator.comparing(SourceCandidate::required).reversed()
+                .thenComparing(Comparator.comparingDouble(SourceCandidate::score).reversed())
+                .thenComparingLong(SourceCandidate::stableId));
+        prioritizeInlandSource(candidates, routing);
+        List<HydrologySurfaceBudgets.Area> areas = budgets.areas();
+        Map<SurfaceRiverPolicy.Budget, Integer> areaIndices = new HashMap<>();
+        ArrayList<HashSet<Integer>> areaOutlets = new ArrayList<>(areas.size());
+        for (int index = 0; index < areas.size(); index++) {
+            areaIndices.put(areas.get(index).policy.budget(), index);
+            areaOutlets.add(new HashSet<>());
+        }
+        int count = candidates.size();
+        int[] candidateAreas = new int[count];
+        int[] candidateOutlets = new int[count];
+        int[] outletLimits = new int[count];
+        int[] requiredCandidates = new int[areas.size()];
+        for (int index = 0; index < count; index++) {
+            HydrologyGridNode node = grid.node(candidates.get(index).nodeIndex());
+            SurfaceRiverPolicy policy = node.terrain().surfacePolicy();
+            int area = areaIndices.get(policy.budget());
+            int outlet = routing.outletIndex()[node.index()];
+            candidateAreas[index] = area;
+            candidateOutlets[index] = outlet;
+            outletLimits[index] = 1 + policy.tributaries(planner.settings.routing().tributaries());
+            areaOutlets.get(area).add(outlet);
+            if (candidates.get(index).required()) {
+                requiredCandidates[area]++;
+            }
+        }
+        int[] areaLimits = new int[areas.size()];
+        int[] requiredMinimums = new int[areas.size()];
+        int target = 0;
+        for (int index = 0; index < areas.size(); index++) {
+            requiredMinimums[index] = Math.min(requiredCandidates[index], Math.max(1,
+                    planner.settings.surface().sources().minimumPerTile()));
+            areaLimits[index] = Math.max(requiredMinimums[index],
+                    budgets.sourceTarget(areas.get(index), areaOutlets.get(index).size(), planner, key));
+            target = Math.addExact(target, areaLimits[index]);
+        }
+        boolean[] selected = new boolean[count];
+        boolean[] spacingRejected = new boolean[count];
+        boolean[] evaluated = new boolean[count];
+        IntPredicate admitted = candidateIndex -> !enforceGlobalSpacing || globallyAdmittedSource(
+                grid.node(candidates.get(candidateIndex).nodeIndex()), planner.settings.surface().sources(),
+                SURFACE_SOURCE_SALT, true, routingContexts);
+        ArrayList<Integer> selectedIndices = new ArrayList<>(Math.min(count, target));
+        int[] selectedByArea = new int[areas.size()];
+        int[] selectedRequiredByArea = new int[areas.size()];
+        int[] selectedByOutlet = new int[routing.outlets().size()];
+        for (int index = 0; index < count && selectedIndices.size() < target; index++) {
+            int area = candidateAreas[index];
+            int outlet = candidateOutlets[index];
+            if (selectedByArea[area] >= areaLimits[area] || selectedByOutlet[outlet] >= outletLimits[index]) {
+                continue;
+            }
+            evaluated[index] = true;
+            spacingRejected[index] = !admitted.test(index);
+            if (spacingRejected[index]) {
+                continue;
+            }
+            selected[index] = true;
+            selectedIndices.add(index);
+            selectedByArea[area]++;
+            selectedByOutlet[outlet]++;
+            if (candidates.get(index).required()) {
+                selectedRequiredByArea[area]++;
+            }
+        }
+        for (int area = 0; area < areas.size(); area++) {
+            requiredMinimums[area] = Math.min(requiredMinimums[area], selectedRequiredByArea[area]);
+        }
+        SourceAdmissionSelection admission = new SourceAdmissionSelection(target, selectedIndices, selected,
+                spacingRejected, evaluated, admitted,
+                new SourceAdmissionSelection.Quotas(candidateOutlets, outletLimits, candidateAreas, areaLimits));
+        return new SourceSelection(true, candidates, admission, requiredMinimums,
+                Math.max(SURFACE_OPTIONAL_SOURCE_REJECTIONS_PER_TARGET, target * SURFACE_OPTIONAL_SOURCE_REJECTIONS_PER_TARGET));
     }
 
     static int effectiveSourceTarget(boolean outletBounded, int requestedTarget, int outletCount) {
@@ -407,8 +506,7 @@ final class HydrologySourcePlanner {
                 spacingRejectedCandidates,
                 evaluatedCandidates,
                 globallyAdmitted,
-                outletIndices,
-                maximumCoursesPerOutlet
+                SourceAdmissionSelection.Quotas.uniform(outletIndices, target, maximumCoursesPerOutlet)
         );
     }
 
@@ -483,8 +581,7 @@ final class HydrologySourcePlanner {
                 spacingRejectedCandidates,
                 evaluatedCandidates,
                 globallyAdmitted,
-                new int[candidateCount],
-                Integer.MAX_VALUE
+                SourceAdmissionSelection.Quotas.uniform(new int[candidateCount], target, Integer.MAX_VALUE)
         );
     }
 
@@ -495,16 +592,19 @@ final class HydrologySourcePlanner {
             boolean surface,
             Map<HydrologyTileKey, SourceRoutingContext> routingContexts
     ) {
-        int minimumSpacing = sourceSettings.minimumSpacing();
+        int minimumSpacing = surface
+                ? candidate.terrain().surfacePolicy().sourceSpacing(sourceSettings.minimumSpacing())
+                : sourceSettings.minimumSpacing();
         boolean required = surface
                 ? candidate.terrain().surfaceSourceRequired()
                 : candidate.terrain().undergroundSourceRequired();
-        if (minimumSpacing <= 0 || required) {
+        if ((!surface && minimumSpacing <= 0) || required) {
             return true;
         }
         SourcePriority candidatePriority = sourcePriority(candidate.x(), candidate.z(), candidate.terrain(), sourceSalt, surface);
         int sampleSpacing = planner.settings.routing().sampleSpacing();
-        int latticeRadius = (int) StrictMath.ceil(minimumSpacing / (double) sampleSpacing);
+        int searchSpacing = surface ? Math.max(minimumSpacing, planner.settings.maximumSurfaceSourceSpacing()) : minimumSpacing;
+        int latticeRadius = (int) StrictMath.ceil(searchSpacing / (double) sampleSpacing);
         for (int offsetZ = -latticeRadius; offsetZ <= latticeRadius; offsetZ++) {
             for (int offsetX = -latticeRadius; offsetX <= latticeRadius; offsetX++) {
                 if (offsetX == 0 && offsetZ == 0) {
@@ -512,7 +612,8 @@ final class HydrologySourcePlanner {
                 }
                 long deltaX = (long) offsetX * sampleSpacing;
                 long deltaZ = (long) offsetZ * sampleSpacing;
-                if (StrictMath.hypot(deltaX, deltaZ) >= minimumSpacing) {
+                double separation = StrictMath.hypot(deltaX, deltaZ);
+                if (separation >= searchSpacing) {
                     continue;
                 }
                 long neighborX = (long) candidate.x() + deltaX;
@@ -530,6 +631,12 @@ final class HydrologySourcePlanner {
                     throw new IllegalStateException("Source coordinate is absent from its owner routing lattice.");
                 }
                 HydrologyTerrainSample terrain = neighbor.terrain();
+                int pairSpacing = surface
+                        ? Math.max(minimumSpacing, terrain.surfacePolicy().sourceSpacing(sourceSettings.minimumSpacing()))
+                        : minimumSpacing;
+                if (separation >= pairSpacing) {
+                    continue;
+                }
                 if (!rawSourceEligible(terrain, sourceSettings, surface)) {
                     continue;
                 }
@@ -569,20 +676,24 @@ final class HydrologySourcePlanner {
         if (routing.outlets().isEmpty()
                 || !Double.isFinite(routing.potential()[node.index()])
                 || routing.parent()[node.index()] < 0
-                || !sourceOutletAllowed(node, routing, surface)) {
+                || !sourceOutletAllowed(node, context.grid(), routing, surface)) {
             return false;
         }
         int routeLength = routing.routeLengths()[node.index()];
-        return routeLength >= planner.settings.routing().minimumCourseLength(surface)
+        return routeLength >= minimumCourseLength(node.terrain(), surface)
                 && routeLength <= planner.settings.routing().maximumRouteLength();
     }
 
-    boolean sourceOutletAllowed(HydrologyGridNode node, HydrologyRoutingPlan routing, boolean surface) {
+    boolean sourceOutletAllowed(HydrologyGridNode node, HydrologySampledGrid grid, HydrologyRoutingPlan routing, boolean surface) {
         int outletIndex = routing.outletIndex()[node.index()];
         if (outletIndex < 0 || outletIndex >= routing.outlets().size()) {
             return false;
         }
-        RiverOutlet outlet = routing.outlets().get(outletIndex).outlet();
+        OutletCandidate candidate = routing.outlets().get(outletIndex);
+        if (surface && !HydrologySurfaceProfiles.sharesProfile(node.terrain(), grid.node(candidate.landIndex()).terrain())) {
+            return false;
+        }
+        RiverOutlet outlet = candidate.outlet();
         return !surface
                 || outlet.type() != HydrologyFeatureType.INLAND_GROTTO
                 || planner.settings.outlets().surfaceSinkholesEnabled();
@@ -598,7 +709,8 @@ final class HydrologySourcePlanner {
         }
         boolean allowed = surface ? terrain.surfaceSourceAllowed() : terrain.undergroundSourceAllowed();
         boolean required = surface ? terrain.surfaceSourceRequired() : terrain.undergroundSourceRequired();
-        if (!allowed || surface && terrain.naturalHeight() < sourceSettings.minimumElevation()) {
+        if (!allowed || surface && (terrain.naturalHeight() < sourceSettings.minimumElevation()
+                || terrain.surfacePolicy().sourceDensity() != null && terrain.surfacePolicy().sourceDensity() == 0D)) {
             return false;
         }
         if (!surface && planner.settings.underground().connectToExistingCaves() && !terrain.caveAvailable()) {
@@ -729,7 +841,8 @@ final class HydrologySourcePlanner {
             HydrologyRoutingPlan routing,
             int[] surfaceContributions,
             int[] undergroundContributions,
-            Map<Long, List<HydrologyPoint>> refinedEdges
+            Map<Long, List<HydrologyPoint>> refinedEdges,
+            boolean surface
     ) {
         HashSet<Integer> includedNodeIndices = new HashSet<>();
         ArrayList<DrainageEdge> edges = new ArrayList<>();
@@ -747,12 +860,13 @@ final class HydrologySourcePlanner {
             HydrologyGridNode downstream = grid.node(downstreamIndex);
             RiverOutlet outlet = routing.outlets().get(routing.outletIndex()[upstream.index()]).outlet();
             long edgeId = HydrologyHash.mix(planner.worldSeed, EDGE_SALT, upstream.id(), downstream.id(), outlet.id());
-            List<HydrologyPoint> centerline = refinedEdges.get(edgeId);
+            long refinementId = surface ? HydrologyHash.mix(edgeId, SURFACE_SOURCE_SALT) : edgeId;
+            List<HydrologyPoint> centerline = refinedEdges.get(refinementId);
             int transverseCandidates = HydrologyRouteGeometry.ROUTE_TRANSVERSE_CANDIDATES;
             if (centerline == null) {
-                HydrologyPoint upstreamAnchor = planner.routeGeometry.routeAnchor(upstream);
-                HydrologyPoint downstreamAnchor = planner.routeGeometry.routeAnchor(downstream);
-                HydrologyPoint continuation = planner.routeGeometry.edgeContinuation(grid, routing, downstream, outlet);
+                HydrologyPoint upstreamAnchor = planner.routeGeometry.routeAnchor(upstream, surface);
+                HydrologyPoint downstreamAnchor = planner.routeGeometry.routeAnchor(downstream, surface);
+                HydrologyPoint continuation = planner.routeGeometry.edgeContinuation(grid, routing, downstream, outlet, surface);
                 RefinedEdgeKey refinedEdgeKey = new RefinedEdgeKey(
                         upstream.id(),
                         downstream.id(),
@@ -762,7 +876,8 @@ final class HydrologySourcePlanner {
                         downstreamAnchor.z(),
                         continuation.x(),
                         continuation.z(),
-                        transverseCandidates
+                        transverseCandidates,
+                        surface
                 );
                 centerline = planner.refinedEdgeCache.get(
                         refinedEdgeKey,
@@ -772,15 +887,16 @@ final class HydrologySourcePlanner {
                                 upstreamAnchor,
                                 downstreamAnchor,
                                 continuation,
-                                transverseCandidates
+                                transverseCandidates,
+                                surface
                         )
                 );
-                refinedEdges.put(edgeId, centerline);
+                refinedEdges.put(refinementId, centerline);
             }
             if (centerline.isEmpty()) {
-                HydrologyPoint upstreamAnchor = planner.routeGeometry.routeAnchor(upstream);
-                HydrologyPoint downstreamAnchor = planner.routeGeometry.routeAnchor(downstream);
-                HydrologyPoint continuation = planner.routeGeometry.edgeContinuation(grid, routing, downstream, outlet);
+                HydrologyPoint upstreamAnchor = planner.routeGeometry.routeAnchor(upstream, surface);
+                HydrologyPoint downstreamAnchor = planner.routeGeometry.routeAnchor(downstream, surface);
+                HydrologyPoint continuation = planner.routeGeometry.edgeContinuation(grid, routing, downstream, outlet, surface);
                 RefinedEdgeKey refinedEdgeKey = new RefinedEdgeKey(
                         upstream.id(),
                         downstream.id(),
@@ -790,7 +906,8 @@ final class HydrologySourcePlanner {
                         downstreamAnchor.z(),
                         continuation.x(),
                         continuation.z(),
-                        HydrologyRouteGeometry.ROUTE_FALLBACK_TRANSVERSE_CANDIDATES
+                        HydrologyRouteGeometry.ROUTE_FALLBACK_TRANSVERSE_CANDIDATES,
+                        surface
                 );
                 centerline = planner.refinedEdgeCache.get(
                         refinedEdgeKey,
@@ -800,17 +917,18 @@ final class HydrologySourcePlanner {
                                 upstreamAnchor,
                                 downstreamAnchor,
                                 continuation,
-                                HydrologyRouteGeometry.ROUTE_FALLBACK_TRANSVERSE_CANDIDATES
+                                HydrologyRouteGeometry.ROUTE_FALLBACK_TRANSVERSE_CANDIDATES,
+                                surface
                         )
                 );
-                refinedEdges.put(edgeId, centerline);
+                refinedEdges.put(refinementId, centerline);
             }
             if (centerline.isEmpty()) {
                 centerline = planner.routeGeometry.constrainedTerrainFallbackEdge(
-                        planner.routeGeometry.routeAnchor(upstream),
-                        planner.routeGeometry.routeAnchor(downstream)
+                        planner.routeGeometry.routeAnchor(upstream, surface),
+                        planner.routeGeometry.routeAnchor(downstream, surface)
                 );
-                refinedEdges.put(edgeId, centerline);
+                refinedEdges.put(refinementId, centerline);
             }
             if (centerline.isEmpty()) {
                 continue;
@@ -838,7 +956,7 @@ final class HydrologySourcePlanner {
             }
             int outletIndex = routing.outletIndex()[node.index()];
             RiverOutlet outlet = routing.outlets().get(outletIndex).outlet();
-            HydrologyPoint anchor = planner.routeGeometry.routeAnchor(node);
+            HydrologyPoint anchor = planner.routeGeometry.routeAnchor(node, surface);
             HydrologyTerrainSample terrain = Objects.requireNonNull(
                     planner.sampleLandBasis(anchor.x(), anchor.z()),
                     "Hydrology route anchor left natural land"

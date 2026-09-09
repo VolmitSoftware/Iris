@@ -23,12 +23,5 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.WrongEngineBroException;
 
 public interface StudioGenerator {
-    default boolean requiresPreSessionPreparation() {
-        return false;
-    }
-
-    default void prepareChunkBeforeSession(Engine engine, int x, int z) throws WrongEngineBroException {
-    }
-
     void generateChunk(Engine engine, TerrainChunk tc, int x, int z) throws WrongEngineBroException;
 }

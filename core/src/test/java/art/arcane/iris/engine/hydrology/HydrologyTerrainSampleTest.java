@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.hydrology;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -84,7 +86,8 @@ public final class HydrologyTerrainSampleTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
     @Test
@@ -122,7 +125,8 @@ public final class HydrologyTerrainSampleTest {
                 80, 0D, false, false, 48, 50, true, true, true, false, false, false,
                 0D, 1D, 1D, 1D, 1D, 1D, 1D, 1D,
                 "parent", "parent", "parent", "parent", "parent", "parent",
-                profiles, List.of(), shoreBiomeWidth, confinesKey, shoreWidth, erosion
+                profiles, List.of(), shoreBiomeWidth, confinesKey, shoreWidth, erosion,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 

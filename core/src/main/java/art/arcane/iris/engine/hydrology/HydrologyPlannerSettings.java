@@ -17,7 +17,8 @@ public record HydrologyPlannerSettings(
         List<DeepFluid> deepFluids,
         List<SurfacePool> surfacePools,
         double widestShoreBiomeWidth,
-        SeaCaves seaCaves
+        SeaCaves seaCaves,
+        SurfacePolicyBounds surfacePolicyBounds
 ) {
     private static final long PLAN_FORMAT_REVISION = 6L;
     private static final int MAXIMUM_CROSS_TILE_COLOR_PERIOD = 4;
@@ -38,7 +39,9 @@ public record HydrologyPlannerSettings(
         if (seaCaves == null) {
             throw new IllegalArgumentException("Sea cave settings are required.");
         }
-        int publicationRadius = publicationRadius(routing, surface, underground, outlets, geometry, deepFluids, surfacePools, widestShoreBiomeWidth, seaCaves);
+        surfacePolicyBounds = Objects.requireNonNull(surfacePolicyBounds);
+        int publicationRadius = Math.max(surfacePolicyBounds.maximumSourceSpacing(),
+                publicationRadius(routing, surface, underground, outlets, geometry, deepFluids, surfacePools, widestShoreBiomeWidth, seaCaves));
         if (crossTileColorPeriod(publicationRadius, routing.tileSize()) > MAXIMUM_CROSS_TILE_COLOR_PERIOD) {
             throw new IllegalArgumentException("Hydrology publication envelope exceeds the bounded cross-tile admission period.");
         }
@@ -68,7 +71,8 @@ public record HydrologyPlannerSettings(
                 List.of(),
                 List.of(),
                 0D,
-                SeaCaves.disabled()
+                SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -91,11 +95,29 @@ public record HydrologyPlannerSettings(
         for (SurfacePool pool : surfacePools) {
             hash = HydrologyHash.mix(hash, pool.hashCode(), HydrologyHash.text(pool.id()));
         }
+        if (surfacePolicyBounds.fingerprint() != 0L) {
+            hash = HydrologyHash.mix(hash, surfacePolicyBounds.fingerprint(), surfacePolicyBounds.maximumSourceSpacing());
+        }
         return hash;
     }
 
     public int publicationRadius() {
-        return publicationRadius(routing, surface, underground, outlets, geometry, deepFluids, surfacePools, widestShoreBiomeWidth, seaCaves);
+        return Math.max(surfacePolicyBounds.maximumSourceSpacing(),
+                publicationRadius(routing, surface, underground, outlets, geometry, deepFluids, surfacePools, widestShoreBiomeWidth, seaCaves));
+    }
+
+    public int maximumSurfaceSourceSpacing() {
+        return Math.max(surface.sources().minimumSpacing(), surfacePolicyBounds.maximumSourceSpacing());
+    }
+
+    public record SurfacePolicyBounds(long fingerprint, int maximumSourceSpacing) {
+        public static final SurfacePolicyBounds NONE = new SurfacePolicyBounds(0L, 0);
+
+        public SurfacePolicyBounds {
+            if (maximumSourceSpacing < 0 || maximumSourceSpacing > 8192) {
+                throw new IllegalArgumentException("Maximum surface policy source spacing must be between 0 and 8192.");
+            }
+        }
     }
 
     int crossTileColorPeriod() {

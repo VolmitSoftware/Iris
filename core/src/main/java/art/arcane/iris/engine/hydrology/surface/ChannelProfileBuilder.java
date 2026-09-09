@@ -118,7 +118,7 @@ public final class ChannelProfileBuilder {
             }
         }
         double drop = center.naturalHeight() - lowest;
-        double allowance = Math.max(1D, surface.maximumIncision() / 2D);
+        double allowance = Math.max(1D, center.surfacePolicy().maximumIncision(surface.maximumIncision()) / 2D);
         return Math.max(0D, Math.min(1D, 1D - drop / allowance));
     }
 

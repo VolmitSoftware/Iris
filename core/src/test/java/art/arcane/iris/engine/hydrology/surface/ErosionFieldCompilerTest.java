@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.hydrology.surface;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import art.arcane.iris.engine.hydrology.HydrologyGeometrySampler;
 import art.arcane.iris.engine.hydrology.HydrologyPlannerSettings;
 import art.arcane.iris.engine.hydrology.HydrologyPoint;
@@ -611,7 +613,8 @@ public class ErosionFieldCompilerTest {
                 open.surfaceSourceWeight(), open.undergroundSourceWeight(), open.widthMultiplier(), open.depthMultiplier(),
                 open.incisionMultiplier(), open.routingMultiplier(), open.bankMultiplier(), open.parentBiomeKey(),
                 open.surfaceBiomeKey(), open.mouthBiomeKey(), open.shoreBiomeKey(), open.bankBiomeKey(),
-                open.floodedCaveBiomeKey(), open.preferredProfileKeys(), open.surfacePoolKeys(), shoreBiomeWidth, null, Double.NaN, true
+                open.floodedCaveBiomeKey(), open.preferredProfileKeys(), open.surfacePoolKeys(), shoreBiomeWidth, null, Double.NaN, true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
     @Test

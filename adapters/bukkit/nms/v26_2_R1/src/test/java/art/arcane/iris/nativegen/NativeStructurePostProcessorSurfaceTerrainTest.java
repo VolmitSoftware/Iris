@@ -16,6 +16,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.biome.Biome;
@@ -30,7 +31,9 @@ import net.minecraft.world.level.chunk.PalettedContainerFactory;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.Strategy;
 import net.minecraft.world.level.chunk.UpgradeData;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.levelgen.GenerationStep;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
 import net.minecraft.world.level.levelgen.structure.Structure;
@@ -51,6 +54,9 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.ProcessorRule
 import net.minecraft.world.level.levelgen.structure.templatesystem.RuleProcessor;
 import net.minecraft.world.level.levelgen.structure.structures.DesertPyramidPiece;
 import net.minecraft.world.level.levelgen.structure.structures.DesertPyramidStructure;
+import net.minecraft.world.level.levelgen.structure.structures.OceanMonumentStructure;
+import net.minecraft.world.level.levelgen.structure.structures.ShipwreckStructure;
+import net.minecraft.world.level.levelgen.structure.structures.StrongholdStructure;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorList;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor;
@@ -97,6 +103,410 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
     public static void bootstrapMinecraft() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
+    }
+
+    @Test
+    public void flattenCutsAndFillsSymmetricallyAcrossItsConfiguredBlend() {
+        NativeStructureSurfaceFitter.FlattenAnchor anchor = new NativeStructureSurfaceFitter.FlattenAnchor(
+                new NativeStructureSurfaceFitter.SurfaceAnchor(0, 0, 0, 0, 80, 2), 24, 48);
+        List<NativeStructureSurfaceFitter.FlattenAnchor> anchors = List.of(anchor);
+        assertEquals(80, NativeStructureSurfaceFitter.resolveFlattenSurface(anchors, 0, 0, 128).targetY());
+        assertEquals(80, NativeStructureSurfaceFitter.resolveFlattenSurface(anchors, 0, 0, 32).targetY());
+        assertEquals(152, NativeStructureSurfaceFitter.resolveFlattenSurface(anchors, 0, 0, 200).targetY());
+        assertEquals(48, NativeStructureSurfaceFitter.resolveFlattenSurface(anchors, 0, 0, 0).targetY());
+        int previousCut = 80;
+        for (int x = 1; x <= 24; x++) {
+            int cut = NativeStructureSurfaceFitter.resolveFlattenSurface(anchors, x, 0, 128).targetY();
+            int fill = NativeStructureSurfaceFitter.resolveFlattenSurface(anchors, x, 0, 32).targetY();
+            assertEquals(160, cut + fill);
+            assertTrue(cut >= previousCut);
+            assertTrue(cut - previousCut <= 3);
+            previousCut = cut;
+        }
+        assertEquals(128, previousCut);
+        assertEquals(0, NativeStructureSurfaceFitter.resolveFlattenSurface(anchors, 24, 0, 128).range());
+    }
+
+    @Test
+    public void flattenBlendsNeighboringFoundationsWithoutOrderDependentRidges() {
+        NativeStructureSurfaceFitter.FlattenAnchor left = new NativeStructureSurfaceFitter.FlattenAnchor(
+                new NativeStructureSurfaceFitter.SurfaceAnchor(0, 0, 0, 0, 80, 2), 24, 64);
+        NativeStructureSurfaceFitter.FlattenAnchor right = new NativeStructureSurfaceFitter.FlattenAnchor(
+                new NativeStructureSurfaceFitter.SurfaceAnchor(8, 8, 0, 0, 80, 2), 24, 64);
+        int previous = 80;
+        for (int x = 0; x <= 8; x++) {
+            NativeStructureSurfaceFitter.FlattenResolution forward = NativeStructureSurfaceFitter.resolveFlattenSurface(
+                    List.of(left, right), x, 0, 104);
+            assertEquals(forward, NativeStructureSurfaceFitter.resolveFlattenSurface(
+                    List.of(right, left), x, 0, 104));
+            assertTrue(forward.targetY() <= 82);
+            assertTrue(Math.abs(forward.targetY() - previous) <= 1);
+            previous = forward.targetY();
+        }
+    }
+
+    @Test
+    public void flattenLevelsNonJigsawFoundationsAndRemovesDetachedRoofs() {
+        StructureStart start = desertStart();
+        int groundY = start.getBoundingBox().minY() - 1;
+        BoundingBox area = new BoundingBox(0, 0, 0, 3, 127, 0);
+        Map<BlockPos, BlockState> blocks = new HashMap<>();
+        for (int x = 0; x <= 3; x++) {
+            int sourceY = x < 2 ? groundY - 32 : groundY + 32;
+            put(blocks, x, 12, 0, Blocks.STONE.defaultBlockState());
+            put(blocks, x, sourceY - 1, 0, Blocks.DIRT.defaultBlockState());
+            put(blocks, x, sourceY, 0, Blocks.GRASS_BLOCK.defaultBlockState());
+        }
+        assertTrue(NativeStructureSurfaceFitter.requiresFlattenTerrain(
+                surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)));
+
+        NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area,
+                List.of(surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)),
+                (x, z) -> x < 2 ? groundY - 32 : groundY + 32);
+
+        for (int x = 0; x <= 3; x++) {
+            assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, x, groundY, 0));
+            for (int y = groundY + 1; y <= groundY + 32; y++) {
+                assertTrue("Roof at " + x + "," + y, state(blocks, x, y, 0).isAir());
+            }
+            for (int y = 12; y < groundY; y++) {
+                assertTrue("Missing foundation at " + x + "," + y, state(blocks, x, y, 0).isSolid());
+            }
+        }
+    }
+
+    @Test
+    public void flattenRestoresAnUnchangedFoundationSurfaceOverADeepAirGap() {
+        StructureStart start = desertStart();
+        int groundY = start.getBoundingBox().minY() - 1;
+        BoundingBox area = new BoundingBox(0, 0, 0, 0, 127, 0);
+        Map<BlockPos, BlockState> blocks = new HashMap<>();
+        put(blocks, 0, groundY - 19, 0, Blocks.DIRT.defaultBlockState());
+
+        NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area,
+                List.of(surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)), (x, z) -> groundY);
+
+        for (int y = groundY - 19; y <= groundY; y++) {
+            assertEquals(Blocks.DIRT.defaultBlockState(), state(blocks, 0, y, 0));
+        }
+        assertTrue(state(blocks, 0, groundY + 1, 0).isAir());
+    }
+
+    @Test
+    public void flattenLeavesBuriedAndSubmergedInstancesUntouched() {
+        StructureStart start = desertStart();
+        int groundY = start.getBoundingBox().minY() - 1;
+        BoundingBox area = new BoundingBox(0, 0, 0, 0, 127, 0);
+        Map<BlockPos, BlockState> buried = flatTerrain(area, 100);
+        Map<BlockPos, BlockState> originalBuried = new HashMap<>(buried);
+        Map<BlockPos, BlockState> submerged = flatTerrain(area, groundY - 8);
+        put(submerged, 0, groundY - 7, 0, Blocks.WATER.defaultBlockState());
+        Map<BlockPos, BlockState> originalSubmerged = new HashMap<>(submerged);
+
+        NativeStructureSurfaceFitter.prepareSurfaceStructures(world(buried), area,
+                List.of(surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)), (x, z) -> 100);
+        NativeStructureSurfaceFitter.prepareSurfaceStructures(world(submerged), area,
+                List.of(surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)), (x, z) -> groundY - 8);
+
+        assertEquals(originalBuried, buried);
+        assertEquals(originalSubmerged, submerged);
+    }
+
+    @Test
+    public void flattenExemptsUndergroundAndSubmergedStructureTypes() {
+        Structure.StructureSettings surface = new Structure.StructureSettings(
+                HolderSet.empty(), Map.of(), GenerationStep.Decoration.SURFACE_STRUCTURES, TerrainAdjustment.NONE);
+        Structure.StructureSettings underground = new Structure.StructureSettings(
+                HolderSet.empty(), Map.of(), GenerationStep.Decoration.UNDERGROUND_STRUCTURES, TerrainAdjustment.NONE);
+        List<Structure> exempt = List.of(new StrongholdStructure(surface), new OceanMonumentStructure(surface),
+                new ShipwreckStructure(surface, false), new DesertPyramidStructure(underground));
+        for (Structure structure : exempt) {
+            StructureStart start = new StructureStart(structure, new ChunkPos(0, 0), 0,
+                    new PiecesContainer(desertStart().getPieces()));
+            assertFalse(NativeStructureSurfaceFitter.requiresFlattenTerrain(
+                    surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)));
+        }
+        assertFalse(NativeStructureSurfaceFitter.requiresFlattenTerrain(
+                surfaceTarget(desertStart(TerrainAdjustment.BURY), IrisStructureTerrainMode.FLATTEN)));
+        assertFalse(NativeStructureSurfaceFitter.requiresFlattenTerrain(
+                surfaceTarget(desertStart(TerrainAdjustment.ENCAPSULATE), IrisStructureTerrainMode.FLATTEN)));
+    }
+
+    @Test
+    public void flattenFoundationReadsAndWritesStayInsideConfiguredVerticalRange() throws Exception {
+        PoolElementStructurePiece piece = rigidTemplatePiece(new InlineSinglePoolElement(template(List.of(
+                        block(0, 0, 0, Blocks.COBBLESTONE.defaultBlockState())))),
+                new BoundingBox(0, 128, 0, 0, 136, 0), 0, Rotation.NONE);
+        StructureStart start = rigidSurfaceStart(List.of(piece));
+        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, IrisStructureTerrainMode.FLATTEN);
+        target.terrain().setFlattenRange(32);
+        BoundingBox area = new BoundingBox(0, 0, 0, 0, 255, 0);
+        Map<BlockPos, BlockState> blocks = new HashMap<>();
+        put(blocks, 0, 94, 0, Blocks.GOLD_BLOCK.defaultBlockState());
+        WorldGenLevel delegate = world(blocks);
+        WorldGenLevel bounded = (WorldGenLevel) Proxy.newProxyInstance(WorldGenLevel.class.getClassLoader(),
+                new Class<?>[]{WorldGenLevel.class}, (proxy, method, arguments) -> {
+                    if (method.getName().equals("getBlockState") || method.getName().equals("setBlock")) {
+                        BlockPos position = (BlockPos) arguments[0];
+                        assertTrue(position.toString(), position.getY() >= 95 && position.getY() <= 159);
+                    }
+                    return method.invoke(delegate, arguments);
+                });
+
+        NativeStructureSurfaceFitter.prepareSurfaceStructures(bounded, area, List.of(target), (x, z) -> 127);
+
+        assertEquals(Blocks.GOLD_BLOCK.defaultBlockState(), state(blocks, 0, 94, 0));
+        assertEquals(Blocks.STONE.defaultBlockState(), state(blocks, 0, 95, 0));
+        assertEquals(Blocks.STONE.defaultBlockState(), state(blocks, 0, 127, 0));
+        assertTrue(state(blocks, 0, 128, 0).isAir());
+    }
+
+    @Test
+    public void flattenReferencesIncludeTheMaximumConfiguredFeather() throws Exception {
+        PoolElementStructurePiece piece = rigidTemplatePiece(new InlineSinglePoolElement(template(List.of(
+                        block(0, 0, 0, Blocks.COBBLESTONE.defaultBlockState())))),
+                new BoundingBox(0, 64, 0, 0, 70, 0), 0, Rotation.NONE);
+        StructureStart start = rigidSurfaceStart(List.of(piece));
+        IrisStructureTerrain terrain = new IrisStructureTerrain().setMode(IrisStructureTerrainMode.FLATTEN)
+                .setHorizontalPadding(128).setFlattenRange(128);
+
+        BoundingBox references = NativeStructureReferenceEnvelope.referenceBounds(start, start.getStructure(), terrain);
+
+        assertEquals(-128, references.minX());
+        assertEquals(128, references.maxX());
+        assertEquals(-128, references.minZ());
+        assertEquals(128, references.maxZ());
+        NativeStructureSurfaceFitter.FlattenAnchor anchor = new NativeStructureSurfaceFitter.FlattenAnchor(
+                new NativeStructureSurfaceFitter.SurfaceAnchor(0, 0, 0, 0, 64, 2), 128, 128);
+        assertTrue(NativeStructureSurfaceFitter.resolveFlattenSurface(List.of(anchor), 127, 0, 100).range() > 0);
+        assertEquals(0, NativeStructureSurfaceFitter.resolveFlattenSurface(List.of(anchor), 128, 0, 100).range());
+    }
+
+    @Test
+    public void flattenPreservesNativeVillageSupportBridges() throws Exception {
+        PoolElementStructurePiece lower = rigidTemplatePiece(new InlineLegacyPoolElement(template(List.of(
+                        block(0, 0, 0, Blocks.AIR.defaultBlockState())))),
+                new BoundingBox(0, 62, 0, 0, 65, 0), 1, Rotation.NONE);
+        PoolElementStructurePiece upper = rigidTemplatePiece(new InlineSinglePoolElement(template(List.of(
+                        block(0, 0, 0, Blocks.COBBLESTONE.defaultBlockState())))),
+                new BoundingBox(0, 64, 0, 0, 70, 0), 0, Rotation.NONE);
+        StructureStart start = rigidSurfaceStart(List.of(lower, upper));
+        BoundingBox area = new BoundingBox(0, 58, 0, 0, 72, 0);
+        Map<BlockPos, BlockState> blocks = supportTerrain(0, 0);
+
+        Set<Long> written = NativeStructureSurfaceSupportBuilder.bridgeRigidPieceSupport(world(blocks), area,
+                List.of(surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)),
+                NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager);
+
+        assertEquals(Set.of(BlockPos.asLong(0, 63, 0)), written);
+        assertEquals(Blocks.DIRT.defaultBlockState(), state(blocks, 0, 63, 0));
+    }
+
+    @Test
+    public void flattenDoesNotBridgeACompletelyBuriedVillage() throws Exception {
+        PoolElementStructurePiece lower = rigidTemplatePiece(new InlineLegacyPoolElement(template(List.of(
+                        block(0, 0, 0, Blocks.AIR.defaultBlockState())))),
+                new BoundingBox(0, 62, 0, 0, 65, 0), 1, Rotation.NONE);
+        PoolElementStructurePiece upper = rigidTemplatePiece(new InlineSinglePoolElement(template(List.of(
+                        block(0, 0, 0, Blocks.COBBLESTONE.defaultBlockState())))),
+                new BoundingBox(0, 64, 0, 0, 70, 0), 0, Rotation.NONE);
+        StructureStart start = rigidSurfaceStart(List.of(lower, upper));
+        BoundingBox area = new BoundingBox(0, 58, 0, 0, 90, 0);
+        Map<BlockPos, BlockState> blocks = supportTerrain(0, 0);
+        put(blocks, 0, 80, 0, Blocks.STONE.defaultBlockState());
+
+        Set<Long> written = NativeStructureSurfaceSupportBuilder.bridgeRigidPieceSupport(world(blocks), area,
+                List.of(surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)),
+                NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager);
+
+        assertTrue(written.isEmpty());
+        assertTrue(state(blocks, 0, 63, 0).isAir());
+    }
+
+    @Test
+    public void flattenKeepsPyramidPlacementAboveItsPreparedGround() {
+        FlattenDesertPiece piece = new FlattenDesertPiece();
+        StructureStart start = new StructureStart(desertStart().getStructure(), new ChunkPos(0, 0), 0,
+                new PiecesContainer(List.of(piece)));
+        BoundingBox footprint = piece.getBoundingBox();
+        NativeStructureVerticalPlacer.applyVerticalPlacement(start, "minecraft:desert_pyramid", 0,
+                63, 0, 256, false, false, null, (x, z) -> x == footprint.minX() ? 80 : 112);
+        BoundingBox area = new BoundingBox(footprint.minX(), 0, footprint.minZ(),
+                footprint.maxX(), 160, footprint.maxZ());
+        Map<BlockPos, BlockState> blocks = new HashMap<>();
+        for (int x = footprint.minX(); x <= footprint.maxX(); x++) {
+            for (int z = footprint.minZ(); z <= footprint.maxZ(); z++) {
+                int surfaceY = x == footprint.minX() ? 80 : 112;
+                put(blocks, x, surfaceY - 1, z, Blocks.DIRT.defaultBlockState());
+                put(blocks, x, surfaceY, z, Blocks.GRASS_BLOCK.defaultBlockState());
+            }
+        }
+
+        NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area,
+                List.of(surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)),
+                (x, z) -> x == footprint.minX() ? 80 : 112);
+
+        assertEquals(81, piece.getBoundingBox().minY());
+        assertTrue(piece.attemptVanillaAlignment());
+        assertEquals(81, piece.getBoundingBox().minY());
+        assertTrue(state(blocks, footprint.maxX(), 80, footprint.maxZ()).isSolid());
+        assertTrue(state(blocks, footprint.maxX(), 81, footprint.maxZ()).isAir());
+    }
+
+    @Test
+    public void flattenLetsTerrainMatchingPathsFollowThePreparedVillageGrade() throws Exception {
+        StructureTemplate foundation = template(List.of(block(0, 0, 0, Blocks.COBBLESTONE.defaultBlockState())));
+        PoolElementStructurePiece left = rigidTemplatePiece(new InlineSinglePoolElement(foundation),
+                new BoundingBox(0, 65, 0, 0, 75, 0), 0, Rotation.NONE);
+        PoolElementStructurePiece right = rigidTemplatePiece(new InlineSinglePoolElement(foundation),
+                new BoundingBox(8, 65, 0, 8, 75, 0), 0, Rotation.NONE);
+        PoolElementStructurePiece path = rigidTemplatePiece(new InlineSinglePoolElement(
+                        template(List.of(block(0, 0, 0, Blocks.DIRT_PATH.defaultBlockState()))),
+                        List.of(), StructureTemplatePool.Projection.TERRAIN_MATCHING),
+                new BoundingBox(4, 65, 0, 4, 75, 0), 0, Rotation.NONE);
+        StructureStart start = rigidSurfaceStart(List.of(left, path, right));
+        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, IrisStructureTerrainMode.FLATTEN);
+        target.terrain().setHorizontalPadding(24);
+        BoundingBox area = new BoundingBox(0, 0, 0, 8, 128, 0);
+        Map<BlockPos, BlockState> blocks = flatTerrain(area, 96);
+        for (int x : List.of(0, 8)) {
+            blocks.remove(new BlockPos(x, 95, 0));
+            blocks.remove(new BlockPos(x, 96, 0));
+            put(blocks, x, 63, 0, Blocks.DIRT.defaultBlockState());
+            put(blocks, x, 64, 0, Blocks.GRASS_BLOCK.defaultBlockState());
+        }
+        WorldGenLevel world = world(blocks);
+
+        NativeStructureSurfaceFitter.prepareSurfaceStructures(world, area, List.of(target),
+                (x, z) -> x == 0 || x == 8 ? 64 : 96);
+        NativeStructureTemplateOccupancy.OccupancyResult occupancy = NativeStructureTemplateOccupancy.resolve(
+                world, path, BlockPos.ZERO, area,
+                NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager,
+                area::isInside, cells -> {});
+        Map<Long, NativeStructureTemplateOccupancy.LowestCell> pathGround =
+                NativeStructureTemplateOccupancy.lowestProcessedSolidCells(occupancy.cells());
+
+        assertTrue(state(blocks, 4, 96, 0).isAir());
+        assertEquals(1, pathGround.size());
+        int pathY = pathGround.values().iterator().next().y();
+        assertTrue("Path Y " + pathY, pathY >= 64 && pathY <= 67);
+    }
+
+    @Test
+    public void flattenPublishesCutAndFillHeightsBeforeNativePathProjectionAtFeatures() throws Exception {
+        ProtoChunk chunk = new ProtoChunk(new ChunkPos(0, 0), UpgradeData.EMPTY,
+                LevelHeightAccessor.create(0, 256), containerFactory(), null);
+        chunk.setPersistedStatus(ChunkStatus.CARVERS);
+        for (int x = 0; x <= 8; x++) {
+            int originalY = x < 4 ? 96 : 32;
+            write(chunk, x, originalY - 1, 0, Blocks.DIRT.defaultBlockState());
+            write(chunk, x, originalY, 0, Blocks.GRASS_BLOCK.defaultBlockState());
+        }
+        WorldgenTerrainHeightmaps.primeTerrain(chunk,
+                (x, z) -> x == 15 ? 81 : x < 4 ? 97 : 33,
+                (x, z) -> x == 15 ? 61 : x < 4 ? 97 : 33);
+        StructureTemplate foundation = template(List.of(block(0, 0, 0, Blocks.COBBLESTONE.defaultBlockState())));
+        PoolElementStructurePiece left = rigidTemplatePiece(new InlineSinglePoolElement(foundation),
+                new BoundingBox(0, 65, 0, 0, 75, 0), 0, Rotation.NONE);
+        PoolElementStructurePiece right = rigidTemplatePiece(new InlineSinglePoolElement(foundation),
+                new BoundingBox(8, 65, 0, 8, 75, 0), 0, Rotation.NONE);
+        PoolElementStructurePiece path = rigidTemplatePiece(new InlineSinglePoolElement(
+                        template(List.of(block(0, 0, 0, Blocks.DIRT_PATH.defaultBlockState()),
+                                block(8, 0, 0, Blocks.DIRT_PATH.defaultBlockState()))),
+                        List.of(), StructureTemplatePool.Projection.TERRAIN_MATCHING),
+                new BoundingBox(0, 65, 0, 8, 75, 0), 0, Rotation.NONE);
+        StructureStart start = rigidSurfaceStart(List.of(left, path, right));
+        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, IrisStructureTerrainMode.FLATTEN);
+        target.terrain().setHorizontalPadding(24);
+        BoundingBox area = new BoundingBox(0, 0, 0, 8, 127, 0);
+        WorldGenLevel world = world(chunk);
+
+        NativeStructureSurfaceFitter.SurfaceTerrainPlan plan = NativeStructureSurfaceFitter.prepareSurfaceStructures(
+                world, area, List.of(target), (x, z) -> x < 4 ? 96 : 32);
+
+        assertEquals(96, chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, 0, 0));
+        assertEquals(32, chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, 8, 0));
+        plan.primeHeightmaps(chunk);
+        chunk.setBlockState(new BlockPos(0, 85, 0), Blocks.OAK_PLANKS.defaultBlockState(), 2);
+        NativeStructureTemplateOccupancy.OccupancyResult occupancy = NativeStructureTemplateOccupancy.resolve(
+                world, path, BlockPos.ZERO, area,
+                NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager,
+                area::isInside, cells -> {});
+        Map<Long, NativeStructureTemplateOccupancy.LowestCell> pathGround =
+                NativeStructureTemplateOccupancy.lowestProcessedSolidCells(occupancy.cells());
+
+        assertEquals(2, pathGround.size());
+        for (NativeStructureTemplateOccupancy.LowestCell cell : pathGround.values()) {
+            assertEquals(64, cell.y());
+            chunk.setBlockState(new BlockPos(cell.x(), cell.y(), cell.z()), cell.occupancy().state(), 2);
+            assertTrue(chunk.getBlockState(new BlockPos(cell.x(), 63, cell.z())).isSolid());
+            assertTrue(chunk.getBlockState(new BlockPos(cell.x(), 65, cell.z())).isAir());
+            assertTrue(chunk.getBlockState(new BlockPos(cell.x(), 66, cell.z())).isAir());
+            assertEquals(64, chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, cell.x(), cell.z()));
+            assertEquals(64, chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, cell.x(), cell.z()));
+        }
+        assertEquals(80, chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, 15, 0));
+        assertEquals(60, chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, 15, 0));
+    }
+
+    @Test
+    public void flattenSupportsProjectedRoadsAcrossRoofCavitiesWithoutFillingAdjacentColumns() throws Exception {
+        ProtoChunk chunk = new ProtoChunk(new ChunkPos(0, 0), UpgradeData.EMPTY,
+                LevelHeightAccessor.create(0, 256), containerFactory(), null);
+        chunk.setPersistedStatus(ChunkStatus.CARVERS);
+        for (int x = 0; x <= 8; x++) {
+            int originalY = x == 0 || x == 8 ? 64 : 96;
+            write(chunk, x, 20, 0, Blocks.STONE.defaultBlockState());
+            write(chunk, x, originalY - 1, 0, Blocks.DIRT.defaultBlockState());
+            write(chunk, x, originalY, 0, Blocks.GRASS_BLOCK.defaultBlockState());
+        }
+        write(chunk, 6, 50, 0, Blocks.WATER.defaultBlockState());
+        WorldgenTerrainHeightmaps.primeTerrain(chunk,
+                (x, z) -> x == 0 || x == 8 ? 65 : 97,
+                (x, z) -> x == 0 || x == 8 ? 65 : 97);
+        StructureTemplate foundation = template(List.of(block(0, 0, 0, Blocks.COBBLESTONE.defaultBlockState())));
+        PoolElementStructurePiece left = rigidTemplatePiece(new InlineSinglePoolElement(foundation),
+                new BoundingBox(0, 65, 0, 0, 75, 0), 0, Rotation.NONE);
+        PoolElementStructurePiece right = rigidTemplatePiece(new InlineSinglePoolElement(foundation),
+                new BoundingBox(8, 65, 0, 8, 75, 0), 0, Rotation.NONE);
+        PoolElementStructurePiece path = rigidTemplatePiece(new InlineSinglePoolElement(
+                        template(List.of(block(0, 0, 0, Blocks.DIRT_PATH.defaultBlockState()),
+                                block(1, 0, 0, Blocks.AIR.defaultBlockState()),
+                                block(2, 0, 0, Blocks.DIRT_PATH.defaultBlockState()))),
+                        List.of(), StructureTemplatePool.Projection.TERRAIN_MATCHING),
+                new BoundingBox(4, 65, 0, 6, 75, 0), 0, Rotation.NONE);
+        StructureStart start = rigidSurfaceStart(List.of(left, path, right));
+        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, IrisStructureTerrainMode.FLATTEN);
+        target.terrain().setHorizontalPadding(24).setFlattenRange(32);
+        BoundingBox area = new BoundingBox(0, 0, 0, 8, 127, 0);
+        WorldGenLevel world = world(chunk);
+
+        NativeStructureSurfaceFitter.SurfaceTerrainPlan plan = NativeStructureSurfaceFitter.prepareSurfaceStructures(
+                world, area, List.of(target), (x, z) -> x == 0 || x == 8 ? 64 : 96);
+        plan.primeHeightmaps(chunk);
+        NativeStructureTemplateOccupancy.OccupancyResult occupancy = NativeStructureTemplateOccupancy.resolve(
+                world, path, BlockPos.ZERO, area,
+                NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager,
+                area::isInside, cells -> {});
+        Map<Long, NativeStructureTemplateOccupancy.LowestCell> pathGround =
+                NativeStructureTemplateOccupancy.lowestProcessedSolidCells(occupancy.cells());
+
+        assertEquals(2, pathGround.size());
+        for (NativeStructureTemplateOccupancy.LowestCell cell : pathGround.values()) {
+            write(chunk, cell.x(), cell.y(), cell.z(), cell.occupancy().state());
+            assertTrue(cell.y() > 64 && cell.y() < 72);
+            assertTrue(chunk.getBlockState(new BlockPos(cell.x(), cell.y() - 1, cell.z())).isSolid());
+            assertTrue(chunk.getBlockState(new BlockPos(cell.x(), cell.y() + 1, cell.z())).isAir());
+        }
+        int roadY = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, 4, 0);
+        for (int y = roadY - 32; y < roadY; y++) {
+            assertTrue("Missing road support at " + y, chunk.getBlockState(new BlockPos(4, y, 0)).isSolid());
+        }
+        assertTrue(chunk.getBlockState(new BlockPos(4, roadY - 33, 0)).isAir());
+        int adjacentY = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, 5, 0);
+        assertTrue(chunk.getBlockState(new BlockPos(5, adjacentY - 1, 0)).isAir());
+        assertEquals(Blocks.WATER.defaultBlockState(), chunk.getBlockState(new BlockPos(6, 50, 0)));
+        assertTrue(chunk.getBlockState(new BlockPos(6, 49, 0)).isAir());
     }
 
     @Test
@@ -474,7 +884,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         BoundingBox area = new BoundingBox(0, 54, 0, 3, 74, 3);
         Map<BlockPos, BlockState> blocks = flatTerrain(area, 60);
 
-        NativeStructureSurfaceFitter.VacuumFoundationPlan plan =
+        NativeStructureSurfaceFitter.SurfaceTerrainPlan plan =
                 NativeStructureSurfaceFitter.prepareSurfaceStructures(
                         world(blocks), area,
                         List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
@@ -514,7 +924,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         BoundingBox area = new BoundingBox(0, 54, 0, 3, 72, 3);
         Map<BlockPos, BlockState> blocks = flatTerrain(area, 60);
 
-        NativeStructureSurfaceFitter.VacuumFoundationPlan plan =
+        NativeStructureSurfaceFitter.SurfaceTerrainPlan plan =
                 NativeStructureSurfaceFitter.prepareSurfaceStructures(
                         world(blocks), area,
                         List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
@@ -546,13 +956,13 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         Map<BlockPos, BlockState> wideBlocks = flatTerrain(wideArea, 60);
         Map<BlockPos, BlockState> splitBlocks = flatTerrain(wideArea, 60);
 
-        NativeStructureSurfaceFitter.VacuumFoundationPlan widePlan =
+        NativeStructureSurfaceFitter.SurfaceTerrainPlan widePlan =
                 NativeStructureSurfaceFitter.prepareSurfaceStructures(
                         world(wideBlocks), wideArea, List.of(target), (x, z) -> 60);
-        NativeStructureSurfaceFitter.VacuumFoundationPlan westPlan =
+        NativeStructureSurfaceFitter.SurfaceTerrainPlan westPlan =
                 NativeStructureSurfaceFitter.prepareSurfaceStructures(
                         world(splitBlocks), westArea, List.of(target), (x, z) -> 60);
-        NativeStructureSurfaceFitter.VacuumFoundationPlan eastPlan =
+        NativeStructureSurfaceFitter.SurfaceTerrainPlan eastPlan =
                 NativeStructureSurfaceFitter.prepareSurfaceStructures(
                         world(splitBlocks), eastArea, List.of(target), (x, z) -> 60);
         for (int x = 15; x <= 16; x++) {
@@ -2203,6 +2613,16 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         return template;
     }
 
+    private static final class FlattenDesertPiece extends DesertPyramidPiece {
+        private FlattenDesertPiece() {
+            super(RandomSource.create(29L), 0, 0);
+        }
+
+        private boolean attemptVanillaAlignment() {
+            return updateHeightPositionToLowestGroundHeight((LevelAccessor) null, -2);
+        }
+    }
+
     private static final class InlineSinglePoolElement extends SinglePoolElement {
         private InlineSinglePoolElement(StructureTemplate template) {
             this(template, List.of());
@@ -2318,6 +2738,9 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
             }
             if (methodName.equals("getSeed")) {
                 return TEST_SEED;
+            }
+            if (methodName.equals("getHeight") && arguments != null && arguments.length == 3) {
+                return chunk.getHeight((Heightmap.Types) arguments[0], (int) arguments[1], (int) arguments[2]) + 1;
             }
             if (methodName.equals("getLevel")) {
                 return null;

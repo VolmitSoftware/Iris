@@ -28,6 +28,8 @@ import art.arcane.iris.engine.object.IrisJigsawPiece;
 import art.arcane.iris.engine.object.IrisObjectPlacement;
 import art.arcane.iris.engine.object.IrisStructure;
 import art.arcane.iris.engine.object.IrisStructurePlacement;
+import art.arcane.iris.engine.object.IrisStructureTerrain;
+import art.arcane.iris.engine.object.IrisStructureTerrainMode;
 import art.arcane.iris.engine.object.IrisVanillaStructureAdjustment;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
@@ -162,6 +164,8 @@ public class SchemaBuilderParityTest {
                 .getJSONObject(terrain.getString("$ref").substring("#/definitions/".length()));
         JSONObject terrainProperties = terrainDefinition.getJSONObject("properties");
         JSONObject terrainMode = terrainProperties.getJSONObject("mode");
+        JSONObject flattenRange = terrainProperties.getJSONObject("flattenRange");
+        JSONObject horizontalPadding = terrainProperties.getJSONObject("horizontalPadding");
         JSONObject carveShape = terrainProperties.getJSONObject("shape");
         JSONObject erosionStrength = terrainProperties.getJSONObject("erosionStrength");
         JSONObject erosionFrequency = terrainProperties.getJSONObject("erosionFrequency");
@@ -178,8 +182,18 @@ public class SchemaBuilderParityTest {
         assertTrue(terrain.getString("description").contains(
                 "The editable structures backend supports SOURCE, PRESERVE, BORE, and FORCE_CARVE. "
                         + "The nativeStructures backend supports every terrain mode."));
-        assertEquals(List.of("SOURCE", "PRESERVE", "BORE", "FORCE_CARVE", "VACUUM", "ENCASE"),
+        assertEquals(List.of("SOURCE", "PRESERVE", "BORE", "FORCE_CARVE", "VACUUM", "FLATTEN", "ENCASE"),
                 oneOfValues(schema.getJSONObject("definitions"), terrainModeDefinition));
+        assertEquals("integer", flattenRange.getString("type"));
+        assertEquals(0, flattenRange.getInt("minimum"));
+        assertEquals(128, flattenRange.getInt("maximum"));
+        assertEquals("integer", horizontalPadding.getString("type"));
+        assertEquals(0, horizontalPadding.getInt("minimum"));
+        assertEquals(128, horizontalPadding.getInt("maximum"));
+        IrisStructureTerrain terrainDefaults = new IrisStructureTerrain();
+        assertEquals(IrisStructureTerrainMode.SOURCE, terrainDefaults.resolvedMode());
+        assertEquals(64, terrainDefaults.getFlattenRange());
+        assertEquals(0, terrainDefaults.getHorizontalPadding());
         assertEquals(List.of("BOX", "ROUNDED", "ERODED"), oneOfValues(
                 schema.getJSONObject("definitions"), carveShapeDefinition));
         assertEquals(0D, erosionStrength.getDouble("minimum"), 0D);
@@ -226,6 +240,10 @@ public class SchemaBuilderParityTest {
         assertTrue(terrainProperties.has("lobeFrequency"));
         assertTrue(terrainProperties.has("lobeStrength"));
         assertTrue(terrainProperties.has("encasePalette"));
+        assertTrue(oneOfValues(definitions, definitionKey(terrainProperties.getJSONObject("mode")))
+                .contains("FLATTEN"));
+        assertEquals(0, terrainProperties.getJSONObject("flattenRange").getInt("minimum"));
+        assertEquals(128, terrainProperties.getJSONObject("flattenRange").getInt("maximum"));
     }
 
     @Test

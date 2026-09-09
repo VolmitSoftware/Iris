@@ -164,7 +164,7 @@ public final class GenerationKernelRegistry {
 
     @FunctionalInterface
     public interface RuntimeFactory {
-        IrisComplex create(IrisEngine engine, TransitionGenerationPlan transitionPlan);
+        IrisComplex create(IrisEngine engine, TransitionGenerationPlan transitionPlan, boolean detached);
 
         default SeedManager createSeedManager(long worldSeed) {
             throw new UnsupportedOperationException("Generation kernel does not own seed derivation.");
@@ -209,9 +209,9 @@ public final class GenerationKernelRegistry {
             Objects.requireNonNull(factory, "factory");
         }
 
-        public IrisComplex createComplex(IrisEngine engine, TransitionGenerationPlan transitionPlan) {
+        public IrisComplex createComplex(IrisEngine engine, TransitionGenerationPlan transitionPlan, boolean detached) {
             return Objects.requireNonNull(
-                    factory.create(Objects.requireNonNull(engine, "engine"), transitionPlan),
+                    factory.create(Objects.requireNonNull(engine, "engine"), transitionPlan, detached),
                     "generation kernel complex"
             );
         }

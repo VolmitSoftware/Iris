@@ -40,7 +40,7 @@ import java.util.Set;
 
 final class PackStructurePlacementValidator {
     private static final Set<String> TERRAIN_ENVELOPE_MODES = Set.of(
-            "BORE", "FORCE_CARVE", "VACUUM", "ENCASE");
+            "BORE", "FORCE_CARVE", "VACUUM", "FLATTEN", "ENCASE");
 
     private PackStructurePlacementValidator() {
     }
@@ -633,11 +633,13 @@ final class PackStructurePlacementValidator {
             return;
         }
         PackJsonFieldChecks.validateOptionalEnum(path + ".terrain", terrain, "mode",
-                Set.of("SOURCE", "PRESERVE", "BORE", "FORCE_CARVE", "VACUUM", "ENCASE"), blockingErrors);
+                Set.of("SOURCE", "PRESERVE", "BORE", "FORCE_CARVE", "VACUUM", "FLATTEN", "ENCASE"), blockingErrors);
         PackJsonFieldChecks.validateOptionalEnum(path + ".terrain", terrain, "shape",
                 Set.of("BOX", "ROUNDED", "ERODED"), blockingErrors);
         PackJsonFieldChecks.validateOptionalIntegerRange(path + ".terrain", terrain,
                 "horizontalPadding", 0, 128, blockingErrors);
+        PackJsonFieldChecks.validateOptionalIntegerRange(path + ".terrain", terrain,
+                "flattenRange", 0, 128, blockingErrors);
         PackJsonFieldChecks.validateOptionalIntegerRange(path + ".terrain", terrain,
                 "ceilingPadding", 0, 128, blockingErrors);
         PackJsonFieldChecks.validateOptionalIntegerRange(path + ".terrain", terrain,
@@ -663,7 +665,7 @@ final class PackStructurePlacementValidator {
             return;
         }
         String mode = terrain.optString("mode", "SOURCE");
-        if ("VACUUM".equals(mode) || "ENCASE".equals(mode)) {
+        if ("VACUUM".equals(mode) || "FLATTEN".equals(mode) || "ENCASE".equals(mode)) {
             blockingErrors.add(path + ".terrain.mode " + mode
                     + " cannot target editable Iris structures; use nativeStructures or "
                     + "importedStructures.adjustments for native terrain preparation.");

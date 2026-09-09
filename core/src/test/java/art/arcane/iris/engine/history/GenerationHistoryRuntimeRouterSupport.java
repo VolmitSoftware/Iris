@@ -158,7 +158,7 @@ abstract class GenerationHistoryRuntimeRouterSupport extends GenerationHistorySu
                                 "1".repeat(64),
                                 Map.of(
                                         new GenerationKernelRegistry.AlgorithmVersion(1, 1),
-                                        (engine, transitionPlan) -> {
+                                        (engine, transitionPlan, detached) -> {
                                             throw new AssertionError("Mock runtime factory owns this test.");
                                         }
                                 )
@@ -168,7 +168,7 @@ abstract class GenerationHistoryRuntimeRouterSupport extends GenerationHistorySu
                                 "2".repeat(64),
                                 Map.of(
                                         new GenerationKernelRegistry.AlgorithmVersion(1, 1),
-                                        (engine, transitionPlan) -> {
+                                        (engine, transitionPlan, detached) -> {
                                             throw new AssertionError("Mock runtime factory owns this test.");
                                         }
                                 )
@@ -270,7 +270,7 @@ abstract class GenerationHistoryRuntimeRouterSupport extends GenerationHistorySu
             when(binding.runtimeKernel()).thenReturn(new GenerationKernelRegistry.RuntimeKernel(
                     version,
                     epoch.kernelImplementationFingerprint(),
-                    (engine, transitionPlan) -> mock(IrisComplex.class)
+                    (engine, transitionPlan, detached) -> mock(IrisComplex.class)
             ));
             when(binding.mantleStorageDirectory()).thenReturn(mantle);
             when(binding.transitionPlan()).thenReturn(plan);

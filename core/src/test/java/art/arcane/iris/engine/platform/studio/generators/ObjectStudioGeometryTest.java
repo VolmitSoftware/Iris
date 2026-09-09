@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -139,9 +140,17 @@ public class ObjectStudioGeometryTest {
                         position.y() - fixture.cell().originY(), position.z() - fixture.cell().originZ(),
                         entry.getValue());
             }
-            captured.setUnsignedTile(0, 0, 0, tile);
+            Position placedTile = new Position(fixture.cell().originX(), fixture.cell().originY(), fixture.cell().originZ());
+            assertEquals(1, fixture.tiles().size());
+            assertEquals(tile, fixture.tiles().get(placedTile));
+            assertNotSame(tile, fixture.tiles().get(placedTile));
+            for (Map.Entry<Position, TileData> entry : fixture.tiles().entrySet()) {
+                Position position = entry.getKey();
+                captured.setUnsignedTile(position.x() - fixture.cell().originX(),
+                        position.y() - fixture.cell().originY(), position.z() - fixture.cell().originZ(), entry.getValue());
+            }
 
-            assertSame(tile, captured.getStates().get(new IrisBlockVector(minimum.x(), minimum.y(), minimum.z())));
+            assertEquals(tile, captured.getStates().get(new IrisBlockVector(minimum.x(), minimum.y(), minimum.z())));
             assertEquals(serialized(source), serialized(captured));
         }
     }
@@ -209,13 +218,24 @@ public class ObjectStudioGeometryTest {
                 mock(PlatformBlockState.class), mock(PlatformBlockState.class), mock(PlatformBlockState.class));
         TerrainChunk initial = mock(TerrainChunk.class);
         when(initial.getMaxHeight()).thenReturn(320);
+        Map<Position, TileData> tiles = new HashMap<>();
+        ObjectStudioSaveService service = mock(ObjectStudioSaveService.class);
+        doAnswer(invocation -> {
+            ObjectStudioGenerator.ChunkTiles queued = invocation.getArgument(1);
+            for (ObjectStudioGenerator.PlacedTile tile : queued.tiles()) {
+                assertTrue(tile.x() >= 0 && tile.x() < 16 && tile.z() >= 0 && tile.z() < 16);
+                tiles.put(new Position((queued.chunkX() << 4) + tile.x(), tile.y(),
+                        (queued.chunkZ() << 4) + tile.z()), tile.data());
+            }
+            return null;
+        }).when(service).queueTiles(any(), any());
         try (MockedStatic<ObjectStudioSaveService> saves = mockStatic(ObjectStudioSaveService.class)) {
-            saves.when(ObjectStudioSaveService::get).thenReturn(mock(ObjectStudioSaveService.class));
+            saves.when(ObjectStudioSaveService::get).thenReturn(service);
             generator.generateChunk(engine, initial, cell.chunkMinX(), cell.chunkMinZ());
         }
         ObjectStudioLayout.GridCell placed = generator.getLayout().get("jungleclutt6");
         assertNotNull(placed);
-        return new Fixture(generator, engine, placed, source);
+        return new Fixture(generator, engine, placed, source, tiles, service);
     }
 
     private static Map<Position, PlatformBlockState> render(Fixture fixture) throws Exception {
@@ -238,7 +258,10 @@ public class ObjectStudioGeometryTest {
                     }
                     return null;
                 }).when(chunk).setBlock(anyInt(), anyInt(), anyInt(), any());
-                fixture.generator().generateChunk(fixture.engine(), chunk, chunkX, chunkZ);
+                try (MockedStatic<ObjectStudioSaveService> saves = mockStatic(ObjectStudioSaveService.class)) {
+                    saves.when(ObjectStudioSaveService::get).thenReturn(fixture.service());
+                    fixture.generator().generateChunk(fixture.engine(), chunk, chunkX, chunkZ);
+                }
             }
         }
         return rendered;
@@ -300,7 +323,7 @@ public class ObjectStudioGeometryTest {
     }
 
     private record Fixture(ObjectStudioGenerator generator, Engine engine, ObjectStudioLayout.GridCell cell,
-                           IrisObject source) {
+                           IrisObject source, Map<Position, TileData> tiles, ObjectStudioSaveService service) {
     }
 
     private record SerializedObject(int width, int height, int depth, Map<Position, String> blocks,

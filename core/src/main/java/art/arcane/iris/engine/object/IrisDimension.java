@@ -76,6 +76,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Accessors(chain = true)
@@ -497,6 +498,35 @@ public class IrisDimension extends IrisRegistrant {
 
     public String getFocusRegion() {
         return focusRegion;
+    }
+
+    public IrisRegion resolveFocusRegion(IrisBiome biome, DataProvider provider) {
+        String biomeKey = Objects.requireNonNull(biome, "focus biome").getLoadKey();
+        KList<IrisRegion> available = getAllRegions(provider);
+        for (IrisRegion region : available) {
+            if (region.getAllBiomeIds().contains(biomeKey)) {
+                return region;
+            }
+        }
+        for (IrisRegion region : available) {
+            for (IrisBiome member : region.getAllBiomes(provider)) {
+                if (biomeKey.equals(member.getLoadKey())) {
+                    return region;
+                }
+            }
+        }
+
+        String key = "iris-focus/" + UUID.nameUUIDFromBytes((getLoadKey() + "\u0000" + biomeKey)
+                .getBytes(StandardCharsets.UTF_8));
+        IrisData data = provider.getData();
+        IrisRegion region = new IrisRegion();
+        region.getLandBiomes().add(biomeKey);
+        region.getSeaBiomes().add(biomeKey);
+        region.getShoreBiomes().add(biomeKey);
+        region.setLoadKey(key);
+        region.setLoader(data);
+        region.setLoadFile(new File(data.getDataFolder(), data.getRegionLoader().getFolderName() + "/" + key + ".json"));
+        return region;
     }
 
     public double sinRotate() {

@@ -19,6 +19,7 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.nativegen.NativeTransitionColumn;
+import art.arcane.iris.nativegen.NativeTerrainHeightCache;
 import art.arcane.iris.engine.history.TerrainBoundarySignature;
 import art.arcane.iris.engine.history.NativeBiomeSpawnSelection;
 import java.util.Optional;
@@ -107,6 +108,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.CancellationException;
@@ -145,6 +147,7 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
     private final ModdedNativeStructureStage nativeStructures = new ModdedNativeStructureStage(this);
     private final ModdedSpawnTableMerger spawnTables = new ModdedSpawnTableMerger(this);
     private final ModdedImportedFeatureStage importedFeatures;
+    private final NativeTerrainHeightCache terrainHeights = new NativeTerrainHeightCache();
     private final AtomicBoolean announced = new AtomicBoolean(false);
     private final IntConsumer generationRuntimeRetirementListener = this::retireGenerationRuntimeCaches;
     private volatile boolean unloading;
@@ -1381,15 +1384,18 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
     @Override
     public int getBaseHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor heightAccessor, RandomState randomState) {
         Engine current = requireDataQueryEngine("base height");
-        boolean ignoreFluid = !type.isOpaque().test(Blocks.WATER.defaultBlockState());
         try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope = openHistoryCoordinateScope(
                      current, x, z, "modded_base_height");
              GenerationSessionLease lease = current.acquireGenerationLease("modded_base_height");
              IrisContext.Scope ignored = IrisContext.open(current, lease.sessionId(), null)) {
-            Optional<TerrainBoundarySignature> resolved = current.getComplex().resolvedTerrainColumn(x, z);
+            NativeTerrainHeightCache.Query query = new NativeTerrainHeightCache.Query(
+                    current.getCacheID(), x, z, type, heightAccessor.getMinY(), heightAccessor.getHeight());
+            OptionalInt resolved = terrainHeights.resolvedHeight(query,
+                    () -> resolvedBaseHeight(current, x, z, type, heightAccessor));
             if (resolved.isPresent()) {
-                return NativeTransitionColumn.height(resolved.get(), type, heightAccessor);
+                return resolved.getAsInt();
             }
+            boolean ignoreFluid = !type.isOpaque().test(Blocks.WATER.defaultBlockState());
             int height = current.getDimensionStackContext() == null
                     ? current.getHeight(x, z, ignoreFluid)
                     : Engine.hostHeight(current, x, z, ignoreFluid);
@@ -1397,6 +1403,13 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
         } catch (GenerationSessionException e) {
             throw new IllegalStateException("Iris base height query could not acquire its engine runtime.", e);
         }
+    }
+
+    private OptionalInt resolvedBaseHeight(Engine current, int x, int z, Heightmap.Types type, LevelHeightAccessor heightAccessor) {
+        Optional<TerrainBoundarySignature> resolved = current.getComplex().resolvedTerrainColumn(x, z);
+        return resolved.isPresent()
+                ? OptionalInt.of(NativeTransitionColumn.height(resolved.get(), type, heightAccessor))
+                : OptionalInt.empty();
     }
 
     @Override
@@ -1482,6 +1495,7 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
     }
 
     private void retireGenerationRuntimeCaches(int runtimeIdentity) {
+        terrainHeights.evictRuntime(runtimeIdentity);
         structureBiomeSource.evictRuntime(runtimeIdentity);
         importedFeatures.evictRuntime(runtimeIdentity);
         spawnTables.evictRuntime(runtimeIdentity);

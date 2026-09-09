@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.hydrology;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -101,7 +103,8 @@ public class HydrologyPlannerConfinementTest {
                 !ocean, !ocean, !ocean, false, false, false,
                 0D, ocean ? 0D : 1D, 0D, 1D, 1D, 1D, 1D, 1D,
                 "land", "land", "land", "land", "land", "land",
-                List.of("default"), List.of(), Double.NaN, confines, Double.NaN, true
+                List.of("default"), List.of(), Double.NaN, confines, Double.NaN, true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 
@@ -126,7 +129,8 @@ public class HydrologyPlannerConfinementTest {
                         HydrologyPlannerSettings.Geometry.defaults().drops()),
                 List.of(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 }

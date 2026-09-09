@@ -301,20 +301,20 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     }
 
     public KList<IrisBiome> getAllBiomes(DataProvider g) {
-        return resolveBiomes(g, getAllBiomeIds());
+        return resolveBiomes(g, getAllBiomeIds(), true);
     }
 
     public KList<IrisBiome> getNaturalBiomes(DataProvider g) {
-        return resolveBiomes(g, getNaturalBiomeIds());
+        return resolveBiomes(g, getNaturalBiomeIds(), false);
     }
 
-    private KList<IrisBiome> resolveBiomes(DataProvider g, KSet<String> biomeIds) {
+    private KList<IrisBiome> resolveBiomes(DataProvider g, KSet<String> biomeIds, boolean includeRiverBiomes) {
         KMap<String, IrisBiome> b = new KMap<>();
         KSet<String> names = biomeIds.copy();
 
         while (!names.isEmpty()) {
             for (String i : new KList<>(names)) {
-                if (b.containsKey(i)) {
+                if (i == null || i.isBlank() || b.containsKey(i)) {
                     names.remove(i);
                     continue;
                 }
@@ -334,6 +334,9 @@ public class IrisRegion extends IrisRegistrant implements IRare {
                 names.add(biome.getCarvingBiome());
                 b.put(biome.getLoadKey(), biome);
                 names.addAll(biome.getChildren());
+                if (includeRiverBiomes && biome.getRiverPolicy() != null) {
+                    names.addAll(biome.getRiverPolicy().getAllBiomeIds());
+                }
             }
         }
 

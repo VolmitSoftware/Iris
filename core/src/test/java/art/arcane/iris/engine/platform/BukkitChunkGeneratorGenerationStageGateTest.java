@@ -1,10 +1,8 @@
 package art.arcane.iris.engine.platform;
 
-import art.arcane.iris.engine.data.chunk.TerrainChunk;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.WrongEngineBroException;
-import art.arcane.iris.engine.platform.studio.StudioGenerator;
+import art.arcane.iris.spi.IrisLogging;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -21,7 +19,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
-import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -29,7 +26,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.mockStatic;
 
 public class BukkitChunkGeneratorGenerationStageGateTest {
     @Test
@@ -152,103 +149,6 @@ public class BukkitChunkGeneratorGenerationStageGateTest {
             stage.close();
             executor.shutdownNow();
         }
-    }
-
-    @Test
-    public void exclusiveGenerationStageDowngradesWithoutReleasingItsRetainedPermit() {
-        AtomicBoolean closing = new AtomicBoolean(false);
-        BukkitChunkGenerator.GenerationStageGate gate =
-                new BukkitChunkGenerator.GenerationStageGate(3, closing::get);
-        BukkitChunkGenerator.GenerationStageExclusivePermit exclusive =
-                gate.acquireExclusiveStage("prepare");
-
-        assertEquals(0, gate.availablePermits());
-        BukkitChunkGenerator.GenerationStagePermit stage = exclusive.downgradeToStage();
-
-        assertEquals(2, gate.availablePermits());
-        exclusive.close();
-        assertEquals(2, gate.availablePermits());
-        stage.close();
-        assertEquals(3, gate.availablePermits());
-    }
-
-    @Test
-    public void preparedGenerationRetriesChangedGeneratorWhileHoldingExclusiveAdmission() {
-        AtomicBoolean closing = new AtomicBoolean(false);
-        BukkitChunkGenerator.GenerationStageGate gate =
-                new BukkitChunkGenerator.GenerationStageGate(2, closing::get);
-        PreparingStudioGenerator first = new PreparingStudioGenerator(gate, false);
-        PreparingStudioGenerator second = new PreparingStudioGenerator(gate, false);
-        AtomicInteger resolutions = new AtomicInteger();
-        Supplier<StudioGenerator> resolver = () -> resolutions.getAndIncrement() == 0 ? first : second;
-        Engine engine = mock(Engine.class);
-
-        BukkitChunkGenerator.GenerationStagePermit stage =
-                BukkitChunkGenerator.acquirePreparedGenerationStage(
-                        gate,
-                        "prepared",
-                        resolver,
-                        engine,
-                        4,
-                        7);
-
-        assertEquals(0, first.preparations());
-        assertEquals(1, second.preparations());
-        assertEquals(0, second.observedPermits());
-        assertTrue(resolutions.get() >= 4);
-        assertEquals(1, gate.availablePermits());
-        verifyNoInteractions(engine);
-        stage.close();
-        assertEquals(2, gate.availablePermits());
-    }
-
-    @Test
-    public void failedPreparationReleasesEveryExclusivePermit() {
-        AtomicBoolean closing = new AtomicBoolean(false);
-        BukkitChunkGenerator.GenerationStageGate gate =
-                new BukkitChunkGenerator.GenerationStageGate(2, closing::get);
-        PreparingStudioGenerator generator = new PreparingStudioGenerator(gate, true);
-        Engine engine = mock(Engine.class);
-
-        IllegalStateException failure = assertThrows(
-                IllegalStateException.class,
-                () -> BukkitChunkGenerator.acquirePreparedGenerationStage(
-                        gate,
-                        "prepared-failure",
-                        () -> generator,
-                        engine,
-                        2,
-                        3));
-
-        assertTrue(failure.getMessage().contains("could not prepare"));
-        assertTrue(failure.getCause() instanceof WrongEngineBroException);
-        assertEquals(1, generator.preparations());
-        assertEquals(0, generator.observedPermits());
-        assertEquals(2, gate.availablePermits());
-        verifyNoInteractions(engine);
-    }
-
-    @Test
-    public void defaultStudioGeneratorUsesOneOrdinaryGenerationPermit() {
-        AtomicBoolean closing = new AtomicBoolean(false);
-        BukkitChunkGenerator.GenerationStageGate gate =
-                new BukkitChunkGenerator.GenerationStageGate(2, closing::get);
-        StudioGenerator generator = new DefaultStudioGenerator();
-        Engine engine = mock(Engine.class);
-
-        BukkitChunkGenerator.GenerationStagePermit stage =
-                BukkitChunkGenerator.acquirePreparedGenerationStage(
-                        gate,
-                        "ordinary",
-                        () -> generator,
-                        engine,
-                        0,
-                        0);
-
-        assertEquals(1, gate.availablePermits());
-        verifyNoInteractions(engine);
-        stage.close();
-        assertEquals(2, gate.availablePermits());
     }
 
     @Test
@@ -407,6 +307,108 @@ public class BukkitChunkGeneratorGenerationStageGateTest {
             assertEquals(1, gate.availablePermits());
             executor.shutdownNow();
         }
+    }
+
+    @Test
+    public void untimedExclusiveCancellationRemovesWaiterWithoutLeakingInterruptOrPermits() throws Exception {
+        BukkitChunkGenerator.GenerationStageGate gate =
+                new BukkitChunkGenerator.GenerationStageGate(1, () -> false);
+        BukkitChunkGenerator.GenerationStagePermit active = gate.acquireStage("active");
+        CompletableFuture<Void> pending = new CompletableFuture<>();
+        AtomicBoolean operationRan = new AtomicBoolean();
+        AtomicBoolean interrupted = new AtomicBoolean();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<?> worker = executor.submit(() -> {
+                BukkitChunkGenerator.completeExclusiveControlFuture(gate, () -> operationRan.set(true), pending);
+                interrupted.set(Thread.currentThread().isInterrupted());
+            });
+            awaitQueueLength(gate, 1);
+
+            assertTrue(pending.cancel(true));
+            worker.get(2L, TimeUnit.SECONDS);
+
+            assertFalse(operationRan.get());
+            assertFalse(interrupted.get());
+            assertEquals(0, gate.queueLength());
+            assertEquals(0, gate.availablePermits());
+            active.close();
+            assertEquals(1, gate.availablePermits());
+        } finally {
+            active.close();
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(2L, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void untimedCancellationAfterAdmissionDoesNotInterruptCutover() throws Exception {
+        BukkitChunkGenerator.GenerationStageGate gate =
+                new BukkitChunkGenerator.GenerationStageGate(1, () -> false);
+        CompletableFuture<Void> pending = new CompletableFuture<>();
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicBoolean interrupted = new AtomicBoolean();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<?> worker = executor.submit(() -> BukkitChunkGenerator.completeExclusiveControlFuture(gate, () -> {
+                entered.countDown();
+                try {
+                    assertTrue(release.await(2L, TimeUnit.SECONDS));
+                } catch (InterruptedException failure) {
+                    interrupted.set(true);
+                    Thread.currentThread().interrupt();
+                }
+            }, pending));
+            assertTrue(entered.await(2L, TimeUnit.SECONDS));
+
+            assertTrue(pending.cancel(true));
+            assertEquals(0, gate.availablePermits());
+            release.countDown();
+            worker.get(2L, TimeUnit.SECONDS);
+
+            assertFalse(interrupted.get());
+            assertEquals(1, gate.availablePermits());
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(2L, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void preCancelledUntimedControlDoesNotQueueOrRun() {
+        BukkitChunkGenerator.GenerationStageGate gate =
+                new BukkitChunkGenerator.GenerationStageGate(1, () -> false);
+        CompletableFuture<Void> pending = new CompletableFuture<>();
+        AtomicBoolean operationRan = new AtomicBoolean();
+        pending.cancel(true);
+
+        BukkitChunkGenerator.completeExclusiveControlFuture(gate, () -> operationRan.set(true), pending);
+
+        assertFalse(operationRan.get());
+        assertEquals(0, gate.queueLength());
+        assertEquals(1, gate.availablePermits());
+    }
+
+    @Test
+    public void cancelledUntimedControlReportsAnAdmittedCutoverFailure() {
+        BukkitChunkGenerator.GenerationStageGate gate =
+                new BukkitChunkGenerator.GenerationStageGate(1, () -> false);
+        CompletableFuture<Void> pending = new CompletableFuture<>();
+        IllegalStateException failure = new IllegalStateException("Admitted cutover failed");
+
+        try (MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
+            BukkitChunkGenerator.completeExclusiveControlFuture(gate, () -> {
+                pending.cancel(true);
+                throw failure;
+            }, pending);
+
+            logging.verify(() -> IrisLogging.reportError(failure));
+        }
+        assertTrue(pending.isCancelled());
+        assertFalse(Thread.currentThread().isInterrupted());
+        assertEquals(1, gate.availablePermits());
     }
 
     @Test
@@ -604,52 +606,4 @@ public class BukkitChunkGeneratorGenerationStageGateTest {
         assertTrue("Expected at least " + expected + " queued gate threads", gate.queueLength() >= expected);
     }
 
-    private static final class DefaultStudioGenerator implements StudioGenerator {
-        @Override
-        public void generateChunk(Engine engine, TerrainChunk tc, int x, int z) {
-        }
-    }
-
-    private static final class PreparingStudioGenerator implements StudioGenerator {
-        private final BukkitChunkGenerator.GenerationStageGate gate;
-        private final boolean fail;
-        private final AtomicInteger preparations;
-        private int observedPermits;
-
-        private PreparingStudioGenerator(
-                BukkitChunkGenerator.GenerationStageGate gate,
-                boolean fail
-        ) {
-            this.gate = gate;
-            this.fail = fail;
-            this.preparations = new AtomicInteger();
-            this.observedPermits = -1;
-        }
-
-        @Override
-        public boolean requiresPreSessionPreparation() {
-            return true;
-        }
-
-        @Override
-        public void prepareChunkBeforeSession(Engine engine, int x, int z) throws WrongEngineBroException {
-            preparations.incrementAndGet();
-            observedPermits = gate.availablePermits();
-            if (fail) {
-                throw new WrongEngineBroException("prepared failure");
-            }
-        }
-
-        @Override
-        public void generateChunk(Engine engine, TerrainChunk tc, int x, int z) {
-        }
-
-        private int preparations() {
-            return preparations.get();
-        }
-
-        private int observedPermits() {
-            return observedPermits;
-        }
-    }
 }

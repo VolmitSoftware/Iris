@@ -15,20 +15,17 @@ public final class SurfaceCourseBuilder {
     private final HydrologyTerrainSampler sampler;
     private final HydrologyGeometrySampler geometry;
     private final int seaLevel;
-    private final int minimumCourseLength;
 
     public SurfaceCourseBuilder(
             HydrologyPlannerSettings.Surface surface,
             HydrologyTerrainSampler sampler,
             HydrologyGeometrySampler geometry,
-            int seaLevel,
-            int minimumCourseLength
+            int seaLevel
     ) {
         this.surface = Objects.requireNonNull(surface, "surface");
         this.sampler = Objects.requireNonNull(sampler, "sampler");
         this.geometry = Objects.requireNonNull(geometry, "geometry");
         this.seaLevel = seaLevel;
-        this.minimumCourseLength = minimumCourseLength;
     }
 
     public SurfaceCourseResult build(
@@ -37,7 +34,8 @@ public final class SurfaceCourseBuilder {
             String profileKey,
             List<HydrologyPoint> path,
             SurfaceTerminal terminal,
-            int terminalHead
+            int terminalHead,
+            int minimumCourseLength
     ) {
         SurfaceCenterline centerline = SurfaceCenterline.densify(path);
         boolean directOcean = terminal == SurfaceTerminal.OCEAN_MOUTH;

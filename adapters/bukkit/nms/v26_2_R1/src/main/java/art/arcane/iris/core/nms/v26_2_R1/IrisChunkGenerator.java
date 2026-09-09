@@ -1,6 +1,7 @@
 package art.arcane.iris.core.nms.v26_2_R1;
 
 import art.arcane.iris.nativegen.NativeTransitionColumn;
+import art.arcane.iris.nativegen.NativeTerrainHeightCache;
 import art.arcane.iris.engine.history.TerrainBoundarySignature;
 import java.util.Optional;
 import art.arcane.iris.nativegen.NativeGenerationWriteGuard;
@@ -124,6 +125,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -155,6 +157,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator implements LongPred
     private final int runtimeSeaLevel;
     private final ConcurrentHashMap<SpawnTableKey, WeightedList<MobSpawnSettings.SpawnerData>> mergedSpawnTables = new ConcurrentHashMap<>();
     private final ImportedFeatureStage importedFeatures;
+    private final NativeTerrainHeightCache terrainHeights = new NativeTerrainHeightCache();
     private final AtomicReference<StudioStructureState> retainedStudioStructureState = new AtomicReference<>();
     private volatile ReachableStructureCache reachableStructureCache;
     private volatile StructureStepCache structureStepCache;
@@ -184,6 +187,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator implements LongPred
     }
 
     private void evictRuntimeCaches(int runtimeId) {
+        terrainHeights.evictRuntime(runtimeId);
         importedFeatures.evictRuntime(runtimeId);
         mergedSpawnTables.keySet().removeIf(key -> key.runtimeId() == runtimeId);
         ReachableStructureCache reachable = reachableStructureCache;
@@ -765,9 +769,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator implements LongPred
     @Override
     public CompletableFuture<ChunkAccess> fillFromNoise(Blender blender, RandomState randomstate, StructureManager structuremanager, ChunkAccess ichunkaccess) {
         ChunkPos chunkPos = ichunkaccess.getPos();
-        BukkitChunkGenerator.GenerationStagePermit stage = requireNoiseGenerationStage(
-                chunkPos,
-                "bukkit_nms_chunk_pipeline");
+        BukkitChunkGenerator.GenerationStagePermit stage = requireGenerationStage("bukkit_nms_chunk_pipeline");
         GenerationHistoryRuntimeRouter.RuntimeRoute route;
         try {
             route = openHistoryRoute(chunkPos.x(), chunkPos.z(), "bukkit_nms_chunk_pipeline");
@@ -1124,10 +1126,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator implements LongPred
         }
         IrisStaticObjectLayer staticObjects = engine.getDimension().getStaticObjectLayer(engine.getData());
         Predicate<BlockPos> protectedPosition = nativeStructureProtection(staticObjects);
-        WorldGenLevel boundedWorld = staticObjects.isEmpty()
-                && engine.getDimensionStackContext() == null
-                ? world
-                : NativeStructureWorldgenAccess.create(
+        WorldGenLevel boundedWorld = NativeStructureWorldgenAccess.create(
                 world, chunkPos, hostWorldgenSurfaceHeight(), hostWorldgenFloorHeight(),
                 engine.getDimensionStackContext() != null,
                 protectedPosition);
@@ -1139,11 +1138,12 @@ public class IrisChunkGenerator extends CustomChunkGenerator implements LongPred
                     "vegetation cleanup", nativeStructureBatchContext(placementGroups),
                     chunkPos.x(), chunkPos.z(), error);
         }
-        NativeStructureSurfaceFitter.VacuumFoundationPlan vacuumFoundationPlan;
+        NativeStructureSurfaceFitter.SurfaceTerrainPlan surfaceTerrainPlan;
         try {
-            vacuumFoundationPlan = NativeStructureSurfaceFitter.prepareSurfaceStructures(
+            surfaceTerrainPlan = NativeStructureSurfaceFitter.prepareSurfaceStructures(
                     boundedWorld, area, terrainTargets,
                     (x, z) -> Engine.hostHeight(engine, x, z, true) + engine.getMinHeight());
+            surfaceTerrainPlan.primeHeightmaps(chunk);
         } catch (Throwable error) {
             throw NativeStructureGenerationException.failure(
                     "terrain integration", nativeStructureBatchContext(placementGroups),
@@ -1171,7 +1171,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator implements LongPred
         }
         try {
             NativeStructureSurfaceFitter.repairVacuumFoundations(
-                    boundedWorld, area, vacuumFoundationPlan);
+                    boundedWorld, area, surfaceTerrainPlan);
         } catch (Throwable error) {
             throw NativeStructureGenerationException.failure(
                     "foundation repair", nativeStructureBatchContext(placementGroups),
@@ -1422,19 +1422,29 @@ public class IrisChunkGenerator extends CustomChunkGenerator implements LongPred
                      i, j, "bukkit_nms_base_height");
              GenerationSessionLease lease = engine.acquireGenerationLease("bukkit_nms_base_height");
              IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
-            Optional<TerrainBoundarySignature> resolved = engine.getComplex().resolvedTerrainColumn(i, j);
+            NativeTerrainHeightCache.Query query = new NativeTerrainHeightCache.Query(
+                    engine.getCacheID(), i, j, heightmap_type,
+                    levelheightaccessor.getMinY(), levelheightaccessor.getHeight());
+            OptionalInt resolved = terrainHeights.resolvedHeight(query,
+                    () -> resolvedBaseHeight(i, j, heightmap_type, levelheightaccessor));
             if (resolved.isPresent()) {
-                return NativeTransitionColumn.height(resolved.get(), heightmap_type, levelheightaccessor);
+                return resolved.getAsInt();
             }
             boolean ignoreFluid = !heightmap_type.isOpaque().test(Blocks.WATER.defaultBlockState());
             int height = engine.getDimensionStackContext() == null
                     ? engine.getHeight(i, j, ignoreFluid)
                     : Engine.hostHeight(engine, i, j, ignoreFluid);
-            return levelheightaccessor.getMinY()
-                    + height + 1;
+            return levelheightaccessor.getMinY() + height + 1;
         } catch (GenerationSessionException e) {
             throw new IllegalStateException("Iris base height query could not acquire its engine runtime.", e);
         }
+    }
+
+    private OptionalInt resolvedBaseHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor heightAccessor) {
+        Optional<TerrainBoundarySignature> resolved = engine.getComplex().resolvedTerrainColumn(x, z);
+        return resolved.isPresent()
+                ? OptionalInt.of(NativeTransitionColumn.height(resolved.get(), type, heightAccessor))
+                : OptionalInt.empty();
     }
 
     @Override
@@ -1562,19 +1572,6 @@ public class IrisChunkGenerator extends CustomChunkGenerator implements LongPred
         return platformGenerator == null
                 ? BukkitChunkGenerator.GenerationStagePermit.noop()
                 : platformGenerator.acquireGenerationStage(operation);
-    }
-
-    private BukkitChunkGenerator.GenerationStagePermit requireNoiseGenerationStage(
-            ChunkPos chunkPos,
-            String operation
-    ) {
-        return platformGenerator == null
-                ? BukkitChunkGenerator.GenerationStagePermit.noop()
-                : platformGenerator.acquireNoiseGenerationStage(
-                        engine,
-                        chunkPos.x(),
-                        chunkPos.z(),
-                        operation);
     }
 
     @Override

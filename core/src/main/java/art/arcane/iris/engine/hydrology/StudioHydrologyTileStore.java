@@ -41,7 +41,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 final class StudioHydrologyTileStore {
-    private static final int SCHEMA_VERSION = 1;
+    private static final int SCHEMA_VERSION = 2;
     private static final long MAXIMUM_COMPRESSED_BYTES = 128L * 1024L * 1024L;
     private static final long MAXIMUM_DECOMPRESSED_BYTES = 512L * 1024L * 1024L;
     private static final Gson GSON = new GsonBuilder()

@@ -233,7 +233,7 @@ public final class GenerationHistoryRuntimeRouterPromotionTest extends Generatio
         GenerationKernelRegistry upgraded = new GenerationKernelRegistry(version, List.of(
                 new GenerationKernelRegistry.Kernel(1, "9".repeat(64), Map.of(
                         new GenerationKernelRegistry.AlgorithmVersion(1, 1),
-                        (engine, plan) -> { throw new AssertionError("Mock runtime factory owns this test."); }))));
+                        (engine, plan, detached) -> { throw new AssertionError("Mock runtime factory owns this test."); }))));
         GenerationHistory history = GenerationHistory.open(world, upgraded);
         IrisEngine engine = mock(IrisEngine.class);
         FakeRuntimeFactory runtimes = new FakeRuntimeFactory();

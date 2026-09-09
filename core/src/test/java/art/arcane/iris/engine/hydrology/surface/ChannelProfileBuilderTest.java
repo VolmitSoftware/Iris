@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.hydrology.surface;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import art.arcane.iris.engine.hydrology.HydrologyGeometrySampler;
 import art.arcane.iris.engine.hydrology.HydrologyPlannerSettings;
 import art.arcane.iris.engine.hydrology.HydrologyPoint;
@@ -206,7 +208,8 @@ public class ChannelProfileBuilderTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
         return new ChannelProfileBuilder(HydrologyPlannerSettings.defaults().surface(), sampler, CONSTANT_GEOMETRY);
     }

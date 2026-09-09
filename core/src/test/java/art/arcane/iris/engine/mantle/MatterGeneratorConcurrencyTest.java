@@ -19,7 +19,9 @@ import org.junit.Test;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -28,6 +30,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Future;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -65,6 +68,193 @@ public class MatterGeneratorConcurrencyTest {
     @AfterClass
     public static void unbindPlatform() {
         IrisSettings.settings = previousSettings;
+    }
+
+    @Test
+    public void externalWindowsBoundManagedBlockedComponentSubmissions() throws Exception {
+        GeneratorFixture fixture = new GeneratorFixture(true);
+        int maximum = 2 * MatterGenerator.COMPONENT_SUBMISSION_BATCH_SIZE;
+        CountDownLatch admitted = new CountDownLatch(maximum);
+        CountDownLatch excess = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger started = new AtomicInteger();
+        AtomicInteger completed = new AtomicInteger();
+        RecordingComponent component = new RecordingComponent(ReservedFlag.OBJECT, 0, 64) {
+            @Override
+            public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+                if (started.incrementAndGet() > maximum) {
+                    excess.countDown();
+                }
+                admitted.countDown();
+                awaitManaged(release);
+                completed.incrementAndGet();
+            }
+        };
+        TestMatterGenerator generator = fixture.generator(List.of(new MantlePass(List.of(component), 4, 0)));
+        CompletableFuture<Void> first = CompletableFuture.runAsync(
+                () -> generator.generateMatter(0, 0, true, fixture.context));
+        CompletableFuture<Void> second = CompletableFuture.runAsync(
+                () -> generator.generateMatter(32, 0, true, fixture.context));
+        try {
+            await(admitted);
+            assertFalse(excess.await(300L, TimeUnit.MILLISECONDS));
+            assertEquals(maximum, started.get());
+            assertEquals(maximum, activeClaims(fixture, 0, 4) + activeClaims(fixture, 32, 4));
+            verify(fixture.mantle.getChunk(-4, -4), never()).release();
+        } finally {
+            release.countDown();
+            first.get(10L, TimeUnit.SECONDS);
+            second.get(10L, TimeUnit.SECONDS);
+        }
+        assertEquals(162, completed.get());
+        assertEquals(0, activeClaims(fixture, 0, 4) + activeClaims(fixture, 32, 4));
+        verify(fixture.mantle.getChunk(-4, -4)).release();
+    }
+
+    @Test
+    public void externalWindowDefersSharedClaimsUntilItsOwnBatchesComplete() throws Exception {
+        GeneratorFixture fixture = new GeneratorFixture(true);
+        List<MatterGenerator.MatterComponentTask> shared = new ArrayList<>();
+        for (int z = -4; z < -4 + MatterGenerator.COMPONENT_SUBMISSION_BATCH_SIZE; z++) {
+            MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(
+                    fixture.mantle, -4, z, ReservedFlag.OBJECT);
+            MatterGenerator.MatterComponentTask task = new MatterGenerator.MatterComponentTask(key);
+            assertTrue(task.start());
+            assertNull(MatterGenerator.IN_FLIGHT_COMPONENTS.putIfAbsent(key, task));
+            shared.add(task);
+        }
+        AtomicInteger completed = new AtomicInteger();
+        RecordingComponent component = new RecordingComponent(ReservedFlag.OBJECT, 0, 64) {
+            @Override
+            public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+                completed.incrementAndGet();
+            }
+        };
+        TestMatterGenerator generator = fixture.generator(List.of(new MantlePass(List.of(component), 4, 0)));
+        CompletableFuture<Void> generation = CompletableFuture.runAsync(
+                () -> generator.generateMatter(0, 0, true, fixture.context));
+        try {
+            Await.until("all privately owned component batches", Duration.ofSeconds(10L),
+                    () -> completed.get() == 81 - shared.size());
+            assertFalse(generation.isDone());
+        } finally {
+            for (MatterGenerator.MatterComponentTask task : shared) {
+                task.finish(null);
+            }
+            generation.get(10L, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    public void failedSubmissionBatchDrainsItsWritersBeforeReturning() throws Exception {
+        GeneratorFixture fixture = new GeneratorFixture(true);
+        CountDownLatch failed = new CountDownLatch(1);
+        CountDownLatch started = new CountDownLatch(MatterGenerator.COMPONENT_SUBMISSION_BATCH_SIZE - 1);
+        CountDownLatch release = new CountDownLatch(1);
+        IllegalStateException failure = new IllegalStateException("Component rejected its input");
+        RecordingComponent component = new RecordingComponent(ReservedFlag.OBJECT, 0, 64) {
+            @Override
+            public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+                if (x == -4 && z == -4) {
+                    failed.countDown();
+                    throw failure;
+                }
+                started.countDown();
+                awaitManaged(release);
+            }
+        };
+        TestMatterGenerator generator = fixture.generator(List.of(new MantlePass(List.of(component), 4, 0)));
+        CompletableFuture<Void> generation = CompletableFuture.runAsync(
+                () -> generator.generateMatter(0, 0, true, fixture.context));
+        try {
+            await(failed);
+            await(started);
+            if (MatterGenerator.COMPONENT_SUBMISSION_BATCH_SIZE > 1) {
+                assertFalse(generation.isDone());
+                verify(fixture.mantle.getChunk(-4, -4), never()).release();
+            }
+        } finally {
+            release.countDown();
+        }
+        ExecutionException observed = assertThrows(ExecutionException.class,
+                () -> generation.get(10L, TimeUnit.SECONDS));
+        assertSame(failure, observed.getCause());
+        verify(fixture.mantle.getChunk(-4, -4)).release();
+        assertEquals(0, activeClaims(fixture, 0, 4));
+    }
+
+    @Test
+    public void boundedAndReentrantGenerationMatchSerialComponentResults() throws Exception {
+        Map<Long, Long> serial = componentResults(false, false);
+        assertEquals(81, serial.size());
+        assertEquals(serial, componentResults(true, false));
+        assertEquals(serial, componentResults(true, true));
+    }
+
+    private static Map<Long, Long> componentResults(boolean multicore, boolean reentrant) throws Exception {
+        GeneratorFixture fixture = new GeneratorFixture(true);
+        Map<Long, Long> values = new ConcurrentHashMap<>();
+        RecordingComponent first = new RecordingComponent(ReservedFlag.CARVED, 0, 32) {
+            @Override
+            public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+                long key = (((long) x) << 32) ^ (z & 0xffffffffL);
+                values.put(key, ((long) x * 341873128712L) ^ ((long) z * 132897987541L));
+            }
+        };
+        RecordingComponent second = new RecordingComponent(ReservedFlag.OBJECT, 1, 32) {
+            @Override
+            public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+                assertEquals(81, values.size());
+                long key = (((long) x) << 32) ^ (z & 0xffffffffL);
+                values.compute(key, (ignored, value) -> value * 31L + 17L);
+            }
+        };
+        TestMatterGenerator generator = fixture.generator(List.of(
+                new MantlePass(List.of(first), 4, 32),
+                new MantlePass(List.of(second), 2, 0)));
+        if (reentrant) {
+            MultiBurst.burst.completeValueAsync(() -> {
+                generator.generateMatter(0, 0, multicore, fixture.context);
+                return null;
+            }).get(10L, TimeUnit.SECONDS);
+        } else {
+            generator.generateMatter(0, 0, multicore, fixture.context);
+        }
+        return values;
+    }
+
+    private static int activeClaims(GeneratorFixture fixture, int centerX, int radius) {
+        int active = 0;
+        for (int x = centerX - radius; x <= centerX + radius; x++) {
+            for (int z = -radius; z <= radius; z++) {
+                MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(
+                        fixture.mantle, x, z, ReservedFlag.OBJECT);
+                if (MatterGenerator.IN_FLIGHT_COMPONENTS.containsKey(key)) {
+                    active++;
+                }
+            }
+        }
+        return active;
+    }
+
+    private static void awaitManaged(CountDownLatch latch) {
+        try {
+            ForkJoinPool.managedBlock(new ForkJoinPool.ManagedBlocker() {
+                @Override
+                public boolean block() {
+                    await(latch);
+                    return true;
+                }
+
+                @Override
+                public boolean isReleasable() {
+                    return latch.getCount() == 0L;
+                }
+            });
+        } catch (InterruptedException interruption) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(interruption);
+        }
     }
 
     @Test

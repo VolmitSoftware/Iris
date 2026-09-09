@@ -66,7 +66,9 @@ public class HydrologyPlannerSettingsTest {
                 HydrologyPlannerSettings.Geometry.defaults(),
                 List.of(overlongChannel), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled())
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
+        )
         );
     }
 
@@ -209,7 +211,9 @@ public class HydrologyPlannerSettingsTest {
                 new HydrologyPlannerSettings.Surface(surface.enabled(), surface.sources(), surface.minimumWidth(),
                         surface.maximumWidth(), surface.minimumDepth(), surface.maximumDepth(), surface.maximumIncision(),
                         surface.shoreWidth(), flared),
-                base.hydraulics(), base.underground(), base.outlets(), base.geometry(), base.deepFluids(), base.surfacePools(), 0D, HydrologyPlannerSettings.SeaCaves.disabled());
+                base.hydraulics(), base.underground(), base.outlets(), base.geometry(), base.deepFluids(), base.surfacePools(), 0D, HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
+        );
 
         assertEquals(1.6D, banks.mouthFlareRatio(), 0D);
         int widened = (int) StrictMath.ceil(surface.maximumWidth() * (4D - banks.mouthFlareRatio()) / 2D);
@@ -372,7 +376,8 @@ public class HydrologyPlannerSettingsTest {
                 base.deepFluids(),
                 base.surfacePools(),
                 base.widestShoreBiomeWidth(),
-                seaCaves
+                seaCaves,
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
         assertEquals(seaCaves, withCaves.seaCaves());
         assertTrue(base.fingerprint() != withCaves.fingerprint());
@@ -397,7 +402,8 @@ public class HydrologyPlannerSettingsTest {
                 List.of(),
                 List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
         HydrologyPlannerSettings withCaves = new HydrologyPlannerSettings(
                 base.seaLevel(),
@@ -410,7 +416,8 @@ public class HydrologyPlannerSettingsTest {
                 List.of(),
                 List.of(),
                 surface.shoreWidth(),
-                HydrologyPlannerSettings.SeaCaves.of(true, 1, 64, 8, 12)
+                HydrologyPlannerSettings.SeaCaves.of(true, 1, 64, 8, 12),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
 
         int alignedHalo = Math.min(base.routing().maximumRouteLength(), base.routing().sampleSpacing() * 2)
@@ -709,7 +716,9 @@ public class HydrologyPlannerSettingsTest {
             HydrologyPlannerSettings.SeaCaves seaCaves
     ) {
         return new HydrologyPlannerSettings(base.seaLevel(), base.routing(), surface, base.hydraulics(), underground, outlets,
-                geometry, base.deepFluids(), base.surfacePools(), base.widestShoreBiomeWidth(), seaCaves);
+                geometry, base.deepFluids(), base.surfacePools(), base.widestShoreBiomeWidth(), seaCaves,
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
+        );
     }
 
     private static HydrologyPlannerSettings.Surface surfaceWith(HydrologyPlannerSettings.Surface surface, HydrologyPlannerSettings.Banks banks) {

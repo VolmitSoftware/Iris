@@ -9,7 +9,7 @@ final class SourceSelection {
     final boolean surface;
     final List<SourceCandidate> candidates;
     final SourceAdmissionSelection admission;
-    private final int guaranteedMinimum;
+    private final int[] requiredMinimums;
     final int maximumOptionalRejections;
     final int targetCount;
     final ArrayList<Integer> selectedCandidateIndices;
@@ -21,11 +21,16 @@ final class SourceSelection {
             boolean surface,
             List<SourceCandidate> candidates,
             SourceAdmissionSelection admission,
-            int guaranteedMinimum,
+            int[] requiredMinimums,
             int maximumOptionalRejections
     ) {
-        if (guaranteedMinimum < 0 || guaranteedMinimum > admission.selectedCandidateIndices().size()) {
-            throw new IllegalArgumentException("Guaranteed source minimum is outside the admission bounds.");
+        if (requiredMinimums.length != admission.quotas.areaLimits().length) {
+            throw new IllegalArgumentException("Required source areas must match the admission bounds.");
+        }
+        for (int area = 0; area < requiredMinimums.length; area++) {
+            if (requiredMinimums[area] < 0 || requiredMinimums[area] > admission.quotas.areaLimits()[area]) {
+                throw new IllegalArgumentException("Required source minimum is outside the area bounds.");
+            }
         }
         if (maximumOptionalRejections < 0) {
             throw new IllegalArgumentException("Maximum optional source rejections cannot be negative.");
@@ -33,7 +38,7 @@ final class SourceSelection {
         this.surface = surface;
         this.candidates = List.copyOf(candidates);
         this.admission = admission;
-        this.guaranteedMinimum = guaranteedMinimum;
+        this.requiredMinimums = requiredMinimums.clone();
         this.maximumOptionalRejections = maximumOptionalRejections;
         this.selectedCandidateIndices = new ArrayList<>(admission.selectedCandidateIndices());
         this.targetCount = admission.targetCount();
@@ -55,10 +60,9 @@ final class SourceSelection {
                         new boolean[0],
                         new boolean[0],
                         (int candidateIndex) -> false,
-                        new int[0],
-                        Integer.MAX_VALUE
+                        SourceAdmissionSelection.Quotas.uniform(new int[0], 0, Integer.MAX_VALUE)
                 ),
-                0,
+                new int[]{0},
                 0
         );
     }
@@ -85,7 +89,6 @@ final class SourceSelection {
 
     boolean advanceAfterPublication(List<RiverCourse> acceptedCourses, HydrologySampledGrid grid) {
         Set<Long> acceptedSourceNodeIds = acceptedSourceNodeIds(acceptedCourses);
-        int acceptedRequired = 0;
         boolean changed = false;
         int selectedPosition = 0;
         while (selectedPosition < selectedCandidateIndices.size()) {
@@ -95,7 +98,6 @@ final class SourceSelection {
             if (acceptedSourceNodeIds.contains(sourceNodeId)) {
                 if (candidate.required()) {
                     attemptedCandidates[candidateIndex] = true;
-                    acceptedRequired++;
                 }
                 selectedPosition++;
                 continue;
@@ -108,8 +110,7 @@ final class SourceSelection {
             selectedCandidates[candidateIndex] = false;
             changed = true;
         }
-        int requiredVacancies = Math.max(0, guaranteedMinimum - acceptedRequired);
-        for (int vacancy = 0; vacancy < requiredVacancies; vacancy++) {
+        while (true) {
             int replacement = nextRequiredCandidate();
             if (replacement < 0) {
                 break;
@@ -142,9 +143,17 @@ final class SourceSelection {
     }
 
     private int nextRequiredCandidate() {
+        int[] selectedRequired = new int[requiredMinimums.length];
+        for (int candidateIndex : selectedCandidateIndices) {
+            if (candidates.get(candidateIndex).required()) {
+                selectedRequired[admission.quotas.areaIndices()[candidateIndex]]++;
+            }
+        }
         for (int candidateIndex = 0; candidateIndex < candidates.size(); candidateIndex++) {
             SourceCandidate candidate = candidates.get(candidateIndex);
+            int area = admission.quotas.areaIndices()[candidateIndex];
             if (candidate.required()
+                    && selectedRequired[area] < requiredMinimums[area]
                     && !selectedCandidates[candidateIndex]
                     && !attemptedCandidates[candidateIndex]
                     && admission.outletQuotaAvailable(candidateIndex, selectedCandidateIndices)) {

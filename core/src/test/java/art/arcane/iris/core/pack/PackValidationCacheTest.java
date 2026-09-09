@@ -249,4 +249,71 @@ public class PackValidationCacheTest {
             }
         }
     }
+
+    @Test
+    public void sameVersionImplementationChangeInvalidatesSuccessfulAndFailedResults() throws Exception {
+        bindValidationPlatform();
+        try {
+            String original = PackValidationCache.contextFingerprint("a".repeat(64));
+            String changed = PackValidationCache.contextFingerprint("b".repeat(64));
+            Path cache = temporaryFolder.newFolder("implementation-change").toPath().resolve("validation.json");
+            PackValidationCache.save(cache, "content", original, List.of(
+                    new PackValidationResult("valid", List.of(), List.of(), 1L),
+                    new PackValidationResult("invalid", List.of("unsupported enum"), List.of(), 1L)));
+
+            assertNotEquals(original, changed);
+            assertTrue(PackValidationCache.load(cache, "content", original, List.of("valid", "invalid")).isPresent());
+            assertTrue(PackValidationCache.load(cache, "content", changed, List.of("valid", "invalid")).isEmpty());
+        } finally {
+            IrisPlatforms.unbind();
+        }
+    }
+
+    @Test
+    public void currentBuildIdentityPreservesCacheHits() throws Exception {
+        bindValidationPlatform();
+        try {
+            String context = PackValidationCache.contextFingerprint();
+            Path cache = temporaryFolder.newFolder("current-implementation").toPath().resolve("validation.json");
+            PackValidationCache.save(cache, "content", context, List.of(
+                    new PackValidationResult("overworld", List.of(), List.of(), 1L)));
+
+            assertFalse(context.isBlank());
+            assertEquals(context, PackValidationCache.contextFingerprint());
+            assertTrue(PackValidationCache.load(
+                    cache, "content", PackValidationCache.contextFingerprint(), List.of("overworld")).isPresent());
+        } finally {
+            IrisPlatforms.unbind();
+        }
+    }
+
+    @Test
+    public void unavailableImplementationIdentityDisablesCacheReuseAndPersistence() throws Exception {
+        bindValidationPlatform();
+        try {
+            Path cache = temporaryFolder.newFolder("missing-implementation").toPath().resolve("validation.json");
+            String missing = PackValidationCache.contextFingerprint("");
+            assertEquals("", missing);
+            assertEquals("", PackValidationCache.contextFingerprint(null));
+            PackValidationCache.save(cache, "content", missing, List.of(
+                    new PackValidationResult("overworld", List.of(), List.of(), 1L)));
+            assertFalse(Files.exists(cache));
+
+            PackValidationCache.save(cache, "content", "previous", List.of(
+                    new PackValidationResult("overworld", List.of(), List.of(), 1L)));
+            assertTrue(PackValidationCache.load(cache, "content", missing, List.of("overworld")).isEmpty());
+        } finally {
+            IrisPlatforms.unbind();
+        }
+    }
+
+    private static void bindValidationPlatform() {
+        IrisPlatform platform = mock(IrisPlatform.class);
+        when(platform.platformName()).thenReturn("Paper");
+        when(platform.minecraftVersion()).thenReturn("26.2");
+        when(platform.irisVersionNumber()).thenReturn(40100);
+        when(platform.registries()).thenReturn(mock(PlatformRegistries.class));
+        when(platform.structureHooks()).thenReturn(mock(PlatformStructureHooks.class));
+        IrisPlatforms.bind(platform);
+    }
 }

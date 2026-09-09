@@ -82,7 +82,7 @@ final class EngineHotloader {
                 engine.runtimeAssembly.set(assembly);
                 EngineRuntime next;
                 try (IrisContext.Scope ignored = IrisContext.open(engine, engine.getGenerationSessions().currentSessionId(), null)) {
-                    assembly.complex = assembly.runtimeKernel.createComplex(engine, assembly.transitionPlan);
+                    assembly.complex = assembly.runtimeKernel.createComplex(engine, assembly.transitionPlan, false);
                     assembly.dimensionStackContext = assembly.runtimeKernel.createDimensionStackContext(engine);
                     assembly.upperContext = assembly.runtimeKernel.createUpperContext(engine);
                     BiomeMaxes biomeMaxes = engine.runtimeBuilder.computeBiomeMaxes();

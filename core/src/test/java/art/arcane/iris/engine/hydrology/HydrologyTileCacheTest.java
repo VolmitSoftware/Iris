@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.hydrology;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import art.arcane.iris.testsupport.Await;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.volmlib.util.cache.CacheKey;
@@ -641,7 +643,8 @@ public class HydrologyTileCacheTest {
                 HydrologyPlannerSettings.Geometry.defaults(),
                 List.of(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -691,7 +694,8 @@ public class HydrologyTileCacheTest {
                 HydrologyPlannerSettings.Geometry.defaults(),
                 List.of(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -737,7 +741,8 @@ public class HydrologyTileCacheTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 

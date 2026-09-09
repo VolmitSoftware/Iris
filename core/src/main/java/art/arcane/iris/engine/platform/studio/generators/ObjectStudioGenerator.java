@@ -28,6 +28,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
 import art.arcane.iris.engine.framework.WrongEngineBroException;
 import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.engine.object.TileData;
 import art.arcane.iris.engine.platform.studio.EnginedStudioGenerator;
 import art.arcane.iris.platform.bukkit.BukkitBiome;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
@@ -42,7 +43,9 @@ import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.iris.util.project.context.IrisContext;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -118,6 +121,7 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
         int maxHeight = engine.getMaxHeight();
 
         int plinthY = floorY + 1;
+        List<PlacedTile> tiles = new ArrayList<>();
 
         for (GridCell cell : currentLayout.cells()) {
             int frameMinX = cell.originX() - 1;
@@ -132,8 +136,11 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
 
             DisplayObject object = loadObject(cell);
             if (object != null) {
-                placeSlice(object, cell, tc, chunkWorldX, chunkWorldZ, minHeight, maxHeight);
+                placeSlice(object, cell, tc, chunkWorldX, chunkWorldZ, minHeight, maxHeight, tiles);
             }
+        }
+        if (!tiles.isEmpty()) {
+            ObjectStudioSaveService.get().queueTiles(engine, new ChunkTiles(x, z, List.copyOf(tiles)));
         }
     }
 
@@ -196,7 +203,7 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
         }
     }
 
-    private void placeSlice(DisplayObject object, GridCell cell, TerrainChunk tc, int chunkWorldX, int chunkWorldZ, int minHeight, int maxHeight) {
+    private void placeSlice(DisplayObject object, GridCell cell, TerrainChunk tc, int chunkWorldX, int chunkWorldZ, int minHeight, int maxHeight, List<PlacedTile> tiles) {
         VectorMap<PlatformBlockState> blocks = object.source().getBlocks();
         if (blocks == null || blocks.isEmpty()) return;
 
@@ -218,6 +225,10 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
             if (data == null) continue;
 
             tc.setBlock(worldX - chunkWorldX, worldY, worldZ - chunkWorldZ, data);
+            TileData tile = object.source().getStates().get(signed);
+            if (tile != null) {
+                tiles.add(new PlacedTile(worldX - chunkWorldX, worldY, worldZ - chunkWorldZ, tile.clone()));
+            }
         }
     }
 
@@ -309,6 +320,12 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
             maxZ = Math.max(maxZ, cell.originZ() + cell.d());
         }
         return new IrisBlockVector(maxX, 0, maxZ);
+    }
+
+    public record PlacedTile(int x, int y, int z, TileData data) {
+    }
+
+    public record ChunkTiles(int chunkX, int chunkZ, List<PlacedTile> tiles) {
     }
 
     private record DisplayObject(IrisObject source, int minimumX, int minimumY, int minimumZ) {

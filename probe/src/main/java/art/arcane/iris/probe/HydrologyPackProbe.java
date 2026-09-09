@@ -2996,7 +2996,7 @@ public final class HydrologyPackProbe {
                 throw new IllegalStateException("Dimension '" + configuration.dimensionKey()
                         + "' has no active hydrology runtime.");
             }
-            validateRequiredProfiles(runtime, configuration.requiredCoverage());
+            validateRequiredProfiles(runtime.settings(), runtime.profileKeys(), configuration.requiredCoverage());
             requiredConfiguredCoverage.addAll(configuredCoverage(runtime));
             validateTileBlockBounds(runtime, configuration);
             for (long tileZ = configuration.minimumTileZ(); tileZ <= configuration.maximumTileZ(); tileZ++) {
@@ -3285,22 +3285,32 @@ public final class HydrologyPackProbe {
         };
     }
 
-    private static void validateRequiredProfiles(
-            IrisHydrologyRuntime runtime,
+    static void validateRequiredProfiles(
+            HydrologyPlannerSettings settings,
+            Set<String> riverProfiles,
             List<CoverageSelector> selectors
     ) {
-        Set<String> riverProfiles = runtime.profileKeys();
         LinkedHashSet<String> deepProfiles = new LinkedHashSet<>();
-        for (HydrologyPlannerSettings.DeepFluid deepFluid : runtime.settings().deepFluids()) {
+        for (HydrologyPlannerSettings.DeepFluid deepFluid : settings.deepFluids()) {
             if (deepFluid.enabled()) {
                 deepProfiles.add(deepFluid.id());
+            }
+        }
+        LinkedHashSet<String> poolProfiles = new LinkedHashSet<>();
+        for (HydrologyPlannerSettings.SurfacePool pool : settings.surfacePools()) {
+            if (pool.enabled()) {
+                poolProfiles.add(pool.id());
             }
         }
         for (CoverageSelector selector : selectors) {
             if (selector.profileKey().equals("*")) {
                 continue;
             }
-            Set<String> configuredProfiles = selector.type().isDeepFluid() ? deepProfiles : riverProfiles;
+            Set<String> configuredProfiles = switch (selector.type()) {
+                case STANDING_POOL -> poolProfiles;
+                case DEEP_POOL, DEEP_CHANNEL -> deepProfiles;
+                default -> riverProfiles;
+            };
             if (!configuredProfiles.contains(selector.profileKey())) {
                 throw new IllegalArgumentException("Required coverage selector " + selector.label()
                         + " references a profile not configured for that feature family.");

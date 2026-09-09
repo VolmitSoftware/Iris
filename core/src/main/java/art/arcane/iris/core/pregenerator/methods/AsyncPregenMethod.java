@@ -29,6 +29,7 @@ import art.arcane.iris.core.pregenerator.PregenMantleBackpressure;
 import art.arcane.iris.core.pregenerator.PregeneratorMethod;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.core.nms.INMS;
+import art.arcane.iris.core.nms.INMSBinding;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.volmlib.util.collection.KSet;
@@ -68,6 +69,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private static final int ADAPTIVE_RECOVERY_INTERVAL = 8;
     private static final long CLOSE_DRAIN_WARNING_SECONDS = 60L;
     private static final long FLUSH_TIMEOUT_SECONDS = 120L;
+    private static final long MANTLE_CLEANUP_DRAIN_SECONDS = 60L;
+    private static final long CHUNK_FLUSH_DRAIN_SECONDS = 30L;
     private static final long ADMISSION_WAIT_BOUND_MS = 500L;
     private final World world;
     private final IrisRuntimeSchedulerMode runtimeSchedulerMode;
@@ -83,6 +86,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final String chunkAccessMode;
     private final ChunkRequestExecutor executor;
     private final Executor slowRequestExecutor;
+    private final Executor chunkIoExecutor;
+    private final PregenSerialWorker chunkFlush;
+    private final PregenSerialWorker mantleCleanup;
     private final PregenAdmissionGate admission;
     private final int threads;
     private final int slowRequestWarningSeconds;
@@ -164,6 +170,12 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         this.admission = new PregenAdmissionGate(this.threads, ADMISSION_WAIT_BOUND_MS, M::ms);
         this.slowRequestWarningSeconds = pregen.getChunkLoadTimeoutSeconds();
         this.slowRequestExecutor = CompletableFuture.delayedExecutor(this.slowRequestWarningSeconds, TimeUnit.SECONDS);
+        // Never the shared Iris IO pool: the mantle loads tectonic plates on that pool, and a
+        // Moonrise flush parks until the level's pending IO settles. Filling the pool with parked
+        // flushes left generation waiting on plate loads that could never run.
+        this.chunkFlush = new PregenSerialWorker("Iris Pregen Chunk Flush", world.getName());
+        this.chunkIoExecutor = chunkFlush.executor();
+        this.mantleCleanup = new PregenSerialWorker("Iris Pregen Mantle Cleanup", world.getName());
         this.slowRequestWarnIntervalMs = pregen.getTimeoutWarnIntervalMs();
         this.urgent = false;
         this.regionPending = new ConcurrentHashMap<>();
@@ -383,41 +395,32 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                         unloadChunkSafely(chunk.getX(), chunk.getZ());
                     }
                 }
-
-                INMS.get().flushChunkIO(world);
-            });
+            }).thenCompose(ignored -> flushChunkIOAsync());
         }
         return trackEviction(eviction);
     }
 
     private CompletableFuture<Void> evictFoliaRegion(Queue<Chunk> chunks) {
         List<CompletableFuture<Void>> unloads = new ArrayList<>(chunks.size());
-        Chunk anchor = null;
         for (Chunk chunk : chunks) {
             if (chunk == null) {
                 continue;
             }
-            if (anchor == null) {
-                anchor = chunk;
-            }
-
             int chunkX = chunk.getX();
             int chunkZ = chunk.getZ();
             unloads.add(J.runRegionFuture(world, chunkX, chunkZ, () -> unloadChunkSafely(chunkX, chunkZ)));
         }
 
         CompletableFuture<Void> unloaded = CompletableFuture.allOf(unloads.toArray(CompletableFuture[]::new));
-        if (anchor == null) {
+        if (unloads.isEmpty()) {
             return unloaded;
         }
+        return unloaded.thenCompose(ignored -> flushChunkIOAsync());
+    }
 
-        int anchorX = anchor.getX();
-        int anchorZ = anchor.getZ();
-        return unloaded.thenCompose(ignored -> J.runRegionFuture(
-                world,
-                anchorX,
-                anchorZ,
-                () -> INMS.get().flushChunkIO(world)));
+    private CompletableFuture<Void> flushChunkIOAsync() {
+        INMSBinding binding = INMS.get();
+        return CompletableFuture.runAsync(() -> binding.flushChunkIO(world), chunkIoExecutor);
     }
 
     private CompletableFuture<Void> trackEviction(CompletableFuture<Void> eviction) {
@@ -466,7 +469,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 ? settledEvictions
                 : settledEvictions.thenCompose(ignored -> IrisToolbelt.isServerStopping()
                         ? CompletableFuture.completedFuture(null)
-                        : J.sfut(() -> INMS.get().flushChunkIO(world)));
+                        : flushChunkIOAsync());
 
         long started = System.nanoTime();
         long timeoutNanos = TimeUnit.SECONDS.toNanos(FLUSH_TIMEOUT_SECONDS);
@@ -520,7 +523,11 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 listener.onChunkFailed(x, z);
             } else {
                 listener.onChunkGenerated(x, z);
-                cleanupMantleChunksCoveredBy(x, z, listener);
+                // Paper-like chunk futures complete on the server thread; the covered-neighbour scan
+                // (and any plate it has to load back) belongs on the cleanup thread, not in the tick.
+                if (!mantleCleanup.submit(() -> cleanupMantleChunksCoveredBy(x, z, listener))) {
+                    cleanupMantleChunksCoveredBy(x, z, listener);
+                }
                 onChunkCompleted(x, z, chunk);
                 success = true;
             }
@@ -691,6 +698,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 + " submitted=" + submitted.get()
                 + " completed=" + completed.get()
                 + " failed=" + failed.get()
+                + " cleanupBacklog=" + mantleCleanup.pending()
                 + " stalledForMs=" + stalledFor;
     }
 
@@ -820,7 +828,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                     () -> IrisLogging.warn("Async pregen is still draining outstanding chunks. " + metricsSnapshot())
             );
 
+            mantleCleanup.close(MANTLE_CLEANUP_DRAIN_SECONDS, TimeUnit.SECONDS);
             flushAllRemainingChunks();
+            chunkFlush.close(CHUNK_FLUSH_DRAIN_SECONDS, TimeUnit.SECONDS);
             executor.shutdown();
             if (holdsWorkerBoost.compareAndSet(true, false)) {
                 releaseWorkerThreadBoost();

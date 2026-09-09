@@ -120,6 +120,7 @@ import net.minecraft.world.level.levelgen.flat.FlatLayerInfo;
 import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.Difficulty;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -1155,12 +1156,8 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public void flushChunkIO(World world) {
-        try {
-            ServerLevel level = ((CraftWorld) world).getHandle();
-            MoonriseRegionFileIO.flush(level);
-        } catch (Throwable e) {
-            IrisLogging.reportError(e);
-        }
+        ServerLevel level = ((CraftWorld) world).getHandle();
+        MoonriseRegionFileIO.flush(level);
     }
 
     @Override
@@ -1443,7 +1440,14 @@ public class NMSBinding implements INMSBinding {
         if (location == null || location.getWorld() == null || type == null || type.getEntityClass() == null) {
             return null;
         }
-        return ((CraftWorld) location.getWorld()).spawn(location, type.getEntityClass(), null, reason);
+        CraftWorld world = (CraftWorld) location.getWorld();
+        if (world.getDifficulty() == Difficulty.PEACEFUL) {
+            EntityType<?> nativeType = BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.parse(type.getKey().toString()));
+            if (nativeType == null || !nativeType.isAllowedInPeaceful()) {
+                return null;
+            }
+        }
+        return world.spawn(location, type.getEntityClass(), null, reason);
     }
 
     @Override

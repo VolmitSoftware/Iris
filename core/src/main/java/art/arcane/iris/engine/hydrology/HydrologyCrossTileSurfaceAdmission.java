@@ -10,14 +10,13 @@ final class HydrologyCrossTileSurfaceAdmission {
 
     static Result admit(
             List<Claim> currentClaims,
-            List<RankedClaim> blockers,
-            int minimumSeparation
+            List<RankedClaim> blockers
     ) {
         ArrayList<Rejection> rejections = new ArrayList<>();
         for (Claim current : currentClaims) {
             for (RankedClaim ranked : blockers) {
                 Claim blocker = ranked.claim();
-                if (!conflicts(current, blocker, minimumSeparation)) {
+                if (!conflicts(current, blocker)) {
                     continue;
                 }
                 rejections.add(new Rejection(current, blocker.courseId()));
@@ -27,10 +26,11 @@ final class HydrologyCrossTileSurfaceAdmission {
         return new Result(List.copyOf(rejections));
     }
 
-    private static boolean conflicts(Claim first, Claim second, int minimumSeparation) {
+    private static boolean conflicts(Claim first, Claim second) {
         if (first.outletId() == second.outletId()) {
             return true;
         }
+        int minimumSeparation = Math.max(first.sourceSpacing(), second.sourceSpacing());
         long minimumSeparationSquared = (long) minimumSeparation * minimumSeparation;
         if (first.centerline().getFirst().distanceSquared2D(second.centerline().getFirst())
                 < minimumSeparationSquared) {
@@ -131,12 +131,13 @@ final class HydrologyCrossTileSurfaceAdmission {
             HydrologyPoint terminal,
             boolean reachesOutlet,
             int maximumWidth,
-            List<HydrologyPoint> centerline
+            List<HydrologyPoint> centerline,
+            int sourceSpacing
     ) {
         Claim {
             Objects.requireNonNull(terminal, "terminal");
             centerline = List.copyOf(Objects.requireNonNull(centerline, "centerline"));
-            if (maximumWidth < 1 || centerline.size() < 2) {
+            if (maximumWidth < 1 || centerline.size() < 2 || sourceSpacing < 0 || sourceSpacing > 8192) {
                 throw new IllegalArgumentException("Surface claims require a positive width and centerline.");
             }
         }

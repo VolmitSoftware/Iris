@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.hydrology;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import art.arcane.iris.engine.hydrology.cave.HydrologyCavePlan;
 import org.junit.Test;
 
@@ -15,7 +17,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class HydrologyPlanHashTest {
-    private static final String EXPECTED_PLAN_DIGEST = "de765d4be6c95954f8df344ee2d1dd72c97e8640fc28c92c3ec4717cff0d88e4";
+    private static final String EXPECTED_PLAN_DIGEST = "4ff5293a3d4110f54ffa82630ac95efa98cd7d51cf57911475f466c66f1433c8";
 
     private static final List<HydrologyTileKey> TILES = List.of(
             new HydrologyTileKey(0, 0),
@@ -138,7 +140,8 @@ public class HydrologyPlanHashTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 
@@ -175,7 +178,8 @@ public class HydrologyPlanHashTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 
@@ -222,6 +226,8 @@ public class HydrologyPlanHashTest {
                 List.of(),
                 List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled());
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
+        );
     }
 }

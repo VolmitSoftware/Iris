@@ -106,7 +106,7 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     public void on(WorldSaveEvent e) {
         runManagerTask("bukkit_world_manager_save", () -> {
             if (e.getWorld().equals(BukkitWorldBinding.world(getTarget().getWorld()))) {
-                getEngine().save();
+                getEngine().requestSave();
             }
         });
     }

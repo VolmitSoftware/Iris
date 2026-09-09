@@ -59,12 +59,12 @@ final class HydrologySurfaceCoursePlanner {
                 continue;
             }
             long courseId = HydrologyHash.mix(sourceCourseId, path.outlet().id());
-            HydrologyPoint trunkPoint = path.points().getFirst();
-            HydrologyTerrainSample trunkTerrain = Objects.requireNonNull(
-                    planner.sampleDetailed(trunkPoint.x(), trunkPoint.z()),
-                    "Hydrology surface trunk left sampled terrain"
-            );
-            String profileKey = planner.segments.chooseProfile(trunkTerrain, path.outlet().id());
+            String profileKey = HydrologySurfaceProfiles.chooseProfile(planner, path, sourceNode.terrain());
+            if (profileKey == null) {
+                planner.undergroundCourses.addCompiledSourceDiagnostic(sourceNode, true, sourceCourseId,
+                        HydrologyCandidateRejection.POLICY_EXCLUDED, diagnostics);
+                continue;
+            }
             draftsByOutlet.computeIfAbsent(path.outlet().id(), (Long ignored) -> new ArrayList<>())
                     .add(new SurfaceCourseDraft(sourceNode, courseId, profileKey, path));
         }
@@ -80,8 +80,9 @@ final class HydrologySurfaceCoursePlanner {
             HashMap<Long, SurfaceCourseBuild> mainRejections = new HashMap<>();
             int tributaries = 0;
             for (SurfaceCourseDraft draft : outletDrafts) {
-                if (mainCourse != null && tributaries >= planner.settings.routing().tributaries()) {
-                    break;
+                int tributaryLimit = draft.source().terrain().surfacePolicy().tributaries(planner.settings.routing().tributaries());
+                if (mainCourse != null && tributaries >= tributaryLimit) {
+                    continue;
                 }
                 if (mainCourse == null) {
                     SurfaceCourseBuild candidate = buildSurfaceCourse(
@@ -156,7 +157,8 @@ final class HydrologySurfaceCoursePlanner {
                 profileKey,
                 path.points(),
                 terminal,
-                terminalHead
+                terminalHead,
+                planner.sourcePlanner.minimumCourseLength(source.terrain(), true)
         );
         if (!result.accepted()) {
             return SurfaceCourseBuild.rejected(result.rejection(), result.rejectionDetail());
@@ -597,6 +599,8 @@ final class HydrologySurfaceCoursePlanner {
             ArrayList<RouteCandidate> expanded = new ArrayList<>(layer);
             expanded.add(new RouteCandidate(
                     new HydrologyPoint(fallbackX, estimate.height(), fallbackZ),
+                    basePoint.x(),
+                    basePoint.z(),
                     offset,
                     localScore,
                     estimate.terrainScore(),
@@ -646,10 +650,6 @@ final class HydrologySurfaceCoursePlanner {
     double surfaceRouteCandidateBankPenalty(RouteCandidate candidate) {
         int minimumBankDistance = surfaceBankDistance(planner.settings.surface().minimumWidth());
         int maximumBankDistance = surfaceBankDistance(planner.settings.surface().maximumWidth());
-        int maximumBankRise = Math.addExact(
-                planner.settings.surface().maximumIncision(),
-                (int) StrictMath.ceil(planner.settings.surface().banks().minimumBlendWidth() * 0.5D)
-        );
         HydrologyPoint point = candidate.point();
         HydrologyTerrainSample terrain = planner.sampleLandBasis(point.x(), point.z());
         if (terrain == null) {
@@ -668,7 +668,14 @@ final class HydrologySurfaceCoursePlanner {
                 minimumBankDistance,
                 maximumBankDistance,
                 head,
-                maximumBankRise
+                maximumSurfaceBankRise(terrain)
+        );
+    }
+
+    int maximumSurfaceBankRise(HydrologyTerrainSample terrain) {
+        return Math.addExact(
+                terrain.surfacePolicy().maximumIncision(planner.settings.surface().maximumIncision()),
+                (int) StrictMath.ceil(planner.settings.surface().banks().minimumBlendWidth() * 0.5D)
         );
     }
 

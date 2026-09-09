@@ -6,6 +6,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
 
 final class HydrologyOutletPlanner {
     private final HydrologyPlanner planner;
@@ -98,20 +101,26 @@ final class HydrologyOutletPlanner {
         sortOutletCandidates(key, grid, surface, oceanCandidates);
         // Sea outlets and inland outlets are budgeted separately: a coast never starves the
         // sinkholes behind it and a sinkhole never displaces a mouth.
-        List<OutletCandidate> selectedOcean = limitOutletsByType(
-                oceanCandidates,
-                planner.settings.outlets().maximumCoastalPerTile()
-        );
+        List<OutletCandidate> selectedOcean = surface
+                ? limitSurfaceOutlets(key, grid, oceanCandidates, true)
+                : limitOutletsByType(oceanCandidates, planner.settings.outlets().maximumCoastalPerTile());
         addRejectedOutlets(oceanCandidates, selectedOcean, diagnostics);
         if (!planner.settings.outlets().inlandGrotto().enabled()) {
             return selectedOcean;
+        }
+        if (surface) {
+            HydrologySurfaceBudgets budgets = HydrologySurfaceBudgets.sample(grid, planner.settings.surface().sources());
+            if (budgets.overridden()) {
+                oceanCandidates.removeIf(candidate -> !surfaceOutletHasBudget(key, grid, budgets, candidate, true));
+            }
         }
         boolean[] oceanReachable = outletReachable(grid, oceanCandidates, surface);
         ArrayList<OutletCandidate> inlandCandidates = inlandOutletCandidates(grid, oceanReachable);
         sortInlandOutletCandidates(grid, inlandCandidates);
         List<OutletCandidate> selectedInland = styledInlandOutlets(
                 grid,
-                limitOutlets(inlandCandidates, planner.settings.outlets().maximumPerTile()),
+                surface ? limitSurfaceOutlets(key, grid, inlandCandidates, false)
+                        : limitOutlets(inlandCandidates, planner.settings.outlets().maximumPerTile()),
                 surface
         );
         addRejectedOutlets(inlandCandidates, selectedInland, diagnostics);
@@ -127,7 +136,7 @@ final class HydrologyOutletPlanner {
             if (land.terrain().ocean() || !land.terrain().transitAllowed() || !land.terrain().outletAllowed()) {
                 continue;
             }
-            HydrologyGridNode ocean = firstOceanNeighbor(grid, land);
+            HydrologyGridNode ocean = firstOceanNeighbor(grid, land, surface);
             if (ocean == null || !land.terrain().drainsInto(ocean.terrain())) {
                 // A confined shore only reaches a sea that belongs to its own area.
                 continue;
@@ -135,7 +144,11 @@ final class HydrologyOutletPlanner {
             HydrologyOceanBoundaryRefiner.Result boundary = refineOceanBoundary(land, ocean);
             if (boundary == null
                     || !boundary.landwardTerrain().transitAllowed()
-                    || !boundary.landwardTerrain().outletAllowed()) {
+                    || !boundary.landwardTerrain().outletAllowed()
+                    || surface && !HydrologySurfaceProfiles.sharesProfile(
+                            boundary.landwardTerrain(),
+                            planner.sampleBasisWithoutSlope(boundary.oceanPoint().x(), boundary.oceanPoint().z())
+                    )) {
                 continue;
             }
             HydrologyFeatureType type = coastalOutletType(boundary.landwardTerrain());
@@ -174,6 +187,12 @@ final class HydrologyOutletPlanner {
         }
         sortSurfaceFallbackOutletCandidates(grid, oceanCandidates);
         sortSurfaceFallbackOutletCandidates(grid, inlandCandidates);
+        HydrologySurfaceBudgets budgets = HydrologySurfaceBudgets.sample(grid, planner.settings.surface().sources());
+        if (budgets.overridden()) {
+            HydrologyTileKey key = HydrologyTileKey.fromBlock(grid.ownerMinimumX(), grid.ownerMinimumZ(), grid.ownerSize());
+            oceanCandidates.removeIf(candidate -> !surfaceOutletHasBudget(key, grid, budgets, candidate, true));
+            inlandCandidates.removeIf(candidate -> !surfaceOutletHasBudget(key, grid, budgets, candidate, false));
+        }
         // Trials alternate sea and inland outlets, sea first: a coast with more mouths than trials
         // still gives a sinkhole its turn, and a rejected mouth is retried at the next coast.
         ArrayList<OutletCandidate> candidates = new ArrayList<>(oceanCandidates.size() + inlandCandidates.size());
@@ -194,6 +213,41 @@ final class HydrologyOutletPlanner {
         );
         maximumTrials = Math.min(16, maximumTrials);
         return limitOutlets(candidates, maximumTrials);
+    }
+
+    private boolean surfaceOutletHasBudget(HydrologyTileKey key, HydrologySampledGrid grid,
+                                           HydrologySurfaceBudgets budgets, OutletCandidate candidate, boolean coastal) {
+        HydrologySurfaceBudgets.Area area = budgets.area(grid.node(candidate.landIndex()).terrain().surfacePolicy());
+        return area != null && budgets.outletTarget(area, coastal, planner, key) > 0;
+    }
+
+    List<OutletCandidate> limitSurfaceOutlets(HydrologyTileKey key, HydrologySampledGrid grid,
+                                             List<OutletCandidate> candidates, boolean coastal) {
+        HydrologySurfaceBudgets budgets = HydrologySurfaceBudgets.sample(grid, planner.settings.surface().sources());
+        if (!budgets.overridden()) {
+            return coastal ? limitOutletsByType(candidates, planner.settings.outlets().maximumCoastalPerTile())
+                    : limitOutlets(candidates, planner.settings.outlets().maximumPerTile());
+        }
+        LinkedHashMap<SurfaceRiverPolicy.Budget, ArrayList<OutletCandidate>> grouped = new LinkedHashMap<>();
+        for (OutletCandidate candidate : candidates) {
+            SurfaceRiverPolicy policy = grid.node(candidate.landIndex()).terrain().surfacePolicy();
+            if (budgets.area(policy) != null) {
+                grouped.computeIfAbsent(policy.budget(), ignored -> new ArrayList<>()).add(candidate);
+            }
+        }
+        ArrayList<OutletCandidate> selected = new ArrayList<>();
+        long spacingSquared = outletSpacingSquared();
+        for (Map.Entry<SurfaceRiverPolicy.Budget, ArrayList<OutletCandidate>> entry : grouped.entrySet()) {
+            int target = budgets.outletTarget(budgets.area(entry.getKey()), coastal, planner, key);
+            List<OutletCandidate> local = coastal ? limitOutletsByType(entry.getValue(), target)
+                    : limitOutlets(entry.getValue(), target);
+            for (OutletCandidate candidate : local) {
+                if (!withinOutletSpacing(candidate, selected, spacingSquared)) {
+                    selected.add(candidate);
+                }
+            }
+        }
+        return List.copyOf(selected);
     }
 
     ArrayList<OutletCandidate> inlandOutletCandidates(
@@ -287,7 +341,6 @@ final class HydrologyOutletPlanner {
     }
 
     boolean[] outletReachable(HydrologySampledGrid grid, List<OutletCandidate> outlets, boolean surface) {
-        int maximumRise = surface ? planner.sourcePlanner.maximumSurfaceEdgeRise() : Integer.MAX_VALUE;
         boolean[] reachable = new boolean[grid.nodes().size()];
         int[] queue = new int[reachable.length];
         int readIndex = 0;
@@ -305,7 +358,9 @@ final class HydrologyOutletPlanner {
                 HydrologyGridNode neighbor = grid.nodeAt(node.gridX() + offset.x(), node.gridZ() + offset.z());
                 if (neighbor == null || reachable[neighbor.index()] || neighbor.terrain().ocean()
                         || !neighbor.terrain().transitAllowed()
-                        || node.terrain().naturalHeight() - neighbor.terrain().naturalHeight() > maximumRise) {
+                        || surface && !HydrologySurfaceProfiles.sharesProfile(neighbor.terrain(), node.terrain())
+                        || surface && node.terrain().naturalHeight() - neighbor.terrain().naturalHeight()
+                        > planner.sourcePlanner.maximumSurfaceEdgeRise(node.terrain())) {
                     continue;
                 }
                 reachable[neighbor.index()] = true;
@@ -324,11 +379,15 @@ final class HydrologyOutletPlanner {
         for (OutletCandidate candidate : candidates) {
             HydrologyGridNode node = grid.node(candidate.landIndex());
             RiverOutlet outlet = candidate.outlet();
-            HydrologyPoint landward = planner.routeGeometry.routeAnchor(node);
+            HydrologyPoint landward = planner.routeGeometry.routeAnchor(node, surface);
             HydrologyTerrainSample landwardTerrain = Objects.requireNonNull(
                     planner.sampleDetailed(landward.x(), landward.z()),
                     "Hydrology inland outlet anchor left sampled terrain"
             );
+            if (surface && (!HydrologySurfaceProfiles.sharesProfile(node.terrain(), landwardTerrain)
+                    || !node.terrain().surfacePolicy().areaKey().equals(landwardTerrain.surfacePolicy().areaKey()))) {
+                continue;
+            }
             int connectionOffsetX = Integer.compare(outlet.connectionPoint().x(), outlet.landwardPoint().x());
             int connectionOffsetZ = Integer.compare(outlet.connectionPoint().z(), outlet.landwardPoint().z());
             HydrologyPoint connection = new HydrologyPoint(
@@ -404,11 +463,12 @@ final class HydrologyOutletPlanner {
         );
     }
 
-    HydrologyGridNode firstOceanNeighbor(HydrologySampledGrid grid, HydrologyGridNode land) {
+    HydrologyGridNode firstOceanNeighbor(HydrologySampledGrid grid, HydrologyGridNode land, boolean surface) {
         ArrayList<HydrologyGridNode> oceans = new ArrayList<>();
         for (HydrologyGridOffset offset : CARDINAL_OFFSETS) {
             HydrologyGridNode neighbor = grid.nodeAt(land.gridX() + offset.x(), land.gridZ() + offset.z());
-            if (neighbor != null && neighbor.terrain().ocean()) {
+            if (neighbor != null && neighbor.terrain().ocean()
+                    && (!surface || HydrologySurfaceProfiles.sharesProfile(land.terrain(), neighbor.terrain()))) {
                 oceans.add(neighbor);
             }
         }
@@ -500,7 +560,7 @@ final class HydrologyOutletPlanner {
                     && downstream.terrain().surfaceSourceAllowed()
                     && downstream.terrain().naturalHeight() >= planner.settings.surface().sources().minimumElevation()
                     && distances[downstream.index()]
-                    >= planner.settings.routing().minimumSurfaceCourseLength()) {
+                    >= planner.sourcePlanner.minimumCourseLength(downstream.terrain(), true)) {
                 capacity = Math.addExact(
                         capacity,
                         1_000_000L
@@ -516,7 +576,8 @@ final class HydrologyOutletPlanner {
                 if (upstream == null
                         || visited[upstream.index()]
                         || upstream.terrain().ocean()
-                        || !upstream.terrain().transitAllowed()) {
+                        || !upstream.terrain().transitAllowed()
+                        || !HydrologySurfaceProfiles.sharesProfile(upstream.terrain(), downstream.terrain())) {
                     continue;
                 }
                 visited[upstream.index()] = true;

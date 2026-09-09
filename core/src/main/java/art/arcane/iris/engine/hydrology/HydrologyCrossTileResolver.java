@@ -517,7 +517,7 @@ final class HydrologyCrossTileResolver {
                 }
             }
         }
-        int sourceReach = Math.max(0, planner.settings.surface().sources().minimumSpacing() - 1);
+        int sourceReach = Math.max(0, planner.settings.maximumSurfaceSourceSpacing() - 1);
         for (HydrologyCrossTileSurfaceAdmission.Claim claim : surfaceClaims(result)) {
             HydrologyPoint source = claim.centerline().getFirst();
             int minimumTileX = ownerCoordinate((long) source.x() - sourceReach, tileSize);
@@ -605,10 +605,24 @@ final class HydrologyCrossTileResolver {
                     centerline.getLast(),
                     reachesOutlet,
                     maximumWidth,
-                    centerline
+                    centerline,
+                    sourceSpacing(course, result.nodes())
             ));
         }
         return List.copyOf(claims);
+    }
+
+    private int sourceSpacing(RiverCourse course, List<DrainageNode> nodes) {
+        int fallback = planner.settings.surface().sources().minimumSpacing();
+        if (course.sourceNodeId().isPresent()) {
+            long sourceId = course.sourceNodeId().getAsLong();
+            for (DrainageNode node : nodes) {
+                if (node.id() == sourceId) {
+                    return node.terrain().surfacePolicy().sourceSpacing(fallback);
+                }
+            }
+        }
+        return fallback;
     }
 
     Map<Long, RiverCourse> coursesById(List<RiverCourse> courses) {
@@ -711,7 +725,8 @@ final class HydrologyCrossTileResolver {
                         surfaceRouting,
                         surfaceContributions,
                         undergroundContributions,
-                        refinedEdges
+                        refinedEdges,
+                        true
                 );
                 if (planner.settings.surface().enabled()) {
                     planner.surfaceCourses.compileSurfaceCourses(
@@ -769,6 +784,7 @@ final class HydrologyCrossTileResolver {
                 graph = planner.sourcePlanner.mergeGraphs(surfaceGraph, undergroundGraph);
             }
         }
+        HydrologySurfaceProfiles.rejectExcludedWetFootprints(footprintCompiler, courses, diagnostics);
         List<RiverCourse> normalizedTrunkCourses = planner.tributaries.normalizeSharedTrunks(courses, diagnostics);
         List<RiverCourse> normalizedOutletCourses = planner.tributaries.normalizeOutletContinuations(normalizedTrunkCourses);
         courses.clear();
@@ -845,7 +861,8 @@ final class HydrologyCrossTileResolver {
                 routing,
                 surface ? contributions : new int[contributions.length],
                 surface ? new int[contributions.length] : contributions,
-                refinedEdges
+                refinedEdges,
+                surface
         );
         ArrayList<RiverCourse> courses = new ArrayList<>();
         ArrayList<HydrologyDiagnosticCandidate> diagnostics = new ArrayList<>();

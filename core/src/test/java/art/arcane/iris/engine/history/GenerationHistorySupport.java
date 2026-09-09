@@ -28,7 +28,7 @@ public abstract class GenerationHistorySupport {
         return new GenerationKernelRegistry(version, List.of(new GenerationKernelRegistry.Kernel(
                 version.generatorAbi(), fingerprint.repeat(64),
                 Map.of(new GenerationKernelRegistry.AlgorithmVersion(version.rngVersion(), version.seedDerivationVersion()),
-                        (engine, transition) -> {
+                        (engine, transition, detached) -> {
                             throw new AssertionError("Saved terrain capture invoked a generator factory");
                         }))));
     }

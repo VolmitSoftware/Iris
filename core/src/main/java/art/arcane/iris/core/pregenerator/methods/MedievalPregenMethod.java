@@ -20,6 +20,7 @@ package art.arcane.iris.core.pregenerator.methods;
 
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.nms.INMS;
+import art.arcane.iris.core.nms.INMSBinding;
 import art.arcane.iris.core.pregenerator.PregenDiagnostics;
 import art.arcane.iris.core.pregenerator.PregenListener;
 import art.arcane.iris.core.pregenerator.PregeneratorMethod;
@@ -42,6 +43,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -58,11 +60,15 @@ public class MedievalPregenMethod implements PregeneratorMethod {
     private final AtomicBoolean directAsyncDisabled;
     private final AtomicBoolean prefetchDisabled;
     private final ExecutorService prefetchPool;
+    private final Executor chunkIoExecutor;
+    private final PregenSerialWorker chunkFlush;
     private volatile Engine cachedEngine;
     private volatile boolean engineResolutionAttempted;
 
     public MedievalPregenMethod(World world) {
         this.world = world;
+        this.chunkFlush = new PregenSerialWorker("Iris Pregen Chunk Flush", world == null ? "unknown" : world.getName());
+        this.chunkIoExecutor = chunkFlush.executor();
         futures = new KList<>();
         this.lastUse = new ConcurrentHashMap<>();
         int configuredThreads = IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism());
@@ -145,10 +151,11 @@ public class MedievalPregenMethod implements PregeneratorMethod {
                     lastUse.remove(i);
                 }
             }
-            if (flushChunkIo) {
-                INMS.get().flushChunkIO(world);
-            }
         });
+        if (flushChunkIo && world != null) {
+            INMSBinding binding = INMS.get();
+            unload = unload.thenRunAsync(() -> binding.flushChunkIO(world), chunkIoExecutor);
+        }
 
         try {
             unload.get(UNLOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -176,6 +183,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
                 prefetchPool.shutdownNow();
             }
             unloadAndSaveAllChunks(true);
+            chunkFlush.close(UNLOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } finally {
             if (interrupted) {
                 Thread.currentThread().interrupt();

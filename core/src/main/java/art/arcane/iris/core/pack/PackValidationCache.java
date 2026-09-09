@@ -4,6 +4,8 @@ import art.arcane.iris.core.ServerConfigurator;
 import art.arcane.iris.core.compat.CompatAction;
 import art.arcane.iris.core.compat.CompatFinding;
 import art.arcane.iris.core.compat.CompatRegistry;
+import art.arcane.iris.engine.history.GenerationKernelRegistry;
+import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformRegistries;
@@ -46,12 +48,20 @@ public final class PackValidationCache {
         if (!IrisPlatforms.isBound()) {
             return "";
         }
+        return contextFingerprint(ImplementationIdentity.FINGERPRINT);
+    }
+
+    static String contextFingerprint(String implementationFingerprint) {
+        if (!IrisPlatforms.isBound() || implementationFingerprint == null || implementationFingerprint.isBlank()) {
+            return "";
+        }
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             IrisPlatform platform = IrisPlatforms.get();
             update(digest, platform.platformName());
             update(digest, platform.minecraftVersion());
             update(digest, Integer.toString(platform.irisVersionNumber()));
+            update(digest, implementationFingerprint);
             update(digest, Boolean.toString(ContentKeyValidator.strictContent()));
 
             PlatformRegistries registries = Objects.requireNonNull(
@@ -230,6 +240,17 @@ public final class PackValidationCache {
         }
     }
 
+    private static String implementationFingerprint() {
+        try {
+            GenerationKernelRegistry kernels = GenerationKernelRegistry.standard();
+            return kernels.requireSupported(kernels.current()).implementationFingerprint();
+        } catch (IOException | RuntimeException | LinkageError failure) {
+            IrisLogging.reportError(
+                    "Cannot identify the Iris validation implementation; persisted pack validation is disabled.", failure);
+            return "";
+        }
+    }
+
     private static void update(MessageDigest digest, String value) {
         byte[] bytes = Objects.requireNonNullElse(value, "").getBytes(StandardCharsets.UTF_8);
         digest.update((byte) (bytes.length >>> 24));
@@ -244,6 +265,10 @@ public final class PackValidationCache {
         private String contentFingerprint;
         private String contextFingerprint;
         private List<CachedResult> results;
+    }
+
+    private static final class ImplementationIdentity {
+        private static final String FINGERPRINT = implementationFingerprint();
     }
 
     private static final class CachedResult {

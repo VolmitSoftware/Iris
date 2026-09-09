@@ -112,7 +112,7 @@ public class PackValidatorStructureTerrainBackendTest {
 
     @Test
     public void rejectsNativeOnlyTerrainModesForEditablePlacementsAcrossEveryHost() throws Exception {
-        for (String mode : List.of("VACUUM", "ENCASE")) {
+        for (String mode : List.of("VACUUM", "FLATTEN", "ENCASE")) {
             String folderName = "editable-" + mode.toLowerCase(Locale.ROOT);
             File pack = temporaryFolder.newFolder(folderName);
             writePlacement(pack, "dimensions/main.json", "dimension-" + folderName,
@@ -138,7 +138,7 @@ public class PackValidatorStructureTerrainBackendTest {
 
     @Test
     public void acceptsNativeOnlyTerrainModesForNativeStructurePlacements() throws Exception {
-        for (String mode : List.of("VACUUM", "ENCASE")) {
+        for (String mode : List.of("VACUUM", "FLATTEN", "ENCASE")) {
             File pack = temporaryFolder.newFolder("native-" + mode.toLowerCase(Locale.ROOT));
             writePlacement(pack, "dimensions/main.json", "native-" + mode,
                     "minecraft:village_plains", true, mode);
@@ -167,7 +167,7 @@ public class PackValidatorStructureTerrainBackendTest {
 
     @Test
     public void acceptsNativeOnlyTerrainModesForImportedStructureAdjustments() {
-        for (String mode : List.of("VACUUM", "ENCASE")) {
+        for (String mode : List.of("VACUUM", "FLATTEN", "ENCASE")) {
             JSONObject policy = new JSONObject().put("adjustments", new JSONArray().put(
                     new JSONObject()
                             .put("match", new JSONArray().put("towns_and_towers:"))
@@ -179,6 +179,26 @@ public class PackValidatorStructureTerrainBackendTest {
                     errors, new ArrayList<>());
 
             assertTrue(mode + ": " + errors, errors.isEmpty());
+        }
+    }
+
+    @Test
+    public void flattenRequiresIntegralBoundedRangeAndBlendSettings() {
+        for (String field : List.of("flattenRange", "horizontalPadding")) {
+            for (Object value : List.of(0, 128, -1, 129, 1.5D, "64")) {
+                List<String> errors = new ArrayList<>();
+                JSONObject terrain = new JSONObject().put("mode", "FLATTEN").put(field, value);
+
+                PackStructurePlacementValidator.validateNativeTerrain("placement",
+                        new JSONObject().put("terrain", terrain), errors);
+
+                if (value.equals(0) || value.equals(128)) {
+                    assertTrue(value + ": " + errors, errors.isEmpty());
+                } else {
+                    assertEquals(value.toString(), 1, errors.size());
+                    assertTrue(errors.getFirst(), errors.getFirst().contains("terrain." + field));
+                }
+            }
         }
     }
 

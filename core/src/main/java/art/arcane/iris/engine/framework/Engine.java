@@ -270,6 +270,8 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         saveEngineData();
     }
 
+    boolean requestSave();
+
     default void saveNow() {
         NativeStructureOwnershipStore.flush(this);
         getMantle().saveAllNow();

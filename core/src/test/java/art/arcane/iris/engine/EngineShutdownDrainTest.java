@@ -641,7 +641,7 @@ public class EngineShutdownDrainTest {
 
         private GenerationKernelRegistry.RuntimeKernel prepareComplexHotload(IrisComplex replacement) throws Exception {
             GenerationKernelRegistry.RuntimeKernel kernel = mock(GenerationKernelRegistry.RuntimeKernel.class);
-            when(kernel.createComplex(engine, null)).thenReturn(replacement);
+            when(kernel.createComplex(engine, null, false)).thenReturn(replacement);
             when(generation.runtimeKernel()).thenReturn(kernel);
             GenerationRuntime nextGeneration = generation(target, mantle);
             when(nextGeneration.complex()).thenReturn(replacement);

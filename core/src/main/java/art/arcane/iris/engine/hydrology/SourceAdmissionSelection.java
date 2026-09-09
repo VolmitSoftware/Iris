@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.hydrology;
 
 import java.util.List;
+import java.util.Arrays;
 import java.util.function.IntPredicate;
 
 final class SourceAdmissionSelection {
@@ -10,8 +11,7 @@ final class SourceAdmissionSelection {
     final boolean[] spacingRejectedCandidates;
     final boolean[] evaluatedCandidates;
     final IntPredicate globallyAdmitted;
-    final int[] outletIndices;
-    final int maximumCoursesPerOutlet;
+    final Quotas quotas;
 
     SourceAdmissionSelection(
             int targetCount,
@@ -20,10 +20,9 @@ final class SourceAdmissionSelection {
             boolean[] spacingRejectedCandidates,
             boolean[] evaluatedCandidates,
             IntPredicate globallyAdmitted,
-            int[] outletIndices,
-            int maximumCoursesPerOutlet
+            Quotas quotas
     ) {
-        if (outletIndices.length != selectedCandidates.length || maximumCoursesPerOutlet < 1) {
+        if (quotas.outletIndices().length != selectedCandidates.length) {
             throw new IllegalArgumentException("Source outlet admission bounds are invalid.");
         }
         this.targetCount = targetCount;
@@ -32,8 +31,7 @@ final class SourceAdmissionSelection {
         this.spacingRejectedCandidates = spacingRejectedCandidates;
         this.evaluatedCandidates = evaluatedCandidates;
         this.globallyAdmitted = globallyAdmitted;
-        this.outletIndices = outletIndices;
-        this.maximumCoursesPerOutlet = maximumCoursesPerOutlet;
+        this.quotas = quotas;
     }
 
     List<Integer> selectedCandidateIndices() {
@@ -61,13 +59,33 @@ final class SourceAdmissionSelection {
     }
 
     boolean outletQuotaAvailable(int candidateIndex, List<Integer> selectedIndices) {
-        int outletIndex = outletIndices[candidateIndex];
+        int outletIndex = quotas.outletIndices()[candidateIndex];
+        int areaIndex = quotas.areaIndices()[candidateIndex];
         int selectedForOutlet = 0;
+        int selectedForArea = 0;
         for (int selectedIndex : selectedIndices) {
-            if (outletIndices[selectedIndex] == outletIndex) {
+            if (quotas.outletIndices()[selectedIndex] == outletIndex) {
                 selectedForOutlet++;
             }
+            if (quotas.areaIndices()[selectedIndex] == areaIndex) {
+                selectedForArea++;
+            }
         }
-        return selectedForOutlet < maximumCoursesPerOutlet;
+        return selectedForOutlet < quotas.outletLimits()[candidateIndex]
+                && selectedForArea < quotas.areaLimits()[areaIndex];
+    }
+
+    record Quotas(int[] outletIndices, int[] outletLimits, int[] areaIndices, int[] areaLimits) {
+        Quotas {
+            if (outletIndices.length != outletLimits.length || outletIndices.length != areaIndices.length) {
+                throw new IllegalArgumentException("Source quota arrays must match candidate count.");
+            }
+        }
+
+        static Quotas uniform(int[] outlets, int target, int maximumCoursesPerOutlet) {
+            int[] limits = new int[outlets.length];
+            Arrays.fill(limits, maximumCoursesPerOutlet);
+            return new Quotas(outlets, limits, new int[outlets.length], new int[]{target});
+        }
     }
 }

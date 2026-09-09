@@ -16,15 +16,17 @@ public final class RiverPolicyResolver {
     }
 
     public static EffectiveRiverPolicy resolve(IrisDimension dimension, IrisRegion region, IrisBiome biome) {
-        return resolve(dimension == null ? null : dimension.getRiverPolicy(),
+        return resolveState(dimension == null ? null : dimension.getRiverPolicy(),
                 region == null ? null : region.getRiverPolicy(),
-                biome == null ? null : biome.getRiverPolicy(), loaderOf(biome, region, dimension));
+                biome == null ? null : biome.getRiverPolicy(), loaderOf(biome, region, dimension), false,
+                AreaKeys.of(region, biome)).build();
     }
 
     public static Resolution resolveWithStatus(IrisDimension dimension, IrisRegion region, IrisBiome biome) {
         State state = resolveState(dimension == null ? null : dimension.getRiverPolicy(),
                 region == null ? null : region.getRiverPolicy(),
-                biome == null ? null : biome.getRiverPolicy(), loaderOf(biome, region, dimension), true);
+                biome == null ? null : biome.getRiverPolicy(), loaderOf(biome, region, dimension), true,
+                AreaKeys.of(region, biome));
         return new Resolution(state.build(), state.complete);
     }
 
@@ -46,15 +48,16 @@ public final class RiverPolicyResolver {
             IrisRiverPolicy biomePolicy,
             IrisData data
     ) {
-        return resolveState(dimensionPolicy, regionPolicy, biomePolicy, data, false).build();
+        return resolveState(dimensionPolicy, regionPolicy, biomePolicy, data, false,
+                new AreaKeys("region", "biome")).build();
     }
 
     private static State resolveState(IrisRiverPolicy dimensionPolicy, IrisRiverPolicy regionPolicy,
-                                      IrisRiverPolicy biomePolicy, IrisData data, boolean trackCompleteness) {
+                                      IrisRiverPolicy biomePolicy, IrisData data, boolean trackCompleteness, AreaKeys areas) {
         State state = new State(trackCompleteness);
-        state.apply(dimensionPolicy, RiverConfinement.REGION, data);
-        state.apply(regionPolicy, RiverConfinement.REGION, data);
-        state.apply(biomePolicy, RiverConfinement.BIOME, data);
+        state.apply(dimensionPolicy, RiverConfinement.REGION, data, "");
+        state.apply(regionPolicy, RiverConfinement.REGION, data, areas.region());
+        state.apply(biomePolicy, RiverConfinement.BIOME, data, areas.biome());
         return state;
     }
 
@@ -69,6 +72,13 @@ public final class RiverPolicyResolver {
     }
 
     public record Resolution(EffectiveRiverPolicy policy, boolean complete) {
+    }
+
+    private record AreaKeys(String region, String biome) {
+        static AreaKeys of(IrisRegion region, IrisBiome biome) {
+            return new AreaKeys("region:" + (region == null ? "" : region.getLoadKey()),
+                    "biome:" + (biome == null ? "" : biome.getLoadKey()));
+        }
     }
 
     private static final class State {
@@ -93,6 +103,7 @@ public final class RiverPolicyResolver {
         private RiverConfinement confinement = RiverConfinement.NONE;
         private Double shoreWidth = null;
         private Boolean erosion = null;
+        private SurfaceRiverPolicy surfacePolicy = SurfaceRiverPolicy.INHERIT;
 
         private State(boolean trackCompleteness) {
             unresolvedReference = trackCompleteness ? this::unresolvedReference : null;
@@ -102,9 +113,20 @@ public final class RiverPolicyResolver {
          * {@code scope} is the confinement a {@code confined: true} at this level binds courses to; {@code data} is the
          * pack whose version-content gate filters the biome selections (null skips filtering).
          */
-        private void apply(IrisRiverPolicy policy, RiverConfinement scope, IrisData data) {
+        private void apply(IrisRiverPolicy policy, RiverConfinement scope, IrisData data, String areaKey) {
             if (policy == null) {
                 return;
+            }
+            SurfaceRiverPolicy declared = policy.surfacePolicy(areaKey);
+            if (declared.configured()) {
+                surfacePolicy = new SurfaceRiverPolicy(declared.overridden() ? areaKey : surfacePolicy.areaKey(),
+                        declared.sourceDensity() == null ? surfacePolicy.sourceDensity() : declared.sourceDensity(),
+                        declared.sourceSpacing() == null ? surfacePolicy.sourceSpacing() : declared.sourceSpacing(),
+                        declared.tributaries() == null ? surfacePolicy.tributaries() : declared.tributaries(),
+                        declared.inlandOutlets() == null ? surfacePolicy.inlandOutlets() : declared.inlandOutlets(),
+                        declared.coastalOutlets() == null ? surfacePolicy.coastalOutlets() : declared.coastalOutlets(),
+                        declared.minimumCourseLength() == null ? surfacePolicy.minimumCourseLength() : declared.minimumCourseLength(),
+                        declared.maximumIncision() == null ? surfacePolicy.maximumIncision() : declared.maximumIncision());
             }
             if (policy.getShoreBiomeWidth() != null) {
                 shoreBiomeWidth = policy.getShoreBiomeWidth();
@@ -189,7 +211,8 @@ public final class RiverPolicyResolver {
                     shoreBiomeWidth,
                     confinement,
                     shoreWidth,
-                    erosion
+                    erosion,
+                    surfacePolicy
             );
         }
     }

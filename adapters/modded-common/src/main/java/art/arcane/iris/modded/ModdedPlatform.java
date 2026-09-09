@@ -210,7 +210,7 @@ public final class ModdedPlatform implements IrisPlatform {
         }
         EntityType<?> type = (EntityType<?>) resolved.nativeHandle();
         BlockPos pos = BlockPos.containing(x, y, z);
-        Entity entity = type.spawn(level, pos, EntitySpawnReason.COMMAND);
+        Entity entity = ModdedEntitySpawner.spawnNative(type, level, pos, EntitySpawnReason.COMMAND);
         return entity != null;
     }
 

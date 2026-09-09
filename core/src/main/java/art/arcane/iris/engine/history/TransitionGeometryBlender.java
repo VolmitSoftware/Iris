@@ -52,7 +52,7 @@ public final class TransitionGeometryBlender {
                     influence.newTerrainWeight(), influence.openingWeight(), GenerationBlend.usesHistoricalMaterial(blockX,
                             currentGeometry.minimumY() + offset, blockZ, influence.newTerrainWeight()));
             result.add(value);
-            changed |= !value.equals(current.voxels.get(offset));
+            changed |= !value.equals(current.voxelAt(offset));
         }
         return changed ? BoundaryColumnGeometry.fromVoxels(currentGeometry.minimumY(), result) : currentGeometry;
     }
@@ -65,7 +65,7 @@ public final class TransitionGeometryBlender {
             double openingWeight,
             boolean historicalMaterial
     ) {
-        BoundaryColumnGeometry.Voxel currentVoxel = current.voxels.get(offset);
+        BoundaryColumnGeometry.Voxel currentVoxel = current.voxelAt(offset);
         if (currentVoxel.protectedContent()) {
             return currentVoxel;
         }
@@ -79,20 +79,20 @@ public final class TransitionGeometryBlender {
         BoundaryColumnGeometry.Voxel oldFluid = null;
         for (WeightedProfile contribution : historical) {
             ColumnProfile profile = contribution.profile();
-            if (profile.voxels.get(offset).protectedContent()) {
+            if (profile.voxelAt(offset).protectedContent()) {
                 continue;
             }
-            historicalOpening |= profile.enclosedOpenings[offset];
+            historicalOpening |= profile.enclosedOpeningAt(offset);
             double weight = contribution.weight();
             total += weight;
-            solid += profile.solidDistances[offset] * weight;
-            fluid += profile.fluidDistances[offset] * weight;
-            if (profile.solidMaterials[offset] != null && weight > solidMaterialWeight) {
-                oldSolid = profile.solidMaterials[offset];
+            solid += profile.solid.distanceAt(offset) * weight;
+            fluid += profile.fluid.distanceAt(offset) * weight;
+            if (profile.solid.materialAt(offset) != null && weight > solidMaterialWeight) {
+                oldSolid = profile.solid.materialAt(offset);
                 solidMaterialWeight = weight;
             }
-            if (profile.fluidMaterials[offset] != null && weight > fluidMaterialWeight) {
-                oldFluid = profile.fluidMaterials[offset];
+            if (profile.fluid.materialAt(offset) != null && weight > fluidMaterialWeight) {
+                oldFluid = profile.fluid.materialAt(offset);
                 fluidMaterialWeight = weight;
             }
         }
@@ -100,14 +100,14 @@ public final class TransitionGeometryBlender {
             return currentVoxel;
         }
         double blendedSolid = GenerationBlend.interpolate(solid / total,
-                current.solidDistances[offset], historicalOpening ? openingWeight : currentWeight);
+                current.solid.distanceAt(offset), historicalOpening ? openingWeight : currentWeight);
         if (blendedSolid > 0D) {
-            return selectMaterial(oldSolid, current.solidMaterials[offset], historicalMaterial);
+            return selectMaterial(oldSolid, current.solid.materialAt(offset), historicalMaterial);
         }
         double blendedFluid = GenerationBlend.interpolate(fluid / total,
-                current.fluidDistances[offset], historicalOpening ? openingWeight : currentWeight);
+                current.fluid.distanceAt(offset), historicalOpening ? openingWeight : currentWeight);
         if (blendedFluid > 0D) {
-            BoundaryColumnGeometry.Voxel newFluid = current.fluidMaterials[offset];
+            BoundaryColumnGeometry.Voxel newFluid = current.fluid.materialAt(offset);
             if (oldFluid != null && newFluid != null && !fluidFamily(oldFluid).equals(fluidFamily(newFluid))) {
                 return FLUID_BARRIER;
             }
@@ -133,70 +133,87 @@ public final class TransitionGeometryBlender {
         return current == null || historicalMaterial ? historical : current;
     }
 
-    private static BoundaryColumnGeometry.Voxel[] nearestMaterials(
-            List<BoundaryColumnGeometry.Voxel> voxels,
-            BoundaryColumnGeometry.Phase phase
-    ) {
-        BoundaryColumnGeometry.Voxel[] materials = new BoundaryColumnGeometry.Voxel[voxels.size()];
-        int[] distances = new int[voxels.size()];
-        int last = -voxels.size() - 1;
-        BoundaryColumnGeometry.Voxel nearest = null;
-        for (int index = 0; index < voxels.size(); index++) {
-            BoundaryColumnGeometry.Voxel voxel = voxels.get(index);
-            if (voxel.phase() == phase && !voxel.protectedContent()) {
-                nearest = voxel;
-                last = index;
-            }
-            materials[index] = nearest;
-            distances[index] = index - last;
-        }
-        last = voxels.size() * 2;
-        nearest = null;
-        for (int index = voxels.size() - 1; index >= 0; index--) {
-            BoundaryColumnGeometry.Voxel voxel = voxels.get(index);
-            if (voxel.phase() == phase && !voxel.protectedContent()) {
-                nearest = voxel;
-                last = index;
-            }
-            if (nearest != null && last - index < distances[index]) {
-                materials[index] = nearest;
-            }
-        }
-        return materials;
-    }
-
-    private static boolean[] enclosedOpenings(List<BoundaryColumnGeometry.Voxel> voxels) {
-        boolean[] openings = new boolean[voxels.size()];
-        int lowerSolid = -1;
-        for (int index = 0; index < voxels.size(); index++) {
-            BoundaryColumnGeometry.Voxel voxel = voxels.get(index);
-            if (voxel.phase() == BoundaryColumnGeometry.Phase.SOLID && !voxel.protectedContent()) {
-                if (lowerSolid >= 0 && index - lowerSolid - 1 <= MAXIMUM_OPENING_HEIGHT) {
-                    for (int opening = lowerSolid + 1; opening < index; opening++) {
-                        openings[opening] = !voxels.get(opening).protectedContent();
-                    }
-                }
-                lowerSolid = index;
-            }
-        }
-        return openings;
-    }
-
     private static final class ColumnProfile {
-        private final List<BoundaryColumnGeometry.Voxel> voxels;
-        private final boolean[] enclosedOpenings;
-        private final double[] solidDistances;
-        private final double[] fluidDistances;
-        private final BoundaryColumnGeometry.Voxel[] solidMaterials;
-        private final BoundaryColumnGeometry.Voxel[] fluidMaterials;
+        private final BoundaryColumnGeometry geometry;
+        private final PhaseCursor solid;
+        private final PhaseCursor fluid;
+        private int run;
 
         private ColumnProfile(BoundaryColumnGeometry geometry) {
-            voxels = geometry.voxels();
-            enclosedOpenings = enclosedOpenings(voxels);
-            solidDistances = geometry.solidDistances();
-            fluidDistances = geometry.fluidDistances();
-            solidMaterials = nearestMaterials(voxels, BoundaryColumnGeometry.Phase.SOLID);
-            fluidMaterials = nearestMaterials(voxels, BoundaryColumnGeometry.Phase.FLUID);
+            this.geometry = geometry;
+            solid = new PhaseCursor(geometry, BoundaryColumnGeometry.Phase.SOLID);
+            fluid = new PhaseCursor(geometry, BoundaryColumnGeometry.Phase.FLUID);
+        }
+
+        private BoundaryColumnGeometry.Voxel voxelAt(int offset) {
+            while (offset >= geometry.runEnd(run)) {
+                run++;
+            }
+            return geometry.runVoxel(run);
+        }
+
+        private boolean enclosedOpeningAt(int offset) {
+            solid.advanceTo(offset);
+            return !solid.occupied && solid.start > 0 && solid.end < geometry.height()
+                    && solid.end - solid.start <= MAXIMUM_OPENING_HEIGHT
+                    && !voxelAt(offset).protectedContent();
+        }
+    }
+
+    private static final class PhaseCursor {
+        private final BoundaryColumnGeometry geometry;
+        private final BoundaryColumnGeometry.Phase phase;
+        private int start;
+        private int end;
+        private int nextRun;
+        private int materialRun;
+        private boolean occupied;
+        private BoundaryColumnGeometry.Voxel lowerMaterial;
+        private BoundaryColumnGeometry.Voxel upperMaterial;
+
+        private PhaseCursor(BoundaryColumnGeometry geometry, BoundaryColumnGeometry.Phase phase) {
+            this.geometry = geometry;
+            this.phase = phase;
+            advanceTo(0);
+        }
+
+        private void advanceTo(int offset) {
+            while (offset >= end) {
+                start = end;
+                occupied = matches(geometry.runVoxel(nextRun));
+                lowerMaterial = start == 0 ? null : geometry.runVoxel(nextRun - 1);
+                do {
+                    end = geometry.runEnd(nextRun++);
+                } while (nextRun < geometry.runCount() && matches(geometry.runVoxel(nextRun)) == occupied);
+                upperMaterial = nextRun < geometry.runCount() ? geometry.runVoxel(nextRun) : null;
+            }
+        }
+
+        private double distanceAt(int offset) {
+            advanceTo(offset);
+            double lowerDistance = start == 0 ? geometry.height() + offset + 1.5D : offset - start + 0.5D;
+            double upperDistance = end == geometry.height()
+                    ? geometry.height() * 2D - offset + 0.5D : end - offset - 0.5D;
+            return Math.min(lowerDistance, upperDistance) * (occupied ? 1D : -1D);
+        }
+
+        private BoundaryColumnGeometry.Voxel materialAt(int offset) {
+            advanceTo(offset);
+            if (occupied) {
+                while (offset >= geometry.runEnd(materialRun)) {
+                    materialRun++;
+                }
+                return geometry.runVoxel(materialRun);
+            }
+            if (lowerMaterial == null) {
+                return upperMaterial;
+            }
+            return upperMaterial != null && end - offset < offset - start + 1
+                    ? upperMaterial : lowerMaterial;
+        }
+
+        private boolean matches(BoundaryColumnGeometry.Voxel voxel) {
+            return voxel.phase() == phase && !voxel.protectedContent();
         }
     }
 

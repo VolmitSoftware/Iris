@@ -52,7 +52,7 @@ public class GenerationHistoryRecoveryTest extends GenerationHistorySupport {
                                 "1".repeat(64),
                                 Map.of(
                                         new GenerationKernelRegistry.AlgorithmVersion(1, 1),
-                                        (engine, transitionPlan) -> {
+                                        (engine, transitionPlan, detached) -> {
                                             throw new AssertionError("History-only kernel factory was invoked.");
                                         }
                                 )
@@ -62,7 +62,7 @@ public class GenerationHistoryRecoveryTest extends GenerationHistorySupport {
                                 "2".repeat(64),
                                 Map.of(
                                         new GenerationKernelRegistry.AlgorithmVersion(1, 1),
-                                        (engine, transitionPlan) -> {
+                                        (engine, transitionPlan, detached) -> {
                                             throw new AssertionError("History-only kernel factory was invoked.");
                                         }
                                 )

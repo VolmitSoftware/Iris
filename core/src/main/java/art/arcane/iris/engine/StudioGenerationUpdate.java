@@ -26,7 +26,7 @@ record StudioGenerationUpdate(
         GenerationRegistryContract registryContract
 ) implements AutoCloseable {
     static StudioGenerationUpdate prepare(IrisEngine engine, GenerationHistory history) throws IOException {
-        Path source = engine.getStudioGenerationSource();
+        Path source = engine.getStudioGenerationSource().toRealPath();
         IrisData.invalidateLoadedAuthoringResources(source.toFile());
         String fingerprint = GenerationPackFingerprint.compute(source, GenerationPackFingerprint.CURRENT_VERSION);
         GenerationEpoch active = history.activeEpoch();

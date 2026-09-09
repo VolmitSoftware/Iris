@@ -36,7 +36,8 @@ public class SurfaceCourseBuilderTest {
                 "water",
                 List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(140, 0, 0), new HydrologyPoint(280, 0, 0)),
                 SurfaceTerminal.OCEAN_MOUTH,
-                SEA_LEVEL
+                SEA_LEVEL,
+                64
         );
 
         assertNull(result.rejection());
@@ -73,7 +74,8 @@ public class SurfaceCourseBuilderTest {
                 "water",
                 List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)),
                 SurfaceTerminal.SINKHOLE,
-                40
+                40,
+                64
         );
 
         assertNull(result.rejection());
@@ -92,7 +94,8 @@ public class SurfaceCourseBuilderTest {
                 "water",
                 List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)),
                 SurfaceTerminal.SINKHOLE,
-                40
+                40,
+                64
         );
 
         assertNull(result.rejection());
@@ -107,10 +110,10 @@ public class SurfaceCourseBuilderTest {
     public void gentleSlopeProducesRifflesAndSteepSlopeProducesCascades() {
         HydrologyTerrainSampler gentle = (int x, int z) -> HydrologyTerrainSample.openLand(120 - x / 10, 0D, "land");
         SurfaceCourseResult gentleResult = builder(gentle).build(7L, COURSE_ID, "water",
-                List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)), SurfaceTerminal.SINKHOLE, 40);
+                List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)), SurfaceTerminal.SINKHOLE, 40, 64);
         HydrologyTerrainSampler steep = (int x, int z) -> HydrologyTerrainSample.openLand(300 - x, 0D, "land");
         SurfaceCourseResult steepResult = builder(steep).build(7L, COURSE_ID, "water",
-                List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)), SurfaceTerminal.SINKHOLE, 40);
+                List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)), SurfaceTerminal.SINKHOLE, 40, 64);
 
         assertNull(gentleResult.rejection());
         assertNull(steepResult.rejection());
@@ -128,7 +131,8 @@ public class SurfaceCourseBuilderTest {
                 "water",
                 List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)),
                 SurfaceTerminal.OCEAN_MOUTH,
-                SEA_LEVEL
+                SEA_LEVEL,
+                64
         );
 
         assertEquals(HydrologyCandidateRejection.COURSE_TOO_SHORT, result.rejection());
@@ -143,9 +147,9 @@ public class SurfaceCourseBuilderTest {
         List<HydrologyPoint> path = List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(241, 0, 0));
         HydrologyPlannerSettings.Surface defaults = HydrologyPlannerSettings.defaults().surface();
         HydrologyPlannerSettings.Inlet inlet = defaults.banks().inlet();
-        SurfaceCourseResult result = builder(sampler).build(7L, COURSE_ID, "water", path, SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL);
+        SurfaceCourseResult result = builder(sampler).build(7L, COURSE_ID, "water", path, SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL, 64);
         SurfaceCourseResult plain = builder(defaults.banks().withInlet(HydrologyPlannerSettings.Inlet.none()), sampler)
-                .build(7L, COURSE_ID, "water", path, SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL);
+                .build(7L, COURSE_ID, "water", path, SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL, 64);
 
         assertNull(result.rejection());
         assertEquals(SEA_LEVEL, result.lastHead());
@@ -163,7 +167,7 @@ public class SurfaceCourseBuilderTest {
     }
 
     private static SurfaceCourseBuilder builder(HydrologyTerrainSampler sampler) {
-        return new SurfaceCourseBuilder(HydrologyPlannerSettings.defaults().surface(), sampler, CONSTANT_GEOMETRY, SEA_LEVEL, 64);
+        return new SurfaceCourseBuilder(HydrologyPlannerSettings.defaults().surface(), sampler, CONSTANT_GEOMETRY, SEA_LEVEL);
     }
 
     private static SurfaceCourseBuilder builder(HydrologyPlannerSettings.Banks banks, HydrologyTerrainSampler sampler) {
@@ -171,6 +175,6 @@ public class SurfaceCourseBuilderTest {
         HydrologyPlannerSettings.Surface surface = new HydrologyPlannerSettings.Surface(
                 defaults.enabled(), defaults.sources(), defaults.minimumWidth(), defaults.maximumWidth(),
                 defaults.minimumDepth(), defaults.maximumDepth(), defaults.maximumIncision(), defaults.shoreWidth(), banks);
-        return new SurfaceCourseBuilder(surface, sampler, CONSTANT_GEOMETRY, SEA_LEVEL, 64);
+        return new SurfaceCourseBuilder(surface, sampler, CONSTANT_GEOMETRY, SEA_LEVEL);
     }
 }

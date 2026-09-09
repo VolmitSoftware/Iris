@@ -19,6 +19,78 @@ import static org.junit.Assert.assertTrue;
 
 public class RiverPolicyResolverTest {
     @Test
+    public void surfaceBudgetsInheritFieldsAndFollowTheDeclaringArea() {
+        IrisRiverPolicy dimension = new IrisRiverPolicy().setSurfaceSourceDensity(2D).setSurfaceTributaries(1);
+        IrisRiverPolicy region = new IrisRiverPolicy().setSurfaceSourceDensity(8D).setSurfaceSourceSpacing(160)
+                .setSurfaceTributaries(3).setSurfaceInlandOutlets(3).setSurfaceCoastalOutlets(4);
+        IrisRiverPolicy biome = new IrisRiverPolicy().setSurfaceSourceDensity(6D).setSurfaceCoastalOutlets(0);
+        SurfaceRiverPolicy inherited = RiverPolicyResolver.resolve(dimension, region, new IrisRiverPolicy()).surfacePolicy();
+        SurfaceRiverPolicy local = RiverPolicyResolver.resolve(dimension, region, biome).surfacePolicy();
+
+        assertEquals(new SurfaceRiverPolicy("region", 8D, 160, 3, 3, 4, null, null), inherited);
+        assertEquals(new SurfaceRiverPolicy("biome", 6D, 160, 3, 3, 0, null, null), local);
+        assertEquals(SurfaceRiverPolicy.INHERIT, RiverPolicyResolver.resolve(
+                (IrisRiverPolicy) null, null, null).surfacePolicy());
+    }
+
+    @Test
+    public void geometryOverridesInheritWithoutChangingBudgetOwnership() {
+        IrisRiverPolicy dimension = new IrisRiverPolicy().setSurfaceMinimumCourseLength(384).setSurfaceMaximumIncision(16);
+        IrisRiverPolicy region = new IrisRiverPolicy().setSurfaceSourceDensity(8D).setSurfaceMinimumCourseLength(128);
+        IrisRiverPolicy biome = new IrisRiverPolicy().setSurfaceMaximumIncision(24);
+        SurfaceRiverPolicy regional = RiverPolicyResolver.resolve(dimension, region, null).surfacePolicy();
+        SurfaceRiverPolicy local = RiverPolicyResolver.resolve(dimension, region, biome).surfacePolicy();
+
+        assertEquals(128, local.minimumCourseLength(384));
+        assertEquals(24, local.maximumIncision(16));
+        assertEquals("region", local.areaKey());
+        assertEquals(regional.budget(), local.budget());
+        assertTrue(local.overridden());
+        SurfaceRiverPolicy geometryOnly = RiverPolicyResolver.resolve(dimension, null, biome).surfacePolicy();
+        assertFalse(geometryOnly.overridden());
+        assertTrue(geometryOnly.configured());
+        assertEquals(SurfaceRiverPolicy.INHERIT.budget(), geometryOnly.budget());
+        assertEquals(384, SurfaceRiverPolicy.INHERIT.minimumCourseLength(384));
+        assertEquals(16, SurfaceRiverPolicy.INHERIT.maximumIncision(16));
+    }
+
+    @Test
+    public void geometryOverrideBoundsValidateBeforeSampling() {
+        for (int length : new int[]{15, 4097}) {
+            assertThrows(IllegalArgumentException.class, () -> RiverPolicyResolver.resolve(
+                    null, new IrisRiverPolicy().setSurfaceMinimumCourseLength(length), null));
+        }
+        for (int incision : new int[]{0, 33}) {
+            assertThrows(IllegalArgumentException.class, () -> RiverPolicyResolver.resolve(
+                    null, null, new IrisRiverPolicy().setSurfaceMaximumIncision(incision)));
+        }
+        SurfaceRiverPolicy lower = RiverPolicyResolver.resolve(null, null, new IrisRiverPolicy()
+                .setSurfaceMinimumCourseLength(16).setSurfaceMaximumIncision(1)).surfacePolicy();
+        SurfaceRiverPolicy upper = RiverPolicyResolver.resolve(null, null, new IrisRiverPolicy()
+                .setSurfaceMinimumCourseLength(4096).setSurfaceMaximumIncision(32)).surfacePolicy();
+        assertEquals(16, lower.minimumCourseLength(384));
+        assertEquals(1, lower.maximumIncision(16));
+        assertEquals(4096, upper.minimumCourseLength(384));
+        assertEquals(32, upper.maximumIncision(16));
+    }
+
+    @Test
+    public void rejectsInvalidSurfaceBudgetsBeforeSampling() {
+        for (double density : new double[]{Double.NaN, Double.POSITIVE_INFINITY, -1D, 65D}) {
+            assertThrows(IllegalArgumentException.class, () -> RiverPolicyResolver.resolve(
+                    null, new IrisRiverPolicy().setSurfaceSourceDensity(density), null));
+        }
+        assertThrows(IllegalArgumentException.class, () -> RiverPolicyResolver.resolve(
+                null, new IrisRiverPolicy().setSurfaceSourceSpacing(8193), null));
+        assertThrows(IllegalArgumentException.class, () -> RiverPolicyResolver.resolve(
+                null, null, new IrisRiverPolicy().setSurfaceTributaries(5)));
+        assertThrows(IllegalArgumentException.class, () -> RiverPolicyResolver.resolve(
+                null, null, new IrisRiverPolicy().setSurfaceInlandOutlets(-1)));
+        assertThrows(IllegalArgumentException.class, () -> RiverPolicyResolver.resolve(
+                null, null, new IrisRiverPolicy().setSurfaceCoastalOutlets(65)));
+    }
+
+    @Test
     public void suppliesCanonicalDefaultsWithoutConfiguredPolicies() {
         EffectiveRiverPolicy policy = RiverPolicyResolver.resolve(
                 (IrisRiverPolicy) null,
@@ -237,7 +309,8 @@ public class RiverPolicyResolverTest {
                 policy.shoreBiomeWidth(),
                 policy.confinement(),
                 shoreWidth,
-                policy.erosion()
+                policy.erosion(),
+                SurfaceRiverPolicy.INHERIT
         );
     }
 }

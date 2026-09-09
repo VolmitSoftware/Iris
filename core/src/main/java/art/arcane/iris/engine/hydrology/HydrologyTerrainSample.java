@@ -1,6 +1,9 @@
 package art.arcane.iris.engine.hydrology;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import java.util.List;
+import java.util.Objects;
 
 public record HydrologyTerrainSample(
         int naturalHeight,
@@ -34,7 +37,8 @@ public record HydrologyTerrainSample(
         double shoreBiomeWidth,
         String confinesKey,
         double shoreWidth,
-        boolean erosion
+        boolean erosion,
+        SurfaceRiverPolicy surfacePolicy
 ) {
     /**
      * {@code shoreBiomeWidth} is the width in blocks of the shore biome band beside a surface river at this
@@ -45,6 +49,7 @@ public record HydrologyTerrainSample(
      * shore width applies; {@code erosion} is whether the ground beyond that bench is eroded into a valley here.
      */
     public HydrologyTerrainSample {
+        surfacePolicy = Objects.requireNonNull(surfacePolicy);
         requireFiniteNonNegative(slope, "slope");
         requireFiniteNonNegative(routingCost, "routingCost");
         requireFiniteNonNegative(surfaceSourceWeight, "surfaceSourceWeight");
@@ -122,7 +127,8 @@ public record HydrologyTerrainSample(
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 
@@ -159,7 +165,8 @@ public record HydrologyTerrainSample(
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 
@@ -196,7 +203,8 @@ public record HydrologyTerrainSample(
                 shoreBiomeWidth,
                 confinesKey,
                 shoreWidth,
-                erosion
+                erosion,
+                surfacePolicy
         );
     }
 
@@ -233,7 +241,8 @@ public record HydrologyTerrainSample(
                 shoreBiomeWidth,
                 confinesKey,
                 shoreWidth,
-                erosion
+                erosion,
+                surfacePolicy
         );
     }
 
@@ -270,7 +279,8 @@ public record HydrologyTerrainSample(
                 shoreBiomeWidth,
                 confinesKey,
                 replacementShoreWidth,
-                erosion
+                erosion,
+                surfacePolicy
         );
     }
 
@@ -307,7 +317,46 @@ public record HydrologyTerrainSample(
                 shoreBiomeWidth,
                 confinesKey,
                 shoreWidth,
-                replacementErosion
+                replacementErosion,
+                surfacePolicy
+        );
+    }
+
+    public HydrologyTerrainSample withSurfacePolicy(SurfaceRiverPolicy replacementPolicy) {
+        return new HydrologyTerrainSample(
+                naturalHeight,
+                slope,
+                ocean,
+                caveAvailable,
+                caveFloorY,
+                caveFluidY,
+                transitAllowed,
+                outletAllowed,
+                surfaceSourceAllowed,
+                surfaceSourceRequired,
+                undergroundSourceAllowed,
+                undergroundSourceRequired,
+                routingCost,
+                surfaceSourceWeight,
+                undergroundSourceWeight,
+                widthMultiplier,
+                depthMultiplier,
+                incisionMultiplier,
+                routingMultiplier,
+                bankMultiplier,
+                parentBiomeKey,
+                surfaceBiomeKey,
+                mouthBiomeKey,
+                shoreBiomeKey,
+                bankBiomeKey,
+                floodedCaveBiomeKey,
+                preferredProfileKeys,
+                surfacePoolKeys,
+                shoreBiomeWidth,
+                confinesKey,
+                shoreWidth,
+                erosion,
+                replacementPolicy
         );
     }
 

@@ -8,7 +8,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.GenerationStep;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
@@ -16,6 +18,15 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.TerrainAdjustment;
 import net.minecraft.world.level.levelgen.structure.pools.JigsawJunction;
 import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
+import net.minecraft.world.level.levelgen.structure.structures.IglooPieces;
+import net.minecraft.world.level.levelgen.structure.structures.OceanMonumentStructure;
+import net.minecraft.world.level.levelgen.structure.structures.OceanRuinStructure;
+import net.minecraft.world.level.levelgen.structure.structures.RuinedPortalPiece;
+import net.minecraft.world.level.levelgen.structure.structures.ShipwreckStructure;
+import net.minecraft.world.level.levelgen.structure.structures.StrongholdStructure;
+import net.minecraft.world.level.levelgen.structure.structures.SwampHutPiece;
+import net.minecraft.world.level.levelgen.structure.structures.WoodlandMansionPieces;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,11 +50,13 @@ public final class NativeStructureSurfaceFitter {
             ConcurrentHashMap.newKeySet();
     private static final Set<String> WARNED_VACUUM_BUDGET =
             ConcurrentHashMap.newKeySet();
+    private static final Set<String> WARNED_FLATTEN_BUDGET =
+            ConcurrentHashMap.newKeySet();
 
     private NativeStructureSurfaceFitter() {
     }
 
-    public static VacuumFoundationPlan prepareSurfaceStructures(
+    public static SurfaceTerrainPlan prepareSurfaceStructures(
             WorldGenLevel world, BoundingBox area,
             List<NativeStructureTerrainIntegrator.TerrainTarget> targets,
             IntBinaryOperator surfaceHeight) {
@@ -51,12 +64,12 @@ public final class NativeStructureSurfaceFitter {
                 world, area, targets, surfaceHeight, MAX_SURFACE_TEMPLATE_CELLS);
     }
 
-    static VacuumFoundationPlan prepareSurfaceStructures(
+    static SurfaceTerrainPlan prepareSurfaceStructures(
             WorldGenLevel world, BoundingBox area,
             List<NativeStructureTerrainIntegrator.TerrainTarget> targets,
             IntBinaryOperator surfaceHeight, int maximumTemplateCells) {
         if (targets == null || targets.isEmpty()) {
-            return VacuumFoundationPlan.empty();
+            return SurfaceTerrainPlan.empty();
         }
         Objects.requireNonNull(surfaceHeight, "Surface structure terrain fitting requires an Iris height resolver");
         List<SurfaceAnchor> anchors = collectSourceSurfaceAnchors(
@@ -64,18 +77,22 @@ public final class NativeStructureSurfaceFitter {
         if (!anchors.isEmpty()) {
             fitSurfaceTerrain(world, area, anchors, surfaceHeight);
         }
+        FlattenFootprint flatten = collectFlattenFootprint(
+                world, area, targets, surfaceHeight, maximumTemplateCells);
+        Map<Long, Integer> flattenedHeights = flatten.anchors().isEmpty() && flatten.projectedSupport().isEmpty() ? Map.of()
+                : fitFlattenTerrain(world, area, flatten, surfaceHeight);
         VacuumFootprint vacuum = collectVacuumFootprint(
                 world, area, targets, maximumTemplateCells);
         if (!vacuum.anchors().isEmpty()) {
             fitVacuumTerrain(world, area, vacuum, surfaceHeight);
         }
-        return VacuumFoundationPlan.create(
-                vacuum.foundationBases(), vacuum.occupiedCells(), area);
+        return SurfaceTerrainPlan.create(
+                vacuum, area, flattenedHeights);
     }
 
     public static void repairVacuumFoundations(
             WorldGenLevel world, BoundingBox area,
-            VacuumFoundationPlan plan) {
+            SurfaceTerrainPlan plan) {
         if (plan == null || plan.foundationBases.isEmpty()) {
             return;
         }
@@ -484,6 +501,7 @@ public final class NativeStructureSurfaceFitter {
         }
         IrisStructureTerrainMode mode = target.terrain().resolvedMode();
         return mode == IrisStructureTerrainMode.VACUUM
+                || requiresFlattenTerrain(target)
                 || requiresSourceSurfaceTerrain(target);
     }
 
@@ -524,6 +542,268 @@ public final class NativeStructureSurfaceFitter {
                 applySurfaceColumn(world, position, x, z,
                         originalHeights[column], targetHeights[column], area.minY(), area.maxY(),
                         rigidBaseSupport[column]);
+            }
+        }
+    }
+
+    static boolean requiresFlattenTerrain(NativeStructureTerrainIntegrator.TerrainTarget target) {
+        if (target == null || target.terrain() == null
+                || target.terrain().resolvedMode() != IrisStructureTerrainMode.FLATTEN
+                || target.terrain().resolvedFlattenRange() == 0
+                || target.start() == null || !target.start().isValid()) {
+            return false;
+        }
+        StructureStart start = target.start();
+        return start.getStructure().step() == GenerationStep.Decoration.SURFACE_STRUCTURES
+                && start.getStructure().terrainAdaptation() != TerrainAdjustment.BURY
+                && start.getStructure().terrainAdaptation() != TerrainAdjustment.ENCAPSULATE
+                && !(start.getStructure() instanceof StrongholdStructure)
+                && !(start.getStructure() instanceof OceanMonumentStructure)
+                && !(start.getStructure() instanceof OceanRuinStructure)
+                && (!(start.getStructure() instanceof ShipwreckStructure)
+                || "minecraft:shipwreck_beached".equals(target.structureId()));
+    }
+
+    private static FlattenFootprint collectFlattenFootprint(
+            WorldGenLevel world, BoundingBox area,
+            List<NativeStructureTerrainIntegrator.TerrainTarget> targets,
+            IntBinaryOperator surfaceHeight, int maximumTemplateCells) {
+        List<FlattenAnchor> anchors = new ArrayList<>();
+        Map<Long, Integer> projectedSupport = new HashMap<>();
+        Set<StructureStart> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (NativeStructureTerrainIntegrator.TerrainTarget target : targets) {
+            if (!requiresFlattenTerrain(target) || !seen.add(target.start())) {
+                continue;
+            }
+            int radius = Math.max(0, Math.min(128, target.terrain().getHorizontalPadding()));
+            int range = target.terrain().resolvedFlattenRange();
+            BoundingBox influenceArea = new BoundingBox(
+                    area.minX() - radius, area.minY(), area.minZ() - radius,
+                    area.maxX() + radius, area.maxY(), area.maxZ() + radius);
+            StructureStart start = target.start();
+            if (!hasExposedFlattenPiece(start, surfaceHeight, range)) {
+                continue;
+            }
+            BoundingBox first = start.getPieces().getFirst().getBoundingBox();
+            BlockPos reference = new BlockPos(first.getCenter().getX(), first.minY(), first.getCenter().getZ());
+            TemplateCellBudget budget = new TemplateCellBudget(maximumTemplateCells);
+            List<SurfaceAnchor> sources = new ArrayList<>();
+            Set<Long> projectedColumns = new HashSet<>();
+            try {
+                for (StructurePiece piece : start.getPieces()) {
+                    BoundingBox bounds = piece.getBoundingBox();
+                    if (!intersectsHorizontally(bounds, influenceArea) || !flattenPieceAllowed(start, piece)) {
+                        continue;
+                    }
+                    if (piece instanceof PoolElementStructurePiece poolPiece) {
+                        if (poolPiece.getElement().getProjection() == StructureTemplatePool.Projection.RIGID) {
+                            addProcessedSurfaceAnchors(world, influenceArea, poolPiece, reference,
+                                    StructureTemplatePool.Projection.RIGID, budget, sources);
+                        } else {
+                            addProjectedFlattenSupport(world, area, poolPiece, reference, budget, projectedColumns);
+                        }
+                        for (JigsawJunction junction : poolPiece.getJunctions()) {
+                            sources.add(new SurfaceAnchor(junction.getSourceX(), junction.getSourceX(),
+                                    junction.getSourceZ(), junction.getSourceZ(), junction.getSourceGroundY() - 1, 1));
+                        }
+                    } else {
+                        sources.add(new SurfaceAnchor(bounds.minX(), bounds.maxX(), bounds.minZ(), bounds.maxZ(),
+                                flattenGroundY(start, piece, surfaceHeight), 2));
+                    }
+                }
+            } catch (TemplateBudgetExceeded ignored) {
+                String structureId = target.structureId() == null
+                        ? start.getStructure().getClass().getName() : target.structureId();
+                if (WARNED_FLATTEN_BUDGET.add(structureId)) {
+                    IrisLogging.warn("Native structure FLATTEN fitting for '" + structureId
+                            + "' exceeded its bounded template budget; skipping this start");
+                }
+                continue;
+            }
+            for (SurfaceAnchor source : sources) {
+                anchors.add(new FlattenAnchor(source, radius, range));
+            }
+            for (long column : projectedColumns) {
+                projectedSupport.merge(column, range, Math::max);
+            }
+        }
+        return new FlattenFootprint(List.copyOf(anchors), Map.copyOf(projectedSupport));
+    }
+
+    private static void addProjectedFlattenSupport(
+            WorldGenLevel world, BoundingBox area, PoolElementStructurePiece piece,
+            BlockPos reference, TemplateCellBudget budget, Set<Long> columns) {
+        NativeStructureTemplateOccupancy.OccupancyResult occupancy = NativeStructureTemplateOccupancy.resolve(
+                world, piece, reference, area, () -> world.getLevel().getStructureManager(),
+                area::isInside, budget::consume);
+        for (Map.Entry<Long, NativeStructureTemplateOccupancy.OccupancyCell> entry : occupancy.cells().entrySet()) {
+            NativeStructureTemplateOccupancy.OccupancyCell cell = entry.getValue();
+            if (cell.blocker() || !NativeStructureTemplateOccupancy.isSolidBase(cell.state())) {
+                continue;
+            }
+            BlockPos position = BlockPos.of(entry.getKey());
+            columns.add(NativeStructureTemplateOccupancy.columnKey(position.getX(), position.getZ()));
+        }
+    }
+
+    private static boolean flattenPieceAllowed(StructureStart start, StructurePiece piece) {
+        if (piece instanceof RuinedPortalPiece portal) {
+            RuinedPortalPiece.VerticalPlacement placement = NativeStructureReflection.ruinedPortalVerticalPlacement(portal);
+            return placement == RuinedPortalPiece.VerticalPlacement.ON_LAND_SURFACE
+                    || placement == RuinedPortalPiece.VerticalPlacement.IN_NETHER;
+        }
+        if (piece instanceof IglooPieces.IglooPiece) {
+            int highest = Integer.MIN_VALUE;
+            for (StructurePiece candidate : start.getPieces()) {
+                if (candidate instanceof IglooPieces.IglooPiece) {
+                    highest = Math.max(highest, candidate.getBoundingBox().minY());
+                }
+            }
+            return piece.getBoundingBox().minY() == highest;
+        }
+        return true;
+    }
+
+    static boolean hasExposedFlattenPiece(
+            StructureStart start, IntBinaryOperator surfaceHeight, int range) {
+        for (StructurePiece piece : start.getPieces()) {
+            if (!flattenPieceAllowed(start, piece)) {
+                continue;
+            }
+            BoundingBox bounds = piece.getBoundingBox();
+            int groundY = flattenGroundY(start, piece, surfaceHeight);
+            int roofY = piece instanceof IglooPieces.IglooPiece || piece instanceof SwampHutPiece
+                    ? groundY + bounds.getYSpan() : bounds.maxY();
+            for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
+                for (int z = bounds.minZ(); z <= bounds.maxZ(); z++) {
+                    int surfaceY = surfaceHeight.applyAsInt(x, z);
+                    if (surfaceY <= roofY && (long) groundY - surfaceY <= range) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static int flattenGroundY(
+            StructureStart start, StructurePiece piece, IntBinaryOperator surfaceHeight) {
+        BoundingBox bounds = piece.getBoundingBox();
+        if (piece instanceof PoolElementStructurePiece poolPiece) {
+            return bounds.minY() + poolPiece.getGroundLevelDelta() - 1;
+        }
+        if (piece instanceof IglooPieces.IglooPiece igloo) {
+            BlockPos entrance = igloo.templatePosition().offset(
+                    StructureTemplate.calculateRelativePosition(igloo.placeSettings(), new BlockPos(3, 0, 0)));
+            return surfaceHeight.applyAsInt(entrance.getX(), entrance.getZ());
+        }
+        if (piece instanceof SwampHutPiece || start.getStructure() instanceof ShipwreckStructure) {
+            long sum = 0;
+            int minimum = Integer.MAX_VALUE;
+            for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
+                for (int z = bounds.minZ(); z <= bounds.maxZ(); z++) {
+                    int surfaceY = surfaceHeight.applyAsInt(x, z);
+                    sum += surfaceY;
+                    minimum = Math.min(minimum, surfaceY);
+                }
+            }
+            return piece instanceof SwampHutPiece
+                    ? (int) Math.floorDiv(sum, (long) bounds.getXSpan() * bounds.getZSpan()) : minimum;
+        }
+        if (piece instanceof WoodlandMansionPieces.WoodlandMansionPiece) {
+            return start.getBoundingBox().minY() - 1;
+        }
+        return bounds.minY() - 1;
+    }
+
+    static FlattenResolution resolveFlattenSurface(
+            List<FlattenAnchor> anchors, int x, int z, int originalY) {
+        FlattenAnchor selected = null;
+        long weightedY = 0;
+        long totalWeight = 0;
+        long maximumInfluence = 0;
+        int range = 0;
+        for (FlattenAnchor anchor : anchors) {
+            SurfaceAnchor source = anchor.source();
+            int outX = IrisObjectVacuum.outset(x, source.minX(), source.maxX());
+            int outZ = IrisObjectVacuum.outset(z, source.minZ(), source.maxZ());
+            if (outX == 0 && outZ == 0) {
+                if (selected == null || precedes(source, selected.source())) {
+                    selected = anchor;
+                }
+                continue;
+            }
+            double distance = Math.sqrt((double) outX * outX + (double) outZ * outZ);
+            if (anchor.radius() == 0 || distance >= anchor.radius()) {
+                continue;
+            }
+            double progress = distance / anchor.radius();
+            double factor = 1D - progress * progress * (3D - 2D * progress);
+            long influence = Math.round(factor * SURFACE_TERRAIN_INFLUENCE_SCALE);
+            long weight = influence * source.strength();
+            int targetY = originalY + Math.max(-anchor.range(), Math.min(anchor.range(), source.meetY() - originalY));
+            weightedY += weight * targetY;
+            totalWeight += weight;
+            maximumInfluence = Math.max(maximumInfluence, influence);
+            range = Math.max(range, anchor.range());
+        }
+        if (selected != null) {
+            int targetY = originalY + Math.max(-selected.range(),
+                    Math.min(selected.range(), selected.source().meetY() - originalY));
+            return new FlattenResolution(targetY, selected.range(), selected.source().strength() > 1);
+        }
+        if (totalWeight == 0) {
+            return new FlattenResolution(originalY, 0, false);
+        }
+        int targetY = blendSurfaceTarget(originalY, weightedY / (double) totalWeight,
+                maximumInfluence / (double) SURFACE_TERRAIN_INFLUENCE_SCALE);
+        return new FlattenResolution(targetY, range, false);
+    }
+
+    private static Map<Long, Integer> fitFlattenTerrain(
+            WorldGenLevel world, BoundingBox area, FlattenFootprint footprint,
+            IntBinaryOperator surfaceHeight) {
+        Map<Long, Integer> heights = new HashMap<>();
+        BlockPos.MutableBlockPos position = new BlockPos.MutableBlockPos();
+        for (int x = area.minX(); x <= area.maxX(); x++) {
+            for (int z = area.minZ(); z <= area.maxZ(); z++) {
+                int originalY = Math.max(area.minY(), Math.min(area.maxY(), surfaceHeight.applyAsInt(x, z)));
+                long column = NativeStructureTemplateOccupancy.columnKey(x, z);
+                FlattenResolution resolution = resolveFlattenSurface(footprint.anchors(), x, z, originalY);
+                int projectedRange = footprint.projectedSupport().getOrDefault(column, 0);
+                int range = Math.max(resolution.range(), projectedRange);
+                if (range == 0 || originalY < area.maxY()
+                        && !world.getBlockState(position.set(x, originalY + 1, z)).getFluidState().isEmpty()) {
+                    continue;
+                }
+                int targetY = Math.max(area.minY(), Math.min(area.maxY(), resolution.targetY()));
+                int minimumY = Math.max(area.minY(), targetY - range);
+                applySurfaceColumn(world, position, x, z, originalY, targetY,
+                        minimumY, Math.min(area.maxY(), originalY + range));
+                if (resolution.foundation() || projectedRange > 0) {
+                    fillFlattenFoundation(world, position, x, z, targetY, minimumY);
+                }
+                heights.put(column, targetY + 1);
+            }
+        }
+        return Map.copyOf(heights);
+    }
+
+    private static void fillFlattenFoundation(
+            WorldGenLevel world, BlockPos.MutableBlockPos position,
+            int x, int z, int targetY, int minimumY) {
+        SurfaceMaterials materials = resolveSurfaceMaterials(world, position, x, z, targetY, minimumY);
+        if (!isTerrainBlock(world.getBlockState(position.set(x, targetY, z)))) {
+            world.setBlock(position, materials.surface(), 2);
+        }
+        for (int y = targetY - 1; y >= minimumY; y--) {
+            BlockState existing = world.getBlockState(position.set(x, y, z));
+            if (!existing.getFluidState().isEmpty()
+                    || NativeStructureVegetationClearer.isTreeBlock(existing)) {
+                break;
+            }
+            if (!isTerrainBlock(existing)) {
+                world.setBlock(position, materials.subsurface(), 2);
             }
         }
     }
@@ -821,6 +1101,15 @@ public final class NativeStructureSurfaceFitter {
     record SurfaceAnchor(int minX, int maxX, int minZ, int maxZ, int meetY, int strength) {
     }
 
+    record FlattenAnchor(SurfaceAnchor source, int radius, int range) {
+    }
+
+    record FlattenResolution(int targetY, int range, boolean foundation) {
+    }
+
+    private record FlattenFootprint(List<FlattenAnchor> anchors, Map<Long, Integer> projectedSupport) {
+    }
+
     private record SurfaceMaterials(BlockState surface, BlockState subsurface) {
     }
 
@@ -835,27 +1124,25 @@ public final class NativeStructureSurfaceFitter {
     private record VacuumAnchor(int surfaceY, int strength) {
     }
 
-    public static final class VacuumFoundationPlan {
-        private static final VacuumFoundationPlan EMPTY =
-                new VacuumFoundationPlan(List.of(), Set.of());
+    public record SurfaceTerrainPlan(
+            List<Long> foundationBases, Set<Long> occupiedCells, Map<Long, Integer> flattenedHeights) {
+        private static final SurfaceTerrainPlan EMPTY =
+                new SurfaceTerrainPlan(List.of(), Set.of(), Map.of());
 
-        private final List<Long> foundationBases;
-        private final Set<Long> occupiedCells;
-
-        private VacuumFoundationPlan(
-                List<Long> foundationBases, Set<Long> occupiedCells) {
-            this.foundationBases = foundationBases;
-            this.occupiedCells = occupiedCells;
+        public SurfaceTerrainPlan {
+            foundationBases = List.copyOf(foundationBases);
+            occupiedCells = Set.copyOf(occupiedCells);
+            flattenedHeights = Map.copyOf(flattenedHeights);
         }
 
-        private static VacuumFoundationPlan empty() {
+        private static SurfaceTerrainPlan empty() {
             return EMPTY;
         }
 
-        private static VacuumFoundationPlan create(
-                Set<Long> packedBases, Set<Long> packedOccupancy,
-                BoundingBox area) {
-            if (packedBases.isEmpty()) {
+        private static SurfaceTerrainPlan create(
+                VacuumFootprint vacuum, BoundingBox area, Map<Long, Integer> flattenedHeights) {
+            Set<Long> packedBases = vacuum.foundationBases();
+            if (packedBases.isEmpty() && flattenedHeights.isEmpty()) {
                 return EMPTY;
             }
             List<Long> bases = new ArrayList<>(packedBases.size());
@@ -869,7 +1156,7 @@ public final class NativeStructureSurfaceFitter {
                 columns.add(NativeStructureTemplateOccupancy.columnKey(
                         base.getX(), base.getZ()));
             }
-            if (bases.isEmpty()) {
+            if (bases.isEmpty() && flattenedHeights.isEmpty()) {
                 return EMPTY;
             }
             bases.sort((first, second) -> {
@@ -878,15 +1165,28 @@ public final class NativeStructureSurfaceFitter {
                 return yOrder == 0 ? Long.compare(first, second) : yOrder;
             });
             Set<Long> occupancy = new HashSet<>();
-            for (long packedCell : packedOccupancy) {
+            for (long packedCell : vacuum.occupiedCells()) {
                 BlockPos cell = BlockPos.of(packedCell);
                 if (columns.contains(NativeStructureTemplateOccupancy.columnKey(
                         cell.getX(), cell.getZ()))) {
                     occupancy.add(packedCell);
                 }
             }
-            return new VacuumFoundationPlan(
-                    List.copyOf(bases), Set.copyOf(occupancy));
+            return new SurfaceTerrainPlan(
+                    bases, occupancy, flattenedHeights);
+        }
+
+        public void primeHeightmaps(ChunkAccess chunk) {
+            if (flattenedHeights.isEmpty()) {
+                return;
+            }
+            Heightmap surface = chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.WORLD_SURFACE_WG);
+            Heightmap floor = chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.OCEAN_FLOOR_WG);
+            WorldgenTerrainHeightmaps.primeTerrain(chunk,
+                    (x, z) -> flattenedHeights.getOrDefault(NativeStructureTemplateOccupancy.columnKey(x, z),
+                            surface.getFirstAvailable(x & 15, z & 15)),
+                    (x, z) -> flattenedHeights.getOrDefault(NativeStructureTemplateOccupancy.columnKey(x, z),
+                            floor.getFirstAvailable(x & 15, z & 15)));
         }
     }
 

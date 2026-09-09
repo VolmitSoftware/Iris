@@ -33,8 +33,8 @@ final class GenerationKernelV1 implements GenerationKernelRegistry.RuntimeFactor
     }
 
     @Override
-    public IrisComplex create(IrisEngine engine, TransitionGenerationPlan transitionPlan) {
-        return new IrisComplex(engine, transitionPlan);
+    public IrisComplex create(IrisEngine engine, TransitionGenerationPlan transitionPlan, boolean detached) {
+        return new IrisComplex(engine, transitionPlan, detached);
     }
 
     @Override

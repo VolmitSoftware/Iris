@@ -13,8 +13,11 @@ final class Terrain3DFragmentFilter {
     private static final int KEEP = 1;
     private static final int REMOVE = 2;
 
+    // Static on purpose: a per-instance ThreadLocal whose value was an inner class kept every
+    // retired filter (and the runtime and stream caches behind it) reachable from each worker
+    // thread that had ever classified for it. The scratch holds primitives only between calls.
+    private static final ThreadLocal<Traversal> TRAVERSALS = ThreadLocal.withInitial(Traversal::new);
     private final ColumnSource source;
-    private final ThreadLocal<Traversal> traversals = ThreadLocal.withInitial(Traversal::new);
 
     Terrain3DFragmentFilter(ColumnSource source) {
         this.source = Objects.requireNonNull(source, "Raw density columns");
@@ -30,7 +33,7 @@ final class Terrain3DFragmentFilter {
         int removed = 0;
         for (int span = 1; span < raw.spanCount(); span++) {
             if (density.state(span) == UNKNOWN) {
-                traversals.get().classify(x, z, density, span);
+                TRAVERSALS.get().classify(this, x, z, density, span);
             }
             if (density.state(span) == REMOVE) {
                 removed++;
@@ -42,7 +45,7 @@ final class Terrain3DFragmentFilter {
     }
 
     void clear() {
-        traversals.remove();
+        TRAVERSALS.remove();
     }
 
     private Terrain3DColumn retainSpans(DensityColumn density, int removed) {
@@ -79,7 +82,7 @@ final class Terrain3DFragmentFilter {
         }
     }
 
-    private final class Traversal {
+    private static final class Traversal {
         private final int[] xs = new int[MAXIMUM_FRAGMENT_VOLUME + 1];
         private final int[] zs = new int[MAXIMUM_FRAGMENT_VOLUME + 1];
         private final int[] spans = new int[MAXIMUM_FRAGMENT_VOLUME + 1];
@@ -90,17 +93,17 @@ final class Terrain3DFragmentFilter {
         private int volume;
         private int decision;
 
-        private void classify(int x, int z, DensityColumn density, int span) {
+        private void classify(Terrain3DFragmentFilter filter, int x, int z, DensityColumn density, int span) {
             try {
                 visit(x, z, density, span);
                 for (int cursor = 0; cursor < count && decision == UNKNOWN; cursor++) {
                     Terrain3DColumn raw = columns[cursor].raw;
                     int bottom = raw.ceiling(spans[cursor]);
                     int top = raw.floor(spans[cursor]);
-                    inspect((long) xs[cursor] - 1, zs[cursor], bottom, top);
-                    inspect((long) xs[cursor] + 1, zs[cursor], bottom, top);
-                    inspect(xs[cursor], (long) zs[cursor] - 1, bottom, top);
-                    inspect(xs[cursor], (long) zs[cursor] + 1, bottom, top);
+                    inspect(filter, (long) xs[cursor] - 1, zs[cursor], bottom, top);
+                    inspect(filter, (long) xs[cursor] + 1, zs[cursor], bottom, top);
+                    inspect(filter, xs[cursor], (long) zs[cursor] - 1, bottom, top);
+                    inspect(filter, xs[cursor], (long) zs[cursor] + 1, bottom, top);
                 }
                 int result = decision == UNKNOWN ? REMOVE : decision;
                 for (int index = 0; index < count; index++) {
@@ -117,7 +120,7 @@ final class Terrain3DFragmentFilter {
             }
         }
 
-        private void inspect(long x, long z, int bottom, int top) {
+        private void inspect(Terrain3DFragmentFilter filter, long x, long z, int bottom, int top) {
             if (decision != UNKNOWN) {
                 return;
             }
@@ -126,7 +129,7 @@ final class Terrain3DFragmentFilter {
                 decision = KEEP;
                 return;
             }
-            DensityColumn density = source.column((int) x, (int) z);
+            DensityColumn density = filter.source.column((int) x, (int) z);
             Terrain3DColumn raw = density.raw;
             for (int span = 0; span < raw.spanCount(); span++) {
                 if (raw.ceiling(span) > top || decision != UNKNOWN) {

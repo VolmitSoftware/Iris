@@ -6,6 +6,7 @@ import art.arcane.iris.engine.hydrology.HydraulicSegment;
 import art.arcane.iris.engine.hydrology.HydrologyFeatureRef;
 import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
 import art.arcane.iris.engine.hydrology.HydrologyPoint;
+import art.arcane.iris.engine.hydrology.HydrologyPlannerSettings;
 import art.arcane.iris.engine.hydrology.HydrologyTile;
 import art.arcane.iris.engine.hydrology.HydrologyTileKey;
 import art.arcane.iris.engine.hydrology.RiverFootprint;
@@ -42,6 +43,24 @@ import static org.junit.Assert.assertTrue;
 public final class HydrologyPackProbeTest {
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Test
+    public void standingPoolSelectorsUsePoolProfilesInsteadOfRiverProfiles() {
+        HydrologyPlannerSettings defaults = HydrologyPlannerSettings.defaults();
+        HydrologyPlannerSettings settings = new HydrologyPlannerSettings(
+                defaults.seaLevel(), defaults.routing(), defaults.surface(), defaults.hydraulics(),
+                defaults.underground(), defaults.outlets(), defaults.geometry(), defaults.deepFluids(),
+                List.of(new HydrologyPlannerSettings.SurfacePool("tropical_lake", true, 8D, 160, 8, 16, 3, 8, null)),
+                defaults.widestShoreBiomeWidth(), defaults.seaCaves(), defaults.surfacePolicyBounds());
+
+        HydrologyPackProbe.validateRequiredProfiles(settings, Set.of("water"), List.of(
+                HydrologyPackProbe.CoverageSelector.parse("STANDING_POOL@tropical_lake"),
+                HydrologyPackProbe.CoverageSelector.parse("SURFACE_POOL@water")));
+        assertThrows(IllegalArgumentException.class, () -> HydrologyPackProbe.validateRequiredProfiles(
+                settings, Set.of("water"), List.of(HydrologyPackProbe.CoverageSelector.parse("STANDING_POOL@water"))));
+        assertThrows(IllegalArgumentException.class, () -> HydrologyPackProbe.validateRequiredProfiles(
+                settings, Set.of("water"), List.of(HydrologyPackProbe.CoverageSelector.parse("SURFACE_POOL@tropical_lake"))));
+    }
 
     @Test
     public void parsesExplicitBoundedCoverageInputs() {

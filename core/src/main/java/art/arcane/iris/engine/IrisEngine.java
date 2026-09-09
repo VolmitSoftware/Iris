@@ -34,6 +34,8 @@ import art.arcane.iris.engine.framework.EngineTarget;
 import art.arcane.iris.engine.framework.EngineWorldManager;
 import art.arcane.iris.engine.framework.GenerationSessionException;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
+import art.arcane.iris.engine.framework.EngineLifecycleTasks;
+import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
 import art.arcane.iris.engine.framework.GenerationSessionManager;
 import art.arcane.iris.engine.history.GenerationBoundarySignatureSampler;
 import art.arcane.iris.engine.history.GenerationHistory;
@@ -1545,6 +1547,23 @@ public class IrisEngine implements Engine {
     @Override
     public GenerationSessionManager getGenerationSessions() {
         return generationSessions;
+    }
+
+    @Override
+    public boolean requestSave() {
+        IrisContext context = IrisContext.get();
+        if (context != null && context.getEngine() == this && context.getGenerationSessionId() != 0L) {
+            scheduleWorldSave();
+            return true;
+        }
+        return EngineLifecycleTasks.run(this, "world_save_request", this::scheduleWorldSave);
+    }
+
+    private void scheduleWorldSave() {
+        backgroundTasks.scheduleAdmittedTask(this, () -> NativeStructureOwnershipStore.flush(this));
+        getMantle().save();
+        getWorldManager().onSave();
+        saveEngineData();
     }
 
     @Override

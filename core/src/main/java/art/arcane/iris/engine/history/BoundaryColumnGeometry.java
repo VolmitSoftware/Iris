@@ -92,6 +92,18 @@ public final class BoundaryColumnGeometry {
         return paletteIndices.clone();
     }
 
+    int runCount() {
+        return runEnds.length;
+    }
+
+    int runEnd(int run) {
+        return runEnds[run];
+    }
+
+    Voxel runVoxel(int run) {
+        return palette.get(paletteIndices[run]);
+    }
+
     public Voxel voxelAt(int worldY) {
         long offset = (long) worldY - minimumY;
         if (offset < 0 || offset >= height()) {

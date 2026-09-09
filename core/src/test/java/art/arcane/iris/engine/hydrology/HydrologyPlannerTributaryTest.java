@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.hydrology;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -194,7 +196,8 @@ public class HydrologyPlannerTributaryTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 
@@ -260,7 +263,8 @@ public class HydrologyPlannerTributaryTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 
@@ -299,7 +303,8 @@ public class HydrologyPlannerTributaryTest {
                 List.of(),
                 List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
     @Test
@@ -407,7 +412,9 @@ public class HydrologyPlannerTributaryTest {
                     54, 0D, true, false, 30, 32, false, false, false, false, false, false,
                     0D, 0D, 0D, 1D, 1D, 1D, 1D, 1D,
                     "ocean_parent", "surface", "mouth", "shore", "dry", "flooded",
-                    List.of("default"), List.of(), Double.NaN, null, Double.NaN, true);
+                    List.of("default"), List.of(), Double.NaN, null, Double.NaN, true,
+                    SurfaceRiverPolicy.INHERIT
+        );
         }
         int height = 118 - Math.floorDiv(x, 12) + (int) StrictMath.round(StrictMath.sin(z / 18D) * 2D);
         boolean source = x >= 0 && x <= 24 && (z >= 8 && z <= 40 || z >= 72 && z <= 104);
@@ -415,7 +422,9 @@ public class HydrologyPlannerTributaryTest {
                 height, 1D, false, true, 70, 74, true, true, false, false, source, false,
                 0D, 0D, source ? 1D : 0D, 1D, 1D, 1D, 1D, 1D,
                 "parent", "surface", "mouth", "shore", "dry", "flooded",
-                List.of("default"), List.of(), Double.NaN, null, Double.NaN, true);
+                List.of("default"), List.of(), Double.NaN, null, Double.NaN, true,
+                SurfaceRiverPolicy.INHERIT
+        );
     }
 
     private static HydrologyPlannerSettings undergroundSettings(int tributaries) {
@@ -449,7 +458,8 @@ public class HydrologyPlannerTributaryTest {
                 List.of(),
                 List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 

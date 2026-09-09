@@ -51,7 +51,6 @@ public final class HydrologyPlanner {
     final SimplexNoise routeWormPrimary;
     final SimplexNoise routeWormDetail;
     final SurfaceCourseBuilder surfaceCourseBuilder;
-    final SurfaceCourseBuilder tributaryCourseBuilder;
     final HydrologyCrossTileResolver crossTile;
     final HydrologyOutletPlanner outletPlanner;
     final HydrologySourcePlanner sourcePlanner;
@@ -182,17 +181,9 @@ public final class HydrologyPlanner {
                 settings.surface(),
                 this::sampleBasisWithoutSlope,
                 geometrySampler,
-                settings.seaLevel(),
-                settings.routing().minimumSurfaceCourseLength()
+                settings.seaLevel()
         );
-        // A tributary only has to be a real reach before it joins its stem: half the course minimum.
-        this.tributaryCourseBuilder = new SurfaceCourseBuilder(
-                settings.surface(),
-                this::sampleBasisWithoutSlope,
-                geometrySampler,
-                settings.seaLevel(),
-                settings.routing().minimumSurfaceCourseLength() / 2
-        );        this.crossTile = new HydrologyCrossTileResolver(this);
+        this.crossTile = new HydrologyCrossTileResolver(this);
         this.outletPlanner = new HydrologyOutletPlanner(this);
         this.sourcePlanner = new HydrologySourcePlanner(this);
         this.routeGeometry = new HydrologyRouteGeometry(this);
@@ -638,6 +629,7 @@ public final class HydrologyPlanner {
         final HashMap<Integer, List<HydrologyGridOffset>> radialOffsets;
         final HashMap<UndergroundSegmentCapKey, Integer> undergroundSegmentCaps;
         final HashMap<Long, HydrologyPoint> routeAnchors;
+        final HashMap<Long, HydrologyPoint> surfaceRouteAnchors;
         final IdentityHashMap<HydrologySampledGrid, HashMap<SurfaceRouteKey, List<HydrologyPoint>>> surfaceRoutes;
         final HydrologyCaveCourseFilter.CandidateCache caveCandidates;
         final HydrologyCaveContainmentPlanner.ValidationCache caveValidations;
@@ -652,6 +644,7 @@ public final class HydrologyPlanner {
             this.radialOffsets = new HashMap<>();
             this.undergroundSegmentCaps = new HashMap<>();
             this.routeAnchors = new HashMap<>();
+            this.surfaceRouteAnchors = new HashMap<>();
             this.surfaceRoutes = new IdentityHashMap<>();
             this.caveCandidates = new HydrologyCaveCourseFilter.CandidateCache();
             this.caveValidations = new HydrologyCaveContainmentPlanner.ValidationCache();
@@ -769,8 +762,7 @@ public final class HydrologyPlanner {
             HydrologyCrossTileSurfaceAdmission.Result surfaceAdmission =
                     HydrologyCrossTileSurfaceAdmission.admit(
                             crossTile.surfaceClaims(current),
-                            blockers.surfaceClaims(),
-                            settings.surface().sources().minimumSpacing()
+                            blockers.surfaceClaims()
                     );
             Map<Long, RiverCourse> currentCourses = crossTile.coursesById(current.courses());
             HashSet<Long> rejectedSurfaceOutlets = new HashSet<>();

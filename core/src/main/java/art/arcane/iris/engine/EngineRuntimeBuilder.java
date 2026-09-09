@@ -108,7 +108,7 @@ final class EngineRuntimeBuilder {
             }
             IrisLogging.debug("[IrisEngine timing] new IrisEngineMantle=" + (M.ms() - started) + "ms");
             started = M.ms();
-            assembly.complex = assembly.runtimeKernel.createComplex(engine, assembly.transitionPlan);
+            assembly.complex = assembly.runtimeKernel.createComplex(engine, assembly.transitionPlan, false);
             IrisLogging.debug("[IrisEngine timing] complex=" + (M.ms() - started) + "ms");
             started = M.ms();
             assembly.dimensionStackContext = assembly.runtimeKernel.createDimensionStackContext(engine);
@@ -179,7 +179,7 @@ final class EngineRuntimeBuilder {
             IrisLogging.debug("Setup Detached Generation Runtime " + assembly.cacheId);
             assembly.mantle = assembly.runtimeKernel.createMantle(engine, assembly.mantleStorageDirectory);
             assembly.ownsMantle = true;
-            assembly.complex = assembly.runtimeKernel.createComplex(engine, assembly.transitionPlan);
+            assembly.complex = assembly.runtimeKernel.createComplex(engine, assembly.transitionPlan, true);
             assembly.dimensionStackContext = assembly.runtimeKernel.createDimensionStackContext(engine);
             assembly.upperContext = assembly.runtimeKernel.createUpperContext(engine);
             assembly.hash32 = CompletableFuture.completedFuture(computePackHash(runtimeTarget.getData()));

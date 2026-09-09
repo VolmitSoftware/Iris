@@ -103,7 +103,9 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -111,7 +113,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -136,6 +137,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final CompletableFuture<Void> initialSpawnReady = new CompletableFuture<>();
     private final AtomicCache<EngineTarget> targetCache = new AtomicCache<>();
     private final AtomicReference<CompletableFuture<Void>> closeFuture = new AtomicReference<>();
+    private final AtomicReference<CompletableFuture<Void>> watcherHotload = new AtomicReference<>();
     private volatile Engine engine;
     private volatile Looper hotloader;
     private volatile StudioMode lastMode;
@@ -749,6 +751,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
                     return HOTLOAD_LOOP_DELAY_MS;
                 }
+
+                @Override
+                protected void onError(Throwable failure) {
+                    if (failure instanceof CancellationException && (closing || isInterrupted())) {
+                        return;
+                    }
+                    super.onError(failure);
+                }
             } : null;
 
             if (hotloader != null) {
@@ -822,6 +832,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
         boolean alreadyClosing = closing;
         closing = true;
+        cancelWatcherHotload();
         CompletableFuture<Void> operation;
         try {
             operation = withExclusiveControlFuture(() -> {
@@ -873,6 +884,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void quiesceForServerShutdown() {
+        cancelWatcherHotload();
         Looper activeHotloader = hotloader;
         hotloader = null;
         if (activeHotloader != null) {
@@ -944,7 +956,36 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         if (!shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
             return;
         }
-        withExclusiveControlFuture(() -> getEngine().hotload(), 30L, TimeUnit.SECONDS).join();
+        CompletableFuture<Void> pending = new CompletableFuture<>();
+        watcherHotload.set(pending);
+        try {
+            if (!shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)
+                    || Thread.currentThread().isInterrupted()) {
+                pending.cancel(true);
+            } else {
+                J.a(() -> completeExclusiveControlFuture(loadLock, () -> {
+                    if (shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
+                        getEngine().hotload();
+                    }
+                }, pending));
+            }
+            pending.get();
+        } catch (InterruptedException failure) {
+            pending.cancel(true);
+            Thread.currentThread().interrupt();
+            throw new CancellationException("Studio hotload watcher interrupted.");
+        } catch (ExecutionException failure) {
+            throw new CompletionException(failure.getCause());
+        } finally {
+            watcherHotload.compareAndSet(pending, null);
+        }
+    }
+
+    private void cancelWatcherHotload() {
+        CompletableFuture<Void> pending = watcherHotload.getAndSet(null);
+        if (pending != null) {
+            pending.cancel(true);
+        }
     }
 
     @Override
@@ -962,80 +1003,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     public GenerationStagePermit acquireGenerationStage(String operation) {
         return loadLock.acquireStage(operation);
-    }
-
-    public GenerationStagePermit acquireNoiseGenerationStage(
-            Engine expectedEngine,
-            int chunkX,
-            int chunkZ,
-            String operation
-    ) {
-        Engine activeEngine = Objects.requireNonNull(expectedEngine, "Noise generation engine");
-        return acquirePreparedGenerationStage(
-                loadLock,
-                operation,
-                () -> resolveStudioGeneratorForNoise(activeEngine),
-                activeEngine,
-                chunkX,
-                chunkZ);
-    }
-
-    static GenerationStagePermit acquirePreparedGenerationStage(
-            GenerationStageGate gate,
-            String operation,
-            Supplier<StudioGenerator> resolver,
-            Engine engine,
-            int chunkX,
-            int chunkZ
-    ) {
-        GenerationStageGate activeGate = Objects.requireNonNull(gate, "Generation stage gate");
-        Supplier<StudioGenerator> activeResolver = Objects.requireNonNull(resolver, "Studio generator resolver");
-        Engine activeEngine = Objects.requireNonNull(engine, "Prepared generation engine");
-        while (true) {
-            GenerationStagePermit stage = activeGate.acquireStage(operation);
-            StudioGenerator selected;
-            boolean retained = false;
-            try {
-                selected = activeResolver.get();
-                if (selected == null || !selected.requiresPreSessionPreparation()) {
-                    if (activeResolver.get() == selected) {
-                        retained = true;
-                        return stage;
-                    }
-                    continue;
-                }
-            } finally {
-                if (!retained) {
-                    stage.close();
-                }
-            }
-
-            GenerationStageExclusivePermit exclusive = activeGate.acquireExclusiveStage(operation);
-            try {
-                StudioGenerator active = activeResolver.get();
-                if (active != selected) {
-                    continue;
-                }
-                active.prepareChunkBeforeSession(activeEngine, chunkX, chunkZ);
-                return exclusive.downgradeToStage();
-            } catch (WrongEngineBroException e) {
-                throw new IllegalStateException("Iris generation stage " + operation
-                        + " could not prepare its Studio generator.", e);
-            } finally {
-                exclusive.close();
-            }
-        }
-    }
-
-    private StudioGenerator resolveStudioGeneratorForNoise(Engine expectedEngine) {
-        if (engine != expectedEngine) {
-            throw new IllegalStateException("Iris noise generation belongs to a replaced engine runtime.");
-        }
-        StudioGenerator selected = computeStudioGenerator();
-        if (engine != expectedEngine) {
-            throw new IllegalStateException("Iris noise generation changed engine runtime during Studio resolution.");
-        }
-        return selected;
     }
 
     public void withExclusiveControl(Runnable r) {
@@ -1087,15 +1054,34 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         GenerationStageGate activeGate = Objects.requireNonNull(gate, "Exclusive control gate");
         Runnable activeOperation = Objects.requireNonNull(operation, "Exclusive control operation");
         CompletableFuture<Void> outward = Objects.requireNonNull(future, "Exclusive control future");
+        if (outward.isCancelled()) {
+            return;
+        }
+        ExclusiveControlAcquisition acquisition = new ExclusiveControlAcquisition(Thread.currentThread());
+        outward.whenComplete((ignored, completionFailure) -> {
+            if (outward.isCancelled()) {
+                acquisition.cancel();
+            }
+        });
         boolean acquired = false;
         Throwable failure = null;
         try {
-            activeGate.acquireExclusive();
-            acquired = true;
-            activeOperation.run();
+            try {
+                activeGate.acquireExclusive();
+                acquired = true;
+            } finally {
+                acquisition.stopWaiting();
+            }
+            if (!outward.isCancelled()) {
+                activeOperation.run();
+            }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            failure = e;
+            if (!acquisition.interruptedByCancellation()) {
+                Thread.currentThread().interrupt();
+            }
+            if (!outward.isCancelled()) {
+                failure = e;
+            }
         } catch (Throwable e) {
             failure = e;
         } finally {
@@ -1106,8 +1092,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
         if (failure == null) {
             outward.complete(null);
-        } else {
-            outward.completeExceptionally(failure);
+        } else if (!outward.completeExceptionally(failure)) {
+            IrisLogging.reportError(failure);
         }
     }
 
@@ -1436,25 +1422,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             return new GenerationStagePermit(permits);
         }
 
-        GenerationStageExclusivePermit acquireExclusiveStage(String operation) {
-            String activeOperation = Objects.requireNonNull(operation, "Generation stage operation");
-            if (closing.getAsBoolean()) {
-                throw rejected(activeOperation);
-            }
-            try {
-                permits.acquire(permitCount);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException("Iris generation stage " + activeOperation
-                        + " was interrupted while waiting for exclusive engine access.", e);
-            }
-            if (closing.getAsBoolean()) {
-                permits.release(permitCount);
-                throw rejected(activeOperation);
-            }
-            return new GenerationStageExclusivePermit(permits, permitCount);
-        }
-
         void acquireExclusive() throws InterruptedException {
             permits.acquire(permitCount);
         }
@@ -1510,36 +1477,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
         private synchronized boolean interruptedByCancellation() {
             return cancellationInterrupt;
-        }
-    }
-
-    static final class GenerationStageExclusivePermit implements AutoCloseable {
-        private final Semaphore permits;
-        private final int permitCount;
-        private final AtomicBoolean released;
-
-        private GenerationStageExclusivePermit(Semaphore permits, int permitCount) {
-            this.permits = permits;
-            this.permitCount = permitCount;
-            this.released = new AtomicBoolean(false);
-        }
-
-        GenerationStagePermit downgradeToStage() {
-            if (!released.compareAndSet(false, true)) {
-                throw new IllegalStateException("Exclusive Iris generation stage was already released.");
-            }
-            GenerationStagePermit stage = new GenerationStagePermit(permits);
-            if (permitCount > 1) {
-                permits.release(permitCount - 1);
-            }
-            return stage;
-        }
-
-        @Override
-        public void close() {
-            if (released.compareAndSet(false, true)) {
-                permits.release(permitCount);
-            }
         }
     }
 

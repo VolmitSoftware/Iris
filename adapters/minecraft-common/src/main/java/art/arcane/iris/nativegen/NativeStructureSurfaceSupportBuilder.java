@@ -1,8 +1,10 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.iris.engine.object.IrisStructureTerrainMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
@@ -44,6 +46,10 @@ final class NativeStructureSurfaceSupportBuilder {
             for (NativeStructureTerrainIntegrator.TerrainTarget target : targets) {
                 if (target == null
                         || !NativeStructureSurfaceFitter.requiresSurfaceTerrain(target)
+                        || target.terrain().resolvedMode() == IrisStructureTerrainMode.FLATTEN
+                        && !NativeStructureSurfaceFitter.hasExposedFlattenPiece(
+                        target.start(), (x, z) -> world.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x, z) - 1,
+                        target.terrain().resolvedFlattenRange())
                         || !seenStarts.add(target.start())) {
                     continue;
                 }

@@ -18,6 +18,53 @@ public class PackHydrologyValidatorTest {
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
+    public void acceptsNullableRegionalSurfaceControlsAtTheirBounds() throws Exception {
+        File pack = pack(riversDimension("{}", """
+                "surfaceSourceDensity": null,
+                "surfaceSourceSpacing": null,
+                "surfaceTributaries": null,
+                "surfaceInlandOutlets": null,
+                "surfaceCoastalOutlets": null,
+                "surfaceMinimumCourseLength": null,
+                "surfaceMaximumIncision": null
+                """));
+        write(pack, "regions/region.json", """
+                {"landBiomes":["biome"],"riverPolicy":{
+                  "surfaceSourceDensity":64,"surfaceSourceSpacing":8192,"surfaceTributaries":4,
+                  "surfaceInlandOutlets":256,"surfaceCoastalOutlets":64,
+                  "surfaceMinimumCourseLength":4096,"surfaceMaximumIncision":32}}
+                """);
+        write(pack, "biomes/biome.json", """
+                {"name":"Biome","derivative":"minecraft:plains","riverPolicy":{
+                  "surfaceSourceDensity":0,"surfaceSourceSpacing":0,"surfaceTributaries":0,
+                  "surfaceInlandOutlets":0,"surfaceCoastalOutlets":0,
+                  "surfaceMinimumCourseLength":16,"surfaceMaximumIncision":1}}
+                """);
+
+        PackHydrologyValidator.Validation validation = validate(pack);
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+    }
+
+    @Test
+    public void rejectsInvalidRegionalSurfaceControlNumbers() throws Exception {
+        List<String> invalidEntries = List.of(
+                "\"surfaceSourceDensity\":-1", "\"surfaceSourceDensity\":65", "\"surfaceSourceDensity\":\"NaN\"",
+                "\"surfaceSourceDensity\":true", "\"surfaceSourceSpacing\":8193", "\"surfaceSourceSpacing\":1.5",
+                "\"surfaceTributaries\":5", "\"surfaceTributaries\":1.5", "\"surfaceInlandOutlets\":-1",
+                "\"surfaceInlandOutlets\":257", "\"surfaceCoastalOutlets\":65", "\"surfaceCoastalOutlets\":\"4\"",
+                "\"surfaceMinimumCourseLength\":15", "\"surfaceMinimumCourseLength\":4097",
+                "\"surfaceMinimumCourseLength\":128.5", "\"surfaceMinimumCourseLength\":true",
+                "\"surfaceMaximumIncision\":0", "\"surfaceMaximumIncision\":33",
+                "\"surfaceMaximumIncision\":2.5", "\"surfaceMaximumIncision\":\"NaN\"");
+        for (String entry : invalidEntries) {
+            File pack = pack(riversDimension("{}"));
+            write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"],\"riverPolicy\":{" + entry + "}}");
+            PackHydrologyValidator.Validation validation = validate(pack);
+            assertContains(validation.errors(), entry.substring(1, entry.indexOf('"', 1)));
+        }
+    }
+
+    @Test
     public void acceptsCanonicalHydrologyAndRecursivePolicyClosure() throws Exception {
         File pack = pack(canonicalDimension());
         write(pack, "regions/region.json", """

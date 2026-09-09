@@ -345,7 +345,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
                                 "1".repeat(64),
                                 Map.of(
                                         new GenerationKernelRegistry.AlgorithmVersion(1, 1),
-                                        (engine, transitionPlan) -> complexOne
+                                        (engine, transitionPlan, detached) -> complexOne
                                 )
                         ),
                         new GenerationKernelRegistry.Kernel(
@@ -353,7 +353,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
                                 "2".repeat(64),
                                 Map.of(
                                         new GenerationKernelRegistry.AlgorithmVersion(1, 1),
-                                        (engine, transitionPlan) -> complexTwo
+                                        (engine, transitionPlan, detached) -> complexTwo
                                 )
                         )
                 )
@@ -362,9 +362,9 @@ public class IrisEngineGenerationRuntimeScopeTest {
         GenerationKernelRegistry.RuntimeKernel kernelTwo = kernels.select(versionTwo);
         IrisEngine factoryContext = mock(IrisEngine.class);
         RuntimeFixture first = runtime(
-                1, 1D, 1D, 1D, kernelOne, kernelOne.createComplex(factoryContext, null));
+                1, 1D, 1D, 1D, kernelOne, kernelOne.createComplex(factoryContext, null, false));
         RuntimeFixture second = runtime(
-                2, 1D, 1D, 1D, kernelTwo, kernelTwo.createComplex(factoryContext, null));
+                2, 1D, 1D, 1D, kernelTwo, kernelTwo.createComplex(factoryContext, null, false));
         IrisEngine engine = engine(first.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
         IrisEngine.GenerationRuntimeBinding firstBinding = new IrisEngine.GenerationRuntimeBinding(
                 engine, first.runtime);
@@ -1006,7 +1006,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         return new GenerationKernelRegistry.RuntimeKernel(
                 version,
                 "f".repeat(64),
-                (engine, transitionPlan) -> mock(IrisComplex.class)
+                (engine, transitionPlan, detached) -> mock(IrisComplex.class)
         );
     }
 

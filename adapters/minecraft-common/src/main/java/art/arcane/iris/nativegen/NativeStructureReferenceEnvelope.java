@@ -63,6 +63,7 @@ public final class NativeStructureReferenceEnvelope {
         boolean usesEnvelope = mode == IrisStructureTerrainMode.BORE
                 || mode == IrisStructureTerrainMode.FORCE_CARVE
                 || mode == IrisStructureTerrainMode.VACUUM
+                || mode == IrisStructureTerrainMode.FLATTEN
                 || mode == IrisStructureTerrainMode.ENCASE;
         int horizontalPadding = mode == IrisStructureTerrainMode.VACUUM
                 ? NativeStructureSurfaceFitter.surfaceTerrainRadius()

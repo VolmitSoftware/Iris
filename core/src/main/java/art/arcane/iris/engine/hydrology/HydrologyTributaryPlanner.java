@@ -44,7 +44,9 @@ final class HydrologyTributaryPlanner {
             }
             OutletCourseKey key = new OutletCourseKey(course.outletId().getAsLong());
             RiverCourse canonicalCourse = canonicalCourses.get(key);
-            if (canonicalCourse == null || canonicalCourse.id() == course.id()) {
+            if (canonicalCourse == null || canonicalCourse.id() == course.id()
+                    || (course.type() == RiverCourseType.SURFACE || canonicalCourse.type() == RiverCourseType.SURFACE)
+                    && !course.profileKey().equals(canonicalCourse.profileKey())) {
                 normalized.add(course);
                 continue;
             }
@@ -197,6 +199,13 @@ final class HydrologyTributaryPlanner {
     ) {
         HydrologyCoursePath path = draft.path();
         HydrologyPoint sourcePoint = path.points().getFirst();
+        if (!draft.source().terrain().preferredProfileKeys().contains(stem.profileKey())
+                || !HydrologySurfaceProfiles.allowsProfile(planner, path, stem.profileKey())) {
+            addTributaryDiagnostic(draft.courseId(), sourcePoint,
+                    HydrologyCandidateRejection.NO_DRAINAGE_PATH, 0, diagnostics);
+            return null;
+        }
+        draft = new SurfaceCourseDraft(draft.source(), draft.courseId(), stem.profileKey(), path);
         HashSet<Long> stemEdges = new HashSet<>();
         for (DrainageEdge edge : stem.drainageEdges()) {
             stemEdges.add(edge.id());
@@ -349,7 +358,6 @@ final class HydrologyTributaryPlanner {
      */
     void levelApproach(List<HydraulicSegment> segments, int level) {
         int run = Math.max(1, planner.settings.surface().banks().cascadeRun());
-        int maximumIncision = planner.settings.surface().maximumIncision();
         double distance = 0D;
         HydrologyPoint previous = null;
         int downstreamHead = Integer.MIN_VALUE;
@@ -369,7 +377,8 @@ final class HydrologyTributaryPlanner {
                     settled = true;
                     break;
                 }
-                int floor = planner.sampleBasisWithoutSlope(point.x(), point.z()).naturalHeight() - maximumIncision;
+                HydrologyTerrainSample terrain = planner.sampleBasisWithoutSlope(point.x(), point.z());
+                int floor = terrain.naturalHeight() - planner.sourcePlanner.permittedSurfaceIncision(terrain);
                 int lowered = Math.min(point.y(), Math.max(Math.max(allowed, floor), downstreamHead));
                 if (lowered < point.y()) {
                     centerline.set(pointIndex, new HydrologyPoint(point.x(), lowered, point.z()));
@@ -444,6 +453,9 @@ final class HydrologyTributaryPlanner {
         if (last.x() != joinStation.x() || last.z() != joinStation.z()) {
             points.add(new HydrologyPoint(joinStation.x(), last.y(), joinStation.z()));
         }
+        if (!HydrologySurfaceProfiles.allowsProfile(planner, points, draft.profileKey())) {
+            return TributaryBuild.rejected(HydrologyCandidateRejection.NO_DRAINAGE_PATH, 0);
+        }
         LinkedHashSet<DrainageEdge> ownedEdges = new LinkedHashSet<>();
         for (DrainageEdge edge : path.pairEdges().subList(0, joinIndex)) {
             if (!stemEdges.contains(edge.id())) {
@@ -454,13 +466,14 @@ final class HydrologyTributaryPlanner {
             return TributaryBuild.rejected(HydrologyCandidateRejection.COURSE_TOO_SHORT, joinIndex);
         }
         int stemHead = joinStation.y();
-        SurfaceCourseResult result = planner.tributaryCourseBuilder.build(
+        SurfaceCourseResult result = planner.surfaceCourseBuilder.build(
                 planner.worldSeed,
                 draft.courseId(),
                 draft.profileKey(),
                 List.copyOf(points),
                 SurfaceTerminal.TRIBUTARY,
-                stemHead
+                stemHead,
+                planner.sourcePlanner.minimumCourseLength(draft.source().terrain(), true) / 2
         );
         if (!result.accepted()) {
             return TributaryBuild.rejected(result.rejection(), result.rejectionDetail());

@@ -117,6 +117,13 @@ public class TreeSVC implements IrisService {
             return;
         }
 
+        if (!EngineLifecycleTasks.run(engine, "bukkit_tree_grow",
+                () -> growTree(event, worldAccess, engine))) {
+            event.setCancelled(true);
+        }
+    }
+
+    private void growTree(StructureGrowEvent event, PlatformChunkGenerator worldAccess, Engine engine) {
         IrisDimension dimension = engine.getDimension();
 
         if (dimension == null) {

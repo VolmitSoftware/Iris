@@ -1,5 +1,8 @@
 package art.arcane.iris.engine.hydrology.runtime;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+import art.arcane.iris.engine.hydrology.HydrologyHash;
+
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.hydrology.HydrologyColumnLayer;
@@ -73,6 +76,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.nio.file.Path;
 import java.util.function.IntConsumer;
 import java.util.function.Predicate;
@@ -645,7 +649,8 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
                 policy.shoreBiomeWidth() == null ? Double.NaN : policy.shoreBiomeWidth(),
                 confinesKey(policy.confinement(), region, biome),
                 policy.shoreWidth() == null ? Double.NaN : policy.shoreWidth(),
-                policy.erosion() == null || policy.erosion()
+                policy.erosion() == null || policy.erosion(),
+                policy.surfacePolicy()
         );
         return new IrisHydrologyRoutingTerrainSampler.TerrainBasis(resolvedNaturalHeight, terrain);
     }
@@ -1005,8 +1010,37 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
                 deepFluids(hydrology.getDeepFluids(), minimumWorldY, routing, plannerRouting.refinementSpacing()),
                 surfacePools(hydrology.getSurfacePools()),
                 widestShoreBiomeWidth(dimension, data, banks.getShoreWidth()),
-                seaCaves(coastal)
+                seaCaves(coastal),
+                surfacePolicyBounds(dimension, data)
         );
+    }
+
+    static HydrologyPlannerSettings.SurfacePolicyBounds surfacePolicyBounds(IrisDimension dimension, DataProvider data) {
+        TreeMap<String, SurfaceRiverPolicy> policies = new TreeMap<>();
+        addSurfacePolicy(policies, "dimension", dimension.getRiverPolicy());
+        for (IrisRegion region : dimension.getAllRegions(data)) {
+            addSurfacePolicy(policies, "region:" + region.getLoadKey(), region.getRiverPolicy());
+        }
+        for (IrisBiome biome : dimension.getAllBiomes(data)) {
+            addSurfacePolicy(policies, "biome:" + biome.getLoadKey(), biome.getRiverPolicy());
+        }
+        long fingerprint = 0L;
+        int maximumSpacing = 0;
+        for (SurfaceRiverPolicy policy : policies.values()) {
+            fingerprint = HydrologyHash.mix(fingerprint, policy.hashCode(), HydrologyHash.text(policy.areaKey()));
+            maximumSpacing = Math.max(maximumSpacing, policy.sourceSpacing(0));
+        }
+        return new HydrologyPlannerSettings.SurfacePolicyBounds(fingerprint, maximumSpacing);
+    }
+
+    private static void addSurfacePolicy(Map<String, SurfaceRiverPolicy> policies, String key, IrisRiverPolicy policy) {
+        if (policy == null) {
+            return;
+        }
+        SurfaceRiverPolicy surface = policy.surfacePolicy(key);
+        if (surface.configured()) {
+            policies.put(key, surface);
+        }
     }
 
     /**

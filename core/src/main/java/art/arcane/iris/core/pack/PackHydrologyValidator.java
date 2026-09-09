@@ -1011,6 +1011,13 @@ final class PackHydrologyValidator {
         validateNullableEnum(path, policy, "placement", PLACEMENT_MODES, errors);
         validateNullableEnum(path, policy, "routing", ROUTING_MODES, errors);
         validateNullableBoolean(path, policy, "outletAdmission", errors);
+        validateNullableDouble(path, policy, "surfaceSourceDensity", 0D, 64D, errors);
+        PackJsonFieldChecks.validateOptionalIntegerRange(path, policy, "surfaceSourceSpacing", 0, 8192, errors);
+        PackJsonFieldChecks.validateOptionalIntegerRange(path, policy, "surfaceTributaries", 0, 4, errors);
+        PackJsonFieldChecks.validateOptionalIntegerRange(path, policy, "surfaceInlandOutlets", 0, 256, errors);
+        PackJsonFieldChecks.validateOptionalIntegerRange(path, policy, "surfaceCoastalOutlets", 0, 64, errors);
+        PackJsonFieldChecks.validateOptionalIntegerRange(path, policy, "surfaceMinimumCourseLength", 16, 4096, errors);
+        PackJsonFieldChecks.validateOptionalIntegerRange(path, policy, "surfaceMaximumIncision", 1, 32, errors);
         validatePolicyProfiles(path, policy, errors);
         validatePolicyPools(path, policy, errors);
         for (String biomeField : POLICY_BIOME_FIELDS) {

@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.render.IrisRenderer;
@@ -1645,7 +1647,8 @@ public class MantleHydrologyComponentTest {
                 HydrologyPlannerSettings.Geometry.defaults(),
                 List.of(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -1686,7 +1689,8 @@ public class MantleHydrologyComponentTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 

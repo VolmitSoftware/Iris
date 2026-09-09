@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.hydrology;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import art.arcane.iris.engine.hydrology.cave.CavePosition;
 import art.arcane.iris.engine.hydrology.cave.CaveVoxel;
 import art.arcane.iris.engine.hydrology.cave.CaveVoxelView;
@@ -415,7 +417,9 @@ public class HydrologyPlannerTest {
                         routing.valleyPreference(), routing.uphillPenalty(), routing.slopePenalty(),
                         routing.confluenceAttraction(), routing.lengthPreference(), routing.tributaries()),
                 settings.surface(), settings.hydraulics(), settings.underground(), settings.outlets(), settings.geometry(),
-                settings.deepFluids(), settings.surfacePools(), settings.widestShoreBiomeWidth(), settings.seaCaves());
+                settings.deepFluids(), settings.surfacePools(), settings.widestShoreBiomeWidth(), settings.seaCaves(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
+        );
     }
 
     private static Set<?> cachedOwnerKeys(HydrologyPlanner planner) throws Exception {
@@ -1124,7 +1128,8 @@ public class HydrologyPlannerTest {
                     Double.NaN,
                     null,
                     Double.NaN,
-                    true
+                    true,
+                    SurfaceRiverPolicy.INHERIT
             );
         };
         HydrologyTile tile = new HydrologyPlanner(812L, settings, terrain, solidCaveView()).plan(TILE);
@@ -1200,7 +1205,8 @@ public class HydrologyPlannerTest {
                 base.geometry(),
                 base.deepFluids(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
         HydrologyTerrainSampler repeatedRidges = (int x, int z) -> {
             if (x >= 112) {
@@ -1737,7 +1743,8 @@ public class HydrologyPlannerTest {
                 HydrologyPlannerSettings.Geometry.defaults(),
                 base.deepFluids(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
         HydrologyPlannerSettings settings = withOutlets(shaped, HydrologyPlannerSettings.Outlets.of(
                 true,
@@ -2014,7 +2021,8 @@ public class HydrologyPlannerTest {
                 base.geometry(),
                 base.deepFluids(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
         HydrologyTerrainSampler coast = (int x, int z) -> {
             if (x >= 112) {
@@ -2214,7 +2222,8 @@ public class HydrologyPlannerTest {
                 base.geometry(),
                 base.deepFluids(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
         HydrologyTerrainSampler terrain = (int x, int z) -> {
             if (x >= 112) {
@@ -2606,7 +2615,8 @@ public class HydrologyPlannerTest {
                 stableGeometry(),
                 deepFluids, List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -2666,7 +2676,8 @@ public class HydrologyPlannerTest {
                 HydrologyPlannerSettings.Geometry.defaults(),
                 List.of(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -2739,7 +2750,8 @@ public class HydrologyPlannerTest {
                     Double.NaN,
                     null,
                     Double.NaN,
-                    true
+                    true,
+                    SurfaceRiverPolicy.INHERIT
             );
         };
     }
@@ -2808,7 +2820,8 @@ public class HydrologyPlannerTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 
@@ -2844,7 +2857,8 @@ public class HydrologyPlannerTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 
@@ -2889,7 +2903,8 @@ public class HydrologyPlannerTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 
@@ -2925,7 +2940,8 @@ public class HydrologyPlannerTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 
@@ -2961,7 +2977,8 @@ public class HydrologyPlannerTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 
@@ -2989,7 +3006,8 @@ public class HydrologyPlannerTest {
                 HydrologyPlannerSettings.Geometry.defaults(),
                 settings.deepFluids(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -3021,7 +3039,8 @@ public class HydrologyPlannerTest {
                 HydrologyPlannerSettings.Geometry.defaults(),
                 settings.deepFluids(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -3054,7 +3073,8 @@ public class HydrologyPlannerTest {
                 HydrologyPlannerSettings.Geometry.defaults(),
                 settings.deepFluids(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -3086,7 +3106,8 @@ public class HydrologyPlannerTest {
                 HydrologyPlannerSettings.Geometry.defaults(),
                 settings.deepFluids(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -3148,7 +3169,8 @@ public class HydrologyPlannerTest {
                 HydrologyPlannerSettings.Geometry.defaults(),
                 settings.deepFluids(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -3430,9 +3452,9 @@ public class HydrologyPlannerTest {
         constructor.setAccessible(true);
         Object node = constructor.newInstance(0, 0, 0, 0, 0, 719L, terrain);
         Method method = HydrologyRouteGeometry.class.getDeclaredMethod("anchorScore", nodeType,
-                int.class, int.class, int.class, int.class, double.class);
+                int.class, int.class, int.class, int.class, double.class, boolean.class);
         method.setAccessible(true);
-        return (double) method.invoke(planner.routeGeometry, node, x, z, 0, 0, 0.3D);
+        return (double) method.invoke(planner.routeGeometry, node, x, z, 0, 0, 0.3D, false);
     }
 
     private List<?> routeCandidates(HydrologyPlanner planner) throws Exception {

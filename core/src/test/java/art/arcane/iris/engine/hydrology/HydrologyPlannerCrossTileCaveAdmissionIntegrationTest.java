@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.hydrology;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import art.arcane.iris.engine.hydrology.cave.CavePosition;
 import art.arcane.iris.engine.hydrology.cave.CaveVoxel;
 import art.arcane.iris.engine.hydrology.cave.CaveVoxelPrecondition;
@@ -339,7 +341,8 @@ public class HydrologyPlannerCrossTileCaveAdmissionIntegrationTest {
                 stableGeometry(),
                 List.of(deepFluid), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -417,7 +420,8 @@ public class HydrologyPlannerCrossTileCaveAdmissionIntegrationTest {
                 base.geometry(),
                 base.deepFluids(), List.of(),
                 0D,
-                HydrologyPlannerSettings.SeaCaves.disabled()
+                HydrologyPlannerSettings.SeaCaves.disabled(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -463,7 +467,8 @@ public class HydrologyPlannerCrossTileCaveAdmissionIntegrationTest {
                     Double.NaN,
                     null,
                     Double.NaN,
-                    true
+                    true,
+                    SurfaceRiverPolicy.INHERIT
             );
         };
     }
@@ -508,7 +513,8 @@ public class HydrologyPlannerCrossTileCaveAdmissionIntegrationTest {
                     Double.NaN,
                     null,
                     Double.NaN,
-                    true
+                    true,
+                    SurfaceRiverPolicy.INHERIT
             );
         };
     }
@@ -545,7 +551,8 @@ public class HydrologyPlannerCrossTileCaveAdmissionIntegrationTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 

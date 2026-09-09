@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.hydrology;
 
+import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+
 import art.arcane.iris.engine.hydrology.cave.CavePosition;
 import art.arcane.iris.engine.hydrology.cave.CaveVoxel;
 import art.arcane.iris.engine.hydrology.cave.CaveVoxelView;
@@ -324,7 +326,8 @@ public class HydrologyPlannerUndergroundKnobsTest {
                 settings.deepFluids(),
                 settings.surfacePools(),
                 settings.widestShoreBiomeWidth(),
-                settings.seaCaves()
+                settings.seaCaves(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -357,7 +360,8 @@ public class HydrologyPlannerUndergroundKnobsTest {
                 settings.deepFluids(),
                 settings.surfacePools(),
                 settings.widestShoreBiomeWidth(),
-                settings.seaCaves()
+                settings.seaCaves(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -385,7 +389,8 @@ public class HydrologyPlannerUndergroundKnobsTest {
                 settings.deepFluids(),
                 settings.surfacePools(),
                 settings.widestShoreBiomeWidth(),
-                settings.seaCaves()
+                settings.seaCaves(),
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -468,7 +473,8 @@ public class HydrologyPlannerUndergroundKnobsTest {
                 Double.NaN,
                 null,
                 Double.NaN,
-                true
+                true,
+                SurfaceRiverPolicy.INHERIT
         );
     }
 
@@ -603,7 +609,8 @@ public class HydrologyPlannerUndergroundKnobsTest {
                 List.of(),
                 List.of(),
                 surface.shoreWidth(),
-                seaCaves
+                seaCaves,
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 
@@ -673,7 +680,8 @@ public class HydrologyPlannerUndergroundKnobsTest {
                 List.of(),
                 List.of(),
                 0D,
-                seaCaves
+                seaCaves,
+                HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
     }
 

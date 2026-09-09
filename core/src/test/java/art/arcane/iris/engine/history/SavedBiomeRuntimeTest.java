@@ -1,9 +1,13 @@
 package art.arcane.iris.engine.history;
 
 import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisEngine;
 import art.arcane.iris.engine.framework.BiomeEnvironment;
 import art.arcane.iris.engine.framework.PreservationRegistry;
+import art.arcane.iris.engine.object.IrisBiome;
+import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.testsupport.Await;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
@@ -232,6 +236,99 @@ public class SavedBiomeRuntimeTest {
             assertSame(environment, runtime.resolve(0, 0, 0, true).orElseThrow());
             assertEquals("forest", environment.biome().getLoadKey());
             assertSame(environment, runtime.readSurfaceBiome(0, 0, Optional::orElseThrow));
+        }
+    }
+
+    @Test
+    public void archivedFocusedChildResolvesSurfaceCaveAndFloodedRulesWithItsAuthoredRegion() throws Exception {
+        assertFocusedEnvironments(true, false, false);
+    }
+
+    @Test
+    public void archivedUnownedFocusReconstructsItsRegionWithoutUsingCurrentFocusOrRemappingMissingRegions() throws Exception {
+        assertFocusedEnvironments(false, false, false);
+    }
+
+    @Test
+    public void archivedStackFocusReconstructsTheReferencedDimensionsRegion() throws Exception {
+        assertFocusedEnvironments(false, true, false);
+    }
+
+    @Test
+    public void archivedBuffetResolvesUnownedCellsWithoutAnAuthoredFocusOrNewGeneration() throws Exception {
+        assertFocusedEnvironments(false, false, true);
+    }
+
+    private void assertFocusedEnvironments(boolean authoredOwner, boolean stacked, boolean buffet) throws Exception {
+        String epochId = "a".repeat(64);
+        Path pack = history.paths().packRoot(epochId);
+        Files.createDirectories(pack.resolve("dimensions"));
+        Files.createDirectories(pack.resolve("biomes"));
+        Files.createDirectories(pack.resolve("regions"));
+        String focusedDimension = buffet
+                ? "{\"regions\":[\"tropical\"],\"studioMode\":\"BIOME_BUFFET_3x3\"}"
+                : "{\"regions\":[\"tropical\"],\"focus\":\"highlands\"}";
+        Files.writeString(pack.resolve("dimensions/main.json"), stacked
+                ? "{\"regions\":[\"tropical\"],\"dimensionStack\":{\"dimensions\":[\"lower\",\"main\"]}}"
+                : focusedDimension);
+        if (stacked) {
+            Files.writeString(pack.resolve("dimensions/lower.json"), focusedDimension);
+        }
+        Files.writeString(pack.resolve("regions/tropical.json"), "{\"landBiomes\":[\"wilds\"]}");
+        Files.writeString(pack.resolve("biomes/wilds.json"), authoredOwner ? "{\"children\":[\"highlands\"]}" : "{}");
+        Files.writeString(pack.resolve("biomes/highlands.json"), """
+                {"carvingBiome":"chalk-gardens","riverPolicy":{"floodedCaveBiomes":["flooded"]}}
+                """);
+        Files.writeString(pack.resolve("biomes/chalk-gardens.json"), "{}");
+        Files.writeString(pack.resolve("biomes/flooded.json"), "{}");
+        GenerationEpoch epoch = history.manifest().epoch(epochId).orElseThrow();
+        GenerationEpoch.DimensionContract contract = mock(GenerationEpoch.DimensionContract.class);
+        when(epoch.dimensionContract()).thenReturn(contract);
+        when(epoch.registryContract()).thenReturn(GenerationRegistryContract.empty());
+        when(contract.dimensionKey()).thenReturn("main");
+        when(history.packRoot(1L)).thenReturn(pack);
+        when(engine.getDimension()).thenReturn(new IrisDimension().setFocus("current-unrelated-focus"));
+        IrisData capturedData = IrisData.openRuntime(pack.toFile());
+        String regionKey;
+        try {
+            IrisDimension dimension = capturedData.getDimensionLoader().load(stacked ? "lower" : "main");
+            IrisBiome biome = capturedData.getBiomeLoader().load("highlands");
+            IrisRegion region = dimension.resolveFocusRegion(biome, () -> capturedData);
+            regionKey = region.getLoadKey();
+        } finally {
+            capturedData.close();
+        }
+        assertEquals(authoredOwner, regionKey.equals("tropical"));
+        SavedBiomeChunk.Cell surface = new SavedBiomeChunk.Cell(1L, "highlands", regionKey);
+        SavedBiomeChunk.Cell cave = new SavedBiomeChunk.Cell(1L, "chalk-gardens", regionKey);
+        SavedBiomeChunk.Cell flooded = new SavedBiomeChunk.Cell(1L, "flooded", regionKey);
+        SavedBiomeChunk.Cell missing = new SavedBiomeChunk.Cell(1L, "highlands", "missing-region");
+        SavedBiomeChunk.Builder builder = SavedBiomeChunk.builder(new SavedBiomeChunk.Header(0, 0, 1L, 0, 128));
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                builder.column(x, z, new SavedBiomeChunk.Column(x == 15 ? missing : surface, cave,
+                        List.of(new SavedBiomeChunk.Span(0, 64, cave), new SavedBiomeChunk.Span(64, 128, flooded))));
+            }
+        }
+        when(store.get(0, 0)).thenReturn(Optional.of(builder.build()));
+        try (SavedBiomeRuntime runtime = new SavedBiomeRuntime(engine, history)) {
+            assertTrue(assertThrows(SavedBiomeUnavailableException.class, () -> runtime.prepareChunk(0, 0)).isLoading());
+            awaitIdle(runtime);
+            BiomeEnvironment surfaceEnvironment = runtime.resolve(0, 100, 0, true).orElseThrow();
+            BiomeEnvironment caveEnvironment = runtime.resolveCaveBase(0, 0).orElseThrow();
+            BiomeEnvironment floodedEnvironment = runtime.resolve(0, 80, 0, false).orElseThrow();
+            assertEquals("highlands", surfaceEnvironment.biome().getLoadKey());
+            assertEquals("chalk-gardens", caveEnvironment.biome().getLoadKey());
+            assertEquals("flooded", floodedEnvironment.biome().getLoadKey());
+            for (BiomeEnvironment environment : List.of(surfaceEnvironment, caveEnvironment, floodedEnvironment)) {
+                assertEquals(1L, environment.activationId());
+                assertEquals(regionKey, environment.region().getLoadKey());
+                assertEquals(pack.toFile(), environment.data().getDataFolder());
+            }
+            SavedBiomeUnavailableException unavailable = assertThrows(SavedBiomeUnavailableException.class,
+                    () -> runtime.resolve(15, 100, 0, true));
+            assertEquals(false, unavailable.isLoading());
+            assertTrue(unavailable.getMessage().contains("missing-region"));
         }
     }
 

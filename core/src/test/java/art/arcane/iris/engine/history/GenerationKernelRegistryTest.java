@@ -78,7 +78,7 @@ public class GenerationKernelRegistryTest {
                                         version.rngVersion(),
                                         version.seedDerivationVersion()
                                 ),
-                                (engine, transitionPlan) -> mock(IrisComplex.class)
+                                (engine, transitionPlan, detached) -> mock(IrisComplex.class)
                         )
                 ))
         );
@@ -87,7 +87,7 @@ public class GenerationKernelRegistryTest {
     private static GenerationKernelRegistry.RuntimeFactory seedFactory(SeedManager seedManager) {
         return new GenerationKernelRegistry.RuntimeFactory() {
             @Override
-            public IrisComplex create(IrisEngine engine, TransitionGenerationPlan transitionPlan) {
+            public IrisComplex create(IrisEngine engine, TransitionGenerationPlan transitionPlan, boolean detached) {
                 return mock(IrisComplex.class);
             }
 

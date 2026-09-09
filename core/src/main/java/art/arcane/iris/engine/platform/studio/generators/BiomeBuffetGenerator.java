@@ -18,52 +18,27 @@
 
 package art.arcane.iris.engine.platform.studio.generators;
 
-import art.arcane.iris.engine.data.cache.Cache;
 import art.arcane.iris.engine.data.chunk.TerrainChunk;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
 import art.arcane.iris.engine.framework.WrongEngineBroException;
-import art.arcane.iris.engine.object.IrisBiome;
+import art.arcane.iris.engine.platform.studio.BiomeBuffetLayout;
 import art.arcane.iris.engine.platform.studio.EnginedStudioGenerator;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.BoundBlockState;
 import art.arcane.iris.util.project.context.IrisContext;
 
-import java.util.Objects;
-
 public class BiomeBuffetGenerator extends EnginedStudioGenerator {
     private static final BoundBlockState FLOOR = BoundBlockState.of("BARRIER");
-    private final IrisBiome[] biomes;
-    private final int width;
-    private final int biomeSize;
+    private final BiomeBuffetLayout layout;
 
-    public BiomeBuffetGenerator(Engine engine, int biomeSize) {
+    public BiomeBuffetGenerator(Engine engine) {
         super(engine);
-        this.biomeSize = biomeSize;
-        biomes = engine.getDimension().getAllBiomes(engine).toArray(new IrisBiome[0]);
-        width = Math.max((int) Math.sqrt(biomes.length), 1);
+        layout = new BiomeBuffetLayout(engine.getDimension(), engine);
     }
 
     @Override
-    public boolean requiresPreSessionPreparation() {
-        return true;
-    }
-
-    @Override
-    public synchronized void prepareChunkBeforeSession(Engine engine, int x, int z) {
-        IrisBiome biome = biomeAt(x, z);
-        if (biome == null || Objects.equals(engine.getDimension().getFocus(), biome.getLoadKey())) {
-            return;
-        }
-
-        engine.getDimension().setFocus(biome.getLoadKey());
-        engine.hotloadComplex();
-    }
-
-    @Override
-    public synchronized void generateChunk(Engine engine, TerrainChunk tc, int x, int z) throws WrongEngineBroException {
-        IrisBiome biome = biomeAt(x, z);
-        if (biome == null) {
+    public void generateChunk(Engine engine, TerrainChunk tc, int x, int z) throws WrongEngineBroException {
+        if (layout.chunk(x, z) == null) {
             try (GenerationSessionLease lease = engine.acquireGenerationLease("bukkit_biome_buffet_stage");
                  IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
                 tc.setRegion(0, 0, 0, 16, 1, 16, FLOOR.get());
@@ -71,16 +46,10 @@ public class BiomeBuffetGenerator extends EnginedStudioGenerator {
             return;
         }
 
-        prepareChunkBeforeSession(engine, x, z);
-
         try (GenerationSessionLease lease = engine.acquireGenerationLease("bukkit_biome_buffet_stage");
              IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
             engine.generate(x << 4, z << 4, tc, true);
         }
     }
 
-    private IrisBiome biomeAt(int x, int z) {
-        int id = Cache.to1D(x / biomeSize, 0, z / biomeSize, width, 1);
-        return id < 0 || id >= biomes.length ? null : biomes[id];
-    }
 }

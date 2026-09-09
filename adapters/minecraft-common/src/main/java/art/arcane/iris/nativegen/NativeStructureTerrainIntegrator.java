@@ -118,7 +118,7 @@ public final class NativeStructureTerrainIntegrator {
         if (mode == IrisStructureTerrainMode.PRESERVE) {
             return;
         }
-        if (mode == IrisStructureTerrainMode.VACUUM) {
+        if (mode == IrisStructureTerrainMode.VACUUM || mode == IrisStructureTerrainMode.FLATTEN) {
             return;
         }
         if (mode == IrisStructureTerrainMode.ENCASE) {

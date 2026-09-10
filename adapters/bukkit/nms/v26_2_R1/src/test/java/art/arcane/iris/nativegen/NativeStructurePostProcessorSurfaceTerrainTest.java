@@ -146,6 +146,62 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
     }
 
     @Test
+    public void flattenBlendsAnElevatedRoadJunctionWithNearbyFoundations() {
+        List<NativeStructureSurfaceFitter.FlattenAnchor> anchors = new ArrayList<>();
+        for (int x : List.of(-3, 3)) {
+            for (int z = -1; z <= 1; z++) {
+                anchors.add(new NativeStructureSurfaceFitter.FlattenAnchor(
+                        new NativeStructureSurfaceFitter.SurfaceAnchor(x, x, z, z, 64, 2), 24, 64));
+            }
+        }
+        anchors.add(new NativeStructureSurfaceFitter.FlattenAnchor(
+                new NativeStructureSurfaceFitter.SurfaceAnchor(0, 0, 0, 0, 105, 1), 24, 64));
+        for (int x = -1; x <= 1; x++) {
+            for (int z = -1; z <= 1; z++) {
+                NativeStructureSurfaceFitter.FlattenResolution grade =
+                        NativeStructureSurfaceFitter.resolveFlattenSurface(anchors, x, z, 96);
+                assertTrue(grade.targetY() >= 64 && grade.targetY() <= 72);
+                assertEquals(grade, NativeStructureSurfaceFitter.resolveFlattenSurface(
+                        anchors.reversed(), x, z, 96));
+                if (x < 1) {
+                    assertTrue(Math.abs(grade.targetY() - NativeStructureSurfaceFitter.resolveFlattenSurface(
+                            anchors, x + 1, z, 96).targetY()) <= 1);
+                }
+                if (z < 1) {
+                    assertTrue(Math.abs(grade.targetY() - NativeStructureSurfaceFitter.resolveFlattenSurface(
+                            anchors, x, z + 1, 96).targetY()) <= 1);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void flattenPreservesAnExactRigidFloorBesideAnElevatedJunction() {
+        NativeStructureSurfaceFitter.FlattenAnchor rigid = new NativeStructureSurfaceFitter.FlattenAnchor(
+                new NativeStructureSurfaceFitter.SurfaceAnchor(0, 0, 0, 0, 64, 2), 24, 64);
+        NativeStructureSurfaceFitter.FlattenAnchor junction = new NativeStructureSurfaceFitter.FlattenAnchor(
+                new NativeStructureSurfaceFitter.SurfaceAnchor(0, 0, 0, 0, 105, 1), 24, 64);
+        assertEquals(64, NativeStructureSurfaceFitter.resolveFlattenSurface(
+                List.of(rigid, junction), 0, 0, 96).targetY());
+        assertEquals(64, NativeStructureSurfaceFitter.resolveFlattenSurface(
+                List.of(junction, rigid), 0, 0, 96).targetY());
+    }
+
+    @Test
+    public void flattenRetainsIsolatedJunctionSupportWithinItsConfiguredBounds() {
+        for (int radius : List.of(0, 24)) {
+            NativeStructureSurfaceFitter.FlattenAnchor junction = new NativeStructureSurfaceFitter.FlattenAnchor(
+                    new NativeStructureSurfaceFitter.SurfaceAnchor(0, 0, 0, 0, 105, 1), radius, 8);
+            List<NativeStructureSurfaceFitter.FlattenAnchor> anchors = List.of(junction);
+            assertEquals(104, NativeStructureSurfaceFitter.resolveFlattenSurface(anchors, 0, 0, 96).targetY());
+            assertEquals(8, NativeStructureSurfaceFitter.resolveFlattenSurface(anchors, 0, 0, 96).range());
+            int outside = Math.max(1, radius);
+            assertEquals(96, NativeStructureSurfaceFitter.resolveFlattenSurface(anchors, outside, 0, 96).targetY());
+            assertEquals(0, NativeStructureSurfaceFitter.resolveFlattenSurface(anchors, outside, 0, 96).range());
+        }
+    }
+
+    @Test
     public void flattenLevelsNonJigsawFoundationsAndRemovesDetachedRoofs() {
         StructureStart start = desertStart();
         int groundY = start.getBoundingBox().minY() - 1;

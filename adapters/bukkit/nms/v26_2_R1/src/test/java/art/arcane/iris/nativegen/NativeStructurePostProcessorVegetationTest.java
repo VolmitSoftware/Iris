@@ -188,6 +188,69 @@ public class NativeStructurePostProcessorVegetationTest {
                 bounds, 0, 58, 320, (x, z) -> x == 1 ? 76 : 100));
     }
 
+    @Test
+    public void loweringSurfaceRemovesCactusStacksAndTheirFlowers() {
+        ProtoChunk chunk = chunk();
+        for (int y = 80; y <= 102; y++) {
+            write(chunk, 4, y, 4, Blocks.SAND.defaultBlockState());
+        }
+        for (int y = 103; y <= 105; y++) {
+            write(chunk, 4, y, 4, Blocks.CACTUS.defaultBlockState());
+        }
+        write(chunk, 4, 106, 4, Blocks.CACTUS_FLOWER.defaultBlockState());
+
+        NativeStructureSurfaceFitter.applySurfaceColumn(
+                world(chunk), new BlockPos.MutableBlockPos(), 4, 4, 102, 93, MIN_Y, MAX_Y);
+
+        assertEquals(Blocks.SAND.defaultBlockState(), chunk.getBlockState(new BlockPos(4, 93, 4)));
+        for (int y = 94; y <= 106; y++) {
+            assertTrue("Unsupported decoration at " + y, chunk.getBlockState(new BlockPos(4, y, 4)).isAir());
+        }
+    }
+
+    @Test
+    public void loweringSurfacePreservesCactusOnUnchangedColumns() {
+        ProtoChunk chunk = chunk();
+        for (int x : List.of(4, 5)) {
+            for (int y = 60; y <= 64; y++) {
+                write(chunk, x, y, 4, Blocks.SAND.defaultBlockState());
+            }
+            write(chunk, x, 65, 4, Blocks.CACTUS.defaultBlockState());
+            write(chunk, x, 66, 4, Blocks.CACTUS_FLOWER.defaultBlockState());
+        }
+        WorldGenLevel world = world(chunk);
+
+        NativeStructureSurfaceFitter.applySurfaceColumn(
+                world, new BlockPos.MutableBlockPos(), 4, 4, 64, 60, MIN_Y, MAX_Y);
+        NativeStructureSurfaceFitter.applySurfaceColumn(
+                world, new BlockPos.MutableBlockPos(), 5, 4, 64, 64, MIN_Y, MAX_Y);
+
+        assertTrue(chunk.getBlockState(new BlockPos(4, 65, 4)).isAir());
+        assertTrue(chunk.getBlockState(new BlockPos(4, 66, 4)).isAir());
+        assertEquals(Blocks.SAND.defaultBlockState(), chunk.getBlockState(new BlockPos(5, 64, 4)));
+        assertEquals(Blocks.CACTUS.defaultBlockState(), chunk.getBlockState(new BlockPos(5, 65, 4)));
+        assertEquals(Blocks.CACTUS_FLOWER.defaultBlockState(), chunk.getBlockState(new BlockPos(5, 66, 4)));
+    }
+
+    @Test
+    public void loweringSurfaceKeepsTreeAndSolidObjectBoundaries() {
+        for (BlockState boundary : List.of(Blocks.OAK_LOG.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState())) {
+            ProtoChunk chunk = chunk();
+            write(chunk, 4, 63, 4, Blocks.SAND.defaultBlockState());
+            write(chunk, 4, 64, 4, Blocks.SAND.defaultBlockState());
+            write(chunk, 4, 65, 4, boundary);
+            write(chunk, 4, 66, 4, Blocks.CACTUS.defaultBlockState());
+            write(chunk, 4, 67, 4, Blocks.CACTUS_FLOWER.defaultBlockState());
+
+            NativeStructureSurfaceFitter.applySurfaceColumn(
+                    world(chunk), new BlockPos.MutableBlockPos(), 4, 4, 64, 60, MIN_Y, MAX_Y);
+
+            assertEquals(boundary, chunk.getBlockState(new BlockPos(4, 65, 4)));
+            assertEquals(Blocks.CACTUS.defaultBlockState(), chunk.getBlockState(new BlockPos(4, 66, 4)));
+            assertEquals(Blocks.CACTUS_FLOWER.defaultBlockState(), chunk.getBlockState(new BlockPos(4, 67, 4)));
+        }
+    }
+
     private static void clearVegetation(ProtoChunk chunk, StructureStart start) {
         NativeStructureVegetationClearer.clearIntersectingVegetation(
                 world(chunk), chunk, AREA, List.of(start));

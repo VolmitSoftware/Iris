@@ -727,17 +727,18 @@ public final class NativeStructureSurfaceFitter {
             SurfaceAnchor source = anchor.source();
             int outX = IrisObjectVacuum.outset(x, source.minX(), source.maxX());
             int outZ = IrisObjectVacuum.outset(z, source.minZ(), source.maxZ());
-            if (outX == 0 && outZ == 0) {
+            boolean containsColumn = outX == 0 && outZ == 0;
+            if (containsColumn && source.strength() > 1) {
                 if (selected == null || precedes(source, selected.source())) {
                     selected = anchor;
                 }
                 continue;
             }
             double distance = Math.sqrt((double) outX * outX + (double) outZ * outZ);
-            if (anchor.radius() == 0 || distance >= anchor.radius()) {
+            if (!containsColumn && (anchor.radius() == 0 || distance >= anchor.radius())) {
                 continue;
             }
-            double progress = distance / anchor.radius();
+            double progress = containsColumn ? 0D : distance / anchor.radius();
             double factor = 1D - progress * progress * (3D - 2D * progress);
             long influence = Math.round(factor * SURFACE_TERRAIN_INFLUENCE_SCALE);
             long weight = influence * source.strength();
@@ -1062,7 +1063,8 @@ public final class NativeStructureSurfaceFitter {
                 }
                 return fluid;
             }
-            if (state.isSolid() || NativeStructureVegetationClearer.isTreeBlock(state)) {
+            if (state.isSolid() && !state.is(Blocks.CACTUS)
+                    || NativeStructureVegetationClearer.isTreeBlock(state)) {
                 return air;
             }
             world.setBlock(position, air, 2);

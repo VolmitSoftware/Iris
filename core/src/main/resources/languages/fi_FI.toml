@@ -1,0 +1,2107 @@
+# === Iris language guide ===
+# Iris - fi_FI
+#
+# === Tiedoston muokkaus ===
+# languages/fi_FI.toml
+# Muokkaa tätä tiedostoa suoraan. Paikalliset viestimuutokset säilyvät; puuttuvat tai virheelliset arvot käyttävät sisäänrakennettua englantia.
+# /iris language server edit fi_FI
+#
+# === Etuliitteet ===
+# Kaikille viesteille yhteistä etuliiteasetusta ei ole. Viestin alkuun kirjoitettu etuliite muuttaa vain kyseistä viestiä.
+# Lokien etuliitteet ja valikoiden teemat määritetään erikseen.
+# Esimerkki: etsi osio [iris.bukkit.commandiris] ja muuta sen nykyinen set_debug-arvo:
+# set_debug = "&6[Maailmat]&r &aDebug-asetuksen arvo: {to}"
+# {to} saa arvon true (käytössä) tai false (pois käytöstä); älä muuta muuttujan nimeä.
+#
+# === Värit ja tyylit ===
+# &0 musta; &1 tummansininen; &2 tummanvihreä; &3 tumma turkoosi
+# &4 tummanpunainen; &5 tummanvioletti; &6 kulta; &7 harmaa
+# &8 tummanharmaa; &9 sininen; &a vihreä; &b turkoosi
+# &c punainen; &d vaaleanvioletti; &e keltainen; &f valkoinen
+# &k sekoitetut merkit; &l lihavointi; &m yliviivaus; &n alleviivaus; &o kursiivi; &r värin ja tyylien nollaus
+# Esimerkit: &aValmis&r, &cVirhe&r, &6&lVaroitus&r, &nAlleviivattu&r.
+# Kielikerros tunnistaa RGB-muodot: &#55FF55, &x55FF55, &x&5&5&F&F&5&5 ja [55FF55].
+# RGB-esimerkki: &#55FF55Vihreä teksti&r. Bukkitin myöhempi käsittely ja teemat voivat muuttaa RGB-värejä.
+# Modattujen palvelinten komennot, ohjeet ja asiakasnäkymät käyttävät tavallista käännettyä tekstiä ja omia natiivityylejään.
+# Tavallinen tekstinäyttö poistaa muotoilun; kielitiedoston värien ei pidä olettaa määräävän käyttöliittymän omaa tyyliä.
+#
+# === TOML-tekstiarvot ===
+# Kaksoislainausmerkkien sisällä \n tekee rivinvaihdon, \" lisää lainausmerkin ja \\ lisää yhden kenoviivan.
+# Esimerkki: "Rivi 1\nRivi 2: \"lainaus\"; polku C:\\Iris".
+#
+# === Muuttujat ===
+# Käytä vain kyseisen viestin nykyisiä muuttujia. Säilytä niiden nimet ja kirjainkoko; PC, SC ja TC eivät ole tuettuja paikkamerkkejä.
+# Alla kuvataan jokainen paikkamerkki. Ympäröivä viesti määrää yleiskäyttöisten arvojen merkityksen.
+#   {MAXAUTOSELECTVOLUME}  Automaattisesti valittavan objektin suurin sallittu lohkomäärä.
+#   {MAXSAVEVOLUME}  Tallennettavan objektivalinnan suurin sallittu lohkomäärä.
+#   {MAXSPAN}  Rakenteen suurin sallittu leveys, korkeus tai syvyys lohkoina tallennuksessa.
+#   {NATIVESTRUCTURELOCATERADIUS}  Natiivirakenteiden suurin hakusäde chunkeissa.
+#   {ROOTPERMISSION}  Komennon käyttämiseen vaadittu pääkäyttöoikeus.
+#   {WORKSPACENAME}  Haettavan Studio-työtilakansion nimi.
+#   {WORLDPACKNAME}  Luodun maailman datapackin nimi.
+#   {active}  Parhaillaan toimivien työntekijöiden määrä.
+#   {activeLocale}  Kieli, joka pysyy käytössä, jos pyydettyä kieltä ei voida valita.
+#   {activeMax}  Ladatun ulottuvuustyypin korkeusalueen yläraja.
+#   {activeMin}  Ladatun ulottuvuustyypin korkeusalueen alaraja.
+#   {actualReverts}  Todella peruttujen objektien liittämisten määrä.
+#   {afb}  Moottorin ajoitusotsikon muotoiltu osa hakasulkuosan jälkeen.
+#   {after}  Arvo muutoksen jälkeen tai korjauksen jälkeen saavuttamattomat puulohkot.
+#   {amount}  Raportissa nimetyn kohteen määrä.
+#   {applied}  Niiden chunkien määrä, joiden työ on otettu käyttöön.
+#   {argument}  Komentoon kelpaamaton argumentti.
+#   {available}  Generointiin kelpaavien natiivirakenteiden määrä.
+#   {bar}  Valmiiksi muotoiltu edistymispalkin teksti.
+#   {befb}  Moottorin ajoitusotsikon muotoiltu osa ennen hakasulkuosaa.
+#   {before}  Arvo ennen muutosta tai saavuttamattomat puulohkot ennen korjausta.
+#   {biome}  Näytettävän biomin nimi tai tunniste.
+#   {block}  Tarkasteltavan lohkon tyyppi tai kuvaus.
+#   {blockX}  Lohkon tai teleporttikohteen X-koordinaatti.
+#   {blockY}  Lohkon tai teleporttikohteen Y-koordinaatti.
+#   {blockZ}  Lohkon tai teleporttikohteen Z-koordinaatti.
+#   {blocking}  Paketin lataamisen estävien tarkistusvirheiden määrä.
+#   {blocks}  Tuodun ryhmän lohkomuunnelmien määrä.
+#   {bpp}  Yhden Vision-pikselin esittämä maailman lohkomäärä.
+#   {branches}  Puuobjektien korjauksessa lisättyjen oksien määrä.
+#   {broken}  Tarkistuksessa hylättyjen pakettien määrä.
+#   {brokenTotal}  Tarkistuksessa hylättyjen pakettien kokonaismäärä.
+#   {cave}  Luolabiomi tai luolan kuvaus tarkastellussa paikassa.
+#   {centerX}  Alueen keskipisteen X-koordinaatti; yksikkö ilmoitetaan toiminnon viestissä.
+#   {centerZ}  Alueen keskipisteen Z-koordinaatti; yksikkö ilmoitetaan toiminnon viestissä.
+#   {changed}  Käsiteltyjen ja muuttuneiden objektien määrä.
+#   {chunk}  Raportoidun chunkin koordinaatit tai tunniste.
+#   {chunkX}  X-koordinaatti chunkeissa, ei lohkoissa.
+#   {chunkZ}  Z-koordinaatti chunkeissa, ei lohkoissa.
+#   {chunks}  Toimintoon kuuluvien chunkien määrä.
+#   {clampedY}  Teleporttikohteen Y-koordinaatti sallitulle korkeusalueelle rajaamisen jälkeen.
+#   {command}  Komennon nimi tai koko suoritettava komento.
+#   {converted}  Puunkorjauksessa puuksi muutettujen lehtilohkojen määrä.
+#   {count}  Ympäröivässä tekstissä nimettyjen kohteiden, viestien tai pelaajien määrä.
+#   {current}  Nykyinen edistymismäärä tai nykyisen vertailun chunkimäärä.
+#   {currentStage}  Studion nykyisen latausvaiheen nimi.
+#   {d}  Objektin syvyys lohkoina.
+#   {depth}  Etäisyys maaston pinnan alapuolelle lohkoina.
+#   {derivative}  Pintabiomiin liittyvä johdannaisbiomi tai muunnelma.
+#   {detail}  Tarkastellun objektin tai nykyisen edistymisvaiheen lisäkuvaus.
+#   {diffs}  Generointitulosten välillä havaittujen erojen määrä.
+#   {dimKey}  Paketoitavan ulottuvuuden tunniste.
+#   {dimension}  Viestissä käsiteltävän ulottuvuuden nimi tai tunniste.
+#   {dimensionId}  Ladatun tai pyydetyn ulottuvuuden rekisteröity tunniste.
+#   {dimensionId2}  Ehdotetussa poistokomennossa toistuva ulottuvuuden tunniste.
+#   {dimm}  Studion ulottuvuustunniste tai tarkistuskomennossa sen paketin nimi.
+#   {disabled}  Niiden natiivirakenteiden määrä, joiden generointi on poistettu käytöstä.
+#   {distances}  Puunkorjauksessa muutettujen lehtien etäisyysarvojen määrä.
+#   {done}  Tähän mennessä valmistuneiden työkohtien määrä.
+#   {downloadSource}  Paketin latauksessa käytetty lähde tai valittu viite.
+#   {downloadable}  Tuotava paketti tai ladattava projekti.
+#   {dumpPath}  Tallennettujen siivous- tai palautustietojen sijainti.
+#   {duration}  Toiminnon muotoiltu kesto.
+#   {e}  Epäonnistuneen rakennemallien haun poikkeusteksti.
+#   {elapsed}  Toiminnon alusta kulunut aika muotoiltuna.
+#   {engines}  Aktiivisten Iris-generointimoottorien tai ulottuvuuksien määrä.
+#   {entity}  Tarkastellun spawnerin valitsema entiteettityyppi.
+#   {error}  Tapahtuneen virheen tiedot.
+#   {errorMessage}  Päävirheviestin loppuun lisättävä valinnainen virhetietoteksti.
+#   {eta}  Arvio jäljellä olevasta ajasta muotoiltuna; joissakin viesteissä mukana on otsikko.
+#   {failed}  Epäonnistuneiden kohteiden määrä tai edistymisotsikon valmis virhelisäke.
+#   {failure}  Haun tai toiminnon epäonnistumisen syy.
+#   {failures}  Epäonnistuneiden töiden määrä tai valinnainen muotoiltu virheyhteenveto.
+#   {file}  Toiminnossa käsiteltävän tiedoston nimi tai polku.
+#   {filter}  Iris-ulottuvuusluettelon suodatusteksti.
+#   {fps}  Esikatselun nykyinen kuvataajuus sekunnissa.
+#   {g}  Edellisen paketointiraportin jälkeen kirjoitetut objektitiedostot.
+#   {generated}  Tähän mennessä generoitujen chunkien määrä.
+#   {generator}  Selaimessa näytettävän kohinageneraattorin nimi.
+#   {generatorKey}  Pyydetyn kohinageneraattorin tunniste.
+#   {get}  Onnistuneesti muunnettujen schematic-tiedostojen määrä.
+#   {golden}  Tallennetun vertailuaineiston chunkimäärä.
+#   {goldenDimension}  Vertailuaineistoon tallennettu ulottuvuuden tunniste.
+#   {goldenSeed}  Vertailuaineistoon tallennettu maailman siemen.
+#   {goldenVersion}  Vertailuaineiston luomiseen käytetty Minecraft-versio.
+#   {group}  Kielieditorin viestiryhmä tai tuodun objektin luokka.
+#   {guiNote}  Esigeneroinnin edistymisikkunan valinnainen huomautus.
+#   {h}  Objektin korkeus lohkoina.
+#   {hash}  Vertailtavien generoitujen chunkien yhdistetty tarkistussumma.
+#   {health}  Tarkastellun entiteetin nykyinen terveys.
+#   {height}  Viestissä nimetty maaston korkeus, kokonaiskorkeus tai näyttöalueen korkeus.
+#   {hours}  Muotoillun keston tuntiosa.
+#   {i}  Moottorin näyttönimi tai komentoluettelomallin listakohde.
+#   {id}  Tarkastellun biomin rekisteritunniste.
+#   {imported}  Onnistuneesti tuotujen rakenteiden tai objektien määrä.
+#   {includeNonJigsaw}  Tuodaanko myös rakenteet, jotka eivät käytä jigsaw-paloja.
+#   {iris}  Iris-generointia käyttävien ladattujen ulottuvuuksien määrä.
+#   {irisLevels}  Paketin korkeuksia vasten tarkistettujen ladattujen Iris-ulottuvuuksien määrä.
+#   {irisPlaced}  Irisin natiivigeneroinnin sijaan sijoittamien rakenteiden määrä.
+#   {job}  Valmistuneen taustatoiminnon nimi.
+#   {k}  Alueen latausavain aluejakaumaraportissa.
+#   {key}  Ympäröivässä tekstissä nimetyn parametrin, viestin tai resurssin tunniste.
+#   {key2}  Ehdotetussa paikannuskomennossa toistuva rakenteen tunniste.
+#   {keyString}  Tuotavan tai virheelliseksi ilmoitetun rakenteen tai resurssin tunniste.
+#   {label}  Paikannetun kohteen näyttönimi.
+#   {line}  Rivinumero kielieditorissa.
+#   {locale}  Kielen tunniste, esimerkiksi en_US tai de_DE.
+#   {logicalWorldName}  Komennon kohteena olevan maailman looginen nimi.
+#   {loot}  Tarkastellun saalistaulukon tunniste.
+#   {m}  Lisäviesti evakuoinnista tai komentomallin ohitettujen parametrien teksti.
+#   {mantleStatus}  Generointitietojen nollauksen tulos ennen uusintageneroinnin vertailua.
+#   {marker}  Haettavan merkinnän nimi.
+#   {material}  Tarkastellun lohkon Minecraft-materiaali.
+#   {maxScale}  Suurin sallittu objektin mittakaava pyydetyn arvon rajaamisen jälkeen.
+#   {maxX}  Näytetyn chunkialueen X-yläraja.
+#   {maxY}  Maailman korkeusalueen yläraja.
+#   {maxZ}  Näytetyn chunkialueen Z-yläraja.
+#   {maximum}  Viestissä nimetty syötteen enimmäispituus tai entiteetin enimmäisterveys.
+#   {mcmeta}  Luodun datapackin pack.mcmeta-tiedoston polku.
+#   {message}  Toiminnon toimittama tarkka tila- tai virheteksti.
+#   {method}  Valittu esigenerointimenetelmä.
+#   {minX}  Näytetyn chunkialueen X-alaraja.
+#   {minY}  Maailman korkeusalueen alaraja.
+#   {minZ}  Näytetyn chunkialueen Z-alaraja.
+#   {minutes}  Muotoillun keston minuuttiosa.
+#   {mismatches}  Tallennetusta vertailuaineistosta poikkeavien chunkien määrä.
+#   {mode}  Valittu tuonti-, generointi- tai esikatselutila.
+#   {modeNote}  Valitun esigenerointitilan valinnainen selitys.
+#   {name}  Viestissä nimetyn maailman, objektin, projektin tai kohteen nimi.
+#   {nameRaw}  Nimi täsmälleen syötettynä ennen normalisointia tai tarkistusta.
+#   {normalized}  Normalisoitu ohjeosion nimi, jota ei löytynyt.
+#   {num}  Moottorin ajoitusotsikon muotoiltu hakasulkuosa; ei välttämättä numero.
+#   {object}  Muokattavan tai tarkasteltavan Iris-objektin nimi tai tunniste.
+#   {objects}  Tarkastellun chunkin objektiluettelo tai objektimäärä.
+#   {offset}  Pystyetäisyys maaston pinnasta lohkoina.
+#   {output}  Tulostiedoston polku, johon kirjoittaminen epäonnistui.
+#   {overall}  Koko esigeneroinnin keskimääräinen chunkimäärä sekunnissa.
+#   {ownerName}  Studio-istunnon omistavan pelaajan nimi.
+#   {pack}  Toiminnossa käsiteltävän Iris-paketin nimi tai tunniste.
+#   {pack2}  Ehdotetussa komennossa tai latauslähteessä toistuva pakettitunniste.
+#   {packDimension}  Paketista valittu ulottuvuusmääritys.
+#   {packLogical}  Paketin ulottuvuusmäärityksen pyytämä looginen korkeus.
+#   {packMax}  Paketin pyytämä korkeuden yläraja.
+#   {packMin}  Paketin pyytämä korkeuden alaraja.
+#   {packName}  Tarkistettavan paketin näyttönimi.
+#   {parameter}  Puuttuva tai jäsentymätön komentoparametri.
+#   {parent}  Ylemmän valikon tai komentopolun näyttönimi.
+#   {path}  Tallennettavan, avattavan tai raportoitavan tiedoston polku.
+#   {percent}  Edistymisprosentti; säilytä viestin prosenttimerkki muuttujan ulkopuolella.
+#   {permission}  Pyydetyn toiminnon vaatima käyttöoikeus.
+#   {personal}  Pelaajan tallennetun henkilökohtaisen kielen tunniste.
+#   {phase}  Nykyisen lataus- tai latauksen siirtovaiheen nimi.
+#   {pinned}  Puuobjektin korjauksessa kiinnitettyjen lehtien määrä.
+#   {player}  Seurattavan tai kohteena olevan pelaajan nimi.
+#   {plugin}  Lisäosan näyttönimi; Irisin yhteisissä kieli- ja virheenjäljitysviesteissä Iris.
+#   {position}  Asetettavan valintakulman numero.
+#   {preset}  Päämaailman rekisteröity generointiesiasetus.
+#   {primary}  Määritetyn päämaailman tunniste.
+#   {processed}  Käsiteltyjen kohteiden määrä, mukaan lukien onnistuneet, ohitetut ja epäonnistuneet.
+#   {properties}  Tarkastellun lohkon ominaisuuksien muotoiltu luettelo.
+#   {quarantinePath}  Karanteeniin siirrettyjen siivoustiedostojen kansio.
+#   {queued}  Suoritusta odottavien työntekijöiden tai työkohtien määrä.
+#   {radius}  Ehdotetussa aloituskomennossa toistuva esigenerointisäde.
+#   {rarity}  Nimetyn alueen tai sijoituksen määritetty harvinaisuusarvo.
+#   {rate}  Muotoiltu siirto- tai esigenerointinopeus; ympäröivä viesti lisää sekuntikohtaisen yksikön.
+#   {reach}  Puunkorjauksessa käytettävä määritetty oksahaun ulottuvuus.
+#   {ready}  Parhaillaan saatavilla olevien tarkkojen Atlas-sivujen määrä.
+#   {reason}  Selitys sille, miksi pyydetty toiminto ei valmistunut.
+#   {region}  Tarkastellun alueen nimi tai tunniste.
+#   {remaining}  Näytetystä luettelosta pois jätettyjen lisälohkojen tilojen määrä.
+#   {repository}  Purettava tietovarasto tai ladattu arkisto.
+#   {reverted}  Peruttujen objektien liittämisten määrä.
+#   {rotation}  Sijoitettuun objektiin käytetty kierto.
+#   {rx}  Hajautettavan chunkin X-koordinaatti.
+#   {rz}  Hajautettavan chunkin Z-koordinaatti.
+#   {s}  Uuden Studio-projektin nimi.
+#   {safeName}  Tuodun objektin puhdistettu tiedostonimi.
+#   {scale}  Yhden esikatselupikselin esittämä maailman lohkomäärä.
+#   {scope}  Object Studiossa avattu objekti tai objektiryhmä.
+#   {searchRadius}  Rakenteiden tarkistuksen hakusäde chunkeissa.
+#   {seconds}  Keston sekuntiosa tai edellisestä päivityksestä kulunut aika.
+#   {section}  Käyttäjän pyytämän ohjeosion nimi.
+#   {seed}  Maailman, Studion, generaattorin tai vertailun siemen.
+#   {seedRaw}  Siemen täsmälleen syötettynä ennen tarkistusta.
+#   {sixtySecond}  Esigeneroidut chunkit sekunnissa 60 sekunnin ajalta.
+#   {size}  Viestissä nimettyjen tiedostojen, varoitusten, merkintöjen tai kohteiden määrä.
+#   {skipped}  Toiminnon ohittamien kohteiden määrä.
+#   {slope}  Maaston kaltevuus tarkastellussa paikassa.
+#   {solidBlocks}  Generoinnin hajautuksessa laskettujen kiinteiden lohkojen määrä.
+#   {source}  Edistymisnäyttöön liittyvä paketti, latauslähde tai syöte.
+#   {speed}  Muotoiltu esigenerointi- tai käsittelynopeus sekunnissa.
+#   {stage}  Nykyisen edistymisvaiheen nimi.
+#   {state}  Viestissä nimetty nykyinen tila tai ominaisuusarvo.
+#   {status}  Esikatselun nykyinen tilateksti.
+#   {structure}  Paikannettavan rakenteen nimi tai tunniste.
+#   {structureKey}  Pyydetyn rakenteen rekisteri- tai pakettitunniste.
+#   {summary}  Valmistuneen toiminnon muotoillut tulokset.
+#   {suppressed}  Iris-sijoituksilla korvattujen natiivirakenteiden määrä.
+#   {surface}  Ehdotetussa teleporttikomennossa käytetty pinnan Y-koordinaatti.
+#   {surfaceY}  Maaston pinnan Y-koordinaatti tarkastellussa paikassa.
+#   {tag}  Paketin nimen eteen lisätty muotoiltu tarkistustilatunnus.
+#   {target}  Viestissä nimetty kielen vastaanottaja tai objektivalinnan kohde.
+#   {targetX}  Paikannetun tai pyydetyn kohteen X-koordinaatti.
+#   {targetZ}  Paikannetun tai pyydetyn kohteen Z-koordinaatti.
+#   {template}  Projektin luonnissa valittu malli.
+#   {tenSecond}  Esigeneroidut chunkit sekunnissa 10 sekunnin ajalta.
+#   {thirtySecond}  Esigeneroidut chunkit sekunnissa 30 sekunnin ajalta.
+#   {threads}  Generoinnin hajautuksessa käytettävien työsäikeiden määrä.
+#   {tileNote}  Tallennettujen tai sijoitettujen lohkoentiteettitietojen valinnainen huomautus.
+#   {title}  Sen toiminnon otsikko, jonka tulos näytetään.
+#   {to}  Uusi debug-asetus: true ottaa käyttöön, false poistaa käytöstä.
+#   {token}  Ulottuvuusargumentti, jota ei voitu jäsentää.
+#   {total}  Viestissä nimettyjen työkohtien, chunkien, ulottuvuuksien tai merkintöjen kokonaismäärä.
+#   {totalObjects}  Object Studiossa avattujen objektien määrä.
+#   {transferred}  Tähän mennessä siirretyn datan määrä muotoiltuna.
+#   {type}  Viestissä nimetty odotettu parametrityyppi, resurssityyppi tai objektiluokka.
+#   {typeKey}  Rekisteröity Minecraft-ulottuvuustyypin tunniste tai inline.
+#   {unreachableBiomes}  Paketin biomivalintojen poissulkemien natiivirakenteiden määrä.
+#   {unsupported}  Niiden natiivirakenteiden määrä, joita alusta ei tue.
+#   {updates}  Lohkopäivitykset sekunnissa kehittäjänäytössä.
+#   {url}  Avattava tai kopioitava verkko-osoite.
+#   {usage}  Komennon syntaksi tai muistinäytön muistinkäyttöteksti.
+#   {used}  Käytetyn muistin määrä muotoiltuna muistinäytössä.
+#   {value}  Viestikohtainen arvo, kuten oletusasetus, nimi, koordinaatti, määrä tai virhe; katso ympäröivää tekstiä.
+#   {value2}  Toinen viestikohtainen arvo, kuten chunkien kokonaismäärä, kohteen Y, paketin nimi tai virhe.
+#   {value3}  Kolmas viestikohtainen arvo, kuten prosentti, kohteen Z, Minecraft-versio tai kulunut aika.
+#   {value4}  Neljäs viestikohtainen arvo, kuten lohkokirjoitukset, valinnan Z-koordinaatti tai valinnainen tilalisäke.
+#   {value5}  Viides viestikohtainen arvo: sijoituksen muiden kuin ilmalohkojen kirjoitukset tai sijaintimallin chunk-Z.
+#   {variables}  Muokattavassa viestissä käytettävissä olevat paikkamerkit.
+#   {velocity}  Tarkastellun entiteetin nykyinen liikenopeus.
+#   {version}  Ympäröivässä viestissä nimetty lisäosan tai Minecraftin versio.
+#   {volume}  Objektivalinnan sisältämien lohkojen määrä.
+#   {w}  Objektin leveys lohkoina.
+#   {wantVariants}  Tuotavan vanilla-puun tai objektipiirteen pyydetty muunnelmamäärä.
+#   {warnings}  Lataamista estämättömien tarkistusvaroitusten määrä.
+#   {width}  Näytetyn maailman alueen leveys lohkoina.
+#   {wood}  Puuobjektin korjauksessa lisättyjen puulohkojen määrä.
+#   {world}  Komennon tai edistymisnäytön kohteena olevan maailman nimi.
+#   {written}  Onnistuneesti kirjoitettujen tuotujen muunnelmien tai objektitiedostojen määrä.
+#   {x}  Viestin lohko-, chunki-, alue- tai esikatselukontekstin X-koordinaatti.
+#   {y}  Maailman tai lohkon pystysuuntainen koordinaatti.
+#   {z}  Viestin lohko-, chunki-, alue- tai esikatselukontekstin Z-koordinaatti.
+#   {zoom}  Esikatselun nykyinen zoomaustaso.
+# === End Iris language guide ===
+
+[iris.director.commandiris]
+"director.debugdump" = "Luo diagnostiikkaraportti ja lähetä se halutessasi"
+"param.debugdump_upload" = "Lähetä raportti mclo.gs-palveluun"
+"director.basic_command" = "Peruskomento"
+"director.create_new_world" = "Luo uusi maailma"
+"param.name_world_create" = "Luotavan maailman nimi"
+"param.dimension_pack_create_world_with" = "Ulottuvuus / paketti luoda maailma"
+"param.seed_generate_world_with" = "Siemenet tuottaa maailman kanssa"
+"param.replace_exact_existing_world_slot_next_restart" = "Korvaa täsmällinen olemassa oleva maailmapaikka seuraavalla uudelleenkäynnistyksellä"
+"director.teleport_another_world" = "Teleporttautuminen toiseen maailmaan"
+"param.world_teleport" = "Maailman teleportata"
+"param.player_teleport" = "Pelaaja teleportata"
+"director.print_version_information" = "Tulosta versiotiedot"
+"director.benchmark_pack" = "Vertailuarvo"
+"param.dimension_benchmark" = "Vertailuarvon ulottuvuus"
+"director.print_world_height_information" = "Tulosta maailman korkeustiedot"
+"director.check_access_all_worlds" = "Tarkista kaikkien maailmojen pääsy."
+"director.remove_iris_world" = "Poista Iris maailma"
+"param.world_remove" = "Maailma poistettavana"
+"param.whether_also_remove_folder_if_set_false_just_does_not_load_world" = "Onko myös poistaa kansio (jos asetettu vääräksi, vain ei ladata maailmaa)"
+"director.toggle_debug" = "Vaihda vianetsintä"
+"director.download_project" = "Lataa projekti."
+"param.pack_download" = "Ladattava pakkaus"
+"director.get_metrics_your_world" = "Hanki mittarit maailmaasi"
+"director.reload_configuration_file_this_is_also_done_automatically" = "Lataa asetustiedosto uudelleen (tämä tehdään myös automaattisesti)"
+"director.unload_iris_world" = "Pura Iris Maailma"
+"param.world_unload" = "Maailma purkamassa"
+"director.load_iris_world" = "Lataa Iris Maailma"
+"param.name_world_load" = "Ladattavan maailman nimi"
+"director.evacuate_iris_world" = "Evakuoi iirismaailma"
+"param.evacuate_world" = "Evakuoi maailma"
+
+[director.help]
+"navigation.parent.hover" = "Palaa ylempään komentoryhmään"
+"navigation.back" = "Takaisin"
+no_subcommands = "Tällä sivulla ei ole alikomentoja."
+no_description = "Kuvausta ei ole annettu"
+command_group = "Komentoryhmä. Avaa napsauttamalla."
+category = "Komentokategoria"
+no_parameters = "Ei parametreja. Esitäytä komento napsauttamalla."
+parameters_hover = "Vie hiiri parametrien päälle saadaksesi lisätietoja."
+"parameter.required" = "Tämä parametri on pakollinen."
+"parameter.optional" = "Tämä parametri on valinnainen."
+"parameter.default" = "Oletusarvo on \"{value}\", jos sitä ei määritetä."
+"parameter.type" = "Tämän parametrin tyyppi on {type}."
+"navigation.previous.hover" = "Edellinen sivu"
+"navigation.next.hover" = "Seuraava sivu"
+"navigation.page" = "Sivu"
+
+[director.runtime]
+"error.invalid_origin" = "Tätä komentoa ei voi suorittaa tästä lähteestä."
+"error.unknown_parameter" = "Tuntematon parametriavain: {key}"
+"error.unexpected_argument" = "Odottamaton argumentti \"{argument}\". Valinnaiset parametrit on annettava avaimella, esim. seed=123"
+"error.unclosed_group" = "Parametrilta {key} puuttuu sulkeva \"]\""
+"error.conversion_failed" = "Arvoa \"{value}\" ei voi muuntaa tyypiksi {type} parametrille {parameter}"
+"error.default_parse_failed" = "Parametrin {parameter} oletusarvoa ei voi jäsentää"
+"error.missing_argument" = "Puuttuva argumentti \"{parameter}\" ({type})"
+"error.execution_failed" = "Komennon {command} suoritus epäonnistui: {reason}"
+usage = "Käyttö: {usage}"
+
+[iris.command]
+permission_denied = "Sinulta puuttuu käyttöoikeus '{permission}'"
+unknown = "Tuntematon Iris-komento"
+player_only = "Vain pelaajat voivat käyttää tätä komentoa."
+iris_world_required = "Iris ei ole luonut tätä ulottuvuutta."
+
+[iris.command.reload]
+success = "Asetukset ja kieli {locale} ladattiin uudelleen."
+failed = "Asetukset ladattiin uudelleen, mutta kieli {locale} hylättiin; jatketaan kielen {activeLocale} käyttöä."
+
+[iris.modded.help]
+unknown_section = "Tuntematon Iris Tukiosa: {section}"
+back_hover = "Palaa {parent}."
+command_parameter = "Komentoparametri"
+brigadier_text = "Tätä parametria luetaan tekstiksi Brigadier."
+operator_notice = "Iris komennot tarvitsevat käyttäjän luvan (taso 2)."
+operator_instruction = "Juokse {command} konsolilta (tai mahdollista huijaukset yhden pelaajan pelissä); ennen kuin nämä komennot eivät suorita tai välilehti valmistu."
+"entry.command.version" = "Tulosta versiotiedot"
+"entry.command.info" = "Luettelo ladattu Iris mitat ja pakkaustiedot"
+"entry.command.what" = "Tutki Iris biome, alue, luolabiome, pinta ja palan sijainti, lohko katsot, hallussa esine, tai lähellä merkkejä"
+"entry.group.find" = "Etsi ja teleportaa Iris biomeet, alueet ja esineet Iris rakenteet, kotimaiset rakenteet ja eturyhmät"
+"entry.command.tp" = "Teleportaa itsesi tai nimetty pelaaja ladattu Iris ulottuvuus"
+"entry.command.evacuate" = "Teleportoi kaikki pelaajat Iris-ulottuvuudesta päämaailman spawn-pisteeseen"
+"entry.command.seed" = "Tulosta maailman ja generaattorin seed-tiedot"
+"entry.command.debug" = "Vaihda Iris vianetsintä ja tallenna iris.json"
+"entry.command.reload" = "Lataa uudelleen iris.json (myös hotloaded automaattisesti joka 3.s)"
+"entry.command.download" = "Lataa pakettiprojekti"
+"entry.command.metrics" = "Tulosta nykyisen sukupolven mittareita Iris ulottuvuus"
+"entry.command.regen" = "Poista ja uudista lähistön palaset paikoilleen"
+"entry.group.pregen" = "Esiaste Iris ulottuvuus"
+"entry.command.wand" = "Hanki Iris objektisauva"
+"entry.group.object" = "Objektisauvan, tallennuksen, liittämisen, analysoinnin ja kumoamisen työkalut"
+"entry.group.edit" = "Avaa pakkaus biome, alue ja ulottuvuus json-tiedostot työpöytäeditorissa"
+"entry.command.create" = "Luo ja pistä hitaasti Iris mitta; lainauspaketti:dimensionKey valita tietty pakkauksen ulottuvuus"
+"entry.group.studio" = "Pakatkaa projektien luominen, pakkaaminen ja raportit"
+"entry.group.pack" = "Pakkausten validointi ja ylläpito"
+"entry.group.world" = "Suoritusaika Iris ulottuvuuden luominen, poistaminen ja asema"
+"entry.group.datapack" = "maailman datapaketin asennus- ja tilaapurit"
+"entry.group.structure" = "Iris rakenneindeksi, tiedot ja työvälineet"
+"entry.command.goldenhash" = "Luo deterministinen lohkon hashes pariteettitestaus"
+"entry.group.developer" = "Kehittäjän diagnostiikka: verkkoliitännät ja aluetiedostojen skannaus"
+"entry.command.biome" = "Etsi Iris bome"
+"entry.command.region" = "Etsi Iris alue"
+"entry.command.object" = "Etsi kohteen sijoitus"
+"entry.command.structure" = "Etsi Iris-paikka tai natiivi/datapakkausrakenne"
+"entry.command.poi" = "Etsi tuettu kohde"
+"entry.command.biome_2" = "Avaa biome json työpöytäeditorissasi; mikään avain ei avaa biomen asemaasi"
+"entry.command.region_2" = "Avaa alue json työpöytäeditorissasi; mikään avain ei avaa aluetta asemassasi"
+"entry.command.dimension" = "Avaa nykyisen packin dimension JSON työpöytäeditorissa"
+"entry.command.start" = "Käynnistä esigeneraatio; säde lohkoissa, nollattava tarkistuspisteen välimuisti oletuksena, keskellä kautta 'at <x>  <z>\", liput säveltää missä järjestyksessä tahansa"
+"entry.command.stop" = "Lopeta aktiivinen esigenerointitehtävä"
+"entry.command.pause" = "Keskeytä tai jatka pregeneraatiota"
+"entry.command.status" = "Näytä esipolven tila"
+"entry.command.wand_3" = "Hanki Iris objektisauva"
+"entry.command.dust" = "Hanki pölyä, joka paljastaa kohteen sijainnin"
+"entry.command.save" = "Tallenna valittu sauvatilavuus objektina"
+"entry.command.paste" = "Liitä objekti sijaintiisi tai annettuun sijaintiin, haluttaessa käännettynä"
+"entry.command.expand" = "Laajenna taikasauvan valintaa näköiseen suuntaan"
+"entry.command.contract" = "Tilaa taikasauvan valinta suuntasi mukaan"
+"entry.command.shift" = "Siirrä taikasauvan valinta näkösuuntaan"
+"entry.command.position1" = "Aseta valintapiste 1"
+"entry.command.position2" = "Aseta valintapiste 2"
+"entry.command.x_y" = "Automaattivalinta"
+"entry.command.x_y_2" = "Automaattivalinta ylös, alas ja ulos"
+"entry.command.analyze" = "Näytä objektin koostumus"
+"entry.command.shrink" = "Kutista esine sen minimikokoon"
+"entry.command.plausibilize" = "Kasvaa oksat niin puun lehdet hengissä vanilla mätä"
+"entry.command.undo" = "Kumoa liitetyt objektit"
+"entry.command.create_2" = "Luo uusi pakettiprojekti"
+"entry.command.package" = "Pakkaa ulottuvuus pakattuun muotoon"
+"entry.command.version_2" = "Tulosta pakkausversio"
+"entry.command.regions" = "Laske lähialueen jakautuminen"
+"entry.command.open" = "Avaa tilapäinen studio ulottuvuus paketille"
+"entry.command.close" = "Sulje avoin studio ulottuvuus ja hylkää sen maailma"
+"entry.command.tpstudio" = "Teleportti avoimeen studioulottuvuuteen"
+"entry.command.status_studio" = "Näytä avoin studio ulottuvuus ja sen paketti"
+"entry.command.noise" = "Avaa meluntutkija GUI palvelinnäytössä"
+"entry.command.map" = "Avaa Vision-kartta GUI palvelinnäytössä"
+"entry.command.vscode" = "Uudista .code-työtila paketille ja avaa se työpöytäeditorissa"
+"entry.command.update" = "Uudista .code-työtila paketille"
+"entry.command.importvanilla" = "Selitä vanillan tuonti"
+"entry.command.validate" = "Validoidaan pakkaus tai jokainen pakkaus"
+"entry.command.cleanup" = "Esikatselu tai karanteeni käyttämättömät resurssit"
+"entry.command.restore" = "Esikatselu tai uusinta karanteenia"
+"entry.command.status_validation" = "Näytä välimuistin validointistatus"
+"entry.command.enable" = "Luo ja ota käyttöön pysyvä Iris-ulottuvuus ajon aikana; paketin on oltava asennettu, ja lainausmerkeissä oleva pack:dimensionKey valitsee tietyn ulottuvuuden."
+"entry.command.replace_overworld" = "Pistä Iris ensisijainen maailma ja reitti pelaajat siellä sijaan vanilla overworld"
+"entry.command.disable" = "Evakuoi ja pura Iris ulottuvuus; maailman tiedot levyllä säilytetään uudelleen-enabling"
+"entry.command.delete" = "Poista käytöstä Iris mitta ja pyyhi sen pala ja Mantle tiedot levyltä"
+"entry.command.list" = "Luettelo ladattu Iris mitat"
+"entry.command.status_world" = "Näytä ladattu Iris mitat ja konfiguroitu ensisijainen maailma"
+"entry.command.status_datapack" = "Tarkista ladattu Iris Mitat"
+"entry.command.install" = "Asenna ladatun mittatyypin ohitus Iris mitat"
+"entry.command.list_datapacks" = "Listaa määritetyt ja asennetut datapaketit"
+"entry.command.ingest" = "Selitä Bukkit datapackin suurin työnkulku"
+"entry.command.remove" = "Selitä datapaketin poistotyövirta"
+"entry.command.list_structures" = "Uusi structure-index.json"
+"entry.command.info_2" = "Ratkaise a Iris rakennekaavio ja raportin raja-arvot"
+"entry.command.place" = "Kokoa ja aseta Iris sijaintisi rakenne"
+"entry.command.import" = "Selitä Bukkit rakenteen mukainen työnkulku"
+"entry.command.capture" = "Selitä Bukkit rakenteen kaappaustyövirta"
+"entry.command.verify" = "Ilmoita syntyperäinen ja Iris rakenteen saavutettavuus nykyisessä ulottuvuudessa"
+"entry.command.network" = "Listaa verkkoliittymät ja niiden osoitteet"
+"entry.command.what.here" = "Inspect the Iris biome, region, cave biome, surface and chunk at your position"
+"entry.command.what.biome" = "Inspect the Iris biome, configured derivative and registered native biome"
+"entry.command.what.region" = "Inspect the Iris region at your current chunk"
+"entry.command.what.block" = "Inspect the targeted block state, properties, object and block entity"
+"entry.command.what.hand" = "Inspect the held item and its default block state"
+"entry.command.what.markers" = "Reveal nearby Iris Mantle markers with particles"
+"entry.command.height" = "Print the current dimension height range"
+"entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
+"entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
+"entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
+"entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
+"entry.command.studio.loot" = "Explain why the Bukkit loot simulation GUI is unavailable"
+"entry.command.studio.profile" = "Explain why Bukkit pack profiling is unavailable"
+"entry.command.studio.spawn" = "Explain why Bukkit Iris entity spawning is unavailable"
+"entry.command.studio.objects" = "Explain why the Bukkit chunk object report is unavailable"
+"entry.command.compat_content" = "Näytä sisältö, jota ei voi luoda tässä Minecraft-versiossa"
+
+[iris.modded.command]
+"properties.none" = "Ominaisuudet: (ei)"
+"properties.list" = "Ominaisuudet: {properties}"
+
+[iris.bukkit.commanddatapack]
+starting_datapack_ingest = "§7Aloitetaan datapack singest..."
+configured_datapack_imports = "§aMuokkaa datapaketin tuontia: §f{value}"
+message = "§7  - §f{url}"
+installed_datapacks = "§aAsennetut tietopaketit: §f{value}"
+message_2 = "§7  - §f{value}§7  {value2}"
+add_modrinth_urls_dimension_s_datapackimports_list_then_run_iris = "§eLisää Modrinth  URLs ulottuvuudestadatapackImports' lista, sitten suorita /iris datapack ingest."
+
+[iris.bukkit.commanddeveloper]
+genhash_started_chunks = "§agenhash käynnistyi: {value} chunkia..."
+genhash_failed_at_chunk = "§cgenhash epäonnistui chunkissa {rx},{rz}: {value}"
+genhash_global_chunks_solid = "§agenhash globaali=§6{value}§a chunkit={value2} kiinteät={solidBlocks} ajassa {value3}"
+world_is_null = "§cMaailma on nolla."
+target_iris_world_before_reading_mantle_dump = "§cKohde Iris Maailmassa ennen kuin lukee Mantle-vedosta."
+upgrading = "§aPäivittäminen {value}..."
+done_upgrading_you_can_now_update_your_server_version = "§aValmista tuli!  Voit nyt päivittää palvelimen version {value}"
+radius_must_be_0_greater = "§cRadiuksen täytyy olla. 0 tai suurempi."
+this_is_not_iris_world = "§cTämä ei ole Iris Maailma."
+engine_access_this_world_is_null = "§cTämän maailman moottori ei toimi."
+delete_started_chunk_s_around_clearing_blocks_air = "§aPoistaminen aloitettu: §6{chunks}§a chunk(s) ympärillä §6{centerX},{centerZ}§a.  Tyhjentämässä lohkoja ilmaan."
+radius_must_be_0_greater_2 = "§cRadiuksen täytyy olla. 0 tai suurempi."
+you_must_be_iris_world_use_regen = "§cSinun täytyy olla Iris maailman käyttää Regen."
+engine_access_this_world_is_null_generate_nearby_chunks_first = "§cTämän maailman moottori ei toimi.  Luo lähistön palasia ensin."
+regen_started_chunk_s_around_deleting_regenerating_place = "§aRegen alkoi: §6{chunks}§a chunk(s) ympärillä §6{centerX},{centerZ}§a.  Poistetaan ja uudistetaan."
+radius_must_be_0_greater_3 = "§cRadiuksen täytyy olla. 0 tai suurempi."
+target_must_be_iris_world = "§cKohteen on oltava Iris Maailma."
+engine_access_this_world_is_null_2 = "§cTämän maailman moottori ei toimi."
+goldenhash_started_chunk_s_around_buffers_world_untouched = "§aGoldenHash aloitti: §6{chunks}§a chunk(s) ympärillä §6{centerX},{centerZ}§a puskurit (maailma koskematon)."
+
+[iris.bukkit.commandfind]
+not_iris_world = "§6Ei missään Iris Maailma!"
+unknown_structure = "§cTuntematon rakenne: {structureKey}"
+run_this_game_teleport_structure = "§6Aja tämä peli teleportata rakennelma."
+locating = "§7Sijainti {structureKey}..."
+run_this_game_teleport_structure_2 = "§6Aja tämä peli teleportata rakennelma."
+locating_2 = "§7Sijainti {structure}..."
+teleported = "§aTelesiirretty {structure} @ {value}, {y}, {value2}"
+not_iris_world_5 = "§6Ei missään Iris Maailma!"
+not_iris_world_2 = "§6Ei missään Iris Maailma!"
+not_iris_world_3 = "§6Ei missään Iris Maailma!"
+not_iris_world_4 = "§6Ei missään Iris Maailma!"
+object_studio_teleporting = "§aObject Studio: teleportaaminen {object}"
+is_not_configured_any_region_biome_object_placements = "§c{object} ei ole konfiguroitu millään alueella / biome objektisijoittelut."
+
+[iris.bukkit.commandiris]
+successfully_removed_world_folder = "§aOnnistuneesti poistettu maailman kansio"
+successfully_removed_world_folder_2 = "§aOnnistuneesti poistettu maailman kansio"
+failed_remove_world_folder = "§cMaailman kansiota ei voitu poistaa"
+you_cannot_use_world_name_iris_creating_worlds_as_iris = "§cMaailman nimeä \"iris\" ei voi käyttää, koska Iris käyttää tätä hakemistoa Studio-maailmoille."
+may_we_suggest_name_irisworld_instead = "§cVoimmeko ehdottaa nimeä \"IrisWorldSen sijaan?"
+you_cannot_use_world_name_benchmark_creating_worlds_as_iris = "§cMaailman nimeä \"benchmark\" ei voi käyttää, koska Iris käyttää tätä hakemistoa vertailupaketeille."
+may_we_suggest_name_irisworld_instead_2 = "§cVoimmeko ehdottaa nimeä \"IrisWorldSen sijaan?"
+that_folder_already_exists = "§cSe kansio on jo olemassa!"
+try_one_overworld_vanilla_flat_theend = "§eKokeile yksi: maapallo, vanilla, litteä, theend"
+dimension_not_found = "§cCould not find dimension §f{dimension}§c."
+install_pack_and_restart = "§eInstall it with §b{command}§e and restart the server."
+exception_raised_during_creation_see_console_more_details = "§cLuomisen aikana nostettu poikkeus.  Katso lisätietoja konsolista."
+successfully_created_your_world = "§aOnnistuneesti loin maailmasi!"
+specified_player_does_not_exist = "§cMääriteltyä pelaajaa ei ole olemassa."
+iris_v_by_volmit_software = "§aIris{value} mennessä Volmit Software"
+to = "§a{value} - {value2}"
+total_height = "§aKokonaiskorkeus: {value}"
+iris_worlds = "§9Iris Worlds. "
+message = "§a- {value}"
+bukkit_worlds = "§6Bukkit Worlds "
+message_2 = "§7- {value}"
+this_is_not_iris_world_iris_worlds = "§cTämä ei ole Iris Maailma.  Iris Maailmoja: {value}"
+removing_world = "§aPoistava maailma: {value}"
+failed_evacuate_world = "§cMaailmaa ei voitu evakuoida: {value}"
+failed_unload_world = "§cMaailmaa ei voitu purkaa: {value}"
+successfully_removed_from_bukkit_yml = "§aOnnistunut poisto {value} alkaen bukkit.yml"
+looks_like_world_was_already_removed_from_bukkit_yml = "§eNäyttää siltä, että maailma on jo poistettu. bukkit.yml"
+failed_save_bukkit_yml_because = "§cTallennus epäonnistui bukkit.yml koska {value}"
+set_debug = "§aAseta vianetsintä: {to}"
+you_must_be_iris_world = "§cSinun täytyy olla Iris maailma"
+sending_metrics = "§aLähetetään mittareita..."
+this_is_not_iris_world_iris_worlds_2 = "§cTämä ei ole Iris Maailma.  Iris Maailmoja: {value}"
+unloading_world = "§aPurkaminen maailma: {value}"
+world_unloaded_successfully = "§aMaailma on purettu onnistuneesti."
+failed_unload_world_2 = "§cEi onnistunut purkamaan maailmaa."
+failed_unload_world_3 = "§cMaailmaa ei voitu purkaa: {value}"
+doesnt_exist_on_server = "§e{logicalWorldName} Sitä ei ole palvelimella."
+generator = "§9Generaattori: {dimension}"
+is_not_iris_world = "§6{logicalWorldName} Ei ole iirismaailma."
+could_not_determine_iris_dimension = "§cEi voitu määrittää Iris mitat {logicalWorldName}."
+loading_world = "§aLadataan maailmaa: {logicalWorldName}"
+loaded_successfully = "§a{logicalWorldName} Ladattu onnistuneesti."
+this_is_not_iris_world_iris_worlds_3 = "§cTämä ei ole Iris Maailma.  Iris Maailmoja: {value}"
+evacuating_world = "§aMaailman evakuointi{value}"
+
+[iris.bukkit.commandobject]
+no_packs_with_objects_were_found_on_this_server = "§cTällä palvelimella ei löytynyt tavarapakkauksia."
+no_objects_place_across_selected_pack_s = "§cValituissa paketeissa ei ole sijoitettavia objekteja."
+opening_object_studio_objects = "§aAvaa object Studio {scope} ({totalObjects} objektit)"
+failed_open_object_studio = "§cObjektistudion avaaminen epäonnistui: {value}"
+object_size = "Kohteen koko: {value} * {value2} * {value3}"
+blocks_used = "Käytetyt lohkot: {value}"
+blocks_object = "Suomennos:"
+other_block_types = "  + {value} muut lohkotyypit"
+current_object_size = "Nykyinen objektin koko: {value} * {value2} * {value3}"
+new_object_size = "Uuden objektin koko: {value} * {value2} * {value3}"
+failed_save_object = "Esineen tallennus epäonnistui {value}: {value2}"
+no_objects_matched = "§cEi vastaavia esineitä: {target}"
+plausibilize_reach_queued_object_s = "§aPlausibize [reach={reach}{value}] jonossa {value2} kohde(s)"
+hold_your_wand = "Pidä sauvaa."
+no_area_selected = "Aluetta ei ole valittu."
+ready_your_wand = "Valmistelkaa sauvanne."
+ready_your_wand_2 = "Valmistelkaa sauvanne."
+indicated_scale_exceeds_maximum_downscaled_maximum = "§eAsteikko ylittää maksimin.  Skaalataan enintään: {maxScale}"
+updated_wand_objects_iob = "Päivitetty sauva objects/{value}.iob "
+given_new_wand_objects_iob = "Uusi sauva objects/{value}.iob "
+updated_wand_objects_iob_2 = "Päivitetty sauva objects/{value}.iob "
+placed = "§aPaikka {object}"
+you_need_hold_your_wand = "§ePitele sauvaasi!"
+file_already_exists_set_overwrite_true_overwrite_it = "§cTiedosto on jo olemassa.  Aseta ylikirjoitus=tosi korvataksesi sen."
+failed_save_object_because_ioexception = "§cKohdetta ei voitu tallentaa, koska IOException: {value}"
+successfully_object_saved_objects = "§aOnnistunut vastustaminen tallennukselle: {value}/objects/{name}"
+hold_your_wand_2 = "Pidä sauvaa."
+no_area_selected_2 = "Aluetta ei ole valittu."
+reverted_pastes = "§9Kumottiin {actualReverts}§9 liittämistä!"
+you_can_t_get_worldedit_selection_without_worldedit_you_know = "§cEt saa sitä. WorldEdit valinta ilman WorldEditTiedäthän."
+you_don_t_have_worldedit_selection_this_world = "§cSinulla ei ole. WorldEdit valinta tässä maailmassa."
+fresh_wand_with_your_current_worldedit_selection_on_it = "§aUusi taikasauva nykyiselläsi WorldEdit Valinta!"
+poof_good_luck_building = "§aPuf!  Onnea rakentamiseen!"
+hold_your_wand_3 = "§ePidä sauvaa!"
+no_area_selected_3 = "Aluetta ei ole valittu."
+auto_select_complete = "§aAutomaattivalinta valmis!"
+hold_your_wand_4 = "§ePidä sauvaa!"
+no_area_selected_4 = "Aluetta ei ole valittu."
+auto_select_complete_2 = "§aAutomaattivalinta valmis!"
+
+[iris.bukkit.commandpack]
+you_must_specify_pack_name = "§cPakkauksen nimi on ilmoitettava."
+pack_not_found_under_packs = "§cPakkaus{pack}' ei löydy alta packs/."
+message = "§7  - {label}: {value}"
+more = "§7    ...  sekä {value} Enemmän."
+
+[iris.bukkit.commandstructure]
+verifying_structures_from_within_chunks = "§aVarmistetaan rakenteet §f{value}§a alkaen {value2},{value3} sisällä {searchRadius} chunkia..."
+could_not_resolve_pack_dimension = "§cPakkausta ei voitu ratkaista mitan vuoksi {value}"
+wrote_structure_index = "§aKirjoitetun rakenteen indeksi: §f{value}"
+could_not_resolve_pack_dimension_2 = "§cPakkausta ei voitu ratkaista mitan vuoksi {value}"
+importing_all_vanilla_datapack_structures_into_overwrite = "§aVanillan tuonti & datapakettiin §f{value}§a (korvaa)..."
+import_complete_structures_objects_written_failed = "§aTuo valmis: §f{imported}§a  structures/objects kirjallinen §f{failed}§a Epäonnistui."
+reference_them_from_biome_region_dimension_structures_list_run_iris = "§7Viedään ne biome/alue/ulottuvuus-rakenneluettelosta tai ajetaan /iris structure list {value} Päivittääksesi indeksin.  Luo palasia muutoksia voimaan."
+could_not_resolve_pack_dimension_3 = "§cPakkausta ei voitu ratkaista mitan vuoksi {value}"
+captured_structures_place_them_from_structures_list_regenerate_chunks_delete = "§7Vangittu {value} rakenteet.  Aseta ne \"rakennelistasta\" ja uudista palasia.  Poista a structures/*.json Saada se takaisin."
+no_loaded_iris_world_found_join_create_one_first_search = "§cEi ladattua Iris maailman {value}.  Liity tai luo yksi ensimmäinen (haku kulkee vastaan elävä maailma)."
+selected_iris_world_has_no_active_generator_engine = "§cValittu Iris Maailmassa ei ole aktiivista generaattoria."
+could_not_resolve_pack_dimension_4 = "§cPakkausta ei voitu ratkaista mitan vuoksi {value}"
+no_iris_structure_this_pack = "§cEi iirisrakennetta '{structure}Tässä pakkauksessa"
+structure_assembled_0_pieces_check_startpool = "§cRakenne{structure}' koottu 0 kappaleita (tarkistus startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "§aRakenne{structure}': §f{value}§a kappaleita, jalanjälki §f{value2}x{value3}§a lohkot (näytteen siemenet 1234)"
+could_not_resolve_pack_dimension_5 = "§cPakkausta ei voitu ratkaista mitan vuoksi {value}"
+no_iris_structure_this_pack_2 = "§cEi iirisrakennetta '{structure}Tässä pakkauksessa"
+structure_assembled_0_pieces = "§cRakenne{structure}' koottu 0 kappaletta"
+placed_pieces_at_your_location = "§aPaikka{structure}' ({value} Palaset) sijaintisi. ({value2} block changes)"
+placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+
+[iris.bukkit.commandstudio]
+importing_vanilla_content_into = "§aVanillapitoisuuden tuominen §f{value}§a..."
+importvanilla_complete_objects_structures_written_failed = "§atuontivanilja valmis: §f{imported}§a  objects/structures kirjallinen §f{failed}§a Epäonnistui."
+trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7Puut/objektit ovat objects/vanilla/...; viite ne biome objektisijoituksista."
+no_open_studio_projects = "§cEi avoimia studioprojekteja."
+closing_studio = "§eSulkemisstudio..."
+studio_close_failed = "§cStudio suljettiin: {value}"
+studio_close_failed_2 = "§cStudio suljettiin: {value}"
+studio_closed_remaining_world_family_cleanup_was_queued_startup_fallback = "§eStudio suljettu.  Maailmanperheen siivous oli jonossa."
+studio_closed = "§aStudio suljettu."
+you_must_be_studio_world_toggle_debug_scoreboard = "§cOlet varmaan studiomaailmassa."
+studio_debug_scoreboard = "{value}Studiovirheen tulostaulu {value2}"
+could_not_update_studio_debug_scoreboard_right_now = "§cStudio vianetsinnän tulostaulua ei voitu päivittää juuri nyt."
+opened_inventory = "§aAvattu varasto!"
+generating_data = "§7Tietojen tuottaminen..."
+done = "§aValmis!"
+message = "§a{k}: {value} / {value2}%"
+regions_radius_out_of_range = "§cSäteen on oltava 1 ja 2048 chunkin välillä."
+regions_scan_failed = "§cAlueskannaus epäonnistui: {value}"
+opening_studio_pack_seed = "§aAvaa studio \"{value}\" pakkaus (siemen: {seed})"
+provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§cAntakaa mittapaketti: /iris std importvanilla pack=<dimension>"
+could_not_resolve_pack_dimension = "§cPakkausta ei voitu ratkaista mitan vuoksi {value}"
+opening_vscode_pack = "§aAvaaminen VSCode Korvataan:{value}\" pakkaus"
+pack_has_version = "§a\"{value}\" paketissa on versio: {value2}"
+opening_noise_explorer = "§aAvaan Melututkijan!"
+cannot_add_items_virtual_inventory_because = "§cEi voi lisätä kohteita virtuaaliseen varastoon, koska: {value}"
+opening_inventory_now = "§aAvaa inventaario!"
+only_works_iris_world = "§cToimii vain Iris Maailma!"
+you_need_be_specify_iris_generated_world = "§cSinun täytyy olla tai määritellä Iris- Luonut maailma!"
+opening_map = "§aAvaan kartan!"
+calculating_performance_metrics_noise_generators = "Melugeneraattoreiden suorituskyvyn laskeminen"
+calculating_interpolator_timings = "Interpolaattorien ajoitusten laskeminen..."
+processing_generator_scores = "Processing Generator Tulokset: "
+score = "Pistemäärä: {value}"
+done_with_result = "§aValmis!  {value}"
+you_have_be_iris_world_spawn_entities_properly_trying_spawn = "§cSinun on oltava Iris-maailmassa, jotta entiteetit voidaan luoda oikein. Yritetään luoda ne parhaalla mahdollisella tavalla."
+no_studio_world_is_open = "§cYksikään studiomaailma ei ole auki!"
+you_are_already_studio_world = "§cOlet jo studiomaailmassa!"
+sending_you_studio_world = "§aLähetän sinut studiomaailmaan!"
+updating_code_workspace = "§6Päivitetään koodityötilaa {value}..."
+updated_code_workspace = "§aPäivitetty koodi Työtila {value}"
+invalid_project_try_deleting_code_workspace_file_try_again = "§cVirheellinen projekti: {value}.  Yritä poistaa koodi-työtilatiedosto ja yritä uudelleen."
+you_must_be_iris_world = "§cSinun täytyy olla Iris maailma"
+you_must_be_iris_world_2 = "Olet varmaan iris-maailmassa."
+capturing_igendata_from_nearby_chunks = "Kaappaus IGenData alkaen {value} Lähellä on chunkia."
+reported = "Raportoitu: {value}"
+you_must_have_server_launched_guis_enabled_settings = "§cSinulla täytyy olla palvelin käynnistetty GUIs käytössä asetuksissa!"
+players_only = "§cVain pelaajille!"
+no_studio_world_is_open_2 = "§cYksikään studiomaailma ei ole auki!"
+you_must_be_studio_world = "§cOlet varmaan studiomaailmassa!"
+opening_image_map_studio = "§aOpening the Image Map Studio."
+
+[iris.bukkit.commandsvc]
+you_lack_permission = "Sinulta puuttuu lupa.{ROOTPERMISSION}'"
+
+[iris.bukkit.irisenginestatus]
+message = "§5-------------------------"
+status = "§5Tila:"
+service = "§5- Palvelu: §d{value}"
+metrics = "§5- Metrics. §d{value}"
+maintenance_period = "§5- Ylläpitojakso: §d{value}"
+worker_parallelism = "§5- Työntekijät: §d{value}"
+active_world_tasks = "§5- Aktiiviset maailmantehtävät: §d{value}"
+tectonic_plates = "§5Tektoniset levyt:"
+configured_retention = "§5- Muokattu säilyttäminen: §d{value}"
+heap_usage = "§5- Heap Useage: §d{value}"
+resident = "§5- Asukas: §d{value}"
+queued = "§5-Mitä? §d{value}"
+average_idle_duration = "§5- Keskimääräinen joutokäyntiaika: §d{value}"
+max_idle_duration = "§5- Max Idle Kesto: §d{value}"
+min_idle_duration = "§5- Mielen keskeytysaika: §d{value}"
+caches = "§5Akut:"
+resource = "§5- Resurssi: §d{value} ({value2})"
+2d_stream = "§5- 2D-virta: §d{value} ({value2})"
+3d_stream = "§5- 3D-virta: §d{value} ({value2})"
+other = "§5- muut: §d{value} ({value2})"
+other_2 = "§5muu:"
+iris_worlds = "§5- Iris Maailmat: §d{value}"
+loaded_chunks = "§5- Ladattuja chunkia. §d{value}"
+message_2 = "§5-------------------------"
+
+[iris.bukkit.commandedit]
+players_only = "§cVain pelaajille!"
+no_studio_world_is_open = "§cYksikään studiomaailma ei ole auki!"
+you_must_be_studio_world = "§cOlet varmaan studiomaailmassa!"
+cannot_open_files_headless_environments = "§cEi voi avata tiedostoja päättömissä ympäristöissä!"
+desktop_is_not_supported_by_this_environment = "§cTyöpöytä ei tue tätä ympäristöä!"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6Tiedostoa ei löydy; ehkä sitä ei ladattu suoraan tiedostosta?"
+opening_vscode = "§aAvaaminen {value}  {value2} sisään VSCode! "
+cant_find_file_registrant_does_not_exist = "§cCant löytää tiedoston.  Tai rekisteröijää ei ole"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6Tiedostoa ei löydy; ehkä sitä ei ladattu suoraan tiedostosta?"
+opening_vscode_2 = "§aAvaaminen {value}  {value2} sisään VSCode! "
+cant_find_file_registrant_does_not_exist_2 = "§cCant löytää tiedoston.  Tai rekisteröijää ei ole"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6Tiedostoa ei löydy; ehkä sitä ei ladattu suoraan tiedostosta?"
+opening_vscode_3 = "§aAvaaminen {value}  {value2} sisään VSCode! "
+cant_find_file_registrant_does_not_exist_3 = "§cCant löytää tiedoston.  Tai rekisteröijää ei ole"
+
+[iris.bukkit.commandpregen]
+pregen_radius_must_be_greater_than_zero_blocks = "§cPregen-säteen on oltava suurempi kuin nolla lohkoa."
+strict_serial_pregeneration_requires_paper_paper_compatible_server = "§cTiukasti sarjallinen esigenerointi vaatii Paperin tai Paper-yhteensopivan palvelimen."
+engine_access_this_world_is_null = "§cTämän maailman moottorit eivät toimi!"
+please_make_sure_world_is_loaded_engine_is_initialized_generate = "§cVarmista, että maailma on ladattu. & Moottori on alustettu.  Luo esimerkiksi uusi pala."
+failed_start_pregeneration_see_console_details = "§cEsisukupolven aloittaminen epäonnistui.  Katso lisätietoja konsolista."
+no_active_pregeneration_tasks_stop = "§eEi aktiivisia esigenerointitehtäviä"
+paused_unpaused_pregeneration_task_now = "§aEsigenerointitehtävän taukotila vaihdettu. Nykyinen tila: {value}."
+no_active_pregeneration_tasks_pause_unpause = "§eEi aktiivisia esisukupolven tehtäviä tauon/tauon pysäyttämiseksi."
+no_active_pregeneration_task = "§eEi aktiivista esisukupolven tehtävää."
+pregen = "§aPregen. §6{world}§a: §6{value}/{value2}§a (§6{value3}%§a){value4}"
+speed_s_eta_elapsed_method = "§aNopeus: §6overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s§a ETA: §6{eta}§a Elapsed: §6{elapsed}§a Method: §6{method}{failures}"
+
+[iris.bukkit.commandwhat]
+material = "Materiaali: §a{value}"
+full = "Täysi: §f{value}"
+please_hold_block_item = "Pitäkää lohko/kohta"
+material_2 = "Materiaali: §a{value}"
+please_hold_block_item_2 = "Pitäkää lohko/kohta"
+ibiome = "IBiome: {value} ({value2})"
+non_iris_biome = "Ei-Iris Bioma: {value}"
+data_pack_biome_id = "Tietopaketti Biome: {value} (ID: {value2})"
+iregion = "IRegion: {value} ({value2})"
+iris_worlds_only = "§aVain Iriksen maailmoja."
+please_look_at_any_block_not_at_sky = "Katsokaa mitä tahansa korttelia, älkää taivasta."
+material_3 = "Materiaali: §a{value}"
+full_2 = "Täysi: §f{value}"
+storage_block_loot_capable = "§e* Storage Block (Loot kykenee)"
+lit_block_light_capable = "§e* Lit Block (Valo pystyy)"
+foliage_block = "§e* Foliage lohko"
+decorant_block = "§e* Koristeellinen lohko"
+fluid_block = "§e* Nestekatkos"
+plantable_foliage_block = "§e* Istutettava Foliage Block"
+solid_block = "§e* Kiinteä lohko"
+found_nearby_markers = "Löytyi {value} Lähistöllä olevat merkit ({marker})"
+iris_worlds_only_2 = "§aVain Iriksen maailmoja."
+
+[iris.modded.irismoddedcommands]
+this_dimension_is_not_generated_by_iris = "Iris ei ole luonut tätä ulottuvuutta."
+console_must_name_biome_iris_edit_biome_key = "Konsolin on nimettävä biome: /iris edit biome <key>"
+biome_lookup_failed = "Biome-haku epäonnistui: {value}"
+unknown_biome = "Tuntematon biome: {key}"
+this_dimension_is_not_generated_by_iris_2 = "Iris ei ole luonut tätä ulottuvuutta."
+console_must_name_region_iris_edit_region_key = "Konsolin on nimettävä alue: /iris edit region <key>"
+region_lookup_failed = "Alueen haku epäonnistui: {value}"
+unknown_region = "Tuntematon alue {key}"
+this_dimension_is_not_generated_by_iris_3 = "Iris ei ole luonut tätä ulottuvuutta."
+cannot_open_files_here = "Tiedostoa ei voi avata tästä: {value}"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "Tiedostoa ei löydy; ehkä sitä ei ladattu suoraan tiedostosta?"
+could_not_open = "Ei voitu avata {value}: {value2}"
+opening_your_editor = "Avaaminen {value}  {value2} Päätoimittajassasi."
+console_must_name_player_iris_tp_dimension_player = "Konsolin on nimettävä pelaaja: /iris tp <dimension> <player>"
+is_not_generated_by_iris = "{value} ei ole tuotettu Iris."
+teleport_failed_dimension_is_not_loaded = "Teleportti epäonnistui: ulottuvuus {dimensionId} ei ole ladattu."
+teleporting = "Telesiirtäminen {value} - {dimensionId}..."
+is_not_generated_by_iris_2 = "{value} ei ole tuotettu Iris."
+cannot_evacuate_primary_world_there_is_nowhere_send_players = "Ensisijaista maailmaa ei voida evakuoida; pelaajia ei voi lähettää minnekään."
+evacuated_player_s_from = "Evakuoitu {count} pelaajat {value} - {value2}."
+set_debug = "Aseta vianetsintä: {to}"
+hotloaded_settings = "Hotloaded-asetukset"
+this_command_can_only_be_used_by_players_it_inspects = "Tätä komentoa voivat käyttää vain pelaajat (se tarkastaa oman esineen)."
+your_main_hand_is_empty = "Pääkätesi on tyhjä."
+hand_x = "Käsi: {value} x{value2}"
+this_command_can_only_be_used_by_players = "Vain pelaajat voivat käyttää tätä komentoa."
+this_dimension_is_not_generated_by_iris_4 = "Iris ei ole luonut tätä ulottuvuutta."
+this_dimension_is_not_generated_by_iris_5 = "Iris ei ole luonut tätä ulottuvuutta."
+is_not_generated_by_iris_see_iris_info_loaded_iris = "{value} ei ole tuotettu Iris; katso /iris info ladattu Iris mitat."
+current_dimension_is_not_generated_by_iris_name_one_explicitly = "Nykyinen ulottuvuus ({value}) ei ole tuotettu Iris.  Nimeä yksi erikseen: /iris pregen start {radius} <dimension>; katso /iris info ladattu Iris mitat."
+pregeneration_task_is_already_running_stop_it_first_with_iris = "Sukupolvia edeltävä tehtävä on jo käynnissä.  Lopeta se ensin /iris pregen stop."
+pregen_started_by_blocks_from_progress_logs_console_see_iris = "Pregen alkoi {value} / {value2} mennessä {value3} lohkot alkaen {centerX},{centerZ}.{modeNote} Edistyslokit konsoliin; katso /iris pregen status.{guiNote}"
+stopping_pregeneration_finishing_up_current_region = "Esisukupolton lopettaminen; nykyisen alueen viimeistely..."
+no_active_pregeneration_task_stop = "Ei aktiivista esisukupolven tehtävää lopettaa."
+no_active_pregeneration_task_pause_resume = "Ei aktiivista esisukupolven tehtävää taukoa/painamista varten."
+pregeneration_is_now = "Esisukupolvi on nyt {value}."
+no_active_pregeneration_task = "Ei aktiivista esisukupolven tehtävää."
+iris_by_volmit_software_on_minecraft_iris_dimension_s = "Iris  {value} mennessä Volmit Software päällä {value2} (Minecraft  {value3}), {engines}  Iris dimension(s)"
+loaded_dimensions_iris = "Kuormatut mitat: {total} ({iris}  Iris)"
+this_command_can_only_be_used_by_players_2 = "Vain pelaajat voivat käyttää tätä komentoa."
+this_dimension_is_not_generated_by_iris_6 = "Iris ei ole luonut tätä ulottuvuutta."
+biome = "Bioma: {value} ({value2})"
+biome_lookup_failed_2 = "Biome-haku epäonnistui: {value}"
+region = "Alue: {value} ({value2})"
+region_lookup_failed_2 = "Alueen haku epäonnistui: {value}"
+cave_biome = "Luolabiome: {value}"
+cave_biome_lookup_failed = "Luolabiomen haku epäonnistui: {value}"
+surface_block_y = "Pintalohko: {value} (y={value2})"
+position_chunk = "Sijainti: {value}  {value2}  {value3} (Chunk {value4},{value5})"
+this_command_can_only_be_used_by_players_it_inspects_2 = "Tätä komentoa voivat käyttää vain pelaajat (se tarkastaa katsomasi lohkon)."
+look_at_block_not_sky = "Katso korttelia, älä taivasta."
+block_y = "Lohko: {value} (y={value2})"
+this_command_can_only_be_used_by_players_markers_render = "Tätä komentoa voivat käyttää vain pelaajat (merkit tekevät hiukkasina ympärilläsi)."
+this_dimension_is_not_generated_by_iris_7 = "Iris ei ole luonut tätä ulottuvuutta."
+scanning_markers_around_you = "Skannataan{marker}Ympärilläsi olevat merkit..."
+marker_scan_failed = "Merkkien luotaus epäonnistui: {value}"
+found_nearby_marker_s = "Löytyi {value} nearby marker(s) ({marker})"
+this_command_can_only_be_used_by_players_3 = "Vain pelaajat voivat käyttää tätä komentoa."
+this_dimension_is_not_generated_by_iris_8 = "Iris ei ole luonut tätä ulottuvuutta."
+unknown_biome_2 = "Tuntematon biome: {key}"
+this_command_can_only_be_used_by_players_4 = "Vain pelaajat voivat käyttää tätä komentoa."
+this_dimension_is_not_generated_by_iris_9 = "Iris ei ole luonut tätä ulottuvuutta."
+unknown_region_2 = "Tuntematon alue {key}"
+is_not_defined_dimension = "{value} ei ole määritelty ulottuvuudessa!"
+this_dimension_is_not_generated_by_iris_10 = "Iris ei ole luonut tätä ulottuvuutta."
+is_not_configured_any_region_biome_object_placements_object_keys = "{key} ei ole konfiguroitu millään alueella/biome objektisijoituksilla ({value} objektin avaimet ladattu)."
+this_command_can_only_be_used_by_players_object_key = "Vain pelaajat voivat käyttää tätä komentoa.  (Object key '{key}' ratkaistu vastaan {value} ladatut objektin avaimet)"
+this_dimension_is_not_generated_by_iris_11 = "Iris ei ole luonut tätä ulottuvuutta."
+name_iris_native_structure_locate = "Nimi Iris tai paikallinen rakenne paikantaa."
+this_command_can_only_be_used_by_players_5 = "Vain pelaajat voivat käyttää tätä komentoa."
+unknown_structure_use_tab_completion_choose_iris_placement_registered_native = "Tuntematon rakenne \"{key}'.  Käytä välilehden täydennystä valitaksesi Iris sijoitus tai rekisteröity natiivi / datapack rakenne."
+searching_native_structure_within_chunks = "Etsitään alkuperäistä rakennetta {value} sisällä {NATIVESTRUCTURELOCATERADIUS} chunkia..."
+searching_iris_placed_structure = "Etsitään Iris- sijoitettu rakenne {key}..."
+unable_locate_iris_placed_structure_density_search_safety_limit_was = "Ei löytynyt Iris- sijoitettu rakenne {key}: tiheyshakujen turvallisuusraja saavutettiin ennen täyttä 1024-Chunk-säde tutkittiin."
+could_not_find_iris_placed_structure_within_1024_chunks = "Ei löytynyt Iris- sijoitettu rakenne {key} sisällä 1024 Palasia."
+search_failed = "Etsintä epäonnistui: {value}"
+could_not_find_native_structure_within_chunks = "Omaa rakennetta ei löytynyt {value} sisällä {NATIVESTRUCTURELOCATERADIUS} Palasia."
+search_native_structure_failed = "Etsi alkuperäistä rakennetta {value} epäonnistui: {value2}"
+player_disconnected_before_structure_search_completed = "Soitin katkesi ennen rakennehaun valmistumista."
+you_changed_dimensions_before_structure_search_completed_run_command_again = "Muutit mittoja ennen rakennehaun valmistumista; suorita komento uudelleen."
+found_at_but_teleportation_failed = "Löytyi {label} klo {targetX}  {clampedY}  {targetZ}Teleportti epäonnistui."
+teleported_at = "Telesiirretty {label} klo {targetX}  {clampedY}  {targetZ}"
+this_dimension_is_not_generated_by_iris_12 = "Iris ei ole luonut tätä ulottuvuutta."
+structure_reachability_native_generation_eligible_iris_placed_native_disabled_native = "Rakenteen saavutettavuus: {available} oma tuotantokelpoinen, {irisPlaced}  Iris-Paikannettu. {disabled} syntyperäiset vammaiset, {suppressed} natiivi Iris sijoittelu {unreachableBiomes} kotoperäisiä lukuun ottamatta tämän pakkauksen biomeet, ja {unsupported} rekisteröityjä alkuperäisiä rakenteita, joita ei tueta tässä ulottuvuudessa.  Käyttö /iris structure verify <key> yhtä rakennetta varten."
+structure_is_iris_placed_locatable_with_iris_goto_structure = "Rakenne {key} on Iris- sijoitettu ja paikkattavissa /iris goto structure {key2}."
+unknown_structure_it_is_neither_iris_placed_nor_registered_by = "Tuntematon rakenne \"{key}'.  Se ei ole kumpikaan IrisVanilla tai datapaketti ei rekisteröinyt sitä."
+structure_is_explicitly_replaced_by_iris_placement_locatable_with_iris = "Rakenne {value} korvataan nimenomaisesti Iris sijoittaminen ja sijoittelu /iris goto structure {value2}."
+native_structure_is_enabled_supported_by_this_dimension_s_generator = "Alkuperäinen rakenne {value} on käytössä, tukee tämän ulottuvuuden generaattorin tila, ja sijoittaa /iris goto structure {value2}."
+this_dimension_is_not_generated_by_iris_13 = "Iris ei ole luonut tätä ulottuvuutta."
+this_command_can_only_be_used_by_players_poi_type = "Vain pelaajat voivat käyttää tätä komentoa.  (POI tyyppi \"{type}' hyväksytty)"
+searching = "Etsitään {label}..."
+engine_this_world_has_been_closed_rejoin_dimension_try_again = "Tämän maailman moottori on suljettu. Liity ulottuvuuteen ja yritä uudelleen."
+search_failed_2 = "Etsintä epäonnistui: {failure}"
+could_not_find_within_search_timeout = "Ei löytynyt {label} hakuajan sisällä."
+teleported_at_2 = "Telesiirretty {label} klo {blockX}  {blockY}  {blockZ}"
+engine_changed_while_locating_try_again = "Moottori vaihtui paikannuksessa {label}Yritä uudelleen."
+this_dimension_is_not_generated_by_iris_14 = "Iris ei ole luonut tätä ulottuvuutta."
+world_seed = "Maailman siemenet: {value}"
+engine_seed_mixed = "Moottorin siemenet: {value} (sekoitettu: {value2})"
+this_dimension_is_not_generated_by_iris_15 = "Iris ei ole luonut tätä ulottuvuutta."
+downloading_irisdimensions = "Noudetaan IrisDimensions/{pack} ({downloadSource})..."
+pack_installed_its_exact_dimension_types_custom_biomes_join_forced = "Pakkaus{pack}' asennettu.  Sen tarkka ulottuvuus tyypit ja mukautetun biomes liittyä pakko Iris datapack seuraavan palvelimen uudelleenkäynnistys; käynnistä ennen kuin luot maailmoja tästä paketista."
+pack_download_failed_see_console = "Paketin lataus epäonnistui {pack} ({downloadSource}; katso konsoli)."
+this_dimension_is_not_generated_by_iris_16 = "Iris ei ole luonut tätä ulottuvuutta."
+generated_chunk_s_s = "Luotu: {value} chunk(s) {value2}/s"
+ms = "  {value}: {value2}ms"
+
+[iris.modded.moddedcommandhelp]
+unknown_iris_help_section = "Tuntematon Iris Tukiosa: {normalized}"
+
+[iris.modded.moddeddatapackcommands]
+type_active_logical_pack_engine_not_started_pack_heights_unknown = "{dimensionId}: tyyppi={typeKey} aktiivinen ={activeMin}..{activeMax} Looginen ={value} (pakkaus ={value2}, moottori ei käynnisty; pakkauskorkeus tuntematon)"
+type_active_logical_pack_wants_logical = "{dimensionId}: tyyppi={typeKey} aktiivinen ={activeMin}..{activeMax} Looginen ={value} Pakkaus{value2}' haluaa {packMin}..{packMax} Looginen ={packLogical} | {value3}{value4}"
+warning_active_dimension_type_does_not_match_pack_iris_will = "  WARNING: aktiivinen ulottuvuustyyppi ei vastaa pakkausta.  Iris Hän kieltäytyy käynnistämästä tätä maailmankonetta maaston leikkaamisen sijaan.  Juokse /iris world enable <dimension> <pack> uusiin maailmoihin tai /iris datapack install jo ladattu Iris Mitat, sitten uudelleen."
+no_iris_dimensions_are_loaded = "Ei Iris mitat ovat ladatut."
+all_iris_dimension_s_match_their_pack_height_ranges = "Kaikki {irisLevels}  Iris mitat vastaavat niiden pakkauskorkeusalueita."
+engine_not_started_cannot_derive_its_dimension_type_yet = "{value}: moottori ei ole käynnistynyt; se ei voi vielä saada mittatyyppiä."
+dimension_type_generation_failed = "{value}: mittatyypin generointi epäonnistui: {value2}"
+failed_write = "Kirjoittaminen epäonnistui {output}: {value}"
+no_iris_dimensions_with_running_engines_found_nothing_was_installed = "Ei Iris mitat ajomoottoreilla löytyi; mitään ei asennettu."
+failed_write_2 = "Kirjoittaminen epäonnistui {mcmeta}: {value}"
+wrote = "Kirjoitti {path}"
+world_datapack_dimension_type_overrides_installed_restart_server_dimension_types = "Maailman datapaketti{WORLDPACKNAME}' Ulottuvuustyypin ohitukset asennettu.  Käynnistä palvelin uudelleen sovellettavien mittatyyppien osalta."
+configured_datapack_imports = "Muokkaa datapaketin tuontia: {value}"
+message = "  - {url}"
+modrinth_ingest_is_bukkit_only_install_these_manually_into_world = "Modrinth ingest on Bukkit-vain; asenna nämä käsin world/datapacks tarvittaessa."
+installed_world_datapacks = "Asennetut maailman datapaketit: {value}"
+message_2 = "  - {name}"
+
+[iris.modded.moddeddevelopercommands]
+message = "  {value}"
+network_scan_failed = "Verkkoskannaus epäonnistui: {value}"
+
+[iris.modded.moddedgoldenhash]
+goldenhash_scan_is_already_running = "Kultahaskanneri on jo käynnissä."
+
+[iris.modded.moddedobjectcommands]
+this_command_can_only_be_used_by_players_wand_is = "Vain pelaajat voivat käyttää tätä komentoa.  (sauva on fyysinen esine)"
+your_inventory_is_full = "Varastonne on täynnä."
+poof_good_luck_building_left_click_corner_1_right_click = "Puf!  Onnea rakentamiseen!  (vasen napsautus = kulma 1, oikea klikkaa = kulma 2)"
+this_command_can_only_be_used_by_players_dust_is = "Vain pelaajat voivat käyttää tätä komentoa.  (pöly on fyysinen esine)"
+your_inventory_is_full_2 = "Varastonne on täynnä."
+right_click_block_reveal_object_it_belongs = "Napsauta oikeaa korttelia paljastaaksesi sen objektin."
+this_command_can_only_be_used_by_players_saving_captures = "Vain pelaajat voivat käyttää tätä komentoa.  (säästää sauvavalintasi)"
+this_dimension_is_not_generated_by_iris_objects_save_into = "Tämä ulottuvuus ei synny Iris; objektit tallentavat ulottuvuuteen."
+hold_your_iris_wand_iris_wand = "Pidä kiinni. Iris Sauva.  (/iris wand)"
+no_area_selected_left_right_click_blocks_with_wand_first = "Aluetta ei ole valittu.  Vasen/oikea klikkaa lohkot sauva ensin."
+invalid_object_name = "Virheellinen objektin nimi: {nameRaw}"
+selection_too_large_blocks_max = "Liian suuri valinta: {volume} salpaajat (max {MAXSAVEVOLUME})."
+file_already_exists_use_iris_object_save_overwrite = "Tiedosto on jo olemassa.  Käyttö /iris object save overwrite {name}"
+failed_save_object = "Esineen tallennus epäonnistui: {value}"
+saved_objects_iob_x_x_block_s = "Tallennettu {value}/objects/{name}.iob: {w}x{h}x{d}, {value2} blokki(s){tileNote}"
+unknown_empty_object = "Tuntematon tai tyhjä objekti: {key}"
+console_must_specify_coordinates_iris_object_paste_at_x_y = "Konsolissa on ilmoitettava koordinaatit: /iris object paste at <x> <y> <z> [rotate <degrees>] {key}"
+you_are_not_looking_at_block_within_blocks = "Et katso kortteliakaan sisälläsi. {value} Palikat."
+paste_failed_partial_changes_recorded_undo = "Liittäminen epäonnistui: {value} (osittaiset muutokset tallennettiin kumoamista varten)"
+placed_at_rot_write_s_non_air = "Paikka {key} klo {value}  {value2}  {value3} mätä ={rotation} ({value4} kirjoita(s), {value5} muu kuin ilma{tileNote})"
+this_command_can_only_be_used_by_players = "Vain pelaajat voivat käyttää tätä komentoa."
+hold_your_iris_wand_iris_wand_2 = "Pidä kiinni. Iris Sauva.  (/iris wand)"
+no_area_selected = "Aluetta ei ole valittu."
+message = "{value}  {amount}  {value2}: {value3}"
+this_command_can_only_be_used_by_players_2 = "Vain pelaajat voivat käyttää tätä komentoa."
+ready_your_wand_iris_wand = "Laita sauva valmiiksi.  (/iris wand)"
+you_are_not_looking_at_block = "Et katso korttelia."
+position_set = "Sijainti {value} asetettu {value2}  {value3}  {value4}"
+this_command_can_only_be_used_by_players_3 = "Vain pelaajat voivat käyttää tätä komentoa."
+hold_your_wand = "Pidä sauvaa!"
+no_area_selected_2 = "Aluetta ei ole valittu."
+selection_too_large_auto_select_blocks_max = "Valinta liian suuri automaattiseen valintaan: {volume} salpaajat (max {MAXAUTOSELECTVOLUME})."
+auto_select_complete = "Automaattinen valinta suoritettu: {value}"
+unknown_object = "Tuntematon kohde: {key}"
+object_size = "Kohteen koko: {value} * {value2} * {value3}"
+blocks_used = "Käytetyt lohkot: {value}"
+blocks_object = "Suomennos:"
+message_2 = " - {value} * {value2}"
+other_block_state_s = "  + {remaining} muu lohkotila(s)"
+unknown_object_2 = "Tuntematon kohde: {key}"
+current_object_size = "Nykyinen objektin koko: {value} * {value2} * {value3}"
+new_object_size = "Uuden objektin koko: {value} * {value2} * {value3}"
+object_has_no_load_file_cannot_persist_shrink = "Esineellä ei ole lataustiedostoa; kutistinta ei voi jatkaa."
+failed_save_object_2 = "Esineen tallennus epäonnistui {value}: {value2}"
+invalid_reach = "Virheellinen ulottuma: {token}"
+no_objects_matched = "Ei vastaavia esineitä: {target}"
+plausibilize_reach_queued_object_s = "Plausibize [reach={reach}{value}] jonossa {value2} kohde(s)"
+nothing_undo = "Ei mitään peruttavaa."
+reverted_paste_s = "Kumottiin {reverted} liittämistä."
+
+[iris.modded.moddedpackcommands]
+packs_folder_not_found = "Pakkauskansiota ei löydy: {value}"
+no_packs_validate_under = "Ei validoitavia pakkauksia {value}"
+pack_not_found_under = "Pakkaus{pack}' ei löydy alta {value}"
+validating_pack_s = "Validoidaan {value} Pakkaus(s)..."
+validation_failed = "\"{value}' epäonnistui: {value2}"
+validation_complete_broken_packs = "Validointi suoritettu.  Rikkoutuneet pakkaukset: {brokenTotal}/{value}"
+pack_not_found_under_2 = "Pakkaus{pack}' ei löydy alta {value}"
+pack_not_found_under_3 = "Pakkaus{pack}' ei löydy alta {value}"
+no_validation_results_recorded_run_iris_pack_validate_first = "Validointituloksia ei ole tallennettu.  Juokse /iris pack validate Ensin."
+blocking_warnings = "{tag}  {value} (esto ={value2}, varoitukset={value3})"
+no_validation_result_run_iris_pack_validate = "Ei validointitulosta \"{pack}'.  Juokse /iris pack validate {pack2}."
+pack_is_loadable_warnings = "Pakkaus{value}Se on ladattavissa.  (varoituksia ={value2})"
+pack_is_broken = "Pakkaus{value}' on rikkinäinen:"
+message = "  - {reason}"
+message_2 = "  !  {value}"
+more_warning_s = "  ...  sekä {value} Lisää varoituksia)."
+no_cleanup_candidates_found_pack = "Pakkaukselle ei löytynyt puhdistusehdokkaita{pack}'."
+cleanup_preview_pack_candidate_s_no_files_were_changed = "Siivoa esikatselu pakkaukselle '{pack}': {value} candidate(s).  Tiedostoja ei muutettu."
+run_iris_pack_cleanup_apply_quarantine_after_fresh_scan = "Juokse /iris pack cleanup {pack} apply karanteeniin uuden skannauksen jälkeen."
+no_cleanup_candidates_found_pack_2 = "Pakkaukselle ei löytynyt puhdistusehdokkaita{pack}'."
+quarantined_cleanup_candidate_s_under = "Karanteeni {value} alla {value2}."
+nothing_restore_pack = "Ei mitään palautettavaa pakkaukselle '{pack}'."
+restore_preview_file_s_no_files_were_changed = "Palauta esikatselu {value}: {value2} file(s).  Tiedostoja ei muutettu."
+restore_is_blocked_by_existing_destination_s = "Palautus on estetty {value} nykyinen kohde(s)."
+run_iris_pack_restore_apply_restore_after_fresh_conflict_check = "Juokse /iris pack restore {pack} apply palauttaa uuden konfliktintarkastuksen jälkeen."
+restore_refused_because_destination_s_already_exist = "Palauta hylätty, koska {value} destination(s) already exist."
+nothing_restore_pack_2 = "Ei mitään palautettavaa pakkaukselle '{pack}'."
+restored_file_s_from = "Palautettu {value} tiedostot mistä {value2}."
+message_3 = "  - {label}: {value}"
+more = "  ...  sekä {value} Enemmän."
+compat_header = "Paketti '{pack}': sisältö ei ole käytettävissä Minecraft {version} -versiossa"
+compat_none = "Paketti '{pack}' ei käytä sisältöä, joka puuttuisi Minecraft {version} -versiosta."
+compat_remedy = "Päivitä palvelin uudempaan Minecraft-versioon palauttaaksesi tämän sisällön tai määritä varasisältö (ulottuvuuden blockFallbacks, lohkon backup)."
+
+[iris.modded.moddedregen]
+regen_is_already_running = "Regen on jo käynnissä."
+
+[iris.modded.moddedstructurecommands]
+this_dimension_is_not_generated_by_iris_run_this_from = "Tämä ulottuvuus ei synny Iris.  Aja tämä Iris koko jotta pakkaus voidaan ratkaista."
+wrote_structure_index = "Kirjoitetun rakenteen indeksi: {value}"
+no_iris_structure_this_pack = "Ei iirisrakennetta '{key}Tässä pakkauksessa"
+structure_assembled_0_pieces_check_startpool = "Rakenne{key}' koottu 0 kappaleita (tarkistus startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "Rakenne{key}': {value} kappaleita, jalanjälki {value2}x{value3} lohkot (näytteen siemenet 1234)"
+this_command_can_only_be_used_by_players_structure_is = "Tätä komentoa voivat käyttää vain pelaajat (rakenne on koottu paikalleen)."
+no_iris_structure_this_pack_2 = "Ei iirisrakennetta '{key}Tässä pakkauksessa"
+structure_assembled_0_pieces = "Rakenne{key}' koottu 0 kappaletta"
+place_failed_partial_changes_recorded_undo = "Paikka epäonnistui: {value} (osittaiset muutokset kirjattu peruutukselle)"
+placed_pieces_write_s_at_your_location_iris_object_undo = "Paikka{key}' ({value} palat, {value2} kirjoita(s){tileNote}) sijaintinne.  /iris object undo Palauttaa."
+
+[iris.modded.moddedstudiocommands]
+provide_dimension_pack_iris_studio_open_pack_seed = "Antakaa mittapaketti: /iris studio open <pack> [seed]"
+opening_noise_explorer_on_server_display = "Avataan Melu Explorer palvelimen näytöllä."
+this_dimension_is_not_generated_by_iris_run_iris_studio = "Tämä ulottuvuus ei synny Iris; juokse /iris studio noise alkaen Iris ulottuvuus ratkaista generaattoreita, tai jättää generaattorin nimi."
+unknown_generator_pack = "Tuntematon generaattori \"{generatorKey}\" pakkauksessa {value}."
+opening_noise_explorer_generator_seed = "Avataan Melu Explorer generaattorille '{value}\" (siemen {seed})."
+this_dimension_is_not_generated_by_iris_stand_iris_studio = "Tämä ulottuvuus ei synny Iris; seistä Iris (tai studio) ulottuvuus ja ajaa /iris studio map."
+opening_vision_map_on_server_display = "Vision-kartan avaaminen {value} Palvelimen näytöllä."
+failed_write_workspace = "Työtilan kirjoitus epäonnistui {value}: {value2}"
+workspace_regenerated_with_json_schemas_autocomplete = "Työtila regeneroitu: {value} kun JSON automaattitäydennyskuvia."
+could_not_open = "Ei voitu avata {value}: {value2}"
+opening_your_editor = "Avaaminen {value} Päätoimittajassasi."
+this_dimension_is_not_generated_by_iris_specify_pack_name = "Tämä ulottuvuus ei synny Iris; täsmennettävä pakkauksen nimi nimenomaisesti."
+pack_not_found_under = "Pakkaus{name}' ei löydy alta {value}"
+provide_dimension_pack_iris_studio_open_pack_seed_2 = "Antakaa mittapaketti: /iris studio open <pack> [seed]"
+opening_studio_seed = "Avaa studio{pack}\" (siemen {seed})..."
+pack_missing_downloading_irisdimensions = "Pakkaus{pack}' puuttuu; ladataan IrisDimensions/{pack2}..."
+pack_could_not_be_downloaded_check_name_try_iris_download = "Pakkaus{pack}\"ei voitu ladata; tarkista nimi ja yritä /iris download {pack2}."
+pack_has_no_dimensions_json = "Pakkaus{pack}' ei ole dimensions/{pack2}.json"
+studio_open_failed = "Studio auki epäonnistui: {value}{errorMessage}"
+studio_injection_failed = "Studioinjektio epäonnistui: {value}{errorMessage}"
+console_studio_open_now_runs_seed_transient_not_written_iris = "Konsolistudio auki: {dimensionId} Nyt menee '{pack}\"siemenet {seed} (ohimenevä; ei kirjoitettu iris-dimensions.json ja hävisi uudelleenkäynnistyksen yhteydessä)."
+enter_it_with_execute_run_tp_s_8_5_8 = "Kirjoita: /execute in {dimensionId} run tp @s 8.5  {surface}  8.5"
+pregen_it_with_iris_pregen_start_radius = "Esigenoi se: /iris pregen start <radius> {dimensionId}"
+remove_it_with_iris_studio_close = "Poista se: /iris studio close"
+studio_injection_failed_2 = "Studioinjektio epäonnistui: {value}{errorMessage}"
+studio_open_now_runs_seed_use_iris_studio_close_when = "Studio auki: {dimensionId} Nyt menee '{pack}\"siemenet {seed}.  Käyttö /iris studio close Kun olet valmis."
+you_do_not_have_open_studio_use_iris_studio_open = "Sinulla ei ole avointa studiota.  Käyttö /iris studio open <pack> Ensin."
+studio_close_failed = "Studio suljettiin: {value}{errorMessage}"
+studio_closed_was_evacuated_unloaded_its_region_data_deleted = "Studio suljettu: {dimensionId} oli evakuoitu, purettu ja sen aluetiedot poistettu."
+no_studio_dimensions_are_currently_open = "Studion mitat eivät ole tällä hetkellä avoinna."
+active_studio_dimension_s = "aktiivinen studio ulottuvuus(s): {value}"
+pack_seed_owner = "  {value}: pakkaus '{value2}\"siemenet {value3} omistaja {ownerName}"
+this_command_can_only_be_used_by_players = "Vain pelaajat voivat käyttää tätä komentoa."
+you_do_not_have_open_studio_use_iris_studio_open_2 = "Sinulla ei ole avointa studiota.  Käyttö /iris studio open <pack> Ensin."
+your_studio_dimension_is_no_longer_loaded_use_iris_studio = "Studiosi ulottuvuus ei ole enää ladattu.  Käyttö /iris studio open <pack> Taas."
+teleported_your_studio = "Telesiirtynyt studiollesi ({dimensionId})."
+pack_has_no_dimensions_json_2 = "Pakkaus{value}' ei ole dimensions/{value2}.json"
+pack_has_version = "\"{value}\" paketissa on versio: {value2}"
+invalid_project_name_allowed_z_0_9 = "Virheellinen projektin nimi \"{nameRaw}' ( sallittu: a-z, 0-9,   ja -)"
+pack_already_exists_at = "Pakkaus{name}' on jo {value}"
+creating_project_from_template = "Luodaan projektia \"{name}\" mallista \"{template}'..."
+required_pack_is_not_installed_install_then_restart = "Vaadittua pakettia '{pack}' ei ole asennettu. Asenna se komennolla /iris download ja käynnistä palvelin sitten uudelleen."
+created_project_at = "Luotu projekti \"{name}' {value}"
+edit_dimensions_json_rest_pack_vscode_workspace_with_json_schema = "Muokkaa dimensions/{name}.json Ja loput laumasta.  A VSCode työtila, JSON skeema automaattitäydennys syntyi; avaa se tai uudelleen /iris studio vscode."
+project_creation_failed = "Projektin luominen epäonnistui: {value}{errorMessage}"
+packaging_dimension = "Pakkauksen ulottuvuus \"{dimKey}'..."
+package_compiled = "Paketti koottu: {value}"
+packaging_failed = "Pakkaus epäonnistui: {value}{errorMessage}"
+this_command_can_only_be_used_by_players_sampling_is = "Tätä komentoa voivat käyttää vain pelaajat (näytteenotto on keskitetty sijaintiin)."
+this_dimension_is_not_generated_by_iris = "Iris ei ole luonut tätä ulottuvuutta."
+sampling_region_distribution_x_chunks_around_you = "Näytteenottoalueen jakautuminen {value}x{value2} Pyörii ympärilläsi..."
+rarity = "{key}: harvinaisuus ={rarity} / {value}%"
+region_sampling_failed = "Aluekohtainen näytteenotto epäonnistui: {value}"
+image_map_requires_iris_dimension = "Stand in an active Iris or Studio dimension before opening the Image Map Studio."
+opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {value} on the server display."
+
+[iris.modded.moddedworldcommands]
+required_pack_is_not_installed_install_then_restart = "Vaadittua pakettia '{pack}' ei ole asennettu. Asenna se komennolla /iris download ja käynnistä palvelin sitten uudelleen."
+failed_inject_iris_world = "Injektio epäonnistui Iris maailma{dimensionId}': {value}{errorMessage}"
+created_iris_world_from_pack_dimension_seed = "Luotu Iris maailma {dimensionId} pakkauksesta \"{pack}' ulottuvuudella'{packDimension}\" (siemen {seed})."
+it_is_live_now_re_injected_on_every_startup_teleport = "Se on nyt suorassa lähetyksessä.  Teleportata /iris world status tai portaali; uudelleenkäynnistystä ei tarvita."
+failed_inject_iris_primary_world = "Injektio epäonnistui Iris ensisijainen maailma: {value}{errorMessage}"
+iris_primary_world_set_pack_dimension_seed = "Iris Ensisijainen maailma asetettu {dimensionId} (pakkaus '{pack}' ulottuvuudella'{packDimension}\"siemenet {seed})."
+vanilla_overworld_generator_cannot_be_hot_swapped_so_this_does = "Vanillan ylämaailman generaattoria ei voi vaihtaa lennossa, joten tämä EI luo olemassa olevaa ylämaailmaa uudelleen."
+instead_is_now_configured_primary_world_players_vanilla_overworld_are = "Sen sijaan {dimensionId} on nyt konfiguroitu ensisijainen maailma: pelaajat vanilla overworld ohjataan siellä liittyä, ja se uudelleen injektoi jokaisen startup."
+iris_main_world_override_cleared_overworld_keeps_its_current_generator = "Iris Päämaailman ohitus selvä.  Maailma pitää nykyisen generaattorinsa; muokkaa server.properties tason tyyppi ja käynnistää muuttaa sitä takaisin."
+invalid_seed_use_number_random = "Virheelliset siemenet \"{seedRaw}'.  Käytä numeroa tai satunnaisuutta."
+pack_is_not_ready_yet_still_loading_validating_try_command = "Pakkaus{pack}\"ei ole vielä valmis (täysin lastaus tai validointi).  Yritä komentoa uudelleen hetken päästä."
+failed_write_server_properties_check_file_permissions_set_level_type = "Kirjoittaminen epäonnistui server.properties; tarkista tiedostojen oikeudet ja aseta tasotyyppi käsin."
+iris_main_world_set_preset_seed = "Iris tärkein maailma asetettu '{pack}' (esitetty {preset}, siemenet {value})."
+server_properties_level_type_is_now_on_next_restart_overworld = "server.properties tasotyyppi on nyt {preset}.  Seuraavan käynnistämisen jälkeen - alamaailma ja loppu uudistuvat. Iris Maailma."
+player_data_inventories_advancements_stats_is_kept_existing_terrain_those = "Pelaajan tiedot ( keksinnöt, edistymiset, tilastot) säilytetään; olemassa oleva maasto näissä mitoissa korvataan.  Tämä pätee kerran."
+mainworldautorestart_is_enabled_stopping_server_now_so_your_restart_wrapper = "mainWorldAutoRestart on käytössä - pysäytä palvelimen nyt niin uudelleen kääre tuo sen takaisin uuteen päämaailmaan."
+restart_server_now_generate_it_set_mainworldautorestart_true_modded_json = "Käynnistä palvelin uudelleen tuottaaksesi sen.  (Aseta mainWorldAutoRestart= tosi modded.json on Iris pysäytä palvelin puolestasi.)"
+refusing_create_world_using_pack_because_required_validation_failed = "Kieltäytyminen luomasta maailmaa '{dimensionId}\" käyttäen pakkausta \"{pack}\"koska vaadittu validointi epäonnistui:"
+message = "  - {reason}"
+fix_pack_run_iris_pack_validate_revalidate = "Korjaa pakkaus ja juokse /iris pack validate {pack} Jatkaa."
+pack_was_not_found_under = "Pakkaus{pack}' ei löytynyt alla {value}"
+pack_does_not_contain_dimensions_json = "Pakkaus{pack}\" ei sisällä dimensions/{packDimension}.json"
+invalid_pack_reference_use_pack_pack_dimensionkey = "Virheellinen pakkauksen viite \"{pack}{value}'.  Käyttöpakkaus:dimensionKey."
+invalid_seed_use_number_random_2 = "Virheelliset siemenet \"{seedRaw}'.  Käytä numeroa tai satunnaisuutta."
+failed_remove_iris_world = "Ei voitu poistaa Iris maailma{dimensionId}': {value}{errorMessage}"
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry = "Iris maailma{dimensionId}' ei lastattu; tyhjennettiin sen pysyvä rekisteriote ja pyyhittiin sen tallennetut kappaleet/Mantle-data."
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry_2 = "Iris maailma{dimensionId}\"ei lastattu; tyhjennettiin sen pysyvä rekisterimerkintä.  Maailman tiedot levyllä säilytetään."
+deleted_iris_world_evacuated_unloaded_chunk_mantle_data_wiped_dropped = "Poistettu Iris maailma{dimensionId}': evakuoitu, purettu, pala/Mantle-data pyyhitty ja pudotettu käynnistysrekisteristä."
+disabled_iris_world_evacuated_unloaded_dropped_from_startup_registry = "Ei käytössä Iris maailma{dimensionId}': evakuoitu, purettu ja pudotettu käynnistysrekisteristä."
+world_data_on_disk_is_kept_re_enable_with_iris = "World data levyllä säilytetään; uudelleen voidaan /iris world enable {dimensionId} <pack> tai poista se /iris world delete {dimensionId2}."
+loaded_iris_level_pack_dimension = "Ladattu Iris taso: {value}  -> Pakkaus{value2}' ulottuvuudella'{value3}'"
+primary_world = "Ensisijainen maailma: {primary}{value}"
+no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Ei Iris mitat ovat ladattuja.  Luo sellainen /iris world create <name> <pack>."
+loaded_iris_dimensions = "Ladattu Iris mitat: {value}"
+message_2 = "  - {dimension}"
+use_iris_world_create_name_pack_inject_one_without_restarting = "Käyttö /iris world create <name> <pack> pistääksesi yhden ilman, että aloitat alusta."
+
+[iris.director.commanddatapack]
+"director.download_manage_external_datapack_imports_modrinth" = "Lataa & Hallinnoidaan ulkoisen datapaketin tuontia (Modrinth)"
+"director.download_update_every_datapack_listed_pack_dimension_s_datapackimports_install_it_into" = "Lataa/päivitä kaikki pakkausulottuvuudessa luetellut tietopaketitdatapackImports\"ja asentaa se maailmaan niin sen rakenteet rekisteröityvät kuin vanilla"
+"param.restart_server_when_new_datapacks_are_installed_required_new_structures_register_generate" = "Käynnistä palvelin uudelleen, kun uusia datapaketteja on asennettu (vaaditaan uusien rakenteiden rekisteröintiä ja tuottamista varten)"
+"director.list_configured_datapack_imports_their_installed_versions" = "Listaa konfiguroitu datapaketin tuonti ja sen asennetut versiot"
+"director.remove_installed_datapack_by_id_also_delete_its_url_from_datapackimports_keep" = "Poista asennettu datapaketti ID:llä (poistaa myös sen URL alkaen datapackImports pitää se poissa)"
+"param.datapack_id_folder_name_shown_by_iris_datapack_list" = "Datapaketin tunniste (kansionimi) /iris datapack list"
+
+[iris.director.commanddeveloper]
+"director.iris_world_manager" = "Iris Maailmanjohtaja"
+"director.get_loaded_tectonicplates_count" = "Hae Ladattu TectonicPlates Lukumäärä"
+"director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "Hashin tuottama lohkon tuotos kiinteällä alueella determinismi-/identiteettitestausta varten"
+"param.world_hash" = "Maailma hasista"
+"param.radius_chunks_around_center" = "Radius palasina keskellä"
+"param.center_chunk_x" = "Keskiosa X"
+"param.center_chunk_z" = "Keskiosa Z"
+"director.stage_world_generation_update" = "Valmistele maailman generoinnin päivitys"
+"param.world_update" = "Päivitettävä maailma"
+"param.pack_install_into_world" = "Maailmaan asennettava pakkaus"
+"param.make_sure_make_backup_read_warnings_first" = "Muista tehdä varmuuskopio & Lue varoitukset ensin!"
+"director.test" = "Testi"
+"param.dump_whole_tectonic_plate_instead_single_section" = "Jätä koko tektoninen levy yhden osan sijasta"
+"param.dump_file_id_under_plugins_iris_dump_pv_id" = "Kaatotiedoston tunniste alla plugins/Iris/dump (pp.<id>.*)"
+"director.test_2" = "Testi"
+"param.pack_bench" = "Pakkaus penkille"
+"param.radius_regions" = "Säde alueilla"
+"param.open_gui_while_benchmarking" = "Avaa GUI vertailuanalyysi"
+"director.upgrade_another_minecraft_version" = "Päivitä toiseen Minecraft versio"
+"param.version_upgrade" = "Päivitettävä versio"
+"director.test_3" = "testi"
+"param.world_folder_scan_mca_region_files" = "Maailman kansio skannata .mca alueen tiedostoja"
+"director.delete_nearby_chunk_blocks_regen_testing" = "Poista lähellä olevat lohkot regen-testausta varten"
+"param.radius_chunks_around_your_current_chunk" = "Säde palasina nykyisen palan ympärillä"
+"director.test_4" = "Testi"
+"director.delete_regenerate_nearby_chunks_place_using_iris_generation" = "Poista ja regeneroi lähellä olevat palaset paikoillaan käyttäen Iris tuotanto"
+"param.radius_nearby_chunks" = "Säde lähistöllä chunkia"
+"director.generate_chunks_into_buffers_no_world_writes_hash_blocks_biomes_captures_golden" = "Luo palasia puskureiksi (ei maailmankirjoituksia) ja hash lohkoja+biomes; kaappaa kultaisen tiedoston tai tarkastaa olemassa olevaa.  Poistaa maailman koko Mantlen - käytä kertakäyttöisissä testimaailmoissa."
+"param.world_scan" = "Skannattava maailma"
+"param.radius_chunks_around_center_2" = "Radius palasina keskellä"
+"param.center_chunk_x_2" = "Keskiosa X"
+"param.center_chunk_z_2" = "Keskiosa Z"
+"param.delete_mantle_data_scan_area_first_full_regeneration_from_scratch" = "Poistaa ensin maailman koko Mantle-kansion täyttä uudelleengenerointia varten. Ei rajoitu skannausalueeseen"
+"param.concurrent_chunk_generations_1_strictly_serial_order_dependence_testing" = "rinnakkaiset lohkosukupolvet; 1 = tilausriippumattomuuden testauksessa käytettävä sarja"
+"param.also_dump_full_per_chunk_non_air_blockstates_offline_diffing" = "Myös kaataa täysi per-chunk ei-ilma-blockstates offline diffings"
+
+[iris.director.commandedit]
+"director.edit_something" = "Muokkaa jotain"
+"director.edit_biome_you_specified" = "Muokkaa määrittelemääsi biomea"
+"param.biome_edit" = "Muokattava biome"
+"director.edit_region_you_specified" = "Muokkaa määrittelemääsi aluetta"
+"param.region_edit" = "Alue muokattavana"
+"director.edit_dimension_you_specified" = "Muokkaa määrittelemääsi ulottuvuutta"
+"param.dimension_edit" = "Muokattava ulottuvuus"
+
+[iris.director.commandfind]
+"director.iris_find_commands" = "Iris Etsi komennot"
+"director.find_biome" = "Etsi biome"
+"param.biome_look" = "Etsittävä biome."
+"param.should_you_be_teleported" = "Pitäisikö sinut teleportata?"
+"director.find_region" = "Etsi alue"
+"param.region_look" = "Etsittävä alue"
+"param.should_you_be_teleported_2" = "Pitäisikö sinut teleportata?"
+"director.find_point_interest" = "Etsi mielenkiintoinen kohta."
+"param.type_poi_look" = "Tyyppi PoI Etsimään."
+"param.should_you_be_teleported_3" = "Pitäisikö sinut teleportata?"
+"director.find_structure_vanilla_key_like_minecraft_village_plains_minecraft_stronghold_imported_iris" = "Etsi rakenne (vanilla avain kuten minecraft:village_plains tai minecraft:stronghold, tai tuotu iiris rakenteen avain)"
+"param.structure_look_e_g_minecraft_village_plains_minecraft_stronghold_minecraft_ancient_city" = "Etsittävä rakenne (e.g.  minecraft:village_plains, minecraft:stronghold, minecraft ancient city)"
+"director.find_object" = "Etsi kohde"
+"param.object_look" = "Etsittävä kohde"
+"param.should_you_be_teleported_4" = "Pitäisikö sinut teleportata?"
+
+[iris.director.commandobject]
+"director.iris_object_manipulation" = "Iris Esineen manipulointi"
+"director.open_object_studio_world_grid_every_object_dimension_optional_defaults_all_packs" = "Avaa objektistudiomaailma (grid jokaisen objektin; ulottuvuus valinnainen, oletusarvot kaikille pakkauksissa)"
+"param.optional_dimension_whose_object_pack_lay_out_omit_aggregate_objects_from_every" = "Valinnainen ulottuvuus, jonka objektipakkaus on esitettävä; jättäkää jokaisen pakkauksen kohteet yhteen"
+"param.seed_generate_studio_with" = "Siementä tuottaa studio kanssa"
+"director.check_composition_object" = "Tarkista kohteen koostumus"
+"param.object_analyze" = "Analysoitava kohde"
+"director.shrink_object_its_minimum_size" = "Kutista esine sen minimikokoon"
+"param.object_shrink" = "Kutistuminen"
+"director.grow_organic_branches_through_canopy_so_every_leaf_survives_vanilla_decay" = "Kasvaa orgaanisia oksia läpi katoksen niin jokainen lehti selviää vanilla mätä"
+"param.object_key_prefix_trees_filesystem_path" = "Kohdenäppäin, etuliite (puut/) tai tiedostojärjestelmän polku"
+"param.dryrun_true_analyzes_only_writes_nothing" = "dryrun = tosi analysoi vain, kirjoittaa mitään"
+"param.reach_n_max_branch_length_blocks_from_existing_wood_farther_leaf_clusters" = "saavuttaa = N max oksan pituus lohkoissa olemassa olevan puun; kauempana lehti klusterit ovat kiinni pysyviä sen sijaan.  tavoittaa =0 kasvaa rajattomasti"
+"director.convert_schem_files_convert_folder_iob_files" = "Muunna .schem-tiedostot \"muuntaa\" kansiosta .iob tiedostoja."
+"director.get_powder_that_reveals_objects" = "Hanki jauhe, joka paljastaa esineitä"
+"director.contract_selection_based_on_your_looking_direction" = "Tilaa valinta suuntasi perusteella"
+"param.amount_inset_by" = "Määrä, jonka"
+"director.set_point_1_look" = "Aseta piste 1 Katso"
+"param.whether_use_your_current_position_where_you_look" = "Käytetäänkö nykyistä sijaintiasi vai mistä etsit"
+"director.set_point_2_look" = "Aseta piste 2 Katso"
+"param.whether_use_your_current_position_where_you_look_2" = "Käytetäänkö nykyistä sijaintiasi vai mistä etsit"
+"director.paste_object" = "Liitä objekti"
+"param.object_paste" = "Liitettävä objekti"
+"param.whether_not_edit_object_need_hold_wand" = "Oliko objektin muokkausta (tarvittava sauvaa)"
+"param.amount_degrees_rotate_by" = "Määrä astetta pyöriä"
+"param.factor_by_which_scale_object_placement" = "Tekijä, jolla objektin sijoittamista skaalataan"
+"param.scale_interpolator_use" = "Käytettävä asteikko interpolaattori"
+"director.save_object" = "Tallenna objekti"
+"param.dimension_store_object" = "Mitta, johon objekti mahtuu"
+"param.file_store_it_can_use_subfolders" = "Tiedosto tallentaa sen, voi käyttää / alikansioille"
+"param.overwrite_existing_object_files" = "Korvaa olemassa olevat objektitiedostot"
+"param.use_legacy_tilestate_serialization_if_possible" = "Käytä perintöä TileState serialisointi, jos mahdollista"
+"director.shift_selection_your_looking_direction" = "Siirrä valinta suuntasi suuntaan"
+"param.amount_shift_by" = "Siirrettävä määrä"
+"director.undo_number_pastes" = "Kumoa useita liittämisiä"
+"param.amount_pastes_undo" = "Kumottavien liittämisten määrä"
+"director.gets_object_wand_grabs_current_worldedit_selection" = "Saa esineen sauva ja tarttuu nykyiseen WorldEdit valinta."
+"director.get_object_wand" = "Hanki esinesauva"
+"director.autoselect_up_down_out" = "Automaattivalinta ylös, alas & ulos"
+"director.autoselect_up_out" = "Valitse automaattisesti & ulos"
+
+[iris.director.commandpack]
+"director.pack_validation_maintenance" = "Pakkausten validointi ja ylläpito"
+"director.validate_pack_all_packs_re_publish_results" = "Validoidaan pakkaus (tai kaikki pakkaukset) ja julkaistaan uudelleen tulokset"
+"param.pack_folder_name_validate_leave_empty_all" = "Valitsemasi kansion nimi (jätä tyhjäksi kaikille)"
+"director.preview_apply_unused_resource_cleanup" = "Esikatselu tai käyttämättömän resurssin puhdistus"
+"param.pack_folder_name_clean" = "Puhdistettava pakkauskansio"
+"param.preview_apply" = "esikatselu tai sovellus"
+"director.preview_apply_restoration_latest_quarantine" = "Viimeisimmän karanteenin esikatselu tai palautus"
+"param.pack_folder_name_restore" = "Palautettavan pakkauksen kansion nimi"
+"param.preview_apply_2" = "esikatselu tai sovellus"
+"director.show_cached_validation_status_pack" = "Näytä välimuistin validointitila paketille"
+"param.pack_folder_name" = "Pakkauskansio"
+"director.show_content_cannot_generate_this_minecraft_version" = "Näytä paketin sisältö, jota ei voi luoda tässä Minecraft-versiossa"
+"param.pack_folder_name_compat" = "Raportoitavan pakettikansion nimi"
+
+[iris.director.commandpregen]
+"director.pregenerate_your_iris_worlds" = "Esitä Iris Maailmoja!"
+"director.pregenerate_world" = "Esikoinen"
+"param.radius_pregen_blocks" = "Säde pregen lohkoissa"
+"param.world_pregen" = "Maailma on valmis"
+"param.center_location_pregen_use_me_your_current_location" = "Pregenin keskuspaikka.  Käytä \"minä\" nykyiseen sijaintiisi"
+"param.open_iris_pregen_gui" = "Avaa Iris pregen gu"
+"param.generate_only_one_chunk_at_time" = "Luo vain yksi pala kerrallaan"
+"director.stop_active_pregeneration_task" = "Lopeta aktiivinen esigenerointitehtävä"
+"director.pause_continue_active_pregeneration_task" = "Keskeytä / jatka aktiivista esisukupolven tehtävää"
+"director.show_active_pregeneration_status" = "Näytä aktiivinen esisukupolven tila"
+
+[iris.director.commandstructure]
+"director.iris_structure_tools_index_import_info" = "Iris rakennetyökalut (indeksi, tuonti, info)"
+"director.regenerate_structure_index_json_listing_all_vanilla_datapack_iris_structures" = "Uusi structure-index.json listaus kaikki vanilla, datapack & iirisrakenteet"
+"param.dimension_whose_pack_index" = "Mitta, jonka pakkaus indeksiin"
+"director.import_every_structure_vanilla_ingested_datapacks_into_this_pack_as_editable_iris" = "Tuo jokainen rakenne - vanilla ja nielty datapaketteja - tähän pakkaukseen muokattavissa Iris Resursseja, aina ylikirjoitusta.  Rakentaa uudelleen palapelin rakenteet (kylät, etuvartioasemat, datapack palapelit) muokattavissa pooli/kpl kaavioita, tuo jokainen rakennemalli NBT objektina ja kokoaa monirunkorakenteet (laivan haaksirikkoja, tuhottuja portaaleja, meriraunioita, alamaailman fossiileja).  Juokse sen jälkeen, kun olet nauttinut datapaketin ja aloittanut alusta.  Uudista palasia tai käytä tuoretta maailmaa tuonti kopiot sijoittaa."
+"param.dimension_whose_pack_import_into" = "Mitat, joiden pakkaus tuoda"
+"director.capture_code_generated_structures_that_have_no_nbt_template_swamp_huts_igloos" = "Ottakaa haltuun koodilla luodut rakenteet, joilla ei ole NBT malli (suomajat, iglut jne.) muokattavissa Iris objekteja luomalla jokainen yksi heittää pois naarmu maailmassa ja lukea takaisin sen lohkot.  Ohittaa rakenteet, jotka jo tuovat rakenteena, rakenteet leveämpi/kallempi kuin kaappaus korkki (vahvuudet, kartanot, muistomerkit pysyvät vanilla), ja kaiken, mikä ei synny tasainen maailma.  Jokaisesta kaapatusta rakenteesta tulee yksiosainen Iris rakenne voit sijoittaa biome/alue/ulottuvuus 'rakenteet' -luettelosta.  Toimii automaattisesti viimeisenä syöttönä /iris structure import."
+"param.dimension_whose_pack_capture_into" = "Ulottuvuus, jonka lauma kaapata"
+"director.verify_native_structure_eligibility_locate_iris_placed_structures_without_running_blocking_native" = "Tarkista alkuperäisen rakenteen tukikelpoisuus ja paikanna Iris-Paikalliset rakenteet, jotka eivät estä natiivien etsintöjä."
+"param.dimension_verify" = "Tarkastettava ulottuvuus"
+"param.search_radius_chunks_around_origin_larger_is_much_slower" = "Hakusäde palasia alkuperän ympärillä (suurempi on paljon hitaampi)"
+"director.resolve_iris_structure_s_jigsaw_graph_report_piece_count_bounds" = "Selvitä iirisrakenteen palapelikaavio ja raportoi kappalemäärä & Rajat"
+"param.dimension_whose_pack_holds_structure" = "Mitat, joiden pakkaus pitää rakenteen"
+"param.iris_structure_key_inspect" = "Iris rakenne avain tarkastaa"
+"director.assemble_place_iris_structure_at_your_location_studio_testing" = "Kokoa ja aseta iiris rakenne sijaintisi (studio testaus)"
+"param.dimension_whose_pack_holds_structure_2" = "Mitat, joiden pakkaus pitää rakenteen"
+"param.iris_structure_key_place" = "Iris rakenne avain sijoittaa"
+
+[iris.director.commandstudio]
+"director.studio_commands" = "Studiokomennot"
+"director.open_new_studio_world" = "Avaa uusi studiomaailma"
+"param.dimension_pack_open_studio" = "Ulottuvuuspaketti studion avaamiseksi"
+"param.seed_generate_studio_with" = "Siementä tuottaa studio kanssa"
+"director.import_vanilla_trees_mushrooms_objects_structures_jigsaw_from_server_into_pack_s" = "Tuo vanillapuita, sieniä & esineet (ja structures/jigsaw) palvelimelta lauman objects/vanilla kansio"
+"param.dimension_pack_import_vanilla_content_into" = "Ulottuvuuspaketti vanillapitoisuuden tuomiseksi"
+"param.how_many_variants_capture_per_tree_object_feature" = "Kuinka monta muunnelmaa kaapata per puu / kohde ominaisuus"
+"param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "Tuo myös vanilla & datapaketti structures/jigsaw Pakkaus"
+"director.open_vscode_dimension" = "Avaa VSCode ulottuvuudelle"
+"param.dimension_open_vscode" = "Avattava ulottuvuus VSCode B."
+"director.close_open_studio_project" = "Sulje avoin studioprojekti"
+"director.toggle_your_studio_debug_scoreboard" = "Vaihda studiovirheen tulostaulu"
+"director.create_new_studio_project" = "Luo uusi studioprojekti"
+"param.name_this_new_iris_project" = "Tämän uuden Iris Projekti."
+"param.copy_contents_existing_project_your_packs_folder_use_it_as_template_this" = "Kopioi olemassa olevan projektin sisältö pakkauskansioon ja käytä sitä mallina tässä uudessa projektissa."
+"director.get_version_pack" = "Hae pakkauksen versio"
+"param.dimension_get_version" = "Muuttuja saa version"
+"director.open_noise_explorer_external_gui" = "Avaa melu tutkimusmatkailija (ulkoinen GUI)"
+"param.optional_pack_generator_preview" = "Valinnainen pakkausgeneraattori esikatseluun"
+"param.seed_preview_generator_with" = "Siemenet esikatsella generaattorin kanssa"
+"director.show_loot_if_chest_were_right_here" = "Näytä saalista, jos arkku olisi tässä."
+"param.fast_insertion_items_virtual_inventory_may_cause_performance_drop" = "Nopea lisäys kohteita virtuaalinen inventaario (voi aiheuttaa suorituskyvyn lasku)"
+"param.whether_not_append_inventory_currently_open_if_false_clears_opened_inventory" = "Liittyykö varastoon tällä hetkellä (jos on väärin, tyhjentää avatun varaston)"
+"director.calculate_chance_each_region_generate" = "Laske mahdollisuus kunkin alueen tuottaa"
+"param.radius_chunks" = "Säde palasina"
+"director.render_world_map_external_gui" = "Renderöi maailman kartta (ulkoinen GUI)"
+"param.world_open_generator" = "Maailma avaa generaattorin"
+"director.package_dimension_into_compressed_format" = "Pakkaa ulottuvuus pakattuun muotoon"
+"param.dimension_pack_compress" = "Pakattava ulottuvuuspakkaus"
+"param.whether_not_obfuscate_pack" = "Pakkauksen takominen"
+"param.whether_not_minify_pack" = "Pakkauksen minimointi"
+"director.profiles_performance_dimension" = "Profiloi ulottuvuuden suorituskyvyn"
+"param.dimension_profile" = "Profiilin mitta"
+"director.spawn_iris_entity" = "Luo Iris-entiteetti"
+"param.entity_spawn" = "Luotava entiteetti"
+"param.location_spawn_entity_at" = "Sijainti, johon entiteetti luodaan"
+"director.teleport_active_studio_world" = "Teleporttaa aktiiviseen studiomaailmaan"
+"director.update_your_dimension_projects_vscode_workspace" = "Päivitä ulottuvuusprojektisi VSCode työtila"
+"param.dimension_update_workspace" = "Muuttuja päivittää työtilan"
+"director.capture_igendata_chunk_report_nearby_chunks" = "Ota a IGenData chunk raportti lähistöllä chunkia"
+
+[iris.director.commandwhat]
+"director.iris_what" = "Iris Mitä?"
+"director.what_is_my_hand" = "Mitä kädessäni on?"
+"director.what_biome_am_i" = "Missä biomeessä olen?"
+"director.what_region_am_i" = "Millä alueella olen?"
+"director.what_block_am_i_looking_at" = "Mitä korttelia katselen?"
+"director.show_markers_chunk" = "Näytä merkkiaineet paloina"
+"param.marker_name_such_as_cave_floor_cave_ceiling" = "Merkitse nimi kuten luola lattia tai luola  katto"
+
+[iris.runtime.progress]
+finding_regions = "Alueet"
+converting = "Muunnetaan"
+
+[iris.runtime.status]
+running = "Suoritetaan"
+stopped = "Pysäytettiin"
+paused = "Tauko"
+paused_lower = "tauko"
+running_lower = "käynnissä"
+enabled = "käytössä."
+disabled = "ei käytössä."
+unregistered = "rekisteröimätön"
+none = "ei yhtään"
+random = "satunnais"
+match = "MATCH"
+mismatch = "MISMATCH"
+true = "tosi"
+false = "väärä"
+
+[iris.runtime.error]
+detail_suffix = " - {error}"
+
+[iris.runtime.datapack]
+override_suffix = " (maailman datapaketin ohitus asennettu)"
+name = "Iris Maailman sukupolvi"
+
+[iris.runtime.primary_world]
+players_routed_suffix = " (pelaajat siellä)"
+routing_disabled_suffix = "- Ei."
+
+[iris.runtime.modded]
+no_dimension_match = "Ei Iris Ulottuvuus vastaa '{filter}'."
+
+[iris.runtime.teleport]
+world = "Sinut on teleportattu {world}."
+
+[iris.runtime.engine]
+hotloaded = "Moottori, joka on kiihdytetty"
+
+[iris.runtime.job]
+completed = "Valmis {job} sisään {duration}"
+scanning_selection = "Skannataan valintaa"
+loading_chunks = "Ladataan chunkia"
+searched_chunks = "Etsi {chunks} Palat"
+compile = "Käännä"
+saving_object = "Talletetaan objektia"
+downloading = "Noudetaan"
+extracting = "Purkaminen"
+installing = "Asentaminen"
+
+[iris.runtime.compile]
+iob_empty = "- IOB  {file} on 0 Korttelit!"
+iob_empty_hover = "Virhe:\n{path}"
+iob_not_3d = "- IOB  {file} Se ei ole 3D!"
+iob_not_3d_hover = "Virhe:\n{path}\nLeveys, korkeus tai syvyys on nolla (huono muoto)"
+json_error = "- JSON Virhe {file}"
+json_error_hover = "Virhe:\n{path}\n{error}"
+loader_not_found = "Lataajaa ei löydy {path}"
+
+[iris.runtime.pack]
+already_exists = "Lauma on jo olemassa!"
+
+[iris.runtime.tree_plausibilize]
+dry_suffix = ", DRY"
+skip_load = "ohita {object}: ei ladattu"
+result = "{object}: +{wood} puu ({branches} konttorit), {converted} Lehti->puu{distances} etäisyydet"
+result_pinned = "{object}: +{wood} puu ({branches} konttorit), {converted} Lehti->puu{distances} Etäisyydet!{pinned} pinnoitettu"
+progress = "[{current}/{total}]"
+failed = "epäonnistui {object}: {type}: {error}"
+done = "Tehty: {processed} käsitelty, {changed} muuttunut, {skipped} ohitettu, {failed} epäonnistui"
+done_dry = "Tehty: {processed} käsitelty, {changed} muuttunut, {skipped} ohitettu, {failed} epäonnistui (kuiva ajo, ei kirjoitettu)"
+totals = "Yhteensä: +{wood} puu ({branches} konttorit), {converted} Lehti->puu{distances} Etäisyydet!{pinned} pinnoitettu, saavuttamaton {before}  ->  {after}"
+
+[iris.runtime.item]
+"wand.name" = "Sauva Iris"
+"wand.lore.first" = "Vasen napsauta lohko asettaa ensimmäinen kulma"
+"wand.lore.second" = "Oikealla klikkaa lohko asettaa toinen kulma"
+"dust.name" = "Paljastamisen pöly"
+"dust.lore" = "Oikealla klikkaa lohko paljastaa sen sijoitus rakenne!"
+
+[iris.runtime.wand]
+position_set = "Sijainti {position} asetettu {x}, {y}, {z}"
+
+[iris.runtime.dust]
+iris_world_required = "Iris ei ole luonut tätä ulottuvuutta."
+found_object = "Löytyi {object}"
+revealed = "{object}:n paljastamat {count}-katkokset"
+revealed_capped = "{object}:n paljastamat {count}-katkokset (suljetut)"
+header = "--- Iris Pöly {x}, {y}, {z} ---"
+block = "Lohko: {block}"
+"position.above" = "Sijainti: +{offset}  yläpuolella pinta (pinta Y ={surfaceY})"
+"position.below" = "Sijainti: {offset} pinnan alla (pinta Y ={surfaceY})"
+"position.at" = "Sijainti: pinnalla (Y ={surfaceY})"
+object_at_block = "Kohde @ lohko: {object}"
+none = "ei yhtään"
+"placed_by.object_above" = "Sijaitsee: esine/kallistus '{object}\" (pinnan yläpuolella)"
+"placed_by.decoration_above" = "Sijaitsee: sisustus/objekti/kalleus (pinnan yläpuolella)"
+"placed_by.buried_object" = "Paikka: haudattu esine '{object}'"
+"placed_by.terrain" = "Sijaitsee: maastokerros (syvyys {depth} pinnan alla)"
+column_object = "Sarake: {object}  -> Tämä lohko on todennäköisesti objektin puujuurta"
+column_object_none = "Sarake: {detail}"
+column_none = "ei sisällä 64 (sistori tai maasto, ei kohde puujyrsintä)"
+"column.above" = "{object} @Y={y} (yli)"
+"column.below" = "{object} @Y={y} (alla)"
+surface_biome = "Pintabiometri: {biome}"
+surface_biome_detail = "Pintabiometri: {biome} ({derivative})"
+biome_at_y = "Biome@Y: {biome}"
+cave_biome = "Luola/Mantle biometri: {biome}"
+server_biome = "Palvelinbio: {biome} (ID: {id})"
+region = "Alue: {region} ({name})"
+objects_in_chunk = "Esineet paloina: {objects}"
+copy_button = "[Klikkaa kopioidaksesi nämä tilastot]"
+copy_hover = "Kopioi lohkon tilastot leikepöydälle"
+reveal_failed = "Object reveal failed; see the console for details."
+
+[iris.runtime.pregen]
+starting = "Iris Pregen- aloitus..."
+header = "Iris Pregen."
+"bossbar.paused" = "Iris Pregen. {generated}/{total}  {percent}%  keskeytetty"
+"bossbar.running" = "Iris Pregen. {generated}/{total}  {percent}%  {speed}/s{eta}{failed}"
+eta_fragment = "  ETA  {eta}"
+failed_fragment = "  epäonnistui {failed}"
+"status.context" = "Mitat {dimension} · Menetelmä {method}"
+"status.progress" = "{percent}%"
+"status.chunks" = "Palat {generated}/{total} · Nopeus overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s"
+"status.chunks_failed" = "Palat {generated}/{total} · Nopeus overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s · Failed {failed}"
+"status.time" = "ETA  {eta} · Elaped {elapsed}"
+"status.time_paused" = "ETA  {eta} · Elaped {elapsed} · keskeytetty"
+"button.pause" = "Keskeytä/Poista"
+"button.pause.hover" = "Vaihda sukupolvia edeltävän tauon tila"
+"button.stop" = "Lopeta"
+"button.stop.hover" = "Viimeistele nykyinen alue ja lopeta esisukupolvi"
+
+[iris.bukkit.runtime]
+"commandpack.packs_folder_not_found" = "§cpakkaus/ kansiota ei löytynyt."
+"commandpack.no_packs_validate" = "§eEi pakettia validoitavaksi."
+"commandpack.validation_complete_broken_packs" = "§aValidointi suoritettu.  Rikkoutuneet pakkaukset: {broken}/{value}"
+"commandpack.pack_not_found_under_packs" = "§cPakkaus{pack}' ei löydy alta packs/."
+"commandpack.no_cleanup_candidates_found_pack" = "§aPakkaukselle ei löytynyt puhdistusehdokkaita{pack}'."
+"commandpack.quarantined_cleanup_candidate_s_under" = "§aKaranteeni {size} alla {quarantinePath}."
+"commandpack.cleanup_mode_must_be_preview_apply" = "§cSiivoustilan on oltava esikatselu tai sovelletaan."
+"commandpack.no_cleanup_candidates_found_pack_2" = "§aPakkaukselle ei löytynyt puhdistusehdokkaita{pack}'."
+"commandpack.cleanup_preview_pack_candidate_s_no_files_were_changed" = "§eSiivoa esikatselu pakkaukselle '{pack}': {size} candidate(s).  Tiedostoja ei muutettu."
+"commandpack.run_iris_pack_cleanup_mode_apply_quarantine_these_candidates_after_fresh_scan" = "§7Juokse /iris pack cleanup {pack} mode=apply Karanteenikaranteenin jälkeen."
+"commandpack.restore_refused_because_destination_s_already_exist" = "§cPalauta hylätty, koska {size} destination(s) already exist."
+"commandpack.nothing_restore_pack" = "§eEi mitään palautettavaa pakkaukselle '{pack}'."
+"commandpack.restored_file_s_from" = "§aPalautettu {size} tiedostot mistä {dumpPath}."
+"commandpack.restore_mode_must_be_preview_apply" = "§cPalauta tila on esikatselu tai sovelletaan."
+"commandpack.nothing_restore_pack_2" = "§eEi mitään palautettavaa pakkaukselle '{pack}'."
+"commandpack.restore_preview_file_s_no_files_were_changed" = "§ePalauta esikatselu {dumpPath}: {size} file(s).  Tiedostoja ei muutettu."
+"commandpack.restore_is_blocked_by_existing_destination_s" = "§cRestore on estetty {size} nykyinen kohde(s)."
+"commandpack.run_iris_pack_restore_mode_apply_restore_after_fresh_conflict_check" = "§7Juokse /iris pack restore {pack} mode=apply palauttaa uuden konfliktintarkastuksen jälkeen."
+"commandpack.no_validation_results_recorded_run_iris_pack_validate_first" = "§eValidointituloksia ei ole tallennettu.  Juokse /iris pack validate Ensin."
+"commandpack.status.ok" = "§aSelvä.§r  {pack}§7 (esto ={blocking}, varoitukset={warnings})"
+"commandpack.status.broken" = "§cBROKENN§r  {pack}§7 (esto ={blocking}, varoitukset={warnings})"
+"commandpack.cleanup_failed" = "§cSiivous epäonnistui: {error}"
+"commandpack.restore_failed" = "§cPalautus epäonnistui: {error}"
+"commandpack.path.still_quarantined" = "edelleen karanteenissa"
+"commandpack.path.quarantined" = "karanteenissa"
+"commandpack.path.candidate" = "ehdokas"
+"commandpack.path.conflict" = "konflikti"
+"commandpack.path.restored" = "palautettu"
+"commandpack.path.file" = "tiedosto"
+"commandpack.no_validation_result_run_iris_pack_validate" = "§eEi validointitulosta \"{pack}'.  Juokse /iris pack validate {pack2}."
+"commandpack.validation_failed" = "§c\"{name}' epäonnistui: {error}"
+"commandpack.pack_is_loadable_warnings" = "§aPakkaus{packName}Se on ladattavissa.§7 (varoituksia ={size})"
+"commandpack.pack_is_broken" = "§cPakkaus{packName}' on rikkinäinen:"
+"commandpack.message" = "§c  - {reason}"
+"commandpack.message_2" = "§e  !  {value}"
+"commandpack.more_warning_s" = { other = "§7    ...  sekä {count} Lisää varoituksia.", one = "§7    ...  sekä {count} Enemmän varoitusta." }
+"commanddeveloper.stage_world_generation_update_warning" = ["§cVarmuuskopioi koko maailma ennen tämän päivityksen valmistelua.", "§eOlemassa olevia chunkeja ei generoida uudelleen eikä korvata.", "§eUudelleenkäynnistyksen jälkeen uudet chunkit käyttävät valmisteltua pakettia ja liittyvät asteittain tallennettuun rajaan.", "§eMaailman siementä, korkeutta, ympäristöä tai ulottuvuustyyppiä ei voi muuttaa.", "§eJokaisen varmuuskopion on sisällettävä koko iris/generation-hakemisto.", "§cValmistele päivitys ja pyydä hallittua uudelleenkäynnistystä:", "§c/iris developer update-world {world} {pack} confirm=true"]
+"bulkstructureimporter.importing_vanilla_datapack_structures_mode_includenonjigsaw" = "§aTuo §f{total}§a vanilla & datapakettirakenteet (tila ={mode}, includeNonJigsaw={includeNonJigsaw})..."
+"bulkstructureimporter.fail_invalid_key" = "§c[virhe]  {keyString}: virheellinen avain"
+"bulkstructureimporter.jigsaw" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.skip_no_single_template_nbt_vanilla_builds_this_code_from_separate_piece" = "§e[ohitettu]  {keyString}: ei yksilevyistä NBT - vanilla rakentaa tämän koodilla tai erillisistä kappalemalleista (tuotu mallien kautta); ei mitään tuotavaa yhtenä rakenteena."
+"bulkstructureimporter.fail" = "§c[virhe]  {keyString}: {message}"
+"bulkstructureimporter.fail_2" = "§c[virhe]  {keyString}: {message}"
+"bulkstructureimporter.fail_3" = "§c[virhe]  {keyString}: {error}"
+"bulkstructureimporter.bulk_import_complete_imported_skipped_failed_total" = "§aIrtotuonti valmis: §f{imported}§a tuonti, §f{skipped}§a ohitettu, §f{failed}§a epäonnistui (§f{total}§a yhteensä)."
+"bulkstructureimporter.building_single_template_structures_from_imported_pieces_one_variant_placed_per_generation" = "§aYksirunkoisten rakenteiden rakentaminen tuontikappaleista (yksi muunnos/sukupolvet)..."
+"bulkstructureimporter.group_variants" = "§7[group]  {value}  ->  {value2} ({blocks} variantit)"
+"bulkstructureimporter.skip" = "§e[ohitettu]  {value}: {message}"
+"bulkstructureimporter.fail_4" = "§c[virhe]  {value}: {error}"
+"bulkstructureimporter.single_template_structures_built_skipped_failed" = "§ayksirunkoiset rakenteet: §f{imported}§a rakennettu, §f{skipped}§a ohitettu, §f{failed}§a Epäonnistui."
+"bulkstructureimporter.failed_enumerate_structure_templates_via_server_resourcemanager" = "§cRakennemalleja ei voitu laskea palvelimen kautta ResourceManager: {e}"
+"bulkstructureimporter.no_structure_templates_were_found_under_structure_resource_path" = "§e\"Rakennus\"-resurssireitistä ei löytynyt rakennemalleja."
+"bulkstructureimporter.importing_structure_templates_mode" = "§aTuo §f{total}§a rakennemallit (muoto ={mode})..."
+"bulkstructureimporter.fail_invalid_key_2" = "§c[virhe]  {keyString}: virheellinen avain"
+"bulkstructureimporter.fail_5" = "§c[virhe]  {keyString}: {message}"
+"bulkstructureimporter.fail_6" = "§c[virhe]  {keyString}: {error}"
+"bulkstructureimporter.imported_skipped_failed" = "§7...{processed}/{total} ({imported} tuonti, {skipped} ohitettu, {failed} epäonnistui)"
+"bulkstructureimporter.template_import_complete_imported_skipped_failed_total" = "§aMallin tuonti valmis: §f{imported}§a tuonti, §f{skipped}§a ohitettu, §f{failed}§a epäonnistui (§f{total}§a yhteensä)."
+"bulkstructureimporter.no_datapack_non_minecraft_structures_are_registered_ingest_datapack_restart_first_then" = "§eDatapack (ei-miina) rakenteita ei ole rekisteröity.  Aloita datapaketti ja käynnistä se uudelleen."
+"bulkstructureimporter.importing_datapack_structures_mode" = "§aTuo §f{total}§a datapakettirakenteet (tila ={mode})..."
+"bulkstructureimporter.fail_invalid_key_3" = "§c[virhe]  {keyString}: virheellinen avain"
+"bulkstructureimporter.jigsaw_2" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single_2" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.fail_7" = "§c[virhe]  {keyString}: {message}"
+"bulkstructureimporter.fail_8" = "§c[virhe]  {keyString}: {message}"
+"bulkstructureimporter.fail_9" = "§c[virhe]  {keyString}: {error}"
+"bulkstructureimporter.importing_datapack_structure_templates" = "§aTuo §f{size}§a tietopaketin rakennemallit..."
+"bulkstructureimporter.fail_10" = "§c[virhe]  {keyString}: {message}"
+"bulkstructureimporter.fail_11" = "§c[virhe]  {keyString}: {error}"
+"bulkstructureimporter.could_not_enumerate_datapack_templates_via_server_resourcemanager" = "§eDatapakettimalleja ei voitu luetella palvelimen kautta ResourceManager: {error}"
+"bulkstructureimporter.datapack_structure_import_complete_imported_skipped_failed" = "§aDatapack-rakenteen tuonti valmis: §f{imported}§a tuonti, §f{skipped}§a ohitettu, §f{failed}§a Epäonnistui."
+"structurecaptureimporter.structure_capture_is_not_supported_by_active_nms_binding_skipping_capture_pass" = "§eAktiivinen rakennekaappaus ei tue NMS sidonta; vangitsemispassin ohittaminen."
+"structurecaptureimporter.no_code_generated_structures_left_capture_everything_is_already_imported_as_structure" = "§7Ei koodattuja rakenteita, jotka voitaisiin kaapata (kaikki on jo tuotu maahan rakenteena)."
+"structurecaptureimporter.capturing_code_generated_structures_no_nbt_template_into_scratch_world_skipping_any" = "§aKaappaus §f{total}§a Koodin aiheuttamat rakenteet (ei NBT malli) osaksi naarmu maailmaan (slipping mitään laajempaa / taller kuin {MAXSPAN} lohkot)..."
+"structurecaptureimporter.skip_did_not_place_capturable_structure_here_too_large_wrong_dimension_no" = "§e[ohitettu]  {key}: ei sijoittanut kaapattava rakenne täällä (liian suuri, väärä ulottuvuus, tai ei voimassa sijoitus litteässä maailmassa).  Se on vanillaa."
+"structurecaptureimporter.fail" = "§c[virhe]  {key}: {message}"
+"structurecaptureimporter.capture_objects_iob_x_x" = "§7[capture]  {key}  ->  objects/{name}.iob ({w}x{h}x{d})"
+"structurecaptureimporter.fail_2" = "§c[virhe]  {key}: {error}"
+"structurecaptureimporter.captured_skipped_failed" = "§7...{processed}/{total} ({imported} kiinni, {skipped} ohitettu, {failed} epäonnistui)"
+"structurecaptureimporter.structure_capture_complete_captured_skipped_failed_total" = "§aRakenne kaapattu: §f{imported}§a kiinni, §f{skipped}§a ohitettu, §f{failed}§a epäonnistui (§f{total}§a yhteensä)."
+"featureimporter.no_vanilla_tree_object_features_are_exposed_by_active_nms_binding_importing" = "§eAktiivinen puu/kohde ei altistu vanillapuulle. NMS sitova (vain tuontirakenteet)."
+"featureimporter.importing_vanilla_tree_object_features_variants_each_into_scratch_world" = "§aTuo §f{total}§a vanillapuun/kohteen ominaisuudet (§f{wantVariants}§a variantteja kukin) osaksi naarmu maailma..."
+"featureimporter.obj_objects_vanilla" = "§7[obj]  {key}  ->  objects/vanilla/{group}/{safeName} ({written})"
+"featureimporter.skip_feature_placed_nothing_after_retries" = "§e[ohitettu]  {key}: ominaisuus sijoitettu mitään jälkeen retries."
+"featureimporter.fail" = "§c[virhe]  {key}: {error}"
+"featureimporter.imported_skipped_failed" = "§7...{processed}/{total} ({imported} tuonti, {skipped} ohitettu, {failed} epäonnistui)"
+"featureimporter.feature_import_complete_features_written_skipped_failed_total" = "§aOminaisuuden tuonti valmis: §f{imported}§a kirjoitetut ominaisuudet, §f{skipped}§a ohitettu, §f{failed}§a epäonnistui (§f{total}§a yhteensä)."
+"featureimporter.could_not_create_scratch_world_feature_import_skipping_tree_object_pass" = "§cEi voitu luoda naarmujen maailmaa ominaisuus tuontia ({error}); puun/object-passin ohittaminen."
+"irisconverter.no_schematic_files_convert_found" = "Ei kaavioita tiedostoja muuntaa löytyy {path}"
+"irisconverter.converted" = "§aMuunnettu {name}  ->  {value} sisään {value2}"
+"irisconverter.converted_2" = "§aMuunnettu {name}  ->  {value}"
+"irisconverter.failed_save" = "§cTallennus epäonnistui: {name}"
+"irisconverter.failed_convert" = "§cMuuntaminen epäonnistui: {name}"
+"irisconverter.converted_3" = "§7Muunnettu: {get} sisään {value}"
+"irisconverter.some_schematics_failed_convert_check_console_details" = "§cJotkut kaaviot eivät muuttuneet.  Tarkista konsolista yksityiskohtia."
+"studiosvc.pack_copy_requires_async_thread" = "§cIris refused to copy the world pack on the Bukkit primary thread."
+"studiosvc.pack_install_failed" = "§cFailed to install world pack §f{dimension}§c: {error}"
+"studiosvc.looking_package" = "Etsin pakettia: {type}"
+"studiosvc.found_iris_folder" = "Löytyi {type}0, iiris {WORKSPACENAME} kansio"
+"studiosvc.found_dimension_folder_repackaging" = "Löytyi {type} ulottuvuus {WORKSPACENAME} kansio.  Uudelleenpakkaaminen"
+"studiosvc.can_t_find_dimensions_folder_this_pack_failed" = "En löydä {name} tämän pakkauksen mitoissa!  Epäonnistui!"
+"studiosvc.can_t_load_dimension_failed" = "Ei voi ladata ulottuvuutta!  Epäonnistui!"
+"studiosvc.type_installed" = "{name} tyyppi asennettu. "
+"studiosvc.failed_open_studio_world" = "Studiomaailman avaaminen epäonnistui: {error}"
+"studiosvc.cannot_open_studio_pack_has_blocking_errors" = "Studiota ei voi avata{dimm}\" - pakkauksessa on estovirheitä:"
+"studiosvc.message" = " - {reason}"
+"studiosvc.fix_pack_run_iris_pack_validate_revalidate" = "Korjaa pakkaus ja juokse /iris pack validate {dimm} Jatkaa."
+"studiosvc.failed_close_existing_studio_project" = "Olemassa olevan studioprojektin sulkeminen epäonnistui: {error}"
+"studiosvc.failed_close_existing_studio_project_2" = "Olemassa olevan studioprojektin sulkeminen epäonnistui: {error}"
+"studiosvc.failed_open_studio_world_2" = "Studiomaailman avaaminen epäonnistui: {error}"
+"studiosvc.couldn_t_find_pack_create_new_dimension_from" = "Laumaa ei löytynyt luomaan uutta ulottuvuutta."
+"studiosvc.missing_imported_dimension_file" = "Tuodun kokotiedoston puuttuvat"
+"studiosvc.importing_into_new_project" = "Tuo {downloadable} uuteen projektiin {s}"
+"objectstudiosaveservice.object_studio_no_cell_under_click_x_z" = "§7Object Studio: ei solua klikkaamalla (x={x} z={z})."
+"objectstudiosaveservice.object_studio_saving_x_x" = "§bObject Studio: säästää §f{pack}/{key}§7 ({w}x{h}x{d})"
+"objectstudiosaveservice.object_studio_no_changes" = "§7Object Studio: ei muutoksia {pack}/{key}."
+"objectstudiosaveservice.object_studio_empty_cell_nothing_write" = "§7Object Studio: tyhjä solu {pack}/{key} (Ei mitään kirjoittamista)"
+"objectstudiosaveservice.object_studio_no_target_file" = "§cObject Studio: ei kohdetiedostoa {pack}/{key}."
+"objectstudiosaveservice.object_studio_saved" = "§aObject Studio: tallennettu §f{pack}/{key}"
+"objectstudiosaveservice.object_studio_save_failed" = "§cObject Studio: tallennus epäonnistui {pack}/{key} ({error})"
+"irisproject.could_not_load_dimension" = "Mitata ei voitu ladata \"{value}\""
+"irisproject.could_not_get_dimension_loader" = "Mittalataajaa ei voitu saada"
+"irisproject.studio_open_failed" = "§cStudio auki epäonnistui: {error}"
+"irisproject.studio_open_failed_2" = "§cStudio auki epäonnistui."
+"irisproject.studio_ready" = "§aStudio valmis §7({value})"
+"irisproject.studio" = "§6Studio §b{bar}  §e{percent}%§7  {currentStage}§8 ({value})"
+"irisproject.serializing_objects" = "Serialisoivat objektit"
+"irisproject.wrote_another_objects" = "Kirjoitti toisen {g} Esineet"
+"irisproject.package_compiled" = "Paketti valmis!"
+"irisproject.failed" = "Epäonnistui!"
+"irisengine.total" = "Yhteensä: §l§f{value}"
+"irisengine.engine" = "  Moottori §n§a{i}§r: §l§f{value}"
+"irisengine.details" = "Yksityiskohdat: "
+"irisengine.message" = "  {befb}{num}{afb}: §l§f{value}"
+"enginebukkitops.is_not_defined_dimension" = "§c{name} ei ole määritelty ulottuvuudessa!"
+"enginebukkitops.could_not_find_within_search_range" = "§cEi löytynyt {message} Etsintäetäisyydeltä."
+"enginebukkitops.teleporting" = "§aTelesiirtyminen {message}..."
+"enginebukkitops.at" = "§a{message} klo: {blockX}  {blockY}  {blockZ}"
+"iristoolbelt.you_have_been_evacuated_from_this_world" = "Sinut on evakuoitu tästä maailmasta."
+"iristoolbelt.you_have_been_evacuated_from_this_world_2" = "Sinut on evakuoitu tästä maailmasta.  {m}"
+"serverconfigurator.there_are_some_iris_packs_that_have_custom_biomes_them" = "On joitakin Iris Pakkaukset, joissa on custom biomes niissä"
+"serverconfigurator.you_need_restart_your_server_use_these_packs" = "Sinun täytyy käynnistää palvelin käyttää näitä pakkauksia."
+"virtualcommand.message" = "- §f{i}"
+"virtualcommand.insufficient_permissions" = "Riittämättömät luvat"
+"mortarcommand.parameters_ignored" = "Ei huomioituja parametreja: {m}"
+"commandpack.compat_header" = "§ePaketti '{pack}': sisältö ei ole käytettävissä Minecraft {version} -versiossa"
+"commandpack.compat_none" = "§aPaketti '{pack}' ei käytä sisältöä, joka puuttuisi Minecraft {version} -versiosta."
+"commandpack.compat_remedy" = "§7Päivitä palvelin uudempaan Minecraft-versioon palauttaaksesi tämän sisällön tai määritä varasisältö (ulottuvuuden blockFallbacks, lohkon backup)."
+
+[iris.runtime.studio]
+opening = "§6Studio §bAVATAAN"
+opening_progress = "§6Studio §bAVATAAN§7 {percent}%"
+failed_progress = "§6Studio §cEPÄONNISTUI§7 {percent}%"
+ready_progress = "§6Studio §aVALMIS§7 100%"
+"action.failed" = "{bar}§7 §cEPÄONNISTUI§7 | §f{stage}"
+"action.ready" = "{bar}§7 §a100%§7 | §aStudio valmis§8 {elapsed}"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}§8  {elapsed}"
+"console.progress" = "§6Studio §b{bar}§e  {percent}%§7  {stage}§8 ({elapsed})"
+"stage.initializing" = "Alustetaan"
+"stage.queued" = "Jonossa"
+"stage.resolve_dimension" = "Ratkaistaan ulottuvuutta"
+"stage.prepare_world_pack" = "Valmistellaan maailmapakettia"
+"stage.install_datapacks" = "Asennetaan datapaketteja"
+"stage.create_world" = "Luodaan maailmaa"
+"stage.apply_world_rules" = "Otetaan maailmansäännöt käyttöön"
+"stage.prepare_generator" = "Valmistellaan generaattoria"
+"stage.teleport_player" = "Teleportoidaan"
+"stage.finalize_open" = "Viimeistellään"
+"stage.cleanup" = "Siivotaan"
+
+[iris.runtime.world_create]
+teleport_failed = "§eMaailma luotiin, mutta automaattinen teleportti epäonnistui.  Yritä /iris teleport world={world}"
+"lifecycle.action" = "{bar}§7 §e{percent}%§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.failed" = "{bar}§7 §cFAILED§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.ready" = "{bar}§7 §a100%§7 | §aWorld ready§8 {elapsed}"
+"lifecycle.console" = "§6World §b{world} {bar} §e{percent}%§7 {stage}{detail}§8 ({elapsed})"
+"lifecycle.console.failed" = "§6World §b{world}§7 | §ccreation failed§8 after {elapsed}"
+"lifecycle.console.ready" = "§6World §b{world}§7 | §aready§8 in {elapsed}"
+"stage.initializing" = "Initializing"
+"stage.resolve_dimension" = "Resolving dimension"
+"stage.validate_pack" = "Validating pack"
+"stage.prepare_world_pack" = "Preparing world pack"
+"stage.install_datapacks" = "Installing datapacks"
+"stage.prepare_generator" = "Preparing generator"
+"stage.create_world" = "Generating spawn"
+"stage.register_world" = "Registering world"
+"stage.teleport_player" = "Entering world"
+"stage.pregenerate" = "Pregenerating"
+"stage.finalize" = "Finalizing"
+"stage.complete" = "World ready"
+"pregen.action" = "{bar}§7  §e{percent}%§7 | §fEsituotanto"
+"pregen.console" = "§6Esituotanto §e{percent}%"
+
+[iris.runtime.world_replace]
+start = "§eIris valmistelee maailman {world} korvaamista. Nykyinen maailma pysyy aktiivisena uudelleenkäynnistykseen asti."
+progress = "§eMaailman {world} korvaaminen: {stage} ({elapsed}s kulunut)"
+"stage.datapacks" = "Tarkistetaan ulottuvuuden datapaketteja"
+"stage.seed" = "Valmistellaan korvaavan maailman siementä"
+"stage.pack" = "Kopioidaan ja tarkistetaan ulottuvuuspakettia"
+"stage.players" = "Tallennetaan pelaajien turvallisen maailmaan saapumisen suojaus"
+"stage.verify" = "Tarkistetaan valmisteltua korvaavaa maailmaa"
+"stage.save" = "Tallennetaan korvaava maailma uudelleenkäynnistystä varten"
+"stage.cleanup" = "Siivotaan epäonnistunutta korvausyritystä"
+
+[iris.runtime.chunk_job]
+"title.regen" = "Regin"
+"title.delete" = "Poista"
+"title.golden_hash" = "GoldenHash"
+"stage.preparing" = "Valmistellaan"
+"stage.clearing" = "Selvitys"
+"stage.resetting_mantle" = "Korjaa Mantle"
+"stage.regenerating" = "Uusiutuminen"
+"stage.generating" = "Luodaan"
+"stage.comparing" = "Vertailu"
+"stage.diagnosing" = "Diagnosointi"
+"bossbar.working" = "§6{title}  §bTYÖNTEKIJÄT"
+"bossbar.progress" = "§6{title}  §b{stage}§7  §e{percent}%"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}  {applied}/{total}"
+summary = "{applied}/{total} Palaa {elapsed}"
+"summary.failed" = "{applied}/{total} Palaa {elapsed} ({failures} epäonnistui)"
+"bossbar.done" = "§6{title}  §aTehty§7  §e{summary}"
+"bossbar.failed" = "§6{title}  §cFAIDOT§7  §e{summary}"
+"action.done" = "{bar}§7  §aValmis§7 | §f{summary}"
+"action.failed" = "{bar}§7  §cEi onnistunut§7 | §f{summary}"
+complete = "§a{title} täydellinen: {summary}"
+failed = "§c{title} viimeistelty virheillä: {summary}"
+
+[iris.runtime.golden]
+no_capture = "Ei kultaista kaappausta {path}- Tee ensin pidätys."
+aborted = { other = "GoldenHash Keskeytetty: {failed} Se ei onnistunut.  Kultaista tiedostoa ei ole kirjoitettu.", one = "GoldenHash Keskeytetty: {failed} Chunk ei onnistunut tuottamaan.  Kultaista tiedostoa ei ole kirjoitettu." }
+failed = "GoldenHash epäonnistui: {error}"
+mantle_reset = "Mantle nollaus ({path})"
+mantle_reset_failed = "Mantle nollaus epäonnistui ({type}); jatketaan nykyistä Mantletilaa."
+captured = "Kulta on saatu kiinni. {chunks} chunkia yhteensä ={hash}"
+wrong_world = "Golden-tiedosto on himmennetty{goldenDimension} siemen ={goldenSeed} Mutta tämä maailma on hämärä{dimension} siemen ={seed}.  Keskeytän."
+version_warning = "Golden vangittiin MC:{goldenVersion}, käynnissä mc ={version}.  Erot voivat olla version aiheuttamia."
+match = "GOLDEN  MATCH: {current}/{golden} chunkia, yhdistetty ={hash}"
+mismatch = "GOLDEN  MISMATCH: {mismatches}/{chunks} Palaset ovat eri mieltä."
+mismatch_chunk = "  pala {chunk}"
+missing_in_golden = "{chunk} (puuttuu kultaa)"
+mismatch_more = "  ...  sekä {count} enemmän"
+current_written = "Nykyinen hashes kirjoitettu {file}"
+"diag.stable" = "Toista STABLE, Mantlen palautus {mantleStatus}  ->  {file}"
+"diag.unstable" = "Toista UNSTABLE ({diffs}+ block diffs), Mantlen palautus {mantleStatus}  ->  {file}"
+"diag.mantle_stable" = "STABLE (Mantle restructions skannaa lähtöä)"
+"diag.mantle_diverged" = "DIVERGED ({diffs}+ erot - Mantlen rakenne on tila/tila riippuvainen)"
+"diag.mantle_skipped" = "SKIPPED ({type})"
+"diag.failed" = "Diagnoosi epäonnistui: {error}"
+started = "GoldenHash alkoi: {chunks} Pyörii ympäri 0,0 puskurissa (maailmassa koskemattomana), langat ={threads} tila ={mode}"
+chunk_hashed = "[{done}/{total}] pala {x},{z} hasheed"
+chunk_failed = "Liha {x},{z}  epäonnistui: {type}"
+
+[iris.runtime.pack_download]
+"progress.start" = "§aIris §6PAKETIN LATAUS§8 | §f{source}"
+"progress.phase" = "§aIris §b{phase}§8 | §7{source}"
+"progress.determinate" = "{bar}§7 §e{percent}%§8 | §f{transferred}§7/§f{total}§8 | §b{rate}/s"
+"progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
+"progress.detail" = "§8  - §7{detail}"
+"progress.complete" = "§aIris-paketti '{pack}' asennettu§8 | §f{transferred}§7 ajassa §f{elapsed}"
+"progress.unchanged" = "§eIris-paketti '{pack}' on jo asennettu."
+"progress.failed" = "§cIris-paketin lataus epäonnistui.§7 Tarkista yllä olevat lataustiedot ja yritä uudelleen."
+"progress.failed_detail" = "§cIris-paketin lataus epäonnistui.§7 {error}"
+"progress.cancelled" = "§eIris-paketin lataus peruutettiin ennen julkaisua."
+"progress.restart" = "§6Uudelleenkäynnistys vaaditaan§8 | §7Käynnistä palvelin uudelleen ennen kuin luot tai korvaat maailman tällä paketilla."
+"progress.phase.connecting" = "Yhdistetään"
+"progress.phase.downloading" = "Ladataan"
+"progress.phase.unpacking" = "Puretaan"
+"progress.phase.validating" = "Tarkistetaan"
+"progress.phase.publishing" = "Julkaistaan"
+"progress.source.remote" = "Etä-ZIP-tiedosto"
+invalid_source = "§cValitse täsmälleen yksi lähde: /iris download pack=overworld, /iris download pack=underworld tai /iris download link=‹zip-url›."
+invalid_url = "§cIris vaatii kelvollisen HTTP- tai HTTPS-osoitteen .zip-tiedostoon."
+invalid_built_in = "§cIriksen sisäiset lataukset ovat saatavilla vain paketeille 'overworld' ja 'underworld'."
+shutting_down = "§eIristä sammutetaan, eikä se ota vastaan pakettien latauksia."
+downloading = "Noudetaan {url}"
+unpacking = "Purkaminen {repository}"
+unpack_failed = ["Purkamisen yhteydessä.  Tarkista/ tee seuraava:", "1.  Onko sinulla toimiva internet-yhteys?", "2.  Korruptoiko lataus?", "3.  Yritä poistaa */plugins/iris/packs kansio ja lataa uudelleen.", "4.  Lataa pakkaus GitHub repo https://github.com/IrisDimensions/overworld", "5.  Yhteystuki (jos kaikki muut vaihtoehdot eivät auta)"]
+no_extracted_files = "Zip-tiedostosta ei löytynyt tiedostoja."
+home_directory_error = "Virhe etsittäessä kotihakemistoa.  Onko tiedostossa ei-tekstimerkkejä?"
+invalid_archive_format = "Virheellinen muoto.  Puuttuu juurikansio tai liikaa kansioita!"
+no_dimension_file = "Otetusta zip-tiedostosta ei löydy mittatiedostoa."
+check_github = "Tarkista, että se on läsnä GitHub Ja raportoikaa tästä henkilöstölle!"
+invalid_dimension = "Virheellinen ulottuvuuskansio alla dimensions/."
+importing = "Tuo {name} ({key})"
+dimension_key_conflict = "Toinen ulottuvuus pakkauskansiossa jo käyttää avainta {key}.  Tuonti epäonnistui!"
+pack_key_conflict = "Toinen pakkaus käyttää avainta {key}.  Tuonti epäonnistui!"
+acquired = "Onnistunut hankinta {name}."
+already_installed = "Pack {key} on jo asennettu, lataus ohitetaan."
+in_progress = "Toinen Iris-paketin lataus on jo käynnissä. Odota sen valmistumista ennen kuin yrität uudelleen."
+validation_failed = "Pakkaus{pack}' Epäonnistunut validointi; maailma ja Studio luominen hylätään.  Perusteet:"
+validation_reason = "  - {reason}"
+validated_with_warnings = { other = "Pakkaus{pack}\" validoitu {count} varoitukset.", one = "Pakkaus{pack}\" validoitu {count} Varoitus." }
+validated = "Pakkaus{pack}' validoitu."
+
+[iris.client.vision]
+title = "Iris Näkö"
+connecting = "Yhdistetään Iris palvelin..."
+not_connected = "ei yhdistetty"
+not_iris_world = "Ei Iris maailma"
+server_without_iris = "Tämä palvelin ei käytä Iris"
+version_mismatch = "Iris versioristiriita asiakkaan ja palvelimen välillä"
+no_dimension_data = "ei ulottuvuustietoja"
+header_detail = "{status}  zoomaus {zoom}  x{x} z{z}"
+footer_hint = "Vedä Pan vieritä zoomata Esc sulkea"
+dimension_pack = "{dimension}  Pakkaus {pack}"
+
+[iris.client.create]
+structures_required_title = "Iris vaatii Luo rakennelmat"
+structures_required_body = "Iris sijoittaa omat rakennelmansa rakennelmien luontivaiheessa eikä lataa maailmaa, joka luotiin Luo rakennelmat pois kytkettynä. Kytke Luo rakennelmat takaisin päälle tai valitse toinen maailmatyyppi."
+
+[iris.client.toast]
+studio_hotload = "Studiohotload"
+changed_files = { other = "{count} tiedostot", one = "{count} tiedosto" }
+reload_failed = "lataaminen epäonnistui"
+reloaded = "ladattu"
+pack_failed = "{pack} epäonnistui"
+
+[iris.client.what]
+title = "Iris Mitä?"
+querying = "Kysely {x}, {z}..."
+biome = "Bioma: {biome}"
+region = "Alue: {region}"
+cave = "Luola: {cave}"
+height = "Korkeus: {height}   ({x}, {z})"
+
+[iris.client.pregen]
+stats = "{done} / {total}  ({percent}%)"
+paused = "keskeytetty"
+stale = "ei päivityksiä {seconds}s ajan"
+rate = "{rate}/s"
+rate_eta = "{rate}/s    ETA  {eta}"
+
+[iris.client.duration]
+hours_minutes = "{hours}h {minutes}m"
+minutes_seconds = "{minutes}m {seconds}s"
+seconds = "{seconds}s"
+
+[iris.bukkit.scoreboard]
+title = "§aIris."
+speed = "§aNopeus§7:  {speed}/s  {duration}"
+cache = "§bVälimuisti§7: {count}"
+mantle = "§bMantteli§7: {count}"
+carving = "§dKaiverrus§7: {state}"
+region = "§bAlue§7: {region}"
+biome = "§bBiometri§7:  {biome}"
+biome_loading = "Ladataan"
+biome_unavailable = "Ei saatavilla"
+height = "§bKorkeus§7: {height}"
+slope = "§bRivi§7:  {slope}"
+block_updates = "§bBUDName/s§7: {updates}"
+
+[iris.desktop.vision]
+title = "Iris Näkö"
+view = "Näytä:"
+grid = "Ruudukko"
+entities = "Entiteetit"
+follow = "Seuraa"
+refreshing = "Virkistävä"
+fps = "{fps}  FPS"
+zoom_reset = "Lähennä nollaus"
+grid_enabled = "Verkko käytössä"
+grid_disabled = "Verkko pois käytöstä"
+entities_enabled = "Entiteetit käytössä"
+entities_disabled = "Entiteetit pois käytöstä"
+following = "Seurataan pelaajaa {player}"
+no_player = "Ei pelaajaa maailmassa"
+follow_disabled = "Seuraa pois käytöstä"
+status_left = "{mode}  |  {bpp} bpp  {width} x {height} lohkot"
+status_right = "X: {x}  Z: {z}  |  {fps}  FPS"
+entity_position = "Sijainti: {x}, {y}, {z}"
+entity_health = "Terveys: {health} / {maximum}"
+block_position = "Kenttä {x}, {z}"
+chunk_position = "Liha {x}, {z}"
+region_position = "Alue {x}, {z}"
+biome_key = "Avain: {key}"
+biome_file = "Tiedosto: {file}"
+velocity = "Nopeus: {velocity}"
+tiles = "Atlas: {ready} / {total}"
+workers = "Workers: {active} active / {queued} queued"
+center = "Keskus: {x}, {z}"
+"help.toggle" = "Vaihda apua"
+"help.refresh" = "Päivitä laatat"
+"help.follow" = "Seuraa pelaajaa"
+"help.zoom" = "Lähennä/pois"
+"help.reset_zoom" = "Nollaa zoomaus"
+"help.cycle_mode" = "Cycle render -tila"
+"help.fps" = "Vaihda 30/60  FPS"
+"help.grid" = "Vaihda ruudukkoa"
+"help.biome" = "Yksityiskohtainen biome info"
+"help.teleport" = "Teleportti kohdistimeen"
+"help.editor" = "Avaa biome muokkaimessa"
+opened = "Avattu {target}"
+teleporting = "Telesiirtyminen {x}, {z}"
+"mode.biome" = "Biometri"
+"mode.biome_land" = "Biometrinen maa"
+"mode.biome_sea" = "Biome-meri"
+"mode.region" = "Alue"
+"mode.cave_land" = "Luolamaa"
+"mode.river" = "Jokiverkosto"
+"mode.height" = "Korkeus"
+"mode.object_load" = "Kohteen kuormitus"
+"mode.decorator_load" = "Koristuskuorma"
+"mode.continent" = "Manner"
+"mode.layer_load" = "Tasokuormitus"
+
+[iris.desktop.noise]
+title = "Melututkija"
+title_generator = "Melututkija: {generator}"
+search = "Etsi..."
+status = "{name}  |  X: {x}  Z: {z}  Zoom: {zoom}  Arvo: {value}  |  {fps}  FPS"
+"category.custom" = "Oma"
+"category.pack_generators" = "Pakkausgeneraattorit"
+"category.simplex" = "SimplexComment"
+"category.perlin" = "PerlinName"
+"category.cellular" = "solu"
+"category.iris" = "Iris"
+"category.clover" = "Mausteneilikka"
+"category.hexagon" = "Heksagon"
+"category.vascular" = "Verisuonisto"
+"category.globe" = "Maapallo"
+"category.cubic" = "Kubiitti"
+"category.fractal" = "Fraktaali"
+"category.static" = "Staattinen"
+"category.nowhere" = "Ei missään"
+"category.sierpinski" = "SierpinskiName"
+"category.utility" = "Hyödyllisyys"
+"category.other" = "Muut"
+
+[iris.desktop.pregen]
+initializing = "Alustetaan..."
+title = "Pregen- näkymä"
+method_pending = "Odotetaan"
+paused = "keskeytetty"
+resume_hint = "Paina P jatkaaksesi"
+pause_hint = "Paina P taukoa varten"
+method = "Generointimenetelmä: {method}"
+pause = "Keskeytä"
+resume = "Jatka"
+generating = "Luodaan"
+saving = "Tallennetaan"
+stopping = "Pysäytetään"
+completed = "Valmis"
+error = "Luonti epäonnistui"
+control_failed = "Keskeytys epäonnistui · katso palvelinloki"
+error_details = "Lisätiedot palvelinlokissa"
+progress = "{generated} / {total} lohkoa"
+percent = "{percent} valmiina"
+current = "Nykyinen · 10 s"
+overall = "Kokonaiskeskiarvo"
+thirty = "30 s keskiarvo"
+sixty = "60 s keskiarvo"
+rate = "{rate} lohkoa/s"
+eta = "Jäljellä"
+elapsed = "Kulunut"
+memory_label = "Muisti"
+memory_usage = "{used} · {usage}"
+pressure = "Muistivaraus"
+pressure_value = "{rate}/s"
+cached = "{method} · välimuistissa"
+failed = "{count} epäonnistui · katso palvelinloki"
+map = "Luontikartta"
+bounds = "Lohkot X {minX}–{maxX} · Z {minZ}–{maxZ}"
+waiting = "Odottaa"
+ready = "Valmis"
+existing = "Olemassa"
+network = "Verkko"
+terrain_hint = "Valmiit lohkot näyttävät maaston värit"
+
+[iris.runtime.what]
+material = "Material: {material}"
+full_state = "Full: {state}"
+item_count = "Count: {count}"
+iris_biome = "Iris biome: {biome} ({name})"
+derivative_biome = "Derivative biome: {biome}"
+native_biome = "Registered biome: {biome} (ID: {id})"
+non_iris_biome = "Non-Iris biome: {biome} (ID: {id})"
+iris_region = "Iris region: {region} ({name})"
+position = "Position: {x}, {y}, {z} (chunk {chunkX}, {chunkZ})"
+object = "Iris object: {object}"
+block_entity = "Block entity: {type}"
+loot_table = "Loot table: {loot}"
+spawner_entity = "Spawner entity: {entity}"
+"flag.solid" = "solid"
+"flag.fluid" = "fluid"
+"flag.water" = "water"
+"flag.waterlogged" = "waterlogged"
+"flag.storage" = "storage (loot capable)"
+"flag.lit" = "lit"
+"flag.foliage" = "foliage"
+"flag.plantable_foliage" = "plantable foliage"
+"flag.decorant" = "decorant"
+"flag.ore" = "ore"
+"flag.block_entity" = "block entity"
+
+[iris.runtime.world]
+height_range = "World height: {minY} to {maxY}"
+height_total = "Total height: {height}"
+
+[iris.desktop.imagemap]
+title = "Image Map Studio"
+preset = "Preset:"
+load = "Load"
+import_png = "Import PNG"
+replace_png = "Replace PNG"
+preview = "Preview"
+export = "Export to active pack"
+metadata = "Source metadata"
+resource = "Resource binding"
+coordinates = "Coordinates and sampling"
+binding_key = "Binding key"
+map_key = "Map key"
+image_key = "Image key"
+type = "Type"
+application = "Application"
+blocks_per_pixel = "Blocks per pixel"
+origin_x = "World origin X"
+origin_z = "World origin Z"
+source_origin_x = "Source origin X"
+source_origin_z = "Source origin Z"
+rotation = "Rotation"
+mirror_x = "Mirror X"
+mirror_z = "Mirror Z"
+sampling = "Sampling"
+out_of_bounds = "Out of bounds"
+alpha = "Alpha policy"
+fallback_value = "Fallback value"
+fallback_target = "Fallback target"
+minimum_height = "Minimum height"
+maximum_height = "Maximum height"
+vertical_offset = "Vertical offset"
+clamp = "Clamp height"
+inverted = "Invert values"
+curve_exponent = "Curve exponent"
+smoothing_radius = "Smoothing radius"
+threshold = "Threshold"
+falloff = "Falloff"
+color_tolerance = "Raw sRGB tolerance"
+unknown_color = "Unknown color"
+add_color = "Add legend color"
+remove_color = "Remove selected"
+composed_masks = "Composed masks"
+add_mask = "Add mask binding"
+height = "Height interpretation"
+mask = "Mask interpretation"
+color_map = "Color legend"
+overlays = "World overlays"
+chunks = "16-block chunks"
+regions = "512-block regions"
+boundary = "World boundary"
+coverage = "Source coverage"
+diagnostics = "Diagnostics"
+ready = "Ready"
+no_source = "Import a PNG source to begin."
+loading = "Loading preset..."
+load_failed = "Preset load failed"
+previewing = "Compiling preview..."
+preview_valid = "Runtime compiler validation passed."
+preview_failed = "Preview failed"
+exporting = "Validating and exporting..."
+exported = "Exported image map, PNG, and dimension binding atomically."
+export_failed = "Export failed"
+source = "Source pixels"
+interpreted = "Runtime interpretation"
+no_preview = "Compile a valid preview to inspect world output."
+preview_status = "X {x}  Z {z}  |  {value}  |  {scale} blocks/pixel"
+
+[language.menu]
+your_language = "Oma kielesi"
+reset_your_language = "Palauta oma kielesi"
+server_default = "Palvelimen oletuskieli"
+edit_messages = "Muokkaa kieliviestejä"
+use_server_default = "Käytä palvelimen oletuskieltä"
+current = "Nykyinen: {locale}"
+current_with_personal = "Nykyinen: {locale} (Omasi: {personal})"
+your_description = "Vaihda vain näkemäsi viestit."
+reset_description = "Käytä palvelimen oletuskieltä."
+server_description = "Vaihda palvelimen oletuskieli."
+edit_description = "Avaa kielikohtainen viestieditori."
+select_description = "Napsauta valitaksesi tämän kielen."
+remove_personal_description = "Poista henkilökohtainen kielivalintasi."
+no_controls = "Sinulla ei ole käytettävissä kieliasetuksia."
+command = "Komento: {command}"
+selected = "valittu"
+all-volmit-plugins = "Kaikki Volmit-lisäosat"
+
+[language.error]
+stopping = "Kielivalintaa ei ole saatavilla, kun plugin pysähtyy."
+editor-player-only = "Avaa kielieditori pelissä."
+no-providers = "Yhtään Volmit-kielipalvelua ei ole saatavilla."
+numeric-page = "Anna sivunumero numerona."
+personal-player-only = "Pelaajan kieliasetukset on valittava pelissä."
+personal-permission = "Sinulla ei ole lupaa valita kieltäsi."
+plugin-personal-permission = "Sinulla ei ole oikeutta valita kieltäsi lisäosalle {plugin}."
+plugin-server-permission = "Sinulla ei ole oikeutta muuttaa lisäosan {plugin} palvelinkieltä."
+server-locale-required = "Valitse palvelimen oletuskieleksi kielikoodi, kuten en_US."
+unavailable-for-all = "Kieli {locale} ei ole saatavilla kaikille valituille lisäosille."
+
+[language.usage]
+editor = "Käyttö: /{command} language server edit [locale]"
+selection = "Käyttö: /{command} language self [locale|reset] or server [locale]"
+volmit-selection = "Käyttö: /volmit plugins languages [locale]"
+
+[language.selection]
+preparing = "Valmistellaan kieltä {locale} kohteelle {target}..."
+save-failed = "{plugin}: kielivalintaa ei voitu tallentaa; tarkista palvelinkonsoli."
+english-fallback = "{plugin}: {locale} ei ole saatavilla; käytetään englantia (en_US)."
+personal-selected = "{plugin}: kieli on nyt {locale}."
+server-selected = "{plugin}: palvelinkieli on nyt {locale}."
+server-default-selected = "{plugin}: kielesi noudattaa nyt palvelimen oletuskieltä."
+
+[language.editor]
+"section.languages" = "Kielet"
+"section.search" = "Etsi"
+"section.search-title" = "{locale} / Etsi"
+"section.group-title" = "{locale} / {group}"
+loading = "Ladataan kielen {locale} viestejä..."
+"prompt.search" = "Hae viestin avainta tai tekstiä. Palaa kirjoittamalla cancel."
+"prompt.value" = "Kirjoita avaimen {key} uusi arvo chattiin."
+"prompt.current" = "Nykyinen arvo: {value}"
+"prompt.variables" = "Muuttujat: {variables}"
+"prompt.guidance" = "Käytä \\n rivinvaihtoon ja \\\\ kenoviivaan tai palaa kirjoittamalla cancel."
+"input.expired" = "Kielieditorin syöttöaika päättyi."
+"input.too-long" = "Syöte saa sisältää enintään {maximum} merkkiä."
+"input.unable-to-save" = "Tallennus epäonnistui: {reason}"
+"navigation.back" = "&eTakaisin&r"
+"navigation.close" = "&cSulje&r"
+"navigation.previous-page" = "&eEdellinen sivu&r"
+"navigation.next-page" = "&eSeuraava sivu&r"
+"search.messages" = "Hae viestejä"
+"search.messages-lore" = "Napsauta hakeaksesi kaikista viesteistä."
+"search.clear" = "Tyhjennä haku"
+"message.current-value" = "&7Nykyinen arvo:&r"
+"message.variables" = "&8{variables}&r"
+"message.edit-plural" = "&7Muokkaa monikkomuotoa napsauttamalla.&r"
+"message.edit-lines" = "&7Muokkaa yksittäisiä rivejä napsauttamalla.&r"
+"message.edit-chat" = "&7Muokkaa chatissa napsauttamalla.&r"
+"locale.open" = "&8Avaa tämä kieli napsauttamalla.&r"
+"category.message-count" = "&7{count} viestiä&r"
+"category.open" = "&8Avaa tämä luokka napsauttamalla.&r"
+"error.no-permission" = "Sinulla ei ole oikeutta muokata lisäosan {plugin} kieliä."
+"error.unable-to-edit" = "Muokkaus epäonnistui: {reason}"
+"saved.summary" = "{locale} tallennettu. Kielivalinnat säilyvät ennallaan."
+"saved.change" = "{key}: ”{before}” muutettiin arvoon ”{after}”."
+"part.line" = "Rivi {line}"
+"value.none" = "Ei ole"
+"value.empty" = "(tyhjä)"
+
+[debug.error]
+missing-permission = "Puuttuva käyttöoikeus: {permission}"
+already-preparing = "Lisäosan {plugin} vianmääritysraporttia valmistellaan jo."
+already-preparing-short = "Vianmääritysraporttia valmistellaan jo."
+schedule-failed = "Vianmääritysraportin luontia ei voitu ajastaa."
+provider-closed = "Vianmääritystietojen tarjoaja on suljettu."
+closed-before-capture = "Vianmääritystietojen tarjoaja suljettiin ennen raportin tietojen keräämistä."
+writer-schedule-failed = "Vianmääritysraportin kirjoittamista ei voitu ajastaa."
+capture-failed = "Vianmääritysraportin tietoja ei voitu kerätä. Tarkista palvelimen konsoli."
+closed-before-write = "Vianmääritystietojen tarjoaja suljettiin ennen raportin kirjoittamista."
+write-failed = "Vianmääritysraporttia ei voitu kirjoittaa. Tarkista palvelimen konsoli."
+
+[debug]
+preparing = "Valmistellaan lisäosan {plugin} vianmääritysraporttia..."
+saved = "Lisäosan {plugin} vianmääritysraportti tallennettiin polkuun {path}."
+
+[debug.upload]
+interrupted = "Vianmääritysraportin lähetys keskeytyi. Paikallinen raportti on tallennettu."
+failed = "Vianmääritysraportin lähetys epäonnistui. Paikallinen raportti on tallennettu."
+completed = "Lähetetty nimellä VolmitSoftware - {plugin} - v{version}."
+
+[debug.action]
+open = "Avaa: {url}"
+open-description = "Avaa lähetetty vianmääritysraportti."
+copy-path = "Kopioi paikallinen polku"
+copy-path-description = "Kopioi paikallisen raportin polku."

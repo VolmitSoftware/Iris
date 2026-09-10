@@ -12,7 +12,6 @@ import art.arcane.volmlib.util.localization.MessageValue;
 import art.arcane.volmlib.util.localization.PluralValue;
 import art.arcane.volmlib.util.localization.TextValue;
 import art.arcane.volmlib.util.localization.VolmitLocales;
-import com.google.gson.JsonArray;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -25,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -116,50 +116,52 @@ public class IrisLanguageTest {
         dataFolder = temporaryFolder.newFolder();
         assertTrue(IrisLanguage.reload(dataFolder, "en_US"));
         for (String locale : VolmitLocales.nonEnglish()) {
-            Path target = IrisLanguage.remote(dataFolder).cacheFile(locale);
+            Path target = dataFolder.toPath().resolve("languages/" + locale + ".toml");
             Files.createDirectories(target.getParent());
-            Files.copy(ProjectPaths.moduleFile("src/main/resources/languages").resolve(locale + ".json"), target, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(ProjectPaths.moduleFile("src/main/resources/languages").resolve(locale + ".toml"), target, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
     @After
     public void tearDown() {
+        IrisLanguage.shutdown();
         assertTrue(IrisLanguage.reload(dataFolder, "en_US"));
     }
 
     private LocaleOverlay loadSourceOverlay(String locale) throws Exception {
-        Path source = ProjectPaths.moduleFile("src/main/resources/languages").resolve(locale + ".json");
+        Path source = ProjectPaths.moduleFile("src/main/resources/languages").resolve(locale + ".toml");
         return IrisLanguage.parseDownloadedOverlay(source.toString(), locale, Files.readString(source));
     }
 
     @Test
-    public void downloadedCatalogSelectsBukkitKeysWithoutAcceptingUnknownOverrides() {
+    public void languageCatalogSelectsKnownKeysWithoutDiscardingValidTranslations() {
         String raw = """
-                {"locale":"de_DE","messages":{
-                  "iris.command.unknown":"Unbekannter Iris-Befehl",
-                  "iris.modded.help.entry.command.version":"Version anzeigen"
-                }}
+                "iris.command.unknown" = "Unbekannter Iris-Befehl"
+                "iris.modded.help.entry.command.version" = "Version anzeigen"
                 """;
         LocaleOverlay downloaded = IrisLanguage.parseDownloadedOverlay("download", "de_DE", raw);
         assertEquals(Set.of(IrisMessages.COMMAND_UNKNOWN.id()), downloaded.values().keySet());
         assertTrue(LocalizationValidator.validate(IrisLanguage.catalog(), List.of(downloaded)).errors().isEmpty());
-        LocaleOverlay override = IrisLanguage.parseOverlay("override", "de_DE", raw);
-        assertFalse(LocalizationValidator.validate(IrisLanguage.catalog(), List.of(override)).errors().isEmpty());
+        LocaleOverlay local = IrisLanguage.parseOverlay("language", "de_DE", raw);
+        assertEquals(downloaded.values(), local.values());
+        assertTrue(LocalizationValidator.validate(IrisLanguage.catalog(), List.of(local)).errors().isEmpty());
         assertEquals("A pregeneration task is already running. Stop it first with /iris pregen stop.",
                 IrisLanguage.plain(IrisMessages.PREGEN_ALREADY_RUNNING));
     }
 
     @Test
-    public void downloadedCatalogStillRejectsInvalidActivePlaceholders() {
+    public void invalidPlaceholdersAreExcludedWithoutDiscardingValidMessages() {
         LocaleOverlay downloaded = IrisLanguage.parseDownloadedOverlay("download", "de_DE", """
-                {"locale":"de_DE","messages":{"iris.command.permission_denied":"Keine Erlaubnis"}}
+                "iris.command.permission_denied" = "Keine Erlaubnis"
+                "iris.command.unknown" = "Unbekannter Iris-Befehl"
                 """);
-        assertFalse(LocalizationValidator.validate(IrisLanguage.catalog(), List.of(downloaded)).errors().isEmpty());
+        assertEquals(Set.of(IrisMessages.COMMAND_UNKNOWN.id()), downloaded.values().keySet());
+        assertTrue(LocalizationValidator.validate(IrisLanguage.catalog(), List.of(downloaded)).errors().isEmpty());
     }
 
     @Test
-    public void missingDownloadUsesCodeOwnedEnglish() throws Exception {
-        Files.delete(IrisLanguage.remote(dataFolder).cacheFile("de_DE"));
+    public void missingLanguageUsesBuiltInEnglish() throws Exception {
+        Files.delete(dataFolder.toPath().resolve("languages/de_DE.toml"));
         assertTrue(IrisLanguage.reload(dataFolder, "de_DE"));
         assertEquals("Unknown Iris command", IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN));
     }
@@ -203,7 +205,44 @@ public class IrisLanguageTest {
     }
 
     @Test
-    public void usesCodeOwnedEnglishWithoutLocaleFile() {
+    public void hotloadRefreshesDefaultAndPersonalLanguagesWithoutChangingSelections() throws Exception {
+        IrisSettings previous = IrisSettings.settings;
+        IrisSettings.settings = new IrisSettings();
+        UUID frenchPlayer = UUID.randomUUID();
+        IrisLanguage.start();
+        try {
+            IrisLanguage.selections().selectDefault("de_DE").get(5, TimeUnit.SECONDS);
+            IrisLanguage.selections().selectPlayer(frenchPlayer, "fr_FR").get(5, TimeUnit.SECONDS);
+            String german = "\"iris.command.unknown\" = \"Deutsch aktualisiert\"\n";
+            File germanFile = writeLanguage("de_DE", german);
+            assertTrue(IrisLanguage.reloadOverride(germanFile, german));
+            assertEquals("Deutsch aktualisiert", IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN));
+
+            String french = "\"iris.command.unknown\" = \"Francais actualise\"\n";
+            File frenchFile = writeLanguage("fr_FR", french);
+            assertTrue(IrisLanguage.reloadOverride(frenchFile, french));
+
+            assertEquals("Francais actualise", LanguageAudience.call(frenchPlayer,
+                    () -> IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN)));
+            assertEquals("Deutsch aktualisiert", IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN));
+            assertEquals("fr_FR", IrisLanguage.selections().playerLocale(frenchPlayer).orElseThrow());
+            assertEquals("de_DE", IrisLanguage.selections().defaultLocale());
+            assertEquals("de_DE", IrisSettings.settings.getGeneral().getLanguage());
+        } finally {
+            IrisLanguage.shutdown();
+            IrisSettings.settings = previous;
+        }
+    }
+
+    @Test
+    public void generatedEnglishLanguageRoundTripsTheEntireCatalog() throws Exception {
+        Path english = dataFolder.toPath().resolve("languages/en_US.toml");
+        assertTrue(Files.isRegularFile(english));
+        LocaleOverlay overlay = IrisLanguage.parseDownloadedOverlay(english.toString(), "en_US", Files.readString(english));
+        assertEquals(IrisLanguage.catalog().ids(), overlay.values().keySet());
+        for (MessageKey key : IrisLanguage.catalog().keys()) {
+            assertEquals(key.id(), key.englishValue(), overlay.value(key.id()));
+        }
         String rendered = IrisLanguage.plain(
                 IrisMessages.COMMAND_PERMISSION_DENIED,
                 MessageArgument.untrusted("permission", "iris.all")
@@ -214,14 +253,128 @@ public class IrisLanguageTest {
     }
 
     @Test
-    public void appliesExternalOverlayAndFallsBackPerKey() throws Exception {
-        writeOverride("de_DE", """
-                {
-                  "locale": "de_DE",
-                  "messages": {
-                    "iris.command.permission_denied": "Fehlende Berechtigung: {permission}"
-                  }
-                }
+    public void guideDescribesEveryRequiredAndOptionalCatalogPlaceholder() {
+        Map<String, String> descriptions = IrisLanguageGuide.variableDescriptions();
+        for (MessageKey key : IrisLanguage.catalog().keys()) {
+            for (String placeholder : key.placeholders()) {
+                assertPlaceholderDescription(key.id(), placeholder, descriptions.get(placeholder));
+            }
+            for (String placeholder : key.optionalPlaceholders()) {
+                assertPlaceholderDescription(key.id(), placeholder, descriptions.get(placeholder));
+            }
+        }
+        for (Map.Entry<String, String> entry : descriptions.entrySet()) {
+            assertPlaceholderDescription("language guide", entry.getKey(), entry.getValue());
+        }
+    }
+
+    @Test
+    public void generatedEnglishGuideIncludesMeaningsAndPrefixExamples() throws Exception {
+        String header = Files.readString(dataFolder.toPath().resolve("languages/en_US.toml"));
+        assertTrue(header.startsWith("# === Iris language guide ===\n"));
+        for (Map.Entry<String, String> entry : IrisLanguageGuide.variableDescriptions().entrySet()) {
+            assertTrue(entry.getKey(), header.contains("#   {" + entry.getKey() + "}  " + entry.getValue()));
+        }
+        assertTrue(header.contains("set_debug = \"&6[Worlds]&r &aSet debug to: {to}\""));
+        assertTrue(header.contains("&6 gold"));
+        assertTrue(header.contains("&l bold"));
+        assertTrue(header.contains("&r reset"));
+        assertTrue(header.contains("{PC}, {SC} and {TC} are not Iris theme variables"));
+    }
+
+    @Test
+    public void everyTranslatedGuideDescribesItsVariablesAndMatchesThePackagedGuide() throws Exception {
+        Pattern definition = Pattern.compile("(?m)^#   \\{([A-Za-z][A-Za-z0-9_]*)}  (\\S[^\\r\\n]*)$");
+        for (String locale : VolmitLocales.nonEnglish()) {
+            String source = Files.readString(ProjectPaths.moduleFile("src/main/resources/languages/" + locale + ".toml"));
+            int bodyStart = source.indexOf("\n[") + 1;
+            assertTrue(locale, bodyStart > 0);
+            String header = source.substring(0, bodyStart);
+            String body = source.substring(bodyStart);
+            Map<String, String> descriptions = new LinkedHashMap<>();
+            Matcher defined = definition.matcher(header);
+            while (defined.find()) {
+                assertFalse(locale + ": duplicate " + defined.group(1), descriptions.containsKey(defined.group(1)));
+                descriptions.put(defined.group(1), defined.group(2));
+            }
+            Matcher used = PLACEHOLDER.matcher(body);
+            while (used.find()) {
+                String placeholder = used.group().substring(1, used.group().length() - 1);
+                assertPlaceholderDescription(locale, placeholder, descriptions.get(placeholder));
+            }
+            assertEquals(locale, IrisLanguageGuide.variableDescriptions().keySet(), descriptions.keySet());
+            assertEquals(locale, header.stripTrailing(), IrisLanguageGuide.header(locale).stripTrailing());
+            assertTrue(locale, header.contains("# === End Iris language guide ==="));
+        }
+    }
+
+    @Test
+    public void refreshingAnExistingGuidePreservesCustomMessagesAndOtherComments() throws Exception {
+        String note = "# Operator's own note\r\n";
+        String oldGuide = "# === Iris language guide ===\r\n# Iris — en_US\r\n"
+                + "# === Variables ===\r\n#   {permission}  \r\n#   {world}  \r\n"
+                + "# === End Iris language guide ===\r\n";
+        String body = "\r\n# Keep this explanation\r\n\"iris.command.unknown\" = 'My edited message'\r\n"
+                + "[future]\r\nenabled = true\r\nitems = [1, 2]\r\n";
+        File english = writeLanguage("en_US", note + oldGuide + body);
+
+        assertTrue(IrisLanguage.reload(dataFolder, "en_US"));
+
+        String refreshed = Files.readString(english.toPath());
+        assertEquals(note + IrisLanguageGuide.englishHeader("en_US") + body, refreshed);
+        assertEquals("My edited message", IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN));
+        FileTime unchangedTime = FileTime.fromMillis(123_456L);
+        Files.setLastModifiedTime(english.toPath(), unchangedTime);
+        assertTrue(IrisLanguage.reload(dataFolder, "en_US"));
+        assertEquals(refreshed, Files.readString(english.toPath()));
+        assertEquals(unchangedTime, Files.getLastModifiedTime(english.toPath()));
+    }
+
+    @Test
+    public void refreshingATranslatedGuidePreservesItsCustomMessages() throws Exception {
+        String oldGuide = "# === Iris language guide ===\n# Iris - de_DE\n"
+                + "# === Variablen ===\n#   {permission} {world}\n# === End Iris language guide ===\n";
+        String body = "\n[iris.command]\nunknown = 'Eigener Text'\n";
+        File german = writeLanguage("de_DE", oldGuide + body);
+
+        assertTrue(IrisLanguage.reload(dataFolder, "de_DE"));
+
+        assertEquals(IrisLanguageGuide.header("de_DE") + body, Files.readString(german.toPath()));
+        assertEquals("Eigener Text", IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN));
+    }
+
+    @Test
+    public void documentedPrefixExampleUsesItsExistingDebugVariable() throws Exception {
+        writeLanguage("en_US", "[iris.bukkit.commandiris]\nset_debug = \"&6[Worlds]&r &aSet debug to: {to}\"\n");
+        assertTrue(IrisLanguage.reload(dataFolder, "en_US"));
+        MessageKey debug = IrisLanguage.catalog().require("iris.bukkit.commandiris.set_debug");
+
+        assertEquals("\u00a76[Worlds]\u00a7r \u00a7aSet debug to: true",
+                IrisLanguage.text(debug, MessageArgument.trusted("to", true)));
+        assertEquals("[Worlds] Set debug to: false",
+                IrisLanguage.plain(debug, MessageArgument.trusted("to", false)));
+    }
+
+    @Test
+    public void unreadableEnglishGuideDoesNotBlockSelectingAnotherLanguage() throws Exception {
+        Files.write(dataFolder.toPath().resolve("languages/en_US.toml"), new byte[]{(byte) 0xc3, 0x28});
+        UUID player = UUID.randomUUID();
+        IrisLanguage.start();
+        try {
+            IrisLanguage.selections().selectPlayer(player, "de_DE").get(5, TimeUnit.SECONDS);
+
+            assertEquals("de_DE", IrisLanguage.selections().playerLocale(player).orElseThrow());
+            assertFalse("Unknown Iris command".equals(LanguageAudience.call(player,
+                    () -> IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN))));
+        } finally {
+            IrisLanguage.shutdown();
+        }
+    }
+
+    @Test
+    public void appliesLanguageFileAndFallsBackPerKey() throws Exception {
+        writeLanguage("de_DE", """
+                "iris.command.permission_denied" = "Fehlende Berechtigung: {permission}"
                 """);
 
         assertTrue(IrisLanguage.reload(dataFolder, "de_DE"));
@@ -232,7 +385,7 @@ public class IrisLanguageTest {
                         MessageArgument.untrusted("permission", "iris.all")
                 )
         );
-        assertFalse("Unknown Iris command".equals(IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN)));
+        assertEquals("Unknown Iris command", IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN));
     }
 
     @Test
@@ -265,11 +418,11 @@ public class IrisLanguageTest {
     @Test
     public void sourceLocalesExactlyMatchNonEnglishManifest() throws Exception {
         Set<String> expected = VolmitLocales.nonEnglish().stream()
-                .map(locale -> locale + ".json")
+                .map(locale -> locale + ".toml")
                 .collect(Collectors.toUnmodifiableSet());
 
         assertEquals(expected, resourceFiles("languages"));
-        assertFalse(expected.contains(VolmitLocales.ENGLISH + ".json"));
+        assertFalse(expected.contains(VolmitLocales.ENGLISH + ".toml"));
     }
 
     @Test
@@ -289,42 +442,61 @@ public class IrisLanguageTest {
     }
 
     @Test
-    public void downloadedLocaleLoadsWithoutUserOverride() {
+    public void installedLocaleLoadsDirectly() {
         assertTrue(IrisLanguage.reload(dataFolder, "de_DE"));
         assertEquals("de_DE", IrisLanguage.activeLocale());
         assertFalse("Unknown Iris command".equals(IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN)));
     }
 
     @Test
-    public void rejectsUnknownKeysAndPlaceholderShapeWhileRetainingLastGood() throws Exception {
-        writeOverride("de_DE", """
-                {
-                  "locale": "de_DE",
-                  "messages": {
-                    "iris.command.permission_denied": "Erlaubnis {permission} fehlt"
-                  }
-                }
+    public void invalidEntriesUseEnglishWhileValidAndUnknownFileContentIsPreserved() throws Exception {
+        writeLanguage("de_DE", """
+                "iris.command.permission_denied" = "Erlaubnis {permission} fehlt"
                 """);
         assertTrue(IrisLanguage.reload(dataFolder, "de_DE"));
 
-        writeOverride("de_DE", """
-                {
-                  "locale": "de_DE",
-                  "messages": {
-                    "iris.command.permission_denied": "Erlaubnis fehlt",
-                    "iris.command.not_real": "Unbekannt"
-                  }
-                }
-                """);
+        String raw = """
+                "iris.command.permission_denied" = "Erlaubnis fehlt"
+                "iris.command.unknown" = "Unbekannter Iris-Befehl"
+                "iris.command.not_real" = "Unbekannt"
+                """;
+        File language = writeLanguage("de_DE", raw);
 
-        assertFalse(IrisLanguage.reload(dataFolder, "de_DE"));
+        assertTrue(IrisLanguage.reload(dataFolder, "de_DE"));
         assertEquals(
-                "Erlaubnis iris.all fehlt",
+                "You lack the permission 'iris.all'",
                 IrisLanguage.plain(
                         IrisMessages.COMMAND_PERMISSION_DENIED,
                         MessageArgument.untrusted("permission", "iris.all")
                 )
         );
+        assertEquals("Unbekannter Iris-Befehl", IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN));
+        assertEquals(raw, Files.readString(language.toPath()));
+    }
+
+    @Test
+    public void unreadableTomlUsesEnglishWithoutReplacingTheFile() throws Exception {
+        assertTrue(IrisLanguage.reload(dataFolder, "de_DE"));
+        String raw = "[unterminated";
+        File language = writeLanguage("de_DE", raw);
+
+        assertTrue(IrisLanguage.reload(dataFolder, "de_DE"));
+        assertEquals("Unknown Iris command", IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN));
+        assertEquals(raw, Files.readString(language.toPath()));
+    }
+
+    @Test
+    public void englishEditsSurviveReloadAndMissingEnglishIsCreatedForAnotherLocale() throws Exception {
+        String edited = "\"iris.command.unknown\" = \"My Iris command\"\n";
+        File english = writeLanguage("en_US", edited);
+        assertTrue(IrisLanguage.reload(dataFolder, "en_US"));
+        assertEquals("My Iris command", IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN));
+        assertEquals(edited, Files.readString(english.toPath()));
+
+        Files.delete(english.toPath());
+        assertTrue(IrisLanguage.reload(dataFolder, "de_DE"));
+        assertTrue(Files.isRegularFile(english.toPath()));
+        assertEquals("de_DE", IrisLanguage.activeLocale());
     }
 
     @Test
@@ -349,13 +521,8 @@ public class IrisLanguageTest {
 
     @Test
     public void untrustedArgumentsCannotInjectLegacyOrMiniMessageFormatting() throws Exception {
-        writeOverride("de_DE", """
-                {
-                  "locale": "de_DE",
-                  "messages": {
-                    "iris.command.permission_denied": "&aWert: {permission}"
-                  }
-                }
+        writeLanguage("de_DE", """
+                "iris.command.permission_denied" = "&aWert: {permission}"
                 """);
         assertTrue(IrisLanguage.reload(dataFolder, "de_DE"));
 
@@ -385,28 +552,20 @@ public class IrisLanguageTest {
     }
 
     @Test
-    public void lookupsUseImmutableSnapshotWithoutReadingTheOverrideAgain() throws Exception {
-        File override = writeOverride("de_DE", """
-                {
-                  "locale": "de_DE",
-                  "messages": {
-                    "iris.command.unknown": "Unbekannter Iris-Befehl"
-                  }
-                }
+    public void lookupsUseImmutableSnapshotWithoutReadingTheLanguageFileAgain() throws Exception {
+        File language = writeLanguage("de_DE", """
+                "iris.command.unknown" = "Unbekannter Iris-Befehl"
                 """);
         assertTrue(IrisLanguage.reload(dataFolder, "de_DE"));
-        Files.delete(override.toPath());
+        Files.delete(language.toPath());
 
         assertEquals("Unbekannter Iris-Befehl", IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN));
     }
 
     @Test
     public void appliesLineAndPluralOverlayShapes() throws Exception {
-        writeOverride("de_DE", """
-                {
-                  "locale": "de_DE",
-                  "messages": {
-                    "iris.bukkit.runtime.commanddeveloper.stage_world_generation_update_warning": [
+        writeLanguage("de_DE", """
+                "iris.bukkit.runtime.commanddeveloper.stage_world_generation_update_warning" = [
                       "Sicherung erstellen.",
                       "Vorhandene Chunks bleiben erhalten.",
                       "Neue Chunks verwenden das neue Paket.",
@@ -414,13 +573,10 @@ public class IrisLanguageTest {
                       "Den vollständigen Verlauf sichern.",
                       "Neustart bestätigen.",
                       "Welt {world}, Paket {pack}"
-                    ],
-                    "iris.bukkit.runtime.commandpack.more_warning_s": {
-                      "one": "Noch {count} Warnung.",
-                      "other": "Noch {count} Warnungen."
-                    }
-                  }
-                }
+                ]
+                ["iris.bukkit.runtime.commandpack.more_warning_s"]
+                one = "Noch {count} Warnung."
+                other = "Noch {count} Warnungen."
                 """);
 
         assertTrue(IrisLanguage.reload(dataFolder, "de_DE"));
@@ -454,11 +610,19 @@ public class IrisLanguageTest {
         );
     }
 
-    private File writeOverride(String locale, String json) throws Exception {
-        File file = new File(dataFolder, "languages/overrides/" + locale + ".json");
+    private File writeLanguage(String locale, String toml) throws Exception {
+        File file = new File(dataFolder, "languages/" + locale + ".toml");
         Files.createDirectories(file.toPath().getParent());
-        Files.writeString(file.toPath(), json, StandardCharsets.UTF_8);
+        Files.writeString(file.toPath(), toml, StandardCharsets.UTF_8);
         return file;
+    }
+
+    private void assertPlaceholderDescription(String key, String placeholder, String description) {
+        String context = key + " placeholder {" + placeholder + "}";
+        assertNotNull(context + " needs a definition", description);
+        assertFalse(context + " definition must not be blank", description.isBlank());
+        assertFalse(context + " definition must explain the variable", placeholder.equalsIgnoreCase(description.strip()));
+        assertFalse(context + " definition must explain the variable", ("{" + placeholder + "}").equals(description.strip()));
     }
 
     private void assertValueIntegrity(String locale, String key, MessageValue english, MessageValue translated) {

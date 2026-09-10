@@ -1,4 +1,5 @@
 import io.github.slimjar.resolver.data.Mirror
+import org.gradle.api.file.FileTreeElement
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.compile.JavaCompile
@@ -43,20 +44,39 @@ String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate')
 
 String languageSourceReference = providers.gradleProperty('languageRevision').orElse('master').get()
 List<File> languageSourceFiles = fileTree('src/main/resources/languages') {
-    include('*.json')
+    include('*.toml')
 }.files.toList().sort { File left, File right -> left.name <=> right.name }
 List<String> languageSourceLocales = languageSourceFiles.collect { File source ->
-    source.name.substring(0, source.name.length() - '.json'.length())
+    source.name.substring(0, source.name.length() - '.toml'.length())
 }
 def languageSourceManifestTask = tasks.register('generateLanguageSourceManifest', WriteProperties) {
     destinationFile.set(layout.buildDirectory.file('generated/language-source/iris-language-source.properties'))
     property('revision', languageSourceReference)
     property('locales', languageSourceLocales.join(','))
 }
+def languageGuidesTask = tasks.register('generateLanguageGuides') {
+    inputs.files(languageSourceFiles)
+    def guideDirectory = layout.buildDirectory.dir('generated/language-guides')
+    outputs.dir(guideDirectory)
+    doLast {
+        File output = guideDirectory.get().asFile
+        output.mkdirs()
+        for (File source : languageSourceFiles) {
+            List<String> header = source.readLines('UTF-8').takeWhile { String line ->
+                line.isBlank() || line.stripLeading().startsWith('#')
+            }
+            String locale = source.name.substring(0, source.name.length() - '.toml'.length())
+            new File(output, locale + '.txt').setText(header.join('\n').stripTrailing() + '\n', 'UTF-8')
+        }
+    }
+}
 tasks.named('processResources').configure {
-    dependsOn(languageSourceManifestTask)
+    dependsOn(languageSourceManifestTask, languageGuidesTask)
     exclude('languages/**')
     from(languageSourceManifestTask)
+    from(languageGuidesTask) {
+        into('iris-language-guides')
+    }
 }
 
 /**
@@ -104,6 +124,9 @@ dependencies {
     // Shaded
     implementation('de.crazydev22.slimjar.helper:spigot:2.1.9')
     implementation(volmLibCoordinate) {
+        transitive = false
+    }
+    implementation('com.moandjiezana.toml:toml4j:0.7.2') {
         transitive = false
     }
     // Dynamically Loaded
@@ -265,7 +288,6 @@ List<String> supersededVolmLibPackages = [
     'art/arcane/volmlib/util/value/**',
     'art/arcane/volmlib/util/api/**',
     'art/arcane/volmlib/util/entity/**',
-    'art/arcane/volmlib/util/config/**',
     'art/arcane/volmlib/util/reflect/**',
     'art/arcane/volmlib/util/documentation/**',
     'art/arcane/iris/core/report/**',
@@ -282,8 +304,6 @@ List<String> unusedVolmLibClasses = [
     'art/arcane/volmlib/util/nbt/io/StringPointer',
     'art/arcane/volmlib/util/io/StringDeserializer',
     'art/arcane/volmlib/util/io/StringSerializer',
-    'art/arcane/volmlib/util/localization/TomlLanguageEditor',
-    'art/arcane/volmlib/util/localization/TomlLanguageParser',
     'art/arcane/volmlib/util/json/EnumType',
     'art/arcane/volmlib/util/json/HTTP',
     'art/arcane/volmlib/util/json/HTTPTokener',
@@ -414,7 +434,10 @@ List<String> dependencyBuildMetadata = [
     'META-INF/versions/*/OSGI-INF/**'
 ]
 
+String languageTomlSupportClassPattern = 'art/arcane/volmlib/util/config/(?:TomlCodec|ConfigJson|ConfigExposePolicy|ConfigDoc|ConfigDescription|ConfigDocumentation)(?:\\$[^/]+)?\\.class'
+
 tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar).configure {
+    inputs.property('languageTomlSupportClassPattern', languageTomlSupportClassPattern)
     dependsOn(embeddedAgentJar)
     mergeServiceFiles()
     // minimize() stays off. Caffeine reaches its 520 generated cache and node classes through
@@ -424,8 +447,13 @@ tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.Shadow
     // leaves it reaching ~25KB of Gson internals, which is not worth a mode that fails silently.
     relocate('com.dfsek.paralithic', "${lib}.paralithic")
     relocate('io.github.slimjar', "${lib}.slimjar")
+    relocate('com.moandjiezana.toml', "${lib}.toml")
     exclude('modules/loader-agent.isolated-jar')
     exclude(supersededVolmLibPackages)
+    exclude { FileTreeElement entry ->
+        !entry.isDirectory() && entry.path.startsWith('art/arcane/volmlib/util/config/')
+                && !entry.path.matches(languageTomlSupportClassPattern)
+    }
     exclude(unusedVolmLibClassEntries)
     exclude(annotationOnlyArtifacts)
     exclude(dependencyBuildMetadata)

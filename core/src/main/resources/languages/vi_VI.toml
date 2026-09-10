@@ -1,0 +1,2105 @@
+# === Iris language guide ===
+# Iris - vi_VI
+#
+# === Chỉnh sửa tệp ===
+# languages/vi_VI.toml
+# Bạn có thể chỉnh sửa trực tiếp tệp này. Thay đổi cục bộ được giữ lại; mục thiếu hoặc không hợp lệ dùng bản tiếng Anh tích hợp.
+# /iris language server edit vi_VI
+#
+# === Tiền tố và ví dụ thông báo ===
+# Tệp ngôn ngữ Iris không có thiết lập tiền tố chung cho mọi thông báo. Hãy thêm tiền tố trực tiếp vào nội dung từng thông báo cần sửa.
+# Tiền tố plugin trong console và giao diện màu của menu do nơi hiển thị cung cấp riêng, không đổi theo chỉnh sửa này.
+# Ví dụ: trong mục [iris.bukkit.commandiris], sửa set_debug thành:
+# set_debug = "&6[Thế giới]&r &aĐã đặt gỡ lỗi thành: {to}"
+# Chỉ phản hồi của /iris debug có thêm [Thế giới]. {to} là true (bật) hoặc false (tắt).
+# {PC}, {SC} và {TC} không phải biến chủ đề được Iris hỗ trợ.
+#
+# === Màu và kiểu chữ ===
+# Màu cơ bản: &0 đen, &1 xanh dương đậm, &2 xanh lá đậm, &3 xanh lơ đậm, &4 đỏ đậm, &5 tím đậm, &6 vàng kim, &7 xám.
+# Màu cơ bản: &8 xám đậm, &9 xanh dương, &a xanh lá, &b xanh lơ, &c đỏ, &d tím nhạt, &e vàng, &f trắng.
+# Kiểu chữ: &k ký tự xáo trộn, &l đậm, &m gạch ngang, &n gạch chân, &o nghiêng, &r đặt lại màu và kiểu chữ.
+# Ví dụ: "&6Chú ý: &lchữ đậm&r chữ thường". Hiệu ứng màu tùy chỉnh của Bukkit có thể làm màu hiển thị thay đổi.
+# Bộ xử lý ngôn ngữ nhận màu RGB dạng &#33CC99, &x33CC99, &x&3&3&C&C&9&9 và [33CC99].
+# Tuy nhiên, bước xử lý màu mặc định của Bukkit có thể không giữ nguyên RGB; màu chính xác không được bảo đảm ở mọi nơi hiển thị.
+# Lệnh trên bản mod, trợ giúp và màn hình máy khách thường dùng bản dịch đã bỏ định dạng, rồi áp dụng màu và kiểu chữ riêng.
+#
+# === Ký tự thoát trong TOML ===
+# Trong chuỗi TOML đặt trong dấu nháy kép, \" là dấu nháy, \\ là dấu gạch chéo ngược và \n là xuống dòng.
+# Dù đã thoát & hoặc [ ở bước xử lý ngôn ngữ, bước Bukkit phía sau vẫn có thể hiểu &a và các mã tương tự là màu.
+# Một dấu gạch chéo ngược không tắt được xử lý màu tại mọi nơi hiển thị.
+#
+# === Biến ===
+# Giữ nguyên tên biến và chỉ dùng các biến vốn có trong từng thông báo. Dưới đây là ý nghĩa của từng giá trị.
+#   {MAXAUTOSELECTVOLUME}  Số khối tối đa được phép trong vùng tự chọn của đối tượng.
+#   {MAXSAVEVOLUME}  Số khối tối đa trong vùng chọn đối tượng được lưu.
+#   {MAXSPAN}  Giới hạn chiều rộng, cao hoặc sâu của cấu trúc khi thu thập, tính bằng khối.
+#   {NATIVESTRUCTURELOCATERADIUS}  Bán kính tìm cấu trúc gốc tối đa, tính bằng chunk.
+#   {ROOTPERMISSION}  Quyền gốc cần có để dùng lệnh.
+#   {WORKSPACENAME}  Tên thư mục không gian làm việc Studio đang được tìm kiếm.
+#   {WORLDPACKNAME}  Tên datapack thế giới được tạo.
+#   {active}  Số luồng xử lý đang hoạt động.
+#   {activeLocale}  Ngôn ngữ vẫn được dùng khi không thể chọn ngôn ngữ yêu cầu.
+#   {activeMax}  Giới hạn trên của độ cao trong loại chiều không gian đã tải.
+#   {activeMin}  Giới hạn dưới của độ cao trong loại chiều không gian đã tải.
+#   {actualReverts}  Số lần dán đối tượng thực sự được hoàn tác.
+#   {afb}  Phần văn bản đã định dạng sau đoạn trong ngoặc của nhãn thời gian xử lý.
+#   {after}  Giá trị sau thay đổi hoặc số khối cây vẫn chưa nối được sau sửa chữa.
+#   {amount}  Số lượng gắn với mục được nêu trong báo cáo.
+#   {applied}  Số chunk đã áp dụng kết quả xử lý.
+#   {argument}  Đối số lệnh không được chấp nhận.
+#   {available}  Số cấu trúc gốc đủ điều kiện sinh ra.
+#   {bar}  Văn bản thanh tiến độ đã được định dạng.
+#   {befb}  Phần văn bản đã định dạng trước đoạn trong ngoặc của nhãn thời gian xử lý.
+#   {before}  Giá trị trước thay đổi hoặc số khối cây chưa nối được trước sửa chữa.
+#   {biome}  Tên hoặc mã định danh quần xã đang hiển thị.
+#   {block}  Loại hoặc mô tả khối đang kiểm tra.
+#   {blockX}  Tọa độ X của khối hoặc điểm dịch chuyển.
+#   {blockY}  Tọa độ Y của khối hoặc điểm dịch chuyển.
+#   {blockZ}  Tọa độ Z của khối hoặc điểm dịch chuyển.
+#   {blocking}  Số lỗi kiểm tra khiến gói không thể tải.
+#   {blocks}  Số biến thể khối trong nhóm đã nhập.
+#   {bpp}  Số khối thế giới tương ứng với một điểm ảnh trong Vision.
+#   {branches}  Số cành được thêm khi sửa đối tượng cây.
+#   {broken}  Số gói không vượt qua kiểm tra.
+#   {brokenTotal}  Tổng số gói không vượt qua kiểm tra.
+#   {cave}  Quần xã hang động hoặc mô tả hang ở vị trí đang kiểm tra.
+#   {centerX}  Tọa độ X của tâm vùng; đơn vị theo thông báo của thao tác.
+#   {centerZ}  Tọa độ Z của tâm vùng; đơn vị theo thông báo của thao tác.
+#   {changed}  Số đối tượng đã xử lý có thay đổi.
+#   {chunk}  Tọa độ hoặc nhãn nhận diện chunk đang được báo cáo.
+#   {chunkX}  Tọa độ X tính bằng chunk, không phải khối.
+#   {chunkZ}  Tọa độ Z tính bằng chunk, không phải khối.
+#   {chunks}  Số chunk nằm trong thao tác.
+#   {clampedY}  Tọa độ Y đích sau khi điều chỉnh vào khoảng độ cao cho phép.
+#   {command}  Tên lệnh hoặc toàn bộ lệnh cần chạy.
+#   {converted}  Số khối lá được chuyển thành gỗ khi sửa cây.
+#   {count}  Số mục, thông báo hoặc người chơi được nêu trong câu.
+#   {current}  Số tiến độ hiện tại hoặc số chunk trong lần so sánh này.
+#   {currentStage}  Tên giai đoạn tải hiện tại của Studio.
+#   {d}  Độ sâu của đối tượng, tính bằng khối.
+#   {depth}  Số khối bên dưới mặt đất.
+#   {derivative}  Quần xã dẫn xuất hoặc biến thể gắn với quần xã bề mặt.
+#   {detail}  Mô tả bổ sung về đối tượng đang kiểm tra hoặc giai đoạn hiện tại.
+#   {diffs}  Số khác biệt phát hiện giữa các kết quả sinh.
+#   {dimKey}  Mã định danh chiều không gian đang đóng gói.
+#   {dimension}  Tên hoặc mã chiều không gian được nêu trong thông báo.
+#   {dimensionId}  Mã đã đăng ký của chiều không gian đã tải hoặc được yêu cầu.
+#   {dimensionId2}  Mã chiều không gian được lặp lại trong lệnh xóa gợi ý.
+#   {dimm}  Mã chiều không gian Studio hoặc tên gói trong lệnh kiểm tra.
+#   {disabled}  Số cấu trúc gốc đã tắt sinh.
+#   {distances}  Số giá trị khoảng cách lá được đổi khi sửa cây.
+#   {done}  Số hạng mục đã hoàn tất đến hiện tại.
+#   {downloadSource}  Nguồn hoặc bản tham chiếu được chọn để tải gói.
+#   {downloadable}  Gói hoặc dự án có thể tải xuống đang được nhập.
+#   {dumpPath}  Vị trí lưu dữ liệu dọn dẹp hoặc khôi phục.
+#   {duration}  Thời lượng thao tác đã được định dạng.
+#   {e}  Nội dung ngoại lệ khi quét mẫu cấu trúc thất bại.
+#   {elapsed}  Thời gian đã trôi qua từ lúc bắt đầu, có định dạng.
+#   {engines}  Số bộ máy sinh hoặc chiều không gian Iris đang hoạt động.
+#   {entity}  Loại thực thể được chọn trong lồng sinh đang kiểm tra.
+#   {error}  Chi tiết lỗi đã xảy ra.
+#   {errorMessage}  Phần chi tiết lỗi tùy chọn nối sau thông báo thất bại chính.
+#   {eta}  Thời gian còn lại ước tính đã định dạng; đôi khi có cả nhãn.
+#   {failed}  Số mục thất bại hoặc phần hậu tố lỗi trong tiêu đề tiến độ.
+#   {failure}  Lý do tìm kiếm hoặc thao tác thất bại.
+#   {failures}  Số tác vụ thất bại hoặc tóm tắt lỗi có định dạng, nếu có.
+#   {file}  Tên hoặc đường dẫn tệp liên quan đến thao tác.
+#   {filter}  Văn bản dùng để lọc danh sách chiều không gian Iris.
+#   {fps}  Tốc độ dựng hình xem trước hiện tại, tính bằng khung hình/giây.
+#   {g}  Số tệp đối tượng đã ghi từ lần báo tiến độ đóng gói trước.
+#   {generated}  Số chunk đã sinh đến hiện tại.
+#   {generator}  Tên bộ sinh nhiễu hiển thị trong trình khám phá.
+#   {generatorKey}  Mã bộ sinh nhiễu được yêu cầu.
+#   {get}  Số bản thiết kế schematic đã chuyển đổi thành công.
+#   {golden}  Số chunk trong bản tham chiếu đã lưu để so sánh.
+#   {goldenDimension}  Mã chiều không gian lưu trong bản tham chiếu.
+#   {goldenSeed}  Hạt giống thế giới lưu trong bản tham chiếu.
+#   {goldenVersion}  Phiên bản Minecraft dùng để tạo bản tham chiếu.
+#   {group}  Nhóm thông báo trong trình sửa ngôn ngữ hoặc loại đối tượng đã nhập.
+#   {guiNote}  Ghi chú tùy chọn về cửa sổ tiến độ tạo trước.
+#   {h}  Chiều cao đối tượng, tính bằng khối.
+#   {hash}  Giá trị kiểm tra tổng hợp của các chunk đã sinh đang được so sánh.
+#   {health}  Máu hiện tại của thực thể đang kiểm tra.
+#   {height}  Độ cao địa hình, tổng độ cao hoặc chiều cao vùng hiển thị, tùy câu.
+#   {hours}  Phần giờ trong thời lượng đã định dạng.
+#   {i}  Tên hiển thị bộ máy hoặc một mục trong mẫu danh sách lệnh.
+#   {id}  ID đăng ký của quần xã đang kiểm tra.
+#   {imported}  Số cấu trúc hoặc đối tượng đã nhập thành công.
+#   {includeNonJigsaw}  Có nhập cả cấu trúc không dùng mảnh jigsaw hay không.
+#   {iris}  Số chiều không gian đã tải sử dụng sinh thế giới Iris.
+#   {irisLevels}  Số chiều không gian Iris đã tải được đối chiếu độ cao với gói.
+#   {irisPlaced}  Số cấu trúc do Iris đặt thay vì bộ sinh gốc.
+#   {job}  Tên tác vụ nền đã hoàn tất.
+#   {k}  Khóa tải vùng trong báo cáo phân bố vùng.
+#   {key}  Mã tham số, thông báo hoặc tài nguyên được nêu trong câu.
+#   {key2}  Mã cấu trúc lặp lại trong lệnh tìm vị trí gợi ý.
+#   {keyString}  Mã cấu trúc hoặc tài nguyên đang nhập hay được báo là không hợp lệ.
+#   {label}  Tên hiển thị của mục tiêu đã tìm thấy.
+#   {line}  Số dòng trong trình sửa ngôn ngữ.
+#   {locale}  Mã ngôn ngữ, chẳng hạn en_US hoặc de_DE.
+#   {logicalWorldName}  Tên logic của thế giới mà lệnh nhắm đến.
+#   {loot}  Mã bảng chiến lợi phẩm đang kiểm tra.
+#   {m}  Thông báo di tản bổ sung hoặc văn bản tham số bị bỏ qua trong mẫu lệnh.
+#   {mantleStatus}  Kết quả đặt lại dữ liệu sinh trước khi so sánh lần sinh lại.
+#   {marker}  Tên dấu mốc đang tìm.
+#   {material}  Vật liệu Minecraft của khối đang kiểm tra.
+#   {maxScale}  Tỷ lệ đối tượng tối đa cho phép sau khi giới hạn tỷ lệ yêu cầu.
+#   {maxX}  Giới hạn X trên của vùng chunk đang hiển thị.
+#   {maxY}  Giới hạn trên của khoảng độ cao thế giới.
+#   {maxZ}  Giới hạn Z trên của vùng chunk đang hiển thị.
+#   {maximum}  Độ dài nhập tối đa hoặc máu tối đa của thực thể, tùy câu.
+#   {mcmeta}  Đường dẫn tệp pack.mcmeta của datapack được tạo.
+#   {message}  Văn bản trạng thái hoặc lỗi chi tiết do thao tác cung cấp.
+#   {method}  Phương thức tạo trước đã chọn.
+#   {minX}  Giới hạn X dưới của vùng chunk đang hiển thị.
+#   {minY}  Giới hạn dưới của khoảng độ cao thế giới.
+#   {minZ}  Giới hạn Z dưới của vùng chunk đang hiển thị.
+#   {minutes}  Phần phút trong thời lượng đã định dạng.
+#   {mismatches}  Số chunk khác với bản tham chiếu đã lưu.
+#   {mode}  Chế độ nhập, sinh hoặc xem trước đã chọn.
+#   {modeNote}  Giải thích tùy chọn về chế độ tạo trước đã chọn.
+#   {name}  Tên thế giới, đối tượng, dự án hoặc mục được nêu trong thông báo.
+#   {nameRaw}  Tên đúng như đã nhập, trước khi chuẩn hóa hoặc kiểm tra.
+#   {normalized}  Tên mục trợ giúp đã chuẩn hóa nhưng không tìm thấy.
+#   {num}  Đoạn trong ngoặc đã định dạng của nhãn thời gian xử lý; không nhất thiết là số.
+#   {object}  Tên hoặc mã đối tượng Iris đang sửa hay kiểm tra.
+#   {objects}  Danh sách hoặc số đối tượng trong chunk đang kiểm tra.
+#   {offset}  Khoảng cách thẳng đứng so với mặt đất, tính bằng khối.
+#   {output}  Đường dẫn tệp đầu ra không ghi được.
+#   {overall}  Số chunk tạo trước trung bình mỗi giây trong toàn bộ thao tác.
+#   {ownerName}  Tên người chơi sở hữu phiên Studio.
+#   {pack}  Tên hoặc mã gói Iris liên quan đến thao tác.
+#   {pack2}  Mã gói lặp lại trong lệnh gợi ý hoặc nguồn tải.
+#   {packDimension}  Định nghĩa chiều không gian được chọn từ gói.
+#   {packLogical}  Độ cao logic mà định nghĩa chiều không gian của gói yêu cầu.
+#   {packMax}  Giới hạn độ cao trên mà gói yêu cầu.
+#   {packMin}  Giới hạn độ cao dưới mà gói yêu cầu.
+#   {packName}  Tên hiển thị của gói đang kiểm tra.
+#   {parameter}  Tham số lệnh bị thiếu hoặc không phân tích được.
+#   {parent}  Tên hiển thị của menu hoặc nhánh lệnh cha.
+#   {path}  Đường dẫn tệp được lưu, mở hoặc báo cáo.
+#   {percent}  Phần trăm tiến độ; giữ dấu % của thông báo bên ngoài biến.
+#   {permission}  Nút quyền cần có cho hành động yêu cầu.
+#   {personal}  Mã ngôn ngữ cá nhân đã lưu của người chơi.
+#   {phase}  Tên giai đoạn tải hoặc tải xuống hiện tại.
+#   {pinned}  Số lá được cố định khi sửa đối tượng cây.
+#   {player}  Tên người chơi đang theo dõi hoặc nhắm đến.
+#   {plugin}  Tên hiển thị plugin; là Iris trong thông báo ngôn ngữ và chẩn đoán dùng chung của Iris.
+#   {position}  Số góc vùng chọn đang được đặt.
+#   {preset}  Thiết lập sinh thế giới đã đăng ký được dùng cho thế giới chính.
+#   {primary}  Mã định danh thế giới chính đã cấu hình.
+#   {processed}  Số mục đã xử lý, gồm thành công, bỏ qua và thất bại.
+#   {properties}  Danh sách thuộc tính đã định dạng của khối đang kiểm tra.
+#   {quarantinePath}  Thư mục chứa các tệp được cách ly khi dọn dẹp.
+#   {queued}  Số luồng xử lý hoặc hạng mục đang chờ chạy.
+#   {radius}  Bán kính tạo trước lặp lại trong lệnh bắt đầu gợi ý.
+#   {rarity}  Độ hiếm đã cấu hình của vùng hoặc vị trí đặt được nêu.
+#   {rate}  Tốc độ truyền dữ liệu hoặc tạo trước đã định dạng; câu thêm hậu tố mỗi giây.
+#   {reach}  Tầm tìm cành đã cấu hình khi sửa đối tượng cây.
+#   {ready}  Số trang Atlas chính xác hiện có.
+#   {reason}  Lý do không thể hoàn tất hành động yêu cầu.
+#   {region}  Tên hoặc mã vùng đang kiểm tra.
+#   {remaining}  Số trạng thái khối bổ sung bị lược khỏi danh sách hiển thị.
+#   {repository}  Kho mã hoặc tệp nén đã tải đang được giải nén.
+#   {reverted}  Số lần dán đối tượng được hoàn tác.
+#   {rotation}  Góc xoay áp dụng cho đối tượng đã đặt.
+#   {rx}  Tọa độ X của chunk đang tính mã băm.
+#   {rz}  Tọa độ Z của chunk đang tính mã băm.
+#   {s}  Tên dự án Studio mới.
+#   {safeName}  Tên tệp đã loại ký tự không an toàn cho đối tượng nhập.
+#   {scale}  Số khối thế giới tương ứng với một điểm ảnh xem trước.
+#   {scope}  Đối tượng hoặc nhóm đối tượng mở trong Object Studio.
+#   {searchRadius}  Bán kính tìm kiếm để kiểm chứng cấu trúc, tính bằng chunk.
+#   {seconds}  Phần giây của thời lượng hoặc số giây từ lần cập nhật cuối.
+#   {section}  Tên mục trợ giúp người dùng yêu cầu.
+#   {seed}  Hạt giống dùng cho thế giới, Studio, bộ sinh hoặc so sánh tham chiếu.
+#   {seedRaw}  Hạt giống đúng như đã nhập, trước khi kiểm tra.
+#   {sixtySecond}  Số chunk tạo trước mỗi giây trong cửa sổ 60 giây.
+#   {size}  Số tệp, cảnh báo, mục hoặc vật phẩm được nêu trong câu.
+#   {skipped}  Số mục bị bỏ qua trong thao tác.
+#   {slope}  Độ dốc địa hình ở vị trí đang kiểm tra.
+#   {solidBlocks}  Số khối rắn được đếm khi tính mã băm sinh thế giới.
+#   {source}  Gói, nguồn tải hoặc dữ liệu đầu vào gắn với tiến độ hiển thị.
+#   {speed}  Tốc độ tạo trước hoặc xử lý mỗi giây, đã định dạng.
+#   {stage}  Tên giai đoạn tiến độ hiện tại.
+#   {state}  Trạng thái hoặc giá trị thuộc tính hiện tại được nêu trong câu.
+#   {status}  Văn bản trạng thái xem trước hiện tại.
+#   {structure}  Tên hoặc mã cấu trúc đang tìm vị trí.
+#   {structureKey}  Mã đăng ký hoặc mã trong gói của cấu trúc yêu cầu.
+#   {summary}  Kết quả đã định dạng của thao tác hoàn tất.
+#   {suppressed}  Số cấu trúc gốc được thay bằng cấu trúc do Iris đặt.
+#   {surface}  Tọa độ Y mặt đất dùng trong lệnh dịch chuyển gợi ý.
+#   {surfaceY}  Tọa độ Y mặt đất tại vị trí đang kiểm tra.
+#   {tag}  Nhãn trạng thái kiểm tra đã định dạng, đặt trước tên gói.
+#   {target}  Người nhận ngôn ngữ hoặc mục tiêu chọn đối tượng được nêu trong câu.
+#   {targetX}  Tọa độ X của điểm đến đã tìm thấy hoặc được yêu cầu.
+#   {targetZ}  Tọa độ Z của điểm đến đã tìm thấy hoặc được yêu cầu.
+#   {template}  Mẫu được chọn khi tạo dự án.
+#   {tenSecond}  Số chunk tạo trước mỗi giây trong cửa sổ 10 giây.
+#   {thirtySecond}  Số chunk tạo trước mỗi giây trong cửa sổ 30 giây.
+#   {threads}  Số luồng xử lý dùng để tính mã băm sinh thế giới.
+#   {tileNote}  Ghi chú tùy chọn về dữ liệu thực thể khối đã lưu hoặc đặt.
+#   {title}  Tiêu đề thao tác có kết quả đang hiển thị.
+#   {to}  Thiết lập gỡ lỗi mới: true là bật, false là tắt.
+#   {token}  Đối số reach không phân tích được.
+#   {total}  Tổng số hạng mục, chunk, chiều không gian hoặc mục được nêu trong câu.
+#   {totalObjects}  Số đối tượng mở trong Object Studio.
+#   {transferred}  Lượng dữ liệu đã truyền đến hiện tại, có định dạng.
+#   {type}  Kiểu tham số cần có, loại tài nguyên hoặc loại đối tượng được nêu trong câu.
+#   {typeKey}  Mã loại chiều không gian Minecraft đã đăng ký, hoặc inline.
+#   {unreachableBiomes}  Số cấu trúc gốc bị loại do lựa chọn quần xã của gói.
+#   {unsupported}  Số cấu trúc gốc được báo là không được nền tảng hỗ trợ.
+#   {updates}  Số cập nhật khối mỗi giây trong màn hình nhà phát triển.
+#   {url}  Địa chỉ web để mở hoặc sao chép.
+#   {usage}  Cú pháp lệnh hoặc văn bản mức dùng trong màn hình bộ nhớ.
+#   {used}  Dung lượng bộ nhớ đã dùng, có định dạng.
+#   {value}  Giá trị tùy thông báo: thiết lập mặc định, tên, tọa độ, số lượng hoặc lỗi. Xem ngữ cảnh.
+#   {value2}  Giá trị thứ hai tùy thông báo: tổng chunk, tọa độ Y đích, tên gói hoặc lỗi.
+#   {value3}  Giá trị thứ ba tùy thông báo: phần trăm, tọa độ Z đích, phiên bản Minecraft hoặc thời gian đã qua.
+#   {value4}  Giá trị thứ tư tùy thông báo: số lần ghi khối, tọa độ Z vùng chọn hoặc hậu tố trạng thái.
+#   {value5}  Giá trị thứ năm: số khối không phải không khí đã ghi khi đặt đối tượng, hoặc chunk Z trong mẫu vị trí.
+#   {variables}  Danh sách biến dùng được trong thông báo đang sửa.
+#   {velocity}  Vận tốc di chuyển hiện tại của thực thể đang kiểm tra.
+#   {version}  Phiên bản plugin hoặc Minecraft được nêu trong câu.
+#   {volume}  Số khối trong vùng chọn đối tượng.
+#   {w}  Chiều rộng đối tượng, tính bằng khối.
+#   {wantVariants}  Số biến thể yêu cầu cho mỗi cây hoặc đặc trưng đối tượng vanilla được nhập.
+#   {warnings}  Số cảnh báo kiểm tra không chặn hoạt động.
+#   {width}  Chiều rộng vùng thế giới hiển thị, tính bằng khối.
+#   {wood}  Số khối gỗ được thêm khi sửa đối tượng cây.
+#   {world}  Tên thế giới mà lệnh hoặc tiến độ hiển thị nhắm đến.
+#   {written}  Số biến thể nhập hoặc tệp đối tượng đã ghi thành công.
+#   {x}  Tọa độ X theo ngữ cảnh khối, chunk, vùng hoặc xem trước trong câu.
+#   {y}  Tọa độ thẳng đứng của thế giới hoặc khối.
+#   {z}  Tọa độ Z theo ngữ cảnh khối, chunk, vùng hoặc xem trước trong câu.
+#   {zoom}  Mức thu phóng hiện tại của bản xem trước.
+# === End Iris language guide ===
+
+[iris.director.commandiris]
+"director.debugdump" = "Tạo báo cáo chẩn đoán và tải lên nếu muốn"
+"param.debugdump_upload" = "Tải báo cáo lên mclo.gs"
+"director.basic_command" = "Lệnh cơ bản"
+"director.create_new_world" = "Tạo dựng một thế giới mới"
+"param.name_world_create" = "Tên của thế giới để tạo ra"
+"param.dimension_pack_create_world_with" = "Kích thước/ lốc tạo ra thế giới với"
+"param.seed_generate_world_with" = "Hạt giống để tạo ra thế giới với"
+"param.replace_exact_existing_world_slot_next_restart" = "Thay thế đúng vị trí thế giới hiện có vào lần khởi động lại tiếp theo"
+"director.teleport_another_world" = "Name"
+"param.world_teleport" = "Thế giới có thể dịch chuyển"
+"param.player_teleport" = "Người chơi cần dịch chuyển"
+"director.print_version_information" = "In thông tin phiên bản"
+"director.benchmark_pack" = "Benchmark một gói"
+"param.dimension_benchmark" = "Kích thước để đánh dấu"
+"director.print_world_height_information" = "In thông tin cấp cao thế giới"
+"director.check_access_all_worlds" = "Kiểm tra tất cả các thế giới."
+"director.remove_iris_world" = "Bỏ Iris thế giới"
+"param.world_remove" = "Thế giới cần loại bỏ"
+"param.whether_also_remove_folder_if_set_false_just_does_not_load_world" = "Có nên gỡ bỏ thư mục (nếu thiết lập sai, cũng không nạp toàn thế giới)"
+"director.toggle_debug" = "Bật/ tắt gỡ lỗi"
+"director.download_project" = "Tải về một dự án."
+"param.pack_download" = "Name"
+"director.get_metrics_your_world" = "Lấy máy đo cho thế giới của bạn"
+"director.reload_configuration_file_this_is_also_done_automatically" = "Nạp lại tập tin cấu hình (điều này cũng được làm tự động)"
+"director.unload_iris_world" = "Hủy tải Iris Thế giới"
+"param.world_unload" = "Thế giới cần dỡ hàng."
+"director.load_iris_world" = "Tải một Iris Thế giới"
+"param.name_world_load" = "Tên thế giới cần tải"
+"director.evacuate_iris_world" = "Sơ tán thế giới mắt"
+"param.evacuate_world" = "Di tản thế giới."
+
+[director.help]
+"navigation.parent.hover" = "Quay lại nhóm lệnh cha"
+"navigation.back" = "Quay lại"
+no_subcommands = "Không có lệnh con trên trang này."
+no_description = "Không có mô tả"
+command_group = "Nhóm lệnh. Nhấp để mở."
+category = "Danh mục lệnh"
+no_parameters = "Không có tham số. Nhấp để điền sẵn lệnh."
+parameters_hover = "Di chuột qua các tham số để tìm hiểu thêm."
+"parameter.required" = "Tham số này là bắt buộc."
+"parameter.optional" = "Tham số này là tùy chọn."
+"parameter.default" = "Mặc định là \"{value}\" nếu không được chỉ định."
+"parameter.type" = "Tham số này có kiểu {type}."
+"navigation.previous.hover" = "Trang trước"
+"navigation.next.hover" = "Trang sau"
+"navigation.page" = "Trang"
+
+[director.runtime]
+"error.invalid_origin" = "Không thể chạy lệnh này từ nguồn này."
+"error.unknown_parameter" = "Khóa tham số không xác định: {key}"
+"error.unexpected_argument" = "Đối số không mong đợi \"{argument}\". Các tham số tùy chọn phải được chỉ định bằng khóa, ví dụ seed=123"
+"error.unclosed_group" = "Thiếu dấu ngoặc vuông đóng \"]\" cho tham số {key}"
+"error.conversion_failed" = "Không thể chuyển \"{value}\" thành {type} cho {parameter}"
+"error.default_parse_failed" = "Không thể phân tích giá trị mặc định của tham số {parameter}"
+"error.missing_argument" = "Thiếu đối số \"{parameter}\" ({type})"
+"error.execution_failed" = "Không thể thực thi lệnh {command}: {reason}"
+usage = "Cách dùng: {usage}"
+
+[iris.command]
+permission_denied = "Bạn không có quyền '{permission}'"
+unknown = "Lệnh Iris không xác định"
+player_only = "Chỉ người chơi mới có thể sử dụng lệnh này."
+iris_world_required = "Chiều không gian này không được Iris tạo ra."
+
+[iris.command.reload]
+success = "Đã tải lại cài đặt và ngôn ngữ {locale}."
+failed = "Đã tải lại cài đặt, nhưng ngôn ngữ {locale} bị từ chối; tiếp tục sử dụng {activeLocale}."
+
+[iris.modded.help]
+unknown_section = "Không rõ Iris Phần trợ giúp: {section}"
+back_hover = "Trở về {parent}."
+command_parameter = "Tham số lệnh"
+brigadier_text = "Tham số này được đọc là văn bản bằng Brigadier."
+operator_notice = "Iris lệnh cần cho phép điều hành (bằng 2)."
+operator_instruction = "Chạy {command} từ bàn giao tiếp (hoặc kích hoạt gian lận trong một người chơi); cho đến khi đó những lệnh này sẽ không chạy hoặc tab đầy đủ."
+"entry.command.version" = "In thông tin phiên bản"
+"entry.command.info" = "Danh sách đã tải Iris Kích thước và gói chi tiết"
+"entry.command.what" = "Kiểm tra Iris Sinh học, khu vực, sinh học hang động, bề mặt và mảng tại vị trí của bạn, khối bạn nhìn vào, mục được giữ, hoặc các điểm gần đó"
+"entry.group.find" = "Tìm và dịch chuyển sang Iris Sinh học, vùng, vật thể, Iris cấu trúc, cấu trúc bản địa và điểm quan tâm"
+"entry.command.tp" = "Name Iris Chiều rộng"
+"entry.command.evacuate" = "Dịch chuyển mọi người chơi khỏi chiều không gian Iris đến điểm spawn của thế giới chính"
+"entry.command.seed" = "Hiển thị thông tin seed của thế giới và engine"
+"entry.command.debug" = "Bật/ tắt Iris @ info/ rich iris.json"
+"entry.command.reload" = "Nạp lại iris.json (đã nạp quá nóng tự động mỗi 3)"
+"entry.command.download" = "Tải về dự án gói"
+"entry.command.metrics" = "Số đo cỡ ảnh hiện thời Iris Chiều rộng"
+"entry.command.regen" = "Xóa và tái tạo các mẫu gần đó"
+"entry.group.pregen" = "Tiền tố a Iris Chiều rộng"
+"entry.command.wand" = "Lấy một cái Iris đũa thần đối tượng"
+"entry.group.object" = "Các công cụ đũa phép đối tượng, lưu, dán, phân tích và hoàn tác"
+"entry.group.edit" = "Mở tập sinh học, vùng và tập tin json trong trình soạn thảo màn hình nền"
+"entry.command.create" = "Tạo ra và tiêm một sự bền bỉ Iris Không gian; gói trích dẫn:dimensionKey để chọn một chiều cụ thể"
+"entry.group.studio" = "Gói gọn các dự án tạo, đóng gói và báo cáo"
+"entry.group.pack" = "Gói gọn và bảo trì"
+"entry.group.world" = "Thời gian chạy Iris Name"
+"entry.group.datapack" = "Name"
+"entry.group.structure" = "Iris chỉ mục cấu trúc, thông tin và công cụ định vị"
+"entry.command.goldenhash" = "Tạo ra khối quyết định để kiểm tra cân bằng"
+"entry.group.developer" = "Chẩn đoán dành cho nhà phát triển: giao diện mạng và quét tệp vùng"
+"entry.command.biome" = "Tìm một Iris sinh học"
+"entry.command.region" = "Tìm một Iris vùng"
+"entry.command.object" = "Tìm một vị trí đối tượng"
+"entry.command.structure" = "Tìm một Iris- Đã thay thế hoặc bản địa/dapack cấu trúc"
+"entry.command.poi" = "Tìm một điểm đáng chú ý"
+"entry.command.biome_2" = "Mở một máy sinh học json trong trình soạn thảo màn hình nền của bạn; không có phím nào mở đường dẫn sinh học ở vị trí của bạn"
+"entry.command.region_2" = "Mở một vùng json trong trình soạn thảo màn hình nền của bạn; không có phím nào mở vùng ở vị trí của bạn"
+"entry.command.dimension" = "Mở JSON chiều không gian của gói hiện tại trong trình chỉnh sửa trên máy tính"
+"entry.command.start" = "Bắt đầu thế hệ trước; bán kính theo khối, bộ nhớ tạm chốt có thể tái sử dụng theo mặc định, trung tâm thông qua 'at <x>  <z>cờ được soạn theo thứ tự nào"
+"entry.command.stop" = "Name"
+"entry.command.pause" = "Tạm dừng hoặc tiếp tục thế hệ trước"
+"entry.command.status" = "Hiện trạng thái thế hệ trước"
+"entry.command.wand_3" = "Lấy một cái Iris đũa thần đối tượng"
+"entry.command.dust" = "Lấy bụi tiết lộ vị trí đối tượng"
+"entry.command.save" = "Lưu âm lượng đũa làm đối tượng"
+"entry.command.paste" = "Dán một đối tượng tại vị trí của bạn hoặc vị trí chỉ định, có thể xoay"
+"entry.command.expand" = "Hãy mở rộng tầm nhìn của cây đũa phép"
+"entry.command.contract" = "Hợp đồng lựa chọn đũa phép theo hướng nhìn của bạn"
+"entry.command.shift" = "Dịch sự lựa chọn đũa phép theo hướng của bạn"
+"entry.command.position1" = "Đặt điểm chọn 1"
+"entry.command.position2" = "Đặt điểm chọn 2"
+"entry.command.x_y" = "Tự động chọn lên và ra"
+"entry.command.x_y_2" = "Tự động chọn lên, xuống và ra"
+"entry.command.analyze" = "Hiện thành phần đối tượng"
+"entry.command.shrink" = "Thu nhỏ đối tượng về kích cỡ tối thiểu"
+"entry.command.plausibilize" = "Lớn lên những nhánh cây để lá cây sống sót sau khi bị hư hại"
+"entry.command.undo" = "Hoàn tác các đối tượng đã dán"
+"entry.command.create_2" = "Tạo một dự án gói mới"
+"entry.command.package" = "Name"
+"entry.command.version_2" = "In một phiên bản gói"
+"entry.command.regions" = "Tính phân phối vùng gần"
+"entry.command.open" = "Mở một không gian studio tạm thời cho một gói"
+"entry.command.close" = "Đóng cửa không gian mở và bỏ đi thế giới của nó"
+"entry.command.tpstudio" = "Name"
+"entry.command.status_studio" = "Hiển thị các không gian studio mở và gói của nó"
+"entry.command.noise" = "Mở kho chứa tiếng ồn GUI trên trình phục vụ hiện"
+"entry.command.map" = "Mở bản đồ thị giác GUI trên trình phục vụ hiện"
+"entry.command.vscode" = "Tạo lại không gian làm việc . mã hoá cho một gói và mở nó trong trình soạn thảo bàn làm việc của bạn"
+"entry.command.update" = "Tạo lại không gian . mã hoá cho một gói"
+"entry.command.importvanilla" = "Giải thích luồng công việc nhập vanilla"
+"entry.command.validate" = "Kiểm tra một gói hay từng gói"
+"entry.command.cleanup" = "Xem thử hoặc cách ly ứng dụng nguồn không dùng"
+"entry.command.restore" = "Xem thử hoặc phục hồi cách ly mới nhất"
+"entry.command.status_validation" = "Hiện trạng thái hợp lệ tạm"
+"entry.command.enable" = "Tạo và chèn một chiều Iris cố định trong khi chạy; gói phải được cài đặt và pack:dimensionKey đặt trong dấu ngoặc kép sẽ chọn một chiều cụ thể."
+"entry.command.replace_overworld" = "Tiêm a Iris Thế giới chính và các cầu thủ đường xá ở đó thay vì hiện nay"
+"entry.command.disable" = "Di tản và dỡ hàng. Iris Kích thước; dữ liệu thế giới trên đĩa được lưu giữ để phục hồi sức khỏe"
+"entry.command.delete" = "Tắt Iris Kích thước và xoá dữ liệu trong đĩa"
+"entry.command.list" = "Danh sách đã tải Iris Kích thước"
+"entry.command.status_world" = "Hiện khung lề Iris Kích thước và thế giới chính được cấu hình"
+"entry.command.status_datapack" = "Kiểm tra đã nạp Iris Name"
+"entry.command.install" = "Name Iris Kích thước"
+"entry.command.list_datapacks" = "Name"
+"entry.command.ingest" = "Giải thích Bukkit Name"
+"entry.command.remove" = "Name"
+"entry.command.list_structures" = "Tái tạo structure-index.json"
+"entry.command.info_2" = "Giải quyết một Iris giới hạn cấu trúc đồ thị và báo cáo"
+"entry.command.place" = "Tập hợp và đặt một Iris kết cấu tại vị trí của bạn"
+"entry.command.import" = "Giải thích Bukkit Comment"
+"entry.command.capture" = "Giải thích Bukkit Name"
+"entry.command.verify" = "Báo cáo bản địa và Iris cấu trúc khả năng chạm tới trong chiều không gian hiện tại"
+"entry.command.network" = "Liệt kê các giao diện mạng và địa chỉ của chúng"
+"entry.command.what.here" = "Inspect the Iris biome, region, cave biome, surface and chunk at your position"
+"entry.command.what.biome" = "Inspect the Iris biome, configured derivative and registered native biome"
+"entry.command.what.region" = "Inspect the Iris region at your current chunk"
+"entry.command.what.block" = "Inspect the targeted block state, properties, object and block entity"
+"entry.command.what.hand" = "Inspect the held item and its default block state"
+"entry.command.what.markers" = "Reveal nearby Iris Mantle markers with particles"
+"entry.command.height" = "Print the current dimension height range"
+"entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
+"entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
+"entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
+"entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
+"entry.command.studio.loot" = "Explain why the Bukkit loot simulation GUI is unavailable"
+"entry.command.studio.profile" = "Explain why Bukkit pack profiling is unavailable"
+"entry.command.studio.spawn" = "Explain why Bukkit Iris entity spawning is unavailable"
+"entry.command.studio.objects" = "Explain why the Bukkit chunk object report is unavailable"
+"entry.command.compat_content" = "Hiển thị nội dung không thể tạo trên phiên bản Minecraft này"
+
+[iris.modded.command]
+"properties.none" = "Thuộc tính: (không có)"
+"properties.list" = "Thuộc tính {properties}"
+
+[iris.bukkit.commanddatapack]
+starting_datapack_ingest = "§7Bắt đầu đọc tập dữ liệu..."
+configured_datapack_imports = "§aBộ dữ liệu đã cấu hình: §f{value}"
+message = "§7  - §f{url}"
+installed_datapacks = "§aBộ dữ liệu đã cài đặt: §f{value}"
+message_2 = "§7  - §f{value}§7  {value2}"
+add_modrinth_urls_dimension_s_datapackimports_list_then_run_iris = "§eThêm Modrinth  URLs đến chiều không giandatapackImports'Danh sách, sau đó chạy /iris datapack ingest."
+
+[iris.bukkit.commanddeveloper]
+genhash_started_chunks = "§agenhash bắt đầu: {value} chunk..."
+genhash_failed_at_chunk = "§cgenhash thất bại tại chunk {rx},{rz}: {value}"
+genhash_global_chunks_solid = "§agenhash toàn cục=§6{value}§a chunk={value2} khối đặc={solidBlocks} trong {value3}"
+world_is_null = "§cThế giới là vô nghĩa."
+target_iris_world_before_reading_mantle_dump = "§cMục tiêu A Iris Thế giới trước khi đọc một cái thùng rác."
+upgrading = "§aĐang nâng cấp tới {value}..."
+done_upgrading_you_can_now_update_your_server_version = "§aHọc xong rồi!  Bây giờ bạn có thể cập nhật phiên bản máy phục vụ của bạn {value}"
+radius_must_be_0_greater = "§cBán kính phải là 0 hoặc cao hơn."
+this_is_not_iris_world = "§cĐây không phải là Iris Thế giới."
+engine_access_this_world_is_null = "§cĐộng cơ tiếp cận thế giới này là vô giá trị."
+delete_started_chunk_s_around_clearing_blocks_air = "§aXoá khởi động: §6{chunks}§a chunk(s) xung quanh §6{centerX},{centerZ}§a.  Dọn dẹp các khu nhà thành không khí."
+radius_must_be_0_greater_2 = "§cBán kính phải là 0 hoặc cao hơn."
+you_must_be_iris_world_use_regen = "§cChắc anh đang ở trong... Iris Thế giới dùng lại."
+engine_access_this_world_is_null_generate_nearby_chunks_first = "§cĐộng cơ tiếp cận thế giới này là vô giá trị.  Đầu tiên là tạo ra những mẩu gần đó."
+regen_started_chunk_s_around_deleting_regenerating_place = "§aKhởi động lại: §6{chunks}§a chunk(s) xung quanh §6{centerX},{centerZ}§a.  Xóa bỏ và tái tạo tại chỗ."
+radius_must_be_0_greater_3 = "§cBán kính phải là 0 hoặc cao hơn."
+target_must_be_iris_world = "§cMục tiêu phải là một Iris Thế giới."
+engine_access_this_world_is_null_2 = "§cĐộng cơ tiếp cận thế giới này là vô giá trị."
+goldenhash_started_chunk_s_around_buffers_world_untouched = "§aBắt đầu GoldenHash: §6{chunks}§a chunk(s) xung quanh §6{centerX},{centerZ}§a trong bộ đệm (thế giới chưa động đến)."
+
+[iris.bukkit.commandfind]
+not_iris_world = "§6Không phải trong một Iris Thế giới!"
+unknown_structure = "§cCấu trúc không rõ: {structureKey}"
+run_this_game_teleport_structure = "§6Chạy trò chơi này để dịch chuyển tới một cấu trúc."
+locating = "§7Ghi lưu {structureKey}..."
+run_this_game_teleport_structure_2 = "§6Chạy trò chơi này để dịch chuyển tới một cấu trúc."
+locating_2 = "§7Ghi lưu {structure}..."
+teleported = "§aChuyển tới {structure} @ {value}, {y}, {value2}"
+not_iris_world_5 = "§6Không phải trong một Iris Thế giới!"
+not_iris_world_2 = "§6Không phải trong một Iris Thế giới!"
+not_iris_world_3 = "§6Không phải trong một Iris Thế giới!"
+not_iris_world_4 = "§6Không phải trong một Iris Thế giới!"
+object_studio_teleporting = "§aPhòng thu đối tượng: đang dịch chuyển tới {object}"
+is_not_configured_any_region_biome_object_placements = "§c{object} không được cấu hình trong bất kỳ vùng nào/ miền thuộc địa."
+
+[iris.bukkit.commandiris]
+successfully_removed_world_folder = "§aĐã gỡ bỏ thành công thư mục thế giới"
+successfully_removed_world_folder_2 = "§aĐã gỡ bỏ thành công thư mục thế giới"
+failed_remove_world_folder = "§cLỗi gỡ bỏ thư mục thế giới"
+you_cannot_use_world_name_iris_creating_worlds_as_iris = "§cKhông thể dùng tên thế giới \"iris\" vì Iris sử dụng thư mục này cho các thế giới Studio."
+may_we_suggest_name_irisworld_instead = "§cChúng ta có thể đề nghị cái tên \"IrisWorldThay vào đó?"
+you_cannot_use_world_name_benchmark_creating_worlds_as_iris = "§cKhông thể dùng tên thế giới \"benchmark\" vì Iris sử dụng thư mục này cho các gói đo hiệu năng."
+may_we_suggest_name_irisworld_instead_2 = "§cChúng ta có thể đề nghị cái tên \"IrisWorldThay vào đó?"
+that_folder_already_exists = "§cThư mục đó đã có!"
+try_one_overworld_vanilla_flat_theend = "§eHãy thử một trong những: ngoài thế giới, vanilla, bằng phẳng, kết thúc"
+dimension_not_found = "§cCould not find dimension §f{dimension}§c."
+install_pack_and_restart = "§eInstall it with §b{command}§e and restart the server."
+exception_raised_during_creation_see_console_more_details = "§cNgoại lệ được nuôi lớn trong suốt quá trình sáng tạo.  Xem bảng điều khiển để biết thêm chi tiết."
+successfully_created_your_world = "§aThành công trong việc tạo ra thế giới của anh!"
+specified_player_does_not_exist = "§cNgười chơi đã ghi rõ không tồn tại."
+iris_v_by_volmit_software = "§aIris v.{value} by Volmit Phần mềm"
+to = "§a{value} phải {value2}"
+total_height = "§aTổng chiều cao: {value}"
+iris_worlds = "§9Thế giới Iris: "
+message = "§a- {value}"
+bukkit_worlds = "§6Thế giới Bukkit: "
+message_2 = "§7- {value}"
+this_is_not_iris_world_iris_worlds = "§cĐây không phải là Iris Thế giới.  Iris Thế giới: {value}"
+removing_world = "§aXóa bỏ thế giới: {value}"
+failed_evacuate_world = "§cLỗi di tản thế giới: {value}"
+failed_unload_world = "§cLỗi tải xuống thế giới: {value}"
+successfully_removed_from_bukkit_yml = "§aĐã gỡ bỏ thành công {value} từ bukkit.yml"
+looks_like_world_was_already_removed_from_bukkit_yml = "§eCó vẻ như thế giới đã bị loại bỏ bukkit.yml"
+failed_save_bukkit_yml_because = "§cLỗi lưu bukkit.yml bởi vì {value}"
+set_debug = "§aĐặt lỗi là: {to}"
+you_must_be_iris_world = "§cChắc anh đang ở trong... Iris thế giới"
+sending_metrics = "§aName..."
+this_is_not_iris_world_iris_worlds_2 = "§cĐây không phải là Iris Thế giới.  Iris Thế giới: {value}"
+unloading_world = "§aThế giới tải xuống: {value}"
+world_unloaded_successfully = "§aThế giới đã tháo dỡ thành công."
+failed_unload_world_2 = "§cThất bại trong việc dỡ bỏ thế giới."
+failed_unload_world_3 = "§cLỗi tải xuống thế giới: {value}"
+doesnt_exist_on_server = "§e{logicalWorldName} Không có trên máy chủ."
+generator = "§9Trình tạo: {dimension}"
+is_not_iris_world = "§6{logicalWorldName} không phải thế giới của Iris."
+could_not_determine_iris_dimension = "§cKhông thể xác định Iris Kích thước cho {logicalWorldName}."
+loading_world = "§aTải về {logicalWorldName}"
+loaded_successfully = "§a{logicalWorldName} đã nạp thành công."
+this_is_not_iris_world_iris_worlds_3 = "§cĐây không phải là Iris Thế giới.  Iris Thế giới: {value}"
+evacuating_world = "§aThế giới đang sơ tán{value}"
+
+[iris.bukkit.commandobject]
+no_packs_with_objects_were_found_on_this_server = "§cKhông tìm thấy gói có đối tượng nào trên máy chủ này."
+no_objects_place_across_selected_pack_s = "§cKhông có đối tượng nào để đặt trên các gói được chọn."
+opening_object_studio_objects = "§aMở phòng thu đối tượng cho {scope} ({totalObjects} đối tượng)"
+failed_open_object_studio = "§cLỗi mở tập ảnh đối tượng: {value}"
+object_size = "Cỡ đối tượng: {value} * {value2} * {value3}"
+blocks_used = "Dùng khối: {value}"
+blocks_object = "teppi82@ gmail. com"
+other_block_types = "  + {value} Kiểu khối khác"
+current_object_size = "Cỡ đối tượng hiện có: {value} * {value2} * {value3}"
+new_object_size = "Cỡ đối tượng mới: {value} * {value2} * {value3}"
+failed_save_object = "Lỗi lưu đối tượng {value}: {value2}"
+no_objects_matched = "§cKhông có đối tượng khớp: {target}"
+plausibilize_reach_queued_object_s = "§aChất dẻo [reach={reach}{value}] hàng đợi {value2} object(s)"
+hold_your_wand = "Giữ chặt đũa phép."
+no_area_selected = "Chưa chọn diện tích."
+ready_your_wand = "Chuẩn bị đũa phép."
+ready_your_wand_2 = "Chuẩn bị đũa phép."
+indicated_scale_exceeds_maximum_downscaled_maximum = "§eTỷ lệ đã được xác định vượt quá mức tối đa.  Cấp xuống tối đa: {maxScale}"
+updated_wand_objects_iob = "Name objects/{value}.iob "
+given_new_wand_objects_iob = "Đưa cây đũa mới cho objects/{value}.iob "
+updated_wand_objects_iob_2 = "Name objects/{value}.iob "
+placed = "§aĐã đặt {object}"
+you_need_hold_your_wand = "§eAnh cần phải giữ đũa phép!"
+file_already_exists_set_overwrite_true_overwrite_it = "§cTập tin đã có.  Đặt ghi đè bằng chân dung để ghi đè lên nó."
+failed_save_object_because_ioexception = "§cLỗi lưu đối tượng vì một IOException: {value}"
+successfully_object_saved_objects = "§aĐối tượng thành công cần lưu: {value}/objects/{name}"
+hold_your_wand_2 = "Giữ chặt đũa phép."
+no_area_selected_2 = "Chưa chọn diện tích."
+reverted_pastes = "§9Đã hoàn tác {actualReverts}§9 lần dán!"
+you_can_t_get_worldedit_selection_without_worldedit_you_know = "§cBạn không thể có được một WorldEdit Chọn mà không cần WorldEditAnh biết đấy."
+you_don_t_have_worldedit_selection_this_world = "§cAnh không có WorldEdit Chọn lọc trên thế giới này."
+fresh_wand_with_your_current_worldedit_selection_on_it = "§aMột cây đũa phép mới với dòng chảy WorldEdit Chọn đi!"
+poof_good_luck_building = "§aPoof.  Chúc may mắn!"
+hold_your_wand_3 = "§eGiữ chặt đũa phép!"
+no_area_selected_3 = "Chưa chọn diện tích."
+auto_select_complete = "§aTự động chọn hoàn tất!"
+hold_your_wand_4 = "§eGiữ chặt đũa phép!"
+no_area_selected_4 = "Chưa chọn diện tích."
+auto_select_complete_2 = "§aTự động chọn hoàn tất!"
+
+[iris.bukkit.commandpack]
+you_must_specify_pack_name = "§cPhải ghi rõ một tên gói."
+pack_not_found_under_packs = "§cGói '{pack}Không tìm thấy dưới packs/."
+message = "§7  - {label}: {value}"
+more = "§7    ...  và {value} nhiều hơn."
+
+[iris.bukkit.commandstructure]
+verifying_structures_from_within_chunks = "§aKiểm tra cấu trúc trong §f{value}§a từ {value2},{value3} bên trong {searchRadius} Chunk..."
+could_not_resolve_pack_dimension = "§cKhông thể giải quyết gói cho kích thước {value}"
+wrote_structure_index = "§aChỉ mục cấu trúc ghi: §f{value}"
+could_not_resolve_pack_dimension_2 = "§cKhông thể giải quyết gói cho kích thước {value}"
+importing_all_vanilla_datapack_structures_into_overwrite = "§aName & Comment §f{value}§a ( dư viết)..."
+import_complete_structures_objects_written_failed = "§aNhập xong: §f{imported}§a  structures/objects Đã viết, §f{failed}§a bị lỗi."
+reference_them_from_biome_region_dimension_structures_list_run_iris = "§7Tham khảo chúng từ danh sách cấu trúc của sinh học/region/dimensision, hoặc chạy /iris structure list {value} để làm lại chỉ mục.  Tạo lại các mảng để thay đổi có tác dụng."
+could_not_resolve_pack_dimension_3 = "§cKhông thể giải quyết gói cho kích thước {value}"
+captured_structures_place_them_from_structures_list_regenerate_chunks_delete = "§7Đã bắt {value} cấu trúc.  Đặt chúng từ một danh sách cấu trúc và tái tạo các mảng.  Xoá structures/*.json Để bắt lại nó."
+no_loaded_iris_world_found_join_create_one_first_search = "§cChưa nạp Iris ♪ Thế giới tìm thấy cho ♪ {value}.  Tham gia hoặc tạo ra một trong những đầu tiên (cuộc tìm kiếm chống lại một thế giới sống)."
+selected_iris_world_has_no_active_generator_engine = "§cĐã chọn Iris Thế giới không có trình tạo hoạt động."
+could_not_resolve_pack_dimension_4 = "§cKhông thể giải quyết gói cho kích thước {value}"
+no_iris_structure_this_pack = "§cKhông có cấu trúc Iris{structure}'Trong gói này"
+structure_assembled_0_pieces_check_startpool = "§cCấu trúc{structure}Tập hợp 0 mảnh ( cuộc kiểm tra startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "§aCấu trúc{structure}': §f{value}§a mảnh, dấu chân §f{value2}x{value3}§a khối (dòng dõi đơn giản 1234)"
+could_not_resolve_pack_dimension_5 = "§cKhông thể giải quyết gói cho kích thước {value}"
+no_iris_structure_this_pack_2 = "§cKhông có cấu trúc Iris{structure}'Trong gói này"
+structure_assembled_0_pieces = "§cCấu trúc{structure}Tập hợp 0 mảnh"
+placed_pieces_at_your_location = "§aĐã đặt '{structure}' ({value} Các mảnh) tại vị trí. ({value2} block changes)"
+placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+
+[iris.bukkit.commandstudio]
+importing_vanilla_content_into = "§aNhập nội dung vanilla vào §f{value}§a..."
+importvanilla_complete_objects_structures_written_failed = "§ađã nhập xong: §f{imported}§a  objects/structures Đã viết, §f{failed}§a bị lỗi."
+trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7Cây objects/vanilla/...; tham khảo chúng từ vị trí vật thể sinh học."
+no_open_studio_projects = "§cKhông có dự án studio mở."
+closing_studio = "§eĐóng studio..."
+studio_close_failed = "§cViệc đóng cửa phòng thu thất bại: {value}"
+studio_close_failed_2 = "§cViệc đóng cửa phòng thu thất bại: {value}"
+studio_closed_remaining_world_family_cleanup_was_queued_startup_fallback = "§ePhòng thu đóng cửa.  Vẫn đang dọn dẹp gia đình trên thế giới được xếp hàng để khởi động lại."
+studio_closed = "§aPhòng thu đóng cửa."
+you_must_be_studio_world_toggle_debug_scoreboard = "§cAnh đang ở trong thế giới phòng thu để lật ngược bảng điểm."
+studio_debug_scoreboard = "{value}Bảng ghi chú gỡ lỗi phòng thu {value2}"
+could_not_update_studio_debug_scoreboard_right_now = "§cKhông thể cập nhật bảng kiểm tra lỗi phòng thu ngay bây giờ."
+opened_inventory = "§aMở kho hàng!"
+generating_data = "§7Đang tạo ra dữ liệu..."
+done = "§aXong!"
+message = "§a{k}: {value} / {value2}%"
+regions_radius_out_of_range = "§cBán kính phải nằm trong khoảng từ 1 đến 2048 chunk."
+regions_scan_failed = "§cQuét khu vực thất bại: {value}"
+opening_studio_pack_seed = "§aMở studio cho \"{value}\" Gói (dòng dõi: {seed})"
+provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§cCung cấp một gói chiều: /iris std importvanilla pack=<dimension>"
+could_not_resolve_pack_dimension = "§cKhông thể giải quyết gói cho kích thước {value}"
+opening_vscode_pack = "§aMở VSCode cho \"{value}gói"
+pack_has_version = "§aCái \"{value}\"Tất có phiên bản: {value2}"
+opening_noise_explorer = "§aMở cửa!"
+cannot_add_items_virtual_inventory_because = "§cKhông thể thêm mục vào kho ảo vì: {value}"
+opening_inventory_now = "§aMở kho hàng ngay!"
+only_works_iris_world = "§cChỉ làm việc trong một Iris Thế giới!"
+you_need_be_specify_iris_generated_world = "§cBạn cần phải ở trong hoặc chỉ ra một Iris- Thế giới được tạo ra!"
+opening_map = "§aMở bản đồ!"
+calculating_performance_metrics_noise_generators = "Tính toán số liệu hiệu quả cho máy phát nhiễu"
+calculating_interpolator_timings = "Tính toán thời hạn của bộ Nội suy..."
+processing_generator_scores = "Điểm máy phát: "
+score = "Điểm: {value}"
+done_with_result = "§aXong!  {value}"
+you_have_be_iris_world_spawn_entities_properly_trying_spawn = "§cBạn phải ở trong một thế giới Iris để tạo thực thể đúng cách. Hệ thống sẽ cố gắng tạo chúng theo cách tốt nhất có thể."
+no_studio_world_is_open = "§cKhông phòng thu nào mở cửa cả!"
+you_are_already_studio_world = "§cAnh đã ở trong thế giới phòng thu rồi!"
+sending_you_studio_world = "§aĐưa cậu đến phòng thu!"
+updating_code_workspace = "§6Đang cập nhật vùng làm việc mã hóa {value}..."
+updated_code_workspace = "§aKhông gian mật mã đã cập nhật {value}"
+invalid_project_try_deleting_code_workspace_file_try_again = "§cDự án không hợp lệ: {value}.  Cố gắng xoá tập tin không gian mã hóa rồi thử lại."
+you_must_be_iris_world = "§cChắc anh đang ở trong... Iris thế giới"
+you_must_be_iris_world_2 = "Chắc cô đang ở thế giới của Iris."
+capturing_igendata_from_nearby_chunks = "Bắt buộc IGenData từ {value} Gần đây thôi."
+reported = "Báo cáo: {value}"
+you_must_have_server_launched_guis_enabled_settings = "§cBạn phải có máy chủ đã chạy GUIs đã bật trong thiết lập."
+players_only = "§cChỉ người chơi thôi!"
+no_studio_world_is_open_2 = "§cKhông phòng thu nào mở cửa cả!"
+you_must_be_studio_world = "§cCậu chắc đang ở trong phòng thu!"
+opening_image_map_studio = "§aOpening the Image Map Studio."
+
+[iris.bukkit.commandsvc]
+you_lack_permission = "Anh không được phép.{ROOTPERMISSION}'"
+
+[iris.bukkit.irisenginestatus]
+message = "§5-------------------------"
+status = "§5Trạng thái:"
+service = "§5- Dịch vụ: §d{value}"
+metrics = "§5- Bộ phim: §d{value}"
+maintenance_period = "§5- Thời gian bảo trì: §d{value}"
+worker_parallelism = "§5- Người làm việc song: §d{value}"
+active_world_tasks = "§5- Nhiệm vụ thế giới hoạt động: §d{value}"
+tectonic_plates = "§5Đĩa kiến tạo:"
+configured_retention = "§5- Thiết lập trí nhớ: §d{value}"
+heap_usage = "§5- Sử dụng Heap: §d{value}"
+resident = "§5- Lãnh địa: §d{value}"
+queued = "§5- Hàng đợi: §d{value}"
+average_idle_duration = "§5- Thời gian kéo dài trung bình: §d{value}"
+max_idle_duration = "§5- Thời gian kéo dài tối đa: §d{value}"
+min_idle_duration = "§5- Thời gian kéo dài tối thiểu: §d{value}"
+caches = "§5Cache:"
+resource = "§5- Tài nguyên: §d{value} ({value2})"
+2d_stream = "§5- Dòng chảy 2D: §d{value} ({value2})"
+3d_stream = "§5- Dòng chảy 3D: §d{value} ({value2})"
+other = "§5- Khác: §d{value} ({value2})"
+other_2 = "§5Khác:"
+iris_worlds = "§5- Iris Thế giới: §d{value}"
+loaded_chunks = "§5- Chunks nạp đạn: §d{value}"
+message_2 = "§5-------------------------"
+
+[iris.bukkit.commandedit]
+players_only = "§cChỉ người chơi thôi!"
+no_studio_world_is_open = "§cKhông phòng thu nào mở cửa cả!"
+you_must_be_studio_world = "§cCậu chắc đang ở trong phòng thu!"
+cannot_open_files_headless_environments = "§cKhông thể mở tập tin trong môi trường không đầu!"
+desktop_is_not_supported_by_this_environment = "§cMôi trường này không hỗ trợ môi trường!"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6Không tìm thấy tập tin này; có lẽ nó không được tải trực tiếp từ tập tin nào?"
+opening_vscode = "§aMở {value}  {value2} trong VSCode! "
+cant_find_file_registrant_does_not_exist = "§cKhông tìm thấy tập tin.  Hoặc không tồn tại"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6Không tìm thấy tập tin này; có lẽ nó không được tải trực tiếp từ tập tin nào?"
+opening_vscode_2 = "§aMở {value}  {value2} trong VSCode! "
+cant_find_file_registrant_does_not_exist_2 = "§cKhông tìm thấy tập tin.  Hoặc không tồn tại"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6Không tìm thấy tập tin này; có lẽ nó không được tải trực tiếp từ tập tin nào?"
+opening_vscode_3 = "§aMở {value}  {value2} trong VSCode! "
+cant_find_file_registrant_does_not_exist_3 = "§cKhông tìm thấy tập tin.  Hoặc không tồn tại"
+
+[iris.bukkit.commandpregen]
+pregen_radius_must_be_greater_than_zero_blocks = "§cBán kính Pregen phải lớn hơn không khối."
+strict_serial_pregeneration_requires_paper_paper_compatible_server = "§cTiền tạo tuần tự nghiêm ngặt yêu cầu Paper hoặc máy chủ tương thích với Paper."
+engine_access_this_world_is_null = "§cĐộng cơ truy cập thế giới này là vô ích!"
+please_make_sure_world_is_loaded_engine_is_initialized_generate = "§cHãy chắc chắn rằng thế giới đã lên đạn. & Động cơ đã khởi động.  Chẳng hạn như tạo ra một mảng mới."
+failed_start_pregeneration_see_console_details = "§cGặp lỗi khi bắt đầu thế hệ trước.  Xem bảng điều khiển để biết thêm chi tiết."
+no_active_pregeneration_tasks_stop = "§eKhông có tác vụ trước thế hệ mới cần dừng"
+paused_unpaused_pregeneration_task_now = "§aĐã chuyển trạng thái tạm dừng của tác vụ tiền tạo. Trạng thái hiện tại: {value}."
+no_active_pregeneration_tasks_pause_unpause = "§eKhông có tác vụ trước thế hệ hoạt động để tạm dừng/unpause."
+no_active_pregeneration_task = "§eKhông có nhiệm vụ trước thế hệ."
+pregen = "§aBản quyền §6{world}§a: §6{value}/{value2}§a (§6{value3}%§a){value4}"
+speed_s_eta_elapsed_method = "§aTốc độ: §6overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s§a ETA: §6{eta}§a Elapsed: §6{elapsed}§a Method: §6{method}{failures}"
+
+[iris.bukkit.commandwhat]
+material = "Nguyên liệu: §a{value}"
+full = "Đầy đủ: §f{value}"
+please_hold_block_item = "Vui lòng giữ lại một khối/ món đồ"
+material_2 = "Nguyên liệu: §a{value}"
+please_hold_block_item_2 = "Vui lòng giữ lại một khối/ món đồ"
+ibiome = "IBiome: {value} ({value2})"
+non_iris_biome = "Không...Iris Hai sắc: {value}"
+data_pack_biome_id = "Bộ dữ liệu Biome: {value} (ID: {value2})"
+iregion = "IRegion: {value} ({value2})"
+iris_worlds_only = "§aChỉ có Iris thôi."
+please_look_at_any_block_not_at_sky = "Xin hãy nhìn vào bất kỳ khối nào, không phải bầu trời."
+material_3 = "Nguyên liệu: §a{value}"
+full_2 = "Đầy đủ: §f{value}"
+storage_block_loot_capable = "§e* Khối kho lưu trữ (có khả năng điều khiển)"
+lit_block_light_capable = "§eKhối Lit (có khả năng điều khiển ánh sáng)"
+foliage_block = "§eKhối xương sống"
+decorant_block = "§eKhối phân cách"
+fluid_block = "§eKhối Fluid"
+plantable_foliage_block = "§eName"
+solid_block = "§eKhối rắn"
+found_nearby_markers = "Tìm thấy {value} Nearby Markers ({marker})"
+iris_worlds_only_2 = "§aChỉ có Iris thôi."
+
+[iris.modded.irismoddedcommands]
+this_dimension_is_not_generated_by_iris = "Chiều không gian này không được Iris tạo ra."
+console_must_name_biome_iris_edit_biome_key = "Bàn điều khiển phải đặt tên một máy sinh học: /iris edit biome <key>"
+biome_lookup_failed = "Lỗi tra cứu sinh học: {value}"
+unknown_biome = "Tôi sinh không rõ: {key}"
+this_dimension_is_not_generated_by_iris_2 = "Chiều không gian này không được Iris tạo ra."
+console_must_name_region_iris_edit_region_key = "Cần phải đặt tên vùng: /iris edit region <key>"
+region_lookup_failed = "Việc tra tìm vùng bị lỗi: {value}"
+unknown_region = "Vùng không rõ: {key}"
+this_dimension_is_not_generated_by_iris_3 = "Chiều không gian này không được Iris tạo ra."
+cannot_open_files_here = "Không thể mở tập tin ở đây: {value}"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "Không tìm thấy tập tin này; có lẽ nó không được tải trực tiếp từ tập tin?"
+could_not_open = "Không thể mở {value}: {value2}"
+opening_your_editor = "Mở {value}  {value2} trong biên tập của anh."
+console_must_name_player_iris_tp_dimension_player = "Cần phải đặt tên người chơi: /iris tp <dimension> <player>"
+is_not_generated_by_iris = "{value} không được tạo ra bởi Iris."
+teleport_failed_dimension_is_not_loaded = "Chuyển tiếp thất bại: chiều {dimensionId} không nạp đạn."
+teleporting = "Chuyển tiếp {value} phải {dimensionId}..."
+is_not_generated_by_iris_2 = "{value} không được tạo ra bởi Iris."
+cannot_evacuate_primary_world_there_is_nowhere_send_players = "Không thể sơ tán thế giới chính; không có nơi nào để gửi cầu thủ."
+evacuated_player_s_from = "Đã sơ tán{count}người chơi từ{value}phải{value2}."
+set_debug = "Đặt lỗi là: {to}"
+hotloaded_settings = "Thiết lập nạp nóng"
+this_command_can_only_be_used_by_players_it_inspects = "Lệnh này chỉ có thể được dùng bởi người chơi (nó kiểm tra mục đang giữ)."
+your_main_hand_is_empty = "Bàn tay chính của anh trống rỗng."
+hand_x = "Tay: {value} x{value2}"
+this_command_can_only_be_used_by_players = "Chỉ người chơi mới có thể sử dụng lệnh này."
+this_dimension_is_not_generated_by_iris_4 = "Chiều không gian này không được Iris tạo ra."
+this_dimension_is_not_generated_by_iris_5 = "Chiều không gian này không được Iris tạo ra."
+is_not_generated_by_iris_see_iris_info_loaded_iris = "{value} không được tạo ra bởi Iris; thấy /iris info đã nạp Iris Kích thước."
+current_dimension_is_not_generated_by_iris_name_one_explicitly = "Kích thước hiện tại ({value}) không được tạo ra bởi Iris.  Tên một rõ ràng: /iris pregen start {radius} <dimension>; thấy /iris info đã nạp Iris Kích thước."
+pregeneration_task_is_already_running_stop_it_first_with_iris = "Một nhiệm vụ tiền thế hệ đang được thực hiện.  Dừng lại trước /iris pregen stop."
+pregen_started_by_blocks_from_progress_logs_console_see_iris = "Pregen khởi động {value} Kho {value2} bởi {value3} khối {centerX},{centerZ}.{modeNote} Nhật ký tiến hành để bàn điều khiển; xem /iris pregen status.{guiNote}"
+stopping_pregeneration_finishing_up_current_region = "Đang dừng lại tiền thế hệ; kết thúc vùng hiện tại..."
+no_active_pregeneration_task_stop = "Không có nhiệm vụ trước thế hệ mới để dừng lại."
+no_active_pregeneration_task_pause_resume = "Không có tác vụ trước chế độ tích cực để tạm dừng/ tiếp tục."
+pregeneration_is_now = "Thế hệ trước là bây giờ {value}."
+no_active_pregeneration_task = "Không có nhiệm vụ trước thế hệ."
+iris_by_volmit_software_on_minecraft_iris_dimension_s = "Iris  {value} by Volmit Phần mềm trên {value2} (Minecraft  {value3}), {engines}  Iris dimension(s)"
+loaded_dimensions_iris = "Kích cỡ đã tải: {total} ({iris}  Iris)"
+this_command_can_only_be_used_by_players_2 = "Chỉ người chơi mới có thể sử dụng lệnh này."
+this_dimension_is_not_generated_by_iris_6 = "Chiều không gian này không được Iris tạo ra."
+biome = "Hai sắc: {value} ({value2})"
+biome_lookup_failed_2 = "Lỗi tra cứu sinh học: {value}"
+region = "Vùng: {value} ({value2})"
+region_lookup_failed_2 = "Việc tra tìm vùng bị lỗi: {value}"
+cave_biome = "Sinh học hang động: {value}"
+cave_biome_lookup_failed = "Việc tra cứu sinh học hang động thất bại: {value}"
+surface_block_y = "Khối mặt: {value} (y={value2})"
+position_chunk = "Vị trí: {value}  {value2}  {value3} (cunk {value4},{value5})"
+this_command_can_only_be_used_by_players_it_inspects_2 = "Lệnh này chỉ có thể được sử dụng bởi người chơi (nó kiểm tra khối bạn đang nhìn)."
+look_at_block_not_sky = "Nhìn một khối, không phải bầu trời."
+block_y = "Khối: {value} (y={value2})"
+this_command_can_only_be_used_by_players_markers_render = "Lệnh này chỉ có thể được sử dụng bởi người chơi (những người phân tích dịch là các hạt xung quanh bạn)."
+this_dimension_is_not_generated_by_iris_7 = "Chiều không gian này không được Iris tạo ra."
+scanning_markers_around_you = "Đang quét tìm '{marker}♪ Dấu hiệu quanh bạn ♪..."
+marker_scan_failed = "Việc quét dấu hiệu bị lỗi: {value}"
+found_nearby_marker_s = "Tìm thấy {value} Nhãn gần (s) ({marker})"
+this_command_can_only_be_used_by_players_3 = "Chỉ người chơi mới có thể sử dụng lệnh này."
+this_dimension_is_not_generated_by_iris_8 = "Chiều không gian này không được Iris tạo ra."
+unknown_biome_2 = "Tôi sinh không rõ: {key}"
+this_command_can_only_be_used_by_players_4 = "Chỉ người chơi mới có thể sử dụng lệnh này."
+this_dimension_is_not_generated_by_iris_9 = "Chiều không gian này không được Iris tạo ra."
+unknown_region_2 = "Vùng không rõ: {key}"
+is_not_defined_dimension = "{value} không được định nghĩa trong chiều không gian!"
+this_dimension_is_not_generated_by_iris_10 = "Chiều không gian này không được Iris tạo ra."
+is_not_configured_any_region_biome_object_placements_object_keys = "{key} không được cấu hình trong bất kỳ vùng nào/ miền thuộc địa ({value} Phím đối tượng đã nạp)."
+this_command_can_only_be_used_by_players_object_key = "Lệnh này chỉ có thể được sử dụng bởi người chơi.  ( Khóa theo dõi '{key}Giải quyết chống lại {value} đã tải lên khóa đối tượng)"
+this_dimension_is_not_generated_by_iris_11 = "Chiều không gian này không được Iris tạo ra."
+name_iris_native_structure_locate = "Tên Iris hoặc cấu trúc bản địa để xác định vị trí."
+this_command_can_only_be_used_by_players_5 = "Chỉ người chơi mới có thể sử dụng lệnh này."
+unknown_structure_use_tab_completion_choose_iris_placement_registered_native = "Không biết cấu trúc '{key}'.  Dùng thẻ hoàn tất để chọn a Iris Vị trí hoặc một cấu trúc bản địa/datapack đã đăng ký."
+searching_native_structure_within_chunks = "Tìm kiếm cấu trúc bản xứ {value} bên trong {NATIVESTRUCTURELOCATERADIUS} Chunk..."
+searching_iris_placed_structure = "Tìm kiếm Iris- cấu trúc đã thay thế {key}..."
+unable_locate_iris_placed_structure_density_search_safety_limit_was = "Không thể định vị Iris- cấu trúc đã thay thế {key}: mật độ tìm kiếm an toàn đã đạt trước khi đầy 1024- Bán kính bị lục soát."
+could_not_find_iris_placed_structure_within_1024_chunks = "Không tìm thấy Iris- cấu trúc đã thay thế {key} bên trong 1024 Vài miếng."
+search_failed = "Tìm kiếm thất bại: {value}"
+could_not_find_native_structure_within_chunks = "Không tìm thấy cấu trúc mẹ đẻ {value} bên trong {NATIVESTRUCTURELOCATERADIUS} Vài miếng."
+search_native_structure_failed = "Tìm kiếm cấu trúc bản xứ {value} bị lỗi: {value2}"
+player_disconnected_before_structure_search_completed = "Người chơi đã ngắt kết nối trước khi tìm kiếm cấu trúc hoàn tất."
+you_changed_dimensions_before_structure_search_completed_run_command_again = "Bạn đã thay đổi kích thước trước khi tìm kiếm cấu trúc hoàn tất; chạy lại lệnh."
+found_at_but_teleportation_failed = "Tìm thấy {label} vào {targetX}  {clampedY}  {targetZ}nhưng dịch chuyển tức thời thất bại."
+teleported_at = "Chuyển tới {label} vào {targetX}  {clampedY}  {targetZ}"
+this_dimension_is_not_generated_by_iris_12 = "Chiều không gian này không được Iris tạo ra."
+structure_reachability_native_generation_eligible_iris_placed_native_disabled_native = "Khả năng chạm tới cấu trúc: {available} Có thể điều khiển thế hệ bản địa, {irisPlaced}  Iris- Đã đặt chỗ, {disabled} bị tàn tật {suppressed} tự thay thế bởi Iris Tiền đặt chỗ, {unreachableBiomes} bản địa bị loại trừ bởi sinh thiết của gói này, và {unsupported} đã đăng ký cấu trúc bản địa không được hỗ trợ trong chiều này.  Dùng /iris structure verify <key> cho một cấu trúc."
+structure_is_iris_placed_locatable_with_iris_goto_structure = "Cấu trúc {key} là Iris- đã đặt chỗ và dễ bị tổn thương với /iris goto structure {key2}."
+unknown_structure_it_is_neither_iris_placed_nor_registered_by = "Không biết cấu trúc '{key}'.  Không phải. Iris- cũng không đăng ký bằng vanilla hay hồ sơ."
+structure_is_explicitly_replaced_by_iris_placement_locatable_with_iris = "Cấu trúc {value} được hoàn toàn thay thế bởi a Iris Đặt chỗ và locable với /iris goto structure {value2}."
+native_structure_is_enabled_supported_by_this_dimension_s_generator = "Cấu trúc Sở hữu {value} được hiệu lực, được hỗ trợ bởi nhà máy phát của chiều này, và có thể giải quyết với /iris goto structure {value2}."
+this_dimension_is_not_generated_by_iris_13 = "Chiều không gian này không được Iris tạo ra."
+this_command_can_only_be_used_by_players_poi_type = "Lệnh này chỉ có thể được sử dụng bởi người chơi.  (POI Kiểu '{type}Chấp nhận)"
+searching = "Tìm kiếm {label}..."
+engine_this_world_has_been_closed_rejoin_dimension_try_again = "Động cơ của thế giới này đã bị đóng lại; trở lại chiều không gian và thử lại."
+search_failed_2 = "Tìm kiếm thất bại: {failure}"
+could_not_find_within_search_timeout = "Không tìm thấy {label} trong thời gian tìm kiếm."
+teleported_at_2 = "Chuyển tới {label} vào {blockX}  {blockY}  {blockZ}"
+engine_changed_while_locating_try_again = "Động cơ thay đổi trong khi tìm kiếm {label}; thử lại."
+this_dimension_is_not_generated_by_iris_14 = "Chiều không gian này không được Iris tạo ra."
+world_seed = "Hạt giống thế giới: {value}"
+engine_seed_mixed = "Hạt giống động cơ: {value} (đã trộn: {value2})"
+this_dimension_is_not_generated_by_iris_15 = "Chiều không gian này không được Iris tạo ra."
+downloading_irisdimensions = "Đang tải về IrisDimensions/{pack} ({downloadSource})..."
+pack_installed_its_exact_dimension_types_custom_biomes_join_forced = "Gói '{pack}Đã cài đặt.  Các loại hình kích thước chính xác và tùy chỉnh sinh học tham gia vào cưỡng bức Iris Bộ dữ liệu trên trình phục vụ kế tiếp khởi chạy lại; khởi động lại trước khi tạo các thế giới từ gói này."
+pack_download_failed_see_console = "Việc tải về gói thất bại {pack} ({downloadSource}; xem bảng điều khiển)."
+this_dimension_is_not_generated_by_iris_16 = "Chiều không gian này không được Iris tạo ra."
+generated_chunk_s_s = "Tạo ra: {value} chunk(s), {value2}/s"
+ms = "  {value}: {value2}ms"
+
+[iris.modded.moddedcommandhelp]
+unknown_iris_help_section = "Không rõ Iris Phần trợ giúp: {normalized}"
+
+[iris.modded.moddeddatapackcommands]
+type_active_logical_pack_engine_not_started_pack_heights_unknown = "{dimensionId}: gõ={typeKey} hoạt động ={activeMin}..{activeMax} logic ={value} (pack ={value2}Chưa khởi động cơ, chưa tính độ cao gói)"
+type_active_logical_pack_wants_logical = "{dimensionId}: gõ={typeKey} hoạt động ={activeMin}..{activeMax} logic ={value} Gói đồ{value2}Muốn {packMin}..{packMax} logic ={packLogical} | {value3}{value4}"
+warning_active_dimension_type_does_not_match_pack_iris_will = "  WARNING: kiểu kích thước hoạt động không khớp với gói.  Iris sẽ từ chối khởi động cỗ máy thế giới này thay vì địa hình.  Chạy /iris world enable <dimension> <pack> Cho thế giới mới, hay /iris datapack install vì đã nạp Iris Kích thước, rồi khởi động lại."
+no_iris_dimensions_are_loaded = "Không Iris Kích thước được nạp."
+all_iris_dimension_s_match_their_pack_height_ranges = "Tất cả{irisLevels} IrisKích thước phù hợp với phạm vi chiều cao gói của chúng."
+engine_not_started_cannot_derive_its_dimension_type_yet = "{value}: động cơ chưa khởi động; chưa thể lấy được kiểu kích thước của nó."
+dimension_type_generation_failed = "{value}Việc tạo kiểu kích thước bị lỗi: {value2}"
+failed_write = "Lỗi ghi {output}: {value}"
+no_iris_dimensions_with_running_engines_found_nothing_was_installed = "Không Iris Không gian với động cơ đang chạy, không có gì được cài đặt."
+failed_write_2 = "Lỗi ghi {mcmeta}: {value}"
+wrote = "Ghi {path}"
+world_datapack_dimension_type_overrides_installed_restart_server_dimension_types = "Bộ dữ liệu thế giới{WORLDPACKNAME}Name  Khởi động lại trình phục vụ cho kiểu kích thước cần áp dụng."
+configured_datapack_imports = "Bộ dữ liệu đã cấu hình: {value}"
+message = "  - {url}"
+modrinth_ingest_is_bukkit_only_install_these_manually_into_world = "Modrinth Ăn là Bukkit-Chỉ; cài đặt những điều này bằng tay vào world/datapacks nếu cần thiết."
+installed_world_datapacks = "Bộ dữ liệu thế giới đã cài đặt: {value}"
+message_2 = "  - {name}"
+
+[iris.modded.moddeddevelopercommands]
+message = "  {value}"
+network_scan_failed = "Việc quét mạng bị lỗi: {value}"
+
+[iris.modded.moddedgoldenhash]
+goldenhash_scan_is_already_running = "Chụp cắt lớp vàng đã chạy rồi."
+
+[iris.modded.moddedobjectcommands]
+this_command_can_only_be_used_by_players_wand_is = "Lệnh này chỉ có thể được sử dụng bởi người chơi.  (Cái đũa là vật thể)"
+your_inventory_is_full = "Hàng tồn kho đầy rồi."
+poof_good_luck_building_left_click_corner_1_right_click = "Poof.  Chúc may mắn!  (Tiếng nhấn bên trái = góc 1nhắp phải = góc 2)"
+this_command_can_only_be_used_by_players_dust_is = "Lệnh này chỉ có thể được sử dụng bởi người chơi.  ( bụi là một vật thể)"
+your_inventory_is_full_2 = "Hàng tồn kho đầy rồi."
+right_click_block_reveal_object_it_belongs = "Nhấn vào một khối để tiết lộ đối tượng của nó."
+this_command_can_only_be_used_by_players_saving_captures = "Lệnh này chỉ có thể được sử dụng bởi người chơi.  (Tiếng súng của bạn)"
+this_dimension_is_not_generated_by_iris_objects_save_into = "Kích thước này không được tạo ra bởi Iris; các vật thể lưu vào không gian."
+hold_your_iris_wand_iris_wand = "Giữ lấy Iris đũa phép.  (/iris wand)"
+no_area_selected_left_right_click_blocks_with_wand_first = "Chưa chọn diện tích.  Dùng đũa phép để nhấn vào khối bên trái/phải trước."
+invalid_object_name = "Tên đối tượng không hợp lệ: {nameRaw}"
+selection_too_large_blocks_max = "Vùng chọn quá lớn: {volume} khối (xx {MAXSAVEVOLUME})."
+file_already_exists_use_iris_object_save_overwrite = "Tập tin đã có.  Dùng /iris object save overwrite {name}"
+failed_save_object = "Lỗi lưu đối tượng: {value}"
+saved_objects_iob_x_x_block_s = "Đã lưu {value}/objects/{name}.iob: {w}x{h}x{d}, {value2} block(s){tileNote}"
+unknown_empty_object = "Đối tượng không rõ hay rỗng: {key}"
+console_must_specify_coordinates_iris_object_paste_at_x_y = "Cần phải xác định tọa độ: /iris object paste at <x> <y> <z> [rotate <degrees>] {key}"
+you_are_not_looking_at_block_within_blocks = "Bạn không nhìn vào một khối trong {value} tòa nhà."
+paste_failed_partial_changes_recorded_undo = "Dán thất bại: {value} (các thay đổi một phần đã được ghi lại để hoàn tác)"
+placed_at_rot_write_s_non_air = "Đã đặt {key} vào {value}  {value2}  {value3} thối ={rotation} ({value4} ghi(s), {value5} không phải không gian{tileNote})"
+this_command_can_only_be_used_by_players = "Chỉ người chơi mới có thể sử dụng lệnh này."
+hold_your_iris_wand_iris_wand_2 = "Giữ lấy Iris đũa phép.  (/iris wand)"
+no_area_selected = "Chưa chọn diện tích."
+message = "{value}  {amount}  {value2}: {value3}"
+this_command_can_only_be_used_by_players_2 = "Chỉ người chơi mới có thể sử dụng lệnh này."
+ready_your_wand_iris_wand = "Chuẩn bị đũa phép.  (/iris wand)"
+you_are_not_looking_at_block = "Bạn không nhìn vào một khối."
+position_set = "Vị trí {value} đặt {value2}  {value3}  {value4}"
+this_command_can_only_be_used_by_players_3 = "Chỉ người chơi mới có thể sử dụng lệnh này."
+hold_your_wand = "Giữ chặt đũa phép!"
+no_area_selected_2 = "Chưa chọn diện tích."
+selection_too_large_auto_select_blocks_max = "Vùng chọn quá lớn để chọn tự động: {volume} khối (xx {MAXAUTOSELECTVOLUME})."
+auto_select_complete = "Hoàn tất chọn tự động: {value}"
+unknown_object = "Đối tượng lạ: {key}"
+object_size = "Cỡ đối tượng: {value} * {value2} * {value3}"
+blocks_used = "Dùng khối: {value}"
+blocks_object = "teppi82@ gmail. com"
+message_2 = " - {value} * {value2}"
+other_block_state_s = "  + {remaining} Tình trạng khối khác)"
+unknown_object_2 = "Đối tượng lạ: {key}"
+current_object_size = "Cỡ đối tượng hiện có: {value} * {value2} * {value3}"
+new_object_size = "Cỡ đối tượng mới: {value} * {value2} * {value3}"
+object_has_no_load_file_cannot_persist_shrink = "Đối tượng không có tập tin tải; không thể bền bỉ thu nhỏ."
+failed_save_object_2 = "Lỗi lưu đối tượng {value}: {value2}"
+invalid_reach = "Không hợp lệ {token}"
+no_objects_matched = "Không có đối tượng khớp: {target}"
+plausibilize_reach_queued_object_s = "Chất dẻo [reach={reach}{value}] hàng đợi {value2} object(s)"
+nothing_undo = "Không có gì để hủy bỏ."
+reverted_paste_s = "Đã hoàn tác {reverted} lần dán."
+
+[iris.modded.moddedpackcommands]
+packs_folder_not_found = "Không tìm thấy thư mục gói: {value}"
+no_packs_validate_under = "Không có túi để kiểm tra dưới {value}"
+pack_not_found_under = "Gói '{pack}Không tìm thấy dưới {value}"
+validating_pack_s = "Đang thẩm tra {value} gói (s)..."
+validation_failed = "Kiểm tra '{value}Lỗi: {value2}"
+validation_complete_broken_packs = "Đã kiểm tra xong.  Gói hỏng: {brokenTotal}/{value}"
+pack_not_found_under_2 = "Gói '{pack}Không tìm thấy dưới {value}"
+pack_not_found_under_3 = "Gói '{pack}Không tìm thấy dưới {value}"
+no_validation_results_recorded_run_iris_pack_validate_first = "Không có kết quả hợp lệ.  Chạy /iris pack validate Đầu tiên."
+blocking_warnings = "{tag}  {value} (bị chặn ={value2}Cảnh báo ={value3})"
+no_validation_result_run_iris_pack_validate = "Không có kết quả hợp lệ cho «{pack}'.  Chạy /iris pack validate {pack2}."
+pack_is_loadable_warnings = "Gói '{value}'có thể tải được.  (Những cuộc chiến ={value2})"
+pack_is_broken = "Gói '{value}Là bị hỏng:"
+message = "  - {reason}"
+message_2 = "  !  {value}"
+more_warning_s = "  ...và {value} cảnh báo thêm."
+no_cleanup_candidates_found_pack = "Không tìm thấy ứng dụng dọn dẹp cho gói '{pack}'."
+cleanup_preview_pack_candidate_s_no_files_were_changed = "Xem thử dọn dẹp cho gói '{pack}': {value} candidate(s).  Không có tập tin nào bị thay đổi."
+run_iris_pack_cleanup_apply_quarantine_after_fresh_scan = "Chạy /iris pack cleanup {pack} apply để cách ly sau khi quét lại."
+no_cleanup_candidates_found_pack_2 = "Không tìm thấy ứng dụng dọn dẹp cho gói '{pack}'."
+quarantined_cleanup_candidate_s_under = "Cách ly {value} dọn dẹp dưới {value2}."
+nothing_restore_pack = "Không có gì để phục hồi cho gói '{pack}'."
+restore_preview_file_s_no_files_were_changed = "Xem thử phục hồi {value}: {value2} file (s).  Không có tập tin nào bị thay đổi."
+restore_is_blocked_by_existing_destination_s = "Phục hồi bị chặn bởi {value} đã có."
+run_iris_pack_restore_apply_restore_after_fresh_conflict_check = "Chạy /iris pack restore {pack} apply để khôi phục sau khi kiểm tra xung đột mới."
+restore_refused_because_destination_s_already_exist = "Phục hồi bị từ chối bởi vì {value} destination(s) already exist."
+nothing_restore_pack_2 = "Không có gì để phục hồi cho gói '{pack}'."
+restored_file_s_from = "Phục hồi tập tin {value} từ {value2}."
+message_3 = "  - {label}: {value}"
+more = "  ...  và {value} nhiều hơn."
+compat_header = "Gói '{pack}': nội dung không có trên Minecraft {version}"
+compat_none = "Gói '{pack}' không dùng nội dung nào thiếu trên Minecraft {version}."
+compat_remedy = "Cập nhật máy chủ lên Minecraft mới hơn để khôi phục nội dung này, hoặc khai báo phương án dự phòng (blockFallbacks của chiều, backup của khối)."
+
+[iris.modded.moddedregen]
+regen_is_already_running = "Một bản sao đang chạy."
+
+[iris.modded.moddedstructurecommands]
+this_dimension_is_not_generated_by_iris_run_this_from = "Kích thước này không được tạo ra bởi Iris.  Chạy điều này từ một Iris Không gian để bầy đàn được giải quyết."
+wrote_structure_index = "Chỉ mục cấu trúc ghi: {value}"
+no_iris_structure_this_pack = "Không có cấu trúc Iris{key}'Trong gói này"
+structure_assembled_0_pieces_check_startpool = "Cấu trúc{key}Tập hợp 0 mảnh ( cuộc kiểm tra startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "Cấu trúc{key}': {value} mảnh, dấu chân {value2}x{value3} khối (dòng dõi đơn giản 1234)"
+this_command_can_only_be_used_by_players_structure_is = "Lệnh này chỉ có thể được sử dụng bởi người chơi (các cấu trúc được lắp ráp tại vị trí của bạn)."
+no_iris_structure_this_pack_2 = "Không có cấu trúc Iris{key}'Trong gói này"
+structure_assembled_0_pieces = "Cấu trúc{key}Tập hợp 0 mảnh"
+place_failed_partial_changes_recorded_undo = "Nơi bị lỗi: {value} (các thay đổi phần được ghi lại cho việc hoàn tác)"
+placed_pieces_write_s_at_your_location_iris_object_undo = "Đã đặt '{key}' ({value} Từng mảnh, {value2} ghi (s){tileNote}) tại địa điểm của bạn.  /iris object undo để trở lại."
+
+[iris.modded.moddedstudiocommands]
+provide_dimension_pack_iris_studio_open_pack_seed = "Cung cấp một gói chiều: /iris studio open <pack> [seed]"
+opening_noise_explorer_on_server_display = "Mở hệ thống nhiễu trên màn hình máy chủ."
+this_dimension_is_not_generated_by_iris_run_iris_studio = "Kích thước này không được tạo ra bởi Iris; chạy /iris studio noise từ một Iris Kích thước để giải quyết trình tạo, hoặc bỏ tên máy phát."
+unknown_generator_pack = "Máy phát không rõ{generatorKey}' thành gói' {value}."
+opening_noise_explorer_generator_seed = "Mở bộ phát sinh nhiễu{value}' (dòng dõi {seed})."
+this_dimension_is_not_generated_by_iris_stand_iris_studio = "Kích thước này không được tạo ra bởi Iris; đứng trong một Iris (hoặc studio) Kích thước và chạy /iris studio map."
+opening_vision_map_on_server_display = "Mở bản đồ về sự hiện thấy {value} trên màn hình máy phục vụ."
+failed_write_workspace = "Lỗi ghi vùng làm việc cho {value}: {value2}"
+workspace_regenerated_with_json_schemas_autocomplete = "Không gian làm việc được tái tạo: {value} có JSON Các bản thiết kế cho việc hoàn thành tự động."
+could_not_open = "Không thể mở {value}: {value2}"
+opening_your_editor = "Mở {value} trong biên tập của anh."
+this_dimension_is_not_generated_by_iris_specify_pack_name = "Kích thước này không được tạo ra bởi Iris; chỉ ra một tên gói rõ ràng."
+pack_not_found_under = "Gói '{name}Không tìm thấy dưới {value}"
+provide_dimension_pack_iris_studio_open_pack_seed_2 = "Cung cấp một gói chiều: /iris studio open <pack> [seed]"
+opening_studio_seed = "Mở studio cho '{pack}' (dòng dõi {seed})..."
+pack_missing_downloading_irisdimensions = "Gói '{pack}Thiếu; tải về IrisDimensions/{pack2}..."
+pack_could_not_be_downloaded_check_name_try_iris_download = "Gói '{pack}Không thể tải về; hãy kiểm tra tên rồi thử /iris download {pack2}."
+pack_has_no_dimensions_json = "Gói '{pack}'không có dimensions/{pack2}.json"
+studio_open_failed = "Việc mở phòng thu thất bại: {value}{errorMessage}"
+studio_injection_failed = "Việc tiêm phòng thu thất bại: {value}{errorMessage}"
+console_studio_open_now_runs_seed_transient_not_written_iris = "Phòng điều khiển mở: {dimensionId} chạy{pack}hạt giống {seed} ( chuyển hóa, không phải được viết sang iris-dimensions.json và bật lại)."
+enter_it_with_execute_run_tp_s_8_5_8 = "Nhập nó với: /execute in {dimensionId} run tp @s 8.5  {surface}  8.5"
+pregen_it_with_iris_pregen_start_radius = "Mẫu thử với: /iris pregen start <radius> {dimensionId}"
+remove_it_with_iris_studio_close = "Gỡ bỏ nó bằng: /iris studio close"
+studio_injection_failed_2 = "Việc tiêm phòng thu thất bại: {value}{errorMessage}"
+studio_open_now_runs_seed_use_iris_studio_close_when = "Phòng thu mở: {dimensionId} chạy{pack}hạt giống {seed}.  Dùng /iris studio close khi xong việc."
+you_do_not_have_open_studio_use_iris_studio_open = "Bạn không có một studio mở.  Dùng /iris studio open <pack> Đầu tiên."
+studio_close_failed = "Việc đóng cửa phòng thu thất bại: {value}{errorMessage}"
+studio_closed_was_evacuated_unloaded_its_region_data_deleted = "Phòng thu đóng: {dimensionId} đã được sơ tán, tháo dỡ và xóa dữ liệu khu vực."
+no_studio_dimensions_are_currently_open = "Không có không gian studio nào được mở."
+active_studio_dimension_s = "Kích thước studio hoạt động:{value}"
+pack_seed_owner = "  {value}: gói '{value2}hạt giống {value3} người chủ {ownerName}"
+this_command_can_only_be_used_by_players = "Chỉ người chơi mới có thể sử dụng lệnh này."
+you_do_not_have_open_studio_use_iris_studio_open_2 = "Bạn không có một studio mở.  Dùng /iris studio open <pack> Đầu tiên."
+your_studio_dimension_is_no_longer_loaded_use_iris_studio = "Không gian studio của anh không còn nạp đạn nữa.  Dùng /iris studio open <pack> Một lần nữa."
+teleported_your_studio = "Dịch chuyển đến studio của bạn{dimensionId})."
+pack_has_no_dimensions_json_2 = "Gói '{value}'không có dimensions/{value2}.json"
+pack_has_version = "Cái \"{value}\"Tất có phiên bản: {value2}"
+invalid_project_name_allowed_z_0_9 = "Tên dự án không hợp lệ{nameRaw}' (được phép: a-z, 0-9,  và -)"
+pack_already_exists_at = "Gói '{name}'Đã có tại {value}"
+creating_project_from_template = "Đang tạo dự án{name}Từ mẫu{template}'..."
+required_pack_is_not_installed_install_then_restart = "Gói bắt buộc '{pack}' chưa được cài đặt. Hãy cài bằng /iris download, rồi khởi động lại máy chủ."
+created_project_at = "Tạo dự án{name}Ở {value}"
+edit_dimensions_json_rest_pack_vscode_workspace_with_json_schema = "Sửa dimensions/{name}.json và những người còn lại.  A VSCode Vùng làm việc với JSON schema tự động hoàn tất đã được tạo ra; mở nó hoặc chạy lại /iris studio vscode."
+project_creation_failed = "Lỗi tạo dự án: {value}{errorMessage}"
+packaging_dimension = "Không gian gói tin{dimKey}'..."
+package_compiled = "Gói được biên dịch: {value}"
+packaging_failed = "Gửi thất bại: {value}{errorMessage}"
+this_command_can_only_be_used_by_players_sampling_is = "Lệnh này chỉ có thể được sử dụng bởi người chơi (làm gương trung tâm vào vị trí của bạn)."
+this_dimension_is_not_generated_by_iris = "Chiều không gian này không được Iris tạo ra."
+sampling_region_distribution_x_chunks_around_you = "Phân phối khu vực {value}x{value2} Những chunk xung quanh bạn..."
+rarity = "{key}: hiếm ={rarity} / {value}%"
+region_sampling_failed = "Việc lấy mẫu vùng bị lỗi: {value}"
+image_map_requires_iris_dimension = "Stand in an active Iris or Studio dimension before opening the Image Map Studio."
+opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {value} on the server display."
+
+[iris.modded.moddedworldcommands]
+required_pack_is_not_installed_install_then_restart = "Gói bắt buộc '{pack}' chưa được cài đặt. Hãy cài bằng /iris download, rồi khởi động lại máy chủ."
+failed_inject_iris_world = "Lỗi khi tiêm Iris Thế giới{dimensionId}': {value}{errorMessage}"
+created_iris_world_from_pack_dimension_seed = "Tạo Iris thế giới {dimensionId} từ gói '{pack}Không gian{packDimension}' (dòng dõi {seed})."
+it_is_live_now_re_injected_on_every_startup_teleport = "Nó được truyền hình trực tiếp và phát lại vào mỗi lần khởi động.  Name /iris world status hoặc cổng; không cần khởi động lại."
+failed_inject_iris_primary_world = "Lỗi khi tiêm Iris Thế giới chính: {value}{errorMessage}"
+iris_primary_world_set_pack_dimension_seed = "Iris Thế giới chính được thiết lập {dimensionId} (pack '{pack}Không gian{packDimension}hạt giống {seed})."
+vanilla_overworld_generator_cannot_be_hot_swapped_so_this_does = "Trình tạo Overworld mặc định không thể được thay nóng, vì vậy thao tác này KHÔNG tạo lại Overworld hiện có."
+instead_is_now_configured_primary_world_players_vanilla_overworld_are = "Thay vào đó, {dimensionId} Bây giờ là thế giới chính được cấu hình: những người chơi trong thế giới bên kia vanilla được định tuyến ở đó, và nó tái phát vào mỗi lần bắt đầu."
+iris_main_world_override_cleared_overworld_keeps_its_current_generator = "Iris quyền kiểm soát thế giới đã được xóa.  Thế giới bên ngoài giữ trình tạo; chỉnh sửa server.properties Kiểu cấp và khởi động lại để thay đổi nó."
+invalid_seed_use_number_random = "Hạt giống không hợp lệ{seedRaw}'.  Sử dụng một số hoặc \"vô hạn\"."
+pack_is_not_ready_yet_still_loading_validating_try_command = "Gói '{pack}' chưa sẵn sàng (chưa tải hay xác nhận).  Thử lại lệnh lần nữa đi."
+failed_write_server_properties_check_file_permissions_set_level_type = "Lỗi ghi server.properties; kiểm tra quyền hạn tập tin và đặt kiểu cấp thủ công."
+iris_main_world_set_preset_seed = "Iris thế giới chính được đặt thành '{pack}(đã định sẵn {preset}, hạt giống {value})."
+server_properties_level_type_is_now_on_next_restart_overworld = "server.properties Kiểu cấp là bây giờ {preset}.  Trên lần khởi động lại tiếp theo thế giới bên dưới, và kết thúc tái tạo như thế này Iris Thế giới."
+player_data_inventories_advancements_stats_is_kept_existing_terrain_those = "Dữ liệu của người chơi (ký ức, tiến bộ, thống kê) được lưu giữ; địa hình hiện có trong các chiều không gian đó bị thay thế.  Điều này áp dụng một lần."
+mainworldautorestart_is_enabled_stopping_server_now_so_your_restart_wrapper = "mainWorldAutoRestart đã bật — dừng máy phục vụ ngay bây giờ để gói khởi động lại nó trong thế giới chính mới."
+restart_server_now_generate_it_set_mainworldautorestart_true_modded_json = "Khởi động lại máy phục vụ ngay bây giờ để tạo ra nó.  (Để riêng mainWorldAutoRestart= Đúng trong modded.json có Iris Dừng trình phục vụ cho bạn.)"
+refusing_create_world_using_pack_because_required_validation_failed = "Từ chối tạo ra thế giới{dimensionId}Dùng gói{pack}Việc ký chứng nhận cần thiết bị:"
+message = "  - {reason}"
+fix_pack_run_iris_pack_validate_revalidate = "Sửa gói rồi chạy đi. /iris pack validate {pack} để realidate."
+pack_was_not_found_under = "Gói '{pack}Không tìm thấy dưới {value}"
+pack_does_not_contain_dimensions_json = "Gói '{pack}không chứa dimensions/{packDimension}.json"
+invalid_pack_reference_use_pack_pack_dimensionkey = "tham chiếu gói không hợp lệ{pack}{value}'.  Dùng gói hoặc túi:dimensionKey."
+invalid_seed_use_number_random_2 = "Hạt giống không hợp lệ{seedRaw}'.  Sử dụng một số hoặc \"vô hạn\"."
+failed_remove_iris_world = "Lỗi gỡ bỏ Iris Thế giới{dimensionId}': {value}{errorMessage}"
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry = "Iris Thế giới{dimensionId}Không nạp; xoá mục đăng nhập kiên trì của nó và xóa dữ liệu đã cất giữ."
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry_2 = "Iris Thế giới{dimensionId}'không được nạp đạn; xóa mục đăng nhập kiên trì của nó.  Dữ liệu thế giới trên đĩa được lưu giữ."
+deleted_iris_world_evacuated_unloaded_chunk_mantle_data_wiped_dropped = "Xóa Iris Thế giới{dimensionId}Di tản, dỡ hàng, xóa dữ liệu và thả xuống từ đăng ký khởi động."
+disabled_iris_world_evacuated_unloaded_dropped_from_startup_registry = "Tắt Iris Thế giới{dimensionId}Di tản, dỡ hàng, và thả từ đăng ký khởi động."
+world_data_on_disk_is_kept_re_enable_with_iris = "Dữ liệu thế giới trên đĩa được lưu giữ; với /iris world enable {dimensionId} <pack> hay xoá nó bằng /iris world delete {dimensionId2}."
+loaded_iris_level_pack_dimension = "Đã nạp Iris Cấp: {value}  -> gói '{value2}Không gian{value3}'"
+primary_world = "Thế giới chính: {primary}{value}"
+no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Không Iris Kích thước đang được tải.  Tạo một với /iris world create <name> <pack>."
+loaded_iris_dimensions = "Đã nạp Iris Kích thước: {value}"
+message_2 = "  - {dimension}"
+use_iris_world_create_name_pack_inject_one_without_restarting = "Dùng /iris world create <name> <pack> tiêm một mũi mà không khởi động lại."
+
+[iris.director.commanddatapack]
+"director.download_manage_external_datapack_imports_modrinth" = "Tải về & Quản lý các tập dữ liệu bên ngoài (Modrinth)"
+"director.download_update_every_datapack_listed_pack_dimension_s_datapackimports_install_it_into" = "Tải xuống/update mỗi tập dữ liệu liệt kê trong một chiều không gian gói 'datapackImports'và cài đặt nó vào thế giới để cấu trúc của nó được lưu trữ như vanilla"
+"param.restart_server_when_new_datapacks_are_installed_required_new_structures_register_generate" = "Khởi động lại máy phục vụ khi cài đặt các lốc dữ liệu mới (đã yêu cầu cho cấu trúc mới để đăng ký và tạo)"
+"director.list_configured_datapack_imports_their_installed_versions" = "Liệt kê các tập dữ liệu đã cấu hình và phiên bản đã cài đặt"
+"director.remove_installed_datapack_by_id_also_delete_its_url_from_datapackimports_keep" = "Gỡ bỏ bộ dữ liệu đã cài đặt bằng id (cũng xóa bỏ nó URL từ datapackImports để giữ nó đi mất)"
+"param.datapack_id_folder_name_shown_by_iris_datapack_list" = "Mã nhận diện dữ liệu (tên thư mục) được hiển thị bởi /iris datapack list"
+
+[iris.director.commanddeveloper]
+"director.iris_world_manager" = "Iris Quản lý thế giới"
+"director.get_loaded_tectonicplates_count" = "Đã nạp TectonicPlates Số lượng"
+"director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "Đã tạo ra khối kết xuất của một khu vực cố định để thử nghiệm chủ nghĩa xác định/không xác định"
+"param.world_hash" = "♪ Thế giới sẽ khô cằn ♪"
+"param.radius_chunks_around_center" = "Bán kính trong mảng xung quanh trung tâm"
+"param.center_chunk_x" = "Chunk trung tâm X"
+"param.center_chunk_z" = "Chunk trung tâm Z"
+"director.stage_world_generation_update" = "Chuẩn bị bản cập nhật tạo thế giới"
+"param.world_update" = "♪ Cả thế giới để cập nhật ♪"
+"param.pack_install_into_world" = "Name"
+"param.make_sure_make_backup_read_warnings_first" = "Nhớ sao lưu đấy. & đọc lời cảnh báo trước!"
+"director.test" = "Thử"
+"param.dump_whole_tectonic_plate_instead_single_section" = "Đổ cả đĩa kiến tạo thay vì một phần"
+"param.dump_file_id_under_plugins_iris_dump_pv_id" = "Mã nhận diện tập tin lưu trữ bên dưới plugins/Iris/dump (pv.<id>.*)"
+"director.test_2" = "Thử"
+"param.pack_bench" = "Gói dùng để đo điểm chuẩn"
+"param.radius_regions" = "Bán kính trong vùng"
+"param.open_gui_while_benchmarking" = "Mở GUI trong khi đánh dấu"
+"director.upgrade_another_minecraft_version" = "Nâng cấp lên một Minecraft phiên bản"
+"param.version_upgrade" = "Phiên bản cần nâng cấp lên"
+"director.test_3" = "thử ra"
+"param.world_folder_scan_mca_region_files" = "Thư mục thế giới cần quét tìm tập tin vùng .mca"
+"director.delete_nearby_chunk_blocks_regen_testing" = "Xoá các khối tải gần đó để thử lại"
+"param.radius_chunks_around_your_current_chunk" = "Bán kính trong mảng xung quanh mảng hiện tại của bạn"
+"director.test_4" = "Thử"
+"director.delete_regenerate_nearby_chunks_place_using_iris_generation" = "Xóa và tái tạo các mẫu gần đó được dùng Iris thế hệ"
+"param.radius_nearby_chunks" = "Bán kính"
+"director.generate_chunks_into_buffers_no_world_writes_hash_blocks_biomes_captures_golden" = "Tạo ra các mảng thành bộ đệm (không có giấy viết) và hash block+biomes; lấy một tập tin vàng hoặc lời tiên đoán chống lại một cái đã có.  Xóa toàn bộ lớp vỏ (mantle) của thế giới - dùng trong thế giới thử dùng một lần."
+"param.world_scan" = "Thế giới sẽ quét qua"
+"param.radius_chunks_around_center_2" = "Bán kính trong mảng xung quanh trung tâm"
+"param.center_chunk_x_2" = "Chunk trung tâm X"
+"param.center_chunk_z_2" = "Chunk trung tâm Z"
+"param.delete_mantle_data_scan_area_first_full_regeneration_from_scratch" = "Xóa toàn bộ thư mục Mantle của thế giới trước để tạo lại hoàn toàn từ đầu. Không giới hạn ở khu vực quét"
+"param.concurrent_chunk_generations_1_strictly_serial_order_dependence_testing" = "Thế hệ ghép liên tục; 1 = Hoàn toàn nối tiếp cho bài kiểm tra tự đặt hàng"
+"param.also_dump_full_per_chunk_non_air_blockstates_offline_diffing" = "Cũng đổ đầy đủ không gian khối không khí cho việc phân tách ngoại tuyến"
+
+[iris.director.commandedit]
+"director.edit_something" = "Sửa gì đó"
+"director.edit_biome_you_specified" = "Sửa bản sinh học mà bạn xác định"
+"param.biome_edit" = "Sinh học để chỉnh sửa"
+"director.edit_region_you_specified" = "Sửa đổi vùng bạn chỉ định"
+"param.region_edit" = "Vùng cần sửa"
+"director.edit_dimension_you_specified" = "Sửa đổi kích thước bạn xác định"
+"param.dimension_edit" = "Kích thước cần sửa"
+
+[iris.director.commandfind]
+"director.iris_find_commands" = "Iris Tìm câu lệnh"
+"director.find_biome" = "Tìm một sinh vật học"
+"param.biome_look" = "Sinh học để tìm"
+"param.should_you_be_teleported" = "Có cần dịch chuyển không?"
+"director.find_region" = "Tìm vùng"
+"param.region_look" = "Vùng cần tìm kiếm"
+"param.should_you_be_teleported_2" = "Có cần dịch chuyển không?"
+"director.find_point_interest" = "Tìm một điểm thú vị."
+"param.type_poi_look" = "Kiểu PoI để tìm kiếm."
+"param.should_you_be_teleported_3" = "Có cần dịch chuyển không?"
+"director.find_structure_vanilla_key_like_minecraft_village_plains_minecraft_stronghold_imported_iris" = "Tìm một cấu trúc (một chìa khóa vanilla như minecraft:village_plains hay minecraft:strongholdhoặc khoá cấu trúc mắt nhập khẩu)"
+"param.structure_look_e_g_minecraft_village_plains_minecraft_stronghold_minecraft_ancient_city" = "Cấu trúc cần tìm kiếm (e.g.  minecraft:village_plains, minecraft:strongholdThợ mỏ thành phố)"
+"director.find_object" = "Tìm một đối tượng"
+"param.object_look" = "Đối tượng cần tìm kiếm"
+"param.should_you_be_teleported_4" = "Có cần dịch chuyển không?"
+
+[iris.director.commandobject]
+"director.iris_object_manipulation" = "Iris thao tác đối tượng"
+"director.open_object_studio_world_grid_every_object_dimension_optional_defaults_all_packs" = "Mở một phòng thu đối tượng (crid của mọi đối tượng; kích thước tùy chọn, mặc định cho tất cả các gói)"
+"param.optional_dimension_whose_object_pack_lay_out_omit_aggregate_objects_from_every" = "Kích thước tùy chọn mà đối tượng gói để đặt ra; bỏ qua để tổng hợp các đối tượng từ mỗi gói"
+"param.seed_generate_studio_with" = "Hạt giống để tạo ra studio với"
+"director.check_composition_object" = "Kiểm tra thành phần của một đối tượng"
+"param.object_analyze" = "Đối tượng cần phân tích"
+"director.shrink_object_its_minimum_size" = "Thu nhỏ đối tượng về kích cỡ tối thiểu"
+"param.object_shrink" = "Vật thể thu nhỏ"
+"director.grow_organic_branches_through_canopy_so_every_leaf_survives_vanilla_decay" = "Phát triển các nhánh hữu cơ qua tán cây để mỗi chiếc lá sống sót sau sự mục rữa của vanilla"
+"param.object_key_prefix_trees_filesystem_path" = "Khóa đối tượng, tiền tố (cây/) hoặc đường dẫn hệ thống tập tin"
+"param.dryrun_true_analyzes_only_writes_nothing" = "sấy chạy = True phân tích, không viết gì"
+"param.reach_n_max_branch_length_blocks_from_existing_wood_farther_leaf_clusters" = "Đến =N chiều dài chi nhánh tối đa trong các khối từ gỗ đã có; các cụm lá xa hơn bị mắc kẹt lại.  Đến=0 phát triển vô hạn"
+"director.convert_schem_files_convert_folder_iob_files" = "Chuyển đổi tập tin .schem trong thư mục «convert » sang tập tin « .iob »."
+"director.get_powder_that_reveals_objects" = "Lấy một loại bột tiết lộ các vật thể"
+"director.contract_selection_based_on_your_looking_direction" = "Chỉnh sửa phần chọn dựa trên hướng nhìn của bạn"
+"param.amount_inset_by" = "Số tiền cần đặt"
+"director.set_point_1_look" = "Đặt điểm 1 để xem"
+"param.whether_use_your_current_position_where_you_look" = "Nên sử dụng vị trí hiện tại của bạn hay là nơi bạn nhìn"
+"director.set_point_2_look" = "Đặt điểm 2 để xem"
+"param.whether_use_your_current_position_where_you_look_2" = "Nên sử dụng vị trí hiện tại của bạn hay là nơi bạn nhìn"
+"director.paste_object" = "Dán một đối tượng"
+"param.object_paste" = "Đối tượng cần dán"
+"param.whether_not_edit_object_need_hold_wand" = "Có nên sửa đổi đối tượng (cần giữ đũa phép)"
+"param.amount_degrees_rotate_by" = "Số lượng độ để quay"
+"param.factor_by_which_scale_object_placement" = "Các yếu tố mà để tỷ lệ vị trí đối tượng"
+"param.scale_interpolator_use" = "Name"
+"director.save_object" = "Lưu một đối tượng"
+"param.dimension_store_object" = "Kích thước để cất giữ đối tượng vào"
+"param.file_store_it_can_use_subfolders" = "Tập tin để cất giữ nó, có thể dùng / cho thư mục con"
+"param.overwrite_existing_object_files" = "Ghi đè các tập tin đối tượng đã có"
+"param.use_legacy_tilestate_serialization_if_possible" = "Dùng di sản TileState Nhân dạng nếu có thể"
+"director.shift_selection_your_looking_direction" = "Dịch sự lựa chọn theo hướng nhìn của bạn"
+"param.amount_shift_by" = "Số tiền để dịch chuyển bởi"
+"director.undo_number_pastes" = "Hoàn tác nhiều lần dán"
+"param.amount_pastes_undo" = "Số lần dán cần hoàn tác"
+"director.gets_object_wand_grabs_current_worldedit_selection" = "Lấy một cây đũa phép và lấy dòng điện WorldEdit Chọn đi."
+"director.get_object_wand" = "Lấy một cây đũa thần"
+"director.autoselect_up_down_out" = "Tự động chọn lên, xuống & ra"
+"director.autoselect_up_out" = "Tự động chọn & ra"
+
+[iris.director.commandpack]
+"director.pack_validation_maintenance" = "Gói gọn và bảo trì"
+"director.validate_pack_all_packs_re_publish_results" = "Kiểm tra một gói (hoặc tất cả) và kết quả công bố lại"
+"param.pack_folder_name_validate_leave_empty_all" = "Tên thư mục gói cần xác nhận (bỏ rỗng cho mọi người)"
+"director.preview_apply_unused_resource_cleanup" = "Xem thử hoặc áp dụng dọn sạch nguồn không dùng"
+"param.pack_folder_name_clean" = "Tên hộp thư mục cần làm sạch"
+"param.preview_apply" = "xem thử hay áp dụng"
+"director.preview_apply_restoration_latest_quarantine" = "Xem thử hoặc áp dụng khôi phục cách ly mới nhất"
+"param.pack_folder_name_restore" = "Tên thư mục gói cần phục hồi"
+"param.preview_apply_2" = "xem thử hay áp dụng"
+"director.show_cached_validation_status_pack" = "Hiện trạng thái hợp lệ hoá bộ nhớ tạm cho gói"
+"param.pack_folder_name" = "Tên hộp thư mục"
+"director.show_content_cannot_generate_this_minecraft_version" = "Hiển thị nội dung gói không thể tạo trên phiên bản Minecraft này"
+"param.pack_folder_name_compat" = "Tên thư mục gói cần báo cáo"
+
+[iris.director.commandpregen]
+"director.pregenerate_your_iris_worlds" = "Hãy cố gắng Iris Thế giới!"
+"director.pregenerate_world" = "Tạo ra một thế giới"
+"param.radius_pregen_blocks" = "Bán kính của các tiền tố trong khối"
+"param.world_pregen" = "Thế giới sẽ được định sẵn"
+"param.center_location_pregen_use_me_your_current_location" = "Vị trí trung tâm của thần tiên.  Dùng chữ \"tôi\" cho vị trí hiện tại của bạn"
+"param.open_iris_pregen_gui" = "Mở cửa Iris gui pregen"
+"param.generate_only_one_chunk_at_time" = "Tạo ra chỉ một lần"
+"director.stop_active_pregeneration_task" = "Name"
+"director.pause_continue_active_pregeneration_task" = "Tạm dừng / tiếp tục công việc tiền tiến hoạt động"
+"director.show_active_pregeneration_status" = "Name"
+
+[iris.director.commandstructure]
+"director.iris_structure_tools_index_import_info" = "Iris Công cụ cấu trúc (index, nhập khẩu, thông tin)"
+"director.regenerate_structure_index_json_listing_all_vanilla_datapack_iris_structures" = "Tái tạo structure-index.json Name & Cấu trúc mắt"
+"param.dimension_whose_pack_index" = "Name"
+"director.import_every_structure_vanilla_ingested_datapacks_into_this_pack_as_editable_iris" = "Nhập mọi cấu trúc - vaniStencils và Dữ liệu đã nuốt vào gói này là có thể sửa Iris Nguồn lực, luôn vượt quá tầm tay.  Xây dựng lại cấu trúc ghép hình (villages, tiền đồn, trò chơi ghép dữ liệu) như đồ thị hồ sơ/ mảnh sửa đổi được, nhập vào mỗi mẫu cấu trúc NBT là một vật thể, và lắp ráp các cấu trúc đa tư (các tàu ngầm, phá hủy cánh cổng, tàn tích đại dương, hóa thạch thấp).  Chạy sau khi nuốt một bộ dữ liệu và khởi động lại.  Những bản sao nhập khẩu được sản xuất lại hoặc sử dụng một thế giới tươi mới."
+"param.dimension_whose_pack_import_into" = "Name"
+"director.capture_code_generated_structures_that_have_no_nbt_template_swamp_huts_igloos" = "Chụp cấu trúc mã hóa mà không có NBT Mẫu (swamp lều, igloos, etc.) thành có thể sửa đổi Iris Các vật thể bằng cách tạo ra từng vật trong một thế giới bị trầy xước và đọc lại những khối của nó.  Các cấu trúc đã được nhập khẩu như là một cấu trúc, các cấu trúc rộng hơn một phần của nắp tàu (giữ chặt, biệt thự, đài tưởng niệm vẫn còn vanilla), và bất cứ thứ gì không tạo ra trong một thế giới phẳng.  Mỗi cấu trúc bị bắt lại trở thành một mảnh ghép duy nhất Iris cấu trúc bạn có thể phân loại từ danh sách cấu trúc sinh học/region/dimensition.  Chạy tự động như lần đi qua cuối cùng của /iris structure import."
+"param.dimension_whose_pack_capture_into" = "Chiều không gian để thu thập vào"
+"director.verify_native_structure_eligibility_locate_iris_placed_structures_without_running_blocking_native" = "Kiểm tra cấu trúc bản xứ dao động và định vị Iris- những cấu trúc được đặt chỗ mà không chặn việc tìm kiếm bản địa."
+"param.dimension_verify" = "Kích thước để xác minh"
+"param.search_radius_chunks_around_origin_larger_is_much_slower" = "Bán kính tìm kiếm trong mảng xung quanh nguồn (lớn hơn chậm hơn)"
+"director.resolve_iris_structure_s_jigsaw_graph_report_piece_count_bounds" = "Giải quyết cấu trúc crimesaw đồ thị và đếm mảnh báo cáo & giới hạn"
+"param.dimension_whose_pack_holds_structure" = "Kích thước mà bầy đàn nắm giữ cấu trúc"
+"param.iris_structure_key_inspect" = "Chìa khóa cấu trúc mắt để kiểm tra"
+"director.assemble_place_iris_structure_at_your_location_studio_testing" = "Tập hợp và đặt một cấu trúc Iris tại vị trí của bạn (thử nghiệm từ xa)"
+"param.dimension_whose_pack_holds_structure_2" = "Kích thước mà bầy đàn nắm giữ cấu trúc"
+"param.iris_structure_key_place" = "Name"
+
+[iris.director.commandstudio]
+"director.studio_commands" = "Lệnh phòng thu"
+"director.open_new_studio_world" = "Mở một phòng thu mới"
+"param.dimension_pack_open_studio" = "Name"
+"param.seed_generate_studio_with" = "Hạt giống để tạo ra studio với"
+"director.import_vanilla_trees_mushrooms_objects_structures_jigsaw_from_server_into_pack_s" = "Nhập câyilla, nấm & đối tượng (và structures/jigsaw) Từ máy phục vụ vào một gói objects/vanilla Thư mục"
+"param.dimension_pack_import_vanilla_content_into" = "Name"
+"param.how_many_variants_capture_per_tree_object_feature" = "Có bao nhiêu biến thể để nắm bắt mỗi tính năng trên cây/ thu hút"
+"param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "Cũng nhập vanilla & Bộ dữ liệu structures/jigsaw vào túi"
+"director.open_vscode_dimension" = "Mở VSCode cho một chiều"
+"param.dimension_open_vscode" = "Kích thước để mở VSCode Vì"
+"director.close_open_studio_project" = "Đóng một dự án studio mở"
+"director.toggle_your_studio_debug_scoreboard" = "Bật/ tắt bảng chọn gỡ lỗi phòng thu"
+"director.create_new_studio_project" = "Tạo một dự án studio mới"
+"param.name_this_new_iris_project" = "Tên của cái mới này Iris Dự án."
+"param.copy_contents_existing_project_your_packs_folder_use_it_as_template_this" = "Sao chép nội dung của một dự án đã có trong thư mục của bạn và dùng nó làm mẫu trong dự án mới này."
+"director.get_version_pack" = "Lấy phiên bản của một gói"
+"param.dimension_get_version" = "Kích thước nhận được phiên bản của"
+"director.open_noise_explorer_external_gui" = "Mở cửa nhà thám hiểm âm thanh (bên ngoài GUI)"
+"param.optional_pack_generator_preview" = "Trình tạo ra gói tùy chọn để xem thử"
+"param.seed_preview_generator_with" = "Hạt giống để xem thử trình tạo bằng"
+"director.show_loot_if_chest_were_right_here" = "Hãy lộ chiến lợi phẩm nếu có một cái rương ở ngay đây."
+"param.fast_insertion_items_virtual_inventory_may_cause_performance_drop" = "Nạp nhanh mục trong kho ảo (có thể gây ra thả hiệu suất)"
+"param.whether_not_append_inventory_currently_open_if_false_clears_opened_inventory" = "Có nên phụ thêm vào kho hàng hiện đang mở (nếu có giả, dọn sạch kho chứa)"
+"director.calculate_chance_each_region_generate" = "Tính cơ hội cho mỗi vùng tạo ra"
+"param.radius_chunks" = "Bán kính theo đoạn"
+"director.render_world_map_external_gui" = "Vẽ bản đồ thế giới (bên ngoài GUI)"
+"param.world_open_generator" = "Thế giới mở trình tạo cho"
+"director.package_dimension_into_compressed_format" = "Name"
+"param.dimension_pack_compress" = "Name"
+"param.whether_not_obfuscate_pack" = "Có nên làm ô uế các gói"
+"param.whether_not_minify_pack" = "Có nên giải nén hay không"
+"director.profiles_performance_dimension" = "Phân tích hiệu suất của một chiều không gian"
+"param.dimension_profile" = "Kích thước cần phân tích"
+"director.spawn_iris_entity" = "Tạo một thực thể Iris"
+"param.entity_spawn" = "Thực thể cần tạo"
+"param.location_spawn_entity_at" = "Vị trí để tạo thực thể"
+"director.teleport_active_studio_world" = "Name"
+"director.update_your_dimension_projects_vscode_workspace" = "Cập nhật dự án chiều không gian của bạn VSCode Miền làm việc"
+"param.dimension_update_workspace" = "Kích thước để cập nhật không gian làm việc của"
+"director.capture_igendata_chunk_report_nearby_chunks" = "Bắt một IGenData @ info/ rich"
+
+[iris.director.commandwhat]
+"director.iris_what" = "Iris Cái gì?"
+"director.what_is_my_hand" = "Trong tay tôi có gì?"
+"director.what_biome_am_i" = "Tôi đang ở phòng sinh học nào?"
+"director.what_region_am_i" = "Tôi đang ở vùng nào?"
+"director.what_block_am_i_looking_at" = "Tôi đang nhìn vào khu vực nào?"
+"director.show_markers_chunk" = "Hiện dấu hiệu trong đoạn"
+"param.marker_name_such_as_cave_floor_cave_ceiling" = "Dấu hiệu tên như hang  tầng hoặc hang  động"
+
+[iris.runtime.progress]
+finding_regions = "Tìm vùng"
+converting = "Chuyển đổi"
+
+[iris.runtime.status]
+running = "Đang chạy"
+stopped = "Bị dừng"
+paused = "Tạm dừng"
+paused_lower = "bị dừng"
+running_lower = "đang chạy"
+enabled = "đã bật."
+disabled = "Vô hiệu."
+unregistered = "Chưa đăng ký"
+none = "không có"
+random = "ngẫu nhiên"
+match = "MATCH"
+mismatch = "MISMATCH"
+true = "đúng"
+false = "sai"
+
+[iris.runtime.error]
+detail_suffix = " - {error}"
+
+[iris.runtime.datapack]
+override_suffix = " (Bộ dữ liệu thế giới ghi đè)"
+name = "Iris Thế hệ"
+
+[iris.runtime.primary_world]
+players_routed_suffix = " (Những người chơi đã đến đó)"
+routing_disabled_suffix = " (bị tắt)"
+
+[iris.runtime.modded]
+no_dimension_match = "Không Iris Kích thước khớp{filter}'."
+
+[iris.runtime.teleport]
+world = "Anh đã bị dịch chuyển {world}."
+
+[iris.runtime.engine]
+hotloaded = "Comment"
+
+[iris.runtime.job]
+completed = "Hoàn tất {job} trong {duration}"
+scanning_selection = "Đang quét vùng chọn"
+loading_chunks = "Đang nạp Chunks"
+searched_chunks = "Đã tìm kiếm {chunks} Chunnks"
+compile = "Name"
+saving_object = "Đang lưu đối tượng"
+downloading = "Đang tải về"
+extracting = "Xuất ra"
+installing = "Đang cài đặt"
+
+[iris.runtime.compile]
+iob_empty = "- IOB  {file} có 0 các khối!"
+iob_empty_hover = "Lỗi\n{path}"
+iob_not_3d = "- IOB  {file} không phải 3D!"
+iob_not_3d_hover = "Lỗi\n{path}\nChiều rộng, chiều cao hoặc chiều sâu là 0 (hình dạng xấu)"
+json_error = "- JSON Lỗi {file}"
+json_error_hover = "Lỗi\n{path}\n{error}"
+loader_not_found = "Không tìm thấy bộ tải cho {path}"
+
+[iris.runtime.pack]
+already_exists = "Gói hàng đã có!"
+
+[iris.runtime.tree_plausibilize]
+dry_suffix = ", DRY"
+skip_load = "bỏ qua {object}Lỗi tải"
+result = "{object}: +{wood} gỗ ({branches} chi nhánh), {converted} để lại->gỗ,{distances} Khoảng cách"
+result_pinned = "{object}: +{wood} gỗ ({branches} chi nhánh), {converted} để lại->gỗ,{distances} Khoảng cách!{pinned} Đã kết nối"
+progress = "[{current}/{total}]"
+failed = "bị lỗi {object}: {type}: {error}"
+done = "Hoàn tất: {processed} Xử lý, {changed} đã thay đổi, {skipped} bỏ qua, {failed} bị lỗi"
+done_dry = "Hoàn tất: {processed} Xử lý, {changed} đã thay đổi, {skipped} bỏ qua, {failed} bị lỗi (đã sấy chạy, không có gì được ghi)"
+totals = "Tổng: +{wood} gỗ ({branches} chi nhánh), {converted} để lại->gỗ,{distances} Khoảng cách!{pinned} Comment {before}  ->  {after}"
+
+[iris.runtime.item]
+"wand.name" = "Cây Iris"
+"wand.lore.first" = "Nhấn vào một khối để đặt góc thứ nhất"
+"wand.lore.second" = "Nhấn vào một khối để đặt góc thứ hai"
+"dust.name" = "Bụi bày tỏ"
+"dust.lore" = "Nhấn vào một khối để biết cấu trúc vị trí của nó!"
+
+[iris.runtime.wand]
+position_set = "Vị trí {position} đặt {x}, {y}, {z}"
+
+[iris.runtime.dust]
+iris_world_required = "Chiều không gian này không được Iris tạo ra."
+found_object = "Đối tượng đã tìm {object}"
+revealed = "Đã tiết lộ{count}khối{object}"
+revealed_capped = "Đã tiết lộ{count}khối{object}(bị bao vây)"
+header = "--- Iris Bụi {x}, {y}, {z} ---"
+block = "Khối: {block}"
+"position.above" = "Vị trí: +{offset}  phía trên bề mặt (mặt rộng Y={surfaceY})"
+"position.below" = "Vị trí: {offset} Bên dưới bề mặt (mặt đất Y={surfaceY})"
+"position.at" = "Vị trí: tại bề mặt (Y={surfaceY})"
+object_at_block = "Đối tượng {object}"
+none = "không có"
+"placed_by.object_above" = "Được đặt bởi đối tượng/ giây{object}' (mặt trên)"
+"placed_by.decoration_above" = "Đặt theo: trang trí/ thu hút/ Linh tinh (mặt đất)"
+"placed_by.buried_object" = "Đặt theo: đối tượng đã chôn{object}'"
+"placed_by.terrain" = "Đặt theo lớp địa hình ( thâm tím {depth} dưới bề mặt)"
+column_object = "Đối tượng cột: {object}  -> khối này có khả năng mà đối tượng của Stilt"
+column_object_none = "Đối tượng cột: {detail}"
+column_none = "không có gì bên trong 64 (Khán giả hoặc địa hình, không một dấu chấm)"
+"column.above" = "{object} @Y={y} (hình trên)"
+"column.below" = "{object} @Y={y} (Tiếng thấp)"
+surface_biome = "Sinh học bề mặt: {biome}"
+surface_biome_detail = "Sinh học bề mặt: {biome} ({derivative})"
+biome_at_y = "Tạm dừng {biome}"
+cave_biome = "Hang động/Mantle sinh học: {biome}"
+server_biome = "Sinh thiết máy phục vụ: {biome} (ID: {id})"
+region = "Vùng: {region} ({name})"
+objects_in_chunk = "Đối tượng dạng đoạn {objects}"
+copy_button = "[nhấp để sao chép các thống kê]"
+copy_hover = "Chép thông tin chặn vào bảng nháp"
+reveal_failed = "Object reveal failed; see the console for details."
+
+[iris.runtime.pregen]
+starting = "Iris Bắt đầu Pregen..."
+header = "Iris Bản quyền"
+"bossbar.paused" = "Iris Bản quyền {generated}/{total}  {percent}%  đã tạm dừng"
+"bossbar.running" = "Iris Bản quyền {generated}/{total}  {percent}%  {speed}/s{eta}{failed}"
+eta_fragment = "  ETA  {eta}"
+failed_fragment = "  bị lỗi {failed}"
+"status.context" = "Kích thước {dimension} · Phương pháp {method}"
+"status.progress" = "{percent}%"
+"status.chunks" = "Chunnks {generated}/{total} * Tốc độ overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s"
+"status.chunks_failed" = "Chunnks {generated}/{total} * Tốc độ overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s · Failed {failed}"
+"status.time" = "ETA  {eta} Lập tắt {elapsed}"
+"status.time_paused" = "ETA  {eta} Lập tắt {elapsed} · đã tạm dừng"
+"button.pause" = "Tạm dừng/ Tiếp tục"
+"button.pause.hover" = "Bật/ tắt trạng thái tạm dừng tiền thế hệ"
+"button.stop" = "Dừng"
+"button.stop.hover" = "Kết thúc vùng hiện tại và dừng tiến trình tiền tế bào"
+
+[iris.bukkit.runtime]
+"commandpack.packs_folder_not_found" = "§cKhông tìm thấy gói/ thư mục."
+"commandpack.no_packs_validate" = "§eKhông có túi để kiểm tra."
+"commandpack.validation_complete_broken_packs" = "§aĐã kiểm tra xong.  Gói hỏng: {broken}/{value}"
+"commandpack.pack_not_found_under_packs" = "§cGói '{pack}Không tìm thấy dưới packs/."
+"commandpack.no_cleanup_candidates_found_pack" = "§aKhông tìm thấy ứng dụng dọn dẹp cho gói '{pack}'."
+"commandpack.quarantined_cleanup_candidate_s_under" = "§aCách ly{size}Ứng cử viên làm sạch dưới{quarantinePath}."
+"commandpack.cleanup_mode_must_be_preview_apply" = "§cChế độ làm sạch phải được xem thử hay áp dụng."
+"commandpack.no_cleanup_candidates_found_pack_2" = "§aKhông tìm thấy ứng dụng dọn dẹp cho gói '{pack}'."
+"commandpack.cleanup_preview_pack_candidate_s_no_files_were_changed" = "§eXem thử dọn dẹp cho gói '{pack}': {size} candidate(s).  Không có tập tin nào bị thay đổi."
+"commandpack.run_iris_pack_cleanup_mode_apply_quarantine_these_candidates_after_fresh_scan" = "§7Chạy /iris pack cleanup {pack} mode=apply để cách ly những ứng cử viên này sau khi quét mới."
+"commandpack.restore_refused_because_destination_s_already_exist" = "§cPhục hồi bị từ chối bởi vì {size} destination(s) already exist."
+"commandpack.nothing_restore_pack" = "§eKhông có gì để phục hồi cho gói '{pack}'."
+"commandpack.restored_file_s_from" = "§aĐã phục hồi{size}Tập tin từ{dumpPath}."
+"commandpack.restore_mode_must_be_preview_apply" = "§cChế độ phục hồi phải được xem thử hoặc áp dụng."
+"commandpack.nothing_restore_pack_2" = "§eKhông có gì để phục hồi cho gói '{pack}'."
+"commandpack.restore_preview_file_s_no_files_were_changed" = "§eXem thử phục hồi {dumpPath}: {size} file (s).  Không có tập tin nào bị thay đổi."
+"commandpack.restore_is_blocked_by_existing_destination_s" = "§cPhục hồi bị chặn bởi{size}đích đã có."
+"commandpack.run_iris_pack_restore_mode_apply_restore_after_fresh_conflict_check" = "§7Chạy /iris pack restore {pack} mode=apply để khôi phục sau khi kiểm tra xung đột mới."
+"commandpack.no_validation_results_recorded_run_iris_pack_validate_first" = "§eKhông có kết quả hợp lệ.  Chạy /iris pack validate Đầu tiên."
+"commandpack.status.ok" = "§aĐược rồi§r  {pack}§7 (bị chặn ={blocking}Cảnh báo ={warnings})"
+"commandpack.status.broken" = "§cHÌNH§r  {pack}§7 (bị chặn ={blocking}Cảnh báo ={warnings})"
+"commandpack.cleanup_failed" = "§cLàm sạch thất bại: {error}"
+"commandpack.restore_failed" = "§cViệc phục hồi bị lỗi: {error}"
+"commandpack.path.still_quarantined" = "Vẫn bị cách ly"
+"commandpack.path.quarantined" = "Cách ly"
+"commandpack.path.candidate" = "ứng cử viên"
+"commandpack.path.conflict" = "xung đột"
+"commandpack.path.restored" = "Đã phục hồi"
+"commandpack.path.file" = "Tập tin"
+"commandpack.no_validation_result_run_iris_pack_validate" = "§eKhông có kết quả hợp lệ cho «{pack}'.  Chạy /iris pack validate {pack2}."
+"commandpack.validation_failed" = "§cKiểm tra '{name}Lỗi: {error}"
+"commandpack.pack_is_loadable_warnings" = "§aGói '{packName}'có thể tải được.§7 (Những cuộc chiến ={size})"
+"commandpack.pack_is_broken" = "§cGói '{packName}Là bị hỏng:"
+"commandpack.message" = "§c  - {reason}"
+"commandpack.message_2" = "§e  !  {value}"
+"commandpack.more_warning_s" = { other = "§7    ...  và {count} cảnh báo thêm.", one = "§7    ...  và {count} cảnh báo thêm." }
+"commanddeveloper.stage_world_generation_update_warning" = ["§cSao lưu toàn bộ thế giới trước khi chuẩn bị bản cập nhật này.", "§eCác chunk hiện có sẽ không được tạo lại hoặc ghi đè.", "§eSau khi khởi động lại, chunk mới dùng gói đã chuẩn bị và chuyển tiếp dần tại ranh giới đã lưu.", "§eKhông thể thay đổi seed, chiều cao, môi trường hoặc loại chiều không gian của thế giới.", "§eMỗi bản sao lưu phải giữ toàn bộ thư mục iris/generation.", "§cĐể chuẩn bị bản cập nhật và yêu cầu khởi động lại đúng cách:", "§c/iris developer update-world {world} {pack} confirm=true"]
+"bulkstructureimporter.importing_vanilla_datapack_structures_mode_includenonjigsaw" = "§aNhập §f{total}§a Name & cấu trúc gói dữ liệu (mode={mode}, includeNonJigsaw={includeNonJigsaw})..."
+"bulkstructureimporter.fail_invalid_key" = "§c[lỗi]  {keyString}: khóa không hợp lệ"
+"bulkstructureimporter.jigsaw" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.skip_no_single_template_nbt_vanilla_builds_this_code_from_separate_piece" = "§e[bỏ qua]  {keyString}: NBT -oni xây dựng nó bằng mã hoặc từ các mẫu riêng biệt (được nhập qua các mẫu); không có gì để nhập như một cấu trúc."
+"bulkstructureimporter.fail" = "§c[lỗi]  {keyString}: {message}"
+"bulkstructureimporter.fail_2" = "§c[lỗi]  {keyString}: {message}"
+"bulkstructureimporter.fail_3" = "§c[lỗi]  {keyString}: {error}"
+"bulkstructureimporter.bulk_import_complete_imported_skipped_failed_total" = "§aĐã nhập xong: §f{imported}§a Nhập khẩu, §f{skipped}§a bỏ qua, §f{failed}§a lỗi (§f{total}§a Tổng cộng)."
+"bulkstructureimporter.building_single_template_structures_from_imported_pieces_one_variant_placed_per_generation" = "§aXây dựng cấu trúc thái dương đơn từ các mảnh nhập khẩu (một biến thể được đặt trên mỗi thế hệ)..."
+"bulkstructureimporter.group_variants" = "§7[group]  {value}  ->  {value2} ({blocks} biến thế)"
+"bulkstructureimporter.skip" = "§e[bỏ qua]  {value}: {message}"
+"bulkstructureimporter.fail_4" = "§c[lỗi]  {value}: {error}"
+"bulkstructureimporter.single_template_structures_built_skipped_failed" = "§aCác cấu trúc thái đơn: §f{imported}§a Xây dựng, §f{skipped}§a bỏ qua, §f{failed}§a bị lỗi."
+"bulkstructureimporter.failed_enumerate_structure_templates_via_server_resourcemanager" = "§cLỗi liệt kê các mẫu cấu trúc thông qua máy chủ ResourceManager: {e}"
+"bulkstructureimporter.no_structure_templates_were_found_under_structure_resource_path" = "§eKhông tìm thấy mẫu cấu trúc nào dưới đường dẫn tài nguyên « cơ cấu »."
+"bulkstructureimporter.importing_structure_templates_mode" = "§aNhập §f{total}§a mẫu cấu trúc (mode={mode})..."
+"bulkstructureimporter.fail_invalid_key_2" = "§c[lỗi]  {keyString}: khóa không hợp lệ"
+"bulkstructureimporter.fail_5" = "§c[lỗi]  {keyString}: {message}"
+"bulkstructureimporter.fail_6" = "§c[lỗi]  {keyString}: {error}"
+"bulkstructureimporter.imported_skipped_failed" = "§7...{processed}/{total} ({imported} Nhập khẩu, {skipped} bỏ qua, {failed} bị lỗi)"
+"bulkstructureimporter.template_import_complete_imported_skipped_failed_total" = "§aComment §f{imported}§a Nhập khẩu, §f{skipped}§a bỏ qua, §f{failed}§a lỗi (§f{total}§a Tổng cộng)."
+"bulkstructureimporter.no_datapack_non_minecraft_structures_are_registered_ingest_datapack_restart_first_then" = "§eKhông có tập dữ liệu nào (không phải của tôi) được đăng ký.  Hãy khởi động lại dữ liệu trước, rồi chạy lại lần nữa."
+"bulkstructureimporter.importing_datapack_structures_mode" = "§aNhập §f{total}§a cấu trúc gói dữ liệu (mode={mode})..."
+"bulkstructureimporter.fail_invalid_key_3" = "§c[lỗi]  {keyString}: khóa không hợp lệ"
+"bulkstructureimporter.jigsaw_2" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single_2" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.fail_7" = "§c[lỗi]  {keyString}: {message}"
+"bulkstructureimporter.fail_8" = "§c[lỗi]  {keyString}: {message}"
+"bulkstructureimporter.fail_9" = "§c[lỗi]  {keyString}: {error}"
+"bulkstructureimporter.importing_datapack_structure_templates" = "§aNhập §f{size}§a Comment..."
+"bulkstructureimporter.fail_10" = "§c[lỗi]  {keyString}: {message}"
+"bulkstructureimporter.fail_11" = "§c[lỗi]  {keyString}: {error}"
+"bulkstructureimporter.could_not_enumerate_datapack_templates_via_server_resourcemanager" = "§eKhông thể liệt kê các mẫu dữ liệu qua máy chủ ResourceManager: {error}"
+"bulkstructureimporter.datapack_structure_import_complete_imported_skipped_failed" = "§aComment §f{imported}§a Nhập khẩu, §f{skipped}§a bỏ qua, §f{failed}§a bị lỗi."
+"structurecaptureimporter.structure_capture_is_not_supported_by_active_nms_binding_skipping_capture_pass" = "§eBắt giữ cấu trúc không được hỗ trợ bởi các hoạt động NMS ràng buộc, bỏ qua việc bắt giữ."
+"structurecaptureimporter.no_code_generated_structures_left_capture_everything_is_already_imported_as_structure" = "§7Không còn cấu trúc mã hóa nào để lấy (mọi thứ đã được nhập vào như một cấu trúc)."
+"structurecaptureimporter.capturing_code_generated_structures_no_nbt_template_into_scratch_world_skipping_any" = "§aBắt buộc §f{total}§a Cấu trúc mã hóa (không có NBT Biểu mẫu) thành một thế giới bị trầy xước (đi vào bất cứ thế giới rộng hơn/taller nào so với {MAXSPAN} khối)..."
+"structurecaptureimporter.skip_did_not_place_capturable_structure_here_too_large_wrong_dimension_no" = "§e[bỏ qua]  {key}▪ Không đặt một cấu trúc quan trọng ở đây (quá lớn, sai kích thước hoặc không có vị trí thích hợp trong một thế giới phẳng).  Vẫn sản xuất vanilla."
+"structurecaptureimporter.fail" = "§c[lỗi]  {key}: {message}"
+"structurecaptureimporter.capture_objects_iob_x_x" = "§7[capture]  {key}  ->  objects/{name}.iob ({w}x{h}x{d})"
+"structurecaptureimporter.fail_2" = "§c[lỗi]  {key}: {error}"
+"structurecaptureimporter.captured_skipped_failed" = "§7...{processed}/{total} ({imported} Đã bị bắt, {skipped} bỏ qua, {failed} bị lỗi)"
+"structurecaptureimporter.structure_capture_complete_captured_skipped_failed_total" = "§aHoàn tất ghi hình cấu trúc: §f{imported}§a Đã bị bắt, §f{skipped}§a bỏ qua, §f{failed}§a lỗi (§f{total}§a Tổng cộng)."
+"featureimporter.no_vanilla_tree_object_features_are_exposed_by_active_nms_binding_importing" = "§eName NMS Liên kết (chỉ đưa vào các cấu trúc)."
+"featureimporter.importing_vanilla_tree_object_features_variants_each_into_scratch_world" = "§aNhập §f{total}§a Các tính năng của cây van-ni- a/ dễ theo dõi (§f{wantVariants}§a biến thể mỗi) thành một thế giới cũ..."
+"featureimporter.obj_objects_vanilla" = "§7[obj]  {key}  ->  objects/vanilla/{group}/{safeName} ({written})"
+"featureimporter.skip_feature_placed_nothing_after_retries" = "§e[bỏ qua]  {key}: tính năng không đặt gì sau khi nhớ lại."
+"featureimporter.fail" = "§c[lỗi]  {key}: {error}"
+"featureimporter.imported_skipped_failed" = "§7...{processed}/{total} ({imported} Nhập khẩu, {skipped} bỏ qua, {failed} bị lỗi)"
+"featureimporter.feature_import_complete_features_written_skipped_failed_total" = "§aMới nhập xong: §f{imported}§a Tính năng được viết ra, §f{skipped}§a bỏ qua, §f{failed}§a lỗi (§f{total}§a Tổng cộng)."
+"featureimporter.could_not_create_scratch_world_feature_import_skipping_tree_object_pass" = "§cKhông thể tạo thế giới xước để nhập đặc điểm ({error}; bỏ qua cây/Bỏ qua đối tượng."
+"irisconverter.no_schematic_files_convert_found" = "Không tìm thấy tập tin sơ đồ cần chuyển đổi {path}"
+"irisconverter.converted" = "§aChuyển đổi {name}  ->  {value} trong {value2}"
+"irisconverter.converted_2" = "§aChuyển đổi {name}  ->  {value}"
+"irisconverter.failed_save" = "§cLỗi lưu: {name}"
+"irisconverter.failed_convert" = "§cLỗi chuyển đổi: {name}"
+"irisconverter.converted_3" = "§7Chuyển đổi: {get} trong {value}"
+"irisconverter.some_schematics_failed_convert_check_console_details" = "§cMột số sơ đồ không thể chuyển đổi.  Kiểm tra bảng điều khiển xem có chi tiết gì không."
+"studiosvc.pack_copy_requires_async_thread" = "§cIris refused to copy the world pack on the Bukkit primary thread."
+"studiosvc.pack_install_failed" = "§cFailed to install world pack §f{dimension}§c: {error}"
+"studiosvc.looking_package" = "Đang tìm gói: {type}"
+"studiosvc.found_iris_folder" = "Tìm thấy {type}Tham gia {WORKSPACENAME} Thư mục"
+"studiosvc.found_dimension_folder_repackaging" = "Tìm thấy {type} Không gian trong {WORKSPACENAME} thư mục.  Đang nạp lại"
+"studiosvc.can_t_find_dimensions_folder_this_pack_failed" = "Không tìm thấy {name} trong các kích thước thư mục của gói này!  Thất bại!"
+"studiosvc.can_t_load_dimension_failed" = "Không nạp được chiều không gian!  Thất bại!"
+"studiosvc.type_installed" = "{name} đã cài đặt. "
+"studiosvc.failed_open_studio_world" = "Lỗi mở thế giới studio: {error}"
+"studiosvc.cannot_open_studio_pack_has_blocking_errors" = "Không thể mở studio{dimm}- gói có lỗi chặn:"
+"studiosvc.message" = " - {reason}"
+"studiosvc.fix_pack_run_iris_pack_validate_revalidate" = "Sửa gói rồi chạy đi. /iris pack validate {dimm} để realidate."
+"studiosvc.failed_close_existing_studio_project" = "Lỗi đóng lại dự án studio đã có: {error}"
+"studiosvc.failed_close_existing_studio_project_2" = "Lỗi đóng lại dự án studio đã có: {error}"
+"studiosvc.failed_open_studio_world_2" = "Lỗi mở thế giới studio: {error}"
+"studiosvc.couldn_t_find_pack_create_new_dimension_from" = "Không thể tìm ra bầy để tạo ra một chiều không gian mới."
+"studiosvc.missing_imported_dimension_file" = "Name"
+"studiosvc.importing_into_new_project" = "Nhập {downloadable} vào dự án mới {s}"
+"objectstudiosaveservice.object_studio_no_cell_under_click_x_z" = "§7Phòng thu đối tượng: không có tế bào dưới nhắp (x={x} z={z})."
+"objectstudiosaveservice.object_studio_saving_x_x" = "§bPhòng thu đối tượng: đang lưu §f{pack}/{key}§7 ({w}x{h}x{d})"
+"objectstudiosaveservice.object_studio_no_changes" = "§7Phòng thu đối tượng: không thay đổi cho {pack}/{key}."
+"objectstudiosaveservice.object_studio_empty_cell_nothing_write" = "§7Phòng thu đối tượng: ô trống {pack}/{key} (không có gì để viết)."
+"objectstudiosaveservice.object_studio_no_target_file" = "§cPhòng thu đối tượng: không có tập tin đích cho {pack}/{key}."
+"objectstudiosaveservice.object_studio_saved" = "§aPhòng thu đối tượng: đã lưu §f{pack}/{key}"
+"objectstudiosaveservice.object_studio_save_failed" = "§cPhòng thu đối tượng: việc lưu không thành công {pack}/{key} ({error})"
+"irisproject.could_not_load_dimension" = "Không thể tải chiều \"{value}\""
+"irisproject.could_not_get_dimension_loader" = "Không thể lấy bộ tải chiều"
+"irisproject.studio_open_failed" = "§cViệc mở phòng thu thất bại: {error}"
+"irisproject.studio_open_failed_2" = "§cViệc mở phòng thu bị lỗi."
+"irisproject.studio_ready" = "§aPhòng thu sẵn sàng §7({value})"
+"irisproject.studio" = "§6Studio §b{bar}  §e{percent}%§7  {currentStage}§8 ({value})"
+"irisproject.serializing_objects" = "Chèn"
+"irisproject.wrote_another_objects" = "Viết khác {g} Đối tượng"
+"irisproject.package_compiled" = "Gói đã được biên dịch!"
+"irisproject.failed" = "Thất bại!"
+"irisengine.total" = "Tổng: §l§f{value}"
+"irisengine.engine" = "  Máy §n§a{i}§r: §l§f{value}"
+"irisengine.details" = "Chi tiết "
+"irisengine.message" = "  {befb}{num}{afb}: §l§f{value}"
+"enginebukkitops.is_not_defined_dimension" = "§c{name} không được định nghĩa trong chiều không gian!"
+"enginebukkitops.could_not_find_within_search_range" = "§cKhông tìm thấy {message} trong phạm vi tìm kiếm."
+"enginebukkitops.teleporting" = "§aChuyển tới {message}..."
+"enginebukkitops.at" = "§a{message} lúc: {blockX}  {blockY}  {blockZ}"
+"iristoolbelt.you_have_been_evacuated_from_this_world" = "Anh đã được sơ tán khỏi thế giới này."
+"iristoolbelt.you_have_been_evacuated_from_this_world_2" = "Anh đã được sơ tán khỏi thế giới này.  {m}"
+"serverconfigurator.there_are_some_iris_packs_that_have_custom_biomes_them" = "Có một số Iris Những gói có thiết bị sinh học tùy chỉnh"
+"serverconfigurator.you_need_restart_your_server_use_these_packs" = "Bạn cần phải khởi chạy lại trình phục vụ để dùng những gói này."
+"virtualcommand.message" = "- §f{i}"
+"virtualcommand.insufficient_permissions" = "Quyền hạn"
+"mortarcommand.parameters_ignored" = "Tham số bị bỏ qua: {m}"
+"commandpack.compat_header" = "§eGói '{pack}': nội dung không có trên Minecraft {version}"
+"commandpack.compat_none" = "§aGói '{pack}' không dùng nội dung nào thiếu trên Minecraft {version}."
+"commandpack.compat_remedy" = "§7Cập nhật máy chủ lên Minecraft mới hơn để khôi phục nội dung này, hoặc khai báo phương án dự phòng (blockFallbacks của chiều, backup của khối)."
+
+[iris.runtime.studio]
+opening = "§6Studio §bĐANG MỞ"
+opening_progress = "§6Studio §bĐANG MỞ§7 {percent}%"
+failed_progress = "§6Studio §cTHẤT BẠI§7 {percent}%"
+ready_progress = "§6Studio §aSẴN SÀNG§7 100%"
+"action.failed" = "{bar}§7 §cTHẤT BẠI§7 | §f{stage}"
+"action.ready" = "{bar}§7 §a100%§7 | §aStudio đã sẵn sàng§8 {elapsed}"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}§8  {elapsed}"
+"console.progress" = "§6Studio §b{bar}§e  {percent}%§7  {stage}§8 ({elapsed})"
+"stage.initializing" = "Đang khởi tạo"
+"stage.queued" = "Đang chờ"
+"stage.resolve_dimension" = "Đang xác định chiều không gian"
+"stage.prepare_world_pack" = "Đang chuẩn bị gói thế giới"
+"stage.install_datapacks" = "Đang cài datapack"
+"stage.create_world" = "Đang tạo thế giới"
+"stage.apply_world_rules" = "Đang áp dụng quy tắc thế giới"
+"stage.prepare_generator" = "Đang chuẩn bị trình tạo"
+"stage.teleport_player" = "Đang dịch chuyển"
+"stage.finalize_open" = "Đang hoàn tất"
+"stage.cleanup" = "Đang dọn dẹp"
+
+[iris.runtime.world_create]
+teleport_failed = "§eThế giới đã được tạo ra, nhưng dịch chuyển tự động thất bại.  Thử /iris teleport world={world}"
+"lifecycle.action" = "{bar}§7 §e{percent}%§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.failed" = "{bar}§7 §cFAILED§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.ready" = "{bar}§7 §a100%§7 | §aWorld ready§8 {elapsed}"
+"lifecycle.console" = "§6World §b{world} {bar} §e{percent}%§7 {stage}{detail}§8 ({elapsed})"
+"lifecycle.console.failed" = "§6World §b{world}§7 | §ccreation failed§8 after {elapsed}"
+"lifecycle.console.ready" = "§6World §b{world}§7 | §aready§8 in {elapsed}"
+"stage.initializing" = "Initializing"
+"stage.resolve_dimension" = "Resolving dimension"
+"stage.validate_pack" = "Validating pack"
+"stage.prepare_world_pack" = "Preparing world pack"
+"stage.install_datapacks" = "Installing datapacks"
+"stage.prepare_generator" = "Preparing generator"
+"stage.create_world" = "Generating spawn"
+"stage.register_world" = "Registering world"
+"stage.teleport_player" = "Entering world"
+"stage.pregenerate" = "Pregenerating"
+"stage.finalize" = "Finalizing"
+"stage.complete" = "World ready"
+"pregen.action" = "{bar}§7  §e{percent}%§7 | §fTạo ra"
+"pregen.console" = "§6Tạo ra §e{percent}%"
+
+[iris.runtime.world_replace]
+start = "§eĐang chuẩn bị thay thế {world} bằng Iris. Thế giới hiện tại vẫn hoạt động cho đến khi máy chủ khởi động lại."
+progress = "§eThay thế {world}: {stage} (đã qua {elapsed} giây)"
+"stage.datapacks" = "Đang kiểm tra các gói dữ liệu của chiều không gian"
+"stage.seed" = "Đang chuẩn bị hạt giống của thế giới thay thế"
+"stage.pack" = "Đang sao chép và xác thực gói chiều không gian"
+"stage.players" = "Đang lưu biện pháp bảo vệ khi người chơi vào thế giới"
+"stage.verify" = "Đang xác minh bản thay thế đã chuẩn bị"
+"stage.save" = "Đang lưu bản thay thế để áp dụng khi khởi động lại"
+"stage.cleanup" = "Đang dọn dẹp bản thay thế bị lỗi"
+
+[iris.runtime.chunk_job]
+"title.regen" = "Bản sao"
+"title.delete" = "Xoá"
+"title.golden_hash" = "GoldenHash"
+"stage.preparing" = "Đang chuẩn bị"
+"stage.clearing" = "Đang xoá"
+"stage.resetting_mantle" = "Đang đặt lại lớp vỏ"
+"stage.regenerating" = "Tạo lại"
+"stage.generating" = "Đang tạo ra"
+"stage.comparing" = "Đang so sánh"
+"stage.diagnosing" = "Chẩn đoán"
+"bossbar.working" = "§6{title}  §bCÔNG VIỆC"
+"bossbar.progress" = "§6{title}  §b{stage}§7  §e{percent}%"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}  {applied}/{total}"
+summary = "{applied}/{total} Chunk {elapsed}"
+"summary.failed" = "{applied}/{total} Chunk {elapsed} ({failures} bị lỗi)"
+"bossbar.done" = "§6{title}  §aDOE§7  §e{summary}"
+"bossbar.failed" = "§6{title} §cTHẤT BẠI§7 §e{summary}"
+"action.done" = "{bar}§7  §aHoàn tất§7 | §f{summary}"
+"action.failed" = "{bar}§7  §cThất bại§7 | §f{summary}"
+complete = "§a{title} Hoàn tất: {summary}"
+failed = "§c{title} kết thúc với lỗi: {summary}"
+
+[iris.runtime.golden]
+no_capture = "Không bắt được vàng {path}; chạy một cuộc bắt giữ trước."
+aborted = { other = "GoldenHash Hủy bỏ: {failed} Không thể tạo ra các mảng.  Không có hồ sơ vàng được viết.", one = "GoldenHash Hủy bỏ: {failed} Việc phân tích bị lỗi.  Không có hồ sơ vàng được viết." }
+failed = "GoldenHash bị lỗi: {error}"
+mantle_reset = "Mantle Đặt lại ({path})"
+mantle_reset_failed = "Mantle Việc đặt lại bị lỗi ({type}); tiếp tục với trạng thái lớp vỏ hiện có."
+captured = "Vàng được ghi lại: {chunks} Các mảng kết hợp ={hash}"
+wrong_world = "Tập tin vàng là cho bóng mờ ={goldenDimension} hạt giống ={goldenSeed} Nhưng thế giới này là tối thiểu ={dimension} hạt giống ={seed}.  Hủy bỏ."
+version_warning = "Vàng đã được bắt trên mc ={goldenVersion}chạy mc ={version}.  Sự khác biệt có thể là do phiên bản."
+match = "GOLDEN  MATCH: {current}/{golden} Các mảng, kết hợp ={hash}"
+mismatch = "GOLDEN  MISMATCH: {mismatches}/{chunks} Mỗi chunk mỗi khác."
+mismatch_chunk = "  Chunk {chunk}"
+missing_in_golden = "{chunk} (đã bỏ lỡ vàng)"
+mismatch_more = "  ...  và {count} thêm"
+current_written = "Dấu chấm phẩy hiện tại {file}"
+"diag.stable" = "Hệ thống lặp lại STABLEMantle {mantleStatus}  ->  {file}"
+"diag.unstable" = "Hệ thống lặp lại UNSTABLE ({diffs}+ khối phân cách), bao phủ {mantleStatus}  ->  {file}"
+"diag.mantle_stable" = "STABLE (tự động tạo lại bản sao quét)"
+"diag.mantle_diverged" = "DIVERGED ({diffs}+ diffs - xây dựng lớp vỏ là phụ thuộc tình trạng/ thứ tự)"
+"diag.mantle_skipped" = "SKIPPED ({type})"
+"diag.failed" = "Chẩn đoán thất bại: {error}"
+started = "GoldenHash bắt đầu: {chunks} Cuộn quanh 0,0 trong bộ đệm (thế giới chưa động đến), các sợi={threads} Chế độ ={mode}"
+chunk_hashed = "[{done}/{total}] Chunk {x},{z} bị đóng cửa"
+chunk_failed = "Chunk. {x},{z}  thất bại: {type}"
+
+[iris.runtime.pack_download]
+"progress.start" = "§aIris §6TẢI GÓI§8 | §f{source}"
+"progress.phase" = "§aIris §b{phase}§8 | §7{source}"
+"progress.determinate" = "{bar}§7 §e{percent}%§8 | §f{transferred}§7/§f{total}§8 | §b{rate}/s"
+"progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
+"progress.detail" = "§8  - §7{detail}"
+"progress.complete" = "§aĐã cài đặt gói Iris '{pack}'§8 | §f{transferred}§7 trong §f{elapsed}"
+"progress.unchanged" = "§eGói Iris '{pack}' đã được cài đặt."
+"progress.failed" = "§cKhông thể tải gói Iris.§7 Hãy xem lại thông tin tải xuống ở trên rồi thử lại."
+"progress.failed_detail" = "§cKhông thể tải gói Iris.§7 {error}"
+"progress.cancelled" = "§eĐã hủy tải gói Iris trước khi xuất bản."
+"progress.restart" = "§6Cần khởi động lại§8 | §7Hãy khởi động lại máy chủ trước khi tạo hoặc thay thế một thế giới bằng gói này."
+"progress.phase.connecting" = "Đang kết nối"
+"progress.phase.downloading" = "Đang tải xuống"
+"progress.phase.unpacking" = "Đang giải nén"
+"progress.phase.validating" = "Đang xác thực"
+"progress.phase.publishing" = "Đang xuất bản"
+"progress.source.remote" = "Tệp ZIP từ xa"
+invalid_source = "§cChỉ chọn một nguồn: /iris download pack=overworld, /iris download pack=underworld hoặc /iris download link=‹zip-url›."
+invalid_url = "§cIris yêu cầu URL HTTP hoặc HTTPS hợp lệ trỏ đến tệp .zip."
+invalid_built_in = "§cIris chỉ cung cấp bản tải xuống tích hợp cho 'overworld' và 'underworld'."
+shutting_down = "§eIris đang tắt và không nhận yêu cầu tải gói."
+downloading = "Đang tải về {url}"
+unpacking = "Đang mở gói {repository}"
+unpack_failed = ["Vấn đề là khi dỡ đồ ra.  Vui lòng kiểm tra/ làm những điều sau:", "1.  Anh có kết nối internet hoạt động không?", "2.  Việc tải về có bị hỏng không?", "3.  Cố xóa */plugins/iris/packs Thư mục và tải xuống.", "4.  Tải các gói từ GitHub Nhắc lại: https://github.com/IrisDimensions/overworld", "5.  Hỗ trợ liên lạc (nếu mọi tùy chọn khác không giúp đỡ)"]
+no_extracted_files = "Không có tập tin nào được lấy từ tập tin zip."
+home_directory_error = "Lỗi khi tìm thư mục chính.  Có ký tự không ngữ cảnh nào trong tên tập tin không?"
+invalid_archive_format = "Định dạng không hợp lệ.  Thiếu thư mục gốc hoặc quá nhiều thư mục!"
+no_dimension_file = "Không tìm thấy tập tin chiều không gian nào trong tập tin nén lại."
+check_github = "Kiểm tra xem nó có ở trên không GitHub và báo cáo với nhân viên!"
+invalid_dimension = "Thư mục chiều không hợp lệ nằm dưới dimensions/."
+importing = "Nhập {name} ({key})"
+dimension_key_conflict = "Một chiều không gian khác trong thư mục gói là đã sử dụng phím {key}.  Nhập thất bại!"
+pack_key_conflict = "Name {key}.  Nhập thất bại!"
+acquired = "Được thành công {name}."
+already_installed = "Gói {key} đã được cài đặt, bỏ qua tải xuống."
+in_progress = "Một gói Iris khác đang được tải xuống. Hãy chờ quá trình này hoàn tất trước khi thử lại."
+validation_failed = "Gói '{pack}'Đã thất bại trong việc xác nhận; thế giới và phòng thu sẽ bị từ chối.  Lý do:"
+validation_reason = "  - {reason}"
+validated_with_warnings = { other = "Gói '{pack}Xác nhận với {count} Cảnh báo.", one = "Gói '{pack}Xác nhận với {count} Cảnh báo." }
+validated = "Gói '{pack}Xác nhận."
+
+[iris.client.vision]
+title = "Iris Tầm nhìn"
+connecting = "Đang kết nối tới Iris máy phục vụ..."
+not_connected = "chưa kết nối"
+not_iris_world = "Không phải Iris thế giới"
+server_without_iris = "Máy chủ này không dùng Iris"
+version_mismatch = "Phiên bản Iris không khớp giữa máy khách và máy chủ"
+no_dimension_data = "không có dữ liệu chiều không gian"
+header_detail = "{status}  phóng đại {zoom}  x{x} z{z}"
+footer_hint = "Kéo tới cuộn để thu nhỏ Esc"
+dimension_pack = "{dimension}  gói {pack}"
+
+[iris.client.create]
+structures_required_title = "Iris cần bật Tạo kiến trúc"
+structures_required_body = "Iris đặt kiến trúc riêng của mình trong bước tạo kiến trúc và không tải thế giới được tạo khi Tạo kiến trúc đang tắt. Hãy bật lại Tạo kiến trúc hoặc chọn loại thế giới khác."
+
+[iris.client.toast]
+studio_hotload = "Nạp nóng phòng thu"
+changed_files = { other = "{count} Tập tin", one = "{count} Tập tin" }
+reload_failed = "Tải lại thất bại"
+reloaded = "Đã tải lại"
+pack_failed = "{pack} bị lỗi"
+
+[iris.client.what]
+title = "Iris Sao?"
+querying = "Truy vấn {x}, {z}..."
+biome = "Hai sắc: {biome}"
+region = "Vùng: {region}"
+cave = "Hang: {cave}"
+height = "Chiều cao: {height}   ({x}, {z})"
+
+[iris.client.pregen]
+stats = "{done} / {total}  ({percent}%)"
+paused = "đã tạm dừng"
+stale = "không có cập nhật trong {seconds}s"
+rate = "{rate}/s"
+rate_eta = "{rate}/s    ETA  {eta}"
+
+[iris.client.duration]
+hours_minutes = "{hours}h {minutes}m"
+minutes_seconds = "{minutes}m {seconds}s"
+seconds = "{seconds}s"
+
+[iris.bukkit.scoreboard]
+title = "§aIris."
+speed = "§aTốc độ§7:  {speed}/s  {duration}"
+cache = "§bBộ nhớ tạm§7: {count}"
+mantle = "§bMangle§7: {count}"
+carving = "§dQuan tâm§7: {state}"
+region = "§bVùng§7: {region}"
+biome = "§bĐôi§7:  {biome}"
+biome_loading = "Đang tải"
+biome_unavailable = "Không khả dụng"
+height = "§bChiều cao§7: {height}"
+slope = "§bTrượt§7:  {slope}"
+block_updates = "§bBAD/s§7: {updates}"
+
+[iris.desktop.vision]
+title = "Iris Tầm nhìn"
+view = "Xem:"
+grid = "Lưới"
+entities = "Thực thể"
+follow = "Theo"
+refreshing = "Cập nhật"
+fps = "{fps}  FPS"
+zoom_reset = "Đặt lại phóng đại"
+grid_enabled = "Lưới đã bật"
+grid_disabled = "Tắt Lưới"
+entities_enabled = "Đã bật thực thể"
+entities_disabled = "Đã tắt thực thể"
+following = "Đang theo dõi {player}"
+no_player = "Không có người chơi trên thế giới"
+follow_disabled = "Tắt theo"
+status_left = "{mode}  |  {bpp} bpp  {width} x {height} khối"
+status_right = "X: {x}  Z: {z}  |  {fps}  FPS"
+entity_position = "Vị trí: {x}, {y}, {z}"
+entity_health = "Sức khỏe: {health} / {maximum}"
+block_position = "Khối {x}, {z}"
+chunk_position = "Chunk. {x}, {z}"
+region_position = "Vùng {x}, {z}"
+biome_key = "Khóa: {key}"
+biome_file = "Tập tin: {file}"
+velocity = "Tốc độ: {velocity}"
+tiles = "Atlas: {ready} / {total}"
+workers = "Workers: {active} active / {queued} queued"
+center = "Giữa: {x}, {z}"
+"help.toggle" = "Bật/tắt trợ giúp"
+"help.refresh" = "Làm tươi các miếng"
+"help.follow" = "Theo"
+"help.zoom" = "Thu nhỏ"
+"help.reset_zoom" = "Đặt lại phóng đại"
+"help.cycle_mode" = "Chế độ vẽ vòng tròn"
+"help.fps" = "Bật/ tắt 30/60  FPS"
+"help.grid" = "Bật/ tắt lưới"
+"help.biome" = "Thông tin về sinh học chi tiết"
+"help.teleport" = "Chuyển sang con chạy"
+"help.editor" = "Mở tài liệu sinh học trong bộ sửa"
+opened = "Mở {target}"
+teleporting = "Chuyển tới {x}, {z}"
+"mode.biome" = "Đôi"
+"mode.biome_land" = "Vùng đất đa sắc màu"
+"mode.biome_sea" = "Biển lấp lánh"
+"mode.region" = "Vùng"
+"mode.cave_land" = "Vùng đất hang động"
+"mode.river" = "Mạng lưới sông ngòi"
+"mode.height" = "Chiều cao"
+"mode.object_load" = "Trọng tải đối tượng"
+"mode.decorator_load" = "Tải bộ phân giải"
+"mode.continent" = "Lục"
+"mode.layer_load" = "Trọng tải Lớp"
+
+[iris.desktop.noise]
+title = "Trình thám hiểm tiếng ồn"
+title_generator = "Thám hiểm tiếng ồn: {generator}"
+search = "Tìm kiếm..."
+status = "{name}  |  X: {x}  Z: {z}  Phóng to- thu nhỏ {zoom}  Giá trị {value}  |  {fps}  FPS"
+"category.custom" = "Tự chọn"
+"category.pack_generators" = "Trình tạo nén"
+"category.simplex" = "Đơn giản"
+"category.perlin" = "PerlinName"
+"category.cellular" = "Cổ tử tế"
+"category.iris" = "Iris"
+"category.clover" = "Sao"
+"category.hexagon" = "Lục giác"
+"category.vascular" = "Bóng loáng"
+"category.globe" = "Hình cầu"
+"category.cubic" = "Bậc ba"
+"category.fractal" = "Phân dạng"
+"category.static" = "Tĩnh"
+"category.nowhere" = "Không nơi nào"
+"category.sierpinski" = "Sierpinski."
+"category.utility" = "Tiện ích"
+"category.other" = "Khác"
+
+[iris.desktop.pregen]
+initializing = "Đang sở khởi..."
+title = "Xem mẫu"
+method_pending = "Đang đợi"
+paused = "đã tạm dừng"
+resume_hint = "Nhấn P để tiếp tục"
+pause_hint = "Nhấn nút P để tạm dừng"
+method = "Phương pháp thế hệ: {method}"
+pause = "Tạm dừng"
+resume = "Tiếp tục"
+generating = "Đang tạo"
+saving = "Đang lưu"
+stopping = "Đang dừng"
+completed = "Hoàn tất"
+error = "Tạo thất bại"
+control_failed = "Tạm dừng thất bại · xem nhật ký máy chủ"
+error_details = "Xem chi tiết trong nhật ký máy chủ"
+progress = "{generated} / {total} chunk"
+percent = "Hoàn tất {percent}"
+current = "Hiện tại · 10 giây"
+overall = "Tổng thể"
+thirty = "Trung bình 30 giây"
+sixty = "Trung bình 60 giây"
+rate = "{rate} chunk/giây"
+eta = "Còn lại"
+elapsed = "Đã qua"
+memory_label = "Bộ nhớ"
+memory_usage = "{used} · {usage}"
+pressure = "Cấp phát"
+pressure_value = "{rate}/s"
+cached = "{method} · đã lưu đệm"
+failed = "{count} thất bại · xem nhật ký máy chủ"
+map = "Bản đồ tạo địa hình"
+bounds = "Chunk X từ {minX} đến {maxX} · Z từ {minZ} đến {maxZ}"
+waiting = "Đang chờ"
+ready = "Sẵn sàng"
+existing = "Có sẵn"
+network = "Mạng"
+terrain_hint = "Chunk hoàn tất hiển thị màu địa hình"
+
+[iris.runtime.what]
+material = "Material: {material}"
+full_state = "Full: {state}"
+item_count = "Count: {count}"
+iris_biome = "Iris biome: {biome} ({name})"
+derivative_biome = "Derivative biome: {biome}"
+native_biome = "Registered biome: {biome} (ID: {id})"
+non_iris_biome = "Non-Iris biome: {biome} (ID: {id})"
+iris_region = "Iris region: {region} ({name})"
+position = "Position: {x}, {y}, {z} (chunk {chunkX}, {chunkZ})"
+object = "Iris object: {object}"
+block_entity = "Block entity: {type}"
+loot_table = "Loot table: {loot}"
+spawner_entity = "Spawner entity: {entity}"
+"flag.solid" = "solid"
+"flag.fluid" = "fluid"
+"flag.water" = "water"
+"flag.waterlogged" = "waterlogged"
+"flag.storage" = "storage (loot capable)"
+"flag.lit" = "lit"
+"flag.foliage" = "foliage"
+"flag.plantable_foliage" = "plantable foliage"
+"flag.decorant" = "decorant"
+"flag.ore" = "ore"
+"flag.block_entity" = "block entity"
+
+[iris.runtime.world]
+height_range = "World height: {minY} to {maxY}"
+height_total = "Total height: {height}"
+
+[iris.desktop.imagemap]
+title = "Image Map Studio"
+preset = "Preset:"
+load = "Load"
+import_png = "Import PNG"
+replace_png = "Replace PNG"
+preview = "Preview"
+export = "Export to active pack"
+metadata = "Source metadata"
+resource = "Resource binding"
+coordinates = "Coordinates and sampling"
+binding_key = "Binding key"
+map_key = "Map key"
+image_key = "Image key"
+type = "Type"
+application = "Application"
+blocks_per_pixel = "Blocks per pixel"
+origin_x = "World origin X"
+origin_z = "World origin Z"
+source_origin_x = "Source origin X"
+source_origin_z = "Source origin Z"
+rotation = "Rotation"
+mirror_x = "Mirror X"
+mirror_z = "Mirror Z"
+sampling = "Sampling"
+out_of_bounds = "Out of bounds"
+alpha = "Alpha policy"
+fallback_value = "Fallback value"
+fallback_target = "Fallback target"
+minimum_height = "Minimum height"
+maximum_height = "Maximum height"
+vertical_offset = "Vertical offset"
+clamp = "Clamp height"
+inverted = "Invert values"
+curve_exponent = "Curve exponent"
+smoothing_radius = "Smoothing radius"
+threshold = "Threshold"
+falloff = "Falloff"
+color_tolerance = "Raw sRGB tolerance"
+unknown_color = "Unknown color"
+add_color = "Add legend color"
+remove_color = "Remove selected"
+composed_masks = "Composed masks"
+add_mask = "Add mask binding"
+height = "Height interpretation"
+mask = "Mask interpretation"
+color_map = "Color legend"
+overlays = "World overlays"
+chunks = "16-block chunks"
+regions = "512-block regions"
+boundary = "World boundary"
+coverage = "Source coverage"
+diagnostics = "Diagnostics"
+ready = "Ready"
+no_source = "Import a PNG source to begin."
+loading = "Loading preset..."
+load_failed = "Preset load failed"
+previewing = "Compiling preview..."
+preview_valid = "Runtime compiler validation passed."
+preview_failed = "Preview failed"
+exporting = "Validating and exporting..."
+exported = "Exported image map, PNG, and dimension binding atomically."
+export_failed = "Export failed"
+source = "Source pixels"
+interpreted = "Runtime interpretation"
+no_preview = "Compile a valid preview to inspect world output."
+preview_status = "X {x}  Z {z}  |  {value}  |  {scale} blocks/pixel"
+
+[language.menu]
+your_language = "Ngôn ngữ của bạn"
+reset_your_language = "Đặt lại ngôn ngữ của bạn"
+server_default = "Ngôn ngữ mặc định của máy chủ"
+edit_messages = "Chỉnh sửa thông báo ngôn ngữ"
+use_server_default = "Dùng ngôn ngữ mặc định của máy chủ"
+current = "Hiện tại: {locale}"
+current_with_personal = "Hiện tại: {locale} (Của bạn: {personal})"
+your_description = "Chỉ thay đổi những thông báo bạn thấy."
+reset_description = "Dùng ngôn ngữ mặc định của máy chủ."
+server_description = "Thay đổi ngôn ngữ mặc định của máy chủ."
+edit_description = "Mở trình chỉnh sửa thông báo cho từng ngôn ngữ."
+select_description = "Nhấp để chọn ngôn ngữ này."
+remove_personal_description = "Xóa lựa chọn ngôn ngữ cá nhân của bạn."
+no_controls = "Bạn không có quyền dùng các tùy chọn ngôn ngữ."
+command = "Câu lệnh: {command}"
+selected = "Đã chọn"
+all-volmit-plugins = "Tất cả plugin Volmit"
+
+[language.error]
+stopping = "Không có khả năng chọn ngôn ngữ trong khi bổ sung đang dừng."
+editor-player-only = "Mở trình soạn thảo ngôn ngữ trong trò chơi."
+no-providers = "Không có nhà cung cấp ngôn ngữ Volmit nào khả dụng."
+numeric-page = "Nhập số trang bằng chữ số."
+personal-player-only = "Bạn phải chọn ngôn ngữ cá nhân trong trò chơi."
+personal-permission = "Bạn không có quyền chọn ngôn ngữ của mình."
+plugin-personal-permission = "Bạn không có quyền chọn ngôn ngữ cá nhân cho {plugin}."
+plugin-server-permission = "Bạn không có quyền thay đổi ngôn ngữ máy chủ cho {plugin}."
+server-locale-required = "Chọn mã ngôn ngữ như en_US làm ngôn ngữ mặc định của máy chủ."
+unavailable-for-all = "Ngôn ngữ {locale} không khả dụng cho tất cả plugin đã chọn."
+
+[language.usage]
+editor = "Cách dùng: /{command} language server edit [locale]"
+selection = "Cách dùng: /{command} language self [locale|reset] or server [locale]"
+volmit-selection = "Cách dùng: /volmit plugins languages [locale]"
+
+[language.selection]
+preparing = "Đang chuẩn bị ngôn ngữ {locale} cho {target}..."
+save-failed = "{plugin}: không thể lưu lựa chọn ngôn ngữ; hãy kiểm tra bảng điều khiển máy chủ."
+english-fallback = "{plugin}: {locale} không khả dụng; sẽ dùng tiếng Anh (en_US)."
+personal-selected = "{plugin}: ngôn ngữ của bạn hiện là {locale}."
+server-selected = "{plugin}: ngôn ngữ máy chủ hiện là {locale}."
+server-default-selected = "{plugin}: ngôn ngữ của bạn hiện theo ngôn ngữ mặc định của máy chủ."
+
+[language.editor]
+"section.languages" = "Ngôn ngữ"
+"section.search" = "Tìm kiếm"
+"section.search-title" = "{locale} / Tìm kiếm"
+"section.group-title" = "{locale} / {group}"
+loading = "Đang tải tin nhắn cho {locale}..."
+"prompt.search" = "Tìm khóa hoặc nội dung tin nhắn. Nhập cancel để quay lại."
+"prompt.value" = "Nhập giá trị mới cho {key} trong trò chuyện."
+"prompt.current" = "Giá trị hiện tại: {value}"
+"prompt.variables" = "Biến: {variables}"
+"prompt.guidance" = "Dùng \\n để xuống dòng, \\\\ để nhập dấu gạch chéo ngược, hoặc nhập cancel để quay lại."
+"input.expired" = "Đã hết thời gian nhập trong trình chỉnh sửa ngôn ngữ."
+"input.too-long" = "Nội dung nhập chỉ được có tối đa {maximum} ký tự."
+"input.unable-to-save" = "Không thể lưu: {reason}"
+"navigation.back" = "&eQuay lại&r"
+"navigation.close" = "&cĐóng&r"
+"navigation.previous-page" = "&eTrang trước&r"
+"navigation.next-page" = "&eTrang kế&r"
+"search.messages" = "Tìm tin nhắn"
+"search.messages-lore" = "Nhấn vào để tìm kiếm mọi tin nhắn."
+"search.clear" = "Xóa tìm kiếm"
+"message.current-value" = "&7Giá trị hiện có:&r"
+"message.variables" = "&8{variables}&r"
+"message.edit-plural" = "&7Nhấp để chỉnh sửa một dạng số nhiều.&r"
+"message.edit-lines" = "&7Nhấp để chỉnh sửa từng dòng.&r"
+"message.edit-chat" = "&7Nhấp để chỉnh sửa trong trò chuyện.&r"
+"locale.open" = "&8Nhấn vào để mở ngôn ngữ này.&r"
+"category.message-count" = "&7{count} tin nhắn&r"
+"category.open" = "&8Nhấn vào để mở phân loại này.&r"
+"error.no-permission" = "Bạn không có quyền chỉnh sửa ngôn ngữ của {plugin}."
+"error.unable-to-edit" = "Không thể chỉnh sửa: {reason}"
+"saved.summary" = "Đã lưu {locale}. Các lựa chọn ngôn ngữ không thay đổi."
+"saved.change" = "{key}: “{before}” đã đổi thành “{after}”."
+"part.line" = "Dòng {line}"
+"value.none" = "Không có"
+"value.empty" = "(trống)"
+
+[debug.error]
+missing-permission = "Thiếu quyền: {permission}"
+already-preparing = "Một báo cáo chẩn đoán cho {plugin} đang được chuẩn bị."
+already-preparing-short = "Một báo cáo chẩn đoán đang được chuẩn bị."
+schedule-failed = "Không thể lên lịch tạo báo cáo chẩn đoán."
+provider-closed = "Bộ cung cấp dữ liệu chẩn đoán đã đóng."
+closed-before-capture = "Bộ cung cấp dữ liệu chẩn đoán đã đóng trước khi thu thập dữ liệu báo cáo."
+writer-schedule-failed = "Không thể lên lịch ghi báo cáo chẩn đoán."
+capture-failed = "Không thể thu thập dữ liệu báo cáo chẩn đoán; hãy kiểm tra bảng điều khiển máy chủ."
+closed-before-write = "Bộ cung cấp dữ liệu chẩn đoán đã đóng trước khi ghi báo cáo."
+write-failed = "Không thể ghi báo cáo chẩn đoán; hãy kiểm tra bảng điều khiển máy chủ."
+
+[debug]
+preparing = "Đang chuẩn bị báo cáo chẩn đoán {plugin}..."
+saved = "Đã lưu báo cáo chẩn đoán {plugin} vào {path}."
+
+[debug.upload]
+interrupted = "Việc tải báo cáo chẩn đoán lên đã bị gián đoạn; báo cáo cục bộ đã được lưu."
+failed = "Không thể tải báo cáo chẩn đoán lên; báo cáo cục bộ đã được lưu."
+completed = "Đã tải lên với tên VolmitSoftware - {plugin} - v{version}."
+
+[debug.action]
+open = "Mở: {url}"
+open-description = "Mở báo cáo chẩn đoán đã tải lên."
+copy-path = "Sao chép đường dẫn cục bộ"
+copy-path-description = "Sao chép đường dẫn của báo cáo cục bộ."

@@ -1,0 +1,2105 @@
+# === Iris language guide ===
+# Iris - ko_KR
+#
+# === 파일 편집 ===
+# languages/ko_KR.toml
+# 이 파일을 직접 편집할 수 있습니다. 로컬 변경은 유지되며, 누락되거나 잘못된 항목에는 내장 영어를 사용합니다.
+# /iris language server edit ko_KR
+#
+# === 접두사와 메시지 예시 ===
+# Iris 언어 파일에는 모든 메시지에 공통으로 쓰는 접두사 설정이 없습니다. 접두사를 붙일 메시지의 본문을 직접 수정하세요.
+# 콘솔의 플러그인 접두사와 메뉴 테마는 표시 쪽에서 따로 제공하므로 이 수정으로 바뀌지 않습니다.
+# 예: [iris.bukkit.commandiris] 구역의 set_debug를 다음과 같이 수정합니다.
+# set_debug = "&6[월드]&r &a디버그를 {to}(으)로 설정했습니다"
+# /iris debug 응답에만 [월드]가 붙습니다. {to}는 true(켜짐) 또는 false(꺼짐)입니다.
+# {PC}, {SC}, {TC}는 Iris에서 지원하는 테마 변수가 아닙니다.
+#
+# === 색상과 서식 ===
+# 기본 색상: &0 검정, &1 진한 파랑, &2 진한 초록, &3 진한 청록, &4 진한 빨강, &5 진한 보라, &6 금색, &7 회색.
+# 기본 색상: &8 진한 회색, &9 파랑, &a 초록, &b 밝은 청록, &c 빨강, &d 연한 보라, &e 노랑, &f 흰색.
+# 서식: &k 난독화, &l 굵게, &m 취소선, &n 밑줄, &o 기울임, &r 색상과 서식 초기화.
+# 예: "&6중요: &l굵은 글씨&r 일반 글씨". Bukkit의 사용자 지정 색상 효과가 표시 색상을 바꿀 수 있습니다.
+# 언어 처리기는 &#33CC99, &x33CC99, &x&3&3&C&C&9&9, [33CC99] 형식의 RGB 색상을 인식합니다.
+# 하지만 Bukkit의 기본 색상 처리에서 원래 RGB 값이 유지되지 않을 수 있으므로 모든 출력의 정확한 색상을 보장하지 않습니다.
+# 모드 명령어, 도움말, 클라이언트 화면 등은 서식을 제거한 번역을 사용하고 화면 자체의 색상과 서식을 유지합니다.
+#
+# === TOML 이스케이프 ===
+# 큰따옴표로 감싼 TOML 문자열에서 \"는 따옴표, \\는 백슬래시, \n은 줄바꿈입니다.
+# 언어 처리 단계에서 & 또는 [를 이스케이프해도 이후 Bukkit 처리가 &a 등을 다시 색상으로 해석할 수 있습니다.
+# 백슬래시만으로 모든 출력 위치의 색상 처리를 끌 수 있는 것은 아닙니다.
+#
+# === 변수 ===
+# 변수 이름을 바꾸지 말고 각 메시지에 원래 있는 변수만 사용하세요. 아래는 각 값의 의미입니다.
+#   {MAXAUTOSELECTVOLUME}  오브젝트 자동 선택에 허용되는 최대 블록 수.
+#   {MAXSAVEVOLUME}  저장할 오브젝트 선택 영역의 최대 블록 수.
+#   {MAXSPAN}  구조물 캡처 시 허용되는 너비·높이·깊이의 상한(블록).
+#   {NATIVESTRUCTURELOCATERADIUS}  네이티브 구조물의 최대 검색 반경(청크).
+#   {ROOTPERMISSION}  명령어 사용에 필요한 최상위 권한.
+#   {WORKSPACENAME}  검색할 Studio 작업 공간 폴더 이름.
+#   {WORLDPACKNAME}  생성된 월드 데이터 팩 이름.
+#   {active}  현재 실행 중인 작업자 수.
+#   {activeLocale}  요청한 언어를 선택할 수 없을 때 유지되는 언어.
+#   {activeMax}  불러온 차원 유형의 높이 범위 상한.
+#   {activeMin}  불러온 차원 유형의 높이 범위 하한.
+#   {actualReverts}  실제로 되돌린 오브젝트 붙여넣기 횟수.
+#   {afb}  엔진 처리 시간 라벨에서 괄호 뒤에 오는 서식 지정 텍스트.
+#   {after}  변경 후 값 또는 수리 후에도 연결되지 않은 나무 블록 수.
+#   {amount}  보고서에서 지정한 항목의 수량.
+#   {applied}  작업 결과가 적용된 청크 수.
+#   {argument}  허용되지 않은 명령어 인수.
+#   {available}  생성할 수 있는 네이티브 구조물 수.
+#   {bar}  이미 서식이 적용된 진행률 막대 텍스트.
+#   {befb}  엔진 처리 시간 라벨에서 괄호 앞에 오는 서식 지정 텍스트.
+#   {before}  변경 전 값 또는 수리 전에 연결되지 않았던 나무 블록 수.
+#   {biome}  표시 중인 생물 군계의 이름 또는 식별자.
+#   {block}  조사 중인 블록의 종류 또는 설명.
+#   {blockX}  블록 또는 순간 이동 목적지의 X 좌표.
+#   {blockY}  블록 또는 순간 이동 목적지의 Y 좌표.
+#   {blockZ}  블록 또는 순간 이동 목적지의 Z 좌표.
+#   {blocking}  팩을 불러오지 못하게 하는 검증 오류 수.
+#   {blocks}  가져온 그룹에 포함된 블록 변형 수.
+#   {bpp}  Vision에서 한 픽셀이 나타내는 월드 블록 수.
+#   {branches}  나무 오브젝트 수리 중 추가된 가지 수.
+#   {broken}  검증에 실패한 팩 수.
+#   {brokenTotal}  검증에 실패한 팩의 총수.
+#   {cave}  조사 위치의 동굴 생물 군계 또는 동굴 설명.
+#   {centerX}  영역 중심의 X 좌표. 단위는 해당 작업 메시지를 따릅니다.
+#   {centerZ}  영역 중심의 Z 좌표. 단위는 해당 작업 메시지를 따릅니다.
+#   {changed}  처리한 오브젝트 중 변경된 수.
+#   {chunk}  보고 대상 청크의 좌표 또는 식별 라벨.
+#   {chunkX}  블록이 아닌 청크 단위의 X 좌표.
+#   {chunkZ}  블록이 아닌 청크 단위의 Z 좌표.
+#   {chunks}  작업에 포함된 청크 수.
+#   {clampedY}  허용 높이 범위로 조정한 순간 이동 목적지의 Y 좌표.
+#   {command}  명령어 이름 또는 실행할 전체 명령어.
+#   {converted}  나무 수리 중 나무 블록으로 변환된 잎 블록 수.
+#   {count}  주변 문장에서 가리키는 항목·메시지·플레이어 수.
+#   {current}  현재 진행 수 또는 이번 비교에 포함된 청크 수.
+#   {currentStage}  Studio의 현재 불러오기 단계 이름.
+#   {d}  오브젝트 깊이(블록).
+#   {depth}  지표면 아래로 내려간 블록 수.
+#   {derivative}  지표 생물 군계와 관련된 파생 생물 군계 또는 변형.
+#   {detail}  조사 대상 또는 현재 진행 단계의 추가 설명.
+#   {diffs}  생성 결과 사이에서 발견한 차이 수.
+#   {dimKey}  패키징할 차원의 식별자.
+#   {dimension}  메시지에서 다루는 차원의 이름 또는 식별자.
+#   {dimensionId}  불러왔거나 요청한 차원의 등록 식별자.
+#   {dimensionId2}  제안된 삭제 명령어에 다시 쓰이는 차원 식별자.
+#   {dimm}  Studio 차원 식별자 또는 검증 명령어에서 쓰는 팩 이름.
+#   {disabled}  생성이 비활성화된 네이티브 구조물 수.
+#   {distances}  나무 수리 중 변경된 잎 거리 값 수.
+#   {done}  지금까지 완료한 작업 항목 수.
+#   {downloadSource}  팩 다운로드 원본 또는 선택한 참조.
+#   {downloadable}  가져올 팩 또는 다운로드 가능한 프로젝트.
+#   {dumpPath}  저장된 정리 또는 복원 데이터 위치.
+#   {duration}  서식이 적용된 작업 소요 시간.
+#   {e}  구조물 템플릿 검사 실패 시의 예외 텍스트.
+#   {elapsed}  작업 시작 이후의 경과 시간(서식 적용).
+#   {engines}  활성 Iris 생성 엔진 또는 차원 수.
+#   {entity}  조사 중인 생성기에 설정된 개체 종류.
+#   {error}  발생한 오류의 상세 내용.
+#   {errorMessage}  실패 메시지 뒤에 붙는 선택적 오류 상세 내용.
+#   {eta}  서식이 적용된 예상 남은 시간. 메시지에 따라 라벨도 포함합니다.
+#   {failed}  실패한 항목 수 또는 진행 제목에 붙일 실패 문구.
+#   {failure}  검색 또는 작업이 실패한 이유.
+#   {failures}  실패 작업 수 또는 선택적인 서식 지정 실패 요약.
+#   {file}  작업 대상 파일의 이름 또는 경로.
+#   {filter}  Iris 차원 목록을 거르는 검색어.
+#   {fps}  현재 미리보기 렌더링 속도(초당 프레임).
+#   {g}  이전 패키징 진행 보고 이후 기록한 오브젝트 파일 수.
+#   {generated}  지금까지 생성한 청크 수.
+#   {generator}  탐색기에 표시할 노이즈 생성기 이름.
+#   {generatorKey}  요청한 노이즈 생성기 식별자.
+#   {get}  변환에 성공한 스키매틱 수.
+#   {golden}  저장된 비교 기준 데이터에 포함된 청크 수.
+#   {goldenDimension}  기준 데이터에 저장된 차원 식별자.
+#   {goldenSeed}  기준 데이터에 저장된 월드 시드.
+#   {goldenVersion}  기준 데이터 생성에 사용한 Minecraft 버전.
+#   {group}  언어 편집기의 메시지 그룹 또는 가져온 오브젝트의 분류.
+#   {guiNote}  사전 생성 진행 창에 관한 선택적 안내.
+#   {h}  오브젝트 높이(블록).
+#   {hash}  비교 중인 생성 청크들의 통합 체크섬.
+#   {health}  조사 중인 개체의 현재 체력.
+#   {height}  문장에서 지정한 지형 높이, 전체 높이 또는 표시 영역 높이.
+#   {hours}  서식 지정 시간의 시간 단위 부분.
+#   {i}  엔진 표시 이름 또는 명령어 목록 템플릿의 항목.
+#   {id}  조사 중인 생물 군계의 레지스트리 ID.
+#   {imported}  가져오기에 성공한 구조물 또는 오브젝트 수.
+#   {includeNonJigsaw}  직소 조각을 쓰지 않는 구조물도 가져올지 여부.
+#   {iris}  Iris 생성을 사용하는 불러온 차원 수.
+#   {irisLevels}  팩 높이와 대조한 불러온 Iris 차원 수.
+#   {irisPlaced}  네이티브 생성 대신 Iris가 배치한 구조물 수.
+#   {job}  완료된 백그라운드 작업 이름.
+#   {k}  지역 분포 보고서의 지역 로드 키.
+#   {key}  주변 문장이 가리키는 매개변수·메시지·리소스 식별자.
+#   {key2}  제안된 위치 찾기 명령어에 다시 쓰이는 구조물 식별자.
+#   {keyString}  가져올 구조물·리소스의 식별자 또는 잘못되었다고 보고된 식별자.
+#   {label}  찾은 대상의 표시 이름.
+#   {line}  언어 편집기의 줄 번호.
+#   {locale}  en_US 또는 de_DE 같은 언어 식별자.
+#   {logicalWorldName}  명령어 대상 월드의 논리적 이름.
+#   {loot}  조사 중인 전리품 표의 식별자.
+#   {m}  대피 작업의 추가 메시지 또는 명령어의 무시된 매개변수 문구.
+#   {mantleStatus}  재생성 비교 전 생성 데이터를 초기화한 결과.
+#   {marker}  검색할 마커 이름.
+#   {material}  조사 중인 블록의 Minecraft 재질.
+#   {maxScale}  요청 배율을 제한한 뒤의 오브젝트 최대 배율.
+#   {maxX}  표시 중인 청크 범위의 X 상한.
+#   {maxY}  월드 높이 범위의 상한.
+#   {maxZ}  표시 중인 청크 범위의 Z 상한.
+#   {maximum}  문장에서 지정한 최대 입력 길이 또는 개체의 최대 체력.
+#   {mcmeta}  생성된 데이터 팩의 pack.mcmeta 파일 경로.
+#   {message}  작업이 제공하는 자세한 상태 또는 오류 텍스트.
+#   {method}  선택한 사전 생성 방식.
+#   {minX}  표시 중인 청크 범위의 X 하한.
+#   {minY}  월드 높이 범위의 하한.
+#   {minZ}  표시 중인 청크 범위의 Z 하한.
+#   {minutes}  서식 지정 시간의 분 단위 부분.
+#   {mismatches}  저장된 기준 데이터와 다른 청크 수.
+#   {mode}  선택한 가져오기·생성·미리보기 모드.
+#   {modeNote}  선택한 사전 생성 모드의 선택적 설명.
+#   {name}  메시지가 가리키는 월드·오브젝트·프로젝트·항목의 이름.
+#   {nameRaw}  정규화·검증 전의 입력한 그대로의 이름.
+#   {normalized}  찾을 수 없었던 정규화된 도움말 섹션 이름.
+#   {num}  엔진 처리 시간 라벨의 서식 지정 괄호 부분. 숫자일 필요는 없습니다.
+#   {object}  편집하거나 조사할 Iris 오브젝트의 이름·식별자.
+#   {objects}  조사 중인 청크의 오브젝트 목록 또는 개수.
+#   {offset}  지표면에서의 수직 거리(블록).
+#   {output}  기록하지 못한 출력 파일 경로.
+#   {overall}  전체 사전 생성 작업의 평균 초당 청크 수.
+#   {ownerName}  Studio 세션 소유 플레이어 이름.
+#   {pack}  작업 대상 Iris 팩의 이름 또는 식별자.
+#   {pack2}  제안 명령어나 다운로드 원본에 다시 쓰이는 팩 식별자.
+#   {packDimension}  팩에서 선택한 차원 정의.
+#   {packLogical}  팩의 차원 정의가 요구하는 논리적 높이.
+#   {packMax}  팩이 요구하는 높이 상한.
+#   {packMin}  팩이 요구하는 높이 하한.
+#   {packName}  검증 중인 팩의 표시 이름.
+#   {parameter}  누락되었거나 해석할 수 없는 명령어 매개변수.
+#   {parent}  상위 메뉴 또는 명령어 경로의 표시 이름.
+#   {path}  저장·열기·보고 대상 파일의 경로.
+#   {percent}  진행률. 메시지의 % 기호는 변수 밖에 두세요.
+#   {permission}  요청한 작업에 필요한 권한 노드.
+#   {personal}  플레이어에게 저장된 개인 언어 식별자.
+#   {phase}  현재 불러오기 또는 다운로드 단계 이름.
+#   {pinned}  나무 오브젝트 수리 중 고정된 잎 수.
+#   {player}  따라가거나 대상으로 지정한 플레이어 이름.
+#   {plugin}  플러그인 표시 이름. Iris의 공통 언어·진단 메시지에서는 Iris.
+#   {position}  설정할 선택 영역 모서리 번호.
+#   {preset}  주 월드에 사용하는 등록된 월드 생성 프리셋.
+#   {primary}  설정된 주 월드의 식별자.
+#   {processed}  성공·건너뜀·실패를 포함한 처리 항목 수.
+#   {properties}  조사 중인 블록의 서식 지정 속성 목록.
+#   {quarantinePath}  정리 중 격리한 파일을 담은 폴더.
+#   {queued}  실행 대기 중인 작업자 또는 작업 항목 수.
+#   {radius}  제안된 시작 명령어에 다시 쓰이는 사전 생성 반경.
+#   {rarity}  지정한 지역 또는 배치에 설정된 희귀도.
+#   {rate}  서식 지정 전송 속도 또는 사전 생성 속도. 초당 단위는 주변 문장이 붙입니다.
+#   {reach}  나무 오브젝트 수리에 쓰는 설정된 가지 검색 거리.
+#   {ready}  현재 사용할 수 있는 정밀 Atlas 페이지 수.
+#   {reason}  요청한 작업을 끝내지 못한 이유.
+#   {region}  조사 중인 지역의 이름 또는 식별자.
+#   {remaining}  표시 목록에서 생략한 추가 블록 상태 수.
+#   {repository}  압축을 푸는 저장소 또는 다운로드한 압축 파일.
+#   {reverted}  되돌린 오브젝트 붙여넣기 횟수.
+#   {rotation}  배치한 오브젝트에 적용한 회전.
+#   {rx}  해시를 계산할 청크의 X 좌표.
+#   {rz}  해시를 계산할 청크의 Z 좌표.
+#   {s}  새 Studio 프로젝트 이름.
+#   {safeName}  가져올 오브젝트에 사용하는 정제된 파일 이름.
+#   {scale}  미리보기 한 픽셀이 나타내는 월드 블록 수.
+#   {scope}  Object Studio에서 연 오브젝트 또는 오브젝트 그룹.
+#   {searchRadius}  구조물 검증의 검색 반경(청크).
+#   {seconds}  시간의 초 단위 부분 또는 마지막 갱신 이후의 초.
+#   {section}  사용자가 요청한 도움말 섹션 이름.
+#   {seed}  월드·Studio·생성기·기준 비교에 사용하는 시드.
+#   {seedRaw}  검증 전 입력한 그대로의 시드.
+#   {sixtySecond}  최근 60초 구간의 사전 생성 속도(초당 청크).
+#   {size}  문장에서 지정한 파일·경고·항목 등의 수.
+#   {skipped}  작업에서 건너뛴 항목 수.
+#   {slope}  조사 위치의 지형 경사.
+#   {solidBlocks}  생성 해시 계산에서 센 고체 블록 수.
+#   {source}  진행 표시에 해당하는 팩·다운로드 원본·입력.
+#   {speed}  서식 지정 사전 생성 또는 처리 속도(초당).
+#   {stage}  현재 진행 단계 이름.
+#   {state}  문장에서 지정한 현재 상태 또는 속성 값.
+#   {status}  현재 미리보기 상태 텍스트.
+#   {structure}  위치를 찾는 구조물의 이름 또는 식별자.
+#   {structureKey}  요청한 구조물의 레지스트리 또는 팩 식별자.
+#   {summary}  완료한 작업의 서식 지정 결과 요약.
+#   {suppressed}  Iris 배치로 대체된 네이티브 구조물 수.
+#   {surface}  제안된 순간 이동 명령어에 쓰이는 지표 Y 좌표.
+#   {surfaceY}  조사 위치의 지표 Y 좌표.
+#   {tag}  팩 이름 앞에 붙이는 서식 지정 검증 상태 라벨.
+#   {target}  문장에서 지정한 언어 설정 대상 또는 오브젝트 선택 대상.
+#   {targetX}  찾았거나 요청한 목적지의 X 좌표.
+#   {targetZ}  찾았거나 요청한 목적지의 Z 좌표.
+#   {template}  프로젝트 생성 시 선택한 템플릿.
+#   {tenSecond}  최근 10초 구간의 사전 생성 속도(초당 청크).
+#   {thirtySecond}  최근 30초 구간의 사전 생성 속도(초당 청크).
+#   {threads}  생성 해시 계산에 사용하는 작업 스레드 수.
+#   {tileNote}  저장하거나 배치한 블록 개체 데이터의 선택적 설명.
+#   {title}  결과를 표시할 작업의 제목.
+#   {to}  새 디버그 설정. true는 켜짐, false는 꺼짐.
+#   {token}  해석할 수 없었던 reach 인수.
+#   {total}  문장에서 지정한 작업 항목·청크·차원 등의 총수.
+#   {totalObjects}  Object Studio에서 연 오브젝트 수.
+#   {transferred}  지금까지 전송한 데이터 양(서식 적용).
+#   {type}  문장에서 지정한 예상 매개변수 형식·리소스 종류·오브젝트 분류.
+#   {typeKey}  등록된 Minecraft 차원 유형 식별자 또는 inline.
+#   {unreachableBiomes}  팩의 생물 군계 선택으로 제외된 네이티브 구조물 수.
+#   {unsupported}  이 플랫폼에서 미지원으로 보고된 네이티브 구조물 수.
+#   {updates}  개발자 화면의 초당 블록 갱신 수.
+#   {url}  열거나 복사할 웹 주소.
+#   {usage}  명령어 구문 또는 메모리 화면의 사용량 텍스트.
+#   {used}  메모리 화면의 사용 중인 용량(서식 적용).
+#   {value}  메시지별 값. 기본 설정·이름·좌표·개수·오류 등이며 주변 문장을 확인하세요.
+#   {value2}  메시지별 두 번째 값. 전체 청크 수·목적지 Y·팩 이름·오류 등입니다.
+#   {value3}  메시지별 세 번째 값. 백분율·목적지 Z·Minecraft 버전·경과 시간 등입니다.
+#   {value4}  메시지별 네 번째 값. 블록 기록 수·선택 영역 Z·선택적 상태 접미사 등입니다.
+#   {value5}  메시지별 다섯 번째 값. 배치 시 공기가 아닌 블록 기록 수 또는 위치 표시의 청크 Z입니다.
+#   {variables}  편집 중인 메시지에서 쓸 수 있는 자리표시자 목록.
+#   {velocity}  조사 중인 개체의 현재 이동 속도.
+#   {version}  주변 문장이 가리키는 플러그인 또는 Minecraft 버전.
+#   {volume}  오브젝트 선택 영역에 포함된 블록 수.
+#   {w}  오브젝트 너비(블록).
+#   {wantVariants}  가져올 바닐라 나무 또는 오브젝트 기능마다 요청한 변형 수.
+#   {warnings}  작업을 막지 않는 검증 경고 수.
+#   {width}  표시 중인 월드 영역 너비(블록).
+#   {wood}  나무 오브젝트 수리 중 추가된 나무 블록 수.
+#   {world}  명령어 또는 진행 표시 대상 월드 이름.
+#   {written}  기록에 성공한 가져온 변형 또는 오브젝트 파일 수.
+#   {x}  문장에서 지정한 블록·청크·지역·미리보기의 X 좌표.
+#   {y}  월드 또는 블록의 수직 좌표.
+#   {z}  문장에서 지정한 블록·청크·지역·미리보기의 Z 좌표.
+#   {zoom}  현재 미리보기 확대/축소 수준.
+# === End Iris language guide ===
+
+[iris.director.commandiris]
+"director.debugdump" = "진단 보고서를 생성하고 선택적으로 업로드"
+"param.debugdump_upload" = "보고서를 mclo.gs에 업로드"
+"director.basic_command" = "기본 명령어"
+"director.create_new_world" = "새 월드를 만듭니다"
+"param.name_world_create" = "만들 월드 이름"
+"param.dimension_pack_create_world_with" = "월드 생성에 사용할 차원 또는 팩"
+"param.seed_generate_world_with" = "월드 생성에 사용할 시드"
+"param.replace_exact_existing_world_slot_next_restart" = "다음 재시작 시 기존의 정확한 월드 슬롯 교체"
+"director.teleport_another_world" = "다른 월드로 순간이동합니다"
+"param.world_teleport" = "순간이동할 월드"
+"param.player_teleport" = "순간이동시킬 플레이어"
+"director.print_version_information" = "버전 정보를 표시합니다"
+"director.benchmark_pack" = "팩을 벤치마크합니다"
+"param.dimension_benchmark" = "벤치마크할 차원"
+"director.print_world_height_information" = "월드 높이 정보를 표시합니다"
+"director.check_access_all_worlds" = "모든 월드의 접근 상태를 확인합니다."
+"director.remove_iris_world" = "Iris 월드를 제거합니다"
+"param.world_remove" = "제거할 월드"
+"param.whether_also_remove_folder_if_set_false_just_does_not_load_world" = "폴더도 제거할지 여부(false이면 월드를 로드하지 않기만 합니다)"
+"director.toggle_debug" = "디버그를 전환합니다"
+"director.download_project" = "프로젝트를 다운로드합니다."
+"param.pack_download" = "다운로드할 팩"
+"director.get_metrics_your_world" = "월드의 측정값을 가져옵니다"
+"director.reload_configuration_file_this_is_also_done_automatically" = "설정 파일을 다시 로드합니다(자동으로도 실행됨)"
+"director.unload_iris_world" = "Iris 월드를 언로드합니다"
+"param.world_unload" = "언로드할 월드"
+"director.load_iris_world" = "Iris 월드를 로드합니다"
+"param.name_world_load" = "로드할 월드 이름"
+"director.evacuate_iris_world" = "Iris 월드에서 플레이어를 대피시킵니다"
+"param.evacuate_world" = "대피시킬 월드"
+
+[director.help]
+"navigation.parent.hover" = "상위 명령어 그룹으로 돌아가기"
+"navigation.back" = "뒤로"
+no_subcommands = "이 페이지에는 하위 명령어가 없습니다."
+no_description = "설명이 없습니다"
+command_group = "명령어 그룹입니다. 클릭하여 엽니다."
+category = "명령어 카테고리"
+no_parameters = "매개변수가 없습니다. 클릭하여 명령어를 미리 입력합니다."
+parameters_hover = "매개변수 위에 마우스를 올리면 자세한 내용을 볼 수 있습니다."
+"parameter.required" = "이 매개변수는 필수입니다."
+"parameter.optional" = "이 매개변수는 선택 사항입니다."
+"parameter.default" = "지정하지 않으면 기본값은 \"{value}\"입니다."
+"parameter.type" = "이 매개변수의 유형은 {type}입니다."
+"navigation.previous.hover" = "이전 페이지"
+"navigation.next.hover" = "다음 페이지"
+"navigation.page" = "페이지"
+
+[director.runtime]
+"error.invalid_origin" = "이 실행 위치에서는 이 명령어를 실행할 수 없습니다."
+"error.unknown_parameter" = "알 수 없는 매개변수 키: {key}"
+"error.unexpected_argument" = "예상하지 못한 인수 \"{argument}\". 선택적 매개변수는 키와 함께 지정해야 합니다. 예: seed=123"
+"error.unclosed_group" = "매개변수 {key}에 닫는 대괄호 \"]\"가 없습니다"
+"error.conversion_failed" = "\"{value}\" 값을 {parameter}용 {type} 형식으로 변환할 수 없습니다"
+"error.default_parse_failed" = "매개변수 {parameter}의 기본값을 분석할 수 없습니다"
+"error.missing_argument" = "인수 \"{parameter}\" ({type})가 필요합니다"
+"error.execution_failed" = "명령어 {command} 실행에 실패했습니다: {reason}"
+usage = "사용법: {usage}"
+
+[iris.command]
+permission_denied = "'{permission}' 권한이 없습니다"
+unknown = "알 수 없는 Iris 명령어"
+player_only = "이 명령어는 플레이어만 사용할 수 있습니다."
+iris_world_required = "이 차원은 Iris가 생성하지 않았습니다."
+
+[iris.command.reload]
+success = "설정과 {locale} 언어를 다시 불러왔습니다."
+failed = "설정은 다시 불러왔지만 {locale} 언어가 거부되어 {activeLocale}을 계속 사용합니다."
+
+[iris.modded.help]
+unknown_section = "알 수 없는 Iris 도움말 섹션: {section}"
+back_hover = "{parent}(으)로 돌아갑니다."
+command_parameter = "명령어 매개변수"
+brigadier_text = "Brigadier가 이 매개변수를 텍스트로 읽습니다."
+operator_notice = "Iris 명령어에는 운영자 권한(레벨 2)이 필요합니다."
+operator_instruction = "콘솔에서 {command}을(를) 실행하세요(싱글 플레이에서는 치트를 활성화하세요). 그 전에는 이 명령어를 실행하거나 탭 완성할 수 없습니다."
+"entry.command.version" = "버전 정보를 표시합니다"
+"entry.command.info" = "로드된 Iris 차원과 팩 세부 정보를 나열합니다"
+"entry.command.what" = "현재 위치의 Iris 바이옴, 리전, 동굴 바이옴, 지표, 청크와 바라보는 블록, 손에 든 아이템, 주변 마커를 확인합니다"
+"entry.group.find" = "Iris 바이옴, 리전, 오브젝트, Iris 구조물, 네이티브 구조물, 관심 지점을 찾아 순간이동합니다"
+"entry.command.tp" = "자신 또는 지정한 플레이어를 로드된 Iris 차원으로 순간이동합니다"
+"entry.command.evacuate" = "Iris 차원의 모든 플레이어를 기본 월드 스폰으로 대피시킵니다"
+"entry.command.seed" = "월드와 엔진의 시드 정보를 표시합니다"
+"entry.command.debug" = "Iris 디버그 로깅을 전환하고 iris.json을 저장합니다"
+"entry.command.reload" = "iris.json을 다시 로드합니다(3s마다 자동 핫로드도 수행)"
+"entry.command.download" = "팩 프로젝트를 다운로드합니다"
+"entry.command.metrics" = "현재 Iris 차원의 생성 측정값을 표시합니다"
+"entry.command.regen" = "주변 청크를 삭제하고 제자리에서 다시 생성합니다"
+"entry.group.pregen" = "Iris 차원을 사전 생성합니다"
+"entry.command.wand" = "Iris 오브젝트 지팡이를 받습니다"
+"entry.group.object" = "오브젝트 지팡이, 저장, 붙여넣기, 분석, 되돌리기 도구입니다"
+"entry.group.edit" = "팩의 바이옴, 리전, 차원 JSON 파일을 데스크톱 편집기에서 엽니다"
+"entry.command.create" = "영구 Iris 차원을 만들고 주입합니다. 특정 팩 차원을 선택하려면 pack:dimensionKey를 따옴표로 감싸세요"
+"entry.group.studio" = "팩 프로젝트 생성, 패키징, 보고서 기능입니다"
+"entry.group.pack" = "팩 검증과 유지 관리 기능입니다"
+"entry.group.world" = "실행 중 Iris 차원 생성, 제거, 상태 기능입니다"
+"entry.group.datapack" = "월드 데이터 팩 설치와 상태 확인 도구입니다"
+"entry.group.structure" = "Iris 구조물 인덱스, 정보, 배치 도구입니다"
+"entry.command.goldenhash" = "동일성 검사용 결정적 블록 해시를 생성합니다"
+"entry.group.developer" = "개발자 진단: 네트워크 인터페이스와 리전 파일 검사"
+"entry.command.biome" = "Iris 바이옴을 찾습니다"
+"entry.command.region" = "Iris 리전을 찾습니다"
+"entry.command.object" = "오브젝트 배치를 찾습니다"
+"entry.command.structure" = "Iris 배치 또는 네이티브/데이터 팩 구조물을 찾습니다"
+"entry.command.poi" = "지원되는 관심 지점을 찾습니다"
+"entry.command.biome_2" = "바이옴 JSON을 데스크톱 편집기에서 엽니다. 키를 생략하면 현재 위치의 바이옴을 엽니다"
+"entry.command.region_2" = "리전 JSON을 데스크톱 편집기에서 엽니다. 키를 생략하면 현재 위치의 리전을 엽니다"
+"entry.command.dimension" = "현재 팩의 차원 JSON을 데스크톱 편집기에서 엽니다"
+"entry.command.start" = "사전 생성을 시작합니다. 반경은 블록 단위이고 재개 가능한 체크포인트 캐시는 기본으로 켜집니다. 중심은 'at <x> <z>'로 지정하며 플래그는 어떤 순서로든 조합할 수 있습니다"
+"entry.command.stop" = "실행 중인 사전 생성 작업을 중지합니다"
+"entry.command.pause" = "사전 생성을 일시 중지하거나 재개합니다"
+"entry.command.status" = "사전 생성 상태를 표시합니다"
+"entry.command.wand_3" = "Iris 오브젝트 지팡이를 받습니다"
+"entry.command.dust" = "오브젝트 배치를 드러내는 가루를 받습니다"
+"entry.command.save" = "지팡이로 선택한 영역을 오브젝트로 저장합니다"
+"entry.command.paste" = "현재 위치 또는 지정한 위치에 선택적으로 회전해 오브젝트를 붙여넣습니다"
+"entry.command.expand" = "바라보는 방향으로 지팡이 선택 영역을 확장합니다"
+"entry.command.contract" = "바라보는 방향에서 지팡이 선택 영역을 줄입니다"
+"entry.command.shift" = "바라보는 방향으로 지팡이 선택 영역을 이동합니다"
+"entry.command.position1" = "선택 지점 1을 설정합니다"
+"entry.command.position2" = "선택 지점 2를 설정합니다"
+"entry.command.x_y" = "위와 바깥쪽으로 자동 선택합니다"
+"entry.command.x_y_2" = "위, 아래, 바깥쪽으로 자동 선택합니다"
+"entry.command.analyze" = "오브젝트 구성을 표시합니다"
+"entry.command.shrink" = "오브젝트를 최소 크기로 줄입니다"
+"entry.command.plausibilize" = "바닐라 잎 소멸을 견디도록 가지를 자라게 합니다"
+"entry.command.undo" = "붙여넣은 오브젝트를 되돌립니다"
+"entry.command.create_2" = "새 팩 프로젝트를 만듭니다"
+"entry.command.package" = "차원을 압축 형식으로 패키징합니다"
+"entry.command.version_2" = "팩 버전을 표시합니다"
+"entry.command.regions" = "주변 리전 분포를 계산합니다"
+"entry.command.open" = "팩의 임시 Studio 차원을 엽니다"
+"entry.command.close" = "열린 Studio 차원을 닫고 해당 월드를 버립니다"
+"entry.command.tpstudio" = "열린 Studio 차원으로 순간이동합니다"
+"entry.command.status_studio" = "열린 Studio 차원과 팩을 표시합니다"
+"entry.command.noise" = "서버 화면에서 Noise Explorer GUI를 엽니다"
+"entry.command.map" = "서버 화면에서 Vision 지도 GUI를 엽니다"
+"entry.command.vscode" = "팩의 .code-workspace를 다시 생성하고 데스크톱 편집기에서 엽니다"
+"entry.command.update" = "팩의 .code-workspace를 다시 생성합니다"
+"entry.command.importvanilla" = "바닐라 콘텐츠 가져오기 절차를 설명합니다"
+"entry.command.validate" = "지정한 팩 또는 모든 팩을 검증합니다"
+"entry.command.cleanup" = "미사용 리소스 후보를 미리 보거나 격리합니다"
+"entry.command.restore" = "최근 격리 항목을 미리 보거나 복원합니다"
+"entry.command.status_validation" = "캐시된 검증 상태를 표시합니다"
+"entry.command.enable" = "영구 Iris 차원을 실행 중에 만들고 주입합니다. 팩이 설치되어 있어야 하며 따옴표로 묶은 pack:dimensionKey로 특정 차원을 선택할 수 있습니다."
+"entry.command.replace_overworld" = "Iris 기본 월드를 주입하고 바닐라 오버월드 대신 그곳으로 플레이어를 이동합니다"
+"entry.command.disable" = "Iris 차원에서 대피하고 언로드합니다. 다시 활성화할 수 있도록 디스크의 월드 데이터는 유지합니다"
+"entry.command.delete" = "Iris 차원을 비활성화하고 디스크의 청크와 Mantle 데이터를 삭제합니다"
+"entry.command.list" = "로드된 Iris 차원을 나열합니다"
+"entry.command.status_world" = "로드된 Iris 차원과 설정된 기본 월드를 표시합니다"
+"entry.command.status_datapack" = "로드된 Iris 차원 유형 덮어쓰기를 확인합니다"
+"entry.command.install" = "로드된 Iris 차원의 유형 덮어쓰기를 설치합니다"
+"entry.command.list_datapacks" = "설정되고 설치된 데이터 팩을 나열합니다"
+"entry.command.ingest" = "Bukkit 데이터 팩 수집 절차를 설명합니다"
+"entry.command.remove" = "데이터 팩 제거 절차를 설명합니다"
+"entry.command.list_structures" = "structure-index.json 다시 생성"
+"entry.command.info_2" = "Iris 구조물 그래프를 해석하고 경계를 보고합니다"
+"entry.command.place" = "현재 위치에 Iris 구조물을 조립해 배치합니다"
+"entry.command.import" = "Bukkit 구조물 가져오기 절차를 설명합니다"
+"entry.command.capture" = "Bukkit 구조물 캡처 절차를 설명합니다"
+"entry.command.verify" = "현재 차원의 네이티브 및 Iris 구조물 도달 가능성을 보고합니다"
+"entry.command.network" = "네트워크 인터페이스와 주소를 나열합니다"
+"entry.command.what.here" = "Inspect the Iris biome, region, cave biome, surface and chunk at your position"
+"entry.command.what.biome" = "Inspect the Iris biome, configured derivative and registered native biome"
+"entry.command.what.region" = "Inspect the Iris region at your current chunk"
+"entry.command.what.block" = "Inspect the targeted block state, properties, object and block entity"
+"entry.command.what.hand" = "Inspect the held item and its default block state"
+"entry.command.what.markers" = "Reveal nearby Iris Mantle markers with particles"
+"entry.command.height" = "Print the current dimension height range"
+"entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
+"entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
+"entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
+"entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
+"entry.command.studio.loot" = "Explain why the Bukkit loot simulation GUI is unavailable"
+"entry.command.studio.profile" = "Explain why Bukkit pack profiling is unavailable"
+"entry.command.studio.spawn" = "Explain why Bukkit Iris entity spawning is unavailable"
+"entry.command.studio.objects" = "Explain why the Bukkit chunk object report is unavailable"
+"entry.command.compat_content" = "이 Minecraft 버전에서 생성할 수 없는 콘텐츠를 표시합니다"
+
+[iris.modded.command]
+"properties.none" = "속성: (없음)"
+"properties.list" = "속성: {properties}"
+
+[iris.bukkit.commanddatapack]
+starting_datapack_ingest = "§7시작 데이터 팩 수집 ..."
+configured_datapack_imports = "§a설정된 datapack 가져오기: §f{value}"
+message = "§7  - §f{url}"
+installed_datapacks = "§a설치된 데이터 팩: §f{value}"
+message_2 = "§7  - §f{value}§7  {value2}"
+add_modrinth_urls_dimension_s_datapackimports_list_then_run_iris = "§e차원의 'datapackImports' 목록에 Modrinth URL을 추가한 다음 /iris datapack ingest를 실행하세요."
+
+[iris.bukkit.commanddeveloper]
+genhash_started_chunks = "§agenhash 시작: {value}개 청크..."
+genhash_failed_at_chunk = "§c청크 {rx},{rz}에서 genhash 실패: {value}"
+genhash_global_chunks_solid = "§agenhash 전역=§6{value}§a 청크={value2} 고체={solidBlocks} 소요={value3}"
+world_is_null = "§c세계는 null입니다."
+target_iris_world_before_reading_mantle_dump = "§c대상 : Iris 맨틀 덤프를 읽기 전에 세계."
+upgrading = "§a업그레이딩 {value}..."
+done_upgrading_you_can_now_update_your_server_version = "§a업그레이드 완료! 이제 서버 버전을 {value}(으)로 업데이트할 수 있습니다"
+radius_must_be_0_greater = "§c반경는 있어야 합니다 0 또는 더 큰."
+this_is_not_iris_world = "§c이것은 아니다 Iris 세계."
+engine_access_this_world_is_null = "§c이 세상의 엔진 접근은 null입니다."
+delete_started_chunk_s_around_clearing_blocks_air = "§a삭제 시작: §6{chunks}§a 청크 () §6{centerX},{centerZ}§a 주위.공기에 구획을 지우기."
+radius_must_be_0_greater_2 = "§c반경는 있어야 합니다 0 또는 더 큰."
+you_must_be_iris_world_use_regen = "§c당신은 있어야 Iris regen을 사용하는 세계."
+engine_access_this_world_is_null_generate_nearby_chunks_first = "§c이 세상의 엔진 접근은 null입니다.  근처의 청크를 먼저 생성하십시오."
+regen_started_chunk_s_around_deleting_regenerating_place = "§aRegen 시작: §6{chunks}§a 청크 () §6{centerX},{centerZ}§a 주위.장소에서 삭제 및 재생."
+radius_must_be_0_greater_3 = "§c반경는 있어야 합니다 0 또는 더 큰."
+target_must_be_iris_world = "§c대상은 Iris 세계."
+engine_access_this_world_is_null_2 = "§c이 세상의 엔진 접근은 null입니다."
+goldenhash_started_chunk_s_around_buffers_world_untouched = "§aGoldenHash 시작: §6{chunks}§a 청크 주위 (s) §6{centerX},{centerZ}§a 버퍼 (세계 무감각)."
+
+[iris.bukkit.commandfind]
+not_iris_world = "§6아니. Iris 세계!"
+unknown_structure = "§c알려진 구조: {structureKey}"
+run_this_game_teleport_structure = "§6이 게임에서 텔레포트를 구조로 실행합니다."
+locating = "§7{structureKey} 검색 중..."
+run_this_game_teleport_structure_2 = "§6이 게임에서 텔레포트를 구조로 실행합니다."
+locating_2 = "§7{structure} 검색 중..."
+teleported = "§a텔레포트 {structure} @ {value}, {y}, {value2}"
+not_iris_world_5 = "§6아니. Iris 세계!"
+not_iris_world_2 = "§6아니. Iris 세계!"
+not_iris_world_3 = "§6아니. Iris 세계!"
+not_iris_world_4 = "§6아니. Iris 세계!"
+object_studio_teleporting = "§aObject Studio: {object}(으)로 순간이동 중"
+is_not_configured_any_region_biome_object_placements = "§c{object} 어떤 영역/biome 개체 배치에서 구성되지 않습니다."
+
+[iris.bukkit.commandiris]
+successfully_removed_world_folder = "§a성공적으로 세계 폴더를 제거"
+successfully_removed_world_folder_2 = "§a성공적으로 세계 폴더를 제거"
+failed_remove_world_folder = "§c세계 폴더를 제거하는 실패"
+you_cannot_use_world_name_iris_creating_worlds_as_iris = "§cIris가 이 디렉터리를 Studio 월드에 사용하므로 월드 이름 \"iris\"는 사용할 수 없습니다."
+may_we_suggest_name_irisworld_instead = "§c우리는 이름 \"을 제안 할 수있다IrisWorld\" 대신?"
+you_cannot_use_world_name_benchmark_creating_worlds_as_iris = "§cIris가 이 디렉터리를 벤치마크 팩에 사용하므로 월드 이름 \"benchmark\"는 사용할 수 없습니다."
+may_we_suggest_name_irisworld_instead_2 = "§c우리는 이름 \"을 제안 할 수있다IrisWorld\" 대신?"
+that_folder_already_exists = "§c그 폴더는 이미 존재합니다!"
+try_one_overworld_vanilla_flat_theend = "§e중 하나를 시도: overworld, 바닐라, 플랫, theend"
+dimension_not_found = "§cCould not find dimension §f{dimension}§c."
+install_pack_and_restart = "§eInstall it with §b{command}§e and restart the server."
+exception_raised_during_creation_see_console_more_details = "§c창조 중 발생한 예외.  자세한 내용은 콘솔을 참조하십시오."
+successfully_created_your_world = "§a세상을 성공적으로 만들었습니다!"
+specified_player_does_not_exist = "§c지정된 플레이어는 존재하지 않습니다."
+iris_v_by_volmit_software = "§a아이리스 v{value} Volmit 소프트웨어"
+to = "§a{value} 으로 {value2}"
+total_height = "§a총 고도: {value}"
+iris_worlds = "§9Iris 세계: "
+message = "§a- {value}"
+bukkit_worlds = "§6Bukkit 세계: "
+message_2 = "§7- {value}"
+this_is_not_iris_world_iris_worlds = "§c이것은 아니다 Iris 세계.  Iris 세계: {value}"
+removing_world = "§a세계를 제거: {value}"
+failed_evacuate_world = "§c대피 세계에 실패: {value}"
+failed_unload_world = "§c실패하지 않는 세상: {value}"
+successfully_removed_from_bukkit_yml = "§abukkit.yml에서 {value}을(를) 제거했습니다"
+looks_like_world_was_already_removed_from_bukkit_yml = "§e세상과 같은 모습은 이미 제거되었습니다. bukkit.yml"
+failed_save_bukkit_yml_because = "§c{value} 때문에 bukkit.yml을 저장하지 못했습니다"
+set_debug = "§a디버그 설정: {to}"
+you_must_be_iris_world = "§cIris 월드 안에 있어야 합니다"
+sending_metrics = "§a메트릭 전송..."
+this_is_not_iris_world_iris_worlds_2 = "§c이것은 아니다 Iris 세계.  Iris 세계: {value}"
+unloading_world = "§a공급 업체: {value}"
+world_unloaded_successfully = "§a세계는 성공적으로 언로드."
+failed_unload_world_2 = "§c세상을 내리지 못했습니다."
+failed_unload_world_3 = "§c세상을 내리지 못했습니다: {value}"
+doesnt_exist_on_server = "§e{logicalWorldName} 서버가 존재합니다."
+generator = "§9생성기: {dimension}"
+is_not_iris_world = "§6{logicalWorldName} 아이리스 세계는 아닙니다."
+could_not_determine_iris_dimension = "§c결정할 수 없습니다. Iris 차원을 위한 {logicalWorldName}."
+loading_world = "§a선적 세계: {logicalWorldName}"
+loaded_successfully = "§a{logicalWorldName} 로드 되었습니다."
+this_is_not_iris_world_iris_worlds_3 = "§c이것은 아니다 Iris 세계.  Iris 세계: {value}"
+evacuating_world = "§a관련 제품{value}"
+
+[iris.bukkit.commandobject]
+no_packs_with_objects_were_found_on_this_server = "§c이 서버에서 개체를 가진 팩이 발견되지 않았습니다."
+no_objects_place_across_selected_pack_s = "§c선택된 팩(s)를 가로지르는 물건이 없습니다."
+opening_object_studio_objects = "§a{scope}에 대해 Object Studio 여는 중 ({totalObjects}개 객체)"
+failed_open_object_studio = "§c열린 객체 스튜디오에 실패: {value}"
+object_size = "목표 크기: {value} * {value2} * {value3}"
+blocks_used = "사용된 구획: {value}"
+blocks_object = "== 객체의 블록 =="
+other_block_types = "  + {value} 다른 구획 유형"
+current_object_size = "현재 목표 크기: {value} * {value2} * {value3}"
+new_object_size = "새로운 목표 크기: {value} * {value2} * {value3}"
+failed_save_object = "객체를 저장하는 실패 {value}: {value2}"
+no_objects_matched = "§c일치하는 물체 없음: {target}"
+plausibilize_reach_queued_object_s = "§aPlausibilize [reach={reach}{value}]에 오브젝트 {value2}개를 추가했습니다"
+hold_your_wand = "지팡이를 잡아라."
+no_area_selected = "선택 없음."
+ready_your_wand = "지팡이를 준비하십시오."
+ready_your_wand_2 = "지팡이를 준비하십시오."
+indicated_scale_exceeds_maximum_downscaled_maximum = "§e표시된 가늠자는 최대를 초과합니다.  최대로 확장: {maxScale}"
+updated_wand_objects_iob = "지팡이 업데이트 objects/{value}.iob "
+given_new_wand_objects_iob = "새로운 지팡이를 objects/{value}.iob "
+updated_wand_objects_iob_2 = "지팡이 업데이트 objects/{value}.iob "
+placed = "§a{object} 배치 완료"
+you_need_hold_your_wand = "§e당신은 당신의 지팡이를 붙들 필요가 있습니다!"
+file_already_exists_set_overwrite_true_overwrite_it = "§c파일이 이미 존재합니다.  overwrite=true를 설정한다."
+failed_save_object_because_ioexception = "§c객체를 저장하기 위해 실패 IOException: {value}"
+successfully_object_saved_objects = "§a성공적으로 저장하는 객체: {value}/objects/{name}"
+hold_your_wand_2 = "지팡이를 잡아라."
+no_area_selected_2 = "선택 없음."
+reverted_pastes = "§9붙여넣기 {actualReverts}§9건을 되돌렸습니다!"
+you_can_t_get_worldedit_selection_without_worldedit_you_know = "§c당신은 얻을 수 없습니다 WorldEdit 선택 없음 WorldEdit, 당신은 알고 있습니다."
+you_don_t_have_worldedit_selection_this_world = "§c당신은 없습니다 WorldEdit 이 세상에서 선택."
+fresh_wand_with_your_current_worldedit_selection_on_it = "§a당신의 현재에 신선한 지팡이 WorldEdit 그것을 선택!"
+poof_good_luck_building = "§a펑! 즐겁게 건축하세요!"
+hold_your_wand_3 = "§e지팡이를 잡아!"
+no_area_selected_3 = "선택 없음."
+auto_select_complete = "§a자동 선택 완료!"
+hold_your_wand_4 = "§e지팡이를 잡아!"
+no_area_selected_4 = "선택 없음."
+auto_select_complete_2 = "§a자동 선택 완료!"
+
+[iris.bukkit.commandpack]
+you_must_specify_pack_name = "§c팩 이름을 지정해야 합니다."
+pack_not_found_under_packs = "§c팩 '{pack}다음에서 찾을 수 없음 packs/."
+message = "§7  - {label}: {value}"
+more = "§7  ...외 {value}개."
+
+[iris.bukkit.commandstructure]
+verifying_structures_from_within_chunks = "§a§f{value}§a의 구조물을 {value2},{value3}에서 {searchRadius}청크 이내로 검증 중..."
+could_not_resolve_pack_dimension = "§c차원을 위한 팩을 해결할 수 없습니다 {value}"
+wrote_structure_index = "§a기록함 구조 색인: §f{value}"
+could_not_resolve_pack_dimension_2 = "§c차원을 위한 팩을 해결할 수 없습니다 {value}"
+importing_all_vanilla_datapack_structures_into_overwrite = "§a가져오는 중 모든 바닐라 & 데이터 팩 구조 §f{value}§a (overwrite) ..."
+import_complete_structures_objects_written_failed = "§a가져오기 완료: structures/objects §f{imported}§a개 기록, §f{failed}§a개 실패."
+reference_them_from_biome_region_dimension_structures_list_run_iris = "§7biome/region/dimension의 'structures' 목록에서 참조하거나 /iris structure list {value} 명령을 실행하여 인덱스를 새로 고치세요. 변경 사항을 적용하려면 청크를 다시 생성하세요."
+could_not_resolve_pack_dimension_3 = "§c차원을 위한 팩을 해결할 수 없습니다 {value}"
+captured_structures_place_them_from_structures_list_regenerate_chunks_delete = "§7다운로드 {value} 구조.  'structures' 목록에서 배치하고 청크를 재생합니다.  더 알아보기 structures/*.json 다시 캡처합니다."
+no_loaded_iris_world_found_join_create_one_first_search = "§c짐 없음 Iris 현재 위치 {value}.  1개의 첫 번째 (라이브 세계에 대한 검색 실행)를 가입하거나 만들 수 있습니다."
+selected_iris_world_has_no_active_generator_engine = "§c선택 사항 Iris 세계는 활동적인 생성기 엔진이 없습니다."
+could_not_resolve_pack_dimension_4 = "§c차원을 위한 팩을 해결할 수 없습니다 {value}"
+no_iris_structure_this_pack = "§c아이리스 구조 없음 '{structure}이 팩에서"
+structure_assembled_0_pieces_check_startpool = "§c구조 '{structure}' 조립 0 조각 (체크 startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "§a구조 '{structure}': §f{value}§a 조각, 발자국 §f{value2}x{value3}§a 블록 (샘플 씨 1234)"
+could_not_resolve_pack_dimension_5 = "§c차원을 위한 팩을 해결할 수 없습니다 {value}"
+no_iris_structure_this_pack_2 = "§c아이리스 구조 없음 '{structure}이 팩에서"
+structure_assembled_0_pieces = "§c구조물 '{structure}' 조립 결과: 조각 0개"
+placed_pieces_at_your_location = "§a장소 '{structure}' ({value} 당신의 위치에 조각). ({value2} block changes)"
+placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+
+[iris.bukkit.commandstudio]
+importing_vanilla_content_into = "§avanilla 콘텐츠 가져 오기 §f{value}§a..."
+importvanilla_complete_objects_structures_written_failed = "§aimportvanilla 완전한: §f{imported}§a  objects/structures 작성, §f{failed}§a 실패."
+trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7나무/부대는 아래에 있습니다 objects/vanilla/...; biome 객체 배치에서 참조."
+no_open_studio_projects = "§c오픈 스튜디오 프로젝트 없음."
+closing_studio = "§e닫기 스튜디오..."
+studio_close_failed = "§cStudio 닫기 실패: {value}"
+studio_close_failed_2 = "§cStudio 닫기 실패: {value}"
+studio_closed_remaining_world_family_cleanup_was_queued_startup_fallback = "§eStudio를 닫았습니다. 남은 월드 계열 정리는 다음 시작 시 처리하도록 대기열에 추가했습니다."
+studio_closed = "§a스튜디오 폐쇄."
+you_must_be_studio_world_toggle_debug_scoreboard = "§c사용자는 디버그 득점판을 토글하는 스튜디오 세계에 있어야 합니다."
+studio_debug_scoreboard = "{value}스튜디오 디버그 득점판 {value2}"
+could_not_update_studio_debug_scoreboard_right_now = "§c할 수 없음 지금 Studio 디버그 득점판을 업데이트하지 않았습니다."
+opened_inventory = "§a관련 상품"
+generating_data = "§7데이터 생성..."
+done = "§a완료!"
+message = "§a{k}: {value} / {value2}%"
+regions_radius_out_of_range = "§c반경은 1~2048 청크 사이여야 합니다."
+regions_scan_failed = "§c지역 스캔에 실패했습니다: {value}"
+opening_studio_pack_seed = "§a\"를 위한 오프닝 스튜디오{value}\"팩 (seed: {seed})"
+provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§c차원 팩을 제공: /iris std importvanilla pack=<dimension>"
+could_not_resolve_pack_dimension = "§c차원을 위한 팩을 해결할 수 없습니다 {value}"
+opening_vscode_pack = "§a\"{value}\" 팩을 VSCode에서 여는 중"
+pack_has_version = "§a\"{value}\" 팩에는 버전이 있습니다 : {value2}"
+opening_noise_explorer = "§a노이즈 탐색기!"
+cannot_add_items_virtual_inventory_because = "§c가상 재고로 항목을 추가할 수 없습니다: {value}"
+opening_inventory_now = "§a지금 재고!"
+only_works_iris_world = "§c만 작품에서 Iris 세계!"
+you_need_be_specify_iris_generated_world = "§c또는 지정할 필요가 있습니다. Iris- 생성 된 세계!"
+opening_map = "§a지도 열기!"
+calculating_performance_metrics_noise_generators = "소음 생성기를 위한 계산 중 성과 미터"
+calculating_interpolator_timings = "계산 보간기 타이밍..."
+processing_generator_scores = "생성기 점수 처리: "
+score = "점수: {value}"
+done_with_result = "§a완료! {value}"
+you_have_be_iris_world_spawn_entities_properly_trying_spawn = "§c사용자는 Iris 세계가 제대로 스폰에 있어야합니다.우리가 할 수있는 가장 좋은 옷을 입고."
+no_studio_world_is_open = "§c스튜디오 세계가 오픈!"
+you_are_already_studio_world = "§c스튜디오 세계에서 이미!"
+sending_you_studio_world = "§a스튜디오 세계에 당신을 보내십시오!"
+updating_code_workspace = "§6업데이트 중 코드 작업 공간{value}..."
+updated_code_workspace = "§a업데이트 된 코드 작업 공간 {value}"
+invalid_project_try_deleting_code_workspace_file_try_again = "§c잘못된 프로젝트: {value}.  Code-workspace 파일을 삭제하고 다시 시도하십시오."
+you_must_be_iris_world = "§cIris 월드 안에 있어야 합니다"
+you_must_be_iris_world_2 = "당신은 아이리스 세계에 있어야합니다."
+capturing_igendata_from_nearby_chunks = "주변 {value}개 청크에서 IGenData를 캡처하는 중입니다."
+reported = "보고 위치: {value}"
+you_must_have_server_launched_guis_enabled_settings = "§c서버가 시작되어야 합니다. GUIs 설정에서 활성화!"
+players_only = "§c플레이어 만!"
+no_studio_world_is_open_2 = "§c스튜디오 세계가 오픈!"
+you_must_be_studio_world = "§c스튜디오 세계에 있어야합니다!"
+opening_image_map_studio = "§aOpening the Image Map Studio."
+
+[iris.bukkit.commandsvc]
+you_lack_permission = "당신은 권한이 없어{ROOTPERMISSION}'"
+
+[iris.bukkit.irisenginestatus]
+message = "§5-------------------------"
+status = "§5상태:"
+service = "§5- 서비스: §d{value}"
+metrics = "§5- 미터: §d{value}"
+maintenance_period = "§5- 정비 기간: §d{value}"
+worker_parallelism = "§5- 노동자 병렬: §d{value}"
+active_world_tasks = "§5- 활성 세계 작업: §d{value}"
+tectonic_plates = "§5Tectonic 판:"
+configured_retention = "§5- 구성 유지: §d{value}"
+heap_usage = "§5- Heap 사용법: §d{value}"
+resident = "§5- 거주자: §d{value}"
+queued = "§5- 잡힌: §d{value}"
+average_idle_duration = "§5- 평균 이들 기간: §d{value}"
+max_idle_duration = "§5- 최대 이들 기간: §d{value}"
+min_idle_duration = "§5- 최소 이들 기간: §d{value}"
+caches = "§5캐치:"
+resource = "§5- 자원: §d{value} ({value2})"
+2d_stream = "§5- 2D 스트림 : §d{value} ({value2})"
+3d_stream = "§5- 3D 스트림: §d{value} ({value2})"
+other = "§5- 기타: §d{value} ({value2})"
+other_2 = "§5다른 것:"
+iris_worlds = "§5- Iris 세계: §d{value}"
+loaded_chunks = "§5- 적재된 Chunks: §d{value}"
+message_2 = "§5-------------------------"
+
+[iris.bukkit.commandedit]
+players_only = "§c플레이어 만!"
+no_studio_world_is_open = "§c스튜디오 세계가 오픈!"
+you_must_be_studio_world = "§c스튜디오 세계에 있어야합니다!"
+cannot_open_files_headless_environments = "§c헤드리스 환경에서 파일을 열 수 없습니다!"
+desktop_is_not_supported_by_this_environment = "§c데스크톱은이 환경에 의해 지원되지 않습니다!"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6파일을 찾을 수 없습니다; 아마도 그것은 파일에서 직접로드되지 않았습니까?"
+opening_vscode = "§aVSCode에서 {value} {value2} 여는 중! "
+cant_find_file_registrant_does_not_exist = "§c파일을 찾을 수 없습니다.  또는 등록은 존재하지 않습니다."
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6파일을 찾을 수 없습니다; 아마도 그것은 파일에서 직접로드되지 않았습니까?"
+opening_vscode_2 = "§aVSCode에서 {value} {value2} 여는 중! "
+cant_find_file_registrant_does_not_exist_2 = "§c파일을 찾을 수 없습니다.  또는 등록은 존재하지 않습니다."
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6파일을 찾을 수 없습니다; 아마도 그것은 파일에서 직접로드되지 않았습니까?"
+opening_vscode_3 = "§aVSCode에서 {value} {value2} 여는 중! "
+cant_find_file_registrant_does_not_exist_3 = "§c파일을 찾을 수 없습니다.  또는 등록은 존재하지 않습니다."
+
+[iris.bukkit.commandpregen]
+pregen_radius_must_be_greater_than_zero_blocks = "§cPregen 반경은 0 개 이상의 블록이 있어야합니다."
+strict_serial_pregeneration_requires_paper_paper_compatible_server = "§c엄격한 순차 사전 생성에는 Paper 또는 Paper 호환 서버가 필요합니다."
+engine_access_this_world_is_null = "§c이 세상의 엔진 접근은 null입니다!"
+please_make_sure_world_is_loaded_engine_is_initialized_generate = "§c세상이 로드되었는지 확인하십시오. & 엔진은 초기화됩니다.  새로운 청크 생성, 예를 들어."
+failed_start_pregeneration_see_console_details = "§c이전 세대를 시작 실패.  자세히 보기"
+no_active_pregeneration_tasks_stop = "§e능동태가 없는 작업"
+paused_unpaused_pregeneration_task_now = "§a사전 생성 작업 일시 중지/재개, 현재: {value}."
+no_active_pregeneration_tasks_pause_unpause = "§ePX/재개에 능동적 전 세대 작업."
+no_active_pregeneration_task = "§e활동적인 전세대 업무 없음."
+pregen = "§a사전 생성 §6{world}§a: §6{value}/{value2}§a (§6{value3}%§a){value4}"
+speed_s_eta_elapsed_method = "§a속도: §6overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s§a ETA: §6{eta}§a Elapsed: §6{elapsed}§a Method: §6{method}{failures}"
+
+[iris.bukkit.commandwhat]
+material = "물자: §a{value}"
+full = "공급 능력: §f{value}"
+please_hold_block_item = "블록/item를 잡아주세요"
+material_2 = "물자: §a{value}"
+please_hold_block_item_2 = "블록/item를 잡아주세요"
+ibiome = "IBiome: {value} ({value2})"
+non_iris_biome = "비-Iris 바이오메트: {value}"
+data_pack_biome_id = "데이터 팩 Biome: {value} (ID: {value2})"
+iregion = "IRegion: {value} ({value2})"
+iris_worlds_only = "§aIris 세계."
+please_look_at_any_block_not_at_sky = "어떤 블록을 봐, 하늘에"
+material_3 = "물자: §a{value}"
+full_2 = "공급 능력: §f{value}"
+storage_block_loot_capable = "§e* 저장 블록 (전리품 가능)"
+lit_block_light_capable = "§e* 발광 구획 (가벼운 가능)"
+foliage_block = "§e* Foliage 구획"
+decorant_block = "§e* 장식적인 구획"
+fluid_block = "§e* 유체 블록"
+plantable_foliage_block = "§e* Foliage 블록"
+solid_block = "§e* 단단한 구획"
+found_nearby_markers = "주변 마커 {value}개 발견 ({marker})"
+iris_worlds_only_2 = "§aIris 세계."
+
+[iris.modded.irismoddedcommands]
+this_dimension_is_not_generated_by_iris = "이 차원은 Iris가 생성하지 않았습니다."
+console_must_name_biome_iris_edit_biome_key = "콘솔은 biome를 명명해야합니다. /iris edit biome <key>"
+biome_lookup_failed = "Biome 조회 실패: {value}"
+unknown_biome = "알려진 biome: {key}"
+this_dimension_is_not_generated_by_iris_2 = "이 차원은 Iris가 생성하지 않았습니다."
+console_must_name_region_iris_edit_region_key = "콘솔은 지역을 명명해야 합니다: /iris edit region <key>"
+region_lookup_failed = "지역 조회 실패: {value}"
+unknown_region = "알려진 지역: {key}"
+this_dimension_is_not_generated_by_iris_3 = "이 차원은 Iris가 생성하지 않았습니다."
+cannot_open_files_here = "여기에 파일을 열 수 없습니다: {value}"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "파일을 찾을 수 없습니다. 아마도 파일에서 직접로드되지 않았습니까?"
+could_not_open = "열 수 없습니다 {value}: {value2}"
+opening_your_editor = "편집기에서 {value} {value2} 여는 중입니다."
+console_must_name_player_iris_tp_dimension_player = "콘솔은 플레이어를 지정해야 합니다: /iris tp <dimension> <player>"
+is_not_generated_by_iris = "{value} 에 의해 생성되지 않음 Iris."
+teleport_failed_dimension_is_not_loaded = "Teleport 실패: 차원 {dimensionId} 로드 되지 않습니다."
+teleporting = "팟캐스트 {value} 으로 {dimensionId}..."
+is_not_generated_by_iris_2 = "{value} 에 의해 생성되지 않음 Iris."
+cannot_evacuate_primary_world_there_is_nowhere_send_players = "1 차 세계를 피할 수 없습니다. 플레이어에게 보내는 곳이 없습니다."
+evacuated_player_s_from = "플레이어 {count}명을 {value}에서 {value2}(으)로 대피시켰습니다."
+set_debug = "디버그 설정: {to}"
+hotloaded_settings = "핫로드 설정"
+this_command_can_only_be_used_by_players_it_inspects = "이 명령은 플레이어에 의해서만 사용될 수 있습니다 (그것은 당신의 열린 품목을 검사합니다)."
+your_main_hand_is_empty = "당신의 주요 손은 비어 있습니다."
+hand_x = "손: {value} x{value2}"
+this_command_can_only_be_used_by_players = "이 명령어는 플레이어만 사용할 수 있습니다."
+this_dimension_is_not_generated_by_iris_4 = "이 차원은 Iris가 생성하지 않았습니다."
+this_dimension_is_not_generated_by_iris_5 = "이 차원은 Iris가 생성하지 않았습니다."
+is_not_generated_by_iris_see_iris_info_loaded_iris = "{value} 에 의해 생성되지 않음 Iris; 참조 /iris info 로드 중 Iris 크기."
+current_dimension_is_not_generated_by_iris_name_one_explicitly = "현재 차원 ({value})에 의해 생성되지 않습니다 Iris.  이름 1 명시적으로: /iris pregen start {radius} <dimension>; 참조 /iris info 로드 중 Iris 크기."
+pregeneration_task_is_already_running_stop_it_first_with_iris = "이전 작업은 이미 실행됩니다.  처음에 /iris pregen stop."
+pregen_started_by_blocks_from_progress_logs_console_see_iris = "{centerX},{centerZ}을(를) 중심으로 {value2}의 {value}에서 반경 {value3}블록 사전 생성을 시작했습니다.{modeNote} 진행 상황은 콘솔에 기록됩니다. /iris pregen status를 확인하세요.{guiNote}"
+stopping_pregeneration_finishing_up_current_region = "축소; 현재 지역을 마무리..."
+no_active_pregeneration_task_stop = "중지할 수 있는 능동태 작업 없음."
+no_active_pregeneration_task_pause_resume = "일시 중지/재개할 활성 사전 생성 작업이 없습니다."
+pregeneration_is_now = "현재 위치 {value}."
+no_active_pregeneration_task = "활동적인 전세대 업무 없음."
+iris_by_volmit_software_on_minecraft_iris_dimension_s = "Iris  {value} 에 의해 Volmit 소프트웨어 {value2} (Minecraft  {value3}), {engines}  Iris 차원 (s)"
+loaded_dimensions_iris = "적재된 차원: {total} ({iris}  Iris)"
+this_command_can_only_be_used_by_players_2 = "이 명령어는 플레이어만 사용할 수 있습니다."
+this_dimension_is_not_generated_by_iris_6 = "이 차원은 Iris가 생성하지 않았습니다."
+biome = "바이오메트: {value} ({value2})"
+biome_lookup_failed_2 = "Biome 조회 실패: {value}"
+region = "지역: {value} ({value2})"
+region_lookup_failed_2 = "지역 조회 실패: {value}"
+cave_biome = "동굴 biome: {value}"
+cave_biome_lookup_failed = "동굴 생물 관찰 실패: {value}"
+surface_block_y = "지상 구획: {value} (y={value2})"
+position_chunk = "위치: {value}  {value2}  {value3} (크렁크 {value4},{value5})"
+this_command_can_only_be_used_by_players_it_inspects_2 = "이 명령은 플레이어에서만 사용할 수 있습니다 (그것은 당신이 찾고있는 블록을 검사합니다)."
+look_at_block_not_sky = "블록을 보면 하늘이 아닙니다."
+block_y = "구획: {value} (y={value2})"
+this_command_can_only_be_used_by_players_markers_render = "이 명령은 플레이어에 의해서만 사용할 수 있습니다 (마스터는 주변 입자로 렌더링)."
+this_dimension_is_not_generated_by_iris_7 = "이 차원은 Iris가 생성하지 않았습니다."
+scanning_markers_around_you = "검색하기{marker}당신 주위의 감적..."
+marker_scan_failed = "마커 검사 실패: {value}"
+found_nearby_marker_s = "주변 마커 {value}개 발견 ({marker})"
+this_command_can_only_be_used_by_players_3 = "이 명령어는 플레이어만 사용할 수 있습니다."
+this_dimension_is_not_generated_by_iris_8 = "이 차원은 Iris가 생성하지 않았습니다."
+unknown_biome_2 = "알려진 biome: {key}"
+this_command_can_only_be_used_by_players_4 = "이 명령어는 플레이어만 사용할 수 있습니다."
+this_dimension_is_not_generated_by_iris_9 = "이 차원은 Iris가 생성하지 않았습니다."
+unknown_region_2 = "알려진 지역: {key}"
+is_not_defined_dimension = "{value} 차원에서 정의되지 않습니다!"
+this_dimension_is_not_generated_by_iris_10 = "이 차원은 Iris가 생성하지 않았습니다."
+is_not_configured_any_region_biome_object_placements_object_keys = "{key} 어떤 영역/biome 개체 배치에서 구성되지 않습니다 ({value} 객체 키 로드)."
+this_command_can_only_be_used_by_players_object_key = "이 명령은 플레이어에서만 사용할 수 있습니다.  (키를 대체하십시오 '{key}'에 대한 해결 {value} 적재된 목표 열쇠)"
+this_dimension_is_not_generated_by_iris_11 = "이 차원은 Iris가 생성하지 않았습니다."
+name_iris_native_structure_locate = "찾을 Iris 구조물 또는 네이티브 구조물을 지정하세요."
+this_command_can_only_be_used_by_players_5 = "이 명령어는 플레이어만 사용할 수 있습니다."
+unknown_structure_use_tab_completion_choose_iris_placement_registered_native = "알 수 없는 구조 '{key}'. 탭 완성을 사용하여 Iris 배치 또는 등록된 native/datapack 구조를 선택하세요."
+searching_native_structure_within_chunks = "{NATIVESTRUCTURELOCATERADIUS}청크 이내에서 네이티브 구조물 {value} 검색 중..."
+searching_iris_placed_structure = "Iris 배치 구조물 {key} 검색 중..."
+unable_locate_iris_placed_structure_density_search_safety_limit_was = "Iris 배치 구조물 {key}을(를) 찾지 못했습니다. 전체 1024청크 반경을 검색하기 전에 밀도 검색 안전 한도에 도달했습니다."
+could_not_find_iris_placed_structure_within_1024_chunks = "1024청크 이내에서 Iris 배치 구조물 {key}을(를) 찾지 못했습니다."
+search_failed = "검색 실패: {value}"
+could_not_find_native_structure_within_chunks = "{NATIVESTRUCTURELOCATERADIUS}청크 이내에서 네이티브 구조물 {value}을(를) 찾지 못했습니다."
+search_native_structure_failed = "기본 구조에 대한 검색 {value} 실패: {value2}"
+player_disconnected_before_structure_search_completed = "플레이어는 구조 검색 완료 전에 차단."
+you_changed_dimensions_before_structure_search_completed_run_command_again = "구조 검색 완료 전에 크기를 변경; 명령을 다시 실행."
+found_at_but_teleportation_failed = "{label}을(를) {targetX} {clampedY} {targetZ}에서 찾았지만 순간이동에 실패했습니다."
+teleported_at = "텔레포트 {label} 에 의해 {targetX}  {clampedY}  {targetZ}"
+this_dimension_is_not_generated_by_iris_12 = "이 차원은 Iris가 생성하지 않았습니다."
+structure_reachability_native_generation_eligible_iris_placed_native_disabled_native = "구조물 도달 가능성: 생성 가능한 네이티브 {available}개, Iris 배치 {irisPlaced}개, 비활성 네이티브 {disabled}개, Iris 배치로 대체된 네이티브 {suppressed}개, 이 팩의 바이옴에서 제외된 네이티브 {unreachableBiomes}개, 이 차원에서 지원하지 않는 등록 네이티브 {unsupported}개. 개별 구조물은 /iris structure verify <key>로 확인하세요."
+structure_is_iris_placed_locatable_with_iris_goto_structure = "구조물 {key}은(는) Iris 배치 구조물이며 /iris goto structure {key2}로 찾을 수 있습니다."
+unknown_structure_it_is_neither_iris_placed_nor_registered_by = "알 수없는 구조 '{key}'.  그것은 없다 Iris- vanilla 또는 datapack에 의해 또는 등록."
+structure_is_explicitly_replaced_by_iris_placement_locatable_with_iris = "구조물 {value}은(는) Iris 배치로 명시적으로 대체되었으며 /iris goto structure {value2}로 찾을 수 있습니다."
+native_structure_is_enabled_supported_by_this_dimension_s_generator = "기본 구조 {value} 이 차원의 생성기 상태에 의해 지원되고, 접근할 수 있는 /iris goto structure {value2}."
+this_dimension_is_not_generated_by_iris_13 = "이 차원은 Iris가 생성하지 않았습니다."
+this_command_can_only_be_used_by_players_poi_type = "이 명령은 플레이어에서만 사용할 수 있습니다.  (POI 유형 '{type}' 허용됨)"
+searching = "{label} 검색 중..."
+engine_this_world_has_been_closed_rejoin_dimension_try_again = "이 세상을 위한 엔진은 닫혔습니다; 차원을 다시 접속하고 다시 시도하십시오."
+search_failed_2 = "검색 실패: {failure}"
+could_not_find_within_search_timeout = "찾을 수 없음 {label} 검색 시간 내에."
+teleported_at_2 = "텔레포트 {label} 에 의해 {blockX}  {blockY}  {blockZ}"
+engine_changed_while_locating_try_again = "엔진은 위치를 찾는 동안 변경 {label}; 다시 시도."
+this_dimension_is_not_generated_by_iris_14 = "이 차원은 Iris가 생성하지 않았습니다."
+world_seed = "세계 씨앗: {value}"
+engine_seed_mixed = "엔진 씨: {value} (혼합: {value2})"
+this_dimension_is_not_generated_by_iris_15 = "이 차원은 Iris가 생성하지 않았습니다."
+downloading_irisdimensions = "다운로드 IrisDimensions/{pack} ({downloadSource})..."
+pack_installed_its_exact_dimension_types_custom_biomes_join_forced = "팩 '{pack}' 설치 완료. 정확한 차원 유형과 사용자 지정 바이옴은 다음 서버 재시작 때 강제 Iris 데이터 팩에 추가됩니다. 이 팩으로 월드를 만들기 전에 재시작하세요."
+pack_download_failed_see_console = "팩 다운로드 실패 {pack} ({downloadSource}; 콘솔 참조)."
+this_dimension_is_not_generated_by_iris_16 = "이 차원은 Iris가 생성하지 않았습니다."
+generated_chunk_s_s = "생성됨: {value}개 청크, {value2}/s"
+ms = "  {value}: {value2}ms"
+
+[iris.modded.moddedcommandhelp]
+unknown_iris_help_section = "알 수 없는 Iris 도움말 섹션: {normalized}"
+
+[iris.modded.moddeddatapackcommands]
+type_active_logical_pack_engine_not_started_pack_heights_unknown = "{dimensionId}: 유형 ={typeKey} 활동 ={activeMin}..{activeMax} 논리 ={value} (팩={value2}, 엔진을 시작하지; 팩 높이 알 수없는)"
+type_active_logical_pack_wants_logical = "{dimensionId}: 유형 ={typeKey} 활동 ={activeMin}..{activeMax} 논리 ={value} | 팩 '{value2}' 원 {packMin}..{packMax} 논리 ={packLogical} | {value3}{value4}"
+warning_active_dimension_type_does_not_match_pack_iris_will = "  경고: 활성 차원 유형이 팩과 일치하지 않습니다. Iris는 지형을 잘라내는 대신 이 월드 엔진의 시작을 거부합니다. 새 월드는 /iris world enable <dimension> <pack>, 이미 로드된 Iris 차원은 /iris datapack install을 실행한 뒤 재시작하세요."
+no_iris_dimensions_are_loaded = "로드된 Iris 차원이 없습니다."
+all_iris_dimension_s_match_their_pack_height_ranges = "모든 것 {irisLevels}  Iris 차원 (s)는 그들의 팩 고도 범위를 일치합니다."
+engine_not_started_cannot_derive_its_dimension_type_yet = "{value}: 엔진이 시작되지 않습니다. 치수 유형을 아직 파생 할 수 없습니다."
+dimension_type_generation_failed = "{value}: 차원 유형 발생 실패: {value2}"
+failed_write = "쓰기 실패 {output}: {value}"
+no_iris_dimensions_with_running_engines_found_nothing_was_installed = "실행 중인 엔진이 있는 Iris 차원을 찾지 못해 아무것도 설치하지 않았습니다."
+failed_write_2 = "쓰기 실패 {mcmeta}: {value}"
+wrote = "{path}에 기록했습니다"
+world_datapack_dimension_type_overrides_installed_restart_server_dimension_types = "데이터팩 '{WORLDPACKNAME}' 차원 유형 overrides 설치.  적용할 차원 유형을 위한 서버를 재시작하십시오."
+configured_datapack_imports = "구성 된 데이터 팩 가져 오기 : {value}"
+message = "  - {url}"
+modrinth_ingest_is_bukkit_only_install_these_manually_into_world = "Modrinth 수집는 Bukkit-만; 수동으로 설치 world/datapacks 필요한 경우."
+installed_world_datapacks = "설치된 세계 데이터 팩: {value}"
+message_2 = "  - {name}"
+
+[iris.modded.moddeddevelopercommands]
+message = "  {value}"
+network_scan_failed = "네트워크 검사 실패: {value}"
+
+[iris.modded.moddedgoldenhash]
+goldenhash_scan_is_already_running = "황금빛 검사는 이미 달리고 있습니다."
+
+[iris.modded.moddedobjectcommands]
+this_command_can_only_be_used_by_players_wand_is = "이 명령은 플레이어에서만 사용할 수 있습니다.  (지팡이는 물리적 아이템입니다)"
+your_inventory_is_full = "재고가 가득합니다."
+poof_good_luck_building_left_click_corner_1_right_click = "펑! 즐겁게 건축하세요! (왼쪽 클릭 = 모서리 1, 오른쪽 클릭 = 모서리 2)"
+this_command_can_only_be_used_by_players_dust_is = "이 명령은 플레이어에서만 사용할 수 있습니다.  ( 먼지는 물리적 품목입니다)"
+your_inventory_is_full_2 = "재고가 가득합니다."
+right_click_block_reveal_object_it_belongs = "오른쪽 클릭  블록을 우클릭하여 해당 객체를 확인 그것 속임수."
+this_command_can_only_be_used_by_players_saving_captures = "이 명령은 플레이어에서만 사용할 수 있습니다.  (당신의 지팡이 선택을 저장하십시오)"
+this_dimension_is_not_generated_by_iris_objects_save_into = "이 치수는 생성되지 않습니다. Iris; 물체는 차원의 팩으로 저장합니다."
+hold_your_iris_wand_iris_wand = "Iris 지팡이를 손에 드세요. (/iris wand)"
+no_area_selected_left_right_click_blocks_with_wand_first = "선택 없음.  왼쪽 / 오른쪽 클릭 블록 지팡이 첫째."
+invalid_object_name = "잘못된 객체 이름: {nameRaw}"
+selection_too_large_blocks_max = "너무 큰 선택: {volume} 블록 (최대 {MAXSAVEVOLUME})."
+file_already_exists_use_iris_object_save_overwrite = "파일이 이미 있습니다. /iris object save overwrite {name}을(를) 사용하세요"
+failed_save_object = "객체를 저장하는 실패: {value}"
+saved_objects_iob_x_x_block_s = "다운로드 {value}/objects/{name}.iob: {w}x{h}x{d}, {value2} 블록 (s){tileNote}"
+unknown_empty_object = "알려진 또는 빈 객체: {key}"
+console_must_specify_coordinates_iris_object_paste_at_x_y = "콘솔은 좌표를 지정해야 합니다: /iris object paste at <x> <y> <z> [rotate <degrees>] {key}"
+you_are_not_looking_at_block_within_blocks = "블록을 찾고 있지 않습니다. {value} 블록."
+paste_failed_partial_changes_recorded_undo = "붙여넣기 실패: {value} (불행의 변화)"
+placed_at_rot_write_s_non_air = "{key}을(를) {value} {value2} {value3}에 배치했습니다. rot={rotation} (쓰기 {value4}회, 비공기 {value5}개{tileNote})"
+this_command_can_only_be_used_by_players = "이 명령어는 플레이어만 사용할 수 있습니다."
+hold_your_iris_wand_iris_wand_2 = "Iris 지팡이를 손에 드세요. (/iris wand)"
+no_area_selected = "선택 없음."
+message = "{value}  {amount}  {value2}: {value3}"
+this_command_can_only_be_used_by_players_2 = "이 명령어는 플레이어만 사용할 수 있습니다."
+ready_your_wand_iris_wand = "지팡이를 준비하십시오.  (/iris wand)"
+you_are_not_looking_at_block = "블록을 찾고 있지 않습니다."
+position_set = "선택 위치 {value}을(를) {value2} {value3} {value4}(으)로 설정했습니다"
+this_command_can_only_be_used_by_players_3 = "이 명령어는 플레이어만 사용할 수 있습니다."
+hold_your_wand = "지팡이를 잡아!"
+no_area_selected_2 = "선택 없음."
+selection_too_large_auto_select_blocks_max = "자동 선택을위한 너무 큰 선택 : {volume} 블록 (최대 {MAXAUTOSELECTVOLUME})."
+auto_select_complete = "자동 선택 완료: {value}"
+unknown_object = "알려진 객체: {key}"
+object_size = "목표 크기: {value} * {value2} * {value3}"
+blocks_used = "사용된 구획: {value}"
+blocks_object = "== 객체의 블록 =="
+message_2 = " - {value} * {value2}"
+other_block_state_s = "  + {remaining} 다른 구획 국가 (s)"
+unknown_object_2 = "알려진 객체: {key}"
+current_object_size = "현재 목표 크기: {value} * {value2} * {value3}"
+new_object_size = "새로운 목표 크기: {value} * {value2} * {value3}"
+object_has_no_load_file_cannot_persist_shrink = "오브젝트에는 로드 파일이 없습니다; 수축을 지속할 수 없습니다."
+failed_save_object_2 = "객체를 저장하는 실패 {value}: {value2}"
+invalid_reach = "잘못된 범위: {token}"
+no_objects_matched = "일치하는 물체 없음: {target}"
+plausibilize_reach_queued_object_s = "Plausibilize [reach={reach}{value}]에 오브젝트 {value2}개를 추가했습니다"
+nothing_undo = "아무것도 할 수 없습니다."
+reverted_paste_s = "붙여넣기 {reverted}건을 되돌렸습니다!"
+
+[iris.modded.moddedpackcommands]
+packs_folder_not_found = "찾을 수없는 팩 폴더 : {value}"
+no_packs_validate_under = "아래에 유효한 팩 없음 {value}"
+pack_not_found_under = "팩 '{pack}다음에서 찾을 수 없음 {value}"
+validating_pack_s = "옵션 정보 {value} 팩 (s)..."
+validation_failed = "의 유효성{value}' 실패: {value2}"
+validation_complete_broken_packs = "유효성 검사  부서지는 팩: {brokenTotal}/{value}"
+pack_not_found_under_2 = "팩 '{pack}다음에서 찾을 수 없음 {value}"
+pack_not_found_under_3 = "팩 '{pack}다음에서 찾을 수 없음 {value}"
+no_validation_results_recorded_run_iris_pack_validate_first = "검증 결과가 없습니다. 먼저 /iris pack validate를 실행하세요."
+blocking_warnings = "{tag}  {value} (블록 ={value2}, 경고 ={value3})"
+no_validation_result_run_iris_pack_validate = "'{pack}'의 검증 결과가 없습니다. /iris pack validate {pack2}을(를) 실행하세요."
+pack_is_loadable_warnings = "팩 '{value}'로드 가능.  (워닝 ={value2})"
+pack_is_broken = "팩 '{value}'이(가) 손상되었습니다:"
+message = "  - {reason}"
+message_2 = "  !  {value}"
+more_warning_s = "  ...  · {value} 더 많은 경고 (s)."
+no_cleanup_candidates_found_pack = "팩을 찾을 수 없습니다 '{pack}'."
+cleanup_preview_pack_candidate_s_no_files_were_changed = "팩에 대한 정리 미리보기 '{pack}': {value} 후보자 (s).  파일이 변경되지 않았습니다."
+run_iris_pack_cleanup_apply_quarantine_after_fresh_scan = "다시 검사한 뒤 격리하려면 /iris pack cleanup {pack} apply를 실행하세요."
+no_cleanup_candidates_found_pack_2 = "팩을 찾을 수 없습니다 '{pack}'."
+quarantined_cleanup_candidate_s_under = "정리 후보 {value}개를 {value2} 아래에 격리했습니다."
+nothing_restore_pack = "팩을 복원 할 수없는 '{pack}'."
+restore_preview_file_s_no_files_were_changed = "복원 미리보기 {value}: {value2} 파일(s).  파일이 변경되지 않았습니다."
+restore_is_blocked_by_existing_destination_s = "복원에 의해 차단 {value} 기존 목적지(s)."
+run_iris_pack_restore_apply_restore_after_fresh_conflict_check = "충돌을 다시 확인하고 복원하려면 /iris pack restore {pack} apply를 실행하세요."
+restore_refused_because_destination_s_already_exist = "휴관일 {value} 대상 (s) 이미 존재합니다."
+nothing_restore_pack_2 = "팩을 복원 할 수없는 '{pack}'."
+restored_file_s_from = "{value2}에서 파일 {value}개를 복원했습니다."
+message_3 = "  - {label}: {value}"
+more = "  ...외 {value}개."
+compat_header = "팩 '{pack}': Minecraft {version} 에서 사용할 수 없는 콘텐츠"
+compat_none = "팩 '{pack}' 은 Minecraft {version} 에 없는 콘텐츠를 사용하지 않습니다."
+compat_remedy = "이 콘텐츠를 복원하려면 서버를 최신 Minecraft 로 업데이트하거나 대체를 선언하세요 (차원의 blockFallbacks, 블록의 backup)."
+
+[iris.modded.moddedregen]
+regen_is_already_running = "regen는 이미 달리고 있습니다."
+
+[iris.modded.moddedstructurecommands]
+this_dimension_is_not_generated_by_iris_run_this_from = "이 치수는 생성되지 않습니다. Iris.  이 작업을 실행 Iris 차원 그래서 팩은 해결될 수 있습니다."
+wrote_structure_index = "기록함 구조 색인: {value}"
+no_iris_structure_this_pack = "아이리스 구조 없음 '{key}이 팩에서"
+structure_assembled_0_pieces_check_startpool = "구조 '{key}' 조립 0 조각 (체크 startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "구조 '{key}': {value} 조각, 발자국 {value2}x{value3} 블록 (샘플 씨 1234)"
+this_command_can_only_be_used_by_players_structure_is = "이 명령은 플레이어에서만 사용할 수 있습니다 (구조는 위치에 조립됩니다)."
+no_iris_structure_this_pack_2 = "아이리스 구조 없음 '{key}이 팩에서"
+structure_assembled_0_pieces = "구조물 '{key}' 조립 결과: 조각 0개"
+place_failed_partial_changes_recorded_undo = "장소 실패: {value} (불행의 변화)"
+placed_pieces_write_s_at_your_location_iris_object_undo = "장소 '{key}' ({value} 조각, {value2} 쓰기(s){tileNote}) 귀하의 위치에.  /iris object undo 뒤로."
+
+[iris.modded.moddedstudiocommands]
+provide_dimension_pack_iris_studio_open_pack_seed = "차원 팩을 제공: /iris studio open <pack> [seed]"
+opening_noise_explorer_on_server_display = "서버 디스플레이에서 소음 탐험 공구를 엽니다."
+this_dimension_is_not_generated_by_iris_run_iris_studio = "이 차원은 Iris가 생성하지 않았습니다. 생성기를 확인하려면 Iris 차원에서 /iris studio noise를 실행하거나 생성기 이름을 생략하세요."
+unknown_generator_pack = "알 수없는 생성기 '{generatorKey}'팩 {value}."
+opening_noise_explorer_generator_seed = "생성기 '{value}'(시드 {seed})을(를) Noise Explorer에서 여는 중입니다."
+this_dimension_is_not_generated_by_iris_stand_iris_studio = "이 치수는 생성되지 않습니다. Iris; 안으로 대 Iris (또는 스튜디오) 치수 및 실행 /iris studio map."
+opening_vision_map_on_server_display = "Vision 지도 열기 {value} 서버 디스플레이에."
+failed_write_workspace = "작업 영역을 쓸 실패 {value}: {value2}"
+workspace_regenerated_with_json_schemas_autocomplete = "JSON 스키마 자동 완성을 포함해 워크스페이스 {value}을(를) 다시 생성했습니다."
+could_not_open = "열 수 없습니다 {value}: {value2}"
+opening_your_editor = "편집기에서 {value} 여는 중입니다."
+this_dimension_is_not_generated_by_iris_specify_pack_name = "이 치수는 생성되지 않습니다. Iris; 팩 이름을 명시적으로 지정합니다."
+pack_not_found_under = "팩 '{name}다음에서 찾을 수 없음 {value}"
+provide_dimension_pack_iris_studio_open_pack_seed_2 = "차원 팩을 제공: /iris studio open <pack> [seed]"
+opening_studio_seed = "팩 '{pack}'(시드 {seed})의 Studio를 여는 중..."
+pack_missing_downloading_irisdimensions = "팩 '{pack}' 누락; 다운로드 IrisDimensions/{pack2}..."
+pack_could_not_be_downloaded_check_name_try_iris_download = "팩 '{pack}'다운로드 할 수 없습니다; 이름을 확인하고 시도 /iris download {pack2}."
+pack_has_no_dimensions_json = "팩 '{pack}'에 dimensions/{pack2}.json이 없습니다"
+studio_open_failed = "스튜디오 오픈 실패: {value}{errorMessage}"
+studio_injection_failed = "Studio 주입 실패: {value}{errorMessage}"
+console_studio_open_now_runs_seed_transient_not_written_iris = "콘솔 스튜디오 오픈: {dimensionId} 지금 실행 '{pack}'씨 {seed} (임시; 쓰지 않는 iris-dimensions.json 재시작에 명확하게 됨)."
+enter_it_with_execute_run_tp_s_8_5_8 = "다음을 입력하십시오: /execute in {dimensionId} run tp @s 8.5  {surface}  8.5"
+pregen_it_with_iris_pregen_start_radius = "그것을 가진 Pregen: /iris pregen start <radius> {dimensionId}"
+remove_it_with_iris_studio_close = "그것을 제거: /iris studio close"
+studio_injection_failed_2 = "Studio 주입 실패: {value}{errorMessage}"
+studio_open_now_runs_seed_use_iris_studio_close_when = "Studio 열림: {dimensionId}에서 팩 '{pack}', 시드 {seed}을(를) 실행 중입니다. 완료하면 /iris studio close를 사용하세요."
+you_do_not_have_open_studio_use_iris_studio_open = "열린 Studio가 없습니다. 먼저 /iris studio open <pack>을(를) 사용하세요."
+studio_close_failed = "Studio 닫기 실패: {value}{errorMessage}"
+studio_closed_was_evacuated_unloaded_its_region_data_deleted = "Studio가 닫혔습니다. {dimensionId}는 공급 업체 및 그 지역 데이터 삭제되었습니다."
+no_studio_dimensions_are_currently_open = "스튜디오 차원은 현재 열려 있습니다."
+active_studio_dimension_s = "활동 스튜디오 차원 (s): {value}"
+pack_seed_owner = "  {value}: 팩 '{value2}', 시드 {value3}, 소유자 {ownerName}"
+this_command_can_only_be_used_by_players = "이 명령어는 플레이어만 사용할 수 있습니다."
+you_do_not_have_open_studio_use_iris_studio_open_2 = "열린 Studio가 없습니다. 먼저 /iris studio open <pack>을(를) 사용하세요."
+your_studio_dimension_is_no_longer_loaded_use_iris_studio = "Studio 차원이 더 이상 로드되어 있지 않습니다. /iris studio open <pack>을(를) 다시 사용하세요."
+teleported_your_studio = "당신의 스튜디오로 이동 ({dimensionId})."
+pack_has_no_dimensions_json_2 = "팩 '{value}'에 dimensions/{value2}.json이 없습니다"
+pack_has_version = "\"{value}\" 팩에는 버전이 있습니다 : {value2}"
+invalid_project_name_allowed_z_0_9 = "잘못된 프로젝트 이름 '{nameRaw}' (사용 가능: a-z, 0-9, _, -)"
+pack_already_exists_at = "팩 '{name}' 이미 존재 {value}"
+creating_project_from_template = "프로젝트 만들기{name}템플릿에서 '{template}'..."
+required_pack_is_not_installed_install_then_restart = "필수 팩 '{pack}'이(가) 설치되어 있지 않습니다. /iris download로 설치한 다음 서버를 다시 시작하세요."
+created_project_at = "프로젝트 '{name}'을(를) {value}에 만들었습니다"
+edit_dimensions_json_rest_pack_vscode_workspace_with_json_schema = "dimensions/{name}.json를 편집하고 팩의 나머지.JSON 스키마 자동 완성이 생성 된 VSCode 작업 공간; /iris studio vscode를 엽니 다."
+project_creation_failed = "프로젝트 생성 실패: {value}{errorMessage}"
+packaging_dimension = "차원 '{dimKey}' 패키징 중..."
+package_compiled = "패키지 컴파일 완료: {value}"
+packaging_failed = "포장 실패: {value}{errorMessage}"
+this_command_can_only_be_used_by_players_sampling_is = "이 명령은 플레이어에 의해서만 사용할 수 있습니다 (샘플링은 위치에 집중됩니다)."
+this_dimension_is_not_generated_by_iris = "이 차원은 Iris가 생성하지 않았습니다."
+sampling_region_distribution_x_chunks_around_you = "샘플링 지역 배포 {value}x{value2} 너 주변의 청크..."
+rarity = "{key}: rarity ={rarity} / {value}%"
+region_sampling_failed = "지역 표본 추출 실패: {value}"
+image_map_requires_iris_dimension = "Stand in an active Iris or Studio dimension before opening the Image Map Studio."
+opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {value} on the server display."
+
+[iris.modded.moddedworldcommands]
+required_pack_is_not_installed_install_then_restart = "필수 팩 '{pack}'이(가) 설치되어 있지 않습니다. /iris download로 설치한 다음 서버를 다시 시작하세요."
+failed_inject_iris_world = "Iris 월드 '{dimensionId}' 주입 실패: {value}{errorMessage}"
+created_iris_world_from_pack_dimension_seed = "팩 '{pack}'의 차원 '{packDimension}'(시드 {seed})에서 Iris 월드 {dimensionId}을(를) 만들었습니다."
+it_is_live_now_re_injected_on_every_startup_teleport = "그것은 지금 살고 모든 시작에 거부.  Teleport와 함께 /iris world status 또는 포털; 재시작 필요 없음."
+failed_inject_iris_primary_world = "Iris 기본 월드 주입 실패: {value}{errorMessage}"
+iris_primary_world_set_pack_dimension_seed = "Iris 1 차 세계 세트에 {dimensionId} (팩 '{pack}' 차원'{packDimension}'씨 {seed})."
+vanilla_overworld_generator_cannot_be_hot_swapped_so_this_does = "바닐라 오버월드 생성기는 실행 중에 교체할 수 없으므로, 이 작업은 기존 오버월드를 재생성하지 않습니다."
+instead_is_now_configured_primary_world_players_vanilla_overworld_are = "대신 {dimensionId}을(를) 기본 월드로 설정했습니다. 바닐라 오버월드의 플레이어는 접속 시 해당 월드로 이동하며, 시작할 때마다 다시 주입됩니다."
+iris_main_world_override_cleared_overworld_keeps_its_current_generator = "Iris 뚜렷한 주요 세계.  overworld는 그것의 현재 생성기를 지킵니다; 편집 server.properties 레벨 타입과 다시 변경합니다."
+invalid_seed_use_number_random = "잘못된 씨앗 '{seedRaw}'.  숫자 또는 'random'를 사용합니다."
+pack_is_not_ready_yet_still_loading_validating_try_command = "팩 '{pack}'는 아직 준비되지 않습니다 (실 적재 또는 검증).  현재 명령을 다시 시도하십시오."
+failed_write_server_properties_check_file_permissions_set_level_type = "쓰기 실패 server.properties; 파일 권한 확인 및 수동 레벨 유형 설정."
+iris_main_world_set_preset_seed = "Iris 주요 세계는 '{pack}' (이전 {preset}, 씨 {value})."
+server_properties_level_type_is_now_on_next_restart_overworld = "server.properties의 level-type을 {preset}(으)로 설정했습니다. 다음 재시작 때 오버월드, 네더, 엔드가 이 Iris 월드로 다시 생성됩니다."
+player_data_inventories_advancements_stats_is_kept_existing_terrain_those = "플레이어 데이터, 인벤토리, 발전 과제, 통계)가 유지됩니다. 이러한 차원의 기존 지형은 대체됩니다.이것은 한 번 적용됩니다."
+mainworldautorestart_is_enabled_stopping_server_now_so_your_restart_wrapper = "mainWorldAutoRestart가 활성화되어 있습니다. 재시작 래퍼가 새 메인 월드로 서버를 다시 시작하도록 지금 서버를 중지합니다."
+restart_server_now_generate_it_set_mainworldautorestart_true_modded_json = "생성하려면 지금 서버를 재시작하세요. (modded.json에서 mainWorldAutoRestart=true로 설정하면 Iris가 서버를 중지합니다.)"
+refusing_create_world_using_pack_because_required_validation_failed = "세계를 창조하는 거부{dimensionId}'팩 사용'{pack}'필수 유효성 검사 실패:"
+message = "  - {reason}"
+fix_pack_run_iris_pack_validate_revalidate = "팩을 수정하고 /iris pack validate {pack}을(를) 실행해 다시 검증하세요."
+pack_was_not_found_under = "팩 '{pack}'는 아래에서 찾을 수 없습니다 {value}"
+pack_does_not_contain_dimensions_json = "팩 '{pack}'는 포함하지 않습니다 dimensions/{packDimension}.json"
+invalid_pack_reference_use_pack_pack_dimensionkey = "잘못된 팩 참조 '{pack}{value}'.  팩 또는 팩을 사용하십시오:dimensionKey."
+invalid_seed_use_number_random_2 = "잘못된 씨앗 '{seedRaw}'.  숫자 또는 'random'를 사용합니다."
+failed_remove_iris_world = "제거 실패 Iris 세계 '{dimensionId}': {value}{errorMessage}"
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry = "Iris 세계 '{dimensionId}'는로드되지 않았습니다. 지속적 레지스트리 항목을 정리하고 저장된 청크 / 맨틀 데이터를 닦았습니다."
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry_2 = "Iris 세계 '{dimensionId}'는로드되지 않았습니다. 지속적 레지스트리 항목을 삭제했습니다.  디스크의 세계 데이터가 유지됩니다."
+deleted_iris_world_evacuated_unloaded_chunk_mantle_data_wiped_dropped = "삭제 된 Iris 세계 '{dimensionId}': 공급 업체 청크/mantle 데이터 와이퍼, 그리고 시작 레지스트리에서 떨어졌다."
+disabled_iris_world_evacuated_unloaded_dropped_from_startup_registry = "Iris 세계 '{dimensionId}': 공급 업체, 그리고 시작 레지스트리에서 떨어졌다."
+world_data_on_disk_is_kept_re_enable_with_iris = "디스크에 대한 세계 데이터가 유지됩니다; /iris world enable {dimensionId} <pack>로 재 활성화하거나 /iris world delete {dimensionId2}로 삭제하십시오."
+loaded_iris_level_pack_dimension = "로드 중 ... Iris 수준: {value}  -> 팩 '{value2}' 차원'{value3}'"
+primary_world = "차 세계: {primary}{value}"
+no_iris_dimensions_are_currently_loaded_create_one_with_iris = "현재 로드된 Iris 차원이 없습니다. /iris world create <name> <pack>으로 만드세요."
+loaded_iris_dimensions = "로드 중 ... Iris 크기: {value}"
+message_2 = "  - {dimension}"
+use_iris_world_create_name_pack_inject_one_without_restarting = "재시작하지 않고 주입하려면 /iris world create <name> <pack>을(를) 사용하세요."
+
+[iris.director.commanddatapack]
+"director.download_manage_external_datapack_imports_modrinth" = "외부 데이터 팩 가져오기를 다운로드하고 관리합니다(Modrinth)"
+"director.download_update_every_datapack_listed_pack_dimension_s_datapackimports_install_it_into" = "팩 차원의 'datapackImports'에 있는 모든 데이터 팩을 다운로드하거나 업데이트하고, 구조물이 바닐라처럼 등록되도록 월드에 설치합니다"
+"param.restart_server_when_new_datapacks_are_installed_required_new_structures_register_generate" = "새 데이터 팩을 설치했을 때 서버를 재시작합니다(새 구조물 등록과 생성에 필요)"
+"director.list_configured_datapack_imports_their_installed_versions" = "설정된 데이터 팩 가져오기와 설치된 버전을 나열합니다"
+"director.remove_installed_datapack_by_id_also_delete_its_url_from_datapackimports_keep" = "ID로 설치된 데이터 팩을 제거합니다(다시 설치되지 않게 하려면 datapackImports에서 URL도 삭제하세요)"
+"param.datapack_id_folder_name_shown_by_iris_datapack_list" = "/iris datapack list에 표시되는 데이터 팩 ID(폴더 이름)"
+
+[iris.director.commanddeveloper]
+"director.iris_world_manager" = "Iris 월드 관리자"
+"director.get_loaded_tectonicplates_count" = "로드된 TectonicPlates 수를 가져옵니다"
+"director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "고정 영역의 생성 블록 출력을 해시해 결정성과 일치성을 검사합니다"
+"param.world_hash" = "해시할 월드"
+"param.radius_chunks_around_center" = "중심 기준 반경(청크 단위)"
+"param.center_chunk_x" = "중심 청크 X"
+"param.center_chunk_z" = "중심 청크 Z"
+"director.stage_world_generation_update" = "월드 생성 업데이트 준비"
+"param.world_update" = "업데이트할 월드"
+"param.pack_install_into_world" = "월드에 설치할 팩"
+"param.make_sure_make_backup_read_warnings_first" = "반드시 백업을 만들고 경고를 먼저 읽으세요!"
+"director.test" = "테스트"
+"param.dump_whole_tectonic_plate_instead_single_section" = "단일 섹션 대신 지각판 전체를 덤프합니다"
+"param.dump_file_id_under_plugins_iris_dump_pv_id" = "plugins/Iris/dump 아래의 덤프 파일 ID(pv.<id>.*)"
+"director.test_2" = "테스트"
+"param.pack_bench" = "벤치마크할 팩"
+"param.radius_regions" = "반경(리전 단위)"
+"param.open_gui_while_benchmarking" = "벤치마크 중 GUI를 열지 여부"
+"director.upgrade_another_minecraft_version" = "다른 Minecraft 버전으로 업그레이드합니다"
+"param.version_upgrade" = "업그레이드할 버전"
+"director.test_3" = "테스트"
+"param.world_folder_scan_mca_region_files" = ".mca 리전 파일을 검사할 월드 폴더"
+"director.delete_nearby_chunk_blocks_regen_testing" = "재생성 테스트를 위해 주변 청크 블록을 삭제합니다"
+"param.radius_chunks_around_your_current_chunk" = "현재 청크 기준 반경(청크 단위)"
+"director.test_4" = "테스트"
+"director.delete_regenerate_nearby_chunks_place_using_iris_generation" = "주변 청크를 삭제하고 Iris 생성 방식으로 제자리에서 다시 생성합니다"
+"param.radius_nearby_chunks" = "주변 청크 반경"
+"director.generate_chunks_into_buffers_no_world_writes_hash_blocks_biomes_captures_golden" = "청크를 버퍼에서 생성하고(월드 쓰기 없음) 블록과 바이옴을 해시합니다. Golden 파일을 캡처하거나 기존 파일과 검증합니다. 월드 전체의 Mantle이 삭제되므로 폐기 가능한 테스트 월드에서 사용하세요."
+"param.world_scan" = "검사할 월드"
+"param.radius_chunks_around_center_2" = "중심 기준 반경(청크 단위)"
+"param.center_chunk_x_2" = "중심 청크 X"
+"param.center_chunk_z_2" = "중심 청크 Z"
+"param.delete_mantle_data_scan_area_first_full_regeneration_from_scratch" = "먼저 월드의 전체 Mantle 폴더를 삭제하여 처음부터 완전히 다시 생성합니다. 스캔 영역에 국한되지 않습니다"
+"param.concurrent_chunk_generations_1_strictly_serial_order_dependence_testing" = "동시 청크 생성 수. 1 = 순서 의존성 검사용 완전 직렬 처리"
+"param.also_dump_full_per_chunk_non_air_blockstates_offline_diffing" = "오프라인 비교를 위해 청크별 비공기 블록 상태 전체도 덤프합니다"
+
+[iris.director.commandedit]
+"director.edit_something" = "리소스를 편집합니다"
+"director.edit_biome_you_specified" = "지정한 바이옴을 편집합니다"
+"param.biome_edit" = "편집할 바이옴"
+"director.edit_region_you_specified" = "지정한 리전을 편집합니다"
+"param.region_edit" = "편집할 리전"
+"director.edit_dimension_you_specified" = "지정한 차원을 편집합니다"
+"param.dimension_edit" = "편집할 차원"
+
+[iris.director.commandfind]
+"director.iris_find_commands" = "Iris 검색 명령어"
+"director.find_biome" = "바이옴을 찾습니다"
+"param.biome_look" = "찾을 바이옴"
+"param.should_you_be_teleported" = "검색 결과로 순간이동할지 여부"
+"director.find_region" = "리전을 찾습니다"
+"param.region_look" = "찾을 리전"
+"param.should_you_be_teleported_2" = "검색 결과로 순간이동할지 여부"
+"director.find_point_interest" = "관심 지점을 찾습니다."
+"param.type_poi_look" = "찾을 PoI 유형."
+"param.should_you_be_teleported_3" = "검색 결과로 순간이동할지 여부"
+"director.find_structure_vanilla_key_like_minecraft_village_plains_minecraft_stronghold_imported_iris" = "구조물을 찾습니다(minecraft:village_plains 또는 minecraft:stronghold 같은 바닐라 키나 가져온 Iris 구조물 키)"
+"param.structure_look_e_g_minecraft_village_plains_minecraft_stronghold_minecraft_ancient_city" = "찾을 구조물(예: minecraft:village_plains, minecraft:stronghold, minecraft_ancient_city)"
+"director.find_object" = "오브젝트를 찾습니다"
+"param.object_look" = "찾을 오브젝트"
+"param.should_you_be_teleported_4" = "검색 결과로 순간이동할지 여부"
+
+[iris.director.commandobject]
+"director.iris_object_manipulation" = "Iris 오브젝트 조작"
+"director.open_object_studio_world_grid_every_object_dimension_optional_defaults_all_packs" = "오브젝트 Studio 월드를 엽니다(모든 오브젝트의 격자. 차원은 선택 사항이며 기본값은 모든 팩)"
+"param.optional_dimension_whose_object_pack_lay_out_omit_aggregate_objects_from_every" = "배치할 오브젝트 팩의 차원. 생략하면 모든 팩의 오브젝트를 모읍니다"
+"param.seed_generate_studio_with" = "Studio 생성에 사용할 시드"
+"director.check_composition_object" = "오브젝트 구성을 확인합니다"
+"param.object_analyze" = "분석할 오브젝트"
+"director.shrink_object_its_minimum_size" = "오브젝트를 최소 크기로 줄입니다"
+"param.object_shrink" = "줄일 오브젝트"
+"director.grow_organic_branches_through_canopy_so_every_leaf_survives_vanilla_decay" = "수관을 따라 자연스러운 가지를 자라게 해 모든 잎이 바닐라 소멸을 견디게 합니다"
+"param.object_key_prefix_trees_filesystem_path" = "오브젝트 키, 접두사(trees/) 또는 파일 시스템 경로"
+"param.dryrun_true_analyzes_only_writes_nothing" = "dryrun=true이면 분석만 하고 아무것도 쓰지 않습니다"
+"param.reach_n_max_branch_length_blocks_from_existing_wood_farther_leaf_clusters" = "reach=N은 기존 나무에서 자라는 가지의 최대 길이(블록)입니다. 더 먼 잎 무리는 대신 영구 고정됩니다. reach=0은 제한 없이 자랍니다"
+"director.convert_schem_files_convert_folder_iob_files" = "'convert' 폴더의 .schem 파일을 .iob 파일로 변환합니다."
+"director.get_powder_that_reveals_objects" = "오브젝트를 드러내는 가루를 받습니다"
+"director.contract_selection_based_on_your_looking_direction" = "바라보는 방향을 기준으로 선택 영역을 줄입니다"
+"param.amount_inset_by" = "안쪽으로 줄일 양"
+"director.set_point_1_look" = "바라보는 위치를 선택 지점 1로 설정합니다"
+"param.whether_use_your_current_position_where_you_look" = "현재 위치와 바라보는 위치 중 무엇을 사용할지"
+"director.set_point_2_look" = "바라보는 위치를 선택 지점 2로 설정합니다"
+"param.whether_use_your_current_position_where_you_look_2" = "현재 위치와 바라보는 위치 중 무엇을 사용할지"
+"director.paste_object" = "오브젝트를 붙여넣습니다"
+"param.object_paste" = "붙여넣을 오브젝트"
+"param.whether_not_edit_object_need_hold_wand" = "오브젝트를 편집할지 여부(지팡이를 들어야 함)"
+"param.amount_degrees_rotate_by" = "회전할 각도"
+"param.factor_by_which_scale_object_placement" = "오브젝트 배치 배율"
+"param.scale_interpolator_use" = "사용할 크기 보간 방식"
+"director.save_object" = "오브젝트를 저장합니다"
+"param.dimension_store_object" = "오브젝트를 저장할 차원"
+"param.file_store_it_can_use_subfolders" = "저장할 파일. /로 하위 폴더를 지정할 수 있습니다"
+"param.overwrite_existing_object_files" = "기존 오브젝트 파일을 덮어쓸지 여부"
+"param.use_legacy_tilestate_serialization_if_possible" = "가능하면 기존 TileState 직렬화를 사용합니다"
+"director.shift_selection_your_looking_direction" = "바라보는 방향으로 선택 영역을 이동합니다"
+"param.amount_shift_by" = "이동할 양"
+"director.undo_number_pastes" = "지정한 수의 붙여넣기를 되돌립니다"
+"param.amount_pastes_undo" = "되돌릴 붙여넣기 수"
+"director.gets_object_wand_grabs_current_worldedit_selection" = "오브젝트 지팡이를 받고 현재 WorldEdit 선택 영역을 설정합니다."
+"director.get_object_wand" = "오브젝트 지팡이를 받습니다"
+"director.autoselect_up_down_out" = "위, 아래, 바깥쪽으로 자동 선택합니다"
+"director.autoselect_up_out" = "위와 바깥쪽으로 자동 선택합니다"
+
+[iris.director.commandpack]
+"director.pack_validation_maintenance" = "팩 검증과 유지 관리"
+"director.validate_pack_all_packs_re_publish_results" = "팩 또는 모든 팩을 검증하고 결과를 다시 게시합니다"
+"param.pack_folder_name_validate_leave_empty_all" = "검증할 팩 폴더 이름(비워 두면 모두)"
+"director.preview_apply_unused_resource_cleanup" = "사용하지 않는 리소스 정리를 미리 보거나 적용합니다"
+"param.pack_folder_name_clean" = "정리할 팩 폴더 이름"
+"param.preview_apply" = "preview 또는 apply"
+"director.preview_apply_restoration_latest_quarantine" = "최근 격리 항목 복원을 미리 보거나 적용합니다"
+"param.pack_folder_name_restore" = "복원할 팩 폴더 이름"
+"param.preview_apply_2" = "preview 또는 apply"
+"director.show_cached_validation_status_pack" = "팩의 캐시된 검증 상태를 표시합니다"
+"param.pack_folder_name" = "팩 폴더 이름"
+"director.show_content_cannot_generate_this_minecraft_version" = "이 Minecraft 버전에서 생성할 수 없는 팩 콘텐츠를 표시합니다"
+"param.pack_folder_name_compat" = "보고할 팩 폴더 이름"
+
+[iris.director.commandpregen]
+"director.pregenerate_your_iris_worlds" = "Iris 월드를 사전 생성합니다!"
+"director.pregenerate_world" = "월드를 사전 생성합니다"
+"param.radius_pregen_blocks" = "사전 생성 반경(블록 단위)"
+"param.world_pregen" = "사전 생성할 월드"
+"param.center_location_pregen_use_me_your_current_location" = "사전 생성 중심 위치. 현재 위치는 \"me\"를 사용하세요"
+"param.open_iris_pregen_gui" = "Iris 사전 생성 GUI를 열지 여부"
+"param.generate_only_one_chunk_at_time" = "한 번에 한 청크만 생성할지 여부"
+"director.stop_active_pregeneration_task" = "실행 중인 사전 생성 작업을 중지합니다"
+"director.pause_continue_active_pregeneration_task" = "실행 중인 사전 생성 작업을 일시 중지하거나 계속합니다"
+"director.show_active_pregeneration_status" = "실행 중인 사전 생성 상태를 표시합니다"
+
+[iris.director.commandstructure]
+"director.iris_structure_tools_index_import_info" = "Iris 구조물 도구(인덱스, 가져오기, 정보)"
+"director.regenerate_structure_index_json_listing_all_vanilla_datapack_iris_structures" = "모든 vanilla, datapack 및 Iris 구조물이 나열된 structure-index.json을 다시 생성합니다"
+"param.dimension_whose_pack_index" = "인덱싱할 팩의 차원"
+"director.import_every_structure_vanilla_ingested_datapacks_into_this_pack_as_editable_iris" = "모든 구조물(바닐라와 수집된 데이터 팩)을 편집 가능한 Iris 리소스로 이 팩에 항상 덮어써 가져옵니다. 직소 구조물(마을, 전초기지, 데이터 팩 직소)을 편집 가능한 pool/piece 그래프로 다시 만들고, 모든 구조물 템플릿 NBT를 오브젝트로 가져오며, 여러 템플릿 구조물(난파선, 무너진 포털, 해저 폐허, 네더 화석)을 조립합니다. 데이터 팩을 수집하고 재시작한 뒤 실행하세요. 가져온 구조물이 배치되도록 청크를 다시 생성하거나 새 월드를 사용하세요."
+"param.dimension_whose_pack_import_into" = "가져올 대상 팩의 차원"
+"director.capture_code_generated_structures_that_have_no_nbt_template_swamp_huts_igloos" = "NBT 템플릿이 없는 코드 생성 구조물(늪지 오두막, 이글루 등)을 일회용 임시 세계에 각각 생성하고 블록을 다시 읽어 편집 가능한 Iris 객체로 캡처합니다. 이미 구조물로 가져온 항목, 캡처 한도보다 너비/높이가 큰 구조물(요새, 대저택, 기념물은 vanilla 상태로 유지), 평면 overworld에서 생성되지 않는 항목은 건너뜁니다. 캡처한 각 구조물은 biome/region/dimension의 'structures' 목록에서 배치할 수 있는 단일 조각 Iris 구조물이 됩니다. /iris structure import의 마지막 단계로 자동 실행됩니다."
+"param.dimension_whose_pack_capture_into" = "캡처할 대상 팩의 차원"
+"director.verify_native_structure_eligibility_locate_iris_placed_structures_without_running_blocking_native" = "차단되는 네이티브 검색을 실행하지 않고 네이티브 구조물 생성 가능성을 검증하고 Iris 배치 구조물을 찾습니다."
+"param.dimension_verify" = "검증할 차원"
+"param.search_radius_chunks_around_origin_larger_is_much_slower" = "원점 기준 검색 반경(청크 단위. 클수록 훨씬 느림)"
+"director.resolve_iris_structure_s_jigsaw_graph_report_piece_count_bounds" = "Iris 구조물의 직소 그래프를 해석하고 조각 수와 경계를 보고합니다"
+"param.dimension_whose_pack_holds_structure" = "구조물이 든 팩의 차원"
+"param.iris_structure_key_inspect" = "검사할 Iris 구조물 키"
+"director.assemble_place_iris_structure_at_your_location_studio_testing" = "현재 위치에 Iris 구조물을 조립해 배치합니다(Studio 테스트)"
+"param.dimension_whose_pack_holds_structure_2" = "구조물이 든 팩의 차원"
+"param.iris_structure_key_place" = "배치할 Iris 구조물 키"
+
+[iris.director.commandstudio]
+"director.studio_commands" = "Studio 명령어"
+"director.open_new_studio_world" = "새 Studio 월드를 엽니다"
+"param.dimension_pack_open_studio" = "Studio를 열 차원 팩"
+"param.seed_generate_studio_with" = "Studio 생성에 사용할 시드"
+"director.import_vanilla_trees_mushrooms_objects_structures_jigsaw_from_server_into_pack_s" = "서버의 바닐라 나무, 버섯, 오브젝트와 structures/jigsaw를 팩의 objects/vanilla 폴더로 가져옵니다"
+"param.dimension_pack_import_vanilla_content_into" = "바닐라 콘텐츠를 가져올 차원 팩"
+"param.how_many_variants_capture_per_tree_object_feature" = "나무 또는 오브젝트 기능마다 캡처할 변형 수"
+"param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "바닐라 및 데이터 팩의 structures/jigsaw도 팩으로 가져옵니다"
+"director.open_vscode_dimension" = "차원을 VSCode로 엽니다"
+"param.dimension_open_vscode" = "VSCode로 열 차원"
+"director.close_open_studio_project" = "열린 Studio 프로젝트를 닫습니다"
+"director.toggle_your_studio_debug_scoreboard" = "Studio 디버그 점수판을 전환합니다"
+"director.create_new_studio_project" = "새 Studio 프로젝트를 만듭니다"
+"param.name_this_new_iris_project" = "새 Iris 프로젝트의 이름."
+"param.copy_contents_existing_project_your_packs_folder_use_it_as_template_this" = "packs 폴더의 기존 프로젝트 내용을 복사해 새 프로젝트의 템플릿으로 사용합니다."
+"director.get_version_pack" = "팩 버전을 가져옵니다"
+"param.dimension_get_version" = "버전을 가져올 차원"
+"director.open_noise_explorer_external_gui" = "Noise Explorer를 엽니다(외부 GUI)"
+"param.optional_pack_generator_preview" = "미리 볼 팩 생성기(선택 사항)"
+"param.seed_preview_generator_with" = "생성기 미리 보기에 사용할 시드"
+"director.show_loot_if_chest_were_right_here" = "현재 위치에 상자가 있다면 나올 전리품을 표시합니다"
+"param.fast_insertion_items_virtual_inventory_may_cause_performance_drop" = "가상 인벤토리에 아이템을 빠르게 넣습니다(성능 저하 가능)"
+"param.whether_not_append_inventory_currently_open_if_false_clears_opened_inventory" = "현재 열린 인벤토리에 추가할지 여부(false이면 열린 인벤토리를 비움)"
+"director.calculate_chance_each_region_generate" = "각 리전의 생성 확률을 계산합니다"
+"param.radius_chunks" = "반경(청크 단위)"
+"director.render_world_map_external_gui" = "월드 지도를 렌더링합니다(외부 GUI)"
+"param.world_open_generator" = "생성기를 열 월드"
+"director.package_dimension_into_compressed_format" = "차원을 압축 형식으로 패키징합니다"
+"param.dimension_pack_compress" = "압축할 차원 팩"
+"param.whether_not_obfuscate_pack" = "팩을 난독화할지 여부"
+"param.whether_not_minify_pack" = "팩을 최소화할지 여부"
+"director.profiles_performance_dimension" = "차원 성능을 프로파일링합니다"
+"param.dimension_profile" = "프로파일링할 차원"
+"director.spawn_iris_entity" = "Iris 엔티티 스폰"
+"param.entity_spawn" = "스폰할 엔티티"
+"param.location_spawn_entity_at" = "엔티티를 스폰할 위치"
+"director.teleport_active_studio_world" = "활성 Studio 월드로 순간이동합니다"
+"director.update_your_dimension_projects_vscode_workspace" = "차원 프로젝트의 VSCode 워크스페이스를 업데이트합니다"
+"param.dimension_update_workspace" = "워크스페이스를 업데이트할 차원"
+"director.capture_igendata_chunk_report_nearby_chunks" = "주변 청크의 IGenData 청크 보고서를 캡처합니다"
+
+[iris.director.commandwhat]
+"director.iris_what" = "Iris 정보"
+"director.what_is_my_hand" = "손에 든 것을 확인합니다"
+"director.what_biome_am_i" = "현재 바이옴을 확인합니다"
+"director.what_region_am_i" = "현재 리전을 확인합니다"
+"director.what_block_am_i_looking_at" = "바라보는 블록을 확인합니다"
+"director.show_markers_chunk" = "청크의 마커를 표시합니다"
+"param.marker_name_such_as_cave_floor_cave_ceiling" = "cave_floor 또는 cave_ceiling 같은 마커 이름"
+
+[iris.runtime.progress]
+finding_regions = "지역 찾기"
+converting = "변환 중"
+
+[iris.runtime.status]
+running = "실행 중"
+stopped = "중지됨"
+paused = "일시 중지됨"
+paused_lower = "일시 중지됨"
+running_lower = "실행 중"
+enabled = "활성화됨."
+disabled = "비활성화됨."
+unregistered = "관련 상품"
+none = "없음"
+random = "무작위"
+match = "MATCH"
+mismatch = "MISMATCH"
+true = "예"
+false = "아니요"
+
+[iris.runtime.error]
+detail_suffix = " - {error}"
+
+[iris.runtime.datapack]
+override_suffix = " (월드 데이터 팩 덮어쓰기 설치됨)"
+name = "Iris 세계시대"
+
+[iris.runtime.primary_world]
+players_routed_suffix = " (플레이어는 거기로)"
+routing_disabled_suffix = " (사용 가능)"
+
+[iris.runtime.modded]
+no_dimension_match = "'{filter}'과(와) 일치하는 Iris 차원이 없습니다."
+
+[iris.runtime.teleport]
+world = "{world}(으)로 순간이동했습니다."
+
+[iris.runtime.engine]
+hotloaded = "엔진 핫로드 완료"
+
+[iris.runtime.job]
+completed = "{job}을(를) {duration}에 완료했습니다"
+scanning_selection = "선택 영역 검사 중"
+loading_chunks = "청크 로드 중"
+searched_chunks = "{chunks}개 청크 검색 완료"
+compile = "컴파일"
+saving_object = "오브젝트 저장 중"
+downloading = "다운로드 중"
+extracting = "압축 해제 중"
+installing = "설치 중"
+
+[iris.runtime.compile]
+iob_empty = "- IOB {file}에 블록이 0개 있습니다!"
+iob_empty_hover = "오류:\n{path}"
+iob_not_3d = "- IOB  {file} 3D는 없습니다!"
+iob_not_3d_hover = "오류:\n{path}\n폭, 고도, 또는 깊이는 0입니다 (나쁜 체재)"
+json_error = "- JSON 오류 수정 {file}"
+json_error_hover = "오류:\n{path}\n{error}"
+loader_not_found = "로더를 찾을 수 없습니다. {path}"
+
+[iris.runtime.pack]
+already_exists = "팩은 이미 존재합니다!"
+
+[iris.runtime.tree_plausibilize]
+dry_suffix = ", DRY"
+skip_load = "건너뜀 {object}: 로드 실패"
+result = "{object}: 나무 +{wood}개(가지 {branches}개), 잎->나무 {converted}개, 거리 ~{distances}"
+result_pinned = "{object}: 나무 +{wood}개(가지 {branches}개), 잎->나무 {converted}개, 거리 ~{distances}, 고정 !{pinned}개"
+progress = "[{current}/{total}]"
+failed = "실패 {object}: {type}: {error}"
+done = "완료: 처리 {processed}, 변경 {changed}, 건너뜀 {skipped}, 실패 {failed}"
+done_dry = "이름: {processed} 가공, {changed} 수정, {skipped} 건너뛰기, {failed} 실패 (건조 실행, 아무것도 작성)"
+totals = "합계: 나무 +{wood}개(가지 {branches}개), 잎->나무 {converted}개, 거리 ~{distances}, 고정 !{pinned}개, 도달 불가 {before} -> {after}"
+
+[iris.runtime.item]
+"wand.name" = "Iris 지팡이"
+"wand.lore.first" = "왼쪽 클릭 블록을 설정 첫 번째 코너"
+"wand.lore.second" = "오른쪽 클릭 블록을 두 번째 코너 설정"
+"dust.name" = "드러냄의 가루"
+"dust.lore" = "오른쪽 블록을 클릭하여 배치 구조를 알 수 있습니다!"
+
+[iris.runtime.wand]
+position_set = "선택 위치 {position}을(를) {x}, {y}, {z}(으)로 설정했습니다"
+
+[iris.runtime.dust]
+iris_world_required = "이 차원은 Iris가 생성하지 않았습니다."
+found_object = "오브젝트 {object} 발견"
+revealed = "{object}의 블록 {count}개를 드러냈습니다"
+revealed_capped = "{object}의 블록 {count}개를 드러냈습니다(상한 도달)"
+header = "--- Iris 먼지 @ {x}, {y}, {z} ---"
+block = "구획: {block}"
+"position.above" = "위치: +{offset}  위 표면 (표면 Y={surfaceY})"
+"position.below" = "위치: {offset} 표면의 밑에 (표면 Y={surfaceY})"
+"position.at" = "위치: 표면에 (Y={surfaceY})"
+object_at_block = "오브젝트 @block: {object}"
+none = "없음"
+"placed_by.object_above" = "배치 원인: object/stilt '{object}'(표면 위)"
+"placed_by.decoration_above" = "배치 원인: decoration/object/stilt(표면 위)"
+"placed_by.buried_object" = "에 의해 장소: 매장된 개체 '{object}'"
+"placed_by.terrain" = "에 의해 배치: 지형 층 (깊이 {depth} 표면의 밑에)"
+column_object = "란 목표: {object}  -> 이 블록은 객체의 stilt가 될 가능성이 있습니다."
+column_object_none = "란 목표: {detail}"
+column_none = "없음 64 (디코더 또는 지형, 아님 객체 stilt)"
+"column.above" = "{object} @Y={y} (이상)"
+"column.below" = "{object} @Y={y} (아래)"
+surface_biome = "지상 biome: {biome}"
+surface_biome_detail = "지상 biome: {biome} ({derivative})"
+biome_at_y = "바이오메 @Y: {biome}"
+cave_biome = "동굴 /Mantle 바이오메트: {biome}"
+server_biome = "서버 biome: {biome} (ID: {id})"
+region = "지역: {region} ({name})"
+objects_in_chunk = "청크의 개체: {objects}"
+copy_button = "[이 통계를 복사하려면 클릭하십시오]"
+copy_hover = "클립보드에 복사 블록 통계"
+reveal_failed = "Object reveal failed; see the console for details."
+
+[iris.runtime.pregen]
+starting = "Iris 사전 생성 시작 중..."
+header = "Iris 사전 생성"
+"bossbar.paused" = "Iris 사전 생성 {generated}/{total} {percent}% 일시 중지"
+"bossbar.running" = "Iris 사전 생성 {generated}/{total} {percent}% {speed}/s{eta}{failed}"
+eta_fragment = "  ETA  {eta}"
+failed_fragment = "  실패한 {failed}"
+"status.context" = "크기 : {dimension} · 방법 {method}"
+"status.progress" = "{percent}%"
+"status.chunks" = "주 메뉴 {generated}/{total} · 속도 overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s"
+"status.chunks_failed" = "주 메뉴 {generated}/{total} · 속도 overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s · Failed {failed}"
+"status.time" = "ETA  {eta} · 탈출 {elapsed}"
+"status.time_paused" = "ETA  {eta} · 탈출 {elapsed} · 일시 중지"
+"button.pause" = "일시 중지/재개"
+"button.pause.hover" = "전 세대 일시 정지 상태"
+"button.stop" = "중지"
+"button.stop.hover" = "현재 지역을 완료하고 전세대를 멈추십시오"
+
+[iris.bukkit.runtime]
+"commandpack.packs_folder_not_found" = "§c찾을 수없는 팩 / 폴더."
+"commandpack.no_packs_validate" = "§e유효한 팩 없음."
+"commandpack.validation_complete_broken_packs" = "§a유효성 검사  부서지는 팩: {broken}/{value}"
+"commandpack.pack_not_found_under_packs" = "§c팩 '{pack}다음에서 찾을 수 없음 packs/."
+"commandpack.no_cleanup_candidates_found_pack" = "§a팩을 찾을 수 없습니다 '{pack}'."
+"commandpack.quarantined_cleanup_candidate_s_under" = "§a정리 후보 {size}개를 {quarantinePath} 아래에 격리했습니다."
+"commandpack.cleanup_mode_must_be_preview_apply" = "§c정리 모드는 미리보기 또는 적용해야 합니다."
+"commandpack.no_cleanup_candidates_found_pack_2" = "§a팩을 찾을 수 없습니다 '{pack}'."
+"commandpack.cleanup_preview_pack_candidate_s_no_files_were_changed" = "§e팩에 대한 정리 미리보기 '{pack}': {size} 후보자 (s).  파일이 변경되지 않았습니다."
+"commandpack.run_iris_pack_cleanup_mode_apply_quarantine_these_candidates_after_fresh_scan" = "§7다시 검사한 뒤 후보를 격리하려면 /iris pack cleanup {pack} mode=apply를 실행하세요."
+"commandpack.restore_refused_because_destination_s_already_exist" = "§c휴관일 {size} 대상 (s) 이미 존재합니다."
+"commandpack.nothing_restore_pack" = "§e팩을 복원 할 수없는 '{pack}'."
+"commandpack.restored_file_s_from" = "§a{dumpPath}에서 파일 {size}개를 복원했습니다."
+"commandpack.restore_mode_must_be_preview_apply" = "§c복원 모드는 미리보기 또는 적용해야합니다."
+"commandpack.nothing_restore_pack_2" = "§e팩을 복원 할 수없는 '{pack}'."
+"commandpack.restore_preview_file_s_no_files_were_changed" = "§e복원 미리보기 {dumpPath}: {size} 파일(s).  파일이 변경되지 않았습니다."
+"commandpack.restore_is_blocked_by_existing_destination_s" = "§c복원에 의해 차단 {size} 기존 목적지(s)."
+"commandpack.run_iris_pack_restore_mode_apply_restore_after_fresh_conflict_check" = "§7충돌을 다시 확인하고 복원하려면 /iris pack restore {pack} mode=apply를 실행하세요."
+"commandpack.no_validation_results_recorded_run_iris_pack_validate_first" = "§e검증 결과가 없습니다. 먼저 /iris pack validate를 실행하세요."
+"commandpack.status.ok" = "§a정상§r {pack}§7 (차단={blocking}, 경고={warnings})"
+"commandpack.status.broken" = "§c프로젝트§r  {pack}§7 (블록 ={blocking}, 경고 ={warnings})"
+"commandpack.cleanup_failed" = "§c정리 실패: {error}"
+"commandpack.restore_failed" = "§c복원 실패: {error}"
+"commandpack.path.still_quarantined" = "계속 격리됨"
+"commandpack.path.quarantined" = "격리됨"
+"commandpack.path.candidate" = "후보"
+"commandpack.path.conflict" = "충돌"
+"commandpack.path.restored" = "인기있는"
+"commandpack.path.file" = "파일"
+"commandpack.no_validation_result_run_iris_pack_validate" = "§e'{pack}'의 검증 결과가 없습니다. /iris pack validate {pack2}을(를) 실행하세요."
+"commandpack.validation_failed" = "§c의 유효성{name}' 실패: {error}"
+"commandpack.pack_is_loadable_warnings" = "§a팩 '{packName}'로드 가능.§7 (워닝 ={size})"
+"commandpack.pack_is_broken" = "§c팩 '{packName}'이(가) 손상되었습니다:"
+"commandpack.message" = "§c  - {reason}"
+"commandpack.message_2" = "§e  !  {value}"
+"commandpack.more_warning_s" = { other = "§7    ...  · {count} 더 많은 경고.", one = "§7    ...  · {count} 더 많은 경고." }
+"commanddeveloper.stage_world_generation_update_warning" = ["§c이 업데이트를 준비하기 전에 월드 전체를 백업하세요.", "§e기존 청크는 다시 생성하거나 덮어쓰지 않습니다.", "§e재시작 후 새 청크는 준비된 팩을 사용하며 저장된 경계에서 지형을 점진적으로 연결합니다.", "§e월드의 시드, 높이, 환경, 차원 유형은 변경할 수 없습니다.", "§e모든 백업에는 iris/generation 디렉터리 전체가 포함되어야 합니다.", "§c업데이트를 준비하고 정상 재시작을 요청하려면 다음 명령을 사용하세요:", "§c/iris developer update-world {world} {pack} confirm=true"]
+"bulkstructureimporter.importing_vanilla_datapack_structures_mode_includenonjigsaw" = "§a관련 상품 §f{total}§a 바닐라 & datapack 구조 (mode={mode}, includeNonJigsaw={includeNonJigsaw})..."
+"bulkstructureimporter.fail_invalid_key" = "§c[실패]  {keyString}: 잘못된 키"
+"bulkstructureimporter.jigsaw" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.skip_no_single_template_nbt_vanilla_builds_this_code_from_separate_piece" = "§e[건너뜀]  {keyString}: 단일 템플릿 없음 NBT - 바닐라는 코드 또는 별도의 조각 템플릿 ( 템플렛 패스를 통해 전달); 하나의 구조로 가져 오기에 아무것도."
+"bulkstructureimporter.fail" = "§c[실패]  {keyString}: {message}"
+"bulkstructureimporter.fail_2" = "§c[실패]  {keyString}: {message}"
+"bulkstructureimporter.fail_3" = "§c[실패]  {keyString}: {error}"
+"bulkstructureimporter.bulk_import_complete_imported_skipped_failed_total" = "§a일괄 가져오기 완료: §f{imported}§a개 가져옴, §f{skipped}§a개 건너뜀, §f{failed}§a개 실패(전체 §f{total}§a개)."
+"bulkstructureimporter.building_single_template_structures_from_imported_pieces_one_variant_placed_per_generation" = "§a가져온 조각으로 단일 템플릿 구조물을 만드는 중(생성마다 변형 하나 배치)..."
+"bulkstructureimporter.group_variants" = "§7[group]  {value}  ->  {value2} ({blocks} 변형)"
+"bulkstructureimporter.skip" = "§e[건너뜀]  {value}: {message}"
+"bulkstructureimporter.fail_4" = "§c[실패]  {value}: {error}"
+"bulkstructureimporter.single_template_structures_built_skipped_failed" = "§a단일 템플릿 구조: §f{imported}§a 내장, §f{skipped}§a 건너뛰기, §f{failed}§a 실패."
+"bulkstructureimporter.failed_enumerate_structure_templates_via_server_resourcemanager" = "§c서버를 통해 구조 템플릿을 열거 ResourceManager: {e}"
+"bulkstructureimporter.no_structure_templates_were_found_under_structure_resource_path" = "§e구조 템플릿은 'structure' 리소스 경로에서 찾을 수 없습니다."
+"bulkstructureimporter.importing_structure_templates_mode" = "§a관련 상품 §f{total}§a 구조 템플릿 (mode={mode})..."
+"bulkstructureimporter.fail_invalid_key_2" = "§c[실패]  {keyString}: 잘못된 키"
+"bulkstructureimporter.fail_5" = "§c[실패]  {keyString}: {message}"
+"bulkstructureimporter.fail_6" = "§c[실패]  {keyString}: {error}"
+"bulkstructureimporter.imported_skipped_failed" = "§7...{processed}/{total} (가져옴 {imported}, 건너뜀 {skipped}, 실패 {failed})"
+"bulkstructureimporter.template_import_complete_imported_skipped_failed_total" = "§a템플릿 가져오기 완료: §f{imported}§a개 가져옴, §f{skipped}§a개 건너뜀, §f{failed}§a개 실패(전체 §f{total}§a개)."
+"bulkstructureimporter.no_datapack_non_minecraft_structures_are_registered_ingest_datapack_restart_first_then" = "§e등록된 datapack(non-minecraft) 구조물이 없습니다. 먼저 datapack을 수집하고 재시작한 다음 이 명령을 다시 실행하세요."
+"bulkstructureimporter.importing_datapack_structures_mode" = "§a관련 상품 §f{total}§a datapack 구조 (mode={mode})..."
+"bulkstructureimporter.fail_invalid_key_3" = "§c[실패]  {keyString}: 잘못된 키"
+"bulkstructureimporter.jigsaw_2" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single_2" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.fail_7" = "§c[실패]  {keyString}: {message}"
+"bulkstructureimporter.fail_8" = "§c[실패]  {keyString}: {message}"
+"bulkstructureimporter.fail_9" = "§c[실패]  {keyString}: {error}"
+"bulkstructureimporter.importing_datapack_structure_templates" = "§a관련 상품 §f{size}§a datapack 구조 템플릿..."
+"bulkstructureimporter.fail_10" = "§c[실패]  {keyString}: {message}"
+"bulkstructureimporter.fail_11" = "§c[실패]  {keyString}: {error}"
+"bulkstructureimporter.could_not_enumerate_datapack_templates_via_server_resourcemanager" = "§e서버를 통해 datapack 템플릿을 열거 할 수 없습니다. ResourceManager: {error}"
+"bulkstructureimporter.datapack_structure_import_complete_imported_skipped_failed" = "§a데이터 팩 구조물 가져오기 완료: §f{imported}§a개 가져옴, §f{skipped}§a개 건너뜀, §f{failed}§a개 실패."
+"structurecaptureimporter.structure_capture_is_not_supported_by_active_nms_binding_skipping_capture_pass" = "§eStructure 캡처는 활성에서 지원되지 않습니다. NMS 바인딩; 캡처 패스를 건너."
+"structurecaptureimporter.no_code_generated_structures_left_capture_everything_is_already_imported_as_structure" = "§7캡처할 코드 생성 구조물이 없습니다(모두 이미 구조물로 가져왔습니다)."
+"structurecaptureimporter.capturing_code_generated_structures_no_nbt_template_into_scratch_world_skipping_any" = "§a코드 생성 구조물 §f{total}§a개(NBT 템플릿 없음)를 임시 세계에 캡처하는 중({MAXSPAN}블록보다 너비/높이가 큰 항목은 건너뜀)..."
+"structurecaptureimporter.skip_did_not_place_capturable_structure_here_too_large_wrong_dimension_no" = "§e[건너뜀]  {key}: 여기에 캡처 가능 구조를 배치하지 않았다 (큰, 잘못된 차원 또는 평평한 세계에 유효한 배치 없음).  숙박 약관"
+"structurecaptureimporter.fail" = "§c[실패]  {key}: {message}"
+"structurecaptureimporter.capture_objects_iob_x_x" = "§7[캡처]  {key}  ->  objects/{name}.iob ({w}x{h}x{d})"
+"structurecaptureimporter.fail_2" = "§c[실패]  {key}: {error}"
+"structurecaptureimporter.captured_skipped_failed" = "§7...{processed}/{total} ({imported} 캡처, {skipped} 건너뛰기, {failed} 실패)"
+"structurecaptureimporter.structure_capture_complete_captured_skipped_failed_total" = "§a구조 캡처 완료: §f{imported}§a 캡처, §f{skipped}§a 건너뛰기, §f{failed}§a 실패 (§f{total}§a 전체)."
+"featureimporter.no_vanilla_tree_object_features_are_exposed_by_active_nms_binding_importing" = "§e활성 NMS 바인딩이 노출하는 vanilla 트리/객체 기능이 없습니다(구조물만 가져옵니다)."
+"featureimporter.importing_vanilla_tree_object_features_variants_each_into_scratch_world" = "§a관련 상품 §f{total}§a 바닐라 트리/부드 기능 (§f{wantVariants}§a 변형) 스크래치 세계로..."
+"featureimporter.obj_objects_vanilla" = "§7[obj]  {key}  ->  objects/vanilla/{group}/{safeName} ({written})"
+"featureimporter.skip_feature_placed_nothing_after_retries" = "§e[건너뜀]  {key}: 재시도 후에 아무것도 두었습니다."
+"featureimporter.fail" = "§c[실패]  {key}: {error}"
+"featureimporter.imported_skipped_failed" = "§7...{processed}/{total} (가져옴 {imported}, 건너뜀 {skipped}, 실패 {failed})"
+"featureimporter.feature_import_complete_features_written_skipped_failed_total" = "§a기능 가져오기 완료: §f{imported}§a개 기록, §f{skipped}§a개 건너뜀, §f{failed}§a개 실패(전체 §f{total}§a개)."
+"featureimporter.could_not_create_scratch_world_feature_import_skipping_tree_object_pass" = "§c기능 가져오기용 임시 월드를 만들지 못했습니다({error}). 나무/오브젝트 단계를 건너뜁니다."
+"irisconverter.no_schematic_files_convert_found" = "설계도 파일이 없습니다. {path}"
+"irisconverter.converted" = "§a{name} 변환 완료 -> {value}, 소요 시간 {value2}"
+"irisconverter.converted_2" = "§a{name} 변환 완료 -> {value}"
+"irisconverter.failed_save" = "§c저장에 실패: {name}"
+"irisconverter.failed_convert" = "§c변환 실패: {name}"
+"irisconverter.converted_3" = "§7변환 완료: {get}, 소요 {value}"
+"irisconverter.some_schematics_failed_convert_check_console_details" = "§c일부 설계도 변환 실패.  자세한 내용은 콘솔을 확인하십시오."
+"studiosvc.pack_copy_requires_async_thread" = "§cIris refused to copy the world pack on the Bukkit primary thread."
+"studiosvc.pack_install_failed" = "§cFailed to install world pack §f{dimension}§c: {error}"
+"studiosvc.looking_package" = "포장을 위한 보기: {type}"
+"studiosvc.found_iris_folder" = "{WORKSPACENAME} 폴더에서 {type}.iris를 찾았습니다"
+"studiosvc.found_dimension_folder_repackaging" = "{WORKSPACENAME} 폴더에서 {type} 차원을 찾았습니다. 다시 패키징합니다"
+"studiosvc.can_t_find_dimensions_folder_this_pack_failed" = "찾을 수 없습니다 {name} 이 팩의 크기 폴더에!  실패!"
+"studiosvc.can_t_load_dimension_failed" = "차원을 적재할 수 없습니다!  실패!"
+"studiosvc.type_installed" = "{name} 유형 설치. "
+"studiosvc.failed_open_studio_world" = "열린 스튜디오 세계에 실패: {error}"
+"studiosvc.cannot_open_studio_pack_has_blocking_errors" = "열린 스튜디오 '{dimm}' - 팩은 오류를 차단했습니다."
+"studiosvc.message" = " - {reason}"
+"studiosvc.fix_pack_run_iris_pack_validate_revalidate" = "팩을 수정하고 /iris pack validate {dimm}을(를) 실행해 다시 검증하세요."
+"studiosvc.failed_close_existing_studio_project" = "기존 스튜디오 프로젝트에 실패: {error}"
+"studiosvc.failed_close_existing_studio_project_2" = "기존 스튜디오 프로젝트에 실패: {error}"
+"studiosvc.failed_open_studio_world_2" = "열린 스튜디오 세계에 실패: {error}"
+"studiosvc.couldn_t_find_pack_create_new_dimension_from" = "팩을 찾을 수 없습니다."
+"studiosvc.missing_imported_dimension_file" = "가져 오기 치수 파일"
+"studiosvc.importing_into_new_project" = "관련 상품 {downloadable} 새 프로젝트 {s}"
+"objectstudiosaveservice.object_studio_no_cell_under_click_x_z" = "§7객체 편집기: 클릭 아래 셀 없음 (x={x} z={z})."
+"objectstudiosaveservice.object_studio_saving_x_x" = "§bObject Studio: 저장 중 §f{pack}/{key}§7 ({w}x{h}x{d})"
+"objectstudiosaveservice.object_studio_no_changes" = "§7객체 편집기: {pack}/{key}의 변경 사항 없음."
+"objectstudiosaveservice.object_studio_empty_cell_nothing_write" = "§7객체 편집기: 빈 셀 {pack}/{key} ( 쓰기)."
+"objectstudiosaveservice.object_studio_no_target_file" = "§cObject Studio: {pack}/{key}의 대상 파일이 없습니다."
+"objectstudiosaveservice.object_studio_saved" = "§aObject Studio: 저장됨 §f{pack}/{key}"
+"objectstudiosaveservice.object_studio_save_failed" = "§cObject Studio: {pack}/{key} 저장 실패 ({error})"
+"irisproject.could_not_load_dimension" = "차원을 적재하지 않을 수 있었습니다 \"{value}\""
+"irisproject.could_not_get_dimension_loader" = "차원 장전기를 얻을 수 없습니다"
+"irisproject.studio_open_failed" = "§c스튜디오 오픈 실패: {error}"
+"irisproject.studio_open_failed_2" = "§c스튜디오 오픈 실패."
+"irisproject.studio_ready" = "§a스튜디오 준비 §7({value})"
+"irisproject.studio" = "§6Studio §b{bar}  §e{percent}%§7  {currentStage}§8 ({value})"
+"irisproject.serializing_objects" = "직렬화 개체"
+"irisproject.wrote_another_objects" = "다른 사람 {g} 기타"
+"irisproject.package_compiled" = "패키지 컴파일 완료!"
+"irisproject.failed" = "실패!"
+"irisengine.total" = "총 : §l§f{value}"
+"irisengine.engine" = "  엔진 §n§a{i}§r: §l§f{value}"
+"irisengine.details" = "상세 정보: "
+"irisengine.message" = "  {befb}{num}{afb}: §l§f{value}"
+"enginebukkitops.is_not_defined_dimension" = "§c{name} 차원에서 정의되지 않습니다!"
+"enginebukkitops.could_not_find_within_search_range" = "§c찾을 수 없음 {message} 검색 범위 내에서."
+"enginebukkitops.teleporting" = "§a텔레포트 {message}..."
+"enginebukkitops.at" = "§a{message} 다음 : {blockX}  {blockY}  {blockZ}"
+"iristoolbelt.you_have_been_evacuated_from_this_world" = "이 세상에서 대피함."
+"iristoolbelt.you_have_been_evacuated_from_this_world_2" = "이 세상에서 대피함.  {m}"
+"serverconfigurator.there_are_some_iris_packs_that_have_custom_biomes_them" = "몇 가지 Iris 그들에 있는 주문 생물이 있는 팩"
+"serverconfigurator.you_need_restart_your_server_use_these_packs" = "이 팩을 사용하려면 서버를 재시작해야 합니다."
+"virtualcommand.message" = "- §f{i}"
+"virtualcommand.insufficient_permissions" = "충분한 권한"
+"mortarcommand.parameters_ignored" = "무시됨 모수: {m}"
+"commandpack.compat_header" = "§e팩 '{pack}': Minecraft {version} 에서 사용할 수 없는 콘텐츠"
+"commandpack.compat_none" = "§a팩 '{pack}' 은 Minecraft {version} 에 없는 콘텐츠를 사용하지 않습니다."
+"commandpack.compat_remedy" = "§7이 콘텐츠를 복원하려면 서버를 최신 Minecraft 로 업데이트하거나 대체를 선언하세요 (차원의 blockFallbacks, 블록의 backup)."
+
+[iris.runtime.studio]
+opening = "§6Studio §b여는 중"
+opening_progress = "§6Studio §b여는 중§7 {percent}%"
+failed_progress = "§6Studio §c실패§7 {percent}%"
+ready_progress = "§6Studio §a준비 완료§7 100%"
+"action.failed" = "{bar}§7 §c실패§7 | §f{stage}"
+"action.ready" = "{bar}§7 §a100%§7 | §a스튜디오 준비 완료§8 {elapsed}"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}§8  {elapsed}"
+"console.progress" = "§6Studio §b{bar}§e  {percent}%§7  {stage}§8 ({elapsed})"
+"stage.initializing" = "초기화 중"
+"stage.queued" = "대기열에 추가됨"
+"stage.resolve_dimension" = "차원 확인 중"
+"stage.prepare_world_pack" = "월드 팩 준비 중"
+"stage.install_datapacks" = "데이터 팩 설치 중"
+"stage.create_world" = "월드 생성 중"
+"stage.apply_world_rules" = "월드 규칙 적용 중"
+"stage.prepare_generator" = "생성기 준비 중"
+"stage.teleport_player" = "순간이동 중"
+"stage.finalize_open" = "마무리 중"
+"stage.cleanup" = "정리 중"
+
+[iris.runtime.world_create]
+teleport_failed = "§e월드를 만들었지만 자동 순간이동에 실패했습니다. /iris teleport world={world}을(를) 사용해 보세요"
+"lifecycle.action" = "{bar}§7 §e{percent}%§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.failed" = "{bar}§7 §cFAILED§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.ready" = "{bar}§7 §a100%§7 | §aWorld ready§8 {elapsed}"
+"lifecycle.console" = "§6World §b{world} {bar} §e{percent}%§7 {stage}{detail}§8 ({elapsed})"
+"lifecycle.console.failed" = "§6World §b{world}§7 | §ccreation failed§8 after {elapsed}"
+"lifecycle.console.ready" = "§6World §b{world}§7 | §aready§8 in {elapsed}"
+"stage.initializing" = "Initializing"
+"stage.resolve_dimension" = "Resolving dimension"
+"stage.validate_pack" = "Validating pack"
+"stage.prepare_world_pack" = "Preparing world pack"
+"stage.install_datapacks" = "Installing datapacks"
+"stage.prepare_generator" = "Preparing generator"
+"stage.create_world" = "Generating spawn"
+"stage.register_world" = "Registering world"
+"stage.teleport_player" = "Entering world"
+"stage.pregenerate" = "Pregenerating"
+"stage.finalize" = "Finalizing"
+"stage.complete" = "World ready"
+"pregen.action" = "{bar}§7  §e{percent}%§7 | §f연구분야"
+"pregen.console" = "§6연구분야 §e{percent}%"
+
+[iris.runtime.world_replace]
+start = "§e{world}를 Iris로 교체할 준비를 하고 있습니다. 현재 월드는 재시작 전까지 계속 활성화됩니다."
+progress = "§e{world} 교체: {stage} ({elapsed}초 경과)"
+"stage.datapacks" = "차원 데이터 팩 확인 중"
+"stage.seed" = "교체할 월드의 시드 준비 중"
+"stage.pack" = "차원 팩 복사 및 검증 중"
+"stage.players" = "플레이어의 월드 진입 보호 기록 중"
+"stage.verify" = "준비된 교체 내용 검증 중"
+"stage.save" = "재시작 시 적용할 교체 내용 저장 중"
+"stage.cleanup" = "실패한 교체 작업 정리 중"
+
+[iris.runtime.chunk_job]
+"title.regen" = "재생성"
+"title.delete" = "삭제"
+"title.golden_hash" = "GoldenHash"
+"stage.preparing" = "준비 중"
+"stage.clearing" = "지우는 중"
+"stage.resetting_mantle" = "맨틀을 재설정"
+"stage.regenerating" = "연구분야"
+"stage.generating" = "생성 중"
+"stage.comparing" = "비교 중"
+"stage.diagnosing" = "진단"
+"bossbar.working" = "§6{title} §b작업 중"
+"bossbar.progress" = "§6{title}  §b{stage}§7  §e{percent}%"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}  {applied}/{total}"
+summary = "{applied}/{total} chunks 에 {elapsed}"
+"summary.failed" = "{applied}/{total} chunks 에 {elapsed} ({failures} 실패)"
+"bossbar.done" = "§6{title} §a완료§7 §e{summary}"
+"bossbar.failed" = "§6{title} §c실패§7 §e{summary}"
+"action.done" = "{bar}§7 §a완료§7 | §f{summary}"
+"action.failed" = "{bar}§7  §c실패한§7 | §f{summary}"
+complete = "§a{title} 완료: {summary}"
+failed = "§c{title} 오류 완료 : {summary}"
+
+[iris.runtime.golden]
+no_capture = "황금 캡처 없음 {path}; 캡처를 먼저 실행합니다."
+aborted = { other = "GoldenHash 지불 조건: {failed} chunks는 생성하지 못했습니다.  기록 된 황금 파일 없음.", one = "GoldenHash 지불 조건: {failed} chunk는 생성하지 못했습니다.  기록 된 황금 파일 없음." }
+failed = "GoldenHash 실패: {error}"
+mantle_reset = "Mantle 초기화 ({path})"
+mantle_reset_failed = "Mantle 리셋 실패 ({type}); 기존 맨틀 상태에서 계속."
+captured = "황금 붙잡음: {chunks} chunks 결합={hash}"
+wrong_world = "Golden 파일은 dim={goldenDimension} seed={goldenSeed}용이지만 이 월드는 dim={dimension} seed={seed}입니다. 중단합니다."
+version_warning = "황금은 mc=에 붙였습니다{goldenVersion}mc=를 실행{version}.  차이는 버전 유도될지도 모릅니다."
+match = "황금 일치: {current}/{golden} 청크, combined={hash}"
+mismatch = "황금 잡화: {mismatches}/{chunks} 청크는 다릅니다."
+mismatch_chunk = "  청크 {chunk}"
+missing_in_golden = "{chunk} (황금)"
+mismatch_more = "  ...외 {count}개"
+current_written = "현재 해시에 게시 {file}"
+"diag.stable" = "반복 gen 안정, 맨틀 리셋 {mantleStatus}  ->  {file}"
+"diag.unstable" = "반복 gen 불안정 ({diffs}+ 블록 디프), 맨틀 리셋 {mantleStatus}  ->  {file}"
+"diag.mantle_stable" = "안정 (맨틀 재현를 재건 검사 산출)"
+"diag.mantle_diverged" = "분기 ({diffs}+개 차이 - 맨틀 빌드는 상태/순서에 따라 달라짐)"
+"diag.mantle_skipped" = "건너뜀 ({type})"
+"diag.failed" = "진단 실패: {error}"
+started = "GoldenHash 시작 : {chunks} 청크 주위에 0,0 버퍼 (세계 변경 없음), 스레드 ={threads} 모드 ={mode}"
+chunk_hashed = "[{done}/{total}] 청크 {x},{z} 청크"
+chunk_failed = "주 메뉴 {x},{z}  실패: {type}"
+
+[iris.runtime.pack_download]
+"progress.start" = "§aIris §6팩 다운로드§8 | §f{source}"
+"progress.phase" = "§aIris §b{phase}§8 | §7{source}"
+"progress.determinate" = "{bar}§7 §e{percent}%§8 | §f{transferred}§7/§f{total}§8 | §b{rate}/s"
+"progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
+"progress.detail" = "§8  - §7{detail}"
+"progress.complete" = "§aIris 팩 '{pack}' 설치 완료§8 | §f{transferred}§7, 소요 시간 §f{elapsed}"
+"progress.unchanged" = "§eIris 팩 '{pack}'은(는) 이미 설치되어 있습니다."
+"progress.failed" = "§cIris 팩 다운로드에 실패했습니다.§7 위의 다운로드 세부 정보를 확인한 후 다시 시도하세요."
+"progress.failed_detail" = "§cIris 팩 다운로드에 실패했습니다.§7 {error}"
+"progress.cancelled" = "§eIris 팩 다운로드가 게시 전에 취소되었습니다."
+"progress.restart" = "§6재시작 필요§8 | §7이 팩으로 월드를 생성하거나 교체하기 전에 서버를 재시작하세요."
+"progress.phase.connecting" = "연결 중"
+"progress.phase.downloading" = "다운로드 중"
+"progress.phase.unpacking" = "압축 해제 중"
+"progress.phase.validating" = "검증 중"
+"progress.phase.publishing" = "게시 중"
+"progress.source.remote" = "원격 ZIP"
+invalid_source = "§c다운로드 소스를 하나만 선택하세요: /iris download pack=overworld, /iris download pack=underworld 또는 /iris download link=‹zip-url›."
+invalid_url = "§cIris에는 .zip 파일을 가리키는 유효한 HTTP 또는 HTTPS URL이 필요합니다."
+invalid_built_in = "§cIris는 'overworld'와 'underworld'에 대해서만 기본 제공 다운로드를 지원합니다."
+shutting_down = "§eIris가 종료 중이므로 팩 다운로드를 받을 수 없습니다."
+downloading = "다운로드 {url}"
+unpacking = "옵션 정보 {repository}"
+unpack_failed = ["압축 해제 중 문제가 발생했습니다. 다음 항목을 확인하세요:", "1. 인터넷 연결이 정상적으로 작동합니까?", "2. 다운로드한 파일이 손상되지 않았습니까?", "3. */plugins/iris/packs 폴더를 삭제하고 다시 다운로드해 보세요.", "4. GitHub 저장소에서 팩을 다운로드하세요: https://github.com/IrisDimensions/overworld", "5. 다른 방법으로 해결되지 않으면 지원팀에 문의하세요."]
+no_extracted_files = "파일이 zip 파일에서 추출되지 않았습니다."
+home_directory_error = "홈 디렉토리를 찾을 때 오류.  파일 이름의 비 텍스트 문자가 있습니까?"
+invalid_archive_format = "잘못된 형식.  루트 폴더 또는 너무 많은 폴더를 밀어!"
+no_dimension_file = "추출 된 zip 파일에서 찾을 수있는 치수 파일 없음."
+check_github = "GitHub에 있는지 확인하고 직원에게 보고하세요!"
+invalid_dimension = "잘못된 차원 폴더 dimensions/."
+importing = "관련 상품 {name} ({key})"
+dimension_key_conflict = "packs 폴더의 다른 차원이 이미 키 {key}을(를) 사용합니다. 가져오기에 실패했습니다!"
+pack_key_conflict = "다른 팩이 키 {key}을(를) 사용합니다. 가져오기에 실패했습니다!"
+acquired = "성공적으로 취득 {name}."
+already_installed = "팩 {key}이(가) 이미 설치되어 있어 다운로드를 건너뜁니다."
+in_progress = "다른 Iris 팩 다운로드가 이미 진행 중입니다. 완료될 때까지 기다린 후 다시 시도하세요."
+validation_failed = "팩 '{pack}' 유효성 검사; 세계 및 스튜디오 생성은 거부됩니다.  이유:"
+validation_reason = "  - {reason}"
+validated_with_warnings = { other = "팩 '{pack}' 유효성 {count} 경고.", one = "팩 '{pack}' 유효성 {count} 경고." }
+validated = "팩 '{pack}' 유효성."
+
+[iris.client.vision]
+title = "Iris Vision"
+connecting = "Iris 서버에 연결 중..."
+not_connected = "연결되지 않음"
+not_iris_world = "Iris 월드가 아님"
+server_without_iris = "이 서버는 Iris를 사용하지 않습니다"
+version_mismatch = "클라이언트와 서버의 Iris 버전이 일치하지 않습니다"
+no_dimension_data = "차원 데이터 없음"
+header_detail = "{status}  확대 {zoom}  x{x} z{z}"
+footer_hint = "드래그로 이동   스크롤로 확대   Esc로 닫기"
+dimension_pack = "{dimension}  팩 {pack}"
+
+[iris.client.create]
+structures_required_title = "Iris에는 구조물 생성이 필요합니다"
+structures_required_body = "Iris는 구조물 생성 단계에서 자체 구조물을 배치하므로 구조물 생성을 끈 상태로 만든 월드는 불러올 수 없습니다. 구조물 생성을 다시 켜거나 다른 월드 유형을 선택하세요."
+
+[iris.client.toast]
+studio_hotload = "스튜디오 핫로드"
+changed_files = { other = "파일 {count}개", one = "파일 {count}개" }
+reload_failed = "다시 불러오기 실패"
+reloaded = "관련 상품"
+pack_failed = "{pack} 실패한"
+
+[iris.client.what]
+title = "Iris 정보"
+querying = "{x}, {z} 조회 중..."
+biome = "바이오메트: {biome}"
+region = "지역: {region}"
+cave = "동굴: {cave}"
+height = "고도: {height}   ({x}, {z})"
+
+[iris.client.pregen]
+stats = "{done} / {total}  ({percent}%)"
+paused = "일시 중지"
+stale = "{seconds}초 동안 업데이트 없음"
+rate = "{rate}/s"
+rate_eta = "{rate}/s    ETA  {eta}"
+
+[iris.client.duration]
+hours_minutes = "{hours}h {minutes}m"
+minutes_seconds = "{minutes}m {seconds}s"
+seconds = "{seconds}s"
+
+[iris.bukkit.scoreboard]
+title = "§a아이리스"
+speed = "§a속도§7:  {speed}/s {duration}"
+cache = "§b캐시§7: {count}"
+mantle = "§bMantle§7: {count}"
+carving = "§d조각 중§7: {state}"
+region = "§b주요 특징§7: {region}"
+biome = "§b바이오메트§7:  {biome}"
+biome_loading = "불러오는 중"
+biome_unavailable = "사용 불가"
+height = "§b고도:§7: {height}"
+slope = "§b기울기§7:  {slope}"
+block_updates = "§bBUD/s§7: {updates}"
+
+[iris.desktop.vision]
+title = "Iris Vision"
+view = "보기:"
+grid = "격자"
+entities = "엔티티"
+follow = "추적"
+refreshing = "새로 고치는 중"
+fps = "{fps}  FPS"
+zoom_reset = "Zoom 리셋"
+grid_enabled = "격자 활성화"
+grid_disabled = "격자 비활성화"
+entities_enabled = "엔티티 활성화"
+entities_disabled = "엔티티 비활성화"
+following = "{player} 추적 중"
+no_player = "월드에 플레이어가 없음"
+follow_disabled = "추적 비활성화"
+status_left = "{mode}  |  {bpp} bpp  |  {width} x {height} 블록"
+status_right = "X: {x}  Z: {z}  |  {fps}  FPS"
+entity_position = "위치: {x}, {y}, {z}"
+entity_health = "건강 : {health} / {maximum}"
+block_position = "블록 {x}, {z}"
+chunk_position = "주 메뉴 {x}, {z}"
+region_position = "주요 특징 {x}, {z}"
+biome_key = "주요: {key}"
+biome_file = "파일 : {file}"
+velocity = "속도: {velocity}"
+tiles = "Atlas: {ready} / {total}"
+workers = "Workers: {active} active / {queued} queued"
+center = "센터: {x}, {z}"
+"help.toggle" = "도움말 전환"
+"help.refresh" = "타일 새로 고침"
+"help.follow" = "플레이어 추적"
+"help.zoom" = "줌 / 아웃"
+"help.reset_zoom" = "확대 초기화"
+"help.cycle_mode" = "렌더링 모드 전환"
+"help.fps" = "30/60 FPS 전환"
+"help.grid" = "격자 전환"
+"help.biome" = "Biome 정보"
+"help.teleport" = "커서 위치로 순간이동"
+"help.editor" = "본문 바로가기"
+opened = "{target} 열기 완료"
+teleporting = "{x}, {z}(으)로 순간이동 중"
+"mode.biome" = "바이오메트"
+"mode.biome_land" = "Biome 토지"
+"mode.biome_sea" = "Biome 바다"
+"mode.region" = "주요 특징"
+"mode.cave_land" = "동굴 땅"
+"mode.river" = "하천망"
+"mode.height" = "고도:"
+"mode.object_load" = "객체 부하"
+"mode.decorator_load" = "장식자 짐"
+"mode.continent" = "대륙"
+"mode.layer_load" = "층 짐"
+
+[iris.desktop.noise]
+title = "소음 Explorer"
+title_generator = "소음 Explorer: {generator}"
+search = "검색..."
+status = "{name}  |  X: {x}  Z: {z}  | 줌: {zoom}  | 가치: {value}  |  {fps}  FPS"
+"category.custom" = "사용자 지정"
+"category.pack_generators" = "팩 생성기"
+"category.simplex" = "심플렉스"
+"category.perlin" = "펄린"
+"category.cellular" = "Cellular"
+"category.iris" = "Iris"
+"category.clover" = "클로버"
+"category.hexagon" = "육각형"
+"category.vascular" = "품질 관리"
+"category.globe" = "구형"
+"category.cubic" = "입방형"
+"category.fractal" = "프랙탈"
+"category.static" = "Static"
+"category.nowhere" = "없음"
+"category.sierpinski" = "스낵 바"
+"category.utility" = "유틸리티"
+"category.other" = "기타"
+
+[iris.desktop.pregen]
+initializing = "초기화..."
+title = "Pregen 보기"
+method_pending = "대기 중"
+paused = "일시 중지"
+resume_hint = "재개하려면 P를 누르세요"
+pause_hint = "일시 중지하려면 P를 누르세요"
+method = "생성 방법: {method}"
+pause = "일시 중지"
+resume = "계속"
+generating = "생성 중"
+saving = "저장 중"
+stopping = "중지 중"
+completed = "완료"
+error = "생성 실패"
+control_failed = "일시 중지 실패 · 서버 로그 확인"
+error_details = "자세한 내용은 서버 로그 확인"
+progress = "{generated} / {total} 청크"
+percent = "{percent} 완료"
+current = "현재 · 10초"
+overall = "전체"
+thirty = "30초 평균"
+sixty = "60초 평균"
+rate = "{rate} 청크/초"
+eta = "남은 시간"
+elapsed = "경과 시간"
+memory_label = "메모리"
+memory_usage = "{used} · {usage}"
+pressure = "메모리 할당"
+pressure_value = "{rate}/s"
+cached = "{method} · 캐시됨"
+failed = "{count}개 실패 · 서버 로그 확인"
+map = "생성 지도"
+bounds = "청크 X {minX} ~ {maxX} · Z {minZ} ~ {maxZ}"
+waiting = "대기 중"
+ready = "준비됨"
+existing = "기존"
+network = "네트워크"
+terrain_hint = "완료된 청크는 지형 색상으로 표시됩니다"
+
+[iris.runtime.what]
+material = "Material: {material}"
+full_state = "Full: {state}"
+item_count = "Count: {count}"
+iris_biome = "Iris biome: {biome} ({name})"
+derivative_biome = "Derivative biome: {biome}"
+native_biome = "Registered biome: {biome} (ID: {id})"
+non_iris_biome = "Non-Iris biome: {biome} (ID: {id})"
+iris_region = "Iris region: {region} ({name})"
+position = "Position: {x}, {y}, {z} (chunk {chunkX}, {chunkZ})"
+object = "Iris object: {object}"
+block_entity = "Block entity: {type}"
+loot_table = "Loot table: {loot}"
+spawner_entity = "Spawner entity: {entity}"
+"flag.solid" = "solid"
+"flag.fluid" = "fluid"
+"flag.water" = "water"
+"flag.waterlogged" = "waterlogged"
+"flag.storage" = "storage (loot capable)"
+"flag.lit" = "lit"
+"flag.foliage" = "foliage"
+"flag.plantable_foliage" = "plantable foliage"
+"flag.decorant" = "decorant"
+"flag.ore" = "ore"
+"flag.block_entity" = "block entity"
+
+[iris.runtime.world]
+height_range = "World height: {minY} to {maxY}"
+height_total = "Total height: {height}"
+
+[iris.desktop.imagemap]
+title = "Image Map Studio"
+preset = "Preset:"
+load = "Load"
+import_png = "Import PNG"
+replace_png = "Replace PNG"
+preview = "Preview"
+export = "Export to active pack"
+metadata = "Source metadata"
+resource = "Resource binding"
+coordinates = "Coordinates and sampling"
+binding_key = "Binding key"
+map_key = "Map key"
+image_key = "Image key"
+type = "Type"
+application = "Application"
+blocks_per_pixel = "Blocks per pixel"
+origin_x = "World origin X"
+origin_z = "World origin Z"
+source_origin_x = "Source origin X"
+source_origin_z = "Source origin Z"
+rotation = "Rotation"
+mirror_x = "Mirror X"
+mirror_z = "Mirror Z"
+sampling = "Sampling"
+out_of_bounds = "Out of bounds"
+alpha = "Alpha policy"
+fallback_value = "Fallback value"
+fallback_target = "Fallback target"
+minimum_height = "Minimum height"
+maximum_height = "Maximum height"
+vertical_offset = "Vertical offset"
+clamp = "Clamp height"
+inverted = "Invert values"
+curve_exponent = "Curve exponent"
+smoothing_radius = "Smoothing radius"
+threshold = "Threshold"
+falloff = "Falloff"
+color_tolerance = "Raw sRGB tolerance"
+unknown_color = "Unknown color"
+add_color = "Add legend color"
+remove_color = "Remove selected"
+composed_masks = "Composed masks"
+add_mask = "Add mask binding"
+height = "Height interpretation"
+mask = "Mask interpretation"
+color_map = "Color legend"
+overlays = "World overlays"
+chunks = "16-block chunks"
+regions = "512-block regions"
+boundary = "World boundary"
+coverage = "Source coverage"
+diagnostics = "Diagnostics"
+ready = "Ready"
+no_source = "Import a PNG source to begin."
+loading = "Loading preset..."
+load_failed = "Preset load failed"
+previewing = "Compiling preview..."
+preview_valid = "Runtime compiler validation passed."
+preview_failed = "Preview failed"
+exporting = "Validating and exporting..."
+exported = "Exported image map, PNG, and dimension binding atomically."
+export_failed = "Export failed"
+source = "Source pixels"
+interpreted = "Runtime interpretation"
+no_preview = "Compile a valid preview to inspect world output."
+preview_status = "X {x}  Z {z}  |  {value}  |  {scale} blocks/pixel"
+
+[language.menu]
+your_language = "내 언어"
+reset_your_language = "내 언어 재설정"
+server_default = "서버 기본값"
+edit_messages = "언어 메시지 편집"
+use_server_default = "서버 기본값 사용"
+current = "현재: {locale}"
+current_with_personal = "현재: {locale} (내 언어: {personal})"
+your_description = "나에게 표시되는 메시지만 변경합니다."
+reset_description = "서버 기본 언어를 사용합니다."
+server_description = "서버 기본 언어를 변경합니다."
+edit_description = "언어별 메시지 편집기를 엽니다."
+select_description = "클릭하여 이 언어를 선택합니다."
+remove_personal_description = "개인 언어 선택을 제거합니다."
+no_controls = "사용할 수 있는 언어 설정이 없습니다."
+command = "명령어: {command}"
+selected = "선택됨"
+all-volmit-plugins = "모든 Volmit 플러그인"
+
+[language.error]
+stopping = "플러그인이 중지되는 동안에는 언어를 선택할 수 없습니다."
+editor-player-only = "게임 안에서 언어 편집기를 여세요."
+no-providers = "사용 가능한 Volmit 언어 제공자가 없습니다."
+numeric-page = "페이지 번호를 숫자로 입력하세요."
+personal-player-only = "개인 언어는 게임 안에서 선택해야 합니다."
+personal-permission = "개인 언어를 선택할 권한이 없습니다."
+plugin-personal-permission = "{plugin}의 개인 언어를 선택할 권한이 없습니다."
+plugin-server-permission = "{plugin}의 서버 언어를 변경할 권한이 없습니다."
+server-locale-required = "서버 기본 언어로 en_US 같은 언어 코드를 선택하세요."
+unavailable-for-all = "{locale} 언어는 선택한 모든 플러그인에서 지원되는 것은 아닙니다."
+
+[language.usage]
+editor = "사용법: /{command} language server edit [locale]"
+selection = "사용법: /{command} language self [locale|reset] or server [locale]"
+volmit-selection = "사용법: /volmit plugins languages [locale]"
+
+[language.selection]
+preparing = "{target}의 {locale} 언어를 준비하는 중..."
+save-failed = "{plugin}: 언어 선택을 저장하지 못했습니다. 서버 콘솔을 확인하세요."
+english-fallback = "{plugin}: {locale}을 사용할 수 없어 영어(en_US)를 사용합니다."
+personal-selected = "{plugin}: 개인 언어를 {locale}으로 변경했습니다."
+server-selected = "{plugin}: 서버 언어를 {locale}으로 변경했습니다."
+server-default-selected = "{plugin}: 개인 언어가 이제 서버 기본 언어를 따릅니다."
+
+[language.editor]
+"section.languages" = "언어"
+"section.search" = "검색"
+"section.search-title" = "{locale} / 검색"
+"section.group-title" = "{locale} / {group}"
+loading = "{locale} 메시지를 불러오는 중..."
+"prompt.search" = "메시지 키 또는 내용을 검색하세요. 돌아가려면 cancel을 입력하세요."
+"prompt.value" = "채팅에 {key}의 새 값을 입력하세요."
+"prompt.current" = "현재 값: {value}"
+"prompt.variables" = "변수: {variables}"
+"prompt.guidance" = "줄바꿈에는 \\n, 역슬래시에는 \\\\를 사용하세요. 돌아가려면 cancel을 입력하세요."
+"input.expired" = "언어 편집기의 입력 시간이 만료되었습니다."
+"input.too-long" = "입력은 최대 {maximum}자까지 가능합니다."
+"input.unable-to-save" = "저장하지 못했습니다: {reason}"
+"navigation.back" = "&e뒤로&r"
+"navigation.close" = "&c닫기&r"
+"navigation.previous-page" = "&e이전 페이지&r"
+"navigation.next-page" = "&e다음 페이지&r"
+"search.messages" = "메시지 검색"
+"search.messages-lore" = "클릭하여 모든 메시지를 검색합니다."
+"search.clear" = "검색 지우기"
+"message.current-value" = "&7현재 값:&r"
+"message.variables" = "&8{variables}&r"
+"message.edit-plural" = "&7클릭하여 복수형을 편집합니다.&r"
+"message.edit-lines" = "&7클릭하여 개별 줄을 편집합니다.&r"
+"message.edit-chat" = "&7클릭하여 채팅에서 편집합니다.&r"
+"locale.open" = "&8클릭하여 이 언어를 엽니다.&r"
+"category.message-count" = "&7메시지 {count}개&r"
+"category.open" = "&8클릭하여 이 그룹을 엽니다.&r"
+"error.no-permission" = "{plugin}의 언어를 편집할 권한이 없습니다."
+"error.unable-to-edit" = "편집하지 못했습니다: {reason}"
+"saved.summary" = "{locale}을 저장했습니다. 언어 선택은 변경되지 않았습니다."
+"saved.change" = "{key}: “{before}”에서 “{after}”로 변경했습니다."
+"part.line" = "{line}번째 줄"
+"value.none" = "없음"
+"value.empty" = "(비어 있음)"
+
+[debug.error]
+missing-permission = "권한이 없습니다: {permission}"
+already-preparing = "{plugin}의 진단 보고서를 이미 준비 중입니다."
+already-preparing-short = "진단 보고서를 이미 준비 중입니다."
+schedule-failed = "진단 보고서 생성 작업을 예약할 수 없습니다."
+provider-closed = "진단 제공자가 종료되었습니다."
+closed-before-capture = "보고서 데이터를 수집하기 전에 진단 제공자가 종료되었습니다."
+writer-schedule-failed = "진단 보고서 쓰기 작업을 예약할 수 없습니다."
+capture-failed = "진단 보고서 데이터를 수집할 수 없습니다. 서버 콘솔을 확인하세요."
+closed-before-write = "보고서를 쓰기 전에 진단 제공자가 종료되었습니다."
+write-failed = "진단 보고서를 쓸 수 없습니다. 서버 콘솔을 확인하세요."
+
+[debug]
+preparing = "{plugin}의 진단 보고서를 준비하는 중..."
+saved = "{plugin}의 진단 보고서를 {path}에 저장했습니다."
+
+[debug.upload]
+interrupted = "진단 보고서 업로드가 중단되었습니다. 로컬 보고서는 저장되어 있습니다."
+failed = "진단 보고서 업로드에 실패했습니다. 로컬 보고서는 저장되어 있습니다."
+completed = "VolmitSoftware - {plugin} - v{version} 이름으로 업로드했습니다."
+
+[debug.action]
+open = "열기: {url}"
+open-description = "업로드한 진단 보고서를 엽니다."
+copy-path = "로컬 경로 복사"
+copy-path-description = "로컬 보고서 경로를 복사합니다."

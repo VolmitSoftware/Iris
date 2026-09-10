@@ -1,0 +1,2107 @@
+# === Iris language guide ===
+# Iris - he_IL
+#
+# === עריכת הקובץ ===
+# languages/he_IL.toml
+# אפשר לערוך קובץ זה ישירות. שינויים מקומיים בהודעות נשמרים; ערכים חסרים או לא תקינים משתמשים באנגלית המובנית.
+# /iris language server edit he_IL
+#
+# === קידומות ===
+# אין הגדרת קידומת כללית לכל ההודעות. קידומת שנכתבת בתחילת הודעה משנה רק אותה.
+# קידומות היומן וערכות העיצוב של התפריטים מוגדרות בנפרד.
+# דוגמה: מצאו את הסעיף [iris.bukkit.commandiris] ושנו בו את הערך הקיים של set_debug:
+# set_debug = "&6[עולמות]&r &aמצב האבחון נקבע ל: {to}"
+# {to} מקבל true להפעלה או false להשבתה; אין לשנות את שם המשתנה.
+#
+# === צבעים וסגנונות ===
+# &0 שחור; &1 כחול כהה; &2 ירוק כהה; &3 טורקיז כהה
+# &4 אדום כהה; &5 סגול כהה; &6 זהב; &7 אפור
+# &8 אפור כהה; &9 כחול; &a ירוק; &b טורקיז
+# &c אדום; &d סגול בהיר; &e צהוב; &f לבן
+# &k תווים משובשים; &l מודגש; &m קו חוצה; &n קו תחתון; &o נטוי; &r איפוס הצבע והסגנונות
+# דוגמאות: &aמוכן&r, &cשגיאה&r, &6&lאזהרה&r, &nקו תחתון&r.
+# שכבת השפה מזהה את צורות RGB הבאות: &#55FF55, &x55FF55, &x&5&5&F&F&5&5 וגם [55FF55].
+# דוגמת RGB: &#55FF55טקסט ירוק&r. עיבוד מאוחר יותר וערכות עיצוב של Bukkit עשויים לשנות צבעי RGB.
+# פקודות, עזרה ומסכי לקוח בסביבה עם מודים משתמשים בטקסט מתורגם רגיל ובסגנונות המובנים שלהם.
+# תצוגת טקסט רגיל מסירה עיצוב; צבעי קובץ השפה אינם בהכרח שולטים בסגנון הממשק.
+#
+# === ערכי טקסט ב-TOML ===
+# בתוך מירכאות כפולות, \n יוצר שורה חדשה, \" מוסיף מירכאות ו-\\ מוסיף לוכסן הפוך אחד.
+# דוגמה: "שורה 1\nשורה 2: \"ציטוט\"; נתיב C:\\Iris".
+#
+# === משתנים ===
+# יש להשתמש רק במשתנים שכבר שייכים להודעה. שמרו על השמות ועל אותיות גדולות וקטנות; PC, SC ו-TC אינם נתמכים כמשתנים.
+# בהמשך מוסברת משמעות כל משתנה. הטקסט הסמוך קובע את המשמעות של ערכים כלליים.
+#   {MAXAUTOSELECTVOLUME}  מספר הבלוקים המרבי באובייקט שנבחר אוטומטית.
+#   {MAXSAVEVOLUME}  מספר הבלוקים המרבי בבחירת אובייקט לשמירה.
+#   {MAXSPAN}  הרוחב, הגובה או העומק המרביים של מבנה בעת לכידה, בבלוקים.
+#   {NATIVESTRUCTURELOCATERADIUS}  רדיוס החיפוש המרבי למבנים מובנים, בצ'אנקים.
+#   {ROOTPERMISSION}  הרשאת הבסיס הנדרשת להפעלת הפקודה.
+#   {WORKSPACENAME}  שם תיקיית סביבת העבודה של Studio שבה מחפשים.
+#   {WORLDPACKNAME}  שם ה-datapack של העולם שנוצר.
+#   {active}  מספר העובדים הפעילים כעת.
+#   {activeLocale}  השפה שנשארת פעילה אם אי אפשר לבחור בשפה המבוקשת.
+#   {activeMax}  הגבול העליון של טווח הגובה בסוג הממד הטעון.
+#   {activeMin}  הגבול התחתון של טווח הגובה בסוג הממד הטעון.
+#   {actualReverts}  מספר הדבקות האובייקטים שבוטלו בפועל.
+#   {afb}  החלק המעוצב בתווית זמני המנוע שאחרי הסוגריים המרובעים.
+#   {after}  הערך לאחר השינוי, או בלוקי העץ הבלתי נגישים שנותרו אחרי תיקון.
+#   {amount}  הכמות המשויכת לפריט הנקוב בדוח.
+#   {applied}  מספר הצ'אנקים שהעבודה עליהם הוחלה.
+#   {argument}  ארגומנט הפקודה שלא התקבל.
+#   {available}  מספר המבנים המובנים הזמינים ליצירה.
+#   {bar}  טקסט פס ההתקדמות, שכבר עוצב.
+#   {befb}  החלק המעוצב בתווית זמני המנוע שלפני הסוגריים המרובעים.
+#   {before}  הערך לפני השינוי, או בלוקי העץ הבלתי נגישים לפני תיקון.
+#   {biome}  שם הביומה או המזהה שלה.
+#   {block}  סוג הבלוק הנבדק או תיאורו.
+#   {blockX}  קואורדינטת X של הבלוק או יעד השיגור.
+#   {blockY}  קואורדינטת Y של הבלוק או יעד השיגור.
+#   {blockZ}  קואורדינטת Z של הבלוק או יעד השיגור.
+#   {blocking}  מספר שגיאות האימות שמונעות טעינת pack.
+#   {blocks}  מספר גרסאות הבלוקים בקבוצה שיובאה.
+#   {bpp}  מספר בלוקי העולם שמייצג פיקסל אחד ב-Vision.
+#   {branches}  מספר הענפים שנוספו בתיקון אובייקטי עצים.
+#   {broken}  מספר ה-packs שנכשלו באימות.
+#   {brokenTotal}  המספר הכולל של packs שנכשלו באימות.
+#   {cave}  ביומת המערה או תיאורה במיקום הנבדק.
+#   {centerX}  קואורדינטת X של מרכז האזור; היחידות לפי הודעת הפעולה.
+#   {centerZ}  קואורדינטת Z של מרכז האזור; היחידות לפי הודעת הפעולה.
+#   {changed}  מספר האובייקטים שעובדו ושונו.
+#   {chunk}  הקואורדינטות או התווית המזהה של הצ'אנק המדווח.
+#   {chunkX}  קואורדינטת X בצ'אנקים, ולא בבלוקים.
+#   {chunkZ}  קואורדינטת Z בצ'אנקים, ולא בבלוקים.
+#   {chunks}  מספר הצ'אנקים הכלולים בפעולה.
+#   {clampedY}  גובה Y של יעד השיגור לאחר התאמה לטווח המותר.
+#   {command}  שם הפקודה או הפקודה המלאה להפעלה.
+#   {converted}  מספר בלוקי העלים שהומרו לעץ בתיקון עצים.
+#   {count}  מספר הפריטים, ההודעות או השחקנים שצוינו בטקסט הסמוך.
+#   {current}  מונה ההתקדמות הנוכחי, או מספר הצ'אנקים בהשוואה הנוכחית.
+#   {currentStage}  שם שלב הטעינה הנוכחי של Studio.
+#   {d}  עומק האובייקט בבלוקים.
+#   {depth}  מספר הבלוקים מתחת לפני השטח.
+#   {derivative}  ביומה נגזרת או גרסה הקשורה לביומת פני השטח.
+#   {detail}  תיאור נוסף לאובייקט הנבדק או לשלב ההתקדמות.
+#   {diffs}  מספר ההבדלים שנמצאו בין תוצאות היצירה.
+#   {dimKey}  מזהה הממד שנארז.
+#   {dimension}  שם הממד או המזהה שלו בהודעה.
+#   {dimensionId}  המזהה הרשום של הממד הטעון או המבוקש.
+#   {dimensionId2}  מזהה הממד החוזר בפקודת המחיקה המוצעת.
+#   {dimm}  מזהה ממד Studio, או שם ה-pack שלו בפקודת האימות.
+#   {disabled}  מספר המבנים המובנים שיצירתם מושבתת.
+#   {distances}  מספר ערכי מרחק העלים ששונו בתיקון עצים.
+#   {done}  מספר יחידות העבודה שהושלמו עד כה.
+#   {downloadSource}  מקור ההורדה או ההפניה שנבחרה להורדת ה-pack.
+#   {downloadable}  ה-pack או הפרויקט להורדה שמיובא.
+#   {dumpPath}  מיקום נתוני הניקוי או השחזור שנשמרו.
+#   {duration}  משך הפעולה בתבנית תצוגה.
+#   {e}  טקסט החריגה מסריקת תבניות מבנים שנכשלה.
+#   {elapsed}  הזמן שחלף מתחילת הפעולה, בתבנית תצוגה.
+#   {engines}  מספר מנועי יצירת Iris או הממדים הפעילים.
+#   {entity}  סוג הישות שבחר ה-spawner הנבדק.
+#   {error}  פרטי השגיאה שהתרחשה.
+#   {errorMessage}  סיומת אופציונלית עם פרטי שגיאה להודעת הכשל הראשית.
+#   {eta}  הזמן המשוער שנותר; בחלק מההודעות הוא כולל תווית.
+#   {failed}  מספר פריטים שנכשלו, או סיומת כשל מוכנה בכותרת התקדמות.
+#   {failure}  הסיבה לכישלון החיפוש או הפעולה.
+#   {failures}  מספר משימות שנכשלו או סיכום כשלים מעוצב ואופציונלי.
+#   {file}  שם הקובץ או הנתיב המעורב בפעולה.
+#   {filter}  הטקסט לסינון רשימת ממדי Iris.
+#   {fps}  קצב הצגת התצוגה המקדימה בפריימים לשנייה.
+#   {g}  קובצי אובייקטים שנכתבו מאז דוח התקדמות האריזה הקודם.
+#   {generated}  מספר הצ'אנקים שנוצרו עד כה.
+#   {generator}  שם מחולל הרעש המוצג בסייר.
+#   {generatorKey}  מזהה מחולל הרעש המבוקש.
+#   {get}  מספר קובצי schematic שהומרו בהצלחה.
+#   {golden}  מספר הצ'אנקים בהשוואת הייחוס השמורה.
+#   {goldenDimension}  מזהה הממד שנשמר בלכידת הייחוס.
+#   {goldenSeed}  זרע העולם שנשמר בלכידת הייחוס.
+#   {goldenVersion}  גרסת Minecraft ששימשה ליצירת לכידת הייחוס.
+#   {group}  קבוצת הודעות בעורך השפה, או קטגוריית אובייקט מיובא.
+#   {guiNote}  הערה אופציונלית על חלון התקדמות היצירה מראש.
+#   {h}  גובה האובייקט בבלוקים.
+#   {hash}  סכום הביקורת המשולב של הצ'אנקים שנוצרו להשוואה.
+#   {health}  הבריאות הנוכחית של הישות הנבדקת.
+#   {height}  גובה פני השטח, הגובה הכולל או גובה האזור המוצג, לפי ההודעה.
+#   {hours}  רכיב השעות במשך הזמן המוצג.
+#   {i}  שם התצוגה של המנוע, או פריט בתבנית רשימת הפקודות.
+#   {id}  מזהה הרישום של הביומה הנבדקת.
+#   {imported}  מספר המבנים או האובייקטים שיובאו בהצלחה.
+#   {includeNonJigsaw}  האם לייבא גם מבנים שאינם משתמשים בחלקי jigsaw.
+#   {iris}  מספר הממדים הטעונים המשתמשים ביצירת Iris.
+#   {irisLevels}  מספר ממדי Iris הטעונים שנבדקו מול גובה ה-pack.
+#   {irisPlaced}  מספר המבנים שהציב Iris במקום היצירה המובנית.
+#   {job}  שם פעולת הרקע שהושלמה.
+#   {k}  מפתח טעינת האזור בדוח התפלגות האזורים.
+#   {key}  מזהה הפרמטר, ההודעה או המשאב הנקוב בטקסט הסמוך.
+#   {key2}  מזהה המבנה החוזר בפקודת האיתור המוצעת.
+#   {keyString}  מזהה המבנה או המשאב שמיובא או מדווח כלא תקין.
+#   {label}  שם התצוגה של היעד שאותר.
+#   {line}  מספר השורה בעורך השפה.
+#   {locale}  מזהה השפה, כגון en_US או de_DE.
+#   {logicalWorldName}  השם הלוגי של עולם היעד של הפקודה.
+#   {loot}  מזהה טבלת השלל הנבדקת.
+#   {m}  הודעת פינוי נוספת, או טקסט הפרמטרים שהתעלמו מהם בתבנית הפקודה.
+#   {mantleStatus}  תוצאת איפוס נתוני היצירה לפני השוואת יצירה חוזרת.
+#   {marker}  שם הסמן שמחפשים.
+#   {material}  חומר Minecraft של הבלוק הנבדק.
+#   {maxScale}  קנה המידה המרבי של אובייקט לאחר הגבלת הערך המבוקש.
+#   {maxX}  גבול X העליון של טווח הצ'אנקים המוצג.
+#   {maxY}  הגבול העליון של טווח גובה העולם.
+#   {maxZ}  גבול Z העליון של טווח הצ'אנקים המוצג.
+#   {maximum}  אורך הקלט המרבי או בריאות הישות המרבית, לפי ההודעה.
+#   {mcmeta}  נתיב קובץ pack.mcmeta של ה-datapack שנוצר.
+#   {message}  טקסט מצב או שגיאה מפורט שמספקת הפעולה.
+#   {method}  שיטת היצירה מראש שנבחרה.
+#   {minX}  גבול X התחתון של טווח הצ'אנקים המוצג.
+#   {minY}  הגבול התחתון של טווח גובה העולם.
+#   {minZ}  גבול Z התחתון של טווח הצ'אנקים המוצג.
+#   {minutes}  רכיב הדקות במשך הזמן המוצג.
+#   {mismatches}  מספר הצ'אנקים השונים מהייחוס השמור.
+#   {mode}  מצב הייבוא, היצירה או התצוגה המקדימה שנבחר.
+#   {modeNote}  הסבר אופציונלי על מצב היצירה מראש שנבחר.
+#   {name}  שם העולם, האובייקט, הפרויקט או הפריט המצוין בהודעה.
+#   {nameRaw}  השם כפי שהוזן, לפני נרמול או אימות.
+#   {normalized}  שם מדור העזרה המנורמל שלא נמצא.
+#   {num}  הקטע המעוצב בסוגריים בתווית זמני המנוע; לא בהכרח מספר.
+#   {object}  שם אובייקט Iris שנערך או נבדק, או המזהה שלו.
+#   {objects}  רשימת האובייקטים או מספרם בצ'אנק הנבדק.
+#   {offset}  מרחק אנכי מפני השטח בבלוקים.
+#   {output}  נתיב קובץ הפלט שלא ניתן היה לכתוב.
+#   {overall}  ממוצע צ'אנקים לשנייה בכל פעולת היצירה מראש.
+#   {ownerName}  שם השחקן שבבעלותו הפעלת Studio.
+#   {pack}  שם ה-pack של Iris המעורב בפעולה, או המזהה שלו.
+#   {pack2}  מזהה pack החוזר בפקודה מוצעת או במקור הורדה.
+#   {packDimension}  הגדרת הממד שנבחרה מתוך ה-pack.
+#   {packLogical}  הגובה הלוגי שביקשה הגדרת הממד של ה-pack.
+#   {packMax}  גבול הגובה העליון שביקש ה-pack.
+#   {packMin}  גבול הגובה התחתון שביקש ה-pack.
+#   {packName}  שם התצוגה של ה-pack הנבדק.
+#   {parameter}  פרמטר פקודה שחסר או שלא ניתן לפענח.
+#   {parent}  שם התצוגה של תפריט האב או נתיב הפקודה שמעל.
+#   {path}  נתיב הקובץ שנשמר, נפתח או מדווח.
+#   {percent}  אחוז ההתקדמות; יש להשאיר את סימן האחוז מחוץ למשתנה.
+#   {permission}  ההרשאה הנדרשת לפעולה המבוקשת.
+#   {personal}  מזהה השפה האישית השמורה של השחקן.
+#   {phase}  שם שלב הטעינה או ההורדה הנוכחי.
+#   {pinned}  מספר העלים שקובעו בתיקון אובייקט עץ.
+#   {player}  שם השחקן שעוקבים אחריו או שאליו מכוונים.
+#   {plugin}  שם התוסף לתצוגה; Iris בהודעות השפה והאבחון המשותפות של Iris.
+#   {position}  מספר פינת הבחירה שמגדירים.
+#   {preset}  הגדרת יצירת העולם הרשומה המשמשת לעולם הראשי.
+#   {primary}  מזהה העולם הראשי שהוגדר.
+#   {processed}  מספר הפריטים שעובדו, כולל הצלחות, דילוגים וכשלים.
+#   {properties}  רשימה מעוצבת של תכונות הבלוק הנבדק.
+#   {quarantinePath}  תיקייה של קובצי ניקוי שהועברו להסגר.
+#   {queued}  מספר העובדים או המשימות שממתינים להפעלה.
+#   {radius}  רדיוס היצירה מראש החוזר בפקודת ההתחלה המוצעת.
+#   {rarity}  ערך הנדירות שהוגדר לאזור או להצבה הנקובים.
+#   {rate}  קצב העברה או יצירה מראש, בתבנית תצוגה; ההודעה מוסיפה את היחידה לשנייה.
+#   {reach}  טווח חיפוש הענפים שהוגדר לתיקון אובייקטי עצים.
+#   {ready}  מספר עמודי Atlas המדויקים הזמינים כעת.
+#   {reason}  הסבר מדוע הפעולה המבוקשת לא הושלמה.
+#   {region}  שם האזור הנבדק או המזהה שלו.
+#   {remaining}  מספר מצבי הבלוק הנוספים שהושמטו מהרשימה המוצגת.
+#   {repository}  המאגר או הארכיון שהורד ונפרק.
+#   {reverted}  מספר הדבקות האובייקטים שבוטלו.
+#   {rotation}  הסיבוב שהוחל על האובייקט שהוצב.
+#   {rx}  קואורדינטת X של הצ'אנק שעבורו מחושב גיבוב.
+#   {rz}  קואורדינטת Z של הצ'אנק שעבורו מחושב גיבוב.
+#   {s}  שם פרויקט Studio החדש.
+#   {safeName}  שם הקובץ המנוקה עבור האובייקט המיובא.
+#   {scale}  מספר בלוקי העולם שמייצג פיקסל בתצוגה המקדימה.
+#   {scope}  האובייקט או קבוצת האובייקטים שנפתחו ב-Object Studio.
+#   {searchRadius}  רדיוס חיפוש אימות המבנים בצ'אנקים.
+#   {seconds}  רכיב השניות במשך הזמן, או הזמן מאז העדכון האחרון.
+#   {section}  שם מדור העזרה שביקש המשתמש.
+#   {seed}  הזרע המשמש לעולם, ל-Studio, למחולל או להשוואת הייחוס.
+#   {seedRaw}  הזרע בדיוק כפי שהוזן לפני האימות.
+#   {sixtySecond}  צ'אנקים לשנייה ביצירה מראש בחלון של 60 שניות.
+#   {size}  מספר הקבצים, האזהרות, הרשומות או הפריטים שצוינו בהודעה.
+#   {skipped}  מספר הפריטים שעליהם דילגה הפעולה.
+#   {slope}  שיפוע השטח במיקום הנבדק.
+#   {solidBlocks}  מספר הבלוקים המוצקים שנספרו בחישוב גיבוב היצירה.
+#   {source}  ה-pack, מקור ההורדה או הקלט הקשור לתצוגת ההתקדמות.
+#   {speed}  קצב יצירה מראש או עיבוד לשנייה, בתבנית תצוגה.
+#   {stage}  שם שלב ההתקדמות הנוכחי.
+#   {state}  המצב הנוכחי או ערך התכונה שצוינו בהודעה.
+#   {status}  טקסט המצב הנוכחי של התצוגה המקדימה.
+#   {structure}  שם המבנה שמאתרים או המזהה שלו.
+#   {structureKey}  מזהה המבנה המבוקש ברישום או ב-pack.
+#   {summary}  תוצאות הפעולה שהושלמה, בתבנית תצוגה.
+#   {suppressed}  מספר המבנים המובנים שהוחלפו בהצבות של Iris.
+#   {surface}  קואורדינטת Y של פני השטח בפקודת השיגור המוצעת.
+#   {surfaceY}  קואורדינטת Y של פני השטח במיקום הנבדק.
+#   {tag}  תווית מצב אימות מעוצבת לפני שם ה-pack.
+#   {target}  נמען השפה או יעד בחירת האובייקט שצוינו בהודעה.
+#   {targetX}  קואורדינטת X של היעד שאותר או התבקש.
+#   {targetZ}  קואורדינטת Z של היעד שאותר או התבקש.
+#   {template}  התבנית שנבחרה בעת יצירת פרויקט.
+#   {tenSecond}  צ'אנקים לשנייה ביצירה מראש בחלון של 10 שניות.
+#   {thirtySecond}  צ'אנקים לשנייה ביצירה מראש בחלון של 30 שניות.
+#   {threads}  מספר תהליכוני העבודה לחישוב גיבוב היצירה.
+#   {tileNote}  הערה אופציונלית על נתוני ישות בלוק שנשמרו או הוצבו.
+#   {title}  כותרת הפעולה שתוצאתה מוצגת.
+#   {to}  הגדרת האבחון החדשה: true להפעלה, false להשבתה.
+#   {token}  ארגומנט טווח החיפוש שלא ניתן לפענח.
+#   {total}  מספר כולל של משימות, צ'אנקים, ממדים או רשומות שצוינו בהודעה.
+#   {totalObjects}  מספר האובייקטים שנפתחו ב-Object Studio.
+#   {transferred}  כמות הנתונים שהועברה עד כה, בתבנית תצוגה.
+#   {type}  סוג הפרמטר הצפוי, סוג המשאב או קטגוריית האובייקט שצוינו בהודעה.
+#   {typeKey}  מזהה רשום של סוג ממד Minecraft, או inline.
+#   {unreachableBiomes}  מספר המבנים המובנים שנשללו עקב בחירת הביומות ב-pack.
+#   {unsupported}  מספר המבנים המובנים שהפלטפורמה מדווחת שאינם נתמכים.
+#   {updates}  עדכוני בלוקים לשנייה בתצוגת המפתחים.
+#   {url}  כתובת אינטרנט לפתיחה או להעתקה.
+#   {usage}  תחביר הפקודה, או טקסט שימוש בזיכרון בתצוגת הזיכרון.
+#   {used}  כמות הזיכרון שבשימוש, בתבנית תצוגה.
+#   {value}  ערך התלוי בהודעה: הגדרת ברירת מחדל, שם, קואורדינטה, כמות או שגיאה; לפי הטקסט הסמוך.
+#   {value2}  הערך השני בהודעה: למשל סך הצ'אנקים, Y של היעד, שם pack או שגיאה.
+#   {value3}  הערך השלישי בהודעה: למשל אחוז, Z של היעד, גרסת Minecraft או הזמן שחלף.
+#   {value4}  הערך הרביעי בהודעה: למשל כתיבות בלוקים, Z של הבחירה או סיומת מצב אופציונלית.
+#   {value5}  הערך החמישי: כתיבות בלוקים שאינם אוויר בהצבה, או Z של הצ'אנק בתבנית המיקום.
+#   {variables}  רשימת המשתנים הזמינים להודעה שנערכת.
+#   {velocity}  מהירות התנועה הנוכחית של הישות הנבדקת.
+#   {version}  גרסת התוסף או Minecraft שצוינה בהודעה הסמוכה.
+#   {volume}  מספר הבלוקים בבחירת האובייקט.
+#   {w}  רוחב האובייקט בבלוקים.
+#   {wantVariants}  מספר הגרסאות המבוקש לכל עץ vanilla או מאפיין אובייקט מיובא.
+#   {warnings}  מספר אזהרות האימות שאינן חוסמות טעינה.
+#   {width}  רוחב אזור העולם המוצג בבלוקים.
+#   {wood}  מספר בלוקי העץ שנוספו בתיקון אובייקט עץ.
+#   {world}  שם העולם שאליו מכוונת הפקודה או תצוגת ההתקדמות.
+#   {written}  מספר הגרסאות המיובאות או קובצי האובייקטים שנכתבו בהצלחה.
+#   {x}  קואורדינטת X בהקשר הבלוק, הצ'אנק, האזור או התצוגה המקדימה שצוינו בהודעה.
+#   {y}  קואורדינטה אנכית של העולם או הבלוק.
+#   {z}  קואורדינטת Z בהקשר הבלוק, הצ'אנק, האזור או התצוגה המקדימה שצוינו בהודעה.
+#   {zoom}  רמת ההגדלה הנוכחית של התצוגה המקדימה.
+# === End Iris language guide ===
+
+[iris.director.commandiris]
+"director.debugdump" = "יצירת דוח אבחון והעלאתו לפי בחירה"
+"param.debugdump_upload" = "העלאת הדוח אל mclo.gs"
+"director.basic_command" = "פיקוד בסיסי"
+"director.create_new_world" = "ליצור עולם חדש"
+"param.name_world_create" = "שם העולם ליצור"
+"param.dimension_pack_create_world_with" = "המימד / החבילה ליצירת העולם עם"
+"param.seed_generate_world_with" = "הזרע ליצור את העולם עם"
+"param.replace_exact_existing_world_slot_next_restart" = "החלפת משבצת העולם הקיימת המדויקת בהפעלה מחדש הבאה"
+"director.teleport_another_world" = "טלפורט לעולם אחר"
+"param.world_teleport" = "העולם לטלפורט"
+"param.player_teleport" = "שחקן לטלפורט"
+"director.print_version_information" = "מידע הדפסה"
+"director.benchmark_pack" = "Benchmark aחבילה"
+"param.dimension_benchmark" = "ממד לאינדקס"
+"director.print_world_height_information" = "הדפס מידע עולמי"
+"director.check_access_all_worlds" = "בדוק גישה לכל העולמות."
+"director.remove_iris_world" = "להסיר Iris עולם העולם"
+"param.world_remove" = "העולם להסיר"
+"param.whether_also_remove_folder_if_set_false_just_does_not_load_world" = "בין אם להסיר גם את התיקיה (אם להגדיר שקר, פשוט לא לטעון את העולם)"
+"director.toggle_debug" = "תגית: debug"
+"director.download_project" = "הורד פרויקט"
+"param.pack_download" = "החבילה להוריד"
+"director.get_metrics_your_world" = "קבל מדדים לעולם שלך"
+"director.reload_configuration_file_this_is_also_done_automatically" = "קובץ תצורה טעינה מחדש (זה נעשה גם באופן אוטומטי)"
+"director.unload_iris_world" = "פריקה a Iris העולם העולמי"
+"param.world_unload" = "העולם לנפץ"
+"director.load_iris_world" = "לטעון Iris העולם העולמי"
+"param.name_world_load" = "שם העולם לטעון"
+"director.evacuate_iris_world" = "להעריך עולם איריס"
+"param.evacuate_world" = "להעריך את העולם"
+
+[director.help]
+"navigation.parent.hover" = "חזרה לקבוצת פקודות האב"
+"navigation.back" = "חזרה"
+no_subcommands = "אין פקודות משנה בעמוד זה."
+no_description = "לא סופק תיאור"
+command_group = "קבוצת פקודות. לחצו כדי לפתוח."
+category = "קטגוריית פקודות"
+no_parameters = "אין פרמטרים. לחצו כדי למלא את הפקודה מראש."
+parameters_hover = "רחפו מעל הפרמטרים כדי ללמוד עוד."
+"parameter.required" = "פרמטר זה הוא חובה."
+"parameter.optional" = "פרמטר זה הוא אופציונלי."
+"parameter.default" = "ברירת המחדל היא \"{value}\" אם לא הוגדר."
+"parameter.type" = "פרמטר זה הוא מסוג {type}."
+"navigation.previous.hover" = "העמוד הקודם"
+"navigation.next.hover" = "העמוד הבא"
+"navigation.page" = "עמוד"
+
+[director.runtime]
+"error.invalid_origin" = "לא ניתן להריץ פקודה זו ממקור זה."
+"error.unknown_parameter" = "מפתח פרמטר לא ידוע: {key}"
+"error.unexpected_argument" = "ארגומנט לא צפוי \"{argument}\". פרמטרים אופציונליים חייבים להינתן עם מפתח, לדוגמה seed=123"
+"error.unclosed_group" = "חסר סוגר מרובע סוגר \"]\" עבור הפרמטר {key}"
+"error.conversion_failed" = "לא ניתן להמיר את \"{value}\" ל-{type} עבור {parameter}"
+"error.default_parse_failed" = "לא ניתן לנתח את ערך ברירת המחדל של הפרמטר {parameter}"
+"error.missing_argument" = "חסר ארגומנט \"{parameter}\" ({type})"
+"error.execution_failed" = "הפעלת הפקודה {command} נכשלה: {reason}"
+usage = "שימוש: {usage}"
+
+[iris.command]
+permission_denied = "אין לך את ההרשאה '{permission}'"
+unknown = "פקודת Iris לא מוכרת"
+player_only = "רק שחקנים יכולים להשתמש בפקודה זו."
+iris_world_required = "ממד זה לא נוצר על ידי Iris."
+
+[iris.command.reload]
+success = "ההגדרות והשפה {locale} נטענו מחדש."
+failed = "ההגדרות נטענו מחדש, אך השפה {locale} נדחתה; ממשיכים עם {activeLocale}."
+
+[iris.modded.help]
+unknown_section = "לא ידוע Iris עזרה סעיף: {section}"
+back_hover = "חזרה {parent}."
+command_parameter = "פרמטר פיקוד"
+brigadier_text = "פרמטר זה נקרא טקסט על ידי Brigadier."
+operator_notice = "Iris הוראות דורשות רשות המפעילה (רמה 2)."
+operator_instruction = "לרוץ {command} מן הקונסולה (או לאפשר לרמות בשחקן יחיד); עד אז פקודות אלה לא יפעלו או השלמת הכרטיסייה."
+"entry.command.version" = "מידע הדפסה"
+"entry.command.info" = "רשימה טעון Iris מידות ופרטים לארוז"
+"entry.command.what" = "עקבו Iris ביום, האזור, הביום המערות, פני השטח ונתח במיקום שלך, הבלוק שאתה מסתכל עליו, הפריט המוחזק שלך או סמנים סמוכים"
+"entry.group.find" = "מצא וטלפורט Iris ביומסה, אזורים, חפצים Iris מבנים מקומיים ונקודות עניין"
+"entry.command.tp" = "טלפורט בעצמך או שחקן בשם לתוך טעון Iris מימד"
+"entry.command.evacuate" = "שגר את כל השחקנים מממד Iris לנקודת הספאון של העולם הראשי"
+"entry.command.seed" = "הצג מידע על ה-seed של העולם והמנוע"
+"entry.command.debug" = "עקבו אחרי Iris debug bug , שמירה iris.json"
+"entry.command.reload" = "המונחים טעינה מחדש iris.json (גם חם כל 3s)"
+"entry.command.download" = "הורד פרויקט חבילה"
+"entry.command.metrics" = "הדפסת דור מדדים עבור הנוכחי שלך Iris מימד"
+"entry.command.regen" = "למחוק ולחדש חלקים סמוכים במקום"
+"entry.group.pregen" = "עקבו אחרי a Iris מימד"
+"entry.command.wand" = "קבל Iris שרביט"
+"entry.group.object" = "כלי שרביט אובייקטים, שמירה, הדבקה, ניתוח וביטול"
+"entry.group.edit" = "חבילות פתוחות, Zone מימד Json קבצים בעורך שולחן העבודה שלך"
+"entry.command.create" = "ליצור ולהזריק מתמשך Iris תגית: PackdimensionKey בחירת מד החבילה הספציפי"
+"entry.group.studio" = "יצירת פרויקטים, אריזה ודיווחים"
+"entry.group.pack" = "אימות חבילה ותחזוקה"
+"entry.group.world" = "זמן ריצה Iris יצירת ממד, פינוי ומעמד"
+"entry.group.datapack" = "חבילת נתונים עולמית להתקין ועוזרי סטטוס"
+"entry.group.structure" = "Iris מדד מבנה, מידע וכלי מיקום"
+"entry.command.goldenhash" = "לייצר בלוק  determins עבור מבחן תאימות"
+"entry.group.developer" = "אבחון למפתחים: ממשקי רשת וסריקת קובצי אזור"
+"entry.command.biome" = "מצא Iris ביו"
+"entry.command.region" = "מצא Iris האזור האזורי"
+"entry.command.object" = "מצא מיקום אובייקט"
+"entry.command.structure" = "מצא מבנה Iris-הוצב או Native/pack"
+"entry.command.poi" = "מצא נקודה תומכת של עניין"
+"entry.command.biome_2" = "פתח ג'ייסון ביומה בעורך שולחן העבודה שלך; שום מפתח לא פותח את הביום במיקום שלך"
+"entry.command.region_2" = "פתח ג'ייסון באזור בעורך שולחן העבודה שלך; שום מפתח לא פותח את האזור בעמדתך"
+"entry.command.dimension" = "פתח את קובץ ה-JSON של הממד בחבילה הנוכחית בעורך שולחן העבודה"
+"entry.command.start" = "התחל יצירה מוקדמת; רדיוס בלוקים, כאבי מחסומים הניתנים לחזרה על ידי ברירת מחדל, מרכז באמצעות \"atat\" <x>  <z>דגלים יוצרים בכל סדר"
+"entry.command.stop" = "לעצור את משימת ההתחדשות הפעילה"
+"entry.command.pause" = "Puse או קורות חיים"
+"entry.command.status" = "הצג מצב קדם"
+"entry.command.wand_3" = "קבל Iris שרביט"
+"entry.command.dust" = "קבל אבק שמגלה מיקום"
+"entry.command.save" = "שמור את נפח שרביט שנבחר כאובייקט"
+"entry.command.paste" = "הדבק אובייקט במיקומך או במיקום נתון, עם סיבוב אופציונלי"
+"entry.command.expand" = "להרחיב את בחירת השרביט לכיוון המראה שלך"
+"entry.command.contract" = "תתקשרו עם הבחירה לכיוון המראה שלכם"
+"entry.command.shift" = "לשנות את בחירת השרביט לכיוון המראה שלך"
+"entry.command.position1" = "נקודת בחירה 1"
+"entry.command.position2" = "נקודת בחירה 2"
+"entry.command.x_y" = "באופן אוטומטי לבחור למעלה ובחוץ"
+"entry.command.x_y_2" = "באופן אוטומטי לבחור למטה ולצאת"
+"entry.command.analyze" = "תגית: object"
+"entry.command.shrink" = "לחץ על אובייקט לגודלו המינימלי"
+"entry.command.plausibilize" = "לגדל ענפים כך שהעץ ישרוד את vanilla"
+"entry.command.undo" = "בטל אובייקטים שהודבקו"
+"entry.command.create_2" = "יצירת פרויקט חדש"
+"entry.command.package" = "חבילה ממד לתוך פורמט דחוס"
+"entry.command.version_2" = "הדפסה גרסת חבילה"
+"entry.command.regions" = "המונחים: Near Zone התפלגות"
+"entry.command.open" = "פתח ממד סטודיו זמני עבור חבילה"
+"entry.command.close" = "סגור את מימד האולפן הפתוח ומחק את עולמו"
+"entry.command.tpstudio" = "טלפורט לממד האולפן הפתוח"
+"entry.command.status_studio" = "הצג את מימד האולפן הפתוח ואת החבילה"
+"entry.command.noise" = "פתח את כלי חיפוש רעש GUI בתצוגת השרת"
+"entry.command.map" = "פתח את מפת החזון GUI בתצוגת השרת"
+"entry.command.vscode" = "לשחזר את מרחב העבודה של קוד עבור חבילה ולפתוח אותו בעורך שולחן העבודה שלך"
+"entry.command.update" = "עקבו אחרי .חלל עבודה קוד עבורחבילה"
+"entry.command.importvanilla" = "תגית: vanilla יבוא"
+"entry.command.validate" = "אימות חבילה או כל חבילה"
+"entry.command.cleanup" = "סקר או מועמדים ללא שימוש"
+"entry.command.restore" = "סקירה או לשחזר את רעידת האדמה האחרונה"
+"entry.command.status_validation" = "הצגת מצב אימות"
+"entry.command.enable" = "יצירה והזרקה של ממד Iris קבוע בזמן ריצה; החבילה חייבת להיות מותקנת, ו-pack:dimensionKey במירכאות בוחר ממד מסוים."
+"entry.command.replace_overworld" = "לזרוק Iris שחקני העולם הראשיים והכבישים שם במקום ה-Villa Overworld"
+"entry.command.disable" = "להעריך ולטעום Iris מימד; נתונים עולמיים על דיסק נשמרים עבור הפעלה מחדש"
+"entry.command.delete" = "אכזבה Iris ממד ומנגב את הנתונים הסטולטיביים שלו מדיסק"
+"entry.command.list" = "רשימה טעון Iris ממדים"
+"entry.command.status_world" = "המופע טעון Iris ממדים ועולם ראשוני מוגדר"
+"entry.command.status_datapack" = "בדוק טעון Iris סוג של Overrides"
+"entry.command.install" = "סוג של ממד התקן עליות טעון Iris ממדים"
+"entry.command.list_datapacks" = "רשימה מוגדרת ומותקנת ערכות נתונים"
+"entry.command.ingest" = "להסביר Bukkit Datapackingest תהליך עבודה"
+"entry.command.remove" = "הסבר את זרימת העבודה להסרת נתונים"
+"entry.command.list_structures" = "חידוש structure-index.json"
+"entry.command.info_2" = "לפתור Iris מבנה גרפי ודיווח"
+"entry.command.place" = "להרכיב ולמקם Iris מבנה במיקום שלך"
+"entry.command.import" = "להסביר Bukkit ייבוא תהליך עבודה"
+"entry.command.capture" = "להסביר Bukkit מבנה לכידת עבודה"
+"entry.command.verify" = "דו\"ח Native ו- Iris מגיע לשיאות במימד הנוכחי"
+"entry.command.network" = "ממשקי רשת וכתובות"
+"entry.command.what.here" = "Inspect the Iris biome, region, cave biome, surface and chunk at your position"
+"entry.command.what.biome" = "Inspect the Iris biome, configured derivative and registered native biome"
+"entry.command.what.region" = "Inspect the Iris region at your current chunk"
+"entry.command.what.block" = "Inspect the targeted block state, properties, object and block entity"
+"entry.command.what.hand" = "Inspect the held item and its default block state"
+"entry.command.what.markers" = "Reveal nearby Iris Mantle markers with particles"
+"entry.command.height" = "Print the current dimension height range"
+"entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
+"entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
+"entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
+"entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
+"entry.command.studio.loot" = "Explain why the Bukkit loot simulation GUI is unavailable"
+"entry.command.studio.profile" = "Explain why Bukkit pack profiling is unavailable"
+"entry.command.studio.spawn" = "Explain why Bukkit Iris entity spawning is unavailable"
+"entry.command.studio.objects" = "Explain why the Bukkit chunk object report is unavailable"
+"entry.command.compat_content" = "הצג תוכן שלא ניתן ליצור בגרסת Minecraft הזו"
+
+[iris.modded.command]
+"properties.none" = "נכסים: (אין)"
+"properties.list" = "נכסים: {properties}"
+
+[iris.bukkit.commanddatapack]
+starting_datapack_ingest = "§7איסוף נתונים..."
+configured_datapack_imports = "§aהמונחים: §f{value}"
+message = "§7  - §f{url}"
+installed_datapacks = "§aהתקנת חבילות נתונים: §f{value}"
+message_2 = "§7  - §f{value}§7  {value2}"
+add_modrinth_urls_dimension_s_datapackimports_list_then_run_iris = "§eהוסף Modrinth  URLs ל\"ממד\"datapackImportsרשימה, ואז לרוץ /iris datapack ingest."
+
+[iris.bukkit.commanddeveloper]
+genhash_started_chunks = "§agenhash התחיל: {value} צ'אנקים..."
+genhash_failed_at_chunk = "§cgenhash נכשל בצ'אנק {rx},{rz}: {value}"
+genhash_global_chunks_solid = "§agenhash גלובלי=§6{value}§a צ'אנקים={value2} מוצקים={solidBlocks} בתוך {value3}"
+world_is_null = "§cהעולם הוא אפס."
+target_iris_world_before_reading_mantle_dump = "§cמטרה Iris עולם לפני שתקראו את הזבל"
+upgrading = "§aלמעלה {value}..."
+done_upgrading_you_can_now_update_your_server_version = "§aעשה שדרוג!  עכשיו אתה יכול לעדכן את גירסת השרת שלך {value}"
+radius_must_be_0_greater = "§cרדינוס חייב להיות 0 גדול או יותר."
+this_is_not_iris_world = "§cזה לא Iris עולם"
+engine_access_this_world_is_null = "§cהגישה של המנוע לעולם הזה היא אפס."
+delete_started_chunk_s_around_clearing_blocks_air = "§aהקטר התחיל: §6{chunks}§a (s) סביב §6{centerX},{centerZ}§a.  ניקוי בלוקים לאוויר"
+radius_must_be_0_greater_2 = "§cרדינוס חייב להיות 0 גדול או יותר."
+you_must_be_iris_world_use_regen = "§cאתה חייב להיות בתוך Iris עולם לשימוש ב-Regen"
+engine_access_this_world_is_null_generate_nearby_chunks_first = "§cהגישה של המנוע לעולם הזה היא אפס.  ליצור קודם כל גושים סמוכים."
+regen_started_chunk_s_around_deleting_regenerating_place = "§aRegen התחיל: §6{chunks}§a (s) סביב §6{centerX},{centerZ}§a.  לשחרר וליצור מחדש במקום."
+radius_must_be_0_greater_3 = "§cרדינוס חייב להיות 0 גדול או יותר."
+target_must_be_iris_world = "§cהמטרה חייבת להיות Iris עולם"
+engine_access_this_world_is_null_2 = "§cהגישה של המנוע לעולם הזה היא אפס."
+goldenhash_started_chunk_s_around_buffers_world_untouched = "§aהזהב התחיל:§6{chunks}§a(s) סביב§6{centerX},{centerZ}§aשם הסרטון: העולם מאגרים Unuched)."
+
+[iris.bukkit.commandfind]
+not_iris_world = "§6לא בתוך Iris עולם!"
+unknown_structure = "§cמבנה לא ידוע: {structureKey}"
+run_this_game_teleport_structure = "§6הפעל את המשחק הזה כדי לטלפורט למבנה."
+locating = "§7עקבו {structureKey}..."
+run_this_game_teleport_structure_2 = "§6הפעל את המשחק הזה כדי לטלפורט למבנה."
+locating_2 = "§7עקבו {structure}..."
+teleported = "§aהועבר אל {structure} @ {value}, {y}, {value2}"
+not_iris_world_5 = "§6לא בתוך Iris עולם!"
+not_iris_world_2 = "§6לא בתוך Iris עולם!"
+not_iris_world_3 = "§6לא בתוך Iris עולם!"
+not_iris_world_4 = "§6לא בתוך Iris עולם!"
+object_studio_teleporting = "§aObject Studio: משתגר אל {object}"
+is_not_configured_any_region_biome_object_placements = "§c{object} לא מוגדר בשום מקום / ביומה אובייקטים מיקומים."
+
+[iris.bukkit.commandiris]
+successfully_removed_world_folder = "§aתיקיה עולמית מוצלחת"
+successfully_removed_world_folder_2 = "§aתיקיה עולמית מוצלחת"
+failed_remove_world_folder = "§cנכשל להסיר את התיקיה העולמית"
+you_cannot_use_world_name_iris_creating_worlds_as_iris = "§cלא ניתן להשתמש בשם העולם \"iris\", מפני ש-Iris משתמשת בתיקייה זו עבור עולמות Studio."
+may_we_suggest_name_irisworld_instead = "§cאפשר להציע את השם \"IrisWorld\"במקום?"
+you_cannot_use_world_name_benchmark_creating_worlds_as_iris = "§cלא ניתן להשתמש בשם העולם \"benchmark\", מפני ש-Iris משתמשת בתיקייה זו עבור חבילות בדיקה."
+may_we_suggest_name_irisworld_instead_2 = "§cאפשר להציע את השם \"IrisWorld\"במקום?"
+that_folder_already_exists = "§cהתיקיה הזו כבר קיימת!"
+try_one_overworld_vanilla_flat_theend = "§eנסה: Overworld vanilla, שטוח, TheendXTry"
+dimension_not_found = "§cCould not find dimension §f{dimension}§c."
+install_pack_and_restart = "§eInstall it with §b{command}§e and restart the server."
+exception_raised_during_creation_see_console_more_details = "§cלמעטים שגדלו במהלך הבריאה.  ראו את הקונסולה לפרטים נוספים."
+successfully_created_your_world = "§aיצרתם בהצלחה את עולמכם!"
+specified_player_does_not_exist = "§cהשחקן שצוין אינו קיים."
+iris_v_by_volmit_software = "§aאיריס v{value} על ידי Volmit Software"
+to = "§a{value} כדי {value2}"
+total_height = "§aגובה מוחלט: {value}"
+iris_worlds = "§9אייריס וורלד: "
+message = "§a- {value}"
+bukkit_worlds = "§6Worlds: "
+message_2 = "§7- {value}"
+this_is_not_iris_world_iris_worlds = "§cזה לא Iris עולם  Iris עולמות: {value}"
+removing_world = "§aהסרת העולם: {value}"
+failed_evacuate_world = "§cנכשל לפנות את העולם: {value}"
+failed_unload_world = "§cנכשל לנפץ את העולם: {value}"
+successfully_removed_from_bukkit_yml = "§aבוטל בהצלחה {value} מתוך bukkit.yml"
+looks_like_world_was_already_removed_from_bukkit_yml = "§eנראה כאילו העולם כבר הוסר bukkit.yml"
+failed_save_bukkit_yml_because = "§cנכשל להציל bukkit.yml בגלל {value}"
+set_debug = "§aהגדר bug: {to}"
+you_must_be_iris_world = "§cאתה חייב להיות בתוך Iris עולם העולם"
+sending_metrics = "§aשליחת מדדים..."
+this_is_not_iris_world_iris_worlds_2 = "§cזה לא Iris עולם  Iris עולמות: {value}"
+unloading_world = "§a מפיצה את העולם: {value}"
+world_unloaded_successfully = "§aהעולם התקלקל בהצלחה."
+failed_unload_world_2 = "§cלא הצליחו לקלקל את העולם."
+failed_unload_world_3 = "§cנכשל לקלקל את העולם: {value}"
+doesnt_exist_on_server = "§e{logicalWorldName} לא קיים בשרת."
+generator = "§9גנרטור: {dimension}"
+is_not_iris_world = "§6{logicalWorldName} זה לא עולם חג המולד."
+could_not_determine_iris_dimension = "§cלא יכול לקבוע Iris מימד {logicalWorldName}."
+loading_world = "§aלטעון את העולם: {logicalWorldName}"
+loaded_successfully = "§a{logicalWorldName} טעון בהצלחה."
+this_is_not_iris_world_iris_worlds_3 = "§cזה לא Iris עולם  Iris עולמות: {value}"
+evacuating_world = "§aלהעריך את העולם{value}"
+
+[iris.bukkit.commandobject]
+no_packs_with_objects_were_found_on_this_server = "§cלא נמצאו חבילות עם חפצים בשרת זה."
+no_objects_place_across_selected_pack_s = "§cאין חפצים לעבור את החבילה שנבחרה (s)"
+opening_object_studio_objects = "§aסטודיו פתיחה {scope} ({totalObjects} אובייקטים)"
+failed_open_object_studio = "§cנכשל לפתוח סטודיו לאובייקט: {value}"
+object_size = "גודל אובייקטים: {value} * {value2} * {value3}"
+blocks_used = "בלוקים בשימוש: {value}"
+blocks_object = "== בלוקים באובייקט=="
+other_block_types = "  + {value} סוגים אחרים של בלוק"
+current_object_size = "גודל האובייקט הנוכחי: {value} * {value2} * {value3}"
+new_object_size = "גודל אובייקטים חדש: {value} * {value2} * {value3}"
+failed_save_object = "נכשל להציל את האובייקט {value}: {value2}"
+no_objects_matched = "§cשום אובייקטים לא מתאימים: {target}"
+plausibilize_reach_queued_object_s = "§aמטבוליזם [reach={reach}{value}] תור {value2} (אובייקטים)"
+hold_your_wand = "החזיקו את השרביט שלכם"
+no_area_selected = "שום אזור לא נבחר."
+ready_your_wand = "הכינו את שרביט שלכם"
+ready_your_wand_2 = "הכינו את שרביט שלכם"
+indicated_scale_exceeds_maximum_downscaled_maximum = "§eהסקאלה עולה על מקסימום.  למטה למקסימום: {maxScale}"
+updated_wand_objects_iob = "עקבו אחרי objects/{value}.iob "
+given_new_wand_objects_iob = "עקבו אחרי objects/{value}.iob"
+updated_wand_objects_iob_2 = "עקבו אחרי objects/{value}.iob "
+placed = "§aמקום {object}"
+you_need_hold_your_wand = "§eאתה צריך להחזיק את השרביט שלך!"
+file_already_exists_set_overwrite_true_overwrite_it = "§cהקובץ כבר קיים.  הגדר overwrite=נכון לכתוב אותו."
+failed_save_object_because_ioexception = "§cנכשל להציל את האובייקט בגלל IOException: {value}"
+successfully_object_saved_objects = "§aהתנגדות מוצלחת להצלת: {value}/objects/{name}"
+hold_your_wand_2 = "החזיקו את השרביט שלכם"
+no_area_selected_2 = "שום אזור לא נבחר."
+reverted_pastes = "§9בוטלו {actualReverts}§9 הדבקות!"
+you_can_t_get_worldedit_selection_without_worldedit_you_know = "§cאתה לא יכול לקבל WorldEdit בחירה ללא ברירה WorldEditאתה יודע."
+you_don_t_have_worldedit_selection_this_world = "§cאין לך WorldEdit בחירה בעולם הזה."
+fresh_wand_with_your_current_worldedit_selection_on_it = "§aשרביט טרי עם ההווה שלך WorldEdit מבחר על זה!"
+poof_good_luck_building = "§aפו!  בניין מזל טוב!"
+hold_your_wand_3 = "§eהחזיקו את השרביט שלכם!"
+no_area_selected_3 = "שום אזור לא נבחר."
+auto_select_complete = "§aבחירה אוטומטית הושלם!"
+hold_your_wand_4 = "§eהחזיקו את השרביט שלכם!"
+no_area_selected_4 = "שום אזור לא נבחר."
+auto_select_complete_2 = "§aבחירה אוטומטית הושלם!"
+
+[iris.bukkit.commandpack]
+you_must_specify_pack_name = "§cעליך לציין שם חבילה."
+pack_not_found_under_packs = "§cPack »{pack}\"לא נמצא מתחת packs/."
+message = "§7  - {label}: {value}"
+more = "§7    ...  ו {value} יותר."
+
+[iris.bukkit.commandstructure]
+verifying_structures_from_within_chunks = "§aלבדוק מבנים §f{value}§a מתוך {value2},{value3} בתוך {searchRadius} צ'אנקים..."
+could_not_resolve_pack_dimension = "§cלא יכול לפתור את החבילה לממד {value}"
+wrote_structure_index = "§aמדד מבנה נכתב: §f{value}"
+could_not_resolve_pack_dimension_2 = "§cלא יכול לפתור את החבילה לממד {value}"
+importing_all_vanilla_datapack_structures_into_overwrite = "§aייבוא כל vanilla & מבנים לתוך §f{value}§a (המשך)..."
+import_complete_structures_objects_written_failed = "§aיבוא שלם: §f{imported}§a  structures/objects כתוב, §f{failed}§a נכשל."
+reference_them_from_biome_region_dimension_structures_list_run_iris = "§7הפניה אותם מרשימת ביום/אזור / מידע, או ריצה /iris structure list {value} כדי לרענן את המדד.  לנתח חלקים לשינויים כדי להשפיע."
+could_not_resolve_pack_dimension_3 = "§cלא יכול לפתור את החבילה לממד {value}"
+captured_structures_place_them_from_structures_list_regenerate_chunks_delete = "§7נתפס {value} מבנים.  מניחים אותם מתוך רשימת \"בני מבנים\" ו- צור מחדש.  למחוק structures/*.json להחזיר אותו מחדש."
+no_loaded_iris_world_found_join_create_one_first_search = "§cלא טעון Iris העולם מצא {value}.  הצטרף או ליצור ראשון (החיפוש פועל נגד עולם חי)."
+selected_iris_world_has_no_active_generator_engine = "§cנבחר Iris לעולם אין מנוע גנרטור פעיל."
+could_not_resolve_pack_dimension_4 = "§cלא יכול לפתור את החבילה לממד {value}"
+no_iris_structure_this_pack = "§cאין מבנה איריס \"{structure}\"בחבילה הזאת"
+structure_assembled_0_pieces_check_startpool = "§cמבנה \"{structure}התאספו 0 חתיכות (בדיקה startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "§aמבנה \"{structure}': §f{value}§a חתיכות, טביעת רגל §f{value2}x{value3}§a בלוקים (sampleזרע 1234)"
+could_not_resolve_pack_dimension_5 = "§cלא יכול לפתור את החבילה לממד {value}"
+no_iris_structure_this_pack_2 = "§cאין מבנה איריס \"{structure}\"בחבילה הזאת"
+structure_assembled_0_pieces = "§cמבנה \"{structure}התאספו 0 חתיכות"
+placed_pieces_at_your_location = "§aמקום \"{structure}' ({value} חתיכות) במיקום שלך. ({value2} block changes)"
+placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+
+[iris.bukkit.commandstudio]
+importing_vanilla_content_into = "§aייבוא תוכן vanilla §f{value}§a..."
+importvanilla_complete_objects_structures_written_failed = "§aייבוא: §f{imported}§a  objects/structures כתוב, §f{failed}§a נכשל."
+trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7עצים/אובייקטים נמצאים תחת objects/vanilla/...; יש להפנות אליהם ממיקומי אובייקטים של biome."
+no_open_studio_projects = "§cאין פרויקט סטודיו פתוח."
+closing_studio = "§eסגירת סטודיו..."
+studio_close_failed = "§cסטודיו נסגר: {value}"
+studio_close_failed_2 = "§cסטודיו נסגר: {value}"
+studio_closed_remaining_world_family_cleanup_was_queued_startup_fallback = "§eסטודיו נסגר.  שמירה על ניקיון משפחתי עולמית היה תור עבור סטארט אפ Fallback."
+studio_closed = "§aסטודיו נסגר."
+you_must_be_studio_world_toggle_debug_scoreboard = "§cאתה חייב להיות בעולם סטודיו כדי לעקוף את לוח הציון debug."
+studio_debug_scoreboard = "{value}Studio Debugboard {value2}"
+could_not_update_studio_debug_scoreboard_right_now = "§c לא יכול לעדכן את לוח הסימון של Studio עכשיו."
+opened_inventory = "§aמלא פתוח!"
+generating_data = "§7יצירת נתונים..."
+done = "§aנעשה!"
+message = "§a{k}: {value} / {value2}%"
+regions_radius_out_of_range = "§cהרדיוס חייב להיות בין 1 ל-2048 צ'אנקים."
+regions_scan_failed = "§cסריקת האזורים נכשלה: {value}"
+opening_studio_pack_seed = "§aסטודיו פתיחה ל\"{value}\"חבילה\" (צילום: {seed})"
+provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§cלספק ערכת מימד: /iris std importvanilla pack=<dimension>"
+could_not_resolve_pack_dimension = "§cלא יכול לפתור את החבילה לממד {value}"
+opening_vscode_pack = "§aפתיחה VSCode עבור \"{value}\"חבילה"
+pack_has_version = "§a\"\"{value}לחבילה יש גרסה: {value2}"
+opening_noise_explorer = "§a Open כלי חיפוש רעש"
+cannot_add_items_virtual_inventory_because = "§cלא ניתן להוסיף פריטים למנוי וירטואלי בגלל: {value}"
+opening_inventory_now = "§aפתיחת מלאי עכשיו!"
+only_works_iris_world = "§cרק עובד בתוך Iris עולם!"
+you_need_be_specify_iris_generated_world = "§cאתה צריך להיות או לציין Irisעולם מבוזר!"
+opening_map = "§aמפת פתיחה!"
+calculating_performance_metrics_noise_generators = "עקבו אחרי Noise גנרטורs"
+calculating_interpolator_timings = "עקבו אחרי תזמון אינטרפולטור"
+processing_generator_scores = "המונחים: "
+score = "ציון: {value}"
+done_with_result = "§aנעשה!  {value}"
+you_have_be_iris_world_spawn_entities_properly_trying_spawn = "§cעליך להיות בעולם Iris כדי ליצור ישויות כראוי. מנסה ליצור אותן בצורה הטובה ביותר האפשרית."
+no_studio_world_is_open = "§cאין עולם סטודיו פתוח!"
+you_are_already_studio_world = "§cאתה כבר בעולם סטודיו!"
+sending_you_studio_world = "§aשולח אתכם לעולם הסטודיו!"
+updating_code_workspace = "§6עדכון סביבת העבודה של קוד {value}"
+updated_code_workspace = "§aסביבת העבודה של קוד פתוח {value}"
+invalid_project_try_deleting_code_workspace_file_try_again = "§cפרויקט בלתי חוקי: {value}.  נסו למחוק את קובץ ה- Code-workspace ולנסות שוב."
+you_must_be_iris_world = "§cאתה חייב להיות בתוך Iris עולם העולם"
+you_must_be_iris_world_2 = "אתה חייב להיות בעולם חג המולד."
+capturing_igendata_from_nearby_chunks = "איסוף הנתונים של {value} הסמוך."
+reported = "דווח על: {value}"
+you_must_have_server_launched_guis_enabled_settings = "§cאתה חייב לפתוח את השרת GUIs אפשרו בהגדרות!"
+players_only = "§cשחקנים בלבד!"
+no_studio_world_is_open_2 = "§cאין עולם סטודיו פתוח!"
+you_must_be_studio_world = "§cאתה חייב להיות בעולם סטודיו!"
+opening_image_map_studio = "§aOpening the Image Map Studio."
+
+[iris.bukkit.commandsvc]
+you_lack_permission = "חסר לך את ההפסקה \"{ROOTPERMISSION}'"
+
+[iris.bukkit.irisenginestatus]
+message = "§5-------------------------"
+status = "§5סטטוס:"
+service = "§5שירות: §d{value}"
+metrics = "§5מסובכים: §d{value}"
+maintenance_period = "§5תקופת תחזוקה: §d{value}"
+worker_parallelism = "§5מקבילות עבודה: §d{value}"
+active_world_tasks = "§5משימות עולם פעיל:§d{value}"
+tectonic_plates = "§5לוחות טקטוניים:"
+configured_retention = "§5המונחים: §d{value}"
+heap_usage = "§5ערימה: §d{value}"
+resident = "§5המונחים: §d{value}"
+queued = "§5המונחים: §d{value}"
+average_idle_duration = "§5משך הזמן הממוצע: §d{value}"
+max_idle_duration = "§5מקס idle:§d{value}"
+min_idle_duration = "§5בסביבה הקרובה של המונחים::§d{value}"
+caches = "§5תגית:"
+resource = "§5המונחים: §d{value} ({value2})"
+2d_stream = "§52זרם:§d{value} ({value2})"
+3d_stream = "§53זרם:§d{value} ({value2})"
+other = "§5אחר: §d{value} ({value2})"
+other_2 = "§5אחר:"
+iris_worlds = "§5- Iris עולמות: §d{value}"
+loaded_chunks = "§5תגית: Chunks §d{value}"
+message_2 = "§5-------------------------"
+
+[iris.bukkit.commandedit]
+players_only = "§cשחקנים בלבד!"
+no_studio_world_is_open = "§cאין עולם סטודיו פתוח!"
+you_must_be_studio_world = "§cאתה חייב להיות בעולם סטודיו!"
+cannot_open_files_headless_environments = "§cלא ניתן לפתוח קבצים בסביבה ללא ראש!"
+desktop_is_not_supported_by_this_environment = "§cשולחן העבודה אינו נתמך על ידי הסביבה הזו!"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6האם לא ניתן למצוא את הקובץ; אולי הוא אינו טעון ישירות מקובץ?"
+opening_vscode = "§aפתיחה {value}  {value2} פנימה VSCode! "
+cant_find_file_registrant_does_not_exist = "§cאפשר למצוא את הקובץ.  או רישום לא קיים"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6האם לא ניתן למצוא את הקובץ; אולי הוא אינו טעון ישירות מקובץ?"
+opening_vscode_2 = "§aפתיחה {value}  {value2} פנימה VSCode! "
+cant_find_file_registrant_does_not_exist_2 = "§cאפשר למצוא את הקובץ.  או רישום לא קיים"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6האם לא ניתן למצוא את הקובץ; אולי הוא אינו טעון ישירות מקובץ?"
+opening_vscode_3 = "§aפתיחה {value}  {value2} פנימה VSCode! "
+cant_find_file_registrant_does_not_exist_3 = "§cאפשר למצוא את הקובץ.  או רישום לא קיים"
+
+[iris.bukkit.commandpregen]
+pregen_radius_must_be_greater_than_zero_blocks = "§cרדיוס Pregen חייב להיות גדול יותר מאשר אפס בלוקים."
+strict_serial_pregeneration_requires_paper_paper_compatible_server = "§cקדם-יצירה טורית קפדנית דורשת Paper או שרת תואם Paper."
+engine_access_this_world_is_null = "§cהגישה של המנוע לעולם הזה היא אפס!"
+please_make_sure_world_is_loaded_engine_is_initialized_generate = "§cודא שהעולם טעון & המנוע הוא ראשוני.  ליצור נתח חדש, למשל."
+failed_start_pregeneration_see_console_details = "§cנכשל להתחיל את ההתחדשות.  ראו הקונסולה לפרטים"
+no_active_pregeneration_tasks_stop = "§eאין משימות התחדשות פעילות כדי להפסיק"
+paused_unpaused_pregeneration_task_now = "§aמצב ההשהיה של משימת הקדם-יצירה הוחלף. המצב כעת: {value}."
+no_active_pregeneration_tasks_pause_unpause = "§eאין משימות קדם-דור פעיל להפסקה/לא לשימוש."
+no_active_pregeneration_task = "§eאין משימה חדשנית פעילה."
+pregen = "§aהפרסוגן §6{world}§a: §6{value}/{value2}§a (§6{value3}%§a){value4}"
+speed_s_eta_elapsed_method = "§aמהירות: §6overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s§a ETA: §6{eta}§a Elapsed: §6{elapsed}§a Method: §6{method}{failures}"
+
+[iris.bukkit.commandwhat]
+material = "חומר: §a{value}"
+full = "מלא: §f{value}"
+please_hold_block_item = "נא להחזיק בלוק /item"
+material_2 = "חומר: §a{value}"
+please_hold_block_item_2 = "נא להחזיק בלוק /item"
+ibiome = "IBiome: {value} ({value2})"
+non_iris_biome = "לאIris ביומיה: {value}"
+data_pack_biome_id = "{value} (ID: {value2})"
+iregion = "IRegion: {value} ({value2})"
+iris_worlds_only = "§aאייריס עולמות בלבד"
+please_look_at_any_block_not_at_sky = "תסתכל על כל בלוק, לא בשמים"
+material_3 = "חומר: §a{value}"
+full_2 = "מלא: §f{value}"
+storage_block_loot_capable = "§e * אחסון בלוק (בזזל מסוגל)"
+lit_block_light_capable = "§e* אור חסום מסוגל)"
+foliage_block = "§eבלוק Foliage"
+decorant_block = "§eחסימה מהירה"
+fluid_block = "§e* בלוק נוזלי"
+plantable_foliage_block = "§eבלוק Foliage"
+solid_block = "§eבלוק מוצק"
+found_nearby_markers = "נמצאו {value} מרקים קרובים ({marker})"
+iris_worlds_only_2 = "§aאייריס עולמות בלבד"
+
+[iris.modded.irismoddedcommands]
+this_dimension_is_not_generated_by_iris = "ממד זה לא נוצר על ידי Iris."
+console_must_name_biome_iris_edit_biome_key = "הקונסולה חייבת לקרוא ביום: /iris edit biome <key>"
+biome_lookup_failed = "בדיקת הביום נכשלה: {value}"
+unknown_biome = "biome לא ידוע: {key}"
+this_dimension_is_not_generated_by_iris_2 = "ממד זה לא נוצר על ידי Iris."
+console_must_name_region_iris_edit_region_key = "הקונסולה חייבת לקרוא אזור: /iris edit region <key>"
+region_lookup_failed = "תצפית האזור נכשלה: {value}"
+unknown_region = "אזור לא ידוע: {key}"
+this_dimension_is_not_generated_by_iris_3 = "ממד זה לא נוצר על ידי Iris."
+cannot_open_files_here = "לא ניתן לפתוח קבצים כאן: {value}"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "האם לא ניתן למצוא את הקובץ, אולי הוא אינו טעון ישירות מקובץ?"
+could_not_open = "לא יכול לפתוח {value}: {value2}"
+opening_your_editor = "פתיחה {value}  {value2} בעורך שלך."
+console_must_name_player_iris_tp_dimension_player = "הקונסולה חייבת לקרוא לשחקן: /iris tp <dimension> <player>"
+is_not_generated_by_iris = "{value} לא נוצר על ידי Iris."
+teleport_failed_dimension_is_not_loaded = "טלפורט נכשל: ממד {dimensionId} לא טעון."
+teleporting = "תקשורת {value} כדי {dimensionId}..."
+is_not_generated_by_iris_2 = "{value} לא נוצר על ידי Iris."
+cannot_evacuate_primary_world_there_is_nowhere_send_players = "לא ניתן לפנות לעולם הראשי, אין מקום לשלוח שחקנים."
+evacuated_player_s_from = "הערכה {count} שחקן(s) {value} כדי {value2}."
+set_debug = "הגדר bug: {to}"
+hotloaded_settings = "הגדרות נטען מחדש"
+this_command_can_only_be_used_by_players_it_inspects = "פקודה זו יכולה לשמש רק על ידי שחקנים (זה בוחן את הפריט שלך)."
+your_main_hand_is_empty = "היד העיקרית שלך ריקה."
+hand_x = "יד: {value} x{value2}"
+this_command_can_only_be_used_by_players = "רק שחקנים יכולים להשתמש בפקודה זו."
+this_dimension_is_not_generated_by_iris_4 = "ממד זה לא נוצר על ידי Iris."
+this_dimension_is_not_generated_by_iris_5 = "ממד זה לא נוצר על ידי Iris."
+is_not_generated_by_iris_see_iris_info_loaded_iris = "{value} לא נוצר על ידי Irisראה; /iris info טעון Iris ממדים."
+current_dimension_is_not_generated_by_iris_name_one_explicitly = "המימד הנוכחי ({value}) לא נוצר על ידי Iris.  שם אחד במפורש: /iris pregen start {radius} <dimension>ראה; /iris info טעון Iris ממדים."
+pregeneration_task_is_already_running_stop_it_first_with_iris = "משימת קדם כבר פועלת.  לעצור את זה קודם עם /iris pregen stop."
+pregen_started_by_blocks_from_progress_logs_console_see_iris = "Pregen התחיל {value} של {value2} על ידי {value3} בלוקים {centerX},{centerZ}.{modeNote} קונסולות מתקדמות; ראה /iris pregen status.{guiNote}"
+stopping_pregeneration_finishing_up_current_region = "חידוש עוצר; סיום האזור הנוכחי..."
+no_active_pregeneration_task_stop = "אין משימה חדשנית פעילה לעצור."
+no_active_pregeneration_task_pause_resume = "אין משימה חדשנית פעילה לעצור / מנה."
+pregeneration_is_now = "ההתחדשות עכשיו {value}."
+no_active_pregeneration_task = "אין משימה חדשנית פעילה."
+iris_by_volmit_software_on_minecraft_iris_dimension_s = "Iris  {value} על ידי Volmit Software {value2} (Minecraft  {value3}), {engines}  Iris ממד (s)"
+loaded_dimensions_iris = "מידות טעון: {total} ({iris}  Iris)"
+this_command_can_only_be_used_by_players_2 = "רק שחקנים יכולים להשתמש בפקודה זו."
+this_dimension_is_not_generated_by_iris_6 = "ממד זה לא נוצר על ידי Iris."
+biome = "ביומיה: {value} ({value2})"
+biome_lookup_failed_2 = "בדיקת הביום נכשלה: {value}"
+region = "אזור: {value} ({value2})"
+region_lookup_failed_2 = "תצפית האזור נכשלה: {value}"
+cave_biome = "מערת ביום: {value}"
+cave_biome_lookup_failed = "תצפית ביומית לא נכשלה: {value}"
+surface_block_y = "בלוק משטח: {value} (y={value2})"
+position_chunk = "מיקום: {value}  {value2}  {value3} (צ'נק {value4},{value5})"
+this_command_can_only_be_used_by_players_it_inspects_2 = "פקודה זו יכולה לשמש רק על ידי שחקנים (זה בוחן את הבלוק שאתה מסתכל עליו)."
+look_at_block_not_sky = "תראו בלוק, לא השמיים."
+block_y = "בלוק: {value} (y={value2})"
+this_command_can_only_be_used_by_players_markers_render = "פקודה זו יכולה לשמש רק על ידי שחקנים (סימנים הופכים לחלקיקים סביבך)."
+this_dimension_is_not_generated_by_iris_7 = "ממד זה לא נוצר על ידי Iris."
+scanning_markers_around_you = "סריקה ל\"{marker}סמנים סביבך..."
+marker_scan_failed = "סריקות מארקר נכשלו: {value}"
+found_nearby_marker_s = "נמצאו{value}סמן (s){marker})"
+this_command_can_only_be_used_by_players_3 = "רק שחקנים יכולים להשתמש בפקודה זו."
+this_dimension_is_not_generated_by_iris_8 = "ממד זה לא נוצר על ידי Iris."
+unknown_biome_2 = "biome לא ידוע: {key}"
+this_command_can_only_be_used_by_players_4 = "רק שחקנים יכולים להשתמש בפקודה זו."
+this_dimension_is_not_generated_by_iris_9 = "ממד זה לא נוצר על ידי Iris."
+unknown_region_2 = "אזור לא ידוע: {key}"
+is_not_defined_dimension = "{value} לא מוגדר במימד!"
+this_dimension_is_not_generated_by_iris_10 = "ממד זה לא נוצר על ידי Iris."
+is_not_configured_any_region_biome_object_placements_object_keys = "{key} לא מוגדר בשום אזור / ביומה אובייקטים מיקומים ({value} המפתחות של האובייקט טעון)."
+this_command_can_only_be_used_by_players_object_key = "ניתן להשתמש רק על ידי שחקנים.  (המפתח \"{key}לפתור נגד {value} מפתחות אובייקט טעון)"
+this_dimension_is_not_generated_by_iris_11 = "ממד זה לא נוצר על ידי Iris."
+name_iris_native_structure_locate = "שם Iris או מבנה יליד לאתר."
+this_command_can_only_be_used_by_players_5 = "רק שחקנים יכולים להשתמש בפקודה זו."
+unknown_structure_use_tab_completion_choose_iris_placement_registered_native = "מבנה לא מוכר '{key}'. יש להשתמש בהשלמה באמצעות Tab כדי לבחור מיקום Iris או מבנה native/datapack רשום."
+searching_native_structure_within_chunks = "חיפוש במבנה Native {value} בתוך {NATIVESTRUCTURELOCATERADIUS} צ'אנקים..."
+searching_iris_placed_structure = "חיפוש עבור Irisמבנה {key}..."
+unable_locate_iris_placed_structure_density_search_safety_limit_was = "בלתי אפשרי לאתר Irisמבנה {key}הגבלת בטיחות החיפוש בצפיפות הגיעה לפני מלוא 1024רדיוס צ'נק חיפש."
+could_not_find_iris_placed_structure_within_1024_chunks = "לא יכול למצוא Irisמבנה {key} בתוך 1024 חלקים."
+search_failed = "החיפוש נכשל: {value}"
+could_not_find_native_structure_within_chunks = "לא יכול למצוא מבנה Native {value} בתוך {NATIVESTRUCTURELOCATERADIUS} חלקים."
+search_native_structure_failed = "חיפוש במבנה Native {value} נכשל: {value2}"
+player_disconnected_before_structure_search_completed = "השחקן התנתק לפני שחיפוש המבנה הושלם."
+you_changed_dimensions_before_structure_search_completed_run_command_again = "שינית ממדים לפני שחיפוש המבנה הושלם; הפעל שוב את הפקודה."
+found_at_but_teleportation_failed = "נמצאו {label} ב {targetX}  {clampedY}  {targetZ}אבל התקשורת נכשלה."
+teleported_at = "הועבר אל {label} ב {targetX}  {clampedY}  {targetZ}"
+this_dimension_is_not_generated_by_iris_12 = "ממד זה לא נוצר על ידי Iris."
+structure_reachability_native_generation_eligible_iris_placed_native_disabled_native = "זמינות מבנה:{available}הדור הטבעי,{irisPlaced} Irisמקום,{disabled}עם מוגבלויות,{suppressed}הילידים הוחלףIrisמיקום,{unreachableBiomes}שם הספר בלועזית: הביומסה של החבילה{unsupported}מבנים ילידים רשומים ללא תמיכה במימד זה.שימוש בשימוש/iris structure verify <key>למבנה אחד."
+structure_is_iris_placed_locatable_with_iris_goto_structure = "מבנה {key} הוא Iris- מקום ומיקום עם /iris goto structure {key2}."
+unknown_structure_it_is_neither_iris_placed_nor_registered_by = "מבנה לא ידוע \"{key}'.  זה לא Irisממוקם ולא רשום על ידי vanilla או חבילת נתונים."
+structure_is_explicitly_replaced_by_iris_placement_locatable_with_iris = "מבנה {value} הוחלף במפורש על ידי Iris מיקום ומיקום עם /iris goto structure {value2}."
+native_structure_is_enabled_supported_by_this_dimension_s_generator = "מבנה Native {value} הוא מופעל, נתמך על ידי מדינת הגנרטור של מימד זה, וניתן לאתרו עם /iris goto structure {value2}."
+this_dimension_is_not_generated_by_iris_13 = "ממד זה לא נוצר על ידי Iris."
+this_command_can_only_be_used_by_players_poi_type = "ניתן להשתמש רק על ידי שחקנים.  (POI סוג \"{type}\"מקובל\")"
+searching = "חיפוש עבור {label}..."
+engine_this_world_has_been_closed_rejoin_dimension_try_again = "המנוע של העולם הזה נסגר, חוזר על המימד ונסה שוב."
+search_failed_2 = "החיפוש נכשל: {failure}"
+could_not_find_within_search_timeout = "לא יכול למצוא {label} בתוך זמן החיפוש."
+teleported_at_2 = "הועבר אל {label} ב {blockX}  {blockY}  {blockZ}"
+engine_changed_while_locating_try_again = "המנוע השתנה בעת איתור {label}נסה שוב."
+this_dimension_is_not_generated_by_iris_14 = "ממד זה לא נוצר על ידי Iris."
+world_seed = "זרע עולמי: {value}"
+engine_seed_mixed = "זרע מנוע: {value} (מתערב: {value2})"
+this_dimension_is_not_generated_by_iris_15 = "ממד זה לא נוצר על ידי Iris."
+downloading_irisdimensions = "הורדה IrisDimensions/{pack} ({downloadSource})..."
+pack_installed_its_exact_dimension_types_custom_biomes_join_forced = "Pack »{pack}\"התקנה.  סוגי המימד המדויקים והביומים המותאמים אישית מצטרפים לאלץ Iris איסוף נתונים בשרת הבא מחדש; הפעל מחדש לפני יצירת עולמות מחבילה זו."
+pack_download_failed_see_console = "הורדת החבילה נכשלה {pack} ({downloadSource}ראה קונסולה)."
+this_dimension_is_not_generated_by_iris_16 = "ממד זה לא נוצר על ידי Iris."
+generated_chunk_s_s = "{value}(s), {value2}/"
+ms = "  {value}: {value2}ms"
+
+[iris.modded.moddedcommandhelp]
+unknown_iris_help_section = "לא ידוע Iris עזרה סעיף: {normalized}"
+
+[iris.modded.moddeddatapackcommands]
+type_active_logical_pack_engine_not_started_pack_heights_unknown = "{dimensionId}סוג={typeKey} פעיל ={activeMin}..{activeMax} הגיוני={value} (חבילה={value2}מנוע לא התחיל; גבהים לא ידועים)"
+type_active_logical_pack_wants_logical = "{dimensionId}סוג={typeKey} פעיל ={activeMin}..{activeMax} הגיוני={value} חבילה \"{value2}\"רוצה {packMin}..{packMax} הגיוני={packLogical} | {value3}{value4}"
+warning_active_dimension_type_does_not_match_pack_iris_will = "  אזהרהסוג הממד הפעיל אינו תואם את החבילה.  Iris לסרב להתחיל את המנוע העולמי במקום להקפיץ קרקע.  לרוץ /iris world enable <dimension> <pack> עולמות חדשים, או /iris datapack install כבר טעון Iris ממדים, ואז מחדש."
+no_iris_dimensions_are_loaded = "לא Iris מידות טעון."
+all_iris_dimension_s_match_their_pack_height_ranges = "הכל {irisLevels}  Iris ממד (s) תואם את טווח גובה החבילה שלהם."
+engine_not_started_cannot_derive_its_dimension_type_yet = "{value}מנוע לא התחיל, עדיין לא יכול להפיק את סוג הממד שלו."
+dimension_type_generation_failed = "{value}הדור השלישי נכשל: {value2}"
+failed_write = "נכשל לכתוב {output}: {value}"
+no_iris_dimensions_with_running_engines_found_nothing_was_installed = "לא Iris ממדים עם מנועי ריצה נמצאו; שום דבר לא הותקן."
+failed_write_2 = "נכשל לכתוב {mcmeta}: {value}"
+wrote = "תגית: {path}"
+world_datapack_dimension_type_overrides_installed_restart_server_dimension_types = "מדד הנתונים העולמי Pack \"{WORLDPACKNAME}\" מסוג Overrides מותקן.שמור את השרת עבור סוגי המימד ליישם."
+configured_datapack_imports = "המונחים: {value}"
+message = "  - {url}"
+modrinth_ingest_is_bukkit_only_install_these_manually_into_world = "Modrinth טעינה Bukkit- רק; להתקין אותם באופן ידני world/datapacks אם צריך."
+installed_world_datapacks = "התקנת חבילות נתונים עולמיות: {value}"
+message_2 = "  - {name}"
+
+[iris.modded.moddeddevelopercommands]
+message = "  {value}"
+network_scan_failed = "סריקות רשת נכשלות: {value}"
+
+[iris.modded.moddedgoldenhash]
+goldenhash_scan_is_already_running = "סריקת זהב כבר פועלת."
+
+[iris.modded.moddedobjectcommands]
+this_command_can_only_be_used_by_players_wand_is = "ניתן להשתמש רק על ידי שחקנים.  (השרביט הוא פריט פיזי)"
+your_inventory_is_full = "המלאי שלך מלא."
+poof_good_luck_building_left_click_corner_1_right_click = "פו!  בניין מזל טוב!  (שמאל = פינה 1לחיצה נכונה = פינה 2)"
+this_command_can_only_be_used_by_players_dust_is = "ניתן להשתמש רק על ידי שחקנים.  (האבק הוא פריט פיזי)"
+your_inventory_is_full_2 = "המלאי שלך מלא."
+right_click_block_reveal_object_it_belongs = "לחץ על בלוק לחשוף את האובייקט שהוא שייך לו."
+this_command_can_only_be_used_by_players_saving_captures = "ניתן להשתמש רק על ידי שחקנים.  (עם לכידת בחירתך)"
+this_dimension_is_not_generated_by_iris_objects_save_into = "מימד זה אינו נוצר על ידי Irisאובייקטים חוסכים לתוך חבילת הממד."
+hold_your_iris_wand_iris_wand = "החזיקו את Iris שרביט  (/iris wand)"
+no_area_selected_left_right_click_blocks_with_wand_first = "שום אזור לא נבחר.  שמאל / ימין לחץ בלוקים עם שרביט הראשון."
+invalid_object_name = "שם אובייקט לא חוקי: {nameRaw}"
+selection_too_large_blocks_max = "בחירה גדולה מדי: {volume} בלוקים (מקסימום {MAXSAVEVOLUME})."
+file_already_exists_use_iris_object_save_overwrite = "הקובץ כבר קיים.  שימוש בשימוש /iris object save overwrite {name}"
+failed_save_object = "נכשל להציל את האובייקט: {value}"
+saved_objects_iob_x_x_block_s = "להציל {value}/objects/{name}.iob: {w}x{h}x{d}, {value2} בלוקים (s){tileNote}"
+unknown_empty_object = "אובייקט לא ידוע או ריק: {key}"
+console_must_specify_coordinates_iris_object_paste_at_x_y = "הקונסולה חייבת לציין קואורדינטות: /iris object paste at <x> <y> <z> [rotate <degrees>] {key}"
+you_are_not_looking_at_block_within_blocks = "אתה לא מסתכל על בלוק בתוך {value} בלוקים"
+paste_failed_partial_changes_recorded_undo = "ההדבקה נכשלה: {value} (שינויים חלקיים נרשמו לביטול)"
+placed_at_rot_write_s_non_air = "מקום {key} ב {value}  {value2}  {value3} רוט ={rotation} ({value4} לכתוב (s) {value5} לא אוויר{tileNote})"
+this_command_can_only_be_used_by_players = "רק שחקנים יכולים להשתמש בפקודה זו."
+hold_your_iris_wand_iris_wand_2 = "החזיקו את Iris שרביט  (/iris wand)"
+no_area_selected = "שום אזור לא נבחר."
+message = "{value}  {amount}  {value2}: {value3}"
+this_command_can_only_be_used_by_players_2 = "רק שחקנים יכולים להשתמש בפקודה זו."
+ready_your_wand_iris_wand = "הכינו את השרביט שלכם  (/iris wand)"
+you_are_not_looking_at_block = "אתה לא מסתכל על בלוק."
+position_set = "מיקום {value} להגדיר {value2}  {value3}  {value4}"
+this_command_can_only_be_used_by_players_3 = "רק שחקנים יכולים להשתמש בפקודה זו."
+hold_your_wand = "החזיקו את השרביט שלכם!"
+no_area_selected_2 = "שום אזור לא נבחר."
+selection_too_large_auto_select_blocks_max = "בחירה גדולה מדי עבור אוטומטי-select: {volume} בלוקים (מקסימום {MAXAUTOSELECTVOLUME})."
+auto_select_complete = "בחירה אוטומטית השלמת: {value}"
+unknown_object = "אובייקט לא ידוע: {key}"
+object_size = "גודל אובייקטים: {value} * {value2} * {value3}"
+blocks_used = "בלוקים בשימוש: {value}"
+blocks_object = "== בלוקים באובייקט=="
+message_2 = " - {value} * {value2}"
+other_block_state_s = "  + {remaining} מדינת בלוק (s)"
+unknown_object_2 = "אובייקט לא ידוע: {key}"
+current_object_size = "גודל האובייקט הנוכחי: {value} * {value2} * {value3}"
+new_object_size = "גודל אובייקטים חדש: {value} * {value2} * {value3}"
+object_has_no_load_file_cannot_persist_shrink = "לאובייקט אין קובץ עומס; לא יכול להמשיך את הרקייק."
+failed_save_object_2 = "נכשל להציל את האובייקט {value}: {value2}"
+invalid_reach = "הגעה בלתי חוקית: {token}"
+no_objects_matched = "שום אובייקטים לא מתאימים: {target}"
+plausibilize_reach_queued_object_s = "מטבוליזם [reach={reach}{value}] תור {value2} (אובייקטים)"
+nothing_undo = "שום דבר לא לעשות."
+reverted_paste_s = "בוטלו {reverted} הדבקות."
+
+[iris.modded.moddedpackcommands]
+packs_folder_not_found = "תיקיות לא נמצאו: {value}"
+no_packs_validate_under = "אין חבילות לאמת תחת {value}"
+pack_not_found_under = "Pack »{pack}\"לא נמצא מתחת {value}"
+validating_pack_s = "אימות {value} חבילות(s)..."
+validation_failed = "אימות של \"{value}\"נכשל: {value2}"
+validation_complete_broken_packs = "אימות מוחלט.  חבילות שבורות: {brokenTotal}/{value}"
+pack_not_found_under_2 = "Pack »{pack}\"לא נמצא מתחת {value}"
+pack_not_found_under_3 = "Pack »{pack}\"לא נמצא מתחת {value}"
+no_validation_results_recorded_run_iris_pack_validate_first = "לא נרשמו תוצאות אימות.  לרוץ /iris pack validate קודם."
+blocking_warnings = "{tag}  {value} (בלוק={value2}אזהרות ={value3})"
+no_validation_result_run_iris_pack_validate = "שום תוצאה של \"{pack}'.  לרוץ /iris pack validate {pack2}."
+pack_is_loadable_warnings = "Pack »{value}\"הוא חזק.  (אזהרות={value2})"
+pack_is_broken = "Pack »{value}\"הוא פגום:"
+message = "  - {reason}"
+message_2 = "  !  {value}"
+more_warning_s = "  ...  ו {value} עוד אזהרה(s)"
+no_cleanup_candidates_found_pack = "לא נמצאו מועמדים לחבילה{pack}'."
+cleanup_preview_pack_candidate_s_no_files_were_changed = "תצוגה מקדימה של החבילה{pack}': {value} מועמד(s)  לא השתנו קבצים."
+run_iris_pack_cleanup_apply_quarantine_after_fresh_scan = "לרוץ /iris pack cleanup {pack} apply לאחר סריקה חדשה."
+no_cleanup_candidates_found_pack_2 = "לא נמצאו מועמדים לחבילה{pack}'."
+quarantined_cleanup_candidate_s_under = "המונחים: {value} מועמד ניקוי (s) {value2}."
+nothing_restore_pack = "אין מה להחזיר לחבילה{pack}'."
+restore_preview_file_s_no_files_were_changed = "שחזור תצוגה מקדימה {value}: {value2} קובץ(s)  לא השתנו קבצים."
+restore_is_blocked_by_existing_destination_s = "שחזור נחסם {value} יעד קיים (s)"
+run_iris_pack_restore_apply_restore_after_fresh_conflict_check = "לרוץ /iris pack restore {pack} apply לשחזר לאחר בדיקת סכסוך חדשה."
+restore_refused_because_destination_s_already_exist = "החזרה נדחתה כי {value} מטרות (כבר קיימות)."
+nothing_restore_pack_2 = "אין מה להחזיר לחבילה{pack}'."
+restored_file_s_from = "שחזור {value} קובץ(s) {value2}."
+message_3 = "  - {label}: {value}"
+more = "  ...  ו {value} יותר."
+compat_header = "חבילה '{pack}': תוכן לא זמין ב-Minecraft {version}"
+compat_none = "החבילה '{pack}' אינה משתמשת בתוכן שחסר ב-Minecraft {version}."
+compat_remedy = "עדכן את השרת ל-Minecraft חדש יותר כדי לשחזר את התוכן הזה, או הגדר חלופות (blockFallbacks של הממד, backup של הבלוק)."
+
+[iris.modded.moddedregen]
+regen_is_already_running = "גן כבר רץ."
+
+[iris.modded.moddedstructurecommands]
+this_dimension_is_not_generated_by_iris_run_this_from = "מימד זה אינו נוצר על ידי Iris.  הפעל את זה מתוך Iris ממד כך ניתן לפתור את החבילה."
+wrote_structure_index = "מדד מבנה נכתב: {value}"
+no_iris_structure_this_pack = "אין מבנה איריס \"{key}\"בחבילה הזאת"
+structure_assembled_0_pieces_check_startpool = "מבנה \"{key}התאספו 0 חתיכות (בדיקה startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "מבנה \"{key}': {value} חתיכות, טביעת רגל {value2}x{value3} בלוקים (sampleזרע 1234)"
+this_command_can_only_be_used_by_players_structure_is = "פקודה זו יכולה לשמש רק על ידי שחקנים (המבנה נאסף בעמדה שלך)."
+no_iris_structure_this_pack_2 = "אין מבנה איריס \"{key}\"בחבילה הזאת"
+structure_assembled_0_pieces = "מבנה \"{key}התאספו 0 חתיכות"
+place_failed_partial_changes_recorded_undo = "המקום נכשל: {value} (שינויים חלקיים שנרשמו לאדו)"
+placed_pieces_write_s_at_your_location_iris_object_undo = "מקום \"{key}' ({value} חתיכות, {value2} תגית(s){tileNote}) במיקום שלך.  /iris object undo לחזור."
+
+[iris.modded.moddedstudiocommands]
+provide_dimension_pack_iris_studio_open_pack_seed = "לספק ערכת מימד: /iris studio open <pack> [seed]"
+opening_noise_explorer_on_server_display = "פתח את כלי חיפוש רעש בתצוגת השרת."
+this_dimension_is_not_generated_by_iris_run_iris_studio = "מימד זה אינו נוצר על ידי Irisלרוץ /iris studio noise מתוך A Iris ממד כדי לפתור גנרטורים, או להמיט את שם הגנרטור."
+unknown_generator_pack = "גנרטור לא ידוע{generatorKey}\"בחבילה {value}."
+opening_noise_explorer_generator_seed = "פתח את כלי חיפוש רעש עבור גנרטור{value}(זה{seed})."
+this_dimension_is_not_generated_by_iris_stand_iris_studio = "ממד זה אינו נוצר על ידי Iris; לעמוד בממד Iris (או סטודיו) ולנהל /iris studio map."
+opening_vision_map_on_server_display = "פתח את מפת החזון {value} בתצוגת השרת."
+failed_write_workspace = "נכשל לכתוב מקום עבודה {value}: {value2}"
+workspace_regenerated_with_json_schemas_autocomplete = "סביבת העבודה מחדש: {value} עם JSON chemas עבור Auto Complete."
+could_not_open = "לא יכול לפתוח {value}: {value2}"
+opening_your_editor = "פתיחה {value} בעורך שלך."
+this_dimension_is_not_generated_by_iris_specify_pack_name = "מימד זה אינו נוצר על ידי Irisלציין שם חבילה במפורש."
+pack_not_found_under = "Pack »{name}\"לא נמצא מתחת {value}"
+provide_dimension_pack_iris_studio_open_pack_seed_2 = "לספק ערכת מימד: /iris studio open <pack> [seed]"
+opening_studio_seed = "סטודיו פתיחה ל\"{pack}(זה {seed})..."
+pack_missing_downloading_irisdimensions = "Pack »{pack}\"חסר; מוריד IrisDimensions/{pack2}..."
+pack_could_not_be_downloaded_check_name_try_iris_download = "Pack »{pack}לא ניתן להוריד את השם ולנסות /iris download {pack2}."
+pack_has_no_dimensions_json = "Pack »{pack}\"אין לו dimensions/{pack2}.json"
+studio_open_failed = "סטודיו פתוח נכשל: {value}{errorMessage}"
+studio_injection_failed = "זריקת סטודיו נכשלה: {value}{errorMessage}"
+console_studio_open_now_runs_seed_transient_not_written_iris = "סטודיו הקונסולה פתוח: {dimensionId} עכשיו רץ \"{pack}זרע {seed} (הופנה מהדף לא iris-dimensions.json והבהירו מחדש)."
+enter_it_with_execute_run_tp_s_8_5_8 = "היכנס עם: /execute in {dimensionId} run tp @s 8.5  {surface}  8.5"
+pregen_it_with_iris_pregen_start_radius = "עקבו אחרי: /iris pregen start <radius> {dimensionId}"
+remove_it_with_iris_studio_close = "הסר את זה עם: /iris studio close"
+studio_injection_failed_2 = "זריקת סטודיו נכשלה: {value}{errorMessage}"
+studio_open_now_runs_seed_use_iris_studio_close_when = "סטודיו פתוח: {dimensionId} עכשיו רץ \"{pack}זרע {seed}.  שימוש בשימוש /iris studio close מתי נעשה."
+you_do_not_have_open_studio_use_iris_studio_open = "אין לכם סטודיו פתוח.  שימוש בשימוש /iris studio open <pack> קודם."
+studio_close_failed = "סטודיו נסגר: {value}{errorMessage}"
+studio_closed_was_evacuated_unloaded_its_region_data_deleted = "סטודיו סגור: {dimensionId} הובהר, ללא עומס ונתוני האזור שלו נמחקו."
+no_studio_dimensions_are_currently_open = "אין כרגע ממדי סטודיו פתוחים."
+active_studio_dimension_s = "ממד סטודיו פעיל (s): {value}"
+pack_seed_owner = "  {value}תגית: Pack{value2}זרע {value3} הבעלים {ownerName}"
+this_command_can_only_be_used_by_players = "רק שחקנים יכולים להשתמש בפקודה זו."
+you_do_not_have_open_studio_use_iris_studio_open_2 = "אין לכם סטודיו פתוח.  שימוש בשימוש /iris studio open <pack> קודם."
+your_studio_dimension_is_no_longer_loaded_use_iris_studio = "מימד האולפן כבר לא טעון.  שימוש בשימוש /iris studio open <pack> שוב."
+teleported_your_studio = "הועבר לסטודיו שלך ({dimensionId})."
+pack_has_no_dimensions_json_2 = "Pack »{value}\"אין לו dimensions/{value2}.json"
+pack_has_version = "\"\"{value}לחבילה יש גרסה: {value2}"
+invalid_project_name_allowed_z_0_9 = "שם הפרויקט \"{nameRaw}(הופנה מהדף A-z, 0-9- ו-)"
+pack_already_exists_at = "Pack »{name}\"כבר קיים {value}"
+creating_project_from_template = "יצירת פרויקט \"{name}מתוך תבנית \"{template}'..."
+required_pack_is_not_installed_install_then_restart = "החבילה הנדרשת '{pack}' אינה מותקנת. התקן אותה באמצעות /iris download ולאחר מכן הפעל מחדש את השרת."
+created_project_at = "הפרויקט '{name}' נוצר ב-{value}"
+edit_dimensions_json_rest_pack_vscode_workspace_with_json_schema = "עריכהעריכה dimensions/{name}.json שאר החבילה.  A VSCode סביבת עבודה עם JSON schema Auto Complete נוצר; פתח אותו או הרצה מחדש /iris studio vscode."
+project_creation_failed = "יצירת פרויקטים נכשלה: {value}{errorMessage}"
+packaging_dimension = "ממד אריזה »{dimKey}'..."
+package_compiled = "חבילה: {value}"
+packaging_failed = "אריזה נכשלה: {value}{errorMessage}"
+this_command_can_only_be_used_by_players_sampling_is = "ניתן להשתמש בפקודה זו רק על ידי שחקנים (המפלינג ממוקם במיקום שלך)."
+this_dimension_is_not_generated_by_iris = "ממד זה לא נוצר על ידי Iris."
+sampling_region_distribution_x_chunks_around_you = "חלוקת האזור ב {value}x{value2} חלקים סביבך..."
+rarity = "{key}תגית: rarity={rarity} / {value}%"
+region_sampling_failed = "האזור נכשל: {value}"
+image_map_requires_iris_dimension = "Stand in an active Iris or Studio dimension before opening the Image Map Studio."
+opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {value} on the server display."
+
+[iris.modded.moddedworldcommands]
+required_pack_is_not_installed_install_then_restart = "החבילה הנדרשת '{pack}' אינה מותקנת. התקן אותה באמצעות /iris download ולאחר מכן הפעל מחדש את השרת."
+failed_inject_iris_world = "נכשל להזרק Iris עולם »{dimensionId}': {value}{errorMessage}"
+created_iris_world_from_pack_dimension_seed = "נוצר Iris עולם העולם {dimensionId} מתוך \"חבילה\"{pack}מימד \"{packDimension}(זה {seed})."
+it_is_live_now_re_injected_on_every_startup_teleport = "הוא חי עכשיו ומופץ מחדש על כל סטארט-אפ.  טלפורט עם /iris world status או פורטל, אין צורך מחדש."
+failed_inject_iris_primary_world = "נכשל להזרק Iris עולם ראשון: {value}{errorMessage}"
+iris_primary_world_set_pack_dimension_seed = "Iris העולם העיקרי שנקבע {dimensionId} (חבילה{pack}מימד \"{packDimension}זרע {seed})."
+vanilla_overworld_generator_cannot_be_hot_swapped_so_this_does = "לא ניתן להחליף בזמן ריצה את מחולל העולם העליון של vanillaה, ולכן פעולה זו אינה יוצרת מחדש את העולם העליון הקיים."
+instead_is_now_configured_primary_world_players_vanilla_overworld_are = "במקום, {dimensionId} עכשיו הוא העולם הראשון מוגדר: שחקנים בעולם של vanilla מתכנסים שם על מנת להצטרף, וזה מחדש זריקות על כל סטארט-אפ."
+iris_main_world_override_cleared_overworld_keeps_its_current_generator = "Iris העולם המרכזי התנקה.  העולם שומר על הגנרטור הנוכחי שלו; לערוך server.properties סוג וחדש מחדש כדי לשנות אותו בחזרה."
+invalid_seed_use_number_random = "זרע לא חוקי \"{seedRaw}'.  השתמש במספר או ב'random'."
+pack_is_not_ready_yet_still_loading_validating_try_command = "Pack »{pack}\"עדיין לא מוכן (הטעינה או אימות).  נסו שוב את הפקודה ברגע אחד."
+failed_write_server_properties_check_file_permissions_set_level_type = "נכשל לכתוב server.properties• בדוק הרשאות קובץ ולהגדיר באופן ידני סוג ברמה."
+iris_main_world_set_preset_seed = "Iris העולם העיקרי מוגדר ל\"{pack}' (preset {preset}זרע {value})."
+server_properties_level_type_is_now_on_next_restart_overworld = "server.properties סוג הרמה הוא עכשיו {preset}.  על העולם הבא מחדש את עולם העל, הרשת והסוף מתחדש כמו זה. Iris עולם"
+player_data_inventories_advancements_stats_is_kept_existing_terrain_those = "נתוני שחקן (מלאים, Progresss, סטטינים) נשמרים; השטח הקיים בממדים אלה מוחלף.  זה חל פעם אחת."
+mainworldautorestart_is_enabled_stopping_server_now_so_your_restart_wrapper = "mainWorldAutoRestart הוא מופעל - לעצור את השרת עכשיו כך שחתוף ההפעלה מחדש שלך מחזיר אותו לעולם הראשי החדש."
+restart_server_now_generate_it_set_mainworldautorestart_true_modded_json = "שמור את השרת עכשיו כדי ליצור אותו.  (הגדר mainWorldAutoRestartהמונחים: modded.json צריך Iris עצרו את השרת עבורכם.)"
+refusing_create_world_using_pack_because_required_validation_failed = "מסרב ליצור עולם{dimensionId}באמצעות Pack{pack}\"כי אישור נדרש נכשל:"
+message = "  - {reason}"
+fix_pack_run_iris_pack_validate_revalidate = "לתקן את החבילה ולרוץ /iris pack validate {pack} לתקן."
+pack_was_not_found_under = "Pack »{pack}\"לא נמצאו מתחת {value}"
+pack_does_not_contain_dimensions_json = "Pack »{pack}\"לא מכיל dimensions/{packDimension}.json"
+invalid_pack_reference_use_pack_pack_dimensionkey = "הפניה לא חוקית לחבילה '{pack}{value}'. יש להשתמש ב-pack או ב-pack:dimensionKey."
+invalid_seed_use_number_random_2 = "זרע לא חוקי \"{seedRaw}'.  השתמש במספר או ב'random'."
+failed_remove_iris_world = "נכשל להסיר Iris עולם »{dimensionId}': {value}{errorMessage}"
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry = "Iris עולם »{dimensionId}\"לא היה טעון; הנקה את כניסת הרישום המתמדת שלה ומחקה את הנתונים השמורים / המנופים שלו."
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry_2 = "Iris עולם »{dimensionId}\"לא היה טעון; הנקה את כניסת הרישום המתמשכת שלו.  המידע העולמי על הדיסק נשמר."
+deleted_iris_world_evacuated_unloaded_chunk_mantle_data_wiped_dropped = "המונחים: Iris עולם »{dimensionId}\": פינוי, ללא עומס, נתונים של גוש/Mantle שנמחקו ונפילו ממרשם הסטארט-אפ."
+disabled_iris_world_evacuated_unloaded_dropped_from_startup_registry = "מוגבלות Iris עולם »{dimensionId}\": פינוי, לא טעון ונפל מרישום הסטארט-אפ."
+world_data_on_disk_is_kept_re_enable_with_iris = "הנתונים העולמיים על הדיסק נשמרים, ניתנים לזיהוי מחדש /iris world enable {dimensionId} <pack> או למחוק אותו עם /iris world delete {dimensionId2}."
+loaded_iris_level_pack_dimension = "טעון Iris רמה: {value}  -> חבילה »{value2}מימד \"{value3}'"
+primary_world = "עולם ראשוני: {primary}{value}"
+no_iris_dimensions_are_currently_loaded_create_one_with_iris = "לא Iris המידות כבר טעון.  צור אחד עם /iris world create <name> <pack>."
+loaded_iris_dimensions = "טעון Iris ממדים: {value}"
+message_2 = "  - {dimension}"
+use_iris_world_create_name_pack_inject_one_without_restarting = "שימוש בשימוש /iris world create <name> <pack> להזריק אחד מבלי להתחיל מחדש."
+
+[iris.director.commanddatapack]
+"director.download_manage_external_datapack_imports_modrinth" = "הורד הורדה & ניהול יבוא נתונים חיצוני (Modrinth)"
+"director.download_update_every_datapack_listed_pack_dimension_s_datapackimports_install_it_into" = "הורד/עדכון כל חבילת נתונים המופיעה במימד החבילהdatapackImportsולהתקין אותו לתוך העולם כך שהמבנים שלו רשומים כמו vanilla"
+"param.restart_server_when_new_datapacks_are_installed_required_new_structures_register_generate" = "הפעלה מחדש השרת כאשר ערכות נתונים חדשות מותקנות (נדרש עבור מבנים חדשים להירשם וליצור)"
+"director.list_configured_datapack_imports_their_installed_versions" = "רשימת ייבוא datapack והגרסאות המותקנות שלהם"
+"director.remove_installed_datapack_by_id_also_delete_its_url_from_datapackimports_keep" = "להסיר חבילת נתונים מותקנת על ידי id (גם למחוק אותה URL מתוך datapackImports כדי להשאיר את זה נעלם)"
+"param.datapack_id_folder_name_shown_by_iris_datapack_list" = "חבילת הנתונים id (שם כפול) מוצג על ידי /iris datapack list"
+
+[iris.director.commanddeveloper]
+"director.iris_world_manager" = "Iris מנהל עולמי"
+"director.get_loaded_tectonicplates_count" = "קבל טעון TectonicPlates הרוזן"
+"director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "האש יצרה פלט בלוק של אזור קבוע עבור בדיקות  determin / זהות"
+"param.world_hash" = "העולם שיש"
+"param.radius_chunks_around_center" = "רדינוס בחלקים סביב המרכז"
+"param.center_chunk_x" = "מרכז X"
+"param.center_chunk_z" = "מרכז Z"
+"director.stage_world_generation_update" = "הכנת עדכון ליצירת העולם"
+"param.world_update" = "העולם לעדכן"
+"param.pack_install_into_world" = "החבילה להתקנה לעולם"
+"param.make_sure_make_backup_read_warnings_first" = "הקפד לעשות גיבוי & קראו קודם כל את האזהרות!"
+"director.test" = "מבחן"
+"param.dump_whole_tectonic_plate_instead_single_section" = "כל הצלחת הטקטונית במקום חלק אחד"
+"param.dump_file_id_under_plugins_iris_dump_pv_id" = "קובץ הזבל תחת plugins/Iris/dump (pv<id>.*)"
+"director.test_2" = "מבחן"
+"param.pack_bench" = "החבילה לספסל"
+"param.radius_regions" = "רדוס באזורים"
+"param.open_gui_while_benchmarking" = "פתוח GUI תוך ציון"
+"director.upgrade_another_minecraft_version" = "לשדרג לעוד Minecraft גירסה"
+"param.version_upgrade" = "הגרסה לשדרג"
+"director.test_3" = "מבחן"
+"param.world_folder_scan_mca_region_files" = "התיקיה העולמית לסרוק עבור קבצי אזור .mca"
+"director.delete_nearby_chunk_blocks_regen_testing" = "למחוק בלוקים סמוכים ל-בדיקה חוזרת"
+"param.radius_chunks_around_your_current_chunk" = "רדינוס בחלקים סביב החלק הנוכחי שלך"
+"director.test_4" = "מבחן"
+"director.delete_regenerate_nearby_chunks_place_using_iris_generation" = "למחוק ולחדש חלקים סמוכים במקום באמצעות דור Iris"
+"param.radius_nearby_chunks" = "רדיוס של גושים סמוכים"
+"director.generate_chunks_into_buffers_no_world_writes_hash_blocks_biomes_captures_golden" = "יוצר לתוך מאגרים (ללא עולם כותב) ו hash חוסם +biomes; ללכוד קובץ זהב או אימותים נגד קיים.  מוחק את כל ה-mantle של העולם - להשתמש בעולמות מבחן חד פעמי."
+"param.world_scan" = "העולם לסרוק"
+"param.radius_chunks_around_center_2" = "רדינוס בחלקים סביב המרכז"
+"param.center_chunk_x_2" = "מרכז X"
+"param.center_chunk_z_2" = "מרכז Z"
+"param.delete_mantle_data_scan_area_first_full_regeneration_from_scratch" = "מוחק תחילה את כל תיקיית ה-Mantle של העולם ליצירה מחדש מלאה מאפס. לא מוגבל לאזור הסריקה"
+"param.concurrent_chunk_generations_1_strictly_serial_order_dependence_testing" = "דורות מקבילים; 1 המונחים: order-dependence test"
+"param.also_dump_full_per_chunk_non_air_blockstates_offline_diffing" = "כמו כן, לזרוק מלא קופות ללא אוויר עבור דיפרינג לא מקוון"
+
+[iris.director.commandedit]
+"director.edit_something" = "עריכה משהו"
+"director.edit_biome_you_specified" = "לערוך את biome שציינת"
+"param.biome_edit" = "הביום לערוך"
+"director.edit_region_you_specified" = "לערוך את האזור שציינת"
+"param.region_edit" = "האזור לערוך"
+"director.edit_dimension_you_specified" = "לערוך את הממד שציינת"
+"param.dimension_edit" = "המימד לערוך"
+
+[iris.director.commandfind]
+"director.iris_find_commands" = "Iris מצא פקודות"
+"director.find_biome" = "מצא ביום"
+"param.biome_look" = "הביום לחפש"
+"param.should_you_be_teleported" = "אם אתה צריך לטלפורט"
+"director.find_region" = "מצא אזור"
+"param.region_look" = "האזור לחפש"
+"param.should_you_be_teleported_2" = "אם אתה צריך לטלפורט"
+"director.find_point_interest" = "מצא נקודה של עניין."
+"param.type_poi_look" = "סוג PoI לחפש."
+"param.should_you_be_teleported_3" = "אם אתה צריך לטלפורט"
+"director.find_structure_vanilla_key_like_minecraft_village_plains_minecraft_stronghold_imported_iris" = "מציאת מבנה (מפתח vanilla כמו minecraft:village_plains או minecraft:strongholdמפתח מבנה iris מיובא)"
+"param.structure_look_e_g_minecraft_village_plains_minecraft_stronghold_minecraft_ancient_city" = "המבנה לחפש (למשל.minecraft:village_plains, minecraft:stronghold, Minecraft העיר העתיקה"
+"director.find_object" = "מצא אובייקט"
+"param.object_look" = "המטרה לחפש"
+"param.should_you_be_teleported_4" = "אם אתה צריך לטלפורט"
+
+[iris.director.commandobject]
+"director.iris_object_manipulation" = "Iris מניפולציה"
+"director.open_object_studio_world_grid_every_object_dimension_optional_defaults_all_packs" = "פתח עולם סטודיו אובייקט (רשת של כל ממד אובייקט אופציונלי, ברירת מחדל לכל הלהקות)"
+"param.optional_dimension_whose_object_pack_lay_out_omit_aggregate_objects_from_every" = "ממד אופציונלי שאובייקט שלו לארוז; השמטה כדי לאסוף חפצים מכל חבילה"
+"param.seed_generate_studio_with" = "הזרע ליצור את הסטודיו עם"
+"director.check_composition_object" = "בדוק את ההרכב של אובייקט"
+"param.object_analyze" = "המטרה לנתח"
+"director.shrink_object_its_minimum_size" = "לחץ על אובייקט לגודלו המינימלי"
+"param.object_shrink" = "המטרה לכווץ"
+"director.grow_organic_branches_through_canopy_so_every_leaf_survives_vanilla_decay" = "לגדל ענפים אורגניים באמצעות הקאנופי, כך שכל עלה שורד את דעיכה vanilla"
+"param.object_key_prefix_trees_filesystem_path" = "מפתח אובייקטים, עצים/), או דרך מערכת הקבצים"
+"param.dryrun_true_analyzes_only_writes_nothing" = "ייבוש = אמת מנתח רק, לא כותב כלום"
+"param.reach_n_max_branch_length_blocks_from_existing_wood_farther_leaf_clusters" = "אורך ענף מקסימלי בלוקים מן העץ הקיים; אשכולות עלה מרוחקים יותר מצופים במקום.  הגעה =0 גדל ללא הגבלה"
+"director.convert_schem_files_convert_folder_iob_files" = "להמיר קבצי .schem בתיקיה 'convert' לקובץ.iob."
+"director.get_powder_that_reveals_objects" = "קבל אבקה שמגלה חפצים"
+"director.contract_selection_based_on_your_looking_direction" = "חוזה בחירה המבוססת על כיוון החיפוש שלך"
+"param.amount_inset_by" = "הסכום להתחיל"
+"director.set_point_1_look" = "נקודה 1 להסתכל"
+"param.whether_use_your_current_position_where_you_look" = "בין אם להשתמש במיקום הנוכחי שלך, או איפה אתה מסתכל"
+"director.set_point_2_look" = "נקודה 2 להסתכל"
+"param.whether_use_your_current_position_where_you_look_2" = "בין אם להשתמש במיקום הנוכחי שלך, או איפה אתה מסתכל"
+"director.paste_object" = "הדבק אובייקט"
+"param.object_paste" = "האובייקט להדבקה"
+"param.whether_not_edit_object_need_hold_wand" = "בין אם לא לערוך את האובייקט (צריך להחזיק שרביט)"
+"param.amount_degrees_rotate_by" = "כמות מעלות לסובב"
+"param.factor_by_which_scale_object_placement" = "הגורם שבאמצעותו לדרג את מיקום האובייקט"
+"param.scale_interpolator_use" = "המנטרול בקנה מידה לשימוש"
+"director.save_object" = "להציל אובייקט"
+"param.dimension_store_object" = "הממד לאחסון האובייקט"
+"param.file_store_it_can_use_subfolders" = "הקובץ לאחסון זה, יכול להשתמש / עבור תיקיות משנה"
+"param.overwrite_existing_object_files" = "קובצי אובייקט קיימים"
+"param.use_legacy_tilestate_serialization_if_possible" = "שימוש במורשת TileState הסדר אם אפשר"
+"director.shift_selection_your_looking_direction" = "שינוי בחירה בכיוון ההסתכלות שלך"
+"param.amount_shift_by" = "הסכום להשתנות על ידי"
+"director.undo_number_pastes" = "בטל מספר הדבקות"
+"param.amount_pastes_undo" = "מספר ההדבקות לביטול"
+"director.gets_object_wand_grabs_current_worldedit_selection" = "מקבל אובייקט ותופס את ההווה WorldEdit בחירה."
+"director.get_object_wand" = "קבל אובייקט שרביט"
+"director.autoselect_up_down_out" = "באופן אוטומטי בחר למטה &"
+"director.autoselect_up_out" = "בחירה אוטומטית למעלה & בחוץ"
+
+[iris.director.commandpack]
+"director.pack_validation_maintenance" = "אימות חבילה ותחזוקה"
+"director.validate_pack_all_packs_re_publish_results" = "אימות חבילה (או כל החבילה) ותוצאות publish"
+"param.pack_folder_name_validate_leave_empty_all" = "שם התיקיה של הלהקה כדי לאמת (לעזוב ריק לכולם)"
+"director.preview_apply_unused_resource_cleanup" = "המונחים: non-resource ניקוי"
+"param.pack_folder_name_clean" = "שם החבילה לנקות"
+"param.preview_apply" = "תצוגה מקדימה או"
+"director.preview_apply_restoration_latest_quarantine" = "סקירה או החל שיקום של רעידת האדמה האחרונה"
+"param.pack_folder_name_restore" = "שם החבילה לשחזר"
+"param.preview_apply_2" = "תצוגה מקדימה או"
+"director.show_cached_validation_status_pack" = "הצג מצב אימות קבוע עבור חבילה"
+"param.pack_folder_name" = "שם הלהקה"
+"director.show_content_cannot_generate_this_minecraft_version" = "הצג תוכן חבילה שלא ניתן ליצור בגרסת Minecraft הזו"
+"param.pack_folder_name_compat" = "שם תיקיית החבילה לדיווח"
+
+[iris.director.commandpregen]
+"director.pregenerate_your_iris_worlds" = "קבל את שלך Iris עולמות!"
+"director.pregenerate_world" = "לקדם עולם"
+"param.radius_pregen_blocks" = "רדיוס של טרוםגן בלוקים"
+"param.world_pregen" = "העולם כדי לקדם"
+"param.center_location_pregen_use_me_your_current_location" = "מיקום המרכז של pregen.  השתמש \"אני\" למיקום הנוכחי שלך"
+"param.open_iris_pregen_gui" = "פתח את Iris תגית: gui"
+"param.generate_only_one_chunk_at_time" = "ליצור רק נתח אחד בכל פעם"
+"director.stop_active_pregeneration_task" = "לעצור את משימת ההתחדשות הפעילה"
+"director.pause_continue_active_pregeneration_task" = "Puse / המשך משימת קדם-דור פעיל"
+"director.show_active_pregeneration_status" = "הצג את מצב ההתחדשות הפעיל"
+
+[iris.director.commandstructure]
+"director.iris_structure_tools_index_import_info" = "Iris כלי מבנה (אינדקס, לייבא מידע)"
+"director.regenerate_structure_index_json_listing_all_vanilla_datapack_iris_structures" = "חידוש structure-index.json כל vanilla, Datapack & מבנים"
+"param.dimension_whose_pack_index" = "הממד שחבילתו לאינדקס"
+"director.import_every_structure_vanilla_ingested_datapacks_into_this_pack_as_editable_iris" = "ייבוא כל מבנה - vanilla ו- חבילות נתונים - לתוך החבילה הזאתIrisמשאבים, תמיד המונחים: jigsaw מבנים (בתי מלון ב-Jigsaw)/גרפים, ייבוא כל תבניתNBTכאובייקט, ומאגד את המבנים הרב-זמניים (ספינות, פורטלים הרוסים, חורבות האוקיינוס, מאובנים נטור).לרוץ אחרי שחתמה על חבילת נתונים והפעלה מחדש.לנתח או להשתמש בעולם טרי עבור עותקים מיובאים למקום."
+"param.dimension_whose_pack_import_into" = "המימד שהחבילה שלו תבוא"
+"director.capture_code_generated_structures_that_have_no_nbt_template_swamp_huts_igloos" = "לתפוס מבנים מבוססי קוד שאין להםNBTתבנית (בקתה איגלו, וכו ') לעריכהIrisחפצים על ידי יצירת כל אחד בעולם של שריטות וקריאה בחזרה את בלוקים.דלג מבנים שכבר באים כמבנה, מבנים רחבים יותר/גבוה יותר מאשר כובע ללכוד (חזקות, ארמונות, מונומנטים להישאר vanilla), וכל דבר שלא יניב בעולם שטוח.כל מבנה שנלכד הופך לאחדIrisמבנה שאתה יכול להציב מביום/האזור האזורי/רשימת המבניםלרוץ באופן אוטומטי כמו המעבר האחרון של/iris structure import."
+"param.dimension_whose_pack_capture_into" = "המימד שהחבילה שלו לוכדת"
+"director.verify_native_structure_eligibility_locate_iris_placed_structures_without_running_blocking_native" = "לבדוק את זכאות המבנה והאתר Irisמבנים ללא הפעלת חסימת חיפושים מקומיים."
+"param.dimension_verify" = "הממד כדי לאמת"
+"param.search_radius_chunks_around_origin_larger_is_much_slower" = "רדיוס חיפוש בחלקים סביב המקור (הגר הוא הרבה יותר איטי)"
+"director.resolve_iris_structure_s_jigsaw_graph_report_piece_count_bounds" = "לפתור גרף Jigsaw של מבנה iris ודיווח & גבולות"
+"param.dimension_whose_pack_holds_structure" = "המימד שהחבילה שלו מחזיקה במבנה"
+"param.iris_structure_key_inspect" = "מפתח מבנה iris לבדוק"
+"director.assemble_place_iris_structure_at_your_location_studio_testing" = "להרכיב ולמקם מבנה איריס במיקום שלך (בדיקת סטודיו)"
+"param.dimension_whose_pack_holds_structure_2" = "המימד שהחבילה שלו מחזיקה במבנה"
+"param.iris_structure_key_place" = "מפתח המבנה של iris"
+
+[iris.director.commandstudio]
+"director.studio_commands" = "פיקוד סטודיו"
+"director.open_new_studio_world" = "פתח עולם אולפן חדש"
+"param.dimension_pack_open_studio" = "חבילת המימד לפתוח סטודיו"
+"param.seed_generate_studio_with" = "הזרע ליצור את הסטודיו עם"
+"director.import_vanilla_trees_mushrooms_objects_structures_jigsaw_from_server_into_pack_s" = "יבוא עצי vanilla, פטריות & אובייקטים (ו structures/jigsaw) מהשרת אל תוך חבילת objects/vanilla התיקיה"
+"param.dimension_pack_import_vanilla_content_into" = "חבילת המימד לייבוא תוכן vanilla"
+"param.how_many_variants_capture_per_tree_object_feature" = "כמה גרסאות לתפוס לעץ / object"
+"param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "יבוא vanilla & נתוניםpack structures/jigsaw לתוך החבילה"
+"director.open_vscode_dimension" = "פתוח VSCode למימד"
+"param.dimension_open_vscode" = "הממד להיפתח VSCode עבור"
+"director.close_open_studio_project" = "פרויקט סטודיו פתוח"
+"director.toggle_your_studio_debug_scoreboard" = "החלפת מצב לוח הניקוד לאיתור באגים של Studio"
+"director.create_new_studio_project" = "יצירת פרויקט אולפן חדש"
+"param.name_this_new_iris_project" = "שם חדש זה Iris פרויקט"
+"param.copy_contents_existing_project_your_packs_folder_use_it_as_template_this" = "העתק את התוכן של פרויקט קיים בתיקיית החבילה שלך ולהשתמש בו כתבנית בפרויקט חדש זה."
+"director.get_version_pack" = "קבלו את הגרסה של חבילה"
+"param.dimension_get_version" = "הממד מקבל את הגרסה של"
+"director.open_noise_explorer_external_gui" = "פתח את חוקר הרעש (External GUI)"
+"param.optional_pack_generator_preview" = "גנרטור החבילה האופציונלית לתצוגה מקדימה"
+"param.seed_preview_generator_with" = "הזרע לתצוגה מקדימה של הגנרטור עם"
+"director.show_loot_if_chest_were_right_here" = "הראה ליז אם החזה היה כאן"
+"param.fast_insertion_items_virtual_inventory_may_cause_performance_drop" = "שילוב מהיר של פריטים במלאי וירטואלי (אולי לגרום לירידה בביצועים)"
+"param.whether_not_append_inventory_currently_open_if_false_clears_opened_inventory" = "בין אם או לא לייחס את המלאי הנוכחי פתוח (אם שקר, נקה נפתחת מלאי)"
+"director.calculate_chance_each_region_generate" = "חישוב ההזדמנות לכל אזור לייצר"
+"param.radius_chunks" = "רדיוס בחלקים"
+"director.render_world_map_external_gui" = "מפת עולם (External GUI)"
+"param.world_open_generator" = "העולם לפתוח את הגנרטור"
+"director.package_dimension_into_compressed_format" = "חבילה ממד לתוך פורמט דחוס"
+"param.dimension_pack_compress" = "ערכת המימד לדחוס"
+"param.whether_not_obfuscate_pack" = "בין אם לא או לא לעקוף את החבילה"
+"param.whether_not_minify_pack" = "בין אם או לא ליישר את החבילה"
+"director.profiles_performance_dimension" = "פרופיל הביצועים של מימד"
+"param.dimension_profile" = "הממד לפרופיל"
+"director.spawn_iris_entity" = "צור ישות Iris"
+"param.entity_spawn" = "הישות ליצירה"
+"param.location_spawn_entity_at" = "המיקום שבו תיווצר הישות"
+"director.teleport_active_studio_world" = "טלפורט לעולם האולפן הפעיל"
+"director.update_your_dimension_projects_vscode_workspace" = "עדכון הפרויקטים שלך VSCode סביבת העבודה"
+"param.dimension_update_workspace" = "הממד לעדכן את סביבת העבודה"
+"director.capture_igendata_chunk_report_nearby_chunks" = "לתפוס IGenData דיווח על נתחים סמוכים"
+
+[iris.director.commandwhat]
+"director.iris_what" = "Iris מה?"
+"director.what_is_my_hand" = "מה יש לי ביד?"
+"director.what_biome_am_i" = "איזה ביום אני?"
+"director.what_region_am_i" = "באיזה אזור אני?"
+"director.what_block_am_i_looking_at" = "איזה בלוק אני מסתכל?"
+"director.show_markers_chunk" = "הופעות ב-Digital"
+"param.marker_name_such_as_cave_floor_cave_ceiling" = "שם סמן כגון cave_floor או cave_ceiling"
+
+[iris.runtime.progress]
+finding_regions = "מציאת אזורים"
+converting = "המרת"
+
+[iris.runtime.status]
+running = "ריצה"
+stopped = "נעצר"
+paused = "פולש"
+paused_lower = "הפסקה"
+running_lower = "ריצה"
+enabled = "אפשר."
+disabled = "מוגבלות."
+unregistered = "לא רשום"
+none = "אף אחד לא"
+random = "אקראי"
+match = "התאמה"
+mismatch = "אי-התאמה"
+true = "אמת אמיתית"
+false = "שקר כוזב"
+
+[iris.runtime.error]
+detail_suffix = " - {error}"
+
+[iris.runtime.datapack]
+override_suffix = " (Worldpack עקיפה מותקן)"
+name = "Iris דור העולם"
+
+[iris.runtime.primary_world]
+players_routed_suffix = " (השחקנים הלכו לשם)"
+routing_disabled_suffix = " (סגור)"
+
+[iris.runtime.modded]
+no_dimension_match = "לא Iris ממד תואם \"{filter}'."
+
+[iris.runtime.teleport]
+world = "אתה הועבר {world}."
+
+[iris.runtime.engine]
+hotloaded = "מנוע חם"
+
+[iris.runtime.job]
+completed = "שלם {job} פנימה {duration}"
+scanning_selection = "בחירת סריקה"
+loading_chunks = "עקבו אחרי Chunks"
+searched_chunks = "חיפוש {chunks} צ'אנק"
+compile = "המונחים"
+saving_object = "חיסכון אובייקטים"
+downloading = "הורדה"
+extracting = "הפקה"
+installing = "התקנת"
+
+[iris.runtime.compile]
+iob_empty = "- IOB  {file} יש 0 בלוקים!"
+iob_empty_hover = "טעות:\n{path}"
+iob_not_3d = "- IOB  {file} לא 3D!"
+iob_not_3d_hover = "טעות:\n{path}\nרוחב, גובה או עומק הוא אפס (תבנית רעה)"
+json_error = "- JSON טעות שגיאה {file}"
+json_error_hover = "טעות:\n{path}\n{error}"
+loader_not_found = "לא יכול למצוא עומס {path}"
+
+[iris.runtime.pack]
+already_exists = "החבילה כבר קיימת!"
+
+[iris.runtime.tree_plausibilize]
+dry_suffix = ", ניסוי"
+skip_load = "לדלג על {object}נכשל לטעון"
+result = "{object}: +{wood} עץ ({branches} סניפים) {converted} העלים->עץ –{distances} מרחק"
+result_pinned = "{object}: +{wood} עץ ({branches} סניפים) {converted} העלים->עץ –{distances} מרחקים!{pinned} המונחים"
+progress = "[{current}/{total}]"
+failed = "להיכשל {object}: {type}: {error}"
+done = "נעשה: {processed} מעובד, {changed} השתנה, {skipped} מדלג, {failed} נכשל"
+done_dry = "נעשה: {processed} מעובד, {changed} השתנה, {skipped} מדלג, {failed} נכשל (קרי רץ, שום דבר לא כתוב)"
+totals = "סיכומים:+{wood} עץ ({branches} סניפים) {converted} העלים->עץ –{distances} מרחקים!{pinned} המונחים: לא נגיש {before}  ->  {after}"
+
+[iris.runtime.item]
+"wand.name" = "שרביט Iris"
+"wand.lore.first" = "שמאל לחץ על בלוק כדי להגדיר את הפינה הראשונה"
+"wand.lore.second" = "לחץ על בלוק כדי להגדיר את הפינה השנייה"
+"dust.name" = "אבק חשיפת"
+"dust.lore" = "לחץ על בלוק לחשוף את מבנה המיקום שלו!"
+
+[iris.runtime.wand]
+position_set = "מיקום {position} להגדיר {x}, {y}, {z}"
+
+[iris.runtime.dust]
+iris_world_required = "ממד זה לא נוצר על ידי Iris."
+found_object = "אובייקט {object}"
+revealed = "נחשף {count} בלוקים (s) {object}"
+revealed_capped = "נחשף {count} בלוקים (s) {object} (caped)"
+header = "--- Iris אבק @ {x}, {y}, {z} ---"
+block = "בלוק: {block}"
+"position.above" = "מיקום: +{offset} מעל פני השטח Y={surfaceY})"
+"position.below" = "מיקום: {offset} מתחת לפני השטח (surface Y={surfaceY})"
+"position.at" = "מיקום: על פני השטח (Y={surfaceY})"
+object_at_block = "אובייקטים @בלוק: {object}"
+none = "אף אחד לא"
+"placed_by.object_above" = "הוצב על ידי: object/stilt '{object}' (מעל פני השטח)"
+"placed_by.decoration_above" = "הוצב על ידי: decoration/object/stilt (מעל פני השטח)"
+"placed_by.buried_object" = "מקום: קבור אובייקט{object}'"
+"placed_by.terrain" = "מיקום: שכבת שטח (מעמיקה {depth} מתחת לפני השטח)"
+column_object = "עמוד: {object}  -> בלוק זה הוא כנראה המבצר של האובייקט"
+column_object_none = "עמוד: {detail}"
+column_none = "לא בתוך אף אחד 64 (מטען או שטח, לא אובייקט stilt)"
+"column.above" = "{object} @Y={y} (למעלה)"
+"column.below" = "{object} @Y={y} (נמוך)"
+surface_biome = "המונחים: {biome}"
+surface_biome_detail = "המונחים: {biome} ({derivative})"
+biome_at_y = "ביומיה @Y: {biome}"
+cave_biome = "מערה /Mantle ביומיה: {biome}"
+server_biome = "המונחים: {biome} (ID: {id})"
+region = "אזור: {region} ({name})"
+objects_in_chunk = "אובייקטים: נתח {objects}"
+copy_button = "[קל להעתיק את הסטטיסטים האלה]"
+copy_hover = "העתק חסימת סטטינים ללוח"
+reveal_failed = "Object reveal failed; see the console for details."
+
+[iris.runtime.pregen]
+starting = "Iris תחילת..."
+header = "Iris הפרסוגן"
+"bossbar.paused" = "Iris הפרסוגן {generated}/{total}  {percent}%  מושהה"
+"bossbar.running" = "Iris הפרסוגן {generated}/{total}  {percent}%  {speed}/s{eta}{failed}"
+eta_fragment = "  ETA  {eta}"
+failed_fragment = "  נכשל {failed}"
+"status.context" = "המימד {dimension} • שיטת {method}"
+"status.progress" = "{percent}%"
+"status.chunks" = "צ'אנק {generated}/{total} מהירות overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s"
+"status.chunks_failed" = "צ'אנק {generated}/{total} מהירות overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s · Failed {failed}"
+"status.time" = "ETA  {eta} • Elapse {elapsed}"
+"status.time_paused" = "ETA  {eta} • Elapse {elapsed} · מושהה"
+"button.pause" = "המונחים: המשך"
+"button.pause.hover" = "פיצוץ מצב"
+"button.stop" = "תפסיקו להפסיק"
+"button.stop.hover" = "לסיים את האזור הנוכחי ולעצור התחדשות"
+
+[iris.bukkit.runtime]
+"commandpack.packs_folder_not_found" = "§cחבילות / תיקיה לא נמצאו."
+"commandpack.no_packs_validate" = "§eאין חבילות לאמת."
+"commandpack.validation_complete_broken_packs" = "§aאימות מוחלט.  חבילות שבורות: {broken}/{value}"
+"commandpack.pack_not_found_under_packs" = "§cPack »{pack}\"לא נמצא מתחת packs/."
+"commandpack.no_cleanup_candidates_found_pack" = "§aלא נמצאו מועמדים לחבילה{pack}'."
+"commandpack.quarantined_cleanup_candidate_s_under" = "§aהמונחים: {size} מועמד ניקוי (s) {quarantinePath}."
+"commandpack.cleanup_mode_must_be_preview_apply" = "§cמצב ניקוי חייב להיות תצוגה מקדימה או ליישם."
+"commandpack.no_cleanup_candidates_found_pack_2" = "§aלא נמצאו מועמדים לחבילה{pack}'."
+"commandpack.cleanup_preview_pack_candidate_s_no_files_were_changed" = "§eתצוגה מקדימה של החבילה{pack}': {size} מועמד(s)  לא השתנו קבצים."
+"commandpack.run_iris_pack_cleanup_mode_apply_quarantine_these_candidates_after_fresh_scan" = "§7לרוץ /iris pack cleanup {pack} mode=apply כדי לתקן את המועמדים האלה לאחר סריקה חדשה."
+"commandpack.restore_refused_because_destination_s_already_exist" = "§cהחזרה נדחתה כי {size} מטרות (כבר קיימות)."
+"commandpack.nothing_restore_pack" = "§eאין מה להחזיר לחבילה{pack}'."
+"commandpack.restored_file_s_from" = "§aשחזור {size} קובץ(s) {dumpPath}."
+"commandpack.restore_mode_must_be_preview_apply" = "§cמצב שחזור חייב להיות תצוגה מקדימה או ליישם."
+"commandpack.nothing_restore_pack_2" = "§eאין מה להחזיר לחבילה{pack}'."
+"commandpack.restore_preview_file_s_no_files_were_changed" = "§eשחזור תצוגה מקדימה {dumpPath}: {size} קובץ(s)  לא השתנו קבצים."
+"commandpack.restore_is_blocked_by_existing_destination_s" = "§cשחזור נחסם {size} יעד קיים (s)"
+"commandpack.run_iris_pack_restore_mode_apply_restore_after_fresh_conflict_check" = "§7לרוץ /iris pack restore {pack} mode=apply לשחזר לאחר בדיקת סכסוך חדשה."
+"commandpack.no_validation_results_recorded_run_iris_pack_validate_first" = "§eלא נרשמו תוצאות אימות.  לרוץ /iris pack validate קודם."
+"commandpack.status.ok" = "§aבסדר גמור§r  {pack}§7 (בלוק={blocking}אזהרות ={warnings})"
+"commandpack.status.broken" = "§cBROK§r  {pack}§7 (בלוק={blocking}אזהרות ={warnings})"
+"commandpack.cleanup_failed" = "§cניקוי נכשל: {error}"
+"commandpack.restore_failed" = "§cשחזור נכשל: {error}"
+"commandpack.path.still_quarantined" = "עדיין קפוא"
+"commandpack.path.quarantined" = "המונחים:"
+"commandpack.path.candidate" = "מועמד"
+"commandpack.path.conflict" = "הסכסוך"
+"commandpack.path.restored" = "משוחזר"
+"commandpack.path.file" = "קובץ"
+"commandpack.no_validation_result_run_iris_pack_validate" = "§eשום תוצאה של \"{pack}'.  לרוץ /iris pack validate {pack2}."
+"commandpack.validation_failed" = "§cאימות של \"{name}\"נכשל: {error}"
+"commandpack.pack_is_loadable_warnings" = "§aPack »{packName}\"הוא חזק.§7 (אזהרות={size})"
+"commandpack.pack_is_broken" = "§cPack »{packName}\"הוא פגום:"
+"commandpack.message" = "§c  - {reason}"
+"commandpack.message_2" = "§e  !  {value}"
+"commandpack.more_warning_s" = { other = "§7    ...  ו {count} עוד התראות.", one = "§7    ...  ו {count} עוד אזהרה." }
+"commanddeveloper.stage_world_generation_update_warning" = ["§cיש לגבות את העולם כולו לפני הכנת העדכון.", "§eמקטעים קיימים לא ייווצרו מחדש ולא יידרסו.", "§eלאחר הפעלה מחדש, מקטעים חדשים ישתמשו בחבילה שהוכנה וישתלבו בהדרגה בגבול שנשמר.", "§eאי אפשר לשנות את הזרע, הגובה, הסביבה או סוג הממד של העולם.", "§eכל גיבוי חייב לכלול את כל התיקייה iris/generation.", "§cלהכנת העדכון ולבקשת הפעלה מחדש מסודרת:", "§c/iris developer update-world {world} {pack} confirm=true"]
+"bulkstructureimporter.importing_vanilla_datapack_structures_mode_includenonjigsaw" = "§aיבוא §f{total}§a vanilla & מאגרי מידע (Mode={mode}, includeNonJigsaw={includeNonJigsaw})..."
+"bulkstructureimporter.fail_invalid_key" = "§c[כשל]  {keyString}מפתח לא חוקי"
+"bulkstructureimporter.jigsaw" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.skip_no_single_template_nbt_vanilla_builds_this_code_from_separate_piece" = "§e[דילוג]  {keyString}אף פעם אחת NBT - vanilla בונה את זה בקוד או מתבניות נייר נפרדות (מדווחים באמצעות תבניות לעבור); שום דבר לייבא כמבנה אחד."
+"bulkstructureimporter.fail" = "§c[כשל]  {keyString}: {message}"
+"bulkstructureimporter.fail_2" = "§c[כשל]  {keyString}: {message}"
+"bulkstructureimporter.fail_3" = "§c[כשל]  {keyString}: {error}"
+"bulkstructureimporter.bulk_import_complete_imported_skipped_failed_total" = "§aייבוא בוץ מלא: §f{imported}§a מיובא, §f{skipped}§a מדלג, §f{failed}§a נכשל (§f{total}§a בסך הכל)."
+"bulkstructureimporter.building_single_template_structures_from_imported_pieces_one_variant_placed_per_generation" = "§aבניית מבנים חד-פעמיים מחתיכות מיובאות (גרסה אחת שהוצבה לדור)..."
+"bulkstructureimporter.group_variants" = "§7[קבוצה]  {value}  ->  {value2} ({blocks} גרסאות)"
+"bulkstructureimporter.skip" = "§e[דילוג]  {value}: {message}"
+"bulkstructureimporter.fail_4" = "§c[כשל]  {value}: {error}"
+"bulkstructureimporter.single_template_structures_built_skipped_failed" = "§aמבנים חד-זמנית: §f{imported}§a נבנה, §f{skipped}§a מדלג, §f{failed}§a נכשל."
+"bulkstructureimporter.failed_enumerate_structure_templates_via_server_resourcemanager" = "§cנכשל לספור תבניות מבנה באמצעות השרת ResourceManager: {e}"
+"bulkstructureimporter.no_structure_templates_were_found_under_structure_resource_path" = "§eלא נמצאו תבניות מבנה תחת נתיב משאבים \"מבנה\"."
+"bulkstructureimporter.importing_structure_templates_mode" = "§aיבוא §f{total}§a תבניות מבנה (Mode={mode})..."
+"bulkstructureimporter.fail_invalid_key_2" = "§c[כשל]  {keyString}מפתח לא חוקי"
+"bulkstructureimporter.fail_5" = "§c[כשל]  {keyString}: {message}"
+"bulkstructureimporter.fail_6" = "§c[כשל]  {keyString}: {error}"
+"bulkstructureimporter.imported_skipped_failed" = "§7...{processed}/{total} ({imported} מיובא, {skipped} מדלג, {failed} נכשל)"
+"bulkstructureimporter.template_import_complete_imported_skipped_failed_total" = "§aיבוא תבנית שלם: §f{imported}§a מיובא, §f{skipped}§a מדלג, §f{failed}§a נכשל (§f{total}§a בסך הכל)."
+"bulkstructureimporter.no_datapack_non_minecraft_structures_are_registered_ingest_datapack_restart_first_then" = "§eלא רשומים מבני datapack (non-minecraft). יש לטעון datapack ולהפעיל מחדש תחילה, ואז להריץ זאת שוב."
+"bulkstructureimporter.importing_datapack_structures_mode" = "§aיבוא §f{total}§a מאגרי מידע (Mode={mode})..."
+"bulkstructureimporter.fail_invalid_key_3" = "§c[כשל]  {keyString}מפתח לא חוקי"
+"bulkstructureimporter.jigsaw_2" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single_2" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.fail_7" = "§c[כשל]  {keyString}: {message}"
+"bulkstructureimporter.fail_8" = "§c[כשל]  {keyString}: {message}"
+"bulkstructureimporter.fail_9" = "§c[כשל]  {keyString}: {error}"
+"bulkstructureimporter.importing_datapack_structure_templates" = "§aיבוא §f{size}§a תבניות בנייה..."
+"bulkstructureimporter.fail_10" = "§c[כשל]  {keyString}: {message}"
+"bulkstructureimporter.fail_11" = "§c[כשל]  {keyString}: {error}"
+"bulkstructureimporter.could_not_enumerate_datapack_templates_via_server_resourcemanager" = "§eלא ניתן למנות תבניות איסוף נתונים באמצעות השרת ResourceManager: {error}"
+"bulkstructureimporter.datapack_structure_import_complete_imported_skipped_failed" = "§aמבנה ה-Datapack יושלם: §f{imported}§a מיובא, §f{skipped}§a מדלג, §f{failed}§a נכשל."
+"structurecaptureimporter.structure_capture_is_not_supported_by_active_nms_binding_skipping_capture_pass" = "§eכיבוש המבנה אינו נתמך על ידי הפעילים NMS מחייב; לדלג על מעבר הלכידת."
+"structurecaptureimporter.no_code_generated_structures_left_capture_everything_is_already_imported_as_structure" = "§7לא נותרו מבנים מקודמים ללכידת (כל דבר כבר ייבא כמבנה)."
+"structurecaptureimporter.capturing_code_generated_structures_no_nbt_template_into_scratch_world_skipping_any" = "§aתגית: לכידה §f{total}§a מבנים מהונדסים (לא NBT תבנית) לתוך עולם שריטה (מעלה כל רחבה / אלטר מאשר {MAXSPAN} בלוקים)..."
+"structurecaptureimporter.skip_did_not_place_capturable_structure_here_too_large_wrong_dimension_no" = "§e[דילוג]  {key}לא היה כאן מבנה לוכד (ממד גדול מדי, שגוי או שום מיקום חוקי בעולם שטוח).  נשאר Vanilla-generated."
+"structurecaptureimporter.fail" = "§c[כשל]  {key}: {message}"
+"structurecaptureimporter.capture_objects_iob_x_x" = "§7[לכוד]  {key}  ->  objects/{name}.iob ({w}x{h}x{d})"
+"structurecaptureimporter.fail_2" = "§c[כשל]  {key}: {error}"
+"structurecaptureimporter.captured_skipped_failed" = "§7...{processed}/{total} ({imported} נתפס, {skipped} מדלג, {failed} נכשל)"
+"structurecaptureimporter.structure_capture_complete_captured_skipped_failed_total" = "§aמבנה שלם: §f{imported}§a נתפס, §f{skipped}§a מדלג, §f{failed}§a נכשל (§f{total}§a בסך הכל)."
+"featureimporter.no_vanilla_tree_object_features_are_exposed_by_active_nms_binding_importing" = "§eאין עץ vanilla /object נחשפים על ידי פעיל NMS מחייב (מציג מבנים בלבד)."
+"featureimporter.importing_vanilla_tree_object_features_variants_each_into_scratch_world" = "§aיבוא §f{total}§a עץ vanilla / object תכונות (§f{wantVariants}§a גרסאות לכל אחד) לתוך עולם שריטות..."
+"featureimporter.obj_objects_vanilla" = "§7[obj]  {key}  ->  objects/vanilla/{group}/{safeName} ({written})"
+"featureimporter.skip_feature_placed_nothing_after_retries" = "§e[דילוג]  {key}תכונה לא הניחה שום דבר אחרי חזרות."
+"featureimporter.fail" = "§c[כשל]  {key}: {error}"
+"featureimporter.imported_skipped_failed" = "§7...{processed}/{total} ({imported} מיובא, {skipped} מדלג, {failed} נכשל)"
+"featureimporter.feature_import_complete_features_written_skipped_failed_total" = "§aהמונחים: §f{imported}§a תכונות שנכתבו, §f{skipped}§a מדלג, §f{failed}§a נכשל (§f{total}§a בסך הכל)."
+"featureimporter.could_not_create_scratch_world_feature_import_skipping_tree_object_pass" = "§cלא יכול ליצור את עולם השריטה עבור ייבוא תכונה ({error}); לדלג על העץ / עובר."
+"irisconverter.no_schematic_files_convert_found" = "אין קבצים סכימטיים להמיר {path}"
+"irisconverter.converted" = "§aלהמיר {name}  ->  {value} פנימה {value2}"
+"irisconverter.converted_2" = "§aלהמיר {name}  ->  {value}"
+"irisconverter.failed_save" = "§cנכשל להציל: {name}"
+"irisconverter.failed_convert" = "§cנכשל להמיר: {name}"
+"irisconverter.converted_3" = "§7המונחים: {get} פנימה {value}"
+"irisconverter.some_schematics_failed_convert_check_console_details" = "§cכמה סנטימטרים לא הצליחו להמיר.  בדוק את הקונסולה לפרטים"
+"studiosvc.pack_copy_requires_async_thread" = "§cIris refused to copy the world pack on the Bukkit primary thread."
+"studiosvc.pack_install_failed" = "§cFailed to install world pack §f{dimension}§c: {error}"
+"studiosvc.looking_package" = "מחפש חבילה: {type}"
+"studiosvc.found_iris_folder" = "נמצאו {type}חרירי {WORKSPACENAME} התיקיה"
+"studiosvc.found_dimension_folder_repackaging" = "נמצאו {type} מימד {WORKSPACENAME} תיקיה.  Repacking"
+"studiosvc.can_t_find_dimensions_folder_this_pack_failed" = "אי אפשר למצוא את {name} בתיקיה של החבילה הזו!  נכשל!"
+"studiosvc.can_t_load_dimension_failed" = "אי אפשר לטעון את הממד!  נכשל!"
+"studiosvc.type_installed" = "{name} סוג מותקן. "
+"studiosvc.failed_open_studio_world" = "נכשל לפתוח את עולם הסטודיו: {error}"
+"studiosvc.cannot_open_studio_pack_has_blocking_errors" = "\"לא יכול לפתוח סטודיו\"{dimm}חבילה חוסמת שגיאות:"
+"studiosvc.message" = " - {reason}"
+"studiosvc.fix_pack_run_iris_pack_validate_revalidate" = "לתקן את החבילה ולרוץ /iris pack validate {dimm} לתקן."
+"studiosvc.failed_close_existing_studio_project" = "נכשל לסגור את פרויקט האולפן הקיים: {error}"
+"studiosvc.failed_close_existing_studio_project_2" = "נכשל לסגור את פרויקט האולפן הקיים: {error}"
+"studiosvc.failed_open_studio_world_2" = "נכשל לפתוח את עולם הסטודיו: {error}"
+"studiosvc.couldn_t_find_pack_create_new_dimension_from" = "לא מצאתי את החבילה כדי ליצור מימד חדש."
+"studiosvc.missing_imported_dimension_file" = "תגית: קובץ"
+"studiosvc.importing_into_new_project" = "יבוא {downloadable} פרוייקט חדש {s}"
+"objectstudiosaveservice.object_studio_no_cell_under_click_x_z" = "§7עורך אובייקטים: לא תא תחת לחץ (x={x} z={z})."
+"objectstudiosaveservice.object_studio_saving_x_x" = "§bסטודיו: שמירה §f{pack}/{key}§7 ({w}x{h}x{d})"
+"objectstudiosaveservice.object_studio_no_changes" = "§7סטודיו: לא שינויים {pack}/{key}."
+"objectstudiosaveservice.object_studio_empty_cell_nothing_write" = "§7סטודיו: תא ריק{pack}/{key}(אין מה לכתוב)."
+"objectstudiosaveservice.object_studio_no_target_file" = "§cסטודיו: אין קובץ מטרה{pack}/{key}."
+"objectstudiosaveservice.object_studio_saved" = "§aסטודיו: Save §f{pack}/{key}"
+"objectstudiosaveservice.object_studio_save_failed" = "§cסטודיו: שמירה Fail עבור {pack}/{key} ({error})"
+"irisproject.could_not_load_dimension" = "לא יכול לטעון ממד \"{value}\""
+"irisproject.could_not_get_dimension_loader" = "לא יכול לקבל מדבקה"
+"irisproject.studio_open_failed" = "§cסטודיו פתוח נכשל: {error}"
+"irisproject.studio_open_failed_2" = "§cסטודיו פתוח נכשל."
+"irisproject.studio_ready" = "§aסטודיו מוכן §7({value})"
+"irisproject.studio" = "§6Studio §b{bar}  §e{percent}%§7  {currentStage}§8 ({value})"
+"irisproject.serializing_objects" = "אופטימיזציה אובייקטים"
+"irisproject.wrote_another_objects" = "קרא עוד {g} אובייקטים"
+"irisproject.package_compiled" = "חבילה סגורה!"
+"irisproject.failed" = "נכשל!"
+"irisengine.total" = "שלם: §l§f{value}"
+"irisengine.engine" = "  מנוע המנוע §n§a{i}§r: §l§f{value}"
+"irisengine.details" = "פרטים: "
+"irisengine.message" = "  {befb}{num}{afb}: §l§f{value}"
+"enginebukkitops.is_not_defined_dimension" = "§c{name} לא מוגדר במימד!"
+"enginebukkitops.could_not_find_within_search_range" = "§cלא יכול למצוא {message} בטווח החיפוש."
+"enginebukkitops.teleporting" = "§aהצעות ל {message}..."
+"enginebukkitops.at" = "§a{message} ב: {blockX}  {blockY}  {blockZ}"
+"iristoolbelt.you_have_been_evacuated_from_this_world" = "אתה משתחרר מהעולם הזה."
+"iristoolbelt.you_have_been_evacuated_from_this_world_2" = "אתה משתחרר מהעולם הזה.  {m}"
+"serverconfigurator.there_are_some_iris_packs_that_have_custom_biomes_them" = "יש כמה Iris חבילות שיש להן ביומסה אישית בהן"
+"serverconfigurator.you_need_restart_your_server_use_these_packs" = "אתה צריך להפעיל מחדש את השרת שלך כדי להשתמש ערכות אלה."
+"virtualcommand.message" = "- §f{i}"
+"virtualcommand.insufficient_permissions" = "המונחים: לא מספיק Permission"
+"mortarcommand.parameters_ignored" = "מחסומים התעלמו: {m}"
+"commandpack.compat_header" = "§eחבילה '{pack}': תוכן לא זמין ב-Minecraft {version}"
+"commandpack.compat_none" = "§aהחבילה '{pack}' אינה משתמשת בתוכן שחסר ב-Minecraft {version}."
+"commandpack.compat_remedy" = "§7עדכן את השרת ל-Minecraft חדש יותר כדי לשחזר את התוכן הזה, או הגדר חלופות (blockFallbacks של הממד, backup של הבלוק)."
+
+[iris.runtime.studio]
+opening = "§6Studio §bנפתח"
+opening_progress = "§6Studio §bנפתח§7 {percent}%"
+failed_progress = "§6Studio §cנכשל§7 {percent}%"
+ready_progress = "§6Studio §aמוכן§7 100%"
+"action.failed" = "{bar}§7 §cנכשל§7 | §f{stage}"
+"action.ready" = "{bar}§7 §a100%§7 | §aהסטודיו מוכן§8 {elapsed}"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}§8  {elapsed}"
+"console.progress" = "§6Studio §b{bar}§e  {percent}%§7  {stage}§8 ({elapsed})"
+"stage.initializing" = "מאתחל"
+"stage.queued" = "בתור"
+"stage.resolve_dimension" = "פותר ממד"
+"stage.prepare_world_pack" = "מכין חבילת עולם"
+"stage.install_datapacks" = "מתקין חבילות נתונים"
+"stage.create_world" = "יוצר עולם"
+"stage.apply_world_rules" = "מחיל חוקי עולם"
+"stage.prepare_generator" = "מכין מחולל"
+"stage.teleport_player" = "משגר"
+"stage.finalize_open" = "מסיים"
+"stage.cleanup" = "מנקה"
+
+[iris.runtime.world_create]
+teleport_failed = "§eהעולם נברא, אך התקשורת האוטומטית נכשלה.  נסו לנסות /iris teleport world={world}"
+"lifecycle.action" = "{bar}§7 §e{percent}%§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.failed" = "{bar}§7 §cFAILED§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.ready" = "{bar}§7 §a100%§7 | §aWorld ready§8 {elapsed}"
+"lifecycle.console" = "§6World §b{world} {bar} §e{percent}%§7 {stage}{detail}§8 ({elapsed})"
+"lifecycle.console.failed" = "§6World §b{world}§7 | §ccreation failed§8 after {elapsed}"
+"lifecycle.console.ready" = "§6World §b{world}§7 | §aready§8 in {elapsed}"
+"stage.initializing" = "Initializing"
+"stage.resolve_dimension" = "Resolving dimension"
+"stage.validate_pack" = "Validating pack"
+"stage.prepare_world_pack" = "Preparing world pack"
+"stage.install_datapacks" = "Installing datapacks"
+"stage.prepare_generator" = "Preparing generator"
+"stage.create_world" = "Generating spawn"
+"stage.register_world" = "Registering world"
+"stage.teleport_player" = "Entering world"
+"stage.pregenerate" = "Pregenerating"
+"stage.finalize" = "Finalizing"
+"stage.complete" = "World ready"
+"pregen.action" = "{bar}§7  §e{percent}%§7 | §fהפקה מוקדמת"
+"pregen.console" = "§6הפקה מוקדמת §e{percent}%"
+
+[iris.runtime.world_replace]
+start = "§eמכין החלפה באמצעות Iris עבור {world}. העולם הנוכחי נשאר פעיל עד להפעלה מחדש."
+progress = "§eהחלפה עבור {world}: {stage} ({elapsed} שניות חלפו)"
+"stage.datapacks" = "בודק את חבילות הנתונים של הממד"
+"stage.seed" = "מכין את זרע העולם החלופי"
+"stage.pack" = "מעתיק ומאמת את חבילת הממד"
+"stage.players" = "שומר את ההגנה על כניסת השחקנים"
+"stage.verify" = "מאמת את ההחלפה שהוכנה"
+"stage.save" = "שומר את ההחלפה להפעלה מחדש"
+"stage.cleanup" = "מנקה את ההחלפה שנכשלה"
+
+[iris.runtime.chunk_job]
+"title.regen" = "מחדש"
+"title.delete" = "Dellet"
+"title.golden_hash" = "GoldenHash"
+"stage.preparing" = "להתכונן"
+"stage.clearing" = "להבהיר"
+"stage.resetting_mantle" = "איפוס Mantle"
+"stage.regenerating" = "ליצור מחדש"
+"stage.generating" = "ייצור"
+"stage.comparing" = "השוואת"
+"stage.diagnosing" = "אבחון"
+"bossbar.working" = "§6{title}  §bעבודה"
+"bossbar.progress" = "§6{title}  §b{stage}§7  §e{percent}%"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}  {applied}/{total}"
+summary = "{applied}/{total} חלקים {elapsed}"
+"summary.failed" = "{applied}/{total} חלקים {elapsed} ({failures} נכשל)"
+"bossbar.done" = "§6{title}  §aלבד§7  §e{summary}"
+"bossbar.failed" = "§6{title}  §cProILED§7  §e{summary}"
+"action.done" = "{bar}§7  §aעשה§7 | §f{summary}"
+"action.failed" = "{bar}§7  §cנכשל§7 | §f{summary}"
+complete = "§a{title} שלם: {summary}"
+failed = "§c{title} סיים עם שגיאות: {summary}"
+
+[iris.runtime.golden]
+no_capture = "אין לכידת זהב {path}קודם כל לרוץ לכידת."
+aborted = { other = "GoldenHash מקור: {failed} חלקים לא הצליחו לייצר.  אין קובץ זהב שנכתב.", one = "GoldenHash מקור: {failed} נתח לא הצליח לייצר.  אין קובץ זהב שנכתב." }
+failed = "GoldenHash נכשל: {error}"
+mantle_reset = "Mantle איפוס ({path})"
+mantle_reset_failed = "Mantle איפוס נכשל ({type}); המשך עם מדינה קיימת."
+captured = "זהב נתפס: {chunks} חלקים משולבים={hash}"
+wrong_world = "קובץ זהב עבור dim={goldenDimension} זרע={goldenSeed} אבל העולם הזה הוא דיאם ={dimension} זרע={seed}.  מתחנן."
+version_warning = "הזהב נתפס על mc={goldenVersion}ריצה mc={version}.  הבדלים עשוי להיות מושרה גרסה."
+match = "זהוב MATCH:{current}/{golden}חלקים,combined={hash}"
+mismatch = "זהוב MISMATCH:{mismatches}/{chunks}חלקים שונים."
+mismatch_chunk = "  גוש נתח {chunk}"
+missing_in_golden = "{chunk} (הופנה מהדף זהב)"
+mismatch_more = "  ...  ו {count} יותר"
+current_written = "תגית: נוכחי Hass {file}"
+"diag.stable" = "חזרה-gen יציבתגית: Mantle-reset {mantleStatus}  ->  {file}"
+"diag.unstable" = "ביקורת חוזרת (לא יציב){diffs}+ בלוק הבדלים, Mantle-reset{mantleStatus} -> {file}"
+"diag.mantle_stable" = "יציב (לחדש מחדש פלט סריקה)"
+"diag.mantle_diverged" = "התפצל ({diffs}+ הבדלים - בניית המעטפת תלויה במצב/סדר)"
+"diag.mantle_skipped" = "דולג ({type})"
+"diag.failed" = "אבחון נכשל: {error}"
+started = "GoldenHashהתחיל:{chunks}צ'אנקים סביב 0,0 ב מאגרים (עולם שלא ניתן לעשות)threads={threads} mode={mode}"
+chunk_hashed = "[{done}/{total}] גוש נתח {x},{z} תגית:"
+chunk_failed = "צ'אנק {x},{z}  נכשל: {type}"
+
+[iris.runtime.pack_download]
+"progress.start" = "§aIris §6הורדת חבילה§8 | §f{source}"
+"progress.phase" = "§aIris §b{phase}§8 | §7{source}"
+"progress.determinate" = "{bar}§7 §e{percent}%§8 | §f{transferred}§7/§f{total}§8 | §b{rate}/s"
+"progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
+"progress.detail" = "§8  - §7{detail}"
+"progress.complete" = "§aחבילת Iris '{pack}' הותקנה§8 | §f{transferred}§7 בתוך §f{elapsed}"
+"progress.unchanged" = "§eחבילת Iris '{pack}' כבר מותקנת."
+"progress.failed" = "§cהורדת חבילת Iris נכשלה.§7 יש לעיין בפרטי ההורדה שלעיל ולנסות שוב."
+"progress.failed_detail" = "§cהורדת חבילת Iris נכשלה.§7 {error}"
+"progress.cancelled" = "§eהורדת חבילת Iris בוטלה לפני הפרסום."
+"progress.restart" = "§6נדרשת הפעלה מחדש§8 | §7יש להפעיל מחדש את השרת לפני יצירה או החלפה של עולם באמצעות חבילה זו."
+"progress.phase.connecting" = "מתבצע חיבור"
+"progress.phase.downloading" = "מתבצעת הורדה"
+"progress.phase.unpacking" = "מתבצע חילוץ"
+"progress.phase.validating" = "מתבצע אימות"
+"progress.phase.publishing" = "מתבצע פרסום"
+"progress.source.remote" = "קובץ ZIP מרוחק"
+invalid_source = "§cיש לבחור מקור אחד בלבד: /iris download pack=overworld, /iris download pack=underworld או /iris download link=‹zip-url›."
+invalid_url = "§cIris דורש כתובת HTTP או HTTPS חוקית לקובץ .zip."
+invalid_built_in = "§cIris מספק הורדות מובנות רק עבור 'overworld' ו-'underworld'."
+shutting_down = "§eIris נכבה כעת ואינו מקבל הורדות של חבילות."
+downloading = "הורדה {url}"
+unpacking = "חבילות חילוץ {repository}"
+unpack_failed = ["בעיה כאשר לא לארוז.  בדוק/עשה את הפעולות הבאות:", "1.  יש לך חיבור לאינטרנט מתפקד?", "2.  האם ההורדה הייתה מושחתת?", "3.  נסו למחוק את */plugins/iris/packs התיקיה וההורדה מחדש.", "4.  הורד את החבילה מן GitHub תגית: https://github.com/IrisDimensions/overworld", "5.  תמיכה בקשר (אם כל האפשרויות האחרות אינן עוזרות)"]
+no_extracted_files = "לא הופקו קבצים מקובץ ה-zip."
+home_directory_error = "טעות בעת מציאת מנהל בית.  האם יש דמויות שאינן טקסט בשם הקובץ?"
+invalid_archive_format = "פורמט לא חוקי.  תיקיות שורש חסרות או יותר מדי תיקיות!"
+no_dimension_file = "שום קובץ ממד לא נמצא בקובץ zip מופק."
+check_github = "בדוק כי הוא נוכח GitHub לדווח על זה לצוות!"
+invalid_dimension = "תיקיית מימד לא חוקית תחת dimensions/."
+importing = "יבוא {name} ({key})"
+dimension_key_conflict = "מימד נוסף בתיקיה של הלהקה כבר משתמש המפתח {key}.  ייבוא נכשל!"
+pack_key_conflict = "חבילה נוספת משתמשת במפתח {key}.  ייבוא נכשל!"
+acquired = "נרכשה בהצלחה {name}."
+already_installed = "החבילה {key} כבר מותקנת, ההורדה מדולגת."
+in_progress = "הורדה אחרת של חבילת Iris כבר מתבצעת. יש להמתין לסיומה לפני ניסיון נוסף."
+validation_failed = "Pack »{pack}\"התאימות הכושל; יצירת העולם והסטודיו לא תסרב.  סיבות:"
+validation_reason = "  - {reason}"
+validated_with_warnings = { other = "Pack »{pack}\"תאמת עם {count} אזהרות", one = "Pack »{pack}\"תאמת עם {count} אזהרה." }
+validated = "Pack »{pack}\"מאומת."
+
+[iris.client.vision]
+title = "Iris חזון"
+connecting = "להתחבר Iris שרת Server..."
+not_connected = "לא מחובר"
+not_iris_world = "לא Iris עולם העולם"
+server_without_iris = "שרת זה אינו מריץ Iris"
+version_mismatch = "אי התאמה בגרסת Iris בין הלקוח לשרת"
+no_dimension_data = "אין נתונים ממדיים"
+header_detail = "{status}  גן החיות {zoom}  x{x} z{z}"
+footer_hint = "גרור להזזה, גלול לשינוי מרחק התצוגה, Esc לסגירה"
+dimension_pack = "{dimension}  חבילות {pack}"
+
+[iris.client.create]
+structures_required_title = "Iris דורש יצירת מבנים"
+structures_required_body = "Iris מציב את המבנים שלו בשלב יצירת המבנים ואינו טוען עולם שנוצר עם יצירת מבנים כבויה. הפעל שוב את יצירת מבנים או בחר סוג עולם אחר."
+
+[iris.client.toast]
+studio_hotload = "סטודיו טעינה חמה"
+changed_files = { other = "{count} קבצים", one = "{count} קובץ" }
+reload_failed = "טעינה מחדש נכשלה"
+reloaded = "מחדש"
+pack_failed = "{pack} נכשל"
+
+[iris.client.what]
+title = "Iris מה"
+querying = "המונחים: {x}, {z}..."
+biome = "ביומיה: {biome}"
+region = "אזור: {region}"
+cave = "מערה: {cave}"
+height = "גובה: {height}   ({x}, {z})"
+
+[iris.client.pregen]
+stats = "{done} / {total}  ({percent}%)"
+paused = "מושהה"
+stale = "אין עדכונים במשך {seconds} שניות"
+rate = "{rate}/s"
+rate_eta = "{rate}/s    ETA  {eta}"
+
+[iris.client.duration]
+hours_minutes = "{hours}h {minutes}m"
+minutes_seconds = "{minutes}m {seconds}s"
+seconds = "{seconds}s"
+
+[iris.bukkit.scoreboard]
+title = "§aאיריס"
+speed = "§aמהירות המהירות§7:  {speed}/s  {duration}"
+cache = "§bכאב§7: {count}"
+mantle = "§bמני§7: {count}"
+carving = "§dעבודה§7: {state}"
+region = "§bאזור§7: {region}"
+biome = "§bביומי§7:  {biome}"
+biome_loading = "בטעינה"
+biome_unavailable = "לא זמין"
+height = "§bגובה§7: {height}"
+slope = "§bסלייפ§7:  {slope}"
+block_updates = "§bBUD/s§7: {updates}"
+
+[iris.desktop.vision]
+title = "Iris חזון"
+view = "תגית:"
+grid = "גרי"
+entities = "ישויות"
+follow = "עקבו אחרי עקוב"
+refreshing = "מרעננים"
+fps = "{fps}  FPS"
+zoom_reset = "ZOOE"
+grid_enabled = "רשת אפשר"
+grid_disabled = "סגור"
+entities_enabled = "ישויות מופעלות"
+entities_disabled = "ישויות מושבתות"
+following = "עוקב אחר {player}"
+no_player = "אין שחקן בעולם"
+follow_disabled = "עקבו אחרי מוגבלויות"
+status_left = "{mode}  |  {bpp} bpp  {width} x {height} בלוקים"
+status_right = "X: {x}  Z: {z}  |  {fps}  FPS"
+entity_position = "מיקום: {x}, {y}, {z}"
+entity_health = "בריאות: {health} / {maximum}"
+block_position = "בלוק {x}, {z}"
+chunk_position = "צ'אנק {x}, {z}"
+region_position = "אזור {x}, {z}"
+biome_key = "מפתח: {key}"
+biome_file = "תגית: {file}"
+velocity = "מחסור: {velocity}"
+tiles = "Atlas: {ready} / {total}"
+workers = "Workers: {active} active / {queued} queued"
+center = "מרכז: {x}, {z}"
+"help.toggle" = "עזרה"
+"help.refresh" = "אריחים מרעננים"
+"help.follow" = "עקבו אחרי שחקן"
+"help.zoom" = "זום ב/החוצה"
+"help.reset_zoom" = "איפוס תקריב"
+"help.cycle_mode" = "המונחים: space"
+"help.fps" = "להגות החלף 30/60  FPS"
+"help.grid" = "רשת"
+"help.biome" = "מידע ביוגרפי מפורט"
+"help.teleport" = "טלפורט ל-סמן"
+"help.editor" = "פתח ביום בעורך"
+opened = "פתוח {target}"
+teleporting = "הצעות ל {x}, {z}"
+"mode.biome" = "ביומי"
+"mode.biome_land" = "אדמה ביולוגית"
+"mode.biome_sea" = "הים Biome"
+"mode.region" = "אזור"
+"mode.cave_land" = "ארץ המערה"
+"mode.river" = "רשת נהרות"
+"mode.height" = "גובה"
+"mode.object_load" = "עומס אובייקטים"
+"mode.decorator_load" = "עומס דקורטיבי"
+"mode.continent" = "יבשת"
+"mode.layer_load" = "שכבת העומס"
+
+[iris.desktop.noise]
+title = "המונחים: noise"
+title_generator = "המונחים: {generator}"
+search = "חיפוש..."
+status = "{name}  |  X: {x}  Z: {z}  זום: {zoom}  ערך: {value}  |  {fps}  FPS"
+"category.custom" = "מותאם אישית"
+"category.pack_generators" = "חבילות גנרטורים"
+"category.simplex" = "פשוט"
+"category.perlin" = "פרסלין"
+"category.cellular" = "נייד"
+"category.iris" = "Iris"
+"category.clover" = "המונחים תלתן"
+"category.hexagon" = "הפטיטיס"
+"category.vascular" = "ווסקולרי"
+"category.globe" = "גלובוס כדור"
+"category.cubic" = "קולי"
+"category.fractal" = "רשמי"
+"category.static" = "סטטי"
+"category.nowhere" = "אין בשום מקום"
+"category.sierpinski" = "סיירינסקי"
+"category.utility" = "שירות"
+"category.other" = "אחרים"
+
+[iris.desktop.pregen]
+initializing = "הדמיה..."
+title = "תצוגה מקדימה"
+method_pending = "עקבו"
+paused = "מושהה"
+resume_hint = "לחץ על P לחדש"
+pause_hint = "הקש P כדי לעצור"
+method = "שיטת דור: {method}"
+pause = "השהיה"
+resume = "המשך"
+generating = "יצירה"
+saving = "שמירה"
+stopping = "עצירה"
+completed = "הושלם"
+error = "היצירה נכשלה"
+control_failed = "ההשהיה נכשלה · פרטים ביומן השרת"
+error_details = "פרטים ביומן השרת"
+progress = "{generated} / {total} צ׳אנקים"
+percent = "{percent} הושלמו"
+current = "נוכחי · 10 שנ׳"
+overall = "כולל"
+thirty = "ממוצע 30 שנ׳"
+sixty = "ממוצע 60 שנ׳"
+rate = "{rate} צ׳אנקים/שנ׳"
+eta = "נותר"
+elapsed = "חלף"
+memory_label = "זיכרון"
+memory_usage = "{used} · {usage}"
+pressure = "הקצאה"
+pressure_value = "{rate}/s"
+cached = "{method} · מהמטמון"
+failed = "{count} נכשלו · פרטים ביומן השרת"
+map = "מפת יצירה"
+bounds = "צ׳אנקים X מ־{minX} עד {maxX} · Z מ־{minZ} עד {maxZ}"
+waiting = "בהמתנה"
+ready = "מוכן"
+existing = "קיים"
+network = "רשת"
+terrain_hint = "צ׳אנקים שהושלמו מציגים את צבעי השטח"
+
+[iris.runtime.what]
+material = "Material: {material}"
+full_state = "Full: {state}"
+item_count = "Count: {count}"
+iris_biome = "Iris biome: {biome} ({name})"
+derivative_biome = "Derivative biome: {biome}"
+native_biome = "Registered biome: {biome} (ID: {id})"
+non_iris_biome = "Non-Iris biome: {biome} (ID: {id})"
+iris_region = "Iris region: {region} ({name})"
+position = "Position: {x}, {y}, {z} (chunk {chunkX}, {chunkZ})"
+object = "Iris object: {object}"
+block_entity = "Block entity: {type}"
+loot_table = "Loot table: {loot}"
+spawner_entity = "Spawner entity: {entity}"
+"flag.solid" = "solid"
+"flag.fluid" = "fluid"
+"flag.water" = "water"
+"flag.waterlogged" = "waterlogged"
+"flag.storage" = "storage (loot capable)"
+"flag.lit" = "lit"
+"flag.foliage" = "foliage"
+"flag.plantable_foliage" = "plantable foliage"
+"flag.decorant" = "decorant"
+"flag.ore" = "ore"
+"flag.block_entity" = "block entity"
+
+[iris.runtime.world]
+height_range = "World height: {minY} to {maxY}"
+height_total = "Total height: {height}"
+
+[iris.desktop.imagemap]
+title = "Image Map Studio"
+preset = "Preset:"
+load = "Load"
+import_png = "Import PNG"
+replace_png = "Replace PNG"
+preview = "Preview"
+export = "Export to active pack"
+metadata = "Source metadata"
+resource = "Resource binding"
+coordinates = "Coordinates and sampling"
+binding_key = "Binding key"
+map_key = "Map key"
+image_key = "Image key"
+type = "Type"
+application = "Application"
+blocks_per_pixel = "Blocks per pixel"
+origin_x = "World origin X"
+origin_z = "World origin Z"
+source_origin_x = "Source origin X"
+source_origin_z = "Source origin Z"
+rotation = "Rotation"
+mirror_x = "Mirror X"
+mirror_z = "Mirror Z"
+sampling = "Sampling"
+out_of_bounds = "Out of bounds"
+alpha = "Alpha policy"
+fallback_value = "Fallback value"
+fallback_target = "Fallback target"
+minimum_height = "Minimum height"
+maximum_height = "Maximum height"
+vertical_offset = "Vertical offset"
+clamp = "Clamp height"
+inverted = "Invert values"
+curve_exponent = "Curve exponent"
+smoothing_radius = "Smoothing radius"
+threshold = "Threshold"
+falloff = "Falloff"
+color_tolerance = "Raw sRGB tolerance"
+unknown_color = "Unknown color"
+add_color = "Add legend color"
+remove_color = "Remove selected"
+composed_masks = "Composed masks"
+add_mask = "Add mask binding"
+height = "Height interpretation"
+mask = "Mask interpretation"
+color_map = "Color legend"
+overlays = "World overlays"
+chunks = "16-block chunks"
+regions = "512-block regions"
+boundary = "World boundary"
+coverage = "Source coverage"
+diagnostics = "Diagnostics"
+ready = "Ready"
+no_source = "Import a PNG source to begin."
+loading = "Loading preset..."
+load_failed = "Preset load failed"
+previewing = "Compiling preview..."
+preview_valid = "Runtime compiler validation passed."
+preview_failed = "Preview failed"
+exporting = "Validating and exporting..."
+exported = "Exported image map, PNG, and dimension binding atomically."
+export_failed = "Export failed"
+source = "Source pixels"
+interpreted = "Runtime interpretation"
+no_preview = "Compile a valid preview to inspect world output."
+preview_status = "X {x}  Z {z}  |  {value}  |  {scale} blocks/pixel"
+
+[language.menu]
+your_language = "השפה שלך"
+reset_your_language = "איפוס השפה שלך"
+server_default = "ברירת המחדל של השרת"
+edit_messages = "עריכת הודעות השפה"
+use_server_default = "שימוש בברירת המחדל של השרת"
+current = "נוכחית: {locale}"
+current_with_personal = "נוכחית: {locale} (שלך: {personal})"
+your_description = "שנה רק את ההודעות שאתה רואה."
+reset_description = "השתמש בשפת ברירת המחדל של השרת."
+server_description = "שנה את שפת ברירת המחדל של השרת."
+edit_description = "פתח את עורך ההודעות לכל שפה."
+select_description = "לחץ כדי לבחור בשפה זו."
+remove_personal_description = "הסר את בחירת השפה האישית שלך."
+no_controls = "אין לך גישה להגדרות שפה."
+command = "פקודה: {command}"
+selected = "נבחר"
+all-volmit-plugins = "כל תוספי Volmit"
+
+[language.error]
+stopping = "בחירת שפה אינה זמינה בזמן שהתוסף מפסיק."
+editor-player-only = "פתח את עורך השפה במשחק."
+no-providers = "אין ספקי שפה זמינים של Volmit."
+numeric-page = "יש להזין מספר עמוד."
+personal-player-only = "יש לבחור העדפות שפה של שחקן במשחק."
+personal-permission = "אין לך רשות לבחור את השפה שלך."
+plugin-personal-permission = "אין לך הרשאה לבחור שפה אישית עבור {plugin}."
+plugin-server-permission = "אין לך הרשאה לשנות את שפת השרת עבור {plugin}."
+server-locale-required = "יש לבחור קוד שפה כגון en_US כשפת ברירת המחדל של השרת."
+unavailable-for-all = "השפה {locale} אינה זמינה לכל התוספים שנבחרו."
+
+[language.usage]
+editor = "שימוש: /{command} language server edit [locale]"
+selection = "שימוש: /{command} language self [locale|reset] or server [locale]"
+volmit-selection = "שימוש: /volmit plugins languages [locale]"
+
+[language.selection]
+preparing = "מכין את השפה {locale} עבור {target}..."
+save-failed = "{plugin}: לא ניתן לשמור את בחירת השפה; יש לבדוק את מסוף השרת."
+english-fallback = "{plugin}: השפה {locale} אינה זמינה; נעשה שימוש באנגלית (en_US)."
+personal-selected = "{plugin}: השפה שלך עכשיו {locale}."
+server-selected = "{plugin}: שפת השרת עכשיו {locale}."
+server-default-selected = "{plugin}: השפה שלך תואמת כעת לשפת ברירת המחדל של השרת."
+
+[language.editor]
+"section.languages" = "שפות"
+"section.search" = "חיפוש"
+"section.search-title" = "{locale} / חיפוש"
+"section.group-title" = "{locale} / {group}"
+loading = "טוען הודעות עבור {locale}..."
+"prompt.search" = "יש לחפש מפתח הודעה או טקסט. לחזרה, יש להקליד cancel."
+"prompt.value" = "יש להקליד בצ׳אט ערך חדש עבור {key}."
+"prompt.current" = "ערך נוכחי: {value}"
+"prompt.variables" = "משתנים: {variables}"
+"prompt.guidance" = "יש להשתמש ב־\\n לשורה חדשה וב־\\\\ ללוכסן הפוך, או להקליד cancel כדי לחזור."
+"input.expired" = "זמן ההזנה בעורך השפה פג."
+"input.too-long" = "הקלט יכול להכיל לכל היותר {maximum} תווים."
+"input.unable-to-save" = "לא ניתן לשמור: {reason}"
+"navigation.back" = "&eחזרה&r"
+"navigation.close" = "&cסגור&r"
+"navigation.previous-page" = "&eהעמוד הקודם&r"
+"navigation.next-page" = "&eדף הבא&r"
+"search.messages" = "חיפוש הודעות"
+"search.messages-lore" = "לחיצה לחיפוש בכל ההודעות."
+"search.clear" = "ניקוי החיפוש"
+"message.current-value" = "&7ערך נוכחי:&r"
+"message.variables" = "&8{variables}&r"
+"message.edit-plural" = "&7לחיצה לעריכת צורת רבים.&r"
+"message.edit-lines" = "&7לחיצה לעריכת שורות בודדות.&r"
+"message.edit-chat" = "&7לחיצה לעריכה בצ׳אט.&r"
+"locale.open" = "&8לחץ לפתוח את השפה.&r"
+"category.message-count" = "&7{count} הודעות&r"
+"category.open" = "&8לחץ לפתוח קטגוריה זו.&r"
+"error.no-permission" = "אין לך הרשאה לערוך את השפות של {plugin}."
+"error.unable-to-edit" = "לא ניתן לערוך: {reason}"
+"saved.summary" = "{locale} נשמרה. בחירות השפה לא השתנו."
+"saved.change" = "{key}: הערך ״{before}״ הוחלף ב־״{after}״."
+"part.line" = "שורה {line}"
+"value.none" = "אין"
+"value.empty" = "(ריק)"
+
+[debug.error]
+missing-permission = "חסרה הרשאה: {permission}"
+already-preparing = "כבר מתבצעת הכנת דוח אבחון עבור {plugin}."
+already-preparing-short = "כבר מתבצעת הכנת דוח אבחון."
+schedule-failed = "לא ניתן לתזמן את הכנת דוח האבחון."
+provider-closed = "ספק האבחון נסגר."
+closed-before-capture = "ספק האבחון נסגר לפני איסוף נתוני הדוח."
+writer-schedule-failed = "לא ניתן לתזמן את כתיבת דוח האבחון."
+capture-failed = "לא ניתן לאסוף את נתוני דוח האבחון; יש לבדוק את מסוף השרת."
+closed-before-write = "ספק האבחון נסגר לפני כתיבת הדוח."
+write-failed = "לא ניתן לכתוב את דוח האבחון; יש לבדוק את מסוף השרת."
+
+[debug]
+preparing = "מכין דוח אבחון של {plugin}..."
+saved = "דוח האבחון של {plugin} נשמר בנתיב {path}."
+
+[debug.upload]
+interrupted = "העלאת דוח האבחון הופסקה; הדוח המקומי נשמר."
+failed = "העלאת דוח האבחון נכשלה; הדוח המקומי נשמר."
+completed = "הועלה בשם VolmitSoftware - {plugin} - v{version}."
+
+[debug.action]
+open = "פתיחה: {url}"
+open-description = "פתיחת דוח האבחון שהועלה."
+copy-path = "העתקת הנתיב המקומי"
+copy-path-description = "העתקת הנתיב של הדוח המקומי."

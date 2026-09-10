@@ -1,0 +1,2105 @@
+# === Iris language guide ===
+# Iris - zh_CN
+#
+# === 编辑文件 ===
+# languages/zh_CN.toml
+# 可直接编辑此文件。本地修改会保留；缺失或无效条目使用内置英语文本。
+# /iris language server edit zh_CN
+#
+# === 前缀与消息示例 ===
+# Iris 语言文件没有适用于所有消息的全局前缀设置。请直接在需要修改的单条消息正文中添加前缀。
+# 控制台插件前缀和菜单主题由显示端单独提供，不会随此修改而改变。
+# 例如，在 [iris.bukkit.commandiris] 节中修改 set_debug：
+# set_debug = "&6[世界]&r &a调试已设为：{to}"
+# 只有 /iris debug 的回复会增加 [世界]。{to} 为 true（启用）或 false（禁用）。
+# {PC}、{SC} 和 {TC} 不是 Iris 支持的主题变量。
+#
+# === 颜色与格式 ===
+# 基本颜色：&0 黑色、&1 深蓝色、&2 深绿色、&3 深青色、&4 深红色、&5 深紫色、&6 金色、&7 灰色。
+# 基本颜色：&8 深灰色、&9 蓝色、&a 绿色、&b 青色、&c 红色、&d 浅紫色、&e 黄色、&f 白色。
+# 样式：&k 随机字符、&l 粗体、&m 删除线、&n 下划线、&o 斜体、&r 重置颜色和样式。
+# 例如："&6注意：&l粗体文字&r 普通文字"。Bukkit 的自定义颜色效果可能改变显示颜色。
+# 语言处理器接受 &#33CC99、&x33CC99、&x&3&3&C&C&9&9 和 [33CC99] 形式的 RGB 颜色。
+# 但 Bukkit 的默认颜色处理可能无法保留原始 RGB，因此无法保证所有输出位置都显示精确颜色。
+# 模组命令、帮助和客户端界面等使用去除格式的翻译文本，并保留显示端自己的颜色和样式。
+#
+# === TOML 转义 ===
+# 在双引号包围的 TOML 字符串中，\" 表示引号，\\ 表示反斜杠，\n 表示换行。
+# 即使语言处理阶段转义了 & 或 [，后续 Bukkit 处理仍可能把 &a 等重新识别为颜色代码。
+# 仅添加反斜杠并不能在所有显示位置禁用颜色处理。
+#
+# === 变量 ===
+# 请勿更改变量名称，只使用各消息原有的变量。以下说明每个值的具体含义。
+#   {MAXAUTOSELECTVOLUME}  对象自动选择允许的最大方块数。
+#   {MAXSAVEVOLUME}  保存对象选区允许的最大方块数。
+#   {MAXSPAN}  捕获结构时允许的最大宽度、高度或深度，单位为方块。
+#   {NATIVESTRUCTURELOCATERADIUS}  原生结构的最大搜索半径，单位为区块。
+#   {ROOTPERMISSION}  使用命令所需的根权限。
+#   {WORKSPACENAME}  正在搜索的 Studio 工作区文件夹名称。
+#   {WORLDPACKNAME}  生成的世界数据包名称。
+#   {active}  当前正在运行的工作线程数。
+#   {activeLocale}  无法选择请求的语言时仍在使用的语言。
+#   {activeMax}  已加载维度类型的高度范围上限。
+#   {activeMin}  已加载维度类型的高度范围下限。
+#   {actualReverts}  实际撤销的对象粘贴次数。
+#   {afb}  引擎耗时标签中括号部分之后的已格式化文本。
+#   {after}  更改后的值，或修复后仍无法连通的树木方块数。
+#   {amount}  报告中所述条目的数量。
+#   {applied}  已应用处理结果的区块数。
+#   {argument}  无法接受的命令参数。
+#   {available}  符合生成条件的原生结构数。
+#   {bar}  已格式化的进度条文本。
+#   {befb}  引擎耗时标签中括号部分之前的已格式化文本。
+#   {before}  更改前的值，或修复前无法连通的树木方块数。
+#   {biome}  正在显示的生物群系名称或标识符。
+#   {block}  正在检查的方块类型或描述。
+#   {blockX}  方块或传送目的地的 X 坐标。
+#   {blockY}  方块或传送目的地的 Y 坐标。
+#   {blockZ}  方块或传送目的地的 Z 坐标。
+#   {blocking}  导致数据包无法加载的验证错误数。
+#   {blocks}  导入组中的方块变体数。
+#   {bpp}  Vision 中每个像素表示的世界方块数。
+#   {branches}  修复树木对象时添加的树枝数。
+#   {broken}  验证失败的数据包数。
+#   {brokenTotal}  验证失败的数据包总数。
+#   {cave}  检查位置的洞穴生物群系或洞穴描述。
+#   {centerX}  区域中心的 X 坐标；单位以操作消息为准。
+#   {centerZ}  区域中心的 Z 坐标；单位以操作消息为准。
+#   {changed}  已处理对象中发生更改的数量。
+#   {chunk}  报告所指区块的坐标或标识标签。
+#   {chunkX}  以区块为单位的 X 坐标，而非方块坐标。
+#   {chunkZ}  以区块为单位的 Z 坐标，而非方块坐标。
+#   {chunks}  操作包含的区块数。
+#   {clampedY}  调整至允许高度范围后的传送目的地 Y 坐标。
+#   {command}  命令名称或要执行的完整命令。
+#   {converted}  修复树木时转为木材的树叶方块数。
+#   {count}  上下文所指的条目、消息或玩家数量。
+#   {current}  当前进度数量，或本次比较的区块数。
+#   {currentStage}  Studio 当前加载阶段的名称。
+#   {d}  对象深度，单位为方块。
+#   {depth}  距地表向下的方块数。
+#   {derivative}  与地表生物群系关联的衍生群系或变种。
+#   {detail}  检查对象或当前进度阶段的补充说明。
+#   {diffs}  生成结果之间检测到的差异数。
+#   {dimKey}  正在打包的维度标识符。
+#   {dimension}  消息所指的维度名称或标识符。
+#   {dimensionId}  已加载或请求的维度的注册标识符。
+#   {dimensionId2}  建议的删除命令中重复使用的维度标识符。
+#   {dimm}  Studio 维度标识符，或验证命令中的数据包名称。
+#   {disabled}  已禁用生成的原生结构数。
+#   {distances}  修复树木时更改的树叶距离值数量。
+#   {done}  目前已完成的工作项数量。
+#   {downloadSource}  用于下载数据包的来源或选定引用。
+#   {downloadable}  正在导入的数据包或可下载项目。
+#   {dumpPath}  已保存的清理或恢复数据的位置。
+#   {duration}  已格式化的操作耗时。
+#   {e}  扫描结构模板失败时的异常文本。
+#   {elapsed}  已格式化的操作开始后经过时间。
+#   {engines}  正在运行的 Iris 生成引擎或维度数。
+#   {entity}  正在检查的刷怪笼所选的实体类型。
+#   {error}  发生的错误详情。
+#   {errorMessage}  附加在主要失败消息后的可选错误详情。
+#   {eta}  已格式化的预计剩余时间；部分消息中包含标签。
+#   {failed}  失败项数，或进度标题中的预设失败后缀。
+#   {failure}  搜索或操作失败的原因。
+#   {failures}  失败工作数量，或可选的已格式化失败摘要。
+#   {file}  操作所涉及的文件名或路径。
+#   {filter}  用于筛选 Iris 维度列表的文本。
+#   {fps}  当前预览渲染帧率，单位为帧每秒。
+#   {g}  上次打包进度报告后写入的对象文件数。
+#   {generated}  目前已生成的区块数。
+#   {generator}  浏览器中显示的噪声生成器名称。
+#   {generatorKey}  请求的噪声生成器标识符。
+#   {get}  成功转换的 schematic 蓝图数。
+#   {golden}  已保存的比较基准中的区块数。
+#   {goldenDimension}  基准记录中保存的维度标识符。
+#   {goldenSeed}  基准记录中保存的世界种子。
+#   {goldenVersion}  创建基准记录时使用的 Minecraft 版本。
+#   {group}  语言编辑器的消息组，或导入对象的分类。
+#   {guiNote}  有关预生成进度窗口的可选说明。
+#   {h}  对象高度，单位为方块。
+#   {hash}  被比较的生成区块的合并校验和。
+#   {health}  正在检查的实体的当前生命值。
+#   {height}  消息所指的地形高度、总高度或显示区域高度。
+#   {hours}  格式化时长中的小时部分。
+#   {i}  引擎显示名称，或命令列表模板中的条目。
+#   {id}  正在检查的生物群系的注册 ID。
+#   {imported}  成功导入的结构或对象数。
+#   {includeNonJigsaw}  是否也导入不使用拼图部件的结构。
+#   {iris}  使用 Iris 生成的已加载维度数。
+#   {irisLevels}  已与数据包高度进行比较的已加载 Iris 维度数。
+#   {irisPlaced}  由 Iris 放置而非原生生成的结构数。
+#   {job}  已完成的后台操作名称。
+#   {k}  区域分布报告中的区域加载键。
+#   {key}  上下文所指的参数、消息或资源标识符。
+#   {key2}  建议的定位命令中重复使用的结构标识符。
+#   {keyString}  正在导入或被报告为无效的结构或资源标识符。
+#   {label}  已找到目标的显示名称。
+#   {line}  语言编辑器中的行号。
+#   {locale}  语言标识符，例如 en_US 或 de_DE。
+#   {logicalWorldName}  命令所针对世界的逻辑名称。
+#   {loot}  正在检查的战利品表标识符。
+#   {m}  额外的疏散消息，或命令模板中被忽略参数的文本。
+#   {mantleStatus}  重复生成比较前重置生成数据的结果。
+#   {marker}  正在搜索的标记名称。
+#   {material}  正在检查的方块的 Minecraft 材质。
+#   {maxScale}  限制请求缩放比例后的最大允许对象比例。
+#   {maxX}  显示的区块范围的 X 上界。
+#   {maxY}  世界高度范围的上界。
+#   {maxZ}  显示的区块范围的 Z 上界。
+#   {maximum}  消息所指的最大输入长度或实体最大生命值。
+#   {mcmeta}  生成的数据包的 pack.mcmeta 文件路径。
+#   {message}  操作提供的详细状态或错误文本。
+#   {method}  所选的预生成方式。
+#   {minX}  显示的区块范围的 X 下界。
+#   {minY}  世界高度范围的下界。
+#   {minZ}  显示的区块范围的 Z 下界。
+#   {minutes}  格式化时长中的分钟部分。
+#   {mismatches}  与已保存基准不同的区块数。
+#   {mode}  所选的导入、生成或预览模式。
+#   {modeNote}  所选预生成模式的可选说明。
+#   {name}  消息所指的世界、对象、项目或条目名称。
+#   {nameRaw}  规范化或验证前的原始输入名称。
+#   {normalized}  未找到的已规范化帮助章节名称。
+#   {num}  引擎耗时标签中已格式化的括号部分，不一定是数字。
+#   {object}  正在编辑或检查的 Iris 对象名称或标识符。
+#   {objects}  被检查区块中的对象列表或数量。
+#   {offset}  距地表的垂直距离，单位为方块。
+#   {output}  无法写入的输出文件路径。
+#   {overall}  整个预生成操作的平均每秒区块数。
+#   {ownerName}  拥有 Studio 会话的玩家名称。
+#   {pack}  操作涉及的 Iris 数据包名称或标识符。
+#   {pack2}  建议命令或下载来源中重复使用的数据包标识符。
+#   {packDimension}  从数据包中选定的维度定义。
+#   {packLogical}  数据包维度定义所要求的逻辑高度。
+#   {packMax}  数据包要求的高度上限。
+#   {packMin}  数据包要求的高度下限。
+#   {packName}  正在验证的数据包显示名称。
+#   {parameter}  缺失或无法解析的命令参数。
+#   {parent}  上级菜单或命令路径的显示名称。
+#   {path}  正在保存、打开或报告的文件路径。
+#   {percent}  进度百分比；请将消息中的 % 符号留在变量外。
+#   {permission}  执行请求操作所需的权限节点。
+#   {personal}  玩家已保存的个人语言标识符。
+#   {phase}  当前加载或下载阶段的名称。
+#   {pinned}  修复树木对象时固定的树叶数。
+#   {player}  正在跟随或作为目标的玩家名称。
+#   {plugin}  插件显示名称；Iris 的共享语言和诊断消息中为 Iris。
+#   {position}  正在设置的选区角点编号。
+#   {preset}  主世界使用的已注册世界生成预设。
+#   {primary}  已配置的主要世界标识符。
+#   {processed}  已处理项数，包括成功、跳过和失败项。
+#   {properties}  正在检查的方块的已格式化属性列表。
+#   {quarantinePath}  存放清理隔离文件的文件夹。
+#   {queued}  等待执行的工作线程或工作项数量。
+#   {radius}  建议的开始命令中重复使用的预生成半径。
+#   {rarity}  所述区域或放置项配置的稀有度。
+#   {rate}  已格式化的传输或预生成速率；每秒后缀由消息添加。
+#   {reach}  修复树木对象时使用的已配置树枝搜索距离。
+#   {ready}  当前可用的精确 Atlas 页面数。
+#   {reason}  无法完成请求操作的原因。
+#   {region}  正在检查的区域名称或标识符。
+#   {remaining}  显示列表中省略的额外方块状态数。
+#   {repository}  正在解包的仓库或已下载归档。
+#   {reverted}  已撤销的对象粘贴次数。
+#   {rotation}  应用于已放置对象的旋转。
+#   {rx}  正在计算哈希的区块 X 坐标。
+#   {rz}  正在计算哈希的区块 Z 坐标。
+#   {s}  新 Studio 项目名称。
+#   {safeName}  导入对象使用的已清理文件名。
+#   {scale}  预览中每个像素表示的世界方块数。
+#   {scope}  Object Studio 中打开的对象或对象组。
+#   {searchRadius}  结构验证的搜索半径，单位为区块。
+#   {seconds}  时长中的秒部分，或距上次更新的秒数。
+#   {section}  用户请求的帮助章节名称。
+#   {seed}  世界、Studio 会话、生成器或基准比较使用的种子。
+#   {seedRaw}  验证前的原始输入种子。
+#   {sixtySecond}  60 秒窗口内的预生成每秒区块数。
+#   {size}  消息所指的文件、警告、条目或物品数量。
+#   {skipped}  操作中跳过的项数。
+#   {slope}  检查位置的地形坡度。
+#   {solidBlocks}  生成哈希统计的固体方块数。
+#   {source}  与进度显示关联的数据包、下载来源或输入。
+#   {speed}  已格式化的预生成或处理每秒速率。
+#   {stage}  当前进度阶段名称。
+#   {state}  消息所指的当前状态或属性值。
+#   {status}  当前预览状态文本。
+#   {structure}  正在定位的结构名称或标识符。
+#   {structureKey}  请求结构的注册或数据包标识符。
+#   {summary}  已完成操作的格式化结果摘要。
+#   {suppressed}  被 Iris 放置替代的原生结构数。
+#   {surface}  建议传送命令中使用的地表 Y 坐标。
+#   {surfaceY}  检查位置的地表 Y 坐标。
+#   {tag}  置于数据包名称前的已格式化验证状态标签。
+#   {target}  消息所指的语言接收者或对象选择目标。
+#   {targetX}  已找到或请求目的地的 X 坐标。
+#   {targetZ}  已找到或请求目的地的 Z 坐标。
+#   {template}  创建项目时选择的模板。
+#   {tenSecond}  10 秒窗口内的预生成每秒区块数。
+#   {thirtySecond}  30 秒窗口内的预生成每秒区块数。
+#   {threads}  生成哈希使用的工作线程数。
+#   {tileNote}  有关已保存或放置的方块实体数据的可选说明。
+#   {title}  正在显示结果的操作标题。
+#   {to}  新的调试设置：true 表示启用，false 表示禁用。
+#   {token}  无法解析的 reach 参数。
+#   {total}  消息所指的工作项、区块、维度或条目总数。
+#   {totalObjects}  Object Studio 中打开的对象数。
+#   {transferred}  已格式化的目前传输数据量。
+#   {type}  消息所指的预期参数类型、资源类型或对象类别。
+#   {typeKey}  已注册的 Minecraft 维度类型标识符，或 inline。
+#   {unreachableBiomes}  因数据包生物群系选择而被排除的原生结构数。
+#   {unsupported}  此平台报告为不支持的原生结构数。
+#   {updates}  开发者显示中的每秒方块更新数。
+#   {url}  要打开或复制的网址。
+#   {usage}  命令语法，或内存显示中的使用情况文本。
+#   {used}  内存显示中已格式化的已用内存量。
+#   {value}  消息专用值，如默认设置、名称、坐标、数量或错误；请参照上下文。
+#   {value2}  消息专用的第二个值，如总区块数、目标 Y 坐标、数据包名称或错误。
+#   {value3}  消息专用的第三个值，如百分比、目标 Z 坐标、Minecraft 版本或经过时间。
+#   {value4}  消息专用的第四个值，如方块写入数、选区 Z 坐标或可选状态后缀。
+#   {value5}  消息专用的第五个值：对象放置中非空气方块写入数，或位置模板中的区块 Z 坐标。
+#   {variables}  正在编辑的消息可用的占位符列表。
+#   {velocity}  正在检查的实体的当前移动速度。
+#   {version}  上下文所指的插件或 Minecraft 版本。
+#   {volume}  对象选区所含的方块数。
+#   {w}  对象宽度，单位为方块。
+#   {wantVariants}  每个导入的原版树木或对象特征所请求的变体数。
+#   {warnings}  不阻止操作的验证警告数。
+#   {width}  显示的世界区域宽度，单位为方块。
+#   {wood}  修复树木对象时添加的木材方块数。
+#   {world}  命令或进度显示所针对的世界名称。
+#   {written}  成功写入的导入变体或对象文件数。
+#   {x}  消息所指的方块、区块、区域或预览中的 X 坐标。
+#   {y}  世界或方块的垂直坐标。
+#   {z}  消息所指的方块、区块、区域或预览中的 Z 坐标。
+#   {zoom}  预览的当前缩放级别。
+# === End Iris language guide ===
+
+[iris.director.commandiris]
+"director.debugdump" = "创建诊断报告并选择是否上传"
+"param.debugdump_upload" = "将报告上传到 mclo.gs"
+"director.basic_command" = "Iris 基础命令"
+"director.create_new_world" = "创建新世界"
+"param.name_world_create" = "要创建的世界名称"
+"param.dimension_pack_create_world_with" = "用于创建世界的维度包"
+"param.seed_generate_world_with" = "用于生成世界的种子"
+"param.replace_exact_existing_world_slot_next_restart" = "在下次重启时替换指定的现有世界槽位"
+"director.teleport_another_world" = "传送到另一个世界"
+"param.world_teleport" = "要传送到的世界"
+"param.player_teleport" = "要传送的玩家"
+"director.print_version_information" = "显示版本信息"
+"director.benchmark_pack" = "对维度包进行基准测试"
+"param.dimension_benchmark" = "要进行基准测试的维度"
+"director.print_world_height_information" = "显示世界高度信息"
+"director.check_access_all_worlds" = "检查所有世界的访问状态"
+"director.remove_iris_world" = "移除 Iris 世界"
+"param.world_remove" = "要移除的世界"
+"param.whether_also_remove_folder_if_set_false_just_does_not_load_world" = "是否同时删除世界文件夹；设为 false 时只停止加载世界"
+"director.toggle_debug" = "切换调试模式"
+"director.download_project" = "下载维度包"
+"param.pack_download" = "要下载的包"
+"director.get_metrics_your_world" = "显示世界指标"
+"director.reload_configuration_file_this_is_also_done_automatically" = "重新加载配置文件（也会自动执行）"
+"director.unload_iris_world" = "卸载 Iris 世界"
+"param.world_unload" = "要卸载的世界"
+"director.load_iris_world" = "加载 Iris 世界"
+"param.name_world_load" = "要加载的世界名称"
+"director.evacuate_iris_world" = "疏散 Iris 世界"
+"param.evacuate_world" = "要疏散的世界"
+
+[director.help]
+"navigation.parent.hover" = "返回上级命令组"
+"navigation.back" = "返回"
+no_subcommands = "此页面没有子命令。"
+no_description = "未提供说明"
+command_group = "命令组。点击打开。"
+category = "命令类别"
+no_parameters = "无参数。点击预填命令。"
+parameters_hover = "将鼠标悬停在参数上以了解更多。"
+"parameter.required" = "此参数为必填项。"
+"parameter.optional" = "此参数为可选项。"
+"parameter.default" = "未指定时默认为 \"{value}\"。"
+"parameter.type" = "此参数的类型为 {type}。"
+"navigation.previous.hover" = "上一页"
+"navigation.next.hover" = "下一页"
+"navigation.page" = "页"
+
+[director.runtime]
+"error.invalid_origin" = "无法从此来源运行该命令。"
+"error.unknown_parameter" = "未知参数键: {key}"
+"error.unexpected_argument" = "意外参数 \"{argument}\"。可选参数必须使用键指定，例如 seed=123"
+"error.unclosed_group" = "参数 {key} 缺少右方括号 \"]\""
+"error.conversion_failed" = "无法将 \"{value}\" 转换为 {parameter} 所需的 {type}"
+"error.default_parse_failed" = "无法解析参数 {parameter} 的默认值"
+"error.missing_argument" = "缺少参数 \"{parameter}\" ({type})"
+"error.execution_failed" = "执行命令 {command} 失败: {reason}"
+usage = "用法: {usage}"
+
+[iris.command]
+permission_denied = "你没有权限 '{permission}'。"
+unknown = "未知的 Iris 命令。"
+player_only = "此命令只能由玩家执行。"
+iris_world_required = "此维度不是由 Iris 生成的。"
+
+[iris.command.reload]
+success = "设置和语言 {locale} 已重新加载。"
+failed = "设置已重新加载，但语言 {locale} 验证失败；继续使用 {activeLocale}。"
+
+[iris.modded.help]
+unknown_section = "未知的 Iris 帮助章节：{section}"
+back_hover = "返回 {parent}。"
+command_parameter = "命令参数"
+brigadier_text = "此参数是 Brigadier 文本。"
+operator_notice = "Iris 命令需要操作员权限（等级 2）。"
+operator_instruction = "请从控制台执行 {command}（或在单人游戏中启用作弊）；在此之前，这些命令不会执行，也不会提供 Tab 补全。"
+"entry.command.version" = "显示版本信息"
+"entry.command.info" = "列出已加载的 Iris 维度和包详情"
+"entry.command.what" = "检查当前位置的 Iris 群系、区域、洞穴群系、地表和区块，以及注视的方块、手持物品或附近标记"
+"entry.group.find" = "查找并传送到 Iris 群系、区域、对象、Iris 结构、原生结构和兴趣点"
+"entry.command.tp" = "将自己或指定玩家传送到已加载的 Iris 维度"
+"entry.command.evacuate" = "将 Iris 维度中的所有玩家传送到主世界出生点"
+"entry.command.seed" = "显示世界和引擎的种子信息"
+"entry.command.debug" = "切换 Iris 调试日志并保存 iris.json"
+"entry.command.reload" = "重新加载 iris.json（也会每 3 秒自动热加载）"
+"entry.command.download" = "下载包项目"
+"entry.command.metrics" = "显示当前 Iris 维度的生成指标"
+"entry.command.regen" = "原地删除并重新生成附近区块"
+"entry.group.pregen" = "预生成 Iris 维度"
+"entry.command.wand" = "获取 Iris 对象魔杖"
+"entry.group.object" = "对象魔杖、保存、粘贴、分析和撤销工具"
+"entry.group.edit" = "在桌面编辑器中打开包的群系、区域和维度 JSON 文件"
+"entry.command.create" = "创建并注入持久 Iris 维度；用引号包住 pack:dimensionKey 可选择特定包维度"
+"entry.group.studio" = "包项目创建、打包和报告"
+"entry.group.pack" = "包验证和维护"
+"entry.group.world" = "运行时 Iris 维度的创建、移除和状态"
+"entry.group.datapack" = "世界数据包安装和状态工具"
+"entry.group.structure" = "Iris 结构索引、信息和放置工具"
+"entry.command.goldenhash" = "为一致性测试生成确定性方块哈希"
+"entry.group.developer" = "开发者诊断：网络接口和区域文件扫描"
+"entry.command.biome" = "查找 Iris 群系"
+"entry.command.region" = "查找 Iris 区域"
+"entry.command.object" = "查找对象放置"
+"entry.command.structure" = "查找由 Iris 放置或原生/数据包提供的结构"
+"entry.command.poi" = "查找支持的兴趣点"
+"entry.command.biome_2" = "在桌面编辑器中打开群系 JSON；不指定键时打开当前位置的群系"
+"entry.command.region_2" = "在桌面编辑器中打开区域 JSON；不指定键时打开当前位置的区域"
+"entry.command.dimension" = "在桌面编辑器中打开当前包的维度 JSON"
+"entry.command.start" = "开始预生成；半径以方块计，默认启用可恢复的检查点缓存，通过 'at <x> <z>' 指定中心，各标志可按任意顺序组合"
+"entry.command.stop" = "停止当前预生成任务"
+"entry.command.pause" = "暂停或继续预生成"
+"entry.command.status" = "显示预生成状态"
+"entry.command.wand_3" = "获取 Iris 对象魔杖"
+"entry.command.dust" = "获取可显示对象放置位置的尘粉"
+"entry.command.save" = "将魔杖选区保存为对象"
+"entry.command.paste" = "在当前位置或指定位置粘贴对象，可选择旋转"
+"entry.command.expand" = "沿注视方向扩展魔杖选区"
+"entry.command.contract" = "沿注视方向收缩魔杖选区"
+"entry.command.shift" = "沿注视方向移动魔杖选区"
+"entry.command.position1" = "设置选区点 1"
+"entry.command.position2" = "设置选区点 2"
+"entry.command.x_y" = "自动向上和向外扩展选区"
+"entry.command.x_y_2" = "自动向上、向下和向外扩展选区"
+"entry.command.analyze" = "显示对象构成"
+"entry.command.shrink" = "将对象收缩至最小尺寸"
+"entry.command.plausibilize" = "生成枝干，使树叶不会被原版规则腐烂"
+"entry.command.undo" = "撤销已粘贴的对象"
+"entry.command.create_2" = "创建新的包项目"
+"entry.command.package" = "将维度打包为压缩格式"
+"entry.command.version_2" = "显示包版本"
+"entry.command.regions" = "计算附近区域的分布"
+"entry.command.open" = "为包打开临时 Studio 维度"
+"entry.command.close" = "关闭已打开的 Studio 维度并丢弃其世界"
+"entry.command.tpstudio" = "传送到已打开的 Studio 维度"
+"entry.command.status_studio" = "显示已打开的 Studio 维度及其包"
+"entry.command.noise" = "在服务器显示器上打开噪声浏览器 GUI"
+"entry.command.map" = "在服务器显示器上打开 Vision 地图 GUI"
+"entry.command.vscode" = "重新生成包的 .code-workspace，并在桌面编辑器中打开"
+"entry.command.update" = "重新生成包的 .code-workspace"
+"entry.command.importvanilla" = "说明原版内容导入流程"
+"entry.command.validate" = "验证一个包或所有包"
+"entry.command.cleanup" = "预览或隔离未使用的资源候选项"
+"entry.command.restore" = "预览或恢复最近的隔离内容"
+"entry.command.status_validation" = "显示缓存的验证状态"
+"entry.command.enable" = "在运行时创建并注入持久 Iris 维度；必须先安装维度包，用引号括起 pack:dimensionKey 可选择包中的特定维度。"
+"entry.command.replace_overworld" = "注入 Iris 主世界，并将玩家路由到该世界而非原版主世界"
+"entry.command.disable" = "疏散并卸载 Iris 维度；保留磁盘上的世界数据以便重新启用"
+"entry.command.delete" = "禁用 Iris 维度并从磁盘清除其区块和 Mantle 数据"
+"entry.command.list" = "列出已加载的 Iris 维度"
+"entry.command.status_world" = "显示已加载的 Iris 维度和配置的主世界"
+"entry.command.status_datapack" = "检查已加载 Iris 维度的维度类型覆盖"
+"entry.command.install" = "为已加载的 Iris 维度安装维度类型覆盖"
+"entry.command.list_datapacks" = "列出已配置和已安装的数据包"
+"entry.command.ingest" = "说明 Bukkit 数据包导入流程"
+"entry.command.remove" = "说明数据包移除流程"
+"entry.command.list_structures" = "重新生成 structure-index.json"
+"entry.command.info_2" = "解析 Iris 结构图并报告边界"
+"entry.command.place" = "在当前位置组装并放置 Iris 结构"
+"entry.command.import" = "说明 Bukkit 结构导入流程"
+"entry.command.capture" = "说明 Bukkit 结构捕获流程"
+"entry.command.verify" = "报告当前维度中原生结构和 Iris 结构的可达性"
+"entry.command.network" = "列出网络接口及其地址"
+"entry.command.what.here" = "Inspect the Iris biome, region, cave biome, surface and chunk at your position"
+"entry.command.what.biome" = "Inspect the Iris biome, configured derivative and registered native biome"
+"entry.command.what.region" = "Inspect the Iris region at your current chunk"
+"entry.command.what.block" = "Inspect the targeted block state, properties, object and block entity"
+"entry.command.what.hand" = "Inspect the held item and its default block state"
+"entry.command.what.markers" = "Reveal nearby Iris Mantle markers with particles"
+"entry.command.height" = "Print the current dimension height range"
+"entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
+"entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
+"entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
+"entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
+"entry.command.studio.loot" = "Explain why the Bukkit loot simulation GUI is unavailable"
+"entry.command.studio.profile" = "Explain why Bukkit pack profiling is unavailable"
+"entry.command.studio.spawn" = "Explain why Bukkit Iris entity spawning is unavailable"
+"entry.command.studio.objects" = "Explain why the Bukkit chunk object report is unavailable"
+"entry.command.compat_content" = "显示在当前 Minecraft 版本中无法生成的内容"
+
+[iris.modded.command]
+"properties.none" = "属性:(无)"
+"properties.list" = "属性 : {properties}"
+
+[iris.bukkit.commanddatapack]
+starting_datapack_ingest = "§7正在导入数据包..."
+configured_datapack_imports = "§a已配置的数据包导入：§f{value}"
+message = "§7  - §f{url}"
+installed_datapacks = "§a已安装的数据包：§f{value}"
+message_2 = "§7  - §f{value}§7  {value2}"
+add_modrinth_urls_dimension_s_datapackimports_list_then_run_iris = "§e将 Modrinth URL 添加到维度的 'datapackImports' 列表，然后执行 /iris datapack ingest。"
+
+[iris.bukkit.commanddeveloper]
+genhash_started_chunks = "§aGenHash 已启动：{value} 个区块..."
+genhash_failed_at_chunk = "§cGenHash 在区块 {rx},{rz} 失败：{value}"
+genhash_global_chunks_solid = "§aGenHash 全局值=§6{value}§a 区块={value2} 实心方块={solidBlocks} 输入={value3}"
+world_is_null = "§c世界为空。"
+target_iris_world_before_reading_mantle_dump = "§c请先选择一个 Iris 世界，再读取 Mantle 转储。"
+upgrading = "§a升级到 {value}..."
+done_upgrading_you_can_now_update_your_server_version = "§a升级完毕!  您现在可以更新您的服务器版本到 {value}"
+radius_must_be_0_greater = "§c半径必须大于或等于 0。"
+this_is_not_iris_world = "§c这不是 Iris 世界。"
+engine_access_this_world_is_null = "§c此世界的引擎访问为空。"
+delete_started_chunk_s_around_clearing_blocks_air = "§a删除已启动：正在清空以区块 §6{centerX},{centerZ}§a 为中心的 §6{chunks}§a 个区块。"
+radius_must_be_0_greater_2 = "§c半径必须大于或等于 0。"
+you_must_be_iris_world_use_regen = "§c你必须位于 Iris 世界中才能使用 regen。"
+engine_access_this_world_is_null_generate_nearby_chunks_first = "§c此世界的引擎访问为空。请先生成附近的区块。"
+regen_started_chunk_s_around_deleting_regenerating_place = "§a重新生成已启动：正在原地删除并重新生成以区块 §6{centerX},{centerZ}§a 为中心的 §6{chunks}§a 个区块。"
+radius_must_be_0_greater_3 = "§c半径必须大于或等于 0。"
+target_must_be_iris_world = "§c目标必须是 Iris 世界。"
+engine_access_this_world_is_null_2 = "§c此世界的引擎访问为空。"
+goldenhash_started_chunk_s_around_buffers_world_untouched = "§aGoldenHash 已启动：正在缓冲区中处理以区块 §6{centerX},{centerZ}§a 为中心的 §6{chunks}§a 个区块；世界不会被修改。"
+
+[iris.bukkit.commandfind]
+not_iris_world = "§6你不在 Iris 世界中！"
+unknown_structure = "§c未知结构：{structureKey}"
+run_this_game_teleport_structure = "§6请在游戏内执行此命令以传送到结构。"
+locating = "§7正在定位 {structureKey}..."
+run_this_game_teleport_structure_2 = "§6请在游戏内执行此命令以传送到结构。"
+locating_2 = "§7正在定位 {structure}..."
+teleported = "§a已传送到 {structure} @ {value}, {y}, {value2}"
+not_iris_world_5 = "§6你不在 Iris 世界中！"
+not_iris_world_2 = "§6你不在 Iris 世界中！"
+not_iris_world_3 = "§6你不在 Iris 世界中！"
+not_iris_world_4 = "§6你不在 Iris 世界中！"
+object_studio_teleporting = "§a对象 Studio：正在传送到 {object}"
+is_not_configured_any_region_biome_object_placements = "§c{object} 未配置在任何区域、群系或对象放置中。"
+
+[iris.bukkit.commandiris]
+successfully_removed_world_folder = "§a成功删除世界文件夹"
+successfully_removed_world_folder_2 = "§a成功删除世界文件夹"
+failed_remove_world_folder = "§c删除世界文件夹失败"
+you_cannot_use_world_name_iris_creating_worlds_as_iris = "§c不能使用世界名称 \"iris\"，因为 Iris 将该目录用于 Studio 世界。"
+may_we_suggest_name_irisworld_instead = "§c建议改用名称 \"IrisWorld\"。"
+you_cannot_use_world_name_benchmark_creating_worlds_as_iris = "§c不能使用世界名称 \"benchmark\"，因为 Iris 将该目录用于基准测试包。"
+may_we_suggest_name_irisworld_instead_2 = "§c建议改用名称 \"IrisWorld\"。"
+that_folder_already_exists = "§c该文件夹已存在！"
+try_one_overworld_vanilla_flat_theend = "§e可尝试：overworld、vanilla、flat 或 the_end"
+dimension_not_found = "§cCould not find dimension §f{dimension}§c."
+install_pack_and_restart = "§eInstall it with §b{command}§e and restart the server."
+exception_raised_during_creation_see_console_more_details = "§c创建期间发生异常。详情请查看控制台。"
+successfully_created_your_world = "§a世界创建成功！"
+specified_player_does_not_exist = "§c指定的玩家不存在。"
+iris_v_by_volmit_software = "§aIris v.{value}，由 Volmit Software 开发"
+to = "§a{value} 改为: {value2}"
+total_height = "§a总高度：{value}"
+iris_worlds = "§9Iris 世界："
+message = "§a- {value}"
+bukkit_worlds = "§6Bukkit 世界："
+message_2 = "§7- {value}"
+this_is_not_iris_world_iris_worlds = "§c这不是 Iris 世界。Iris 世界数量：{value}"
+removing_world = "§a正在移除世界：{value}"
+failed_evacuate_world = "§c无法疏散世界：{value}"
+failed_unload_world = "§c无法卸载世界：{value}"
+successfully_removed_from_bukkit_yml = "§a已从 bukkit.yml 中移除 {value}"
+looks_like_world_was_already_removed_from_bukkit_yml = "§e该世界似乎已从 bukkit.yml 中移除。"
+failed_save_bukkit_yml_because = "§c无法保存 bukkit.yml：{value}"
+set_debug = "§a调试模式已设为：{to}"
+you_must_be_iris_world = "§c你必须位于 Iris 世界中。"
+sending_metrics = "§a正在发送指标..."
+this_is_not_iris_world_iris_worlds_2 = "§c这不是 Iris 世界。Iris 世界数量：{value}"
+unloading_world = "§a正在卸载世界：{value}"
+world_unloaded_successfully = "§a世界已成功卸载。"
+failed_unload_world_2 = "§c无法卸载世界。"
+failed_unload_world_3 = "§c无法卸载世界：{value}"
+doesnt_exist_on_server = "§e服务器上不存在 {logicalWorldName}。"
+generator = "§9生成器：{dimension}"
+is_not_iris_world = "§6{logicalWorldName} 不是 Iris 世界。"
+could_not_determine_iris_dimension = "§c无法确定 {logicalWorldName} 的 Iris 维度。"
+loading_world = "§a正在加载世界：{logicalWorldName}"
+loaded_successfully = "§a已成功加载 {logicalWorldName}。"
+this_is_not_iris_world_iris_worlds_3 = "§c这不是 Iris 世界。Iris 世界数量：{value}"
+evacuating_world = "§a正在疏散世界：{value}"
+
+[iris.bukkit.commandobject]
+no_packs_with_objects_were_found_on_this_server = "§c此服务器上未找到包含对象的包。"
+no_objects_place_across_selected_pack_s = "§c选定的包中没有可放置的对象。"
+opening_object_studio_objects = "§a正在打开对象 Studio：{scope}（{totalObjects} 个对象）"
+failed_open_object_studio = "§c无法打开对象 Studio：{value}"
+object_size = "对象大小 : {value} * {value2} * {value3}"
+blocks_used = "使用的块 : {value}"
+blocks_object = "==:"
+other_block_types = "  + {value} 其他块类型"
+current_object_size = "当前对象大小 : {value} * {value2} * {value3}"
+new_object_size = "新对象大小 : {value} * {value2} * {value3}"
+failed_save_object = "保存对象失败 {value}: {value2}"
+no_objects_matched = "§c未匹配对象 : {target}"
+plausibilize_reach_queued_object_s = "§a铺设 [reach={reach}{value}] 已排队 {value2} 对象( S)"
+hold_your_wand = "拿着你的魔杖"
+no_area_selected = "未选择区域 。"
+ready_your_wand = "准备好魔杖"
+ready_your_wand_2 = "准备好魔杖"
+indicated_scale_exceeds_maximum_downscaled_maximum = "§e说明的比额表超过上限。  缩小至最大 : {maxScale}"
+updated_wand_objects_iob = "更新的魔杖 objects/{value}.iob "
+given_new_wand_objects_iob = "给新魔杖 objects/{value}.iob "
+updated_wand_objects_iob_2 = "更新的魔杖 objects/{value}.iob "
+placed = "§a已放置 {object}"
+you_need_hold_your_wand = "§e你得拿着你的魔杖!"
+file_already_exists_set_overwrite_true_overwrite_it = "§c文件已经存在 。  设置覆盖=真以覆盖它."
+failed_save_object_because_ioexception = "§c由于保存对象失败 IOException: {value}"
+successfully_object_saved_objects = "§a成功对象保存 : {value}/objects/{name}"
+hold_your_wand_2 = "拿着你的魔杖"
+no_area_selected_2 = "未选择区域 。"
+reverted_pastes = "§9已还原 {actualReverts}§9 贴纸!"
+you_can_t_get_worldedit_selection_without_worldedit_you_know = "§c你不能得到一个 WorldEdit 未选择 WorldEdit你知道吗?"
+you_don_t_have_worldedit_selection_this_world = "§c你没有 WorldEdit 选择这个世界。"
+fresh_wand_with_your_current_worldedit_selection_on_it = "§a新的魔杖与您的当前 WorldEdit 选中它!"
+poof_good_luck_building = "§a猪!  祝你好运建筑!"
+hold_your_wand_3 = "§e拿着你的魔杖!"
+no_area_selected_3 = "未选择区域 。"
+auto_select_complete = "§a自动选择完成!"
+hold_your_wand_4 = "§e拿着你的魔杖!"
+no_area_selected_4 = "未选择区域 。"
+auto_select_complete_2 = "§a自动选择完成!"
+
+[iris.bukkit.commandpack]
+you_must_specify_pack_name = "§c必须指定包名。"
+pack_not_found_under_packs = "§c在 packs/ 中找不到包 '{pack}'。"
+message = "§7  - {label}: {value}"
+more = "§7    ...另有 {value} 项"
+
+[iris.bukkit.commandstructure]
+verifying_structures_from_within_chunks = "§a正在验证结构 §f{value}§a；起点 {value2},{value3}，范围 {searchRadius} 个区块..."
+could_not_resolve_pack_dimension = "§c无法解析大小包 {value}"
+wrote_structure_index = "§a写作结构索引 : §f{value}"
+could_not_resolve_pack_dimension_2 = "§c无法解析大小包 {value}"
+importing_all_vanilla_datapack_structures_into_overwrite = "§a导入全部原版 & 数据包结构进入 §f{value}§a (覆盖)..."
+import_complete_structures_objects_written_failed = "§a导入完成 : §f{imported}§a  structures/objects 写, §f{failed}§a 失败 。"
+reference_them_from_biome_region_dimension_structures_list_run_iris = "§7参考生物群落/ 区域/ 构造列表, 或运行 /iris structure list {value} 用于刷新索引。  重新生成块以生效 。"
+could_not_resolve_pack_dimension_3 = "§c无法解析大小包 {value}"
+captured_structures_place_them_from_structures_list_regenerate_chunks_delete = "§7已捕获 {value} 结构。  把它们从“ 结构” 列表中放置, 再生块 。  删除 a structures/*.json 重新抓起来"
+no_loaded_iris_world_found_join_create_one_first_search = "§c未加载 Iris 发现的世界 {value}.  加入或先创建一个(搜索会针对一个活的世界)."
+selected_iris_world_has_no_active_generator_engine = "§c选中的 Iris 世界没有活动生成器引擎。"
+could_not_resolve_pack_dimension_4 = "§c无法解析大小包 {value}"
+no_iris_structure_this_pack = "§c无Iris结构 '{structure}\"在这个包里\""
+structure_assembled_0_pieces_check_startpool = "§c结构 '{structure}组装 0 块( 请检查 startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "§a结构 '{structure}': §f{value}§a脚印§f{value2}页:1{value3}§a块(样本种子1234)"
+could_not_resolve_pack_dimension_5 = "§c无法解析大小包 {value}"
+no_iris_structure_this_pack_2 = "§c无Iris结构 '{structure}\"在这个包里\""
+structure_assembled_0_pieces = "§c结构 '{structure}组装 0 块"
+placed_pieces_at_your_location = "§a已放置 '{structure}' ({value}在您的位置。 ({value2} block changes)"
+placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+
+[iris.bukkit.commandstudio]
+importing_vanilla_content_into = "§a正在将原版内容导入 §f{value}§a..."
+importvanilla_complete_objects_structures_written_failed = "§a原版内容导入完成：已写入 §f{imported}§a 个 objects/structures，§f{failed}§a 个失败。"
+trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7树和对象位于 objects/vanilla/...；请从群系的对象放置中引用它们。"
+no_open_studio_projects = "§c没有打开的 Studio 项目。"
+closing_studio = "§e正在关闭 Studio..."
+studio_close_failed = "§c关闭 Studio 失败：{value}"
+studio_close_failed_2 = "§c关闭 Studio 失败：{value}"
+studio_closed_remaining_world_family_cleanup_was_queued_startup_fallback = "§eStudio 已关闭；剩余的世界系列清理已排队，并将在下次启动时作为后备处理。"
+studio_closed = "§aStudio 已关闭。"
+you_must_be_studio_world_toggle_debug_scoreboard = "§c你必须位于 Studio 世界中才能切换调试计分板。"
+studio_debug_scoreboard = "{value}Studio 调试计分板：{value2}"
+could_not_update_studio_debug_scoreboard_right_now = "§c目前无法更新 Studio 调试计分板。"
+opened_inventory = "§a已打开物品栏！"
+generating_data = "§7正在生成数据..."
+done = "§a完成！"
+message = "§a{k}: {value} / {value2}%"
+regions_radius_out_of_range = "§c半径必须在 1 到 2048 区块之间。"
+regions_scan_failed = "§c区域扫描失败: {value}"
+opening_studio_pack_seed = "§a工作室 \"{value}\" 包(种子: {seed})"
+provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§c提供一个维度包: /iris std importvanilla pack=<dimension>"
+could_not_resolve_pack_dimension = "§c无法解析大小包 {value}"
+opening_vscode_pack = "§a正在 VSCode 中打开包 \"{value}\""
+pack_has_version = "§a那个 \"{value}\" 包有版本: {value2}"
+opening_noise_explorer = "§a打开噪音探测器!"
+cannot_add_items_virtual_inventory_because = "§c无法将项目添加到虚拟库存中, 因为 : {value}"
+opening_inventory_now = "§a现在打开存货!"
+only_works_iris_world = "§c只有工作在一个 Iris 这个世界!"
+you_need_be_specify_iris_generated_world = "§c您需要加入或指定一个 Iris- 创造的世界!"
+opening_map = "§a打开地图!"
+calculating_performance_metrics_noise_generators = "计算噪音生成器的性能计量"
+calculating_interpolator_timings = "计算内分泌器..."
+processing_generator_scores = "处理生成器分数 : "
+score = "分数 : {value}"
+done_with_result = "§a没问题!  {value}"
+you_have_be_iris_world_spawn_entities_properly_trying_spawn = "§c你必须在一个 Iris 自然而然的产物  尽力而为"
+no_studio_world_is_open = "§c没有工作室的世界是开放的!"
+you_are_already_studio_world = "§c你已经在工作室了!"
+sending_you_studio_world = "§a让你去工作室世界!"
+updating_code_workspace = "§6更新代码工作空间 {value}..."
+updated_code_workspace = "§a更新的代码工作空间 {value}"
+invalid_project_try_deleting_code_workspace_file_try_again = "§c无效的工程 : {value}.  尝试删除代码工作空间文件并再次尝试 。"
+you_must_be_iris_world = "§c你一定在一个 Iris 世界"
+you_must_be_iris_world_2 = "你一定在Iris世界里"
+capturing_igendata_from_nearby_chunks = "隐藏 IGenData 从 {value} 附近块。"
+reported = "向: {value}"
+you_must_have_server_launched_guis_enabled_settings = "§c您必须已启动服务器 GUIs 在设置中启用 !"
+players_only = "§c只有球员!"
+no_studio_world_is_open_2 = "§c没有工作室的世界是开放的!"
+you_must_be_studio_world = "§c你一定在一个工作室的世界!"
+opening_image_map_studio = "§aOpening the Image Map Studio."
+
+[iris.bukkit.commandsvc]
+you_lack_permission = "你没有权限 '{ROOTPERMISSION}'。"
+
+[iris.bukkit.irisenginestatus]
+message = "§5-------------------------"
+status = "§5状态："
+service = "§5- 服务：§d{value}"
+metrics = "§5- 指标：§d{value}"
+maintenance_period = "§5- 维护周期：§d{value}"
+worker_parallelism = "§5- 工作线程并行度：§d{value}"
+active_world_tasks = "§5- 活跃世界任务：§d{value}"
+tectonic_plates = "§5构造板块："
+configured_retention = "§5- 配置保留数：§d{value}"
+heap_usage = "§5- 堆内存使用：§d{value}"
+resident = "§5- 常驻：§d{value}"
+queued = "§5- 已排队：§d{value}"
+average_idle_duration = "§5- 平均空闲时长：§d{value}"
+max_idle_duration = "§5- 最大空闲时长：§d{value}"
+min_idle_duration = "§5- 最小空闲时长：§d{value}"
+caches = "§5缓存："
+resource = "§5- 资源: §d{value} ({value2})"
+2d_stream = "§5- 二维流: §d{value} ({value2})"
+3d_stream = "§5- 三维流: §d{value} ({value2})"
+other = "§5- 其他：§d{value}（{value2}）"
+other_2 = "§5其他："
+iris_worlds = "§5- Iris 世界：§d{value}"
+loaded_chunks = "§5- 已加载区块：§d{value}"
+message_2 = "§5-------------------------"
+
+[iris.bukkit.commandedit]
+players_only = "§c此命令只能由玩家执行！"
+no_studio_world_is_open = "§c当前没有打开的 Studio 世界！"
+you_must_be_studio_world = "§c你必须位于 Studio 世界中！"
+cannot_open_files_headless_environments = "§c无法在无图形界面的环境中打开文件！"
+desktop_is_not_supported_by_this_environment = "§c此环境不支持桌面功能！"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6找不到文件；它可能不是直接从文件加载的。"
+opening_vscode = "§a正在 VSCode 中打开 {value} {value2}！"
+cant_find_file_registrant_does_not_exist = "§c找不到文件：注册项不存在。"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6找不到文件；它可能不是直接从文件加载的。"
+opening_vscode_2 = "§a正在 VSCode 中打开 {value} {value2}！"
+cant_find_file_registrant_does_not_exist_2 = "§c找不到文件：注册项不存在。"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6找不到文件；它可能不是直接从文件加载的。"
+opening_vscode_3 = "§a正在 VSCode 中打开 {value} {value2}！"
+cant_find_file_registrant_does_not_exist_3 = "§c找不到文件：注册项不存在。"
+
+[iris.bukkit.commandpregen]
+pregen_radius_must_be_greater_than_zero_blocks = "§cPregen半径必须大于零块."
+strict_serial_pregeneration_requires_paper_paper_compatible_server = "§c严格的序列预生成要求 Paper 或一个 Paper- 兼容服务器。"
+engine_access_this_world_is_null = "§c这个世界的引擎是无效的!"
+please_make_sure_world_is_loaded_engine_is_initialized_generate = "§c请确保世界充满 & 引擎已经初始化。  例如, 生成一个新的块 。"
+failed_start_pregeneration_see_console_details = "§c启动预生成失败 。  详情见控制台。"
+no_active_pregeneration_tasks_stop = "§e没有活动生成前任务可停止"
+paused_unpaused_pregeneration_task_now = "§a已暂停/ 未停止的生成前任务, 现在 : {value}."
+no_active_pregeneration_tasks_pause_unpause = "§e没有活动的生成前任务可以暂停/停止 。"
+no_active_pregeneration_task = "§e没有活动生成前任务 。"
+pregen = "§a预览 §6{world}§a: §6{value}/{value2}§a (§6{value3}%§a){value4}"
+speed_s_eta_elapsed_method = "§a速度 : §6overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s§a ETA: §6{eta}§a Elapsed: §6{elapsed}§a Method: §6{method}{failures}"
+
+[iris.bukkit.commandwhat]
+material = "材料 : §a{value}"
+full = "满: §f{value}"
+please_hold_block_item = "请稍等"
+material_2 = "材料 : §a{value}"
+please_hold_block_item_2 = "请稍等"
+ibiome = "IBiome: {value} ({value2})"
+non_iris_biome = "无Iris 生物群落: {value}"
+data_pack_biome_id = "数据包 Biome :{value}(编号:{value2})"
+iregion = "IRegion: {value} ({value2})"
+iris_worlds_only = "§a只有爱里斯的世界。"
+please_look_at_any_block_not_at_sky = "请看任何街区,不要看天空"
+material_3 = "材料 : §a{value}"
+full_2 = "满: §f{value}"
+storage_block_loot_capable = "§e* 存储区块(抢掠能力)"
+lit_block_light_capable = "§e* 立方块(灯光能力)"
+foliage_block = "§e* 叶片块"
+decorant_block = "§e* 装饰性块"
+fluid_block = "§e* 流体块"
+plantable_foliage_block = "§e* 植物叶片块"
+solid_block = "§e* 固体块"
+found_nearby_markers = "发现{value}临近标记( N){marker})"
+iris_worlds_only_2 = "§a只有爱里斯的世界。"
+
+[iris.modded.irismoddedcommands]
+this_dimension_is_not_generated_by_iris = "此维度不是由 Iris 生成的。"
+console_must_name_biome_iris_edit_biome_key = "控制台必须命名一个 biome: /iris edit biome <key>"
+biome_lookup_failed = "Biome 搜索失败 : {value}"
+unknown_biome = "未知生物仪 : {key}"
+this_dimension_is_not_generated_by_iris_2 = "此维度不是由 Iris 生成的。"
+console_must_name_region_iris_edit_region_key = "控制台必须指定一个区域: /iris edit region <key>"
+region_lookup_failed = "区域搜索失败 : {value}"
+unknown_region = "未知区域 : {key}"
+this_dimension_is_not_generated_by_iris_3 = "此维度不是由 Iris 生成的。"
+cannot_open_files_here = "无法在此打开文件 : {value}"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "无法找到文件; 也许它不是直接从文件中加载的 ?"
+could_not_open = "无法打开 {value}: {value2}"
+opening_your_editor = "开幕 {value}  {value2} 在你的编辑。"
+console_must_name_player_iris_tp_dimension_player = "控制台必须给玩家命名 : /iris tp <dimension> <player>"
+is_not_generated_by_iris = "{value} 不由 Iris."
+teleport_failed_dimension_is_not_loaded = "Teleport 失败: 维度 {dimensionId} 未加载。"
+teleporting = "远程传送 {value} 改为: {dimensionId}..."
+is_not_generated_by_iris_2 = "{value} 不由 Iris."
+cannot_evacuate_primary_world_there_is_nowhere_send_players = "无法撤离主世界; 没有地方可以发送玩家 。"
+evacuated_player_s_from = "已撤离{count}玩家从{value}改为:{value2}."
+set_debug = "设置调试到 : {to}"
+hotloaded_settings = "热载设置"
+this_command_can_only_be_used_by_players_it_inspects = "此命令只能被玩家使用( 它检查您持有的项目) 。"
+your_main_hand_is_empty = "汝主手执空."
+hand_x = "手执: {value} x{value2}"
+this_command_can_only_be_used_by_players = "此命令只能由玩家使用。"
+this_dimension_is_not_generated_by_iris_4 = "此维度不是由 Iris 生成的。"
+this_dimension_is_not_generated_by_iris_5 = "此维度不是由 Iris 生成的。"
+is_not_generated_by_iris_see_iris_info_loaded_iris = "{value} 不由 Iris; 见 /iris info 用于加载 Iris 维度。"
+current_dimension_is_not_generated_by_iris_name_one_explicitly = "目前的层面{value})不是由Iris.明确名称:/iris pregen start {radius} <dimension>; 见/iris info用于加载Iris维度。"
+pregeneration_task_is_already_running_stop_it_first_with_iris = "生成前的任务已经在运行中 。  先别闹了 /iris pregen stop."
+pregen_started_by_blocks_from_progress_logs_console_see_iris = "Pregen 开始于 {value} 页:1 {value2} 由 {value3} 块从 {centerX},{centerZ}.{modeNote} 要控制台的进度日志; 参见 /iris pregen status.{guiNote}"
+stopping_pregeneration_finishing_up_current_region = "停止预生成; 完成当前区域..."
+no_active_pregeneration_task_stop = "无活动生成前任务可停止 。"
+no_active_pregeneration_task_pause_resume = "没有活动生成前任务可以暂停/恢复 。"
+pregeneration_is_now = "早产是现在 {value}."
+no_active_pregeneration_task = "没有活动生成前任务 。"
+iris_by_volmit_software_on_minecraft_iris_dimension_s = "Iris {value}由Volmit Software打开{value2} (Minecraft {value3}), {engines} Iris维度"
+loaded_dimensions_iris = "加载的维度 : {total} ({iris}  Iris)"
+this_command_can_only_be_used_by_players_2 = "此命令只能由玩家使用。"
+this_dimension_is_not_generated_by_iris_6 = "此维度不是由 Iris 生成的。"
+biome = "生物群落: {value} ({value2})"
+biome_lookup_failed_2 = "Biome 搜索失败 : {value}"
+region = "地区: {value} ({value2})"
+region_lookup_failed_2 = "区域搜索失败 : {value}"
+cave_biome = "洞穴生物仪: {value}"
+cave_biome_lookup_failed = "洞穴生物探测失败 : {value}"
+surface_block_y = "表面块 : {value} (y={value2})"
+position_chunk = "位置 : {value}  {value2}  {value3} (chunk {value4},{value5})"
+this_command_can_only_be_used_by_players_it_inspects_2 = "此命令只能被玩家使用( 它检查您正在查看的块) 。"
+look_at_block_not_sky = "看一个街区,不是天空。"
+block_y = "块 : {value} (y={value2})"
+this_command_can_only_be_used_by_players_markers_render = "此命令只能被玩家使用( 标记渲染为您周围的粒子) 。"
+this_dimension_is_not_generated_by_iris_7 = "此维度不是由 Iris 生成的。"
+scanning_markers_around_you = "扫描“{marker}你身边的标记..."
+marker_scan_failed = "标记扫描失败 : {value}"
+found_nearby_marker_s = "发现 {value} 附近标记(s) ({marker})"
+this_command_can_only_be_used_by_players_3 = "此命令只能由玩家使用。"
+this_dimension_is_not_generated_by_iris_8 = "此维度不是由 Iris 生成的。"
+unknown_biome_2 = "未知生物仪 : {key}"
+this_command_can_only_be_used_by_players_4 = "此命令只能由玩家使用。"
+this_dimension_is_not_generated_by_iris_9 = "此维度不是由 Iris 生成的。"
+unknown_region_2 = "未知区域 : {key}"
+is_not_defined_dimension = "{value} 维度中没有定义!"
+this_dimension_is_not_generated_by_iris_10 = "此维度不是由 Iris 生成的。"
+is_not_configured_any_region_biome_object_placements_object_keys = "{key} 未在任何区域/生物物体布置中配置({value} 对象密钥已载入)."
+this_command_can_only_be_used_by_players_object_key = "此命令只能被玩家使用.  (对象密钥”{key}`针对 {value} 已加载对象密钥)"
+this_dimension_is_not_generated_by_iris_11 = "此维度不是由 Iris 生成的。"
+name_iris_native_structure_locate = "名称 Iris 或本地结构来定位。"
+this_command_can_only_be_used_by_players_5 = "此命令只能由玩家使用。"
+unknown_structure_use_tab_completion_choose_iris_placement_registered_native = "未知结构 '{key}'.  使用标签补全来选择 Iris 放置或注册的本地/数据包结构。"
+searching_native_structure_within_chunks = "寻找本地结构 {value} 在内部 {NATIVESTRUCTURELOCATERADIUS} 块..."
+searching_iris_placed_structure = "正在寻找 Iris- 安置结构 {key}..."
+unable_locate_iris_placed_structure_density_search_safety_limit_was = "无法定位 Iris- 安置结构 {key}: 密度搜索安全限值在完整前达到 1024- 半径被搜查了"
+could_not_find_iris_placed_structure_within_1024_chunks = "无法找到 Iris- 安置结构 {key} 在内部 1024 块。"
+search_failed = "搜索失败 : {value}"
+could_not_find_native_structure_within_chunks = "找不到本地结构 {value} 在内部 {NATIVESTRUCTURELOCATERADIUS} 块。"
+search_native_structure_failed = "搜索本地结构 {value} 失败 : {value2}"
+player_disconnected_before_structure_search_completed = "玩家在结构搜索完成前断开."
+you_changed_dimensions_before_structure_search_completed_run_command_again = "您在结构搜索完成前更改了维度; 再次运行命令 。"
+found_at_but_teleportation_failed = "发现 {label} 时间 {targetX}  {clampedY}  {targetZ}但是电传失败了"
+teleported_at = "传送到 {label} 时间 {targetX}  {clampedY}  {targetZ}"
+this_dimension_is_not_generated_by_iris_12 = "此维度不是由 Iris 生成的。"
+structure_reachability_native_generation_eligible_iris_placed_native_disabled_native = "结构可达性: {available} 当地一代人, {irisPlaced}  Iris- 已经安排好了 {disabled} 本地残疾人; {suppressed} 原生替换为 Iris 安置人员, {unreachableBiomes} 被这群生物群落所排斥,还有 {unsupported} 已注册的本地结构不支持这一方面。  使用 /iris structure verify <key> 一个结构。"
+structure_is_iris_placed_locatable_with_iris_goto_structure = "结构 {key} 这是 Iris- 放置和可移动 /iris goto structure {key2}."
+unknown_structure_it_is_neither_iris_placed_nor_registered_by = "未知结构 '{key}'.  两者都不是 Iris- 被原版或数据包放置或登记。"
+structure_is_explicitly_replaced_by_iris_placement_locatable_with_iris = "结构 {value} 明确替换为 Iris 放置和可移动 /iris goto structure {value2}."
+native_structure_is_enabled_supported_by_this_dimension_s_generator = "本地结构 {value} 被启用,由此维的生成状态支持,并可用 /iris goto structure {value2}."
+this_dimension_is_not_generated_by_iris_13 = "此维度不是由 Iris 生成的。"
+this_command_can_only_be_used_by_players_poi_type = "此命令只能被玩家使用.  (POI 类型“{type}`已接受)"
+searching = "正在寻找 {label}..."
+engine_this_world_has_been_closed_rejoin_dimension_try_again = "这个世界的引擎已经关闭;重新加入维度并再次尝试。"
+search_failed_2 = "搜索失败 : {failure}"
+could_not_find_within_search_timeout = "无法找到 {label} 在搜索超时中。"
+teleported_at_2 = "传送到 {label} 时间 {blockX}  {blockY}  {blockZ}"
+engine_changed_while_locating_try_again = "定位时引擎改变 {label}再试一次"
+this_dimension_is_not_generated_by_iris_14 = "此维度不是由 Iris 生成的。"
+world_seed = "世界种子: {value}"
+engine_seed_mixed = "引擎种子 : {value} (混合为: {value2})"
+this_dimension_is_not_generated_by_iris_15 = "此维度不是由 Iris 生成的。"
+downloading_irisdimensions = "下载 IrisDimensions/{pack} ({downloadSource})..."
+pack_installed_its_exact_dimension_types_custom_biomes_join_forced = "包{pack}'已安装。  它的精确维度类型和自定义生物群落 加入强制 Iris 下一个服务器上的数据包重新启动; 在此包创建世界之前重新启动。"
+pack_download_failed_see_console = "包下载失败 {pack} ({downloadSource}; 见控制台)。"
+this_dimension_is_not_generated_by_iris_16 = "此维度不是由 Iris 生成的。"
+generated_chunk_s_s = "生成 :{value}块,{value2}/编号"
+ms = "  {value}: {value2}ms"
+
+[iris.modded.moddedcommandhelp]
+unknown_iris_help_section = "不详 Iris 帮助区域 : {normalized}"
+
+[iris.modded.moddeddatapackcommands]
+type_active_logical_pack_engine_not_started_pack_heights_unknown = "{dimensionId}类型={typeKey} 活动={activeMin}..{activeMax} 逻辑={value} (包={value2},引擎未启动;包高度未知)"
+type_active_logical_pack_wants_logical = "{dimensionId}类型={typeKey} 活动={activeMin}..{activeMax} 逻辑={value} | pack '{value2}愿望 {packMin}..{packMax} 逻辑={packLogical} | {value3}{value4}"
+warning_active_dimension_type_does_not_match_pack_iris_will = "  警告:活动维度类型与包不匹配.  Iris 将拒绝启动这个世界引擎 而不是剪切地形。  运行 /iris world enable <dimension> <pack> 为新世界,或 /iris datapack install 用于已加载 Iris 维度,然后重新启动。"
+no_iris_dimensions_are_loaded = "没有 Iris 维度已加载。"
+all_iris_dimension_s_match_their_pack_height_ranges = "全体{irisLevels} Iris维度与其包高程相符。"
+engine_not_started_cannot_derive_its_dimension_type_yet = "{value}: 引擎尚未启动;尚不能得出其维度类型。"
+dimension_type_generation_failed = "{value}: 维度类型生成失败 : {value2}"
+failed_write = "写入失败 {output}: {value}"
+no_iris_dimensions_with_running_engines_found_nothing_was_installed = "没有 Iris 找到有运行中的引擎的维度; 没有安装 。"
+failed_write_2 = "写入失败 {mcmeta}: {value}"
+wrote = "编剧 {path}"
+world_datapack_dimension_type_overrides_installed_restart_server_dimension_types = "世界数据包 '{WORLDPACKNAME}' 维度类型已安装。  重新启动用于应用维度类型的服务器 。"
+configured_datapack_imports = "已配置数据包导入 : {value}"
+message = "  - {url}"
+modrinth_ingest_is_bukkit_only_install_these_manually_into_world = "Modrinth 摄入是 Bukkit- 只安装; 手动安装到 world/datapacks 如果需要的话。"
+installed_world_datapacks = "安装的世界数据包 : {value}"
+message_2 = "  - {name}"
+
+[iris.modded.moddeddevelopercommands]
+message = "  {value}"
+network_scan_failed = "网络扫描失败 : {value}"
+
+[iris.modded.moddedgoldenhash]
+goldenhash_scan_is_already_running = "金色扫描已经运行中 。"
+
+[iris.modded.moddedobjectcommands]
+this_command_can_only_be_used_by_players_wand_is = "此命令只能被玩家使用.  (魔杖是实物)"
+your_inventory_is_full = "你的存货满了"
+poof_good_luck_building_left_click_corner_1_right_click = "猪!  祝你好运建筑!  (左键=角 1,右键点击=角 2)"
+this_command_can_only_be_used_by_players_dust_is = "此命令只能被玩家使用.  (尘是有形物品)"
+your_inventory_is_full_2 = "你的存货满了"
+right_click_block_reveal_object_it_belongs = "右键单击块以显示其所属对象。"
+this_command_can_only_be_used_by_players_saving_captures = "此命令只能被玩家使用.  (拯救抓住你的魔杖选择)"
+this_dimension_is_not_generated_by_iris_objects_save_into = "此维度不是由 Iris;对象保存到维度包中。"
+hold_your_iris_wand_iris_wand = "拿着 Iris 魔杖 魔棍  (/iris wand)"
+no_area_selected_left_right_click_blocks_with_wand_first = "未选择区域 。  左/右点击带魔杖的块。"
+invalid_object_name = "无效的对象名称 : {nameRaw}"
+selection_too_large_blocks_max = "选择太大 :{volume}块(最大值){MAXSAVEVOLUME})."
+file_already_exists_use_iris_object_save_overwrite = "文件已经存在 。  使用 /iris object save overwrite {name}"
+failed_save_object = "保存对象失败 : {value}"
+saved_objects_iob_x_x_block_s = "已保存 {value}/objects/{name}.iob: {w}x{h}x{d}, {value2} 块( B){tileNote}"
+unknown_empty_object = "未知或空对象 : {key}"
+console_must_specify_coordinates_iris_object_paste_at_x_y = "控制台必须指定坐标 : /iris object paste at <x> <y> <z> [rotate <degrees>] {key}"
+you_are_not_looking_at_block_within_blocks = "你不看一个街区里面 {value} 块。"
+paste_failed_partial_changes_recorded_undo = "粘贴失败 : {value} (部分更改记录为撤销)"
+placed_at_rot_write_s_non_air = "已放置 {key} 时间 {value}  {value2}  {value3} 腐烂={rotation} ({value4} 写入(s) {value5} 非空调{tileNote})"
+this_command_can_only_be_used_by_players = "此命令只能由玩家使用。"
+hold_your_iris_wand_iris_wand_2 = "拿着 Iris 魔杖 魔棍  (/iris wand)"
+no_area_selected = "未选择区域 。"
+message = "{value}  {amount}  {value2}: {value3}"
+this_command_can_only_be_used_by_players_2 = "此命令只能由玩家使用。"
+ready_your_wand_iris_wand = "准备好魔杖  (/iris wand)"
+you_are_not_looking_at_block = "你没在看一个街区。"
+position_set = "立场 {value} 设置为 {value2}  {value3}  {value4}"
+this_command_can_only_be_used_by_players_3 = "此命令只能由玩家使用。"
+hold_your_wand = "拿着你的魔杖!"
+no_area_selected_2 = "未选择区域 。"
+selection_too_large_auto_select_blocks_max = "选择太大, 无法自动选择 :{volume}块(最大值){MAXAUTOSELECTVOLUME})."
+auto_select_complete = "自动选择完成 : {value}"
+unknown_object = "未知对象 : {key}"
+object_size = "对象大小 : {value} * {value2} * {value3}"
+blocks_used = "使用的块 : {value}"
+blocks_object = "==:"
+message_2 = " - {value} * {value2}"
+other_block_state_s = "  + {remaining}其他块状态"
+unknown_object_2 = "未知对象 : {key}"
+current_object_size = "当前对象大小 : {value} * {value2} * {value3}"
+new_object_size = "新对象大小 : {value} * {value2} * {value3}"
+object_has_no_load_file_cannot_persist_shrink = "对象没有负载文件; 无法坚持缩写 。"
+failed_save_object_2 = "保存对象失败 {value}: {value2}"
+invalid_reach = "无效的覆盖 : {token}"
+no_objects_matched = "未匹配对象 : {target}"
+plausibilize_reach_queued_object_s = "铺设 [reach={reach}{value}] 已排队 {value2} 对象( S)"
+nothing_undo = "没有什么可以弥补的。"
+reverted_paste_s = "已还原{reverted}粘贴!"
+
+[iris.modded.moddedpackcommands]
+packs_folder_not_found = "未找到文件夹 : {value}"
+no_packs_validate_under = "没有包可以验证 {value}"
+pack_not_found_under = "包{pack}'未发现于 {value}"
+validating_pack_s = "验证{value}包..."
+validation_failed = "验证 '{value}' 失败 : {value2}"
+validation_complete_broken_packs = "鉴定完毕  破损的包: {brokenTotal}/{value}"
+pack_not_found_under_2 = "包{pack}'未发现于 {value}"
+pack_not_found_under_3 = "包{pack}'未发现于 {value}"
+no_validation_results_recorded_run_iris_pack_validate_first = "未记录验证结果.  运行 /iris pack validate 先说"
+blocking_warnings = "{tag}  {value} (阻断={value2}时,警告={value3})"
+no_validation_result_run_iris_pack_validate = "没有验证结果 '{pack}'.  运行 /iris pack validate {pack2}."
+pack_is_loadable_warnings = "包{value}'是可装载的。  (警报={value2})"
+pack_is_broken = "包{value}'为. 损坏:"
+message = "  - {reason}"
+message_2 = "  !  {value}"
+more_warning_s = "  ...和{value}更多警告。"
+no_cleanup_candidates_found_pack = "没有找到包的清理候选人 '{pack}'."
+cleanup_preview_pack_candidate_s_no_files_were_changed = "包的清理预览{pack}': {value}候选人。没有更改文件 。"
+run_iris_pack_cleanup_apply_quarantine_after_fresh_scan = "运行 /iris pack cleanup {pack} apply 重新扫描后隔离"
+no_cleanup_candidates_found_pack_2 = "没有找到包的清理候选人 '{pack}'."
+quarantined_cleanup_candidate_s_under = "检疫{value}清理候选人{value2}."
+nothing_restore_pack = "没有东西可以还原{pack}'."
+restore_preview_file_s_no_files_were_changed = "恢复预览{value}: {value2}文件。没有更改文件 。"
+restore_is_blocked_by_existing_destination_s = "恢复被阻断{value}现有目的地。"
+run_iris_pack_restore_apply_restore_after_fresh_conflict_check = "运行 /iris pack restore {pack} apply 在重新核对冲突后恢复。"
+restore_refused_because_destination_s_already_exist = "还原被拒绝,因为{value}目的地已经存在。"
+nothing_restore_pack_2 = "没有东西可以还原{pack}'."
+restored_file_s_from = "已恢复{value}文件从{value2}."
+message_3 = "  - {label}: {value}"
+more = "  ...  和 {value} 再来"
+compat_header = "资源包 '{pack}': 内容在 Minecraft {version} 中不可用"
+compat_none = "资源包 '{pack}' 未使用 Minecraft {version} 中缺失的内容。"
+compat_remedy = "将服务器升级到更新的 Minecraft 以恢复这些内容，或声明回退 (维度的 blockFallbacks、方块的 backup)。"
+
+[iris.modded.moddedregen]
+regen_is_already_running = "Regen 已经运行了 。"
+
+[iris.modded.moddedstructurecommands]
+this_dimension_is_not_generated_by_iris_run_this_from = "此维度不是由 Iris.  运行此从一个 Iris 维度可以解决包。"
+wrote_structure_index = "写作结构索引 : {value}"
+no_iris_structure_this_pack = "无Iris结构 '{key}\"在这个包里\""
+structure_assembled_0_pieces_check_startpool = "结构 '{key}组装 0 块( 请检查 startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "结构 '{key}': {value}脚印{value2}页:1{value3}块(样本种子1234)"
+this_command_can_only_be_used_by_players_structure_is = "此命令只能被玩家使用(结构在您的位置组装)."
+no_iris_structure_this_pack_2 = "无Iris结构 '{key}\"在这个包里\""
+structure_assembled_0_pieces = "结构 '{key}组装 0 块"
+place_failed_partial_changes_recorded_undo = "位置失败 : {value} (部分更改记录为撤销)"
+placed_pieces_write_s_at_your_location_iris_object_undo = "已放置 '{key}' ({value}块,{value2}写入{tileNote}在你的地点。 /iris object undo将返回。"
+
+[iris.modded.moddedstudiocommands]
+provide_dimension_pack_iris_studio_open_pack_seed = "提供一个维度包: /iris studio open <pack> [seed]"
+opening_noise_explorer_on_server_display = "在服务器显示上打开噪音探索器 。"
+this_dimension_is_not_generated_by_iris_run_iris_studio = "此维度不是由 Iris; 运行 /iris studio noise 从 a Iris 以解析生成器,或省略生成器名称。"
+unknown_generator_pack = "未知的生成器 '{generatorKey}包 {value}."
+opening_noise_explorer_generator_seed = "打开生成器的噪音探索器 '{value}'(种子 {seed})."
+this_dimension_is_not_generated_by_iris_stand_iris_studio = "此维度不是由 Iris; 站在一个 Iris (或工作室) 维度和运行 /iris studio map."
+opening_vision_map_on_server_display = "打开远景图 {value} 在服务器显示中。"
+failed_write_workspace = "写入工作空间失败 {value}: {value2}"
+workspace_regenerated_with_json_schemas_autocomplete = "工作空间重生成 : {value} 与 JSON 自动完成的计划。"
+could_not_open = "无法打开 {value}: {value2}"
+opening_your_editor = "开幕 {value} 在你的编辑。"
+this_dimension_is_not_generated_by_iris_specify_pack_name = "此维度不是由 Iris; 明确指定包名。"
+pack_not_found_under = "包{name}'未发现于 {value}"
+provide_dimension_pack_iris_studio_open_pack_seed_2 = "提供一个维度包: /iris studio open <pack> [seed]"
+opening_studio_seed = "开幕工作室{pack}'(种子 {seed})..."
+pack_missing_downloading_irisdimensions = "包{pack}' 缺少; 下载 IrisDimensions/{pack2}..."
+pack_could_not_be_downloaded_check_name_try_iris_download = "包{pack}' 无法下载; 请检查名称并尝试 /iris download {pack2}."
+pack_has_no_dimensions_json = "包{pack}没有 dimensions/{pack2}.json"
+studio_open_failed = "工作室打开失败 : {value}{errorMessage}"
+studio_injection_failed = "工作室注入失败 : {value}{errorMessage}"
+console_studio_open_now_runs_seed_transient_not_written_iris = "控制台工作室打开 : {dimensionId} 现在运行“{pack}种子 {seed} (短暂;不写给 iris-dimensions.json 并在重新启动时清除)."
+enter_it_with_execute_run_tp_s_8_5_8 = "输入方式 : /execute in {dimensionId} run tp @s 8.5  {surface}  8.5"
+pregen_it_with_iris_pregen_start_radius = "给它预留: /iris pregen start <radius> {dimensionId}"
+remove_it_with_iris_studio_close = "删除方式: /iris studio close"
+studio_injection_failed_2 = "工作室注入失败 : {value}{errorMessage}"
+studio_open_now_runs_seed_use_iris_studio_close_when = "工作室打开 : {dimensionId} 现在运行“{pack}种子 {seed}.  使用 /iris studio close 当完成。"
+you_do_not_have_open_studio_use_iris_studio_open = "你没有开放的工作室。  使用 /iris studio open <pack> 先说"
+studio_close_failed = "工作室关闭失败 : {value}{errorMessage}"
+studio_closed_was_evacuated_unloaded_its_region_data_deleted = "工作室关闭 : {dimensionId} 并删除其区域数据。"
+no_studio_dimensions_are_currently_open = "目前没有工作室维度打开."
+active_studio_dimension_s = "活动工作室维度( S): {value}"
+pack_seed_owner = "  {value}: 包 '{value2}种子 {value3} 拥有者 {ownerName}"
+this_command_can_only_be_used_by_players = "此命令只能由玩家使用。"
+you_do_not_have_open_studio_use_iris_studio_open_2 = "你没有开放的工作室。  使用 /iris studio open <pack> 先说"
+your_studio_dimension_is_no_longer_loaded_use_iris_studio = "你的工作室的维度已经没有了  使用 /iris studio open <pack> 再来一次"
+teleported_your_studio = "电传到你的工作室({dimensionId})."
+pack_has_no_dimensions_json_2 = "包{value}没有 dimensions/{value2}.json"
+pack_has_version = "那个 \"{value}\" 包有版本: {value2}"
+invalid_project_name_allowed_z_0_9 = "无效的工程名称 '{nameRaw}'(获批准:a-z, 0-9时,  和 -)"
+pack_already_exists_at = "包{name}' 已经存在于 {value}"
+creating_project_from_template = "创建工程 '{name}'从模板'{template}'..."
+required_pack_is_not_installed_install_then_restart = "所需维度包“{pack}”尚未安装。请使用 /iris download 安装，然后重启服务器。"
+created_project_at = "创建的工程 '{name}时 {value}"
+edit_dimensions_json_rest_pack_vscode_workspace_with_json_schema = "编辑 dimensions/{name}.json 还有剩下的包  A VSCode 工作空间 JSON 生成了 schema 自动完成; 打开或重运行 /iris studio vscode."
+project_creation_failed = "工程创建失败 : {value}{errorMessage}"
+packaging_dimension = "包维度 '{dimKey}'..."
+package_compiled = "汇编的软件包 : {value}"
+packaging_failed = "包失败 : {value}{errorMessage}"
+this_command_can_only_be_used_by_players_sampling_is = "此命令只能被玩家使用(样本以你的位置为中心)."
+this_dimension_is_not_generated_by_iris = "此维度不是由 Iris 生成的。"
+sampling_region_distribution_x_chunks_around_you = "抽样地区分布 {value}x{value2} 环绕着你..."
+rarity = "{key}: 罕见={rarity} / {value}%"
+region_sampling_failed = "区域采样失败 : {value}"
+image_map_requires_iris_dimension = "Stand in an active Iris or Studio dimension before opening the Image Map Studio."
+opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {value} on the server display."
+
+[iris.modded.moddedworldcommands]
+required_pack_is_not_installed_install_then_restart = "所需维度包“{pack}”尚未安装。请使用 /iris download 安装，然后重启服务器。"
+failed_inject_iris_world = "注入失败 Iris 世界{dimensionId}': {value}{errorMessage}"
+created_iris_world_from_pack_dimension_seed = "创建 Iris 世界 {dimensionId} 从包\"{pack}\" 维度 \"{packDimension}'(种子 {seed})."
+it_is_live_now_re_injected_on_every_startup_teleport = "它现在正在直播,并在每次启动时重新注入。  传送到 /iris world status 或门户网站;不需要重新启动。"
+failed_inject_iris_primary_world = "注入失败 Iris 初级世界: {value}{errorMessage}"
+iris_primary_world_set_pack_dimension_seed = "Iris 初级世界 {dimensionId} (pack '{pack}\" 维度 \"{packDimension}种子 {seed})."
+vanilla_overworld_generator_cannot_be_hot_swapped_so_this_does = "原版主世界生成器无法热替换，因此此操作不会重新生成现有的主世界。"
+instead_is_now_configured_primary_world_players_vanilla_overworld_are = "相反, {dimensionId} 现在是配置的初级世界:在原版覆盖世界的玩家在加入时会在那里经过路由,并且在每次启动时都会重新注入."
+iris_main_world_override_cleared_overworld_keeps_its_current_generator = "Iris 关闭主世界。  覆盖世界保留其当前生成器; 编辑 server.properties 级别类型并重新启动以将其修改回。"
+invalid_seed_use_number_random = "无效的种子 '{seedRaw}'.  使用数字或“ 随机” 。"
+pack_is_not_ready_yet_still_loading_validating_try_command = "包{pack}'尚未准备好(仍在加载或验证中)。  一会儿再试试命令"
+failed_write_server_properties_check_file_permissions_set_level_type = "写入失败 server.properties; 检查文件权限并手动设定级别类型."
+iris_main_world_set_preset_seed = "Iris 主要世界设定为`{pack}'(预设 {preset}种子 {value})."
+server_properties_level_type_is_now_on_next_restart_overworld = "server.properties 关卡类型现在 {preset}.  在接下来的重现世界时, 网罗, 结束再生像这样 Iris 这个世界"
+player_data_inventories_advancements_stats_is_kept_existing_terrain_those = "玩家数据(发明,进步,统计)保存;这些维度的现有地形被替换.  这适用一次。"
+mainworldautorestart_is_enabled_stopping_server_now_so_your_restart_wrapper = "mainWorldAutoRestart 已启用 - 停止服务器, 因此您重新启动的包器将它带回新的主世界 。"
+restart_server_now_generate_it_set_mainworldautorestart_true_modded_json = "现在重新启动服务器以生成它 。  (设置 mainWorldAutoRestart真实的 modded.json 拥有 Iris 为您停止服务器。 )"
+refusing_create_world_using_pack_because_required_validation_failed = "拒绝创造世界 '{dimensionId}\" 使用包 \"{pack}' 因为所需的验证失败 :"
+message = "  - {reason}"
+fix_pack_run_iris_pack_validate_revalidate = "修复内容包，然后运行 /iris pack validate {pack} 重新验证。"
+pack_was_not_found_under = "包{pack}`未发现于 {value}"
+pack_does_not_contain_dimensions_json = "包{pack}'不包含 dimensions/{packDimension}.json"
+invalid_pack_reference_use_pack_pack_dimensionkey = "无效的包引用 '{pack}{value}'.  使用包或包 :dimensionKey."
+invalid_seed_use_number_random_2 = "无效的种子 '{seedRaw}'.  使用数字或“ 随机” 。"
+failed_remove_iris_world = "删除失败 Iris 世界{dimensionId}': {value}{errorMessage}"
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry = "Iris 世界{dimensionId}`未加载;清除其持续登记册条目,并清除其储存的块/块数据。"
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry_2 = "Iris 世界{dimensionId}`未加载;清除了其持续的登记册条目。  磁盘上的世界数据被保存."
+deleted_iris_world_evacuated_unloaded_chunk_mantle_data_wiped_dropped = "删除 Iris 世界{dimensionId}':撤离,卸载,块/块数据被擦除,从启动登记簿上掉落."
+disabled_iris_world_evacuated_unloaded_dropped_from_startup_registry = "已禁用 Iris 世界{dimensionId}':撤离,卸载,从起动登记中投放."
+world_data_on_disk_is_kept_re_enable_with_iris = "磁盘上的世界数据保存;可重新使用 /iris world enable {dimensionId} <pack> 或将其删除 /iris world delete {dimensionId2}."
+loaded_iris_level_pack_dimension = "已加载 Iris 级别 : {value}  -> 包{value2}\" 维度 \"{value3}'"
+primary_world = "初级世界: {primary}{value}"
+no_iris_dimensions_are_currently_loaded_create_one_with_iris = "没有 Iris 维度正在加载 。  创建一个 /iris world create <name> <pack>."
+loaded_iris_dimensions = "已加载 Iris 维度 : {value}"
+message_2 = "  - {dimension}"
+use_iris_world_create_name_pack_inject_one_without_restarting = "使用 /iris world create <name> <pack> 在不重新启动的情况下注入一个。"
+
+[iris.director.commanddatapack]
+"director.download_manage_external_datapack_imports_modrinth" = "下载 & 管理外部数据包进口(Modrinth)"
+"director.download_update_every_datapack_listed_pack_dimension_s_datapackimports_install_it_into" = "下载/更新包“ s” 中列出的每个数据包datapackImports并将其安装到世界 所以它的结构像原版"
+"param.restart_server_when_new_datapacks_are_installed_required_new_structures_register_generate" = "安装新数据包时重新启动服务器( 新结构需要注册和生成)"
+"director.list_configured_datapack_imports_their_installed_versions" = "列出已配置的数据包导入及其安装版本"
+"director.remove_installed_datapack_by_id_also_delete_its_url_from_datapackimports_keep" = "通过 id 删除一个已安装的数据包( 同时删除其 URL)datapackImports让它消失)"
+"param.datapack_id_folder_name_shown_by_iris_datapack_list" = "数据包 id (文件夹名称) 显示于 /iris datapack list"
+
+[iris.director.commanddeveloper]
+"director.iris_world_manager" = "Iris 世界经理"
+"director.get_loaded_tectonicplates_count" = "加载 TectonicPlates 计数"
+"director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "用于确定/识别测试的固定区域的散列输出"
+"param.world_hash" = "散开的世界"
+"param.radius_chunks_around_center" = "半径为中心周围的块"
+"param.center_chunk_x" = "居中块 X"
+"param.center_chunk_z" = "居中块 Z"
+"director.stage_world_generation_update" = "准备世界生成更新"
+"param.world_update" = "更新世界"
+"param.pack_install_into_world" = "加载世界的包"
+"param.make_sure_make_backup_read_warnings_first" = "一定要做备份 & 先读一下警告!"
+"director.test" = "测试"
+"param.dump_whole_tectonic_plate_instead_single_section" = "将整个构造板块丢弃,而不是一个单段"
+"param.dump_file_id_under_plugins_iris_dump_pv_id" = "丢弃文件 ID 下方 plugins/Iris/dump (pv.<id>.*)"
+"director.test_2" = "测试"
+"param.pack_bench" = "包到长椅"
+"param.radius_regions" = "区域半径"
+"param.open_gui_while_benchmarking" = "打开 GUI 在设定基准时"
+"director.upgrade_another_minecraft_version" = "升级到另一个 Minecraft 版本"
+"param.version_upgrade" = "升级到"
+"director.test_3" = "测试"
+"param.world_folder_scan_mca_region_files" = "扫描 .mca 区域文件的世界文件夹"
+"director.delete_nearby_chunk_blocks_regen_testing" = "删除附近的块块进行再生测试"
+"param.radius_chunks_around_your_current_chunk" = "当前块周围的半径"
+"director.test_4" = "测试"
+"director.delete_regenerate_nearby_chunks_place_using_iris_generation" = "使用 Iris 生成"
+"param.radius_nearby_chunks" = "附近块的半径"
+"director.generate_chunks_into_buffers_no_world_writes_hash_blocks_biomes_captures_golden" = "在缓冲区中生成区块（不写入世界）并对方块和 biome 进行 hash；用于捕获 golden 文件或与现有文件进行验证。会删除该世界的整个 mantle——请仅在一次性测试世界中使用。"
+"param.world_scan" = "扫描世界"
+"param.radius_chunks_around_center_2" = "半径为中心周围的块"
+"param.center_chunk_x_2" = "居中块 X"
+"param.center_chunk_z_2" = "居中块 Z"
+"param.delete_mantle_data_scan_area_first_full_regeneration_from_scratch" = "先删除该世界的整个 mantle 文件夹，以便从头完全重新生成。不限于扫描区域"
+"param.concurrent_chunk_generations_1_strictly_serial_order_dependence_testing" = "同时代的几代人; 1 = 严格序列进行订单依赖测试"
+"param.also_dump_full_per_chunk_non_air_blockstates_offline_diffing" = "还要把整个非空气区块都丢掉"
+
+[iris.director.commandedit]
+"director.edit_something" = "编辑一些东西"
+"director.edit_biome_you_specified" = "编辑您指定的生物仪"
+"param.biome_edit" = "要编辑的生物仪"
+"director.edit_region_you_specified" = "编辑您指定的区域"
+"param.region_edit" = "要编辑的区域"
+"director.edit_dimension_you_specified" = "编辑您指定的维度"
+"param.dimension_edit" = "要编辑的维度"
+
+[iris.director.commandfind]
+"director.iris_find_commands" = "Iris 查找命令"
+"director.find_biome" = "查找群系"
+"param.biome_look" = "要查找的群系"
+"param.should_you_be_teleported" = "是否传送到目标"
+"director.find_region" = "查找区域"
+"param.region_look" = "要查找的区域"
+"param.should_you_be_teleported_2" = "是否传送到目标"
+"director.find_point_interest" = "查找兴趣点"
+"param.type_poi_look" = "要查找的兴趣点类型"
+"param.should_you_be_teleported_3" = "是否传送到目标"
+"director.find_structure_vanilla_key_like_minecraft_village_plains_minecraft_stronghold_imported_iris" = "查找结构（例如原版键 minecraft:village_plains、minecraft:stronghold，或导入的 Iris 结构键）"
+"param.structure_look_e_g_minecraft_village_plains_minecraft_stronghold_minecraft_ancient_city" = "要查找的结构（例如 minecraft:village_plains、minecraft:stronghold、minecraft:ancient_city）"
+"director.find_object" = "查找对象"
+"param.object_look" = "要查找的对象"
+"param.should_you_be_teleported_4" = "是否传送到目标"
+
+[iris.director.commandobject]
+"director.iris_object_manipulation" = "Iris 对象操纵"
+"director.open_object_studio_world_grid_every_object_dimension_optional_defaults_all_packs" = "打开对象工作室世界( 每个对象的网格; 维度可选, 默认为所有包)"
+"param.optional_dimension_whose_object_pack_lay_out_omit_aggregate_objects_from_every" = "对象包的可选维度; 省略以汇总每包的对象"
+"param.seed_generate_studio_with" = "制作工作室的种子"
+"director.check_composition_object" = "检查对象的构成"
+"param.object_analyze" = "分析对象"
+"director.shrink_object_its_minimum_size" = "缩小对象到最小大小"
+"param.object_shrink" = "缩小对象"
+"director.grow_organic_branches_through_canopy_so_every_leaf_survives_vanilla_decay" = "通过树冠生长有机树枝 使每个叶子都能存活下来"
+"param.object_key_prefix_trees_filesystem_path" = "对象密钥、 前缀( 树/ ) 或文件系统路径"
+"param.dryrun_true_analyzes_only_writes_nothing" = "干燥=只分析,不写"
+"param.reach_n_max_branch_length_blocks_from_existing_wood_farther_leaf_clusters" = "达到=N 最大分支长度,与现有木材成块;更远的叶片组则具有持久性。  达到=0 增长无限"
+"director.convert_schem_files_convert_folder_iob_files" = "将“转换”文件夹中的.schem文件转换为.iob文件。"
+"director.get_powder_that_reveals_objects" = "获取显示对象的粉末"
+"director.contract_selection_based_on_your_looking_direction" = "根据您的外观方向订约选择"
+"param.amount_inset_by" = "数额为:"
+"director.set_point_1_look" = "设定点 1 打开"
+"param.whether_use_your_current_position_where_you_look" = "是否使用您当前位置, 或您看起来的位置"
+"director.set_point_2_look" = "设定点 2 打开"
+"param.whether_use_your_current_position_where_you_look_2" = "是否使用您当前位置, 或您看起来的位置"
+"director.paste_object" = "粘贴对象"
+"param.object_paste" = "要粘贴的对象"
+"param.whether_not_edit_object_need_hold_wand" = "是否编辑对象( 需要持有魔杖)"
+"param.amount_degrees_rotate_by" = "旋转的度数"
+"param.factor_by_which_scale_object_placement" = "对象放置的尺度"
+"param.scale_interpolator_use" = "要使用的尺度内插符"
+"director.save_object" = "保存对象"
+"param.dimension_store_object" = "存储对象的维度"
+"param.file_store_it_can_use_subfolders" = "要存储它的文件, 可以使用 / 用于子文件夹"
+"param.overwrite_existing_object_files" = "覆盖已有对象文件"
+"param.use_legacy_tilestate_serialization_if_possible" = "使用遗留 TileState 如果可能,序列化"
+"director.shift_selection_your_looking_direction" = "将选中区域移到您的外观方向"
+"param.amount_shift_by" = "转帐金额"
+"director.undo_number_pastes" = "撤消多个粘贴"
+"param.amount_pastes_undo" = "要取消的粘贴量"
+"director.gets_object_wand_grabs_current_worldedit_selection" = "获取对象棒并抓取电流 WorldEdit 选择。"
+"director.get_object_wand" = "获取对象魔杖"
+"director.autoselect_up_down_out" = "自动选择上下 & 关闭"
+"director.autoselect_up_out" = "自动选择上 & 关闭"
+
+[iris.director.commandpack]
+"director.pack_validation_maintenance" = "包验证和维护"
+"director.validate_pack_all_packs_re_publish_results" = "验证一个包(或所有包)并重新公布结果"
+"param.pack_folder_name_validate_leave_empty_all" = "要校验的包文件夹名称( 为所有人留空)"
+"director.preview_apply_unused_resource_cleanup" = "预览或应用未使用的资源清理"
+"param.pack_folder_name_clean" = "要清理的文件夹名称"
+"param.preview_apply" = "预览或应用"
+"director.preview_apply_restoration_latest_quarantine" = "最新检疫的预览或应用恢复"
+"param.pack_folder_name_restore" = "要恢复的包文件夹名称"
+"param.preview_apply_2" = "预览或应用"
+"director.show_cached_validation_status_pack" = "显示包的缓存验证状态"
+"param.pack_folder_name" = "文件夹名称"
+"director.show_content_cannot_generate_this_minecraft_version" = "显示在当前 Minecraft 版本中无法生成的资源包内容"
+"param.pack_folder_name_compat" = "要报告的资源包文件夹名称"
+
+[iris.director.commandpregen]
+"director.pregenerate_your_iris_worlds" = "预生成 Iris 世界"
+"director.pregenerate_world" = "预生成世界"
+"param.radius_pregen_blocks" = "预生成半径（方块）"
+"param.world_pregen" = "要预生成的世界"
+"param.center_location_pregen_use_me_your_current_location" = "预生成中心位置；使用 'me' 代表当前位置"
+"param.open_iris_pregen_gui" = "打开 Iris 预生成 GUI"
+"param.generate_only_one_chunk_at_time" = "每次只生成一个区块"
+"director.stop_active_pregeneration_task" = "停止当前预生成任务"
+"director.pause_continue_active_pregeneration_task" = "暂停或继续当前预生成任务"
+"director.show_active_pregeneration_status" = "显示当前预生成状态"
+
+[iris.director.commandstructure]
+"director.iris_structure_tools_index_import_info" = "Iris 结构工具(索引、导入、信息)"
+"director.regenerate_structure_index_json_listing_all_vanilla_datapack_iris_structures" = "重新生成 structure-index.json 列出所有原版, 数据包 & Iris结构"
+"param.dimension_whose_pack_index" = "组合索引的维度"
+"director.import_every_structure_vanilla_ingested_datapacks_into_this_pack_as_editable_iris" = "导入 每个 结构 - 原版 和 吸收数据包 - 作为可编辑内容输入此包 Iris 资源,总是覆盖。  重建拼图结构(村庄、前哨、数据包拼图)作为可编辑的池/块图表,导入每个结构模板 NBT 作为物体,并组装多层结构(沉船、被毁的门户、海洋废墟、网状化石)。  在摄入数据包后运行并重新启动.  重新生成块或使用新世界来放置导入的拷贝 。"
+"param.dimension_whose_pack_import_into" = "输入到"
+"director.capture_code_generated_structures_that_have_no_nbt_template_swamp_huts_igloos" = "抓取没有代码生成的结构 NBT 模板( 映射小屋、 冰屋等) 可编辑 Iris 通过在丢弃的刮伤世界中 生成每个物体 并读回它的块。  跳过已经作为结构导入的结构,比捕捉封顶(坚固的地基,豪宅,古迹仍为原版)更宽/更细的结构,以及任何不会在平坦的世界范围内生成的结构.  每个抓获的结构都变成单块 Iris 从生物群落/区域/ Dimension 结构列表中可以放置结构。  自动运行作为最后的传球 /iris structure import."
+"param.dimension_whose_pack_capture_into" = "能够捕捉到"
+"director.verify_native_structure_eligibility_locate_iris_placed_structures_without_running_blocking_native" = "验证本地结构是否合格并找到 Iris- 设置结构而不会阻碍本地搜索"
+"param.dimension_verify" = "核查的维度"
+"param.search_radius_chunks_around_origin_larger_is_much_slower" = "搜索半径按原产地周围的块排列( 较大更慢)"
+"director.resolve_iris_structure_s_jigsaw_graph_report_piece_count_bounds" = "解析Iris结构的拼图并报告块数 & 界限"
+"param.dimension_whose_pack_holds_structure" = "组装结构的维度"
+"param.iris_structure_key_inspect" = "检查的Iris结构密钥"
+"director.assemble_place_iris_structure_at_your_location_studio_testing" = "将Iris结构集合并放置在您的位置( studio测试)"
+"param.dimension_whose_pack_holds_structure_2" = "组装结构的维度"
+"param.iris_structure_key_place" = "要放置的Iris结构键"
+
+[iris.director.commandstudio]
+"director.studio_commands" = "Studio 命令"
+"director.open_new_studio_world" = "打开新的 Studio 世界"
+"param.dimension_pack_open_studio" = "要在 Studio 中打开的维度包"
+"param.seed_generate_studio_with" = "用于生成 Studio 世界的种子"
+"director.import_vanilla_trees_mushrooms_objects_structures_jigsaw_from_server_into_pack_s" = "将服务器中的原版树木、蘑菇和对象，以及 structures/jigsaw，导入包的 objects/vanilla 文件夹"
+"param.dimension_pack_import_vanilla_content_into" = "要导入原版内容的维度包"
+"param.how_many_variants_capture_per_tree_object_feature" = "每个树木或对象特征要捕获的变体数量"
+"param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "是否同时将原版和数据包的 structures/jigsaw 导入包中"
+"director.open_vscode_dimension" = "在 VSCode 中打开维度"
+"param.dimension_open_vscode" = "要在 VSCode 中打开的维度"
+"director.close_open_studio_project" = "关闭已打开的 Studio 项目"
+"director.toggle_your_studio_debug_scoreboard" = "切换 Studio 调试计分板"
+"director.create_new_studio_project" = "创建新的 Studio 项目"
+"param.name_this_new_iris_project" = "新 Iris 项目的名称"
+"param.copy_contents_existing_project_your_packs_folder_use_it_as_template_this" = "复制 packs 文件夹中现有项目的内容，作为新项目的模板"
+"director.get_version_pack" = "获取包的版本"
+"param.dimension_get_version" = "要查询版本的维度"
+"director.open_noise_explorer_external_gui" = "打开噪声浏览器（外部 GUI）"
+"param.optional_pack_generator_preview" = "要预览的可选包生成器"
+"param.seed_preview_generator_with" = "用于预览生成器的种子"
+"director.show_loot_if_chest_were_right_here" = "显示此处若有箱子时会生成的战利品"
+"param.fast_insertion_items_virtual_inventory_may_cause_performance_drop" = "快速向虚拟物品栏插入物品（可能降低性能）"
+"param.whether_not_append_inventory_currently_open_if_false_clears_opened_inventory" = "是否追加到当前打开的物品栏；设为 false 时会先清空"
+"director.calculate_chance_each_region_generate" = "计算各区域的生成概率"
+"param.radius_chunks" = "半径（区块）"
+"director.render_world_map_external_gui" = "渲染世界地图（外部 GUI）"
+"param.world_open_generator" = "要打开生成器的世界"
+"director.package_dimension_into_compressed_format" = "将维度打包为压缩格式"
+"param.dimension_pack_compress" = "要压缩的维度包"
+"param.whether_not_obfuscate_pack" = "是否混淆包内容"
+"param.whether_not_minify_pack" = "是否精简包内容"
+"director.profiles_performance_dimension" = "分析维度的性能"
+"param.dimension_profile" = "要分析的维度"
+"director.spawn_iris_entity" = "生成 Iris 实体"
+"param.entity_spawn" = "要生成的实体"
+"param.location_spawn_entity_at" = "实体的生成位置"
+"director.teleport_active_studio_world" = "传送到当前 Studio 世界"
+"director.update_your_dimension_projects_vscode_workspace" = "更新维度项目的 VSCode 工作区"
+"param.dimension_update_workspace" = "要更新工作区的维度"
+"director.capture_igendata_chunk_report_nearby_chunks" = "捕获附近区块的 IGenData 区块报告"
+
+[iris.director.commandwhat]
+"director.iris_what" = "Iris 你说什么?"
+"director.what_is_my_hand" = "我手里拿着什么?"
+"director.what_biome_am_i" = "我是什么生物吗?"
+"director.what_region_am_i" = "我在哪个地区?"
+"director.what_block_am_i_looking_at" = "我在看哪个街区?"
+"director.show_markers_chunk" = "以块显示标记"
+"param.marker_name_such_as_cave_floor_cave_ceiling" = "标记名, 如 洞穴  地板或洞穴的天花板"
+
+[iris.runtime.progress]
+finding_regions = "寻找区域"
+converting = "转换"
+
+[iris.runtime.status]
+running = "运行"
+stopped = "已停止"
+paused = "暂停"
+paused_lower = "暂停"
+running_lower = "运行"
+enabled = "启用。"
+disabled = "已禁用。"
+unregistered = "未登记"
+none = "无"
+random = "随机"
+match = "匹配"
+mismatch = "不匹配"
+true = "真实"
+false = "虚假"
+
+[iris.runtime.error]
+detail_suffix = " - {error}"
+
+[iris.runtime.datapack]
+override_suffix = " (已安装世界数据包覆盖)"
+name = "Iris 世界一代组织"
+
+[iris.runtime.primary_world]
+players_routed_suffix = " (玩家经过那里)"
+routing_disabled_suffix = " (线路已禁用)"
+
+[iris.runtime.modded]
+no_dimension_match = "没有 Iris 维度匹配 '{filter}'."
+
+[iris.runtime.teleport]
+world = "你被传送到 {world}."
+
+[iris.runtime.engine]
+hotloaded = "引擎已热加载"
+
+[iris.runtime.job]
+completed = "已完成 {job} 输入 {duration}"
+scanning_selection = "扫描选择"
+loading_chunks = "正在加载块"
+searched_chunks = "已搜索 {chunks} 块"
+compile = "编译"
+saving_object = "保存对象"
+downloading = "下载"
+extracting = "提取"
+installing = "安装"
+
+[iris.runtime.compile]
+iob_empty = "- IOB  {file} 已经 0 块!"
+iob_empty_hover = "错误 :\n{path}"
+iob_not_3d = "- IOB  {file} 不是三维!"
+iob_not_3d_hover = "错误 :\n{path}\n宽度、 高度或深度为 0 (坏格式)"
+json_error = "- JSON 错误 {file}"
+json_error_hover = "错误 :\n{path}\n{error}"
+loader_not_found = "找不到装填器 {path}"
+
+[iris.runtime.pack]
+already_exists = "包已经存在了!"
+
+[iris.runtime.tree_plausibilize]
+dry_suffix = ", 试运行"
+skip_load = "跳过 {object}: 加载失败"
+result = "{object}: +{wood} 木材({branches} 分部门), {converted} 叶->木头,~{distances} 距离"
+result_pinned = "{object}: +{wood} 木材({branches} 分部门), {converted} 叶->木头,~{distances} 距离远!{pinned} 锁定"
+progress = "[{current}/{total}]"
+failed = "失败 {object}: {type}: {error}"
+done = "结曰: {processed} 已处理, {changed} 变了, {skipped} 跳过 {failed} 失败"
+done_dry = "已完成：处理 {processed} 个，更改 {changed} 个，跳过 {skipped} 个，失败 {failed} 个（试运行，未写入任何内容）"
+totals = "共计:+{wood} 木材({branches} 分部门), {converted} 叶->木头,~{distances} 距离远!{pinned} 被钉住,无法到达 {before}  ->  {after}"
+
+[iris.runtime.item]
+"wand.name" = "魔杖 Iris"
+"wand.lore.first" = "左键单击块设置第一个角"
+"wand.lore.second" = "右键单击块设置第二个角"
+"dust.name" = "弥漫的尘埃"
+"dust.lore" = "右键点击块显示其位置结构!"
+
+[iris.runtime.wand]
+position_set = "立场 {position} 设置为 {x}, {y}, {z}"
+
+[iris.runtime.dust]
+iris_world_required = "此维度不是由 Iris 生成的。"
+found_object = "找到对象 {object}"
+revealed = "被揭露{count}区块{object}"
+revealed_capped = "被揭露{count}区块{object}(封顶)"
+header = "--- Iris 尘埃 @ {x}, {y}, {z} ---"
+block = "块 : {block}"
+"position.above" = "职位:+{offset}  上方 表面(表Y={surfaceY})"
+"position.below" = "位置 : {offset} 低于表面(表Y={surfaceY})"
+"position.at" = "位置:在表面(Y={surfaceY})"
+object_at_block = "对象@ 方块: {object}"
+none = "无"
+"placed_by.object_above" = "位置: 对象/斜体 '{object}'(以上表面)"
+"placed_by.decoration_above" = "由:装饰/物件/斜体(上表面)"
+"placed_by.buried_object" = "由: 掩埋对象 '{object}'"
+"placed_by.terrain" = "地形层(深度){depth}(低于表面)"
+column_object = "列对象 : {object}  -> 此块可能是天体的斜体"
+column_object_none = "列对象 : {detail}"
+column_none = "内无 64 (装饰或地形, 非 对象斜体)"
+"column.above" = "{object} @Y={y} (上文) ."
+"column.below" = "{object} @Y={y} (下图)."
+surface_biome = "表面生物仪: {biome}"
+surface_biome_detail = "表面生物仪: {biome} ({derivative})"
+biome_at_y = "Biome @ Y: (原始内容存档于2018-09-29).{biome}"
+cave_biome = "洞穴/内脏Mantle 生物仪 : {biome}"
+server_biome = "服务器 biome :{biome}(编号:{id})"
+region = "地区: {region} ({name})"
+objects_in_chunk = "块中的对象 : {objects}"
+copy_button = "[点击复制这些统计]"
+copy_hover = "将块数据复制到剪贴板"
+reveal_failed = "Object reveal failed; see the console for details."
+
+[iris.runtime.pregen]
+starting = "Iris 前置开始..."
+header = "Iris 预览"
+"bossbar.paused" = "Iris 预览 {generated}/{total}  {percent}%  已暂停"
+"bossbar.running" = "Iris 预览 {generated}/{total}  {percent}%  {speed}/s{eta}{failed}"
+eta_fragment = "  ETA  {eta}"
+failed_fragment = "  失败 {failed}"
+"status.context" = "维度 {dimension} 方法 {method}"
+"status.progress" = "{percent}%"
+"status.chunks" = "块 {generated}/{total} 速度 overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s"
+"status.chunks_failed" = "块 {generated}/{total} 速度 overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s · Failed {failed}"
+"status.time" = "ETA  {eta} · 溃败 {elapsed}"
+"status.time_paused" = "ETA  {eta} · 溃败 {elapsed} · 已暂停"
+"button.pause" = "暂停/恢复"
+"button.pause.hover" = "切换生成前暂停状态"
+"button.stop" = "停下来"
+"button.stop.hover" = "完成当前区域并停止预生成"
+
+[iris.bukkit.runtime]
+"commandpack.packs_folder_not_found" = "§c未找到包/ 文件夹 。"
+"commandpack.no_packs_validate" = "§e没有包可以验证。"
+"commandpack.validation_complete_broken_packs" = "§a鉴定完毕  破损的包: {broken}/{value}"
+"commandpack.pack_not_found_under_packs" = "§c包{pack}'未发现于 packs/."
+"commandpack.no_cleanup_candidates_found_pack" = "§a没有找到包的清理候选人 '{pack}'."
+"commandpack.quarantined_cleanup_candidate_s_under" = "§a检疫{size}清理候选人{quarantinePath}."
+"commandpack.cleanup_mode_must_be_preview_apply" = "§c清理模式必须是预览或应用."
+"commandpack.no_cleanup_candidates_found_pack_2" = "§a没有找到包的清理候选人 '{pack}'."
+"commandpack.cleanup_preview_pack_candidate_s_no_files_were_changed" = "§e包的清理预览{pack}': {size}候选人。没有更改文件 。"
+"commandpack.run_iris_pack_cleanup_mode_apply_quarantine_these_candidates_after_fresh_scan" = "§7运行 /iris pack cleanup {pack} mode=apply 在重新扫描后将这些候选人隔离"
+"commandpack.restore_refused_because_destination_s_already_exist" = "§c还原被拒绝,因为{size}目的地已经存在。"
+"commandpack.nothing_restore_pack" = "§e没有东西可以还原{pack}'."
+"commandpack.restored_file_s_from" = "§a已恢复{size}文件从{dumpPath}."
+"commandpack.restore_mode_must_be_preview_apply" = "§c还原模式必须是预览或应用."
+"commandpack.nothing_restore_pack_2" = "§e没有东西可以还原{pack}'."
+"commandpack.restore_preview_file_s_no_files_were_changed" = "§e恢复预览{dumpPath}: {size}文件。没有更改文件 。"
+"commandpack.restore_is_blocked_by_existing_destination_s" = "§c恢复被阻断{size}现有目的地。"
+"commandpack.run_iris_pack_restore_mode_apply_restore_after_fresh_conflict_check" = "§7运行 /iris pack restore {pack} mode=apply 在重新核对冲突后恢复。"
+"commandpack.no_validation_results_recorded_run_iris_pack_validate_first" = "§e未记录验证结果.  运行 /iris pack validate 先说"
+"commandpack.status.ok" = "§a还好§r  {pack}§7 (阻断={blocking}时,警告={warnings})"
+"commandpack.status.broken" = "§c伤痕§r  {pack}§7 (阻断={blocking}时,警告={warnings})"
+"commandpack.cleanup_failed" = "§c清理失败 : {error}"
+"commandpack.restore_failed" = "§c恢复失败 : {error}"
+"commandpack.path.still_quarantined" = "仍隔离"
+"commandpack.path.quarantined" = "隔离"
+"commandpack.path.candidate" = "候选人"
+"commandpack.path.conflict" = "冲突"
+"commandpack.path.restored" = "恢复"
+"commandpack.path.file" = "文件"
+"commandpack.no_validation_result_run_iris_pack_validate" = "§e没有验证结果 '{pack}'.  运行 /iris pack validate {pack2}."
+"commandpack.validation_failed" = "§c验证 '{name}' 失败 : {error}"
+"commandpack.pack_is_loadable_warnings" = "§a包{packName}'是可装载的。§7 (警报={size})"
+"commandpack.pack_is_broken" = "§c包{packName}'为. 损坏:"
+"commandpack.message" = "§c  - {reason}"
+"commandpack.message_2" = "§e  !  {value}"
+"commandpack.more_warning_s" = { other = "§7    ...  和 {count} 更多的警告。 更多警告。", one = "§7    ...  和 {count} 更多的警告。 更多警告。" }
+"commanddeveloper.stage_world_generation_update_warning" = ["§c准备此更新前，请备份整个世界。", "§e现有区块不会重新生成或被覆盖。", "§e重启后，新区块将使用已准备的包，并在保存的边界处逐渐衔接地形。", "§e世界的种子、高度、环境和维度类型不能更改。", "§e每份备份都必须包含完整的 iris/generation 目录。", "§c要准备更新并请求正常重启，请执行：", "§c/iris developer update-world {world} {pack} confirm=true"]
+"bulkstructureimporter.importing_vanilla_datapack_structures_mode_includenonjigsaw" = "§a导入 §f{total}§a 原版 & 数据包结构(模式={mode}, includeNonJigsaw={includeNonJigsaw})..."
+"bulkstructureimporter.fail_invalid_key" = "§c[失败]  {keyString}无效的密钥"
+"bulkstructureimporter.jigsaw" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.skip_no_single_template_nbt_vanilla_builds_this_code_from_separate_piece" = "§e[跳过]  {keyString}: 无单调 NBT - 原版用代码或从单独的块模板(通过模板通过导入)中构建它;不作为一个结构导入。"
+"bulkstructureimporter.fail" = "§c[失败]  {keyString}: {message}"
+"bulkstructureimporter.fail_2" = "§c[失败]  {keyString}: {message}"
+"bulkstructureimporter.fail_3" = "§c[失败]  {keyString}: {error}"
+"bulkstructureimporter.bulk_import_complete_imported_skipped_failed_total" = "§a批量导入完成 : §f{imported}§a 进口 §f{skipped}§a 跳过 §f{failed}§a 失败 (§f{total}§a 总计)。"
+"bulkstructureimporter.building_single_template_structures_from_imported_pieces_one_variant_placed_per_generation" = "§a从进口的部件建造单层结构(每代放置一个变体)..."
+"bulkstructureimporter.group_variants" = "§7[组]  {value}  ->  {value2} ({blocks} 变体)"
+"bulkstructureimporter.skip" = "§e[跳过]  {value}: {message}"
+"bulkstructureimporter.fail_4" = "§c[失败]  {value}: {error}"
+"bulkstructureimporter.single_template_structures_built_skipped_failed" = "§a单调结构: §f{imported}§a 建造, §f{skipped}§a 跳过 §f{failed}§a 失败 。"
+"bulkstructureimporter.failed_enumerate_structure_templates_via_server_resourcemanager" = "§c通过服务器列出结构模板失败 ResourceManager: {e}"
+"bulkstructureimporter.no_structure_templates_were_found_under_structure_resource_path" = "§e在“ 结构” 资源路径下找不到结构模板 。"
+"bulkstructureimporter.importing_structure_templates_mode" = "§a导入 §f{total}§a 结构模板(模式={mode})..."
+"bulkstructureimporter.fail_invalid_key_2" = "§c[失败]  {keyString}无效的密钥"
+"bulkstructureimporter.fail_5" = "§c[失败]  {keyString}: {message}"
+"bulkstructureimporter.fail_6" = "§c[失败]  {keyString}: {error}"
+"bulkstructureimporter.imported_skipped_failed" = "§7...{processed}/{total} ({imported} 进口 {skipped} 跳过 {failed} 失败)"
+"bulkstructureimporter.template_import_complete_imported_skipped_failed_total" = "§a模板导入完成 : §f{imported}§a 进口 §f{skipped}§a 跳过 §f{failed}§a 失败 (§f{total}§a 总计)。"
+"bulkstructureimporter.no_datapack_non_minecraft_structures_are_registered_ingest_datapack_restart_first_then" = "§e没有登记数据包(非矿物)结构。  获取一个数据包并首先重新启动, 然后再次运行 。"
+"bulkstructureimporter.importing_datapack_structures_mode" = "§a导入 §f{total}§a 数据包结构(模式={mode})..."
+"bulkstructureimporter.fail_invalid_key_3" = "§c[失败]  {keyString}无效的密钥"
+"bulkstructureimporter.jigsaw_2" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single_2" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.fail_7" = "§c[失败]  {keyString}: {message}"
+"bulkstructureimporter.fail_8" = "§c[失败]  {keyString}: {message}"
+"bulkstructureimporter.fail_9" = "§c[失败]  {keyString}: {error}"
+"bulkstructureimporter.importing_datapack_structure_templates" = "§a导入 §f{size}§a 数据包结构模板..."
+"bulkstructureimporter.fail_10" = "§c[失败]  {keyString}: {message}"
+"bulkstructureimporter.fail_11" = "§c[失败]  {keyString}: {error}"
+"bulkstructureimporter.could_not_enumerate_datapack_templates_via_server_resourcemanager" = "§e无法通过服务器列出数据包模板 ResourceManager: {error}"
+"bulkstructureimporter.datapack_structure_import_complete_imported_skipped_failed" = "§a数据包结构导入完成 : §f{imported}§a 进口 §f{skipped}§a 跳过 §f{failed}§a 失败 。"
+"structurecaptureimporter.structure_capture_is_not_supported_by_active_nms_binding_skipping_capture_pass" = "§e结构捕捉不被活动者支持 NMS 绑定; 跳过捕获通道。"
+"structurecaptureimporter.no_code_generated_structures_left_capture_everything_is_already_imported_as_structure" = "§7没有代码生成的结构留待捕捉(所有东西已经作为结构导入)."
+"structurecaptureimporter.capturing_code_generated_structures_no_nbt_template_into_scratch_world_skipping_any" = "§a隐藏§f{total}§a代码生成结构( 无)NBT切换到一个划痕世界(吸取更大的/高过{MAXSPAN}块)..."
+"structurecaptureimporter.skip_did_not_place_capturable_structure_here_too_large_wrong_dimension_no" = "§e[跳过]  {key}:没有在此放置一个可封顶结构(太大,错误的维度,或者在一个平坦的世界中没有有效的放置).  留原版生成."
+"structurecaptureimporter.fail" = "§c[失败]  {key}: {message}"
+"structurecaptureimporter.capture_objects_iob_x_x" = "§7[捕获]  {key}  ->  objects/{name}.iob ({w}x{h}x{d})"
+"structurecaptureimporter.fail_2" = "§c[失败]  {key}: {error}"
+"structurecaptureimporter.captured_skipped_failed" = "§7...{processed}/{total} ({imported} 被俘获, {skipped} 跳过 {failed} 失败)"
+"structurecaptureimporter.structure_capture_complete_captured_skipped_failed_total" = "§a结构捕捉完成 : §f{imported}§a 被俘获, §f{skipped}§a 跳过 §f{failed}§a 失败 (§f{total}§a 总计)。"
+"featureimporter.no_vanilla_tree_object_features_are_exposed_by_active_nms_binding_importing" = "§e活动者未暴露原版树/物体特征 NMS 约束(仅导入结构)。"
+"featureimporter.importing_vanilla_tree_object_features_variants_each_into_scratch_world" = "§a导入 §f{total}§a 原版树/物体特征(§f{wantVariants}§a 每个变体)进入刮伤世界..."
+"featureimporter.obj_objects_vanilla" = "§7[obj]  {key}  ->  objects/vanilla/{group}/{safeName} ({written})"
+"featureimporter.skip_feature_placed_nothing_after_retries" = "§e[跳过]  {key}: 特性在重试后没有放置任何内容 。"
+"featureimporter.fail" = "§c[失败]  {key}: {error}"
+"featureimporter.imported_skipped_failed" = "§7...{processed}/{total} ({imported} 进口 {skipped} 跳过 {failed} 失败)"
+"featureimporter.feature_import_complete_features_written_skipped_failed_total" = "§a特性导入完成 : §f{imported}§a 特写, §f{skipped}§a 跳过 §f{failed}§a 失败 (§f{total}§a 总计)。"
+"featureimporter.could_not_create_scratch_world_feature_import_skipping_tree_object_pass" = "§c无法为特性导入创建抓取世界( N){error}); 跳过树/对象通过。"
+"irisconverter.no_schematic_files_convert_found" = "找不到图解文件 {path}"
+"irisconverter.converted" = "§a已转换 {name}  ->  {value} 输入 {value2}"
+"irisconverter.converted_2" = "§a已转换 {name}  ->  {value}"
+"irisconverter.failed_save" = "§c保存失败 : {name}"
+"irisconverter.failed_convert" = "§c转换失败 : {name}"
+"irisconverter.converted_3" = "§7已转换 : {get} 输入 {value}"
+"irisconverter.some_schematics_failed_convert_check_console_details" = "§c一些示意图未能转换.  检查控制台的细节。"
+"studiosvc.pack_copy_requires_async_thread" = "§cIris refused to copy the world pack on the Bukkit primary thread."
+"studiosvc.pack_install_failed" = "§cFailed to install world pack §f{dimension}§c: {error}"
+"studiosvc.looking_package" = "正在查找内容包：{type}"
+"studiosvc.found_iris_folder" = "在 {WORKSPACENAME} 文件夹中找到 {type}.iris"
+"studiosvc.found_dimension_folder_repackaging" = "在 {WORKSPACENAME} 文件夹中找到 {type} 维度，正在重新打包"
+"studiosvc.can_t_find_dimensions_folder_this_pack_failed" = "在此内容包的 dimensions 文件夹中找不到 {name}，操作失败。"
+"studiosvc.can_t_load_dimension_failed" = "无法加载维度，操作失败。"
+"studiosvc.type_installed" = "已安装 {name} 类型。"
+"studiosvc.failed_open_studio_world" = "无法打开工作室世界：{error}"
+"studiosvc.cannot_open_studio_pack_has_blocking_errors" = "无法打开工作室“{dimm}”：内容包存在阻断错误："
+"studiosvc.message" = " - {reason}"
+"studiosvc.fix_pack_run_iris_pack_validate_revalidate" = "修复内容包，然后运行 /iris pack validate {dimm} 重新验证。"
+"studiosvc.failed_close_existing_studio_project" = "无法关闭现有工作室项目：{error}"
+"studiosvc.failed_close_existing_studio_project_2" = "无法关闭现有工作室项目：{error}"
+"studiosvc.failed_open_studio_world_2" = "无法打开工作室世界：{error}"
+"studiosvc.couldn_t_find_pack_create_new_dimension_from" = "找不到用于创建新维度的内容包。"
+"studiosvc.missing_imported_dimension_file" = "缺少导入的维度文件"
+"studiosvc.importing_into_new_project" = "正在将 {downloadable} 导入新项目 {s}"
+"objectstudiosaveservice.object_studio_no_cell_under_click_x_z" = "§7Object Studio：点击位置下方没有单元格 (x={x} z={z})。"
+"objectstudiosaveservice.object_studio_saving_x_x" = "§bObject Studio：正在保存 §f{pack}/{key}§7 ({w}x{h}x{d})"
+"objectstudiosaveservice.object_studio_no_changes" = "§7Object Studio：{pack}/{key} 没有更改。"
+"objectstudiosaveservice.object_studio_empty_cell_nothing_write" = "§7Object Studio：单元格 {pack}/{key} 为空，无需写入。"
+"objectstudiosaveservice.object_studio_no_target_file" = "§cObject Studio：{pack}/{key} 没有目标文件。"
+"objectstudiosaveservice.object_studio_saved" = "§aObject Studio：已保存 §f{pack}/{key}"
+"objectstudiosaveservice.object_studio_save_failed" = "§cObject Studio：无法保存 {pack}/{key} ({error})"
+"irisproject.could_not_load_dimension" = "无法加载维度 \"{value}\""
+"irisproject.could_not_get_dimension_loader" = "无法获得维度加载器"
+"irisproject.studio_open_failed" = "§c工作室打开失败 : {error}"
+"irisproject.studio_open_failed_2" = "§c工作室打开失败 。"
+"irisproject.studio_ready" = "§a工作室准备好了 §7({value})"
+"irisproject.studio" = "§6工作室 §b{bar}  §e{percent}%§7  {currentStage}§8 ({value})"
+"irisproject.serializing_objects" = "序列对象"
+"irisproject.wrote_another_objects" = "写另一首 {g} 对象"
+"irisproject.package_compiled" = "包编译!"
+"irisproject.failed" = "失败了!"
+"irisengine.total" = "共计: §l§f{value}"
+"irisengine.engine" = "  发动机 §n§a{i}§r: §l§f{value}"
+"irisengine.details" = "细节 : "
+"irisengine.message" = "  {befb}{num}{afb}: §l§f{value}"
+"enginebukkitops.is_not_defined_dimension" = "§c{name} 维度中没有定义!"
+"enginebukkitops.could_not_find_within_search_range" = "§c无法找到 {message} 在搜索范围内。"
+"enginebukkitops.teleporting" = "§a传送到 {message}..."
+"enginebukkitops.at" = "§a{message} 地点: {blockX}  {blockY}  {blockZ}"
+"iristoolbelt.you_have_been_evacuated_from_this_world" = "你被从这个世界疏散了"
+"iristoolbelt.you_have_been_evacuated_from_this_world_2" = "你被从这个世界疏散了  {m}"
+"serverconfigurator.there_are_some_iris_packs_that_have_custom_biomes_them" = "有几个 Iris 包里有自定义的生物元素"
+"serverconfigurator.you_need_restart_your_server_use_these_packs" = "您需要重新启动您的服务器来使用这些包 。"
+"virtualcommand.message" = "- §f{i}"
+"virtualcommand.insufficient_permissions" = "权限不足"
+"mortarcommand.parameters_ignored" = "被忽略参数 : {m}"
+"commandpack.compat_header" = "§e资源包 '{pack}': 内容在 Minecraft {version} 中不可用"
+"commandpack.compat_none" = "§a资源包 '{pack}' 未使用 Minecraft {version} 中缺失的内容。"
+"commandpack.compat_remedy" = "§7将服务器升级到更新的 Minecraft 以恢复这些内容，或声明回退 (维度的 blockFallbacks、方块的 backup)。"
+
+[iris.runtime.studio]
+opening = "§6工作室 §b开幕"
+opening_progress = "§6工作室 §b开幕§7  {percent}%"
+failed_progress = "§6工作室 §c失败§7  {percent}%"
+ready_progress = "§6工作室 §a准备§7  100%"
+"action.failed" = "{bar}§7  §c失败§7 | §f{stage}"
+"action.ready" = "{bar}§7  §a100%§7 | §a工作室准备好了§8  {elapsed}"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}§8  {elapsed}"
+"console.progress" = "§6工作室 §b{bar}§e  {percent}%§7  {stage}§8 ({elapsed})"
+"stage.initializing" = "初始化"
+"stage.queued" = "队列"
+"stage.resolve_dimension" = "解决层面"
+"stage.prepare_world_pack" = "准备世界包"
+"stage.install_datapacks" = "安装数据包"
+"stage.create_world" = "创造世界"
+"stage.apply_world_rules" = "应用世界规则"
+"stage.prepare_generator" = "正在准备生成器"
+"stage.teleport_player" = "远程传送"
+"stage.finalize_open" = "最后确定"
+"stage.cleanup" = "清理"
+
+[iris.runtime.world_create]
+teleport_failed = "§e世界是创建的,但自动电传传送失败.  尝试 /iris teleport world={world}"
+"lifecycle.action" = "{bar}§7 §e{percent}%§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.failed" = "{bar}§7 §cFAILED§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.ready" = "{bar}§7 §a100%§7 | §aWorld ready§8 {elapsed}"
+"lifecycle.console" = "§6World §b{world} {bar} §e{percent}%§7 {stage}{detail}§8 ({elapsed})"
+"lifecycle.console.failed" = "§6World §b{world}§7 | §ccreation failed§8 after {elapsed}"
+"lifecycle.console.ready" = "§6World §b{world}§7 | §aready§8 in {elapsed}"
+"stage.initializing" = "Initializing"
+"stage.resolve_dimension" = "Resolving dimension"
+"stage.validate_pack" = "Validating pack"
+"stage.prepare_world_pack" = "Preparing world pack"
+"stage.install_datapacks" = "Installing datapacks"
+"stage.prepare_generator" = "Preparing generator"
+"stage.create_world" = "Generating spawn"
+"stage.register_world" = "Registering world"
+"stage.teleport_player" = "Entering world"
+"stage.pregenerate" = "Pregenerating"
+"stage.finalize" = "Finalizing"
+"stage.complete" = "World ready"
+"pregen.action" = "{bar}§7  §e{percent}%§7 | §f预生成"
+"pregen.console" = "§6预生成 §e{percent}%"
+
+[iris.runtime.world_replace]
+start = "§e正在准备使用 Iris 替换 {world}。当前世界将在重启前保持运行。"
+progress = "§e替换 {world}：{stage}（已用时 {elapsed} 秒）"
+"stage.datapacks" = "正在检查维度数据包"
+"stage.seed" = "正在准备替换世界的种子"
+"stage.pack" = "正在复制并验证维度包"
+"stage.players" = "正在记录玩家进入世界时的保护信息"
+"stage.verify" = "正在验证已准备的替换内容"
+"stage.save" = "正在保存替换内容以供重启时应用"
+"stage.cleanup" = "正在清理失败的替换内容"
+
+[iris.runtime.chunk_job]
+"title.regen" = "瑞根,你好吗?"
+"title.delete" = "删除"
+"title.golden_hash" = "GoldenHash"
+"stage.preparing" = "准备"
+"stage.clearing" = "清除"
+"stage.resetting_mantle" = "重置Mantle"
+"stage.regenerating" = "重新生成"
+"stage.generating" = "正在生成"
+"stage.comparing" = "比较"
+"stage.diagnosing" = "诊断"
+"bossbar.working" = "§6{title}  §b工作"
+"bossbar.progress" = "§6{title}  §b{stage}§7  §e{percent}%"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}  {applied}/{total}"
+summary = "{applied}/{total} 块进入 {elapsed}"
+"summary.failed" = "{applied}/{total} 块进入 {elapsed} ({failures} 失败)"
+"bossbar.done" = "§6{title}  §a完成§7  §e{summary}"
+"bossbar.failed" = "§6{title}  §c失败§7  §e{summary}"
+"action.done" = "{bar}§7  §a完成§7 | §f{summary}"
+"action.failed" = "{bar}§7  §c失败§7 | §f{summary}"
+complete = "§a{title} 完成 : {summary}"
+failed = "§c{title} 以错误完成 : {summary}"
+
+[iris.runtime.golden]
+no_capture = "没有金色的捕捉 {path};先进行抓捕."
+aborted = { other = "GoldenHash 已中止 : {failed} 块无法生成 。  没有写金色文件 。", one = "GoldenHash 已中止 : {failed} 块无法生成 。  没有写金色文件 。" }
+failed = "GoldenHash 失败 : {error}"
+mantle_reset = "Mantle重设( N){path})"
+mantle_reset_failed = "Mantle重设置失败( E){type});继续维持现有的Mantle状态。"
+captured = "黄金俘虏: {chunks} 块组合={hash}"
+wrong_world = "金色文件为 dim={goldenDimension} 种子数={goldenSeed} 但这个世界是暗淡的{dimension} 种子数={seed}.  中止行动"
+version_warning = "黄金在Mc=上被俘{goldenVersion},运行 mc={version}.  差异可能是版本引起的."
+match = "戈尔登马奇:{current}/{golden}块,combined={hash}"
+mismatch = "戈尔登密斯:{mismatches}/{chunks}块不同。"
+mismatch_chunk = "  块 {chunk}"
+missing_in_golden = "{chunk} (失踪的金色)"
+mismatch_more = "  ...  和 {count} 更多"
+current_written = "当前散列已写入 {file}"
+"diag.stable" = "重复基因 稳定,重置Mantle {mantleStatus}  ->  {file}"
+"diag.unstable" = "重复基因{diffs}+ 块 差异, Mantle重置{mantleStatus} -> {file}"
+"diag.mantle_stable" = "稳定 (曼托重建复制扫描输出)"
+"diag.mantle_diverged" = "二、导 言{diffs}+ 差异 - Mantle构造状态/命令依赖)"
+"diag.mantle_skipped" = "已跳过 ({type})"
+"diag.failed" = "诊断失败 : {error}"
+started = "GoldenHash 开始 : {chunks} 块绕 0,0 在缓冲器(世界未触动)中,线程={threads} 模式={mode}"
+chunk_hashed = "[{done}/{total}] 块 {x},{z} 散开"
+chunk_failed = "块 {x},{z}  失败: {type}"
+
+[iris.runtime.pack_download]
+"progress.start" = "§aIris §6下载包§8 | §f{source}"
+"progress.phase" = "§aIris §b{phase}§8 | §7{source}"
+"progress.determinate" = "{bar}§7 §e{percent}%§8 | §f{transferred}§7/§f{total}§8 | §b{rate}/s"
+"progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
+"progress.detail" = "§8  - §7{detail}"
+"progress.complete" = "§aIris 包“{pack}”已安装§8 | §f{transferred}§7，用时 §f{elapsed}"
+"progress.unchanged" = "§eIris 包“{pack}”已安装。"
+"progress.failed" = "§cIris 包下载失败。§7 请查看上方的下载详情后重试。"
+"progress.failed_detail" = "§cIris 包下载失败。§7 {error}"
+"progress.cancelled" = "§eIris 包下载已在发布前取消。"
+"progress.restart" = "§6需要重启§8 | §7使用此包创建或替换世界前，请重启服务器。"
+"progress.phase.connecting" = "正在连接"
+"progress.phase.downloading" = "正在下载"
+"progress.phase.unpacking" = "正在解压"
+"progress.phase.validating" = "正在验证"
+"progress.phase.publishing" = "正在发布"
+"progress.source.remote" = "远程 ZIP"
+invalid_source = "§c请仅选择一个来源：/iris download pack=overworld、/iris download pack=underworld 或 /iris download link=‹zip-url›。"
+invalid_url = "§cIris 需要指向 .zip 文件的有效 HTTP 或 HTTPS URL。"
+invalid_built_in = "§cIris 仅为 'overworld' 和 'underworld' 提供内置下载。"
+shutting_down = "§eIris 正在关闭，不再接受资源包下载。"
+downloading = "下载 {url}"
+unpacking = "正在解压 {repository}"
+unpack_failed = ["解包时发布.  请检查/做如下:", "1.  你有一个正常的互联网连接?", "2.  下载是否腐败?", "3.  尝试删除 */plugins/iris/packs 文件夹和重新下载。", "4.  从中下载包 GitHub 重传 : https://github.com/IrisDimensions/overworld", "5.  联系人支持( 如果所有其他选项都没有帮助)"]
+no_extracted_files = "没有从zip文件中提取文件 。"
+home_directory_error = "查找主目录时出错 。  文件名中是否有非文本字符 ?"
+invalid_archive_format = "无效的格式 。  缺少根文件夹或过多的文件夹!"
+no_dimension_file = "在提取的zip文件中找不到维度文件 。"
+check_github = "检查它是否在 GitHub 把这个报告给工作人员!"
+invalid_dimension = "无效的维度文件夹 dimensions/."
+importing = "导入 {name} ({key})"
+dimension_key_conflict = "包文件夹中的另一个维度已经使用密钥 {key}.  导入失败 !"
+pack_key_conflict = "另一个包是用钥匙 {key}.  导入失败 !"
+acquired = "已成功获取 {name}."
+already_installed = "包 {key} 已安装，跳过下载。"
+in_progress = "另一个 Iris 包下载已在进行中。请等待其完成后再试。"
+validation_failed = "包{pack}' 验证失败; 世界和工作室的创建将被拒绝.  原因:"
+validation_reason = "  - {reason}"
+validated_with_warnings = { other = "包{pack}'经验证 {count} 警告! 警告你们!", one = "包{pack}'经验证 {count} 警告,你应该知道" }
+validated = "包{pack}已确认。"
+
+[iris.client.vision]
+title = "Iris 愿景"
+connecting = "正在连接到 Iris 服务器..."
+not_connected = "未连接"
+not_iris_world = "没有 Iris 世界"
+server_without_iris = "此服务器未运行 Iris"
+version_mismatch = "客户端与服务器的 Iris 版本不一致"
+no_dimension_data = "无维度数据"
+header_detail = "{status}  缩放 {zoom}  x{x} z{z}"
+footer_hint = "拖动以平移，滚动以缩放，按 Esc 关闭"
+dimension_pack = "{dimension}  包 {pack}"
+
+[iris.client.create]
+structures_required_title = "Iris 需要开启“生成建筑”"
+structures_required_body = "Iris 在建筑生成阶段放置自己的建筑，因此无法加载在关闭“生成建筑”时创建的世界。请重新开启“生成建筑”，或选择其他世界类型。"
+
+[iris.client.toast]
+studio_hotload = "工作室热负荷"
+changed_files = { other = "{count} 文件", one = "{count} 文件" }
+reload_failed = "重新加载失败"
+reloaded = "重新加载"
+pack_failed = "{pack} 失败"
+
+[iris.client.what]
+title = "Iris 什麽?"
+querying = "查询 {x}, {z}..."
+biome = "生物群落: {biome}"
+region = "地区: {region}"
+cave = "洞穴: {cave}"
+height = "高度 : {height}   ({x}, {z})"
+
+[iris.client.pregen]
+stats = "{done} / {total}  ({percent}%)"
+paused = "已暂停"
+stale = "已有 {seconds} 秒没有更新"
+rate = "{rate}/s"
+rate_eta = "{rate}/s    ETA  {eta}"
+
+[iris.client.duration]
+hours_minutes = "{hours}h {minutes}m"
+minutes_seconds = "{minutes}m {seconds}s"
+seconds = "{seconds}s"
+
+[iris.bukkit.scoreboard]
+title = "§aIris"
+speed = "§a速度§7:  {speed}/s  {duration}"
+cache = "§b缓存§7: {count}"
+mantle = "§bMantle§7: {count}"
+carving = "§d雕刻§7: {state}"
+region = "§b地区§7: {region}"
+biome = "§b生物团§7:  {biome}"
+biome_loading = "加载中"
+biome_unavailable = "不可用"
+height = "§b高度§7: {height}"
+slope = "§b斜坡§7:  {slope}"
+block_updates = "§b学生会/s§7: {updates}"
+
+[iris.desktop.vision]
+title = "Iris 愿景"
+view = "视图 :"
+grid = "网格"
+entities = "实体"
+follow = "跟着"
+refreshing = "刷新"
+fps = "{fps}  FPS"
+zoom_reset = "缩放重置"
+grid_enabled = "已启用网格"
+grid_disabled = "已禁用网格"
+entities_enabled = "实体已启用"
+entities_disabled = "实体已禁用"
+following = "跟踪 {player}"
+no_player = "世界上没有玩家"
+follow_disabled = "跟随已禁用"
+status_left = "{mode}  |  {bpp} 联合国  {width} x {height} 块"
+status_right = "X: {x}  Z: {z}  |  {fps}  FPS"
+entity_position = "位置 : {x}, {y}, {z}"
+entity_health = "卫生: {health} / {maximum}"
+block_position = "块 {x}, {z}"
+chunk_position = "块 {x}, {z}"
+region_position = "地区 {x}, {z}"
+biome_key = "键 : {key}"
+biome_file = "文件 : {file}"
+velocity = "速度 : {velocity}"
+tiles = "Atlas: {ready} / {total}"
+workers = "Workers: {active} active / {queued} queued"
+center = "中点 : {x}, {z}"
+"help.toggle" = "切换帮助"
+"help.refresh" = "刷新瓷砖"
+"help.follow" = "跟随玩家"
+"help.zoom" = "缩放/退出"
+"help.reset_zoom" = "重置缩放"
+"help.cycle_mode" = "循环渲染模式"
+"help.fps" = "切换 30/60  FPS"
+"help.grid" = "切换网格"
+"help.biome" = "详细生物信息"
+"help.teleport" = "传送到光标"
+"help.editor" = "在编辑器中打开 biome"
+opened = "打开 {target}"
+teleporting = "传送到 {x}, {z}"
+"mode.biome" = "生物团"
+"mode.biome_land" = "生物土地"
+"mode.biome_sea" = "生物海"
+"mode.region" = "地区"
+"mode.cave_land" = "洞穴土地"
+"mode.river" = "河流网络"
+"mode.height" = "高度"
+"mode.object_load" = "对象负载"
+"mode.decorator_load" = "加载装饰器"
+"mode.continent" = "大陆"
+"mode.layer_load" = "图层负载"
+
+[iris.desktop.noise]
+title = "噪声探索器"
+title_generator = "噪声探索器 : {generator}"
+search = "搜索..."
+status = "{name}  |  X: {x}  Z: {z}  缩放 : {zoom}  数值 : {value}  |  {fps}  FPS"
+"category.custom" = "自定义"
+"category.pack_generators" = "包生成器"
+"category.simplex" = "简单x"
+"category.perlin" = "佩林语Name"
+"category.cellular" = "手机"
+"category.iris" = "Iris"
+"category.clover" = "克罗弗"
+"category.hexagon" = "六边形"
+"category.vascular" = "宽度"
+"category.globe" = "环球"
+"category.cubic" = "立方体"
+"category.fractal" = "分形"
+"category.static" = "静态"
+"category.nowhere" = "没有"
+"category.sierpinski" = "锡尔平斯基"
+"category.utility" = "工具"
+"category.other" = "其他人员"
+
+[iris.desktop.pregen]
+initializing = "初始化..."
+title = "Pregen 视图"
+method_pending = "待决"
+paused = "已暂停"
+resume_hint = "按 P 键恢复"
+pause_hint = "按 P 暂停"
+method = "生成方法 : {method}"
+pause = "暂停"
+resume = "继续"
+generating = "生成中"
+saving = "保存中"
+stopping = "停止中"
+completed = "已完成"
+error = "生成失败"
+control_failed = "暂停失败 · 请查看服务器日志"
+error_details = "详情请查看服务器日志"
+progress = "{generated} / {total} 区块"
+percent = "已完成 {percent}"
+current = "当前 · 10秒"
+overall = "总体"
+thirty = "30秒平均"
+sixty = "60秒平均"
+rate = "{rate} 区块/秒"
+eta = "剩余时间"
+elapsed = "已用时间"
+memory_label = "内存"
+memory_usage = "{used} · {usage}"
+pressure = "内存分配"
+pressure_value = "{rate}/s"
+cached = "{method} · 已缓存"
+failed = "{count} 个失败 · 请查看服务器日志"
+map = "生成地图"
+bounds = "区块 X {minX} 至 {maxX} · Z {minZ} 至 {maxZ}"
+waiting = "等待中"
+ready = "就绪"
+existing = "已有"
+network = "网络"
+terrain_hint = "已完成的区块显示地形颜色"
+
+[iris.runtime.what]
+material = "Material: {material}"
+full_state = "Full: {state}"
+item_count = "Count: {count}"
+iris_biome = "Iris biome: {biome} ({name})"
+derivative_biome = "Derivative biome: {biome}"
+native_biome = "Registered biome: {biome} (ID: {id})"
+non_iris_biome = "Non-Iris biome: {biome} (ID: {id})"
+iris_region = "Iris region: {region} ({name})"
+position = "Position: {x}, {y}, {z} (chunk {chunkX}, {chunkZ})"
+object = "Iris object: {object}"
+block_entity = "Block entity: {type}"
+loot_table = "Loot table: {loot}"
+spawner_entity = "Spawner entity: {entity}"
+"flag.solid" = "solid"
+"flag.fluid" = "fluid"
+"flag.water" = "water"
+"flag.waterlogged" = "waterlogged"
+"flag.storage" = "storage (loot capable)"
+"flag.lit" = "lit"
+"flag.foliage" = "foliage"
+"flag.plantable_foliage" = "plantable foliage"
+"flag.decorant" = "decorant"
+"flag.ore" = "ore"
+"flag.block_entity" = "block entity"
+
+[iris.runtime.world]
+height_range = "World height: {minY} to {maxY}"
+height_total = "Total height: {height}"
+
+[iris.desktop.imagemap]
+title = "Image Map Studio"
+preset = "Preset:"
+load = "Load"
+import_png = "Import PNG"
+replace_png = "Replace PNG"
+preview = "Preview"
+export = "Export to active pack"
+metadata = "Source metadata"
+resource = "Resource binding"
+coordinates = "Coordinates and sampling"
+binding_key = "Binding key"
+map_key = "Map key"
+image_key = "Image key"
+type = "Type"
+application = "Application"
+blocks_per_pixel = "Blocks per pixel"
+origin_x = "World origin X"
+origin_z = "World origin Z"
+source_origin_x = "Source origin X"
+source_origin_z = "Source origin Z"
+rotation = "Rotation"
+mirror_x = "Mirror X"
+mirror_z = "Mirror Z"
+sampling = "Sampling"
+out_of_bounds = "Out of bounds"
+alpha = "Alpha policy"
+fallback_value = "Fallback value"
+fallback_target = "Fallback target"
+minimum_height = "Minimum height"
+maximum_height = "Maximum height"
+vertical_offset = "Vertical offset"
+clamp = "Clamp height"
+inverted = "Invert values"
+curve_exponent = "Curve exponent"
+smoothing_radius = "Smoothing radius"
+threshold = "Threshold"
+falloff = "Falloff"
+color_tolerance = "Raw sRGB tolerance"
+unknown_color = "Unknown color"
+add_color = "Add legend color"
+remove_color = "Remove selected"
+composed_masks = "Composed masks"
+add_mask = "Add mask binding"
+height = "Height interpretation"
+mask = "Mask interpretation"
+color_map = "Color legend"
+overlays = "World overlays"
+chunks = "16-block chunks"
+regions = "512-block regions"
+boundary = "World boundary"
+coverage = "Source coverage"
+diagnostics = "Diagnostics"
+ready = "Ready"
+no_source = "Import a PNG source to begin."
+loading = "Loading preset..."
+load_failed = "Preset load failed"
+previewing = "Compiling preview..."
+preview_valid = "Runtime compiler validation passed."
+preview_failed = "Preview failed"
+exporting = "Validating and exporting..."
+exported = "Exported image map, PNG, and dimension binding atomically."
+export_failed = "Export failed"
+source = "Source pixels"
+interpreted = "Runtime interpretation"
+no_preview = "Compile a valid preview to inspect world output."
+preview_status = "X {x}  Z {z}  |  {value}  |  {scale} blocks/pixel"
+
+[language.menu]
+your_language = "你的语言"
+reset_your_language = "重置你的语言"
+server_default = "服务器默认语言"
+edit_messages = "编辑语言消息"
+use_server_default = "使用服务器默认语言"
+current = "当前：{locale}"
+current_with_personal = "当前：{locale}（你的：{personal}）"
+your_description = "仅更改你看到的消息。"
+reset_description = "使用服务器默认语言。"
+server_description = "更改服务器默认语言。"
+edit_description = "打开各语言的消息编辑器。"
+select_description = "点击以选择此语言。"
+remove_personal_description = "移除你的个人语言选择。"
+no_controls = "你无权使用语言设置。"
+command = "命令: {command}"
+selected = "选中"
+all-volmit-plugins = "所有 Volmit 插件"
+
+[language.error]
+stopping = "插件停止期间无法选择语言。"
+editor-player-only = "请在游戏中打开语言编辑器。"
+no-providers = "没有可用的 Volmit 语言提供程序。"
+numeric-page = "请输入数字页码。"
+personal-player-only = "玩家必须在游戏中选择个人语言。"
+personal-permission = "你没有权限选择个人语言。"
+plugin-personal-permission = "你没有权限为 {plugin} 选择个人语言。"
+plugin-server-permission = "你没有权限更改 {plugin} 的服务器语言。"
+server-locale-required = "请选择 en_US 等语言代码作为服务器默认语言。"
+unavailable-for-all = "语言 {locale} 并非适用于所有选中的插件。"
+
+[language.usage]
+editor = "用法: /{command} language server edit [locale]"
+selection = "用法: /{command} language self [locale|reset] or server [locale]"
+volmit-selection = "用法: /volmit plugins languages [locale]"
+
+[language.selection]
+preparing = "正在为 {target} 准备语言 {locale}..."
+save-failed = "{plugin}：无法保存语言选择；请检查服务器控制台。"
+english-fallback = "{plugin}：{locale} 不可用；将使用英语（en_US）。"
+personal-selected = "{plugin}：你的语言现在是 {locale}。"
+server-selected = "{plugin}：服务器语言现在是 {locale}。"
+server-default-selected = "{plugin}：你的语言现在跟随服务器默认语言。"
+
+[language.editor]
+"section.languages" = "语言"
+"section.search" = "搜索"
+"section.search-title" = "{locale} / 搜索"
+"section.group-title" = "{locale} / {group}"
+loading = "正在加载 {locale} 的消息..."
+"prompt.search" = "搜索消息键或内容。输入 cancel 返回。"
+"prompt.value" = "请在聊天中输入 {key} 的新值。"
+"prompt.current" = "当前值： {value}"
+"prompt.variables" = "变量: {variables}"
+"prompt.guidance" = "使用 \\n 表示换行，\\\\ 表示反斜杠，或输入 cancel 返回。"
+"input.expired" = "语言编辑器的输入时间已到期。"
+"input.too-long" = "输入最多可包含 {maximum} 个字符。"
+"input.unable-to-save" = "无法保存：{reason}"
+"navigation.back" = "&e返回&r"
+"navigation.close" = "&c关闭&r"
+"navigation.previous-page" = "&e上一页&r"
+"navigation.next-page" = "&e下一页&r"
+"search.messages" = "搜索消息"
+"search.messages-lore" = "点击搜索所有消息。"
+"search.clear" = "清除搜索"
+"message.current-value" = "&7当前值:&r"
+"message.variables" = "&8{variables}&r"
+"message.edit-plural" = "&7点击编辑复数形式。&r"
+"message.edit-lines" = "&7点击逐行编辑。&r"
+"message.edit-chat" = "&7点击在聊天中编辑。&r"
+"locale.open" = "&8点击打开此语言。&r"
+"category.message-count" = "&7{count} 条消息&r"
+"category.open" = "&8点击打开此分类。&r"
+"error.no-permission" = "你没有权限编辑 {plugin} 的语言。"
+"error.unable-to-edit" = "无法编辑：{reason}"
+"saved.summary" = "已保存 {locale}。语言选择保持不变。"
+"saved.change" = "{key}：已将“{before}”改为“{after}”。"
+"part.line" = "第 {line} 行"
+"value.none" = "无"
+"value.empty" = "(空)"
+
+[debug.error]
+missing-permission = "缺少权限：{permission}"
+already-preparing = "正在为 {plugin} 生成诊断报告。"
+already-preparing-short = "已有诊断报告正在生成。"
+schedule-failed = "无法调度诊断报告生成任务。"
+provider-closed = "诊断数据提供程序已关闭。"
+closed-before-capture = "诊断数据提供程序在收集报告数据前已关闭。"
+writer-schedule-failed = "无法调度诊断报告写入任务。"
+capture-failed = "无法收集诊断报告数据，请检查服务器控制台。"
+closed-before-write = "诊断数据提供程序在写入报告前已关闭。"
+write-failed = "无法写入诊断报告，请检查服务器控制台。"
+
+[debug]
+preparing = "正在准备 {plugin} 诊断报告..."
+saved = "已将 {plugin} 诊断报告保存到 {path}。"
+
+[debug.upload]
+interrupted = "诊断报告上传已中断，本地报告已保存。"
+failed = "诊断报告上传失败，本地报告已保存。"
+completed = "已上传为 VolmitSoftware - {plugin} - v{version}。"
+
+[debug.action]
+open = "打开：{url}"
+open-description = "打开已上传的诊断报告。"
+copy-path = "复制本地路径"
+copy-path-description = "复制本地报告的路径。"

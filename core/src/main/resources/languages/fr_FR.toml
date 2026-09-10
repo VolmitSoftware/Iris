@@ -1,0 +1,2102 @@
+# === Iris language guide ===
+# Iris - fr_FR
+#
+# === Modifier le fichier ===
+# languages/fr_FR.toml
+# Ce fichier peut être modifié directement. Les modifications locales sont conservées ; les entrées manquantes ou invalides utilisent l’anglais intégré.
+# /iris language server edit fr_FR
+#
+
+# === Préfixe et exemple ===
+# Iris n’a pas de préfixe global pour les langues. Un préfixe écrit dans un message ne s’applique qu’à ce message.
+# L’étiquette du plugin dans la console et les thèmes des menus et de l’aide sont définis séparément.
+# Exemple : modifier set_debug dans la section existante [iris.bukkit.commandiris] :
+# [iris.bukkit.commandiris]
+# set_debug = "&6[Mondes]&r &aDébogage réglé sur : {to}"
+# Seul ce message de débogage reçoit le préfixe [Mondes]. {to} est remplacé par true (activé) ou false (désactivé).
+#
+# === Couleurs et mise en forme ===
+# Couleurs classiques : &0 noir, &1 bleu foncé, &2 vert foncé, &3 turquoise foncé,
+# &4 rouge foncé, &5 violet foncé, &6 or, &7 gris, &8 gris foncé,
+# &9 bleu, &a vert, &b turquoise, &c rouge, &d violet clair, &e jaune, &f blanc.
+# Styles : &k obfusqué, &l gras, &m barré, &n souligné, &o italique, &r réinitialisation.
+# Le traitement des langues accepte les couleurs RGB sous les formes &#RRGGBB, &xRRGGBB, &x&R&R&G&G&B&B et [RRGGBB].
+# Les thèmes Bukkit appliqués ensuite peuvent modifier les couleurs RGB. Les affichages moddés ou en texte brut utilisent leurs propres styles.
+# Dans les chaînes TOML entre guillemets doubles, \n représente un saut de ligne, \" un guillemet et \\ une barre oblique inverse littérale.
+#
+# === Variables ===
+# Utiliser uniquement les variables déjà présentes dans chaque message, sans modifier leurs noms.
+# PC, SC et TC ne sont pas des variables de thème Iris. Ce glossaire n’autorise pas l’ajout de variables dans d’autres messages.
+#   {MAXAUTOSELECTVOLUME}  Nombre maximal de blocs d’un objet sélectionné automatiquement.
+#   {MAXSAVEVOLUME}  Nombre maximal de blocs d’une sélection d’objet enregistrée.
+#   {MAXSPAN}  Largeur, hauteur ou profondeur maximale d’une structure lors de la capture, en blocs.
+#   {NATIVESTRUCTURELOCATERADIUS}  Rayon maximal de recherche des structures natives, en chunks.
+#   {ROOTPERMISSION}  Permission racine nécessaire pour utiliser la commande.
+#   {WORKSPACENAME}  Nom du dossier de travail Studio recherché.
+#   {WORLDPACKNAME}  Nom du datapack généré pour le monde.
+#   {active}  Nombre de tâches de traitement en cours.
+#   {activeLocale}  Langue qui reste active lorsque la langue demandée ne peut pas être sélectionnée.
+#   {activeMax}  Limite supérieure de la plage de hauteur du type de dimension chargé.
+#   {activeMin}  Limite inférieure de la plage de hauteur du type de dimension chargé.
+#   {actualReverts}  Nombre de collages d’objets effectivement annulés.
+#   {afb}  Partie mise en forme d’un libellé de mesure du moteur, après le passage entre crochets.
+#   {after}  Valeur après modification ou blocs d’arbre restant inaccessibles après réparation.
+#   {amount}  Quantité associée à l’entrée indiquée dans le rapport.
+#   {applied}  Nombre de chunks dont le résultat du traitement a été appliqué.
+#   {argument}  Argument de commande qui n’a pas pu être accepté.
+#   {available}  Nombre de structures natives pouvant être générées.
+#   {bar}  Texte déjà mis en forme de la barre de progression.
+#   {befb}  Partie mise en forme d’un libellé de mesure du moteur, avant le passage entre crochets.
+#   {before}  Valeur avant modification ou blocs d’arbre inaccessibles avant réparation.
+#   {biome}  Nom ou identifiant du biome affiché.
+#   {block}  Type ou description du bloc inspecté.
+#   {blockX}  Coordonnée X du bloc ou de la destination de téléportation.
+#   {blockY}  Coordonnée Y du bloc ou de la destination de téléportation.
+#   {blockZ}  Coordonnée Z du bloc ou de la destination de téléportation.
+#   {blocking}  Nombre d’erreurs de validation empêchant le chargement du pack.
+#   {blocks}  Nombre de variantes de blocs dans le groupe importé.
+#   {bpp}  Nombre de blocs du monde représentés par un pixel dans Vision.
+#   {branches}  Nombre de branches ajoutées pendant la réparation d’objets d’arbre.
+#   {broken}  Nombre de packs ayant échoué à la validation.
+#   {brokenTotal}  Nombre total de packs ayant échoué à la validation.
+#   {cave}  Biome ou description de la grotte à la position inspectée.
+#   {centerX}  Coordonnée X du centre de la zone ; l’unité dépend du message de l’opération.
+#   {centerZ}  Coordonnée Z du centre de la zone ; l’unité dépend du message de l’opération.
+#   {changed}  Nombre d’objets traités qui ont été modifiés.
+#   {chunk}  Coordonnées ou libellé identifiant le chunk signalé.
+#   {chunkX}  Coordonnée X exprimée en chunks, et non en blocs.
+#   {chunkZ}  Coordonnée Z exprimée en chunks, et non en blocs.
+#   {chunks}  Nombre de chunks inclus dans l’opération.
+#   {clampedY}  Coordonnée Y de destination après ajustement à la plage de hauteur autorisée.
+#   {command}  Nom de la commande ou commande complète à exécuter.
+#   {converted}  Nombre de blocs de feuilles convertis en bois pendant la réparation des arbres.
+#   {count}  Nombre d’entrées, de messages ou de joueurs désignés par le texte environnant.
+#   {current}  Progression actuelle ou nombre de chunks de la comparaison en cours.
+#   {currentStage}  Nom de l’étape actuelle de chargement de Studio.
+#   {d}  Profondeur de l’objet en blocs.
+#   {depth}  Nombre de blocs sous la surface du terrain.
+#   {derivative}  Biome dérivé ou variante associée au biome de surface.
+#   {detail}  Description complémentaire de l’objet inspecté ou de l’étape en cours.
+#   {diffs}  Nombre de différences détectées entre les résultats générés.
+#   {dimKey}  Identifiant de la dimension en cours d’exportation en pack.
+#   {dimension}  Nom ou identifiant de la dimension concernée par le message.
+#   {dimensionId}  Identifiant enregistré de la dimension chargée ou demandée.
+#   {dimensionId2}  Identifiant de dimension répété dans la commande de suppression proposée.
+#   {dimm}  Identifiant de la dimension Studio, ou nom de son pack dans la commande de validation.
+#   {disabled}  Nombre de structures natives dont la génération est désactivée.
+#   {distances}  Nombre de valeurs de distance des feuilles modifiées pendant la réparation des arbres.
+#   {done}  Nombre d’éléments de travail terminés jusqu’ici.
+#   {downloadSource}  Source ou référence sélectionnée pour télécharger le pack.
+#   {downloadable}  Pack ou projet téléchargeable en cours d’importation.
+#   {dumpPath}  Emplacement des données enregistrées de nettoyage ou de restauration.
+#   {duration}  Durée mise en forme de l’opération.
+#   {e}  Texte de l’exception lors d’une recherche de modèles de structures ayant échoué.
+#   {elapsed}  Temps écoulé depuis le début de l’opération, mis en forme.
+#   {engines}  Nombre de moteurs de génération ou de dimensions Iris actifs.
+#   {entity}  Type d’entité sélectionné par le générateur d’entités inspecté.
+#   {error}  Détails de l’erreur survenue.
+#   {errorMessage}  Complément facultatif sur l’erreur ajouté au message d’échec principal.
+#   {eta}  Temps restant estimé mis en forme ; certains messages fournissent aussi son libellé.
+#   {failed}  Nombre d’éléments en échec ou complément d’échec préparé pour les titres de progression.
+#   {failure}  Raison de l’échec de la recherche ou de l’opération.
+#   {failures}  Nombre de tâches en échec ou résumé facultatif et mis en forme des échecs.
+#   {file}  Nom ou chemin du fichier concerné par l’opération.
+#   {filter}  Texte utilisé pour filtrer la liste des dimensions Iris.
+#   {fps}  Fréquence actuelle de rendu de l’aperçu, en images par seconde.
+#   {g}  Fichiers d’objets écrits depuis le précédent rapport de progression de l’exportation du pack.
+#   {generated}  Nombre de chunks générés jusqu’ici.
+#   {generator}  Nom du générateur de bruit affiché dans l’explorateur.
+#   {generatorKey}  Identifiant du générateur de bruit demandé.
+#   {get}  Nombre de fichiers de schémas convertis avec succès.
+#   {golden}  Nombre de chunks de la comparaison de référence enregistrée.
+#   {goldenDimension}  Identifiant de dimension stocké dans la capture de référence.
+#   {goldenSeed}  Graine du monde stockée dans la capture de référence.
+#   {goldenVersion}  Version de Minecraft utilisée pour créer la capture de référence.
+#   {group}  Groupe de messages dans l’éditeur de langue ou catégorie d’un objet importé.
+#   {guiNote}  Note facultative sur la fenêtre de progression de la prégénération.
+#   {h}  Hauteur de l’objet en blocs.
+#   {hash}  Somme de contrôle combinée des chunks générés comparés.
+#   {health}  Santé actuelle de l’entité inspectée.
+#   {height}  Hauteur du terrain, hauteur totale ou hauteur de la zone affichée, selon le message.
+#   {hours}  Composante en heures de la durée mise en forme.
+#   {i}  Nom affiché du moteur ou entrée du modèle de liste des commandes.
+#   {id}  ID de registre du biome inspecté.
+#   {imported}  Nombre de structures ou d’objets importés avec succès.
+#   {includeNonJigsaw}  Indique si l’importation inclut les structures sans pièces jigsaw.
+#   {iris}  Nombre de dimensions chargées utilisant la génération Iris.
+#   {irisLevels}  Nombre de dimensions Iris chargées dont les hauteurs sont comparées à celles du pack.
+#   {irisPlaced}  Nombre de structures placées par Iris à la place de la génération native.
+#   {job}  Nom de l’opération en arrière-plan terminée.
+#   {k}  Clé de chargement de la région dans le rapport de répartition des régions.
+#   {key}  Identifiant du paramètre, du message ou de la ressource indiqué par le texte environnant.
+#   {key2}  Identifiant de structure répété dans la commande de localisation proposée.
+#   {keyString}  Identifiant de la structure ou de la ressource importée ou signalée comme invalide.
+#   {label}  Nom affiché de la cible localisée.
+#   {line}  Numéro de ligne dans l’éditeur de langue.
+#   {locale}  Identifiant de langue, par exemple en_US ou de_DE.
+#   {logicalWorldName}  Nom logique du monde visé par la commande.
+#   {loot}  Identifiant de la table de butin inspectée.
+#   {m}  Message d’évacuation supplémentaire ou texte des paramètres ignorés dans le modèle de commande.
+#   {mantleStatus}  Résultat de la réinitialisation des données de génération avant une comparaison après régénération.
+#   {marker}  Nom du marqueur recherché.
+#   {material}  Matériau Minecraft du bloc inspecté.
+#   {maxScale}  Échelle maximale autorisée de l’objet après limitation de l’échelle demandée.
+#   {maxX}  Limite supérieure X de la plage de chunks affichée.
+#   {maxY}  Limite supérieure de la plage de hauteur du monde.
+#   {maxZ}  Limite supérieure Z de la plage de chunks affichée.
+#   {maximum}  Longueur maximale de saisie ou santé maximale de l’entité, selon le message.
+#   {mcmeta}  Chemin du fichier pack.mcmeta du datapack généré.
+#   {message}  Texte détaillé d’état ou d’erreur fourni par l’opération.
+#   {method}  Méthode de prégénération sélectionnée.
+#   {minX}  Limite inférieure X de la plage de chunks affichée.
+#   {minY}  Limite inférieure de la plage de hauteur du monde.
+#   {minZ}  Limite inférieure Z de la plage de chunks affichée.
+#   {minutes}  Composante en minutes de la durée mise en forme.
+#   {mismatches}  Nombre de chunks différents de la référence enregistrée.
+#   {mode}  Mode sélectionné d’importation, de génération ou d’aperçu.
+#   {modeNote}  Explication facultative du mode de prégénération sélectionné.
+#   {name}  Nom du monde, de l’objet, du projet ou de l’entrée indiqué dans le message.
+#   {nameRaw}  Nom tel qu’il a été saisi, avant normalisation ou validation.
+#   {normalized}  Nom normalisé de la section d’aide introuvable.
+#   {num}  Passage entre crochets mis en forme d’un libellé de mesure du moteur ; ce n’est pas forcément un nombre.
+#   {object}  Nom ou identifiant de l’objet Iris modifié ou inspecté.
+#   {objects}  Liste ou nombre d’objets du chunk inspecté.
+#   {offset}  Distance verticale par rapport à la surface du terrain, en blocs.
+#   {output}  Chemin du fichier de sortie qui n’a pas pu être écrit.
+#   {overall}  Nombre moyen de chunks prégénérés par seconde sur l’ensemble de l’opération.
+#   {ownerName}  Nom du joueur propriétaire de la session Studio.
+#   {pack}  Nom ou identifiant du pack Iris concerné par l’opération.
+#   {pack2}  Identifiant de pack répété dans une commande proposée ou une source de téléchargement.
+#   {packDimension}  Définition de dimension sélectionnée dans le pack.
+#   {packLogical}  Hauteur logique demandée par la définition de dimension du pack.
+#   {packMax}  Limite supérieure de hauteur demandée par le pack.
+#   {packMin}  Limite inférieure de hauteur demandée par le pack.
+#   {packName}  Nom affiché du pack en cours de validation.
+#   {parameter}  Paramètre de commande manquant ou impossible à interpréter.
+#   {parent}  Nom affiché du menu ou du chemin de commande parent.
+#   {path}  Chemin du fichier enregistré, ouvert ou signalé.
+#   {percent}  Pourcentage de progression ; conserver le signe de pourcentage du message hors de la variable.
+#   {permission}  Nœud de permission requis pour l’action demandée.
+#   {personal}  Identifiant de langue personnel enregistré pour le joueur.
+#   {phase}  Nom de la phase actuelle de chargement ou de téléchargement.
+#   {pinned}  Nombre de blocs de feuilles fixés pendant la réparation d’un objet d’arbre.
+#   {player}  Nom du joueur suivi ou ciblé.
+#   {plugin}  Nom affiché du plugin ; Iris dans ses messages partagés de langue et de diagnostic.
+#   {position}  Numéro du coin de sélection défini.
+#   {preset}  Préréglage enregistré de génération utilisé pour le monde principal.
+#   {primary}  Identifiant du monde principal configuré.
+#   {processed}  Nombre d’éléments traités, y compris les réussites, les éléments ignorés et les échecs.
+#   {properties}  Liste mise en forme des propriétés du bloc inspecté.
+#   {quarantinePath}  Dossier contenant les fichiers de nettoyage mis en quarantaine.
+#   {queued}  Nombre de tâches ou d’éléments de travail en attente d’exécution.
+#   {radius}  Rayon de prégénération répété dans la commande de démarrage proposée.
+#   {rarity}  Valeur de rareté configurée de la région ou du placement indiqué.
+#   {rate}  Débit de transfert ou de prégénération mis en forme ; le message ajoute le suffixe par seconde.
+#   {reach}  Portée configurée de recherche des branches pendant la réparation d’objets d’arbre.
+#   {ready}  Nombre de pages exactes de l’Atlas actuellement disponibles.
+#   {reason}  Explication de l’impossibilité de terminer l’action demandée.
+#   {region}  Nom ou identifiant de la région inspectée.
+#   {remaining}  Nombre d’états de blocs supplémentaires omis dans la liste affichée.
+#   {repository}  Dépôt ou archive téléchargée en cours de décompression.
+#   {reverted}  Nombre de collages d’objets annulés.
+#   {rotation}  Rotation appliquée à l’objet placé.
+#   {rx}  Coordonnée X du chunk dont l’empreinte est calculée.
+#   {rz}  Coordonnée Z du chunk dont l’empreinte est calculée.
+#   {s}  Nom du nouveau projet Studio.
+#   {safeName}  Nom de fichier assaini utilisé pour l’objet importé.
+#   {scale}  Nombre de blocs du monde représentés par un pixel d’aperçu.
+#   {scope}  Objet ou groupe d’objets ouvert dans Object Studio.
+#   {searchRadius}  Rayon de recherche pour la vérification des structures, en chunks.
+#   {seconds}  Composante en secondes d’une durée ou temps depuis la dernière mise à jour.
+#   {section}  Nom de la section d’aide demandée par l’utilisateur.
+#   {seed}  Graine utilisée pour le monde, la session Studio, le générateur ou la comparaison de référence.
+#   {seedRaw}  Graine telle qu’elle a été saisie, avant validation.
+#   {sixtySecond}  Chunks prégénérés par seconde sur la fenêtre de 60 secondes.
+#   {size}  Nombre de fichiers, d’avertissements, d’entrées ou d’éléments indiqués dans le message.
+#   {skipped}  Nombre d’éléments ignorés par l’opération.
+#   {slope}  Pente du terrain à la position inspectée.
+#   {solidBlocks}  Nombre de blocs solides comptés lors du calcul de l’empreinte de génération.
+#   {source}  Pack, source de téléchargement ou entrée associé à l’affichage de progression.
+#   {speed}  Vitesse de prégénération ou de traitement par seconde, mise en forme.
+#   {stage}  Nom de l’étape de progression en cours.
+#   {state}  État actuel ou valeur de propriété indiqué par le message.
+#   {status}  Texte d’état actuel de l’aperçu.
+#   {structure}  Nom ou identifiant de la structure recherchée.
+#   {structureKey}  Identifiant de registre ou de pack de la structure demandée.
+#   {summary}  Résultats mis en forme de l’opération terminée.
+#   {suppressed}  Nombre de structures natives remplacées par des placements Iris.
+#   {surface}  Coordonnée Y de la surface utilisée dans la commande de téléportation proposée.
+#   {surfaceY}  Coordonnée Y de la surface du terrain à la position inspectée.
+#   {tag}  Libellé mis en forme de l’état de validation placé avant le nom du pack.
+#   {target}  Destinataire de la langue ou cible de sélection d’objets indiqué dans le message.
+#   {targetX}  Coordonnée X de la destination localisée ou demandée.
+#   {targetZ}  Coordonnée Z de la destination localisée ou demandée.
+#   {template}  Modèle sélectionné lors de la création d’un projet.
+#   {tenSecond}  Chunks prégénérés par seconde sur la fenêtre de 10 secondes.
+#   {thirtySecond}  Chunks prégénérés par seconde sur la fenêtre de 30 secondes.
+#   {threads}  Nombre de threads de traitement utilisés pour calculer l’empreinte de génération.
+#   {tileNote}  Note facultative sur les données d’entités de blocs enregistrées ou placées.
+#   {title}  Titre de l’opération dont le résultat est affiché.
+#   {to}  Nouveau réglage de débogage : true pour activé, false pour désactivé.
+#   {token}  Argument de portée qui n’a pas pu être interprété.
+#   {total}  Nombre total d’éléments de travail, de chunks, de dimensions ou d’entrées indiqués dans le message.
+#   {totalObjects}  Nombre d’objets ouverts dans Object Studio.
+#   {transferred}  Quantité mise en forme des données transférées jusqu’ici.
+#   {type}  Type de paramètre attendu, type de ressource ou catégorie d’objet indiqué dans le message.
+#   {typeKey}  Identifiant enregistré du type de dimension Minecraft, ou inline.
+#   {unreachableBiomes}  Nombre de structures natives exclues par les choix de biomes du pack.
+#   {unsupported}  Nombre de structures natives signalées comme non prises en charge par cette plateforme.
+#   {updates}  Mises à jour de blocs par seconde dans l’affichage de développement.
+#   {url}  Adresse web à ouvrir ou à copier.
+#   {usage}  Syntaxe de commande ou texte d’utilisation mémoire dans l’affichage mémoire.
+#   {used}  Quantité mise en forme de mémoire utilisée dans l’affichage mémoire.
+#   {value}  Valeur propre au message : réglage par défaut, nom, coordonnée, quantité ou erreur, par exemple. Lire le texte environnant.
+#   {value2}  Deuxième valeur propre au message : total de chunks, Y de destination, nom de pack ou erreur, par exemple. Lire le texte environnant.
+#   {value3}  Troisième valeur propre au message : pourcentage, Z de destination, version de Minecraft ou temps écoulé, par exemple.
+#   {value4}  Quatrième valeur propre au message : écritures de blocs, coordonnée Z d’une sélection ou complément d’état facultatif, par exemple.
+#   {value5}  Cinquième valeur propre au message : écritures de blocs autres que l’air lors d’un placement d’objet, ou Z du chunk dans le modèle de position.
+#   {variables}  Liste des variables disponibles pour le message en cours de modification.
+#   {velocity}  Vitesse de déplacement actuelle de l’entité inspectée.
+#   {version}  Version du plugin ou de Minecraft indiquée par le message environnant.
+#   {volume}  Nombre de blocs contenus dans la sélection d’objet.
+#   {w}  Largeur de l’objet en blocs.
+#   {wantVariants}  Variantes demandées par fonctionnalité d’arbre ou d’objet vanilla importée.
+#   {warnings}  Nombre d’avertissements de validation non bloquants.
+#   {width}  Largeur de la zone du monde affichée, en blocs.
+#   {wood}  Nombre de blocs de bois ajoutés pendant la réparation d’un objet d’arbre.
+#   {world}  Nom du monde visé par la commande ou l’affichage de progression.
+#   {written}  Nombre de variantes importées ou de fichiers d’objets écrits avec succès.
+#   {x}  Coordonnée X dans le contexte de blocs, chunks, régions ou aperçu indiqué par le message.
+#   {y}  Coordonnée verticale du monde ou du bloc.
+#   {z}  Coordonnée Z dans le contexte de blocs, chunks, régions ou aperçu indiqué par le message.
+#   {zoom}  Niveau de zoom actuel de l’aperçu.
+# === End Iris language guide ===
+
+[iris.director.commandiris]
+"director.debugdump" = "Créer un rapport de diagnostic et le publier si souhaité"
+"param.debugdump_upload" = "Publier le rapport sur mclo.gs"
+"director.basic_command" = "Commande de base"
+"director.create_new_world" = "Créer un nouveau monde"
+"param.name_world_create" = "Le nom du monde à créer"
+"param.dimension_pack_create_world_with" = "La dimension ou le pack avec lequel créer le monde"
+"param.seed_generate_world_with" = "La graine avec laquelle générer le monde"
+"param.replace_exact_existing_world_slot_next_restart" = "Remplacer l’emplacement exact du monde existant au prochain redémarrage"
+"director.teleport_another_world" = "Se téléporter vers un autre monde"
+"param.world_teleport" = "Le monde vers lequel se téléporter"
+"param.player_teleport" = "Le joueur à téléporter"
+"director.print_version_information" = "Afficher les informations de version"
+"director.benchmark_pack" = "Effectuer le benchmark d'un pack"
+"param.dimension_benchmark" = "La dimension à soumettre au benchmark"
+"director.print_world_height_information" = "Afficher les informations sur la hauteur du monde"
+"director.check_access_all_worlds" = "Vérifier l'accès à tous les mondes."
+"director.remove_iris_world" = "Supprimer un monde Iris"
+"param.world_remove" = "Le monde à supprimer"
+"param.whether_also_remove_folder_if_set_false_just_does_not_load_world" = "Indique s'il faut également supprimer le dossier (si la valeur est false, le monde n'est simplement pas chargé)"
+"director.toggle_debug" = "Activer ou désactiver le débogage"
+"director.download_project" = "Télécharger un projet."
+"param.pack_download" = "Le pack à télécharger"
+"director.get_metrics_your_world" = "Obtenir les métriques de votre monde"
+"director.reload_configuration_file_this_is_also_done_automatically" = "Recharger le fichier de configuration (cette opération est également automatique)"
+"director.unload_iris_world" = "Décharger un monde Iris de la mémoire"
+"param.world_unload" = "Le monde à décharger de la mémoire"
+"director.load_iris_world" = "Charger un monde Iris"
+"param.name_world_load" = "Le nom du monde à charger"
+"director.evacuate_iris_world" = "Évacuer un monde Iris"
+"param.evacuate_world" = "Évacuer le monde"
+
+[director.help]
+"navigation.parent.hover" = "Revenir au groupe de commandes parent"
+"navigation.back" = "Retour"
+no_subcommands = "Aucune sous-commande sur cette page."
+no_description = "Aucune description fournie"
+command_group = "Groupe de commandes. Cliquez pour ouvrir."
+category = "Catégorie de commandes"
+no_parameters = "Aucun paramètre. Cliquez pour préremplir la commande."
+parameters_hover = "Survolez les paramètres pour en savoir plus."
+"parameter.required" = "Ce paramètre est obligatoire."
+"parameter.optional" = "Ce paramètre est facultatif."
+"parameter.default" = "Vaut \"{value}\" par défaut si non défini."
+"parameter.type" = "Ce paramètre est de type {type}."
+"navigation.previous.hover" = "Page précédente"
+"navigation.next.hover" = "Page suivante"
+"navigation.page" = "Page"
+
+[director.runtime]
+"error.invalid_origin" = "Cette commande ne peut pas être exécutée depuis cette origine."
+"error.unknown_parameter" = "Clé de paramètre inconnue : {key}"
+"error.unexpected_argument" = "Argument inattendu \"{argument}\". Les paramètres facultatifs doivent être nommés, par ex. seed=123"
+"error.unclosed_group" = "Crochet fermant \"]\" manquant pour le paramètre {key}"
+"error.conversion_failed" = "Impossible de convertir \"{value}\" en {type} pour {parameter}"
+"error.default_parse_failed" = "Impossible d'analyser la valeur par défaut du paramètre {parameter}"
+"error.missing_argument" = "Argument manquant \"{parameter}\" ({type})"
+"error.execution_failed" = "Échec de l'exécution de la commande {command} : {reason}"
+usage = "Utilisation: {usage}"
+
+[iris.command]
+permission_denied = "Vous n'avez pas la permission '{permission}'"
+unknown = "Commande Iris inconnue"
+player_only = "Cette commande ne peut être utilisée que par les joueurs."
+iris_world_required = "Cette dimension n'a pas été générée par Iris."
+
+[iris.command.reload]
+success = "Les paramètres et la langue {locale} ont été rechargés."
+failed = "Les paramètres ont été rechargés, mais la langue {locale} a été refusée ; la langue {activeLocale} reste utilisée."
+
+[iris.modded.help]
+unknown_section = "Section d'aide Iris inconnue : {section}"
+back_hover = "Revenir à {parent}."
+command_parameter = "Paramètre de commande"
+brigadier_text = "Brigadier lit ce paramètre comme du texte."
+operator_notice = "Les commandes Iris nécessitent les droits d'opérateur (niveau 2)."
+operator_instruction = "Exécutez {command} depuis la console (ou activez les commandes en solo) ; jusque-là, ces commandes ne s'exécuteront pas et ne seront pas complétées avec Tab."
+"entry.command.version" = "Afficher les informations de version"
+"entry.command.info" = "Lister les dimensions Iris chargées et les détails de leurs packs"
+"entry.command.what" = "Inspecter le biome Iris, la région, le biome de grotte, la surface et le chunk à votre position, le bloc regardé, l'objet tenu ou les marqueurs proches"
+"entry.group.find" = "Rechercher et se téléporter vers des biomes Iris, régions, objets, structures Iris, structures natives et points d'intérêt"
+"entry.command.tp" = "Vous téléporter ou téléporter un joueur nommé vers une dimension Iris chargée"
+"entry.command.evacuate" = "Téléporter tous les joueurs d'une dimension Iris vers le spawn du monde principal"
+"entry.command.seed" = "Afficher les informations de graine du monde et du moteur"
+"entry.command.debug" = "Basculer les journaux de débogage Iris et enregistrer iris.json"
+"entry.command.reload" = "Recharger iris.json (également rechargé à chaud automatiquement toutes les 3s)"
+"entry.command.download" = "Télécharger un projet de pack"
+"entry.command.metrics" = "Afficher les métriques de génération de votre dimension Iris actuelle"
+"entry.command.regen" = "Supprimer et régénérer sur place les chunks proches"
+"entry.group.pregen" = "Prégénérer une dimension Iris"
+"entry.command.wand" = "Obtenir une baguette d'objets Iris"
+"entry.group.object" = "Outils de baguette, d'enregistrement, de collage, d'analyse et d'annulation d'objets"
+"entry.group.edit" = "Ouvrir les fichiers json de biome, région et dimension du pack dans l'éditeur de bureau"
+"entry.command.create" = "Créer et injecter une dimension Iris persistante ; mettez pack:dimensionKey entre guillemets pour choisir une dimension précise du pack"
+"entry.group.studio" = "Création, empaquetage et rapports de projets de packs"
+"entry.group.pack" = "Validation et maintenance des packs"
+"entry.group.world" = "Création, suppression et état des dimensions Iris pendant l'exécution"
+"entry.group.datapack" = "Outils d'installation et d'état des datapacks du monde"
+"entry.group.structure" = "Outils d'index, d'informations et de placement des structures Iris"
+"entry.command.goldenhash" = "Générer des hashes de blocs déterministes pour les tests de parité"
+"entry.group.developer" = "Diagnostics développeur : interfaces réseau et analyse des fichiers de région"
+"entry.command.biome" = "Rechercher un biome Iris"
+"entry.command.region" = "Rechercher une région Iris"
+"entry.command.object" = "Rechercher le placement d'un objet"
+"entry.command.structure" = "Rechercher une structure placée par Iris ou une structure native/de datapack"
+"entry.command.poi" = "Rechercher un point d'intérêt pris en charge"
+"entry.command.biome_2" = "Ouvrir le json d'un biome dans l'éditeur de bureau ; sans clé, ouvre le biome à votre position"
+"entry.command.region_2" = "Ouvrir le json d'une région dans l'éditeur de bureau ; sans clé, ouvre la région à votre position"
+"entry.command.dimension" = "Ouvrir le json de la dimension du pack actuel dans l'éditeur de bureau"
+"entry.command.start" = "Démarrer la prégénération ; rayon en blocs, cache de point de contrôle reprenable activé par défaut, centre via 'at <x> <z>' et options combinables dans n'importe quel ordre"
+"entry.command.stop" = "Arrêter la tâche de prégénération active"
+"entry.command.pause" = "Suspendre ou reprendre la prégénération"
+"entry.command.status" = "Afficher l'état de la prégénération"
+"entry.command.wand_3" = "Obtenir une baguette d'objets Iris"
+"entry.command.dust" = "Obtenir de la poussière qui révèle les placements d'objets"
+"entry.command.save" = "Enregistrer comme objet le volume sélectionné avec la baguette"
+"entry.command.paste" = "Coller un objet à votre position ou à une position donnée, avec une rotation facultative"
+"entry.command.expand" = "Étendre la sélection de la baguette dans la direction du regard"
+"entry.command.contract" = "Réduire la sélection de la baguette dans la direction du regard"
+"entry.command.shift" = "Déplacer la sélection de la baguette dans la direction du regard"
+"entry.command.position1" = "Définir le point 1 de la sélection"
+"entry.command.position2" = "Définir le point 2 de la sélection"
+"entry.command.x_y" = "Sélectionner automatiquement vers le haut et l'extérieur"
+"entry.command.x_y_2" = "Sélectionner automatiquement vers le haut, le bas et l'extérieur"
+"entry.command.analyze" = "Afficher la composition d'un objet"
+"entry.command.shrink" = "Réduire un objet à sa taille minimale"
+"entry.command.plausibilize" = "Faire pousser des branches pour que les feuilles survivent à la décomposition vanilla"
+"entry.command.undo" = "Annuler les objets collés"
+"entry.command.create_2" = "Créer un nouveau projet de pack"
+"entry.command.package" = "Empaqueter une dimension dans un format compressé"
+"entry.command.version_2" = "Afficher la version d'un pack"
+"entry.command.regions" = "Calculer la répartition des régions proches"
+"entry.command.open" = "Ouvrir une dimension Studio temporaire pour un pack"
+"entry.command.close" = "Fermer la dimension Studio ouverte et supprimer son monde"
+"entry.command.tpstudio" = "Se téléporter dans la dimension Studio ouverte"
+"entry.command.status_studio" = "Afficher la dimension Studio ouverte et son pack"
+"entry.command.noise" = "Ouvrir la GUI de Noise Explorer sur l'écran du serveur"
+"entry.command.map" = "Ouvrir la GUI de la carte Vision sur l'écran du serveur"
+"entry.command.vscode" = "Régénérer le fichier .code-workspace d'un pack et l'ouvrir dans l'éditeur de bureau"
+"entry.command.update" = "Régénérer le fichier .code-workspace d'un pack"
+"entry.command.importvanilla" = "Expliquer le flux d'importation vanilla"
+"entry.command.validate" = "Valider un pack ou tous les packs"
+"entry.command.cleanup" = "Prévisualiser ou mettre en quarantaine les ressources inutilisées candidates"
+"entry.command.restore" = "Prévisualiser ou restaurer la quarantaine la plus récente"
+"entry.command.status_validation" = "Afficher l'état de validation mis en cache"
+"entry.command.enable" = "Créer et injecter une dimension Iris persistante pendant l’exécution ; le pack doit être installé et pack:dimensionKey entre guillemets sélectionne une dimension précise."
+"entry.command.replace_overworld" = "Injecter un monde principal Iris et y rediriger les joueurs à la place de l'overworld vanilla"
+"entry.command.disable" = "Évacuer et décharger de la mémoire une dimension Iris ; les données du monde restent sur le disque pour la réactiver"
+"entry.command.delete" = "Désactiver une dimension Iris et effacer du disque ses données de chunks et de Mantle"
+"entry.command.list" = "Lister les dimensions Iris chargées"
+"entry.command.status_world" = "Afficher les dimensions Iris chargées et le monde principal configuré"
+"entry.command.status_datapack" = "Vérifier les remplacements de type des dimensions Iris chargées"
+"entry.command.install" = "Installer les remplacements de type pour les dimensions Iris chargées"
+"entry.command.list_datapacks" = "Lister les datapacks configurés et installés"
+"entry.command.ingest" = "Expliquer le flux d'ingestion des datapacks Bukkit"
+"entry.command.remove" = "Expliquer le flux de suppression des datapacks"
+"entry.command.list_structures" = "Régénérer structure-index.json"
+"entry.command.info_2" = "Résoudre le graphe d'une structure Iris et afficher ses limites"
+"entry.command.place" = "Assembler et placer une structure Iris à votre position"
+"entry.command.import" = "Expliquer le flux d'importation des structures Bukkit"
+"entry.command.capture" = "Expliquer le flux de capture des structures Bukkit"
+"entry.command.verify" = "Afficher l'accessibilité des structures natives et Iris dans la dimension actuelle"
+"entry.command.network" = "Lister les interfaces réseau et leurs adresses"
+"entry.command.what.here" = "Inspecter le biome Iris, la région, le biome souterrain, la surface et le chunk à votre position"
+"entry.command.what.biome" = "Inspect the Iris biome, configured derivative and registered native biome"
+"entry.command.what.region" = "Inspect the Iris region at your current chunk"
+"entry.command.what.block" = "Inspect the targeted block state, properties, object and block entity"
+"entry.command.what.hand" = "Inspect the held item and its default block state"
+"entry.command.what.markers" = "Reveal nearby Iris Mantle markers with particles"
+"entry.command.height" = "Print the current dimension height range"
+"entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
+"entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
+"entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
+"entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
+"entry.command.studio.loot" = "Explain why the Bukkit loot simulation GUI is unavailable"
+"entry.command.studio.profile" = "Explain why Bukkit pack profiling is unavailable"
+"entry.command.studio.spawn" = "Explain why Bukkit Iris entity spawning is unavailable"
+"entry.command.studio.objects" = "Explain why the Bukkit chunk object report is unavailable"
+"entry.command.compat_content" = "Afficher le contenu qui ne peut pas être généré sur cette version de Minecraft"
+
+[iris.modded.command]
+"properties.none" = "Propriétés: (aucune)"
+"properties.list" = "Propriétés : {properties}"
+
+[iris.bukkit.commanddatapack]
+starting_datapack_ingest = "§7Démarrage de l'ingestion des datapacks..."
+configured_datapack_imports = "§aImportations de datapacks configurées : §f{value}"
+message = "§7  - §f{url}"
+installed_datapacks = "§aDatapacks installés : §f{value}"
+message_2 = "§7  - §f{value}§7  {value2}"
+add_modrinth_urls_dimension_s_datapackimports_list_then_run_iris = "§eAjoutez des URL Modrinth à la liste 'datapackImports' d'une dimension, puis exécutez /iris datapack ingest."
+
+[iris.bukkit.commanddeveloper]
+genhash_started_chunks = "§agenhash démarré : {value} chunks..."
+genhash_failed_at_chunk = "§cgenhash a échoué au chunk {rx},{rz} : {value}"
+genhash_global_chunks_solid = "§agenhash global=§6{value}§a chunks={value2} solides={solidBlocks} en {value3}"
+world_is_null = "§cLe monde est nul."
+target_iris_world_before_reading_mantle_dump = "§cCiblez un monde Iris avant de lire un vidage de Mantle."
+upgrading = "§aMise à niveau vers {value}..."
+done_upgrading_you_can_now_update_your_server_version = "§aMise à niveau terminée ! Vous pouvez maintenant mettre votre serveur à jour vers la version {value}"
+radius_must_be_0_greater = "§cLe rayon doit être supérieur ou égal à 0."
+this_is_not_iris_world = "§cCe monde n'est pas un monde Iris."
+engine_access_this_world_is_null = "§cL'accès au moteur de ce monde est nul."
+delete_started_chunk_s_around_clearing_blocks_air = "§aSuppression démarrée : §6{chunks}§a chunk(s) autour de §6{centerX},{centerZ}§a. Remplacement des blocs par de l'air."
+radius_must_be_0_greater_2 = "§cLe rayon doit être supérieur ou égal à 0."
+you_must_be_iris_world_use_regen = "§cVous devez être dans un monde Iris pour utiliser regen."
+engine_access_this_world_is_null_generate_nearby_chunks_first = "§cL'accès au moteur de ce monde est nul. Générez d'abord des chunks à proximité."
+regen_started_chunk_s_around_deleting_regenerating_place = "§aRégénération démarrée : §6{chunks}§a chunk(s) autour de §6{centerX},{centerZ}§a. Suppression et régénération sur place."
+radius_must_be_0_greater_3 = "§cLe rayon doit être supérieur ou égal à 0."
+target_must_be_iris_world = "§cLa cible doit être un monde Iris."
+engine_access_this_world_is_null_2 = "§cL'accès au moteur de ce monde est nul."
+goldenhash_started_chunk_s_around_buffers_world_untouched = "§aGoldenHash démarré : §6{chunks}§a chunk(s) autour de §6{centerX},{centerZ}§a dans des tampons (monde inchangé)."
+
+[iris.bukkit.commandfind]
+not_iris_world = "§6Vous n'êtes pas dans un monde Iris !"
+unknown_structure = "§cStructure inconnue : {structureKey}"
+run_this_game_teleport_structure = "§6Exécutez ceci en jeu pour vous téléporter vers une structure."
+locating = "§7Recherche de {structureKey}..."
+run_this_game_teleport_structure_2 = "§6Exécutez ceci en jeu pour vous téléporter vers une structure."
+locating_2 = "§7Recherche de {structure}..."
+teleported = "§aTéléporté vers {structure} @ {value}, {y}, {value2}"
+not_iris_world_5 = "§6Vous n'êtes pas dans un monde Iris !"
+not_iris_world_2 = "§6Vous n'êtes pas dans un monde Iris !"
+not_iris_world_3 = "§6Vous n'êtes pas dans un monde Iris !"
+not_iris_world_4 = "§6Vous n'êtes pas dans un monde Iris !"
+object_studio_teleporting = "§aObject Studio : téléportation vers {object}"
+is_not_configured_any_region_biome_object_placements = "§c{object} n'est configuré dans aucun placement d'objets de région ou de biome."
+
+[iris.bukkit.commandiris]
+successfully_removed_world_folder = "§aDossier du monde supprimé avec succès"
+successfully_removed_world_folder_2 = "§aDossier du monde supprimé avec succès"
+failed_remove_world_folder = "§cImpossible de supprimer le dossier du monde"
+you_cannot_use_world_name_iris_creating_worlds_as_iris = "§cVous ne pouvez pas nommer un monde \"iris\" : Iris réserve ce répertoire aux mondes Studio."
+may_we_suggest_name_irisworld_instead = "§cNous vous suggérons plutôt le nom \"IrisWorld\"."
+you_cannot_use_world_name_benchmark_creating_worlds_as_iris = "§cVous ne pouvez pas nommer un monde \"benchmark\" : Iris réserve ce répertoire aux benchmarks de packs."
+may_we_suggest_name_irisworld_instead_2 = "§cNous vous suggérons plutôt le nom \"IrisWorld\"."
+that_folder_already_exists = "§cCe dossier existe déjà !"
+try_one_overworld_vanilla_flat_theend = "§eEssayez l'une des options suivantes : overworld, vanilla, flat, theend"
+dimension_not_found = "§cCould not find dimension §f{dimension}§c."
+install_pack_and_restart = "§eInstall it with §b{command}§e and restart the server."
+exception_raised_during_creation_see_console_more_details = "§cUne exception s'est produite pendant la création. Consultez la console pour plus de détails."
+successfully_created_your_world = "§aVotre monde a été créé avec succès !"
+specified_player_does_not_exist = "§cLe joueur indiqué n'existe pas."
+iris_v_by_volmit_software = "§aIris v{value} par Volmit Software"
+to = "§a{value} à {value2}"
+total_height = "§aHauteur totale : {value}"
+iris_worlds = "§9Mondes Iris : "
+message = "§a- {value}"
+bukkit_worlds = "§6Mondes Bukkit : "
+message_2 = "§7- {value}"
+this_is_not_iris_world_iris_worlds = "§cCe monde n'est pas un monde Iris. Mondes Iris : {value}"
+removing_world = "§aSuppression du monde : {value}"
+failed_evacuate_world = "§cImpossible d'évacuer le monde : {value}"
+failed_unload_world = "§cImpossible de décharger le monde de la mémoire : {value}"
+successfully_removed_from_bukkit_yml = "§a{value} a été supprimé de bukkit.yml avec succès"
+looks_like_world_was_already_removed_from_bukkit_yml = "§eIl semble que le monde avait déjà été supprimé de bukkit.yml"
+failed_save_bukkit_yml_because = "§cImpossible d'enregistrer bukkit.yml à cause de {value}"
+set_debug = "§aDébogage défini sur : {to}"
+you_must_be_iris_world = "§cVous devez être dans un monde Iris"
+sending_metrics = "§aEnvoi des métriques..."
+this_is_not_iris_world_iris_worlds_2 = "§cCe monde n'est pas un monde Iris. Mondes Iris : {value}"
+unloading_world = "§aDéchargement du monde de la mémoire : {value}"
+world_unloaded_successfully = "§aLe monde a été déchargé de la mémoire avec succès."
+failed_unload_world_2 = "§cImpossible de décharger le monde de la mémoire."
+failed_unload_world_3 = "§cImpossible de décharger le monde de la mémoire : {value}"
+doesnt_exist_on_server = "§e{logicalWorldName} n'existe pas sur le serveur."
+generator = "§9Générateur : {dimension}"
+is_not_iris_world = "§6{logicalWorldName} n'est pas un monde Iris."
+could_not_determine_iris_dimension = "§cImpossible de déterminer la dimension Iris de {logicalWorldName}."
+loading_world = "§aChargement du monde : {logicalWorldName}"
+loaded_successfully = "§a{logicalWorldName} a été chargé avec succès."
+this_is_not_iris_world_iris_worlds_3 = "§cCe monde n'est pas un monde Iris. Mondes Iris : {value}"
+evacuating_world = "§aÉvacuation du monde{value}"
+
+[iris.bukkit.commandobject]
+no_packs_with_objects_were_found_on_this_server = "§cAucun pack contenant des objets n'a été trouvé sur ce serveur."
+no_objects_place_across_selected_pack_s = "§cAucun objet à placer dans les packs sélectionnés."
+opening_object_studio_objects = "§aOuverture d'Object Studio pour {scope} ({totalObjects} objets)"
+failed_open_object_studio = "§cImpossible d'ouvrir Object Studio : {value}"
+object_size = "Taille de l'objet : {value} * {value2} * {value3}"
+blocks_used = "Blocs utilisés : {value}"
+blocks_object = "== Blocs de l'objet =="
+other_block_types = "  + {value} autres types de blocs"
+current_object_size = "Taille actuelle de l'objet : {value} * {value2} * {value3}"
+new_object_size = "Nouvelle taille de l'objet : {value} * {value2} * {value3}"
+failed_save_object = "Impossible d'enregistrer l'objet {value} : {value2}"
+no_objects_matched = "§cAucun objet ne correspond à : {target}"
+plausibilize_reach_queued_object_s = "§aPlausibilize [reach={reach}{value}] a mis {value2} objet(s) en file d'attente"
+hold_your_wand = "Tenez votre baguette."
+no_area_selected = "Aucune zone sélectionnée."
+ready_your_wand = "Préparez votre baguette."
+ready_your_wand_2 = "Préparez votre baguette."
+indicated_scale_exceeds_maximum_downscaled_maximum = "§eL'échelle indiquée dépasse le maximum. Elle a été réduite au maximum : {maxScale}"
+updated_wand_objects_iob = "Baguette mise à jour pour objects/{value}.iob "
+given_new_wand_objects_iob = "Nouvelle baguette donnée pour objects/{value}.iob "
+updated_wand_objects_iob_2 = "Baguette mise à jour pour objects/{value}.iob "
+placed = "§a{object} a été placé"
+you_need_hold_your_wand = "§eVous devez tenir votre baguette !"
+file_already_exists_set_overwrite_true_overwrite_it = "§cLe fichier existe déjà. Utilisez overwrite=true pour l'écraser."
+failed_save_object_because_ioexception = "§cImpossible d'enregistrer l'objet à cause d'une IOException : {value}"
+successfully_object_saved_objects = "§aObjet enregistré avec succès dans : {value}/objects/{name}"
+hold_your_wand_2 = "Tenez votre baguette."
+no_area_selected_2 = "Aucune zone sélectionnée."
+reverted_pastes = "§9{actualReverts}§9 collages ont été annulés !"
+you_can_t_get_worldedit_selection_without_worldedit_you_know = "§cVous ne pouvez pas obtenir de sélection WorldEdit sans WorldEdit."
+you_don_t_have_worldedit_selection_this_world = "§cVous n'avez pas de sélection WorldEdit dans ce monde."
+fresh_wand_with_your_current_worldedit_selection_on_it = "§aUne nouvelle baguette avec votre sélection WorldEdit actuelle !"
+poof_good_luck_building = "§aPouf ! Bonne construction !"
+hold_your_wand_3 = "§eTenez votre baguette !"
+no_area_selected_3 = "Aucune zone sélectionnée."
+auto_select_complete = "§aSélection automatique terminée !"
+hold_your_wand_4 = "§eTenez votre baguette !"
+no_area_selected_4 = "Aucune zone sélectionnée."
+auto_select_complete_2 = "§aSélection automatique terminée !"
+
+[iris.bukkit.commandpack]
+you_must_specify_pack_name = "§cVous devez indiquer un nom de pack."
+pack_not_found_under_packs = "§cLe pack '{pack}' est introuvable dans packs/."
+message = "§7  - {label}: {value}"
+more = "§7  ... et {value} de plus."
+
+[iris.bukkit.commandstructure]
+verifying_structures_from_within_chunks = "§aVérification des structures dans §f{value}§a depuis {value2},{value3}, dans un rayon de {searchRadius} chunks..."
+could_not_resolve_pack_dimension = "§cImpossible de résoudre le pack de la dimension {value}"
+wrote_structure_index = "§aIndex des structures écrit : §f{value}"
+could_not_resolve_pack_dimension_2 = "§cImpossible de résoudre le pack de la dimension {value}"
+importing_all_vanilla_datapack_structures_into_overwrite = "§aImportation de toutes les structures vanilla et de datapacks dans §f{value}§a (écrasement)..."
+import_complete_structures_objects_written_failed = "§aImportation terminée : §f{imported}§a structures/objects écrits, §f{failed}§a échecs."
+reference_them_from_biome_region_dimension_structures_list_run_iris = "§7Référencez-les depuis une liste 'structures' de biome, région ou dimension, ou exécutez /iris structure list {value} pour actualiser l'index. Régénérez les chunks pour appliquer les changements."
+could_not_resolve_pack_dimension_3 = "§cImpossible de résoudre le pack de la dimension {value}"
+captured_structures_place_them_from_structures_list_regenerate_chunks_delete = "§7{value} structures ont été capturées. Placez-les depuis une liste 'structures' et régénérez les chunks. Supprimez un fichier structures/*.json pour le capturer à nouveau."
+no_loaded_iris_world_found_join_create_one_first_search = "§cAucun monde Iris chargé trouvé pour {value}. Rejoignez-en ou créez-en un d'abord (la recherche s'effectue dans un monde actif)."
+selected_iris_world_has_no_active_generator_engine = "§cLe monde Iris sélectionné n'a pas de moteur de génération actif."
+could_not_resolve_pack_dimension_4 = "§cImpossible de résoudre le pack de la dimension {value}"
+no_iris_structure_this_pack = "§cAucune structure Iris '{structure}' dans ce pack"
+structure_assembled_0_pieces_check_startpool = "§cLa structure '{structure}' a assemblé 0 pièce (vérifiez startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "§aStructure '{structure}' : §f{value}§a pièces, emprise de §f{value2}x{value3}§a blocs (graine d'exemple 1234)"
+could_not_resolve_pack_dimension_5 = "§cImpossible de résoudre le pack de la dimension {value}"
+no_iris_structure_this_pack_2 = "§cAucune structure Iris '{structure}' dans ce pack"
+structure_assembled_0_pieces = "§cLa structure '{structure}' a assemblé 0 pièce"
+placed_pieces_at_your_location = "§aLa structure '{structure}' ({value} pièces) a été placée à votre position. ({value2} block changes)"
+placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+
+[iris.bukkit.commandstudio]
+importing_vanilla_content_into = "§aImportation du contenu vanilla dans §f{value}§a..."
+importvanilla_complete_objects_structures_written_failed = "§aimportvanilla terminé : §f{imported}§a objects/structures écrits, §f{failed}§a échecs."
+trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7Les arbres/objets se trouvent dans objects/vanilla/... ; référencez-les depuis les placements d'objets du biome."
+no_open_studio_projects = "§cAucun projet Studio ouvert."
+closing_studio = "§eFermeture de Studio..."
+studio_close_failed = "§cImpossible de fermer Studio : {value}"
+studio_close_failed_2 = "§cImpossible de fermer Studio : {value}"
+studio_closed_remaining_world_family_cleanup_was_queued_startup_fallback = "§eStudio fermé. Le nettoyage restant de la famille de mondes a été mis en attente pour le prochain démarrage."
+studio_closed = "§aStudio fermé."
+you_must_be_studio_world_toggle_debug_scoreboard = "§cVous devez être dans un monde Studio pour basculer le tableau de débogage."
+studio_debug_scoreboard = "{value}Tableau de débogage Studio {value2}"
+could_not_update_studio_debug_scoreboard_right_now = "§cImpossible de mettre à jour le tableau de débogage Studio pour le moment."
+opened_inventory = "§aInventaire ouvert !"
+generating_data = "§7Génération des données..."
+done = "§aTerminé !"
+message = "§a{k}: {value} / {value2}%"
+regions_radius_out_of_range = "§cLe rayon doit être compris entre 1 et 2048 chunks."
+regions_scan_failed = "§cÉchec de l'analyse des régions : {value}"
+opening_studio_pack_seed = "§aOuverture de Studio pour le pack \"{value}\" (graine : {seed})"
+provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§cIndiquez un pack de dimension : /iris std importvanilla pack=<dimension>"
+could_not_resolve_pack_dimension = "§cImpossible de résoudre le pack de la dimension {value}"
+opening_vscode_pack = "§aOuverture de VSCode pour le pack \"{value}\""
+pack_has_version = "§aLe pack \"{value}\" a pour version : {value2}"
+opening_noise_explorer = "§aOuverture de Noise Explorer !"
+cannot_add_items_virtual_inventory_because = "§cImpossible d'ajouter des éléments à l'inventaire virtuel à cause de : {value}"
+opening_inventory_now = "§aOuverture de l'inventaire !"
+only_works_iris_world = "§cFonctionne uniquement dans un monde Iris !"
+you_need_be_specify_iris_generated_world = "§cVous devez être dans un monde généré par Iris ou en indiquer un."
+opening_map = "§aOuverture de la carte !"
+calculating_performance_metrics_noise_generators = "Calcul des métriques de performance des générateurs de bruit"
+calculating_interpolator_timings = "Calcul des temps des interpolateurs..."
+processing_generator_scores = "Traitement des scores des générateurs : "
+score = "Score : {value}"
+done_with_result = "§aTerminé ! {value}"
+you_have_be_iris_world_spawn_entities_properly_trying_spawn = "§cVous devez être dans un monde Iris pour faire apparaître correctement les entités. Iris tentera de les faire apparaître au mieux."
+no_studio_world_is_open = "§cAucun monde Studio n'est ouvert !"
+you_are_already_studio_world = "§cVous êtes déjà dans un monde Studio !"
+sending_you_studio_world = "§aTéléportation vers le monde Studio !"
+updating_code_workspace = "§6Mise à jour de l'espace de travail de code de {value}..."
+updated_code_workspace = "§aEspace de travail de code de {value} mis à jour"
+invalid_project_try_deleting_code_workspace_file_try_again = "§cProjet non valide : {value}. Supprimez le fichier code-workspace et réessayez."
+you_must_be_iris_world = "§cVous devez être dans un monde Iris"
+you_must_be_iris_world_2 = "Vous devez être dans un monde Iris."
+capturing_igendata_from_nearby_chunks = "Capture d'IGenData depuis {value} chunks à proximité."
+reported = "Rapport écrit dans : {value}"
+you_must_have_server_launched_guis_enabled_settings = "§cVous devez activer les GUI lancées par le serveur dans les paramètres !"
+players_only = "§cJoueurs uniquement !"
+no_studio_world_is_open_2 = "§cAucun monde Studio n'est ouvert !"
+you_must_be_studio_world = "§cVous devez être dans un monde Studio !"
+opening_image_map_studio = "§aOpening the Image Map Studio."
+
+[iris.bukkit.commandsvc]
+you_lack_permission = "Tu manques de la permission{ROOTPERMISSION}'"
+
+[iris.bukkit.irisenginestatus]
+message = "§5-------------------------"
+status = "§5État :"
+service = "§5- Service : §d{value}"
+metrics = "§5- Métriques : §d{value}"
+maintenance_period = "§5- Période de maintenance : §d{value}"
+worker_parallelism = "§5- Parallélisme des workers : §d{value}"
+active_world_tasks = "§5- Tâches de monde actives : §d{value}"
+tectonic_plates = "§5Plaques tectoniques :"
+configured_retention = "§5- Rétention configurée : §d{value}"
+heap_usage = "§5- Utilisation du heap : §d{value}"
+resident = "§5- Résidents : §d{value}"
+queued = "§5- En attente : §d{value}"
+average_idle_duration = "§5- Durée moyenne d'inactivité : §d{value}"
+max_idle_duration = "§5- Durée maximale d'inactivité : §d{value}"
+min_idle_duration = "§5- Durée minimale d'inactivité : §d{value}"
+caches = "§5Caches :"
+resource = "§5- Ressources : §d{value} ({value2})"
+2d_stream = "§5- Flux 2D : §d{value} ({value2})"
+3d_stream = "§5- Flux 3D : §d{value} ({value2})"
+other = "§5- Autres : §d{value} ({value2})"
+other_2 = "§5Autres :"
+iris_worlds = "§5- Mondes Iris : §d{value}"
+loaded_chunks = "§5- Chunks chargés : §d{value}"
+message_2 = "§5-------------------------"
+
+[iris.bukkit.commandedit]
+players_only = "§cJoueurs uniquement !"
+no_studio_world_is_open = "§cAucun monde Studio n'est ouvert !"
+you_must_be_studio_world = "§cVous devez être dans un monde Studio !"
+cannot_open_files_headless_environments = "§cImpossible d'ouvrir des fichiers dans un environnement sans interface graphique !"
+desktop_is_not_supported_by_this_environment = "§cLe bureau n'est pas pris en charge par cet environnement !"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6Fichier introuvable ; il n'a peut-être pas été chargé directement depuis un fichier."
+opening_vscode = "§aOuverture de {value} {value2} dans VSCode. "
+cant_find_file_registrant_does_not_exist = "§cFichier introuvable ou déclarant inexistant"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6Fichier introuvable ; il n'a peut-être pas été chargé directement depuis un fichier."
+opening_vscode_2 = "§aOuverture de {value} {value2} dans VSCode. "
+cant_find_file_registrant_does_not_exist_2 = "§cFichier introuvable ou déclarant inexistant"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6Fichier introuvable ; il n'a peut-être pas été chargé directement depuis un fichier."
+opening_vscode_3 = "§aOuverture de {value} {value2} dans VSCode. "
+cant_find_file_registrant_does_not_exist_3 = "§cFichier introuvable ou déclarant inexistant"
+
+[iris.bukkit.commandpregen]
+pregen_radius_must_be_greater_than_zero_blocks = "§cLe rayon de pregen doit être supérieur à zéro bloc."
+strict_serial_pregeneration_requires_paper_paper_compatible_server = "§cLa prégénération strictement séquentielle nécessite Paper ou un serveur compatible avec Paper."
+engine_access_this_world_is_null = "§cL'accès au moteur de ce monde est nul !"
+please_make_sure_world_is_loaded_engine_is_initialized_generate = "§cVérifiez que le monde est chargé et que le moteur est initialisé. Générez par exemple un nouveau chunk."
+failed_start_pregeneration_see_console_details = "§cImpossible de démarrer la prégénération. Consultez la console pour plus de détails."
+no_active_pregeneration_tasks_stop = "§eAucune tâche de prégénération active à arrêter"
+paused_unpaused_pregeneration_task_now = "§aL'état de pause de la tâche de prégénération a changé ; état actuel : {value}."
+no_active_pregeneration_tasks_pause_unpause = "§eAucune tâche de prégénération active à suspendre ou reprendre."
+no_active_pregeneration_task = "§eAucune tâche de prégénération active."
+pregen = "§aPregen §6{world}§a : §6{value}/{value2}§a (§6{value3}%§a){value4}"
+speed_s_eta_elapsed_method = "§aVitesse : §6overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s§a ETA: §6{eta}§a Elapsed: §6{elapsed}§a Method: §6{method}{failures}"
+
+[iris.bukkit.commandwhat]
+material = "Matériau : §a{value}"
+full = "Complet : §f{value}"
+please_hold_block_item = "Tenez un bloc ou un objet"
+material_2 = "Matériau : §a{value}"
+please_hold_block_item_2 = "Tenez un bloc ou un objet"
+ibiome = "IBiome: {value} ({value2})"
+non_iris_biome = "Biome non-Iris : {value}"
+data_pack_biome_id = "Biome de datapack : {value} (ID: {value2})"
+iregion = "IRegion: {value} ({value2})"
+iris_worlds_only = "§aMondes Iris uniquement."
+please_look_at_any_block_not_at_sky = "Regardez un bloc, pas le ciel"
+material_3 = "Matériau : §a{value}"
+full_2 = "Complet : §f{value}"
+storage_block_loot_capable = "§e* Bloc de stockage (prend en charge le butin)"
+lit_block_light_capable = "§e* Bloc éclairé (prend en charge la lumière)"
+foliage_block = "§e* Bloc de feuillage"
+decorant_block = "§e* Bloc décoratif"
+fluid_block = "§e* Bloc fluide"
+plantable_foliage_block = "§e* Bloc de feuillage plantable"
+solid_block = "§e* Bloc solide"
+found_nearby_markers = "{value} marqueurs proches trouvés ({marker})"
+iris_worlds_only_2 = "§aMondes Iris uniquement."
+
+[iris.modded.irismoddedcommands]
+this_dimension_is_not_generated_by_iris = "Cette dimension n'a pas été générée par Iris."
+console_must_name_biome_iris_edit_biome_key = "La console doit indiquer un biome : /iris edit biome <key>"
+biome_lookup_failed = "La recherche de biome a échoué : {value}"
+unknown_biome = "Biome inconnu : {key}"
+this_dimension_is_not_generated_by_iris_2 = "Cette dimension n'a pas été générée par Iris."
+console_must_name_region_iris_edit_region_key = "Console doit nommer une région: /iris edit region <key>"
+region_lookup_failed = "Échec de la recherche de région : {value}"
+unknown_region = "Région inconnue: {key}"
+this_dimension_is_not_generated_by_iris_3 = "Cette dimension n'a pas été générée par Iris."
+cannot_open_files_here = "Impossible d'ouvrir les fichiers ici : {value}"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "Impossible de trouver le fichier ; il n'a peut-être pas été chargé directement depuis un fichier."
+could_not_open = "Impossible d'ouvrir {value} : {value2}"
+opening_your_editor = "Ouverture de {value} {value2} dans votre éditeur."
+console_must_name_player_iris_tp_dimension_player = "La console doit indiquer un joueur : /iris tp <dimension> <player>"
+is_not_generated_by_iris = "{value} n'est pas généré par Iris."
+teleport_failed_dimension_is_not_loaded = "Échec de la téléportation : la dimension {dimensionId} n'est pas chargée."
+teleporting = "Téléportation de {value} vers {dimensionId}..."
+is_not_generated_by_iris_2 = "{value} n'est pas généré par Iris."
+cannot_evacuate_primary_world_there_is_nowhere_send_players = "Impossible d'évacuer le monde principal, car aucun autre monde ne peut accueillir les joueurs."
+evacuated_player_s_from = "{count} joueur(s) évacué(s) de {value} vers {value2}."
+set_debug = "Débogage défini sur : {to}"
+hotloaded_settings = "Paramètres rechargés à chaud"
+this_command_can_only_be_used_by_players_it_inspects = "Cette commande est réservée aux joueurs (elle inspecte l'objet que vous tenez)."
+your_main_hand_is_empty = "Votre main principale est vide."
+hand_x = "Main : {value} x{value2}"
+this_command_can_only_be_used_by_players = "Cette commande ne peut être utilisée que par les joueurs."
+this_dimension_is_not_generated_by_iris_4 = "Cette dimension n'a pas été générée par Iris."
+this_dimension_is_not_generated_by_iris_5 = "Cette dimension n'a pas été générée par Iris."
+is_not_generated_by_iris_see_iris_info_loaded_iris = "{value} n'est pas générée par Iris ; consultez /iris info pour voir les dimensions Iris chargées."
+current_dimension_is_not_generated_by_iris_name_one_explicitly = "La dimension actuelle ({value}) n'est pas générée par Iris. Indiquez-en une explicitement : /iris pregen start {radius} <dimension> ; consultez /iris info pour voir les dimensions Iris chargées."
+pregeneration_task_is_already_running_stop_it_first_with_iris = "Une tâche de prégénération est déjà en cours. Arrêtez-la d'abord avec /iris pregen stop."
+pregen_started_by_blocks_from_progress_logs_console_see_iris = "Pregen démarré dans {value} sur {value2}, avec un rayon de {value3} blocs depuis {centerX},{centerZ}.{modeNote} La progression est consignée dans la console ; consultez /iris pregen status.{guiNote}"
+stopping_pregeneration_finishing_up_current_region = "Arrêt de la prégénération ; finalisation de la région actuelle..."
+no_active_pregeneration_task_stop = "Aucune tâche de prégénération active à arrêter."
+no_active_pregeneration_task_pause_resume = "Aucune tâche de prégénération active à mettre en pause ou à reprendre."
+pregeneration_is_now = "La prégénération est maintenant {value}."
+no_active_pregeneration_task = "Aucune tâche de prégénération active."
+iris_by_volmit_software_on_minecraft_iris_dimension_s = "Iris {value} par Volmit Software sur {value2} (Minecraft {value3}), {engines} dimension(s) Iris"
+loaded_dimensions_iris = "Dimensions chargées : {total} ({iris} Iris)"
+this_command_can_only_be_used_by_players_2 = "Cette commande ne peut être utilisée que par les joueurs."
+this_dimension_is_not_generated_by_iris_6 = "Cette dimension n'a pas été générée par Iris."
+biome = "Biome : {value} ({value2})"
+biome_lookup_failed_2 = "La recherche de biome a échoué : {value}"
+region = "Région: {value} ({value2})"
+region_lookup_failed_2 = "Échec de la recherche de région : {value}"
+cave_biome = "Biome de la grotte: {value}"
+cave_biome_lookup_failed = "Échec de la recherche du biome de grotte : {value}"
+surface_block_y = "Bloc de surface: {value} (y={value2})"
+position_chunk = "Position : {value} {value2} {value3} (chunk {value4},{value5})"
+this_command_can_only_be_used_by_players_it_inspects_2 = "Cette commande est réservée aux joueurs (elle inspecte le bloc que vous regardez)."
+look_at_block_not_sky = "Regardez un bloc, pas le ciel."
+block_y = "Bloc : {value} (y={value2})"
+this_command_can_only_be_used_by_players_markers_render = "Cette commande est réservée aux joueurs (les marqueurs apparaissent comme des particules autour de vous)."
+this_dimension_is_not_generated_by_iris_7 = "Cette dimension n'a pas été générée par Iris."
+scanning_markers_around_you = "Recherche des marqueurs '{marker}' autour de vous..."
+marker_scan_failed = "Échec de l'analyse des marqueurs : {value}"
+found_nearby_marker_s = "{value} marqueur(s) proche(s) trouvé(s) ({marker})"
+this_command_can_only_be_used_by_players_3 = "Cette commande ne peut être utilisée que par les joueurs."
+this_dimension_is_not_generated_by_iris_8 = "Cette dimension n'a pas été générée par Iris."
+unknown_biome_2 = "Biome inconnu: {key}"
+this_command_can_only_be_used_by_players_4 = "Cette commande ne peut être utilisée que par les joueurs."
+this_dimension_is_not_generated_by_iris_9 = "Cette dimension n'a pas été générée par Iris."
+unknown_region_2 = "Région inconnue: {key}"
+is_not_defined_dimension = "{value} n'est pas défini dans la dimension !"
+this_dimension_is_not_generated_by_iris_10 = "Cette dimension n'a pas été générée par Iris."
+is_not_configured_any_region_biome_object_placements_object_keys = "{key} n'est configuré dans aucun placement d'objets de région ou de biome ({value} clés d'objet chargées)."
+this_command_can_only_be_used_by_players_object_key = "Cette commande est réservée aux joueurs. (La clé d'objet '{key}' a été résolue parmi {value} clés d'objet chargées)"
+this_dimension_is_not_generated_by_iris_11 = "Cette dimension n'a pas été générée par Iris."
+name_iris_native_structure_locate = "Indiquez une structure Iris ou native à localiser."
+this_command_can_only_be_used_by_players_5 = "Cette commande ne peut être utilisée que par les joueurs."
+unknown_structure_use_tab_completion_choose_iris_placement_registered_native = "Structure inconnue '{key}'. Utilisez l'autocomplétion pour choisir un placement Iris ou une structure native ou de datapack enregistrée."
+searching_native_structure_within_chunks = "Recherche de la structure native {value} dans un rayon de {NATIVESTRUCTURELOCATERADIUS} chunks..."
+searching_iris_placed_structure = "Recherche de la structure placée par Iris {key}..."
+unable_locate_iris_placed_structure_density_search_safety_limit_was = "Impossible de localiser la structure placée par Iris {key} : la limite de sécurité de la recherche par densité a été atteinte avant l'exploration complète du rayon de 1024 chunks."
+could_not_find_iris_placed_structure_within_1024_chunks = "Impossible de trouver la structure placée par Iris {key} dans un rayon de 1024 chunks."
+search_failed = "La recherche a échoué : {value}"
+could_not_find_native_structure_within_chunks = "Impossible de trouver la structure native {value} dans un rayon de {NATIVESTRUCTURELOCATERADIUS} chunks."
+search_native_structure_failed = "Échec de la recherche de la structure native {value} : {value2}"
+player_disconnected_before_structure_search_completed = "Le joueur s'est déconnecté avant la fin de la recherche de structure."
+you_changed_dimensions_before_structure_search_completed_run_command_again = "Vous avez changé de dimension avant la fin de la recherche de structure ; relancez la commande."
+found_at_but_teleportation_failed = "{label} trouvé à {targetX} {clampedY} {targetZ}, mais la téléportation a échoué."
+teleported_at = "Téléporté vers {label} à {targetX} {clampedY} {targetZ}"
+this_dimension_is_not_generated_by_iris_12 = "Cette dimension n'a pas été générée par Iris."
+structure_reachability_native_generation_eligible_iris_placed_native_disabled_native = "Accessibilité des structures : {available} natives admissibles à la génération, {irisPlaced} placées par Iris, {disabled} natives désactivées, {suppressed} natives remplacées par des placements Iris, {unreachableBiomes} natives exclues par les biomes de ce pack et {unsupported} structures natives enregistrées non prises en charge dans cette dimension. Utilisez /iris structure verify <key> pour une structure précise."
+structure_is_iris_placed_locatable_with_iris_goto_structure = "La structure {key} est placée par Iris et peut être localisée avec /iris goto structure {key2}."
+unknown_structure_it_is_neither_iris_placed_nor_registered_by = "Structure inconnue '{key}'. Elle n'est ni placée par Iris, ni enregistrée par vanilla ou un datapack."
+structure_is_explicitly_replaced_by_iris_placement_locatable_with_iris = "La structure {value} est explicitement remplacée par un placement Iris et peut être localisée avec /iris goto structure {value2}."
+native_structure_is_enabled_supported_by_this_dimension_s_generator = "La structure native {value} est activée, prise en charge par l'état du générateur de cette dimension et localisable avec /iris goto structure {value2}."
+this_dimension_is_not_generated_by_iris_13 = "Cette dimension n'a pas été générée par Iris."
+this_command_can_only_be_used_by_players_poi_type = "Cette commande est réservée aux joueurs. (Le type de POI '{type}' est accepté)"
+searching = "Recherche de {label}..."
+engine_this_world_has_been_closed_rejoin_dimension_try_again = "Le moteur de ce monde a été fermé ; rejoignez à nouveau la dimension et réessayez."
+search_failed_2 = "La recherche a échoué : {failure}"
+could_not_find_within_search_timeout = "Impossible de trouver {label} avant l'expiration du délai de recherche."
+teleported_at_2 = "Téléporté vers {label} à {blockX} {blockY} {blockZ}"
+engine_changed_while_locating_try_again = "Le moteur a changé pendant la recherche de {label} ; réessayez."
+this_dimension_is_not_generated_by_iris_14 = "Cette dimension n'a pas été générée par Iris."
+world_seed = "Graine du monde : {value}"
+engine_seed_mixed = "Graine du moteur : {value} (mélangée : {value2})"
+this_dimension_is_not_generated_by_iris_15 = "Cette dimension n'a pas été générée par Iris."
+downloading_irisdimensions = "Téléchargement de IrisDimensions/{pack} ({downloadSource})..."
+pack_installed_its_exact_dimension_types_custom_biomes_join_forced = "Pack '{pack}' installé. Ses types de dimension exacts et ses biomes personnalisés rejoindront le datapack Iris forcé au prochain redémarrage du serveur ; redémarrez avant de créer des mondes avec ce pack."
+pack_download_failed_see_console = "Échec du téléchargement du pack {pack} ({downloadSource} ; consultez la console)."
+this_dimension_is_not_generated_by_iris_16 = "Cette dimension n'a pas été générée par Iris."
+generated_chunk_s_s = "Générés : {value} chunk(s), {value2}/s"
+ms = "  {value}: {value2}ms"
+
+[iris.modded.moddedcommandhelp]
+unknown_iris_help_section = "Inconnu Iris section d'aide: {normalized}"
+
+[iris.modded.moddeddatapackcommands]
+type_active_logical_pack_engine_not_started_pack_heights_unknown = "{dimensionId} : type={typeKey} actif={activeMin}..{activeMax} logique={value} (pack={value2}, moteur non démarré ; hauteurs du pack inconnues)"
+type_active_logical_pack_wants_logical = "{dimensionId} : type={typeKey} actif={activeMin}..{activeMax} logique={value} | le pack '{value2}' demande {packMin}..{packMax} logique={packLogical} | {value3}{value4}"
+warning_active_dimension_type_does_not_match_pack_iris_will = "  WARNING: le type de dimension actif ne correspond pas au pack. Iris refusera de démarrer le moteur de ce monde au lieu de rogner le terrain. Exécutez /iris world enable <dimension> <pack> pour les nouveaux mondes ou /iris datapack install pour les dimensions Iris déjà chargées, puis redémarrez."
+no_iris_dimensions_are_loaded = "Aucune dimension Iris n'est chargée."
+all_iris_dimension_s_match_their_pack_height_ranges = "Les {irisLevels} dimension(s) Iris correspondent aux plages de hauteur de leurs packs."
+engine_not_started_cannot_derive_its_dimension_type_yet = "{value} : moteur non démarré ; son type de dimension ne peut pas encore être déterminé."
+dimension_type_generation_failed = "{value} : échec de la génération du type de dimension : {value2}"
+failed_write = "Impossible d'écrire {output} : {value}"
+no_iris_dimensions_with_running_engines_found_nothing_was_installed = "Aucune dimension Iris avec un moteur actif n'a été trouvée ; rien n'a été installé."
+failed_write_2 = "Impossible d'écrire {mcmeta} : {value}"
+wrote = "{path} écrit"
+world_datapack_dimension_type_overrides_installed_restart_server_dimension_types = "Les substitutions de types de dimension du datapack du monde '{WORLDPACKNAME}' ont été installées. Redémarrez le serveur pour les appliquer."
+configured_datapack_imports = "Importations de datapacks configurées : {value}"
+message = "  - {url}"
+modrinth_ingest_is_bukkit_only_install_these_manually_into_world = "L'ingestion Modrinth est réservée à Bukkit ; installez ces datapacks manuellement dans world/datapacks si nécessaire."
+installed_world_datapacks = "Datapacks du monde installés : {value}"
+message_2 = "  - {name}"
+
+[iris.modded.moddeddevelopercommands]
+message = "  {value}"
+network_scan_failed = "La numérisation réseau a échoué : {value}"
+
+[iris.modded.moddedgoldenhash]
+goldenhash_scan_is_already_running = "Une analyse GoldenHash est déjà en cours."
+
+[iris.modded.moddedobjectcommands]
+this_command_can_only_be_used_by_players_wand_is = "Cette commande est réservée aux joueurs. (La baguette est un objet physique)"
+your_inventory_is_full = "Votre inventaire est plein."
+poof_good_luck_building_left_click_corner_1_right_click = "Pouf ! Bonne construction ! (clic gauche = coin 1, clic droit = coin 2)"
+this_command_can_only_be_used_by_players_dust_is = "Cette commande est réservée aux joueurs. (La poussière est un objet physique)"
+your_inventory_is_full_2 = "Votre inventaire est plein."
+right_click_block_reveal_object_it_belongs = "Faites un clic droit sur un bloc pour révéler l'objet auquel il appartient."
+this_command_can_only_be_used_by_players_saving_captures = "Cette commande est réservée aux joueurs. (L'enregistrement capture la sélection de votre baguette)"
+this_dimension_is_not_generated_by_iris_objects_save_into = "Cette dimension n'est pas générée par Iris ; les objets sont enregistrés dans le pack de la dimension."
+hold_your_iris_wand_iris_wand = "Tenez votre baguette Iris. (/iris wand)"
+no_area_selected_left_right_click_blocks_with_wand_first = "Aucune zone sélectionnée. Faites d'abord des clics gauche et droit sur des blocs avec la baguette."
+invalid_object_name = "Nom de l'objet non valide : {nameRaw}"
+selection_too_large_blocks_max = "Sélection trop grande: {volume} blocs (max {MAXSAVEVOLUME})."
+file_already_exists_use_iris_object_save_overwrite = "Le fichier existe déjà. Utilisez /iris object save overwrite {name}"
+failed_save_object = "Impossible d'enregistrer l'objet : {value}"
+saved_objects_iob_x_x_block_s = "{value}/objects/{name}.iob enregistré : {w}x{h}x{d}, {value2} bloc(s){tileNote}"
+unknown_empty_object = "Objet inconnu ou vide : {key}"
+console_must_specify_coordinates_iris_object_paste_at_x_y = "La console doit indiquer des coordonnées : /iris object paste at <x> <y> <z> [rotate <degrees>] {key}"
+you_are_not_looking_at_block_within_blocks = "Vous ne regardez pas de bloc à moins de {value} blocs."
+paste_failed_partial_changes_recorded_undo = "Échec du collage : {value} (les modifications partielles ont été enregistrées pour pouvoir les annuler)"
+placed_at_rot_write_s_non_air = "{key} placé en {value} {value2} {value3} rot={rotation} ({value4} écriture(s), {value5} hors air{tileNote})"
+this_command_can_only_be_used_by_players = "Cette commande ne peut être utilisée que par les joueurs."
+hold_your_iris_wand_iris_wand_2 = "Tenez votre baguette Iris. (/iris wand)"
+no_area_selected = "Aucune zone sélectionnée."
+message = "{value}  {amount}  {value2}: {value3}"
+this_command_can_only_be_used_by_players_2 = "Cette commande ne peut être utilisée que par les joueurs."
+ready_your_wand_iris_wand = "Préparez votre baguette. (/iris wand)"
+you_are_not_looking_at_block = "Vous ne regardez pas un bloc."
+position_set = "Position {value} définie sur {value2} {value3} {value4}"
+this_command_can_only_be_used_by_players_3 = "Cette commande ne peut être utilisée que par les joueurs."
+hold_your_wand = "Tiens ta baguette !"
+no_area_selected_2 = "Aucune zone sélectionnée."
+selection_too_large_auto_select_blocks_max = "Sélection trop grande pour sélectionner automatiquement : {volume} blocs (max {MAXAUTOSELECTVOLUME})."
+auto_select_complete = "Sélection automatique terminée : {value}"
+unknown_object = "Objet inconnu : {key}"
+object_size = "Taille de l'objet : {value} * {value2} * {value3}"
+blocks_used = "Blocs utilisés : {value}"
+blocks_object = "== Blocs dans l'objet =="
+message_2 = " - {value} * {value2}"
+other_block_state_s = "+ {remaining} autre(s) état(s) de bloc"
+unknown_object_2 = "Objet inconnu : {key}"
+current_object_size = "Taille actuelle de l'objet : {value} * {value2} * {value3}"
+new_object_size = "Nouvelle taille d'objet : {value} * {value2} * {value3}"
+object_has_no_load_file_cannot_persist_shrink = "L'objet n'a pas de fichier de chargement ; impossible de conserver la réduction."
+failed_save_object_2 = "Impossible d'enregistrer l'objet {value} : {value2}"
+invalid_reach = "Portée non valide: {token}"
+no_objects_matched = "Aucun objet ne correspond à : {target}"
+plausibilize_reach_queued_object_s = "Plausibilize [reach={reach}{value}] a mis {value2} objet(s) en file d'attente"
+nothing_undo = "Rien à annuler."
+reverted_paste_s = "{reverted} collage(s) annulé(s) !"
+
+[iris.modded.moddedpackcommands]
+packs_folder_not_found = "Dossier des packs introuvable : {value}"
+no_packs_validate_under = "Aucun pack à valider dans {value}"
+pack_not_found_under = "Le pack '{pack}' est introuvable dans {value}"
+validating_pack_s = "Validation de {value} pack(s)..."
+validation_failed = "Échec de la validation de '{value}' : {value2}"
+validation_complete_broken_packs = "Validation terminée. Packs cassés : {brokenTotal}/{value}"
+pack_not_found_under_2 = "Le pack '{pack}' est introuvable dans {value}"
+pack_not_found_under_3 = "Le pack '{pack}' est introuvable dans {value}"
+no_validation_results_recorded_run_iris_pack_validate_first = "Aucun résultat de validation enregistré. Exécutez d'abord /iris pack validate."
+blocking_warnings = "{tag} {value} (blocages={value2}, avertissements={value3})"
+no_validation_result_run_iris_pack_validate = "Aucun résultat de validation pour '{pack}'. Exécutez /iris pack validate {pack2}."
+pack_is_loadable_warnings = "Le pack '{value}' peut être chargé. (avertissements={value2})"
+pack_is_broken = "Le pack '{value}' est CASSÉ :"
+message = "  - {reason}"
+message_2 = "  !  {value}"
+more_warning_s = "  ... et {value} avertissement(s) de plus."
+no_cleanup_candidates_found_pack = "Aucune ressource candidate au nettoyage trouvée pour le pack '{pack}'."
+cleanup_preview_pack_candidate_s_no_files_were_changed = "Aperçu du nettoyage du pack '{pack}' : {value} candidat(s). Aucun fichier n'a été modifié."
+run_iris_pack_cleanup_apply_quarantine_after_fresh_scan = "Exécutez /iris pack cleanup {pack} apply pour mettre les candidats en quarantaine après une nouvelle analyse."
+no_cleanup_candidates_found_pack_2 = "Aucune ressource candidate au nettoyage trouvée pour le pack '{pack}'."
+quarantined_cleanup_candidate_s_under = "{value} candidat(s) au nettoyage mis en quarantaine dans {value2}."
+nothing_restore_pack = "Rien à restaurer pour le pack '{pack}'."
+restore_preview_file_s_no_files_were_changed = "Aperçu de la restauration de {value} : {value2} fichier(s). Aucun fichier n'a été modifié."
+restore_is_blocked_by_existing_destination_s = "La restauration est bloquée par {value} destination(s) existante(s)."
+run_iris_pack_restore_apply_restore_after_fresh_conflict_check = "Exécutez /iris pack restore {pack} apply pour restaurer après une nouvelle vérification des conflits."
+restore_refused_because_destination_s_already_exist = "Restauration refusée car {value} destination(s) existe(nt) déjà."
+nothing_restore_pack_2 = "Rien à restaurer pour le pack '{pack}'."
+restored_file_s_from = "{value} fichier(s) restauré(s) depuis {value2}."
+message_3 = "  - {label}: {value}"
+more = "  ... et {value} de plus."
+compat_header = "Pack '{pack}' : contenu indisponible sur Minecraft {version}"
+compat_none = "Le pack '{pack}' n'utilise aucun contenu absent de Minecraft {version}."
+compat_remedy = "Mettez le serveur à jour vers un Minecraft plus récent pour restaurer ce contenu, ou déclarez des replis (blockFallbacks de la dimension, backup du bloc)."
+
+[iris.modded.moddedregen]
+regen_is_already_running = "Un régen est déjà en marche."
+
+[iris.modded.moddedstructurecommands]
+this_dimension_is_not_generated_by_iris_run_this_from = "Cette dimension n'est pas générée par Iris.  Exécutez ceci d'un Iris dimension pour que le pack puisse être résolu."
+wrote_structure_index = "Indice de structure des mailles: {value}"
+no_iris_structure_this_pack = "Pas de structure iris '{key}' dans ce pack"
+structure_assembled_0_pieces_check_startpool = "Structure{key}' assemblés 0 pièces (vérifier startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "Structure '{key}' : {value} pièces, emprise de {value2}x{value3} blocs (graine d'exemple 1234)"
+this_command_can_only_be_used_by_players_structure_is = "Cette commande ne peut être utilisée que par les joueurs (la structure est assemblée à votre position)."
+no_iris_structure_this_pack_2 = "Pas de structure iris '{key}' dans ce pack"
+structure_assembled_0_pieces = "Structure{key}' assemblés 0 pièces"
+place_failed_partial_changes_recorded_undo = "Lieu échoué: {value} (variations partielles enregistrées pour annuler)"
+placed_pieces_write_s_at_your_location_iris_object_undo = "'{key}' placé ({value} pièces, {value2} écriture(s){tileNote}) à votre position. Utilisez /iris object undo pour annuler."
+
+[iris.modded.moddedstudiocommands]
+provide_dimension_pack_iris_studio_open_pack_seed = "Indiquez un pack de dimension : /iris studio open <pack> [seed]"
+opening_noise_explorer_on_server_display = "Ouverture de Noise Explorer sur l'écran du serveur."
+this_dimension_is_not_generated_by_iris_run_iris_studio = "Cette dimension n'est pas générée par Iris ; exécutez /iris studio noise depuis une dimension Iris pour résoudre les générateurs, ou omettez le nom du générateur."
+unknown_generator_pack = "Générateur inconnu '{generatorKey}' dans le pack {value}."
+opening_noise_explorer_generator_seed = "Ouverture de Noise Explorer pour le générateur '{value}' (graine {seed})."
+this_dimension_is_not_generated_by_iris_stand_iris_studio = "Cette dimension n'est pas générée par Iris ; placez-vous dans une dimension Iris (ou Studio) et exécutez /iris studio map."
+opening_vision_map_on_server_display = "Ouverture de la carte Vision de {value} sur l'écran du serveur."
+failed_write_workspace = "Impossible d'écrire l'espace de travail de {value} : {value2}"
+workspace_regenerated_with_json_schemas_autocomplete = "Espace de travail régénéré : {value}, avec des schémas JSON pour l'autocomplétion."
+could_not_open = "Impossible d'ouvrir {value} : {value2}"
+opening_your_editor = "Ouverture de {value} dans votre éditeur."
+this_dimension_is_not_generated_by_iris_specify_pack_name = "Cette dimension n'est pas générée par Iris ; indiquez explicitement un nom de pack."
+pack_not_found_under = "Le pack '{name}' est introuvable dans {value}"
+provide_dimension_pack_iris_studio_open_pack_seed_2 = "Indiquez un pack de dimension : /iris studio open <pack> [seed]"
+opening_studio_seed = "Ouverture de Studio pour '{pack}' (graine {seed})..."
+pack_missing_downloading_irisdimensions = "Le pack '{pack}' manque ; téléchargement de IrisDimensions/{pack2}..."
+pack_could_not_be_downloaded_check_name_try_iris_download = "Impossible de télécharger le pack '{pack}' ; vérifiez le nom et essayez /iris download {pack2}."
+pack_has_no_dimensions_json = "Le pack '{pack}' ne contient pas dimensions/{pack2}.json"
+studio_open_failed = "Impossible d'ouvrir Studio : {value}{errorMessage}"
+studio_injection_failed = "Impossible d'injecter Studio : {value}{errorMessage}"
+console_studio_open_now_runs_seed_transient_not_written_iris = "Studio de console ouvert : {dimensionId} exécute maintenant '{pack}' avec la graine {seed} (temporaire ; non écrit dans iris-dimensions.json et supprimé au redémarrage)."
+enter_it_with_execute_run_tp_s_8_5_8 = "Entrez avec : /execute in {dimensionId} run tp @s 8.5 {surface} 8.5"
+pregen_it_with_iris_pregen_start_radius = "Prégénérez avec : /iris pregen start <radius> {dimensionId}"
+remove_it_with_iris_studio_close = "Supprimez-le avec : /iris studio close"
+studio_injection_failed_2 = "Impossible d'injecter Studio : {value}{errorMessage}"
+studio_open_now_runs_seed_use_iris_studio_close_when = "Studio ouvert : {dimensionId} exécute maintenant '{pack}' avec la graine {seed}. Utilisez /iris studio close une fois terminé."
+you_do_not_have_open_studio_use_iris_studio_open = "Vous n'avez pas de Studio ouvert. Utilisez d'abord /iris studio open <pack>."
+studio_close_failed = "Impossible de fermer Studio : {value}{errorMessage}"
+studio_closed_was_evacuated_unloaded_its_region_data_deleted = "Studio fermé : {dimensionId} a été évacué, déchargé de la mémoire et ses données de région ont été supprimées."
+no_studio_dimensions_are_currently_open = "Aucune dimension Studio n'est ouverte."
+active_studio_dimension_s = "Dimension(s) Studio active(s) : {value}"
+pack_seed_owner = "  {value} : pack '{value2}', graine {value3}, propriétaire {ownerName}"
+this_command_can_only_be_used_by_players = "Cette commande ne peut être utilisée que par les joueurs."
+you_do_not_have_open_studio_use_iris_studio_open_2 = "Vous n'avez pas de Studio ouvert. Utilisez d'abord /iris studio open <pack>."
+your_studio_dimension_is_no_longer_loaded_use_iris_studio = "Votre dimension Studio n'est plus chargée. Utilisez à nouveau /iris studio open <pack>."
+teleported_your_studio = "Vous avez été téléporté vers votre Studio ({dimensionId})."
+pack_has_no_dimensions_json_2 = "Le pack '{value}' ne contient pas dimensions/{value2}.json"
+pack_has_version = "Le pack \"{value}\" a pour version : {value2}"
+invalid_project_name_allowed_z_0_9 = "Nom de projet non valide '{nameRaw}' (autorisé : a-z, 0-9, _ et -)"
+pack_already_exists_at = "Le pack '{name}' existe déjà dans {value}"
+creating_project_from_template = "Création du projet '{name}' depuis le modèle '{template}'..."
+required_pack_is_not_installed_install_then_restart = "Le pack requis '{pack}' n’est pas installé. Installez-le avec /iris download, puis redémarrez le serveur."
+created_project_at = "Projet '{name}' créé dans {value}"
+edit_dimensions_json_rest_pack_vscode_workspace_with_json_schema = "Modifiez dimensions/{name}.json et le reste du pack. Un espace de travail VSCode avec autocomplétion par schémas JSON a été généré ; ouvrez-le ou relancez /iris studio vscode."
+project_creation_failed = "Échec de la création du projet : {value}{errorMessage}"
+packaging_dimension = "Empaquetage de la dimension '{dimKey}'..."
+package_compiled = "Paquet compilé : {value}"
+packaging_failed = "Échec de l'empaquetage : {value}{errorMessage}"
+this_command_can_only_be_used_by_players_sampling_is = "Cette commande est réservée aux joueurs (l'échantillonnage est centré sur votre position)."
+this_dimension_is_not_generated_by_iris = "Cette dimension n'a pas été générée par Iris."
+sampling_region_distribution_x_chunks_around_you = "Échantillonnage de la répartition des régions dans {value}x{value2} chunks autour de vous..."
+rarity = "{key} : rareté={rarity} / {value}%"
+region_sampling_failed = "Échec de l'échantillonnage des régions : {value}"
+image_map_requires_iris_dimension = "Stand in an active Iris or Studio dimension before opening the Image Map Studio."
+opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {value} on the server display."
+
+[iris.modded.moddedworldcommands]
+required_pack_is_not_installed_install_then_restart = "Le pack requis '{pack}' n’est pas installé. Installez-le avec /iris download, puis redémarrez le serveur."
+failed_inject_iris_world = "Impossible d'injecter le monde Iris '{dimensionId}' : {value}{errorMessage}"
+created_iris_world_from_pack_dimension_seed = "Monde Iris {dimensionId} créé depuis le pack '{pack}', dimension '{packDimension}' (graine {seed})."
+it_is_live_now_re_injected_on_every_startup_teleport = "Il est maintenant actif et réinjecté à chaque démarrage. Téléportez-vous avec /iris world status ou un portail ; aucun redémarrage nécessaire."
+failed_inject_iris_primary_world = "Impossible d'injecter le monde principal Iris : {value}{errorMessage}"
+iris_primary_world_set_pack_dimension_seed = "Le monde principal Iris est maintenant {dimensionId} (pack '{pack}', dimension '{packDimension}', graine {seed})."
+vanilla_overworld_generator_cannot_be_hot_swapped_so_this_does = "Le générateur de l'overworld vanilla ne peut pas être remplacé à chaud ; cette opération ne régénère donc PAS l'overworld existant."
+instead_is_now_configured_primary_world_players_vanilla_overworld_are = "À la place, {dimensionId} est maintenant le monde principal configuré : les joueurs de l'overworld vanilla y sont redirigés à leur connexion et il est réinjecté à chaque démarrage."
+iris_main_world_override_cleared_overworld_keeps_its_current_generator = "Le remplacement du monde principal Iris a été supprimé. L'overworld conserve son générateur actuel ; modifiez level-type dans server.properties et redémarrez pour le rétablir."
+invalid_seed_use_number_random = "Graine non valide '{seedRaw}'. Utilisez un nombre ou 'random'."
+pack_is_not_ready_yet_still_loading_validating_try_command = "Le pack '{pack}' n'est pas encore prêt (chargement ou validation en cours). Réessayez la commande dans un instant."
+failed_write_server_properties_check_file_permissions_set_level_type = "Impossible d'écrire server.properties ; vérifiez les droits du fichier et définissez level-type manuellement."
+iris_main_world_set_preset_seed = "Le monde principal Iris est défini sur '{pack}' (preset {preset}, graine {value})."
+server_properties_level_type_is_now_on_next_restart_overworld = "level-type dans server.properties vaut maintenant {preset}. Au prochain redémarrage, overworld, nether et end seront régénérés comme ce monde Iris."
+player_data_inventories_advancements_stats_is_kept_existing_terrain_those = "Les données des joueurs (inventaires, progrès et statistiques) sont conservées ; le terrain existant de ces dimensions sera remplacé. Cette opération s'applique une seule fois."
+mainworldautorestart_is_enabled_stopping_server_now_so_your_restart_wrapper = "mainWorldAutoRestart est activé : arrêt du serveur pour que le système de redémarrage le relance avec le nouveau monde principal."
+restart_server_now_generate_it_set_mainworldautorestart_true_modded_json = "Redémarrez maintenant le serveur pour le générer. (Définissez mainWorldAutoRestart=true dans modded.json pour laisser Iris arrêter le serveur.)"
+refusing_create_world_using_pack_because_required_validation_failed = "Création du monde '{dimensionId}' avec le pack '{pack}' refusée car une validation obligatoire a échoué :"
+message = "  - {reason}"
+fix_pack_run_iris_pack_validate_revalidate = "Corrigez le pack et exécutez /iris pack validate {pack} pour le valider à nouveau."
+pack_was_not_found_under = "Le pack '{pack}' est introuvable dans {value}"
+pack_does_not_contain_dimensions_json = "Le pack '{pack}' ne contient pas dimensions/{packDimension}.json"
+invalid_pack_reference_use_pack_pack_dimensionkey = "Référence de pack non valide '{pack}{value}'. Utilisez pack ou pack:dimensionKey."
+invalid_seed_use_number_random_2 = "Graine non valide '{seedRaw}'. Utilisez un nombre ou 'random'."
+failed_remove_iris_world = "Impossible de supprimer le monde Iris '{dimensionId}' : {value}{errorMessage}"
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry = "Le monde Iris '{dimensionId}' n'était pas chargé ; son entrée persistante du registre et ses données de chunks/Mantle ont été effacées du disque."
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry_2 = "Le monde Iris '{dimensionId}' n'était pas chargé ; son entrée persistante du registre a été supprimée. Les données du monde restent sur le disque."
+deleted_iris_world_evacuated_unloaded_chunk_mantle_data_wiped_dropped = "Monde Iris '{dimensionId}' supprimé : évacué, déchargé de la mémoire, données de chunks/Mantle effacées et retiré du registre de démarrage."
+disabled_iris_world_evacuated_unloaded_dropped_from_startup_registry = "Monde Iris '{dimensionId}' désactivé : évacué, déchargé de la mémoire et retiré du registre de démarrage."
+world_data_on_disk_is_kept_re_enable_with_iris = "Les données du monde restent sur le disque ; réactivez-le avec /iris world enable {dimensionId} <pack> ou supprimez-le avec /iris world delete {dimensionId2}."
+loaded_iris_level_pack_dimension = "Niveau Iris chargé : {value} -> pack '{value2}', dimension '{value3}'"
+primary_world = "Monde principal : {primary}{value}"
+no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Aucune dimension Iris n'est chargée. Créez-en une avec /iris world create <name> <pack>."
+loaded_iris_dimensions = "Dimensions Iris chargées : {value}"
+message_2 = "  - {dimension}"
+use_iris_world_create_name_pack_inject_one_without_restarting = "Utilisez /iris world create <name> <pack> pour en injecter une sans redémarrer."
+
+[iris.director.commanddatapack]
+"director.download_manage_external_datapack_imports_modrinth" = "Télécharger et gérer les importations externes de datapacks (Modrinth)"
+"director.download_update_every_datapack_listed_pack_dimension_s_datapackimports_install_it_into" = "Télécharger ou mettre à jour tous les datapacks répertoriés dans 'datapackImports' d'une dimension du pack, puis les installer dans le monde afin que leurs structures soient enregistrées comme dans vanilla"
+"param.restart_server_when_new_datapacks_are_installed_required_new_structures_register_generate" = "Redémarrer le serveur lorsque de nouveaux datapacks sont installés (nécessaire pour enregistrer et générer leurs structures)"
+"director.list_configured_datapack_imports_their_installed_versions" = "Répertorier les importations de datapacks configurées et leurs versions installées"
+"director.remove_installed_datapack_by_id_also_delete_its_url_from_datapackimports_keep" = "Supprimer un datapack installé par id (supprime aussi son URL de datapackImports pour empêcher sa réinstallation)"
+"param.datapack_id_folder_name_shown_by_iris_datapack_list" = "L'id du datapack (nom du dossier) affiché par /iris datapack list"
+
+[iris.director.commanddeveloper]
+"director.iris_world_manager" = "Gestionnaire de mondes Iris"
+"director.get_loaded_tectonicplates_count" = "Obtenir le nombre de TectonicPlates chargées"
+"director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "Calculer le hash des blocs générés dans une zone fixe afin de tester le déterminisme et l'identité"
+"param.world_hash" = "Le monde dont le hash sera calculé"
+"param.radius_chunks_around_center" = "Rayon en chunks autour du centre"
+"param.center_chunk_x" = "Chunk central X"
+"param.center_chunk_z" = "Chunk central Z"
+"director.stage_world_generation_update" = "Préparer une mise à jour de la génération du monde"
+"param.world_update" = "Le monde à mettre à jour"
+"param.pack_install_into_world" = "Le pack à installer dans le monde"
+"param.make_sure_make_backup_read_warnings_first" = "Assurez-vous de créer une sauvegarde et de lire d'abord les avertissements !"
+"director.test" = "Test"
+"param.dump_whole_tectonic_plate_instead_single_section" = "Vider toute la plaque tectonique au lieu d'une seule section"
+"param.dump_file_id_under_plugins_iris_dump_pv_id" = "L'id du fichier de vidage dans plugins/Iris/dump (pv.<id>.*)"
+"director.test_2" = "Test"
+"param.pack_bench" = "Le pack à soumettre au benchmark"
+"param.radius_regions" = "Rayon en régions"
+"param.open_gui_while_benchmarking" = "Ouvrir la GUI pendant le benchmark"
+"director.upgrade_another_minecraft_version" = "Mettre à niveau vers une autre version de Minecraft"
+"param.version_upgrade" = "La version cible de la mise à niveau"
+"director.test_3" = "test"
+"param.world_folder_scan_mca_region_files" = "Le dossier du monde à analyser pour rechercher des fichiers de région .mca"
+"director.delete_nearby_chunk_blocks_regen_testing" = "Supprimer les blocs des chunks proches pour tester la régénération"
+"param.radius_chunks_around_your_current_chunk" = "Rayon en chunks autour de votre chunk actuel"
+"director.test_4" = "Test"
+"director.delete_regenerate_nearby_chunks_place_using_iris_generation" = "Supprimer et régénérer les chunks proches sur place avec la génération Iris"
+"param.radius_nearby_chunks" = "Le rayon des chunks proches"
+"director.generate_chunks_into_buffers_no_world_writes_hash_blocks_biomes_captures_golden" = "Générer des chunks dans des tampons (sans écrire dans le monde) et calculer le hash des blocs et des biomes ; capture un fichier de référence ou le vérifie par rapport à un fichier existant. Supprime l'intégralité du Mantle du monde ; à utiliser uniquement dans des mondes de test jetables."
+"param.world_scan" = "Le monde à analyser"
+"param.radius_chunks_around_center_2" = "Rayon en chunks autour du centre"
+"param.center_chunk_x_2" = "Chunk central X"
+"param.center_chunk_z_2" = "Chunk central Z"
+"param.delete_mantle_data_scan_area_first_full_regeneration_from_scratch" = "Supprime d'abord l'intégralité du dossier Mantle du monde afin de tout régénérer depuis zéro. Ne se limite pas à la zone analysée"
+"param.concurrent_chunk_generations_1_strictly_serial_order_dependence_testing" = "Générations de chunks simultanées ; 1 = exécution strictement séquentielle pour tester la dépendance à l'ordre"
+"param.also_dump_full_per_chunk_non_air_blockstates_offline_diffing" = "Vider également tous les états de blocs hors air de chaque chunk pour une comparaison hors ligne"
+
+[iris.director.commandedit]
+"director.edit_something" = "Modifier quelque chose"
+"director.edit_biome_you_specified" = "Modifier le biome indiqué"
+"param.biome_edit" = "Le biome à modifier"
+"director.edit_region_you_specified" = "Modifier la région indiquée"
+"param.region_edit" = "La région à modifier"
+"director.edit_dimension_you_specified" = "Modifier la dimension indiquée"
+"param.dimension_edit" = "La dimension à modifier"
+
+[iris.director.commandfind]
+"director.iris_find_commands" = "Commandes de recherche Iris"
+"director.find_biome" = "Rechercher un biome"
+"param.biome_look" = "Le biome à rechercher"
+"param.should_you_be_teleported" = "Indique si vous devez être téléporté"
+"director.find_region" = "Rechercher une région"
+"param.region_look" = "La région à rechercher"
+"param.should_you_be_teleported_2" = "Indique si vous devez être téléporté"
+"director.find_point_interest" = "Rechercher un point d'intérêt."
+"param.type_poi_look" = "Le type de PoI à rechercher."
+"param.should_you_be_teleported_3" = "Indique si vous devez être téléporté"
+"director.find_structure_vanilla_key_like_minecraft_village_plains_minecraft_stronghold_imported_iris" = "Rechercher une structure (une clé vanilla comme minecraft:village_plains ou minecraft:stronghold, ou une clé de structure Iris importée)"
+"param.structure_look_e_g_minecraft_village_plains_minecraft_stronghold_minecraft_ancient_city" = "La structure à rechercher (par ex. minecraft:village_plains, minecraft:stronghold, minecraft_ancient_city)"
+"director.find_object" = "Rechercher un objet"
+"param.object_look" = "L'objet à rechercher"
+"param.should_you_be_teleported_4" = "Indique si vous devez être téléporté"
+
+[iris.director.commandobject]
+"director.iris_object_manipulation" = "Manipulation des objets Iris"
+"director.open_object_studio_world_grid_every_object_dimension_optional_defaults_all_packs" = "Ouvrir un monde Object Studio (grille de tous les objets ; la dimension est facultative et, si elle est omise, tous les packs sont utilisés)"
+"param.optional_dimension_whose_object_pack_lay_out_omit_aggregate_objects_from_every" = "Dimension facultative dont le pack d'objets sera disposé ; omettez-la pour réunir les objets de tous les packs"
+"param.seed_generate_studio_with" = "La graine avec laquelle générer Studio"
+"director.check_composition_object" = "Vérifier la composition d'un objet"
+"param.object_analyze" = "L'objet à analyser"
+"director.shrink_object_its_minimum_size" = "Réduire un objet à sa taille minimale"
+"param.object_shrink" = "L'objet à réduire"
+"director.grow_organic_branches_through_canopy_so_every_leaf_survives_vanilla_decay" = "Faire pousser des branches organiques à travers la canopée afin que toutes les feuilles survivent à la disparition naturelle de vanilla"
+"param.object_key_prefix_trees_filesystem_path" = "Clé d'objet, préfixe (trees/) ou chemin du système de fichiers"
+"param.dryrun_true_analyzes_only_writes_nothing" = "dryrun=true effectue uniquement l'analyse et n'écrit rien"
+"param.reach_n_max_branch_length_blocks_from_existing_wood_farther_leaf_clusters" = "reach=N définit la longueur maximale des branches, en blocs depuis le bois existant ; les groupes de feuilles plus éloignés deviennent persistants. reach=0 autorise une croissance illimitée"
+"director.convert_schem_files_convert_folder_iob_files" = "Convertir les fichiers .schem du dossier 'convert' en fichiers .iob."
+"director.get_powder_that_reveals_objects" = "Obtenir une poudre qui révèle les objets"
+"director.contract_selection_based_on_your_looking_direction" = "Contracter une sélection selon la direction de votre regard"
+"param.amount_inset_by" = "La quantité de contraction"
+"director.set_point_1_look" = "Définir le point 1 à l'endroit regardé"
+"param.whether_use_your_current_position_where_you_look" = "Indique s'il faut utiliser votre position actuelle ou l'endroit regardé"
+"director.set_point_2_look" = "Définir le point 2 à l'endroit regardé"
+"param.whether_use_your_current_position_where_you_look_2" = "Indique s'il faut utiliser votre position actuelle ou l'endroit regardé"
+"director.paste_object" = "Coller un objet"
+"param.object_paste" = "L'objet à coller"
+"param.whether_not_edit_object_need_hold_wand" = "Indique s'il faut modifier l'objet (vous devez tenir la baguette)"
+"param.amount_degrees_rotate_by" = "Le nombre de degrés de rotation"
+"param.factor_by_which_scale_object_placement" = "Le facteur de mise à l'échelle du placement de l'objet"
+"param.scale_interpolator_use" = "L'interpolateur d'échelle à utiliser"
+"director.save_object" = "Enregistrer un objet"
+"param.dimension_store_object" = "La dimension dans laquelle stocker l'objet"
+"param.file_store_it_can_use_subfolders" = "Le fichier dans lequel le stocker ; vous pouvez utiliser / pour indiquer des sous-dossiers"
+"param.overwrite_existing_object_files" = "Écraser les fichiers d'objets existants"
+"param.use_legacy_tilestate_serialization_if_possible" = "Utiliser l'ancienne sérialisation TileState si possible"
+"director.shift_selection_your_looking_direction" = "Déplacer une sélection dans la direction de votre regard"
+"param.amount_shift_by" = "La distance de déplacement"
+"director.undo_number_pastes" = "Annuler plusieurs collages"
+"param.amount_pastes_undo" = "Le nombre de collages à annuler"
+"director.gets_object_wand_grabs_current_worldedit_selection" = "Obtenir une baguette d'objet et capturer la sélection WorldEdit actuelle."
+"director.get_object_wand" = "Obtenir une baguette d'objet"
+"director.autoselect_up_down_out" = "Sélectionner automatiquement vers le haut, le bas et l'extérieur"
+"director.autoselect_up_out" = "Sélectionner automatiquement vers le haut et l'extérieur"
+
+[iris.director.commandpack]
+"director.pack_validation_maintenance" = "Validation et maintenance des packs"
+"director.validate_pack_all_packs_re_publish_results" = "Valider un pack (ou tous les packs) et republier les résultats"
+"param.pack_folder_name_validate_leave_empty_all" = "Le nom du dossier du pack à valider (laissez-le vide pour tous les valider)"
+"director.preview_apply_unused_resource_cleanup" = "Prévisualiser ou appliquer le nettoyage des ressources inutilisées"
+"param.pack_folder_name_clean" = "Le nom du dossier du pack à nettoyer"
+"param.preview_apply" = "prévisualiser ou appliquer"
+"director.preview_apply_restoration_latest_quarantine" = "Prévisualiser ou appliquer la restauration de la quarantaine la plus récente"
+"param.pack_folder_name_restore" = "Le nom du dossier du pack à restaurer"
+"param.preview_apply_2" = "prévisualiser ou appliquer"
+"director.show_cached_validation_status_pack" = "Afficher l'état de validation en cache d'un pack"
+"param.pack_folder_name" = "Le nom du dossier du pack"
+"director.show_content_cannot_generate_this_minecraft_version" = "Afficher le contenu du pack qui ne peut pas être généré sur cette version de Minecraft"
+"param.pack_folder_name_compat" = "Le nom du dossier du pack à analyser"
+
+[iris.director.commandpregen]
+"director.pregenerate_your_iris_worlds" = "Prégénérer vos mondes Iris !"
+"director.pregenerate_world" = "Prégénérer un monde"
+"param.radius_pregen_blocks" = "Le rayon de la prégénération en blocs"
+"param.world_pregen" = "Le monde à prégénérer"
+"param.center_location_pregen_use_me_your_current_location" = "Le centre de la prégénération. Utilisez \"me\" pour indiquer votre position actuelle"
+"param.open_iris_pregen_gui" = "Ouvrir la GUI de prégénération Iris"
+"param.generate_only_one_chunk_at_time" = "Générer un seul chunk à la fois"
+"director.stop_active_pregeneration_task" = "Arrêter la tâche de prégénération active"
+"director.pause_continue_active_pregeneration_task" = "Mettre en pause ou reprendre la tâche de prégénération active"
+"director.show_active_pregeneration_status" = "Afficher l'état de la prégénération active"
+
+[iris.director.commandstructure]
+"director.iris_structure_tools_index_import_info" = "Outils de structures Iris (index, import, info)"
+"director.regenerate_structure_index_json_listing_all_vanilla_datapack_iris_structures" = "Régénérer structure-index.json avec toutes les structures vanilla, de datapacks et d'Iris"
+"param.dimension_whose_pack_index" = "La dimension dont le pack sera indexé"
+"director.import_every_structure_vanilla_ingested_datapacks_into_this_pack_as_editable_iris" = "Importer TOUTES les structures - vanilla ET datapacks ingérés - dans ce pack comme ressources Iris modifiables, en les écrasant toujours. Reconstruit les structures jigsaw (villages, avant-postes et jigsaws de datapacks) sous forme de graphes pool/pièce modifiables, importe chaque modèle de structure NBT comme objet et assemble les structures à plusieurs modèles (épaves, portails en ruine, ruines océaniques et fossiles du Nether). Exécutez cette commande après l'ingestion d'un datapack et un redémarrage. Régénérez les chunks ou utilisez un nouveau monde pour placer les copies importées."
+"param.dimension_whose_pack_import_into" = "La dimension dont le pack recevra les structures importées"
+"director.capture_code_generated_structures_that_have_no_nbt_template_swamp_huts_igloos" = "Capture les structures générées par le code qui n'ont pas de modèle NBT (huttes de sorcière, igloos, etc.) comme objets Iris modifiables : chacune est générée dans un monde temporaire jetable, puis ses blocs sont relus. Ignore les structures déjà importées comme structures, celles qui dépassent la limite de capture (forteresses, manoirs et monuments restent vanilla) et celles qui ne se génèrent pas dans un overworld plat. Chaque structure capturée devient une structure Iris d'une seule pièce, plaçable depuis une liste 'structures' de biome, région ou dimension. S'exécute automatiquement comme dernière phase de /iris structure import."
+"param.dimension_whose_pack_capture_into" = "La dimension dont le pack recevra les structures capturées"
+"director.verify_native_structure_eligibility_locate_iris_placed_structures_without_running_blocking_native" = "Vérifier si les structures natives peuvent être générées et localiser les structures placées par Iris sans exécuter de recherches natives bloquantes."
+"param.dimension_verify" = "La dimension à vérifier"
+"param.search_radius_chunks_around_origin_larger_is_much_slower" = "Rayon de recherche en chunks autour de l'origine (un rayon plus grand est beaucoup plus lent)"
+"director.resolve_iris_structure_s_jigsaw_graph_report_piece_count_bounds" = "Résoudre le graphe jigsaw d'une structure Iris et indiquer le nombre de pièces ainsi que ses limites"
+"param.dimension_whose_pack_holds_structure" = "La dimension dont le pack contient la structure"
+"param.iris_structure_key_inspect" = "La clé de la structure Iris à inspecter"
+"director.assemble_place_iris_structure_at_your_location_studio_testing" = "Assembler et placer une structure Iris à votre position (test dans Studio)"
+"param.dimension_whose_pack_holds_structure_2" = "La dimension dont le pack contient la structure"
+"param.iris_structure_key_place" = "La clé de la structure Iris à placer"
+
+[iris.director.commandstudio]
+"director.studio_commands" = "Commandes Studio"
+"director.open_new_studio_world" = "Ouvrir un nouveau monde Studio"
+"param.dimension_pack_open_studio" = "Le pack de dimension pour lequel ouvrir Studio"
+"param.seed_generate_studio_with" = "La graine avec laquelle générer Studio"
+"director.import_vanilla_trees_mushrooms_objects_structures_jigsaw_from_server_into_pack_s" = "Importer les arbres, champignons et objets vanilla (ainsi que structures/jigsaw) du serveur dans le dossier objects/vanilla d'un pack"
+"param.dimension_pack_import_vanilla_content_into" = "Le pack de dimension dans lequel importer le contenu vanilla"
+"param.how_many_variants_capture_per_tree_object_feature" = "Le nombre de variantes à capturer pour chaque fonctionnalité d'arbre ou d'objet"
+"param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "Importer également les structures/jigsaw vanilla et de datapacks dans le pack"
+"director.open_vscode_dimension" = "Ouvrir VSCode pour une dimension"
+"param.dimension_open_vscode" = "La dimension pour laquelle ouvrir VSCode"
+"director.close_open_studio_project" = "Fermer un projet Studio ouvert"
+"director.toggle_your_studio_debug_scoreboard" = "Afficher ou masquer votre tableau de débogage Studio"
+"director.create_new_studio_project" = "Créer un nouveau projet Studio"
+"param.name_this_new_iris_project" = "Le nom de ce nouveau projet Iris."
+"param.copy_contents_existing_project_your_packs_folder_use_it_as_template_this" = "Copier le contenu d'un projet existant du dossier packs et l'utiliser comme modèle pour ce nouveau projet."
+"director.get_version_pack" = "Obtenir la version d'un pack"
+"param.dimension_get_version" = "La dimension dont la version sera obtenue"
+"director.open_noise_explorer_external_gui" = "Ouvrir Noise Explorer (GUI externe)"
+"param.optional_pack_generator_preview" = "Générateur de pack facultatif à prévisualiser"
+"param.seed_preview_generator_with" = "La graine avec laquelle prévisualiser le générateur"
+"director.show_loot_if_chest_were_right_here" = "Afficher le butin d'un coffre placé ici"
+"param.fast_insertion_items_virtual_inventory_may_cause_performance_drop" = "Insertion rapide des objets dans l'inventaire virtuel (peut réduire les performances)"
+"param.whether_not_append_inventory_currently_open_if_false_clears_opened_inventory" = "Indique s'il faut ajouter les objets à l'inventaire ouvert (si la valeur est false, il est d'abord vidé)"
+"director.calculate_chance_each_region_generate" = "Calculer la probabilité de génération de chaque région"
+"param.radius_chunks" = "Le rayon en chunks"
+"director.render_world_map_external_gui" = "Rendre une carte du monde (GUI externe)"
+"param.world_open_generator" = "Le monde dont le générateur sera ouvert"
+"director.package_dimension_into_compressed_format" = "Empaqueter une dimension dans un format compressé"
+"param.dimension_pack_compress" = "Le pack de dimension à compresser"
+"param.whether_not_obfuscate_pack" = "Indique s'il faut obscurcir le pack"
+"param.whether_not_minify_pack" = "Indique s'il faut minifier le pack"
+"director.profiles_performance_dimension" = "Profiler les performances d'une dimension"
+"param.dimension_profile" = "La dimension dont les performances seront profilées"
+"director.spawn_iris_entity" = "Générer une entité Iris"
+"param.entity_spawn" = "L'entité à générer"
+"param.location_spawn_entity_at" = "La position à laquelle générer l'entité"
+"director.teleport_active_studio_world" = "Se téléporter vers le monde Studio actif"
+"director.update_your_dimension_projects_vscode_workspace" = "Mettre à jour l'espace de travail VSCode de vos projets de dimension"
+"param.dimension_update_workspace" = "La dimension dont l'espace de travail sera mis à jour"
+"director.capture_igendata_chunk_report_nearby_chunks" = "Capturer un rapport de chunks IGenData pour les chunks proches"
+
+[iris.director.commandwhat]
+"director.iris_what" = "Qu'y a-t-il dans Iris ?"
+"director.what_is_my_hand" = "Qu'est-ce que j'ai dans la main ?"
+"director.what_biome_am_i" = "Dans quel biome suis-je ?"
+"director.what_region_am_i" = "Dans quelle région suis-je ?"
+"director.what_block_am_i_looking_at" = "Quel bloc suis-je en train de regarder ?"
+"director.show_markers_chunk" = "Afficher les marqueurs dans le chunk"
+"param.marker_name_such_as_cave_floor_cave_ceiling" = "Nom du marqueur, comme cave_floor ou cave_ceiling"
+
+[iris.runtime.progress]
+finding_regions = "Recherche des régions"
+converting = "Conversion"
+
+[iris.runtime.status]
+running = "En cours"
+stopped = "Arrêté"
+paused = "En pause"
+paused_lower = "en pause"
+running_lower = "en cours"
+enabled = "activé."
+disabled = "désactivé."
+unregistered = "non enregistré"
+none = "aucun"
+random = "aléatoire"
+match = "MATCH"
+mismatch = "MISMATCH"
+true = "vrai"
+false = "faux"
+
+[iris.runtime.error]
+detail_suffix = " - {error}"
+
+[iris.runtime.datapack]
+override_suffix = " (remplacement du datapack du monde installé)"
+name = "Génération de mondes Iris"
+
+[iris.runtime.primary_world]
+players_routed_suffix = " (les joueurs y seront redirigés)"
+routing_disabled_suffix = " (redirection désactivée)"
+
+[iris.runtime.modded]
+no_dimension_match = "Aucune dimension Iris ne correspond à '{filter}'."
+
+[iris.runtime.teleport]
+world = "Vous avez été téléporté vers {world}."
+
+[iris.runtime.engine]
+hotloaded = "Moteur rechargé à chaud"
+
+[iris.runtime.job]
+completed = "{job} terminé en {duration}"
+scanning_selection = "Analyse de la sélection"
+loading_chunks = "Chargement des chunks"
+searched_chunks = "{chunks} chunks recherchés"
+compile = "Compiler"
+saving_object = "Enregistrement de l'objet"
+downloading = "Téléchargement"
+extracting = "Extraction"
+installing = "Installation"
+
+[iris.runtime.compile]
+iob_empty = "- IOB {file} contient 0 bloc !"
+iob_empty_hover = "Erreur :\n{path}"
+iob_not_3d = "- IOB {file} n'est pas en 3D !"
+iob_not_3d_hover = "Erreur :\n{path}\nLa largeur, la hauteur ou la profondeur est nulle (format incorrect)"
+json_error = "- Erreur JSON {file}"
+json_error_hover = "Erreur :\n{path}\n{error}"
+loader_not_found = "Chargeur introuvable pour {path}"
+
+[iris.runtime.pack]
+already_exists = "Le pack existe déjà !"
+
+[iris.runtime.tree_plausibilize]
+dry_suffix = ", DRY"
+skip_load = "ignorer {object} : échec du chargement"
+result = "{object} : +{wood} bois ({branches} branches), {converted} feuilles->bois, ~{distances} distances"
+result_pinned = "{object} : +{wood} bois ({branches} branches), {converted} feuilles->bois, ~{distances} distances, !{pinned} fixées"
+progress = "[{current}/{total}]"
+failed = "échec {object} : {type} : {error}"
+done = "Terminé : {processed} traités, {changed} modifiés, {skipped} ignorés, {failed} échecs"
+done_dry = "Terminé : {processed} traités, {changed} modifiés, {skipped} ignorés, {failed} échecs (simulation, rien n'a été écrit)"
+totals = "Totaux : +{wood} bois ({branches} branches), {converted} feuilles->bois, ~{distances} distances, !{pinned} fixées, inaccessibles {before} -> {after}"
+
+[iris.runtime.item]
+"wand.name" = "Baguette d'Iris"
+"wand.lore.first" = "Faites un clic gauche sur un bloc pour définir le premier coin"
+"wand.lore.second" = "Faites un clic droit sur un bloc pour définir le second coin"
+"dust.name" = "Poussière révélatrice"
+"dust.lore" = "Faites un clic droit sur un bloc pour révéler sa structure de placement !"
+
+[iris.runtime.wand]
+position_set = "Position {position} définie sur {x}, {y}, {z}"
+
+[iris.runtime.dust]
+iris_world_required = "Cette dimension n'a pas été générée par Iris."
+found_object = "Objet trouvé : {object}"
+revealed = "{count} bloc(s) de {object} révélés"
+revealed_capped = "{count} bloc(s) de {object} révélés (limite atteinte)"
+header = "--- Poussière d'Iris @ {x}, {y}, {z} ---"
+block = "Bloc : {block}"
+"position.above" = "Position : +{offset} AU-DESSUS de la surface (Y de surface={surfaceY})"
+"position.below" = "Position : {offset} sous la surface (Y de surface={surfaceY})"
+"position.at" = "Position : à la surface (Y={surfaceY})"
+object_at_block = "Objet @bloc : {object}"
+none = "aucune"
+"placed_by.object_above" = "Placé par : objet/pilotis '{object}' (au-dessus de la surface)"
+"placed_by.decoration_above" = "Placé par : décoration/objet/pilotis (au-dessus de la surface)"
+"placed_by.buried_object" = "Placé par : objet enterré '{object}'"
+"placed_by.terrain" = "Placé par : couche de terrain (profondeur {depth} sous la surface)"
+column_object = "Objet de la colonne : {object} -> ce bloc est probablement le pilotis de cet objet"
+column_object_none = "Objet de colonne : {detail}"
+column_none = "aucun dans un rayon de 64 (décorateur ou terrain, PAS le pilotis d'un objet)"
+"column.above" = "{object} @Y={y} (au-dessus)"
+"column.below" = "{object} @Y={y} (en dessous)"
+surface_biome = "Biome de surface : {biome}"
+surface_biome_detail = "Biome de surface : {biome} ({derivative})"
+biome_at_y = "Biome @Y : {biome}"
+cave_biome = "Biome de grotte/Mantle : {biome}"
+server_biome = "Biome du serveur : {biome} (ID: {id})"
+region = "Région : {region} ({name})"
+objects_in_chunk = "Objets du chunk : {objects}"
+copy_button = "[Cliquer pour copier ces statistiques]"
+copy_hover = "Copier les statistiques du bloc dans le presse-papiers"
+reveal_failed = "Object reveal failed; see the console for details."
+
+[iris.runtime.pregen]
+starting = "Démarrage de la pregen Iris..."
+header = "Pregen Iris"
+"bossbar.paused" = "Pregen Iris {generated}/{total} {percent}% EN PAUSE"
+"bossbar.running" = "Pregen Iris {generated}/{total} {percent}% {speed}/s{eta}{failed}"
+eta_fragment = "  ETA  {eta}"
+failed_fragment = "  échecs {failed}"
+"status.context" = "Dimension {dimension} · Méthode {method}"
+"status.progress" = "{percent}%"
+"status.chunks" = "Chunks {generated}/{total} · Vitesse overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s"
+"status.chunks_failed" = "Chunks {generated}/{total} · Vitesse overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s · Failed {failed}"
+"status.time" = "ETA {eta} · Écoulé {elapsed}"
+"status.time_paused" = "ETA {eta} · Écoulé {elapsed} · EN PAUSE"
+"button.pause" = "Pause/Reprise"
+"button.pause.hover" = "Basculer l'état de pause de la prégénération"
+"button.stop" = "Arrêter"
+"button.stop.hover" = "Terminer la région actuelle et arrêter la prégénération"
+
+[iris.bukkit.runtime]
+"commandpack.packs_folder_not_found" = "§cDossier packs/ introuvable."
+"commandpack.no_packs_validate" = "§eAucun pack à valider."
+"commandpack.validation_complete_broken_packs" = "§aValidation terminée. Packs cassés : {broken}/{value}"
+"commandpack.pack_not_found_under_packs" = "§cLe pack '{pack}' est introuvable dans packs/."
+"commandpack.no_cleanup_candidates_found_pack" = "§aAucune ressource candidate au nettoyage trouvée pour le pack '{pack}'."
+"commandpack.quarantined_cleanup_candidate_s_under" = "§a{size} ressource(s) candidate(s) au nettoyage mise(s) en quarantaine dans {quarantinePath}."
+"commandpack.cleanup_mode_must_be_preview_apply" = "§cLe mode de nettoyage doit être preview ou apply."
+"commandpack.no_cleanup_candidates_found_pack_2" = "§aAucune ressource candidate au nettoyage trouvée pour le pack '{pack}'."
+"commandpack.cleanup_preview_pack_candidate_s_no_files_were_changed" = "§eAperçu du nettoyage du pack '{pack}' : {size} candidat(s). Aucun fichier n'a été modifié."
+"commandpack.run_iris_pack_cleanup_mode_apply_quarantine_these_candidates_after_fresh_scan" = "§7Exécutez /iris pack cleanup {pack} mode=apply pour mettre ces candidats en quarantaine après une nouvelle analyse."
+"commandpack.restore_refused_because_destination_s_already_exist" = "§cRestauration refusée car {size} destination(s) existe(nt) déjà."
+"commandpack.nothing_restore_pack" = "§eRien à restaurer pour le pack '{pack}'."
+"commandpack.restored_file_s_from" = "§a{size} fichier(s) restauré(s) depuis {dumpPath}."
+"commandpack.restore_mode_must_be_preview_apply" = "§cLe mode de restauration doit être preview ou apply."
+"commandpack.nothing_restore_pack_2" = "§eRien à restaurer pour le pack '{pack}'."
+"commandpack.restore_preview_file_s_no_files_were_changed" = "§eAperçu de la restauration de {dumpPath} : {size} fichier(s). Aucun fichier n'a été modifié."
+"commandpack.restore_is_blocked_by_existing_destination_s" = "§cLa restauration est bloquée par {size} destination(s) existante(s)."
+"commandpack.run_iris_pack_restore_mode_apply_restore_after_fresh_conflict_check" = "§7Exécutez /iris pack restore {pack} mode=apply pour restaurer après une nouvelle vérification des conflits."
+"commandpack.no_validation_results_recorded_run_iris_pack_validate_first" = "§eAucun résultat de validation enregistré. Exécutez d'abord /iris pack validate."
+"commandpack.status.ok" = "§aOK§r {pack}§7 (blocages={blocking}, avertissements={warnings})"
+"commandpack.status.broken" = "§cCASSÉ§r {pack}§7 (blocages={blocking}, avertissements={warnings})"
+"commandpack.cleanup_failed" = "§cÉchec du nettoyage : {error}"
+"commandpack.restore_failed" = "§cÉchec de la restauration : {error}"
+"commandpack.path.still_quarantined" = "toujours en quarantaine"
+"commandpack.path.quarantined" = "en quarantaine"
+"commandpack.path.candidate" = "candidat"
+"commandpack.path.conflict" = "conflit"
+"commandpack.path.restored" = "restauré"
+"commandpack.path.file" = "fichier"
+"commandpack.no_validation_result_run_iris_pack_validate" = "§eAucun résultat de validation pour '{pack}'. Exécutez /iris pack validate {pack2}."
+"commandpack.validation_failed" = "§cÉchec de la validation de '{name}' : {error}"
+"commandpack.pack_is_loadable_warnings" = "§aLe pack '{packName}' peut être chargé.§7 (avertissements={size})"
+"commandpack.pack_is_broken" = "§cLe pack '{packName}' est CASSÉ :"
+"commandpack.message" = "§c  - {reason}"
+"commandpack.message_2" = "§e  !  {value}"
+"commandpack.more_warning_s" = { one = "§7  ... et {count} avertissement de plus.", other = "§7  ... et {count} avertissements de plus." }
+"commanddeveloper.stage_world_generation_update_warning" = ["§cSauvegardez le monde entier avant de préparer cette mise à jour.", "§eLes chunks existants ne seront ni régénérés ni réécrits.", "§eAprès le redémarrage, les nouveaux chunks utiliseront le pack préparé avec une transition progressive à la limite enregistrée.", "§eLa graine, la hauteur, l'environnement et le type de dimension du monde ne peuvent pas changer.", "§eChaque sauvegarde doit conserver le répertoire iris/generation complet.", "§cPour préparer la mise à jour et demander un redémarrage propre :", "§c/iris developer update-world {world} {pack} confirm=true"]
+"bulkstructureimporter.importing_vanilla_datapack_structures_mode_includenonjigsaw" = "§aImportation de §f{total}§a structures vanilla et de datapacks (mode={mode}, includeNonJigsaw={includeNonJigsaw})..."
+"bulkstructureimporter.fail_invalid_key" = "§c[échec]  {keyString}: clé invalide"
+"bulkstructureimporter.jigsaw" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.skip_no_single_template_nbt_vanilla_builds_this_code_from_separate_piece" = "§e[ignoré] {keyString} : aucun modèle NBT unique ; vanilla construit cette structure dans le code ou à partir de modèles de pièces distincts (importés lors de la phase des modèles), donc rien ne peut être importé comme structure unique."
+"bulkstructureimporter.fail" = "§c[échec]  {keyString}: {message}"
+"bulkstructureimporter.fail_2" = "§c[échec]  {keyString}: {message}"
+"bulkstructureimporter.fail_3" = "§c[échec]  {keyString}: {error}"
+"bulkstructureimporter.bulk_import_complete_imported_skipped_failed_total" = "§aImportation en masse terminée : §f{imported}§a importées, §f{skipped}§a ignorées, §f{failed}§a échecs (§f{total}§a au total)."
+"bulkstructureimporter.building_single_template_structures_from_imported_pieces_one_variant_placed_per_generation" = "§aCréation de structures à modèle unique depuis les pièces importées (une variante est placée à chaque génération)..."
+"bulkstructureimporter.group_variants" = "§7[group]  {value}  ->  {value2} ({blocks} variantes)"
+"bulkstructureimporter.skip" = "§e[ignoré]  {value}: {message}"
+"bulkstructureimporter.fail_4" = "§c[échec]  {value}: {error}"
+"bulkstructureimporter.single_template_structures_built_skipped_failed" = "§aStructures à modèle unique : §f{imported}§a créées, §f{skipped}§a ignorées, §f{failed}§a échecs."
+"bulkstructureimporter.failed_enumerate_structure_templates_via_server_resourcemanager" = "§cImpossible d'énumérer les modèles de structure via le serveur ResourceManager: {e}"
+"bulkstructureimporter.no_structure_templates_were_found_under_structure_resource_path" = "§eAucun modèle de structure trouvé dans le chemin de ressources 'structure'."
+"bulkstructureimporter.importing_structure_templates_mode" = "§aImportation de §f{total}§a modèles de structures (mode={mode})..."
+"bulkstructureimporter.fail_invalid_key_2" = "§c[échec]  {keyString}: clé invalide"
+"bulkstructureimporter.fail_5" = "§c[échec]  {keyString}: {message}"
+"bulkstructureimporter.fail_6" = "§c[échec]  {keyString}: {error}"
+"bulkstructureimporter.imported_skipped_failed" = "§7...{processed}/{total} ({imported} importées, {skipped} ignorées, {failed} échecs)"
+"bulkstructureimporter.template_import_complete_imported_skipped_failed_total" = "§aImportation des modèles terminée : §f{imported}§a importés, §f{skipped}§a ignorés, §f{failed}§a échecs (§f{total}§a au total)."
+"bulkstructureimporter.no_datapack_non_minecraft_structures_are_registered_ingest_datapack_restart_first_then" = "§eAucune structure de datapack (hors minecraft) n'est enregistrée. Ingérez un datapack, redémarrez, puis relancez cette opération."
+"bulkstructureimporter.importing_datapack_structures_mode" = "§aImportation de §f{total}§a structures de datapacks (mode={mode})..."
+"bulkstructureimporter.fail_invalid_key_3" = "§c[échec]  {keyString}: clé invalide"
+"bulkstructureimporter.jigsaw_2" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single_2" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.fail_7" = "§c[échec]  {keyString}: {message}"
+"bulkstructureimporter.fail_8" = "§c[échec]  {keyString}: {message}"
+"bulkstructureimporter.fail_9" = "§c[échec]  {keyString}: {error}"
+"bulkstructureimporter.importing_datapack_structure_templates" = "§aImportation de §f{size}§a modèles de structures de datapacks..."
+"bulkstructureimporter.fail_10" = "§c[échec]  {keyString}: {message}"
+"bulkstructureimporter.fail_11" = "§c[échec]  {keyString}: {error}"
+"bulkstructureimporter.could_not_enumerate_datapack_templates_via_server_resourcemanager" = "§eImpossible d'énumérer les modèles de datapacks via le ResourceManager du serveur : {error}"
+"bulkstructureimporter.datapack_structure_import_complete_imported_skipped_failed" = "§aImportation des structures du datapack terminée : §f{imported}§a importées, §f{skipped}§a ignorées, §f{failed}§a échecs."
+"structurecaptureimporter.structure_capture_is_not_supported_by_active_nms_binding_skipping_capture_pass" = "§eLa liaison NMS active ne prend pas en charge la capture des structures ; la phase de capture sera ignorée."
+"structurecaptureimporter.no_code_generated_structures_left_capture_everything_is_already_imported_as_structure" = "§7Il ne reste aucune structure générée par le code à capturer (toutes ont déjà été importées comme structures)."
+"structurecaptureimporter.capturing_code_generated_structures_no_nbt_template_into_scratch_world_skipping_any" = "§aCapture de §f{total}§a structures générées par le code (sans modèle NBT) dans un monde temporaire (celles qui dépassent {MAXSPAN} blocs de largeur ou de hauteur seront ignorées)..."
+"structurecaptureimporter.skip_did_not_place_capturable_structure_here_too_large_wrong_dimension_no" = "§e[ignoré] {key} : aucune structure capturable n'a été placée ici (trop grande, mauvaise dimension ou aucun placement valide dans un monde plat). Elle restera générée par vanilla."
+"structurecaptureimporter.fail" = "§c[échec]  {key}: {message}"
+"structurecaptureimporter.capture_objects_iob_x_x" = "§7[capture]  {key}  ->  objects/{name}.iob ({w}x{h}x{d})"
+"structurecaptureimporter.fail_2" = "§c[échec]  {key}: {error}"
+"structurecaptureimporter.captured_skipped_failed" = "§7...{processed}/{total} ({imported} capturées, {skipped} ignorées, {failed} échecs)"
+"structurecaptureimporter.structure_capture_complete_captured_skipped_failed_total" = "§aCapture des structures terminée : §f{imported}§a capturées, §f{skipped}§a ignorées, §f{failed}§a échecs (§f{total}§a au total)."
+"featureimporter.no_vanilla_tree_object_features_are_exposed_by_active_nms_binding_importing" = "§eLa liaison NMS active n'expose aucune fonctionnalité vanilla d'arbre ou d'objet (seules les structures seront importées)."
+"featureimporter.importing_vanilla_tree_object_features_variants_each_into_scratch_world" = "§aImportation de §f{total}§a fonctionnalités vanilla d'arbres ou d'objets (§f{wantVariants}§a variantes chacune) dans un monde temporaire..."
+"featureimporter.obj_objects_vanilla" = "§7[obj]  {key}  ->  objects/vanilla/{group}/{safeName} ({written})"
+"featureimporter.skip_feature_placed_nothing_after_retries" = "§e[ignoré] {key} : la fonctionnalité n'a rien placé après plusieurs tentatives."
+"featureimporter.fail" = "§c[échec]  {key}: {error}"
+"featureimporter.imported_skipped_failed" = "§7...{processed}/{total} ({imported} importées, {skipped} ignorées, {failed} échecs)"
+"featureimporter.feature_import_complete_features_written_skipped_failed_total" = "§aImportation des fonctionnalités terminée : §f{imported}§a écrites, §f{skipped}§a ignorées, §f{failed}§a en échec (§f{total}§a au total)."
+"featureimporter.could_not_create_scratch_world_feature_import_skipping_tree_object_pass" = "§cImpossible de créer le monde temporaire pour importer les fonctionnalités ({error}) ; la phase des arbres et objets sera ignorée."
+"irisconverter.no_schematic_files_convert_found" = "Aucun fichier schematic à convertir trouvé dans {path}"
+"irisconverter.converted" = "§aConversion : {name} -> {value} dans {value2}"
+"irisconverter.converted_2" = "§aConversion : {name} -> {value}"
+"irisconverter.failed_save" = "§cÉchec de l'enregistrement : {name}"
+"irisconverter.failed_convert" = "§cImpossible de convertir : {name}"
+"irisconverter.converted_3" = "§7Converti : {get} dans {value}"
+"irisconverter.some_schematics_failed_convert_check_console_details" = "§cCertains schematics n'ont pas pu être convertis. Consultez la console pour plus de détails."
+"studiosvc.pack_copy_requires_async_thread" = "§cIris refused to copy the world pack on the Bukkit primary thread."
+"studiosvc.pack_install_failed" = "§cFailed to install world pack §f{dimension}§c: {error}"
+"studiosvc.looking_package" = "Recherche du pack : {type}"
+"studiosvc.found_iris_folder" = "{type}.iris trouvé dans le dossier {WORKSPACENAME}"
+"studiosvc.found_dimension_folder_repackaging" = "Dimension {type} trouvée dans le dossier {WORKSPACENAME}. Nouvel empaquetage"
+"studiosvc.can_t_find_dimensions_folder_this_pack_failed" = "{name} est introuvable dans le dossier dimensions de ce pack. Échec !"
+"studiosvc.can_t_load_dimension_failed" = "Impossible de charger la dimension. Échec !"
+"studiosvc.type_installed" = "Type {name} installé. "
+"studiosvc.failed_open_studio_world" = "Impossible d'ouvrir le monde Studio : {error}"
+"studiosvc.cannot_open_studio_pack_has_blocking_errors" = "Impossible d'ouvrir Studio '{dimm}' : le pack contient des erreurs bloquantes :"
+"studiosvc.message" = " - {reason}"
+"studiosvc.fix_pack_run_iris_pack_validate_revalidate" = "Corrigez le pack et exécutez /iris pack validate {dimm} pour le valider à nouveau."
+"studiosvc.failed_close_existing_studio_project" = "Impossible de fermer le projet Studio existant : {error}"
+"studiosvc.failed_close_existing_studio_project_2" = "Impossible de fermer le projet Studio existant : {error}"
+"studiosvc.failed_open_studio_world_2" = "Impossible d'ouvrir le monde Studio : {error}"
+"studiosvc.couldn_t_find_pack_create_new_dimension_from" = "Impossible de trouver le pack avec lequel créer une nouvelle dimension."
+"studiosvc.missing_imported_dimension_file" = "Fichier de dimension importée manquant"
+"studiosvc.importing_into_new_project" = "Importation de {downloadable} dans le nouveau projet {s}"
+"objectstudiosaveservice.object_studio_no_cell_under_click_x_z" = "§7Object Studio : aucune cellule sous clic (x={x} z={z})."
+"objectstudiosaveservice.object_studio_saving_x_x" = "§bObject Studio : enregistrement de §f{pack}/{key}§7 ({w}x{h}x{d})"
+"objectstudiosaveservice.object_studio_no_changes" = "§7Object Studio : aucun changement pour {pack}/{key}."
+"objectstudiosaveservice.object_studio_empty_cell_nothing_write" = "§7Object Studio : cellule vide {pack}/{key} (rien à écrire)."
+"objectstudiosaveservice.object_studio_no_target_file" = "§cObject Studio : aucun fichier cible pour {pack}/{key}."
+"objectstudiosaveservice.object_studio_saved" = "§aObject Studio : enregistrement terminé pour §f{pack}/{key}"
+"objectstudiosaveservice.object_studio_save_failed" = "§cObject Studio : l'enregistrement a échoué {pack}/{key} ({error})"
+"irisproject.could_not_load_dimension" = "Impossible de charger la dimension \"{value}\""
+"irisproject.could_not_get_dimension_loader" = "Impossible d'obtenir le chargeur de dimensions"
+"irisproject.studio_open_failed" = "§cImpossible d'ouvrir Studio : {error}"
+"irisproject.studio_open_failed_2" = "§cImpossible d'ouvrir Studio."
+"irisproject.studio_ready" = "§aStudio prêt §7({value})"
+"irisproject.studio" = "§6Studio §b{bar} §e{percent}%§7 {currentStage}§8 ({value})"
+"irisproject.serializing_objects" = "Sérialisation des objets"
+"irisproject.wrote_another_objects" = "{g} objets supplémentaires écrits"
+"irisproject.package_compiled" = "Pack compilé !"
+"irisproject.failed" = "Échec !"
+"irisengine.total" = "Total : §l§f{value}"
+"irisengine.engine" = "  Moteur §n§a{i}§r: §l§f{value}"
+"irisengine.details" = "Détails: "
+"irisengine.message" = "  {befb}{num}{afb}: §l§f{value}"
+"enginebukkitops.is_not_defined_dimension" = "§c{name} n'est pas défini dans la dimension !"
+"enginebukkitops.could_not_find_within_search_range" = "§cImpossible de trouver {message} dans le rayon de recherche."
+"enginebukkitops.teleporting" = "§aTéléportation vers {message}..."
+"enginebukkitops.at" = "§a{message} à : {blockX} {blockY} {blockZ}"
+"iristoolbelt.you_have_been_evacuated_from_this_world" = "Vous avez été évacué de ce monde."
+"iristoolbelt.you_have_been_evacuated_from_this_world_2" = "Vous avez été évacué de ce monde.  {m}"
+"serverconfigurator.there_are_some_iris_packs_that_have_custom_biomes_them" = "Certains packs Iris contiennent des biomes personnalisés"
+"serverconfigurator.you_need_restart_your_server_use_these_packs" = "Vous devez redémarrer votre serveur pour utiliser ces packs."
+"virtualcommand.message" = "- §f{i}"
+"virtualcommand.insufficient_permissions" = "Autorisations insuffisantes"
+"mortarcommand.parameters_ignored" = "Paramètres ignorés: {m}"
+"commandpack.compat_header" = "§ePack '{pack}' : contenu indisponible sur Minecraft {version}"
+"commandpack.compat_none" = "§aLe pack '{pack}' n'utilise aucun contenu absent de Minecraft {version}."
+"commandpack.compat_remedy" = "§7Mettez le serveur à jour vers un Minecraft plus récent pour restaurer ce contenu, ou déclarez des replis (blockFallbacks de la dimension, backup du bloc)."
+
+[iris.runtime.studio]
+opening = "§6Studio §bOUVERTURE"
+opening_progress = "§6Studio §bOUVERTURE§7 {percent}%"
+failed_progress = "§6Studio §cÉCHEC§7 {percent}%"
+ready_progress = "§6Studio §aPRÊT§7 100%"
+"action.failed" = "{bar}§7 §cÉCHEC§7 | §f{stage}"
+"action.ready" = "{bar}§7 §a100%§7 | §aStudio prêt§8 {elapsed}"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}§8  {elapsed}"
+"console.progress" = "§6Studio §b{bar}§e {percent}%§7 {stage}§8 ({elapsed})"
+"stage.initializing" = "Initialisation"
+"stage.queued" = "En attente"
+"stage.resolve_dimension" = "Résolution de la dimension"
+"stage.prepare_world_pack" = "Préparation du pack du monde"
+"stage.install_datapacks" = "Installation des datapacks"
+"stage.create_world" = "Création du monde"
+"stage.apply_world_rules" = "Application des règles du monde"
+"stage.prepare_generator" = "Préparation du générateur"
+"stage.teleport_player" = "Téléportation"
+"stage.finalize_open" = "Finalisation"
+"stage.cleanup" = "Nettoyage"
+
+[iris.runtime.world_create]
+teleport_failed = "§eLe monde a été créé, mais la téléportation automatique a échoué. Essayez /iris teleport world={world}"
+"lifecycle.action" = "{bar}§7 §e{percent}%§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.failed" = "{bar}§7 §cFAILED§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.ready" = "{bar}§7 §a100%§7 | §aWorld ready§8 {elapsed}"
+"lifecycle.console" = "§6World §b{world} {bar} §e{percent}%§7 {stage}{detail}§8 ({elapsed})"
+"lifecycle.console.failed" = "§6World §b{world}§7 | §ccreation failed§8 after {elapsed}"
+"lifecycle.console.ready" = "§6World §b{world}§7 | §aready§8 in {elapsed}"
+"stage.initializing" = "Initializing"
+"stage.resolve_dimension" = "Resolving dimension"
+"stage.validate_pack" = "Validating pack"
+"stage.prepare_world_pack" = "Preparing world pack"
+"stage.install_datapacks" = "Installing datapacks"
+"stage.prepare_generator" = "Preparing generator"
+"stage.create_world" = "Generating spawn"
+"stage.register_world" = "Registering world"
+"stage.teleport_player" = "Entering world"
+"stage.pregenerate" = "Pregenerating"
+"stage.finalize" = "Finalizing"
+"stage.complete" = "World ready"
+"pregen.action" = "{bar}§7 §e{percent}%§7 | §fPrégénération"
+"pregen.console" = "§6Prégénération §e{percent}%"
+
+[iris.runtime.world_replace]
+start = "§ePréparation du remplacement de {world} par Iris. Le monde actuel reste actif jusqu’au redémarrage."
+progress = "§eRemplacement de {world} : {stage} ({elapsed}s écoulées)"
+"stage.datapacks" = "Vérification des packs de données de la dimension"
+"stage.seed" = "Préparation de la graine du remplacement"
+"stage.pack" = "Copie et validation du pack de la dimension"
+"stage.players" = "Enregistrement de la protection à l’entrée des joueurs"
+"stage.verify" = "Vérification du remplacement préparé"
+"stage.save" = "Enregistrement du remplacement pour le redémarrage"
+"stage.cleanup" = "Nettoyage du remplacement ayant échoué"
+
+[iris.runtime.chunk_job]
+"title.regen" = "Régénérer"
+"title.delete" = "Supprimer"
+"title.golden_hash" = "GoldenHash"
+"stage.preparing" = "Préparation"
+"stage.clearing" = "Nettoyage"
+"stage.resetting_mantle" = "Réinitialisation de Mantle"
+"stage.regenerating" = "Régénération"
+"stage.generating" = "Génération"
+"stage.comparing" = "Comparaison"
+"stage.diagnosing" = "Diagnostic"
+"bossbar.working" = "§6{title} §bEN COURS"
+"bossbar.progress" = "§6{title}  §b{stage}§7  §e{percent}%"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}  {applied}/{total}"
+summary = "{applied}/{total} chunks en {elapsed}"
+"summary.failed" = "{applied}/{total} chunks en {elapsed} ({failures} échecs)"
+"bossbar.done" = "§6{title} §aTERMINÉ§7 §e{summary}"
+"bossbar.failed" = "§6{title} §cÉCHEC§7 §e{summary}"
+"action.done" = "{bar}§7 §aTerminé§7 | §f{summary}"
+"action.failed" = "{bar}§7 §cÉchec§7 | §f{summary}"
+complete = "§a{title} terminé : {summary}"
+failed = "§c{title} s'est terminé avec des erreurs : {summary}"
+
+[iris.runtime.golden]
+no_capture = "Aucune capture golden dans {path} ; effectuez d'abord une capture."
+aborted = { one = "GoldenHash annulé : échec de la génération de {failed} chunk. Aucun fichier golden écrit.", other = "GoldenHash annulé : échec de la génération de {failed} chunks. Aucun fichier golden écrit." }
+failed = "Échec de GoldenHash : {error}"
+mantle_reset = "Mantle réinitialisé ({path})"
+mantle_reset_failed = "Échec de la réinitialisation de Mantle ({type}) ; poursuite avec l'état actuel de Mantle."
+captured = "Golden capturé : {chunks} chunks, combiné={hash}"
+wrong_world = "Le fichier golden correspond à dim={goldenDimension} graine={goldenSeed}, mais ce monde utilise dim={dimension} graine={seed}. Annulation."
+version_warning = "Golden a été capturé sous mc={goldenVersion}, tandis que mc={version} est utilisé. Les différences peuvent venir de la version."
+match = "GOLDEN MATCH : {current}/{golden} chunks, combiné={hash}"
+mismatch = "GOLDEN MISMATCH : {mismatches}/{chunks} chunks diffèrent."
+mismatch_chunk = "  chunk {chunk}"
+missing_in_golden = "{chunk} (absent de golden)"
+mismatch_more = "  ...  et {count} plus"
+current_written = "Hashes actuels écrits dans {file}"
+"diag.stable" = "Répétition de génération STABLE, réinitialisation de Mantle {mantleStatus} -> {file}"
+"diag.unstable" = "Répétition de génération INSTABLE ({diffs}+ différences de blocs), réinitialisation de Mantle {mantleStatus} -> {file}"
+"diag.mantle_stable" = "STABLE (la reconstruction de Mantle reproduit le résultat de l'analyse)"
+"diag.mantle_diverged" = "DIVERGÉ ({diffs}+ différences : la construction de Mantle dépend de l'état/ordre)"
+"diag.mantle_skipped" = "IGNORÉ ({type})"
+"diag.failed" = "Échec du diagnostic : {error}"
+started = "GoldenHash démarré : {chunks} chunks autour de 0,0 dans des tampons (monde inchangé), threads={threads} mode={mode}"
+chunk_hashed = "[{done}/{total}] hash calculé pour le chunk {x},{z}"
+chunk_failed = "Chunk {x},{z} ÉCHEC : {type}"
+
+[iris.runtime.pack_download]
+"progress.start" = "§aIris §6TÉLÉCHARGEMENT DU PACK§8 | §f{source}"
+"progress.phase" = "§aIris §b{phase}§8 | §7{source}"
+"progress.determinate" = "{bar}§7 §e{percent}%§8 | §f{transferred}§7/§f{total}§8 | §b{rate}/s"
+"progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
+"progress.detail" = "§8  - §7{detail}"
+"progress.complete" = "§aLe pack Iris '{pack}' est installé§8 | §f{transferred}§7 en §f{elapsed}"
+"progress.unchanged" = "§eLe pack Iris '{pack}' est déjà installé."
+"progress.failed" = "§cÉchec du téléchargement du pack Iris.§7 Consultez les détails du téléchargement ci-dessus et réessayez."
+"progress.failed_detail" = "§cÉchec du téléchargement du pack Iris.§7 {error}"
+"progress.cancelled" = "§eTéléchargement du pack Iris annulé avant sa publication."
+"progress.restart" = "§6Redémarrage requis§8 | §7Redémarrez le serveur avant de créer ou remplacer un monde avec ce pack."
+"progress.phase.connecting" = "Connexion"
+"progress.phase.downloading" = "Téléchargement"
+"progress.phase.unpacking" = "Décompression"
+"progress.phase.validating" = "Validation"
+"progress.phase.publishing" = "Publication"
+"progress.source.remote" = "ZIP distant"
+invalid_source = "§cChoisissez exactement une source : /iris download pack=overworld, /iris download pack=underworld ou /iris download link=‹zip-url›."
+invalid_url = "§cIris nécessite une URL HTTP ou HTTPS valide vers un fichier .zip."
+invalid_built_in = "§cIris ne propose de téléchargement intégré que pour 'overworld' et 'underworld'."
+shutting_down = "§eIris est en cours d’arrêt et n’accepte plus de téléchargements de packs."
+downloading = "Téléchargement de {url}"
+unpacking = "Décompression de {repository}"
+unpack_failed = ["Un problème est survenu pendant la décompression. Vérifiez les points suivants :", "1. Votre connexion Internet fonctionne-t-elle ?", "2. Le téléchargement est-il corrompu ?", "3. Essayez de supprimer le dossier */plugins/iris/packs puis téléchargez à nouveau.", "4. Téléchargez le pack depuis le dépôt GitHub : https://github.com/IrisDimensions/overworld", "5. Contactez l'assistance (si aucune autre option ne fonctionne)"]
+no_extracted_files = "Aucun fichier n'a été extrait du fichier zip."
+home_directory_error = "Erreur lors de la recherche du dossier personnel. Le nom du fichier contient-il des caractères non textuels ?"
+invalid_archive_format = "Format non valide. Le dossier racine est absent ou il y a trop de dossiers."
+no_dimension_file = "Aucun fichier de dimension trouvé dans le fichier zip extrait."
+check_github = "Vérifiez qu'il est présent sur GitHub et signalez-le à l'équipe !"
+invalid_dimension = "Dossier de dimension non valide dans dimensions/."
+importing = "Importation de {name} ({key})"
+dimension_key_conflict = "Une autre dimension du dossier packs utilise déjà la clé {key}. Échec de l'importation !"
+pack_key_conflict = "Un autre pack utilise la clé {key}. Échec de l'importation !"
+acquired = "{name} obtenu avec succès."
+already_installed = "Le pack {key} est déjà installé, téléchargement ignoré."
+in_progress = "Un autre téléchargement de pack Iris est déjà en cours. Attendez qu’il se termine avant de réessayer."
+validation_failed = "Le pack '{pack}' a échoué à la validation ; la création de mondes et de Studio sera refusée. Raisons :"
+validation_reason = "  - {reason}"
+validated_with_warnings = { one = "Le pack '{pack}' a été validé avec {count} avertissement.", other = "Le pack '{pack}' a été validé avec {count} avertissements." }
+validated = "Le pack '{pack}' a été validé."
+
+[iris.client.vision]
+title = "Iris Vision"
+connecting = "Connexion au serveur Iris..."
+not_connected = "non connecté"
+not_iris_world = "Ce n'est pas un monde Iris"
+server_without_iris = "Ce serveur n'utilise pas Iris"
+version_mismatch = "Version Iris incompatible entre le client et le serveur"
+no_dimension_data = "aucune donnée de dimension"
+header_detail = "{status}  zoom {zoom}  x{x} z{z}"
+footer_hint = "Glisser pour déplacer   Molette pour zoomer   Échap pour fermer"
+dimension_pack = "{dimension}  pack {pack}"
+
+[iris.client.create]
+structures_required_title = "Iris nécessite Générer des structures"
+structures_required_body = "Iris place ses propres structures pendant l'étape de génération des structures et refuse de charger un monde créé avec Générer des structures désactivé. Réactive Générer des structures ou choisis un autre type de monde."
+
+[iris.client.toast]
+studio_hotload = "Rechargement à chaud de Studio"
+changed_files = { other = "{count} fichiers", one = "{count} fichier" }
+reload_failed = "échec du rechargement"
+reloaded = "rechargé"
+pack_failed = "échec de {pack}"
+
+[iris.client.what]
+title = "Iris What"
+querying = "Interrogation de {x}, {z}..."
+biome = "Biome : {biome}"
+region = "Région : {region}"
+cave = "Grotte : {cave}"
+height = "Hauteur : {height}   ({x}, {z})"
+
+[iris.client.pregen]
+stats = "{done} / {total}  ({percent}%)"
+paused = "EN PAUSE"
+stale = "aucune mise à jour depuis {seconds}s"
+rate = "{rate}/s"
+rate_eta = "{rate}/s    ETA  {eta}"
+
+[iris.client.duration]
+hours_minutes = "{hours}h {minutes}m"
+minutes_seconds = "{minutes}m {seconds}s"
+seconds = "{seconds}s"
+
+[iris.bukkit.scoreboard]
+title = "§aIris"
+speed = "§aVitesse§7:  {speed}/s {duration}"
+cache = "§bCache§7: {count}"
+mantle = "§bMantle§7: {count}"
+carving = "§dSculpture§7: {state}"
+region = "§bRégion§7: {region}"
+biome = "§bBiome§7:  {biome}"
+biome_loading = "Chargement"
+biome_unavailable = "Indisponible"
+height = "§bHauteur§7: {height}"
+slope = "§bPente§7:  {slope}"
+block_updates = "§bBUD/s§7: {updates}"
+
+[iris.desktop.vision]
+title = "Iris Vision"
+view = "Vue :"
+grid = "Grille"
+entities = "Entités"
+follow = "Suivre"
+refreshing = "Actualisation"
+fps = "{fps}  FPS"
+zoom_reset = "Zoom réinitialisé"
+grid_enabled = "Grille activée"
+grid_disabled = "Grille désactivée"
+entities_enabled = "Entités activées"
+entities_disabled = "Entités désactivées"
+following = "Suivi de {player}"
+no_player = "Aucun joueur dans le monde"
+follow_disabled = "Suivi désactivé"
+status_left = "{mode}  |  {bpp} bpp  |  {width} x {height} blocs"
+status_right = "X: {x}  Z: {z}  |  {fps} FPS"
+entity_position = "Position : {x}, {y}, {z}"
+entity_health = "Santé : {health} / {maximum}"
+block_position = "Bloc {x}, {z}"
+chunk_position = "Chunk {x}, {z}"
+region_position = "Région {x}, {z}"
+biome_key = "Clé : {key}"
+biome_file = "Fichier : {file}"
+velocity = "Vitesse : {velocity}"
+tiles = "Atlas: {ready} / {total}"
+workers = "Workers: {active} active / {queued} queued"
+center = "Centre : {x}, {z}"
+"help.toggle" = "Afficher ou masquer l'aide"
+"help.refresh" = "Actualiser les tuiles"
+"help.follow" = "Suivre le joueur"
+"help.zoom" = "Zoom avant/arrière"
+"help.reset_zoom" = "Réinitialiser le zoom"
+"help.cycle_mode" = "Changer de mode de rendu"
+"help.fps" = "Basculer entre 30/60 FPS"
+"help.grid" = "Basculer la grille"
+"help.biome" = "Informations détaillées sur le biome"
+"help.teleport" = "Se téléporter au curseur"
+"help.editor" = "Ouvrir le biome dans l'éditeur"
+opened = "{target} ouvert"
+teleporting = "Téléportation vers {x}, {z}"
+"mode.biome" = "Biome"
+"mode.biome_land" = "Terre du biome"
+"mode.biome_sea" = "Mer du biome"
+"mode.region" = "Région"
+"mode.cave_land" = "Terre des grottes"
+"mode.river" = "Réseau fluvial"
+"mode.height" = "Hauteur"
+"mode.object_load" = "Charge des objets"
+"mode.decorator_load" = "Charge des décorateurs"
+"mode.continent" = "Continent"
+"mode.layer_load" = "Charge des couches"
+
+[iris.desktop.noise]
+title = "Noise Explorer"
+title_generator = "Noise Explorer : {generator}"
+search = "Rechercher..."
+status = "{name}  |  X: {x}  Z: {z}  |  Zoom : {zoom}  |  Valeur : {value}  |  {fps} FPS"
+"category.custom" = "Personnalisé"
+"category.pack_generators" = "Générateurs du pack"
+"category.simplex" = "Simplex"
+"category.perlin" = "Perlin"
+"category.cellular" = "Cellular"
+"category.iris" = "Iris"
+"category.clover" = "Clover"
+"category.hexagon" = "Hexagon"
+"category.vascular" = "Vascular"
+"category.globe" = "Globe"
+"category.cubic" = "Cubic"
+"category.fractal" = "Fractal"
+"category.static" = "Static"
+"category.nowhere" = "Nowhere"
+"category.sierpinski" = "Sierpinski"
+"category.utility" = "Utilitaire"
+"category.other" = "Autres"
+
+[iris.desktop.pregen]
+initializing = "Initialisation..."
+title = "Vue de pregen"
+method_pending = "En attente"
+paused = "EN PAUSE"
+resume_hint = "Appuyez sur P pour reprendre"
+pause_hint = "Appuyez sur P pour mettre en pause"
+method = "Méthode de génération : {method}"
+pause = "Pause"
+resume = "Reprendre"
+generating = "Génération"
+saving = "Enregistrement"
+stopping = "Arrêt en cours"
+completed = "Terminé"
+error = "Échec de la génération"
+control_failed = "Échec de la pause · voir le journal serveur"
+error_details = "Détails dans le journal serveur"
+progress = "{generated} / {total} chunks"
+percent = "{percent} terminé"
+current = "Actuel · 10 s"
+overall = "Global"
+thirty = "Moyenne sur 30 s"
+sixty = "Moyenne sur 60 s"
+rate = "{rate} chunks/s"
+eta = "Restant"
+elapsed = "Écoulé"
+memory_label = "Mémoire"
+memory_usage = "{used} · {usage}"
+pressure = "Allocation"
+pressure_value = "{rate}/s"
+cached = "{method} · en cache"
+failed = "{count} échecs · voir le journal serveur"
+map = "Carte de génération"
+bounds = "Chunks X de {minX} à {maxX} · Z de {minZ} à {maxZ}"
+waiting = "En attente"
+ready = "Prêt"
+existing = "Existant"
+network = "Réseau"
+terrain_hint = "Les chunks terminés affichent les couleurs du terrain"
+
+[iris.runtime.what]
+material = "Material: {material}"
+full_state = "Full: {state}"
+item_count = "Count: {count}"
+iris_biome = "Iris biome: {biome} ({name})"
+derivative_biome = "Derivative biome: {biome}"
+native_biome = "Registered biome: {biome} (ID: {id})"
+non_iris_biome = "Non-Iris biome: {biome} (ID: {id})"
+iris_region = "Iris region: {region} ({name})"
+position = "Position: {x}, {y}, {z} (chunk {chunkX}, {chunkZ})"
+object = "Iris object: {object}"
+block_entity = "Block entity: {type}"
+loot_table = "Loot table: {loot}"
+spawner_entity = "Spawner entity: {entity}"
+"flag.solid" = "solid"
+"flag.fluid" = "fluid"
+"flag.water" = "water"
+"flag.waterlogged" = "waterlogged"
+"flag.storage" = "storage (loot capable)"
+"flag.lit" = "lit"
+"flag.foliage" = "foliage"
+"flag.plantable_foliage" = "plantable foliage"
+"flag.decorant" = "decorant"
+"flag.ore" = "ore"
+"flag.block_entity" = "block entity"
+
+[iris.runtime.world]
+height_range = "World height: {minY} to {maxY}"
+height_total = "Total height: {height}"
+
+[iris.desktop.imagemap]
+title = "Image Map Studio"
+preset = "Preset:"
+load = "Load"
+import_png = "Import PNG"
+replace_png = "Replace PNG"
+preview = "Preview"
+export = "Export to active pack"
+metadata = "Source metadata"
+resource = "Resource binding"
+coordinates = "Coordinates and sampling"
+binding_key = "Binding key"
+map_key = "Map key"
+image_key = "Image key"
+type = "Type"
+application = "Application"
+blocks_per_pixel = "Blocks per pixel"
+origin_x = "World origin X"
+origin_z = "World origin Z"
+source_origin_x = "Source origin X"
+source_origin_z = "Source origin Z"
+rotation = "Rotation"
+mirror_x = "Mirror X"
+mirror_z = "Mirror Z"
+sampling = "Sampling"
+out_of_bounds = "Out of bounds"
+alpha = "Alpha policy"
+fallback_value = "Fallback value"
+fallback_target = "Fallback target"
+minimum_height = "Minimum height"
+maximum_height = "Maximum height"
+vertical_offset = "Vertical offset"
+clamp = "Clamp height"
+inverted = "Invert values"
+curve_exponent = "Curve exponent"
+smoothing_radius = "Smoothing radius"
+threshold = "Threshold"
+falloff = "Falloff"
+color_tolerance = "Raw sRGB tolerance"
+unknown_color = "Unknown color"
+add_color = "Add legend color"
+remove_color = "Remove selected"
+composed_masks = "Composed masks"
+add_mask = "Add mask binding"
+height = "Height interpretation"
+mask = "Mask interpretation"
+color_map = "Color legend"
+overlays = "World overlays"
+chunks = "16-block chunks"
+regions = "512-block regions"
+boundary = "World boundary"
+coverage = "Source coverage"
+diagnostics = "Diagnostics"
+ready = "Ready"
+no_source = "Import a PNG source to begin."
+loading = "Loading preset..."
+load_failed = "Preset load failed"
+previewing = "Compiling preview..."
+preview_valid = "Runtime compiler validation passed."
+preview_failed = "Preview failed"
+exporting = "Validating and exporting..."
+exported = "Exported image map, PNG, and dimension binding atomically."
+export_failed = "Export failed"
+source = "Source pixels"
+interpreted = "Runtime interpretation"
+no_preview = "Compile a valid preview to inspect world output."
+preview_status = "X {x}  Z {z}  |  {value}  |  {scale} blocks/pixel"
+
+[language.menu]
+your_language = "Votre langue"
+reset_your_language = "Réinitialiser votre langue"
+server_default = "Langue par défaut du serveur"
+edit_messages = "Modifier les messages de langue"
+use_server_default = "Utiliser la langue par défaut du serveur"
+current = "Langue actuelle : {locale}"
+current_with_personal = "Langue actuelle : {locale} (La vôtre : {personal})"
+your_description = "Modifiez uniquement les messages que vous voyez."
+reset_description = "Utilisez la langue par défaut du serveur."
+server_description = "Modifiez la langue par défaut du serveur."
+edit_description = "Ouvrez l’éditeur de messages pour chaque langue."
+select_description = "Cliquez pour sélectionner cette langue."
+remove_personal_description = "Supprimez votre choix de langue personnel."
+no_controls = "Aucune option de langue ne vous est accessible."
+command = "Commande: {command}"
+selected = "sélectionné"
+all-volmit-plugins = "Tous les plugins Volmit"
+
+[language.error]
+stopping = "La sélection de la langue est indisponible pendant que le plugin s'arrête."
+editor-player-only = "Ouvrez l'éditeur de langue dans le jeu."
+no-providers = "Aucun fournisseur de langue Volmit n’est disponible."
+numeric-page = "Saisissez un numéro de page."
+personal-player-only = "Les préférences linguistiques du joueur doivent être sélectionnées dans le jeu."
+personal-permission = "Vous n'avez pas la permission de sélectionner votre langue."
+plugin-personal-permission = "Vous n’avez pas la permission de choisir votre langue pour {plugin}."
+plugin-server-permission = "Vous n’avez pas la permission de changer la langue du serveur pour {plugin}."
+server-locale-required = "Choisissez un code de langue comme en_US pour la langue par défaut du serveur."
+unavailable-for-all = "La langue {locale} n’est pas disponible pour tous les plugins sélectionnés."
+
+[language.usage]
+editor = "Utilisation: /{command} language server edit [locale]"
+selection = "Utilisation: /{command} language self [locale|reset] or server [locale]"
+volmit-selection = "Utilisation: /volmit plugins languages [locale]"
+
+[language.selection]
+preparing = "Préparation de la langue {locale} pour {target}..."
+save-failed = "{plugin} : impossible d’enregistrer le choix de langue ; consultez la console du serveur."
+english-fallback = "{plugin} : {locale} est indisponible ; l’anglais (en_US) est utilisé."
+personal-selected = "{plugin}: votre langue est maintenant {locale}."
+server-selected = "{plugin}: la langue du serveur est maintenant {locale}."
+server-default-selected = "{plugin} : votre langue suit désormais la langue par défaut du serveur."
+
+[language.editor]
+"section.languages" = "Langues"
+"section.search" = "Recherche"
+"section.search-title" = "{locale} / Recherche"
+"section.group-title" = "{locale} / {group}"
+loading = "Chargement des messages en {locale}..."
+"prompt.search" = "Recherchez une clé de message ou du texte. Saisissez cancel pour revenir."
+"prompt.value" = "Saisissez une nouvelle valeur pour {key} dans le chat."
+"prompt.current" = "Valeur actuelle : {value}"
+"prompt.variables" = "Variables disponibles : {variables}"
+"prompt.guidance" = "Utilisez \\n pour un saut de ligne, \\\\ pour une barre oblique inverse, ou saisissez cancel pour revenir."
+"input.expired" = "Le délai de saisie dans l’éditeur de langue a expiré."
+"input.too-long" = "La saisie doit contenir au maximum {maximum} caractères."
+"input.unable-to-save" = "Impossible d’enregistrer : {reason}"
+"navigation.back" = "&eRetour&r"
+"navigation.close" = "&cFermer&r"
+"navigation.previous-page" = "&ePage précédente&r"
+"navigation.next-page" = "&ePage suivante&r"
+"search.messages" = "Rechercher des messages"
+"search.messages-lore" = "Cliquez pour rechercher parmi tous les messages."
+"search.clear" = "Effacer la recherche"
+"message.current-value" = "&7Valeur actuelle:&r"
+"message.variables" = "&8{variables}&r"
+"message.edit-plural" = "&7Cliquez pour modifier une forme plurielle.&r"
+"message.edit-lines" = "&7Cliquez pour modifier les lignes individuellement.&r"
+"message.edit-chat" = "&7Cliquez pour modifier dans le chat.&r"
+"locale.open" = "&8Cliquez pour ouvrir cette langue.&r"
+"category.message-count" = "&7{count} messages disponibles&r"
+"category.open" = "&8Cliquez pour ouvrir cette catégorie.&r"
+"error.no-permission" = "Vous n’avez pas la permission de modifier les langues de {plugin}."
+"error.unable-to-edit" = "Impossible de modifier : {reason}"
+"saved.summary" = "{locale} enregistré. Les choix de langue restent inchangés."
+"saved.change" = "{key} : « {before} » remplacé par « {after} »."
+"part.line" = "Ligne {line}"
+"value.none" = "Aucune"
+"value.empty" = "(vide)"
+
+[debug.error]
+missing-permission = "Permission manquante : {permission}"
+already-preparing = "Un rapport de diagnostic pour {plugin} est déjà en cours de préparation."
+already-preparing-short = "Un rapport de diagnostic est déjà en cours de préparation."
+schedule-failed = "Impossible de planifier la création du rapport de diagnostic."
+provider-closed = "Le fournisseur de diagnostics est fermé."
+closed-before-capture = "Le fournisseur de diagnostics a été fermé avant la collecte des données du rapport."
+writer-schedule-failed = "Impossible de planifier l'écriture du rapport de diagnostic."
+capture-failed = "Impossible de collecter les données du rapport de diagnostic. Consultez la console du serveur."
+closed-before-write = "Le fournisseur de diagnostics a été fermé avant l'écriture du rapport."
+write-failed = "Impossible d'écrire le rapport de diagnostic. Consultez la console du serveur."
+
+[debug]
+preparing = "Préparation du rapport de diagnostic de {plugin}..."
+saved = "Rapport de diagnostic de {plugin} enregistré dans {path}."
+
+[debug.upload]
+interrupted = "L'envoi du rapport de diagnostic a été interrompu. Le rapport local est enregistré."
+failed = "L'envoi du rapport de diagnostic a échoué. Le rapport local est enregistré."
+completed = "Envoyé sous le nom VolmitSoftware - {plugin} - v{version}."
+
+[debug.action]
+open = "Ouvrir : {url}"
+open-description = "Ouvrir le rapport de diagnostic envoyé."
+copy-path = "Copier le chemin local"
+copy-path-description = "Copier le chemin du rapport local."

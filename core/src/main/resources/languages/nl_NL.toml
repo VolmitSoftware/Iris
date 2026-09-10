@@ -1,0 +1,2102 @@
+# === Iris language guide ===
+# Iris - nl_NL
+#
+# === Bestand bewerken ===
+# languages/nl_NL.toml
+# Je kunt dit bestand rechtstreeks bewerken. Lokale wijzigingen blijven behouden; ontbrekende of ongeldige vermeldingen gebruiken het ingebouwde Engels.
+# /iris language server edit nl_NL
+#
+
+# === Voorvoegsel en voorbeeld ===
+# Iris heeft geen algemeen taalvoorvoegsel. Een letterlijk voorvoegsel in één bericht geldt alleen voor dat bericht.
+# De plugintag in de console en de thema’s voor menu’s en hulp worden apart ingesteld.
+# Voorbeeld: wijzig set_debug in de bestaande sectie [iris.bukkit.commandiris]:
+# [iris.bukkit.commandiris]
+# set_debug = "&6[Werelden]&r &aDebug ingesteld op: {to}"
+# Alleen dit debugbericht krijgt het voorvoegsel [Werelden]. {to} wordt vervangen door true (ingeschakeld) of false (uitgeschakeld).
+#
+# === Kleuren en opmaak ===
+# Klassieke kleuren: &0 zwart, &1 donkerblauw, &2 donkergroen, &3 donkerturkoois,
+# &4 donkerrood, &5 donkerpaars, &6 goud, &7 grijs, &8 donkergrijs,
+# &9 blauw, &a groen, &b turkoois, &c rood, &d lichtpaars, &e geel, &f wit.
+# Stijlen: &k onleesbaar, &l vet, &m doorgestreept, &n onderstreept, &o cursief, &r herstellen.
+# De taalverwerking accepteert RGB in de vormen &#RRGGBB, &xRRGGBB, &x&R&R&G&G&B&B en [RRGGBB].
+# Bukkit-thema’s die daarna worden toegepast, kunnen RGB-kleuren veranderen. Modded- en plattetekstweergaven gebruiken hun eigen stijlen.
+# In TOML-teksten tussen dubbele aanhalingstekens staat \n voor een nieuwe regel, \" voor een aanhalingsteken en \\ voor een letterlijke backslash.
+#
+# === Variabelen ===
+# Gebruik alleen de variabelen die al in het betreffende bericht staan en laat hun namen ongewijzigd.
+# PC, SC en TC zijn geen Iris-themavariabelen. Deze woordenlijst staat niet toe om extra variabelen aan andere berichten toe te voegen.
+#   {MAXAUTOSELECTVOLUME}  Maximaal aantal blokken in een automatisch geselecteerd object.
+#   {MAXSAVEVOLUME}  Maximaal aantal blokken in een opgeslagen objectselectie.
+#   {MAXSPAN}  Maximale breedte, hoogte of diepte van een structuur bij het vastleggen, in blokken.
+#   {NATIVESTRUCTURELOCATERADIUS}  Maximale zoekstraal voor native structuren, in chunks.
+#   {ROOTPERMISSION}  Hoofdmachtiging die nodig is om het commando te gebruiken.
+#   {WORKSPACENAME}  Naam van de Studio-werkmap waarnaar wordt gezocht.
+#   {WORLDPACKNAME}  Naam van het gegenereerde werelddatapack.
+#   {active}  Aantal actieve werktaken.
+#   {activeLocale}  Taal die actief blijft als de aangevraagde taal niet kan worden gekozen.
+#   {activeMax}  Bovengrens van het hoogtebereik van het geladen dimensietype.
+#   {activeMin}  Ondergrens van het hoogtebereik van het geladen dimensietype.
+#   {actualReverts}  Aantal daadwerkelijk ongedaan gemaakte objectplaatsingen.
+#   {afb}  Opgemaakt deel van een motortijdmetingslabel na het gedeelte tussen vierkante haken.
+#   {after}  Waarde na de wijziging, of boomblokken die na reparatie nog onbereikbaar zijn.
+#   {amount}  Hoeveelheid bij de genoemde vermelding in het rapport.
+#   {applied}  Aantal chunks waarvan het verwerkingsresultaat is toegepast.
+#   {argument}  Commandoargument dat niet kon worden geaccepteerd.
+#   {available}  Aantal native structuren dat kan worden gegenereerd.
+#   {bar}  Reeds opgemaakte tekst van de voortgangsbalk.
+#   {befb}  Opgemaakt deel van een motortijdmetingslabel vóór het gedeelte tussen vierkante haken.
+#   {before}  Waarde vóór de wijziging, of onbereikbare boomblokken vóór reparatie.
+#   {biome}  Naam of identificatie van het getoonde bioom.
+#   {block}  Type of beschrijving van het onderzochte blok.
+#   {blockX}  X-coördinaat van het blok of de teleportbestemming.
+#   {blockY}  Y-coördinaat van het blok of de teleportbestemming.
+#   {blockZ}  Z-coördinaat van het blok of de teleportbestemming.
+#   {blocking}  Aantal validatiefouten dat het laden van het pakket verhindert.
+#   {blocks}  Aantal blokvarianten in de geïmporteerde groep.
+#   {bpp}  Aantal wereldblokken dat één pixel in Vision weergeeft.
+#   {branches}  Aantal takken dat bij het repareren van boomobjecten is toegevoegd.
+#   {broken}  Aantal pakketten waarvoor de validatie is mislukt.
+#   {brokenTotal}  Totaal aantal pakketten waarvoor de validatie is mislukt.
+#   {cave}  Grotbioom of grotbeschrijving op de onderzochte positie.
+#   {centerX}  X-coördinaat van het midden van het gebied; de eenheid volgt uit het bericht.
+#   {centerZ}  Z-coördinaat van het midden van het gebied; de eenheid volgt uit het bericht.
+#   {changed}  Aantal verwerkte objecten dat is gewijzigd.
+#   {chunk}  Coördinaten of identificerend label van de gemelde chunk.
+#   {chunkX}  X-coördinaat uitgedrukt in chunks, niet in blokken.
+#   {chunkZ}  Z-coördinaat uitgedrukt in chunks, niet in blokken.
+#   {chunks}  Aantal chunks dat bij de bewerking betrokken is.
+#   {clampedY}  Y-coördinaat van de teleportbestemming na aanpassing aan het toegestane hoogtebereik.
+#   {command}  Commandonaam of volledig uit te voeren commando.
+#   {converted}  Aantal bladblokken dat bij boomreparatie in hout is omgezet.
+#   {count}  Aantal vermeldingen, berichten of spelers dat in de omringende tekst wordt genoemd.
+#   {current}  Huidige voortgangsteller of aantal chunks in de huidige vergelijking.
+#   {currentStage}  Naam van de huidige laadfase van Studio.
+#   {d}  Diepte van het object in blokken.
+#   {depth}  Aantal blokken onder het terreinoppervlak.
+#   {derivative}  Afgeleid bioom of variant van het oppervlaktebioom.
+#   {detail}  Aanvullende beschrijving van het onderzochte object of de huidige voortgangsfase.
+#   {diffs}  Aantal gevonden verschillen tussen de gegenereerde resultaten.
+#   {dimKey}  Identificatie van de dimensie die wordt verpakt.
+#   {dimension}  Naam of identificatie van de dimensie waarover het bericht gaat.
+#   {dimensionId}  Geregistreerde identificatie van de geladen of aangevraagde dimensie.
+#   {dimensionId2}  Dimensie-identificatie die in het voorgestelde verwijdercommando wordt herhaald.
+#   {dimm}  Identificatie van de Studio-dimensie, of de pakketnaam in het validatiecommando.
+#   {disabled}  Aantal native structuren waarvan generatie is uitgeschakeld.
+#   {distances}  Aantal gewijzigde bladafstandwaarden bij boomreparatie.
+#   {done}  Aantal tot nu toe voltooide werkeenheden.
+#   {downloadSource}  Bron of geselecteerde referentie voor het downloaden van het pakket.
+#   {downloadable}  Pakket of downloadbaar project dat wordt geïmporteerd.
+#   {dumpPath}  Locatie van opgeslagen opruim- of herstelgegevens.
+#   {duration}  Opgemaakte duur van de bewerking.
+#   {e}  Exceptietekst van een mislukte zoekactie naar structuursjablonen.
+#   {elapsed}  Opgemaakte verstreken tijd sinds het begin van de bewerking.
+#   {engines}  Aantal actieve Iris-generatiemotoren of dimensies.
+#   {entity}  Entiteittype dat de onderzochte spawner heeft geselecteerd.
+#   {error}  Details van de opgetreden fout.
+#   {errorMessage}  Optionele foutdetails achter het belangrijkste foutbericht.
+#   {eta}  Opgemaakte geschatte resterende tijd; sommige berichten leveren ook het label mee.
+#   {failed}  Aantal mislukte onderdelen of vooraf opgemaakte fouttekst in voortgangstitels.
+#   {failure}  Reden waarom de zoekactie of bewerking is mislukt.
+#   {failures}  Aantal mislukte werkeenheden of een optioneel opgemaakt foutoverzicht.
+#   {file}  Naam of pad van het bestand bij de bewerking.
+#   {filter}  Tekst waarmee de lijst met Iris-dimensies wordt gefilterd.
+#   {fps}  Huidige beeldsnelheid van de voorvertoning, in beelden per seconde.
+#   {g}  Objectbestanden die sinds het vorige verpakkingsvoortgangsbericht zijn geschreven.
+#   {generated}  Aantal tot nu toe gegenereerde chunks.
+#   {generator}  Naam van de ruisgenerator in de verkenner.
+#   {generatorKey}  Aangevraagde identificatie van de ruisgenerator.
+#   {get}  Aantal succesvol geconverteerde schemabestanden.
+#   {golden}  Aantal chunks in de opgeslagen referentievergelijking.
+#   {goldenDimension}  Dimensie-identificatie die in de referentieopname is opgeslagen.
+#   {goldenSeed}  Wereldseed die in de referentieopname is opgeslagen.
+#   {goldenVersion}  Minecraft-versie waarmee de referentieopname is gemaakt.
+#   {group}  Berichtgroep in de taaleditor of categorie van een geïmporteerd object.
+#   {guiNote}  Optionele opmerking over het voortgangsvenster van voorgeneratie.
+#   {h}  Hoogte van het object in blokken.
+#   {hash}  Gecombineerde controlesom van de vergeleken gegenereerde chunks.
+#   {health}  Huidige gezondheid van de onderzochte entiteit.
+#   {height}  Terreinhoogte, totale hoogte of hoogte van het getoonde gebied, zoals genoemd in het bericht.
+#   {hours}  Urenonderdeel van de opgemaakte duur.
+#   {i}  Weergavenaam van de motor of een vermelding in het commandolijstsjabloon.
+#   {id}  Register-ID van het onderzochte bioom.
+#   {imported}  Aantal succesvol geïmporteerde structuren of objecten.
+#   {includeNonJigsaw}  Of de import ook structuren zonder jigsaw-onderdelen bevat.
+#   {iris}  Aantal geladen dimensies dat Iris-generatie gebruikt.
+#   {irisLevels}  Aantal geladen Iris-dimensies waarvan de hoogten met het pakket worden vergeleken.
+#   {irisPlaced}  Aantal structuren dat door Iris in plaats van native generatie is geplaatst.
+#   {job}  Naam van de voltooide achtergrondbewerking.
+#   {k}  Laadsleutel van de regio in het regioverdelingsrapport.
+#   {key}  Identificatie van de parameter, het bericht of de bron in de omringende tekst.
+#   {key2}  Structuuridentificatie die in het voorgestelde zoekcommando wordt herhaald.
+#   {keyString}  Identificatie van de geïmporteerde of ongeldig gemelde structuur of bron.
+#   {label}  Weergavenaam van het gevonden doel.
+#   {line}  Regelnummer in de taaleditor.
+#   {locale}  Taalidentificatie, zoals en_US of de_DE.
+#   {logicalWorldName}  Logische naam van de wereld waarop het commando betrekking heeft.
+#   {loot}  Identificatie van de onderzochte buittabel.
+#   {m}  Extra evacuatiebericht of tekst van genegeerde parameters in dat commandosjabloon.
+#   {mantleStatus}  Resultaat van het resetten van generatiegegevens vóór een vergelijking met herhaalde generatie.
+#   {marker}  Naam van de gezochte markering.
+#   {material}  Minecraft-materiaal van het onderzochte blok.
+#   {maxScale}  Grootste toegestane objectschaal na begrenzing van de aangevraagde schaal.
+#   {maxX}  Bovengrens voor X van het getoonde chunkbereik.
+#   {maxY}  Bovengrens van het hoogtebereik van de wereld.
+#   {maxZ}  Bovengrens voor Z van het getoonde chunkbereik.
+#   {maximum}  Maximale invoerlengte of maximale entiteitsgezondheid, zoals genoemd in het bericht.
+#   {mcmeta}  Pad van het pack.mcmeta-bestand van het gegenereerde datapack.
+#   {message}  Gedetailleerde status- of fouttekst van de bewerking.
+#   {method}  Geselecteerde voorgeneratiemethode.
+#   {minX}  Ondergrens voor X van het getoonde chunkbereik.
+#   {minY}  Ondergrens van het hoogtebereik van de wereld.
+#   {minZ}  Ondergrens voor Z van het getoonde chunkbereik.
+#   {minutes}  Minutenonderdeel van de opgemaakte duur.
+#   {mismatches}  Aantal chunks dat van de opgeslagen referentie afwijkt.
+#   {mode}  Geselecteerde import-, generatie- of voorvertoningsmodus.
+#   {modeNote}  Optionele uitleg van de geselecteerde voorgeneratiemodus.
+#   {name}  Naam van de wereld, het object, het project of de vermelding in het bericht.
+#   {nameRaw}  Naam precies zoals ingevoerd, vóór normalisatie of validatie.
+#   {normalized}  Genormaliseerde naam van de niet gevonden helpsectie.
+#   {num}  Opgemaakt gedeelte tussen vierkante haken van een motortijdmetingslabel; niet noodzakelijk een getal.
+#   {object}  Naam of identificatie van het bewerkte of onderzochte Iris-object.
+#   {objects}  Objectlijst of aantal objecten in de onderzochte chunk.
+#   {offset}  Verticale afstand tot het terreinoppervlak, in blokken.
+#   {output}  Pad van het uitvoerbestand dat niet kon worden geschreven.
+#   {overall}  Gemiddeld aantal voorgeneratiechunks per seconde over de hele bewerking.
+#   {ownerName}  Naam van de speler die eigenaar is van de Studio-sessie.
+#   {pack}  Naam of identificatie van het Iris-pakket bij de bewerking.
+#   {pack2}  Pakketidentificatie die wordt herhaald in een voorgesteld commando of een downloadbron.
+#   {packDimension}  Dimensiedefinitie die uit het pakket is gekozen.
+#   {packLogical}  Logische hoogte die de dimensiedefinitie van het pakket vraagt.
+#   {packMax}  Bovengrens van de hoogte die het pakket vraagt.
+#   {packMin}  Ondergrens van de hoogte die het pakket vraagt.
+#   {packName}  Weergavenaam van het pakket dat wordt gevalideerd.
+#   {parameter}  Ontbrekende of niet te verwerken commandoparameter.
+#   {parent}  Weergavenaam van het bovenliggende menu of commandopad.
+#   {path}  Pad van het bestand dat wordt opgeslagen, geopend of gemeld.
+#   {percent}  Voortgangspercentage; laat het procentteken van het bericht buiten de variabele staan.
+#   {permission}  Machtigingssleutel die voor de aangevraagde actie nodig is.
+#   {personal}  Opgeslagen persoonlijke taalidentificatie van de speler.
+#   {phase}  Naam van de huidige laad- of downloadfase.
+#   {pinned}  Aantal vastgezette bladblokken bij het repareren van een boomobject.
+#   {player}  Naam van de gevolgde of geselecteerde speler.
+#   {plugin}  Weergavenaam van de plugin; Iris in de gedeelde taal- en diagnoseberichten van Iris.
+#   {position}  Nummer van de selectiehoek die wordt ingesteld.
+#   {preset}  Geregistreerde wereldgeneratievoorinstelling voor de hoofdwereld.
+#   {primary}  Identificatie van de ingestelde hoofdwereld.
+#   {processed}  Aantal verwerkte onderdelen, inclusief geslaagde, overgeslagen en mislukte onderdelen.
+#   {properties}  Opgemaakte eigenschappenlijst van het onderzochte blok.
+#   {quarantinePath}  Map met de bij het opruimen in quarantaine geplaatste bestanden.
+#   {queued}  Aantal werktaken of werkeenheden dat op uitvoering wacht.
+#   {radius}  Voorgeneratiestraal die in het voorgestelde startcommando wordt herhaald.
+#   {rarity}  Ingestelde zeldzaamheidswaarde van de genoemde regio of plaatsing.
+#   {rate}  Opgemaakte overdrachts- of voorgeneratiesnelheid; het bericht voegt de aanduiding per seconde toe.
+#   {reach}  Ingesteld zoekbereik voor takken bij het repareren van boomobjecten.
+#   {ready}  Aantal exacte Atlas-pagina’s dat momenteel beschikbaar is.
+#   {reason}  Uitleg waarom de aangevraagde actie niet kon worden voltooid.
+#   {region}  Naam of identificatie van de onderzochte regio.
+#   {remaining}  Aantal extra bloktoestanden dat niet in de getoonde lijst staat.
+#   {repository}  Repository of gedownload archief dat wordt uitgepakt.
+#   {reverted}  Aantal ongedaan gemaakte objectplaatsingen.
+#   {rotation}  Rotatie die op het geplaatste object is toegepast.
+#   {rx}  X-coördinaat van de chunk waarvan de hash wordt berekend.
+#   {rz}  Z-coördinaat van de chunk waarvan de hash wordt berekend.
+#   {s}  Naam van het nieuwe Studio-project.
+#   {safeName}  Opgeschoonde bestandsnaam van het geïmporteerde object.
+#   {scale}  Aantal wereldblokken dat één voorvertoningspixel weergeeft.
+#   {scope}  Object of objectgroep die in Object Studio is geopend.
+#   {searchRadius}  Zoekstraal voor structuurcontrole, in chunks.
+#   {seconds}  Secondenonderdeel van een duur of tijd sinds de laatste update.
+#   {section}  Naam van de helpsectie die de gebruiker heeft aangevraagd.
+#   {seed}  Seed voor de wereld, Studio-sessie, generator of referentievergelijking.
+#   {seedRaw}  Seed precies zoals ingevoerd, vóór validatie.
+#   {sixtySecond}  Voorgeneratiechunks per seconde over het venster van 60 seconden.
+#   {size}  Aantal bestanden, waarschuwingen, vermeldingen of onderdelen in het bericht.
+#   {skipped}  Aantal onderdelen dat door de bewerking is overgeslagen.
+#   {slope}  Terreinhelling op de onderzochte positie.
+#   {solidBlocks}  Aantal vaste blokken dat bij het berekenen van de generatiehash is geteld.
+#   {source}  Pakket, downloadbron of invoer bij de voortgangsweergave.
+#   {speed}  Opgemaakte voorgeneratie- of verwerkingssnelheid per seconde.
+#   {stage}  Naam van de huidige voortgangsfase.
+#   {state}  Huidige toestand of eigenschapswaarde die in het bericht wordt genoemd.
+#   {status}  Huidige statustekst van de voorvertoning.
+#   {structure}  Naam of identificatie van de gezochte structuur.
+#   {structureKey}  Register- of pakketidentificatie van de aangevraagde structuur.
+#   {summary}  Opgemaakte resultaten van de voltooide bewerking.
+#   {suppressed}  Aantal native structuren dat door Iris-plaatsingen is vervangen.
+#   {surface}  Y-coördinaat van het oppervlak in het voorgestelde teleportcommando.
+#   {surfaceY}  Y-coördinaat van het terreinoppervlak op de onderzochte positie.
+#   {tag}  Opgemaakt validatiestatuslabel vóór de pakketnaam.
+#   {target}  Taalontvanger of objectselectiedoel dat in het bericht wordt genoemd.
+#   {targetX}  X-coördinaat van de gevonden of aangevraagde bestemming.
+#   {targetZ}  Z-coördinaat van de gevonden of aangevraagde bestemming.
+#   {template}  Sjabloon dat bij het maken van een project is gekozen.
+#   {tenSecond}  Voorgeneratiechunks per seconde over het venster van 10 seconden.
+#   {thirtySecond}  Voorgeneratiechunks per seconde over het venster van 30 seconden.
+#   {threads}  Aantal werkthreads voor het berekenen van de generatiehash.
+#   {tileNote}  Optionele opmerking over opgeslagen of geplaatste blokentiteitsgegevens.
+#   {title}  Titel van de bewerking waarvan het resultaat wordt getoond.
+#   {to}  Nieuwe debuginstelling: true voor ingeschakeld, false voor uitgeschakeld.
+#   {token}  Bereikargument dat niet kon worden verwerkt.
+#   {total}  Totaal aantal werkeenheden, chunks, dimensies of vermeldingen in het bericht.
+#   {totalObjects}  Aantal objecten dat in Object Studio is geopend.
+#   {transferred}  Opgemaakte hoeveelheid tot nu toe overgedragen gegevens.
+#   {type}  Verwacht parametertype, brontype of objectcategorie die in het bericht wordt genoemd.
+#   {typeKey}  Geregistreerde Minecraft-dimensietype-identificatie, of inline.
+#   {unreachableBiomes}  Aantal native structuren dat door de bioomkeuze van het pakket is uitgesloten.
+#   {unsupported}  Aantal native structuren dat dit platform als niet ondersteund meldt.
+#   {updates}  Blokupdates per seconde in de ontwikkelaarsweergave.
+#   {url}  Webadres om te openen of te kopiëren.
+#   {usage}  Commandosyntaxis of geheugengebruikstekst in de geheugenweergave.
+#   {used}  Opgemaakte hoeveelheid gebruikt geheugen in de geheugenweergave.
+#   {value}  Berichtspecifieke waarde, zoals een standaardinstelling, naam, coördinaat, aantal of fout. Lees de omringende tekst.
+#   {value2}  Tweede berichtspecifieke waarde, zoals het totaal aantal chunks, doel-Y, pakketnaam of fout. Lees de omringende tekst.
+#   {value3}  Derde berichtspecifieke waarde, zoals een percentage, doel-Z, Minecraft-versie of verstreken tijd.
+#   {value4}  Vierde berichtspecifieke waarde, zoals blokschrijfacties, Z-coördinaat van een selectie of optionele statustekst.
+#   {value5}  Vijfde berichtspecifieke waarde: geschreven blokken die geen lucht zijn bij objectplaatsing, of chunk-Z in het positiesjabloon.
+#   {variables}  Lijst met beschikbare variabelen voor het bericht dat wordt bewerkt.
+#   {velocity}  Huidige bewegingssnelheid van de onderzochte entiteit.
+#   {version}  Plugin- of Minecraft-versie die in het omringende bericht wordt genoemd.
+#   {volume}  Aantal blokken in de objectselectie.
+#   {w}  Breedte van het object in blokken.
+#   {wantVariants}  Aangevraagde varianten per geïmporteerd vanilla-boom- of objectonderdeel.
+#   {warnings}  Aantal niet-blokkerende validatiewaarschuwingen.
+#   {width}  Breedte van het getoonde wereldgebied in blokken.
+#   {wood}  Aantal houtblokken dat bij het repareren van een boomobject is toegevoegd.
+#   {world}  Naam van de wereld waarop het commando of de voortgangsweergave betrekking heeft.
+#   {written}  Aantal succesvol geschreven geïmporteerde varianten of objectbestanden.
+#   {x}  X-coördinaat in de blok-, chunk-, regio- of voorvertoningscontext van het bericht.
+#   {y}  Verticale wereld- of blokcoördinaat.
+#   {z}  Z-coördinaat in de blok-, chunk-, regio- of voorvertoningscontext van het bericht.
+#   {zoom}  Huidig zoomniveau van de voorvertoning.
+# === End Iris language guide ===
+
+[iris.director.commandiris]
+"director.debugdump" = "Maak een diagnostisch rapport en upload het desgewenst"
+"param.debugdump_upload" = "Upload het rapport naar mclo.gs"
+"director.basic_command" = "Basisopdracht"
+"director.create_new_world" = "Een nieuwe wereld creëren"
+"param.name_world_create" = "De naam van de wereld te creëren"
+"param.dimension_pack_create_world_with" = "De dimensie/pack om de wereld te creëren met"
+"param.seed_generate_world_with" = "Het zaad om de wereld te genereren met"
+"param.replace_exact_existing_world_slot_next_restart" = "De exacte bestaande wereldsleuf bij de volgende herstart vervangen"
+"director.teleport_another_world" = "Teleporteren naar een andere wereld"
+"param.world_teleport" = "Wereld te teleporteren naar"
+"param.player_teleport" = "Speler naar teleporteren"
+"director.print_version_information" = "Versie-informatie afdrukken"
+"director.benchmark_pack" = "Benchmark een pakket"
+"param.dimension_benchmark" = "Dimensie voor benchmark"
+"director.print_world_height_information" = "Wereldhoogte-informatie afdrukken"
+"director.check_access_all_worlds" = "Controleer de toegang van alle werelden."
+"director.remove_iris_world" = "Verwijder een Iris wereld"
+"param.world_remove" = "De wereld te verwijderen"
+"param.whether_also_remove_folder_if_set_false_just_does_not_load_world" = "Of de map ook verwijderd moet worden (als deze op false staat, laadt alleen de wereld niet)"
+"director.toggle_debug" = "Debug aan/uit"
+"director.download_project" = "Download een project."
+"param.pack_download" = "Het te downloaden pakket"
+"director.get_metrics_your_world" = "Krijg statistieken voor je wereld"
+"director.reload_configuration_file_this_is_also_done_automatically" = "Herlaad configuratiebestand (dit wordt ook automatisch gedaan)"
+"director.unload_iris_world" = "Uitladen en Iris Wereld"
+"param.world_unload" = "De wereld om uit te laden"
+"director.load_iris_world" = "Laden en Iris Wereld"
+"param.name_world_load" = "De naam van de wereld te laden"
+"director.evacuate_iris_world" = "Evacueer een iris wereld"
+"param.evacuate_world" = "Evacueer de wereld"
+
+[director.help]
+"navigation.parent.hover" = "Terug naar de bovenliggende opdrachtgroep"
+"navigation.back" = "Terug"
+no_subcommands = "Geen subopdrachten op deze pagina."
+no_description = "Geen beschrijving opgegeven"
+command_group = "Opdrachtgroep. Klik om te openen."
+category = "Commandocategorie"
+no_parameters = "Geen parameters. Klik om de opdracht vooraf in te vullen."
+parameters_hover = "Beweeg de muis over de parameters voor meer informatie."
+"parameter.required" = "Deze parameter is verplicht."
+"parameter.optional" = "Deze parameter is optioneel."
+"parameter.default" = "Standaard \"{value}\" indien niet opgegeven."
+"parameter.type" = "Deze parameter is van het type {type}."
+"navigation.previous.hover" = "Vorige pagina"
+"navigation.next.hover" = "Volgende pagina"
+"navigation.page" = "Pagina"
+
+[director.runtime]
+"error.invalid_origin" = "Deze opdracht kan niet vanuit deze bron worden uitgevoerd."
+"error.unknown_parameter" = "Onbekende parametersleutel: {key}"
+"error.unexpected_argument" = "Onverwacht argument \"{argument}\". Optionele parameters moeten met een sleutel worden opgegeven, bijv. seed=123"
+"error.unclosed_group" = "Ontbrekend afsluitend haakje \"]\" voor parameter {key}"
+"error.conversion_failed" = "Kan \"{value}\" voor {parameter} niet naar {type} converteren"
+"error.default_parse_failed" = "Kan de standaardwaarde voor parameter {parameter} niet verwerken"
+"error.missing_argument" = "Ontbrekend argument \"{parameter}\" ({type})"
+"error.execution_failed" = "Opdracht {command} kon niet worden uitgevoerd: {reason}"
+usage = "Gebruik: {usage}"
+
+[iris.command]
+permission_denied = "Je hebt niet de vereiste permissie '{permission}'"
+unknown = "Onbekende Iris-opdracht"
+player_only = "Deze opdracht kan alleen door spelers worden gebruikt."
+iris_world_required = "Deze dimensie is niet door Iris gegenereerd."
+
+[iris.command.reload]
+success = "De instellingen en taal {locale} zijn opnieuw geladen."
+failed = "De instellingen zijn opnieuw geladen, maar taal {locale} is geweigerd; {activeLocale} blijft actief."
+
+[iris.modded.help]
+unknown_section = "Onbekend Iris help sectie: {section}"
+back_hover = "Terug naar {parent}."
+command_parameter = "Opdrachtparameter"
+brigadier_text = "Deze parameter wordt gelezen als tekst door Brigadier."
+operator_notice = "Iris commando's hebben toestemming van de exploitant nodig (niveau 2)."
+operator_instruction = "Start {command} vanaf de console (of schakel bedrog in singleplayer in); tot dan zullen deze commando's niet draaien of tab-compleet zijn."
+"entry.command.version" = "Versie-informatie afdrukken"
+"entry.command.info" = "Lijst geladen Iris afmetingen en verpakking details"
+"entry.command.what" = "Controleer de Iris biome, regio, grotbiome, oppervlakte en chunk op uw positie, het blok waar u naar kijkt, uw gehouden item of nabijgelegen markers"
+"entry.group.find" = "Zoek en teleporteer naar Iris biomes, regio's, objecten; Iris structuren, inheemse structuren en bezienswaardigheden"
+"entry.command.tp" = "Teleporteer jezelf of een genoemde speler naar een geladen Iris dimensie"
+"entry.command.evacuate" = "Teleporteer alle spelers uit een Iris-dimensie naar de spawn van de primaire wereld"
+"entry.command.seed" = "Wereld- en engine-seedinformatie tonen"
+"entry.command.debug" = "Schakelen Iris debug loggen en opslaan iris.json"
+"entry.command.reload" = "Herladen iris.json (ook automatisch gehotload elke 3s)"
+"entry.command.download" = "Een pakketproject downloaden"
+"entry.command.metrics" = "Generatiegegevens afdrukken voor uw huidige Iris dimensie"
+"entry.command.regen" = "Verwijderen en regenereren nabijgelegen chunks in plaats"
+"entry.group.pregen" = "Pregeneer een Iris dimensie"
+"entry.command.wand" = "Haal een Iris objectwand"
+"entry.group.object" = "Gereedschap voor de objectstaf, opslaan, plakken, analyseren en ongedaan maken"
+"entry.group.edit" = "Open biome-, regio- en dimensie-JSON-bestanden van het pakket in je desktopeditor"
+"entry.command.create" = "Creëer en injecteer een persistent Iris dimensie; offertepakket:dimensionKey om een specifieke verpakkingsdimensie te kiezen"
+"entry.group.studio" = "Aanmaak, verpakking en rapporten van pakketprojecten"
+"entry.group.pack" = "Validatie en onderhoud van verpakkingen"
+"entry.group.world" = "Starttijd Iris dimensie creatie, verwijdering en status"
+"entry.group.datapack" = "World Datapack installatie en status helpers"
+"entry.group.structure" = "Iris structuurindex, info- en plaatsingsinstrumenten"
+"entry.command.goldenhash" = "Genereer deterministische blokhashes voor pariteitstests"
+"entry.group.developer" = "Ontwikkelaardiagnostiek: netwerkinterfaces en regio-bestandsscan"
+"entry.command.biome" = "Zoek een Iris biom"
+"entry.command.region" = "Zoek een Iris regio"
+"entry.command.object" = "Een objectplaatsing zoeken"
+"entry.command.structure" = "Zoek een Iris- Geplaatste of native/datapack structuur"
+"entry.command.poi" = "Vind een ondersteund punt van belang"
+"entry.command.biome_2" = "Open een biome json in uw desktop editor; geen sleutel opent het biome op uw positie"
+"entry.command.region_2" = "Open een regio json in uw desktop-editor; geen sleutel opent het gebied op uw positie"
+"entry.command.dimension" = "Open de dimensie-JSON van het huidige pack in je desktopeditor"
+"entry.command.start" = "Start pregeneratie; radius in blokken, resumpable checkpoint cache op standaard, centrum via 'at <x> <z>', vlaggen componeren in elke volgorde"
+"entry.command.stop" = "Stop de actieve pregeneratietaak"
+"entry.command.pause" = "Voorgeneratie pauzeren of hervatten"
+"entry.command.status" = "Voorgeneratiestatus tonen"
+"entry.command.wand_3" = "Haal een Iris objectwand"
+"entry.command.dust" = "Krijg stof dat object plaatsingen onthult"
+"entry.command.save" = "Het geselecteerde toverstokvolume opslaan als object"
+"entry.command.paste" = "Plak een object op jouw positie of een opgegeven positie, eventueel gedraaid"
+"entry.command.expand" = "De toverstokselectie uitbreiden in uw zoekrichting"
+"entry.command.contract" = "Sluit de toverstokselectie in uw zoekrichting"
+"entry.command.shift" = "Verschuif de toverstokselectie in uw kijkrichting"
+"entry.command.position1" = "Selectiepunt instellen 1"
+"entry.command.position2" = "Selectiepunt instellen 2"
+"entry.command.x_y" = "Autoselecteren op en uit"
+"entry.command.x_y_2" = "Autoselecteer op, neer en uit"
+"entry.command.analyze" = "Objectsamenstelling tonen"
+"entry.command.shrink" = "Een object verkleinen tot zijn minimale grootte"
+"entry.command.plausibilize" = "Groei takken zodat boom bladeren overleven vanilla verval"
+"entry.command.undo" = "Geplakte objecten ongedaan maken"
+"entry.command.create_2" = "Een nieuw pakketproject aanmaken"
+"entry.command.package" = "Pak een dimensie in gecomprimeerd formaat"
+"entry.command.version_2" = "Een pakketversie afdrukken"
+"entry.command.regions" = "Bereken regiodistributie in de buurt"
+"entry.command.open" = "Open een tijdelijke studio dimensie voor een pack"
+"entry.command.close" = "Sluit de open studio dimensie en gooi zijn wereld weg"
+"entry.command.tpstudio" = "Teleporteer naar de open studio dimensie"
+"entry.command.status_studio" = "Toon de open studio dimensie en zijn pakket"
+"entry.command.noise" = "Open de Noise Explorer GUI op het serverscherm"
+"entry.command.map" = "Open de Vision-kaart GUI op het serverscherm"
+"entry.command.vscode" = "De .code-werkruimte voor een pakket regenereren en openen in uw desktopeditor"
+"entry.command.update" = "De .code-werkruimte voor een pakket regenereren"
+"entry.command.importvanilla" = "Leg vanilla import workflow uit"
+"entry.command.validate" = "Valideer een verpakking of elke verpakking"
+"entry.command.cleanup" = "Preview of quarantaine kandidaten voor niet-gebruikte bronnen"
+"entry.command.restore" = "De nieuwste quarantaine bekijken of herstellen"
+"entry.command.status_validation" = "Gecachede validatiestatus tonen"
+"entry.command.enable" = "Maak en injecteer tijdens runtime een blijvende Iris-dimensie; het pack moet geïnstalleerd zijn en een aangehaalde pack:dimensionKey selecteert een specifieke dimensie."
+"entry.command.replace_overworld" = "Injecteer een Iris primaire wereld en route spelers er in plaats van de vanilla bovenwereld"
+"entry.command.disable" = "Evacueer en ontlaad een Iris dimensie; wereldgegevens op schijf worden bewaard voor her-enabling"
+"entry.command.delete" = "Schakel een Iris dimensie en wis zijn chunk en Mantle data van schijf"
+"entry.command.list" = "Lijst geladen Iris afmetingen"
+"entry.command.status_world" = "geladen tonen Iris dimensies en de geconfigureerde primaire wereld"
+"entry.command.status_datapack" = "Ingeladen controleren Iris dimensietype overrides"
+"entry.command.install" = "Dimensietype overschrijven voor geladen Iris afmetingen"
+"entry.command.list_datapacks" = "Lijst geconfigureerde en geïnstalleerde datapacks"
+"entry.command.ingest" = "Leg uit Bukkit datapack opgenomen workflow"
+"entry.command.remove" = "Leg uit datpack verwijdering workflow"
+"entry.command.list_structures" = "Regeneren structure-index.json"
+"entry.command.info_2" = "Los een Iris structuurgrafiek en rapportagegrenzen"
+"entry.command.place" = "Verzamel en plaats een Iris structuur op uw locatie"
+"entry.command.import" = "Leg uit Bukkit structuur import workflow"
+"entry.command.capture" = "Leg uit Bukkit structuur capture workflow"
+"entry.command.verify" = "Native en Iris Bereikbaarheid van de structuur in de huidige dimensie"
+"entry.command.network" = "Lijst van netwerkinterfaces en hun adressen"
+"entry.command.what.here" = "Inspect the Iris biome, region, cave biome, surface and chunk at your position"
+"entry.command.what.biome" = "Inspect the Iris biome, configured derivative and registered native biome"
+"entry.command.what.region" = "Inspect the Iris region at your current chunk"
+"entry.command.what.block" = "Inspect the targeted block state, properties, object and block entity"
+"entry.command.what.hand" = "Inspect the held item and its default block state"
+"entry.command.what.markers" = "Reveal nearby Iris Mantle markers with particles"
+"entry.command.height" = "Print the current dimension height range"
+"entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
+"entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
+"entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
+"entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
+"entry.command.studio.loot" = "Explain why the Bukkit loot simulation GUI is unavailable"
+"entry.command.studio.profile" = "Explain why Bukkit pack profiling is unavailable"
+"entry.command.studio.spawn" = "Explain why Bukkit Iris entity spawning is unavailable"
+"entry.command.studio.objects" = "Explain why the Bukkit chunk object report is unavailable"
+"entry.command.compat_content" = "Toon inhoud die niet kan worden gegenereerd op deze Minecraft-versie"
+
+[iris.modded.command]
+"properties.none" = "Eigenschappen: (geen)"
+"properties.list" = "Eigenschappen: {properties}"
+
+[iris.bukkit.commanddatapack]
+starting_datapack_ingest = "§7Beginnen met datapacken..."
+configured_datapack_imports = "§aGeconfigureerde datapack import: §f{value}"
+message = "§7  - §f{url}"
+installed_datapacks = "§aGeïnstalleerde datapacks: §f{value}"
+message_2 = "§7  - §f{value}§7  {value2}"
+add_modrinth_urls_dimension_s_datapackimports_list_then_run_iris = "§eVoeg toe Modrinth  URLs naar een dimensie 'datapackImports' lijst, dan uitvoeren /iris datapack ingest."
+
+[iris.bukkit.commanddeveloper]
+genhash_started_chunks = "§agenhash gestart: {value} chunks..."
+genhash_failed_at_chunk = "§cgenhash mislukt bij chunk {rx},{rz}: {value}"
+genhash_global_chunks_solid = "§agenhash globaal=§6{value}§a chunks={value2} solide={solidBlocks} in {value3}"
+world_is_null = "§cDe wereld is nul."
+target_iris_world_before_reading_mantle_dump = "§cDoel Iris wereld voor het lezen van een Mantle dump."
+upgrading = "§aOpwaardering naar {value}..."
+done_upgrading_you_can_now_update_your_server_version = "§aKlaar met upgraden!  U kunt nu uw server versie updaten naar {value}"
+radius_must_be_0_greater = "§cStraal moet 0 of groter."
+this_is_not_iris_world = "§cDit is geen Iris wereld."
+engine_access_this_world_is_null = "§cDe toegang tot de motor voor deze wereld is nul."
+delete_started_chunk_s_around_clearing_blocks_air = "§aVerwijderen gestart: §6{chunks}§a chunk(s) rond §6{centerX},{centerZ}§a.  Blokken in de lucht."
+radius_must_be_0_greater_2 = "§cStraal moet 0 of groter."
+you_must_be_iris_world_use_regen = "§cJe moet in een Iris Wereld om Regen te gebruiken."
+engine_access_this_world_is_null_generate_nearby_chunks_first = "§cDe toegang tot de motor voor deze wereld is nul.  Genereer eerst chunks in de buurt."
+regen_started_chunk_s_around_deleting_regenerating_place = "§aRegen begon: §6{chunks}§a chunk(s) rond §6{centerX},{centerZ}§a.  Verwijderen en regenereren op zijn plaats."
+radius_must_be_0_greater_3 = "§cStraal moet 0 of groter."
+target_must_be_iris_world = "§cDoel moet een Iris wereld."
+engine_access_this_world_is_null_2 = "§cDe toegang tot de motor voor deze wereld is nul."
+goldenhash_started_chunk_s_around_buffers_world_untouched = "§aGoldenHash begon: §6{chunks}§a chunk(s) rond §6{centerX},{centerZ}§a in buffers (onaangeroerde wereld)."
+
+[iris.bukkit.commandfind]
+not_iris_world = "§6Niet in een Iris Wereld!"
+unknown_structure = "§cOnbekende structuur: {structureKey}"
+run_this_game_teleport_structure = "§6Doe dit in het spel om te teleporteren naar een structuur."
+locating = "§7Localiseren {structureKey}..."
+run_this_game_teleport_structure_2 = "§6Doe dit in het spel om te teleporteren naar een structuur."
+locating_2 = "§7Localiseren {structure}..."
+teleported = "§aTeleporteren naar {structure} @ {value}, {y}, {value2}"
+not_iris_world_5 = "§6Niet in een Iris Wereld!"
+not_iris_world_2 = "§6Niet in een Iris Wereld!"
+not_iris_world_3 = "§6Niet in een Iris Wereld!"
+not_iris_world_4 = "§6Niet in een Iris Wereld!"
+object_studio_teleporting = "§aObject Studio: teleporteren naar {object}"
+is_not_configured_any_region_biome_object_placements = "§c{object} is niet geconfigureerd in een regio/biome object plaatsingen."
+
+[iris.bukkit.commandiris]
+successfully_removed_world_folder = "§aWereldmap succesvol verwijderd"
+successfully_removed_world_folder_2 = "§aWereldmap succesvol verwijderd"
+failed_remove_world_folder = "§cVerwijderen van wereldmap is mislukt"
+you_cannot_use_world_name_iris_creating_worlds_as_iris = "§cJe kunt de wereldnaam \"iris\" niet gebruiken, omdat Iris deze map voor Studio-werelden gebruikt."
+may_we_suggest_name_irisworld_instead = "§cMogen we de naam voorstellen \"IrisWorldIn plaats daarvan?"
+you_cannot_use_world_name_benchmark_creating_worlds_as_iris = "§cJe kunt de wereldnaam \"benchmark\" niet gebruiken, omdat Iris deze map voor benchmarkpakketten gebruikt."
+may_we_suggest_name_irisworld_instead_2 = "§cMogen we de naam voorstellen \"IrisWorldIn plaats daarvan?"
+that_folder_already_exists = "§cDie map bestaat al!"
+try_one_overworld_vanilla_flat_theend = "§eProbeer een van: overwereld, vanilla, plat, einde"
+dimension_not_found = "§cCould not find dimension §f{dimension}§c."
+install_pack_and_restart = "§eInstall it with §b{command}§e and restart the server."
+exception_raised_during_creation_see_console_more_details = "§cUitzondering bij de schepping.  Zie de console voor meer details."
+successfully_created_your_world = "§aSuccesvol jullie wereld gecreëerd!"
+specified_player_does_not_exist = "§cDe opgegeven speler bestaat niet."
+iris_v_by_volmit_software = "§aIris /{value} door Volmit Software"
+to = "§a{value} tot {value2}"
+total_height = "§aTotale hoogte: {value}"
+iris_worlds = "§9Iris Worlds. "
+message = "§a- {value}"
+bukkit_worlds = "§6Bukkit-werelden: "
+message_2 = "§7- {value}"
+this_is_not_iris_world_iris_worlds = "§cDit is geen Iris wereld.  Iris werelden: {value}"
+removing_world = "§aWereld verwijderen: {value}"
+failed_evacuate_world = "§cOntruimen van de wereld is mislukt: {value}"
+failed_unload_world = "§cUitladen van wereld is mislukt: {value}"
+successfully_removed_from_bukkit_yml = "§aMet succes verwijderd {value} van bukkit.yml"
+looks_like_world_was_already_removed_from_bukkit_yml = "§eHet lijkt erop dat de wereld al verwijderd was van bukkit.yml"
+failed_save_bukkit_yml_because = "§cOpslaan is mislukt bukkit.yml vanwege {value}"
+set_debug = "§aDebug instellen op: {to}"
+you_must_be_iris_world = "§cJe moet in een Iris wereld"
+sending_metrics = "§aVerzenden van statistieken..."
+this_is_not_iris_world_iris_worlds_2 = "§cDit is geen Iris wereld.  Iris werelden: {value}"
+unloading_world = "§aWereld ontladen: {value}"
+world_unloaded_successfully = "§aWereld met succes gelost."
+failed_unload_world_2 = "§cKon de wereld niet lossen."
+failed_unload_world_3 = "§cUitladen van de wereld is mislukt: {value}"
+doesnt_exist_on_server = "§e{logicalWorldName} Bestaat niet op de server."
+generator = "§9Generator {dimension}"
+is_not_iris_world = "§6{logicalWorldName} is geen iris wereld."
+could_not_determine_iris_dimension = "§cKon niet bepalen Iris dimensie voor {logicalWorldName}."
+loading_world = "§aLaadwereld: {logicalWorldName}"
+loaded_successfully = "§a{logicalWorldName} geladen."
+this_is_not_iris_world_iris_worlds_3 = "§cDit is geen Iris wereld.  Iris werelden: {value}"
+evacuating_world = "§aEvacuatiewereld{value}"
+
+[iris.bukkit.commandobject]
+no_packs_with_objects_were_found_on_this_server = "§cEr zijn geen pakketten met objecten gevonden op deze server."
+no_objects_place_across_selected_pack_s = "§cGeen objecten te plaatsen in het geselecteerde pakket(s)."
+opening_object_studio_objects = "§aObjectstudio openen voor {scope} ({totalObjects} objecten)"
+failed_open_object_studio = "§cOpenen van objectstudio mislukt: {value}"
+object_size = "Objectgrootte: {value} * {value2} * {value3}"
+blocks_used = "Gebruikte blokken: {value}"
+blocks_object = "== Blokken in object =="
+other_block_types = "  + {value} andere bloktypen"
+current_object_size = "Huidige objectgrootte: {value} * {value2} * {value3}"
+new_object_size = "Nieuw objectgrootte: {value} * {value2} * {value3}"
+failed_save_object = "Opslaan van object is mislukt {value}: {value2}"
+no_objects_matched = "§cGeen objecten gevonden: {target}"
+plausibilize_reach_queued_object_s = "§aPlausibiliseer [reach={reach}{value}] wachtrij {value2} object(s)"
+hold_your_wand = "Hou je staf vast."
+no_area_selected = "Geen gebied geselecteerd."
+ready_your_wand = "Maak je toverstok klaar."
+ready_your_wand_2 = "Maak je toverstok klaar."
+indicated_scale_exceeds_maximum_downscaled_maximum = "§eDe aangegeven schaal is hoger dan het maximum.  Gedownschaald tot maximaal: {maxScale}"
+updated_wand_objects_iob = "Bijgewerkte toverstok voor objects/{value}.iob "
+given_new_wand_objects_iob = "Gegeven nieuwe toverstok voor objects/{value}.iob "
+updated_wand_objects_iob_2 = "Bijgewerkte toverstok voor objects/{value}.iob "
+placed = "§aGeplaatst {object}"
+you_need_hold_your_wand = "§eJe moet je staf vasthouden!"
+file_already_exists_set_overwrite_true_overwrite_it = "§cBestand bestaat al.  Zet overwrite=true om het te overschrijven."
+failed_save_object_because_ioexception = "§cOpslaan van object is mislukt vanwege een IOException: {value}"
+successfully_object_saved_objects = "§aSuccesvol bezwaar tegen opslaan: {value}/objects/{name}"
+hold_your_wand_2 = "Hou je staf vast."
+no_area_selected_2 = "Geen gebied geselecteerd."
+reverted_pastes = "§9{actualReverts}§9 plakbewerkingen ongedaan gemaakt!"
+you_can_t_get_worldedit_selection_without_worldedit_you_know = "§cJe krijgt geen WorldEdit selectie zonder WorldEditJe weet wel."
+you_don_t_have_worldedit_selection_this_world = "§cJe hebt geen WorldEdit selectie in deze wereld."
+fresh_wand_with_your_current_worldedit_selection_on_it = "§aEen verse toverstok met je stroom WorldEdit selectie erop!"
+poof_good_luck_building = "§aPoef!  Succes met bouwen."
+hold_your_wand_3 = "§eHou je staf vast."
+no_area_selected_3 = "Geen gebied geselecteerd."
+auto_select_complete = "§aAutomatisch selecteren voltooid!"
+hold_your_wand_4 = "§eHou je staf vast."
+no_area_selected_4 = "Geen gebied geselecteerd."
+auto_select_complete_2 = "§aAutomatisch selecteren voltooid!"
+
+[iris.bukkit.commandpack]
+you_must_specify_pack_name = "§cU moet een pakketnaam opgeven."
+pack_not_found_under_packs = "§cVerpakking{pack}' niet gevonden onder packs/."
+message = "§7  - {label}: {value}"
+more = "§7    ...  en {value} Meer."
+
+[iris.bukkit.commandstructure]
+verifying_structures_from_within_chunks = "§aControleren van structuren in §f{value}§a van {value2},{value3} binnen {searchRadius} chunks..."
+could_not_resolve_pack_dimension = "§cKon het pakket voor dimensie niet oplossen {value}"
+wrote_structure_index = "§aSchreef structuurindex: §f{value}"
+could_not_resolve_pack_dimension_2 = "§cKon het pakket voor dimensie niet oplossen {value}"
+importing_all_vanilla_datapack_structures_into_overwrite = "§aAlle vanilla importeren & datapack structuren in §f{value}§a (overschrijven)..."
+import_complete_structures_objects_written_failed = "§aImporteren voltooid: §f{imported}§a  structures/objects schriftelijk, §f{failed}§a mislukt."
+reference_them_from_biome_region_dimension_structures_list_run_iris = "§7Refereer ze vanuit een lijst met biome/regio's/dimensiestructuren, of voer ze uit /iris structure list {value} om de index te vernieuwen.  Regenereer chunks voor veranderingen die van kracht worden."
+could_not_resolve_pack_dimension_3 = "§cKon het pakket voor dimensie niet oplossen {value}"
+captured_structures_place_them_from_structures_list_regenerate_chunks_delete = "§7Gevangen {value} structuren.  Plaats ze van een 'structuren' lijst en regenereer chunks.  Verwijderen structures/*.json om het te heroveren."
+no_loaded_iris_world_found_join_create_one_first_search = "§cNiet geladen Iris wereld gevonden voor {value}.  Sluit je aan of creëer er een eerste (de zoektocht loopt tegen een levende wereld)."
+selected_iris_world_has_no_active_generator_engine = "§cDe geselecteerde Iris De wereld heeft geen actieve generatormotor."
+could_not_resolve_pack_dimension_4 = "§cKon het pakket voor dimensie niet oplossen {value}"
+no_iris_structure_this_pack = "§cGeen irisstructuur '{structure}' in deze verpakking"
+structure_assembled_0_pieces_check_startpool = "§cStructuur{structure}' gemonteerd 0 stuks (controleren startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "§aStructuur{structure}': §f{value}§a stukken, voetafdruk §f{value2}x{value3}§a blokken (monsterzaad 1234)"
+could_not_resolve_pack_dimension_5 = "§cKon het pakket voor dimensie niet oplossen {value}"
+no_iris_structure_this_pack_2 = "§cGeen irisstructuur '{structure}' in deze verpakking"
+structure_assembled_0_pieces = "§cStructuur{structure}' gemonteerd 0 stuks"
+placed_pieces_at_your_location = "§aGeplaatst '{structure}' ({value} stukken) op uw locatie. ({value2} block changes)"
+placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+
+[iris.bukkit.commandstudio]
+importing_vanilla_content_into = "§aImporteren vanilla-inhoud in §f{value}§a..."
+importvanilla_complete_objects_structures_written_failed = "§aimportvanilla voltooid: §f{imported}§a  objects/structures schriftelijk, §f{failed}§a mislukt."
+trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7Bomen/objecten onder objects/vanilla/...; referentie van biome object plaatsingen."
+no_open_studio_projects = "§cGeen open studio projecten."
+closing_studio = "§eStudio sluiten..."
+studio_close_failed = "§cStudio sluiten mislukt: {value}"
+studio_close_failed_2 = "§cStudio sluiten mislukt: {value}"
+studio_closed_remaining_world_family_cleanup_was_queued_startup_fallback = "§eStudio gesloten.  Resterende wereld-familie opruiming werd in de wachtrij voor startup terugval."
+studio_closed = "§aStudio gesloten."
+you_must_be_studio_world_toggle_debug_scoreboard = "§cJe moet in een Studio wereld zijn om het debug scorebord te schakelen."
+studio_debug_scoreboard = "{value}Studio debug scorebord {value2}"
+could_not_update_studio_debug_scoreboard_right_now = "§cKon het Studio debug scorebord nu niet bijwerken."
+opened_inventory = "§aOpen inventaris!"
+generating_data = "§7Gegevens aanmaken..."
+done = "§aKlaar!"
+message = "§a{k}: {value} / {value2}%"
+regions_radius_out_of_range = "§cDe radius moet tussen 1 en 2048 chunks liggen."
+regions_scan_failed = "§cRegioscan mislukt: {value}"
+opening_studio_pack_seed = "§aopenen studio voor de \"{value}\" verpakking (zaad: {seed})"
+provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§cGeef een maatpakket: /iris std importvanilla pack=<dimension>"
+could_not_resolve_pack_dimension = "§cKon het pakket voor dimensie niet oplossen {value}"
+opening_vscode_pack = "§aOpenen VSCode voor de \"{value}\" verpakking"
+pack_has_version = "§aDe \"{value}\" pack heeft versie: {value2}"
+opening_noise_explorer = "§aOpenen van Noise Explorer!"
+cannot_add_items_virtual_inventory_because = "§cKan items niet toevoegen aan virtuele inventaris vanwege: {value}"
+opening_inventory_now = "§aOpen de inventaris nu!"
+only_works_iris_world = "§cWerkt alleen in een Iris wereld!"
+you_need_be_specify_iris_generated_world = "§cU moet in of specificeren een Iris-Gegenereerde wereld!"
+opening_map = "§aOpen kaart!"
+calculating_performance_metrics_noise_generators = "Berekenen van prestatiemetrics voor geluidsgeneratoren"
+calculating_interpolator_timings = "Berekenen van de timing van Interpolator..."
+processing_generator_scores = "Verwerking Generator Scores: "
+score = "Scoor: {value}"
+done_with_result = "§aKlaar!  {value}"
+you_have_be_iris_world_spawn_entities_properly_trying_spawn = "§cJe moet in een Iris-wereld zijn om entiteiten correct te spawnen. Er wordt geprobeerd ze zo goed mogelijk te spawnen."
+no_studio_world_is_open = "§cGeen enkele studiowereld is open!"
+you_are_already_studio_world = "§cJe bent al in een studio wereld!"
+sending_you_studio_world = "§aIk stuur je naar de studiowereld."
+updating_code_workspace = "§6Bijwerken Code Werkblad voor {value}..."
+updated_code_workspace = "§aBijgewerkte code werkblad voor {value}"
+invalid_project_try_deleting_code_workspace_file_try_again = "§cOngeldig project: {value}.  Probeer het code-werkruimte bestand te verwijderen en probeer opnieuw."
+you_must_be_iris_world = "§cJe moet in een Iris wereld"
+you_must_be_iris_world_2 = "Je moet in een iriswereld zijn."
+capturing_igendata_from_nearby_chunks = "Vangen IGenData van {value} In de buurt."
+reported = "Gerapporteerd aan: {value}"
+you_must_have_server_launched_guis_enabled_settings = "§cU moet de server gestart hebben GUIs ingeschakeld in de instellingen!"
+players_only = "§cAlleen spelers!"
+no_studio_world_is_open_2 = "§cGeen enkele studiowereld is open!"
+you_must_be_studio_world = "§cJe moet in een studio wereld zijn!"
+opening_image_map_studio = "§aOpening the Image Map Studio."
+
+[iris.bukkit.commandsvc]
+you_lack_permission = "Je hebt geen toestemming.{ROOTPERMISSION}'"
+
+[iris.bukkit.irisenginestatus]
+message = "§5-------------------------"
+status = "§5Status"
+service = "§5- Dienst: §d{value}"
+metrics = "§5Metrics: §d{value}"
+maintenance_period = "§5- Onderhoudsperiode: §d{value}"
+worker_parallelism = "§5- Werknemersparallelisme: §d{value}"
+active_world_tasks = "§5- Actieve wereldtaken: §d{value}"
+tectonic_plates = "§5Tektonische platen:"
+configured_retention = "§5- Configureerde bewaring: §d{value}"
+heap_usage = "§5- Heftig gebruik: §d{value}"
+resident = "§5- Inwoner: §d{value}"
+queued = "§5- Wachtwoord: §d{value}"
+average_idle_duration = "§5- Gemiddelde stationaire duur: §d{value}"
+max_idle_duration = "§5- Max. Inschakelduur: §d{value}"
+min_idle_duration = "§5- Min Idle Duur: §d{value}"
+caches = "§5Cache:"
+resource = "§5- Hulpbron: §d{value} ({value2})"
+2d_stream = "§5- 2D-stroom: §d{value} ({value2})"
+3d_stream = "§5- 3D-stroom: §d{value} ({value2})"
+other = "§5- andere: §d{value} ({value2})"
+other_2 = "§5andere:"
+iris_worlds = "§5- Iris Werelden: §d{value}"
+loaded_chunks = "§5- Geladen Chunks: §d{value}"
+message_2 = "§5-------------------------"
+
+[iris.bukkit.commandedit]
+players_only = "§cAlleen spelers!"
+no_studio_world_is_open = "§cGeen enkele studiowereld is open!"
+you_must_be_studio_world = "§cJe moet in een studio wereld zijn!"
+cannot_open_files_headless_environments = "§cKan bestanden niet openen in hoofdloze omgevingen!"
+desktop_is_not_supported_by_this_environment = "§cDesktop wordt niet ondersteund door deze omgeving!"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6Kan het bestand niet vinden; Misschien is het niet direct vanuit een bestand geladen?"
+opening_vscode = "§aOpenen {value}  {value2} de VSCode! "
+cant_find_file_registrant_does_not_exist = "§cCant vind het dossier.  Of registrant bestaat niet"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6Kan het bestand niet vinden; Misschien is het niet direct vanuit een bestand geladen?"
+opening_vscode_2 = "§aOpenen {value}  {value2} de VSCode! "
+cant_find_file_registrant_does_not_exist_2 = "§cCant vind het dossier.  Of registrant bestaat niet"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6Kan het bestand niet vinden; Misschien is het niet direct vanuit een bestand geladen?"
+opening_vscode_3 = "§aOpenen {value}  {value2} de VSCode! "
+cant_find_file_registrant_does_not_exist_3 = "§cCant vind het dossier.  Of registrant bestaat niet"
+
+[iris.bukkit.commandpregen]
+pregen_radius_must_be_greater_than_zero_blocks = "§cPregen radius moet groter zijn dan nul blokken."
+strict_serial_pregeneration_requires_paper_paper_compatible_server = "§cStrikt seriële pregeneratie vereist Paper of een Paper-compatibele server."
+engine_access_this_world_is_null = "§cDe toegang tot de motor voor deze wereld is nul!"
+please_make_sure_world_is_loaded_engine_is_initialized_generate = "§cZorg ervoor dat de wereld geladen is & de motor is geïnitialiseerd.  Genereer bijvoorbeeld een nieuwe chunk."
+failed_start_pregeneration_see_console_details = "§cHet starten van de pregeneratie is mislukt.  Zie console voor details."
+no_active_pregeneration_tasks_stop = "§eGeen actieve pregeneratietaken om te stoppen"
+paused_unpaused_pregeneration_task_now = "§aDe pauzestand van de pregeneratietaak is omgeschakeld. Huidige stand: {value}."
+no_active_pregeneration_tasks_pause_unpause = "§eGeen actieve pregeneratietaken om te pauzeren/ontspannen."
+no_active_pregeneration_task = "§eGeen actieve pregeneratie taak."
+pregen = "§aVoorbereiding §6{world}§a: §6{value}/{value2}§a (§6{value3}%§a){value4}"
+speed_s_eta_elapsed_method = "§aSnelheid: §6overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s§a ETA: §6{eta}§a Elapsed: §6{elapsed}§a Method: §6{method}{failures}"
+
+[iris.bukkit.commandwhat]
+material = "Materiaal: §a{value}"
+full = "Volledig: §f{value}"
+please_hold_block_item = "Een blok/item vasthouden"
+material_2 = "Materiaal: §a{value}"
+please_hold_block_item_2 = "Een blok/item vasthouden"
+ibiome = "IBiome: {value} ({value2})"
+non_iris_biome = "NietIris Biome {value}"
+data_pack_biome_id = "Gegevenspakket Biome: {value} (ID: {value2})"
+iregion = "IRegion: {value} ({value2})"
+iris_worlds_only = "§aAlleen Iris werelden."
+please_look_at_any_block_not_at_sky = "Kijk naar elk blok, niet naar de lucht."
+material_3 = "Materiaal: §a{value}"
+full_2 = "Volledig: §f{value}"
+storage_block_loot_capable = "§e* Opslagblok (Loot Capable)"
+lit_block_light_capable = "§e* Lit Block (Licht)"
+foliage_block = "§eFoliage Block"
+decorant_block = "§e* Decorant blok"
+fluid_block = "§e* Fluidblock"
+plantable_foliage_block = "§e* Plantbaar Foliage Block"
+solid_block = "§e* Solide Block"
+found_nearby_markers = "Gevonden {value} Markers in de buurt ({marker})"
+iris_worlds_only_2 = "§aAlleen Iris werelden."
+
+[iris.modded.irismoddedcommands]
+this_dimension_is_not_generated_by_iris = "Deze dimensie is niet door Iris gegenereerd."
+console_must_name_biome_iris_edit_biome_key = "Console moet een biome noemen: /iris edit biome <key>"
+biome_lookup_failed = "Opzoeken van biome mislukt: {value}"
+unknown_biome = "Onbekend biome: {key}"
+this_dimension_is_not_generated_by_iris_2 = "Deze dimensie is niet door Iris gegenereerd."
+console_must_name_region_iris_edit_region_key = "Console moet een regio noemen: /iris edit region <key>"
+region_lookup_failed = "Opzoeken van regio mislukt: {value}"
+unknown_region = "Onbekend gebied: {key}"
+this_dimension_is_not_generated_by_iris_3 = "Deze dimensie is niet door Iris gegenereerd."
+cannot_open_files_here = "Kan hier geen bestanden openen: {value}"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "Kan het bestand niet vinden; is het misschien niet direct vanuit een bestand geladen?"
+could_not_open = "Kon niet openen {value}: {value2}"
+opening_your_editor = "Openen {value}  {value2} in uw redacteur."
+console_must_name_player_iris_tp_dimension_player = "Console moet een speler een naam geven: /iris tp <dimension> <player>"
+is_not_generated_by_iris = "{value} wordt niet gegenereerd door Iris."
+teleport_failed_dimension_is_not_loaded = "Teleporteren mislukt: dimensie {dimensionId} is niet geladen."
+teleporting = "Teleporteren {value} tot {dimensionId}..."
+is_not_generated_by_iris_2 = "{value} wordt niet gegenereerd door Iris."
+cannot_evacuate_primary_world_there_is_nowhere_send_players = "Kan de primaire wereld niet evacueren; er is geen plek om spelers te sturen."
+evacuated_player_s_from = "Ontruimd {count} speler(s) van {value} tot {value2}."
+set_debug = "Debug instellen op: {to}"
+hotloaded_settings = "Hotload instellingen"
+this_command_can_only_be_used_by_players_it_inspects = "Dit commando kan alleen gebruikt worden door spelers (het controleert uw vastgehouden item)."
+your_main_hand_is_empty = "Je hoofdhand is leeg."
+hand_x = "Hand. {value} x{value2}"
+this_command_can_only_be_used_by_players = "Deze opdracht kan alleen door spelers worden gebruikt."
+this_dimension_is_not_generated_by_iris_4 = "Deze dimensie is niet door Iris gegenereerd."
+this_dimension_is_not_generated_by_iris_5 = "Deze dimensie is niet door Iris gegenereerd."
+is_not_generated_by_iris_see_iris_info_loaded_iris = "{value} wordt niet gegenereerd door Iris; zie /iris info voor geladen Iris afmetingen."
+current_dimension_is_not_generated_by_iris_name_one_explicitly = "De huidige dimensie ({value}) wordt niet gegenereerd door Iris.  Noem er expliciet één: /iris pregen start {radius} <dimension>; zie /iris info voor geladen Iris afmetingen."
+pregeneration_task_is_already_running_stop_it_first_with_iris = "Een pregeneratie taak loopt al.  Stop het eerst met /iris pregen stop."
+pregen_started_by_blocks_from_progress_logs_console_see_iris = "Pregen begon in {value} van {value2} door {value3} blokken van {centerX},{centerZ}.{modeNote} Voortgangslogboeken naar console; zie /iris pregen status.{guiNote}"
+stopping_pregeneration_finishing_up_current_region = "Stoppen met pregeneratie; afronden van de huidige regio..."
+no_active_pregeneration_task_stop = "Geen actieve pregeneratietaak om te stoppen."
+no_active_pregeneration_task_pause_resume = "Geen actieve pregeneratietaak om te pauzeren/hervatten."
+pregeneration_is_now = "Pregeneratie is nu {value}."
+no_active_pregeneration_task = "Geen actieve pregeneratie taak."
+iris_by_volmit_software_on_minecraft_iris_dimension_s = "Iris  {value} door Volmit Software op {value2} (Minecraft  {value3}), {engines}  Iris dimensie(s)"
+loaded_dimensions_iris = "Geladen afmetingen: {total} ({iris}  Iris)"
+this_command_can_only_be_used_by_players_2 = "Deze opdracht kan alleen door spelers worden gebruikt."
+this_dimension_is_not_generated_by_iris_6 = "Deze dimensie is niet door Iris gegenereerd."
+biome = "Biome {value} ({value2})"
+biome_lookup_failed_2 = "Opzoeken van biome mislukt: {value}"
+region = "Regio: {value} ({value2})"
+region_lookup_failed_2 = "Opzoeken van regio mislukt: {value}"
+cave_biome = "Grot biome: {value}"
+cave_biome_lookup_failed = "Cave biome opzoeken mislukt: {value}"
+surface_block_y = "Oppervlakteblok: {value} (y={value2})"
+position_chunk = "Positie: {value}  {value2}  {value3} (chunk {value4},{value5})"
+this_command_can_only_be_used_by_players_it_inspects_2 = "Dit commando kan alleen gebruikt worden door spelers (het controleert het blok waar je naar kijkt)."
+look_at_block_not_sky = "Kijk naar een blok, niet de lucht."
+block_y = "Blok: {value} (y={value2})"
+this_command_can_only_be_used_by_players_markers_render = "Dit commando kan alleen gebruikt worden door spelers (merkers renderen als deeltjes om je heen)."
+this_dimension_is_not_generated_by_iris_7 = "Deze dimensie is niet door Iris gegenereerd."
+scanning_markers_around_you = "Scannen naar '{marker}' markers om je heen..."
+marker_scan_failed = "Markeringsscan mislukt: {value}"
+found_nearby_marker_s = "Gevonden {value} nabijgelegen marker(s) ({marker})"
+this_command_can_only_be_used_by_players_3 = "Deze opdracht kan alleen door spelers worden gebruikt."
+this_dimension_is_not_generated_by_iris_8 = "Deze dimensie is niet door Iris gegenereerd."
+unknown_biome_2 = "Onbekend biome: {key}"
+this_command_can_only_be_used_by_players_4 = "Deze opdracht kan alleen door spelers worden gebruikt."
+this_dimension_is_not_generated_by_iris_9 = "Deze dimensie is niet door Iris gegenereerd."
+unknown_region_2 = "Onbekend gebied: {key}"
+is_not_defined_dimension = "{value} is niet gedefinieerd in de dimensie!"
+this_dimension_is_not_generated_by_iris_10 = "Deze dimensie is niet door Iris gegenereerd."
+is_not_configured_any_region_biome_object_placements_object_keys = "{key} is niet geconfigureerd in een regio/bioome object plaatsingen ({value} objectsleutels geladen)."
+this_command_can_only_be_used_by_players_object_key = "Dit commando kan alleen gebruikt worden door spelers.  (object key '{key}' opgelost tegen {value} geladen objectsleutels)"
+this_dimension_is_not_generated_by_iris_11 = "Deze dimensie is niet door Iris gegenereerd."
+name_iris_native_structure_locate = "Naam en Iris of inheemse structuur te lokaliseren."
+this_command_can_only_be_used_by_players_5 = "Deze opdracht kan alleen door spelers worden gebruikt."
+unknown_structure_use_tab_completion_choose_iris_placement_registered_native = "Onbekende structuur '{key}'.  Tabbladaanvulling gebruiken om een Iris plaatsing of een geregistreerde native/datapack structuur."
+searching_native_structure_within_chunks = "Zoeken naar eigen structuur {value} binnen {NATIVESTRUCTURELOCATERADIUS} chunks..."
+searching_iris_placed_structure = "Zoeken naar Iris- Geplaatste structuur {key}..."
+unable_locate_iris_placed_structure_density_search_safety_limit_was = "Kon niet lokaliseren Iris- Geplaatste structuur {key}: de limiet voor het zoeken naar dichtheid werd bereikt vóór de volledige 1024- Er is gezocht."
+could_not_find_iris_placed_structure_within_1024_chunks = "Kon niet vinden Iris- Geplaatste structuur {key} binnen 1024 Brokken."
+search_failed = "Zoeken mislukt: {value}"
+could_not_find_native_structure_within_chunks = "Kon oorspronkelijke structuur niet vinden {value} binnen {NATIVESTRUCTURELOCATERADIUS} Brokken."
+search_native_structure_failed = "Zoeken naar eigen structuur {value} mislukt: {value2}"
+player_disconnected_before_structure_search_completed = "De speler heeft de verbinding verbroken voordat het structuuronderzoek voltooid is."
+you_changed_dimensions_before_structure_search_completed_run_command_again = "Je hebt de afmetingen veranderd voordat het structuurzoekopdracht voltooid is; voer het commando opnieuw uit."
+found_at_but_teleportation_failed = "Gevonden {label} op {targetX}  {clampedY}  {targetZ}, maar teleportatie mislukte."
+teleported_at = "Teleporteren naar {label} op {targetX}  {clampedY}  {targetZ}"
+this_dimension_is_not_generated_by_iris_12 = "Deze dimensie is niet door Iris gegenereerd."
+structure_reachability_native_generation_eligible_iris_placed_native_disabled_native = "Bereikbaarheid structuur: {available} in aanmerking komende inheemse generatie, {irisPlaced}  Iris- geplaatst, {disabled} native handicap, {suppressed} native vervangen door Iris plaatsingen; {unreachableBiomes} Native uitgesloten door deze verpakking biomes, en {unsupported} geregistreerde inheemse structuren niet ondersteund in deze dimensie.  Gebruik /iris structure verify <key> voor één structuur."
+structure_is_iris_placed_locatable_with_iris_goto_structure = "Structuur {key} er Iris-verplaatsbaar met /iris goto structure {key2}."
+unknown_structure_it_is_neither_iris_placed_nor_registered_by = "Onbekende structuur '{key}'.  Het is geen van beide. Iris-plaatst noch geregistreerd door vanilla of een datapack."
+structure_is_explicitly_replaced_by_iris_placement_locatable_with_iris = "Structuur {value} wordt uitdrukkelijk vervangen door een Iris plaatsing en plaatsbaar met /iris goto structure {value2}."
+native_structure_is_enabled_supported_by_this_dimension_s_generator = "Inheemse structuur {value} is ingeschakeld, ondersteund door de generatortoestand van deze dimensie en te vinden met /iris goto structure {value2}."
+this_dimension_is_not_generated_by_iris_13 = "Deze dimensie is niet door Iris gegenereerd."
+this_command_can_only_be_used_by_players_poi_type = "Dit commando kan alleen gebruikt worden door spelers.  (POI type \"{type}' aanvaard)"
+searching = "Zoeken naar {label}..."
+engine_this_world_has_been_closed_rejoin_dimension_try_again = "De motor voor deze wereld is gesloten; terug naar de dimensie en probeer het opnieuw."
+search_failed_2 = "Zoeken mislukt: {failure}"
+could_not_find_within_search_timeout = "Kon niet vinden {label} binnen de zoektijd."
+teleported_at_2 = "Teleporteren naar {label} op {blockX}  {blockY}  {blockZ}"
+engine_changed_while_locating_try_again = "De motor veranderde tijdens het lokaliseren {label}Probeer het nog eens."
+this_dimension_is_not_generated_by_iris_14 = "Deze dimensie is niet door Iris gegenereerd."
+world_seed = "Wereldzaad: {value}"
+engine_seed_mixed = "Motorzaad: {value} (gemengd: {value2})"
+this_dimension_is_not_generated_by_iris_15 = "Deze dimensie is niet door Iris gegenereerd."
+downloading_irisdimensions = "Downloaden IrisDimensions/{pack} ({downloadSource})..."
+pack_installed_its_exact_dimension_types_custom_biomes_join_forced = "Verpakking{pack}' geïnstalleerd.  De exacte dimensie types en aangepaste biomes voegen zich bij de gedwongen Iris datapack op de volgende server herstart voordat u werelden van dit pakket aanmaakt."
+pack_download_failed_see_console = "Downloaden van pakket is mislukt voor {pack} ({downloadSource}; zie console)."
+this_dimension_is_not_generated_by_iris_16 = "Deze dimensie is niet door Iris gegenereerd."
+generated_chunk_s_s = "Aangemaakt: {value} chunk(s), {value2}/s"
+ms = "  {value}: {value2}ms"
+
+[iris.modded.moddedcommandhelp]
+unknown_iris_help_section = "Onbekend Iris help sectie: {normalized}"
+
+[iris.modded.moddeddatapackcommands]
+type_active_logical_pack_engine_not_started_pack_heights_unknown = "{dimensionId}Type={typeKey} actief={activeMin}..{activeMax} logisch={value} (verpakking ={value2}, motor niet gestart; verpakkingshoogte onbekend)"
+type_active_logical_pack_wants_logical = "{dimensionId}Type={typeKey} actief={activeMin}..{activeMax} logisch={value} Pak '{value2}' {packMin}..{packMax} logisch={packLogical} | {value3}{value4}"
+warning_active_dimension_type_does_not_match_pack_iris_will = "  WARNING: het type actieve dimensie komt niet overeen met de verpakking.  Iris zal weigeren om deze wereld motor te starten in plaats van knipperen terrein.  Uitvoeren /iris world enable <dimension> <pack> voor nieuwe werelden, of /iris datapack install voor reeds geladen Iris afmetingen, dan herstart."
+no_iris_dimensions_are_loaded = "Nee Iris De afmetingen zijn geladen."
+all_iris_dimension_s_match_their_pack_height_ranges = "Alles {irisLevels}  Iris dimensie(s) komen overeen met hun pakkethoogtebereik."
+engine_not_started_cannot_derive_its_dimension_type_yet = "{value}: motor nog niet gestart; kan zijn afmetingen nog niet afleiden."
+dimension_type_generation_failed = "{value}: generatie van het dimensietype mislukt: {value2}"
+failed_write = "Schrijven is mislukt {output}: {value}"
+no_iris_dimensions_with_running_engines_found_nothing_was_installed = "Nee Iris afmetingen met lopende motoren gevonden; er is niets geïnstalleerd."
+failed_write_2 = "Schrijven is mislukt {mcmeta}: {value}"
+wrote = "Schreef {path}"
+world_datapack_dimension_type_overrides_installed_restart_server_dimension_types = "World datapack '{WORLDPACKNAME}' dimensietype overrides geïnstalleerd.  Herstart de server voor het toepassen van dimensietypes."
+configured_datapack_imports = "Geconfigureerde datapack import: {value}"
+message = "  - {url}"
+modrinth_ingest_is_bukkit_only_install_these_manually_into_world = "Modrinth Inname is Bukkit-alleen; installeer deze handmatig in world/datapacks indien nodig."
+installed_world_datapacks = "Geïnstalleerde werelddatapacks: {value}"
+message_2 = "  - {name}"
+
+[iris.modded.moddeddevelopercommands]
+message = "  {value}"
+network_scan_failed = "Netwerkscan mislukt: {value}"
+
+[iris.modded.moddedgoldenhash]
+goldenhash_scan_is_already_running = "Een Goldenhash scan loopt al."
+
+[iris.modded.moddedobjectcommands]
+this_command_can_only_be_used_by_players_wand_is = "Dit commando kan alleen gebruikt worden door spelers.  (de toverstok is een fysiek voorwerp)"
+your_inventory_is_full = "Je inventaris is vol."
+poof_good_luck_building_left_click_corner_1_right_click = "Poef!  Succes met bouwen.  (linker klik = hoek 1, rechter muisknop = hoek 2)"
+this_command_can_only_be_used_by_players_dust_is = "Dit commando kan alleen gebruikt worden door spelers.  (het stof is een fysiek voorwerp)"
+your_inventory_is_full_2 = "Je inventaris is vol."
+right_click_block_reveal_object_it_belongs = "Klik met de rechtermuisknop op een blok om het object te onthullen."
+this_command_can_only_be_used_by_players_saving_captures = "Dit commando kan alleen gebruikt worden door spelers.  (opslaan van uw toverstok selectie)"
+this_dimension_is_not_generated_by_iris_objects_save_into = "Deze dimensie wordt niet gegenereerd door Iris; objecten opslaan in het pakket van de dimensie."
+hold_your_iris_wand_iris_wand = "Wacht even. Iris Toverstok.  (/iris wand)"
+no_area_selected_left_right_click_blocks_with_wand_first = "Geen gebied geselecteerd.  Links/rechts klik blokken met de toverstok eerst."
+invalid_object_name = "Ongeldige objectnaam: {nameRaw}"
+selection_too_large_blocks_max = "Selectie te groot: {volume} blokken (max {MAXSAVEVOLUME})."
+file_already_exists_use_iris_object_save_overwrite = "Bestand bestaat al.  Gebruik /iris object save overwrite {name}"
+failed_save_object = "Opslaan van object is mislukt: {value}"
+saved_objects_iob_x_x_block_s = "Opgeslagen {value}/objects/{name}.iob: {w}x{h}x{d}, {value2} blok(s){tileNote}"
+unknown_empty_object = "Onbekend of leeg object: {key}"
+console_must_specify_coordinates_iris_object_paste_at_x_y = "Console moet coördinaten specificeren: /iris object paste at <x> <y> <z> [rotate <degrees>] {key}"
+you_are_not_looking_at_block_within_blocks = "U kijkt niet naar een blok binnen {value} blokken."
+paste_failed_partial_changes_recorded_undo = "Plakken mislukt: {value} (gedeeltelijke wijzigingen vastgelegd om ongedaan te maken)"
+placed_at_rot_write_s_non_air = "Geplaatst {key} op {value}  {value2}  {value3} rot ={rotation} ({value4} schrijven(s), {value5} niet-lucht{tileNote})"
+this_command_can_only_be_used_by_players = "Deze opdracht kan alleen door spelers worden gebruikt."
+hold_your_iris_wand_iris_wand_2 = "Wacht even. Iris Toverstok.  (/iris wand)"
+no_area_selected = "Geen gebied geselecteerd."
+message = "{value}  {amount}  {value2}: {value3}"
+this_command_can_only_be_used_by_players_2 = "Deze opdracht kan alleen door spelers worden gebruikt."
+ready_your_wand_iris_wand = "Maak je staf klaar.  (/iris wand)"
+you_are_not_looking_at_block = "Je kijkt niet naar een blok."
+position_set = "Positie {value} ingesteld op {value2}  {value3}  {value4}"
+this_command_can_only_be_used_by_players_3 = "Deze opdracht kan alleen door spelers worden gebruikt."
+hold_your_wand = "Hou je staf vast."
+no_area_selected_2 = "Geen gebied geselecteerd."
+selection_too_large_auto_select_blocks_max = "Selectie te groot voor automatisch selecteren: {volume} blokken (max {MAXAUTOSELECTVOLUME})."
+auto_select_complete = "Automatisch selecteren voltooid: {value}"
+unknown_object = "Onbekend object: {key}"
+object_size = "Objectgrootte: {value} * {value2} * {value3}"
+blocks_used = "Gebruikte blokken: {value}"
+blocks_object = "== Blokken in object =="
+message_2 = " - {value} * {value2}"
+other_block_state_s = "  + {remaining} andere blokstatus(s)"
+unknown_object_2 = "Onbekend object: {key}"
+current_object_size = "Huidige objectgrootte: {value} * {value2} * {value3}"
+new_object_size = "Nieuw objectgrootte: {value} * {value2} * {value3}"
+object_has_no_load_file_cannot_persist_shrink = "Object heeft geen laadbestand; kan de krimp niet aanhouden."
+failed_save_object_2 = "Opslaan van object is mislukt {value}: {value2}"
+invalid_reach = "Ongeldig bereik: {token}"
+no_objects_matched = "Geen objecten gevonden: {target}"
+plausibilize_reach_queued_object_s = "Plausibiliseer [reach={reach}{value}] wachtrij {value2} object(s)"
+nothing_undo = "Niets om ongedaan te maken."
+reverted_paste_s = "{reverted} plakbewerking(en) ongedaan gemaakt."
+
+[iris.modded.moddedpackcommands]
+packs_folder_not_found = "Pakketmap niet gevonden: {value}"
+no_packs_validate_under = "Geen pakketten om te valideren onder {value}"
+pack_not_found_under = "Verpakking{pack}' niet gevonden onder {value}"
+validating_pack_s = "Valideren {value} verpakking(s)..."
+validation_failed = "Validatie van{value}' mislukt: {value2}"
+validation_complete_broken_packs = "Validatie voltooid.  Gebroken verpakkingen: {brokenTotal}/{value}"
+pack_not_found_under_2 = "Verpakking{pack}' niet gevonden onder {value}"
+pack_not_found_under_3 = "Verpakking{pack}' niet gevonden onder {value}"
+no_validation_results_recorded_run_iris_pack_validate_first = "Geen validatieresultaten geregistreerd.  Uitvoeren /iris pack validate Eerst."
+blocking_warnings = "{tag}  {value} (blokkering={value2}, waarschuwingen={value3})"
+no_validation_result_run_iris_pack_validate = "Geen validatie resultaat voor '{pack}'.  Uitvoeren /iris pack validate {pack2}."
+pack_is_loadable_warnings = "Verpakking{value}' is laadbaar.  (waarschuwingen={value2})"
+pack_is_broken = "Verpakking{value}' beschadigd:"
+message = "  - {reason}"
+message_2 = "  !  {value}"
+more_warning_s = "  ...  en {value} meer waarschuwing(s)."
+no_cleanup_candidates_found_pack = "Geen cleanup kandidaten gevonden voor pakket '{pack}'."
+cleanup_preview_pack_candidate_s_no_files_were_changed = "Schoonmaakvoorbeeld voor verpakking '{pack}': {value} kandidaat(s).  Er werden geen bestanden gewijzigd."
+run_iris_pack_cleanup_apply_quarantine_after_fresh_scan = "Uitvoeren /iris pack cleanup {pack} apply naar quarantaine na een nieuwe scan."
+no_cleanup_candidates_found_pack_2 = "Geen cleanup kandidaten gevonden voor pakket '{pack}'."
+quarantined_cleanup_candidate_s_under = "Quarantaine {value} cleanup candidate(s) onder {value2}."
+nothing_restore_pack = "Niets te herstellen voor de verpakking '{pack}'."
+restore_preview_file_s_no_files_were_changed = "Voorbeeld herstellen voor {value}: {value2} bestand(s).  Er werden geen bestanden gewijzigd."
+restore_is_blocked_by_existing_destination_s = "Herstel wordt geblokkeerd door {value} bestaande bestemming(s)."
+run_iris_pack_restore_apply_restore_after_fresh_conflict_check = "Uitvoeren /iris pack restore {pack} apply te herstellen na een nieuwe conflict controle."
+restore_refused_because_destination_s_already_exist = "Herstel geweigerd omdat {value} destination(s) bestaat al."
+nothing_restore_pack_2 = "Niets te herstellen voor de verpakking '{pack}'."
+restored_file_s_from = "Hersteld {value} bestand(s) van {value2}."
+message_3 = "  - {label}: {value}"
+more = "  ...  en {value} Meer."
+compat_header = "Pack '{pack}': inhoud niet beschikbaar op Minecraft {version}"
+compat_none = "Pack '{pack}' gebruikt geen inhoud die ontbreekt in Minecraft {version}."
+compat_remedy = "Werk de server bij naar een nieuwere Minecraft om deze inhoud te herstellen, of declareer terugvallen (blockFallbacks van de dimensie, backup van het blok)."
+
+[iris.modded.moddedregen]
+regen_is_already_running = "Er loopt al een regen."
+
+[iris.modded.moddedstructurecommands]
+this_dimension_is_not_generated_by_iris_run_this_from = "Deze dimensie wordt niet gegenereerd door Iris.  Voer dit uit vanaf een Iris dimensie zodat de verpakking kan worden opgelost."
+wrote_structure_index = "Schreef structuurindex: {value}"
+no_iris_structure_this_pack = "Geen irisstructuur '{key}' in deze verpakking"
+structure_assembled_0_pieces_check_startpool = "Structuur{key}' gemonteerd 0 stuks (controleren startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "Structuur{key}': {value} stukken, voetafdruk {value2}x{value3} blokken (monsterzaad 1234)"
+this_command_can_only_be_used_by_players_structure_is = "Dit commando kan alleen worden gebruikt door spelers (de structuur is gemonteerd op uw positie)."
+no_iris_structure_this_pack_2 = "Geen irisstructuur '{key}' in deze verpakking"
+structure_assembled_0_pieces = "Structuur{key}' gemonteerd 0 stuks"
+place_failed_partial_changes_recorded_undo = "Plaats mislukt: {value} (gedeeltelijke wijzigingen geregistreerd voor ongedaan maken)"
+placed_pieces_write_s_at_your_location_iris_object_undo = "Geplaatst '{key}' ({value} stukken, {value2} schrijven(s){tileNote}) op uw locatie.  /iris object undo om terug te keren."
+
+[iris.modded.moddedstudiocommands]
+provide_dimension_pack_iris_studio_open_pack_seed = "Geef een maatpakket: /iris studio open <pack> [seed]"
+opening_noise_explorer_on_server_display = "Het openen van de Noise Explorer op het serverscherm."
+this_dimension_is_not_generated_by_iris_run_iris_studio = "Deze dimensie wordt niet gegenereerd door Iris; rennen /iris studio noise van een Iris dimensie om generatoren op te lossen, of de naam van de generator weg te laten."
+unknown_generator_pack = "Onbekende generator '{generatorKey}' in verpakking {value}."
+opening_noise_explorer_generator_seed = "openen van de Noise Explorer voor generator '{value}\" (zaad {seed})."
+this_dimension_is_not_generated_by_iris_stand_iris_studio = "Deze dimensie wordt niet gegenereerd door Iris; staan in een Iris (of studio) dimensie en uitvoering /iris studio map."
+opening_vision_map_on_server_display = "De Vision-kaart openen voor {value} op het serverscherm."
+failed_write_workspace = "Schrijven van werkblad voor mislukt {value}: {value2}"
+workspace_regenerated_with_json_schemas_autocomplete = "Herhaling van de werkplek: {value} met JSON schema's voor automatisch invullen."
+could_not_open = "Kon niet openen {value}: {value2}"
+opening_your_editor = "Openen {value} in uw redacteur."
+this_dimension_is_not_generated_by_iris_specify_pack_name = "Deze dimensie wordt niet gegenereerd door Iris; geef een verpakkingsnaam expliciet op."
+pack_not_found_under = "Verpakking{name}' niet gevonden onder {value}"
+provide_dimension_pack_iris_studio_open_pack_seed_2 = "Geef een maatpakket: /iris studio open <pack> [seed]"
+opening_studio_seed = "openen studio voor '{pack}\" (zaad {seed})..."
+pack_missing_downloading_irisdimensions = "Verpakking{pack}' ontbreekt; downloaden IrisDimensions/{pack2}..."
+pack_could_not_be_downloaded_check_name_try_iris_download = "Verpakking{pack}' kon niet worden gedownload; controleer de naam en probeer /iris download {pack2}."
+pack_has_no_dimensions_json = "Verpakking{pack}' heeft geen dimensions/{pack2}.json"
+studio_open_failed = "Studio openen mislukt: {value}{errorMessage}"
+studio_injection_failed = "Studio-injectie mislukt: {value}{errorMessage}"
+console_studio_open_now_runs_seed_transient_not_written_iris = "Console studio geopend: {dimensionId} nu loopt '{pack}' zaad {seed} (voorbijgaande; niet geschreven aan iris-dimensions.json en goedgekeurd bij herstart)."
+enter_it_with_execute_run_tp_s_8_5_8 = "Voer het in met: /execute in {dimensionId} run tp @s 8.5  {surface}  8.5"
+pregen_it_with_iris_pregen_start_radius = "Pregen het met: /iris pregen start <radius> {dimensionId}"
+remove_it_with_iris_studio_close = "Verwijderen met: /iris studio close"
+studio_injection_failed_2 = "Studio-injectie mislukt: {value}{errorMessage}"
+studio_open_now_runs_seed_use_iris_studio_close_when = "Studio geopend: {dimensionId} nu loopt '{pack}' zaad {seed}.  Gebruik /iris studio close Wanneer klaar."
+you_do_not_have_open_studio_use_iris_studio_open = "Je hebt geen open studio.  Gebruik /iris studio open <pack> Eerst."
+studio_close_failed = "Studio sluiten mislukt: {value}{errorMessage}"
+studio_closed_was_evacuated_unloaded_its_region_data_deleted = "Studio gesloten: {dimensionId} werd geëvacueerd, gelost en de regionale gegevens verwijderd."
+no_studio_dimensions_are_currently_open = "Momenteel zijn er geen studio-afmetingen geopend."
+active_studio_dimension_s = "Actieve studiodimensie(s): {value}"
+pack_seed_owner = "  {value}: verpakking \"{value2}' zaad {value3} eigenaar {ownerName}"
+this_command_can_only_be_used_by_players = "Deze opdracht kan alleen door spelers worden gebruikt."
+you_do_not_have_open_studio_use_iris_studio_open_2 = "Je hebt geen open studio.  Gebruik /iris studio open <pack> Eerst."
+your_studio_dimension_is_no_longer_loaded_use_iris_studio = "Je studio-dimensie is niet meer geladen.  Gebruik /iris studio open <pack> Alweer."
+teleported_your_studio = "Geteleporteerd naar uw studio ({dimensionId})."
+pack_has_no_dimensions_json_2 = "Verpakking{value}' heeft geen dimensions/{value2}.json"
+pack_has_version = "De \"{value}\" pack heeft versie: {value2}"
+invalid_project_name_allowed_z_0_9 = "Ongeldige projectnaam '{nameRaw}\" (toegestaan: a-z, 0-9,   en -)"
+pack_already_exists_at = "Verpakking{name}' bestaat reeds op {value}"
+creating_project_from_template = "Project aanmaken '{name}\"uit template \"{template}'..."
+required_pack_is_not_installed_install_then_restart = "Het vereiste pack '{pack}' is niet geïnstalleerd. Installeer het met /iris download en start de server daarna opnieuw."
+created_project_at = "Project aangemaakt '{name}\" op {value}"
+edit_dimensions_json_rest_pack_vscode_workspace_with_json_schema = "Bewerken dimensions/{name}.json En de rest van de roedel.  A VSCode werkruimte met JSON schema automatisch aanvullen werd gegenereerd; open het of rerun /iris studio vscode."
+project_creation_failed = "Aanmaken van project mislukt: {value}{errorMessage}"
+packaging_dimension = "Verpakkingsdimensie '{dimKey}'..."
+package_compiled = "Pakket samengesteld: {value}"
+packaging_failed = "Verpakking mislukt: {value}{errorMessage}"
+this_command_can_only_be_used_by_players_sampling_is = "Dit commando kan alleen gebruikt worden door spelers (sampling is gecentreerd op uw positie)."
+this_dimension_is_not_generated_by_iris = "Deze dimensie is niet door Iris gegenereerd."
+sampling_region_distribution_x_chunks_around_you = "Verdeling van de steekproefgebieden in {value}x{value2} chunks om je heen..."
+rarity = "{key}: zeldzaamheid={rarity} / {value}%"
+region_sampling_failed = "Regionale bemonstering mislukt: {value}"
+image_map_requires_iris_dimension = "Stand in an active Iris or Studio dimension before opening the Image Map Studio."
+opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {value} on the server display."
+
+[iris.modded.moddedworldcommands]
+required_pack_is_not_installed_install_then_restart = "Het vereiste pack '{pack}' is niet geïnstalleerd. Installeer het met /iris download en start de server daarna opnieuw."
+failed_inject_iris_world = "Spuiten mislukt Iris wereld{dimensionId}': {value}{errorMessage}"
+created_iris_world_from_pack_dimension_seed = "Aangemaakt Iris wereld {dimensionId} uit verpakking{pack}' dimensie'{packDimension}\" (zaad {seed})."
+it_is_live_now_re_injected_on_every_startup_teleport = "Het is nu live en opnieuw bij elke opstart.  Teleporteren met /iris world status of een portaal; geen herstart vereist."
+failed_inject_iris_primary_world = "Spuiten mislukt Iris primaire wereld: {value}{errorMessage}"
+iris_primary_world_set_pack_dimension_seed = "Iris primaire wereld ingesteld op {dimensionId} (verpakking \"{pack}' dimensie'{packDimension}' zaad {seed})."
+vanilla_overworld_generator_cannot_be_hot_swapped_so_this_does = "De vanilla-overworldgenerator kan niet tijdens runtime worden vervangen; hierdoor wordt de bestaande overworld dus NIET opnieuw gegenereerd."
+instead_is_now_configured_primary_world_players_vanilla_overworld_are = "In plaats daarvan, {dimensionId} is nu de geconfigureerde primaire wereld: spelers in de vanilla-overwereld worden daarheen geleid op join, en het opnieuw objecteert bij elke startup."
+iris_main_world_override_cleared_overworld_keeps_its_current_generator = "Iris De belangrijkste wereld override is vrijgegeven.  De overworld houdt zijn huidige generator; bewerken server.properties niveau-type en herstart om het terug te veranderen."
+invalid_seed_use_number_random = "Ongeldig zaad '{seedRaw}'.  Gebruik een getal of 'random'."
+pack_is_not_ready_yet_still_loading_validating_try_command = "Verpakking{pack}' is nog niet klaar (nog laden of valideren).  Probeer het commando zo weer."
+failed_write_server_properties_check_file_permissions_set_level_type = "Schrijven is mislukt server.properties; controleer bestandsrechten en stel het niveau-type handmatig in."
+iris_main_world_set_preset_seed = "Iris belangrijkste wereld ingesteld op '{pack}\" (vooruitgezet {preset}, zaad {value})."
+server_properties_level_type_is_now_on_next_restart_overworld = "server.properties niveau-type is nu {preset}.  Op de volgende herstart de overwereld, onderher en eind regenereren als dit Iris wereld."
+player_data_inventories_advancements_stats_is_kept_existing_terrain_those = "Spelergegevens (inventarissen, vooruitgangen, statistieken) worden bewaard; bestaand terrein in die dimensies wordt vervangen.  Dit geldt eenmaal."
+mainworldautorestart_is_enabled_stopping_server_now_so_your_restart_wrapper = "mainWorldAutoRestart is ingeschakeld - stoppen van de server nu, zodat uw herstart wrapper brengt het terug op de nieuwe hoofdwereld."
+restart_server_now_generate_it_set_mainworldautorestart_true_modded_json = "Herstart de server nu om het te genereren.  (Set: mainWorldAutoRestart= waar in modded.json om te hebben Iris stop de server voor u.)"
+refusing_create_world_using_pack_because_required_validation_failed = "Weigeren wereld te creëren '{dimensionId}' met pack'{pack}' omdat de vereiste validatie mislukt:"
+message = "  - {reason}"
+fix_pack_run_iris_pack_validate_revalidate = "Repareer de verpakking en ren /iris pack validate {pack} om te hervalideren."
+pack_was_not_found_under = "Verpakking{pack}' niet gevonden onder {value}"
+pack_does_not_contain_dimensions_json = "Verpakking{pack}' bevat niet dimensions/{packDimension}.json"
+invalid_pack_reference_use_pack_pack_dimensionkey = "Ongeldige verpakking{pack}{value}'.  Gebruik verpakking:dimensionKey."
+invalid_seed_use_number_random_2 = "Ongeldig zaad '{seedRaw}'.  Gebruik een getal of 'random'."
+failed_remove_iris_world = "Verwijderen mislukt Iris wereld{dimensionId}': {value}{errorMessage}"
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry = "Iris wereld{dimensionId}' niet geladen was; zijn persistente registervermelding gewist en de opgeslagen chunk/Mantle-gegevens gewist."
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry_2 = "Iris wereld{dimensionId}\" niet geladen was; de permanente registratie is goedgekeurd.  Wereldgegevens op schijf worden bewaard."
+deleted_iris_world_evacuated_unloaded_chunk_mantle_data_wiped_dropped = "Verwijderd Iris wereld{dimensionId}\": geëvacueerd, gelost, chunk/Mantle-gegevens gewist en uit het opstartregister geschrapt."
+disabled_iris_world_evacuated_unloaded_dropped_from_startup_registry = "Uitgeschakeld Iris wereld{dimensionId}\": geëvacueerd, gelost en uit het opstartregister geschrapt."
+world_data_on_disk_is_kept_re_enable_with_iris = "wereldgegevens op schijf wordt bewaard; opnieuw inschakelen met /iris world enable {dimensionId} <pack> of verwijderen met /iris world delete {dimensionId2}."
+loaded_iris_level_pack_dimension = "Geladen Iris niveau: {value}  -> verpakking{value2}' dimensie'{value3}'"
+primary_world = "Primaire wereld: {primary}{value}"
+no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Nee Iris De afmetingen zijn momenteel geladen.  Een maken met /iris world create <name> <pack>."
+loaded_iris_dimensions = "Geladen Iris afmetingen: {value}"
+message_2 = "  - {dimension}"
+use_iris_world_create_name_pack_inject_one_without_restarting = "Gebruik /iris world create <name> <pack> om er één te injecteren zonder opnieuw te starten."
+
+[iris.director.commanddatapack]
+"director.download_manage_external_datapack_imports_modrinth" = "Downloaden & de invoer van externe datapacks beheren (Modrinth)"
+"director.download_update_every_datapack_listed_pack_dimension_s_datapackimports_install_it_into" = "Download/update elk datapack dat in een pakketdimensie is opgenomen 'datapackImports' en installeren in de wereld, zodat zijn structuren registreren als vanilla"
+"param.restart_server_when_new_datapacks_are_installed_required_new_structures_register_generate" = "Herstart de server wanneer er nieuwe datapacks zijn geïnstalleerd (nodig voor het registreren en genereren van nieuwe structuren)"
+"director.list_configured_datapack_imports_their_installed_versions" = "Lijst geconfigureerde datapack imports en hun geïnstalleerde versies"
+"director.remove_installed_datapack_by_id_also_delete_its_url_from_datapackimports_keep" = "Verwijder een geïnstalleerde datapack door id (ook verwijderen van de URL van datapackImports om het weg te houden)"
+"param.datapack_id_folder_name_shown_by_iris_datapack_list" = "Het datapack id (mapnaam) getoond door /iris datapack list"
+
+[iris.director.commanddeveloper]
+"director.iris_world_manager" = "Iris Wereldmanager"
+"director.get_loaded_tectonicplates_count" = "Laden TectonicPlates Aantal"
+"director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "Hash gegenereerde blokuitgang van een vaste zone voor determinisme/identiteitstest"
+"param.world_hash" = "De wereld te hash"
+"param.radius_chunks_around_center" = "Straal in stukjes rond het centrum"
+"param.center_chunk_x" = "Middendeel X"
+"param.center_chunk_z" = "Middenstuk Z"
+"director.stage_world_generation_update" = "Een update van de wereldgeneratie klaarzetten"
+"param.world_update" = "De wereld om bij te werken"
+"param.pack_install_into_world" = "Het pakket te installeren in de wereld"
+"param.make_sure_make_backup_read_warnings_first" = "Zorg ervoor dat u een back-up maakt & Lees eerst de waarschuwingen!"
+"director.test" = "Testen"
+"param.dump_whole_tectonic_plate_instead_single_section" = "Dump de hele tektonische plaat in plaats van een enkele sectie"
+"param.dump_file_id_under_plugins_iris_dump_pv_id" = "Het dumpbestand id onder plugins/Iris/dump (pp.<id>.*)"
+"director.test_2" = "Testen"
+"param.pack_bench" = "De pack naar bank"
+"param.radius_regions" = "Straal in de regio's"
+"param.open_gui_while_benchmarking" = "Geopend GUI terwijl benchmarking"
+"director.upgrade_another_minecraft_version" = "Upgrade naar een andere Minecraft versie"
+"param.version_upgrade" = "De versie om naar te upgraden"
+"director.test_3" = "test;"
+"param.world_folder_scan_mca_region_files" = "De wereldmap om te scannen naar .mca-regiobestanden"
+"director.delete_nearby_chunk_blocks_regen_testing" = "Verwijder nabijgelegen blokblokken voor regen testen"
+"param.radius_chunks_around_your_current_chunk" = "Straal in stukjes rond je huidige chunk"
+"director.test_4" = "Testen"
+"director.delete_regenerate_nearby_chunks_place_using_iris_generation" = "Verwijderen en regenereren nabijgelegen chunks in plaats met behulp van Iris generatie"
+"param.radius_nearby_chunks" = "De straal van nabijgelegen chunks"
+"director.generate_chunks_into_buffers_no_world_writes_hash_blocks_biomes_captures_golden" = "Genereer chunks in buffers (geen wereld schrijft) en hash blokken + biomes; vangt een gouden bestand of controleert tegen een bestaande.  Verwijdert de volledige Mantle van de wereld - gebruik op wegwerp testwerelden."
+"param.world_scan" = "De wereld om te scannen"
+"param.radius_chunks_around_center_2" = "Straal in stukjes rond het centrum"
+"param.center_chunk_x_2" = "Middendeel X"
+"param.center_chunk_z_2" = "Middenstuk Z"
+"param.delete_mantle_data_scan_area_first_full_regeneration_from_scratch" = "Verwijdert eerst de volledige Mantle-map van de wereld voor volledige regeneratie vanaf nul. Niet beperkt tot het gescande gebied"
+"param.concurrent_chunk_generations_1_strictly_serial_order_dependence_testing" = "gelijktijdige chunkgeneraties; 1 = strikt serieel voor orderafhankelijkheidstests"
+"param.also_dump_full_per_chunk_non_air_blockstates_offline_diffing" = "Ook dump volledige per-chunk non-air blockstates voor offline diffing"
+
+[iris.director.commandedit]
+"director.edit_something" = "Iets bewerken"
+"director.edit_biome_you_specified" = "Bewerk het door u opgegeven biome"
+"param.biome_edit" = "Het te bewerken biome"
+"director.edit_region_you_specified" = "Bewerk het door u opgegeven gebied"
+"param.region_edit" = "Het te bewerken gebied"
+"director.edit_dimension_you_specified" = "Bewerk de door u opgegeven dimensie"
+"param.dimension_edit" = "De te bewerken dimensie"
+
+[iris.director.commandfind]
+"director.iris_find_commands" = "Iris Opdrachten zoeken"
+"director.find_biome" = "Zoek een biome"
+"param.biome_look" = "De biome om naar te zoeken"
+"param.should_you_be_teleported" = "Mocht u geteleporteerd worden"
+"director.find_region" = "Zoek een regio"
+"param.region_look" = "De te zoeken regio"
+"param.should_you_be_teleported_2" = "Mocht u geteleporteerd worden"
+"director.find_point_interest" = "Zoek een punt van belang."
+"param.type_poi_look" = "Het type PoI om te zoeken."
+"param.should_you_be_teleported_3" = "Mocht u geteleporteerd worden"
+"director.find_structure_vanilla_key_like_minecraft_village_plains_minecraft_stronghold_imported_iris" = "Zoek een structuur (een vanilla sleutel zoals minecraft:village_plains of minecraft:stronghold, of een geïmporteerde iris structuursleutel)"
+"param.structure_look_e_g_minecraft_village_plains_minecraft_stronghold_minecraft_ancient_city" = "De te zoeken structuur (e.g.  minecraft:village_plains, minecraft:stronghold, minecraft ancient city)"
+"director.find_object" = "Zoek een object"
+"param.object_look" = "Het te zoeken object"
+"param.should_you_be_teleported_4" = "Mocht u geteleporteerd worden"
+
+[iris.director.commandobject]
+"director.iris_object_manipulation" = "Iris objectmanipulatie"
+"director.open_object_studio_world_grid_every_object_dimension_optional_defaults_all_packs" = "Open een object studio wereld (raster van elk object; dimensie optioneel, standaardinstellingen voor alle pakketten)"
+"param.optional_dimension_whose_object_pack_lay_out_omit_aggregate_objects_from_every" = "Facultatief formaat waarvan de objectverpakking moet worden opgesteld; weglaten aan samengevoegde voorwerpen uit elke verpakking"
+"param.seed_generate_studio_with" = "Het zaad om de studio te genereren met"
+"director.check_composition_object" = "Controleer de samenstelling van een object"
+"param.object_analyze" = "Het te analyseren object"
+"director.shrink_object_its_minimum_size" = "Een object verkleinen tot zijn minimale grootte"
+"param.object_shrink" = "Het object om te krimpen"
+"director.grow_organic_branches_through_canopy_so_every_leaf_survives_vanilla_decay" = "Groei organische takken door het bladerdak zodat elk blad overleeft vanilla verval"
+"param.object_key_prefix_trees_filesystem_path" = "Objectsleutel, voorvoegsel (bomen/), of bestandssysteempad"
+"param.dryrun_true_analyzes_only_writes_nothing" = "dryrun=true analyseert alleen, schrijft niets"
+"param.reach_n_max_branch_length_blocks_from_existing_wood_farther_leaf_clusters" = "bereik=N max tak lengte in blokken van bestaand hout; verder blad clusters zijn gepind persistent plaats.  bereik=0 groeit onbeperkt"
+"director.convert_schem_files_convert_folder_iob_files" = "Converteer .schem bestanden in de map 'convert' naar .iob-bestanden."
+"director.get_powder_that_reveals_objects" = "Krijg een poeder dat objecten onthult"
+"director.contract_selection_based_on_your_looking_direction" = "Contracteer een selectie op basis van uw zoekrichting"
+"param.amount_inset_by" = "Het bedrag dat door"
+"director.set_point_1_look" = "Punt instellen 1 om te kijken"
+"param.whether_use_your_current_position_where_you_look" = "Of u uw huidige positie moet gebruiken of waar u kijkt"
+"director.set_point_2_look" = "Punt instellen 2 om te kijken"
+"param.whether_use_your_current_position_where_you_look_2" = "Of u uw huidige positie moet gebruiken of waar u kijkt"
+"director.paste_object" = "Een object plakken"
+"param.object_paste" = "Het te plakken object"
+"param.whether_not_edit_object_need_hold_wand" = "Of het object al dan niet bewerkt moet worden (wilt toverstok vasthouden)"
+"param.amount_degrees_rotate_by" = "De hoeveelheid graden om door te draaien"
+"param.factor_by_which_scale_object_placement" = "De factor waarmee het object geplaatst moet worden"
+"param.scale_interpolator_use" = "De te gebruiken schaalinterpolator"
+"director.save_object" = "Object opslaan"
+"param.dimension_store_object" = "De dimensie om het object in op te slaan"
+"param.file_store_it_can_use_subfolders" = "Het bestand om het in op te slaan, kan / gebruiken voor submappen"
+"param.overwrite_existing_object_files" = "Bestaande objectbestanden overschrijven"
+"param.use_legacy_tilestate_serialization_if_possible" = "Gebruik legacy TileState serialisatie indien mogelijk"
+"director.shift_selection_your_looking_direction" = "Verschuif een selectie in uw zoekrichting"
+"param.amount_shift_by" = "Het bedrag om door te schuiven"
+"director.undo_number_pastes" = "Meerdere plakbewerkingen ongedaan maken"
+"param.amount_pastes_undo" = "Het aantal plakbewerkingen dat ongedaan moet worden gemaakt"
+"director.gets_object_wand_grabs_current_worldedit_selection" = "Krijgt een objectstok en pakt de huidige WorldEdit selectie."
+"director.get_object_wand" = "Een objectstok halen"
+"director.autoselect_up_down_out" = "Autoselecteer omhoog, omlaag & uit"
+"director.autoselect_up_out" = "Automatisch selecteren & uit"
+
+[iris.director.commandpack]
+"director.pack_validation_maintenance" = "Validatie en onderhoud van verpakkingen"
+"director.validate_pack_all_packs_re_publish_results" = "Valideer een verpakking (of alle verpakkingen) en herpublish resultaten"
+"param.pack_folder_name_validate_leave_empty_all" = "De naam van de pakketmap om te valideren (leeg laten voor alles)"
+"director.preview_apply_unused_resource_cleanup" = "Voorbeeld of toepassing van niet-gebruikte bron opruiming"
+"param.pack_folder_name_clean" = "De naam van de verpakkingsmap om schoon te maken"
+"param.preview_apply" = "voorbeeld of toepassing"
+"director.preview_apply_restoration_latest_quarantine" = "Voorbeeld of toepassing van de meest recente quarantaine"
+"param.pack_folder_name_restore" = "De naam van de pakketmap om te herstellen"
+"param.preview_apply_2" = "voorbeeld of toepassing"
+"director.show_cached_validation_status_pack" = "Gecachede validatiestatus voor een pakket tonen"
+"param.pack_folder_name" = "De naam van de verpakkingsmap"
+"director.show_content_cannot_generate_this_minecraft_version" = "Toon pack-inhoud die niet kan worden gegenereerd op deze Minecraft-versie"
+"param.pack_folder_name_compat" = "De naam van de packmap om te rapporteren"
+
+[iris.director.commandpregen]
+"director.pregenerate_your_iris_worlds" = "Pregenereer uw Iris Werelden!"
+"director.pregenerate_world" = "Pregeneer een wereld"
+"param.radius_pregen_blocks" = "De straal van de pregen in blokken"
+"param.world_pregen" = "De wereld om te pregen"
+"param.center_location_pregen_use_me_your_current_location" = "De centrale locatie van de pregen.  Gebruik \"ik\" voor uw huidige locatie"
+"param.open_iris_pregen_gui" = "Open de Iris pregengui"
+"param.generate_only_one_chunk_at_time" = "Genereer slechts één stuk tegelijk"
+"director.stop_active_pregeneration_task" = "Stop de actieve pregeneratietaak"
+"director.pause_continue_active_pregeneration_task" = "Pauze / voortzetting van de actieve pregeneratie taak"
+"director.show_active_pregeneration_status" = "De status van actieve pregeneratie tonen"
+
+[iris.director.commandstructure]
+"director.iris_structure_tools_index_import_info" = "Iris structuurgereedschappen (index, import, info)"
+"director.regenerate_structure_index_json_listing_all_vanilla_datapack_iris_structures" = "Regeneren structure-index.json lijst met alle vanilla, datapack & irisstructuren"
+"param.dimension_whose_pack_index" = "De afmeting van de verpakking naar index"
+"director.import_every_structure_vanilla_ingested_datapacks_into_this_pack_as_editable_iris" = "Importeren elke structuur - vanilla en ingenomen datapacks - in deze verpakking als bewerkbaar Iris middelen, altijd overschrijven.  Herbouwt legpuzzel structuren (dorpen, buitenposten, datapack puzzels) als bewerkbare pool/stuk grafieken, importeert elke structuur template NBT als object, en monteert de multi-template structuren (scheepswrakken, geruïneerde portalen, oceaan ruïnes, onderste fossielen).  Ren na inname van een datapack en herstart.  Regenereer chunks of gebruik een verse wereld om de geïmporteerde kopieën te plaatsen."
+"param.dimension_whose_pack_import_into" = "De dimensie waarvan de verpakking moet worden ingevoerd"
+"director.capture_code_generated_structures_that_have_no_nbt_template_swamp_huts_igloos" = "Leg code-gegenereerde structuren vast die geen NBT template (swamp hutten, igloos, enz.) in bewerkbaar Iris objecten door het genereren van elk een in een wegwerp kras wereld en lezen terug zijn blokken.  Skipt structuren die al importeren als een structuur, structuren breder / vertaler dan de vangst cap (strongholds, herenhuizen, monumenten blijven vanilla), en alles wat niet zal genereren in een vlakke overwereld.  Elke gevangen structuur wordt één stuk Iris structuur kunt u plaatsen vanuit een biome/regio/dimensie 'structuren' lijst.  Runt automatisch als de laatste pas van /iris structure import."
+"param.dimension_whose_pack_capture_into" = "De dimensie waarvan de verpakking te vangen in"
+"director.verify_native_structure_eligibility_locate_iris_placed_structures_without_running_blocking_native" = "Controleer of de inheemse structuur in aanmerking komt en lokaliseer Iris-plaatste structuren zonder het blokkeren van inheemse zoekopdrachten."
+"param.dimension_verify" = "De te verifiëren dimensie"
+"param.search_radius_chunks_around_origin_larger_is_much_slower" = "Zoekradius in stukjes rond de oorsprong (groter is veel langzamer)"
+"director.resolve_iris_structure_s_jigsaw_graph_report_piece_count_bounds" = "Los de legpuzzel van een irisstructuur op en rapporteer het aantal stukjes & grenzen"
+"param.dimension_whose_pack_holds_structure" = "De afmeting waarvan het pakket de structuur vasthoudt"
+"param.iris_structure_key_inspect" = "De iris structuur sleutel om te inspecteren"
+"director.assemble_place_iris_structure_at_your_location_studio_testing" = "Verzamel en plaats een iris structuur op uw locatie (studio testen)"
+"param.dimension_whose_pack_holds_structure_2" = "De afmeting waarvan het pakket de structuur vasthoudt"
+"param.iris_structure_key_place" = "De iris structuur sleutel om te plaatsen"
+
+[iris.director.commandstudio]
+"director.studio_commands" = "Studio-opdrachten"
+"director.open_new_studio_world" = "Open een nieuwe studio wereld"
+"param.dimension_pack_open_studio" = "Het dimensiepakket om een studio te openen voor"
+"param.seed_generate_studio_with" = "Het zaad om de studio te genereren met"
+"director.import_vanilla_trees_mushrooms_objects_structures_jigsaw_from_server_into_pack_s" = "Vanillabomen importeren, paddestoelen & objecten (en structures/jigsaw) van de server naar een pakket objects/vanilla map"
+"param.dimension_pack_import_vanilla_content_into" = "Het dimensiepakket om vanilla-inhoud in te importeren"
+"param.how_many_variants_capture_per_tree_object_feature" = "Hoeveel varianten te vangen per boom/object functie"
+"param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "Importeer ook vanilla & gegevenspakket structures/jigsaw in de verpakking"
+"director.open_vscode_dimension" = "Geopend VSCode voor een dimensie"
+"param.dimension_open_vscode" = "De te openen dimensie VSCode voor"
+"director.close_open_studio_project" = "Sluit een open studioproject"
+"director.toggle_your_studio_debug_scoreboard" = "Uw Studio-debugscorebord aan/uit"
+"director.create_new_studio_project" = "Een nieuw studioproject aanmaken"
+"param.name_this_new_iris_project" = "De naam van deze nieuwe Iris - Project."
+"param.copy_contents_existing_project_your_packs_folder_use_it_as_template_this" = "Kopieer de inhoud van een bestaand project in uw pakketmap en gebruik het als sjabloon in dit nieuwe project."
+"director.get_version_pack" = "Haal de versie van een pakket"
+"param.dimension_get_version" = "De dimensie krijgt de versie van"
+"director.open_noise_explorer_external_gui" = "Open de noise explorer (externe GUI)"
+"param.optional_pack_generator_preview" = "Optionele pakketgenerator om te bekijken"
+"param.seed_preview_generator_with" = "Het zaad om de generator te bekijken met"
+"director.show_loot_if_chest_were_right_here" = "Laat buit zien als hier een kist staat."
+"param.fast_insertion_items_virtual_inventory_may_cause_performance_drop" = "Snelle invoeging van items in virtuele inventaris (kan leiden tot prestatiedaling)"
+"param.whether_not_append_inventory_currently_open_if_false_clears_opened_inventory" = "Of de huidige inventaris al dan niet moet worden toegevoegd (indien onjuist, cleart geopende inventaris)"
+"director.calculate_chance_each_region_generate" = "Bereken de kans voor elke regio om te genereren"
+"param.radius_chunks" = "De radius in stukjes"
+"director.render_world_map_external_gui" = "Een wereldkaart renderen (extern GUI)"
+"param.world_open_generator" = "De wereld om de generator te openen voor"
+"director.package_dimension_into_compressed_format" = "Pak een dimensie in gecomprimeerd formaat"
+"param.dimension_pack_compress" = "Het maatpakket om te comprimeren"
+"param.whether_not_obfuscate_pack" = "Of de verpakking al dan niet verduisterd moet worden"
+"param.whether_not_minify_pack" = "Of de verpakking al dan niet moet worden verminkt"
+"director.profiles_performance_dimension" = "Profielen de prestaties van een dimensie"
+"param.dimension_profile" = "De afmeting van het profiel"
+"director.spawn_iris_entity" = "Een Iris-entiteit spawnen"
+"param.entity_spawn" = "De entiteit die moet spawnen"
+"param.location_spawn_entity_at" = "De locatie waar de entiteit moet spawnen"
+"director.teleport_active_studio_world" = "Teleport naar de actieve studiowereld"
+"director.update_your_dimension_projects_vscode_workspace" = "Uw dimensieprojecten bijwerken VSCode werkblad"
+"param.dimension_update_workspace" = "De dimensie om de werkruimte van"
+"director.capture_igendata_chunk_report_nearby_chunks" = "Vang een IGenData chunk rapport voor nabijgelegen stukken"
+
+[iris.director.commandwhat]
+"director.iris_what" = "Iris Wat?"
+"director.what_is_my_hand" = "Wat heb ik in mijn hand?"
+"director.what_biome_am_i" = "In welke biome zit ik?"
+"director.what_region_am_i" = "In welke regio ben ik?"
+"director.what_block_am_i_looking_at" = "Naar welk blok kijk ik?"
+"director.show_markers_chunk" = "Markeerders tonen in chunk"
+"param.marker_name_such_as_cave_floor_cave_ceiling" = "Markeringsnaam zoals grotvloer of grot plafond"
+
+[iris.runtime.progress]
+finding_regions = "Regio's vinden"
+converting = "Converteren"
+
+[iris.runtime.status]
+running = "Uitvoeren"
+stopped = "Gestopt"
+paused = "Gepauzeerd"
+paused_lower = "gepauzeerd"
+running_lower = "draait"
+enabled = "ingeschakeld."
+disabled = "uitgeschakeld."
+unregistered = "niet geregistreerd"
+none = "geen"
+random = "willekeurig"
+match = "MATCH"
+mismatch = "MISMATCH"
+true = "waar"
+false = "onwaar"
+
+[iris.runtime.error]
+detail_suffix = " - {error}"
+
+[iris.runtime.datapack]
+override_suffix = " (World Datapack Override geïnstalleerd)"
+name = "Iris Wereldgeneratie"
+
+[iris.runtime.primary_world]
+players_routed_suffix = " (speelsters gerouteerd daar)"
+routing_disabled_suffix = " (gehandicapt)"
+
+[iris.runtime.modded]
+no_dimension_match = "Nee Iris dimensie komt overeen met '{filter}'."
+
+[iris.runtime.teleport]
+world = "U bent geteleporteerd naar {world}."
+
+[iris.runtime.engine]
+hotloaded = "Warm geladen motor"
+
+[iris.runtime.job]
+completed = "Voltooid {job} de {duration}"
+scanning_selection = "Selectie scannen"
+loading_chunks = "Chunks laden"
+searched_chunks = "Zoeken {chunks} Knobbels"
+compile = "Compileer"
+saving_object = "Object opslaan"
+downloading = "Downloaden"
+extracting = "Uitpakken"
+installing = "Installatie"
+
+[iris.runtime.compile]
+iob_empty = "- IOB  {file} heeft 0 blokken!"
+iob_empty_hover = "Fout:\n{path}"
+iob_not_3d = "- IOB  {file} is niet 3D!"
+iob_not_3d_hover = "Fout:\n{path}\nDe breedte, hoogte of diepte is nul (slecht formaat)"
+json_error = "- JSON Fout {file}"
+json_error_hover = "Fout:\n{path}\n{error}"
+loader_not_found = "Kan geen lader vinden voor {path}"
+
+[iris.runtime.pack]
+already_exists = "Pack bestaat al!"
+
+[iris.runtime.tree_plausibilize]
+dry_suffix = ", DRY"
+skip_load = "overslaan {object}: laden is mislukt"
+result = "{object}: +{wood} hout ({branches} takken), {converted} Bladeren->hout, ~{distances} afstanden"
+result_pinned = "{object}: +{wood} hout ({branches} takken), {converted} Bladeren->hout, ~{distances} afstanden,!{pinned} gepind"
+progress = "[{current}/{total}]"
+failed = "falen {object}: {type}: {error}"
+done = "Klaar: {processed} verwerkt, {changed} gewijzigd, {skipped} overgeslagen, {failed} mislukt"
+done_dry = "Klaar: {processed} verwerkt, {changed} gewijzigd, {skipped} overgeslagen, {failed} mislukt (droge uitvoeren, niets geschreven)"
+totals = "Totaal: +{wood} hout ({branches} takken), {converted} Bladeren->hout, ~{distances} afstanden,!{pinned} gepind, onbereikbaar {before}  ->  {after}"
+
+[iris.runtime.item]
+"wand.name" = "Ton van Iris"
+"wand.lore.first" = "Klik links op een blok om de eerste hoek in te stellen"
+"wand.lore.second" = "Klik met de rechtermuisknop op een blok om de tweede hoek in te stellen"
+"dust.name" = "Stof van het onthullen"
+"dust.lore" = "Klik met de rechtermuisknop op een blok om zijn plaatsingsstructuur te onthullen!"
+
+[iris.runtime.wand]
+position_set = "Positie {position} ingesteld op {x}, {y}, {z}"
+
+[iris.runtime.dust]
+iris_world_required = "Deze dimensie is niet door Iris gegenereerd."
+found_object = "Object gevonden {object}"
+revealed = "Onthuld {count} blok(s) van {object}"
+revealed_capped = "Onthuld {count} blok(s) van {object} (geklapt)"
+header = "--- Iris Stof {x}, {y}, {z} ---"
+block = "Blok: {block}"
+"position.above" = "Positie: +{offset}  boven oppervlakte (oppervlakte Y={surfaceY})"
+"position.below" = "Positie: {offset} onder het oppervlak (oppervlakte Y={surfaceY})"
+"position.at" = "Positie: aan het oppervlak (Y={surfaceY})"
+object_at_block = "Object-@blok: {object}"
+none = "geen"
+"placed_by.object_above" = "Geplaatst door: object/stilt '{object}\" (boven)"
+"placed_by.decoration_above" = "Geplaatst door: decoratie/object/stilt (bovenzijde)"
+"placed_by.buried_object" = "Geplaatst door: begraven voorwerp '{object}'"
+"placed_by.terrain" = "Geplaatst door: terreinlaag (diepte {depth} onder de oppervlakte)"
+column_object = "Kolom object: {object}  -> dit blok is waarschijnlijk de schuif van het object"
+column_object_none = "Kolom object: {detail}"
+column_none = "geen binnen 64 (decorator of terrein, niet een object stelt)"
+"column.above" = "{object} @Y={y} (boven)"
+"column.below" = "{object} @Y={y} (onder)"
+surface_biome = "Oppervlaktebioom: {biome}"
+surface_biome_detail = "Oppervlaktebioom: {biome} ({derivative})"
+biome_at_y = "Biome-@Y: {biome}"
+cave_biome = "Grot /Mantle biome {biome}"
+server_biome = "Serverbiome: {biome} (ID: {id})"
+region = "Regio: {region} ({name})"
+objects_in_chunk = "Objecten in blok: {objects}"
+copy_button = "[Klik om deze statistieken te kopiëren]"
+copy_hover = "Blokstatistieken naar klembord kopiëren"
+reveal_failed = "Object reveal failed; see the console for details."
+
+[iris.runtime.pregen]
+starting = "Iris Beginnen..."
+header = "Iris Voorbereiding"
+"bossbar.paused" = "Iris Voorbereiding {generated}/{total}  {percent}%  gepauzeerd"
+"bossbar.running" = "Iris Voorbereiding {generated}/{total}  {percent}%  {speed}/s{eta}{failed}"
+eta_fragment = "  ETA  {eta}"
+failed_fragment = "  mislukt {failed}"
+"status.context" = "Dimensie {dimension} · Methode {method}"
+"status.progress" = "{percent}%"
+"status.chunks" = "Knobbels {generated}/{total} · Snelheid overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s"
+"status.chunks_failed" = "Knobbels {generated}/{total} · Snelheid overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s · Failed {failed}"
+"status.time" = "ETA  {eta} · Vervallen {elapsed}"
+"status.time_paused" = "ETA  {eta} · Vervallen {elapsed} · gepauzeerd"
+"button.pause" = "Pauze/hervatten"
+"button.pause.hover" = "Voorgeneratiepauze-status aan/uitschakelen"
+"button.stop" = "Stoppen"
+"button.stop.hover" = "Voltooi de huidige regio en stop pregeneratie"
+
+[iris.bukkit.runtime]
+"commandpack.packs_folder_not_found" = "§cpakketten/map niet gevonden."
+"commandpack.no_packs_validate" = "§eGeen pakketten om te valideren."
+"commandpack.validation_complete_broken_packs" = "§aValidatie voltooid.  Gebroken verpakkingen: {broken}/{value}"
+"commandpack.pack_not_found_under_packs" = "§cVerpakking{pack}' niet gevonden onder packs/."
+"commandpack.no_cleanup_candidates_found_pack" = "§aGeen cleanup kandidaten gevonden voor pakket '{pack}'."
+"commandpack.quarantined_cleanup_candidate_s_under" = "§aQuarantaine {size} cleanup candidate(s) onder {quarantinePath}."
+"commandpack.cleanup_mode_must_be_preview_apply" = "§cDe opruimmodus moet een voorbeeld zijn of toegepast worden."
+"commandpack.no_cleanup_candidates_found_pack_2" = "§aGeen cleanup kandidaten gevonden voor pakket '{pack}'."
+"commandpack.cleanup_preview_pack_candidate_s_no_files_were_changed" = "§eSchoonmaakvoorbeeld voor verpakking '{pack}': {size} kandidaat(s).  Er werden geen bestanden gewijzigd."
+"commandpack.run_iris_pack_cleanup_mode_apply_quarantine_these_candidates_after_fresh_scan" = "§7Uitvoeren /iris pack cleanup {pack} mode=apply om deze kandidaten in quarantaine te houden na een nieuwe scan."
+"commandpack.restore_refused_because_destination_s_already_exist" = "§cHerstel geweigerd omdat {size} destination(s) bestaat al."
+"commandpack.nothing_restore_pack" = "§eNiets te herstellen voor de verpakking '{pack}'."
+"commandpack.restored_file_s_from" = "§aHersteld {size} bestand(s) van {dumpPath}."
+"commandpack.restore_mode_must_be_preview_apply" = "§cDe herstelmodus moet een voorbeeld zijn of toegepast worden."
+"commandpack.nothing_restore_pack_2" = "§eNiets te herstellen voor de verpakking '{pack}'."
+"commandpack.restore_preview_file_s_no_files_were_changed" = "§eVoorbeeld herstellen voor {dumpPath}: {size} bestand(s).  Er werden geen bestanden gewijzigd."
+"commandpack.restore_is_blocked_by_existing_destination_s" = "§cHerstel wordt geblokkeerd door {size} bestaande bestemming(s)."
+"commandpack.run_iris_pack_restore_mode_apply_restore_after_fresh_conflict_check" = "§7Uitvoeren /iris pack restore {pack} mode=apply te herstellen na een nieuwe conflict controle."
+"commandpack.no_validation_results_recorded_run_iris_pack_validate_first" = "§eGeen validatieresultaten geregistreerd.  Uitvoeren /iris pack validate Eerst."
+"commandpack.status.ok" = "§aOK.§r  {pack}§7 (blokkering={blocking}, waarschuwingen={warnings})"
+"commandpack.status.broken" = "§cBOKEN§r  {pack}§7 (blokkering={blocking}, waarschuwingen={warnings})"
+"commandpack.cleanup_failed" = "§cOpruimen mislukt: {error}"
+"commandpack.restore_failed" = "§cHerstellen mislukt: {error}"
+"commandpack.path.still_quarantined" = "nog steeds in quarantaine"
+"commandpack.path.quarantined" = "in quarantaine"
+"commandpack.path.candidate" = "kandidaat"
+"commandpack.path.conflict" = "conflicten"
+"commandpack.path.restored" = "hersteld"
+"commandpack.path.file" = "bestand"
+"commandpack.no_validation_result_run_iris_pack_validate" = "§eGeen validatie resultaat voor '{pack}'.  Uitvoeren /iris pack validate {pack2}."
+"commandpack.validation_failed" = "§cValidatie van{name}' mislukt: {error}"
+"commandpack.pack_is_loadable_warnings" = "§aVerpakking{packName}' is laadbaar.§7 (waarschuwingen={size})"
+"commandpack.pack_is_broken" = "§cVerpakking{packName}' beschadigd:"
+"commandpack.message" = "§c  - {reason}"
+"commandpack.message_2" = "§e  !  {value}"
+"commandpack.more_warning_s" = { other = "§7    ...  en {count} meer waarschuwingen.", one = "§7    ...  en {count} Meer waarschuwing." }
+"commanddeveloper.stage_world_generation_update_warning" = ["§cMaak een back-up van de volledige wereld voordat je deze update klaarzet.", "§eBestaande chunks worden niet opnieuw gegenereerd of overschreven.", "§eNa de herstart gebruiken nieuwe chunks het klaargezette pakket, met een geleidelijke overgang aan de opgeslagen grens.", "§eDe seed, hoogte, omgeving en het dimensietype van de wereld mogen niet veranderen.", "§eElke back-up moet de volledige map iris/generation bevatten.", "§cOm de update klaar te zetten en een nette herstart aan te vragen:", "§c/iris developer update-world {world} {pack} confirm=true"]
+"bulkstructureimporter.importing_vanilla_datapack_structures_mode_includenonjigsaw" = "§aImporteren §f{total}§a vanilla & datapack structuren (mode={mode}, includeNonJigsaw={includeNonJigsaw})..."
+"bulkstructureimporter.fail_invalid_key" = "§c[fout]  {keyString}: ongeldige sleutel"
+"bulkstructureimporter.jigsaw" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.skip_no_single_template_nbt_vanilla_builds_this_code_from_separate_piece" = "§e[overgeslagen]  {keyString}: geen enkel template NBT - vanilla bouwt dit in code of uit afzonderlijke stuk templates (geïmporteerd via de sjablonen pas); niets te importeren als één structuur."
+"bulkstructureimporter.fail" = "§c[fout]  {keyString}: {message}"
+"bulkstructureimporter.fail_2" = "§c[fout]  {keyString}: {message}"
+"bulkstructureimporter.fail_3" = "§c[fout]  {keyString}: {error}"
+"bulkstructureimporter.bulk_import_complete_imported_skipped_failed_total" = "§aBulkinvoer voltooid: §f{imported}§a ingevoerd, §f{skipped}§a overgeslagen, §f{failed}§a mislukt (§f{total}§a Totaal)."
+"bulkstructureimporter.building_single_template_structures_from_imported_pieces_one_variant_placed_per_generation" = "§aBouwen van enkelwandige structuren uit geïmporteerde stukken (één variant geplaatst per generatie)..."
+"bulkstructureimporter.group_variants" = "§7[group]  {value}  ->  {value2} ({blocks} varianten)"
+"bulkstructureimporter.skip" = "§e[overgeslagen]  {value}: {message}"
+"bulkstructureimporter.fail_4" = "§c[fout]  {value}: {error}"
+"bulkstructureimporter.single_template_structures_built_skipped_failed" = "§aéénplaatconstructies: §f{imported}§a gebouwd, §f{skipped}§a overgeslagen, §f{failed}§a mislukt."
+"bulkstructureimporter.failed_enumerate_structure_templates_via_server_resourcemanager" = "§cOpsomming van structuursjablonen via de server mislukt ResourceManager: {e}"
+"bulkstructureimporter.no_structure_templates_were_found_under_structure_resource_path" = "§eEr werden geen structuursjablonen gevonden onder het 'structure' resource pad."
+"bulkstructureimporter.importing_structure_templates_mode" = "§aImporteren §f{total}§a structuursjablonen (modus={mode})..."
+"bulkstructureimporter.fail_invalid_key_2" = "§c[fout]  {keyString}: ongeldige sleutel"
+"bulkstructureimporter.fail_5" = "§c[fout]  {keyString}: {message}"
+"bulkstructureimporter.fail_6" = "§c[fout]  {keyString}: {error}"
+"bulkstructureimporter.imported_skipped_failed" = "§7...{processed}/{total} ({imported} ingevoerd, {skipped} overgeslagen, {failed} faalde)"
+"bulkstructureimporter.template_import_complete_imported_skipped_failed_total" = "§aSjabloon importeren voltooid: §f{imported}§a ingevoerd, §f{skipped}§a overgeslagen, §f{failed}§a mislukt (§f{total}§a Totaal)."
+"bulkstructureimporter.no_datapack_non_minecraft_structures_are_registered_ingest_datapack_restart_first_then" = "§eEr zijn geen datapack (niet-mijnbouw) structuren geregistreerd.  Installeer eerst een datapack en start dit opnieuw op."
+"bulkstructureimporter.importing_datapack_structures_mode" = "§aImporteren §f{total}§a datapack structuren (mode={mode})..."
+"bulkstructureimporter.fail_invalid_key_3" = "§c[fout]  {keyString}: ongeldige sleutel"
+"bulkstructureimporter.jigsaw_2" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single_2" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.fail_7" = "§c[fout]  {keyString}: {message}"
+"bulkstructureimporter.fail_8" = "§c[fout]  {keyString}: {message}"
+"bulkstructureimporter.fail_9" = "§c[fout]  {keyString}: {error}"
+"bulkstructureimporter.importing_datapack_structure_templates" = "§aImporteren §f{size}§a templates voor gegevenspackstructuur..."
+"bulkstructureimporter.fail_10" = "§c[fout]  {keyString}: {message}"
+"bulkstructureimporter.fail_11" = "§c[fout]  {keyString}: {error}"
+"bulkstructureimporter.could_not_enumerate_datapack_templates_via_server_resourcemanager" = "§eKon datapack sjablonen niet opnoemen via de server ResourceManager: {error}"
+"bulkstructureimporter.datapack_structure_import_complete_imported_skipped_failed" = "§aDatapack structuur import voltooid: §f{imported}§a ingevoerd, §f{skipped}§a overgeslagen, §f{failed}§a mislukt."
+"structurecaptureimporter.structure_capture_is_not_supported_by_active_nms_binding_skipping_capture_pass" = "§eStructuur capture wordt niet ondersteund door de actieve NMS binding; de vangstpas overslaan."
+"structurecaptureimporter.no_code_generated_structures_left_capture_everything_is_already_imported_as_structure" = "§7Geen code-gegenereerde structuren meer te vangen (alles is al als structuur geïmporteerd)."
+"structurecaptureimporter.capturing_code_generated_structures_no_nbt_template_into_scratch_world_skipping_any" = "§aVangen §f{total}§a code-gegenereerde structuren (geen NBT sjabloon) in een kraswereld (een breder/vertaler overslaan dan {MAXSPAN} blokken)..."
+"structurecaptureimporter.skip_did_not_place_capturable_structure_here_too_large_wrong_dimension_no" = "§e[overgeslagen]  {key}: heeft hier geen captureerbare structuur geplaatst (te groot, verkeerde dimensie of geen geldige plaatsing in een platte wereld).  Blijft vanilla gegenereerd."
+"structurecaptureimporter.fail" = "§c[fout]  {key}: {message}"
+"structurecaptureimporter.capture_objects_iob_x_x" = "§7[capture]  {key}  ->  objects/{name}.iob ({w}x{h}x{d})"
+"structurecaptureimporter.fail_2" = "§c[fout]  {key}: {error}"
+"structurecaptureimporter.captured_skipped_failed" = "§7...{processed}/{total} ({imported} gevangen, {skipped} overgeslagen, {failed} faalde)"
+"structurecaptureimporter.structure_capture_complete_captured_skipped_failed_total" = "§aStructuuropvang voltooid: §f{imported}§a gevangen, §f{skipped}§a overgeslagen, §f{failed}§a mislukt (§f{total}§a Totaal)."
+"featureimporter.no_vanilla_tree_object_features_are_exposed_by_active_nms_binding_importing" = "§eGeen vanillaboom/object eigenschappen worden blootgesteld door de actieve NMS binding (alleen invoerstructuren)."
+"featureimporter.importing_vanilla_tree_object_features_variants_each_into_scratch_world" = "§aImporteren §f{total}§a vanillaboom/objectkenmerken (§f{wantVariants}§a varianten elk) in een kraswereld..."
+"featureimporter.obj_objects_vanilla" = "§7[obj]  {key}  ->  objects/vanilla/{group}/{safeName} ({written})"
+"featureimporter.skip_feature_placed_nothing_after_retries" = "§e[overgeslagen]  {key}: functie geplaatst niets na retrieves."
+"featureimporter.fail" = "§c[fout]  {key}: {error}"
+"featureimporter.imported_skipped_failed" = "§7...{processed}/{total} ({imported} ingevoerd, {skipped} overgeslagen, {failed} faalde)"
+"featureimporter.feature_import_complete_features_written_skipped_failed_total" = "§aFunctie import voltooid: §f{imported}§a geschreven kenmerken; §f{skipped}§a overgeslagen, §f{failed}§a mislukt (§f{total}§a Totaal)."
+"featureimporter.could_not_create_scratch_world_feature_import_skipping_tree_object_pass" = "§cKon de kraswereld voor feature import niet aanmaken ({error}); de boom/object pas overslaan."
+"irisconverter.no_schematic_files_convert_found" = "Geen schematische bestanden om te converteren gevonden in {path}"
+"irisconverter.converted" = "§aOmgezet {name}  ->  {value} de {value2}"
+"irisconverter.converted_2" = "§aOmgezet {name}  ->  {value}"
+"irisconverter.failed_save" = "§cOpslaan mislukt: {name}"
+"irisconverter.failed_convert" = "§cConverteren mislukt: {name}"
+"irisconverter.converted_3" = "§7Omgezet: {get} de {value}"
+"irisconverter.some_schematics_failed_convert_check_console_details" = "§cSommige schema's konden niet worden omgezet.  Controleer de console voor details."
+"studiosvc.pack_copy_requires_async_thread" = "§cIris refused to copy the world pack on the Bukkit primary thread."
+"studiosvc.pack_install_failed" = "§cFailed to install world pack §f{dimension}§c: {error}"
+"studiosvc.looking_package" = "Op zoek naar pakket: {type}"
+"studiosvc.found_iris_folder" = "Gevonden {type}Iris in {WORKSPACENAME} map"
+"studiosvc.found_dimension_folder_repackaging" = "Gevonden {type} dimensie in {WORKSPACENAME} map.  Herverpakking"
+"studiosvc.can_t_find_dimensions_folder_this_pack_failed" = "Kan de {name} in de afmetingen map van dit pakket!  Mislukt!"
+"studiosvc.can_t_load_dimension_failed" = "Kan de dimensie niet laden!  Mislukt!"
+"studiosvc.type_installed" = "{name} type geïnstalleerd. "
+"studiosvc.failed_open_studio_world" = "Openen van studiowereld mislukt: {error}"
+"studiosvc.cannot_open_studio_pack_has_blocking_errors" = "Kan studio niet openen '{dimm}' - Pack heeft blokkerende fouten:"
+"studiosvc.message" = " - {reason}"
+"studiosvc.fix_pack_run_iris_pack_validate_revalidate" = "Repareer de verpakking en ren /iris pack validate {dimm} om te hervalideren."
+"studiosvc.failed_close_existing_studio_project" = "Het bestaande studioproject kon niet worden afgesloten: {error}"
+"studiosvc.failed_close_existing_studio_project_2" = "Het bestaande studioproject kon niet worden afgesloten: {error}"
+"studiosvc.failed_open_studio_world_2" = "Openen van studiowereld mislukt: {error}"
+"studiosvc.couldn_t_find_pack_create_new_dimension_from" = "Kon het pakket niet vinden om een nieuwe dimensie van te maken."
+"studiosvc.missing_imported_dimension_file" = "Ontbrekend geïmporteerd dimensiebestand"
+"studiosvc.importing_into_new_project" = "Importeren {downloadable} in nieuw project {s}"
+"objectstudiosaveservice.object_studio_no_cell_under_click_x_z" = "§7Object Studio: geen cel onder klik (x={x} z={z})."
+"objectstudiosaveservice.object_studio_saving_x_x" = "§bObjectstudio: opslaan §f{pack}/{key}§7 ({w}x{h}x{d})"
+"objectstudiosaveservice.object_studio_no_changes" = "§7Object Studio: geen wijzigingen voor {pack}/{key}."
+"objectstudiosaveservice.object_studio_empty_cell_nothing_write" = "§7Object Studio: lege cel {pack}/{key} (niets te schrijven)."
+"objectstudiosaveservice.object_studio_no_target_file" = "§cObject Studio: geen doelbestand voor {pack}/{key}."
+"objectstudiosaveservice.object_studio_saved" = "§aObjectstudio: opgeslagen §f{pack}/{key}"
+"objectstudiosaveservice.object_studio_save_failed" = "§cObjectstudio: opslaan mislukt voor {pack}/{key} ({error})"
+"irisproject.could_not_load_dimension" = "Kon dimensie niet laden \"{value}\""
+"irisproject.could_not_get_dimension_loader" = "Kon dimensielader niet verkrijgen"
+"irisproject.studio_open_failed" = "§cStudio openen mislukt: {error}"
+"irisproject.studio_open_failed_2" = "§cStudio openen mislukt."
+"irisproject.studio_ready" = "§aStudio klaar §7({value})"
+"irisproject.studio" = "§6Studio §b{bar}  §e{percent}%§7  {currentStage}§8 ({value})"
+"irisproject.serializing_objects" = "Seriëlen van objecten"
+"irisproject.wrote_another_objects" = "Schreef er nog een. {g} Objecten"
+"irisproject.package_compiled" = "Pakket samengesteld!"
+"irisproject.failed" = "Mislukt!"
+"irisengine.total" = "Totaal: §l§f{value}"
+"irisengine.engine" = "  Motor §n§a{i}§r: §l§f{value}"
+"irisengine.details" = "Bijzonderheden: "
+"irisengine.message" = "  {befb}{num}{afb}: §l§f{value}"
+"enginebukkitops.is_not_defined_dimension" = "§c{name} is niet gedefinieerd in de dimensie!"
+"enginebukkitops.could_not_find_within_search_range" = "§cKon niet vinden {message} binnen zoekbereik."
+"enginebukkitops.teleporting" = "§aTeleporteren naar {message}..."
+"enginebukkitops.at" = "§a{message} bij: {blockX}  {blockY}  {blockZ}"
+"iristoolbelt.you_have_been_evacuated_from_this_world" = "Jullie zijn geëvacueerd uit deze wereld."
+"iristoolbelt.you_have_been_evacuated_from_this_world_2" = "Jullie zijn geëvacueerd uit deze wereld.  {m}"
+"serverconfigurator.there_are_some_iris_packs_that_have_custom_biomes_them" = "Er zijn wat Iris Packs met aangepaste biomes erin"
+"serverconfigurator.you_need_restart_your_server_use_these_packs" = "U moet uw server opnieuw opstarten om deze pakketten te gebruiken."
+"virtualcommand.message" = "- §f{i}"
+"virtualcommand.insufficient_permissions" = "Onvoldoende machtigingen"
+"mortarcommand.parameters_ignored" = "Parameters genegeerd: {m}"
+"commandpack.compat_header" = "§ePack '{pack}': inhoud niet beschikbaar op Minecraft {version}"
+"commandpack.compat_none" = "§aPack '{pack}' gebruikt geen inhoud die ontbreekt in Minecraft {version}."
+"commandpack.compat_remedy" = "§7Werk de server bij naar een nieuwere Minecraft om deze inhoud te herstellen, of declareer terugvallen (blockFallbacks van de dimensie, backup van het blok)."
+
+[iris.runtime.studio]
+opening = "§6Studio §bOPENEN"
+opening_progress = "§6Studio §bOPENEN§7 {percent}%"
+failed_progress = "§6Studio §cMISLUKT§7 {percent}%"
+ready_progress = "§6Studio §aGEREED§7 100%"
+"action.failed" = "{bar}§7 §cMISLUKT§7 | §f{stage}"
+"action.ready" = "{bar}§7 §a100%§7 | §aStudio gereed§8 {elapsed}"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}§8  {elapsed}"
+"console.progress" = "§6Studio §b{bar}§e  {percent}%§7  {stage}§8 ({elapsed})"
+"stage.initializing" = "Initialiseren"
+"stage.queued" = "In wachtrij"
+"stage.resolve_dimension" = "Dimensie bepalen"
+"stage.prepare_world_pack" = "Wereldpack voorbereiden"
+"stage.install_datapacks" = "Datapacks installeren"
+"stage.create_world" = "Wereld maken"
+"stage.apply_world_rules" = "Wereldregels toepassen"
+"stage.prepare_generator" = "Generator voorbereiden"
+"stage.teleport_player" = "Teleporteren"
+"stage.finalize_open" = "Afronden"
+"stage.cleanup" = "Opruimen"
+
+[iris.runtime.world_create]
+teleport_failed = "§eDe wereld werd gecreëerd, maar de automatische teleportatie mislukte.  Probeer /iris teleport world={world}"
+"lifecycle.action" = "{bar}§7 §e{percent}%§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.failed" = "{bar}§7 §cFAILED§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.ready" = "{bar}§7 §a100%§7 | §aWorld ready§8 {elapsed}"
+"lifecycle.console" = "§6World §b{world} {bar} §e{percent}%§7 {stage}{detail}§8 ({elapsed})"
+"lifecycle.console.failed" = "§6World §b{world}§7 | §ccreation failed§8 after {elapsed}"
+"lifecycle.console.ready" = "§6World §b{world}§7 | §aready§8 in {elapsed}"
+"stage.initializing" = "Initializing"
+"stage.resolve_dimension" = "Resolving dimension"
+"stage.validate_pack" = "Validating pack"
+"stage.prepare_world_pack" = "Preparing world pack"
+"stage.install_datapacks" = "Installing datapacks"
+"stage.prepare_generator" = "Preparing generator"
+"stage.create_world" = "Generating spawn"
+"stage.register_world" = "Registering world"
+"stage.teleport_player" = "Entering world"
+"stage.pregenerate" = "Pregenerating"
+"stage.finalize" = "Finalizing"
+"stage.complete" = "World ready"
+"pregen.action" = "{bar}§7  §e{percent}%§7 | §fPregeneren"
+"pregen.console" = "§6Pregeneren §e{percent}%"
+
+[iris.runtime.world_replace]
+start = "§eDe vervanging van {world} met Iris wordt voorbereid. De huidige wereld blijft actief tot de herstart."
+progress = "§eVervanging van {world}: {stage} ({elapsed}s verstreken)"
+"stage.datapacks" = "Datapacks van de dimensie controleren"
+"stage.seed" = "Seed voor de vervangende wereld voorbereiden"
+"stage.pack" = "Dimensiepakket kopiëren en valideren"
+"stage.players" = "Bescherming bij het betreden van de wereld vastleggen"
+"stage.verify" = "Voorbereide vervanging controleren"
+"stage.save" = "Vervanging opslaan voor de herstart"
+"stage.cleanup" = "Mislukte vervanging opruimen"
+
+[iris.runtime.chunk_job]
+"title.regen" = "RegenName"
+"title.delete" = "Verwijderen"
+"title.golden_hash" = "GoldenHash"
+"stage.preparing" = "Voorbereiding"
+"stage.clearing" = "Verruiming"
+"stage.resetting_mantle" = "Herstellende Mantle"
+"stage.regenerating" = "Regenererend"
+"stage.generating" = "Genereren"
+"stage.comparing" = "Vergelijking"
+"stage.diagnosing" = "Diagnose"
+"bossbar.working" = "§6{title}  §bWERKZAAMHEDEN"
+"bossbar.progress" = "§6{title}  §b{stage}§7  §e{percent}%"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}  {applied}/{total}"
+summary = "{applied}/{total} chunks in {elapsed}"
+"summary.failed" = "{applied}/{total} chunks in {elapsed} ({failures} faalde)"
+"bossbar.done" = "§6{title}  §aKLAAR§7  §e{summary}"
+"bossbar.failed" = "§6{title}  §cNIET VERMIST§7  §e{summary}"
+"action.done" = "{bar}§7  §aKlaar§7 | §f{summary}"
+"action.failed" = "{bar}§7  §cMislukt§7 | §f{summary}"
+complete = "§a{title} compleet: {summary}"
+failed = "§c{title} voltooid met fouten: {summary}"
+
+[iris.runtime.golden]
+no_capture = "Geen gouden vangst op {path}; eerst vangen."
+aborted = { other = "GoldenHash afgechunken: {failed} Brokken konden niet worden aangemaakt.  Geen gouden dossier geschreven.", one = "GoldenHash afgechunken: {failed} Brok kon niet aanmaken.  Geen gouden dossier geschreven." }
+failed = "GoldenHash mislukt: {error}"
+mantle_reset = "Mantle resetten ({path})"
+mantle_reset_failed = "Mantle reset mislukt ({type}); voortzetting van de bestaande Mantletoestand."
+captured = "Goud gevangen: {chunks} chunks gecombineerd={hash}"
+wrong_world = "Gouden bestand is voor dim={goldenDimension} zaad={goldenSeed} maar deze wereld is zwak={dimension} zaad={seed}.  Afbreken."
+version_warning = "Goud werd gevangen op mc={goldenVersion}, draaiend mc={version}.  Diffs kunnen versie-geïnduceerd zijn."
+match = "GOLDEN  MATCH: {current}/{golden} chunks, gecombineerd={hash}"
+mismatch = "GOLDEN  MISMATCH: {mismatches}/{chunks} Brokken verschillen."
+mismatch_chunk = "  chunk {chunk}"
+missing_in_golden = "{chunk} (ontbrekend in goud)"
+mismatch_more = "  ...  en {count} meer"
+current_written = "Huidige hashes geschreven naar {file}"
+"diag.stable" = "Herhalingsgen STABLE, Mantle-reset {mantleStatus}  ->  {file}"
+"diag.unstable" = "Herhalingsgen UNSTABLE ({diffs}+ blok diffs), Mantle-reset {mantleStatus}  ->  {file}"
+"diag.mantle_stable" = "STABLE (Mantle herbouw reproduceert scan output)"
+"diag.mantle_diverged" = "DIVERGED ({diffs}+ diffs - Mantle opbouw is status/orde afhankelijk)"
+"diag.mantle_skipped" = "SKIPPED ({type})"
+"diag.failed" = "Diagnose mislukt: {error}"
+started = "GoldenHash gestart: {chunks} chunks rond 0,0 in buffers (onaangeroerde wereld), draden={threads} modus={mode}"
+chunk_hashed = "[{done}/{total}] chunk {x},{z} gehashed"
+chunk_failed = "Chunk. {x},{z}  mislukt: {type}"
+
+[iris.runtime.pack_download]
+"progress.start" = "§aIris §6PACK DOWNLOADEN§8 | §f{source}"
+"progress.phase" = "§aIris §b{phase}§8 | §7{source}"
+"progress.determinate" = "{bar}§7 §e{percent}%§8 | §f{transferred}§7/§f{total}§8 | §b{rate}/s"
+"progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
+"progress.detail" = "§8  - §7{detail}"
+"progress.complete" = "§aIris-pack '{pack}' geïnstalleerd§8 | §f{transferred}§7 in §f{elapsed}"
+"progress.unchanged" = "§eIris-pack '{pack}' is al geïnstalleerd."
+"progress.failed" = "§cDownload van het Iris-pack mislukt.§7 Bekijk de downloadgegevens hierboven en probeer het opnieuw."
+"progress.failed_detail" = "§cDownload van het Iris-pack mislukt.§7 {error}"
+"progress.cancelled" = "§eDownload van het Iris-pack geannuleerd vóór publicatie."
+"progress.restart" = "§6Herstart vereist§8 | §7Herstart de server voordat je met dit pack een wereld maakt of vervangt."
+"progress.phase.connecting" = "Verbinden"
+"progress.phase.downloading" = "Downloaden"
+"progress.phase.unpacking" = "Uitpakken"
+"progress.phase.validating" = "Valideren"
+"progress.phase.publishing" = "Publiceren"
+"progress.source.remote" = "Extern ZIP-bestand"
+invalid_source = "§cKies precies één bron: /iris download pack=overworld, /iris download pack=underworld of /iris download link=‹zip-url›."
+invalid_url = "§cIris vereist een geldige HTTP- of HTTPS-URL naar een .zip-bestand."
+invalid_built_in = "§cIris biedt alleen ingebouwde downloads voor 'overworld' en 'underworld'."
+shutting_down = "§eIris wordt afgesloten en accepteert geen pakketdownloads."
+downloading = "Downloaden {url}"
+unpacking = "Uitpakken {repository}"
+unpack_failed = ["Uitpakken.  Controleer/doe het volgende:", "1.  Heeft u een werkende internetverbinding?", "2.  Is de download beschadigd?", "3.  Probeer de */plugins/iris/packs map en herdownload.", "4.  Download het pakket van de GitHub repo https://github.com/IrisDimensions/overworld", "5.  Contact ondersteuning (als alle andere opties niet helpen)"]
+no_extracted_files = "Er werden geen bestanden uit het zip-bestand gehaald."
+home_directory_error = "Fout bij het vinden van de thuismap.  Zijn er niet-tekst tekens in de bestandsnaam?"
+invalid_archive_format = "Ongeldig formaat.  Ontbrekende rootmap of te veel mappen!"
+no_dimension_file = "Geen dimensiebestand gevonden in het uitgepakte zip-bestand."
+check_github = "Controleer of het aanwezig is op GitHub En meld dit aan het personeel!"
+invalid_dimension = "Ongeldige dimensiemap onder dimensions/."
+importing = "Importeren {name} ({key})"
+dimension_key_conflict = "Een andere dimensie in de packs-map gebruikt al de sleutel {key}.  Importeren mislukt!"
+pack_key_conflict = "Een ander pakje gebruikt de sleutel {key}.  Importeren mislukt!"
+acquired = "Succesvol verworven {name}."
+already_installed = "Pack {key} is al geïnstalleerd, download wordt overgeslagen."
+in_progress = "Er wordt al een ander Iris-pack gedownload. Wacht tot dit is voltooid voordat je het opnieuw probeert."
+validation_failed = "Verpakking{pack}' mislukte validatie; wereld en Studio creatie zal worden geweigerd.  Motivering:"
+validation_reason = "  - {reason}"
+validated_with_warnings = { other = "Verpakking{pack}' gevalideerd met {count} waarschuwingen.", one = "Verpakking{pack}' gevalideerd met {count} waarschuwing." }
+validated = "Verpakking{pack}' gevalideerd."
+
+[iris.client.vision]
+title = "Iris Gezicht"
+connecting = "Verbinden met Iris server..."
+not_connected = "niet verbonden"
+not_iris_world = "Geen Iris wereld"
+server_without_iris = "Deze server gebruikt geen Iris"
+version_mismatch = "Iris versieconflict tussen client en server"
+no_dimension_data = "geen dimensiegegevens"
+header_detail = "{status}  zoomen {zoom}  x{x} z{z}"
+footer_hint = "Sleep naar pan scrollen om Esc te sluiten"
+dimension_pack = "{dimension}  verpakking {pack}"
+
+[iris.client.create]
+structures_required_title = "Iris vereist Structuren genereren"
+structures_required_body = "Iris plaatst zijn eigen structuren in de structuurgeneratiestap en laadt geen wereld die is aangemaakt met Structuren genereren uit. Zet Structuren genereren weer aan of kies een ander wereldtype."
+
+[iris.client.toast]
+studio_hotload = "Studio HotloadName"
+changed_files = { other = "{count} bestanden", one = "{count} bestand" }
+reload_failed = "herladen mislukt"
+reloaded = "herladen"
+pack_failed = "{pack} mislukt"
+
+[iris.client.what]
+title = "Iris Wat?"
+querying = "Opvragen {x}, {z}..."
+biome = "Biome {biome}"
+region = "Regio: {region}"
+cave = "Grot: {cave}"
+height = "Hoogte: {height}   ({x}, {z})"
+
+[iris.client.pregen]
+stats = "{done} / {total}  ({percent}%)"
+paused = "gepauzeerd"
+stale = "geen updates sinds {seconds}s"
+rate = "{rate}/s"
+rate_eta = "{rate}/s    ETA  {eta}"
+
+[iris.client.duration]
+hours_minutes = "{hours}h {minutes}m"
+minutes_seconds = "{minutes}m {seconds}s"
+seconds = "{seconds}s"
+
+[iris.bukkit.scoreboard]
+title = "§aIris."
+speed = "§aSnelheid§7:  {speed}/s  {duration}"
+cache = "§bKaas§7: {count}"
+mantle = "§bMantel§7: {count}"
+carving = "§dsnijden§7: {state}"
+region = "§bGebieden§7: {region}"
+biome = "§bBiomeName§7:  {biome}"
+biome_loading = "Laden"
+biome_unavailable = "Niet beschikbaar"
+height = "§bHoogte§7: {height}"
+slope = "§bHelling§7:  {slope}"
+block_updates = "§bBUD./s§7: {updates}"
+
+[iris.desktop.vision]
+title = "Iris Gezicht"
+view = "Beeld:"
+grid = "Raster"
+entities = "Entiteiten"
+follow = "Volgen"
+refreshing = "Verversen"
+fps = "{fps}  FPS"
+zoom_reset = "Reset zoomen"
+grid_enabled = "Raster ingeschakeld"
+grid_disabled = "Raster uitgeschakeld"
+entities_enabled = "Entiteiten ingeschakeld"
+entities_disabled = "Entiteiten uitgeschakeld"
+following = "Volgt {player}"
+no_player = "Geen speler in de wereld"
+follow_disabled = "Volgen uitgeschakeld"
+status_left = "{mode}  |  {bpp} bpp  {width} x {height} blokken"
+status_right = "X: {x}  Z: {z}  |  {fps}  FPS"
+entity_position = "Positie: {x}, {y}, {z}"
+entity_health = "Gezondheid: {health} / {maximum}"
+block_position = "Blok {x}, {z}"
+chunk_position = "Chunk. {x}, {z}"
+region_position = "Gebieden {x}, {z}"
+biome_key = "Sleutel: {key}"
+biome_file = "Bestand: {file}"
+velocity = "Snelheid: {velocity}"
+tiles = "Atlas: {ready} / {total}"
+workers = "Workers: {active} active / {queued} queued"
+center = "Midden: {x}, {z}"
+"help.toggle" = "Hulp aan/uit"
+"help.refresh" = "Tegels verversen"
+"help.follow" = "Speler volgen"
+"help.zoom" = "In/uitzoomen"
+"help.reset_zoom" = "Zoom resetten"
+"help.cycle_mode" = "Cyclusweergavemodus"
+"help.fps" = "Schakelen 30/60  FPS"
+"help.grid" = "Raster aan/uit"
+"help.biome" = "Gedetailleerde biome info"
+"help.teleport" = "Teleporteren naar cursor"
+"help.editor" = "Biome openen in editor"
+opened = "Geopend {target}"
+teleporting = "Teleporteren naar {x}, {z}"
+"mode.biome" = "BiomeName"
+"mode.biome_land" = "Biome-grond"
+"mode.biome_sea" = "Biome zee"
+"mode.region" = "Gebieden"
+"mode.cave_land" = "Grotland"
+"mode.river" = "Riviernetwerk"
+"mode.height" = "Hoogte"
+"mode.object_load" = "Objectbelasting"
+"mode.decorator_load" = "Decoratorbelasting"
+"mode.continent" = "Werelddeel"
+"mode.layer_load" = "Laagbelasting"
+
+[iris.desktop.noise]
+title = "Geluidsverkenner"
+title_generator = "Geluidsverkenner: {generator}"
+search = "Zoeken..."
+status = "{name}  |  X: {x}  Z: {z}  Zoom: {zoom}  Waarde: {value}  |  {fps}  FPS"
+"category.custom" = "Aangepast"
+"category.pack_generators" = "Packgenerators"
+"category.simplex" = "SimplexName"
+"category.perlin" = "Perline"
+"category.cellular" = "Cellulair"
+"category.iris" = "Iris"
+"category.clover" = "Klaver"
+"category.hexagon" = "Zeshoek"
+"category.vascular" = "Bloedvataandoeningen"
+"category.globe" = "Wereldbol"
+"category.cubic" = "Kubisch"
+"category.fractal" = "Fractaal"
+"category.static" = "Statisch"
+"category.nowhere" = "Nergens"
+"category.sierpinski" = "Sierpinskiworld.kgm"
+"category.utility" = "Hulpmiddel"
+"category.other" = "Andere"
+
+[iris.desktop.pregen]
+initializing = "Initialiseren..."
+title = "Beeld instellen"
+method_pending = "In afwachting"
+paused = "gepauzeerd"
+resume_hint = "Druk op P om te hervatten"
+pause_hint = "Druk op P om te pauzeren"
+method = "Generatiemethode: {method}"
+pause = "Pauzeren"
+resume = "Hervatten"
+generating = "Genereren"
+saving = "Opslaan"
+stopping = "Stoppen"
+completed = "Voltooid"
+error = "Generatie mislukt"
+control_failed = "Pauzeren mislukt · zie serverlog"
+error_details = "Details in serverlog"
+progress = "{generated} / {total} chunks"
+percent = "{percent} voltooid"
+current = "Huidig · 10 s"
+overall = "Totaal"
+thirty = "Gemiddelde 30 s"
+sixty = "Gemiddelde 60 s"
+rate = "{rate} chunks/s"
+eta = "Resterend"
+elapsed = "Verstreken"
+memory_label = "Geheugen"
+memory_usage = "{used} · {usage}"
+pressure = "Toewijzing"
+pressure_value = "{rate}/s"
+cached = "{method} · gecachet"
+failed = "{count} mislukt · zie serverlog"
+map = "Generatiekaart"
+bounds = "Chunks X {minX} tot {maxX} · Z {minZ} tot {maxZ}"
+waiting = "Wachtend"
+ready = "Gereed"
+existing = "Bestaand"
+network = "Netwerk"
+terrain_hint = "Voltooide chunks tonen terreinkleuren"
+
+[iris.runtime.what]
+material = "Material: {material}"
+full_state = "Full: {state}"
+item_count = "Count: {count}"
+iris_biome = "Iris biome: {biome} ({name})"
+derivative_biome = "Derivative biome: {biome}"
+native_biome = "Registered biome: {biome} (ID: {id})"
+non_iris_biome = "Non-Iris biome: {biome} (ID: {id})"
+iris_region = "Iris region: {region} ({name})"
+position = "Position: {x}, {y}, {z} (chunk {chunkX}, {chunkZ})"
+object = "Iris object: {object}"
+block_entity = "Block entity: {type}"
+loot_table = "Loot table: {loot}"
+spawner_entity = "Spawner entity: {entity}"
+"flag.solid" = "solid"
+"flag.fluid" = "fluid"
+"flag.water" = "water"
+"flag.waterlogged" = "waterlogged"
+"flag.storage" = "storage (loot capable)"
+"flag.lit" = "lit"
+"flag.foliage" = "foliage"
+"flag.plantable_foliage" = "plantable foliage"
+"flag.decorant" = "decorant"
+"flag.ore" = "ore"
+"flag.block_entity" = "block entity"
+
+[iris.runtime.world]
+height_range = "World height: {minY} to {maxY}"
+height_total = "Total height: {height}"
+
+[iris.desktop.imagemap]
+title = "Image Map Studio"
+preset = "Preset:"
+load = "Load"
+import_png = "Import PNG"
+replace_png = "Replace PNG"
+preview = "Preview"
+export = "Export to active pack"
+metadata = "Source metadata"
+resource = "Resource binding"
+coordinates = "Coordinates and sampling"
+binding_key = "Binding key"
+map_key = "Map key"
+image_key = "Image key"
+type = "Type"
+application = "Application"
+blocks_per_pixel = "Blocks per pixel"
+origin_x = "World origin X"
+origin_z = "World origin Z"
+source_origin_x = "Source origin X"
+source_origin_z = "Source origin Z"
+rotation = "Rotation"
+mirror_x = "Mirror X"
+mirror_z = "Mirror Z"
+sampling = "Sampling"
+out_of_bounds = "Out of bounds"
+alpha = "Alpha policy"
+fallback_value = "Fallback value"
+fallback_target = "Fallback target"
+minimum_height = "Minimum height"
+maximum_height = "Maximum height"
+vertical_offset = "Vertical offset"
+clamp = "Clamp height"
+inverted = "Invert values"
+curve_exponent = "Curve exponent"
+smoothing_radius = "Smoothing radius"
+threshold = "Threshold"
+falloff = "Falloff"
+color_tolerance = "Raw sRGB tolerance"
+unknown_color = "Unknown color"
+add_color = "Add legend color"
+remove_color = "Remove selected"
+composed_masks = "Composed masks"
+add_mask = "Add mask binding"
+height = "Height interpretation"
+mask = "Mask interpretation"
+color_map = "Color legend"
+overlays = "World overlays"
+chunks = "16-block chunks"
+regions = "512-block regions"
+boundary = "World boundary"
+coverage = "Source coverage"
+diagnostics = "Diagnostics"
+ready = "Ready"
+no_source = "Import a PNG source to begin."
+loading = "Loading preset..."
+load_failed = "Preset load failed"
+previewing = "Compiling preview..."
+preview_valid = "Runtime compiler validation passed."
+preview_failed = "Preview failed"
+exporting = "Validating and exporting..."
+exported = "Exported image map, PNG, and dimension binding atomically."
+export_failed = "Export failed"
+source = "Source pixels"
+interpreted = "Runtime interpretation"
+no_preview = "Compile a valid preview to inspect world output."
+preview_status = "X {x}  Z {z}  |  {value}  |  {scale} blocks/pixel"
+
+[language.menu]
+your_language = "Jouw taal"
+reset_your_language = "Jouw taalkeuze herstellen"
+server_default = "Standaardtaal van de server"
+edit_messages = "Taalberichten bewerken"
+use_server_default = "Standaardtaal van de server gebruiken"
+current = "Huidig: {locale}"
+current_with_personal = "Huidig: {locale} (Jouw keuze: {personal})"
+your_description = "Wijzig alleen de berichten die jij ziet."
+reset_description = "Gebruik de standaardtaal van de server."
+server_description = "Wijzig de standaardtaal van de server."
+edit_description = "Open de berichteneditor voor elke taal."
+select_description = "Klik om deze taal te selecteren."
+remove_personal_description = "Verwijder jouw persoonlijke taalkeuze."
+no_controls = "Je hebt geen toegang tot taalinstellingen."
+command = "Commando: {command}"
+selected = "geselecteerd"
+all-volmit-plugins = "Alle Volmit-plugins"
+
+[language.error]
+stopping = "Taalselectie is niet beschikbaar terwijl de plugin stopt."
+editor-player-only = "Open de taalbewerker in het spel."
+no-providers = "Er zijn geen Volmit-taalaanbieders beschikbaar."
+numeric-page = "Voer een paginanummer in."
+personal-player-only = "Spelertaalvoorkeuren moeten in het spel worden geselecteerd."
+personal-permission = "U hebt geen toestemming om uw taal te selecteren."
+plugin-personal-permission = "Je hebt geen toestemming om je taal voor {plugin} te kiezen."
+plugin-server-permission = "Je hebt geen toestemming om de servertaal voor {plugin} te wijzigen."
+server-locale-required = "Kies een taalcode zoals en_US voor de standaardtaal van de server."
+unavailable-for-all = "De taal {locale} is niet voor alle geselecteerde plugins beschikbaar."
+
+[language.usage]
+editor = "Gebruik: /{command} language server edit [locale]"
+selection = "Gebruik: /{command} language self [locale|reset] or server [locale]"
+volmit-selection = "Gebruik: /volmit plugins languages [locale]"
+
+[language.selection]
+preparing = "Taal {locale} wordt voorbereid voor {target}..."
+save-failed = "{plugin}: de taalkeuze kon niet worden opgeslagen; controleer de serverconsole."
+english-fallback = "{plugin}: {locale} is niet beschikbaar; Engels (en_US) wordt gebruikt."
+personal-selected = "{plugin}: uw taal is nu {locale}."
+server-selected = "{plugin}: servertaal is nu {locale}."
+server-default-selected = "{plugin}: je taal volgt nu de standaardtaal van de server."
+
+[language.editor]
+"section.languages" = "Talen"
+"section.search" = "Zoeken"
+"section.search-title" = "{locale} / Zoeken"
+"section.group-title" = "{locale} / {group}"
+loading = "Berichten voor {locale} laden..."
+"prompt.search" = "Zoek op berichtsleutel of tekst. Typ cancel om terug te gaan."
+"prompt.value" = "Typ in de chat een nieuwe waarde voor {key}."
+"prompt.current" = "Huidige waarde: {value}"
+"prompt.variables" = "Variabelen: {variables}"
+"prompt.guidance" = "Gebruik \\n voor een nieuwe regel, \\\\ voor een backslash, of typ cancel om terug te gaan."
+"input.expired" = "De invoer voor de taalbewerker is verlopen."
+"input.too-long" = "De invoer mag maximaal {maximum} tekens bevatten."
+"input.unable-to-save" = "Opslaan mislukt: {reason}"
+"navigation.back" = "&eTerug&r"
+"navigation.close" = "&cSluiten&r"
+"navigation.previous-page" = "&eVorige pagina&r"
+"navigation.next-page" = "&eVolgende pagina&r"
+"search.messages" = "Berichten doorzoeken"
+"search.messages-lore" = "Klik om alle berichten te doorzoeken."
+"search.clear" = "Zoekopdracht wissen"
+"message.current-value" = "&7Huidige waarde:&r"
+"message.variables" = "&8{variables}&r"
+"message.edit-plural" = "&7Klik om een meervoudsvorm te bewerken.&r"
+"message.edit-lines" = "&7Klik om afzonderlijke regels te bewerken.&r"
+"message.edit-chat" = "&7Klik om in de chat te bewerken.&r"
+"locale.open" = "&8Klik om deze taal te openen.&r"
+"category.message-count" = "&7{count} berichten&r"
+"category.open" = "&8Klik om deze categorie te openen.&r"
+"error.no-permission" = "Je hebt geen toestemming om de talen van {plugin} te bewerken."
+"error.unable-to-edit" = "Bewerken mislukt: {reason}"
+"saved.summary" = "{locale} opgeslagen. De taalkeuzes blijven ongewijzigd."
+"saved.change" = "{key}: “{before}” is gewijzigd in “{after}”."
+"part.line" = "Regel {line}"
+"value.none" = "Geen"
+"value.empty" = "(leeg)"
+
+[debug.error]
+missing-permission = "Ontbrekende machtiging: {permission}"
+already-preparing = "Er wordt al een diagnoserapport voor {plugin} voorbereid."
+already-preparing-short = "Er wordt al een diagnoserapport voorbereid."
+schedule-failed = "Het maken van het diagnoserapport kon niet worden ingepland."
+provider-closed = "De diagnoseprovider is gesloten."
+closed-before-capture = "De diagnoseprovider is gesloten voordat de rapportgegevens waren verzameld."
+writer-schedule-failed = "Het schrijven van het diagnoserapport kon niet worden ingepland."
+capture-failed = "De gegevens voor het diagnoserapport konden niet worden verzameld. Controleer de serverconsole."
+closed-before-write = "De diagnoseprovider is gesloten voordat het rapport was geschreven."
+write-failed = "Het diagnoserapport kon niet worden geschreven. Controleer de serverconsole."
+
+[debug]
+preparing = "Diagnoserapport voor {plugin} wordt voorbereid..."
+saved = "Diagnoserapport voor {plugin} opgeslagen in {path}."
+
+[debug.upload]
+interrupted = "Het uploaden van het diagnoserapport is onderbroken. Het lokale rapport is opgeslagen."
+failed = "Het uploaden van het diagnoserapport is mislukt. Het lokale rapport is opgeslagen."
+completed = "Geüpload als VolmitSoftware - {plugin} - v{version}."
+
+[debug.action]
+open = "Openen: {url}"
+open-description = "Open het geüploade diagnoserapport."
+copy-path = "Lokaal pad kopiëren"
+copy-path-description = "Kopieer het pad van het lokale rapport."

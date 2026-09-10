@@ -1,6 +1,8 @@
 package art.arcane.iris.core.localization;
 
+import art.arcane.volmlib.util.diagnostics.BukkitDebugMessages;
 import art.arcane.volmlib.util.director.DirectorMessages;
+import art.arcane.volmlib.util.localization.BukkitLanguageMessages;
 import art.arcane.volmlib.util.localization.MessageCatalog;
 import art.arcane.volmlib.util.localization.MessageKey;
 import art.arcane.volmlib.util.localization.TextKey;
@@ -105,6 +107,8 @@ public final class IrisMessages {
     private static MessageCatalog createCatalog() {
         MessageCatalog.Builder builder = MessageCatalog.builder(VolmitLocales.ENGLISH);
         builder.addAll(DirectorMessages.keys());
+        builder.addAll(BukkitLanguageMessages.keys());
+        builder.addAll(BukkitDebugMessages.keys());
         builder.addAll(RUNTIME_KEYS);
         builder.addAll(BukkitCommandMessages.keys());
         builder.addAll(BukkitCommandMessagesExtended.keys());

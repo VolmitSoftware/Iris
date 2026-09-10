@@ -58,7 +58,7 @@ public final class SettingsHotloadWatch implements AutoCloseable {
     ) {
         this.settingsFile = Objects.requireNonNull(settingsFile, "Settings file cannot be null").getAbsoluteFile();
         File dataFolder = Objects.requireNonNull(this.settingsFile.getParentFile(), "Settings data folder cannot be null");
-        localeOverrideFolder = new File(dataFolder, "languages/overrides").getAbsoluteFile();
+        localeOverrideFolder = new File(dataFolder, "languages").getAbsoluteFile();
         Timing resolvedTiming = Objects.requireNonNull(timing, "Hotload timing cannot be null");
         this.beforeSnapshotApply = Objects.requireNonNull(beforeSnapshotApply, "Snapshot apply observer cannot be null");
         manualReloadListener = this::acknowledgeManualLocaleReload;
@@ -121,12 +121,12 @@ public final class SettingsHotloadWatch implements AutoCloseable {
             }
             return applySettingsSnapshot(file, snapshot.normalizedContent());
         }
-        if (!isLocaleOverrideFile(file) || !IrisLanguage.isActiveOverrideFile(file)) {
+        if (!isLocaleOverrideFile(file) || !IrisLanguage.isLanguageFile(file)) {
             return true;
         }
         if (!missing && snapshot.normalizedContent() == null) {
             reportUnavailableSnapshot(file);
-            return false;
+            return applyLocaleSnapshot(file, null);
         }
         return applyLocaleSnapshot(file, missing ? null : snapshot.normalizedContent());
     }
@@ -136,7 +136,7 @@ public final class SettingsHotloadWatch implements AutoCloseable {
     }
 
     boolean isLocaleOverrideFile(File file) {
-        if (file == null || !file.getName().toLowerCase(Locale.ROOT).endsWith(".json")) {
+        if (file == null || !file.getName().toLowerCase(Locale.ROOT).endsWith(".toml")) {
             return false;
         }
         File parent = file.getAbsoluteFile().getParentFile();
@@ -262,8 +262,8 @@ public final class SettingsHotloadWatch implements AutoCloseable {
             }
             return;
         }
-        if (IrisLanguage.isActiveOverrideFile(file)) {
-            IrisLogging.debug("Hotloaded locale override " + file.getName());
+        if (IrisLanguage.isLanguageFile(file)) {
+            IrisLogging.debug("Hotloaded language file " + file.getName());
         }
     }
 

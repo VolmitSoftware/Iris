@@ -41,6 +41,10 @@ public enum IrisSurface {
     @Desc("Within lava")
     LAVA;
 
+    public boolean isFluid() {
+        return this == WATER || this == LAVA;
+    }
+
     /**
      * Check if this Iris surface matches the blockstate provided
      *
@@ -49,7 +53,7 @@ public enum IrisSurface {
      */
     public boolean matches(Block state) {
         Material type = state.getType();
-        if (type.isSolid()) {
+        if (state.isSolid()) {
             return this == LAND || this == OVERWORLD || (this == ANIMAL
                     && (type == Material.GRASS_BLOCK || type == Material.DIRT
                     || type == Material.DIRT_PATH || type == Material.COARSE_DIRT
@@ -60,7 +64,7 @@ public enum IrisSurface {
         if (type == Material.WATER || type == Material.SEAGRASS
                 || type == Material.TALL_SEAGRASS || type == Material.KELP_PLANT
                 || type == Material.KELP ||
-                (state instanceof Waterlogged && ((Waterlogged) state).isWaterlogged()))
+                (state.getBlockData() instanceof Waterlogged waterlogged && waterlogged.isWaterlogged()))
             return this == WATER || this == OVERWORLD;
 
         return false;

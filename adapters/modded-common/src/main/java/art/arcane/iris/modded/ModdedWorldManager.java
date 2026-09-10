@@ -604,9 +604,11 @@ public final class ModdedWorldManager implements EngineWorldManager {
                 worldZ = (chunkZ << 4) + RNG.r.i(16);
                 int surfaceY = level.getHeight(Heightmap.Types.WORLD_SURFACE, worldX, worldZ) - 1;
                 int solidY = level.getHeight(Heightmap.Types.OCEAN_FLOOR, worldX, worldZ) - 1;
-                worldY = group == IrisSpawnGroup.NORMAL
-                        ? surfaceY + 1
-                        : RNG.r.i(solidY + 1, surfaceY);
+                Integer selectedY = IrisEntitySpawn.selectSurfaceSpawnY(group, irisEntity.getSurface(), solidY, surfaceY, RNG.r);
+                if (selectedY == null) {
+                    continue;
+                }
+                worldY = selectedY;
             }
             if (worldY <= level.getMinY() || worldY >= level.getMaxY()) {
                 continue;
@@ -653,6 +655,11 @@ public final class ModdedWorldManager implements EngineWorldManager {
             if (!lightAllowed(spawner, level, worldX, worldY, worldZ)) {
                 continue;
             }
+            if (irisEntity.getSurface().isFluid()
+                    && (!surfaceMatches(irisEntity.getSurface(), level, worldX, worldY, worldZ)
+                    || !ModdedEntitySpawner.isAreaClearForSpawn(level, irisEntity, worldX, worldY, worldZ))) {
+                continue;
+            }
             if (ModdedEntitySpawner.spawn(engine, irisEntity, level, worldX, worldY, worldZ, entityRng) != null) {
                 spawned++;
             }
@@ -681,11 +688,11 @@ public final class ModdedWorldManager implements EngineWorldManager {
     }
 
     private boolean surfaceMatches(IrisSurface surface, ServerLevel level, int worldX, int worldY, int worldZ) {
-        BlockState below = level.getBlockState(new BlockPos(worldX, worldY - 1, worldZ));
+        BlockState below = level.getBlockState(new BlockPos(worldX, worldY - (surface.isFluid() ? 0 : 1), worldZ));
         return matchesSurface(surface, below);
     }
 
-    private static boolean matchesSurface(IrisSurface surface, BlockState below) {
+    static boolean matchesSurface(IrisSurface surface, BlockState below) {
         if (ModdedBlockResolution.isSolid(below)) {
             return surface == IrisSurface.LAND || surface == IrisSurface.OVERWORLD
                     || (surface == IrisSurface.ANIMAL && isAnimalGround(below));

@@ -750,14 +750,14 @@ public final class NativeStructureSurfaceFitter {
         if (selected != null) {
             int targetY = originalY + Math.max(-selected.range(),
                     Math.min(selected.range(), selected.source().meetY() - originalY));
-            return new FlattenResolution(targetY, selected.range(), selected.source().strength() > 1);
+            return new FlattenResolution(targetY, selected.range());
         }
         if (totalWeight == 0) {
-            return new FlattenResolution(originalY, 0, false);
+            return new FlattenResolution(originalY, 0);
         }
         int targetY = blendSurfaceTarget(originalY, weightedY / (double) totalWeight,
                 maximumInfluence / (double) SURFACE_TERRAIN_INFLUENCE_SCALE);
-        return new FlattenResolution(targetY, range, false);
+        return new FlattenResolution(targetY, range);
     }
 
     private static Map<Long, Integer> fitFlattenTerrain(
@@ -780,9 +780,7 @@ public final class NativeStructureSurfaceFitter {
                 int minimumY = Math.max(area.minY(), targetY - range);
                 applySurfaceColumn(world, position, x, z, originalY, targetY,
                         minimumY, Math.min(area.maxY(), originalY + range));
-                if (resolution.foundation() || projectedRange > 0) {
-                    fillFlattenFoundation(world, position, x, z, targetY, minimumY);
-                }
+                fillFlattenFoundation(world, position, x, z, targetY, minimumY);
                 heights.put(column, targetY + 1);
             }
         }
@@ -1104,7 +1102,7 @@ public final class NativeStructureSurfaceFitter {
     record FlattenAnchor(SurfaceAnchor source, int radius, int range) {
     }
 
-    record FlattenResolution(int targetY, int range, boolean foundation) {
+    record FlattenResolution(int targetY, int range) {
     }
 
     private record FlattenFootprint(List<FlattenAnchor> anchors, Map<Long, Integer> projectedSupport) {

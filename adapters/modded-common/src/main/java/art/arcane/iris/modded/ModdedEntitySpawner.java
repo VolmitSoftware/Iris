@@ -273,8 +273,31 @@ public final class ModdedEntitySpawner {
         if (type == null) {
             return true;
         }
+        if (irisEntity.getSurface().isFluid()) {
+            return isFluidAreaClearForSpawn(blockX, blockY, blockZ, type.getWidth(), type.getHeight(),
+                    position -> ModdedWorldManager.matchesSurface(irisEntity.getSurface(), level.getBlockState(position)));
+        }
         return isAreaClearForSpawn(blockX, blockY, blockZ, type.getWidth(), type.getHeight(),
                 position -> level.getBlockState(position).is(Blocks.AIR));
+    }
+
+    static boolean isFluidAreaClearForSpawn(int blockX, int blockY, int blockZ,
+                                           float width, float height, Predicate<BlockPos> matchesFluid) {
+        int startX = (int) Math.floor(blockX + 0.5 - width / 2D);
+        int endX = (int) Math.floor(Math.nextDown(blockX + 0.5 + width / 2D));
+        int endY = (int) Math.floor(Math.nextDown(blockY + 0.5 + height));
+        int startZ = (int) Math.floor(blockZ + 0.5 - width / 2D);
+        int endZ = (int) Math.floor(Math.nextDown(blockZ + 0.5 + width / 2D));
+        for (int x = startX; x <= endX; x++) {
+            for (int y = blockY; y <= endY; y++) {
+                for (int z = startZ; z <= endZ; z++) {
+                    if (!matchesFluid.test(new BlockPos(x, y, z))) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     static boolean isAreaClearForSpawn(int blockX, int blockY, int blockZ, float width, float height, Predicate<BlockPos> isAir) {

@@ -22,7 +22,7 @@ public class IrisStructureTerrain {
     private static final double MAX_EROSION_FREQUENCY = 1D;
     private static final double MAX_LOBE_FREQUENCY = 1D;
 
-    @Desc("Terrain operation. SOURCE applies the registered native structure's authored terrain adaptation and is a no-op for editable Iris structures. PRESERVE disables terrain integration. FLATTEN cuts and fills exposed native foundations within flattenRange, blending across horizontalPadding blocks. VACUUM raises terrain from processed rigid-template foundations with a fixed 12-block falloff without lowering ground. BORE and FORCE_CARVE clear the requested envelope, while ENCASE fills it before placement.")
+    @Desc("Terrain operation. SOURCE applies the registered native structure's authored terrain adaptation and is a no-op for editable Iris structures. PRESERVE disables terrain integration. FLATTEN cuts and fills exposed native structure terrain within flattenRange, blending across horizontalPadding blocks. VACUUM raises terrain from processed rigid-template foundations with a fixed 12-block falloff without lowering ground. BORE and FORCE_CARVE clear the requested envelope, while ENCASE fills it before placement.")
     private IrisStructureTerrainMode mode = IrisStructureTerrainMode.SOURCE;
 
     @MinNumber(0)

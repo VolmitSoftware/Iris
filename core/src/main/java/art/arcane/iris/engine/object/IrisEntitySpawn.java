@@ -74,6 +74,10 @@ public class IrisEntitySpawn implements IRare {
     private transient IrisMarker referenceMarker;
 
     public int spawn(Engine gen, Chunk c, RNG rng) {
+        IrisEntity definition = getRealEntity(gen);
+        if (definition == null) {
+            return 0;
+        }
         int spawns = LootResolver.inclusive(rng, minSpawns, maxSpawns);
         int s = 0;
 
@@ -84,11 +88,10 @@ public class IrisEntitySpawn implements IRare {
                 World world = c.getWorld();
                 int h = world.getHighestBlockYAt(x, z, HeightMap.OCEAN_FLOOR);
                 int hf = world.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE);
-                Location l = switch (getReferenceSpawner().getGroup()) {
-                    case NORMAL -> new Location(c.getWorld(), x, hf + 1, z);
-                    case CAVE -> findCaveSpawnLocation(gen, c, rng);
-                    case UNDERWATER, BEACH -> new Location(c.getWorld(), x, rng.i(h + 1, hf), z);
-                };
+                IrisSpawnGroup group = getReferenceSpawner().getGroup();
+                Integer y = selectSurfaceSpawnY(group, definition.getSurface(), h, hf, rng);
+                Location l = group == IrisSpawnGroup.CAVE ? findCaveSpawnLocation(gen, c, rng)
+                        : y == null ? null : new Location(world, x, y, z);
 
                 if (l != null) {
                     if (referenceSpawner.getAllowedLightLevels().getMin() > 0 || referenceSpawner.getAllowedLightLevels().getMax() < 15) {
@@ -107,6 +110,17 @@ public class IrisEntitySpawn implements IRare {
         }
 
         return s;
+    }
+
+    public static Integer selectSurfaceSpawnY(IrisSpawnGroup group, IrisSurface surface,
+                                             int floor, int top, RNG rng) {
+        if (group == IrisSpawnGroup.CAVE) {
+            return null;
+        }
+        if (group == IrisSpawnGroup.NORMAL && !surface.isFluid()) {
+            return top + 1;
+        }
+        return top > floor ? LootResolver.inclusive(rng, floor + 1, top) : null;
     }
 
     public int spawn(Engine gen, IrisPosition c, RNG rng) {
@@ -198,19 +212,21 @@ public class IrisEntitySpawn implements IRare {
                 return null;
             }
 
-            if (!ignoreSurfaces && !irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock())) {
+            IrisSurface surface = irisEntity.getSurface();
+            boolean checkPosition = !ignoreSurfaces || surface.isFluid();
+            if (checkPosition && !surface.matches(at.clone().subtract(0, surface.isFluid() ? 0 : 1, 0).getBlock())) {
                 return null;
             }
 
             Vector3d boundingBox = BukkitPlatform.entityBoundingBox(irisEntity.getBukkitType());
-            if (!ignoreSurfaces && boundingBox != null) {
-                boolean isClearForSpawn = isAreaClearForSpawn(at, boundingBox);
+            if (checkPosition && boundingBox != null) {
+                boolean isClearForSpawn = isAreaClearForSpawn(at, boundingBox, surface);
                 if (!isClearForSpawn) {
                     return null;
                 }
             }
 
-            Entity e = irisEntity.spawn(g, at.add(0.5, 0.5, 0.5), rng.aquire(() -> new RNG(g.getSeedManager().getEntity())));
+            Entity e = irisEntity.spawn(g, at.clone().add(0.5, 0.5, 0.5), rng.aquire(() -> new RNG(g.getSeedManager().getEntity())));
             if (e != null) {
                 IrisLogging.debug("Spawned " + C.DARK_AQUA + "Entity<" + getEntity() + "> " + C.GREEN + e.getType() + C.LIGHT_PURPLE + " @ " + C.GRAY + e.getLocation().getX() + ", " + e.getLocation().getY() + ", " + e.getLocation().getZ());
             }
@@ -223,19 +239,26 @@ public class IrisEntitySpawn implements IRare {
         }
     }
 
-    private boolean isAreaClearForSpawn(Location center, Vector3d boundingBox) {
+    private boolean isAreaClearForSpawn(Location center, Vector3d boundingBox, IrisSurface surface) {
         World world = center.getWorld();
-        int startX = center.getBlockX() - (int) (boundingBox.x / 2);
-        int endX = center.getBlockX() + (int) (boundingBox.x / 2);
-        int startY = center.getBlockY();
-        int endY = center.getBlockY() + (int) boundingBox.y;
-        int startZ = center.getBlockZ() - (int) (boundingBox.z / 2);
-        int endZ = center.getBlockZ() + (int) (boundingBox.z / 2);
+        boolean fluid = surface.isFluid();
+        int startX = fluid ? (int) Math.floor(center.getX() + 0.5 - boundingBox.x / 2)
+                : center.getBlockX() - (int) (boundingBox.x / 2);
+        int endX = fluid ? (int) Math.floor(Math.nextDown(center.getX() + 0.5 + boundingBox.x / 2))
+                : center.getBlockX() + (int) (boundingBox.x / 2);
+        int startY = fluid ? (int) Math.floor(center.getY() + 0.5) : center.getBlockY();
+        int endY = fluid ? (int) Math.floor(Math.nextDown(center.getY() + 0.5 + boundingBox.y))
+                : center.getBlockY() + (int) boundingBox.y;
+        int startZ = fluid ? (int) Math.floor(center.getZ() + 0.5 - boundingBox.z / 2)
+                : center.getBlockZ() - (int) (boundingBox.z / 2);
+        int endZ = fluid ? (int) Math.floor(Math.nextDown(center.getZ() + 0.5 + boundingBox.z / 2))
+                : center.getBlockZ() + (int) (boundingBox.z / 2);
 
         for (int x = startX; x <= endX; x++) {
             for (int y = startY; y <= endY; y++) {
                 for (int z = startZ; z <= endZ; z++) {
-                    if (world.getBlockAt(x, y, z).getType() != Material.AIR) {
+                    if (fluid ? !surface.matches(world.getBlockAt(x, y, z))
+                            : world.getBlockAt(x, y, z).getType() != Material.AIR) {
                         return false;
                     }
                 }

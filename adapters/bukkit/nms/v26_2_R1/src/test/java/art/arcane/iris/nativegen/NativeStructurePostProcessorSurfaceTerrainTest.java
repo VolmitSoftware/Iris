@@ -450,7 +450,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
     }
 
     @Test
-    public void flattenSupportsProjectedRoadsAcrossRoofCavitiesWithoutFillingAdjacentColumns() throws Exception {
+    public void flattenSupportsProjectedRoadsAndTheirSurroundingGradeAcrossRoofCavities() throws Exception {
         ProtoChunk chunk = new ProtoChunk(new ChunkPos(0, 0), UpgradeData.EMPTY,
                 LevelHeightAccessor.create(0, 256), containerFactory(), null);
         chunk.setPersistedStatus(ChunkStatus.CARVERS);
@@ -504,9 +504,55 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         }
         assertTrue(chunk.getBlockState(new BlockPos(4, roadY - 33, 0)).isAir());
         int adjacentY = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, 5, 0);
-        assertTrue(chunk.getBlockState(new BlockPos(5, adjacentY - 1, 0)).isAir());
+        for (int y = adjacentY - 32; y < adjacentY; y++) {
+            assertTrue("Missing ground between road cells at " + y,
+                    chunk.getBlockState(new BlockPos(5, y, 0)).isSolid());
+        }
         assertEquals(Blocks.WATER.defaultBlockState(), chunk.getBlockState(new BlockPos(6, 50, 0)));
         assertTrue(chunk.getBlockState(new BlockPos(6, 49, 0)).isAir());
+    }
+
+    @Test
+    public void flattenBuildsAContinuousVillageGradeBetweenSparseFoundations() throws Exception {
+        StructureTemplate foundation = template(List.of(block(0, 0, 0, Blocks.COBBLESTONE.defaultBlockState())));
+        List<PoolElementStructurePiece> pieces = new ArrayList<>();
+        for (int x : List.of(0, 8)) {
+            for (int z : List.of(0, 8)) {
+                pieces.add(rigidTemplatePiece(new InlineSinglePoolElement(foundation),
+                        new BoundingBox(x, 65, z, x, 75, z), 0, Rotation.NONE));
+            }
+        }
+        StructureStart start = rigidSurfaceStart(pieces);
+        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, IrisStructureTerrainMode.FLATTEN);
+        target.terrain().setHorizontalPadding(24).setFlattenRange(64);
+        BoundingBox area = new BoundingBox(0, 0, 0, 8, 127, 8);
+        Map<BlockPos, BlockState> blocks = new HashMap<>();
+        for (int x = 0; x <= 8; x++) {
+            for (int z = 0; z <= 8; z++) {
+                int originalY = (x == 0 || x == 8) && (z == 0 || z == 8) ? 64 : 96;
+                put(blocks, x, 20, z, Blocks.STONE.defaultBlockState());
+                put(blocks, x, originalY - 1, z, Blocks.DIRT.defaultBlockState());
+                put(blocks, x, originalY, z, Blocks.GRASS_BLOCK.defaultBlockState());
+            }
+        }
+        NativeStructureSurfaceFitter.SurfaceTerrainPlan plan = NativeStructureSurfaceFitter.prepareSurfaceStructures(
+                world(blocks), area, List.of(target),
+                (x, z) -> (x == 0 || x == 8) && (z == 0 || z == 8) ? 64 : 96);
+
+        for (int x = 0; x <= 8; x++) {
+            for (int z = 0; z <= 8; z++) {
+                int groundY = plan.flattenedHeights().get(NativeStructureTemplateOccupancy.columnKey(x, z)) - 1;
+                assertTrue("Village grade at " + x + "," + z + ": " + groundY, groundY >= 64 && groundY <= 70);
+                for (int y = 20; y <= groundY; y++) {
+                    assertTrue("Disconnected village ground at " + x + "," + y + "," + z,
+                            state(blocks, x, y, z).isSolid());
+                }
+                for (int y = groundY + 1; y <= 96; y++) {
+                    assertTrue("Roof remains above village at " + x + "," + y + "," + z,
+                            state(blocks, x, y, z).isAir());
+                }
+            }
+        }
     }
 
     @Test

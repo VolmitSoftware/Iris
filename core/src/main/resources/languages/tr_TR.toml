@@ -1,0 +1,2107 @@
+# === Iris language guide ===
+# Iris - tr_TR
+#
+# === Dosyayı düzenleme ===
+# languages/tr_TR.toml
+# Bu dosyayı doğrudan düzenleyin. Yerel mesaj değişiklikleri korunur; eksik veya geçersiz değerler yerleşik İngilizce metni kullanır.
+# /iris language server edit tr_TR
+#
+# === Önekler ===
+# Tüm mesajlar için genel bir önek ayarı yoktur. Belirli bir mesajın başına yazılan önek yalnızca o mesajı değiştirir.
+# Günlük önekleri ve menü temaları ayrı ayarlanır.
+# Örnek: [iris.bukkit.commandiris] bölümünü bulun ve mevcut set_debug değerini değiştirin:
+# set_debug = "&6[Dünyalar]&r &aHata ayıklama ayarı: {to}"
+# {to}, açık için true veya kapalı için false değerini alır; değişken adını değiştirmeyin.
+#
+# === Renkler ve stiller ===
+# &0 siyah; &1 koyu mavi; &2 koyu yeşil; &3 koyu turkuaz
+# &4 koyu kırmızı; &5 koyu mor; &6 altın; &7 gri
+# &8 koyu gri; &9 mavi; &a yeşil; &b turkuaz
+# &c kırmızı; &d açık mor; &e sarı; &f beyaz
+# &k rastgele karakterler; &l kalın; &m üstü çizili; &n altı çizili; &o italik; &r renk ve stilleri sıfırlama
+# Örnekler: &aHazır&r, &cHata&r, &6&lUyarı&r, &nAltı çizili&r.
+# Dil katmanı şu RGB biçimlerini tanır: &#55FF55, &x55FF55, &x&5&5&F&F&5&5 ve [55FF55].
+# RGB örneği: &#55FF55Yeşil metin&r. Sonraki Bukkit işlemleri ve temalar RGB renklerini değiştirebilir.
+# Modlu platformlardaki komutlar, yardım ve istemci ekranları düz çevrilmiş metin ve kendi yerel stillerini kullanır.
+# Düz metin görünümü biçimlendirmeyi kaldırır; dil dosyasındaki renklerin arayüz stilini belirlediğini varsaymayın.
+#
+# === TOML metin değerleri ===
+# Çift tırnak içinde \n yeni satır oluşturur, \" tırnak ekler ve \\ bir ters eğik çizgi ekler.
+# Örnek: "Satır 1\nSatır 2: \"alıntı\"; yol C:\\Iris".
+#
+# === Değişkenler ===
+# Yalnızca mesajın mevcut değişkenlerini kullanın. Adlarını ve büyük/küçük harflerini koruyun; PC, SC ve TC desteklenen yer tutucular değildir.
+# Aşağıda her yer tutucunun anlamı açıklanır. Genel değerlerin anlamını çevreleyen mesaj belirler.
+#   {MAXAUTOSELECTVOLUME}  Otomatik seçilen bir nesnede izin verilen en fazla blok sayısı.
+#   {MAXSAVEVOLUME}  Kaydedilen nesne seçiminde izin verilen en fazla blok sayısı.
+#   {MAXSPAN}  Yakalama sırasında yapının blok cinsinden en büyük genişliği, yüksekliği veya derinliği.
+#   {NATIVESTRUCTURELOCATERADIUS}  Yerel yapı aramasının chunk cinsinden en büyük yarıçapı.
+#   {ROOTPERMISSION}  Komutu kullanmak için gereken kök izin.
+#   {WORKSPACENAME}  Aranan Studio çalışma alanı klasörünün adı.
+#   {WORLDPACKNAME}  Oluşturulan dünya datapack dosya grubunun adı.
+#   {active}  Şu anda çalışan işçilerin sayısı.
+#   {activeLocale}  İstenen dil seçilemediğinde etkin kalacak dil.
+#   {activeMax}  Yüklenen boyut türünün yükseklik aralığının üst sınırı.
+#   {activeMin}  Yüklenen boyut türünün yükseklik aralığının alt sınırı.
+#   {actualReverts}  Gerçekte geri alınan nesne yapıştırmalarının sayısı.
+#   {afb}  Motor zamanlama etiketinin köşeli parantezli bölümünden sonraki biçimlendirilmiş kısmı.
+#   {after}  Değişiklikten sonraki değer veya onarım sonrası erişilemeyen ağaç blokları.
+#   {amount}  Raporda adı verilen girdiye ait miktar.
+#   {applied}  Çalışma sonuçları uygulanmış chunk sayısı.
+#   {argument}  Kabul edilemeyen komut argümanı.
+#   {available}  Üretime uygun yerel yapıların sayısı.
+#   {bar}  Önceden biçimlendirilmiş ilerleme çubuğu metni.
+#   {befb}  Motor zamanlama etiketinin köşeli parantezli bölümünden önceki biçimlendirilmiş kısmı.
+#   {before}  Değişiklikten önceki değer veya onarım öncesi erişilemeyen ağaç blokları.
+#   {biome}  Gösterilen biyomun adı veya kimliği.
+#   {block}  İncelenen bloğun türü veya açıklaması.
+#   {blockX}  Bloğun veya ışınlanma hedefinin X koordinatı.
+#   {blockY}  Bloğun veya ışınlanma hedefinin Y koordinatı.
+#   {blockZ}  Bloğun veya ışınlanma hedefinin Z koordinatı.
+#   {blocking}  Pack yüklenmesini engelleyen doğrulama hatalarının sayısı.
+#   {blocks}  İçe aktarılan gruptaki blok varyantlarının sayısı.
+#   {bpp}  Vision içinde bir pikselin temsil ettiği dünya bloklarının sayısı.
+#   {branches}  Ağaç nesneleri onarılırken eklenen dalların sayısı.
+#   {broken}  Doğrulamadan geçemeyen pack sayısı.
+#   {brokenTotal}  Doğrulamadan geçemeyen toplam pack sayısı.
+#   {cave}  İncelenen konumdaki mağara biyomu veya mağara açıklaması.
+#   {centerX}  Alanın merkezinin X koordinatı; birim işlem mesajında belirtilir.
+#   {centerZ}  Alanın merkezinin Z koordinatı; birim işlem mesajında belirtilir.
+#   {changed}  İşlenip değiştirilen nesnelerin sayısı.
+#   {chunk}  Raporlanan chunk koordinatları veya tanımlayıcı etiketi.
+#   {chunkX}  Blok değil, chunk cinsinden X koordinatı.
+#   {chunkZ}  Blok değil, chunk cinsinden Z koordinatı.
+#   {chunks}  İşleme dahil olan chunk sayısı.
+#   {clampedY}  İzin verilen yüksekliğe sınırlandıktan sonraki ışınlanma hedefi Y koordinatı.
+#   {command}  Komut adı veya çalıştırılacak tam komut.
+#   {converted}  Ağaç onarımında oduna dönüştürülen yaprak bloklarının sayısı.
+#   {count}  Çevreleyen metinde belirtilen girdi, mesaj veya oyuncu sayısı.
+#   {current}  Geçerli ilerleme sayısı veya mevcut karşılaştırmadaki chunk sayısı.
+#   {currentStage}  Studio yüklemesinin geçerli aşamasının adı.
+#   {d}  Nesnenin blok cinsinden derinliği.
+#   {depth}  Arazi yüzeyinin altındaki blok sayısı.
+#   {derivative}  Yüzey biyomuyla ilişkili türetilmiş biyom veya varyant.
+#   {detail}  İncelenen nesne veya geçerli ilerleme aşaması hakkında ek açıklama.
+#   {diffs}  Üretim sonuçları arasında bulunan farkların sayısı.
+#   {dimKey}  Paketlenen boyutun kimliği.
+#   {dimension}  Mesajda belirtilen boyutun adı veya kimliği.
+#   {dimensionId}  Yüklenen veya istenen boyutun kayıtlı kimliği.
+#   {dimensionId2}  Önerilen silme komutunda tekrarlanan boyut kimliği.
+#   {dimm}  Studio boyut kimliği veya doğrulama komutundaki pack adı.
+#   {disabled}  Üretimi kapatılmış yerel yapıların sayısı.
+#   {distances}  Ağaç onarımında değiştirilen yaprak uzaklığı değerlerinin sayısı.
+#   {done}  Şimdiye kadar tamamlanan iş öğelerinin sayısı.
+#   {downloadSource}  Pack indirmesinde kullanılan kaynak veya seçilen kaynak referansı.
+#   {downloadable}  İçe aktarılan pack veya indirilebilir proje.
+#   {dumpPath}  Kaydedilen temizleme veya geri yükleme verilerinin konumu.
+#   {duration}  İşlemin biçimlendirilmiş süresi.
+#   {e}  Başarısız yapı şablonu taramasındaki istisna metni.
+#   {elapsed}  İşlem başlangıcından beri geçen biçimlendirilmiş süre.
+#   {engines}  Etkin Iris üretim motorlarının veya boyutlarının sayısı.
+#   {entity}  İncelenen spawner tarafından seçilen varlık türü.
+#   {error}  Oluşan hatanın ayrıntıları.
+#   {errorMessage}  Ana hata mesajına eklenen isteğe bağlı hata ayrıntısı eki.
+#   {eta}  Biçimlendirilmiş tahmini kalan süre; bazı mesajlarda etiketi de dahildir.
+#   {failed}  Başarısız öğe sayısı veya ilerleme başlığındaki hazır hata eki.
+#   {failure}  Aramanın veya işlemin başarısız olma nedeni.
+#   {failures}  Başarısız iş sayısı veya isteğe bağlı biçimlendirilmiş hata özeti.
+#   {file}  İşlemle ilgili dosyanın adı veya yolu.
+#   {filter}  Iris boyutları listesini süzmek için kullanılan metin.
+#   {fps}  Önizlemenin saniyedeki geçerli kare sayısı.
+#   {g}  Önceki paketleme ilerleme raporundan beri yazılan nesne dosyaları.
+#   {generated}  Şimdiye kadar üretilmiş chunk sayısı.
+#   {generator}  Gezginde gösterilen gürültü üretecinin adı.
+#   {generatorKey}  İstenen gürültü üretecinin kimliği.
+#   {get}  Başarıyla dönüştürülen schematic dosyalarının sayısı.
+#   {golden}  Kaydedilmiş referans karşılaştırmasındaki chunk sayısı.
+#   {goldenDimension}  Referans kaydında saklanan boyut kimliği.
+#   {goldenSeed}  Referans kaydında saklanan dünya tohumu.
+#   {goldenVersion}  Referans kaydını oluşturmak için kullanılan Minecraft sürümü.
+#   {group}  Dil düzenleyicisindeki mesaj grubu veya içe aktarılan nesnenin kategorisi.
+#   {guiNote}  Ön üretim ilerleme penceresi hakkında isteğe bağlı not.
+#   {h}  Nesnenin blok cinsinden yüksekliği.
+#   {hash}  Karşılaştırılan üretilmiş chunk verilerinin birleşik sağlama toplamı.
+#   {health}  İncelenen varlığın geçerli sağlığı.
+#   {height}  Mesajda belirtilen arazi yüksekliği, toplam yükseklik veya görüntülenen alanın yüksekliği.
+#   {hours}  Biçimlendirilmiş sürenin saat bileşeni.
+#   {i}  Motorun görünen adı veya komut listesi şablonundaki bir girdi.
+#   {id}  İncelenen biyomun kayıt kimliği.
+#   {imported}  Başarıyla içe aktarılan yapı veya nesne sayısı.
+#   {includeNonJigsaw}  İçe aktarmaya jigsaw parçaları kullanmayan yapıların dahil edilip edilmediği.
+#   {iris}  Iris üretimini kullanan yüklü boyutların sayısı.
+#   {irisLevels}  Pack yükseklikleriyle karşılaştırılan yüklü Iris boyutlarının sayısı.
+#   {irisPlaced}  Yerel üretim yerine Iris tarafından yerleştirilen yapı sayısı.
+#   {job}  Tamamlanan arka plan işleminin adı.
+#   {k}  Bölge dağılımı raporundaki bölge yükleme anahtarı.
+#   {key}  Çevreleyen metinde belirtilen parametre, mesaj veya kaynak kimliği.
+#   {key2}  Önerilen konum bulma komutunda tekrarlanan yapı kimliği.
+#   {keyString}  İçe aktarılan veya geçersiz olarak bildirilen yapı ya da kaynak kimliği.
+#   {label}  Bulunan hedefin görünen adı.
+#   {line}  Dil düzenleyicisindeki satır numarası.
+#   {locale}  en_US veya de_DE gibi dil kimliği.
+#   {logicalWorldName}  Komutun hedeflediği dünyanın mantıksal adı.
+#   {loot}  İncelenen ganimet tablosunun kimliği.
+#   {m}  Ek tahliye mesajı veya komut şablonundaki yok sayılan parametre metni.
+#   {mantleStatus}  Tekrar üretim karşılaştırmasından önce üretim verilerini sıfırlamanın sonucu.
+#   {marker}  Aranan işaretçinin adı.
+#   {material}  İncelenen bloğun Minecraft malzemesi.
+#   {maxScale}  İstenen ölçek sınırlandıktan sonra izin verilen en büyük nesne ölçeği.
+#   {maxX}  Gösterilen chunk aralığının üst X sınırı.
+#   {maxY}  Dünyanın yükseklik aralığının üst sınırı.
+#   {maxZ}  Gösterilen chunk aralığının üst Z sınırı.
+#   {maximum}  Mesajda belirtilen en fazla giriş uzunluğu veya varlığın en yüksek sağlığı.
+#   {mcmeta}  Oluşturulan datapack içindeki pack.mcmeta dosyasının yolu.
+#   {message}  İşlemin sağladığı ayrıntılı durum veya hata metni.
+#   {method}  Seçilen ön üretim yöntemi.
+#   {minX}  Gösterilen chunk aralığının alt X sınırı.
+#   {minY}  Dünyanın yükseklik aralığının alt sınırı.
+#   {minZ}  Gösterilen chunk aralığının alt Z sınırı.
+#   {minutes}  Biçimlendirilmiş sürenin dakika bileşeni.
+#   {mismatches}  Kaydedilmiş referanstan farklı olan chunk sayısı.
+#   {mode}  Seçilen içe aktarma, üretim veya önizleme modu.
+#   {modeNote}  Seçilen ön üretim modu hakkında isteğe bağlı açıklama.
+#   {name}  Mesajda belirtilen dünya, nesne, proje veya girdinin adı.
+#   {nameRaw}  Normalleştirme veya doğrulama öncesinde tam olarak girilen ad.
+#   {normalized}  Bulunamayan normalleştirilmiş yardım bölümü adı.
+#   {num}  Motor zamanlama etiketinin biçimlendirilmiş parantezli kısmı; sayı olması gerekmez.
+#   {object}  Düzenlenen veya incelenen Iris nesnesinin adı ya da kimliği.
+#   {objects}  İncelenen chunktaki nesnelerin listesi veya sayısı.
+#   {offset}  Arazi yüzeyinden blok cinsinden dikey uzaklık.
+#   {output}  Yazılamayan çıktı dosyasının yolu.
+#   {overall}  Tüm işlem boyunca saniyede önceden üretilen ortalama chunk sayısı.
+#   {ownerName}  Studio oturumunun sahibi olan oyuncunun adı.
+#   {pack}  İşlemde kullanılan Iris pack adının veya kimliğinin değeri.
+#   {pack2}  Önerilen komutta veya indirme kaynağında tekrarlanan pack kimliği.
+#   {packDimension}  Pack içinden seçilen boyut tanımı.
+#   {packLogical}  Pack boyut tanımının istediği mantıksal yükseklik.
+#   {packMax}  Pack tarafından istenen üst yükseklik sınırı.
+#   {packMin}  Pack tarafından istenen alt yükseklik sınırı.
+#   {packName}  Doğrulanan pack görünen adı.
+#   {parameter}  Eksik veya ayrıştırılamayan komut parametresi.
+#   {parent}  Üst menünün veya komut yolunun görünen adı.
+#   {path}  Kaydedilen, açılan veya raporlanan dosyanın yolu.
+#   {percent}  İlerleme yüzdesi; mesajın yüzde işaretini değişkenin dışında bırakın.
+#   {permission}  İstenen işlem için gereken izin düğümü.
+#   {personal}  Oyuncunun kaydedilmiş kişisel dil kimliği.
+#   {phase}  Geçerli yükleme veya indirme aşamasının adı.
+#   {pinned}  Ağaç nesnesi onarılırken sabitlenen yaprakların sayısı.
+#   {player}  İzlenen veya hedeflenen oyuncunun adı.
+#   {plugin}  Eklentinin görünen adı; Iris ortak dil ve hata ayıklama mesajlarında Iris.
+#   {position}  Ayarlanan seçim köşesinin numarası.
+#   {preset}  Ana dünya için kullanılan kayıtlı dünya üretim ön ayarı.
+#   {primary}  Yapılandırılmış birincil dünyanın kimliği.
+#   {processed}  Başarılı, atlanan ve başarısız olanlar dahil işlenen öğelerin sayısı.
+#   {properties}  İncelenen blok özelliklerinin biçimlendirilmiş listesi.
+#   {quarantinePath}  Karantinaya alınan temizleme dosyalarının klasörü.
+#   {queued}  Çalışmayı bekleyen işçi veya iş öğelerinin sayısı.
+#   {radius}  Önerilen başlatma komutunda tekrarlanan ön üretim yarıçapı.
+#   {rarity}  Adı verilen bölgenin veya yerleştirmenin yapılandırılmış nadirlik değeri.
+#   {rate}  Biçimlendirilmiş aktarım veya ön üretim hızı; saniye başına birimini mesaj ekler.
+#   {reach}  Ağaç nesneleri onarılırken kullanılan yapılandırılmış dal arama menzili.
+#   {ready}  Şu anda kullanılabilir kesin Atlas sayfalarının sayısı.
+#   {reason}  İstenen işlemin neden tamamlanamadığının açıklaması.
+#   {region}  İncelenen bölgenin adı veya kimliği.
+#   {remaining}  Gösterilen listede yer almayan ek blok durumlarının sayısı.
+#   {repository}  Ayıklanan depo veya indirilmiş arşiv.
+#   {reverted}  Geri alınan nesne yapıştırmalarının sayısı.
+#   {rotation}  Yerleştirilen nesneye uygulanan döndürme.
+#   {rx}  Hash değeri hesaplanan chunk X koordinatı.
+#   {rz}  Hash değeri hesaplanan chunk Z koordinatı.
+#   {s}  Yeni Studio projesinin adı.
+#   {safeName}  İçe aktarılan nesne için temizlenmiş dosya adı.
+#   {scale}  Bir önizleme pikselinin temsil ettiği dünya bloklarının sayısı.
+#   {scope}  Object Studio içinde açılan nesne veya nesne grubu.
+#   {searchRadius}  Yapı doğrulama aramasının chunk cinsinden yarıçapı.
+#   {seconds}  Sürenin saniye bileşeni veya son güncellemeden beri geçen süre.
+#   {section}  Kullanıcının istediği yardım bölümünün adı.
+#   {seed}  Dünya, Studio oturumu, üreteç veya referans karşılaştırması için kullanılan tohum.
+#   {seedRaw}  Doğrulama öncesinde tam olarak girilen tohum.
+#   {sixtySecond}  60 saniyelik aralıkta saniye başına önceden üretilen chunk sayısı.
+#   {size}  Mesajda adı geçen dosya, uyarı, girdi veya öğelerin sayısı.
+#   {skipped}  İşlem tarafından atlanan öğelerin sayısı.
+#   {slope}  İncelenen konumdaki arazi eğimi.
+#   {solidBlocks}  Üretim hash hesabında sayılan katı blokların sayısı.
+#   {source}  İlerleme görünümüyle ilişkili pack, indirme kaynağı veya giriş.
+#   {speed}  Saniye başına biçimlendirilmiş ön üretim veya işleme hızı.
+#   {stage}  Geçerli ilerleme aşamasının adı.
+#   {state}  Mesajda belirtilen geçerli durum veya özellik değeri.
+#   {status}  Önizlemenin geçerli durum metni.
+#   {structure}  Konumu aranan yapının adı veya kimliği.
+#   {structureKey}  İstenen yapının kayıt veya pack kimliği.
+#   {summary}  Tamamlanan işlemin biçimlendirilmiş sonuçları.
+#   {suppressed}  Iris yerleştirmeleriyle değiştirilen yerel yapıların sayısı.
+#   {surface}  Önerilen ışınlanma komutunda kullanılan yüzey Y koordinatı.
+#   {surfaceY}  İncelenen konumdaki arazi yüzeyinin Y koordinatı.
+#   {tag}  Pack adının önüne eklenen biçimlendirilmiş doğrulama durumu etiketi.
+#   {target}  Mesajda belirtilen dil alıcısı veya nesne seçimi hedefi.
+#   {targetX}  Bulunan veya istenen hedefin X koordinatı.
+#   {targetZ}  Bulunan veya istenen hedefin Z koordinatı.
+#   {template}  Proje oluşturulurken seçilen şablon.
+#   {tenSecond}  10 saniyelik aralıkta saniye başına önceden üretilen chunk sayısı.
+#   {thirtySecond}  30 saniyelik aralıkta saniye başına önceden üretilen chunk sayısı.
+#   {threads}  Üretim hash hesabında kullanılan iş parçacıklarının sayısı.
+#   {tileNote}  Kaydedilen veya yerleştirilen blok varlığı verileriyle ilgili isteğe bağlı not.
+#   {title}  Sonucu gösterilen işlemin başlığı.
+#   {to}  Yeni hata ayıklama ayarı: true açık, false kapalı anlamına gelir.
+#   {token}  Ayrıştırılamayan menzil argümanı.
+#   {total}  Mesajda belirtilen iş öğeleri, chunk, boyut veya girdilerin toplam sayısı.
+#   {totalObjects}  Object Studio içinde açılan nesnelerin sayısı.
+#   {transferred}  Şimdiye kadar aktarılan verinin biçimlendirilmiş miktarı.
+#   {type}  Mesajda belirtilen beklenen parametre türü, kaynak türü veya nesne kategorisi.
+#   {typeKey}  Kayıtlı Minecraft boyut türü kimliği veya inline.
+#   {unreachableBiomes}  Pack biyom seçimleri nedeniyle hariç tutulan yerel yapıların sayısı.
+#   {unsupported}  Bu platformun desteklenmiyor olarak bildirdiği yerel yapıların sayısı.
+#   {updates}  Geliştirici görünümündeki saniye başına blok güncellemeleri.
+#   {url}  Açılacak veya kopyalanacak web adresi.
+#   {usage}  Komut sözdizimi veya bellek görünümündeki kullanım metni.
+#   {used}  Bellek görünümündeki kullanılan belleğin biçimlendirilmiş miktarı.
+#   {value}  Mesaja özgü değer: varsayılan ayar, ad, koordinat, sayı veya hata gibi; çevreleyen metne bakın.
+#   {value2}  Mesaja özgü ikinci değer: toplam chunk, hedef Y, pack adı veya hata gibi.
+#   {value3}  Mesaja özgü üçüncü değer: yüzde, hedef Z, Minecraft sürümü veya geçen süre gibi.
+#   {value4}  Dördüncü değer: blok yazımları, seçimin Z koordinatı veya isteğe bağlı durum eki gibi.
+#   {value5}  Beşinci değer: nesne yerleştirmede hava dışı blok yazımları veya konum şablonundaki chunk Z.
+#   {variables}  Düzenlenen mesaj için kullanılabilen yer tutucuların listesi.
+#   {velocity}  İncelenen varlığın geçerli hareket hızı.
+#   {version}  Çevreleyen mesajda belirtilen eklenti veya Minecraft sürümü.
+#   {volume}  Nesne seçimindeki blokların sayısı.
+#   {w}  Nesnenin blok cinsinden genişliği.
+#   {wantVariants}  İçe aktarılan her vanilla ağaç veya nesne özelliği için istenen varyant sayısı.
+#   {warnings}  İşlemi engellemeyen doğrulama uyarılarının sayısı.
+#   {width}  Gösterilen dünya alanının blok cinsinden genişliği.
+#   {wood}  Ağaç nesnesi onarılırken eklenen odun bloklarının sayısı.
+#   {world}  Komutun veya ilerleme görünümünün hedeflediği dünyanın adı.
+#   {written}  Başarıyla yazılan içe aktarılmış varyant veya nesne dosyalarının sayısı.
+#   {x}  Mesajda belirtilen blok, chunk, bölge veya önizleme bağlamındaki X koordinatı.
+#   {y}  Dünyanın veya bloğun dikey koordinatı.
+#   {z}  Mesajda belirtilen blok, chunk, bölge veya önizleme bağlamındaki Z koordinatı.
+#   {zoom}  Önizlemenin geçerli yakınlaştırma düzeyi.
+# === End Iris language guide ===
+
+[iris.director.commandiris]
+"director.debugdump" = "Tanılama raporu oluştur ve isteğe bağlı olarak yükle"
+"param.debugdump_upload" = "Raporu mclo.gs üzerine yükle"
+"director.basic_command" = "Temel Komut"
+"director.create_new_world" = "Yeni bir dünya yaratın"
+"param.name_world_create" = "Dünyanın adı yaratmak"
+"param.dimension_pack_create_world_with" = "Dünyayı yaratmak için boyut / paket"
+"param.seed_generate_world_with" = "Dünyayı üretmek için tohum"
+"param.replace_exact_existing_world_slot_next_restart" = "Bir sonraki yeniden başlatmada mevcut tam dünya yuvasını değiştir"
+"director.teleport_another_world" = "Teleport başka bir dünyaya"
+"param.world_teleport" = "Dünya teleport'a"
+"param.player_teleport" = "Oyuncuya teleport"
+"director.print_version_information" = "Yazdır version information"
+"director.benchmark_pack" = "Benchmark bir paket"
+"param.dimension_benchmark" = "Boyut karşılaştırmak için"
+"director.print_world_height_information" = "Baskı dünya yüksek bilgi"
+"director.check_access_all_worlds" = "Tüm dünyaların kontrolünü kontrol edin."
+"director.remove_iris_world" = "Kaldırın Iris dünya dünyası"
+"param.world_remove" = "Dünyayı kaldırmak için"
+"param.whether_also_remove_folder_if_set_false_just_does_not_load_world" = "Ayrıca klasörü kaldırmak (Eğer sahte, sadece dünyayı yükleyemez)"
+"director.toggle_debug" = "Çalmak için"
+"director.download_project" = "Bir proje indirin."
+"param.pack_download" = "İndirmek için paket"
+"director.get_metrics_your_world" = "Dünyanız için ölçümler alın"
+"director.reload_configuration_file_this_is_also_done_automatically" = "yeniden yükle yapılandırma dosyası (bu da otomatik olarak yapılır)"
+"director.unload_iris_world" = "boşalt an a Iris Dünya Dünyası"
+"param.world_unload" = "Dünya boş yere"
+"director.load_iris_world" = "Bir yük Iris Dünya Dünyası"
+"param.name_world_load" = "Dünyanın adı yüklenecek"
+"director.evacuate_iris_world" = "Bir iris dünyası"
+"param.evacuate_world" = "Dünyayı Evacuate"
+
+[director.help]
+"navigation.parent.hover" = "Üst komut grubuna dön"
+"navigation.back" = "Geri"
+no_subcommands = "Bu sayfada alt komut yok."
+no_description = "Açıklama sağlanmadı"
+command_group = "Komut grubu. Açmak için tıklayın."
+category = "Komut kategorisi"
+no_parameters = "Parametre yok. Komutu önceden doldurmak için tıklayın."
+parameters_hover = "Daha fazla bilgi için imleci parametrelerin üzerine getirin."
+"parameter.required" = "Bu parametre zorunludur."
+"parameter.optional" = "Bu parametre isteğe bağlıdır."
+"parameter.default" = "Belirtilmezse varsayılan değer \"{value}\" olur."
+"parameter.type" = "Bu parametrenin türü {type}."
+"navigation.previous.hover" = "Önceki sayfa"
+"navigation.next.hover" = "Sonraki sayfa"
+"navigation.page" = "Sayfa"
+
+[director.runtime]
+"error.invalid_origin" = "Bu komut bu kaynaktan çalıştırılamaz."
+"error.unknown_parameter" = "Bilinmeyen parametre anahtarı: {key}"
+"error.unexpected_argument" = "Beklenmeyen bağımsız değişken \"{argument}\". İsteğe bağlı parametreler anahtarla belirtilmelidir, ör. seed=123"
+"error.unclosed_group" = "{key} parametresi için kapanış köşeli parantezi \"]\" eksik"
+"error.conversion_failed" = "\"{value}\", {parameter} için {type} türüne dönüştürülemiyor"
+"error.default_parse_failed" = "{parameter} parametresinin varsayılan değeri ayrıştırılamıyor"
+"error.missing_argument" = "Eksik bağımsız değişken \"{parameter}\" ({type})"
+"error.execution_failed" = "{command} komutu çalıştırılamadı: {reason}"
+usage = "Kullanım: {usage}"
+
+[iris.command]
+permission_denied = "'{permission}' iznine sahip değilsiniz"
+unknown = "Bilinmeyen Iris komutu"
+player_only = "Bu komutu yalnızca oyuncular kullanabilir."
+iris_world_required = "Bu boyut Iris tarafından oluşturulmadı."
+
+[iris.command.reload]
+success = "Ayarlar ve {locale} dili yeniden yüklendi."
+failed = "Ayarlar yeniden yüklendi, ancak {locale} dili reddedildi; {activeLocale} kullanılmaya devam ediliyor."
+
+[iris.modded.help]
+unknown_section = "Bilinmeyen Iris Yardım bölümü: {section}"
+back_hover = "Geri dön {parent}."
+command_parameter = "Komut parametresi"
+brigadier_text = "Bu parametre metin olarak okunur Brigadier."
+operator_notice = "Iris komutların operatör iznine ihtiyacı vardır ( seviye düzeyindeki 2)."
+operator_instruction = "{command} komutunu konsoldan çalıştırın (veya tek oyunculu oyunda hileleri etkinleştirin); o zamana kadar bu komutlar çalışmaz veya sekmeyle tamamlanmaz."
+"entry.command.version" = "Yazdır version information"
+"entry.command.info" = "Liste yüklendi Iris Boyut ve paket detayları"
+"entry.command.what" = "İnspect  Iris biome, bölge, mağara biyome, yüzey ve pozisyonunuzda chunk, bakdığınız blok veya yakındaki işaretleyiciler"
+"entry.group.find" = "Bul ve teleport bul Iris biomes, bölgeler, nesneler, Iris Yapılar, yerli yapılar ve ilgi noktaları"
+"entry.command.tp" = "Kendinizi veya bir telefon name Bir oyuncuya installed Iris Dimension"
+"entry.command.evacuate" = "Tüm oyuncuları bir Iris boyutundan ana dünyanın spawn noktasına ışınla"
+"entry.command.seed" = "Dünya ve motor seed bilgilerini göster"
+"entry.command.debug" = "değiştir Iris Debug login ve kaydet iris.json"
+"entry.command.reload" = "Yeniden yükleme iris.json (Ayrıca her 3s otomatik olarak ısındı)"
+"entry.command.download" = "Bir paket projesi indirin"
+"entry.command.metrics" = "Mevcut nesil ölçümler için Iris boyut boyutu"
+"entry.command.regen" = "Yakınlarda silme ve yenidenjenere"
+"entry.group.pregen" = "Pregenerate a an Iris boyut boyutu"
+"entry.command.wand" = "Bir tane alın Iris nesne asa"
+"entry.group.object" = "Nesne asası, kaydetme, yapıştırma, analiz ve geri alma araçları"
+"entry.group.edit" = "Açık paket biyome, bölge ve boyut json dosyaları masaüstü editöründe"
+"entry.command.create" = "Oluşturun ve kalıcı olun Iris Boyut; alıntı paketi:dimensionKey Belirli bir paket boyutu seçmek için"
+"entry.group.studio" = "Paket projesi oluşturma, paketleme ve raporlar"
+"entry.group.pack" = "Pack validasyon ve bakım"
+"entry.group.world" = "Runtime Run Iris Boyut oluşturma, kaldırma ve durum"
+"entry.group.datapack" = "Dünya veri paketi ve statü yardımcıları"
+"entry.group.structure" = "Iris Yapı indeksi, bilgi ve yerleştirme araçları"
+"entry.command.goldenhash" = "Genrate deterministic blok parity testi için vardır"
+"entry.group.developer" = "Geliştirici tanıları: ağ arabirimleri ve bölge dosyası taraması"
+"entry.command.biome" = "Bir an bulun Iris Biyome"
+"entry.command.region" = "Bir an bulun Iris Bölge bölgesi"
+"entry.command.object" = "Bir nesne yerleşimi bulun"
+"entry.command.structure" = "Bir an bulun Iris- Yer veya yerel /datapack yapısı"
+"entry.command.poi" = "Desteklenen bir ilgi noktası bul"
+"entry.command.biome_2" = "masaüstü editörünüzde bir biyome json açın; pozisyonunuzda biome açılır."
+"entry.command.region_2" = "masaüstü editöründe bir bölge json açın; pozisyonunuzda anahtar açılmaz"
+"entry.command.dimension" = "Geçerli paketin boyut JSON dosyasını masaüstü düzenleyicinizde açın"
+"entry.command.start" = "Prejenerasyona başlayın; bloklarda yarı, varsayılan olarak yeniden kullanılabilir kontrol önbelleği, “atla” merkezi <x>  <z>\", bayraklar herhangi bir sırayla oluşturulur"
+"entry.command.stop" = "Aktif prejenerasyon görevini durdurun"
+"entry.command.pause" = "Pause veya özgeçmiş prejenerasyon"
+"entry.command.status" = "Show prejenerasyon durumu"
+"entry.command.wand_3" = "Bir tane alın Iris nesne asa"
+"entry.command.dust" = "nesne yerleştirmelerini ortaya koyan toz alın"
+"entry.command.save" = "Seçilmiş asa hacmini bir nesne olarak kurtarın"
+"entry.command.paste" = "Bir nesneyi bulunduğunuz veya belirtilen konuma, isteğe bağlı döndürerek yapıştırın"
+"entry.command.expand" = "Arama yönünde asa seçimi genişletin"
+"entry.command.contract" = "Aramanızda asa seçimi"
+"entry.command.shift" = "asa seçimine göz atın"
+"entry.command.position1" = "Set seçimi noktası 1"
+"entry.command.position2" = "Set seçimi noktası 2"
+"entry.command.x_y" = "otomatik seçim up ve dışarı"
+"entry.command.x_y_2" = "otomatik seçim up, down ve dışarı"
+"entry.command.analyze" = "Show object kompozisyon"
+"entry.command.shrink" = "En az büyüklüğüne bir nesne katın"
+"entry.command.plausibilize" = "Yetiştirilen şubeler bu yüzden ağaç hayatta kalır vanilla çürümesi"
+"entry.command.undo" = "Yapıştırılan nesneleri geri al"
+"entry.command.create_2" = "Yeni bir paket projesi oluşturun"
+"entry.command.package" = "Bir boyut sıkıştırılmış bir format"
+"entry.command.version_2" = "Bir paket versiyonunu yazdırın"
+"entry.command.regions" = "Yakın bölge dağıtımını hesaplamak"
+"entry.command.open" = "Bir paket için geçici bir stüdyo boyutu açın"
+"entry.command.close" = "Açık stüdyo boyutunu kapatın ve dünyayı kırın"
+"entry.command.tpstudio" = "Açık stüdyo boyutuna Teleport"
+"entry.command.status_studio" = "Açık stüdyo boyutunu ve paketini göster"
+"entry.command.noise" = "Gürültü Explorer GUI Sunucu ekranında"
+"entry.command.map" = "Vizyon haritasını açın GUI Sunucu ekranında"
+"entry.command.vscode" = "Bir paket için .code-workspace ve onu masaüstü editöründe açın"
+"entry.command.update" = "Bir paket için .code-workspace"
+"entry.command.importvanilla" = "Açık vanilla ithalat iş akışı"
+"entry.command.validate" = "Bir paket veya her paketin geçerliliği"
+"entry.command.cleanup" = "Preview veya kurantine alışılmamış adaylar"
+"entry.command.restore" = "Preview veya en son karantinayı geri yükleme"
+"entry.command.status_validation" = "Önbellek doğrulama durumu"
+"entry.command.enable" = "Çalışma zamanında kalıcı bir Iris boyutu oluşturup ekler; paket kurulu olmalıdır ve tırnak içindeki pack:dimensionKey belirli bir boyutu seçer."
+"entry.command.replace_overworld" = "İnjek bir an Iris birincil dünya ve rota oyuncuları orada vanilla overworld yerine"
+"entry.command.disable" = "Evacuate ve bir yük Iris Boyut; diskteki dünya verileri yeniden etkinleştirilir"
+"entry.command.delete" = "Başarısız bir şekilde Iris Boyut ve onun chunk ve mantle verilerini disklerden sil"
+"entry.command.list" = "Liste yüklendi Iris Boyut boyutları"
+"entry.command.status_world" = "Show installed Iris Boyut ve yapılandırılmış birincil dünya"
+"entry.command.status_datapack" = "kontrol installed Iris Boyut tipi Overrides"
+"entry.command.install" = "Yükleme için boyut tipi Overrides Iris Boyut boyutları"
+"entry.command.list_datapacks" = "Liste yapılandırılmış ve yüklü datapacks"
+"entry.command.ingest" = "Açık Açıklama Bukkit Datapack ingest"
+"entry.command.remove" = "Açıklama Datapack Move iş akışı"
+"entry.command.list_structures" = "Rejenrate structure-index.json"
+"entry.command.info_2" = "Resolve a Iris Yapı grafiği ve rapor sınırları"
+"entry.command.place" = "Assemble ve bir yer Iris Yerinizde Yapı"
+"entry.command.import" = "Açık Açıklama Bukkit Yapı import iş akışı"
+"entry.command.capture" = "Açık Açıklama Bukkit Yapı yakalama"
+"entry.command.verify" = "Rapor yerli ve Iris Yapı mevcut boyutta erişilebilirlik"
+"entry.command.network" = "Liste ağ arabirimleri ve adresleri"
+"entry.command.what.here" = "Inspect the Iris biome, region, cave biome, surface and chunk at your position"
+"entry.command.what.biome" = "Inspect the Iris biome, configured derivative and registered native biome"
+"entry.command.what.region" = "Inspect the Iris region at your current chunk"
+"entry.command.what.block" = "Inspect the targeted block state, properties, object and block entity"
+"entry.command.what.hand" = "Inspect the held item and its default block state"
+"entry.command.what.markers" = "Reveal nearby Iris Mantle markers with particles"
+"entry.command.height" = "Print the current dimension height range"
+"entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
+"entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
+"entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
+"entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
+"entry.command.studio.loot" = "Explain why the Bukkit loot simulation GUI is unavailable"
+"entry.command.studio.profile" = "Explain why Bukkit pack profiling is unavailable"
+"entry.command.studio.spawn" = "Explain why Bukkit Iris entity spawning is unavailable"
+"entry.command.studio.objects" = "Explain why the Bukkit chunk object report is unavailable"
+"entry.command.compat_content" = "Bu Minecraft sürümünde üretilemeyen içeriği göster"
+
+[iris.modded.command]
+"properties.none" = "Özellikler: (hiçbiri)"
+"properties.list" = "Özellikler: {properties}"
+
+[iris.bukkit.commanddatapack]
+starting_datapack_ingest = "§7Datapack ingest..."
+configured_datapack_imports = "§ayapılandırılmış datapack import: §f{value}"
+message = "§7  - §f{url}"
+installed_datapacks = "§aİndirilen veri paketleri: §f{value}"
+message_2 = "§7  - §f{value}§7  {value2}"
+add_modrinth_urls_dimension_s_datapackimports_list_then_run_iris = "§eAdd AddAdd Add Modrinth  URLs Bir boyuta ‘datapackImports\" listesi, sonra çalıştırın /iris datapack ingest."
+
+[iris.bukkit.commanddeveloper]
+genhash_started_chunks = "§agenhash başlatıldı: {value} chunk..."
+genhash_failed_at_chunk = "§cgenhash {rx},{rz} chunk'ında başarısız oldu: {value}"
+genhash_global_chunks_solid = "§agenhash genel=§6{value}§a chunk={value2} katı={solidBlocks}, süre={value3}"
+world_is_null = "§cDünya null."
+target_iris_world_before_reading_mantle_dump = "§cHedef bir hedef Iris Bir mantle çöp okumadan önce dünya."
+upgrading = "§aYükseltmek için {value}..."
+done_upgrading_you_can_now_update_your_server_version = "§atamamlandı yükseltme!  Artık sunucu versiyonunu güncelleyebilirsiniz {value}"
+radius_must_be_0_greater = "§cRadius olmalı 0 veya daha büyük."
+this_is_not_iris_world = "§cBu bir şey değil Iris Dünya."
+engine_access_this_world_is_null = "§cBu dünya için motor erişimi null."
+delete_started_chunk_s_around_clearing_blocks_air = "§asilme başladı: §6{chunks}§a chunk(s) çevresinde §6{centerX},{centerZ}§a.  Blokları havaya temizlemek."
+radius_must_be_0_greater_2 = "§cRadius olmalı 0 veya daha büyük."
+you_must_be_iris_world_use_regen = "§cRegen kullanmak için bir Iris dünyasında olmalısınız."
+engine_access_this_world_is_null_generate_nearby_chunks_first = "§cBu dünya için motor erişimi null.  İlk önce yakındaki chunks."
+regen_started_chunk_s_around_deleting_regenerating_place = "§aRegen başladı: §6{chunks}§a chunk(s) çevresinde §6{centerX},{centerZ}§a.  Yerde tekrarlamak ve yenidenjenize etmek."
+radius_must_be_0_greater_3 = "§cRadius olmalı 0 veya daha büyük."
+target_must_be_iris_world = "§cHedef bir hedef olmalıdır Iris Dünya."
+engine_access_this_world_is_null_2 = "§cBu dünya için motor erişimi null."
+goldenhash_started_chunk_s_around_buffers_world_untouched = "§aGoldenHash başladı: §6{chunks}§a chunk(s) çevresinde §6{centerX},{centerZ}§a Buffers'te (dünyaya)"
+
+[iris.bukkit.commandfind]
+not_iris_world = "§6Birde değil Iris Dünya!"
+unknown_structure = "§cBilinmeyen yapı: {structureKey}"
+run_this_game_teleport_structure = "§6Bunu bir yapıya telgraf etmek için oyunda çalıştırın."
+locating = "§7Locatinging {structureKey}..."
+run_this_game_teleport_structure_2 = "§6Bunu bir yapıya telgraf etmek için oyunda çalıştırın."
+locating_2 = "§7Locatinging {structure}..."
+teleported = "§a{structure} konumuna ışınlandı @ {value}, {y}, {value2}"
+not_iris_world_5 = "§6Birde değil Iris Dünya!"
+not_iris_world_2 = "§6Birde değil Iris Dünya!"
+not_iris_world_3 = "§6Birde değil Iris Dünya!"
+not_iris_world_4 = "§6Birde değil Iris Dünya!"
+object_studio_teleporting = "§aObject Studio: {object}"
+is_not_configured_any_region_biome_object_placements = "§c{object} Herhangi bir bölgede/biome nesne yerleştirmelerinde yapılandırılmıyor."
+
+[iris.bukkit.commandiris]
+successfully_removed_world_folder = "§aBaşarılı bir şekilde kaldırıldı dünya klasörü"
+successfully_removed_world_folder_2 = "§aBaşarılı bir şekilde kaldırıldı dünya klasörü"
+failed_remove_world_folder = "§cDünyayı kaldırmak için başarısız oldu"
+you_cannot_use_world_name_iris_creating_worlds_as_iris = "§cIris bu dizini Studio dünyaları için kullandığından \"iris\" dünya adını kullanamazsınız."
+may_we_suggest_name_irisworld_instead = "§cAdımı önerebiliriz \"IrisWorldBunun yerine?"
+you_cannot_use_world_name_benchmark_creating_worlds_as_iris = "§cIris bu dizini kıyaslama paketleri için kullandığından \"benchmark\" dünya adını kullanamazsınız."
+may_we_suggest_name_irisworld_instead_2 = "§cAdımı önerebiliriz \"IrisWorldBunun yerine?"
+that_folder_already_exists = "§cBu klasör zaten var!"
+try_one_overworld_vanilla_flat_theend = "§eBirini deneyin: Overworld, vanilla, düz, son"
+dimension_not_found = "§cCould not find dimension §f{dimension}§c."
+install_pack_and_restart = "§eInstall it with §b{command}§e and restart the server."
+exception_raised_during_creation_see_console_more_details = "§cYaratılış sırasında ortaya çıktı.  Konsolu daha fazla ayrıntı için görün."
+successfully_created_your_world = "§aBaşarılı bir şekilde dünyanızı yarattı!"
+specified_player_does_not_exist = "§cBelirtilen oyuncu mevcut değildir."
+iris_v_by_volmit_software = "§aIris{value} Volmit Software"
+to = "§a{value} tom için {value2}"
+total_height = "§aToplam Yükseklik: {value}"
+iris_worlds = "§9Iris Dünyaları: "
+message = "§a- {value}"
+bukkit_worlds = "§6Bukkit Dünyaları: "
+message_2 = "§7- {value}"
+this_is_not_iris_world_iris_worlds = "§cBu bir şey değil Iris Dünya.  Iris Dünyalar: {value}"
+removing_world = "§aDünyayı Değiştirin: {value}"
+failed_evacuate_world = "§cDünyayı tahliye etmek için başarısız oldu: {value}"
+failed_unload_world = "§cBoş olmayan dünyaya başarısız oldu: {value}"
+successfully_removed_from_bukkit_yml = "§aBaşarılı bir şekilde kaldırıldı {value} -den bukkit.yml"
+looks_like_world_was_already_removed_from_bukkit_yml = "§eDünya gibi görünüyor zaten kaldırıldı bukkit.yml"
+failed_save_bukkit_yml_because = "§ckurtarmak için başarısız oldu bukkit.yml Çünkü {value}"
+set_debug = "§aSet debug: {to}"
+you_must_be_iris_world = "§cBirde olmalısın Iris dünya dünyası"
+sending_metrics = "§ametrikleri gönderin..."
+this_is_not_iris_world_iris_worlds_2 = "§cBu bir şey değil Iris Dünya.  Iris Dünyalar: {value}"
+unloading_world = "§aBoş dünya: {value}"
+world_unloaded_successfully = "§aWorld boşaltıldı başarıyla."
+failed_unload_world_2 = "§cDünyayı boşaltmak için başarısız oldu."
+failed_unload_world_3 = "§cDünyayı boşaltmak için başarısız oldu: {value}"
+doesnt_exist_on_server = "§e{logicalWorldName} Sunucuda var değil."
+generator = "§9Jeneratör: {dimension}"
+is_not_iris_world = "§6{logicalWorldName} Bir iris dünyası değil."
+could_not_determine_iris_dimension = "§cTanımlamayabilir Iris Boyut için boyut {logicalWorldName}."
+loading_world = "§aYükleniyor dünya: {logicalWorldName}"
+loaded_successfully = "§a{logicalWorldName} başarıyla yüklenen."
+this_is_not_iris_world_iris_worlds_3 = "§cBu bir şey değil Iris Dünya.  Iris Dünyalar: {value}"
+evacuating_world = "§aEvacuating dünya{value}"
+
+[iris.bukkit.commandobject]
+no_packs_with_objects_were_found_on_this_server = "§cBu sunucuda nesnelerle paketler bulunamadı."
+no_objects_place_across_selected_pack_s = "§cSeçilen paket (s) arasında yer alan nesneler yok."
+opening_object_studio_objects = "§a nesne editörü için {scope} ({totalObjects} nesneler)"
+failed_open_object_studio = "§cnesne stüdyosunu açmaya başarısız oldu: {value}"
+object_size = "Object Boyutu: {value} * {value2} * {value3}"
+blocks_used = "Kullanılan Bloklar: {value}"
+blocks_object = "== nesnedeki Bloklar =="
+other_block_types = "  + {value} Diğer blok türleri"
+current_object_size = "Mevcut Object Boyutu: {value} * {value2} * {value3}"
+new_object_size = "Yeni Object Boyutu: {value} * {value2} * {value3}"
+failed_save_object = "nesneyi kurtarmak için başarısız oldu {value}: {value2}"
+no_objects_matched = "§cHiç bir nesne eşleşmedi: {target}"
+plausibilize_reach_queued_object_s = "§aPlauzibilize [reach={reach}{value}] kuyruk {value2} nesne(s)"
+hold_your_wand = "."
+no_area_selected = "Hiçbir alan seçilmiş değildir."
+ready_your_wand = "asa'a hazır olun."
+ready_your_wand_2 = "asa'a hazır olun."
+indicated_scale_exceeds_maximum_downscaled_maximum = "§eIndicated ölçek maksimum aşıyor.  En üst düzeye kadar: {maxScale}"
+updated_wand_objects_iob = "Güncelleme için asa için objects/{value}.iob "
+given_new_wand_objects_iob = "Yeni asa için objects/{value}.iob "
+updated_wand_objects_iob_2 = "Güncelleme için asa için objects/{value}.iob "
+placed = "§ayerleştirildi Place {object}"
+you_need_hold_your_wand = "§easa'ınızı tutmanız gerekir!"
+file_already_exists_set_overwrite_true_overwrite_it = "§cDosya zaten var.  Bunu yazmak için son derece doğru bir şekilde ayarlayın."
+failed_save_object_because_ioexception = "§cBir nesneyi kurtarmak için başarısız oldu çünkü bir IOException: {value}"
+successfully_object_saved_objects = "§aKaydetmek için başarılı bir nesne: {value}/objects/{name}"
+hold_your_wand_2 = "."
+no_area_selected_2 = "Hiçbir alan seçilmiş değildir."
+reverted_pastes = "§9{actualReverts}§9 yapıştırma geri alındı!"
+you_can_t_get_worldedit_selection_without_worldedit_you_know = "§cBir tane alamazsın WorldEdit Seçim olmadan seçim WorldEditAma biliyorsun."
+you_don_t_have_worldedit_selection_this_world = "§cSen sahip değilsin WorldEdit Bu dünyada seçim."
+fresh_wand_with_your_current_worldedit_selection_on_it = "§aTaze bir asa ile mevcut WorldEdit Üzerinde seçim!"
+poof_good_luck_building = "§aHayır!  İyi şans binası!"
+hold_your_wand_3 = "§eSelâmı tut!"
+no_area_selected_3 = "Hiçbir alan seçilmiş değildir."
+auto_select_complete = "§aotomatik seçim tamamen!"
+hold_your_wand_4 = "§eSelâmı tut!"
+no_area_selected_4 = "Hiçbir alan seçilmiş değildir."
+auto_select_complete_2 = "§aotomatik seçim tamamen!"
+
+[iris.bukkit.commandpack]
+you_must_specify_pack_name = "§cBir paket adı belirtmelisiniz."
+pack_not_found_under_packs = "§cPack \"{pack}“Geçmiş altında bulunamadı packs/."
+message = "§7  - {label}: {value}"
+more = "§7    ...  ve {value} Daha fazlası."
+
+[iris.bukkit.commandstructure]
+verifying_structures_from_within_chunks = "§aDoğru yapılar §f{value}§a -den {value2},{value3} içeride {searchRadius} chunk..."
+could_not_resolve_pack_dimension = "§cpaketi boyut için çözemez {value}"
+wrote_structure_index = "§ayazıldı yapı indeksi: §f{value}"
+could_not_resolve_pack_dimension_2 = "§cpaketi boyut için çözemez {value}"
+importing_all_vanilla_datapack_structures_into_overwrite = "§aTüm vanillayı ithal etmek & Datapack yapıları içine §f{value}§a (over write)..."
+import_complete_structures_objects_written_failed = "§aTamam: §f{imported}§a  structures/objects yazılı, §f{failed}§a başarısız oldu."
+reference_them_from_biome_region_dimension_structures_list_run_iris = "§7Onları bir biyome/bölge/dimension 'yapılar' listesinden referans edin veya çalıştırın /iris structure list {value} indeksi yenilemek için.  Etkisi almak için değişiklikler için regenerate chunks."
+could_not_resolve_pack_dimension_3 = "§cpaketi boyut için çözemez {value}"
+captured_structures_place_them_from_structures_list_regenerate_chunks_delete = "§7Yakalandı {value} yapılar.  Onları bir 'yapılar' listesinden yerleştirin ve yenidengenerate chunks.  silme structures/*.json Yeniden inşa etmek için."
+no_loaded_iris_world_found_join_create_one_first_search = "§cHiçbir yükleme Iris Dünya için bulundu {value}.  İlk önce bir katılın veya oluşturun (aratıcı canlı dünyaya karşı çalışır)."
+selected_iris_world_has_no_active_generator_engine = "§cSeçilen  seçildi Iris Dünya aktif jeneratör motoruna sahip değil."
+could_not_resolve_pack_dimension_4 = "§cpaketi boyut için çözemez {value}"
+no_iris_structure_this_pack = "§cyok iris structure \"{structure}“Bu pakette"
+structure_assembled_0_pieces_check_startpool = "§cYapı \"{structure}\"Bir araya geldi\" 0 parçalar (kontrol startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "§aYapı \"{structure}': §f{value}§a parçalar, ayak izi §f{value2}x{value3}§a Bloklar (sample tohum 1234)"
+could_not_resolve_pack_dimension_5 = "§cpaketi boyut için çözemez {value}"
+no_iris_structure_this_pack_2 = "§cyok iris structure \"{structure}“Bu pakette"
+structure_assembled_0_pieces = "§cYapı \"{structure}\"Bir araya geldi\" 0 parçalar parça parçaları"
+placed_pieces_at_your_location = "§ayerleştirildi ‘{structure}' ({value} parçalar) konumunuzda. ({value2} block changes)"
+placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+
+[iris.bukkit.commandstudio]
+importing_vanilla_content_into = "§avanilla içeriği ithal etmek §f{value}§a..."
+importvanilla_complete_objects_structures_written_failed = "§aimportvanilla tamamlandı: §f{imported}§a  objects/structures yazılı, §f{failed}§a başarısız oldu."
+trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7Ağaçlar/objects altında objects/vanilla/...Onlara biyome nesne yerleştirmelerinden atıfta bulun."
+no_open_studio_projects = "§cAçık stüdyo projeleri yok."
+closing_studio = "§eKapanış stüdyosu..."
+studio_close_failed = "§cStüdyo yakın başarısız oldu: {value}"
+studio_close_failed_2 = "§cStüdyo yakın başarısız oldu: {value}"
+studio_closed_remaining_world_family_cleanup_was_queued_startup_fallback = "§eStüdyo kapalı.  Kalan dünya-aile temizliği, başlangıç düşüşü için sıralandı."
+studio_closed = "§aStüdyo kapalı."
+you_must_be_studio_world_toggle_debug_scoreboard = "§cHata ayıklama puan tablosunu değiştirmek için bir Studio dünyasında olmalısınız."
+studio_debug_scoreboard = "{value}Studio debug puanboard {value2}"
+could_not_update_studio_debug_scoreboard_right_now = "§cStudio debug puanboard'ı şu anda güncelleyemezdi."
+opened_inventory = "§aAçıklanmış envanter!"
+generating_data = "§7Veriler..."
+done = "§aTamamlandı!"
+message = "§a{k}: {value} / {value2}%"
+regions_radius_out_of_range = "§cYarıçap 1 ile 2048 chunk arasında olmalıdır."
+regions_scan_failed = "§cBölge taraması başarısız oldu: {value}"
+opening_studio_pack_seed = "§aAçılış stüdyosu \"{value}\" paket (seed: {seed})"
+provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§cBir boyut paketi sağlayın: /iris std importvanilla pack=<dimension>"
+could_not_resolve_pack_dimension = "§cpaketi boyut için çözemez {value}"
+opening_vscode_pack = "§aAçılış VSCode \"Çünkü\"{value}\" paket\""
+pack_has_version = "§a\"\"{value}\" paketin versiyonu var: {value2}"
+opening_noise_explorer = "§aGürültü Explorer!"
+cannot_add_items_virtual_inventory_because = "§cSanal envantere öğeleri ekleyebilir çünkü: {value}"
+opening_inventory_now = "§aAçılış envanteri şimdi!"
+only_works_iris_world = "§cSadece bir anda çalışır Iris Dünya!"
+you_need_be_specify_iris_generated_world = "§cSiz içeride olmak veya belirtmek gerekir Iris- üretilen dünya!"
+opening_map = "§aAçılış haritası!"
+calculating_performance_metrics_noise_generators = "Gürültü jeneratörleri için Performans Metriklerini Hesaplamak"
+calculating_interpolator_timings = "Interpolator Timings..."
+processing_generator_scores = "Processing Jeneratör Puanları: "
+score = "Puan: {value}"
+done_with_result = "§atamamlandı !  {value}"
+you_have_be_iris_world_spawn_entities_properly_trying_spawn = "§cVarlıkları doğru şekilde spawnlamak için bir Iris dünyasında olmalısınız. Mümkün olan en iyi şekilde spawnlanmaya çalışılacak."
+no_studio_world_is_open = "§cStüdyo dünyası açık değil!"
+you_are_already_studio_world = "§cZaten bir stüdyo dünyasındasın!"
+sending_you_studio_world = "§aSizi stüdyo dünyasına gönderin!"
+updating_code_workspace = "§6Güncelleme kodu iş alanı için {value}..."
+updated_code_workspace = "§aGüncelleme Kodu Çalışma Alanı için {value}"
+invalid_project_try_deleting_code_workspace_file_try_again = "§cgeçersiz projesi: {value}.  Kod çalışma alanı dosyasını silmeye çalışın ve tekrar deneyin."
+you_must_be_iris_world = "§cBirde olmalısın Iris dünya dünyası"
+you_must_be_iris_world_2 = "Bir iris dünyasında olmalısınız."
+capturing_igendata_from_nearby_chunks = "Sheturing IGenData -den {value} Yakındaki chunks."
+reported = "Rapor: {value}"
+you_must_have_server_launched_guis_enabled_settings = "§cSunucu başlatmış olmalısın GUIs ayarlarda etkinleştirin!"
+players_only = "§cOyuncular sadece!"
+no_studio_world_is_open_2 = "§cStüdyo dünyası açık değil!"
+you_must_be_studio_world = "§cBir stüdyo dünyasında olmalısın!"
+opening_image_map_studio = "§aOpening the Image Map Studio."
+
+[iris.bukkit.commandsvc]
+you_lack_permission = "İzinden yoksunsunuz ‘{ROOTPERMISSION}'"
+
+[iris.bukkit.irisenginestatus]
+message = "§5-------------------------"
+status = "§5Durum:"
+service = "§5Hizmet: §d{value}"
+metrics = "§5- Metriks: §d{value}"
+maintenance_period = "§5- Bakım Dönemi: §d{value}"
+worker_parallelism = "§5- Worker Paralelism: §d{value}"
+active_world_tasks = "§5Aktif Dünya Görevleri: §d{value}"
+tectonic_plates = "§5Tectonic Plakları:"
+configured_retention = "§5- Retention: §d{value}"
+heap_usage = "§5- Heap Use: §d{value}"
+resident = "§5– Resident: §d{value}"
+queued = "§5– Queued: §d{value}"
+average_idle_duration = "§5- Ortalama Idle Süre: §d{value}"
+max_idle_duration = "§5- Max Idle Süre: §d{value}"
+min_idle_duration = "§5- Min Idle Süre: §d{value}"
+caches = "§5Rehberler:"
+resource = "§5- Kaynak: §d{value} ({value2})"
+2d_stream = "§52D Stream: §d{value} ({value2})"
+3d_stream = "§53D Stream: §d{value} ({value2})"
+other = "§5Diğer: §d{value} ({value2})"
+other_2 = "§5Diğer:"
+iris_worlds = "§5- Iris Dünyalar: §d{value}"
+loaded_chunks = "§5- Yüklenmiş Chunks: §d{value}"
+message_2 = "§5-------------------------"
+
+[iris.bukkit.commandedit]
+players_only = "§cOyuncular sadece!"
+no_studio_world_is_open = "§cStüdyo dünyası açık değil!"
+you_must_be_studio_world = "§cBir stüdyo dünyasında olmalısın!"
+cannot_open_files_headless_environments = "§cBaşsız ortamlarda açık dosyaları açamaz!"
+desktop_is_not_supported_by_this_environment = "§cMasaüstü bu ortamda desteklenmez!"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6Dosyayı bulamaz; Belki de doğrudan bir dosyadan yüklenmedi?"
+opening_vscode = "§a{value} {value2}, VSCode içinde açılıyor! "
+cant_find_file_registrant_does_not_exist = "§cDosyayı bulamaz.  Ya da kayıt sahibi mevcut değildir"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6Dosyayı bulamaz; Belki de doğrudan bir dosyadan yüklenmedi?"
+opening_vscode_2 = "§a{value} {value2}, VSCode içinde açılıyor! "
+cant_find_file_registrant_does_not_exist_2 = "§cDosyayı bulamaz.  Ya da kayıt sahibi mevcut değildir"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6Dosyayı bulamaz; Belki de doğrudan bir dosyadan yüklenmedi?"
+opening_vscode_3 = "§a{value} {value2}, VSCode içinde açılıyor! "
+cant_find_file_registrant_does_not_exist_3 = "§cDosyayı bulamaz.  Ya da kayıt sahibi mevcut değildir"
+
+[iris.bukkit.commandpregen]
+pregen_radius_must_be_greater_than_zero_blocks = "§cPregen radius sıfır bloklardan daha büyük olmalıdır."
+strict_serial_pregeneration_requires_paper_paper_compatible_server = "§cKesin sıralı ön oluşturma Paper veya Paper uyumlu bir sunucu gerektirir."
+engine_access_this_world_is_null = "§cBu dünya için motor erişimi çıplak!"
+please_make_sure_world_is_loaded_engine_is_initialized_generate = "§cLütfen dünyanın yüklendiğinden emin olun & Motor başlangıçlı.  Örneğin yeni bir chunk."
+failed_start_pregeneration_see_console_details = "§cPrejenerasyona başlamak için başarısız oldu.  Ayrıntılar için konsolu görün."
+no_active_pregeneration_tasks_stop = "§eAktif prejenerasyon görevlerinin durması"
+paused_unpaused_pregeneration_task_now = "§aÖn oluşturma görevinin duraklatma durumu değiştirildi. Şimdiki durum: {value}."
+no_active_pregeneration_tasks_pause_unpause = "§eHiçbir aktif prejenerasyon görevi duraklama /unpause."
+no_active_pregeneration_task = "§eAktif prejenerasyon görevi yok."
+pregen = "§aPrejen §6{world}§a: §6{value}/{value2}§a (§6{value3}%§a){value4}"
+speed_s_eta_elapsed_method = "§aHız: §6overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s§a ETA: §6{eta}§a Elapsed: §6{elapsed}§a Method: §6{method}{failures}"
+
+[iris.bukkit.commandwhat]
+material = "Malzeme: §a{value}"
+full = "Tam: §f{value}"
+please_hold_block_item = "Lütfen bir blok/item tutun"
+material_2 = "Malzeme: §a{value}"
+please_hold_block_item_2 = "Lütfen bir blok/item tutun"
+ibiome = "IBiome: {value} ({value2})"
+non_iris_biome = "olmayanlarIris Biyome: {value}"
+data_pack_biome_id = "Veri Paketi Biome: {value} (ID: {value2})"
+iregion = "IRegion: {value} ({value2})"
+iris_worlds_only = "§aIris dünyası sadece."
+please_look_at_any_block_not_at_sky = "Lütfen herhangi bir bloka bak, gökyüzünde değil"
+material_3 = "Malzeme: §a{value}"
+full_2 = "Tam: §f{value}"
+storage_block_loot_capable = "§e* Depolama Bloku (Loot Capable)"
+lit_block_light_capable = "§e* Lit Block (Işık Capable)"
+foliage_block = "§e* Foliage Blok"
+decorant_block = "§e*"
+fluid_block = "§e* Akışkan Bloku"
+plantable_foliage_block = "§e* Plantable Foliage Blok"
+solid_block = "§e* Katı Blok"
+found_nearby_markers = "{value} Nearby Markers ({marker})"
+iris_worlds_only_2 = "§aIris dünyası sadece."
+
+[iris.modded.irismoddedcommands]
+this_dimension_is_not_generated_by_iris = "Bu boyut Iris tarafından oluşturulmadı."
+console_must_name_biome_iris_edit_biome_key = "Konsol bir biome adı olmalıdır: /iris edit biome <key>"
+biome_lookup_failed = "Biome lookup başarısız oldu: {value}"
+unknown_biome = "Bilinmeyen biyome: {key}"
+this_dimension_is_not_generated_by_iris_2 = "Bu boyut Iris tarafından oluşturulmadı."
+console_must_name_region_iris_edit_region_key = "Konsol bir bölge adı olmalıdır: /iris edit region <key>"
+region_lookup_failed = "Bölge görünümü başarısız oldu: {value}"
+unknown_region = "Bilinmeyen bölge: {key}"
+this_dimension_is_not_generated_by_iris_3 = "Bu boyut Iris tarafından oluşturulmadı."
+cannot_open_files_here = "Burada açık dosyaları açamaz: {value}"
+cannot_find_file_perhaps_it_was_not_loaded_directly_from = "Dosyayı bulamaz; belki de doğrudan bir dosyadan yüklenemez miydi?"
+could_not_open = "Açıklanamaz {value}: {value2}"
+opening_your_editor = "Açılış {value}  {value2} editörünüzde."
+console_must_name_player_iris_tp_dimension_player = "Konsol bir oyuncu adı olmalıdır: /iris tp <dimension> <player>"
+is_not_generated_by_iris = "{value} tarafından üretilmiyor Iris."
+teleport_failed_dimension_is_not_loaded = "Teleport başarısız oldu: Boyut {dimensionId} yüklenemez."
+teleporting = "Telporting {value} tom için {dimensionId}..."
+is_not_generated_by_iris_2 = "{value} tarafından üretilmiyor Iris."
+cannot_evacuate_primary_world_there_is_nowhere_send_players = "birincil dünyayı tahliye edemez; oyuncuları göndermek için hiçbir yer yoktur."
+evacuated_player_s_from = "Evakuated {count} oyuncu(s) -den {value} tom için {value2}."
+set_debug = "Set debug toplan: {to}"
+hotloaded_settings = "Sıcak ayarlar"
+this_command_can_only_be_used_by_players_it_inspects = "Bu komut sadece oyuncular tarafından kullanılabilir (dövük eşyanızı inceler)."
+your_main_hand_is_empty = "Ana eliniz boş."
+hand_x = "El: {value} x{value2}"
+this_command_can_only_be_used_by_players = "Bu komutu yalnızca oyuncular kullanabilir."
+this_dimension_is_not_generated_by_iris_4 = "Bu boyut Iris tarafından oluşturulmadı."
+this_dimension_is_not_generated_by_iris_5 = "Bu boyut Iris tarafından oluşturulmadı."
+is_not_generated_by_iris_see_iris_info_loaded_iris = "{value} tarafından üretilmiyor Irisbakınız; /iris info Yüklemek için Iris Boyutlar."
+current_dimension_is_not_generated_by_iris_name_one_explicitly = "Mevcut boyut ({value}) Iris tarafından oluşturulmuyor.Bir isim açıkça: /iris pregen start {radius} <dimension>; /iris info'i Iris boyutları için görmek."
+pregeneration_task_is_already_running_stop_it_first_with_iris = "Bir prejenerasyon görevi zaten çalışıyor.  Önce onu durdurun /iris pregen stop."
+pregen_started_by_blocks_from_progress_logs_console_see_iris = "Pregen başladı {value} Of {value2} Yemin ederim {value3} Bloklardan bloklar {centerX},{centerZ}.{modeNote} İlerleme konsoluna girişler; bakınız /iris pregen status.{guiNote}"
+stopping_pregeneration_finishing_up_current_region = "Prejenerasyonu Durdurun; Mevcut bölgeyi bitirin..."
+no_active_pregeneration_task_stop = "Durmak için aktif bir prejenerasyon görevi yok."
+no_active_pregeneration_task_pause_resume = "Durmak/resume için aktif bir prejenerasyon görevi yok."
+pregeneration_is_now = "Prejenerasyon şimdi {value}."
+no_active_pregeneration_task = "Aktif prejenerasyon görevi yok."
+iris_by_volmit_software_on_minecraft_iris_dimension_s = "Iris  {value} Volmit Software tarafından {value2} (Minecraft  {value3}), {engines}  Iris Boyut(s)"
+loaded_dimensions_iris = "Yüklenen boyutlar: {total} ({iris}  Iris)"
+this_command_can_only_be_used_by_players_2 = "Bu komutu yalnızca oyuncular kullanabilir."
+this_dimension_is_not_generated_by_iris_6 = "Bu boyut Iris tarafından oluşturulmadı."
+biome = "Biyome: {value} ({value2})"
+biome_lookup_failed_2 = "Biome lookup başarısız oldu: {value}"
+region = "Bölge: {value} ({value2})"
+region_lookup_failed_2 = "Bölge görünümü başarısız oldu: {value}"
+cave_biome = "Cave biyome: {value}"
+cave_biome_lookup_failed = "Cave biome lookup başarısız oldu: {value}"
+surface_block_y = "Yüzey bloğu: {value} (y={value2})"
+position_chunk = "Pozisyon: {value}  {value2}  {value3} (chunk. {value4},{value5})"
+this_command_can_only_be_used_by_players_it_inspects_2 = "Bu komut sadece oyuncular tarafından kullanılabilir (gördüğün bloğu inceler)."
+look_at_block_not_sky = "Bir bloka bak, gökyüzünde değil."
+block_y = "Blok: {value} (y={value2})"
+this_command_can_only_be_used_by_players_markers_render = "Bu komut sadece oyuncular tarafından kullanılabilir (markers etrafınızdaki parçacıkları oluşturur)."
+this_dimension_is_not_generated_by_iris_7 = "Bu boyut Iris tarafından oluşturulmadı."
+scanning_markers_around_you = "\"için Scanning için\"{marker}Etrafınızdaki işaretler..."
+marker_scan_failed = "Marker tarama başarısız oldu: {value}"
+found_nearby_marker_s = "Bul bulundu {value} yakındaki işaretleyici(s) ({marker})"
+this_command_can_only_be_used_by_players_3 = "Bu komutu yalnızca oyuncular kullanabilir."
+this_dimension_is_not_generated_by_iris_8 = "Bu boyut Iris tarafından oluşturulmadı."
+unknown_biome_2 = "Bilinmeyen biyome: {key}"
+this_command_can_only_be_used_by_players_4 = "Bu komutu yalnızca oyuncular kullanabilir."
+this_dimension_is_not_generated_by_iris_9 = "Bu boyut Iris tarafından oluşturulmadı."
+unknown_region_2 = "Bilinmeyen bölge: {key}"
+is_not_defined_dimension = "{value} Boyutta tanımlanmamıştır!"
+this_dimension_is_not_generated_by_iris_10 = "Bu boyut Iris tarafından oluşturulmadı."
+is_not_configured_any_region_biome_object_placements_object_keys = "{key} Herhangi bir bölgede/biome nesne yerleştirmelerinde yapılandırılmıyor ({value} nesne anahtarları yüklenir)."
+this_command_can_only_be_used_by_players_object_key = "Bu komut sadece oyuncular tarafından kullanılabilir.  (object anahtar ‘{key}\"Demek\" {value} yüklü nesne anahtarları)"
+this_dimension_is_not_generated_by_iris_11 = "Bu boyut Iris tarafından oluşturulmadı."
+name_iris_native_structure_locate = "Adı an Name an Iris veya bulmak için yerli yapı."
+this_command_can_only_be_used_by_players_5 = "Bu komutu yalnızca oyuncular kullanabilir."
+unknown_structure_use_tab_completion_choose_iris_placement_registered_native = "Bilinmeyen yapı ‘{key}'.  Bir şeyleri seçmek için sekme tamamlanmasını kullanın Iris yerleştirme veya kayıtlı bir yerel /datapack yapısı."
+searching_native_structure_within_chunks = "Yerel yapı için arama {value} içeride {NATIVESTRUCTURELOCATERADIUS} chunk..."
+searching_iris_placed_structure = "Arama için Iris- Yerleştirilmiş yapı {key}..."
+unable_locate_iris_placed_structure_density_search_safety_limit_was = "bulmak için kullanılamaz Iris- Yerleştirilmiş yapı {key}: Yoğun arama güvenliği limiti, tam anlamıyla ulaştı 1024-chunkçası aradı."
+could_not_find_iris_placed_structure_within_1024_chunks = "Bulamadı Iris- Yerleştirilmiş yapı {key} içeride 1024 Avunks."
+search_failed = "Arama başarısız oldu: {value}"
+could_not_find_native_structure_within_chunks = "Yerli yapı bulamaz {value} içeride {NATIVESTRUCTURELOCATERADIUS} Avunks."
+search_native_structure_failed = "Yerel yapı için arama {value} Başarısız: {value2}"
+player_disconnected_before_structure_search_completed = "Oyuncu yapı arama tamamlanmadan önce ayrıldı."
+you_changed_dimensions_before_structure_search_completed_run_command_again = "Yapı arama tamamlanmadan önce boyutları değiştirdiniz; komutu tekrar çalıştırın."
+found_at_but_teleportation_failed = "{label}, {targetX} {clampedY} {targetZ} konumunda bulundu ancak ışınlanma başarısız oldu."
+teleported_at = "{label} konumuna ışınlandı: {targetX} {clampedY} {targetZ}"
+this_dimension_is_not_generated_by_iris_12 = "Bu boyut Iris tarafından oluşturulmadı."
+structure_reachability_native_generation_eligible_iris_placed_native_disabled_native = "Yapı erişilebilirlik: {available} Yerli nesil uygun, {irisPlaced}  Iris- Yere, {disabled} Yerli engelliler, {suppressed} Yerel olarak değiştirildi Iris yerleştirmeler, {unreachableBiomes} Bu paket biomes tarafından dışlanmış yerli ve {unsupported} Bu boyutta desteklenmeyen yerli yapılar kayıtlı.  Kullanım Kullanımı /iris structure verify <key> Bir yapı için."
+structure_is_iris_placed_locatable_with_iris_goto_structure = "Yapı Yapısı {key} islamdır. Iris- Yer ve locatable ile /iris goto structure {key2}."
+unknown_structure_it_is_neither_iris_placed_nor_registered_by = "Bilinmeyen yapı ‘{key}'.  Ne de öyle değil Iris- ya da vanilla veya bir veri paketi tarafından kayıt olun."
+structure_is_explicitly_replaced_by_iris_placement_locatable_with_iris = "Yapı Yapısı {value} Açıkça bir şekilde değiştirildi Iris yerleştirme ve locatable ile /iris goto structure {value2}."
+native_structure_is_enabled_supported_by_this_dimension_s_generator = "Yerli yapı {value} Bu boyuttaki jeneratör durumu tarafından desteklenen ve locatable ile birlikte kullanılabilir. /iris goto structure {value2}."
+this_dimension_is_not_generated_by_iris_13 = "Bu boyut Iris tarafından oluşturulmadı."
+this_command_can_only_be_used_by_players_poi_type = "Bu komut sadece oyuncular tarafından kullanılabilir.  (POI türü \" tipi\"{type}' accepted)"
+searching = "Arama için {label}..."
+engine_this_world_has_been_closed_rejoin_dimension_try_again = "Bu dünya için motor kapalıydı; boyutu yeniden optimize etti ve tekrar deneyin."
+search_failed_2 = "Arama başarısız oldu: {failure}"
+could_not_find_within_search_timeout = "Bulamadı {label} Arama süresi içinde."
+teleported_at_2 = "{label} konumuna ışınlandı: {blockX} {blockY} {blockZ}"
+engine_changed_while_locating_try_again = "Motor değişmişken değişti {label}Tekrar deneyin."
+this_dimension_is_not_generated_by_iris_14 = "Bu boyut Iris tarafından oluşturulmadı."
+world_seed = "Dünya tohumu: {value}"
+engine_seed_mixed = "Motor tohum: {value} (Resimler: {value2})"
+this_dimension_is_not_generated_by_iris_15 = "Bu boyut Iris tarafından oluşturulmadı."
+downloading_irisdimensions = "Downloading indir IrisDimensions/{pack} ({downloadSource})..."
+pack_installed_its_exact_dimension_types_custom_biomes_join_forced = "Pack \"{pack}“Koşul.  Tam boyut türleri ve özel biyomes, zorlananlara katılır Iris Bir sonraki sunucuda veri paketi yeniden başlatılır; bu paketten dünyalar yaratmadan önce yeniden başlayın."
+pack_download_failed_see_console = "Pack download başarısız oldu çünkü {pack} ({downloadSource}; see console)."
+this_dimension_is_not_generated_by_iris_16 = "Bu boyut Iris tarafından oluşturulmadı."
+generated_chunk_s_s = "Genrated: {value} chunk(s) {value2}/s"
+ms = "  {value}: {value2}ms"
+
+[iris.modded.moddedcommandhelp]
+unknown_iris_help_section = "Bilinmeyen Iris Yardım bölümü: {normalized}"
+
+[iris.modded.moddeddatapackcommands]
+type_active_logical_pack_engine_not_started_pack_heights_unknown = "{dimensionId}: type ={typeKey} Aktif = aktif={activeMin}..{activeMax} mantıksal ={value} (pack ={value2}Motor başlamadı; yükseklikler bilinmiyor)"
+type_active_logical_pack_wants_logical = "{dimensionId}: type ={typeKey} Aktif = aktif={activeMin}..{activeMax} mantıksal ={value} | paket ‘{value2}\" istiyor\" {packMin}..{packMax} mantıksal ={packLogical} | {value3}{value4}"
+warning_active_dimension_type_does_not_match_pack_iris_will = "  WARNING: Aktif boyut türü paketi eşleştirmez.  Iris Bu dünya motorunu klip arazi yerine başlatmayı reddeder.  çalıştır /iris world enable <dimension> <pack> Yeni dünyalar veya /iris datapack install Zaten yüklenmiştir Iris Boyutlar, sonra yeniden başlayın."
+no_iris_dimensions_are_loaded = "Hayır Iris Boyutlar yüklenir."
+all_iris_dimension_s_match_their_pack_height_ranges = "Bütün Hepsi {irisLevels}  Iris Boyut(s) paket yükseklik aralıklarını eşleştirir."
+engine_not_started_cannot_derive_its_dimension_type_yet = "{value}Motor başlamadı; henüz boyut tipini elde edemez."
+dimension_type_generation_failed = "{value}: Boyut tipi nesil başarısız oldu: {value2}"
+failed_write = "yazmak için başarısız oldu {output}: {value}"
+no_iris_dimensions_with_running_engines_found_nothing_was_installed = "Hayır Iris Kontrollü motorlar bulundu; hiçbir şey kuruldu."
+failed_write_2 = "yazmak için başarısız oldu {mcmeta}: {value}"
+wrote = "yazıldı. {path}"
+world_datapack_dimension_type_overrides_installed_restart_server_dimension_types = "World datapack \"{WORLDPACKNAME}“ Boyut tipi aşırı yüklemeler.  Sunucuyu uygulamak için boyut türleri için yeniden başlatın."
+configured_datapack_imports = "yapılandırılmış datapack import: {value}"
+message = "  - {url}"
+modrinth_ingest_is_bukkit_only_install_these_manually_into_world = "Modrinth Ingest is ingest BukkitSadece; bunları manuel olarak yükleme world/datapacks Gerekirse."
+installed_world_datapacks = "Bağlantılı dünya veri paketleri: {value}"
+message_2 = "  - {name}"
+
+[iris.modded.moddeddevelopercommands]
+message = "  {value}"
+network_scan_failed = "Ağ tarama başarısız oldu: {value}"
+
+[iris.modded.moddedgoldenhash]
+goldenhash_scan_is_already_running = "Altınhash tarama zaten çalışıyor."
+
+[iris.modded.moddedobjectcommands]
+this_command_can_only_be_used_by_players_wand_is = "Bu komut sadece oyuncular tarafından kullanılabilir.  (Vand fiziksel bir öğedir)"
+your_inventory_is_full = "envanteriniz dolu."
+poof_good_luck_building_left_click_corner_1_right_click = "Hayır!  İyi şans binası!  (sol tık = köşe 1Doğru tıklama = köşe 2)"
+this_command_can_only_be_used_by_players_dust_is = "Bu komut sadece oyuncular tarafından kullanılabilir.  ( Toz fiziksel bir eşyadır)"
+your_inventory_is_full_2 = "envanteriniz dolu."
+right_click_block_reveal_object_it_belongs = "Doğru, nesneyi ortaya çıkarmak için bir blok tıklayın."
+this_command_can_only_be_used_by_players_saving_captures = "Bu komut sadece oyuncular tarafından kullanılabilir.  (Kaynak sizin asa seçiminizi yakalar)"
+this_dimension_is_not_generated_by_iris_objects_save_into = "Bu boyut tarafından oluşturulmuyor Iris; nesneler boyut paketine kaydedilir."
+hold_your_iris_wand_iris_wand = "tut Iris b.  (/iris wand)"
+no_area_selected_left_right_click_blocks_with_wand_first = "Hiçbir alan seçilmiş değildir.  Sol / sağ önce asa ile bloklara tıklayın."
+invalid_object_name = "geçersiz nesne adı: {nameRaw}"
+selection_too_large_blocks_max = "Çok büyük seçim: {volume} blocks (max {MAXSAVEVOLUME})."
+file_already_exists_use_iris_object_save_overwrite = "Dosya zaten var.  Kullanım Kullanımı /iris object save overwrite {name}"
+failed_save_object = "nesneyi kurtarmak için başarısız oldu: {value}"
+saved_objects_iob_x_x_block_s = "kaydedildi Kaydet {value}/objects/{name}.iob: {w}x{h}x{d}, {value2} Blok(s){tileNote}"
+unknown_empty_object = "Bilinmeyen veya boş nesne: {key}"
+console_must_specify_coordinates_iris_object_paste_at_x_y = "Konsol koordinatları belirtmelidir: /iris object paste at <x> <y> <z> [rotate <degrees>] {key}"
+you_are_not_looking_at_block_within_blocks = "İçinde bir blok aramıyorsunuz {value} Bloklar."
+paste_failed_partial_changes_recorded_undo = "Yapıştırma başarısız oldu: {value} (kısmi değişiklikler geri alma için kaydedildi)"
+placed_at_rot_write_s_non_air = "{key}, {value} {value2} {value3} konumuna rot={rotation} ile yerleştirildi ({value4} yazma, {value5} hava olmayan{tileNote})"
+this_command_can_only_be_used_by_players = "Bu komutu yalnızca oyuncular kullanabilir."
+hold_your_iris_wand_iris_wand_2 = "tut Iris b.  (/iris wand)"
+no_area_selected = "Hiçbir alan seçilmiş değildir."
+message = "{value}  {amount}  {value2}: {value3}"
+this_command_can_only_be_used_by_players_2 = "Bu komutu yalnızca oyuncular kullanabilir."
+ready_your_wand_iris_wand = "asa'a hazır olun.  (/iris wand)"
+you_are_not_looking_at_block = "Bir bloka bakmıyorsunuz."
+position_set = "Pozisyon pozisyonu {value} set toplan {value2}  {value3}  {value4}"
+this_command_can_only_be_used_by_players_3 = "Bu komutu yalnızca oyuncular kullanabilir."
+hold_your_wand = "Selâmı tut!"
+no_area_selected_2 = "Hiçbir alan seçilmiş değildir."
+selection_too_large_auto_select_blocks_max = "otomatik seçim için çok büyük seçim: {volume} blocks (max {MAXAUTOSELECTVOLUME})."
+auto_select_complete = "otomatik seçim tamamlandı: {value}"
+unknown_object = "Bilinmeyen nesne: {key}"
+object_size = "Object Boyutu: {value} * {value2} * {value3}"
+blocks_used = "Kullanılan Bloklar: {value}"
+blocks_object = "== nesnedeki Bloklar =="
+message_2 = " - {value} * {value2}"
+other_block_state_s = "  + {remaining} Diğer blok devleti (s)"
+unknown_object_2 = "Bilinmeyen nesne: {key}"
+current_object_size = "Mevcut Object Boyutu: {value} * {value2} * {value3}"
+new_object_size = "Yeni Object Boyutu: {value} * {value2} * {value3}"
+object_has_no_load_file_cannot_persist_shrink = "Object'in yükleme dosyası yoktur; küçülemez."
+failed_save_object_2 = "nesneyi kurtarmak için başarısız oldu {value}: {value2}"
+invalid_reach = "geçersiz ulaştı: {token}"
+no_objects_matched = "Hiç bir nesne eşleşmedi: {target}"
+plausibilize_reach_queued_object_s = "Plauzibilize [reach={reach}{value}] kuyruk {value2} nesne(s)"
+nothing_undo = "Hiçbir şey geri çekilmez."
+reverted_paste_s = "{reverted} yapıştırma geri alındı."
+
+[iris.modded.moddedpackcommands]
+packs_folder_not_found = "Packs klasörü bulunamadı: {value}"
+no_packs_validate_under = "Takip etmek için paket yok {value}"
+pack_not_found_under = "Pack \"{pack}“Geçmiş altında bulunamadı {value}"
+validating_pack_s = "Geçerlilik {value} paket (s)..."
+validation_failed = "Geçerlilik \"{value}\" başarısız oldu: {value2}"
+validation_complete_broken_packs = "Geçerlilik tamamlandı.  Kırık paketler: {brokenTotal}/{value}"
+pack_not_found_under_2 = "Pack \"{pack}“Geçmiş altında bulunamadı {value}"
+pack_not_found_under_3 = "Pack \"{pack}“Geçmiş altında bulunamadı {value}"
+no_validation_results_recorded_run_iris_pack_validate_first = "Geçerlilik sonuçları kaydedildi.  çalıştır /iris pack validate İlk önce."
+blocking_warnings = "{tag}  {value} (blocking={value2}Uyarılar ={value3})"
+no_validation_result_run_iris_pack_validate = "\"Hiçbir geçerlilik sonucu yok\"{pack}'.  çalıştır /iris pack validate {pack2}."
+pack_is_loadable_warnings = "Pack \"{value}\" yüklenebilir.  (Resimler ={value2})"
+pack_is_broken = "Pack \"{value}\" bozuk:"
+message = "  - {reason}"
+message_2 = "  !  {value}"
+more_warning_s = "  ...  ve {value} Daha fazla uyarı(lar)."
+no_cleanup_candidates_found_pack = "Paket için bulunan temiz adaylar yok '{pack}'."
+cleanup_preview_pack_candidate_s_no_files_were_changed = "paket için temizleme önizleme \"{pack}': {value} aday(lar).  Hiçbir dosya değiştirildi."
+run_iris_pack_cleanup_apply_quarantine_after_fresh_scan = "çalıştır /iris pack cleanup {pack} apply Taze bir taramadan sonra kurantine."
+no_cleanup_candidates_found_pack_2 = "Paket için bulunan temiz adaylar yok '{pack}'."
+quarantined_cleanup_candidate_s_under = "Tamamrantined {value} Temiz aday (s) altında {value2}."
+nothing_restore_pack = "Paket için geri yüklememek için hiçbir şey yok \"{pack}'."
+restore_preview_file_s_no_files_were_changed = "Geri Döndük için {value}: {value2} Dosya(lar).  Hiçbir dosya değiştirildi."
+restore_is_blocked_by_existing_destination_s = "Geri yükleme bloke edilir {value} Mevcut destinasyon(lar)."
+run_iris_pack_restore_apply_restore_after_fresh_conflict_check = "çalıştır /iris pack restore {pack} apply Taze bir çatışma kontrolünden sonra geri yüklemek."
+restore_refused_because_destination_s_already_exist = "Geri yükleme reddetti çünkü {value} destinasyon(s) zaten var."
+nothing_restore_pack_2 = "Paket için geri yüklememek için hiçbir şey yok \"{pack}'."
+restored_file_s_from = "Geri yükleme {value} Dosya(s) -den {value2}."
+message_3 = "  - {label}: {value}"
+more = "  ...  ve {value} Daha fazlası."
+compat_header = "Paket '{pack}': içerik Minecraft {version} sürümünde yok"
+compat_none = "Paket '{pack}' Minecraft {version} sürümünde eksik olan içerik kullanmıyor."
+compat_remedy = "Bu içeriği geri kazanmak için sunucuyu daha yeni bir Minecraft sürümüne güncelleyin veya yedekler tanımlayın (boyutun blockFallbacks, bloğun backup)."
+
+[iris.modded.moddedregen]
+regen_is_already_running = "Bir regen zaten çalışıyor."
+
+[iris.modded.moddedstructurecommands]
+this_dimension_is_not_generated_by_iris_run_this_from = "Bu boyut tarafından oluşturulmuyor Iris.  Bunu bir andan çalıştırın Iris Boyut böylece paket çözülebilir."
+wrote_structure_index = "yazıldı yapı indeksi: {value}"
+no_iris_structure_this_pack = "yok iris structure \"{key}“Bu pakette"
+structure_assembled_0_pieces_check_startpool = "Yapı \"{key}\"Bir araya geldi\" 0 parçalar (kontrol startPool '{value}')"
+structure_pieces_footprint_x_blocks_sample_seed_1234 = "Yapı \"{key}': {value} parçalar, ayak izi {value2}x{value3} Bloklar (sample tohum 1234)"
+this_command_can_only_be_used_by_players_structure_is = "Bu komut sadece oyuncular tarafından kullanılabilir (yapı sizin pozisyonunuzda toplanır)."
+no_iris_structure_this_pack_2 = "yok iris structure \"{key}“Bu pakette"
+structure_assembled_0_pieces = "Yapı \"{key}\"Bir araya geldi\" 0 parçalar parça parçaları"
+place_failed_partial_changes_recorded_undo = "Yer başarısız oldu: {value} (Resim için kaydedilen kısmi değişiklikler)"
+placed_pieces_write_s_at_your_location_iris_object_undo = "yerleştirildi ‘{key}' ({value} parçalar, {value2} Yaz(s){tileNote}) Senin konumunuzda.  /iris object undo iptal etmek için."
+
+[iris.modded.moddedstudiocommands]
+provide_dimension_pack_iris_studio_open_pack_seed = "Bir boyut paketi sağlayın: /iris studio open <pack> [seed]"
+opening_noise_explorer_on_server_display = "Gürültü Explorer'ı sunucu ekranında açın."
+this_dimension_is_not_generated_by_iris_run_iris_studio = "Bu boyut tarafından oluşturulmuyor Iris; koşmak /iris studio noise Birinden Iris Jeneratörleri çözmek için boyut veya jeneratör adını omit."
+unknown_generator_pack = "Bilinmeyen jeneratör \"{generatorKey}\" pakette\" {value}."
+opening_noise_explorer_generator_seed = "Jeneratör için Gürültü Explorer'ı açın ‘{value}\"(s. {seed})."
+this_dimension_is_not_generated_by_iris_stand_iris_studio = "Bu boyut tarafından oluşturulmuyor Iris; Birinde dur Iris (veya stüdyo) boyut ve koşmak /iris studio map."
+opening_vision_map_on_server_display = "Vizyon haritasını açmak için {value} Sunucu ekranında."
+failed_write_workspace = "İş alanı yazmak için başarısız oldu {value}: {value2}"
+workspace_regenerated_with_json_schemas_autocomplete = "Workspace yeniden yaratıldı: {value} ile ile JSON Autocomplete için şemalar."
+could_not_open = "Açıklanamaz {value}: {value2}"
+opening_your_editor = "Açılış {value} editörünüzde."
+this_dimension_is_not_generated_by_iris_specify_pack_name = "Bu boyut tarafından oluşturulmuyor IrisBir paket adını açıkça belirt."
+pack_not_found_under = "Pack \"{name}“Geçmiş altında bulunamadı {value}"
+provide_dimension_pack_iris_studio_open_pack_seed_2 = "Bir boyut paketi sağlayın: /iris studio open <pack> [seed]"
+opening_studio_seed = "Açılış stüdyosu \"{pack}\"(s. {seed})..."
+pack_missing_downloading_irisdimensions = "Pack \"{pack}eksik; indir IrisDimensions/{pack2}..."
+pack_could_not_be_downloaded_check_name_try_iris_download = "Pack \"{pack}\" indirilemez; adı kontrol edin ve deneyin /iris download {pack2}."
+pack_has_no_dimensions_json = "Pack \"{pack}'Hayır' dimensions/{pack2}.json"
+studio_open_failed = "Stüdyo açık başarısız oldu: {value}{errorMessage}"
+studio_injection_failed = "Stüdyo enjeksiyonu başarısız oldu: {value}{errorMessage}"
+console_studio_open_now_runs_seed_transient_not_written_iris = "Konsol stüdyosu açık: {dimensionId} Şimdi ‘Geçiyor’{pack}\" tohum\" {seed} (transient; yazılı değil iris-dimensions.json Ve yeniden temizlendi.)"
+enter_it_with_execute_run_tp_s_8_5_8 = "Bunu ile girin: /execute in {dimensionId} run tp @s 8.5  {surface}  8.5"
+pregen_it_with_iris_pregen_start_radius = "Onunla Pregen: /iris pregen start <radius> {dimensionId}"
+remove_it_with_iris_studio_close = "Onu al: /iris studio close"
+studio_injection_failed_2 = "Stüdyo enjeksiyonu başarısız oldu: {value}{errorMessage}"
+studio_open_now_runs_seed_use_iris_studio_close_when = "Stüdyo açık: {dimensionId} Şimdi ‘Geçiyor’{pack}\" tohum\" {seed}.  Kullanım Kullanımı /iris studio close Ne zaman yapılır?"
+you_do_not_have_open_studio_use_iris_studio_open = "Açık bir stüdyoya sahip değilsiniz.  Kullanım Kullanımı /iris studio open <pack> İlk önce."
+studio_close_failed = "Stüdyo yakın başarısız oldu: {value}{errorMessage}"
+studio_closed_was_evacuated_unloaded_its_region_data_deleted = "Stüdyo kapalı: {dimensionId} tahliye edildi, boşaltıldı ve bölge verileri silindi."
+no_studio_dimensions_are_currently_open = "Stüdyo boyutları şu anda açık değildir."
+active_studio_dimension_s = "Aktif stüdyo boyutu (s): {value}"
+pack_seed_owner = "  {value}paket \"{value2}\" tohum\" {value3} sahibi mal sahibi {ownerName}"
+this_command_can_only_be_used_by_players = "Bu komutu yalnızca oyuncular kullanabilir."
+you_do_not_have_open_studio_use_iris_studio_open_2 = "Açık bir stüdyoya sahip değilsiniz.  Kullanım Kullanımı /iris studio open <pack> İlk önce."
+your_studio_dimension_is_no_longer_loaded_use_iris_studio = "Stüdyo boyutu artık yüklenemez.  Kullanım Kullanımı /iris studio open <pack> Tekrar."
+teleported_your_studio = "Stüdyonuza ({dimensionId})."
+pack_has_no_dimensions_json_2 = "Pack \"{value}'Hayır' dimensions/{value2}.json"
+pack_has_version = "\"\"{value}\" paketin versiyonu var: {value2}"
+invalid_project_name_allowed_z_0_9 = "geçersiz projesi adı ‘{nameRaw}\" (tamam: a-z, 0-9,   ve -)"
+pack_already_exists_at = "Pack \"{name}‘ zaten var {value}"
+creating_project_from_template = "Proje yaratmak \"{name}\"-den template\"{template}'..."
+required_pack_is_not_installed_install_then_restart = "Gerekli '{pack}' paketi kurulu değil. /iris download ile kurun, ardından sunucuyu yeniden başlatın."
+created_project_at = "'{name}' projesi {value} konumunda oluşturuldu"
+edit_dimensions_json_rest_pack_vscode_workspace_with_json_schema = "EditDüzenle dimensions/{name}.json Ve paketin geri kalanı.  A VSCode İş Alanı ile JSON şema autocomplete üretildi; açık ya da yeniden işlendi /iris studio vscode."
+project_creation_failed = "Proje yaratımı başarısız oldu: {value}{errorMessage}"
+packaging_dimension = "Ambalaj boyutu ‘{dimKey}'..."
+package_compiled = "Paket derlendi: {value}"
+packaging_failed = "Ambalaj başarısız oldu: {value}{errorMessage}"
+this_command_can_only_be_used_by_players_sampling_is = "Bu komut sadece oyuncular tarafından kullanılabilir (sampling pozisyonunuzda merkezileştirilmiştir)."
+this_dimension_is_not_generated_by_iris = "Bu boyut Iris tarafından oluşturulmadı."
+sampling_region_distribution_x_chunks_around_you = "Etrafınızdaki {value}x{value2} chunk içinde bölge dağılımı örnekleniyor..."
+rarity = "{key}: rarity ={rarity} / {value}%"
+region_sampling_failed = "Bölge örneği başarısız oldu: {value}"
+image_map_requires_iris_dimension = "Stand in an active Iris or Studio dimension before opening the Image Map Studio."
+opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {value} on the server display."
+
+[iris.modded.moddedworldcommands]
+required_pack_is_not_installed_install_then_restart = "Gerekli '{pack}' paketi kurulu değil. /iris download ile kurun, ardından sunucuyu yeniden başlatın."
+failed_inject_iris_world = "enjekte etmek için başarısız oldu Iris Dünya{dimensionId}': {value}{errorMessage}"
+created_iris_world_from_pack_dimension_seed = "Oluşturuluş Iris dünya dünyası {dimensionId} paketten ‘{pack}‘ Boyut’{packDimension}\"(s. {seed})."
+it_is_live_now_re_injected_on_every_startup_teleport = "Şimdi yaşıyor ve her başlangıçta yeniden canlanıyor.  Teleport ile birlikte /iris world status veya bir portal; hiçbir yeniden başlama gerekli değildir."
+failed_inject_iris_primary_world = "enjekte etmek için başarısız oldu Iris birincil dünya: {value}{errorMessage}"
+iris_primary_world_set_pack_dimension_seed = "Iris birincil dünya, {dimensionId} (pack ‘{pack}‘ Boyut’{packDimension}\" tohum\" {seed})."
+vanilla_overworld_generator_cannot_be_hot_swapped_so_this_does = "Vanilla Overworld oluşturucusu çalışma sırasında değiştirilemez; bu nedenle bu işlem mevcut Overworld’ü yeniden oluşturmaz."
+instead_is_now_configured_primary_world_players_vanilla_overworld_are = "Bunun yerine, {dimensionId} Şu anda yapılandırılmış birincil dünya: vanilla overworld'deki oyuncular oraya katılmakta ve her başlangıçta yeniden seçilmişlerdir."
+iris_main_world_override_cleared_overworld_keeps_its_current_generator = "Iris Ana dünya aşırı temizlendi.  Overworld mevcut jeneratörünü tutar; düzenleme server.properties seviye tipi ve onu geri değiştirmeye yeniden başlayın."
+invalid_seed_use_number_random = "geçersiz tohum \"{seedRaw}'.  Bir numara veya 'random' kullanın."
+pack_is_not_ready_yet_still_loading_validating_try_command = "Pack \"{pack}\" henüz hazır değil (herhangi bir yükleme veya doğrulama).  Bir anda tekrar kumandayı deneyin."
+failed_write_server_properties_check_file_permissions_set_level_type = "yazmak için başarısız oldu server.properties; dosya izinlerini kontrol edin ve seviye tipi manuel olarak ayarlayın."
+iris_main_world_set_preset_seed = "Iris Ana dünya \"{pack}\" (preset {preset}tohum, {value})."
+server_properties_level_type_is_now_on_next_restart_overworld = "server.properties Seviye tipi şimdi {preset}.  Bir sonraki overworld, nether ve bunu bu şekilde yeniden üretin Iris Dünya."
+player_data_inventories_advancements_stats_is_kept_existing_terrain_those = "Oyuncu verileri (öneticiler, ilerlemeler, istatistikler) tutulur; bu boyutlarda mevcut arazi değiştirilir.  Bu bir kez uygulanır."
+mainworldautorestart_is_enabled_stopping_server_now_so_your_restart_wrapper = "mainWorldAutoRestart etkinleştirilir - sunucuyu şimdi durdurun, böylece sırt çantanızı yeni ana dünyaya geri getiriyor."
+restart_server_now_generate_it_set_mainworldautorestart_true_modded_json = "Şimdi oluşturmak için sunucuyu yeniden başlatın. (Iris'in sunucuyu sizin için durdurması amacıyla modded.json içinde mainWorldAutoRestart=true ayarlayın.)"
+refusing_create_world_using_pack_because_required_validation_failed = "Dünyayı yaratmaya cesaret edin '{dimensionId}\" paketi kullanarak\"{pack}Çünkü gerekli doğrulama başarısız oldu:"
+message = "  - {reason}"
+fix_pack_run_iris_pack_validate_revalidate = "paketi düzeltin ve koşmak /iris pack validate {pack} revize etmek için."
+pack_was_not_found_under = "Pack \"{pack}\" altında bulunamadı {value}"
+pack_does_not_contain_dimensions_json = "Pack \"{pack}“Doğmuyor dimensions/{packDimension}.json"
+invalid_pack_reference_use_pack_pack_dimensionkey = "geçersiz paketi referansı \"{pack}{value}'.  Paket veya paket kullanın:dimensionKey."
+invalid_seed_use_number_random_2 = "geçersiz tohum \"{seedRaw}'.  Bir numara veya 'random' kullanın."
+failed_remove_iris_world = "ortadan kaldırmak için başarısız oldu Iris Dünya{dimensionId}': {value}{errorMessage}"
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry = "Iris Dünya{dimensionId}“ yüklenemezdi; kalıcı kayıt girişini temizledi ve depolanmış chunk /mantle verilerini sildi."
+iris_world_was_not_loaded_cleared_its_persistent_registry_entry_2 = "Iris Dünya{dimensionId}“ yüklenmedi; kalıcı kayıt girişini temizledi.  Disk üzerinde dünya verileri tutulur."
+deleted_iris_world_evacuated_unloaded_chunk_mantle_data_wiped_dropped = "Dekleed Iris Dünya{dimensionId}\": tahliye, yüklenmemiş, chunk/mantle verileri silindi ve başlangıç kayıt defterinden düştü."
+disabled_iris_world_evacuated_unloaded_dropped_from_startup_registry = "Engelliler Iris Dünya{dimensionId}\": tahliye, yüklenme ve başlangıç kayıt defterinden düştü."
+world_data_on_disk_is_kept_re_enable_with_iris = "Disk üzerinde dünya verileri tutulur; yeniden kullanılabilir /iris world enable {dimensionId} <pack> veya onu silerek /iris world delete {dimensionId2}."
+loaded_iris_level_pack_dimension = "Yüklendi Iris seviye: {value}  -> paket ‘{value2}‘ Boyut’{value3}'"
+primary_world = "Temel dünya: {primary}{value}"
+no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Hayır Iris Boyut şu anda yüklenir.  Bir tane oluşturun /iris world create <name> <pack>."
+loaded_iris_dimensions = "Yüklendi Iris Boyut: {value}"
+message_2 = "  - {dimension}"
+use_iris_world_create_name_pack_inject_one_without_restarting = "Kullanım Kullanımı /iris world create <name> <pack> Yeniden başlatmadan birini enjekte etmek."
+
+[iris.director.commanddatapack]
+"director.download_manage_external_datapack_imports_modrinth" = "Download indir & Dış veri paketi ithalatını yönetin (Modrinth)"
+"director.download_update_every_datapack_listed_pack_dimension_s_datapackimports_install_it_into" = "Paket boyutunun 'datapackImports' bölümünde listelenen her datapack'i indir/güncelle ve yapıların vanilla gibi kaydolması için dünyaya kur"
+"param.restart_server_when_new_datapacks_are_installed_required_new_structures_register_generate" = "Yeni datapacks kurulduğunda sunucuyu yeniden başlatın ( kayıt ve üretmek için yeni yapılara bağlı)"
+"director.list_configured_datapack_imports_their_installed_versions" = "Liste yapılandırılmış veri paketi ithalatı ve onların yüklü versiyonları"
+"director.remove_installed_datapack_by_id_also_delete_its_url_from_datapackimports_keep" = "Create an installed datapack by id (ayrıca onu sil URL -den datapackImports Onu korumak için)"
+"param.datapack_id_folder_name_shown_by_iris_datapack_list" = "Datapack id (folder adı) tarafından gösterilen /iris datapack list"
+
+[iris.director.commanddeveloper]
+"director.iris_world_manager" = "Iris Dünya Yöneticisi"
+"director.get_loaded_tectonicplates_count" = "Yükleme alın TectonicPlates Kont"
+"director.hash_generated_block_output_fixed_area_determinism_identity_testing" = "Hash, determinism/identity test için sabit bir bölgenin blok çıktısını üretti"
+"param.world_hash" = "Dünyanın sahip olması"
+"param.radius_chunks_around_center" = "Radius merkez çevresinde"
+"param.center_chunk_x" = "Merkez chunk X"
+"param.center_chunk_z" = "Merkez chunk Z"
+"director.stage_world_generation_update" = "Dünya üretimi güncellemesini hazırla"
+"param.world_update" = "Dünyayı güncellemek için"
+"param.pack_install_into_world" = "Dünyaya yükleme paketi"
+"param.make_sure_make_backup_read_warnings_first" = "Bir yedekleme yapmak için emin olun & İlk önce uyarıları okuyun!"
+"director.test" = "Test Testi"
+"param.dump_whole_tectonic_plate_instead_single_section" = "Tek bir bölüm yerine tüm tectonik plakayı karıştırın"
+"param.dump_file_id_under_plugins_iris_dump_pv_id" = "Boş dosya adı altında plugins/Iris/dump (pv.<id>.*)"
+"director.test_2" = "Test Testi"
+"param.pack_bench" = "Takım tezgaha"
+"param.radius_regions" = "Radius bölgelerinde"
+"param.open_gui_while_benchmarking" = "Açık Open GUI Karşılaştırma yaparken"
+"director.upgrade_another_minecraft_version" = "Başkasına Yükseltin Minecraft sürüm versiyonu"
+"param.version_upgrade" = "Sürümü yükseltmeye yükseltmek için"
+"director.test_3" = "test testi"
+"param.world_folder_scan_mca_region_files" = "Dünya klasörü .mca bölgesi dosyaları için taramak"
+"director.delete_nearby_chunk_blocks_regen_testing" = "Yakınlardaki chunk blokları yenidenjen test için"
+"param.radius_chunks_around_your_current_chunk" = "Radius şu anki chunk çevresinde"
+"director.test_4" = "Test Testi"
+"director.delete_regenerate_nearby_chunks_place_using_iris_generation" = "Iris nesli kullanılarak yakınlardaki kıvrımlar ve yenidenjenereler"
+"param.radius_nearby_chunks" = "Yakındaki chunks'ın ikizi"
+"director.generate_chunks_into_buffers_no_world_writes_hash_blocks_biomes_captures_golden" = "Chunk'ları tamponlarda üretir (dünyaya yazmaz) ve blokları+biome'ları hash'ler; bir golden dosyası yakalar veya var olanla doğrular. Dünyanın tüm mantle'ını siler - tek kullanımlık test dünyalarında kullanın."
+"param.world_scan" = "Dünyayı taramak için"
+"param.radius_chunks_around_center_2" = "Radius merkez çevresinde"
+"param.center_chunk_x_2" = "Merkez chunk X"
+"param.center_chunk_z_2" = "Merkez chunk Z"
+"param.delete_mantle_data_scan_area_first_full_regeneration_from_scratch" = "Sıfırdan tam yeniden oluşturma için önce dünyanın tüm Mantle klasörünü siler. Tarama alanıyla sınırlı değildir"
+"param.concurrent_chunk_generations_1_strictly_serial_order_dependence_testing" = "Eş zamanlı chunk nesiller; 1 = kesinlikle düzen bağımsız test testi için seri"
+"param.also_dump_full_per_chunk_non_air_blockstates_offline_diffing" = "Ayrıca çevrimdışı diffing"
+
+[iris.director.commandedit]
+"director.edit_something" = "Edit bir şey"
+"director.edit_biome_you_specified" = "Belirtilen biyome'yi düzeltin"
+"param.biome_edit" = "Biyome, düzenlemek için"
+"director.edit_region_you_specified" = "Belirlediğiniz bölgeye bakın"
+"param.region_edit" = "Bölgeyi düzenlemek için"
+"director.edit_dimension_you_specified" = "Tanımladığınız boyutu analiz edin"
+"param.dimension_edit" = "Düzenlemek için boyut"
+
+[iris.director.commandfind]
+"director.iris_find_commands" = "Iris bul komutları bulun"
+"director.find_biome" = "Bir biyome bul"
+"param.biome_look" = "Biyome bakmak için"
+"param.should_you_be_teleported" = "Telported olmalısın"
+"director.find_region" = "Bir bölge bulun"
+"param.region_look" = "Bölge bakmak için"
+"param.should_you_be_teleported_2" = "Telported olmalısın"
+"director.find_point_interest" = "Bir ilgi noktası bul."
+"param.type_poi_look" = "PoI tipi aramak için."
+"param.should_you_be_teleported_3" = "Telported olmalısın"
+"director.find_structure_vanilla_key_like_minecraft_village_plains_minecraft_stronghold_imported_iris" = "Bir yapı bul (bir vanilla anahtarı gibi minecraft:village_plains veya minecraft:strongholdYa da ithal bir iris yapı anahtarı)"
+"param.structure_look_e_g_minecraft_village_plains_minecraft_stronghold_minecraft_ancient_city" = "Bakmak için yapı (e.g.  minecraft:village_plains, minecraft:stronghold, minecraft ancient city)"
+"director.find_object" = "Bir nesne bulun"
+"param.object_look" = "Bakmak için nesne"
+"param.should_you_be_teleported_4" = "Telported olmalısın"
+
+[iris.director.commandobject]
+"director.iris_object_manipulation" = "Iris nesne manipülasyonu"
+"director.open_object_studio_world_grid_every_object_dimension_optional_defaults_all_packs" = "Bir nesne stüdyosu dünyasını açın (her nesneningrid; boyut Seçmeli, tüm paketlere varsayılan)"
+"param.optional_dimension_whose_object_pack_lay_out_omit_aggregate_objects_from_every" = "Hangi nesne paketinin ortaya çıkmasını sağlayan Seçmeli boyut; her paketten toplu nesneler için omit"
+"param.seed_generate_studio_with" = "Stüdyoyu üretmek için tohum"
+"director.check_composition_object" = "Bir nesnenin kompozisyonunu kontrol edin"
+"param.object_analyze" = "Analiz etme nesnesi"
+"director.shrink_object_its_minimum_size" = "En az büyüklüğüne bir nesne katın"
+"param.object_shrink" = "Rezmin etmek için nesne"
+"director.grow_organic_branches_through_canopy_so_every_leaf_survives_vanilla_decay" = "Canopy aracılığıyla organik dallar yetiştirin, böylece her yaprak vanilla çürümektedir"
+"param.object_key_prefix_trees_filesystem_path" = "Object key, prefix (ağaçlar/), veya dosyasistem yolu"
+"param.dryrun_true_analyzes_only_writes_nothing" = "Kururun=gerçek sadece analiz eder, hiçbir şey yazar"
+"param.reach_n_max_branch_length_blocks_from_existing_wood_farther_leaf_clusters" = "Mevcut ahşaptan bloklarda =N max şube uzunluğuna ulaşmak; uzak yaprak kümeleri bunun yerine kalıcıdır.  ulaşmak =0 Sınırsız büyüyor"
+"director.convert_schem_files_convert_folder_iob_files" = "'konvert' klasöründeki .iob dosyalarına dönüştürmek."
+"director.get_powder_that_reveals_objects" = "nesneleri açığa çıkaran bir toz alın"
+"director.contract_selection_based_on_your_looking_direction" = "Arama yönüne dayanan bir seçim"
+"param.amount_inset_by" = "En başından itibaren"
+"director.set_point_1_look" = "Set noktası 1 Bakmak"
+"param.whether_use_your_current_position_where_you_look" = "Mevcut pozisyonunuzu kullanmak ister veya nereye bakıyorsunuz"
+"director.set_point_2_look" = "Set noktası 2 Bakmak"
+"param.whether_use_your_current_position_where_you_look_2" = "Mevcut pozisyonunuzu kullanmak ister veya nereye bakıyorsunuz"
+"director.paste_object" = "Bir nesne yapıştır"
+"param.object_paste" = "Yapıştırılacak nesne"
+"param.whether_not_edit_object_need_hold_wand" = "nesneyi düzenlememek veya yapmamak (dövve tutmak için)"
+"param.amount_degrees_rotate_by" = "döndürmek için derece miktarı"
+"param.factor_by_which_scale_object_placement" = "nesne yerleştirmeyi ölçen faktör"
+"param.scale_interpolator_use" = "Ölçek interpolator kullanmak için"
+"director.save_object" = "Bir nesneyi Kurtarın"
+"param.dimension_store_object" = "nesneyi saklamak için boyut"
+"param.file_store_it_can_use_subfolders" = "Dosya onu depolamak için, alt katlayıcılar için kullanabilir /"
+"param.overwrite_existing_object_files" = "Mevcut nesne dosyaları yazmak için"
+"param.use_legacy_tilestate_serialization_if_possible" = "mirasını kullanın TileState Serileştirme mümkünse"
+"director.shift_selection_your_looking_direction" = "Yönelme bir seçim"
+"param.amount_shift_by" = "Değiştirilecek miktar"
+"director.undo_number_pastes" = "Birden çok yapıştırmayı geri al"
+"param.amount_pastes_undo" = "Geri alınacak yapıştırma sayısı"
+"director.gets_object_wand_grabs_current_worldedit_selection" = "Bir nesne satın alın ve mevcut akımları ele alalım WorldEdit Seçim."
+"director.get_object_wand" = "Bir nesne alın asa"
+"director.autoselect_up_down_out" = "otomatik seçim up, down, & dışarı çıktı"
+"director.autoselect_up_out" = "otomatik seçim yukarı & dışarı çıktı"
+
+[iris.director.commandpack]
+"director.pack_validation_maintenance" = "Pack validasyon ve bakım"
+"director.validate_pack_all_packs_re_publish_results" = "Bir paket (veya tüm paketleri) ve yeniden yayımlanmış sonuçlar"
+"param.pack_folder_name_validate_leave_empty_all" = "Paket klasörü adı doğrulama (hepsi için boş bırak)"
+"director.preview_apply_unused_resource_cleanup" = "Preview veya kullanılmamış kaynak temizliği uygulayın"
+"param.pack_folder_name_clean" = "Paket klasörü adı temizlemek için"
+"param.preview_apply" = "önizleme veya uygulama"
+"director.preview_apply_restoration_latest_quarantine" = "Preview veya en son karantinanın restorasyonunu uygulayın"
+"param.pack_folder_name_restore" = "Paket klasörü adı geri yüklemek için"
+"param.preview_apply_2" = "önizleme veya uygulama"
+"director.show_cached_validation_status_pack" = "Bir paket için önbellek doğrulama durumu"
+"param.pack_folder_name" = "Paket klasörü adı"
+"director.show_content_cannot_generate_this_minecraft_version" = "Bu Minecraft sürümünde üretilemeyen paket içeriğini göster"
+"param.pack_folder_name_compat" = "Raporlanacak paket klasörü adı"
+
+[iris.director.commandpregen]
+"director.pregenerate_your_iris_worlds" = "Sizin için Iris Dünyalar!"
+"director.pregenerate_world" = "Bir dünya"
+"param.radius_pregen_blocks" = "Pregen'in bloklarının"
+"param.world_pregen" = "Dünya öngenecek"
+"param.center_location_pregen_use_me_your_current_location" = "Pregen'in merkezi yeri.  Mevcut konumunuz için \"me\" kullanın"
+"param.open_iris_pregen_gui" = "Açık açın Iris Pregen"
+"param.generate_only_one_chunk_at_time" = "Bir seferde sadece bir chunk"
+"director.stop_active_pregeneration_task" = "Aktif prejenerasyon görevini durdurun"
+"director.pause_continue_active_pregeneration_task" = "Pause / aktif prejenerasyon görevine devam edin"
+"director.show_active_pregeneration_status" = "Aktif prejenerasyon durumunu göster"
+
+[iris.director.commandstructure]
+"director.iris_structure_tools_index_import_info" = "Iris Yapı araçları (index, ithalat, bilgi)"
+"director.regenerate_structure_index_json_listing_all_vanilla_datapack_iris_structures" = "Rejenrate structure-index.json Tüm vanilla listeleyin, veri paketi & iris yapıları"
+"param.dimension_whose_pack_index" = "Diziyi indeksleyecek olan boyut"
+"director.import_every_structure_vanilla_ingested_datapacks_into_this_pack_as_editable_iris" = "Import her structure - vanilla ve ingested datapacks - bu pakete değiştirilebilir Iris kaynakları olarak, her zaman yazı üzerinde.Yeniden inşa edilen jigsaw yapıları köyleri veri paketi jigsaws) Düzenlenebilir havuz/ parça grafikleri, her yapı şablonu NBT bir nesne olarak bir araya getirir ve multi-template yapıları birleştirir (harwrecks, portallar, okyanus kalıntıları, nether fosiller).Bir veri paketini aldıktan ve yeniden başlatın.Regenerate chunks veya ithal kopyalar için yeni bir dünya kullanın."
+"param.dimension_whose_pack_import_into" = "Nefsimi ithal edecek olan boyut"
+"director.capture_code_generated_structures_that_have_no_nbt_template_swamp_huts_igloos" = "Yakalama kodu oluşturulan yapılar hiç yok NBT şablon (swamp huts, igloos, vs.) düzenlenebilir hale getirilir Iris Her birini atsız bir sıfır dünyasında yaratarak ve bloklarını geri oku.  Bir yapı olarak zaten ithal eden yapılar, yakalama kapağından daha geniş/taller (güçlü topraklar, kontraksiyonlar, anıtlar vanilla kalır), ve düz bir overworld içinde üretilmeyen her şey.  Her yakalanan yapı tek parça haline gelir Iris Bir biyome/bölge/dimension 'yapılar' listesinden izleyebilirsiniz.  Runs otomatik olarak son geçiş olarak /iris structure import."
+"param.dimension_whose_pack_capture_into" = "Paketin içine girilmesi gereken boyut"
+"director.verify_native_structure_eligibility_locate_iris_placed_structures_without_running_blocking_native" = "Ana yapıyı uygunluk ve bulmak Iris- yerli aramaları engellemeden yer alan yapılar."
+"param.dimension_verify" = "Doğruyu doğrulamak için boyut"
+"param.search_radius_chunks_around_origin_larger_is_much_slower" = "Kökeni etrafında chunks içinde arama yarıçap (larger çok daha yavaş)"
+"director.resolve_iris_structure_s_jigsaw_graph_report_piece_count_bounds" = "Bir iris yapısının jigsaw grafiğini çözün ve rapor parça sayımı & Sınırlar"
+"param.dimension_whose_pack_holds_structure" = "paketin yapıdığı boyut,"
+"param.iris_structure_key_inspect" = "Iris yapı anahtarı denetim altına almak için"
+"director.assemble_place_iris_structure_at_your_location_studio_testing" = "Bir iris yapısı konumunuzda (studio test)"
+"param.dimension_whose_pack_holds_structure_2" = "paketin yapıdığı boyut,"
+"param.iris_structure_key_place" = "iris yapı anahtarı yer için"
+
+[iris.director.commandstudio]
+"director.studio_commands" = "Stüdyo Komutları"
+"director.open_new_studio_world" = "Yeni bir stüdyo dünyası açın"
+"param.dimension_pack_open_studio" = "Bir stüdyo açmak için boyut paketi"
+"param.seed_generate_studio_with" = "Stüdyoyu üretmek için tohum"
+"director.import_vanilla_trees_mushrooms_objects_structures_jigsaw_from_server_into_pack_s" = "İthalat vanilla ağaçları, mantarlar & nesneler (ve structures/jigsaw) sunucudan bir pakete kadar objects/vanilla klasör klasörü"
+"param.dimension_pack_import_vanilla_content_into" = "vanilla içeriği ithal etmek için boyut paketi"
+"param.how_many_variants_capture_per_tree_object_feature" = "Ağaç /object özelliği başına kaç çeşidi yakalamak için"
+"param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "Ayrıca vanilla da ithal et & veri paketi structures/jigsaw paketin içine"
+"director.open_vscode_dimension" = "Açık Open VSCode Bir boyut için"
+"param.dimension_open_vscode" = "Açıklanması gereken boyut VSCode Çünkü"
+"director.close_open_studio_project" = "Açık bir stüdyo projesi kapat"
+"director.toggle_your_studio_debug_scoreboard" = "Studio debug puanını yakalamak için"
+"director.create_new_studio_project" = "Yeni bir stüdyo projesi oluşturun"
+"param.name_this_new_iris_project" = "Bu yeni şeyin adı Iris Proje."
+"param.copy_contents_existing_project_your_packs_folder_use_it_as_template_this" = "Paketlerinizde mevcut bir projenin içeriğini kopyalayın ve bu yeni projede bir şablon olarak kullanın."
+"director.get_version_pack" = "Bir paketin versiyonunu alın"
+"param.dimension_get_version" = "Boyut versiyon alır"
+"director.open_noise_explorer_external_gui" = "Gürültü Explorer'ı açın (Dönetici GUI)"
+"param.optional_pack_generator_preview" = "Seçmeli paket jeneratörü önizlemek için"
+"param.seed_preview_generator_with" = "Jeneratörü önizlemek için tohum"
+"director.show_loot_if_chest_were_right_here" = "Bir göğüs burada olsaydı,"
+"param.fast_insertion_items_virtual_inventory_may_cause_performance_drop" = "Sanal envanterdeki öğelerin hızlı bir şekilde yerleştirilmesi (belirin düşmesine neden olur)"
+"param.whether_not_append_inventory_currently_open_if_false_clears_opened_inventory" = "Şu anda açık olan envantere teslim olun (eğer sahte, net bir envanter açılır)"
+"director.calculate_chance_each_region_generate" = "Her bölgenin üretebilme şansı hesaplayın"
+"param.radius_chunks" = "Midunks'taki yarı"
+"director.render_world_map_external_gui" = "Bir dünya haritası çizin (Dönetici GUI)"
+"param.world_open_generator" = "Dünya jeneratörü açmak için"
+"director.package_dimension_into_compressed_format" = "Bir boyut sıkıştırılmış bir format"
+"param.dimension_pack_compress" = "Boyut paketi sıkıştırmak için"
+"param.whether_not_obfuscate_pack" = "Ya da paketi obfuscate etmek"
+"param.whether_not_minify_pack" = "paketinizi bozmak ya da"
+"director.profiles_performance_dimension" = "Profiller bir boyutunun performansı"
+"param.dimension_profile" = "Profile Boyut"
+"director.spawn_iris_entity" = "Bir Iris varlığı spawnla"
+"param.entity_spawn" = "Spawnlanacak varlık"
+"param.location_spawn_entity_at" = "Varlığın spawnlanacağı konum"
+"director.teleport_active_studio_world" = "Aktif stüdyo dünyaya Teleport"
+"director.update_your_dimension_projects_vscode_workspace" = "Boyut projelerinizi güncelleyin VSCode İş Alanı"
+"param.dimension_update_workspace" = "Çalışma alanını güncellemek için boyut"
+"director.capture_igendata_chunk_report_nearby_chunks" = "Yakalayın IGenData Yakınlarda chunk raporu"
+
+[iris.director.commandwhat]
+"director.iris_what" = "Iris Ne?"
+"director.what_is_my_hand" = "Elimde ne var?"
+"director.what_biome_am_i" = "Hangi biome içindeyim?"
+"director.what_region_am_i" = "Hangi bölgedeyim?"
+"director.what_block_am_i_looking_at" = "Hangi bloklara bakıyorum?"
+"director.show_markers_chunk" = "chunk"
+"param.marker_name_such_as_cave_floor_cave_ceiling" = "Marker, Cave floor veya mağara ceiling gibi isim"
+
+[iris.runtime.progress]
+finding_regions = "Bölgeleri bulmak"
+converting = "Dönüştürmek"
+
+[iris.runtime.status]
+running = "Run"
+stopped = "Durdu"
+paused = "Pa used"
+paused_lower = "durakladı"
+running_lower = "running run"
+enabled = "etkinleştirildi."
+disabled = "Engelliler."
+unregistered = "Kayıtsız"
+none = "Hiçbir kimse hiçbir şey yok"
+random = "rastgele"
+match = "MATCH"
+mismatch = "MISMATCH"
+true = "Gerçek doğru"
+false = "sahte yanlış"
+
+[iris.runtime.error]
+detail_suffix = " - {error}"
+
+[iris.runtime.datapack]
+override_suffix = " (Dünya veri paketi override installed)"
+name = "Iris Dünya"
+
+[iris.runtime.primary_world]
+players_routed_suffix = " (Oyuncular oraya yolladı)"
+routing_disabled_suffix = " (Vücretsiz)"
+
+[iris.runtime.modded]
+no_dimension_match = "Hayır Iris boyut maçları ‘{filter}'."
+
+[iris.runtime.teleport]
+world = "{world}'e teleport edildiniz."
+
+[iris.runtime.engine]
+hotloaded = "Motor Hotloaded"
+
+[iris.runtime.job]
+completed = "{job}, {duration} sürede tamamlandı"
+scanning_selection = "Skaning Selection"
+loading_chunks = "Chunks"
+searched_chunks = "Arama {chunks} Chunk"
+compile = "Tamam"
+saving_object = "Object"
+downloading = "Downloading indir"
+extracting = "Türleme"
+installing = "Yükleme"
+
+[iris.runtime.compile]
+iob_empty = "- IOB  {file} has 0 Bloklar!"
+iob_empty_hover = "Hata:\n{path}"
+iob_not_3d = "- IOB  {file} 3D değil!"
+iob_not_3d_hover = "Hata:\n{path}\nGeniş, yükseklik veya derinlik sıfır (kötü format)"
+json_error = "- JSON Hata {file}"
+json_error_hover = "Hata:\n{path}\n{error}"
+loader_not_found = "Yükleyiciyi bulamaz {path}"
+
+[iris.runtime.pack]
+already_exists = "Pack zaten var!"
+
+[iris.runtime.tree_plausibilize]
+dry_suffix = ", DRY"
+skip_load = "At atlama {object}: Yüklenmedi"
+result = "{object}: +{wood} wood ({branches} şubeler) {converted} Yapraklar->Ahşap, -{distances} Mesafeler"
+result_pinned = "{object}: +{wood} wood ({branches} şubeler) {converted} Yapraklar->Ahşap, -{distances} Mesafeler,!{pinned} pinnedildi"
+progress = "[{current}/{total}]"
+failed = "Başarısız {object}: {type}: {error}"
+done = "tamamlandı : {processed} İşlenmiş, {changed} değiştirildi, {skipped} atladı, {failed} Başarısız oldu"
+done_dry = "tamamlandı : {processed} İşlenmiş, {changed} değiştirildi, {skipped} atladı, {failed} Başarısız (kuru koşmak, hiçbir şey yazılı)"
+totals = "Toplamlar: +{wood} wood ({branches} şubeler) {converted} Yapraklar->Ahşap, -{distances} Mesafeler,!{pinned} Tamamlanmış, ulaşılamaz {before}  ->  {after}"
+
+[iris.runtime.item]
+"wand.name" = "Iris"
+"wand.lore.first" = "Sol ilk köşeyi ayarlamak için bir blok tıklayın"
+"wand.lore.second" = "Doğru ikinci köşeyi kurmak için bir blok tıklayın"
+"dust.name" = "Toz Açıklama"
+"dust.lore" = "Doğru yerleştirme yapısını ortaya çıkarmak için bir blok tıklayın!"
+
+[iris.runtime.wand]
+position_set = "Pozisyon pozisyonu {position} set toplan {x}, {y}, {z}"
+
+[iris.runtime.dust]
+iris_world_required = "Bu boyut Iris tarafından oluşturulmadı."
+found_object = "bulundu object bulunamadı {object}"
+revealed = "Ortaya çıktı {count} blok (s) {object}"
+revealed_capped = "Ortaya çıktı {count} blok (s) {object} (Aptal)"
+header = "--- Iris Toz @ {x}, {y}, {z} ---"
+block = "Blok: {block}"
+"position.above" = "Pozisyon: +{offset}  üstünde Yüzey (surface Y ={surfaceY})"
+"position.below" = "Pozisyon: {offset} Aşağıdaki yüzey (surface Y={surfaceY})"
+"position.at" = "Pozisyon: Yüzeyde (Y={surfaceY})"
+object_at_block = "Object @block : {object}"
+none = "Hiçbir kimse hiçbir şey yok"
+"placed_by.object_above" = "Tarafından Yeri: nesne /{object}\" (üstünde yüzeyi)"
+"placed_by.decoration_above" = "Yer: dekorasyon/object /stilt (üstünde yüzeyi)"
+"placed_by.buried_object" = "Yere: gömülü nesne{object}'"
+"placed_by.terrain" = "yerleştirildi by: terrain layer (depth {depth} aşağıda yüzey)"
+column_object = "Köşe nesnesi: {object}  -> Bu blok muhtemelen nesnenin stiltünün"
+column_object_none = "Köşe nesnesi: {detail}"
+column_none = "Hiçbiri içeride 64 (decorator veya arazi, değil Bir nesne stili)"
+"column.above" = "{object} @Y={y} (üstünde)."
+"column.below" = "{object} @Y={y} (düşük)"
+surface_biome = "Yüzey biyome: {biome}"
+surface_biome_detail = "Yüzey biyome: {biome} ({derivative})"
+biome_at_y = "Biyome @Y: {biome}"
+cave_biome = "Cave / CaveMantle Biyome: {biome}"
+server_biome = "Server biyome: {biome} (ID: {id})"
+region = "Bölge: {region} ({name})"
+objects_in_chunk = "Midunk'taki nesneler: {objects}"
+copy_button = "[Bu istatistikleri kopyalamak için tıklayın]"
+copy_hover = "Blok istatistiklerini panoya kopyala"
+reveal_failed = "Object reveal failed; see the console for details."
+
+[iris.runtime.pregen]
+starting = "Iris Pregen start..."
+header = "Iris Prejen"
+"bossbar.paused" = "Iris Prejen {generated}/{total}  {percent}%  duraklatıldı"
+"bossbar.running" = "Iris Prejen {generated}/{total}  {percent}%  {speed}/s{eta}{failed}"
+eta_fragment = "  ETA  {eta}"
+failed_fragment = "  Başarısız oldu {failed}"
+"status.context" = "Boyut {dimension} · Yöntem {method}"
+"status.progress" = "{percent}%"
+"status.chunks" = "Chunk {generated}/{total} · Hız overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s"
+"status.chunks_failed" = "Chunk {generated}/{total} · Hız overall {overall}/s, 10s {tenSecond}/s, 30s {thirtySecond}/s, 60s {sixtySecond}/s · Failed {failed}"
+"status.time" = "ETA  {eta} · Elapd {elapsed}"
+"status.time_paused" = "ETA  {eta} · Elapd {elapsed} · duraklatıldı"
+"button.pause" = "Pause /Resume"
+"button.pause.hover" = "Prejenerasyon duraklama durumu"
+"button.stop" = "Dur"
+"button.stop.hover" = "Mevcut bölgeyi bitirin ve prejenerasyonu durdurun"
+
+[iris.bukkit.runtime]
+"commandpack.packs_folder_not_found" = "§cPaketler / klasör bulunamadı."
+"commandpack.no_packs_validate" = "§eTakip etmek için paket yok."
+"commandpack.validation_complete_broken_packs" = "§aGeçerlilik tamamlandı.  Kırık paketler: {broken}/{value}"
+"commandpack.pack_not_found_under_packs" = "§cPack \"{pack}“Geçmiş altında bulunamadı packs/."
+"commandpack.no_cleanup_candidates_found_pack" = "§aPaket için bulunan temiz adaylar yok '{pack}'."
+"commandpack.quarantined_cleanup_candidate_s_under" = "§aTamamrantined {size} Temiz aday (s) altında {quarantinePath}."
+"commandpack.cleanup_mode_must_be_preview_apply" = "§cTemizleme modu önizleme veya uygulama olmalıdır."
+"commandpack.no_cleanup_candidates_found_pack_2" = "§aPaket için bulunan temiz adaylar yok '{pack}'."
+"commandpack.cleanup_preview_pack_candidate_s_no_files_were_changed" = "§epaket için temizleme önizleme \"{pack}': {size} aday(lar).  Hiçbir dosya değiştirildi."
+"commandpack.run_iris_pack_cleanup_mode_apply_quarantine_these_candidates_after_fresh_scan" = "§7çalıştır /iris pack cleanup {pack} mode=apply Bu adaylara taze bir taramadan sonra."
+"commandpack.restore_refused_because_destination_s_already_exist" = "§cGeri yükleme reddetti çünkü {size} destinasyon(s) zaten var."
+"commandpack.nothing_restore_pack" = "§ePaket için geri yüklememek için hiçbir şey yok \"{pack}'."
+"commandpack.restored_file_s_from" = "§aGeri yükleme {size} Dosya(s) -den {dumpPath}."
+"commandpack.restore_mode_must_be_preview_apply" = "§cGeri yükleme modu önizleme veya uygulama olmalıdır."
+"commandpack.nothing_restore_pack_2" = "§ePaket için geri yüklememek için hiçbir şey yok \"{pack}'."
+"commandpack.restore_preview_file_s_no_files_were_changed" = "§eGeri Döndük için {dumpPath}: {size} Dosya(lar).  Hiçbir dosya değiştirildi."
+"commandpack.restore_is_blocked_by_existing_destination_s" = "§cGeri yükleme bloke edilir {size} Mevcut destinasyon(lar)."
+"commandpack.run_iris_pack_restore_mode_apply_restore_after_fresh_conflict_check" = "§7çalıştır /iris pack restore {pack} mode=apply Taze bir çatışma kontrolünden sonra geri yüklemek."
+"commandpack.no_validation_results_recorded_run_iris_pack_validate_first" = "§eGeçerlilik sonuçları kaydedildi.  çalıştır /iris pack validate İlk önce."
+"commandpack.status.ok" = "§aTamam§r  {pack}§7 (blocking={blocking}Uyarılar ={warnings})"
+"commandpack.status.broken" = "§cBKEN§r  {pack}§7 (blocking={blocking}Uyarılar ={warnings})"
+"commandpack.cleanup_failed" = "§cTemizleme başarısız oldu: {error}"
+"commandpack.restore_failed" = "§cGeri yükleme başarısız oldu: {error}"
+"commandpack.path.still_quarantined" = "Hala karantinaya alındı"
+"commandpack.path.quarantined" = "Kurantined"
+"commandpack.path.candidate" = "Aday adayı"
+"commandpack.path.conflict" = "çatışma"
+"commandpack.path.restored" = "geri yüklendi"
+"commandpack.path.file" = "dosya dosyası"
+"commandpack.no_validation_result_run_iris_pack_validate" = "§e\"Hiçbir geçerlilik sonucu yok\"{pack}'.  çalıştır /iris pack validate {pack2}."
+"commandpack.validation_failed" = "§cGeçerlilik \"{name}\" başarısız oldu: {error}"
+"commandpack.pack_is_loadable_warnings" = "§aPack \"{packName}\" yüklenebilir.§7 (Resimler ={size})"
+"commandpack.pack_is_broken" = "§cPack \"{packName}\" bozuk:"
+"commandpack.message" = "§c  - {reason}"
+"commandpack.message_2" = "§e  !  {value}"
+"commandpack.more_warning_s" = { other = "§7    ...  ve {count} Daha fazla uyarı.", one = "§7    ...  ve {count} Daha fazla uyarı." }
+"commanddeveloper.stage_world_generation_update_warning" = ["§cBu güncellemeyi hazırlamadan önce tüm dünyayı yedekleyin.", "§eMevcut chunklar yeniden üretilmez veya üzerlerine yazılmaz.", "§eYeniden başlatmadan sonra yeni chunklar hazırlanan paketi kullanır ve kaydedilen sınırda araziye kademeli olarak bağlanır.", "§eDünyanın tohumu, yüksekliği, ortamı ve boyut türü değiştirilemez.", "§eHer yedek, iris/generation dizininin tamamını içermelidir.", "§cGüncellemeyi hazırlamak ve düzgün bir yeniden başlatma istemek için:", "§c/iris developer update-world {world} {pack} confirm=true"]
+"bulkstructureimporter.importing_vanilla_datapack_structures_mode_includenonjigsaw" = "§aİthalat §f{total}§a vanilla & Datapack yapıları (mode= ={mode}, includeNonJigsaw={includeNonJigsaw})..."
+"bulkstructureimporter.fail_invalid_key" = "§c[hata]  {keyString}:"
+"bulkstructureimporter.jigsaw" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.skip_no_single_template_nbt_vanilla_builds_this_code_from_separate_piece" = "§e[atlandı]  {keyString}: Tek-template NBT - vanilla bunu kodda ya da ayrı parça şablonlarından inşa eder (Resimler üzerinden transfer edilir); bir yapı olarak ithal etmek için hiçbir şey."
+"bulkstructureimporter.fail" = "§c[hata]  {keyString}: {message}"
+"bulkstructureimporter.fail_2" = "§c[hata]  {keyString}: {message}"
+"bulkstructureimporter.fail_3" = "§c[hata]  {keyString}: {error}"
+"bulkstructureimporter.bulk_import_complete_imported_skipped_failed_total" = "§aBulk import tamamlandı: §f{imported}§a ithal, §f{skipped}§a atladı, §f{failed}§a başarısız (§f{total}§a Toplam)."
+"bulkstructureimporter.building_single_template_structures_from_imported_pieces_one_variant_placed_per_generation" = "§aTek katlı yapılar ithal parçalardan inşa etmek (bir nesile yerleştirilen bir değişken)..."
+"bulkstructureimporter.group_variants" = "§7[group]  {value}  ->  {value2} ({blocks} varyantlar)"
+"bulkstructureimporter.skip" = "§e[atlandı]  {value}: {message}"
+"bulkstructureimporter.fail_4" = "§c[hata]  {value}: {error}"
+"bulkstructureimporter.single_template_structures_built_skipped_failed" = "§aSingle-template yapıları: §f{imported}§a inşa edilmiş, §f{skipped}§a atladı, §f{failed}§a başarısız oldu."
+"bulkstructureimporter.failed_enumerate_structure_templates_via_server_resourcemanager" = "§csunucu aracılığıyla yapı şablonlarını en aza indirmek için başarısız oldu ResourceManager: {e}"
+"bulkstructureimporter.no_structure_templates_were_found_under_structure_resource_path" = "§eYapı şablonları ‘yapı’ kaynak yolu altında bulunamadı."
+"bulkstructureimporter.importing_structure_templates_mode" = "§aİthalat §f{total}§a Yapı şablonları (mode={mode})..."
+"bulkstructureimporter.fail_invalid_key_2" = "§c[hata]  {keyString}:"
+"bulkstructureimporter.fail_5" = "§c[hata]  {keyString}: {message}"
+"bulkstructureimporter.fail_6" = "§c[hata]  {keyString}: {error}"
+"bulkstructureimporter.imported_skipped_failed" = "§7...{processed}/{total} ({imported} ithal, {skipped} atladı, {failed} başarısız oldu)"
+"bulkstructureimporter.template_import_complete_imported_skipped_failed_total" = "§aŞablon ithalatı tamamlandı: §f{imported}§a ithal, §f{skipped}§a atladı, §f{failed}§a başarısız (§f{total}§a Toplam)."
+"bulkstructureimporter.no_datapack_non_minecraft_structures_are_registered_ingest_datapack_restart_first_then" = "§eHiçbir veri paketi (ilk-minecraft) yapılar kayıtlı değildir.  Bir veri paketini alın ve ilk önce yeniden başlayın."
+"bulkstructureimporter.importing_datapack_structures_mode" = "§aİthalat §f{total}§a Datapack yapıları (mode= ={mode})..."
+"bulkstructureimporter.fail_invalid_key_3" = "§c[hata]  {keyString}:"
+"bulkstructureimporter.jigsaw_2" = "§7[jigsaw]  {keyString}  ->  {name}"
+"bulkstructureimporter.single_2" = "§7[single]  {keyString}  ->  {name}"
+"bulkstructureimporter.fail_7" = "§c[hata]  {keyString}: {message}"
+"bulkstructureimporter.fail_8" = "§c[hata]  {keyString}: {message}"
+"bulkstructureimporter.fail_9" = "§c[hata]  {keyString}: {error}"
+"bulkstructureimporter.importing_datapack_structure_templates" = "§aİthalat §f{size}§a veri paketi yapısı şablonları..."
+"bulkstructureimporter.fail_10" = "§c[hata]  {keyString}: {message}"
+"bulkstructureimporter.fail_11" = "§c[hata]  {keyString}: {error}"
+"bulkstructureimporter.could_not_enumerate_datapack_templates_via_server_resourcemanager" = "§eSunucu aracılığıyla veri paketi şablonları istenmeyebilir ResourceManager: {error}"
+"bulkstructureimporter.datapack_structure_import_complete_imported_skipped_failed" = "§aDatapack structure import Tamam: §f{imported}§a ithal, §f{skipped}§a atladı, §f{failed}§a başarısız oldu."
+"structurecaptureimporter.structure_capture_is_not_supported_by_active_nms_binding_skipping_capture_pass" = "§eYapı yakalama aktif tarafından desteklenmez NMS bağlayıcı; yakalama geçişini atlayın."
+"structurecaptureimporter.no_code_generated_structures_left_capture_everything_is_already_imported_as_structure" = "§7Hiçbir kodlanmış yapılar yakalamaya bırakılır (her şey zaten bir yapı olarak ithal edilir)."
+"structurecaptureimporter.capturing_code_generated_structures_no_nbt_template_into_scratch_world_skipping_any" = "§aCapturing§f{total}§aKodlanmış yapılar (hayır)NBTŞablon) bir çizik dünyaya (daha genişleyen herhangi bir daha/Daha uzun{MAXSPAN}bloklar..."
+"structurecaptureimporter.skip_did_not_place_capturable_structure_here_too_large_wrong_dimension_no" = "§e[atlandı]  {key}: Burada capturable bir yapı yoktu (çok büyük, yanlış boyut veya düz bir dünyada geçerli yerleştirme yok).  Yemek vanilla - üretilir."
+"structurecaptureimporter.fail" = "§c[hata]  {key}: {message}"
+"structurecaptureimporter.capture_objects_iob_x_x" = "§7[capture]  {key}  ->  objects/{name}.iob ({w}x{h}x{d})"
+"structurecaptureimporter.fail_2" = "§c[hata]  {key}: {error}"
+"structurecaptureimporter.captured_skipped_failed" = "§7...{processed}/{total} ({imported} Yakalandı, {skipped} atladı, {failed} başarısız oldu)"
+"structurecaptureimporter.structure_capture_complete_captured_skipped_failed_total" = "§aYapı yakalama tamamlandı: §f{imported}§a Yakalandı, §f{skipped}§a atladı, §f{failed}§a başarısız (§f{total}§a Toplam)."
+"featureimporter.no_vanilla_tree_object_features_are_exposed_by_active_nms_binding_importing" = "§eHiçbir vanilla ağacı /object özellikleri aktif olarak maruz bırakılır NMS Bağlanma (yalnızca)"
+"featureimporter.importing_vanilla_tree_object_features_variants_each_into_scratch_world" = "§aİthalat §f{total}§a vanilla tree/object features (§f{wantVariants}§a Her bir şekilde) sıfır dünyaya..."
+"featureimporter.obj_objects_vanilla" = "§7[obj]  {key}  ->  objects/vanilla/{group}/{safeName} ({written})"
+"featureimporter.skip_feature_placed_nothing_after_retries" = "§e[atlandı]  {key}: özellik, retries'ten sonra hiçbir şey koymadı."
+"featureimporter.fail" = "§c[hata]  {key}: {error}"
+"featureimporter.imported_skipped_failed" = "§7...{processed}/{total} ({imported} ithal, {skipped} atladı, {failed} başarısız oldu)"
+"featureimporter.feature_import_complete_features_written_skipped_failed_total" = "§aÖzel ithalat tamamlandı: §f{imported}§a Yazılı özellikler, §f{skipped}§a atladı, §f{failed}§a başarısız (§f{total}§a Toplam)."
+"featureimporter.could_not_create_scratch_world_feature_import_skipping_tree_object_pass" = "§cÖzel ithalat için sıfır dünyayı yaratamaz ({error}); ağacı /object'i atlayın."
+"irisconverter.no_schematic_files_convert_found" = "Hiçbir şematik dosyalar bulunamadı {path}"
+"irisconverter.converted" = "§a{name} -> {value}, {value2} sürede dönüştürüldü"
+"irisconverter.converted_2" = "§aDönüştürüldü {name}  ->  {value}"
+"irisconverter.failed_save" = "§ckurtarmak için başarısız oldu: {name}"
+"irisconverter.failed_convert" = "§cdönüştürmeye başarısız oldu: {name}"
+"irisconverter.converted_3" = "§7Dönüştürüldü: {get}, {value} sürede"
+"irisconverter.some_schematics_failed_convert_check_console_details" = "§cBazı şematik dönüştürmeye başarısız oldu.  Bilgi için konsolu kontrol edin."
+"studiosvc.pack_copy_requires_async_thread" = "§cIris refused to copy the world pack on the Bukkit primary thread."
+"studiosvc.pack_install_failed" = "§cFailed to install world pack §f{dimension}§c: {error}"
+"studiosvc.looking_package" = "Paket arıyorsunuz: {type}"
+"studiosvc.found_iris_folder" = "{WORKSPACENAME} klasöründe {type}.iris bulundu"
+"studiosvc.found_dimension_folder_repackaging" = "Bul bulundu {type} boyutta boyut {WORKSPACENAME} klasörü.  Repacking"
+"studiosvc.can_t_find_dimensions_folder_this_pack_failed" = "Bulamaz {name} Bu paketin boyutlarında!  Başarısız!"
+"studiosvc.can_t_load_dimension_failed" = "Boyutu yükleyemez!  Başarısız!"
+"studiosvc.type_installed" = "{name} Tür yüklü. "
+"studiosvc.failed_open_studio_world" = "Stüdyo dünyasını açmaya başarısız oldu: {error}"
+"studiosvc.cannot_open_studio_pack_has_blocking_errors" = "Açık stüdyo \"{dimm}\" - paket hataları engelliyor:"
+"studiosvc.message" = " - {reason}"
+"studiosvc.fix_pack_run_iris_pack_validate_revalidate" = "paketi düzeltin ve koşmak /iris pack validate {dimm} revize etmek için."
+"studiosvc.failed_close_existing_studio_project" = "Mevcut stüdyo projesini kapatmak için başarısız oldu: {error}"
+"studiosvc.failed_close_existing_studio_project_2" = "Mevcut stüdyo projesini kapatmak için başarısız oldu: {error}"
+"studiosvc.failed_open_studio_world_2" = "Stüdyo dünyasını açmaya başarısız oldu: {error}"
+"studiosvc.couldn_t_find_pack_create_new_dimension_from" = "paketi yeni bir boyut oluşturmak için bulamaz."
+"studiosvc.missing_imported_dimension_file" = "Tamamlanmış Boyut Dosyası"
+"studiosvc.importing_into_new_project" = "İthalat {downloadable} Yeni Project {s}"
+"objectstudiosaveservice.object_studio_no_cell_under_click_x_z" = "§7nesne editörü hiçbir hücre tıklama altında (x={x} z={z})."
+"objectstudiosaveservice.object_studio_saving_x_x" = "§bObject Studio: tasarrufu §f{pack}/{key}§7 ({w}x{h}x{d})"
+"objectstudiosaveservice.object_studio_no_changes" = "§7Object Studio: Hiçbir değişiklik {pack}/{key}."
+"objectstudiosaveservice.object_studio_empty_cell_nothing_write" = "§7Object Studio: boş hücre {pack}/{key} (Yazmak için hayır)."
+"objectstudiosaveservice.object_studio_no_target_file" = "§cObject Studio: Hiçbir hedef dosya {pack}/{key}."
+"objectstudiosaveservice.object_studio_saved" = "§aObject Studio: Kurtarın §f{pack}/{key}"
+"objectstudiosaveservice.object_studio_save_failed" = "§cObject Studio: kurtarma başarısız oldu {pack}/{key} ({error})"
+"irisproject.could_not_load_dimension" = "Boyut yükleyemez \"{value}\""
+"irisproject.could_not_get_dimension_loader" = "Boyut yükleyicisi alamaz"
+"irisproject.studio_open_failed" = "§cStüdyo açık başarısız oldu: {error}"
+"irisproject.studio_open_failed_2" = "§cStüdyo açık başarısız oldu."
+"irisproject.studio_ready" = "§aStüdyo hazır §7({value})"
+"irisproject.studio" = "§6Studio §b{bar}  §e{percent}%§7  {currentStage}§8 ({value})"
+"irisproject.serializing_objects" = "Seriating Objects"
+"irisproject.wrote_another_objects" = "Başka bir yazıldı {g} Nesneler"
+"irisproject.package_compiled" = "Paket Tamamlandı!"
+"irisproject.failed" = "Başarısız!"
+"irisengine.total" = "Toplam: §l§f{value}"
+"irisengine.engine" = "  Motor §n§a{i}§r: §l§f{value}"
+"irisengine.details" = "Detaylar: "
+"irisengine.message" = "  {befb}{num}{afb}: §l§f{value}"
+"enginebukkitops.is_not_defined_dimension" = "§c{name} Boyutta tanımlanmamıştır!"
+"enginebukkitops.could_not_find_within_search_range" = "§cBulamadı {message} Arama aralığı içinde."
+"enginebukkitops.teleporting" = "§a, {message}'e giriş..."
+"enginebukkitops.at" = "§a{message} : {blockX}  {blockY}  {blockZ}"
+"iristoolbelt.you_have_been_evacuated_from_this_world" = "Bu dünyadan tahliye edildiniz."
+"iristoolbelt.you_have_been_evacuated_from_this_world_2" = "Bu dünyadan tahliye edildiniz.  {m}"
+"serverconfigurator.there_are_some_iris_packs_that_have_custom_biomes_them" = "Bazıları var Iris Onlarda özel biyomesajlar var"
+"serverconfigurator.you_need_restart_your_server_use_these_packs" = "Bu paketleri kullanmak için sunucunuzu yeniden başlatmanız gerekir."
+"virtualcommand.message" = "- §f{i}"
+"virtualcommand.insufficient_permissions" = "Yetersiz İzinler"
+"mortarcommand.parameters_ignored" = "Parametreler Ignored: {m}"
+"commandpack.compat_header" = "§ePaket '{pack}': içerik Minecraft {version} sürümünde yok"
+"commandpack.compat_none" = "§aPaket '{pack}' Minecraft {version} sürümünde eksik olan içerik kullanmıyor."
+"commandpack.compat_remedy" = "§7Bu içeriği geri kazanmak için sunucuyu daha yeni bir Minecraft sürümüne güncelleyin veya yedekler tanımlayın (boyutun blockFallbacks, bloğun backup)."
+
+[iris.runtime.studio]
+opening = "§6Studio §bAÇILIYOR"
+opening_progress = "§6Studio §bAÇILIYOR§7 {percent}%"
+failed_progress = "§6Studio §cBAŞARISIZ§7 {percent}%"
+ready_progress = "§6Studio §aHAZIR§7 100%"
+"action.failed" = "{bar}§7 §cBAŞARISIZ§7 | §f{stage}"
+"action.ready" = "{bar}§7 §a100%§7 | §aStudio hazır§8 {elapsed}"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}§8  {elapsed}"
+"console.progress" = "§6Studio §b{bar}§e  {percent}%§7  {stage}§8 ({elapsed})"
+"stage.initializing" = "Başlatılıyor"
+"stage.queued" = "Sırada"
+"stage.resolve_dimension" = "Boyut çözümleniyor"
+"stage.prepare_world_pack" = "Dünya paketi hazırlanıyor"
+"stage.install_datapacks" = "Datapack'ler kuruluyor"
+"stage.create_world" = "Dünya oluşturuluyor"
+"stage.apply_world_rules" = "Dünya kuralları uygulanıyor"
+"stage.prepare_generator" = "Jeneratör hazırlanıyor"
+"stage.teleport_player" = "Işınlanıyor"
+"stage.finalize_open" = "Tamamlanıyor"
+"stage.cleanup" = "Temizleniyor"
+
+[iris.runtime.world_create]
+teleport_failed = "§eDünya yaratıldı, ancak otomatik telgraf başarısız oldu.  Deneyin /iris teleport world={world}"
+"lifecycle.action" = "{bar}§7 §e{percent}%§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.failed" = "{bar}§7 §cFAILED§7 | §f{stage}{detail}§8 {elapsed}"
+"lifecycle.action.ready" = "{bar}§7 §a100%§7 | §aWorld ready§8 {elapsed}"
+"lifecycle.console" = "§6World §b{world} {bar} §e{percent}%§7 {stage}{detail}§8 ({elapsed})"
+"lifecycle.console.failed" = "§6World §b{world}§7 | §ccreation failed§8 after {elapsed}"
+"lifecycle.console.ready" = "§6World §b{world}§7 | §aready§8 in {elapsed}"
+"stage.initializing" = "Initializing"
+"stage.resolve_dimension" = "Resolving dimension"
+"stage.validate_pack" = "Validating pack"
+"stage.prepare_world_pack" = "Preparing world pack"
+"stage.install_datapacks" = "Installing datapacks"
+"stage.prepare_generator" = "Preparing generator"
+"stage.create_world" = "Generating spawn"
+"stage.register_world" = "Registering world"
+"stage.teleport_player" = "Entering world"
+"stage.pregenerate" = "Pregenerating"
+"stage.finalize" = "Finalizing"
+"stage.complete" = "World ready"
+"pregen.action" = "{bar}§7  §e{percent}%§7 | §fPregeneating"
+"pregen.console" = "§6Pregeneating §e{percent}%"
+
+[iris.runtime.world_replace]
+start = "§e{world} için Iris ile değiştirme hazırlanıyor. Mevcut dünya yeniden başlatılana kadar etkin kalır."
+progress = "§e{world} değişimi: {stage} ({elapsed} saniye geçti)"
+"stage.datapacks" = "Boyut veri paketleri kontrol ediliyor"
+"stage.seed" = "Yeni dünyanın tohumu hazırlanıyor"
+"stage.pack" = "Boyut paketi kopyalanıp doğrulanıyor"
+"stage.players" = "Oyuncuların dünyaya giriş koruması kaydediliyor"
+"stage.verify" = "Hazırlanan değişim doğrulanıyor"
+"stage.save" = "Değişim yeniden başlatma için kaydediliyor"
+"stage.cleanup" = "Başarısız değişim temizleniyor"
+
+[iris.runtime.chunk_job]
+"title.regen" = "Rejen"
+"title.delete" = "Deleten"
+"title.golden_hash" = "GoldenHash"
+"stage.preparing" = "Hazırlanma"
+"stage.clearing" = "Temizleme"
+"stage.resetting_mantle" = "Yeniden tanımlama mantle"
+"stage.regenerating" = "Regeneating"
+"stage.generating" = "Genating"
+"stage.comparing" = "Karşılaştırma"
+"stage.diagnosing" = "Diyabet"
+"bossbar.working" = "§6{title}  §bÇALIŞMA"
+"bossbar.progress" = "§6{title}  §b{stage}§7  §e{percent}%"
+"action.progress" = "{bar}§7  §e{percent}%§7 | §f{stage}  {applied}/{total}"
+summary = "{applied}/{total} chunks içinde {elapsed}"
+"summary.failed" = "{applied}/{total} chunks içinde {elapsed} ({failures} başarısız oldu)"
+"bossbar.done" = "§6{title}  §aDONED§7  §e{summary}"
+"bossbar.failed" = "§6{title}  §cFAIUNU§7  §e{summary}"
+"action.done" = "{bar}§7  §aTamamlandı§7 | §f{summary}"
+"action.failed" = "{bar}§7  §cBaşarısızlık§7 | §f{summary}"
+complete = "§a{title} Tamam: {summary}"
+failed = "§c{title} Hatalarla tamamlandı: {summary}"
+
+[iris.runtime.golden]
+no_capture = "Hiçbir altın yakalama {path}İlk önce bir yakalama çalıştırın."
+aborted = { other = "GoldenHash Abored: {failed} chunks üretmek için başarısız oldu.  Hiçbir altın dosya yazılı değil.", one = "GoldenHash Abored: {failed} chunk üretmek için başarısız oldu.  Hiçbir altın dosya yazılı değil." }
+failed = "GoldenHash Başarısız: {error}"
+mantle_reset = "Mantle sıfırlandı ({path})"
+mantle_reset_failed = "Mantle Başarısızlık başarısız oldu ({type}); mevcut mantle devlet ile devam edin."
+captured = "Altın yakalama: {chunks} chunks birleştirilmiş ={hash}"
+wrong_world = "Altın dosya dim ={goldenDimension} tohum ={goldenSeed} Ama bu dünya dim ={dimension} tohum ={seed}.  Selam olsun."
+version_warning = "Altın mc={goldenVersion}, koşmak mc ={version}.  Diffs, versiyona dönüştürülebilir."
+match = "GOLDEN  MATCH: {current}/{golden} chunks, birleştirilmiş ={hash}"
+mismatch = "GOLDEN  MISMATCH: {mismatches}/{chunks} chunks farklıdır."
+mismatch_chunk = "  chunk {chunk}"
+missing_in_golden = "{chunk} (Altında izin)"
+mismatch_more = "  ...  ve {count} Daha fazla daha fazlası"
+current_written = "Şu anki {file} için yazılmış"
+"diag.stable" = "Tekrar-gen STABLEmantle-reset {mantleStatus}  ->  {file}"
+"diag.unstable" = "Tekrar-gen UNSTABLE ({diffs}+ blok diffs), mantle-reset {mantleStatus}  ->  {file}"
+"diag.mantle_stable" = "STABLE (mantle yeniden üretilir)"
+"diag.mantle_diverged" = "DIVERGED ({diffs}+ diffs - mantle inşa devlet / emir bağımlıdır)"
+"diag.mantle_skipped" = "SKIPPED ({type})"
+"diag.failed" = "Tanı başarısız oldu: {error}"
+started = "GoldenHash başladı: {chunks} Etrafında 0,0 Buffers'te (dünyayı terk etti), iplikler ={threads} mod ={mode}"
+chunk_hashed = "[{done}/{total}] chunk {x},{z} Havehed"
+chunk_failed = "Chunk. {x},{z}  başarısız: {type}"
+
+[iris.runtime.pack_download]
+"progress.start" = "§aIris §6PAKET İNDİRME§8 | §f{source}"
+"progress.phase" = "§aIris §b{phase}§8 | §7{source}"
+"progress.determinate" = "{bar}§7 §e{percent}%§8 | §f{transferred}§7/§f{total}§8 | §b{rate}/s"
+"progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
+"progress.detail" = "§8  - §7{detail}"
+"progress.complete" = "§aIris paketi '{pack}' kuruldu§8 | §f{transferred}§7, süre: §f{elapsed}"
+"progress.unchanged" = "§eIris paketi '{pack}' zaten kurulu."
+"progress.failed" = "§cIris paketi indirilemedi.§7 Yukarıdaki indirme ayrıntılarını inceleyip yeniden deneyin."
+"progress.failed_detail" = "§cIris paketi indirilemedi.§7 {error}"
+"progress.cancelled" = "§eIris paketi indirme işlemi yayınlanmadan önce iptal edildi."
+"progress.restart" = "§6Yeniden başlatma gerekli§8 | §7Bu paketle bir dünya oluşturmadan veya değiştirmeden önce sunucuyu yeniden başlatın."
+"progress.phase.connecting" = "Bağlanıyor"
+"progress.phase.downloading" = "İndiriliyor"
+"progress.phase.unpacking" = "Arşivden çıkarılıyor"
+"progress.phase.validating" = "Doğrulanıyor"
+"progress.phase.publishing" = "Yayınlanıyor"
+"progress.source.remote" = "Uzak ZIP dosyası"
+invalid_source = "§cTam olarak bir kaynak seçin: /iris download pack=overworld, /iris download pack=underworld veya /iris download link=‹zip-url›."
+invalid_url = "§cIris, .zip dosyasına ait geçerli bir HTTP veya HTTPS URL'si gerektirir."
+invalid_built_in = "§cIris yalnızca 'overworld' ve 'underworld' için yerleşik indirmeler sunar."
+shutting_down = "§eIris kapanıyor ve paket indirmelerini kabul etmiyor."
+downloading = "Downloading indir {url}"
+unpacking = "Unpackinging {repository}"
+unpack_failed = ["Paket açılırken sorun oluştu. Lütfen şunları kontrol edin/yapın:", "1.  işleyen bir internet bağlantısı var mı?", "2.  indirilen indirme miydi?", "3.  siliniyor  */plugins/iris/packs klasör ve re-download.", "4.  paketi buradan indirin GitHub Repo : https://github.com/IrisDimensions/overworld", "5.  İletişim desteği (diğer tüm seçenekler yardımcı değilse)"]
+no_extracted_files = "zip dosyasından hiçbir dosya çıkarılmadı."
+home_directory_error = "Ev rehberi bulmakta hata.  Dosya adında metin olmayan karakterler var mı?"
+invalid_archive_format = "geçersiz formatı.  Eksik kök klasörü veya çok fazla klasör!"
+no_dimension_file = "Tamamlanan zip dosyasında bulunan hiçbir boyut dosya bulunamadı."
+check_github = "GitHub'de mevcut olduğunu kontrol edin ve bunu personele rapor edin!"
+invalid_dimension = "geçersiz boyut klasörü altında dimensions/."
+importing = "İthalat {name} ({key})"
+dimension_key_conflict = "Paketlerdeki başka bir boyut zaten anahtarı kullanıyor {key}.  İthalat başarısız oldu!"
+pack_key_conflict = "Başka bir paket anahtarı kullanıyor {key}.  İthalat başarısız oldu!"
+acquired = "Başarılı bir şekilde satın alındı {name}."
+already_installed = "{key} paketi zaten kurulu, indirme atlanıyor."
+in_progress = "Başka bir Iris paketi indirme işlemi zaten devam ediyor. Yeniden denemeden önce tamamlanmasını bekleyin."
+validation_failed = "Pack \"{pack}“Başarısız doğrulama; dünya ve Stüdyo yaratımı reddedilecektir.  Sebepler:"
+validation_reason = "  - {reason}"
+validated_with_warnings = { other = "Pack \"{pack}\" ile doğrulandı\" {count} Uyarılar.", one = "Pack \"{pack}\" ile doğrulandı\" {count} Uyarı." }
+validated = "Pack \"{pack}\"Doğrulandı."
+
+[iris.client.vision]
+title = "Iris Vizyon"
+connecting = "Bağlanmak için Iris server sunucusu..."
+not_connected = "Bağlanmamaya bağlı değil"
+not_iris_world = "Bir şey değil Iris dünya dünyası"
+server_without_iris = "Bu sunucu Iris kullanmıyor"
+version_mismatch = "İstemci ve sunucu arasında Iris sürüm uyuşmazlığı"
+no_dimension_data = "Hiçbir Boyut Verileri"
+header_detail = "{status}  yakınlaştırma {zoom}  x{x} z{z}"
+footer_hint = "Kaydırmak için sürükleyin, yakınlaştırmak için kaydırın, kapatmak için Esc tuşuna basın"
+dimension_pack = "{dimension}  paket paketi {pack}"
+
+[iris.client.create]
+structures_required_title = "Iris için Yapılar oluştur gerekli"
+structures_required_body = "Iris kendi yapılarını yapı oluşturma adımında yerleştirir ve Yapılar oluştur kapalıyken oluşturulan bir dünyayı yüklemez. Yapılar oluştur seçeneğini yeniden aç veya farklı bir dünya türü seç."
+
+[iris.client.toast]
+studio_hotload = "Stüdyo Hotload"
+changed_files = { other = "{count} dosyaları dosyalar", one = "{count} dosya dosyası" }
+reload_failed = "yeniden yükle başarısız oldu"
+reloaded = "Yeniden yüklendi"
+pack_failed = "{pack} Başarısız oldu"
+
+[iris.client.what]
+title = "Iris What WhatWhat What nedir?"
+querying = "Sorgulama {x}, {z}..."
+biome = "Biyome: {biome}"
+region = "Bölge: {region}"
+cave = "Cave : {cave}"
+height = "Yükseklik: {height}   ({x}, {z})"
+
+[iris.client.pregen]
+stats = "{done} / {total}  ({percent}%)"
+paused = "duraklatıldı"
+stale = "{seconds}s boyunca güncelleme yok"
+rate = "{rate}/s"
+rate_eta = "{rate}/s    ETA  {eta}"
+
+[iris.client.duration]
+hours_minutes = "{hours}h {minutes}m"
+minutes_seconds = "{minutes}m {seconds}s"
+seconds = "{seconds}s"
+
+[iris.bukkit.scoreboard]
+title = "§aBen"
+speed = "§aHız Hızı§7:  {speed}/s  {duration}"
+cache = "§bÖnbellek§7: {count}"
+mantle = "§bAdam§7: {count}"
+carving = "§dAraba§7: {state}"
+region = "§bBölge Bölgesi§7: {region}"
+biome = "§bBiyome§7:  {biome}"
+biome_loading = "Yükleniyor"
+biome_unavailable = "Kullanılamıyor"
+height = "§bYükseklik§7: {height}"
+slope = "§bSlopee§7:  {slope}"
+block_updates = "§bBUDÜ/s§7: {updates}"
+
+[iris.desktop.vision]
+title = "Iris Vizyon"
+view = "Görüntüleme:"
+grid = "Izgara"
+entities = "Varlıklar"
+follow = "Takip"
+refreshing = "Yenileme"
+fps = "{fps}  FPS"
+zoom_reset = "yakınlaştırma reset sıfırlama"
+grid_enabled = "Grid etkinleştirdi"
+grid_disabled = "Izgara"
+entities_enabled = "Varlıklar etkin"
+entities_disabled = "Varlıklar devre dışı"
+following = "{player} takip ediliyor"
+no_player = "Hiçbir oyuncu dünyada"
+follow_disabled = "Engellileri Takip Et"
+status_left = "{mode}  |  {bpp} bpp |  {width} x {height} bloklar blok blokları"
+status_right = "X: {x}  Z: {z}  |  {fps}  FPS"
+entity_position = "Pozisyon: {x}, {y}, {z}"
+entity_health = "Sağlık: {health} / {maximum}"
+block_position = "Blok Block {x}, {z}"
+chunk_position = "Chunk. {x}, {z}"
+region_position = "Bölge Bölgesi {x}, {z}"
+biome_key = "Anahtar: {key}"
+biome_file = "Dosya: {file}"
+velocity = "Velocity : {velocity}"
+tiles = "Atlas: {ready} / {total}"
+workers = "Workers: {active} active / {queued} queued"
+center = "Merkez: {x}, {z}"
+"help.toggle" = "değiştir yardım"
+"help.refresh" = "Yeni kaplamalar"
+"help.follow" = "Takip oyuncu"
+"help.zoom" = "Yakınlaştır/uzaklaştır"
+"help.reset_zoom" = "yakınlaştırma"
+"help.cycle_mode" = "Çevrim formu"
+"help.fps" = "değiştir 30/60  FPS"
+"help.grid" = "değiştir network"
+"help.biome" = "Detaylı bilgi"
+"help.teleport" = "İmlece ışınlan"
+"help.editor" = "Açık biyome içeri editörü"
+opened = "Açıklandı {target}"
+teleporting = "{x}, {z}"
+"mode.biome" = "Biyome"
+"mode.biome_land" = "Biome toprağı"
+"mode.biome_sea" = "Biome deniz"
+"mode.region" = "Bölge Bölgesi"
+"mode.cave_land" = "Cave land Cave"
+"mode.river" = "Nehir ağı"
+"mode.height" = "Yükseklik"
+"mode.object_load" = "Object yükü"
+"mode.decorator_load" = "Decorator yükü"
+"mode.continent" = "Continan"
+"mode.layer_load" = "Katman yükü"
+
+[iris.desktop.noise]
+title = "Gürültü Explorer"
+title_generator = "Gürültü Explorer: {generator}"
+search = "Arama..."
+status = "{name}  |  X: {x}  Z: {z}  yakınlaştırma: {zoom}  Değer: {value}  |  {fps}  FPS"
+"category.custom" = "Özel özelleştirme"
+"category.pack_generators" = "Pack Jeneratörs"
+"category.simplex" = "Basitx"
+"category.perlin" = "Kovin"
+"category.cellular" = "Hücreler"
+"category.iris" = "Iris"
+"category.clover" = "Klover"
+"category.hexagon" = "Hexagon Escort"
+"category.vascular" = "Vasüler"
+"category.globe" = "Küre"
+"category.cubic" = "Cubik"
+"category.fractal" = "Fractalal"
+"category.static" = "Statik"
+"category.nowhere" = "Hiçbir yerde yok"
+"category.sierpinski" = "Seerpinski"
+"category.utility" = "Amaç"
+"category.other" = "Diğer"
+
+[iris.desktop.pregen]
+initializing = "Başlangıç..."
+title = "Prejen View"
+method_pending = "Pending Ping"
+paused = "duraklatıldı"
+resume_hint = "Devam etmek için P'ye basın"
+pause_hint = "Duraklatmak için P'ye basın"
+method = "Nesil yöntemi: {method}"
+pause = "Duraklat"
+resume = "Devam et"
+generating = "Oluşturuluyor"
+saving = "Kaydediliyor"
+stopping = "Durduruluyor"
+completed = "Tamamlandı"
+error = "Oluşturma başarısız"
+control_failed = "Duraklatma başarısız · sunucu günlüğüne bakın"
+error_details = "Ayrıntılar için sunucu günlüğüne bakın"
+progress = "{generated} / {total} chunk"
+percent = "{percent} tamamlandı"
+current = "Güncel · 10 sn"
+overall = "Genel"
+thirty = "30 sn ortalama"
+sixty = "60 sn ortalama"
+rate = "{rate} chunk/sn"
+eta = "Kalan"
+elapsed = "Geçen"
+memory_label = "Bellek"
+memory_usage = "{used} · {usage}"
+pressure = "Bellek ayırma"
+pressure_value = "{rate}/s"
+cached = "{method} · önbellekten"
+failed = "{count} başarısız · sunucu günlüğüne bakın"
+map = "Oluşturma haritası"
+bounds = "Chunk X {minX} – {maxX} · Z {minZ} – {maxZ}"
+waiting = "Bekliyor"
+ready = "Hazır"
+existing = "Mevcut"
+network = "Ağ"
+terrain_hint = "Tamamlanan chunklar arazi renklerini gösterir"
+
+[iris.runtime.what]
+material = "Material: {material}"
+full_state = "Full: {state}"
+item_count = "Count: {count}"
+iris_biome = "Iris biome: {biome} ({name})"
+derivative_biome = "Derivative biome: {biome}"
+native_biome = "Registered biome: {biome} (ID: {id})"
+non_iris_biome = "Non-Iris biome: {biome} (ID: {id})"
+iris_region = "Iris region: {region} ({name})"
+position = "Position: {x}, {y}, {z} (chunk {chunkX}, {chunkZ})"
+object = "Iris object: {object}"
+block_entity = "Block entity: {type}"
+loot_table = "Loot table: {loot}"
+spawner_entity = "Spawner entity: {entity}"
+"flag.solid" = "solid"
+"flag.fluid" = "fluid"
+"flag.water" = "water"
+"flag.waterlogged" = "waterlogged"
+"flag.storage" = "storage (loot capable)"
+"flag.lit" = "lit"
+"flag.foliage" = "foliage"
+"flag.plantable_foliage" = "plantable foliage"
+"flag.decorant" = "decorant"
+"flag.ore" = "ore"
+"flag.block_entity" = "block entity"
+
+[iris.runtime.world]
+height_range = "World height: {minY} to {maxY}"
+height_total = "Total height: {height}"
+
+[iris.desktop.imagemap]
+title = "Image Map Studio"
+preset = "Preset:"
+load = "Load"
+import_png = "Import PNG"
+replace_png = "Replace PNG"
+preview = "Preview"
+export = "Export to active pack"
+metadata = "Source metadata"
+resource = "Resource binding"
+coordinates = "Coordinates and sampling"
+binding_key = "Binding key"
+map_key = "Map key"
+image_key = "Image key"
+type = "Type"
+application = "Application"
+blocks_per_pixel = "Blocks per pixel"
+origin_x = "World origin X"
+origin_z = "World origin Z"
+source_origin_x = "Source origin X"
+source_origin_z = "Source origin Z"
+rotation = "Rotation"
+mirror_x = "Mirror X"
+mirror_z = "Mirror Z"
+sampling = "Sampling"
+out_of_bounds = "Out of bounds"
+alpha = "Alpha policy"
+fallback_value = "Fallback value"
+fallback_target = "Fallback target"
+minimum_height = "Minimum height"
+maximum_height = "Maximum height"
+vertical_offset = "Vertical offset"
+clamp = "Clamp height"
+inverted = "Invert values"
+curve_exponent = "Curve exponent"
+smoothing_radius = "Smoothing radius"
+threshold = "Threshold"
+falloff = "Falloff"
+color_tolerance = "Raw sRGB tolerance"
+unknown_color = "Unknown color"
+add_color = "Add legend color"
+remove_color = "Remove selected"
+composed_masks = "Composed masks"
+add_mask = "Add mask binding"
+height = "Height interpretation"
+mask = "Mask interpretation"
+color_map = "Color legend"
+overlays = "World overlays"
+chunks = "16-block chunks"
+regions = "512-block regions"
+boundary = "World boundary"
+coverage = "Source coverage"
+diagnostics = "Diagnostics"
+ready = "Ready"
+no_source = "Import a PNG source to begin."
+loading = "Loading preset..."
+load_failed = "Preset load failed"
+previewing = "Compiling preview..."
+preview_valid = "Runtime compiler validation passed."
+preview_failed = "Preview failed"
+exporting = "Validating and exporting..."
+exported = "Exported image map, PNG, and dimension binding atomically."
+export_failed = "Export failed"
+source = "Source pixels"
+interpreted = "Runtime interpretation"
+no_preview = "Compile a valid preview to inspect world output."
+preview_status = "X {x}  Z {z}  |  {value}  |  {scale} blocks/pixel"
+
+[language.menu]
+your_language = "Diliniz"
+reset_your_language = "Dil seçiminizi sıfırla"
+server_default = "Sunucu varsayılanı"
+edit_messages = "Dil mesajlarını düzenle"
+use_server_default = "Sunucu varsayılanını kullan"
+current = "Geçerli: {locale}"
+current_with_personal = "Geçerli: {locale} (Sizin: {personal})"
+your_description = "Yalnızca gördüğünüz mesajları değiştirin."
+reset_description = "Sunucunun varsayılan dilini kullanın."
+server_description = "Sunucunun varsayılan dilini değiştirin."
+edit_description = "Her dil için mesaj düzenleyicisini açın."
+select_description = "Bu dili seçmek için tıklayın."
+remove_personal_description = "Kişisel dil seçiminizi kaldırın."
+no_controls = "Kullanabileceğiniz dil ayarı yok."
+command = "Komut: {command}"
+selected = "Seçili"
+all-volmit-plugins = "Tüm Volmit eklentileri"
+
+[language.error]
+stopping = "Dil seçimi, eklenti durdurulduğunda kullanılamaz."
+editor-player-only = "Oyundaki dil editörü açın."
+no-providers = "Kullanılabilir Volmit dil sağlayıcısı yok."
+numeric-page = "Sayfa numarasını rakamla girin."
+personal-player-only = "Oyuncu dili tercihleri oyunda seçilmelidir."
+personal-permission = "Dilinizi seçmek için izniniz yok."
+plugin-personal-permission = "{plugin} için kendi dilinizi seçme izniniz yok."
+plugin-server-permission = "{plugin} için sunucu dilini değiştirme izniniz yok."
+server-locale-required = "Sunucunun varsayılan dili için en_US gibi bir dil kodu seçin."
+unavailable-for-all = "{locale} dili, seçilen eklentilerin tümünde kullanılamıyor."
+
+[language.usage]
+editor = "Kullanım: /{command} language server edit [locale]"
+selection = "Kullanım: /{command} language self [locale|reset] or server [locale]"
+volmit-selection = "Kullanım: /volmit plugins languages [locale]"
+
+[language.selection]
+preparing = "{target} için {locale} dili hazırlanıyor..."
+save-failed = "{plugin}: dil seçimi kaydedilemedi; sunucu konsolunu kontrol edin."
+english-fallback = "{plugin}: {locale} kullanılamıyor; İngilizce (en_US) kullanılıyor."
+personal-selected = "{plugin}: Diliniz şimdi {locale}."
+server-selected = "{plugin}: sunucu dili şimdi {locale}."
+server-default-selected = "{plugin}: diliniz artık sunucunun varsayılan dilini kullanıyor."
+
+[language.editor]
+"section.languages" = "Diller"
+"section.search" = "Arama"
+"section.search-title" = "{locale} / Arama"
+"section.group-title" = "{locale} / {group}"
+loading = "{locale} mesajları yükleniyor..."
+"prompt.search" = "Mesaj anahtarı veya metni arayın. Geri dönmek için cancel yazın."
+"prompt.value" = "Sohbete {key} için yeni bir değer yazın."
+"prompt.current" = "Geçerli değer: {value}"
+"prompt.variables" = "Değişkenler: {variables}"
+"prompt.guidance" = "Yeni satır için \\n, ters eğik çizgi için \\\\ kullanın veya geri dönmek için cancel yazın."
+"input.expired" = "Dil düzenleyicisinin giriş süresi doldu."
+"input.too-long" = "Girdi en fazla {maximum} karakter içerebilir."
+"input.unable-to-save" = "Kaydedilemedi: {reason}"
+"navigation.back" = "&eGeri&r"
+"navigation.close" = "&cKapat&r"
+"navigation.previous-page" = "&eÖnceki Sayfa&r"
+"navigation.next-page" = "&eSonraki sayfa&r"
+"search.messages" = "Mesajları ara"
+"search.messages-lore" = "Tüm mesajları aramak için tıklayın."
+"search.clear" = "Aramayı temizle"
+"message.current-value" = "&7Mevcut Değer:&r"
+"message.variables" = "&8{variables}&r"
+"message.edit-plural" = "&7Bir çoğul biçimini düzenlemek için tıklayın.&r"
+"message.edit-lines" = "&7Satırları ayrı ayrı düzenlemek için tıklayın.&r"
+"message.edit-chat" = "&7Sohbette düzenlemek için tıklayın.&r"
+"locale.open" = "&8Bu dili açmak için tıklayın.&r"
+"category.message-count" = "&7{count} mesaj&r"
+"category.open" = "&8Bu kategoriyi açmak için tıklayın.&r"
+"error.no-permission" = "{plugin} dillerini düzenleme izniniz yok."
+"error.unable-to-edit" = "Düzenlenemedi: {reason}"
+"saved.summary" = "{locale} kaydedildi. Dil seçimleri değişmedi."
+"saved.change" = "{key}: “{before}” değeri “{after}” olarak değiştirildi."
+"part.line" = "Satır {line}"
+"value.none" = "Yok"
+"value.empty" = "(boş)"
+
+[debug.error]
+missing-permission = "Eksik izin: {permission}"
+already-preparing = "{plugin} için bir tanılama raporu zaten hazırlanıyor."
+already-preparing-short = "Bir tanılama raporu zaten hazırlanıyor."
+schedule-failed = "Tanılama raporunun hazırlanması zamanlanamadı."
+provider-closed = "Tanılama sağlayıcısı kapalı."
+closed-before-capture = "Rapor verileri toplanmadan önce tanılama sağlayıcısı kapandı."
+writer-schedule-failed = "Tanılama raporunun yazılması zamanlanamadı."
+capture-failed = "Tanılama raporu verileri toplanamadı; sunucu konsolunu kontrol edin."
+closed-before-write = "Rapor yazılmadan önce tanılama sağlayıcısı kapandı."
+write-failed = "Tanılama raporu yazılamadı; sunucu konsolunu kontrol edin."
+
+[debug]
+preparing = "{plugin} tanılama raporu hazırlanıyor..."
+saved = "{plugin} tanılama raporu {path} yoluna kaydedildi."
+
+[debug.upload]
+interrupted = "Tanılama raporu yüklemesi kesildi; yerel rapor kaydedildi."
+failed = "Tanılama raporu yüklenemedi; yerel rapor kaydedildi."
+completed = "VolmitSoftware - {plugin} - v{version} adıyla yüklendi."
+
+[debug.action]
+open = "Aç: {url}"
+open-description = "Yüklenen tanılama raporunu açın."
+copy-path = "Yerel yolu kopyala"
+copy-path-description = "Yerel raporun yolunu kopyalayın."

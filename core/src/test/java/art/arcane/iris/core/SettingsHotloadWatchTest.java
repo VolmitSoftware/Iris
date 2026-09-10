@@ -46,7 +46,7 @@ public class SettingsHotloadWatchTest {
         previousSettings = IrisSettings.settings;
         dataFolder = temporaryFolder.newFolder("iris-hotload");
         settingsFile = new File(dataFolder, "iris.json");
-        overrideFolder = new File(dataFolder, "languages/overrides");
+        overrideFolder = new File(dataFolder, "languages");
         Files.createDirectories(overrideFolder.toPath());
         String settings = settings("en_US");
         Files.writeString(settingsFile.toPath(), settings, StandardCharsets.UTF_8);
@@ -68,15 +68,15 @@ public class SettingsHotloadWatchTest {
     }
 
     @Test
-    public void activeLocaleSnapshotAppliesAndInvalidSnapshotRetainsLastGood() {
+    public void activeLocaleSnapshotAppliesAndInvalidSnapshotUsesEnglish() {
         File override = override("en_US");
         String valid = locale("en_US", "Active {permission}");
 
         assertTrue(watch.applySnapshot(present(override, valid)));
         assertEquals("Active " + PERMISSION, permissionMessage());
 
-        assertFalse(watch.applySnapshot(present(override, "{ invalid")));
-        assertEquals("Active " + PERMISSION, permissionMessage());
+        assertTrue(watch.applySnapshot(present(override, "{ invalid")));
+        assertEquals("You lack the permission '" + PERMISSION + "'", permissionMessage());
     }
 
     @Test
@@ -120,13 +120,13 @@ public class SettingsHotloadWatchTest {
     }
 
     @Test
-    public void invalidLocaleBlocksItsSettingsSwitchAndRetainsThePreviousRuntime() throws Exception {
+    public void invalidLocaleAllowsItsSettingsSwitchWithEnglishFallback() throws Exception {
         Files.writeString(override("de_DE").toPath(), "{ invalid", StandardCharsets.UTF_8);
 
-        assertFalse(watch.applySnapshot(present(settingsFile, settings("de_DE"))));
+        assertTrue(watch.applySnapshot(present(settingsFile, settings("de_DE"))));
 
-        assertEquals("en_US", IrisSettings.get().getGeneral().getLanguage());
-        assertEquals("en_US", IrisLanguage.activeLocale());
+        assertEquals("de_DE", IrisSettings.get().getGeneral().getLanguage());
+        assertEquals("de_DE", IrisLanguage.activeLocale());
         assertEquals("You lack the permission '" + PERMISSION + "'", permissionMessage());
     }
 
@@ -226,7 +226,7 @@ public class SettingsHotloadWatchTest {
     }
 
     @Test(timeout = 8_000L)
-    public void oversizedActiveOverrideReportsOnceAndRetainsLastGoodCatalog() throws Exception {
+    public void oversizedActiveLanguageReportsOnceAndUsesEnglish() throws Exception {
         File override = override("en_US");
         assertTrue(watch.applySnapshot(present(override, locale("en_US", "Active {permission}"))));
         byte[] oversized = new byte[2 * 1024 * 1024 + 1];
@@ -238,11 +238,11 @@ public class SettingsHotloadWatchTest {
                 diagnostic,
                 "Failed to read watched Iris file " + override.getAbsolutePath()
         ));
-        assertEquals("Active " + PERMISSION, permissionMessage());
+        assertEquals("You lack the permission '" + PERMISSION + "'", permissionMessage());
     }
 
     @Test(timeout = 8_000L)
-    public void malformedUtf8FailureIsDeduplicatedAndRetainsLastGoodCatalog() throws Exception {
+    public void malformedUtf8FailureIsDeduplicatedAndUsesEnglish() throws Exception {
         File override = override("en_US");
         assertTrue(watch.applySnapshot(present(override, locale("en_US", "Active {permission}"))));
         Files.write(override.toPath(), new byte[]{(byte) 0xC3, 0x28});
@@ -253,7 +253,7 @@ public class SettingsHotloadWatchTest {
                 diagnostic,
                 "Failed to read watched Iris file " + override.getAbsolutePath()
         ));
-        assertEquals("Active " + PERMISSION, permissionMessage());
+        assertEquals("You lack the permission '" + PERMISSION + "'", permissionMessage());
     }
 
     private void awaitPermissionMessage(String expected) {
@@ -326,15 +326,15 @@ public class SettingsHotloadWatchTest {
     }
 
     private ConfigHotloadEngine.StableContentSnapshot present(File file, String content) {
-        return new ConfigHotloadEngine.StableContentSnapshot(file, "present", content.trim());
+        return new ConfigHotloadEngine.StableContentSnapshot(file, "present", content.trim(), 0L);
     }
 
     private ConfigHotloadEngine.StableContentSnapshot missing(File file) {
-        return new ConfigHotloadEngine.StableContentSnapshot(file, "missing", null);
+        return new ConfigHotloadEngine.StableContentSnapshot(file, "missing", null, 0L);
     }
 
     private File override(String locale) {
-        return new File(overrideFolder, locale + ".json").getAbsoluteFile();
+        return new File(overrideFolder, locale + ".toml").getAbsoluteFile();
     }
 
     private String permissionMessage() {
@@ -349,7 +349,6 @@ public class SettingsHotloadWatchTest {
     }
 
     private String locale(String locale, String permissionMessage) {
-        return "{\"locale\":\"" + locale + "\",\"messages\":{"
-                + "\"iris.command.permission_denied\":\"" + permissionMessage + "\"}}";
+        return "[iris.command]\npermission_denied = \"" + permissionMessage + "\"\n";
     }
 }

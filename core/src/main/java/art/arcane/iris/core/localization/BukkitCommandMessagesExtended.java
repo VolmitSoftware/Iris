@@ -195,10 +195,6 @@ public final class BukkitCommandMessagesExtended {
             "iris.bukkit.commandiris.specified_player_does_not_exist",
             C.RED + "The specified player does not exist."
     );
-    public static final TextKey COMMAND_IRIS_IRIS_V_BY_VOLMIT_SOFTWARE = TextKey.of(
-            "iris.bukkit.commandiris.iris_v_by_volmit_software",
-            C.GREEN + "Iris v" + "{value}" + " by Volmit Software"
-    );
     public static final TextKey COMMAND_IRIS_TO = TextKey.of(
             "iris.bukkit.commandiris.to",
             C.GREEN + "" + "{value}" + " to " + "{value2}"
@@ -853,7 +849,6 @@ public final class BukkitCommandMessagesExtended {
             COMMAND_IRIS_EXCEPTION_RAISED_DURING_CREATION_SEE_CONSOLE_MORE_DETAILS,
             COMMAND_IRIS_SUCCESSFULLY_CREATED_YOUR_WORLD,
             COMMAND_IRIS_SPECIFIED_PLAYER_DOES_NOT_EXIST,
-            COMMAND_IRIS_IRIS_V_BY_VOLMIT_SOFTWARE,
             COMMAND_IRIS_TO,
             COMMAND_IRIS_TOTAL_HEIGHT,
             COMMAND_IRIS_IRIS_WORLDS,

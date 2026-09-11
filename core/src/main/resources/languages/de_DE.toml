@@ -272,6 +272,9 @@
 #   {zoom}  Aktuelle Zoomstufe der Vorschau.
 # === End Iris language guide ===
 
+[iris.director.commanddebug]
+description = "Iris-Diagnosewerkzeuge"
+
 [iris.director.commandiris]
 "director.debugdump" = "Einen Diagnosebericht erstellen und optional hochladen"
 "param.debugdump_upload" = "Den Bericht zu mclo.gs hochladen"
@@ -516,7 +519,6 @@ install_pack_and_restart = "§eInstall it with §b{command}§e and restart the s
 exception_raised_during_creation_see_console_more_details = "§cBei der Erstellung ist eine Ausnahme aufgetreten. Weitere Details findest du in der Konsole."
 successfully_created_your_world = "§aDeine Welt wurde erfolgreich erstellt!"
 specified_player_does_not_exist = "§cDer angegebene Spieler existiert nicht."
-iris_v_by_volmit_software = "§aIris v{value} von Volmit Software"
 to = "§a{value} bis {value2}"
 total_height = "§aGesamthöhe: {value}"
 iris_worlds = "§9Iris-Welten: "

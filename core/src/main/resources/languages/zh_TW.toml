@@ -275,6 +275,9 @@
 #   {zoom}  預覽的目前縮放層級。
 # === End Iris language guide ===
 
+[iris.director.commanddebug]
+description = "Iris診斷工具"
+
 [iris.director.commandiris]
 "director.debugdump" = "建立診斷報告並選擇是否上傳"
 "param.debugdump_upload" = "將報告上傳至 mclo.gs"
@@ -519,7 +522,6 @@ install_pack_and_restart = "§eInstall it with §b{command}§e and restart the s
 exception_raised_during_creation_see_console_more_details = "§c建立期間發生例外。詳細資訊請查看主控台。"
 successfully_created_your_world = "§a世界建立成功！"
 specified_player_does_not_exist = "§c指定的玩家不存在。"
-iris_v_by_volmit_software = "§aIris v.{value}，由 Volmit Software 開發"
 to = "§a{value} 改為: {value2}"
 total_height = "§a總高度：{value}"
 iris_worlds = "§9Iris 世界："

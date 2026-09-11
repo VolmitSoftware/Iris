@@ -192,7 +192,7 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
             Iris.instance.selectLanguage(sender, Arrays.copyOfRange(args, 1, args.length));
             return;
         }
-        if (!(args.length > 0 && args[0].equalsIgnoreCase("debugdump"))
+        if (!(args.length > 1 && args[0].equalsIgnoreCase("debug") && args[1].equalsIgnoreCase("dump"))
             && !sender.hasPermission(ROOT_PERMISSION)) {
             ComponentMessenger.sendSection(sender, IrisLanguage.text(
                     IrisMessages.COMMAND_PERMISSION_DENIED,

@@ -277,6 +277,9 @@
 #   {zoom}  Текущий уровень масштаба предварительного просмотра.
 # === End Iris language guide ===
 
+[iris.director.commanddebug]
+description = "Инструменты диагностики Iris"
+
 [iris.director.commandiris]
 "director.debugdump" = "Создать диагностический отчёт и при желании загрузить его"
 "param.debugdump_upload" = "Загрузить отчёт на mclo.gs"
@@ -521,7 +524,6 @@ install_pack_and_restart = "§eInstall it with §b{command}§e and restart the s
 exception_raised_during_creation_see_console_more_details = "§cИсключение, возникшее при сотворении.  Смотрите консоль для более подробной информации."
 successfully_created_your_world = "§aУспешно создал свой мир!"
 specified_player_does_not_exist = "§cУказанного игрока не существует."
-iris_v_by_volmit_software = "§aИрис v{value} Разработчик Volmit Software"
 to = "§a{value} то {value2}"
 total_height = "§aОбщая высота: {value}"
 iris_worlds = "§9Миры Айрис: "

@@ -94,15 +94,8 @@ public class CommandIris implements DirectorExecutor {
     private CommandPack pack;
     private CommandFind find;
     private CommandDatapack datapack;
+    private CommandDebug debug;
     VolmitSender sender = Iris.getSender();
-
-    @Director(name = "debugdump", sync = true, description = "Create and optionally upload a diagnostic report", descriptionKey = "iris.director.commandiris.director.debugdump")
-    public void debugdump(
-        @Param(name = "upload", defaultValue = "true", description = "Upload the report to mclo.gs", descriptionKey = "iris.director.commandiris.param.debugdump_upload") boolean upload,
-        @Param(name = "sender", contextual = true) CommandSender sender
-    ) {
-        Iris.instance.debugDump().request(sender, upload);
-    }
 
     @Director(description = "Choose your language or the server default")
     public void language() {
@@ -314,9 +307,9 @@ public class CommandIris implements DirectorExecutor {
         }
     }
 
-    @Director(description = "Print version information", descriptionKey = "iris.director.commandiris.director.print_version_information")
-    public void version() {
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_IRIS_IRIS_V_BY_VOLMIT_SOFTWARE, MessageArgument.untrusted("value", Iris.instance.getDescription().getVersion())));
+    @Director(hidden = true, sync = true, description = "Print version information", descriptionKey = "iris.director.commandiris.director.print_version_information")
+    public void version(@Param(name = "sender", contextual = true) CommandSender sender) {
+        debug.version(sender);
     }
 
     @Director(description = "Print world height information", descriptionKey = "iris.director.commandiris.director.print_world_height_information", origin = DirectorOrigin.PLAYER)
@@ -438,14 +431,6 @@ public class CommandIris implements DirectorExecutor {
             return result.status().name().toLowerCase(Locale.ROOT).replace('_', ' ');
         }
         return failure.getMessage();
-    }
-
-    @Director(description = "Toggle debug", descriptionKey = "iris.director.commandiris.director.toggle_debug")
-    public void debug() {
-        boolean to = !IrisSettings.get().getGeneral().isDebug();
-        IrisSettings.get().getGeneral().setDebug(to);
-        IrisSettings.get().forceSave();
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_IRIS_SET_DEBUG, MessageArgument.untrusted("to", to)));
     }
 
     @Director(description = "Download a project.", descriptionKey = "iris.director.commandiris.director.download_project", aliases = "dl")

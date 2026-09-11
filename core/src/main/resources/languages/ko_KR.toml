@@ -275,6 +275,9 @@
 #   {zoom}  현재 미리보기 확대/축소 수준.
 # === End Iris language guide ===
 
+[iris.director.commanddebug]
+description = "Iris 진단 도구"
+
 [iris.director.commandiris]
 "director.debugdump" = "진단 보고서를 생성하고 선택적으로 업로드"
 "param.debugdump_upload" = "보고서를 mclo.gs에 업로드"
@@ -519,7 +522,6 @@ install_pack_and_restart = "§eInstall it with §b{command}§e and restart the s
 exception_raised_during_creation_see_console_more_details = "§c창조 중 발생한 예외.  자세한 내용은 콘솔을 참조하십시오."
 successfully_created_your_world = "§a세상을 성공적으로 만들었습니다!"
 specified_player_does_not_exist = "§c지정된 플레이어는 존재하지 않습니다."
-iris_v_by_volmit_software = "§a아이리스 v{value} Volmit 소프트웨어"
 to = "§a{value} 으로 {value2}"
 total_height = "§a총 고도: {value}"
 iris_worlds = "§9Iris 세계: "

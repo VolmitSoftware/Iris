@@ -275,6 +275,9 @@
 #   {zoom}  プレビューの現在のズーム倍率。
 # === End Iris language guide ===
 
+[iris.director.commanddebug]
+description = "Iris診断ツール"
+
 [iris.director.commandiris]
 "director.debugdump" = "診断レポートを作成し、必要に応じてアップロードする"
 "param.debugdump_upload" = "レポートを mclo.gs にアップロードする"
@@ -519,7 +522,6 @@ install_pack_and_restart = "§eInstall it with §b{command}§e and restart the s
 exception_raised_during_creation_see_console_more_details = "§c作成中に例外が発生しました。詳細はコンソールを確認してください。"
 successfully_created_your_world = "§aワールドを作成しました!"
 specified_player_does_not_exist = "§c指定されたプレイヤーは存在しません。"
-iris_v_by_volmit_software = "§aIris v{value} by Volmit Software"
 to = "§a{value} から {value2}"
 total_height = "§a総高さ: {value}"
 iris_worlds = "§9Iris ワールド: "

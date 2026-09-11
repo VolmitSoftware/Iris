@@ -184,9 +184,9 @@ final class HydrologyChannelGeometry {
         double distance = rawDistance;
         if (shape.fallingThroat() && (flowX != 0 || flowZ != 0)) {
             double flowLength = StrictMath.hypot(flowX, flowZ);
-            double along = StrictMath.abs(deltaX * flowX + deltaZ * flowZ) / flowLength;
+            double along = (deltaX * flowX + deltaZ * flowZ) / flowLength;
             double across = StrictMath.abs(deltaX * -flowZ + deltaZ * flowX) / flowLength;
-            if (along > 0.75D) {
+            if (StrictMath.abs(along) > 0.75D || segment.type().isSurface() && along < 0D) {
                 return shape.totalRadius() + 1D;
             }
             distance = across;
@@ -240,6 +240,9 @@ final class HydrologyChannelGeometry {
                 + coherent * channelShape.wallRoughness() * 0.7D
                 + detail * channelShape.wallRoughness() * 0.3D;
         radialScale = Math.max(channelShape.radialMinimum(), Math.min(channelShape.radialMaximum(), radialScale));
+        if (segment.type().isSurface() && shape.fallingThroat()) {
+            radialScale = Math.max(1D, radialScale);
+        }
         return distance / radialScale;
     }
 
@@ -280,7 +283,8 @@ final class HydrologyChannelGeometry {
                 + (sideBias - 0.5D) * 0.08D;
         widthScale = Math.max(1D, Math.min(1.18D, widthScale));
         double organicDistance = StrictMath.abs(signedCross - thalweg) / widthScale;
-        return Math.min(StrictMath.abs(signedCross), organicDistance);
+        double along = (deltaX * flowX + deltaZ * flowZ) / flowLength;
+        return StrictMath.hypot(along, Math.min(StrictMath.abs(signedCross), organicDistance));
     }
 
     HydrologyPlannerSettings.ChannelShape channelShape(HydrologyFeatureType type) {

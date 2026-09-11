@@ -1,15 +1,29 @@
 package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.engine.IrisComplex;
+import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.SeedManager;
+import art.arcane.iris.engine.image.IrisImageMapRuntime;
 import art.arcane.iris.engine.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.engine.hydrology.HydrologyColumnSample;
 import art.arcane.iris.engine.hydrology.HydrologyFeatureRef;
 import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
 import art.arcane.iris.engine.object.IrisDecorationStep;
+import art.arcane.iris.engine.object.IrisBiome;
+import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.IrisHydrology;
+import art.arcane.iris.engine.object.IrisRegion;
 import art.arcane.iris.engine.object.IrisMaterialPalette;
 import art.arcane.iris.engine.object.IrisRiverMaterialConfig;
+import art.arcane.iris.engine.terrain.Terrain3DColumn;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.testsupport.PlatformBinding;
+import art.arcane.iris.util.project.context.ChunkContext;
+import art.arcane.iris.util.project.context.ChunkedDataCache;
+import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.iris.util.project.stream.ProceduralStream;
+import art.arcane.iris.util.project.stream.interpolation.Interpolated;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Rule;
@@ -25,6 +39,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -206,6 +221,79 @@ public class IrisTerrainNormalActuatorHydrologyTest {
         }
 
         verify(fixture.palette, never()).get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any());
+    }
+
+    @Test
+    public void deepBankAndShoreCutsStillReceiveTheirSurfaceMaterial() {
+        for (HydrologyColumnLayer layer : List.of(shoreLayer(), bankLayer())) {
+            Engine engine = mock(Engine.class);
+            IrisComplex complex = mock(IrisComplex.class);
+            IrisData data = mock(IrisData.class);
+            IrisBiome biome = mock(IrisBiome.class);
+            IrisRegion region = new IrisRegion();
+            ChunkContext context = mock(ChunkContext.class);
+            PlatformBlockState rock = mock(PlatformBlockState.class);
+            PlatformBlockState grass = mock(PlatformBlockState.class);
+            PlatformBlockState painted = mock(PlatformBlockState.class);
+            when(rock.key()).thenReturn("minecraft:stone");
+            when(grass.key()).thenReturn("minecraft:grass_block");
+            when(painted.key()).thenReturn("minecraft:dirt");
+            IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
+            when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), eq(data))).thenReturn(painted);
+            IrisRiverMaterialConfig material = new IrisRiverMaterialConfig().setEnabled(true).setDepth(2).setPalette(palette);
+            IrisHydrology hydrology = new IrisHydrology();
+            hydrology.getRivers().getSurface().getBanks().setShoreMaterial(material).setBankMaterial(material);
+            IrisDimension dimension = new IrisDimension().setHydrology(hydrology).setBedrock(false).setHideOresForHiddenOre(true);
+            when(engine.getDimension()).thenReturn(dimension);
+            when(engine.getComplex()).thenReturn(complex);
+            when(engine.getData()).thenReturn(data);
+            when(engine.getSeedManager()).thenReturn(mock(SeedManager.class));
+            when(complex.getImageMapRuntime()).thenReturn(mock(IrisImageMapRuntime.class));
+            when(complex.getRiverWaterSurfaceStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 0D));
+            when(complex.sampleHydrologyColumn(11, -4)).thenReturn(new HydrologyColumnSample(
+                    11, -4, 80, 0, false, "parent", List.of(layer)));
+            when(context.getRoundedHeight(0, 0)).thenReturn(60);
+            when(context.getBiome()).thenReturn(new ChunkedDataCache<>(
+                    ProceduralStream.of((x, z) -> biome, Interpolated.of(value -> 0D, value -> biome)), 11, -4, false));
+            when(context.getRegion()).thenReturn(new ChunkedDataCache<>(
+                    ProceduralStream.of((x, z) -> region, Interpolated.of(value -> 0D, value -> region)), 11, -4, false));
+            when(context.getRock()).thenReturn(new ChunkedDataCache<>(
+                    ProceduralStream.of((x, z) -> rock, Interpolated.of(value -> 0D, value -> rock)), 11, -4, false));
+            when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
+                    anyInt(), anyInt(), eq(data), eq(complex))).thenReturn(new KList<>(List.of(grass)));
+            Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 64, 1);
+
+            new IrisTerrainNormalActuator(engine).terrainSliver(11, -4, 0, output, context);
+
+            assertSame(painted, output.get(0, 60, 0));
+            assertSame(painted, output.get(0, 59, 0));
+            assertSame(rock, output.get(0, 58, 0));
+            material.setEnabled(false);
+            new IrisTerrainNormalActuator(engine).terrainSliver(11, -4, 0, output, context);
+            assertSame(rock, output.get(0, 60, 0));
+
+            Terrain3DColumn carved = mock(Terrain3DColumn.class);
+            when(carved.spanCount()).thenReturn(2);
+            when(carved.floor(1)).thenReturn(60);
+            when(carved.ceiling(1)).thenReturn(50);
+            when(carved.floor(0)).thenReturn(40);
+            when(carved.ceiling(0)).thenReturn(0);
+            Terrain3DColumn natural = mock(Terrain3DColumn.class);
+            when(natural.surfaceY(60)).thenReturn(60);
+            when(natural.surfaceY(40)).thenReturn(44);
+            when(complex.terrainColumn(eq(11), eq(-4), any(HydrologyColumnSample.class))).thenReturn(carved);
+            when(complex.naturalTerrainColumn(11, -4)).thenReturn(natural);
+            when(biome.generateCeilingLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
+                    anyInt(), anyInt(), eq(data), eq(complex))).thenReturn(new KList<>());
+            new IrisTerrainNormalActuator(engine).terrainSliver(11, -4, 0, output, context);
+            assertSame(grass, output.get(0, 60, 0));
+            assertSame(rock, output.get(0, 40, 0));
+            material.setEnabled(true);
+            new IrisTerrainNormalActuator(engine).terrainSliver(11, -4, 0, output, context);
+            assertSame(painted, output.get(0, 60, 0));
+            assertSame(painted, output.get(0, 40, 0));
+            assertSame(rock, output.get(0, 38, 0));
+        }
     }
 
     private static HydrologyColumnLayer channelLayer() {

@@ -61,6 +61,7 @@ public final class HydrologyPlanner {
     final HydrologyUndergroundCoursePlanner undergroundCourses;
     final HydrologySegmentBuilder segments;
     final HydrologyFeatureSitePlanner featureSites;
+    final HydrologyRegionalPlanner regional;
 
     public HydrologyPlanner(long worldSeed, HydrologyPlannerSettings settings, HydrologyTerrainSampler sampler) {
         this(
@@ -193,6 +194,7 @@ public final class HydrologyPlanner {
         this.undergroundCourses = new HydrologyUndergroundCoursePlanner(this);
         this.segments = new HydrologySegmentBuilder(this);
         this.featureSites = new HydrologyFeatureSitePlanner(this);
+        this.regional = new HydrologyRegionalPlanner(this);
     }
 
     public long worldSeed() {
@@ -246,6 +248,7 @@ public final class HydrologyPlanner {
 
     void clearOwnerDrafts() {
         resolvedOwners.invalidateAll();
+        regional.clear();
     }
 
     void reuseResolvedTile(HydrologyTile tile) {
@@ -262,6 +265,7 @@ public final class HydrologyPlanner {
                 tile.courses(),
                 tile.cavePlans()
         );
+        result = regional.withoutRegional(result, tile.key());
         HydrologyOwnerDraft draft = new HydrologyOwnerDraft(
                 tile.key(),
                 result,

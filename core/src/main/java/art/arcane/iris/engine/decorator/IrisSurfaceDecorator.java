@@ -88,6 +88,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
             opts.underwater = underwater;
             opts.fluidHeight = fluidHeight;
             opts.caveSkipFluid = caveSkipFluid;
+            opts.mantle = getEngine().getMantle();
             DecoratorCore.placeStackUp(decorator, x, z, realX, realZ, height, max, data, rng, getData(), opts);
             aquaticSnapshot.restoreIfUnsupported(data, x, z);
             return;

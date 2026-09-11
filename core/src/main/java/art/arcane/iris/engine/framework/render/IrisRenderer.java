@@ -215,7 +215,7 @@ public final class IrisRenderer {
     public static int hydrologyDiagnosticColor(HydrologyCandidateKind kind) {
         Objects.requireNonNull(kind, "kind");
         return switch (kind) {
-            case SOURCE, TRIBUTARY -> PROJECTED_SOURCE;
+            case SOURCE, TRIBUTARY, REGIONAL_SOURCE, COASTAL_CHANNEL -> PROJECTED_SOURCE;
             case OUTLET -> PROJECTED_OUTLET;
             case DEEP_FLUID, POOL -> PROJECTED_DEEP_FLUID;
         };

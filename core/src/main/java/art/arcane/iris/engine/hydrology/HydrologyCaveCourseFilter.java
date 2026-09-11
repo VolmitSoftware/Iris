@@ -40,30 +40,6 @@ final class HydrologyCaveCourseFilter {
 
 ;
 
-    static final CaveVoxelView GENERATED_CHANNEL_VIEW = new CaveVoxelView() {
-        @Override
-        public boolean isInWorld(CavePosition position) {
-            return true;
-        }
-
-        @Override
-        public CaveVoxel voxelAt(CavePosition position) {
-            return CaveVoxel.UNCONDITIONAL;
-        }
-
-        @Override
-        public boolean isOpenToSurface(CavePosition position) {
-            return false;
-        }
-
-        @Override
-        public boolean isAboveTerrainSurface(CavePosition position) {
-            return false;
-        }
-    }
-
-;
-
     final HydrologyCaveContainmentPlanner planner;
     final CaveVoxelView view;
     final Options options;
@@ -93,7 +69,7 @@ final class HydrologyCaveCourseFilter {
         this.planner = new HydrologyCaveContainmentPlanner();
         this.options = Objects.requireNonNull(options);
         CaveVoxelView observedView = Objects.requireNonNull(view);
-        this.view = options.connectToExistingCaves() ? observedView : GENERATED_CHANNEL_VIEW;
+        this.view = options.connectToExistingCaves() ? observedView : new GeneratedChannelView(observedView);
         this.candidateCache = candidateCache;
         this.validationCache = validationCache;
         this.plannedSurface = plannedSurface;
@@ -438,7 +414,7 @@ final class HydrologyCaveCourseFilter {
     ) {
         LinkedHashMap<CavePosition, HydrologyCaveAction> composedActions = null;
         for (HydrologyColumnSample caveSample : validation.columnsForCourse(course.id())) {
-            int maximumCaveY = maximumCaveY(caveSample, course.id());
+            int maximumCaveY = maximumCaveY(caveSample, course);
             if (maximumCaveY == Integer.MIN_VALUE) {
                 continue;
             }
@@ -549,14 +525,14 @@ final class HydrologyCaveCourseFilter {
                 && first.outletId().getAsLong() == second.outletId().getAsLong();
     }
 
-    int maximumCaveY(HydrologyColumnSample sample, long courseId) {
+    int maximumCaveY(HydrologyColumnSample sample, RiverCourse course) {
         int maximumY = Integer.MIN_VALUE;
         for (HydrologyColumnLayer layer : sample.layers()) {
-            if (layer.feature().courseId() == courseId
-                    && isCaveLayer(layer)
+            if (layer.feature().courseId() == course.id()
+                    && isCaveLayer(layer, course)
                     && !layer.oceanApron()
                     && layer.channel()
-                    && layer.terrainOwned()) {
+                    && (layer.terrainOwned() || layer.fallingFluid() && layer.fluidOwned())) {
                 maximumY = Math.max(maximumY, layer.ceilingY());
             }
         }
@@ -673,8 +649,8 @@ final class HydrologyCaveCourseFilter {
         for (HydrologyColumnSample sample : columns) {
             for (HydrologyColumnLayer layer : sample.layers()) {
                 CaveCandidateSpanBuilder builder = builders.get(layer.feature().courseId());
-                if (builder == null || !isCaveLayer(layer) || layer.oceanApron()
-                        || !layer.channel() || !layer.terrainOwned()) {
+                if (builder == null || !isCaveLayer(layer, builder.course()) || layer.oceanApron()
+                        || !layer.channel() || !(layer.terrainOwned() || layer.fallingFluid() && layer.fluidOwned())) {
                     continue;
                 }
                 builder.addAction(sample.x(), sample.z(), layer);
@@ -705,10 +681,10 @@ final class HydrologyCaveCourseFilter {
                 int maximumCaveY = Integer.MIN_VALUE;
                 for (HydrologyColumnLayer layer : sample.layers()) {
                     if (layer.feature().courseId() != course.id()
-                            || !isCaveLayer(layer)
+                            || !isCaveLayer(layer, course)
                             || layer.oceanApron()
                             || !layer.channel()
-                            || !layer.terrainOwned()) {
+                            || !(layer.terrainOwned() || layer.fallingFluid() && layer.fluidOwned())) {
                         continue;
                     }
                     builder.addAction(sample.x(), sample.z(), layer);
@@ -770,8 +746,8 @@ final class HydrologyCaveCourseFilter {
         for (HydrologyColumnSample sample : columns) {
             for (HydrologyColumnLayer layer : sample.layers()) {
                 CaveCandidateBuilder builder = builders.get(layer.feature().courseId());
-                if (builder == null || !isCaveLayer(layer) || layer.oceanApron()
-                        || !layer.channel() || !layer.terrainOwned()) {
+                if (builder == null || !isCaveLayer(layer, builder.course()) || layer.oceanApron()
+                        || !layer.channel() || !(layer.terrainOwned() || layer.fallingFluid() && layer.fluidOwned())) {
                     continue;
                 }
                 for (int y = layer.bedY() + 1; y <= layer.ceilingY(); y++) {
@@ -809,10 +785,10 @@ final class HydrologyCaveCourseFilter {
                 int maximumCaveY = Integer.MIN_VALUE;
                 for (HydrologyColumnLayer layer : sample.layers()) {
                     if (layer.feature().courseId() != course.id()
-                            || !isCaveLayer(layer)
+                            || !isCaveLayer(layer, course)
                             || layer.oceanApron()
                             || !layer.channel()
-                            || !layer.terrainOwned()) {
+                            || !(layer.terrainOwned() || layer.fallingFluid() && layer.fluidOwned())) {
                         continue;
                     }
                     for (int y = layer.bedY() + 1; y <= layer.ceilingY(); y++) {
@@ -858,7 +834,8 @@ final class HydrologyCaveCourseFilter {
     static HydraulicSegment representativeCaveSegment(RiverCourse course) {
         HydraulicSegment selected = null;
         for (HydraulicSegment segment : course.segments()) {
-            if (!segment.type().isUnderground() && !segment.type().isDeepFluid()) {
+            if (!segment.type().isUnderground() && !segment.type().isDeepFluid()
+                    && !(segment.type().isSurface() && segment.fallingFluid())) {
                 continue;
             }
             if (selected == null || candidatePriority(segment.type()) < candidatePriority(selected.type())) {
@@ -878,8 +855,16 @@ final class HydrologyCaveCourseFilter {
         return 2;
     }
 
-    boolean isCaveLayer(HydrologyColumnLayer layer) {
-        return layer.feature().type().isUnderground() || layer.feature().type().isDeepFluid();
+    boolean isCaveLayer(HydrologyColumnLayer layer, RiverCourse course) {
+        if (layer.feature().type().isUnderground() || layer.feature().type().isDeepFluid()) {
+            return true;
+        }
+        for (HydraulicSegment segment : course.segments()) {
+            if (segment.id() == layer.feature().segmentId()) {
+                return segment.type().isSurface() && segment.fallingFluid();
+            }
+        }
+        return false;
     }
 
     HydrologyCaveAction actionAt(HydrologyColumnLayer layer, int y) {
@@ -1213,6 +1198,12 @@ final class HydrologyCaveCourseFilter {
         List<HydraulicSegment> segments = course.segments();
         for (int index = 0; index < segments.size(); index++) {
             HydraulicSegment segment = segments.get(index);
+            if (segment.type().isSurface() && segment.fallingFluid()) {
+                int radius = Math.max(1, segment.width() / 2) + 1;
+                openings.add(CaveSurfaceOpening.create(segment, true, (long) radius * radius,
+                        segment.downstreamHeadY() + 2, true));
+                continue;
+            }
             if (!segment.type().isUnderground()) {
                 continue;
             }
@@ -1258,5 +1249,32 @@ final class HydrologyCaveCourseFilter {
             }
         }
         return List.copyOf(openings);
+    }
+
+    private record GeneratedChannelView(CaveVoxelView terrain) implements CaveVoxelView {
+        @Override
+        public boolean isInWorld(CavePosition position) {
+            return terrain.isInWorld(position);
+        }
+
+        @Override
+        public CaveVoxel voxelAt(CavePosition position) {
+            return CaveVoxel.UNCONDITIONAL;
+        }
+
+        @Override
+        public boolean isOpenToSurface(CavePosition position) {
+            return false;
+        }
+
+        @Override
+        public boolean isAboveTerrainSurface(CavePosition position) {
+            return terrain.isAboveTerrainSurface(position);
+        }
+
+        @Override
+        public boolean hasAboveTerrainSurface(int x, int z, int minimumY, int maximumY) {
+            return terrain.hasAboveTerrainSurface(x, z, minimumY, maximumY);
+        }
     }
 }

@@ -577,7 +577,7 @@ public class HydrologyPlannerUndergroundKnobsTest {
         );
         return new HydrologyPlannerSettings(
                 SEA_LEVEL,
-                new HydrologyPlannerSettings.Routing(128, 16, 512, 256, 0, 0, 0.5D, 12D, 0.5D, 0.1D, 1D, 0),
+                new HydrologyPlannerSettings.Routing(128, 16, 512, 256, 0, 0, 0.5D, 12D, 0.5D, 0.1D, 1D, 0, HydrologyPlannerSettings.Regional.disabled()),
                 surface,
                 new HydrologyPlannerSettings.Hydraulics(4),
                 HydrologyPlannerSettings.Underground.of(
@@ -638,7 +638,7 @@ public class HydrologyPlannerUndergroundKnobsTest {
     ) {
         return new HydrologyPlannerSettings(
                 SEA_LEVEL,
-                new HydrologyPlannerSettings.Routing(128, 16, 512, 256, 0, 0, 0.5D, 12D, 0.5D, 0.1D, 1D, 0),
+                new HydrologyPlannerSettings.Routing(128, 16, 512, 256, 0, 0, 0.5D, 12D, 0.5D, 0.1D, 1D, 0, HydrologyPlannerSettings.Regional.disabled()),
                 new HydrologyPlannerSettings.Surface(
                         surfaceEnabled,
                         surfaceSources,

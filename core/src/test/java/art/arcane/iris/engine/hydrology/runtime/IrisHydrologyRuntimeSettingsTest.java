@@ -335,7 +335,7 @@ public class IrisHydrologyRuntimeSettingsTest {
         HydrologyPlannerSettings.Banks banks = settings(dimension).surface().banks();
 
         assertEquals(new HydrologyPlannerSettings.Erosion(true, 7, 0.35D, 1.25D, 0.4D,
-                IrisRiverBlendStyle.TERRACED, 6, 0.3D, IrisRiverBedProfile.V, 1.5D, 3D), banks.erosion());
+                IrisRiverBlendStyle.TERRACED, 6, 0.3D, IrisRiverBedProfile.V, 1.5D, 3D, HydrologyPlannerSettings.Excavation.defaults()), banks.erosion());
         assertEquals(new HydrologyPlannerSettings.Channel(9, 0.5D, 1.9D, 2.5D), banks.channel());
         assertEquals(new HydrologyPlannerSettings.Flow(0.4D, 3, 1.5D, 2), banks.flow());
         assertEquals(new HydrologyPlannerSettings.Inlet(80, 4, 36, 0.3D, 1.75D), banks.inlet());

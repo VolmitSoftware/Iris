@@ -44,7 +44,7 @@ final class CaveCandidateBuilder {
         this.maximumZ = Integer.MIN_VALUE;
     }
 
-    private RiverCourse course() {
+    RiverCourse course() {
         return course;
     }
 
@@ -97,8 +97,19 @@ final class CaveCandidateBuilder {
             for (int[] offset : HydrologyCaveCourseFilter.HORIZONTAL_NEIGHBORS) {
                 int neighborX = position.x() + offset[0];
                 int neighborZ = position.z() + offset[1];
-                if (validation.ownsSurfaceChannelAt(neighborX, neighborZ, course.id())) {
-                    addOpening(neighborX, position.y(), neighborZ);
+                if (actions.containsKey(new CavePosition(neighborX, position.y(), neighborZ))) {
+                    continue;
+                }
+                HydrologyColumnSample neighbor = validation.surfaceColumnAt(neighborX, neighborZ);
+                if (neighbor == null) {
+                    continue;
+                }
+                for (HydrologyColumnLayer layer : neighbor.layers()) {
+                    if (layer.feature().courseId() == course.id() && layer.channel() && layer.fluidOwned()
+                            && layer.bedY() < position.y() && position.y() <= layer.fluidHeadY()) {
+                        addOpening(neighborX, position.y(), neighborZ);
+                        break;
+                    }
                 }
             }
         }
@@ -110,7 +121,13 @@ final class CaveCandidateBuilder {
                 continue;
             }
             if (opening.includeNeighborhood()) {
-                addOpeningNeighborhood(position);
+                addOpening(position);
+                for (int[] offset : HydrologyCaveCourseFilter.NEIGHBORS) {
+                    int y = position.y() + offset[1];
+                    if (y >= opening.minimumY()) {
+                        addOpening(position.x() + offset[0], y, position.z() + offset[2]);
+                    }
+                }
             } else {
                 addOpening(position);
             }

@@ -67,7 +67,7 @@ public class HydrologyModelTest {
                 2,
                 false,
                 true,
-                centerline
+                centerline, HydraulicChannelProfile.uniform(4, 2)
         );
         assertEquals(6, graded.drop());
         assertFalse(graded.fallingFluid());
@@ -81,7 +81,7 @@ public class HydrologyModelTest {
                 2,
                 false,
                 false,
-                centerline
+                centerline, HydraulicChannelProfile.uniform(4, 2)
         );
         assertFalse(intermediate.receivingPool());
         HydraulicSegment accepted = new HydraulicSegment(
@@ -94,7 +94,7 @@ public class HydrologyModelTest {
                 2,
                 true,
                 true,
-                centerline
+                centerline, HydraulicChannelProfile.uniform(4, 2)
         );
         assertEquals(6, accepted.drop());
     }
@@ -111,7 +111,7 @@ public class HydrologyModelTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 80, 0))
+                List.of(new HydrologyPoint(0, 80, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         HydraulicSegment sinkhole = new HydraulicSegment(
                 2L,
@@ -123,7 +123,7 @@ public class HydrologyModelTest {
                 2,
                 true,
                 true,
-                List.of(new HydrologyPoint(0, 80, 0), new HydrologyPoint(1, 74, 0))
+                List.of(new HydrologyPoint(0, 80, 0), new HydrologyPoint(1, 74, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         HydraulicSegment grotto = new HydraulicSegment(
                 3L,
@@ -135,7 +135,7 @@ public class HydrologyModelTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(1, 74, 0))
+                List.of(new HydrologyPoint(1, 74, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
 
         RiverCourse accepted = new RiverCourse(
@@ -160,7 +160,7 @@ public class HydrologyModelTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 80, 0))
+                List.of(new HydrologyPoint(0, 80, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         RiverCourse containedApproach = new RiverCourse(
                 9L,
@@ -197,7 +197,7 @@ public class HydrologyModelTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(100, 63, 0), new HydrologyPoint(112, 63, 0))
+                List.of(new HydrologyPoint(100, 63, 0), new HydrologyPoint(112, 63, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
 
         RiverCourse seaCave = new RiverCourse(
@@ -288,7 +288,7 @@ public class HydrologyModelTest {
         assertThrows(IllegalArgumentException.class, () -> new HydrologyColumnSample(
                 4,
                 9,
-                63,
+                62,
                 63,
                 false,
                 "shore_parent",
@@ -298,7 +298,7 @@ public class HydrologyModelTest {
         HydrologyColumnSample raised = new HydrologyColumnSample(
                 4,
                 9,
-                64,
+                63,
                 63,
                 false,
                 "shore_parent",
@@ -392,6 +392,23 @@ public class HydrologyModelTest {
         );
 
         assertEquals(72, sample.terrainHeight());
+    }
+
+    @Test
+    public void uncutShoreRetainsItsBiomeWithoutOverridingAnOwnedBank() {
+        HydrologyColumnLayer shore = surfaceLayer(feature(HydrologyFeatureType.SURFACE_POOL, 30L, 75),
+                75, 75, false, true, true, false, false);
+        HydrologyColumnLayer bank = surfaceLayer(feature(HydrologyFeatureType.SURFACE_POOL, 31L, 72),
+                72, 72, false, false, true, true, false);
+        HydrologyColumnSample uncut = new HydrologyColumnSample(0, 0, 75, 63, false, "parent", List.of(shore));
+        HydrologyColumnSample cut = new HydrologyColumnSample(0, 0, 75, 63, false, "parent", List.of(shore, bank));
+
+        assertEquals(shore, uncut.primarySurfaceLayer().orElseThrow());
+        assertEquals("shore", uncut.primarySurfaceLayer().orElseThrow().biomeKey());
+        assertEquals(75, uncut.terrainHeight());
+        assertTrue(uncut.primarySurfaceFluidLayer().isEmpty());
+        assertEquals(bank, cut.primarySurfaceLayer().orElseThrow());
+        assertEquals(72, cut.terrainHeight());
     }
 
     @Test
@@ -620,7 +637,7 @@ public class HydrologyModelTest {
                         new HydrologyPoint(0, 20, 0),
                         new HydrologyPoint(500, 20, 0),
                         new HydrologyPoint(1000, 20, 0)
-                )
+                ), HydraulicChannelProfile.uniform(4, 2)
         );
         RiverCourse course = new RiverCourse(
                 201L,

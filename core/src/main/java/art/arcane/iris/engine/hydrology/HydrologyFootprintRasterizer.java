@@ -22,6 +22,8 @@ final class HydrologyFootprintRasterizer {
             boolean validationOnly,
             HydrologyFootprintCompiler.SurfaceRasterIndex plannedSurface
     ) {
+        Long2ObjectLinkedOpenHashMap<FootprintMutableColumn> segmentColumns = segment.type().isSurface() && segment.fallingFluid()
+                ? new Long2ObjectLinkedOpenHashMap<>() : columns;
         List<HydrologyPoint> centerline = continuousCenterline(segment);
         if (segment.fallingFluid() && centerline.size() > 1) {
             HydrologyPoint throat = centerline.getFirst();
@@ -36,7 +38,7 @@ final class HydrologyFootprintRasterizer {
                     false
             );
             rasterizePoint(
-                    columns,
+                    segmentColumns,
                     course,
                     segment,
                     throat,
@@ -52,7 +54,7 @@ final class HydrologyFootprintRasterizer {
                     plannedSurface
             );
             rasterizeSweptSegment(
-                    columns,
+                    segmentColumns,
                     course,
                     segment,
                     List.copyOf(centerline.subList(1, centerline.size())),
@@ -62,11 +64,14 @@ final class HydrologyFootprintRasterizer {
                     validationOnly,
                     plannedSurface
             );
+            if (segmentColumns != columns) {
+                compiler.mergeSurfaceDrop(columns, segmentColumns);
+            }
             return;
         }
         if (sweptChannel(segment, centerline)) {
             rasterizeSweptSegment(
-                    columns,
+                    segmentColumns,
                     course,
                     segment,
                     centerline,
@@ -93,7 +98,7 @@ final class HydrologyFootprintRasterizer {
             int flowX = compiler.flowDelta(centerline, pointIndex, true);
             int flowZ = compiler.flowDelta(centerline, pointIndex, false);
             rasterizePoint(
-                    columns,
+                    segmentColumns,
                     course,
                     segment,
                     point,
@@ -108,6 +113,9 @@ final class HydrologyFootprintRasterizer {
                     validationOnly,
                     plannedSurface
             );
+        }
+        if (segmentColumns != columns) {
+            compiler.mergeSurfaceDrop(columns, segmentColumns);
         }
     }
 
@@ -172,10 +180,10 @@ final class HydrologyFootprintRasterizer {
         HydrologyFeatureRef[][] pointFeatures = new HydrologyFeatureRef[centerline.size()][HydrologyFootprintCompiler.FEATURE_ROLE_COUNT];
         for (int z = minimumZ; z <= maximumZ; z++) {
             for (int x = minimumX; x <= maximumX; x++) {
-                if (!withinLongitudinalBounds(centerline, x, z, clipStart, clipEnd)) {
+                if (!withinLongitudinalBounds(centerline, segment.start(), x, z, clipStart, clipEnd)) {
                     continue;
                 }
-                FootprintCenterlineProjection projection = projectCenterline(centerline, x, z);
+                FootprintCenterlineProjection projection = projectCenterline(centerline, segment.start(), x, z);
                 int pointIndex = projection.pointIndex();
                 HydrologyPoint point = centerline.get(pointIndex);
                 boolean receiving = segment.receivingPool() && pointIndex == centerline.size() - 1;
@@ -232,7 +240,7 @@ final class HydrologyFootprintRasterizer {
                         && segment.type() != HydrologyFeatureType.WATERFALL
                         && segment.type() != HydrologyFeatureType.CASCADE;
                 HydrologyTerrainSample terrain = exactSlope ? compiler.sampleTerrain(x, z) : compiler.sampleTerrainBasis(x, z);
-                if (terrain == null) {
+                if (terrain == null || compiler.elevatedSeaLevelSurfaceColumn(segment, terrain, shape.fluidHead())) {
                     continue;
                 }
                 boolean naturalOcean = classification == HydrologyRoutingTerrainSampler.NaturalClassification.OCEAN
@@ -246,7 +254,7 @@ final class HydrologyFootprintRasterizer {
                     continue;
                 }
                 boolean source = firstSegment && pointIndex == 0;
-                if (validationOnly && segment.type().isSurface()) {
+                if (validationOnly && segment.type().isSurface() && !segment.fallingFluid()) {
                     compiler.feature(course, segment, x, shape.fluidHead(), z, flowX, flowZ,
                             source && deltaX == 0 && deltaZ == 0, channel, shore, grading,
                             false, false, pointFeatures[pointIndex]);
@@ -280,7 +288,7 @@ final class HydrologyFootprintRasterizer {
         }
     }
 
-    FootprintCenterlineProjection projectCenterline(List<HydrologyPoint> centerline, int x, int z) {
+    FootprintCenterlineProjection projectCenterline(List<HydrologyPoint> centerline, HydrologyPoint incoming, int x, int z) {
         if (centerline.size() == 1) {
             HydrologyPoint point = centerline.getFirst();
             return new FootprintCenterlineProjection(
@@ -288,8 +296,8 @@ final class HydrologyFootprintRasterizer {
                     point.x(),
                     point.z(),
                     StrictMath.hypot(x - point.x(), z - point.z()),
-                    1,
-                    0
+                    point.x() - incoming.x(),
+                    point.z() - incoming.z()
             );
         }
         int selectedPoint = 0;
@@ -345,13 +353,17 @@ final class HydrologyFootprintRasterizer {
 
     boolean withinLongitudinalBounds(
             List<HydrologyPoint> centerline,
+            HydrologyPoint incoming,
             int x,
             int z,
             boolean clipStart,
             boolean clipEnd
     ) {
         if (centerline.size() < 2) {
-            return true;
+            HydrologyPoint point = centerline.getFirst();
+            long dot = (long) (x - point.x()) * (point.x() - incoming.x())
+                    + (long) (z - point.z()) * (point.z() - incoming.z());
+            return (!clipStart || dot >= 0L) && (!clipEnd || dot <= 0L);
         }
         HydrologyPoint start = centerline.getFirst();
         HydrologyPoint afterStart = centerline.get(1);
@@ -474,7 +486,7 @@ final class HydrologyFootprintRasterizer {
             HydrologyTerrainSample terrain = exactSlope
                     ? compiler.sampleTerrain(x, z)
                     : compiler.sampleTerrainBasis(x, z);
-            if (terrain == null) {
+            if (terrain == null || compiler.elevatedSeaLevelSurfaceColumn(segment, terrain, shape.fluidHead())) {
                 continue;
             }
             boolean naturalOcean = classification == HydrologyRoutingTerrainSampler.NaturalClassification.OCEAN
@@ -514,7 +526,7 @@ final class HydrologyFootprintRasterizer {
                 );
                 continue;
             }
-            if (validationOnly && !underground) {
+            if (validationOnly && !underground && !segment.fallingFluid()) {
                 compiler.feature(
                         course,
                         segment,

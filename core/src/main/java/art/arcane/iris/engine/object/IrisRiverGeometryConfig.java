@@ -16,6 +16,9 @@ public class IrisRiverGeometryConfig {
     @Desc("Surface river bed shape for waterfall and cascade throats, and the wall shape shared with the erosion compiler; roughness fields default to the channel roughness.")
     private IrisSurfaceRiverShapeConfig surface = new IrisSurfaceRiverShapeConfig();
 
+    @Desc("Three-dimensional bank shelves above the protected riverbed and waterline.")
+    private IrisRiverBank3DConfig banks3D = new IrisRiverBank3DConfig();
+
     @Desc("Underground channel bed and wall shape.")
     private IrisRiverChannelShapeConfig underground = new IrisRiverChannelShapeConfig();
 

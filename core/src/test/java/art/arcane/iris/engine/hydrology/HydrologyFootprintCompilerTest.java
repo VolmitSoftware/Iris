@@ -80,7 +80,7 @@ public class HydrologyFootprintCompilerTest {
                     ? 63 : 70;
             HydraulicSegment segment = new HydraulicSegment(
                     9001L, 9000L, type, head, head, 6, 3, false, false,
-                    List.of(new HydrologyPoint(-12, head, -3), new HydrologyPoint(32, head, 5)));
+                    List.of(new HydrologyPoint(-12, head, -3), new HydrologyPoint(32, head, 5)), HydraulicChannelProfile.uniform(6, 3));
             RiverCourse course = course(9000L,
                     type.isSurface() ? RiverCourseType.SURFACE : RiverCourseType.UNDERGROUND, segment);
             SlopeCountingSampler original = new SlopeCountingSampler(false);
@@ -124,7 +124,7 @@ public class HydrologyFootprintCompilerTest {
                 4,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(24, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(24, 70, 0)), HydraulicChannelProfile.uniform(10, 4)
         );
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(
                 z < 0 ? 54 : 82,
@@ -158,7 +158,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(8, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(8, 70, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         RiverCourse course = new RiverCourse(
                 10L,
@@ -206,7 +206,7 @@ public class HydrologyFootprintCompilerTest {
                 5,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(96, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(96, 70, 0)), HydraulicChannelProfile.uniform(12, 5)
         );
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(82, 0D, "parent");
         RiverFootprint footprint = new HydrologyFootprintCompiler(
@@ -269,7 +269,7 @@ public class HydrologyFootprintCompilerTest {
                 3,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(24, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(24, 70, 0)), HydraulicChannelProfile.uniform(8, 3)
         );
         RiverCourse course = course(14L, RiverCourseType.SURFACE, segment);
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(70, 0D, "parent");
@@ -328,7 +328,7 @@ public class HydrologyFootprintCompilerTest {
                 8,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, -20, 0))
+                List.of(new HydrologyPoint(0, -20, 0)), HydraulicChannelProfile.uniform(40, 8)
         );
         RiverCourse course = new RiverCourse(
                 14L,
@@ -382,7 +382,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(16, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(16, 70, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         RiverCourse course = course(110L, RiverCourseType.SURFACE, segment);
         HydrologyTerrainSample terrain = HydrologyTerrainSample.openLand(80, 1D, "parent");
@@ -425,7 +425,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         HydraulicSegment undergroundSegment = new HydraulicSegment(
                 31L,
@@ -437,7 +437,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(20, 50, 0))
+                List.of(new HydrologyPoint(20, 50, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         RiverCourse surface = course(20L, RiverCourseType.SURFACE, surfaceSegment);
         RiverCourse underground = course(30L, RiverCourseType.UNDERGROUND, undergroundSegment);
@@ -479,7 +479,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         RiverCourse course = course(40L, RiverCourseType.SURFACE, segment);
         HydrologyPlannerSettings settings = HydrologyPlannerSettings.defaults();
@@ -531,7 +531,7 @@ public class HydrologyFootprintCompilerTest {
                 10,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0)), HydraulicChannelProfile.uniform(12, 10)
         );
         RiverCourse course = course(42L, RiverCourseType.SURFACE, segment);
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(80, 1D, "parent");
@@ -584,7 +584,7 @@ public class HydrologyFootprintCompilerTest {
                 3,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(96, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(96, 70, 0)), HydraulicChannelProfile.uniform(12, 3)
         );
         RiverCourse course = course(46L, RiverCourseType.SURFACE, segment);
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(84, 1D, "parent");
@@ -613,7 +613,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 true,
                 true,
-                List.of(new HydrologyPoint(0, 80, 0), new HydrologyPoint(1, 68, 0))
+                List.of(new HydrologyPoint(0, 80, 0), new HydrologyPoint(1, 68, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         RiverCourse course = course(50L, RiverCourseType.SURFACE, segment);
         HydrologyPlannerSettings settings = HydrologyPlannerSettings.defaults();
@@ -692,7 +692,7 @@ public class HydrologyFootprintCompilerTest {
                         new HydrologyPoint(0, 48, 0),
                         new HydrologyPoint(12, 48, 5),
                         new HydrologyPoint(24, 48, 0)
-                )
+                ), HydraulicChannelProfile.uniform(12, 2)
         );
         RiverCourse course = course(60L, RiverCourseType.UNDERGROUND, segment);
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(84, 1D, "parent");
@@ -749,7 +749,7 @@ public class HydrologyFootprintCompilerTest {
                         2,
                         false,
                         false,
-                        List.of(new HydrologyPoint(0, 70, 0))
+                        List.of(new HydrologyPoint(0, 70, 0)), HydraulicChannelProfile.uniform(4, 2)
                 )
         );
         RiverCourse underground = course(
@@ -765,7 +765,7 @@ public class HydrologyFootprintCompilerTest {
                         2,
                         false,
                         false,
-                        List.of(new HydrologyPoint(96, 40, 0))
+                        List.of(new HydrologyPoint(96, 40, 0)), HydraulicChannelProfile.uniform(4, 2)
                 )
         );
         HydrologyPlannerSettings settings = HydrologyPlannerSettings.defaults();
@@ -823,7 +823,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         HydraulicSegment waterfall = new HydraulicSegment(
                 221L,
@@ -835,7 +835,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 true,
                 true,
-                List.of(new HydrologyPoint(0, 74, 0))
+                List.of(new HydrologyPoint(0, 74, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         HydrologyTerrainSample terrain = HydrologyTerrainSample.openLand(80, 1D, "parent");
         RiverFootprint footprint = new HydrologyFootprintCompiler(
@@ -865,7 +865,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(-2, 70, 0), new HydrologyPoint(0, 70, 0))
+                List.of(new HydrologyPoint(-2, 70, 0), new HydrologyPoint(0, 70, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         HydraulicSegment lower = new HydraulicSegment(
                 232L,
@@ -877,7 +877,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 true,
-                List.of(new HydrologyPoint(0, 68, 0), new HydrologyPoint(2, 68, 0))
+                List.of(new HydrologyPoint(0, 68, 0), new HydrologyPoint(2, 68, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         HydrologyTerrainSample terrain = HydrologyTerrainSample.openLand(80, 1D, "parent");
         RiverFootprint footprint = new HydrologyFootprintCompiler(
@@ -920,7 +920,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         RiverCourse course = course(60L, RiverCourseType.SURFACE, segment);
         HydrologyPlannerSettings settings = HydrologyPlannerSettings.defaults();
@@ -974,7 +974,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 63, 0))
+                List.of(new HydrologyPoint(0, 63, 0)), HydraulicChannelProfile.uniform(6, 2)
         );
         RiverCourse course = course(70L, RiverCourseType.SURFACE, segment);
 
@@ -1000,7 +1000,7 @@ public class HydrologyFootprintCompilerTest {
     }
 
     @Test
-    public void naturallySubmergedLandAtAMouthPublishesOnlyANonOwningApron() {
+    public void mouthCutsDrySeaLevelLandIntoAnOwnedChannel() {
         HydraulicSegment mouth = new HydraulicSegment(
                 81L,
                 80L,
@@ -1011,16 +1011,16 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 63, 0))
+                List.of(new HydrologyPoint(0, 63, 0)), HydraulicChannelProfile.uniform(6, 2)
         );
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(63, 0D, "shore");
         RiverFootprint footprint = compiler(terrain).compile(List.of(course(80L, RiverCourseType.SURFACE, mouth)));
 
         HydrologyColumnSample sample = footprint.sample(0, 0).orElseThrow();
-        assertEquals(63, sample.terrainHeight());
-        assertTrue(sample.layers().stream().allMatch(HydrologyColumnLayer::oceanApron));
-        assertTrue(sample.layers().stream().noneMatch(HydrologyColumnLayer::terrainOwned));
-        assertTrue(sample.layers().stream().noneMatch(HydrologyColumnLayer::fluidOwned));
+        assertEquals(61, sample.terrainHeight());
+        assertTrue(sample.layers().stream().noneMatch(HydrologyColumnLayer::oceanApron));
+        assertTrue(sample.layers().stream().allMatch(HydrologyColumnLayer::terrainOwned));
+        assertTrue(sample.layers().stream().allMatch(HydrologyColumnLayer::fluidOwned));
     }
 
     @Test
@@ -1035,7 +1035,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(8, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(8, 70, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         HydraulicSegment cave = new HydraulicSegment(
                 303L,
@@ -1047,7 +1047,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(8, 66, 0), new HydrologyPoint(12, 66, 0))
+                List.of(new HydrologyPoint(8, 66, 0), new HydrologyPoint(12, 66, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         RiverCourse course = new RiverCourse(
                 301L,
@@ -1112,7 +1112,7 @@ public class HydrologyFootprintCompilerTest {
                 3,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(8, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(8, 70, 0)), HydraulicChannelProfile.uniform(6, 3)
         );
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(
                 x < 4 ? 90 : 77,
@@ -1159,7 +1159,7 @@ public class HydrologyFootprintCompilerTest {
                                 2,
                                 false,
                                 false,
-                                List.of(new HydrologyPoint(-8, 70, 0), new HydrologyPoint(8, 70, 0))
+                                List.of(new HydrologyPoint(-8, 70, 0), new HydrologyPoint(8, 70, 0)), HydraulicChannelProfile.uniform(6, 2)
                         ),
                         new HydraulicSegment(
                                 403L,
@@ -1171,7 +1171,7 @@ public class HydrologyFootprintCompilerTest {
                                 2,
                                 false,
                                 false,
-                                List.of(new HydrologyPoint(8, 60, 0), new HydrologyPoint(14, 60, 0))
+                                List.of(new HydrologyPoint(8, 60, 0), new HydrologyPoint(14, 60, 0)), HydraulicChannelProfile.uniform(4, 2)
                         ),
                         new HydraulicSegment(
                                 404L,
@@ -1183,7 +1183,7 @@ public class HydrologyFootprintCompilerTest {
                                 2,
                                 false,
                                 false,
-                                List.of(new HydrologyPoint(14, 63, 0), new HydrologyPoint(20, 63, 0))
+                                List.of(new HydrologyPoint(14, 63, 0), new HydrologyPoint(20, 63, 0)), HydraulicChannelProfile.uniform(6, 2)
                         )
                 )
         );
@@ -1200,7 +1200,7 @@ public class HydrologyFootprintCompilerTest {
                         2,
                         false,
                         false,
-                        List.of(new HydrologyPoint(0, 74, -4), new HydrologyPoint(12, 74, -4))
+                        List.of(new HydrologyPoint(0, 74, -4), new HydrologyPoint(12, 74, -4)), HydraulicChannelProfile.uniform(4, 2)
                 )
         );
         RiverCourse underground = new RiverCourse(
@@ -1222,7 +1222,7 @@ public class HydrologyFootprintCompilerTest {
                                 2,
                                 false,
                                 false,
-                                List.of(new HydrologyPoint(4, 45, 2), new HydrologyPoint(16, 45, 2))
+                                List.of(new HydrologyPoint(4, 45, 2), new HydrologyPoint(16, 45, 2)), HydraulicChannelProfile.uniform(4, 2)
                         ),
                         new HydraulicSegment(
                                 423L,
@@ -1234,7 +1234,7 @@ public class HydrologyFootprintCompilerTest {
                                 2,
                                 false,
                                 false,
-                                List.of(new HydrologyPoint(16, 63, 2), new HydrologyPoint(20, 63, 2))
+                                List.of(new HydrologyPoint(16, 63, 2), new HydrologyPoint(20, 63, 2)), HydraulicChannelProfile.uniform(4, 2)
                         )
                 )
         );
@@ -1256,9 +1256,9 @@ public class HydrologyFootprintCompilerTest {
         ).compile(courses);
 
         for (HydrologyColumnSample sample : full.columns().values()) {
-            assertEquals(sample.primarySurfaceLayer().isPresent(),
+            assertEquals(sample.primarySurfaceLayer().filter(HydrologyColumnLayer::terrainOwned).isPresent(),
                     validation.plannedSurface().ownsTerrain(sample.x(), sample.z()));
-            assertEquals(sample.primarySurfaceLayer().isPresent(),
+            assertEquals(sample.primarySurfaceLayer().filter(HydrologyColumnLayer::terrainOwned).isPresent(),
                     validation.withMaterializedSurface(full).plannedSurface().ownsTerrain(sample.x(), sample.z()));
             assertEquals(
                     "planned surface at " + sample.x() + "," + sample.z(),
@@ -1319,7 +1319,7 @@ public class HydrologyFootprintCompilerTest {
                         new HydrologyPoint(0, 70, 0),
                         new HydrologyPoint(32, 70, 0),
                         new HydrologyPoint(64, 70, 0)
-                )
+                ), HydraulicChannelProfile.uniform(8, 3)
         );
         HydraulicSegment first = new HydraulicSegment(
                 502L,
@@ -1331,7 +1331,7 @@ public class HydrologyFootprintCompilerTest {
                 3,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(32, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(32, 70, 0)), HydraulicChannelProfile.uniform(8, 3)
         );
         HydraulicSegment second = new HydraulicSegment(
                 503L,
@@ -1343,7 +1343,7 @@ public class HydrologyFootprintCompilerTest {
                 3,
                 false,
                 false,
-                List.of(new HydrologyPoint(32, 70, 0), new HydrologyPoint(64, 70, 0))
+                List.of(new HydrologyPoint(32, 70, 0), new HydrologyPoint(64, 70, 0)), HydraulicChannelProfile.uniform(8, 3)
         );
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(82, 0D, "parent");
         RiverFootprint continuousFootprint = compiler(terrain).compile(List.of(new RiverCourse(
@@ -1398,7 +1398,7 @@ public class HydrologyFootprintCompilerTest {
                 3,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(32, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(32, 70, 0)), HydraulicChannelProfile.uniform(8, 3)
         );
         HydraulicSegment second = new HydraulicSegment(
                 512L,
@@ -1410,7 +1410,7 @@ public class HydrologyFootprintCompilerTest {
                 3,
                 false,
                 false,
-                List.of(new HydrologyPoint(32, 70, 0), new HydrologyPoint(32, 70, 32))
+                List.of(new HydrologyPoint(32, 70, 0), new HydrologyPoint(32, 70, 32)), HydraulicChannelProfile.uniform(8, 3)
         );
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(82, 0D, "parent");
         RiverFootprint footprint = compiler(terrain).compile(List.of(new RiverCourse(
@@ -1442,10 +1442,11 @@ public class HydrologyFootprintCompilerTest {
                 70,
                 70,
                 8,
-                3,
+                4,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(64, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(24, 70, 0), new HydrologyPoint(64, 70, 0)),
+                new HydraulicChannelProfile(new double[]{8D, 8D, 8D}, new double[]{4D, 3D, 3D})
         );
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(82, 0D, "parent");
         RiverCourse course = course(520L, RiverCourseType.SURFACE, segment);
@@ -1481,7 +1482,7 @@ public class HydrologyFootprintCompilerTest {
                 3,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 74, 0), new HydrologyPoint(24, 70, 0))
+                List.of(new HydrologyPoint(0, 74, 0), new HydrologyPoint(24, 70, 0)), HydraulicChannelProfile.uniform(8, 3)
         );
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(82, 0D, "parent");
         RiverFootprint footprint = compiler(terrain).compile(List.of(course(527L, RiverCourseType.SURFACE, cascade)));
@@ -1507,7 +1508,7 @@ public class HydrologyFootprintCompilerTest {
     }
 
     @Test
-    public void aOneBlockLowBankIsLippedAndADeeperOneIsReportedWithoutRaising() {
+    public void lowBanksKeepTheirNaturalHeightAndReportUncontainedWater() {
         HydraulicSegment channel = new HydraulicSegment(
                 529L,
                 528L,
@@ -1518,7 +1519,7 @@ public class HydrologyFootprintCompilerTest {
                 3,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(24, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(24, 70, 0)), HydraulicChannelProfile.uniform(8, 3)
         );
         RiverCourse course = course(528L, RiverCourseType.SURFACE, channel);
         HydrologyTerrainSampler highTerrain = (int x, int z) ->
@@ -1547,12 +1548,12 @@ public class HydrologyFootprintCompilerTest {
         HydrologyColumnSample deepBank = deepBankFootprint.sample(12, lowBankZ).orElseThrow();
 
         assertEquals(0, unsupportedBankCells(highFootprint, 528L));
-        // One block short of the water: a one-block lip holds it and nothing is reported.
+        // A low bank remains below the water and is reported without raising terrain.
         assertEquals(69, lowBank.naturalHeight());
-        assertEquals(70, lowBank.terrainHeight());
-        assertEquals(0, unsupportedBankCells(lowBankFootprint, 528L));
+        assertEquals(69, lowBank.terrainHeight());
+        assertTrue(unsupportedBankCells(lowBankFootprint, 528L) > 0);
         for (HydrologyColumnSample sample : lowBankFootprint.columns().values()) {
-            assertTrue(sample.terrainHeight() <= sample.naturalHeight() + 1);
+            assertTrue(sample.terrainHeight() <= sample.naturalHeight());
         }
         // Two blocks short: the bank keeps its natural height and the edge is reported.
         assertEquals(68, deepBank.naturalHeight());
@@ -1572,7 +1573,7 @@ public class HydrologyFootprintCompilerTest {
                 3,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(24, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(24, 70, 0)), HydraulicChannelProfile.uniform(8, 3)
         );
         RiverCourse course = course(528L, RiverCourseType.SURFACE, channel);
         HydrologyFootprintCompiler compiler = compiler((int x, int z) ->
@@ -1605,7 +1606,7 @@ public class HydrologyFootprintCompilerTest {
                         new HydrologyPoint(2, 72, 0),
                         new HydrologyPoint(3, 71, 0),
                         new HydrologyPoint(4, 70, 0)
-                )
+                ), HydraulicChannelProfile.uniform(8, 3)
         );
         RiverCourse course = course(529L, RiverCourseType.SURFACE, cascade);
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.ocean(82, "ocean");
@@ -1626,7 +1627,7 @@ public class HydrologyFootprintCompilerTest {
                 3,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 63, 0), new HydrologyPoint(32, 63, 0))
+                List.of(new HydrologyPoint(0, 63, 0), new HydrologyPoint(32, 63, 0)), HydraulicChannelProfile.uniform(8, 3)
         );
         HydraulicSegment mouth = new HydraulicSegment(
                 532L,
@@ -1638,7 +1639,7 @@ public class HydrologyFootprintCompilerTest {
                 3,
                 false,
                 false,
-                List.of(new HydrologyPoint(32, 63, 0), new HydrologyPoint(64, 63, 0))
+                List.of(new HydrologyPoint(32, 63, 0), new HydrologyPoint(64, 63, 0)), HydraulicChannelProfile.uniform(8, 3)
         );
         HydrologyTerrainSampler terrain = (int x, int z) -> x >= 64
                 ? HydrologyTerrainSample.ocean(48, "ocean")
@@ -1696,7 +1697,7 @@ public class HydrologyFootprintCompilerTest {
                 3,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(48, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(48, 70, 0)), HydraulicChannelProfile.uniform(8, 3)
         );
         HydraulicSegment sinkhole = new HydraulicSegment(
                 542L,
@@ -1708,7 +1709,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 true,
-                List.of(new HydrologyPoint(48, 70, 0), new HydrologyPoint(52, 60, 0))
+                List.of(new HydrologyPoint(48, 70, 0), new HydrologyPoint(52, 60, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         HydraulicSegment grotto = new HydraulicSegment(
                 543L,
@@ -1720,7 +1721,7 @@ public class HydrologyFootprintCompilerTest {
                 4,
                 false,
                 true,
-                List.of(new HydrologyPoint(52, 60, 0))
+                List.of(new HydrologyPoint(52, 60, 0)), HydraulicChannelProfile.uniform(8, 4)
         );
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(82, 0D, "parent");
         RiverFootprint footprint = compiler(terrain).compile(List.of(new RiverCourse(
@@ -1761,7 +1762,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(64, 70, 0))
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(64, 70, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         HydraulicSegment receiver = new HydraulicSegment(
                 552L,
@@ -1773,7 +1774,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 true,
-                List.of(new HydrologyPoint(64, 70, 0), new HydrologyPoint(80, 69, 0))
+                List.of(new HydrologyPoint(64, 70, 0), new HydrologyPoint(80, 69, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         HydraulicSegment outflow = new HydraulicSegment(
                 553L,
@@ -1785,7 +1786,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(80, 69, 0), new HydrologyPoint(160, 69, 0))
+                List.of(new HydrologyPoint(80, 69, 0), new HydrologyPoint(160, 69, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(82, 0D, "parent");
         RiverFootprint footprint = compiler(terrain).compile(List.of(new RiverCourse(
@@ -1876,7 +1877,7 @@ public class HydrologyFootprintCompilerTest {
                 3,
                 false,
                 false,
-                List.of(new HydrologyPoint(96, 63, 0), new HydrologyPoint(112, 63, 0))
+                List.of(new HydrologyPoint(96, 63, 0), new HydrologyPoint(112, 63, 0)), HydraulicChannelProfile.uniform(8, 3)
         );
         RiverFootprint mouthFootprint = new HydrologyFootprintCompiler(
                 seaCaveSettings(8, 12),
@@ -1966,7 +1967,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(100, 63, 0), new HydrologyPoint(112, 63, 0))
+                List.of(new HydrologyPoint(100, 63, 0), new HydrologyPoint(112, 63, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         return new RiverCourse(
                 id,
@@ -1992,10 +1993,10 @@ public class HydrologyFootprintCompilerTest {
                 12,
                 true,
                 false,
-                List.of(new HydrologyPoint(0, 90, 0), new HydrologyPoint(32, 70, 0))
+                List.of(new HydrologyPoint(0, 90, 0), new HydrologyPoint(32, 70, 0)), HydraulicChannelProfile.uniform(16, 12)
         );
         RiverCourse course = course(120L, RiverCourseType.SURFACE, segment);
-        HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(96, 1D, "parent");
+        HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(70, 1D, "parent");
 
         RiverFootprint defaults = compile(HydrologyPlannerSettings.defaults(), terrain, course);
         RiverFootprint explicit = compile(withFlow(new HydrologyPlannerSettings.Flow(0.65D, 2, 2D, 1)), terrain, course);
@@ -2071,7 +2072,7 @@ public class HydrologyFootprintCompilerTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 48, 0))
+                List.of(new HydrologyPoint(0, 48, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         RiverCourse course = course(140L, RiverCourseType.UNDERGROUND, chamber);
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(84, 1D, "parent");
@@ -2137,7 +2138,7 @@ public class HydrologyFootprintCompilerTest {
                                 new HydrologyPoint(0, 48, 0),
                                 new HydrologyPoint(bend / 2, 48, 5),
                                 new HydrologyPoint(bend, 48, 0)
-                        )
+                        ), HydraulicChannelProfile.uniform(12, 2)
         );
         return new RiverCourse(
                 id,

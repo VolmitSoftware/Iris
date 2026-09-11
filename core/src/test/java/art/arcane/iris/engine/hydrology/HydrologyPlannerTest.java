@@ -415,7 +415,7 @@ public class HydrologyPlannerTest {
                 new HydrologyPlannerSettings.Routing(tileSize, spacing, Math.max(routing.maximumRouteNodes(), latticeWidth * latticeWidth),
                         routing.maximumRouteLength(), routing.minimumSurfaceCourseLength(), routing.minimumUndergroundCourseLength(),
                         routing.valleyPreference(), routing.uphillPenalty(), routing.slopePenalty(),
-                        routing.confluenceAttraction(), routing.lengthPreference(), routing.tributaries()),
+                        routing.confluenceAttraction(), routing.lengthPreference(), routing.tributaries(), HydrologyPlannerSettings.Regional.disabled()),
                 settings.surface(), settings.hydraulics(), settings.underground(), settings.outlets(), settings.geometry(),
                 settings.deepFluids(), settings.surfacePools(), settings.widestShoreBiomeWidth(), settings.seaCaves(),
                 HydrologyPlannerSettings.SurfacePolicyBounds.NONE
@@ -755,7 +755,7 @@ public class HydrologyPlannerTest {
                 0,
                 24
         ));
-        HydrologyTerrainSampler connected = (int x, int z) -> terrain(
+        HydrologyTerrainSampler connected = (int x, int z) -> x >= 112 ? oceanTerrain() : terrain(
                 110 - Math.floorDiv(x, 16),
                 1D,
                 x >= 112,
@@ -1196,7 +1196,7 @@ public class HydrologyPlannerTest {
                         routing.valleyPreference(),
                         routing.uphillPenalty(),
                         routing.slopePenalty(),
-                        routing.confluenceAttraction(), 1D, 0
+                        routing.confluenceAttraction(), 1D, 0, HydrologyPlannerSettings.Regional.disabled()
                 ),
                 base.surface(),
                 base.hydraulics(),
@@ -2575,7 +2575,7 @@ public class HydrologyPlannerTest {
         );
         return new HydrologyPlannerSettings(
                 63,
-                new HydrologyPlannerSettings.Routing(128, 16, 512, 256, 0, 0, 0.5D, 12D, 0.5D, 0.1D, 1D, 0),
+                new HydrologyPlannerSettings.Routing(128, 16, 512, 256, 0, 0, 0.5D, 12D, 0.5D, 0.1D, 1D, 0, HydrologyPlannerSettings.Regional.disabled()),
                 new HydrologyPlannerSettings.Surface(
                         surfaceDensity > 0D || surfaceSources.maximumPerTile() > 0,
                         surfaceSources,
@@ -2648,7 +2648,7 @@ public class HydrologyPlannerTest {
                         2D,
                         0.2D,
                         1D,
-                        0
+                        0, HydrologyPlannerSettings.Regional.disabled()
                 ),
                 new HydrologyPlannerSettings.Surface(
                         true,

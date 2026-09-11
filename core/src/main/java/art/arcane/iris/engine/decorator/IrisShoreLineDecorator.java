@@ -105,7 +105,8 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
                 return;
             }
             PlatformBlockState block = decorator.getBlockData100(biome, rng, realX, height, realZ, getData());
-            if (block != null && DecoratorCore.isValidShorelineSupport(decorator, block, support)) {
+            if (block != null && DecoratorCore.isValidShorelineSupport(decorator, block, support)
+                    && IrisSugarCane.canPlace(block, data, x, targetY, z, realX, realZ, getEngine())) {
                 data.set(x, targetY, z, block);
                 aquaticSnapshot.restoreIfUnsupported(data, x, z);
             }
@@ -126,7 +127,8 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
             }
 
             PlatformBlockState block = decorator.getBlockDataForTop(biome, rng, realX, height, realZ, getData());
-            if (block != null && DecoratorCore.isValidShorelineSupport(decorator, block, support)) {
+            if (block != null && DecoratorCore.isValidShorelineSupport(decorator, block, support)
+                    && IrisSugarCane.canPlace(block, data, x, targetY, z, realX, realZ, getEngine())) {
                 data.set(x, targetY, z, block);
                 aquaticSnapshot.restoreIfUnsupported(data, x, z);
             }
@@ -145,6 +147,9 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
                     ? decorator.getBlockDataForTop(biome, rng, realX, h, realZ, getData())
                     : decorator.getBlockData100(biome, rng, realX, h, realZ, getData());
             if (block == null) {
+                break;
+            }
+            if (!IrisSugarCane.canPlace(block, data, x, targetY, z, realX, realZ, getEngine())) {
                 break;
             }
             if (i == 0 && !DecoratorCore.isValidShorelineSupport(decorator, block, support)) {

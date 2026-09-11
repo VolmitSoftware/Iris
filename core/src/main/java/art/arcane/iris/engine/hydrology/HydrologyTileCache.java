@@ -262,6 +262,35 @@ public final class HydrologyTileCache implements AutoCloseable {
         return chunkColumns(blockX, blockZ).columnAt(blockX, blockZ);
     }
 
+    public HydrologyColumnSnapshot columnSnapshot(int blockX, int blockZ) {
+        requireOpen();
+        if (!waitsForbidden()) {
+            return HydrologyColumnSnapshot.ready(columnAt(blockX, blockZ).orElse(null));
+        }
+        int chunkX = Math.floorDiv(blockX, CHUNK_SIZE);
+        int chunkZ = Math.floorDiv(blockZ, CHUNK_SIZE);
+        LocalChunkColumns local = localChunkColumns.get();
+        if (local != null && local.epoch() == cacheEpoch.get()
+                && local.columns().chunkX() == chunkX && local.columns().chunkZ() == chunkZ) {
+            return HydrologyColumnSnapshot.ready(local.columns().columnAt(blockX, blockZ).orElse(null));
+        }
+        ChunkColumns composed = composedChunks.getIfPresent(CacheKey.mix(RiverFootprint.pack(chunkX, chunkZ)));
+        if (composed != null) {
+            return HydrologyColumnSnapshot.ready(composed.columnAt(blockX, blockZ).orElse(null));
+        }
+        ArrayList<HydrologyTileKey> keys = relevantKeys(chunkX, chunkZ);
+        ArrayList<HydrologyTile> snapshots = new ArrayList<>(keys.size());
+        for (HydrologyTileKey key : keys) {
+            HydrologyTile tile = tiles.getIfPresent(key);
+            if (tile == null) {
+                requestUnplanned(chunkX, chunkZ);
+                return HydrologyColumnSnapshot.unavailable();
+            }
+            snapshots.add(tile);
+        }
+        return HydrologyColumnSnapshot.ready(composeColumn(blockX, blockZ, keys, snapshots).orElse(null));
+    }
+
     public void prepareChunkColumns(int blockX, int blockZ) {
         chunkColumns(blockX, blockZ);
     }

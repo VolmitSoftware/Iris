@@ -510,6 +510,15 @@ public final class ModdedBlockResolution {
     }
 
     public static boolean canPlaceOnto(Block mat, Block onto) {
+        if (mat == Blocks.SUGAR_CANE) {
+            return onto == Blocks.SUGAR_CANE || onto == Blocks.GRASS_BLOCK || onto == Blocks.DIRT
+                    || onto == Blocks.COARSE_DIRT || onto == Blocks.PODZOL || onto == Blocks.MYCELIUM
+                    || onto == Blocks.ROOTED_DIRT
+                    || onto == Blocks.MOSS_BLOCK || onto == Blocks.PALE_MOSS_BLOCK || onto == Blocks.MUD
+                    || onto == Blocks.MUDDY_MANGROVE_ROOTS || onto == Blocks.SAND || onto == Blocks.RED_SAND
+                    || onto == Blocks.SUSPICIOUS_SAND;
+        }
+
         if (mat == Blocks.CACTUS) {
             return onto == Blocks.CACTUS || onto == Blocks.SAND || onto == Blocks.RED_SAND;
         }

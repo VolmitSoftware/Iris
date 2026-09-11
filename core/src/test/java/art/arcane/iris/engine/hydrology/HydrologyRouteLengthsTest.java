@@ -121,6 +121,6 @@ public class HydrologyRouteLengthsTest {
 
     private static HydrologyPlannerSettings.Routing routing(int spacing, int maximumLength) {
         return new HydrologyPlannerSettings.Routing(spacing * 8, spacing, 1_000_000, maximumLength,
-                0, 0, 1D, 1D, 1D, 1D, 1D, 0);
+                0, 0, 1D, 1D, 1D, 1D, 1D, 0, HydrologyPlannerSettings.Regional.disabled());
     }
 }

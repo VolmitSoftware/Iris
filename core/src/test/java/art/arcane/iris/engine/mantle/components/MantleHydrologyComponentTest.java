@@ -653,6 +653,32 @@ public class MantleHydrologyComponentTest {
     }
 
     @Test
+    public void acceptedSurfaceDropAndReceiverPublishTheirGuardsWithoutOwningTheRemainingRiver() {
+        for (boolean falling : new boolean[]{true, false}) {
+            HydrologyColumnLayer drop = new HydrologyColumnLayer(
+                    feature(HydrologyFeatureType.WATERFALL, 71L, 14L, 80), 70, 80, 80,
+                    true, false, false, true, falling, !falling, !falling, true, false,
+                    "river", "surface", "mouth", "shore", "dry", "flooded");
+            HydrologyColumnLayer exposed = layer(HydrologyFeatureType.SURFACE_POOL, 72L, 15L,
+                    76, 80, 80, false, false, "river");
+            HydrologyColumnSample throat = sample(8, 8, false, 90, List.of(drop));
+            HydrologyColumnSample downstream = sample(12, 8, false, 90, List.of(exposed));
+            HydrologyCavePlan plan = acceptedPlan(throat, drop);
+
+            MantleHydrologyComponent.Publication publication = compile(samples(throat, downstream),
+                    List.of(plan), new TestCaveVoxelView());
+
+            assertEquals(HydrologyCaveAction.SEAL_GUARD,
+                    publication.caveCells().get(new CavePosition(9, 72, 8)).action());
+            assertEquals(falling ? HydrologyCaveAction.FALLING_FLUID : HydrologyCaveAction.WET_SOURCE,
+                    publication.caveCells().get(new CavePosition(8, 75, 8)).action());
+            assertEquals(HydrologyCaveAction.WET_SOURCE,
+                    publication.surfaceWrites().get(new CavePosition(12, 78, 8)).action());
+            assertFalse(publication.caveCells().containsKey(new CavePosition(12, 78, 8)));
+        }
+    }
+
+    @Test
     public void acceptedExactPlanPublishesWetDryAndGuardActions() {
         HydrologyColumnLayer pool = layer(
                 HydrologyFeatureType.UNDERGROUND_POOL,
@@ -1607,7 +1633,7 @@ public class MantleHydrologyComponentTest {
         );
         return new HydrologyPlannerSettings(
                 63,
-                new HydrologyPlannerSettings.Routing(128, 16, 512, 256, 16, 8, 0.5D, 12D, 0.5D, 0.1D, 1D, 0),
+                new HydrologyPlannerSettings.Routing(128, 16, 512, 256, 16, 8, 0.5D, 12D, 0.5D, 0.1D, 1D, 0, HydrologyPlannerSettings.Regional.disabled()),
                 new HydrologyPlannerSettings.Surface(
                         true,
                         surfaceSources,

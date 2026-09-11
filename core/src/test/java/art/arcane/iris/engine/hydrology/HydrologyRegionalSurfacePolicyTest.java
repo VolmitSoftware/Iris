@@ -8,9 +8,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.OptionalLong;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class HydrologyRegionalSurfacePolicyTest {
@@ -82,6 +84,31 @@ public class HydrologyRegionalSurfacePolicyTest {
     }
 
     @Test
+    public void rerootedSurfaceSourceRetainsItsAdmissionSlot() {
+        HydrologySampledGrid grid = grid((x, z) -> land(TROPICAL, false));
+        HydrologyPlanner planner = planner(1337L, HydrologyPlannerSettings.defaults());
+        SourceSelection selected = select(planner, grid, routing(grid, false), true);
+        List<Integer> original = selected.selectedNodeIndices();
+        ArrayList<DrainageNode> nodes = new ArrayList<>();
+        ArrayList<RiverCourse> courses = new ArrayList<>();
+        for (int nodeIndex : original) {
+            HydrologyGridNode source = grid.node(nodeIndex);
+            long courseId = HydrologyHash.mix(source.id(), 81L);
+            long sourceId = HydrologyHash.mix(source.id(), 82L);
+            nodes.add(new DrainageNode(sourceId, source.x(), source.z(), source.terrain(), 100D, 99L));
+            courses.add(new RiverCourse(courseId, RiverCourseType.SURFACE, OptionalLong.of(sourceId), OptionalLong.of(99L),
+                    "default", 1, List.of(), List.of(new HydraulicSegment(HydrologyHash.mix(courseId, 1L), courseId,
+                    HydrologyFeatureType.SURFACE_POOL, 80, 80, 4, 2, false, false,
+                    List.of(new HydrologyPoint(source.x(), 80, source.z()), new HydrologyPoint(source.x() + 32, 80, source.z())),
+                    HydraulicChannelProfile.uniform(4, 2)))));
+        }
+        assertFalse(original.isEmpty());
+        assertFalse(selected.advanceAfterPublication(new HydrologyCaveCourseFilter.Result(nodes, List.of(), List.of(),
+                courses, List.of()), grid));
+        assertEquals(original, selected.selectedNodeIndices());
+    }
+
+    @Test
     public void localTributaryCapsApplyToAdmissionAndReplacement() {
         SurfaceRiverPolicy branching = new SurfaceRiverPolicy("region:tropical", 8D, 160, 3, 3, 4, null, null);
         HydrologySampledGrid grid = grid((x, z) -> land(branching, false));
@@ -90,7 +117,7 @@ public class HydrologyRegionalSurfacePolicyTest {
         assertEquals(4, selected.selectedNodeIndices().size());
         Set<Integer> original = new HashSet<>(selected.selectedNodeIndices());
 
-        assertTrue(selected.advanceAfterPublication(List.of(), grid));
+        assertTrue(selected.advanceAfterPublication(new HydrologyCaveCourseFilter.Result(List.of(), List.of(), List.of(), List.of(), List.of()), grid));
         assertEquals(4, selected.selectedNodeIndices().size());
         assertTrue(selected.selectedNodeIndices().stream().noneMatch(original::contains));
 
@@ -109,7 +136,7 @@ public class HydrologyRegionalSurfacePolicyTest {
         assertEquals(2, selectedIn(selected, grid, requiredArea));
         Set<Integer> original = new HashSet<>(selected.selectedNodeIndices());
 
-        assertTrue(selected.advanceAfterPublication(List.of(), grid));
+        assertTrue(selected.advanceAfterPublication(new HydrologyCaveCourseFilter.Result(List.of(), List.of(), List.of(), List.of(), List.of()), grid));
         assertEquals(2, selectedIn(selected, grid, requiredArea));
         assertTrue(selected.selectedNodeIndices().stream().noneMatch(original::contains));
         assertEquals(0, selectedIn(selected, grid, disabledArea));

@@ -190,11 +190,11 @@ public class HydrologySurfaceProfilesTest {
         RiverCourse main = new RiverCourse(30L, RiverCourseType.SURFACE,
                 OptionalLong.of(1L), OptionalLong.of(99L), "volcanic_lava", 1, List.of(), List.of(
                 new HydraulicSegment(31L, 30L, HydrologyFeatureType.MOUTH,
-                        84, 84, 4, 2, false, false, List.of(point(256), point(512)))));
+                        84, 84, 4, 2, false, false, List.of(point(256), point(512)), HydraulicChannelProfile.uniform(4, 2))));
         RiverCourse tributary = new RiverCourse(40L, RiverCourseType.SURFACE,
                 OptionalLong.of(2L), OptionalLong.of(99L), "volcanic_lava", 1, List.of(), List.of(
                 new HydraulicSegment(41L, 40L, HydrologyFeatureType.SURFACE_POOL,
-                        84, 84, 4, 2, false, false, List.of(point(800), point(1024)))));
+                        84, 84, 4, 2, false, false, List.of(point(800), point(1024)), HydraulicChannelProfile.uniform(4, 2))));
         ArrayList<RiverCourse> courses = new ArrayList<>(List.of(tributary, main));
         ArrayList<HydrologyDiagnosticCandidate> diagnostics = new ArrayList<>();
 
@@ -230,15 +230,15 @@ public class HydrologySurfaceProfilesTest {
         RiverCourse surface = new RiverCourse(30L, RiverCourseType.SURFACE,
                 OptionalLong.of(1L), OptionalLong.of(99L), "volcanic_lava", 1, List.of(), List.of(
                 new HydraulicSegment(31L, 30L, HydrologyFeatureType.SURFACE_POOL,
-                        84, 84, 4, 2, false, false, List.of(point(0), lip)),
+                        84, 84, 4, 2, false, false, List.of(point(0), lip), HydraulicChannelProfile.uniform(4, 2)),
                 new HydraulicSegment(32L, 30L, HydrologyFeatureType.SINKHOLE,
-                        84, 70, 4, 2, true, true, List.of(lip, pool)),
+                        84, 70, 4, 2, true, true, List.of(lip, pool), HydraulicChannelProfile.uniform(4, 2)),
                 new HydraulicSegment(33L, 30L, HydrologyFeatureType.INLAND_GROTTO,
-                        70, 70, 4, 2, false, true, List.of(pool))));
+                        70, 70, 4, 2, false, true, List.of(pool), HydraulicChannelProfile.uniform(4, 2))));
         RiverCourse underground = new RiverCourse(40L, RiverCourseType.UNDERGROUND,
                 OptionalLong.of(2L), OptionalLong.of(99L), "water", 1, List.of(), List.of(
                 new HydraulicSegment(41L, 40L, HydrologyFeatureType.INLAND_GROTTO,
-                        70, 70, 4, 2, false, true, List.of(pool))));
+                        70, 70, 4, 2, false, true, List.of(pool), HydraulicChannelProfile.uniform(4, 2))));
         HydrologyPlanner planner = planner((x, z) -> sample(List.of("volcanic_lava"), false, "volcanoes"));
 
         assertEquals(List.of(surface, underground),
@@ -287,7 +287,7 @@ public class HydrologySurfaceProfilesTest {
 
     private static RiverCourse stem(String profile) {
         HydraulicSegment segment = new HydraulicSegment(31L, 30L, HydrologyFeatureType.SURFACE_POOL,
-                84, 84, 4, 2, false, false, List.of(point(256), point(512)));
+                84, 84, 4, 2, false, false, List.of(point(256), point(512)), HydraulicChannelProfile.uniform(4, 2));
         return new RiverCourse(30L, RiverCourseType.SURFACE, OptionalLong.of(2L), OptionalLong.of(99L),
                 profile, 1, List.of(), List.of(segment));
     }

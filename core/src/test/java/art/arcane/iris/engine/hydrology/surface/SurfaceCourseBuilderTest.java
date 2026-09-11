@@ -116,10 +116,19 @@ public class SurfaceCourseBuilderTest {
                 List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)), SurfaceTerminal.SINKHOLE, 40, 64);
 
         assertNull(gentleResult.rejection());
-        assertNull(steepResult.rejection());
+        assertNull("detail=" + steepResult.rejectionDetail(), steepResult.rejection());
         assertTrue(gentleResult.segments().stream().anyMatch(segment -> segment.type() == HydrologyFeatureType.RIFFLE));
         assertTrue(gentleResult.segments().stream().noneMatch(segment -> segment.type() == HydrologyFeatureType.CASCADE));
         assertTrue(steepResult.segments().stream().anyMatch(segment -> segment.type() == HydrologyFeatureType.CASCADE));
+        for (HydraulicSegment segment : steepResult.segments()) {
+            for (int station = 0; station < segment.centerline().size(); station++) {
+                HydrologyPoint point = segment.centerline().get(station);
+                int cut = steep.sample(point.x(), point.z()).naturalHeight() - point.y()
+                        + (int) StrictMath.round(segment.channelProfile().depthAt(station));
+                assertTrue("cut=" + cut + " at " + point.x(),
+                        cut <= HydrologyPlannerSettings.defaults().surface().maximumIncision());
+            }
+        }
     }
 
     @Test

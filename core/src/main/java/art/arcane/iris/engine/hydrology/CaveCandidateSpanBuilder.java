@@ -80,7 +80,7 @@ final class CaveCandidateSpanBuilder {
                 addOpening(x, z, minimumOpeningY, maximumActionY);
                 continue;
             }
-            addOpening(x, z, minimumOpeningY - 1, maximumActionY + 1);
+            addOpening(x, z, Math.max(minimumOpeningY - 1, opening.minimumY()), maximumActionY + 1);
             for (int[] offset : HydrologyCaveCourseFilter.HORIZONTAL_NEIGHBORS) {
                 addOpening(x + offset[0], z + offset[1], minimumOpeningY, maximumActionY);
             }
@@ -117,14 +117,49 @@ final class CaveCandidateSpanBuilder {
             for (int[] offset : HydrologyCaveCourseFilter.HORIZONTAL_NEIGHBORS) {
                 int neighborX = x + offset[0];
                 int neighborZ = z + offset[1];
-                if (!validation.ownsSurfaceChannelAt(neighborX, neighborZ, course.id())) {
+                HydrologyColumnSample neighbor = validation.surfaceColumnAt(neighborX, neighborZ);
+                if (neighbor == null) {
                     continue;
                 }
-                for (CaveYSpan span : entry.getValue().spans()) {
-                    addOpening(neighborX, neighborZ, span.minimumY(), span.maximumY());
+                for (HydrologyColumnLayer layer : neighbor.layers()) {
+                    if (layer.feature().courseId() != course.id() || !layer.channel() || !layer.fluidOwned()) {
+                        continue;
+                    }
+                    for (CaveYSpan span : entry.getValue().spans()) {
+                        int minimumY = Math.max(span.minimumY(), layer.bedY() + 1);
+                        int maximumY = Math.min(span.maximumY(), layer.fluidHeadY());
+                        if (minimumY <= maximumY) {
+                            addAdjacentFluidOpening(neighborX, neighborZ, minimumY, maximumY);
+                        }
+                    }
                 }
             }
         }
+    }
+
+    private void addAdjacentFluidOpening(int x, int z, int minimumY, int maximumY) {
+        CaveSpanSet owned = actions.get(RiverFootprint.pack(x, z));
+        if (owned == null) {
+            addOpening(x, z, minimumY, maximumY);
+            return;
+        }
+        int cursor = minimumY;
+        for (CaveYSpan span : owned.spans()) {
+            if (span.maximumY() < cursor) {
+                continue;
+            }
+            if (span.minimumY() > maximumY) {
+                break;
+            }
+            if (cursor < span.minimumY()) {
+                addOpening(x, z, cursor, Math.min(maximumY, span.minimumY() - 1));
+            }
+            cursor = Math.max(cursor, span.maximumY() + 1);
+            if (cursor > maximumY) {
+                return;
+            }
+        }
+        addOpening(x, z, cursor, maximumY);
     }
 
     HydrologyFeatureType oversizedGrotto(HydrologyCaveCourseFilter.Options options) {

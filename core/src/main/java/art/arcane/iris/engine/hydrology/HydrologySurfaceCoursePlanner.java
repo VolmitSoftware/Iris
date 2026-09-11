@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.hydrology;
 
+import art.arcane.iris.engine.hydrology.surface.SurfaceCourseBuilder;
 import art.arcane.iris.engine.hydrology.surface.SurfaceCourseResult;
 import art.arcane.iris.engine.hydrology.surface.SurfaceTerminal;
 
@@ -151,7 +152,11 @@ final class HydrologySurfaceCoursePlanner {
         }
         int outletHead = planner.segments.outletHead(outlet);
         int terminalHead = surfaceSinkhole ? Math.addExact(outletHead, 1) : outletHead;
-        SurfaceCourseResult result = planner.surfaceCourseBuilder.build(
+        SurfaceCourseBuilder builder = terminal == SurfaceTerminal.OCEAN_MOUTH
+                ? new SurfaceCourseBuilder(planner.settings.surface(), HydrologyOceanReceiver.forOutlet(
+                planner.settings, planner::sampleBasisWithoutSlope, outlet), planner.geometrySampler, planner.settings.seaLevel())
+                : planner.surfaceCourseBuilder;
+        SurfaceCourseResult result = builder.build(
                 planner.worldSeed,
                 courseId,
                 profileKey,

@@ -32,6 +32,9 @@ public class IrisSurfaceRiverBankConfig {
     @Desc("Widest eroded band outside the shore, in blocks.")
     private int maximumBlendWidth = 32;
 
+    @Desc("Limits dry bank cut depth, width, and excavated volume independently of the wet channel.")
+    private IrisRiverExcavationConfig excavation = new IrisRiverExcavationConfig();
+
     @Desc("Show the biome's deeper layers on eroded banks instead of the surface layer.")
     private boolean exposeCutStrata = true;
 

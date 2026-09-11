@@ -549,6 +549,15 @@ public final class HydrologyPackProbeTest {
     }
 
     @Test
+    public void drySillsAreNotReportedAsOceanBedWrites() {
+        HydrologyPackProbe.ShapeMetrics metrics = new HydrologyPackProbe.ShapeMetrics();
+        HydrologyColumnSample sill = new HydrologyColumnSample(
+                0, 0, 63, 63, false, "parent", channelColumn(0, 0, 60, 63).layers());
+        metrics.observeOceanIntegrity(sill);
+        assertTrue(gate(metrics.gates(List.of()), "ocean_integrity").passed());
+    }
+
+    @Test
     public void landColumnsCarryingAnOceanApronAreDetected() {
         HydrologyColumnSample land = new HydrologyColumnSample(
                 0, 0, 80, 63, false, "parent", List.of(surfaceLayer(true, false)));
@@ -560,9 +569,23 @@ public final class HydrologyPackProbeTest {
     @Test
     public void bankContinuityAllowsSingleBlockStepsAndRejectsLedges() {
         assertEquals(0, HydrologyPackProbe.ShapeMetrics.bankContinuityViolations(
-                gradedRow(70, 71, 72)));
+                gradedRow(70, 71, 72), true));
         assertEquals(1, HydrologyPackProbe.ShapeMetrics.bankContinuityViolations(
-                gradedRow(70, 71, 74)));
+                gradedRow(70, 71, 74), true));
+        assertEquals(0, HydrologyPackProbe.ShapeMetrics.bankContinuityViolations(
+                gradedRow(70, 71, 74), false));
+    }
+
+    @Test
+    public void bankContinuityPreservesNaturalSteepStepsAndContainmentAllowsFlushBanks() {
+        HydrologyColumnSample low = new HydrologyColumnSample(
+                0, 0, 80, 63, false, "parent", List.of(gradedLayer(74)));
+        HydrologyColumnSample high = new HydrologyColumnSample(
+                1, 0, 95, 63, false, "parent", List.of(gradedLayer(87)));
+        assertEquals(0, HydrologyPackProbe.ShapeMetrics.bankContinuityViolations(new RiverFootprint(Map.of(
+                RiverFootprint.pack(0, 0), low, RiverFootprint.pack(1, 0), high)), true));
+        assertEquals(0, HydrologyPackProbe.ShapeMetrics.uncontainedSurfaceBankEdges(
+                surfaceBankFootprint(70), Set.of(32L)));
     }
 
     @Test
@@ -576,7 +599,7 @@ public final class HydrologyPackProbeTest {
                         RiverFootprint.pack(west.x(), west.z()), west,
                         RiverFootprint.pack(channel.x(), channel.z()), channel,
                         RiverFootprint.pack(east.x(), east.z()), east
-                ))));
+                )), true));
     }
 
     @Test
@@ -585,7 +608,7 @@ public final class HydrologyPackProbeTest {
 
         String machineLine = metrics.machineLine();
 
-        assertTrue(machineLine.startsWith("IRIS_HYDROLOGY_PACK_SHAPE version=15 "));
+        assertTrue(machineLine.startsWith("IRIS_HYDROLOGY_PACK_SHAPE version=16 "));
         assertTrue(machineLine.contains("shallow_incision_courses=0"));
         assertTrue(machineLine.contains("ocean_apron_land_columns=0"));
         assertTrue(machineLine.contains("bank_step_violations=0"));
@@ -712,7 +735,7 @@ public final class HydrologyPackProbeTest {
     }
 
     @Test
-    public void surfaceBankIntegrityRequiresFreeboardAroundOwnedFluid() {
+    public void surfaceBankIntegrityRequiresContainmentAroundOwnedFluid() {
         assertEquals(
                 0,
                 HydrologyPackProbe.ShapeMetrics.uncontainedSurfaceBankEdges(
@@ -723,7 +746,7 @@ public final class HydrologyPackProbeTest {
         assertEquals(
                 1,
                 HydrologyPackProbe.ShapeMetrics.uncontainedSurfaceBankEdges(
-                        surfaceBankFootprint(70),
+                        surfaceBankFootprint(69),
                         Set.of(32L)
                 )
         );
@@ -736,6 +759,25 @@ public final class HydrologyPackProbeTest {
                         Set.of(32L)
                 )
         );
+    }
+
+    @Test
+    public void belowSeaLandIsNotReceivingOceanWhileSeaLevelLandIsAFlushBank() {
+        for (boolean ocean : new boolean[]{true, false}) {
+            for (int height : new int[]{62, 63}) {
+                HashMap<Long, HydrologyColumnSample> columns = new HashMap<>();
+                HydrologyColumnSample wet = channelColumn(0, 0, 60, 63);
+                columns.put(RiverFootprint.pack(0, 0), wet);
+                columns.put(RiverFootprint.pack(-1, 0), bankColumn(-1, 0, 64));
+                columns.put(RiverFootprint.pack(0, -1), bankColumn(0, -1, 64));
+                columns.put(RiverFootprint.pack(0, 1), bankColumn(0, 1, 64));
+                columns.put(RiverFootprint.pack(1, 0), new HydrologyColumnSample(
+                        1, 0, height, 63, ocean, "parent", List.of()));
+                assertEquals(ocean || height == 63 ? 0 : 1,
+                        HydrologyPackProbe.ShapeMetrics.uncontainedSurfaceBankEdges(
+                                new RiverFootprint(columns), Set.of(wet.layers().getFirst().feature().courseId())));
+            }
+        }
     }
 
     @Test

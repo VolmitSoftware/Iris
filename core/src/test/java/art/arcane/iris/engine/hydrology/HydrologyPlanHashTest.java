@@ -17,7 +17,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class HydrologyPlanHashTest {
-    private static final String EXPECTED_PLAN_DIGEST = "4ff5293a3d4110f54ffa82630ac95efa98cd7d51cf57911475f466c66f1433c8";
+    private static final String EXPECTED_PLAN_DIGEST = "20e96d6f310786d09e7182ae6f73e41e5b7d07591b5571a62b1299fe1ab58b9a";
 
     private static final List<HydrologyTileKey> TILES = List.of(
             new HydrologyTileKey(0, 0),
@@ -198,7 +198,7 @@ public class HydrologyPlanHashTest {
                 HydrologyPlannerSettings.Geometry.defaults().drops());
         return new HydrologyPlannerSettings(
                 63,
-                new HydrologyPlannerSettings.Routing(128, 16, 512, 256, 0, 0, 0.5D, 12D, 0.5D, 0.1D, 1D, 0),
+                new HydrologyPlannerSettings.Routing(128, 16, 512, 256, 0, 0, 0.5D, 12D, 0.5D, 0.1D, 1D, 0, HydrologyPlannerSettings.Regional.disabled()),
                 new HydrologyPlannerSettings.Surface(
                         true,
                         surfaceSources,

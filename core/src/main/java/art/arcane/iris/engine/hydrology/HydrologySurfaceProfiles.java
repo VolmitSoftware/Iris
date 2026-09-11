@@ -74,6 +74,20 @@ final class HydrologySurfaceProfiles {
                 continue;
             }
             SurfaceFootprint footprint = compiler.surfaceFootprint(course);
+            if (!footprint.accepted()) {
+                iterator.remove();
+                rejectedOutlets.add(course.outletId().orElseThrow());
+                diagnostics.add(new HydrologyDiagnosticCandidate(
+                        HydrologyHash.mix(course.id(), HydrologySourcePlanner.DIAGNOSTIC_SALT,
+                                footprint.rejection().ordinal()),
+                        HydrologyCandidateKind.SOURCE,
+                        HydrologyFeatureType.SURFACE_POOL,
+                        course.segments().getFirst().start(),
+                        footprint.rejection(),
+                        footprint.rejectionDetail()
+                ));
+                continue;
+            }
             int excluded = 0;
             for (SurfaceLayerColumn column : footprint.columns()) {
                 HydrologyColumnLayer layer = column.layer();

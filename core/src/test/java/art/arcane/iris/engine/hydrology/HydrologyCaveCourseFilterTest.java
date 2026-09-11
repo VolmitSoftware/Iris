@@ -48,7 +48,7 @@ public class HydrologyCaveCourseFilterTest {
                         new HydrologyPoint(0, 20, 8),
                         new HydrologyPoint(8, 20, 8),
                         new HydrologyPoint(16, 20, 8)
-                )
+                ), HydraulicChannelProfile.uniform(2, 2)
         );
         RiverCourse course = course(ridge);
         HydrologyColumnLayer layer = layer(ridge, 8, 8);
@@ -105,7 +105,7 @@ public class HydrologyCaveCourseFilterTest {
                         new HydrologyPoint(0, 20, 8),
                         new HydrologyPoint(8, 20, 8),
                         new HydrologyPoint(16, 20, 8)
-                )
+                ), HydraulicChannelProfile.uniform(2, 2)
         );
         ArrayList<HydrologyDiagnosticCandidate> diagnostics = new ArrayList<>();
 
@@ -148,7 +148,7 @@ public class HydrologyCaveCourseFilterTest {
                         new HydrologyPoint(0, 20, 8),
                         new HydrologyPoint(8, 20, 8),
                         new HydrologyPoint(16, 20, 8)
-                )
+                ), HydraulicChannelProfile.uniform(2, 2)
         );
         RiverCourse course = course(ridge);
         List<HydrologyColumnSample> columns = List.copyOf(
@@ -235,7 +235,7 @@ public class HydrologyCaveCourseFilterTest {
                         new HydrologyPoint(0, 20, 8),
                         new HydrologyPoint(8, 20, 8),
                         new HydrologyPoint(16, 20, 8)
-                )
+                ), HydraulicChannelProfile.uniform(2, 2)
         );
         ArrayList<HydrologyDiagnosticCandidate> diagnostics = new ArrayList<>();
 
@@ -271,7 +271,7 @@ public class HydrologyCaveCourseFilterTest {
                 List.of(
                         new HydrologyPoint(0, 20, 8),
                         new HydrologyPoint(16, 20, 8)
-                )
+                ), HydraulicChannelProfile.uniform(2, 2)
         );
         CavePosition exposedBoundary = new CavePosition(8, 25, 8);
         AtomicInteger voxelLoads = new AtomicInteger();
@@ -310,7 +310,7 @@ public class HydrologyCaveCourseFilterTest {
                 List.of(
                         new HydrologyPoint(0, 20, 8),
                         new HydrologyPoint(8, 20, 8)
-                )
+                ), HydraulicChannelProfile.uniform(2, 2)
         );
         RiverCourse course = course(ridge);
         RiverFootprint footprint = footprint(terrain, layer(ridge, 0, 8));
@@ -347,7 +347,7 @@ public class HydrologyCaveCourseFilterTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 20, 0))
+                List.of(new HydrologyPoint(0, 20, 0)), HydraulicChannelProfile.uniform(2, 2)
         );
         HydraulicSegment drop = new HydraulicSegment(
                 173L,
@@ -363,7 +363,7 @@ public class HydrologyCaveCourseFilterTest {
                         new HydrologyPoint(0, 20, 0),
                         new HydrologyPoint(6, 19, 0),
                         new HydrologyPoint(12, 18, 0)
-                )
+                ), HydraulicChannelProfile.uniform(2, 2)
         );
         HydraulicSegment surfacePool = new HydraulicSegment(
                 174L,
@@ -375,7 +375,7 @@ public class HydrologyCaveCourseFilterTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(12, 18, 0))
+                List.of(new HydrologyPoint(12, 18, 0)), HydraulicChannelProfile.uniform(2, 2)
         );
         RiverCourse course = new RiverCourse(
                 171L,
@@ -418,7 +418,7 @@ public class HydrologyCaveCourseFilterTest {
                 List.of(
                         new HydrologyPoint(0, 20, 8),
                         new HydrologyPoint(8, 20, 8)
-                )
+                ), HydraulicChannelProfile.uniform(2, 2)
         );
         RiverCourse course = undergroundCourse(tunnel);
         RiverFootprint footprint = footprint(terrain, layer(tunnel, 8, 8));
@@ -467,7 +467,7 @@ public class HydrologyCaveCourseFilterTest {
                 List.of(
                         new HydrologyPoint(0, 20, 8),
                         new HydrologyPoint(8, 20, 8)
-                )
+                ), HydraulicChannelProfile.uniform(2, 2)
         );
         RiverCourse course = new RiverCourse(
                 pool.courseId(),
@@ -516,7 +516,7 @@ public class HydrologyCaveCourseFilterTest {
                 List.of(
                         new HydrologyPoint(0, 20, 0),
                         new HydrologyPoint(12, 20, 0)
-                )
+                ), HydraulicChannelProfile.uniform(2, 2)
         );
         RiverCourse course = course(ridge);
         Random random = new Random(0x485944524f4c4f47L);
@@ -576,7 +576,7 @@ public class HydrologyCaveCourseFilterTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(8, 76, 8))
+                List.of(new HydrologyPoint(8, 76, 8)), HydraulicChannelProfile.uniform(4, 2)
         );
         RiverCourse course = course(surface);
         RiverFootprint footprint = footprint(terrain, surfaceLayer(surface, 8, 8));
@@ -615,7 +615,7 @@ public class HydrologyCaveCourseFilterTest {
                         new HydrologyPoint(0, 20, 8),
                         new HydrologyPoint(8, 20, 8),
                         new HydrologyPoint(16, 20, 8)
-                )
+                ), HydraulicChannelProfile.uniform(2, 2)
         );
         RiverFootprint footprint = footprint(terrain, layer(ridge, 8, 8));
         ArrayList<HydrologyDiagnosticCandidate> diagnostics = new ArrayList<>();
@@ -778,7 +778,7 @@ public class HydrologyCaveCourseFilterTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 20, 8), new HydrologyPoint(1, 20, 8))
+                List.of(new HydrologyPoint(0, 20, 8), new HydrologyPoint(1, 20, 8)), HydraulicChannelProfile.uniform(2, 2)
         );
         HydraulicSegment grotto = grotto(142L, 140L, HydrologyFeatureType.INLAND_GROTTO);
         RiverCourse course = new RiverCourse(
@@ -831,7 +831,7 @@ public class HydrologyCaveCourseFilterTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(8, 20, 8), new HydrologyPoint(9, 20, 8))
+                List.of(new HydrologyPoint(8, 20, 8), new HydrologyPoint(9, 20, 8)), HydraulicChannelProfile.uniform(2, 2)
         );
         RiverCourse course = undergroundCourse(tunnel);
         HydrologyColumnLayer oversized = caveLayer(
@@ -890,7 +890,7 @@ public class HydrologyCaveCourseFilterTest {
     }
 
     @Test
-    public void selfCarvedUndergroundCourseDoesNotMaterializeObservedCavesOrBoundaryGuards() {
+    public void selfCarvedUndergroundCourseChecksTerrainWithoutLoadingExistingCaves() {
         HydrologyTerrainSample terrain = HydrologyTerrainSample.openLand(80, 0D, "parent");
         HydraulicSegment tunnel = new HydraulicSegment(
                 161L,
@@ -902,15 +902,16 @@ public class HydrologyCaveCourseFilterTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(8, 20, 8), new HydrologyPoint(9, 20, 8))
+                List.of(new HydrologyPoint(8, 20, 8), new HydrologyPoint(9, 20, 8)), HydraulicChannelProfile.uniform(2, 2)
         );
         RiverCourse course = undergroundCourse(tunnel);
         RiverFootprint footprint = footprint(terrain, layer(tunnel, 8, 8), layer(tunnel, 9, 8));
         AtomicInteger observedLoads = new AtomicInteger();
+        AtomicInteger terrainChecks = new AtomicInteger();
         CaveVoxelView observedView = new CaveVoxelView() {
             @Override
             public boolean isInWorld(CavePosition position) {
-                observedLoads.incrementAndGet();
+                terrainChecks.incrementAndGet();
                 return true;
             }
 
@@ -928,7 +929,7 @@ public class HydrologyCaveCourseFilterTest {
 
             @Override
             public boolean isAboveTerrainSurface(CavePosition position) {
-                observedLoads.incrementAndGet();
+                terrainChecks.incrementAndGet();
                 return false;
             }
         };
@@ -952,6 +953,7 @@ public class HydrologyCaveCourseFilterTest {
                 .allMatch((CaveVoxelPrecondition precondition) -> precondition.voxel() == CaveVoxel.UNCONDITIONAL));
         assertTrue(diagnostics.isEmpty());
         assertEquals(0, observedLoads.get());
+        assertTrue(terrainChecks.get() > 0);
     }
 
     @Test
@@ -970,7 +972,7 @@ public class HydrologyCaveCourseFilterTest {
                 List.of(
                         new HydrologyPoint(0, 20, 8),
                         new HydrologyPoint(8, 20, 8)
-                )
+                ), HydraulicChannelProfile.uniform(2, 2)
         );
         HydraulicSegment drop = new HydraulicSegment(
                 103L,
@@ -985,7 +987,7 @@ public class HydrologyCaveCourseFilterTest {
                 List.of(
                         new HydrologyPoint(8, 20, 8),
                         new HydrologyPoint(9, 18, 8)
-                )
+                ), HydraulicChannelProfile.uniform(2, 2)
         );
         HydraulicSegment surface = new HydraulicSegment(
                 104L,
@@ -997,7 +999,7 @@ public class HydrologyCaveCourseFilterTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(9, 18, 8))
+                List.of(new HydrologyPoint(9, 18, 8)), HydraulicChannelProfile.uniform(2, 2)
         );
         RiverCourse course = new RiverCourse(
                 101L,
@@ -1045,7 +1047,7 @@ public class HydrologyCaveCourseFilterTest {
                 List.of(
                         new HydrologyPoint(8, 20, 8),
                         new HydrologyPoint(24, 20, 8)
-                )
+                ), HydraulicChannelProfile.uniform(2, 2)
         );
         HydrologyColumnLayer local = layer(ridge, 15, 8);
         HydrologyColumnLayer remote = layer(ridge, 16, 8);
@@ -1095,7 +1097,7 @@ public class HydrologyCaveCourseFilterTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(100, 63, 0), new HydrologyPoint(112, 63, 0))
+                List.of(new HydrologyPoint(100, 63, 0), new HydrologyPoint(112, 63, 0)), HydraulicChannelProfile.uniform(4, 2)
         );
         RiverCourse seaCave = new RiverCourse(
                 920L,
@@ -1258,7 +1260,7 @@ public class HydrologyCaveCourseFilterTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(8, 20, 8))
+                List.of(new HydrologyPoint(8, 20, 8)), HydraulicChannelProfile.uniform(2, 2)
         );
     }
 

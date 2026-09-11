@@ -22,6 +22,7 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
     private final BasisProvider basisProvider;
     private final IrisHydrologyNaturalHeightProvider heightProvider;
     private final IrisHydrologyNaturalOceanClassifier oceanClassifier;
+    private final int seaLevel;
     private final int maximumEntries;
     private final SamplingOptions samplingOptions;
     private final Object lock;
@@ -35,6 +36,7 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
         this.basisProvider = Objects.requireNonNull(sources.basisProvider(), "basisProvider");
         this.heightProvider = Objects.requireNonNull(sources.heightProvider(), "heightProvider");
         this.oceanClassifier = Objects.requireNonNull(sources.oceanClassifier(), "oceanClassifier");
+        this.seaLevel = sources.seaLevel();
         int maximumEntries = samplingOptions.maximumEntries();
         this.maximumEntries = maximumEntries;
         this.lock = new Object();
@@ -86,9 +88,16 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
                 return cached;
             }
         }
-        NaturalClassification sampled = oceanClassifier.isOcean(blockX, blockZ)
-                ? NaturalClassification.OCEAN
-                : NaturalClassification.LAND;
+        NaturalClassification sampled = NaturalClassification.LAND;
+        if (oceanClassifier.isOcean(blockX, blockZ)) {
+            double height = naturalHeight(packed, blockX, blockZ);
+            if (!Double.isFinite(height)) {
+                return NaturalClassification.UNAVAILABLE;
+            }
+            if (physicalOcean(true, height, seaLevel)) {
+                sampled = NaturalClassification.OCEAN;
+            }
+        }
         synchronized (lock) {
             TerrainBasis basis = bases.getAndMoveToLast(packed);
             if (basis != null) {
@@ -174,6 +183,10 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
         double deltaX = easternHeight - naturalHeight;
         double deltaZ = southernHeight - naturalHeight;
         return Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+    }
+
+    static boolean physicalOcean(boolean oceanIntent, double naturalHeight, int seaLevel) {
+        return oceanIntent && Double.isFinite(naturalHeight) && StrictMath.round(naturalHeight) < seaLevel;
     }
 
     double localSlope(int blockX, int blockZ, double naturalHeight) {
@@ -317,7 +330,8 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
     record Sources(
             BasisProvider basisProvider,
             IrisHydrologyNaturalHeightProvider heightProvider,
-            IrisHydrologyNaturalOceanClassifier oceanClassifier
+            IrisHydrologyNaturalOceanClassifier oceanClassifier,
+            int seaLevel
     ) {
         Sources {
             Objects.requireNonNull(basisProvider, "basisProvider");

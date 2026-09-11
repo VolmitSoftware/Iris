@@ -70,6 +70,19 @@ public class ModdedBlockResolutionContractTest {
     }
 
     @Test
+    public void sugarCanePlacementRequiresNativeSubstrate() {
+        for (Block block : new Block[]{Blocks.SUGAR_CANE, Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.COARSE_DIRT,
+                Blocks.PODZOL, Blocks.MYCELIUM, Blocks.ROOTED_DIRT, Blocks.MOSS_BLOCK, Blocks.PALE_MOSS_BLOCK,
+                Blocks.MUD, Blocks.MUDDY_MANGROVE_ROOTS, Blocks.SAND, Blocks.RED_SAND, Blocks.SUSPICIOUS_SAND}) {
+            assertTrue(block.toString(), ModdedBlockResolution.canPlaceOnto(Blocks.SUGAR_CANE, block));
+        }
+        for (Block block : new Block[]{Blocks.STONE, Blocks.GRAVEL, Blocks.CLAY, Blocks.DIRT_PATH,
+                Blocks.FARMLAND, Blocks.AIR, Blocks.WATER}) {
+            assertFalse(block.toString(), ModdedBlockResolution.canPlaceOnto(Blocks.SUGAR_CANE, block));
+        }
+    }
+
+    @Test
     public void sulfurAndDripstoneTipsReceivePostLoadUpdates() {
         for (Block block : new Block[]{Blocks.SULFUR_SPIKE, Blocks.POINTED_DRIPSTONE}) {
             for (SpeleothemThickness thickness : SpeleothemThickness.values()) {

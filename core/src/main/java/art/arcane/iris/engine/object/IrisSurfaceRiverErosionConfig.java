@@ -22,7 +22,7 @@ public class IrisSurfaceRiverErosionConfig {
 
     @MinNumber(0)
     @MaxNumber(0.95)
-    @Desc("Share of the channel half-width that stays at full bed depth before the bed rises to the edge; higher is a flatter, broader bed.")
+    @Desc("Share of the distance from the thalweg to each waterline that stays at full bed depth before the bed rises to the edge; higher is a flatter, broader bed.")
     private double thalwegFraction = 0.45D;
 
     @MinNumber(0.25)
@@ -48,6 +48,6 @@ public class IrisSurfaceRiverErosionConfig {
     @Desc("Share of the eroded band kept level at the bank top before the vertical wall when style is CLIFF; ignored by every other style.")
     private double cliffFraction = 0.5D;
 
-    @Desc("Cross-section of the wet channel bed from the centerline out to the waterline. BOWL is the profile used before this field existed.")
+    @Desc("Cross-section of the wet channel bed from the thalweg out to the waterline. Curves shift the thalweg toward the outside bank within the existing depth limit.")
     private IrisRiverBedProfile bedProfile = IrisRiverBedProfile.BOWL;
 }

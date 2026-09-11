@@ -302,7 +302,7 @@ public class DecoratorCoreTest {
 
         Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 2, 1);
         int placed = DecoratorCore.placeFloatingStacked(
-                decorator, 0, 0, 0, 0, 0, 3, output, new RNG(1L), data);
+                decorator, 0, 0, 0, 0, 0, 3, output, new RNG(1L), data, null);
 
         assertEquals(1, placed);
         assertSame(decorant, output.get(0, 1, 0));
@@ -344,7 +344,7 @@ public class DecoratorCoreTest {
         output.set(0, 2, 0, occupied);
 
         DecoratorCore.placeFloatingSimple(
-                decorator, 0, 0, 0, 0, 0, 3, output, new RNG(1L), data);
+                decorator, 0, 0, 0, 0, 0, 3, output, new RNG(1L), data, null);
 
         assertSame(air, output.get(0, 1, 0));
         assertSame(occupied, output.get(0, 2, 0));

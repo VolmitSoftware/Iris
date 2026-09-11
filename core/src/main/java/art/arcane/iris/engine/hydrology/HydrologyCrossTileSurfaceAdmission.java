@@ -27,7 +27,7 @@ final class HydrologyCrossTileSurfaceAdmission {
     }
 
     private static boolean conflicts(Claim first, Claim second) {
-        if (first.outletId() == second.outletId()) {
+        if (first.outletId() == second.outletId() && first.reachesOutlet() && second.reachesOutlet()) {
             return true;
         }
         int minimumSeparation = Math.max(first.sourceSpacing(), second.sourceSpacing());

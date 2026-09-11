@@ -1,12 +1,16 @@
 package art.arcane.iris.engine.hydrology.surface;
 
+import art.arcane.iris.engine.hydrology.HydraulicChannelProfile;
 import art.arcane.iris.engine.hydrology.HydraulicSegment;
 import art.arcane.iris.engine.hydrology.HydrologyCandidateRejection;
+import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
 import art.arcane.iris.engine.hydrology.HydrologyGeometrySampler;
 import art.arcane.iris.engine.hydrology.HydrologyPlannerSettings;
 import art.arcane.iris.engine.hydrology.HydrologyPoint;
+import art.arcane.iris.engine.hydrology.HydrologyTerrainSample;
 import art.arcane.iris.engine.hydrology.HydrologyTerrainSampler;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -77,8 +81,8 @@ public final class SurfaceCourseBuilder {
             width[exposed] = width[last];
             depth[exposed] = depth[last];
         }
-        List<HydraulicSegment> segments = SurfaceSegmentLabeler.label(
-                worldSeed, courseId, x, z, head, width, depth, surface.banks());
+        List<HydraulicSegment> segments = fallingTransitions(SurfaceSegmentLabeler.label(
+                worldSeed, courseId, x, z, head, width, depth, surface.banks()));
         if (segments.isEmpty()) {
             return SurfaceCourseResult.rejected(HydrologyCandidateRejection.COURSE_TOO_SHORT, stations);
         }
@@ -87,11 +91,58 @@ public final class SurfaceCourseBuilder {
         return new SurfaceCourseResult(
                 segments,
                 head[lastStation],
-                last.width(),
-                last.depth(),
+                Math.max(1, (int) StrictMath.ceil(last.channelProfile().widthAt(last.centerline().size() - 1))),
+                Math.max(1, (int) StrictMath.ceil(last.channelProfile().depthAt(last.centerline().size() - 1))),
                 new HydrologyPoint(x[lastStation], head[lastStation], z[lastStation]),
                 null,
                 0
         );
     }
+    private List<HydraulicSegment> fallingTransitions(List<HydraulicSegment> labelled) {
+        ArrayList<HydraulicSegment> segments = new ArrayList<>(labelled);
+        for (int index = 0; index + 1 < segments.size(); index++) {
+            HydraulicSegment fall = segments.get(index);
+            HydraulicSegment receiver = segments.get(index + 1);
+            if (fall.type() != HydrologyFeatureType.WATERFALL || fall.centerline().size() != 2
+                    || receiver.type() != HydrologyFeatureType.SURFACE_POOL || receiver.centerline().size() < 2) {
+                continue;
+            }
+            HydrologyTerrainSample terrain = sampler.sample(fall.end().x(), fall.end().z());
+            if (!SurfaceCellAdmission.writable(terrain, seaLevel)) {
+                continue;
+            }
+            int incision = terrain.surfacePolicy().maximumIncision(surface.maximumIncision());
+            incision = Math.min(incision, (int) StrictMath.floor(incision * terrain.incisionMultiplier()));
+            if (terrain.naturalHeight() - fall.downstreamHeadY() + fall.depth() > incision) {
+                continue;
+            }
+            HydrologyPoint throat = new HydrologyPoint(fall.end().x(), fall.upstreamHeadY(), fall.end().z());
+            HydrologyPoint outflow = receiver.centerline().get(1);
+            HydrologyPlannerSettings.Channel channel = surface.banks().channel();
+            double outlineRatio = Math.max(channel.outlineMinimumRatio(),
+                    Math.min(channel.outlineMaximumRatio(), 1D + surface.banks().roughness()));
+            double inletWidth = fall.channelProfile().maximumWidth();
+            if (index > 0) {
+                HydraulicChannelProfile approach = segments.get(index - 1).channelProfile();
+                inletWidth = Math.max(inletWidth, approach.widthAt(approach.size() - 1));
+            }
+            HydraulicChannelProfile fallProfile = new HydraulicChannelProfile(
+                    new double[]{StrictMath.ceil(inletWidth * outlineRatio + 2D), receiver.channelProfile().widthAt(1)},
+                    new double[]{fall.channelProfile().maximumDepth(), receiver.channelProfile().depthAt(1)});
+            segments.set(index, new HydraulicSegment(fall.id(), fall.courseId(), fall.type(),
+                    fall.upstreamHeadY(), fall.downstreamHeadY(),
+                    Math.max(1, (int) StrictMath.ceil(fallProfile.maximumWidth())),
+                    Math.max(1, (int) StrictMath.ceil(fallProfile.maximumDepth())), true, true,
+                    List.of(throat, outflow), fallProfile));
+            HydraulicChannelProfile receiverProfile = receiver.channelProfile().size() == 1 ? receiver.channelProfile()
+                    : HydraulicChannelProfile.range(receiver.channelProfile().widths(), receiver.channelProfile().depths(),
+                    1, receiver.channelProfile().size());
+            segments.set(index + 1, new HydraulicSegment(receiver.id(), receiver.courseId(), receiver.type(),
+                    receiver.upstreamHeadY(), receiver.downstreamHeadY(), receiver.width(), receiver.depth(),
+                    receiver.fallingFluid(), receiver.receivingPool(),
+                    receiver.centerline().subList(1, receiver.centerline().size()), receiverProfile));
+        }
+        return List.copyOf(segments);
+    }
+
 }

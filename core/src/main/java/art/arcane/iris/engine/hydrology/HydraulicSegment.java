@@ -13,11 +13,13 @@ public record HydraulicSegment(
         int depth,
         boolean fallingFluid,
         boolean receivingPool,
-        List<HydrologyPoint> centerline
+        List<HydrologyPoint> centerline,
+        HydraulicChannelProfile channelProfile
 ) {
     public HydraulicSegment {
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(centerline, "centerline");
+        Objects.requireNonNull(channelProfile, "channelProfile");
         centerline = List.copyOf(centerline);
         if (centerline.isEmpty()) {
             throw new IllegalArgumentException("A hydraulic segment requires a centerline.");
@@ -27,6 +29,12 @@ public record HydraulicSegment(
         }
         if (width <= 0 || depth <= 0) {
             throw new IllegalArgumentException("Hydraulic segment width and depth must be positive.");
+        }
+        if (channelProfile.size() != 1 && channelProfile.size() != centerline.size()) {
+            throw new IllegalArgumentException("Channel dimensions must cover every centerline station.");
+        }
+        if (channelProfile.maximumWidth() > width || channelProfile.maximumDepth() > depth) {
+            throw new IllegalArgumentException("Hydraulic segment bounds must contain its channel dimensions.");
         }
         int drop = upstreamHeadY - downstreamHeadY;
         if (fallingFluid && drop == 0) {

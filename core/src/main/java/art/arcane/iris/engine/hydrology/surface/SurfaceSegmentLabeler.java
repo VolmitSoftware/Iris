@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.hydrology.surface;
 
+import art.arcane.iris.engine.hydrology.HydraulicChannelProfile;
 import art.arcane.iris.engine.hydrology.HydraulicSegment;
 import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
 import art.arcane.iris.engine.hydrology.HydrologyHash;
@@ -80,16 +81,12 @@ public final class SurfaceSegmentLabeler {
             int startStation = run.start;
             int endStation = run.end + 1;
             ArrayList<HydrologyPoint> centerline = new ArrayList<>(endStation - startStation + 1);
-            double totalWidth = 0D;
-            double totalDepth = 0D;
             for (int station = startStation; station <= endStation; station++) {
                 centerline.add(new HydrologyPoint(x[station], head[station], z[station]));
-                totalWidth += width[station];
-                totalDepth += depth[station];
             }
-            int stations = endStation - startStation + 1;
-            int segmentWidth = Math.max(1, (int) StrictMath.round(totalWidth / stations));
-            int segmentDepth = Math.max(1, (int) StrictMath.round(totalDepth / stations));
+            HydraulicChannelProfile channelProfile = HydraulicChannelProfile.range(width, depth, startStation, endStation + 1);
+            int segmentWidth = Math.max(1, (int) StrictMath.ceil(channelProfile.maximumWidth()));
+            int segmentDepth = Math.max(1, (int) StrictMath.ceil(channelProfile.maximumDepth()));
             int index = segments.size();
             segments.add(new HydraulicSegment(
                     HydrologyHash.mix(worldSeed, SEGMENT_SALT, courseId, index, run.type.ordinal()),
@@ -101,7 +98,8 @@ public final class SurfaceSegmentLabeler {
                     segmentDepth,
                     false,
                     false,
-                    centerline
+                    centerline,
+                    channelProfile
             ));
         }
         return List.copyOf(segments);

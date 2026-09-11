@@ -155,6 +155,40 @@ public class IrisShoreLineDecoratorTest {
     }
 
     @Test
+    public void acceptedShoreCaneRequiresWaterBesideTheActualSubstrate() {
+        Fixture fixture = createFixture(false, false);
+        PlatformBlockState support = sturdyState();
+        PlatformBlockState air = airState();
+        PlatformBlockState water = mock(PlatformBlockState.class);
+        when(water.isWater()).thenReturn(true);
+        when(fixture.decorant.key()).thenReturn("minecraft:sugar_cane[age=0]");
+        when(fixture.decorant.canPlaceOnto(support)).thenReturn(true);
+        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(3, FLUID_HEIGHT + 3, 3);
+        output.set(1, FLUID_HEIGHT, 1, support);
+        output.set(1, FLUID_HEIGHT + 1, 1, air);
+
+        fixture.shoreline.decorateAcceptedShore(1, 1, 1, 1, output, fixture.biome, FLUID_HEIGHT, output.getHeight());
+        assertSame(air, output.get(1, FLUID_HEIGHT + 1, 1));
+        output.set(0, FLUID_HEIGHT, 1, water);
+        fixture.shoreline.decorateAcceptedShore(1, 1, 1, 1, output, fixture.biome, FLUID_HEIGHT, output.getHeight());
+        assertSame(fixture.decorant, output.get(1, FLUID_HEIGHT + 1, 1));
+    }
+
+    @Test
+    public void forcedShoreCaneCannotUseStone() {
+        Fixture fixture = createFixture(true, false);
+        PlatformBlockState stone = sturdyState();
+        PlatformBlockState air = airState();
+        when(fixture.decorant.key()).thenReturn("minecraft:sugar_cane[age=0]");
+        when(fixture.decorant.canPlaceOnto(stone)).thenReturn(false);
+        Hunk<PlatformBlockState> output = output(stone, air);
+
+        fixture.shoreline.decorateAcceptedShore(0, 0, 0, 0, output, fixture.biome, FLUID_HEIGHT, output.getHeight());
+
+        assertSame(air, output.get(0, FLUID_HEIGHT + 1, 0));
+    }
+
+    @Test
     public void unsupportedWaterloggedStackRestoresEveryOriginalBlock() {
         Fixture fixture = createFixture(false, false);
         PlatformBlockState support = sturdyState();

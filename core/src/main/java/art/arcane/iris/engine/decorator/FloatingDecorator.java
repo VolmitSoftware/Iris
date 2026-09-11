@@ -46,10 +46,12 @@ public class FloatingDecorator {
         }
 
         if (!decorator.isStacking()) {
-            DecoratorCore.placeFloatingSimple(decorator, xf, zf, realX, realZ, height, max, data, rng, engine.getData());
+            DecoratorCore.placeFloatingSimple(decorator, xf, zf, realX, realZ, height, max, data,
+                    rng, engine.getData(), engine.getMantle());
             return max > 1 ? 1 : 0;
         }
 
-        return DecoratorCore.placeFloatingStacked(decorator, xf, zf, realX, realZ, height, max, data, rng, engine.getData());
+        return DecoratorCore.placeFloatingStacked(decorator, xf, zf, realX, realZ, height, max, data,
+                rng, engine.getData(), engine.getMantle());
     }
 }

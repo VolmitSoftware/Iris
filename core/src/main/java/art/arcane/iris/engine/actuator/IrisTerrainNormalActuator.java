@@ -140,12 +140,12 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
             int terrainSpan = terrainColumn == null ? -1 : terrainColumn.spanCount() - 1;
             int layerSurfaceY = he;
             int layerCeilingY = 0;
-            int cut = exposeCutStrata
+            boolean exposeRiverStrata = exposeCutStrata
                     && hydrologyTerrain != null
                     && hydrologyTerrain.terrainOwned()
-                    && !hydrologyTerrain.channel()
-                    ? Math.max(0, hydrology.naturalHeight() - he)
-                    : 0;
+                    && !hydrologyTerrain.channel();
+            Terrain3DColumn naturalColumn = exposeRiverStrata ? complex.naturalTerrainColumn(realX, realZ) : null;
+            int cut = 0;
             boolean riverOwned = padRiverBed && hydrologyTerrain != null && hydrologyTerrain.terrainOwned();
             IrisRiverMaterialConfig roleMaterial = hydrologyRoleMaterial(
                     hydrologyTerrain, bedMaterial, shoreMaterial, bankMaterial);
@@ -227,6 +227,10 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
                         continue;
                     }
                     if (blocks == null) {
+                        if (exposeRiverStrata) {
+                            int naturalSurfaceY = naturalColumn == null ? hydrology.naturalHeight() : naturalColumn.surfaceY(layerSurfaceY);
+                            cut = Math.max(0, naturalSurfaceY - layerSurfaceY);
+                        }
                         blocks = biome.generateLayers(dimension, realX, realZ, localRng,
                                 layerSurfaceY + cut, layerSurfaceY + cut, data, complex);
                     }
@@ -242,12 +246,10 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
                         continue;
                     }
 
-                    if (blocks.hasIndex(depth + cut)) {
-                        PlatformBlockState layerBlock = blocks.get(depth + cut);
-                        if (roleMaterial != null) {
-                            layerBlock = paintHydrologyMaterial(
-                                    layerBlock, roleMaterial, depth, localRng, realX, i, realZ, data);
-                        }
+                    PlatformBlockState layerBlock = paintHydrologyMaterial(
+                            blocks.hasIndex(depth + cut) ? blocks.get(depth + cut) : null,
+                            roleMaterial, depth, localRng, realX, i, realZ, data);
+                    if (layerBlock != null) {
                         if (riverOwned && depth <= riverBed.getPadding() && IrisProceduralBlocks.isGravityAffected(layerBlock)) {
                             layerBlock = riverBed.getPaddingPalette().get(localRng, realX, i, realZ, data);
                         }

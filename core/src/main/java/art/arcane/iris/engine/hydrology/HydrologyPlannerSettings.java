@@ -20,7 +20,7 @@ public record HydrologyPlannerSettings(
         SeaCaves seaCaves,
         SurfacePolicyBounds surfacePolicyBounds
 ) {
-    private static final long PLAN_FORMAT_REVISION = 6L;
+    private static final long PLAN_FORMAT_REVISION = 8L;
     private static final int MAXIMUM_CROSS_TILE_COLOR_PERIOD = 4;
 
     public HydrologyPlannerSettings {
@@ -52,7 +52,7 @@ public record HydrologyPlannerSettings(
         Source undergroundSources = new Source(true, 0.25D, Integer.MIN_VALUE, 0, 1, 512);
         return new HydrologyPlannerSettings(
                 63,
-                new Routing(2048, 64, 8192, 8192, 384, 192, 1.5D, 24D, 2D, 0.2D, 1D, 0),
+                new Routing(2048, 64, 8192, 8192, 384, 192, 1.5D, 24D, 2D, 0.2D, 1D, 0, HydrologyPlannerSettings.Regional.disabled()),
                 new Surface(true, surfaceSources, 4, 8, 2, 4, 10, 1.5D, Banks.defaults()),
                 new Hydraulics(8),
                 Underground.of(true, undergroundSources, -48, 72, 3, 8, 1, 3, 6, 14, true, 1),
@@ -216,9 +216,11 @@ public record HydrologyPlannerSettings(
             double slopePenalty,
             double confluenceAttraction,
             double lengthPreference,
-            int tributaries
+            int tributaries,
+            Regional regional
     ) {
         public Routing {
+            Objects.requireNonNull(regional, "regional");
             if (tileSize < 32 || sampleSpacing < 4 || tileSize % sampleSpacing != 0) {
                 throw new IllegalArgumentException("Routing sizes must form an exact bounded tile lattice.");
             }
@@ -229,6 +231,9 @@ public record HydrologyPlannerSettings(
             long latticeNodes = (long) expandedWidth * expandedWidth;
             if (maximumRouteNodes < latticeNodes || maximumRouteNodes > 1_000_000 || maximumRouteLength < 1) {
                 throw new IllegalArgumentException("maximumRouteNodes must contain the complete lattice and remain bounded.");
+            }
+            if (regional.enabled() && maximumRouteLength > 32_768) {
+                throw new IllegalArgumentException("Regional route length cannot exceed 32768 blocks.");
             }
             if (minimumSurfaceCourseLength < 0 || minimumSurfaceCourseLength > 32_768
                     || minimumUndergroundCourseLength < 0 || minimumUndergroundCourseLength > 32_768) {
@@ -262,6 +267,38 @@ public record HydrologyPlannerSettings(
 
         public int minimumCourseLength(boolean surface) {
             return surface ? minimumSurfaceCourseLength : minimumUndergroundCourseLength;
+        }
+    }
+
+    public record Regional(
+            boolean enabled,
+            int sampleSpacing,
+            int minimumLength,
+            int maximumTrunks,
+            int maximumCachedBasins,
+            int maximumCachedStations,
+            boolean coastalChannels,
+            double coastalChannelChance,
+            int maximumCoastalIncision
+    ) {
+        public Regional {
+            if (sampleSpacing < 128 || sampleSpacing > 1024 || Integer.bitCount(sampleSpacing) != 1
+                    || minimumLength < 256 || minimumLength > 32768
+                    || maximumTrunks < 1 || maximumTrunks > 8
+                    || maximumCachedBasins < 1 || maximumCachedBasins > 64
+                    || maximumCachedStations < 16384 || maximumCachedStations > 1048576
+                    || !Double.isFinite(coastalChannelChance) || coastalChannelChance < 0D || coastalChannelChance > 1D
+                    || maximumCoastalIncision < 1 || maximumCoastalIncision > 32) {
+                throw new IllegalArgumentException("Regional drainage settings exceed their bounded ranges.");
+            }
+        }
+
+        public static Regional disabled() {
+            return new Regional(false, 256, 2048, 2, 8, 131072, false, 0.25D, 8);
+        }
+
+        public int basinSize(Routing routing) {
+            return Math.max(sampleSpacing * 4, Integer.highestOneBit(routing.maximumRouteLength()));
         }
     }
 
@@ -451,9 +488,11 @@ public record HydrologyPlannerSettings(
             double cliffFraction,
             IrisRiverBedProfile bedProfile,
             double shoreRise,
-            double blendBaseWidth
+            double blendBaseWidth,
+            Excavation excavation
     ) {
         public Erosion {
+            Objects.requireNonNull(excavation, "excavation");
             if (smoothingRadius < 0
                     || !Double.isFinite(thalwegFraction) || thalwegFraction < 0D || thalwegFraction >= 1D
                     || !Double.isFinite(blendCurve) || blendCurve <= 0D
@@ -470,20 +509,33 @@ public record HydrologyPlannerSettings(
         }
 
         public static Erosion defaults() {
-            return new Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D);
+            return new Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D, Excavation.defaults());
         }
 
         /** The erosion amounts with the smooth valley side, bowl bed and flat shore bench they always had. */
         public static Erosion of(boolean enabled, int smoothingRadius, double thalwegFraction, double blendCurve, double bedNoise) {
             return new Erosion(enabled, smoothingRadius, thalwegFraction, blendCurve, bedNoise,
-                    IrisRiverBlendStyle.SMOOTH, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D);
+                    IrisRiverBlendStyle.SMOOTH, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D, Excavation.defaults());
         }
 
         // Enum hash codes are identity based and change between runs; the plan fingerprint mixes this hash in.
         @Override
         public int hashCode() {
             return Objects.hash(enabled, smoothingRadius, thalwegFraction, blendCurve, bedNoise, style.name(),
-                    terraceSteps, cliffFraction, bedProfile.name(), shoreRise, blendBaseWidth);
+                    terraceSteps, cliffFraction, bedProfile.name(), shoreRise, blendBaseWidth, excavation);
+        }
+    }
+
+    public record Excavation(int maximumDepth, int maximumWidth, int maximumVolumePerBlock) {
+        public Excavation {
+            if (maximumDepth < 0 || maximumDepth > 64 || maximumWidth < 1 || maximumWidth > 64
+                    || maximumVolumePerBlock < 0 || maximumVolumePerBlock > 8192) {
+                throw new IllegalArgumentException("Surface bank excavation limits are invalid.");
+            }
+        }
+
+        public static Excavation defaults() {
+            return new Excavation(8, 16, 256);
         }
     }
 

@@ -86,7 +86,7 @@ public class HydrologyPlannerSettingsTest {
                 0D,
                 0D,
                 1D,
-                0
+                0, HydrologyPlannerSettings.Regional.disabled()
         );
         HydrologyPlannerSettings.Source sources = new HydrologyPlannerSettings.Source(true, 1D, 0, 0, 1, 0);
         HydrologyPlannerSettings.Surface surface = new HydrologyPlannerSettings.Surface(
@@ -504,7 +504,7 @@ public class HydrologyPlannerSettingsTest {
         HydrologyPlannerSettings.Erosion erosion = HydrologyPlannerSettings.Erosion.defaults();
 
         assertEquals(new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D,
-                IrisRiverBlendStyle.SMOOTH, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D), erosion);
+                IrisRiverBlendStyle.SMOOTH, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D, HydrologyPlannerSettings.Excavation.defaults()), erosion);
         assertEquals(erosion, HydrologyPlannerSettings.Erosion.of(true, 12, 0.45D, 1D, 0.5D));
         assertEquals(IrisRiverBlendStyle.SMOOTH, erosion.style());
         assertEquals(4, erosion.terraceSteps());
@@ -512,23 +512,23 @@ public class HydrologyPlannerSettingsTest {
         assertEquals(IrisRiverBedProfile.BOWL, erosion.bedProfile());
         assertEquals(0D, erosion.shoreRise(), 0D);
         assertEquals(0D, erosion.blendBaseWidth(), 0D);
-        new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.TERRACED, 2, 0D, IrisRiverBedProfile.V, 0D, 0D);
-        new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.CLIFF, 16, 1D, IrisRiverBedProfile.U, 4D, 32D);
-        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, null, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D));
-        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 1, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D));
-        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, -0.01D, IrisRiverBedProfile.BOWL, 0D, 0D));
-        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 1.01D, IrisRiverBedProfile.BOWL, 0D, 0D));
-        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, Double.NaN, IrisRiverBedProfile.BOWL, 0D, 0D));
-        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 0.5D, null, 0D, 0D));
-        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 0.5D, IrisRiverBedProfile.BOWL, -0.1D, 0D));
-        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 0.5D, IrisRiverBedProfile.BOWL, Double.POSITIVE_INFINITY, 0D));
-        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, -0.1D));
-        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, Double.NaN));
+        new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.TERRACED, 2, 0D, IrisRiverBedProfile.V, 0D, 0D, HydrologyPlannerSettings.Excavation.defaults());
+        new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.CLIFF, 16, 1D, IrisRiverBedProfile.U, 4D, 32D, HydrologyPlannerSettings.Excavation.defaults());
+        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, null, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D, HydrologyPlannerSettings.Excavation.defaults()));
+        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 1, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D, HydrologyPlannerSettings.Excavation.defaults()));
+        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, -0.01D, IrisRiverBedProfile.BOWL, 0D, 0D, HydrologyPlannerSettings.Excavation.defaults()));
+        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 1.01D, IrisRiverBedProfile.BOWL, 0D, 0D, HydrologyPlannerSettings.Excavation.defaults()));
+        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, Double.NaN, IrisRiverBedProfile.BOWL, 0D, 0D, HydrologyPlannerSettings.Excavation.defaults()));
+        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 0.5D, null, 0D, 0D, HydrologyPlannerSettings.Excavation.defaults()));
+        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 0.5D, IrisRiverBedProfile.BOWL, -0.1D, 0D, HydrologyPlannerSettings.Excavation.defaults()));
+        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 0.5D, IrisRiverBedProfile.BOWL, Double.POSITIVE_INFINITY, 0D, HydrologyPlannerSettings.Excavation.defaults()));
+        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, -0.1D, HydrologyPlannerSettings.Excavation.defaults()));
+        assertThrows(IllegalArgumentException.class, () -> new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, Double.NaN, HydrologyPlannerSettings.Excavation.defaults()));
 
         HydrologyPlannerSettings base = HydrologyPlannerSettings.defaults();
         HydrologyPlannerSettings.Banks banks = base.surface().banks();
         HydrologyPlannerSettings linear = withBanks(base, banksWith(banks,
-                new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.LINEAR, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D),
+                new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.LINEAR, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D, HydrologyPlannerSettings.Excavation.defaults()),
                 banks.channel(), banks.flow()));
         assertTrue(base.fingerprint() != linear.fingerprint());
         assertEquals(base.publicationRadius(), linear.publicationRadius());
@@ -684,7 +684,7 @@ public class HydrologyPlannerSettingsTest {
         HydrologyPlannerSettings.Geometry geometry = base.geometry();
         HydrologyPlannerSettings reshaped = rebuild(base,
                 surfaceWith(base.surface(), banksWith(banks,
-                        new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.TERRACED, 8, 0.25D, IrisRiverBedProfile.U, 1D, 4D),
+                        new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.TERRACED, 8, 0.25D, IrisRiverBedProfile.U, 1D, 4D, HydrologyPlannerSettings.Excavation.defaults()),
                         new HydrologyPlannerSettings.Channel(8, 0.5D, 2D, 2D),
                         new HydrologyPlannerSettings.Flow(0.5D, 3, 3D, 2))
                         .withInlet(new HydrologyPlannerSettings.Inlet(64, 3, 32, 0.25D, 2D))),

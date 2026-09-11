@@ -213,9 +213,9 @@ final class HydrologyTributaryPlanner {
         ArrayList<HydrologyPoint> stemStations = new ArrayList<>();
         ArrayList<Integer> stemWidths = new ArrayList<>();
         for (HydraulicSegment segment : stem.segments()) {
-            for (HydrologyPoint point : segment.centerline()) {
-                stemStations.add(point);
-                stemWidths.add(segment.width());
+            for (int pointIndex = 0; pointIndex < segment.centerline().size(); pointIndex++) {
+                stemStations.add(segment.centerline().get(pointIndex));
+                stemWidths.add((int) StrictMath.ceil(segment.channelProfile().widthAt(pointIndex)));
             }
         }
         int minimumStemIndex = 0;
@@ -340,9 +340,9 @@ final class HydrologyTributaryPlanner {
                     downstream,
                     segment.width(),
                     segment.depth(),
-                    segment.fallingFluid(),
-                    segment.receivingPool(),
-                    List.copyOf(centerline)
+                    upstream > downstream && segment.fallingFluid(),
+                    upstream > downstream && segment.receivingPool(),
+                    List.copyOf(centerline), segment.channelProfile()
             ));
             if (segment.upstreamHeadY() >= level) {
                 break;
@@ -417,9 +417,9 @@ final class HydrologyTributaryPlanner {
                         downstream,
                         segment.width(),
                         segment.depth(),
-                        segment.fallingFluid(),
-                        segment.receivingPool(),
-                        List.copyOf(centerline)
+                        upstream > downstream && segment.fallingFluid(),
+                        upstream > downstream && segment.receivingPool(),
+                        List.copyOf(centerline), segment.channelProfile()
                 ));
             }
             if (settled) {
@@ -531,8 +531,8 @@ final class HydrologyTributaryPlanner {
                     type,
                     lastSegment.downstreamHeadY(),
                     stemHead,
-                    lastSegment.width(),
-                    lastSegment.depth(),
+                    (int) StrictMath.ceil(lastSegment.channelProfile().widthAt(lastSegment.centerline().size() - 1)),
+                    (int) StrictMath.ceil(lastSegment.channelProfile().depthAt(lastSegment.centerline().size() - 1)),
                     List.of(end, new HydrologyPoint(joinStation.x(), stemHead, joinStation.z())),
                     true,
                     segments

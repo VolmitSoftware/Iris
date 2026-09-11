@@ -104,7 +104,8 @@ public class StudioHydrologyTileStoreTest {
                 2,
                 false,
                 false,
-                List.of(new HydrologyPoint(0, 72, 0), new HydrologyPoint(1, 72, 0))
+                List.of(new HydrologyPoint(0, 72, 0), new HydrologyPoint(1, 72, 0)),
+                new HydraulicChannelProfile(new double[]{2.5D, 4D}, new double[]{1D, 2D})
         );
         RiverCourse course = new RiverCourse(
                 4L,

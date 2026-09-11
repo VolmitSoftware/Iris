@@ -25,9 +25,6 @@ public final class SurfaceFeatureRefs {
             HydraulicSegment segment,
             SurfaceRole role,
             boolean source,
-            int x,
-            int y,
-            int z,
             int flowX,
             int flowZ
     ) {
@@ -48,9 +45,9 @@ public final class SurfaceFeatureRefs {
                 segment.type(),
                 courseId,
                 segment.id(),
-                x,
-                y,
-                z,
+                segment.start().x(),
+                segment.start().y(),
+                segment.start().z(),
                 featureFlowX,
                 featureFlowZ,
                 source

@@ -9,4 +9,8 @@ public final class SurfaceCellAdmission {
     public static boolean writable(HydrologyTerrainSample terrain, int seaLevel) {
         return terrain != null && !terrain.ocean() && terrain.naturalHeight() > seaLevel;
     }
+
+    public static boolean mouthLand(HydrologyTerrainSample terrain, int seaLevel) {
+        return terrain != null && !terrain.ocean() && terrain.naturalHeight() >= seaLevel;
+    }
 }

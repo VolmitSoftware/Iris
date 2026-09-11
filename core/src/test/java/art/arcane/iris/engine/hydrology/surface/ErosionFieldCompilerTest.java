@@ -3,6 +3,7 @@ package art.arcane.iris.engine.hydrology.surface;
 import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
 
 import art.arcane.iris.engine.hydrology.HydrologyGeometrySampler;
+import art.arcane.iris.engine.hydrology.HydrologyCandidateRejection;
 import art.arcane.iris.engine.hydrology.HydrologyPlannerSettings;
 import art.arcane.iris.engine.hydrology.HydrologyPoint;
 import art.arcane.iris.engine.hydrology.HydrologyTerrainSample;
@@ -29,6 +30,68 @@ public class ErosionFieldCompilerTest {
         case SURFACE_DEPTH -> 3;
         default -> request.minimum();
     };
+
+    @Test
+    public void mouthCutsDrySeaLevelSillBeforeReachingOceanWater() {
+        HydrologyTerrainSampler coast = (int x, int z) -> x >= 100
+                ? HydrologyTerrainSample.ocean(50, "ocean")
+                : HydrologyTerrainSample.openLand(x >= 92 ? SEA_LEVEL : 66, 0D, "land");
+        Compiled compiled = compile(zeroRoughnessSurface(), coast, 110, SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL);
+
+        for (int x = 92; x < 100; x++) {
+            SurfaceColumn sill = compiled.field().column(x, 0);
+            assertNotNull("dry sill at " + x, sill);
+            assertTrue("sill must be carved at " + x, !sill.apron());
+            assertEquals(SEA_LEVEL, sill.headY());
+            assertTrue(sill.height() < SEA_LEVEL);
+        }
+        assertNull(compiled.field().rejection());
+    }
+
+    @Test
+    public void mouthLabelWithoutReceivingOceanIsRejected() {
+        Compiled compiled = compile(300, (x, z) -> 66, SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL);
+
+        assertEquals(HydrologyCandidateRejection.SURFACE_MOUTH_DISCONNECTED, compiled.field().rejection());
+    }
+
+    @Test
+    public void bankExcavationPreservesHighSideTerrainWithinDepthAndWidthLimits() {
+        HydrologyTerrainSampler hillside = (int x, int z) -> HydrologyTerrainSample.openLand(90 + Math.max(0, z - 4) * 4, 0D, "land");
+        Compiled compiled = compile(zeroRoughnessSurface(), hillside, 300, SurfaceTerminal.SINKHOLE, 40);
+
+        for (SurfaceColumn column : compiled.field().columns().values()) {
+            if (column.role() == SurfaceRole.CHANNEL || column.apron()) {
+                continue;
+            }
+            assertTrue(column.terrain().naturalHeight() - column.height() <= 8);
+            if (column.x() > 30 && column.x() < 270 && Math.abs(column.z()) > 19) {
+                assertEquals(column.terrain().naturalHeight(), column.height());
+            }
+        }
+        SurfaceColumn bank = compiled.field().column(150, 9);
+        assertNotNull(bank);
+        assertTrue(bank.height() >= hillside.sample(150, 9).naturalHeight() - 8);
+    }
+
+    @Test
+    public void boundedRasterMatchesTheCompleteCourseAcrossTileCuts() {
+        HydrologyPlannerSettings.Surface surface = zeroRoughnessSurface();
+        HydrologyTerrainSampler hillside = (int x, int z) -> HydrologyTerrainSample.openLand(90 + Math.max(0, z) / 2, 0D, "land");
+        SurfaceCenterline centerline = SurfaceCenterline.densify(List.of(new HydrologyPoint(-150, 0, 0), new HydrologyPoint(150, 0, 0)));
+        ChannelProfile channel = new ChannelProfileBuilder(surface, hillside, CONSTANT_GEOMETRY).build(centerline, "water", false);
+        ValleyProfile valley = new ValleyProfileSolver(surface, hillside, SEA_LEVEL, 64).solve(centerline, channel, SurfaceTerminal.SINKHOLE, 40);
+        ErosionFieldCompiler compiler = new ErosionFieldCompiler(surface, hillside, SEA_LEVEL);
+        ErosionField complete = compiler.compile(42L, centerline, channel, valley, SurfaceTerminal.SINKHOLE, 8);
+        SurfaceBounds bounds = new SurfaceBounds(-16, -16, 15, 15);
+        ErosionField bounded = compiler.compile(42L, centerline, channel, valley, SurfaceTerminal.SINKHOLE, 8, surface.banks().ponds(), SurfaceRasterContext.bounded(bounds));
+
+        for (int z = bounds.minimumZ(); z <= bounds.maximumZ(); z++) {
+            for (int x = bounds.minimumX(); x <= bounds.maximumX(); x++) {
+                assertEquals("bounded column " + x + "," + z, complete.column(x, z), bounded.column(x, z));
+            }
+        }
+    }
 
     @Test
     public void flatTerrainHoldsTheWaterFlushWithTheBankAndContainedByDefault() {
@@ -187,7 +250,7 @@ public class ErosionFieldCompilerTest {
     }
 
     @Test
-    public void inletBanksAreCutToSeaLevelAndBlendBackToTheNaturalValley() {
+    public void inletBanksPreserveHighTerrainAndBlendBackWithinTheirExcavationBudget() {
         HydrologyTerrainSampler coast = (int x, int z) -> {
             if (x >= 240) {
                 return HydrologyTerrainSample.ocean(50, "ocean");
@@ -230,11 +293,11 @@ public class ErosionFieldCompilerTest {
         assertTrue(shoreZ > 0);
         SurfaceColumn shore = compiled.field().column(pinned, shoreZ);
         assertEquals(SurfaceRole.SHORE, shore.role());
-        assertEquals(SEA_LEVEL, shore.height());
+        assertEquals(shore.terrain().naturalHeight() - surface.banks().erosion().excavation().maximumDepth(), shore.height());
         assertTrue(coast.sample(pinned, shoreZ).naturalHeight() > SEA_LEVEL + 10);
-        int previous = SEA_LEVEL;
+        int previous = shore.height();
         int banks = 0;
-        int lastHeight = SEA_LEVEL;
+        int lastHeight = shore.height();
         for (int z = shoreZ + 1; z < 60; z++) {
             SurfaceColumn column = compiled.field().column(pinned, z);
             if (column == null) {
@@ -242,12 +305,12 @@ public class ErosionFieldCompilerTest {
             }
             assertTrue(column.role() == SurfaceRole.SHORE || column.role() == SurfaceRole.BANK);
             assertTrue(column.height() >= previous);
-            assertTrue(column.height() - previous <= 1);
+            assertTrue(column.terrain().naturalHeight() - column.height() <= surface.banks().erosion().excavation().maximumDepth());
             previous = column.height();
             lastHeight = column.height();
             banks++;
         }
-        assertTrue(banks > 8);
+        assertTrue(banks > 0);
         assertTrue(lastHeight >= coast.sample(pinned, 0).naturalHeight() - 1);
     }
 
@@ -377,7 +440,7 @@ public class ErosionFieldCompilerTest {
             double blendBaseWidth
     ) {
         return new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D, style, terraceSteps, cliffFraction,
-                bedProfile, shoreRise, blendBaseWidth);
+                bedProfile, shoreRise, blendBaseWidth, HydrologyPlannerSettings.Excavation.defaults());
     }
 
     private static void assertSameField(Compiled expected, Compiled actual) {
@@ -742,14 +805,18 @@ public class ErosionFieldCompilerTest {
         HydrologyTerrainSampler shelf = (int x, int z) ->
                 HydrologyTerrainSample.openLand(80 + Math.min(16, Math.max(0, Math.abs(z) - 4) * 4), 0D, "land");
         Compiled terraced = compile(
-                zeroRoughnessSurface(0, shapedErosion(IrisRiverBlendStyle.TERRACED, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D)),
+                zeroRoughnessSurface(0, new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D,
+                        IrisRiverBlendStyle.TERRACED, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D,
+                        new HydrologyPlannerSettings.Excavation(64, 64, 8192))),
                 shelf, 300, SurfaceTerminal.SINKHOLE, 40);
         Set<Integer> steps = bankHeights(terraced, 150, 9, 40);
         assertTrue(steps.toString(), steps.size() >= 2 && steps.size() <= 4);
         assertHolds(terraced);
 
         Compiled cliff = compile(
-                zeroRoughnessSurface(0, shapedErosion(IrisRiverBlendStyle.CLIFF, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D)),
+                zeroRoughnessSurface(0, new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D,
+                        IrisRiverBlendStyle.CLIFF, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D,
+                        new HydrologyPlannerSettings.Excavation(64, 64, 8192))),
                 shelf, 300, SurfaceTerminal.SINKHOLE, 40);
         Set<Integer> bench = bankHeights(cliff, 150, 9, 40);
         assertEquals(bench.toString(), 2, bench.size());

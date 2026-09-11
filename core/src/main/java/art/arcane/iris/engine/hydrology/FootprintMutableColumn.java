@@ -159,7 +159,7 @@ final class FootprintMutableColumn {
                 first.connectedFluid() || second.connectedFluid(),
                 first.fallingFluid() || second.fallingFluid(),
                 first.receivingPool() || second.receivingPool(),
-                first.terrainOwned() || second.terrainOwned(),
+                (first.terrainOwned() || second.terrainOwned()) && (!drySurfaceBlend || bedY < naturalHeight),
                 first.fluidOwned() || second.fluidOwned(),
                 first.oceanApron() || second.oceanApron(),
                 first.profileKey(),

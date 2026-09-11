@@ -30,6 +30,7 @@ import art.arcane.iris.engine.history.TransitionGenerationPlan;
 import art.arcane.iris.engine.history.TerrainBoundarySignature;
 import art.arcane.iris.engine.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.engine.hydrology.HydrologyColumnSample;
+import art.arcane.iris.engine.hydrology.HydrologyColumnSnapshot;
 import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
 import art.arcane.iris.engine.hydrology.runtime.IrisHydrologyNaturalSample;
 import art.arcane.iris.engine.hydrology.runtime.IrisHydrologyRuntime;
@@ -53,10 +54,12 @@ import art.arcane.iris.engine.object.IrisDeepFluidConfig;
 import art.arcane.iris.engine.object.IrisSurfacePoolConfig;
 import art.arcane.iris.engine.object.IrisHydrology;
 import art.arcane.iris.engine.object.IrisRiverHydrology;
+import art.arcane.iris.engine.object.IrisRiverBank3DConfig;
 import art.arcane.iris.engine.object.IrisRiverProfile;
 import art.arcane.iris.engine.object.IrisShapedGeneratorStyle;
 import art.arcane.iris.engine.terrain.Terrain3DColumn;
 import art.arcane.iris.engine.terrain.Terrain3DRuntime;
+import art.arcane.iris.engine.terrain.HydrologyBankTerrainRuntime;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBiome;
@@ -97,8 +100,8 @@ import java.nio.file.Path;
 import java.util.function.BiFunction;
 
 @Data
-@EqualsAndHashCode(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "hydrologyRuntime", "imageMapRuntime", "terrainEngine", "terrain3D"})
-@ToString(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "hydrologyRuntime", "imageMapRuntime", "terrainEngine", "terrain3D"})
+@EqualsAndHashCode(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "hydrologyRuntime", "imageMapRuntime", "terrainEngine", "terrain3D", "hydrologyBanks3D"})
+@ToString(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "hydrologyRuntime", "imageMapRuntime", "terrainEngine", "terrain3D", "hydrologyBanks3D"})
 public class IrisComplex implements DataProvider {
     private static final NoiseBounds ZERO_NOISE_BOUNDS = new NoiseBounds(0D, 0D);
     private static final AtomicLong lastBoundsFailureLog = new AtomicLong(0L);
@@ -157,6 +160,7 @@ public class IrisComplex implements DataProvider {
     private final transient Engine terrainEngine;
     @Getter(AccessLevel.NONE)
     private transient Terrain3DRuntime terrain3D;
+    private transient HydrologyBankTerrainRuntime hydrologyBanks3D;
     private ProceduralStream<Double> unblendedNaturalHeightStream;
     private final ResolvedTerrainProvider resolvedTerrain;
     private ProceduralStream<Double> placementHeightStream;
@@ -408,9 +412,22 @@ public class IrisComplex implements DataProvider {
                     () -> engine.getPlatformHooks().isMainThread()
             ));
             hydrologyRuntime.setNeighbourPrefetchEnabled(!engine.isStudio());
+            IrisRiverBank3DConfig banks3D = configuredHydrology.getRivers().getGeometry().getBanks3D();
+            banks3D.validate();
+            if (configuredHydrology.getRivers().isEnabled()
+                    && configuredHydrology.getRivers().getSurface().isEnabled()
+                    && banks3D.isEnabled() && banks3D.getAmplitude() > 0D) {
+                hydrologyBanks3D = new HydrologyBankTerrainRuntime(
+                        new HydrologyBankTerrainRuntime.Sources(
+                                (x, z) -> naturalBankTerrainColumn(x, z, engine.getHeight()), this::sampleHydrologySnapshot),
+                        new HydrologyBankTerrainRuntime.Options(engine.getSeedManager().getBodies(), engine.getHeight(),
+                                Math.max(4096, cacheSize), data, banks3D));
+            }
         }
-        heightStream = ProceduralStream.ofDouble((x, z) -> resolveHydrologyTerrainHeight(x, z))
+        ProceduralStream<Double> cachedHeightStream = ProceduralStream.ofDouble((x, z) -> resolveHydrologyTerrainHeight(x, z))
                 .cache2DDouble("heightStream", engine, cacheSize);
+        heightStream = ProceduralStream.ofDouble((x, z) -> terrainEngine.getPlatformHooks().isMainThread()
+                ? nonblockingTerrainHeight(x, z) : cachedHeightStream.getDouble(x, z));
         placementHeightStream = ProceduralStream.ofDouble(this::samplePlacementHeight);
         roundedHeighteightStream = placementHeightStream.contextInjecting(engine, (c, x, z) -> c.getHeight().getDouble(x, z))
                 .round();
@@ -578,27 +595,33 @@ public class IrisComplex implements DataProvider {
     }
 
     public boolean hasTerrain3D() {
-        return terrain3D != null && terrain3D.active();
+        return terrain3D != null && terrain3D.active() || hydrologyBanks3D != null;
     }
 
     public Terrain3DColumn terrainColumn(int x, int z, HydrologyColumnSample hydrology) {
         if (hydrology != null) {
             HydrologyColumnLayer layer = hydrology.primarySurfaceLayer().orElse(null);
             if (layer != null && layer.terrainOwned()) {
-                return null;
+                return hydrologyBanks3D != null && !layer.channel() && layer.feature().type().isSurface()
+                        ? hydrologyBanks3D.column(x, z) : null;
             }
         }
         return naturalTerrainColumn(x, z);
     }
 
     public Terrain3DColumn terrainColumn(int x, int z) {
-        if (terrain3D == null || !terrain3D.active()) {
+        if (!hasTerrain3D()) {
             return null;
         }
         if (terrainEngine != null && terrainEngine.answersFromNaturalTerrain(x, z)) {
             return naturalTerrainColumn(x, z);
         }
         return terrainColumn(x, z, sampleHydrologyColumn(x, z));
+    }
+
+    private Terrain3DColumn naturalBankTerrainColumn(int x, int z, int height) {
+        Terrain3DColumn natural = naturalTerrainColumn(x, z);
+        return natural == null ? Terrain3DColumn.unshaped(naturalHeightStream.getDouble(x, z), height) : natural;
     }
 
     public boolean isTerrain3DOpening(int x, int y, int z) {
@@ -860,7 +883,28 @@ public class IrisComplex implements DataProvider {
 
     private double resolveHydrologyTerrainHeight(double x, double z) {
         HydrologyColumnSample sample = hydrologySample(x, z);
-        return sample == null ? naturalHeightStream.get(x, z) : sample.terrainHeight();
+        if (sample == null) {
+            return naturalHeightStream.get(x, z);
+        }
+        HydrologyColumnLayer layer = sample.primarySurfaceLayerOrNull();
+        if (hydrologyBanks3D != null && layer != null && layer.terrainOwned() && !layer.channel()) {
+            return hydrologyBanks3D.column(blockCoordinate(x), blockCoordinate(z)).topY();
+        }
+        return sample.terrainHeight();
+    }
+
+    private double nonblockingTerrainHeight(double x, double z) {
+        HydrologyColumnSnapshot snapshot = sampleHydrologySnapshot(blockCoordinate(x), blockCoordinate(z));
+        if (!snapshot.available() || snapshot.column() == null) {
+            return naturalHeightStream.getDouble(x, z);
+        }
+        HydrologyColumnSample sample = snapshot.column();
+        HydrologyColumnLayer layer = sample.primarySurfaceLayerOrNull();
+        if (hydrologyBanks3D != null && layer != null && layer.terrainOwned() && !layer.channel()) {
+            Optional<Terrain3DColumn> column = hydrologyBanks3D.columnIfReady(blockCoordinate(x), blockCoordinate(z));
+            return column.isPresent() ? column.get().topY() : naturalHeightStream.getDouble(x, z);
+        }
+        return sample.terrainHeight();
     }
 
     private double resolveHydrologyDistance(double x, double z) {
@@ -917,6 +961,19 @@ public class IrisComplex implements DataProvider {
             return sample;
         }
         return taperHydrologySample(sample, hydrologyWeight);
+    }
+
+    private HydrologyColumnSnapshot sampleHydrologySnapshot(int x, int z) {
+        if (hydrologyRuntime == null) {
+            return HydrologyColumnSnapshot.ready(null);
+        }
+        double weight = transitionHydrologyWeight(x, z);
+        if (weight == 0D) {
+            return HydrologyColumnSnapshot.ready(null);
+        }
+        HydrologyColumnSnapshot snapshot = hydrologyRuntime.sampleSnapshot(x, z);
+        return !snapshot.available() || snapshot.column() == null || weight == 1D ? snapshot
+                : HydrologyColumnSnapshot.ready(taperHydrologySample(snapshot.column(), weight));
     }
 
     static HydrologyColumnSample taperHydrologySample(
@@ -983,9 +1040,22 @@ public class IrisComplex implements DataProvider {
 
     /** Whether the column's hydrology can be sampled without waiting for a plan (see Engine.answersFromNaturalTerrain). */
     public boolean isHydrologyPlanned(int x, int z) {
-        return hydrologyRuntime == null
-                || transitionHydrologyWeight(x, z) == 0D
-                || hydrologyRuntime.isPlanned(x, z);
+        if (hydrologyRuntime == null || transitionHydrologyWeight(x, z) == 0D) {
+            return true;
+        }
+        if (!hydrologyRuntime.isPlanned(x, z)) {
+            return false;
+        }
+        if (hydrologyBanks3D == null || !terrainEngine.getPlatformHooks().isMainThread()) {
+            return true;
+        }
+        HydrologyColumnSnapshot snapshot = sampleHydrologySnapshot(x, z);
+        if (!snapshot.available()) {
+            return false;
+        }
+        HydrologyColumnLayer layer = snapshot.column() == null ? null : snapshot.column().primarySurfaceLayerOrNull();
+        return layer == null || !layer.terrainOwned() || layer.channel()
+                || hydrologyBanks3D.columnIfReady(x, z).isPresent();
     }
 
     public ProceduralStream<Double> getRawHeightStream() {
@@ -1893,6 +1963,9 @@ public class IrisComplex implements DataProvider {
     }
 
     public void close() {
+        if (hydrologyBanks3D != null) {
+            hydrologyBanks3D.clear();
+        }
         if (terrain3D != null) {
             terrain3D.clear();
         }

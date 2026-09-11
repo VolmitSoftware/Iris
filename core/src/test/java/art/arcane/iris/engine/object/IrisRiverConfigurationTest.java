@@ -83,6 +83,11 @@ public class IrisRiverConfigurationTest {
         assertEquals(0.5D, surface.getErosion().getCliffFraction(), 0D);
         assertEquals(IrisRiverBedProfile.BOWL, surface.getErosion().getBedProfile());
         IrisRiverGeometryConfig geometry = dimension.getHydrology().getRivers().getGeometry();
+        assertTrue(geometry.getBanks3D().isEnabled());
+        assertEquals(8D, geometry.getBanks3D().getAmplitude(), 0D);
+        assertEquals(48D, geometry.getBanks3D().getHorizontalScale(), 0D);
+        assertEquals(8D, geometry.getBanks3D().getVerticalScale(), 0D);
+        assertEquals(8, geometry.getBanks3D().getMaximumOverhang());
         IrisSurfaceRiverShapeConfig surfaceShape = geometry.getSurface();
         assertEquals(2D, surfaceShape.getBedRoundness(), 0D);
         assertNull(surfaceShape.getBedRoughness());

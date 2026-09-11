@@ -6,10 +6,12 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalLong;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class HydrologyPlannerTributaryTest {
@@ -108,7 +110,7 @@ public class HydrologyPlannerTributaryTest {
             centerline.add(new HydrologyPoint(x, 120, 0));
         }
         ArrayList<HydraulicSegment> segments = new ArrayList<>(List.of(new HydraulicSegment(
-                1L, 7L, HydrologyFeatureType.SURFACE_POOL, 120, 120, 4, 2, false, false, List.copyOf(centerline))));
+                1L, 7L, HydrologyFeatureType.SURFACE_POOL, 120, 120, 4, 2, false, false, List.copyOf(centerline), HydraulicChannelProfile.uniform(4, 2))));
 
         planner.tributaries.levelApproach(segments, 100);
 
@@ -146,7 +148,7 @@ public class HydrologyPlannerTributaryTest {
             centerline.add(new HydrologyPoint(x, x >= 4 && x <= 6 ? 122 : 120, 0));
         }
         ArrayList<HydraulicSegment> segments = new ArrayList<>(List.of(new HydraulicSegment(
-                1L, 7L, HydrologyFeatureType.SURFACE_POOL, 120, 120, 4, 2, false, false, List.copyOf(centerline))));
+                1L, 7L, HydrologyFeatureType.SURFACE_POOL, 120, 120, 4, 2, false, false, List.copyOf(centerline), HydraulicChannelProfile.uniform(4, 2))));
 
         planner.tributaries.levelApproach(segments, 112);
 
@@ -161,6 +163,82 @@ public class HydrologyPlannerTributaryTest {
         assertTrue("bump above the head at x=5", graded.get(5).y() <= 120);
         assertTrue(graded.getFirst().y() <= 120);
         assertTrue(segments.getFirst().upstreamHeadY() >= segments.getFirst().downstreamHeadY());
+    }
+
+    @Test
+    public void loweringAnApproachCanFlattenAContainedFallIntoAnExposedPool() {
+        HydrologyTerrainSampler terrain = (x, z) -> land(100);
+        HydrologyPlannerSettings settings = HydrologyPlannerSettings.defaults();
+        HydrologyPlanner planner = new HydrologyPlanner(23L, settings, terrain);
+        HydraulicChannelProfile profile = new HydraulicChannelProfile(new double[]{8D, 6D}, new double[]{3D, 2D});
+        ArrayList<HydraulicSegment> segments = new ArrayList<>(List.of(new HydraulicSegment(
+                1L, 7L, HydrologyFeatureType.WATERFALL, 120, 110, 8, 3, true, true,
+                List.of(new HydrologyPoint(0, 120, 0), new HydrologyPoint(1, 110, 0)), profile)));
+
+        planner.tributaries.levelApproach(segments, 100);
+
+        HydraulicSegment level = segments.getFirst();
+        assertEquals(HydrologyFeatureType.SURFACE_POOL, level.type());
+        assertEquals(100, level.upstreamHeadY());
+        assertEquals(100, level.downstreamHeadY());
+        assertFalse(level.fallingFluid());
+        assertFalse(level.receivingPool());
+        assertSame(profile, level.channelProfile());
+        assertEquals(List.of(new HydrologyPoint(0, 100, 0), new HydrologyPoint(1, 100, 0)), level.centerline());
+        RiverCourse course = new RiverCourse(7L, RiverCourseType.SURFACE, OptionalLong.of(3L), OptionalLong.of(4L),
+                "default", 1, List.of(), segments);
+        assertSame(HydrologySurfaceDropRaster.empty(), HydrologySurfaceDropRaster.compile(
+                settings, terrain, HydrologyGeometrySampler.deterministic(terrain), course));
+    }
+
+    @Test
+    public void aPartlyLoweredApproachRetainsItsPositiveFallingIntervalAndDimensions() {
+        HydrologyTerrainSampler terrain = (x, z) -> land(x == 0 ? 118 : 100);
+        HydrologyPlanner planner = new HydrologyPlanner(23L, HydrologyPlannerSettings.defaults(), terrain);
+        HydraulicChannelProfile profile = new HydraulicChannelProfile(new double[]{8D, 6D}, new double[]{3D, 2D});
+        ArrayList<HydraulicSegment> segments = new ArrayList<>(List.of(new HydraulicSegment(
+                1L, 7L, HydrologyFeatureType.WATERFALL, 120, 110, 8, 3, true, true,
+                List.of(new HydrologyPoint(0, 120, 0), new HydrologyPoint(1, 110, 0)), profile)));
+
+        planner.tributaries.levelApproach(segments, 100);
+
+        HydraulicSegment falling = segments.getFirst();
+        assertEquals(HydrologyFeatureType.WATERFALL, falling.type());
+        assertTrue(falling.upstreamHeadY() > falling.downstreamHeadY());
+        assertEquals(100, falling.downstreamHeadY());
+        assertTrue(falling.fallingFluid());
+        assertTrue(falling.receivingPool());
+        assertSame(profile, falling.channelProfile());
+        assertEquals(falling.upstreamHeadY(), falling.start().y());
+        assertEquals(falling.downstreamHeadY(), falling.end().y());
+    }
+
+    @Test
+    public void backwaterClearsOnlyTheFallsThatItCompletelySubmerges() {
+        HydraulicChannelProfile profile = new HydraulicChannelProfile(new double[]{8D, 6D}, new double[]{3D, 2D});
+        HydraulicSegment original = new HydraulicSegment(
+                1L, 7L, HydrologyFeatureType.WATERFALL, 120, 110, 8, 3, true, true,
+                List.of(new HydrologyPoint(0, 120, 0), new HydrologyPoint(1, 110, 0)), profile);
+        ArrayList<HydraulicSegment> partlySubmerged = new ArrayList<>(List.of(original));
+        ArrayList<HydraulicSegment> submerged = new ArrayList<>(List.of(original));
+
+        HydrologyTributaryPlanner.backwater(partlySubmerged, 115);
+        HydrologyTributaryPlanner.backwater(submerged, 120);
+
+        HydraulicSegment falling = partlySubmerged.getFirst();
+        assertEquals(HydrologyFeatureType.WATERFALL, falling.type());
+        assertEquals(5, falling.drop());
+        assertTrue(falling.fallingFluid());
+        assertTrue(falling.receivingPool());
+        assertSame(profile, falling.channelProfile());
+        HydraulicSegment level = submerged.getFirst();
+        assertEquals(HydrologyFeatureType.SURFACE_POOL, level.type());
+        assertEquals(120, level.upstreamHeadY());
+        assertEquals(0, level.drop());
+        assertFalse(level.fallingFluid());
+        assertFalse(level.receivingPool());
+        assertSame(profile, level.channelProfile());
+        assertEquals(List.of(new HydrologyPoint(0, 120, 0), new HydrologyPoint(1, 120, 0)), level.centerline());
     }
 
     private static HydrologyTerrainSample land(int height) {
@@ -275,7 +353,7 @@ public class HydrologyPlannerTributaryTest {
     private static HydrologyPlannerSettings settings(int tributaries, double density, int maximumPerTile) {
         HydrologyPlannerSettings base = HydrologyPlannerSettings.defaults();
         HydrologyPlannerSettings.Routing routing = new HydrologyPlannerSettings.Routing(
-                1024, 64, base.routing().maximumRouteNodes(), 4096, 384, 192, 1.5D, 24D, 2D, 0.2D, 1D, tributaries);
+                1024, 64, base.routing().maximumRouteNodes(), 4096, 384, 192, 1.5D, 24D, 2D, 0.2D, 1D, tributaries, HydrologyPlannerSettings.Regional.disabled());
         HydrologyPlannerSettings.Source sources = new HydrologyPlannerSettings.Source(true, density, 0, 0, maximumPerTile, 128);
         HydrologyPlannerSettings.Surface surface = new HydrologyPlannerSettings.Surface(
                 true, sources, 4, 8, 2, 4, 40, 1.5D, HydrologyPlannerSettings.Banks.defaults());
@@ -433,7 +511,7 @@ public class HydrologyPlannerTributaryTest {
         HydrologyPlannerSettings.ChannelShape stableChannel = HydrologyPlannerSettings.ChannelShape.of(2D, 0D, 0D, 11);
         return new HydrologyPlannerSettings(
                 63,
-                new HydrologyPlannerSettings.Routing(128, 16, 512, 256, 0, 0, 0.5D, 12D, 0.5D, 0.1D, 1D, 0),
+                new HydrologyPlannerSettings.Routing(128, 16, 512, 256, 0, 0, 0.5D, 12D, 0.5D, 0.1D, 1D, 0, HydrologyPlannerSettings.Regional.disabled()),
                 new HydrologyPlannerSettings.Surface(false, none, 4, 18, 2, 4, 10, 1.5D, HydrologyPlannerSettings.Banks.defaults()),
                 new HydrologyPlannerSettings.Hydraulics(4),
                 HydrologyPlannerSettings.Underground.of(true, sources, 68, 82, 4, 12, 2, 4, 5, 9, true, tributaries),

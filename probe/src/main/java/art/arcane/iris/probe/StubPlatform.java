@@ -226,7 +226,19 @@ public final class StubPlatform implements IrisPlatform {
 
         @Override
         public boolean canPlaceOnto(PlatformBlockState onto) {
-            return true;
+            if (!blockKey.equals("minecraft:sugar_cane")) {
+                return true;
+            }
+            if (onto == null) {
+                return false;
+            }
+            return switch (ParsedState.parse(onto.key()).blockKey()) {
+                case "minecraft:sugar_cane", "minecraft:grass_block", "minecraft:dirt", "minecraft:coarse_dirt",
+                     "minecraft:podzol", "minecraft:mycelium", "minecraft:rooted_dirt", "minecraft:moss_block",
+                     "minecraft:pale_moss_block", "minecraft:mud", "minecraft:muddy_mangrove_roots",
+                     "minecraft:sand", "minecraft:red_sand", "minecraft:suspicious_sand" -> true;
+                default -> false;
+            };
         }
 
         @Override

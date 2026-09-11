@@ -8,11 +8,12 @@ import art.arcane.iris.engine.hydrology.HydrologyTerrainSampler;
 import java.util.Objects;
 
 public final class ValleyProfileSolver {
-    private static final int BANK_LOOKAHEAD = 2;
+    private static final int BANK_LOOKAHEAD = SurfaceBankSupport.BANK_LOOKAHEAD;
     private final HydrologyPlannerSettings.Surface surface;
     private final HydrologyTerrainSampler sampler;
     private final int seaLevel;
     private final int minimumCourseLength;
+    private final SurfaceBankSupport bankSupport;
 
     public ValleyProfileSolver(
             HydrologyPlannerSettings.Surface surface,
@@ -24,6 +25,7 @@ public final class ValleyProfileSolver {
         this.sampler = Objects.requireNonNull(sampler, "sampler");
         this.seaLevel = seaLevel;
         this.minimumCourseLength = minimumCourseLength;
+        this.bankSupport = new SurfaceBankSupport(surface, seaLevel);
     }
 
     public ValleyProfile solve(
@@ -41,50 +43,37 @@ public final class ValleyProfileSolver {
         double roughness = surface.banks().roughness();
         int exposed = count;
         for (int station = 0; station < count; station++) {
-            double outline = channel.halfWidth()[station] * (1D + roughness);
-            // Every cell from the narrowest possible outline outward can end up beside water, so it joins the minimum.
-            double innerOutline = channel.halfWidth()[station] * (1D - roughness);
-            double reach = outline + 2D;
             int stationX = centerline.x()[station];
             int stationZ = centerline.z()[station];
             HydrologyTerrainSample center = sampler.sample(stationX, stationZ);
-            if (!SurfaceCellAdmission.writable(center, seaLevel)) {
+            if (!writable(center, terminal)) {
                 exposed = station;
                 break;
             }
             centerNatural[station] = center.naturalHeight();
             channelIncision[station] = center.surfacePolicy().maximumIncision(surface.maximumIncision());
             incisionMultiplier[station] = center.incisionMultiplier();
-            double normalX = centerline.normalX(station);
-            double normalZ = centerline.normalZ(station);
-            int minimum = Integer.MAX_VALUE;
-            int maximum = Integer.MIN_VALUE;
-            boolean blocked = false;
-            for (double offset = -reach; offset <= reach && !blocked; offset += 0.5D) {
-                int cellX = (int) StrictMath.round(stationX + normalX * offset);
-                int cellZ = (int) StrictMath.round(stationZ + normalZ * offset);
-                HydrologyTerrainSample terrain = sampler.sample(cellX, cellZ);
-                if (!SurfaceCellAdmission.writable(terrain, seaLevel)) {
-                    blocked = true;
-                    break;
-                }
-                if (Math.abs(offset) < innerOutline - 0.75D) {
-                    continue;
-                }
-                minimum = Math.min(minimum, terrain.naturalHeight());
-                maximum = Math.max(maximum, terrain.naturalHeight());
-            }
-            if (blocked) {
+            SurfaceBankSupport.CrossSection section = bankSupport.crossSection(sampler,
+                    station(centerline, channel, station), terminal == SurfaceTerminal.OCEAN_MOUTH);
+            if (section.blocked()) {
                 exposed = station;
                 break;
             }
-            crossMin[station] = minimum;
-            crossMax[station] = maximum;
+            crossMin[station] = section.minimum();
+            crossMax[station] = section.maximum();
         }
-        if (exposed < 2 || exposed < minimumCourseLength) {
-            return ValleyProfile.rejected(HydrologyCandidateRejection.COURSE_TOO_SHORT, exposed);
+        if (terminal == SurfaceTerminal.COASTAL_GROTTO) {
+            while (exposed > 0 && !terminalCapSupported(centerline, channel, exposed - 1)) {
+                exposed--;
+            }
         }
-        if (exposed < count && terminal != SurfaceTerminal.OCEAN_MOUTH) {
+        double exposedLength = exposedLength(centerline, exposed);
+        if (exposed < 2 || exposedLength < minimumCourseLength) {
+            return ValleyProfile.rejected(HydrologyCandidateRejection.COURSE_TOO_SHORT,
+                    (int) StrictMath.floor(exposedLength));
+        }
+        if (exposed < count && terminal != SurfaceTerminal.OCEAN_MOUTH
+                && terminal != SurfaceTerminal.COASTAL_GROTTO) {
             return ValleyProfile.rejected(HydrologyCandidateRejection.SURFACE_EXPOSURE, exposed);
         }
         // The channel's rounded end caps reach past the first and last stations; the ground under
@@ -96,6 +85,9 @@ public final class ValleyProfileSolver {
         int sink = surface.banks().sink();
         int[] head = new int[count];
         for (int station = 0; station < exposed; station++) {
+            int incomingCeiling = station == 0 ? crossMin[station]
+                    : Math.min(crossMin[station], head[station - 1] + sink);
+            crossMin[station] = bankSupport.perimeter(sampler, station(centerline, channel, station), incomingCeiling).minimum();
             // The cells beside a station's water include cells the next stations own, so on ground
             // that falls gently along the course the head steps down a station early rather than
             // onto a bank the lip cannot raise above its natural height. A larger drop is a step or
@@ -177,6 +169,41 @@ public final class ValleyProfileSolver {
         return new ValleyProfile(head, crossMin, crossMax, centerNatural, exposed, null, 0);
     }
 
+    private static SurfaceBankSupport.Station station(SurfaceCenterline centerline, ChannelProfile channel, int station) {
+        return new SurfaceBankSupport.Station(centerline.x()[station], centerline.z()[station],
+                centerline.tangentX()[station], centerline.tangentZ()[station], channel.halfWidth()[station]);
+    }
+
+    private static double exposedLength(SurfaceCenterline centerline, int exposed) {
+        double length = 0D;
+        for (int station = 1; station < exposed; station++) {
+            length += StrictMath.hypot((double) centerline.x()[station] - centerline.x()[station - 1],
+                    (double) centerline.z()[station] - centerline.z()[station - 1]);
+        }
+        return length;
+    }
+
+    private boolean terminalCapSupported(SurfaceCenterline centerline, ChannelProfile channel, int station) {
+        double reach = channel.halfWidth()[station] * (1D + surface.banks().roughness()) + 2D;
+        int radius = (int) StrictMath.ceil(reach);
+        double reachSquared = reach * reach;
+        double tangentX = centerline.tangentX()[station];
+        double tangentZ = centerline.tangentZ()[station];
+        for (int dz = -radius; dz <= radius; dz++) {
+            for (int dx = -radius; dx <= radius; dx++) {
+                if ((double) dx * dx + (double) dz * dz > reachSquared
+                        || dx * tangentX + dz * tangentZ < 0D) {
+                    continue;
+                }
+                HydrologyTerrainSample terrain = sampler.sample(centerline.x()[station] + dx, centerline.z()[station] + dz);
+                if (!SurfaceCellAdmission.writable(terrain, seaLevel)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     private static boolean cutFits(
             int station,
             int head,
@@ -186,6 +213,12 @@ public final class ValleyProfileSolver {
             int maximumIncision
     ) {
         return cut(station, head, channel, centerNatural) <= permitted(station, incisionMultiplier, maximumIncision);
+    }
+
+    private boolean writable(HydrologyTerrainSample terrain, SurfaceTerminal terminal) {
+        return terminal == SurfaceTerminal.OCEAN_MOUTH
+                ? SurfaceCellAdmission.mouthLand(terrain, seaLevel)
+                : SurfaceCellAdmission.writable(terrain, seaLevel);
     }
 
     /** How far below the natural ground the bed under a head sits at a station. */

@@ -102,7 +102,7 @@ public class HydrologyPlannerSurfacePoolTest {
     private static HydrologyPlannerSettings settings(double density, int spacing, int minimumRadius, int maximumRadius, int depth) {
         HydrologyPlannerSettings base = HydrologyPlannerSettings.defaults();
         HydrologyPlannerSettings.Routing routing = new HydrologyPlannerSettings.Routing(
-                1024, 64, base.routing().maximumRouteNodes(), 4096, 384, 192, 1.5D, 24D, 2D, 0.2D, 1D, 0);
+                1024, 64, base.routing().maximumRouteNodes(), 4096, 384, 192, 1.5D, 24D, 2D, 0.2D, 1D, 0, HydrologyPlannerSettings.Regional.disabled());
         return new HydrologyPlannerSettings(
                 base.seaLevel(),
                 routing,

@@ -45,7 +45,8 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
                                 coordinateCalls.merge(pack(x, z), 1, Integer::sum);
                                 return height(x, z);
                             },
-                            (int x, int z) -> false
+                            (int x, int z) -> false,
+                            128
                     ),
                     IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(65_536)
             );
@@ -121,7 +122,8 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
                             heightCalls.incrementAndGet();
                             return height(x, z);
                         },
-                        (int x, int z) -> false
+                        (int x, int z) -> false,
+                        128
                 ),
                 IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(64)
         );
@@ -145,7 +147,8 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
                             calls.incrementAndGet();
                             return height(x, z);
                         },
-                        (int x, int z) -> false
+                        (int x, int z) -> false,
+                        128
                     ),
                     IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(64)
             );
@@ -177,7 +180,8 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
                             calls.add("height:" + x + "," + z);
                             return height(x, z);
                         },
-                        (int x, int z) -> false
+                        (int x, int z) -> false,
+                        128
                 ),
                 IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(64)
         );
@@ -210,7 +214,8 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
                         (int x, int z) -> {
                             classifierCalls.incrementAndGet();
                             return x >= 0;
-                        }
+                        },
+                        128
                     ),
                     IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(16)
             );
@@ -242,7 +247,8 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
                             calls.merge(pack(x, z), 1, Integer::sum);
                             return height(x, z);
                         },
-                        (int x, int z) -> false
+                        (int x, int z) -> false,
+                        128
                     ),
                     IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(16)
             );
@@ -276,7 +282,8 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
                             heightCalls.incrementAndGet();
                             return height(x, z);
                         },
-                        (int x, int z) -> false
+                        (int x, int z) -> false,
+                        128
                     ),
                     IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(64)
             );
@@ -332,7 +339,8 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
                         (int x, int z) -> {
                             classifierCalls.merge(pack(x, z), 1, Integer::sum);
                             return false;
-                        }
+                        },
+                        128
                 ),
                 IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(2)
         );
@@ -371,7 +379,8 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
                             heightCalls.incrementAndGet();
                             return Double.NaN;
                         },
-                        (int x, int z) -> false
+                        (int x, int z) -> false,
+                        128
                 ),
                 IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(16)
         );
@@ -480,7 +489,8 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
                                 heightCalls.incrementAndGet();
                                 return height(x, z);
                             },
-                            (int x, int z) -> false
+                            (int x, int z) -> false,
+                            128
                     ),
                     new IrisHydrologyRoutingTerrainSampler.SamplingOptions(
                             65_536,
@@ -516,7 +526,8 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
                                 }
                                 return height(x, z);
                             },
-                            (int x, int z) -> false
+                            (int x, int z) -> false,
+                            128
                     ),
                     new IrisHydrologyRoutingTerrainSampler.SamplingOptions(
                             65_536,
@@ -542,7 +553,8 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
                 new IrisHydrologyRoutingTerrainSampler.Sources(
                         (int x, int z, double naturalHeight) -> basis(x, z, naturalHeight),
                         (int x, int z) -> height(x, z),
-                        (int x, int z) -> x >= 1
+                        (int x, int z) -> x >= 1,
+                        128
                 ),
                 IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(maximumEntries)
         );
@@ -567,7 +579,8 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
                             coordinateCalls.merge(pack(x, z), 1, Integer::sum);
                             return height(x, z);
                         },
-                        (int x, int z) -> false
+                        (int x, int z) -> false,
+                        128
                 ),
                 new IrisHydrologyRoutingTerrainSampler.SamplingOptions(
                         maximumEntries,
@@ -651,7 +664,8 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
                             }
                             return 90D;
                         },
-                        (int x, int z) -> false
+                        (int x, int z) -> false,
+                        128
                 ),
                 IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(64)
         );

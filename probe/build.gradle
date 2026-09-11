@@ -94,6 +94,36 @@ Provider<String> probeTileZ = providers.gradleProperty('probeTileZ')
 Provider<String> probeOutput = providers.gradleProperty('probeOutput')
 Provider<String> probeStrictGeometry = providers.gradleProperty('probeStrictGeometry').orElse('false')
 
+tasks.register('hydrologyBlockProbe', JavaExec) {
+    group = 'verification'
+    description = 'Generates up to 64 real pack chunks and checks final cane support, channel fluid and mouth ocean connectivity, with block category images.'
+    mainClass = 'art.arcane.iris.probe.HydrologyBlockProbe'
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
+    dependsOn(':core:compileJava')
+    doFirst {
+        Map<String, Provider<String>> required = [
+            probePack: probePack,
+            probeDimension: probeDimension,
+            probeSeed: probeSeed,
+            probeMinimumChunkX: probeMinimumChunkX,
+            probeMaximumChunkX: probeMaximumChunkX,
+            probeMinimumChunkZ: probeMinimumChunkZ,
+            probeMaximumChunkZ: probeMaximumChunkZ,
+            probeRequiredCoverage: probeRequiredCoverage,
+            probeOutput: probeOutput
+        ]
+        required.each { String name, Provider<String> value ->
+            if (!value.isPresent() || value.get().isBlank()) {
+                throw new GradleException("hydrologyBlockProbe requires -P${name}=<value>")
+            }
+        }
+        args(probePack.get(), probeDimension.get(), probeSeed.get(), probeMinimumChunkX.get(),
+            probeMaximumChunkX.get(), probeMinimumChunkZ.get(), probeMaximumChunkZ.get(),
+            probeRequiredCoverage.get(), probeOutput.get(), probeStudio.get())
+    }
+}
+
 tasks.register('terrain3DProbe', JavaExec) {
     group = 'verification'
     description = 'Generates real pack chunks, verifies volumetric terrain spans and required biome overhang coverage, and exports actual block cross-sections.'
@@ -260,7 +290,7 @@ tasks.register('riverTransectProbe', JavaExec) {
     }
 }
 
-['hydrologyProbe', 'genProbe', 'hydrologyPackProbe', 'generationOrderProbe', 'riverTransectProbe', 'terrain3DProbe'].each { String taskName ->
+['hydrologyProbe', 'genProbe', 'hydrologyPackProbe', 'generationOrderProbe', 'riverTransectProbe', 'terrain3DProbe', 'hydrologyBlockProbe'].each { String taskName ->
     tasks.named(taskName, JavaExec).configure { JavaExec task ->
         classpath += configurations.studioProbeApi
         doFirst {

@@ -35,6 +35,7 @@ import art.arcane.iris.engine.mantle.components.MantleHydrologyCaveVoxelView;
 import art.arcane.iris.engine.object.IrisBiome;
 import art.arcane.iris.engine.object.IrisBiomeCustom;
 import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.IrisRiverBlendStyle;
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.matter.MatterUpdate;
@@ -1682,7 +1683,8 @@ public final class HydrologyPackProbe {
             uncontainedSurfaceBankEdges += bankEdges.total();
             missingSurfaceBankEdges += bankEdges.missing();
             lowSurfaceBankEdges += bankEdges.low();
-            BankContinuityMetrics bankContinuity = bankContinuityMetrics(tile.footprint());
+            BankContinuityMetrics bankContinuity = bankContinuityMetrics(tile.footprint(),
+                    settings.surface().banks().erosion().style() == IrisRiverBlendStyle.SMOOTH);
             bankStepViolations += bankContinuity.violations();
             maximumBankStep = Math.max(maximumBankStep, bankContinuity.maximumStep());
             observeSurfaceIncision(tile, settings, ownedCompleteSurfaceCourseIds);
@@ -1743,7 +1745,7 @@ public final class HydrologyPackProbe {
             TreeMap<Long, long[]> totals = new TreeMap<>();
             for (HydrologyColumnSample sample : footprint.columns().values()) {
                 HydrologyColumnLayer layer = sample.primarySurfaceLayer().orElse(null);
-                if (layer == null || !layer.channel()
+                if (layer == null || !layer.channel() || layer.oceanApron() || !layer.terrainOwned()
                         || !scopedCourseIds.contains(layer.feature().courseId())) {
                     continue;
                 }
@@ -1805,7 +1807,7 @@ public final class HydrologyPackProbe {
         }
 
         String machineLine() {
-            return "IRIS_HYDROLOGY_PACK_SHAPE version=15 " + summary()
+            return "IRIS_HYDROLOGY_PACK_SHAPE version=16 " + summary()
                     + " " + publishedMorphology.summary();
         }
 
@@ -1902,7 +1904,7 @@ public final class HydrologyPackProbe {
                     bankStepViolations == 0,
                     String.format(
                             Locale.ROOT,
-                            "bank_step_violations=%d maximum_bank_step=%d maximum_allowed_step=%d",
+                            "bank_step_violations=%d maximum_bank_step=%d maximum_added_step=%d",
                             bankStepViolations,
                             maximumBankStep,
                             MAXIMUM_GRADED_STEP
@@ -2126,9 +2128,9 @@ public final class HydrologyPackProbe {
             return Set.copyOf(ownedCourseIds);
         }
 
-        private void observeOceanIntegrity(HydrologyColumnSample sample) {
+        void observeOceanIntegrity(HydrologyColumnSample sample) {
             boolean ocean = sample.ocean();
-            boolean naturallySubmerged = sample.naturalHeight() <= sample.seaLevel();
+            boolean naturallySubmerged = sample.naturalHeight() < sample.seaLevel();
             if (!ocean && !naturallySubmerged) {
                 if (carriesOceanApron(sample)) {
                     oceanApronLandColumns++;
@@ -2173,11 +2175,11 @@ public final class HydrologyPackProbe {
             return false;
         }
 
-        static int bankContinuityViolations(RiverFootprint footprint) {
-            return bankContinuityMetrics(footprint).violations();
+        static int bankContinuityViolations(RiverFootprint footprint, boolean smoothBanks) {
+            return bankContinuityMetrics(footprint, smoothBanks).violations();
         }
 
-        private static BankContinuityMetrics bankContinuityMetrics(RiverFootprint footprint) {
+        private static BankContinuityMetrics bankContinuityMetrics(RiverFootprint footprint, boolean smoothBanks) {
             int violations = 0;
             int maximumStep = 0;
             int[] offsets = {1, 0, 0, 1};
@@ -2195,9 +2197,10 @@ public final class HydrologyPackProbe {
                         continue;
                     }
                     int step = Math.abs(height - neighbor.terrainHeight());
-                    if (step > MAXIMUM_GRADED_STEP) {
+                    int naturalStep = Math.abs(sample.naturalHeight() - neighbor.naturalHeight());
+                    maximumStep = Math.max(maximumStep, step);
+                    if (smoothBanks && step - naturalStep > MAXIMUM_GRADED_STEP) {
                         violations++;
-                        maximumStep = Math.max(maximumStep, step);
                     }
                 }
             }
@@ -2244,12 +2247,12 @@ public final class HydrologyPackProbe {
                     }
                     if (neighbor != null
                             && layer.fluidHeadY() <= neighbor.seaLevel()
-                            && (neighbor.ocean() || neighbor.naturalHeight() <= neighbor.seaLevel())) {
+                            && neighbor.ocean() && neighbor.naturalHeight() < neighbor.seaLevel()) {
                         continue;
                     }
                     if (neighbor == null) {
                         missing++;
-                    } else if (neighbor.terrainHeight() <= layer.fluidHeadY()) {
+                    } else if (neighbor.terrainHeight() < layer.fluidHeadY()) {
                         low++;
                     }
                 }

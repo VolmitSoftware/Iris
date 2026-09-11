@@ -19,4 +19,10 @@ public class SurfaceCellAdmissionTest {
         assertFalse(SurfaceCellAdmission.writable(HydrologyTerrainSample.openLand(40, 0D, "land"), 60));
         assertFalse(SurfaceCellAdmission.writable(null, 60));
     }
+
+    @Test
+    public void mouthMayCutADrySillButCannotOwnOceanGround() {
+        assertTrue(SurfaceCellAdmission.mouthLand(HydrologyTerrainSample.openLand(60, 0D, "land"), 60));
+        assertFalse(SurfaceCellAdmission.mouthLand(HydrologyTerrainSample.ocean(50, "ocean"), 60));
+    }
 }

@@ -176,7 +176,7 @@ final class HydrologyFeatureSitePlanner {
                 pool.depth(),
                 false,
                 false,
-                centerlinePoints
+                centerlinePoints, HydraulicChannelProfile.uniform(radius * 2, pool.depth())
         );
         return new RiverCourse(
                 courseId,
@@ -651,7 +651,7 @@ final class HydrologyFeatureSitePlanner {
                     Math.max(deepFluid.channelDepth(), verticalRadius),
                     false,
                     false,
-                    List.of(center)
+                    List.of(center), HydraulicChannelProfile.uniform(horizontalRadius * 2 + 1, Math.max(deepFluid.channelDepth(), verticalRadius))
             ));
         }
         if (deepFluid.shortChannels() && deepFluid.maximumChannelLength() > 0) {
@@ -683,7 +683,7 @@ final class HydrologyFeatureSitePlanner {
                                 length,
                                 planner.settings.routing().refinementSpacing(),
                                 site.stableId()
-                        )
+                        ), HydraulicChannelProfile.uniform(deepFluid.channelWidth(), deepFluid.channelDepth())
                 ));
             }
         }

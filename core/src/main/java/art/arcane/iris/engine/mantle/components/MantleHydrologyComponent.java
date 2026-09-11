@@ -192,11 +192,12 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
         Map<CavePosition, PlannedCell> surfaceGuards = new HashMap<>();
         for (HydrologyColumnSample sample : samples.values()) {
             for (HydrologyColumnLayer layer : sample.layers()) {
-                if (layer.oceanApron() || !layer.terrainOwned()) {
+                if (layer.oceanApron() || !ownsVolume(layer)) {
                     continue;
                 }
                 validateLayer(layer, worldHeight);
-                if (layer.channel() && isCaveLayer(layer)) {
+                if (layer.channel() && (isCaveLayer(layer)
+                        || hasAcceptedVolume(sample, layer, cavePlansByCourseId.get(layer.feature().courseId())))) {
                     addCaveVolume(sample, layer, cavePlansByCourseId, caveCells);
                 }
             }
@@ -280,7 +281,7 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
         if (sample != null) {
             for (HydrologyColumnLayer layer : sample.layers()) {
                 if (layer.feature().courseId() == plannedCaveCell.courseId()
-                        && isCaveLayer(layer)
+                        && layer.channel() && ownsVolume(layer) && !layer.oceanApron()
                         && position.y() > layer.bedY()
                         && position.y() <= layer.ceilingY()) {
                     return layer.floodedCaveBiomeKey();
@@ -618,8 +619,8 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
             }
             for (HydrologyColumnLayer layer : sample.layers()) {
                 if (layer.feature().courseId() == plan.source().sourceId()
-                        && layer.channel() && layer.terrainOwned() && !layer.oceanApron()
-                        && isCaveLayer(layer)) {
+                        && layer.channel() && ownsVolume(layer) && !layer.oceanApron()
+                        && (isCaveLayer(layer) || hasAcceptedVolume(sample, layer, plan))) {
                     return false;
                 }
             }
@@ -783,6 +784,24 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
                 || layer.ceilingY() >= worldHeight) {
             throw new IllegalStateException("Accepted hydrology layer exceeds the mantle bounds: " + layer);
         }
+    }
+
+    private static boolean ownsVolume(HydrologyColumnLayer layer) {
+        return layer.terrainOwned() || layer.fallingFluid() && layer.fluidOwned();
+    }
+
+    private static boolean hasAcceptedVolume(HydrologyColumnSample sample, HydrologyColumnLayer layer,
+                                              HydrologyCavePlan plan) {
+        if (plan == null || !plan.accepted()) {
+            return false;
+        }
+        for (int y = layer.bedY() + 1; y <= layer.ceilingY(); y++) {
+            HydrologyCaveAction action = plan.actions().get(new CavePosition(sample.x(), y, sample.z()));
+            if (action != null && action != HydrologyCaveAction.SEAL_GUARD) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isCaveLayer(HydrologyColumnLayer layer) {

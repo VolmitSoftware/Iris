@@ -300,7 +300,7 @@ public class HydrologyTileCacheTest {
     private static HydrologyPlannerSettings stalePrefetchSettings() {
         HydrologyPlannerSettings settings = mock(HydrologyPlannerSettings.class);
         when(settings.routing()).thenReturn(new HydrologyPlannerSettings.Routing(
-                1024, 64, 4096, 2048, 0, 0, 0D, 0D, 0D, 0D, 1D, 0));
+                1024, 64, 4096, 2048, 0, 0, 0D, 0D, 0D, 0D, 1D, 0, HydrologyPlannerSettings.Regional.disabled()));
         when(settings.publicationRadius()).thenReturn(364);
         return settings;
     }
@@ -624,7 +624,7 @@ public class HydrologyTileCacheTest {
         );
         return new HydrologyPlannerSettings(
                 63,
-                new HydrologyPlannerSettings.Routing(64, 16, 128, 64, 0, 0, 0D, 0D, 0D, 0D, 1D, 0),
+                new HydrologyPlannerSettings.Routing(64, 16, 128, 64, 0, 0, 0D, 0D, 0D, 0D, 1D, 0, HydrologyPlannerSettings.Regional.disabled()),
                 new HydrologyPlannerSettings.Surface(false, disabled, 2, 4, 1, 2, 4, 1D,
                         HydrologyPlannerSettings.Banks.defaults()),
                 new HydrologyPlannerSettings.Hydraulics(3),
@@ -676,7 +676,7 @@ public class HydrologyTileCacheTest {
         );
         return new HydrologyPlannerSettings(
                 63,
-                new HydrologyPlannerSettings.Routing(64, 16, 128, 96, 16, 8, 0.5D, 12D, 0.5D, 0.1D, 1D, 0),
+                new HydrologyPlannerSettings.Routing(64, 16, 128, 96, 16, 8, 0.5D, 12D, 0.5D, 0.1D, 1D, 0, HydrologyPlannerSettings.Regional.disabled()),
                 new HydrologyPlannerSettings.Surface(true, surfaceSources, 4, 8, 2, 3, 20, 1.5D, tileBoundedBanks()),
                 new HydrologyPlannerSettings.Hydraulics(3),
                 HydrologyPlannerSettings.Underground.of(false, disabled, -32, 32, 2, 4, 1, 2, 3, 4, false, 0),
@@ -1672,6 +1672,56 @@ public class HydrologyTileCacheTest {
         assertTrue(cache.columnAt(40, 40).isEmpty());
         verify(planner, org.mockito.Mockito.atLeastOnce()).plan(any(HydrologyTileKey.class));
         assertTrue(cache.isPlanned(40, 40));
+    }
+
+    @Test
+    public void authoritativeSnapshotsDistinguishPendingPlansFromPlannedNaturalTerrain() {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        when(planner.settings()).thenReturn(emptySettings());
+        when(planner.plan(any(HydrologyTileKey.class))).thenReturn(tile);
+        when(tile.columnAt(anyInt(), anyInt())).thenReturn(Optional.empty());
+        List<Runnable> queued = new ArrayList<>();
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 64, queued::add, () -> true);
+
+        assertFalse(cache.columnSnapshot(40, 40).available());
+        verify(planner, never()).plan(any(HydrologyTileKey.class));
+        assertFalse(queued.isEmpty());
+        for (Runnable task : List.copyOf(queued)) {
+            task.run();
+        }
+
+        HydrologyColumnSnapshot snapshot = cache.columnSnapshot(40, 40);
+        assertTrue(snapshot.available());
+        assertEquals(null, snapshot.column());
+    }
+
+    @Test
+    public void nonblockingCompositionRetainsItsTileSnapshotAcrossCacheEviction() {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        when(planner.settings()).thenReturn(emptySettings());
+        when(planner.plan(any(HydrologyTileKey.class))).thenReturn(tile);
+        List<Runnable> queued = new ArrayList<>();
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 64, queued::add, () -> true);
+        assertFalse(cache.columnSnapshot(40, 40).available());
+        for (Runnable task : List.copyOf(queued)) {
+            task.run();
+        }
+        AtomicBoolean evicted = new AtomicBoolean();
+        when(tile.columnAt(anyInt(), anyInt())).thenAnswer(invocation -> {
+            if (evicted.compareAndSet(false, true)) {
+                cache.clear();
+            }
+            return Optional.empty();
+        });
+
+        HydrologyColumnSnapshot snapshot = cache.columnSnapshot(40, 40);
+
+        assertTrue(evicted.get());
+        assertTrue(snapshot.available());
+        assertEquals(null, snapshot.column());
+        assertFalse(cache.columnSnapshot(40, 40).available());
     }
 
 }

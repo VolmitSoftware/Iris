@@ -144,7 +144,7 @@ public class MantleHydrologyCaveVoxelViewTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void footprintOwnedBedsFillNaturalGapsEvenWhenTheirHeightIsUnchanged() {
+    public void biomeOnlyShorePreservesNaturalUndercuts() {
         Mantle<Matter> mantle = mock(Mantle.class);
         Engine engine = configuredEngine(mantle);
         IrisComplex complex = undercutTerrain();
@@ -153,6 +153,27 @@ public class MantleHydrologyCaveVoxelViewTest {
         when(sample.z()).thenReturn(0);
         when(sample.terrainHeight()).thenReturn(80);
         when(sample.primarySurfaceLayer()).thenReturn(Optional.of(mock(HydrologyColumnLayer.class)));
+        RiverFootprint footprint = new RiverFootprint(Map.of(RiverFootprint.pack(0, 0), sample));
+        MantleHydrologyCaveVoxelView view = new MantleHydrologyCaveVoxelView(engine, complex, footprint);
+
+        assertEquals(CaveVoxel.CAVE_AIR, view.voxelAt(new CavePosition(0, 50, 0)));
+        assertEquals(CaveVoxel.SOLID, view.voxelAt(new CavePosition(0, 70, 0)));
+        verify(complex).isNaturalTerrainSolid(0, 50, 0);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void footprintOwnedBedsFillNaturalGapsEvenWhenTheirHeightIsUnchanged() {
+        Mantle<Matter> mantle = mock(Mantle.class);
+        Engine engine = configuredEngine(mantle);
+        IrisComplex complex = undercutTerrain();
+        HydrologyColumnSample sample = mock(HydrologyColumnSample.class);
+        when(sample.x()).thenReturn(0);
+        when(sample.z()).thenReturn(0);
+        when(sample.terrainHeight()).thenReturn(80);
+        HydrologyColumnLayer layer = mock(HydrologyColumnLayer.class);
+        when(layer.terrainOwned()).thenReturn(true);
+        when(sample.primarySurfaceLayer()).thenReturn(Optional.of(layer));
         RiverFootprint footprint = new RiverFootprint(Map.of(RiverFootprint.pack(0, 0), sample));
         MantleHydrologyCaveVoxelView view = new MantleHydrologyCaveVoxelView(engine, complex, footprint);
 

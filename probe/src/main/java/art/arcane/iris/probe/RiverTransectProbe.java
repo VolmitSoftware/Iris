@@ -9,7 +9,11 @@ import art.arcane.iris.engine.hydrology.HydrologyCandidateKind;
 import art.arcane.iris.engine.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.engine.hydrology.HydrologyColumnSample;
 import art.arcane.iris.engine.hydrology.HydrologyDiagnosticCandidate;
+import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
+import art.arcane.iris.engine.object.InferredType;
 import art.arcane.iris.engine.hydrology.HydrologyPoint;
+import art.arcane.iris.engine.hydrology.HydrologyPlannerSettings;
+import art.arcane.iris.engine.hydrology.surface.SurfaceExcavationMetrics;
 import art.arcane.iris.engine.hydrology.HydrologyTile;
 import art.arcane.iris.engine.hydrology.HydrologyTileKey;
 import art.arcane.iris.engine.hydrology.RiverCourse;
@@ -25,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -68,9 +73,21 @@ public final class RiverTransectProbe {
         }
     }
 
-    record ColumnView(int x, int z, int natural, int terrain, int water, Role role) {
+    record ColumnPlan(boolean ocean, boolean terrainOwned, boolean fluidOwned, boolean mouth, int bedY, long courseId) {
+    }
+
+    record ColumnView(int x, int z, int natural, int terrain, int water, Role role, ColumnPlan plan) {
         int cut() {
             return natural - terrain;
+        }
+    }
+
+    record SummaryOptions(long courseId, SurfaceCenterline centerline, int seaLevel,
+                          HydrologyPlannerSettings.Excavation limits) {
+        SummaryOptions {
+            if (centerline == null || centerline.size() < 1 || limits == null) {
+                throw new IllegalArgumentException("A nonempty centerline and excavation limits are required.");
+            }
         }
     }
 
@@ -83,17 +100,31 @@ public final class RiverTransectProbe {
             int maximumBankStep,
             int oceanWrites,
             int uncontainedWetCells,
+            int drySillCuts,
+            int invalidDrySillCuts,
+            int maximumBankCut,
+            long bankExcavation,
+            int estimatedBankVolumePerBlock,
+            int bankVolumeLimit,
+            int bankBudgetViolations,
+            int connectedMouthColumns,
+            int disconnectedMouthColumns,
             List<String> details
     ) {
         boolean passes() {
-            return oceanWrites == 0 && uncontainedWetCells == 0;
+            return oceanWrites == 0 && uncontainedWetCells == 0 && invalidDrySillCuts == 0
+                    && bankBudgetViolations == 0 && disconnectedMouthColumns == 0;
         }
 
         String line() {
             return String.format(Locale.ROOT,
-                    "%s course=%d %s stations=%d owned=%d cut=%d..%d bankStep=%d oceanWrites=%d uncontained=%d",
+                    "%s course=%d %s stations=%d owned=%d cut=%d..%d bankStep=%d oceanWrites=%d uncontained=%d "
+                            + "drySillCuts=%d invalidSills=%d bankCut=%d bankVolume=%d estimatedBankVolumePerBlock=%d bankVolumeLimit=%d bankBudgetViolations=%d "
+                            + "connectedMouthColumns=%d disconnectedMouthColumns=%d",
                     PREFIX, id, passes() ? "PASS" : "FAIL", stations, ownedColumns, minimumCut, maximumCut,
-                    maximumBankStep, oceanWrites, uncontainedWetCells);
+                    maximumBankStep, oceanWrites, uncontainedWetCells, drySillCuts, invalidDrySillCuts,
+                    maximumBankCut, bankExcavation, estimatedBankVolumePerBlock, bankVolumeLimit,
+                    bankBudgetViolations, connectedMouthColumns, disconnectedMouthColumns);
         }
     }
 
@@ -209,7 +240,8 @@ public final class RiverTransectProbe {
                 SurfaceCenterline centerline = SurfaceCenterline.densify(exposedPath);
                 Bounds bounds = Bounds.of(centerline, MARGIN);
                 Map<Long, ColumnView> columns = sampleColumns(complex, runtime, bounds);
-                CourseSummary summary = summarize(course.id(), centerline.size(), seaLevel, columns);
+                CourseSummary summary = summarize(new SummaryOptions(course.id(), centerline, seaLevel,
+                        runtime.settings().surface().banks().erosion().excavation()), columns);
                 summaries.add(summary);
                 writePlan(new File(configuration.output(), "course-" + course.id() + ".png"), bounds, columns);
                 writeSections(new File(configuration.output(), "course-" + course.id() + "-sections.png"),
@@ -222,7 +254,7 @@ public final class RiverTransectProbe {
                 }
             }
             writeSummary(new File(configuration.output(), "summary.txt"), configuration, tile, summaries);
-            boolean pass = summaries.stream().allMatch(CourseSummary::passes);
+            boolean pass = !summaries.isEmpty() && summaries.stream().allMatch(CourseSummary::passes);
             System.out.println(PREFIX + " " + (pass ? "PASS" : "FAIL")
                     + " surfaceCourses=" + summaries.size()
                     + " output=" + configuration.output().getAbsolutePath());
@@ -262,34 +294,57 @@ public final class RiverTransectProbe {
         return selected;
     }
 
-    static CourseSummary summarize(long id, int stations, int seaLevel, Map<Long, ColumnView> columns) {
+    static CourseSummary summarize(SummaryOptions options, Map<Long, ColumnView> columns) {
+        int seaLevel = options.seaLevel();
+        int bankCutLimit = options.limits().maximumDepth();
         int owned = 0;
         int minimumCut = Integer.MAX_VALUE;
         int maximumCut = Integer.MIN_VALUE;
         int maximumBankStep = 0;
         int oceanWrites = 0;
         int uncontained = 0;
+        int drySills = 0;
+        int invalidSills = 0;
+        int maximumBankCut = 0;
+        long bankExcavation = 0L;
+        int bankBudgetViolations = 0;
+        int connectedMouthColumns = 0;
+        int disconnectedMouthColumns = 0;
+        HashSet<Long> oceanConnected = oceanConnected(columns, seaLevel);
         ArrayList<String> details = new ArrayList<>();
         String worstStep = null;
         ArrayList<ColumnView> ordered = new ArrayList<>(columns.values());
         ordered.sort(Comparator.comparingInt(ColumnView::z).thenComparingInt(ColumnView::x));
         for (ColumnView column : ordered) {
-            boolean submerged = column.natural() <= seaLevel;
-            if (submerged && (column.terrain() != column.natural() || column.role().owned())) {
+            boolean submerged = column.natural() < seaLevel || column.plan().ocean();
+            if (submerged && (column.terrain() != column.natural() || column.plan().terrainOwned())) {
                 oceanWrites++;
                 if (details.size() < MAXIMUM_DETAILS) {
                     details.add("oceanWrite " + column.x() + "," + column.z()
                             + " natural=" + column.natural() + " terrain=" + column.terrain() + " role=" + column.role());
                 }
             }
-            if (!column.role().owned()) {
+            if (column.plan().mouth() && column.role() == Role.CHANNEL && column.water() == seaLevel) {
+                if (oceanConnected.contains(RiverFootprint.pack(column.x(), column.z()))) {
+                    connectedMouthColumns++;
+                } else {
+                    disconnectedMouthColumns++;
+                }
+            }
+            if (!column.plan().terrainOwned()) {
                 continue;
+            }
+            if (column.natural() == seaLevel && column.cut() > 0) {
+                drySills++;
+                if (column.role() != Role.CHANNEL || !column.plan().fluidOwned() || column.water() != seaLevel) {
+                    invalidSills++;
+                }
             }
             owned++;
             minimumCut = Math.min(minimumCut, column.cut());
             maximumCut = Math.max(maximumCut, column.cut());
             if (column.role() == Role.CHANNEL) {
-                if (column.water() != NO_WATER && spills(column, columns)) {
+                if (column.water() != NO_WATER && spills(column, columns, seaLevel)) {
                     uncontained++;
                     if (details.size() < MAXIMUM_DETAILS) {
                         details.add("uncontained " + column.x() + "," + column.z()
@@ -299,6 +354,10 @@ public final class RiverTransectProbe {
                 }
                 continue;
             }
+            int bankCut = Math.max(0, column.natural() - column.plan().bedY());
+            maximumBankCut = Math.max(maximumBankCut, bankCut);
+            bankExcavation += bankCut;
+            bankBudgetViolations += bankCut > bankCutLimit ? 1 : 0;
             for (int[] offset : new int[][] {{1, 0}, {0, 1}}) {
                 ColumnView neighbour = columns.get(RiverFootprint.pack(column.x() + offset[0], column.z() + offset[1]));
                 int step = bankStep(column, neighbour);
@@ -318,7 +377,70 @@ public final class RiverTransectProbe {
             minimumCut = 0;
             maximumCut = 0;
         }
-        return new CourseSummary(id, stations, owned, minimumCut, maximumCut, maximumBankStep, oceanWrites, uncontained, List.copyOf(details));
+        return new CourseSummary(options.courseId(), options.centerline().size(), owned, minimumCut, maximumCut, maximumBankStep, oceanWrites,
+                uncontained, drySills, invalidSills, maximumBankCut, bankExcavation,
+                estimatedBankVolumePerBlock(options, columns), options.limits().maximumVolumePerBlock(), bankBudgetViolations,
+                connectedMouthColumns, disconnectedMouthColumns, List.copyOf(details));
+    }
+
+    static int estimatedBankVolumePerBlock(SummaryOptions options, Map<Long, ColumnView> columns) {
+        SurfaceCenterline centerline = options.centerline();
+        Map<Long, List<Integer>> buckets = new HashMap<>();
+        for (int station = 0; station < centerline.size(); station++) {
+            long bucket = RiverFootprint.pack(Math.floorDiv(centerline.x()[station], 16),
+                    Math.floorDiv(centerline.z()[station], 16));
+            buckets.computeIfAbsent(bucket, ignored -> new ArrayList<>()).add(station);
+        }
+        int[] stationVolumes = new int[centerline.size()];
+        for (ColumnView column : columns.values()) {
+            if (!column.plan().terrainOwned() || column.role() == Role.CHANNEL
+                    || column.plan().courseId() != options.courseId()) {
+                continue;
+            }
+            int cut = Math.max(0, column.natural() - column.plan().bedY());
+            if (cut > 0) {
+                int station = nearestStation(centerline, buckets, column.x(), column.z());
+                stationVolumes[station] = Math.addExact(stationVolumes[station], cut);
+            }
+        }
+        return SurfaceExcavationMetrics.maximumVolumePerBlock(centerline, stationVolumes);
+    }
+
+    private static int nearestStation(SurfaceCenterline centerline, Map<Long, List<Integer>> buckets, int x, int z) {
+        int bucketX = Math.floorDiv(x, 16);
+        int bucketZ = Math.floorDiv(z, 16);
+        int bestStation = -1;
+        double bestDistance = Double.POSITIVE_INFINITY;
+        for (int ring = 0; bestStation < 0 || nearestOutsideDistance(x, z, bucketX, bucketZ, ring - 1) <= bestDistance + 2D; ring++) {
+            for (int dz = -ring; dz <= ring; dz++) {
+                for (int dx = -ring; dx <= ring; dx++) {
+                    if (ring > 0 && Math.abs(dx) != ring && Math.abs(dz) != ring) {
+                        continue;
+                    }
+                    List<Integer> stations = buckets.get(RiverFootprint.pack(bucketX + dx, bucketZ + dz));
+                    if (stations == null) {
+                        continue;
+                    }
+                    for (int station : stations) {
+                        double distance = centerline.distanceToSegment(station, x, z);
+                        if (distance < bestDistance - 1.0e-7D
+                                || Math.abs(distance - bestDistance) <= 1.0e-7D && station > bestStation) {
+                            bestDistance = distance;
+                            bestStation = station;
+                        }
+                    }
+                }
+            }
+        }
+        return bestStation;
+    }
+
+    private static double nearestOutsideDistance(int x, int z, int bucketX, int bucketZ, int ring) {
+        double minX = ((double) bucketX - ring) * 16D;
+        double minZ = ((double) bucketZ - ring) * 16D;
+        double maxX = ((double) bucketX + ring + 1) * 16D;
+        double maxZ = ((double) bucketZ + ring + 1) * 16D;
+        return Math.min(Math.min(x - minX, maxX - x), Math.min(z - minZ, maxZ - z));
     }
 
     private static String neighbourHeights(ColumnView channel, Map<Long, ColumnView> columns) {
@@ -333,11 +455,14 @@ public final class RiverTransectProbe {
         return text.toString();
     }
 
-    private static boolean spills(ColumnView channel, Map<Long, ColumnView> columns) {
+    private static boolean spills(ColumnView channel, Map<Long, ColumnView> columns, int seaLevel) {
         int[][] offsets = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
         for (int[] offset : offsets) {
             ColumnView neighbour = columns.get(RiverFootprint.pack(channel.x() + offset[0], channel.z() + offset[1]));
             if (neighbour == null || neighbour.role() == Role.CHANNEL) {
+                continue;
+            }
+            if (neighbour.plan().ocean() && neighbour.natural() < seaLevel && channel.water() <= seaLevel) {
                 continue;
             }
             if (neighbour.terrain() < channel.water()) {
@@ -345,6 +470,29 @@ public final class RiverTransectProbe {
             }
         }
         return false;
+    }
+
+    private static HashSet<Long> oceanConnected(Map<Long, ColumnView> columns, int seaLevel) {
+        HashSet<Long> visited = new HashSet<>();
+        ArrayDeque<Long> queue = new ArrayDeque<>();
+        for (Map.Entry<Long, ColumnView> entry : columns.entrySet()) {
+            ColumnView column = entry.getValue();
+            if (column.plan().ocean() && column.natural() < seaLevel && !column.plan().terrainOwned()) {
+                visited.add(entry.getKey());
+                queue.add(entry.getKey());
+            }
+        }
+        while (!queue.isEmpty()) {
+            ColumnView current = columns.get(queue.removeFirst());
+            for (int[] offset : new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                long key = RiverFootprint.pack(current.x() + offset[0], current.z() + offset[1]);
+                ColumnView next = columns.get(key);
+                if (next != null && next.water() == seaLevel && next.terrain() < seaLevel && visited.add(key)) {
+                    queue.addLast(key);
+                }
+            }
+        }
+        return visited;
     }
 
     private static int bankStep(ColumnView bank, ColumnView neighbour) {
@@ -395,7 +543,13 @@ public final class RiverTransectProbe {
         HydrologyColumnLayer surface = sample.flatMap(HydrologyColumnSample::primarySurfaceLayer).orElse(null);
         HydrologyColumnLayer fluid = sample.flatMap(HydrologyColumnSample::primarySurfaceFluidLayer).orElse(null);
         int water = fluid == null ? NO_WATER : fluid.fluidHeadY();
-        return new ColumnView(x, z, natural, terrain, water, role(surface));
+        boolean ocean = sample.map(HydrologyColumnSample::ocean)
+                .orElseGet(() -> complex.getBridgeStream().get(x, z) == InferredType.SEA);
+        ColumnPlan plan = new ColumnPlan(ocean, surface != null && surface.terrainOwned(),
+                surface != null && surface.fluidOwned(),
+                surface != null && surface.feature().type() == HydrologyFeatureType.MOUTH,
+                surface == null ? natural : surface.bedY(), surface == null ? 0L : surface.feature().courseId());
+        return new ColumnView(x, z, natural, terrain, water, role(surface), plan);
     }
 
     private static Role role(HydrologyColumnLayer layer) {

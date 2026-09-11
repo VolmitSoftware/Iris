@@ -142,13 +142,14 @@ final class HydrologyOutletPlanner {
                 continue;
             }
             HydrologyOceanBoundaryRefiner.Result boundary = refineOceanBoundary(land, ocean);
-            if (boundary == null
+            if (boundary == null) {
+                continue;
+            }
+            HydrologyTerrainSample receiving = planner.sampleBasisWithoutSlope(boundary.oceanPoint().x(), boundary.oceanPoint().z());
+            if (receiving == null || !boundary.landwardTerrain().drainsInto(receiving)
                     || !boundary.landwardTerrain().transitAllowed()
                     || !boundary.landwardTerrain().outletAllowed()
-                    || surface && !HydrologySurfaceProfiles.sharesProfile(
-                            boundary.landwardTerrain(),
-                            planner.sampleBasisWithoutSlope(boundary.oceanPoint().x(), boundary.oceanPoint().z())
-                    )) {
+                    || surface && !HydrologySurfaceProfiles.sharesProfile(boundary.landwardTerrain(), receiving)) {
                 continue;
             }
             HydrologyFeatureType type = coastalOutletType(boundary.landwardTerrain());
@@ -478,7 +479,7 @@ final class HydrologyOutletPlanner {
 
     HydrologyOceanBoundaryRefiner.Result refineOceanBoundary(HydrologyGridNode land, HydrologyGridNode ocean) {
         List<HydrologyPoint> crossing = planner.segments.line(land.naturalPoint(), ocean.naturalPoint(), 1);
-        return HydrologyOceanBoundaryRefiner.refine(crossing, planner.sampler, planner.routingSampler);
+        return HydrologyOceanBoundaryRefiner.refine(crossing, planner.sampler, planner.routingSampler, planner.settings.seaLevel());
     }
 
     HydrologyFeatureType coastalOutletType(HydrologyTerrainSample land) {

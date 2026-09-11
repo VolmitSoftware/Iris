@@ -66,6 +66,11 @@ public class IrisRiverSchemaTest {
         JSONObject rivers = referencedProperties(definitions, properties.getJSONObject("rivers"));
         JSONObject routing = referencedProperties(definitions, rivers.getJSONObject("routing"));
         JSONObject geometry = referencedProperties(definitions, rivers.getJSONObject("geometry"));
+        JSONObject bankVolume = referencedProperties(definitions, geometry.getJSONObject("banks3D"));
+        assertEquals(32D, bankVolume.getJSONObject("amplitude").getDouble("maximum"), 0D);
+        assertEquals(4D, bankVolume.getJSONObject("verticalScale").getDouble("minimum"), 0D);
+        assertEquals(16, bankVolume.getJSONObject("maximumOverhang").getInt("maximum"));
+        assertSnippetBackedObjectReference(bankVolume.getJSONObject("densityStyle"));
         JSONObject drops = referencedProperties(definitions, geometry.getJSONObject("drops"));
         JSONObject surface = referencedProperties(definitions, rivers.getJSONObject("surface"));
         JSONObject sources = referencedProperties(definitions, surface.getJSONObject("sources"));

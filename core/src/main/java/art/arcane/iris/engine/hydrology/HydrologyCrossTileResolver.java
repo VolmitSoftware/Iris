@@ -5,6 +5,7 @@ import art.arcane.iris.engine.hydrology.cave.CaveVoxelView;
 import art.arcane.iris.engine.hydrology.cave.HydrologyCaveCandidate;
 import art.arcane.iris.engine.hydrology.cave.HydrologyCaveContainmentPlanner;
 import art.arcane.iris.engine.hydrology.cave.HydrologyCavePlan;
+import art.arcane.iris.engine.hydrology.surface.SurfaceBounds;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
@@ -112,6 +113,8 @@ final class HydrologyCrossTileResolver {
                         planner.naturalSampler
                 )
         );
+        seedRegionalSurface(key, footprintCompiler);
+        diagnostics.addAll(footprintCompiler.regionalNetwork.diagnostics());
         HashMap<Long, List<HydrologyPoint>> refinedEdges = new HashMap<>();
         HashMap<SourceCompilationKey, SourceCompilation> sourceCompilations = new HashMap<>();
         settleSelection(
@@ -175,11 +178,11 @@ final class HydrologyCrossTileResolver {
                     break;
                 }
                 boolean surfaceChanged = surfaceSelection.advanceAfterPublication(
-                        publication.result().courses(),
+                        publication.result(),
                         grid
                 );
                 boolean undergroundChanged = undergroundSelection.advanceAfterPublication(
-                        publication.result().courses(),
+                        publication.result(),
                         grid
                 );
                 if (!surfaceChanged && !undergroundChanged) {
@@ -305,7 +308,9 @@ final class HydrologyCrossTileResolver {
                             planner.naturalSampler
                     )
             );
+            seedRegionalSurface(resolution.draft().key(), footprintCompiler);
         }
+        result = planner.regional.include(result, footprintCompiler.regionalNetwork);
         MaterializedHydrology materialized = materializeFinalHydrology(
                 result,
                 diagnostics,
@@ -313,6 +318,8 @@ final class HydrologyCrossTileResolver {
                 !resolution.observedRejections().isEmpty()
         );
         result = materialized.result();
+        result = clipRegionalPlans(result, footprintCompiler.regionalNetwork,
+                planner.regional.ownerBounds(resolution.draft().key()));
         RiverFootprint footprint = materialized.footprint();
         if (footprintCompiler.fullMaterializationCount() < 1) {
             throw new IllegalStateException("Hydrology publication did not materialize its full footprint.");
@@ -332,6 +339,30 @@ final class HydrologyCrossTileResolver {
         );
     }
 
+    private void seedRegionalSurface(HydrologyTileKey key, HydrologyFootprintCompiler compiler) {
+        if (!planner.regional.enabled()) {
+            return;
+        }
+        SurfaceBounds bounds = planner.regional.ownerBounds(key);
+        compiler.seedRegionalSurface(planner.regional.coursesIn(bounds), bounds);
+    }
+
+    static HydrologyCaveCourseFilter.Result clipRegionalPlans(HydrologyCaveCourseFilter.Result result,
+                                                               HydrologyRegionalNetwork regional, SurfaceBounds bounds) {
+        if (regional.cavePlans().isEmpty()) {
+            return result;
+        }
+        HashSet<Long> regionalIds = new HashSet<>();
+        for (RiverCourse course : regional.courses()) {
+            regionalIds.add(course.id());
+        }
+        ArrayList<HydrologyCavePlan> plans = new ArrayList<>(result.cavePlans().size());
+        for (HydrologyCavePlan plan : result.cavePlans()) {
+            plans.add(regionalIds.contains(plan.source().sourceId()) ? HydrologyRegionalFalls.clip(plan, bounds) : plan);
+        }
+        return new HydrologyCaveCourseFilter.Result(result.nodes(), result.edges(), result.outlets(), result.courses(), List.copyOf(plans));
+    }
+
     MaterializedHydrology materializeFinalHydrology(
             HydrologyCaveCourseFilter.Result initial,
             List<HydrologyDiagnosticCandidate> diagnostics,
@@ -339,17 +370,22 @@ final class HydrologyCrossTileResolver {
             boolean revalidationRequired
     ) {
         HydrologyCaveCourseFilter.Result current = initial;
+        HashSet<Long> regionalIds = new HashSet<>();
+        for (RiverCourse course : footprintCompiler.regionalNetwork.courses()) {
+            regionalIds.add(course.id());
+        }
         int maximumPasses = Math.addExact(initial.courses().size(), 1);
         for (int pass = 0; pass < maximumPasses; pass++) {
             RiverFootprint footprint = footprintCompiler.compile(current.courses());
-            if (current.cavePlans().isEmpty()) {
+            HydrologyCaveCourseFilter.Result local = HydrologyCaveCourseFilter.withoutCourses(current, regionalIds);
+            if (local.cavePlans().isEmpty()) {
                 return new MaterializedHydrology(current, footprint);
             }
             HydrologyFootprintCompiler.ValidationRaster compactValidation = footprintCompiler.compileValidation(
                     current.courses()
             );
             if (!revalidationRequired
-                    && compactSurfaceMatchesMaterializedPlans(current, compactValidation, footprint)) {
+                    && compactSurfaceMatchesMaterializedPlans(local, compactValidation, footprint)) {
                 return new MaterializedHydrology(current, footprint);
             }
             HydrologyFootprintCompiler.ValidationRaster validation = compactValidation.withMaterializedSurface(
@@ -373,13 +409,15 @@ final class HydrologyCrossTileResolver {
                     null,
                     plannedSurface
             ).filter(
-                    current.nodes(),
-                    current.edges(),
-                    current.outlets(),
-                    current.courses(),
+                    local.nodes(),
+                    local.edges(),
+                    local.outlets(),
+                    local.courses(),
                     validation,
                     diagnostics
             );
+            revalidated = HydrologyRegionalProtection.rejectPlans(revalidated, footprintCompiler.regionalNetwork, diagnostics);
+            revalidated = planner.regional.include(revalidated, footprintCompiler.regionalNetwork);
             if (revalidated.courses().equals(current.courses())) {
                 return new MaterializedHydrology(revalidated, footprint);
             }
@@ -596,9 +634,6 @@ final class HydrologyCrossTileResolver {
             boolean reachesOutlet = terminalType == HydrologyFeatureType.MOUTH
                     || terminalType == HydrologyFeatureType.COASTAL_GROTTO
                     || terminalType == HydrologyFeatureType.INLAND_GROTTO;
-            if (!reachesOutlet) {
-                continue;
-            }
             claims.add(new HydrologyCrossTileSurfaceAdmission.Claim(
                     course.id(),
                     course.outletId().getAsLong(),
@@ -691,7 +726,7 @@ final class HydrologyCrossTileResolver {
                     false
             );
             diagnostics.addAll(attempt.diagnostics());
-            if (!selection.advanceAfterPublication(attempt.result().courses(), grid)) {
+            if (!selection.advanceAfterPublication(attempt.result(), grid)) {
                 return;
             }
         }
@@ -784,6 +819,7 @@ final class HydrologyCrossTileResolver {
                 graph = planner.sourcePlanner.mergeGraphs(surfaceGraph, undergroundGraph);
             }
         }
+        graph = new HydrologyRegionalTributaries(planner).connect(graph, courses, footprintCompiler, diagnostics);
         HydrologySurfaceProfiles.rejectExcludedWetFootprints(footprintCompiler, courses, diagnostics);
         List<RiverCourse> normalizedTrunkCourses = planner.tributaries.normalizeSharedTrunks(courses, diagnostics);
         List<RiverCourse> normalizedOutletCourses = planner.tributaries.normalizeOutletContinuations(normalizedTrunkCourses);
@@ -796,6 +832,7 @@ final class HydrologyCrossTileResolver {
         if (includeDeepFluids && grid != null) {
             planner.featureSites.compileSeaCaves(grid, courses, diagnostics);
         }
+        HydrologyRegionalProtection.rejectFootprints(courses, footprintCompiler, diagnostics);
         DraftProfile profile = planner.currentDraftProfile();
         long rasterStarted = System.nanoTime();
         HydrologyFootprintCompiler.ValidationRaster validation = footprintCompiler.compileValidation(courses);
@@ -837,6 +874,7 @@ final class HydrologyCrossTileResolver {
         );
         profile.filterNanos += System.nanoTime() - filterStarted;
         profile.filterCalls++;
+        containment = HydrologyRegionalProtection.rejectPlans(containment, footprintCompiler.regionalNetwork, diagnostics);
         return new PublicationAttempt(containment, diagnostics);
     }
 

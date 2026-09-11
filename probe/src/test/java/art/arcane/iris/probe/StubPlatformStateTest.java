@@ -104,6 +104,19 @@ public final class StubPlatformStateTest {
         assertFalse(IrisSpeleothems.isSupported(spike, blocks, 0, 0, 1));
     }
 
+    @Test
+    public void sugarCaneUsesNativeSubstratesInGeneratedChunkProbes() {
+        PlatformBlockState cane = state("minecraft:sugar_cane[age=0]");
+        for (String substrate : new String[]{"sugar_cane", "grass_block", "dirt", "coarse_dirt", "podzol",
+                "mycelium", "rooted_dirt", "moss_block", "pale_moss_block", "mud", "muddy_mangrove_roots",
+                "sand", "red_sand", "suspicious_sand"}) {
+            assertTrue(substrate, cane.canPlaceOnto(state("minecraft:" + substrate)));
+        }
+        for (String substrate : new String[]{"stone", "gravel", "clay", "farmland", "dirt_path", "air", "water"}) {
+            assertFalse(substrate, cane.canPlaceOnto(state("minecraft:" + substrate)));
+        }
+    }
+
     private PlatformBlockState state(String key) {
         return IrisPlatforms.get().registries().block(key);
     }

@@ -210,6 +210,10 @@ final class PackHydrologyValidator {
     }
 
     private static void validateGeometry(String path, JSONObject geometry, List<String> errors) {
+        JSONObject banks3D = nestedObject(geometry, "banks3D", path, errors);
+        if (banks3D != null) {
+            PackRiverBank3DValidator.validate(path + ".banks3D", banks3D, errors);
+        }
         JSONObject meanders = nestedObject(geometry, "meanders", path, errors);
         JSONObject surface = nestedObject(geometry, "surface", path, errors);
         JSONObject underground = nestedObject(geometry, "underground", path, errors);
@@ -302,6 +306,25 @@ final class PackHydrologyValidator {
         PackJsonFieldChecks.validateOptionalDoubleRange(path, routing, "confluenceAttraction", 0D, 1D, errors);
         PackJsonFieldChecks.validateOptionalDoubleRange(path, routing, "lengthPreference", 0D, 8D, errors);
         PackJsonFieldChecks.validateOptionalIntegerRange(path, routing, "tributaries", 0, 4, errors);
+        JSONObject regional = routing.optJSONObject("regional");
+        if (routing.has("regional") && regional == null) {
+            errors.add(path + ".regional must be an object.");
+        }
+        if (regional != null) {
+            String regionalPath = path + ".regional";
+            PackJsonFieldChecks.validateOptionalBoolean(regionalPath, regional, "enabled", errors);
+            PackJsonFieldChecks.validateOptionalIntegerRange(regionalPath, regional, "sampleSpacing", 128, 1024, errors);
+            PackJsonFieldChecks.validateOptionalIntegerRange(regionalPath, regional, "minimumLength", 256, 32768, errors);
+            PackJsonFieldChecks.validateOptionalIntegerRange(regionalPath, regional, "maximumTrunks", 1, 8, errors);
+            PackJsonFieldChecks.validateOptionalIntegerRange(regionalPath, regional, "maximumCachedBasins", 1, 64, errors);
+            PackJsonFieldChecks.validateOptionalIntegerRange(regionalPath, regional, "maximumCachedStations", 16384, 1048576, errors);
+            PackJsonFieldChecks.validateOptionalBoolean(regionalPath, regional, "coastalChannels", errors);
+            PackJsonFieldChecks.validateOptionalDoubleRange(regionalPath, regional, "coastalChannelChance", 0D, 1D, errors);
+            PackJsonFieldChecks.validateOptionalIntegerRange(regionalPath, regional, "maximumCoastalIncision", 1, 32, errors);
+            if (Integer.bitCount(integerValue(regional, "sampleSpacing", 256)) != 1) {
+                errors.add(regionalPath + ".sampleSpacing must be a power of two.");
+            }
+        }
 
         int tileSize = integerValue(routing, "tileSize", 2048);
         int sampleSpacing = integerValue(routing, "sampleSpacing", 64);
@@ -381,7 +404,7 @@ final class PackHydrologyValidator {
         boolean surfaceEnabled = booleanValue(surface, "enabled", true);
         if (surfaceEnabled && budget.maximumExpectedSources() == 0) {
             warnings.add(path
-                    + " has no natural source budget; only qualifying REQUIRED_HEADWATER cells can admit sources.");
+                    + " has no local natural source budget; local sources require qualifying REQUIRED_HEADWATER cells.");
         }
         if (surfaceEnabled && sources != null) {
             double minimumElevation = doubleValue(sources, "minimumElevation", 88D);
@@ -440,6 +463,12 @@ final class PackHydrologyValidator {
     }
 
     private static void validateSurfaceBanks(String path, JSONObject banks, List<String> errors) {
+        JSONObject excavation = nestedObject(banks, "excavation", path, errors);
+        if (excavation != null) {
+            PackJsonFieldChecks.validateOptionalIntegerRange(path + ".excavation", excavation, "maximumDepth", 0, 64, errors);
+            PackJsonFieldChecks.validateOptionalIntegerRange(path + ".excavation", excavation, "maximumWidth", 1, 64, errors);
+            PackJsonFieldChecks.validateOptionalIntegerRange(path + ".excavation", excavation, "maximumVolumePerBlock", 0, 8192, errors);
+        }
         PackJsonFieldChecks.validateOptionalDoubleRange(path, banks, "shoreWidth", 0D, 16D, errors);
         PackJsonFieldChecks.validateOptionalDoubleRange(path, banks, "blendSlope", 0.5D, 12D, errors);
         PackJsonFieldChecks.validateOptionalIntegerRange(path, banks, "minimumBlendWidth", 1, 64, errors);

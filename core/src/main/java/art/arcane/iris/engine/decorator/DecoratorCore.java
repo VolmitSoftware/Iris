@@ -55,11 +55,13 @@ final class DecoratorCore {
         boolean caveSkipFluid;
         boolean underwater;
         int fluidHeight;
+        EngineMantle mantle;
 
         void reset() {
             caveSkipFluid = false;
             underwater = false;
             fluidHeight = 0;
+            mantle = null;
         }
     }
 
@@ -138,6 +140,11 @@ final class DecoratorCore {
             }
         }
 
+        if (!IrisSugarCane.canPlace(bd, data, x, height + 1, z, realX, realZ,
+                mantle == null ? null : mantle.getEngine())) {
+            return;
+        }
+
         if (IrisSpeleothems.isSpike(bd)) {
             placeSingleSpike(bd, data, x, z, height + 1, true, underwater && !caveSkipFluid);
             return;
@@ -190,6 +197,10 @@ final class DecoratorCore {
         if (bd == null) {
             return;
         }
+        if (!IrisSugarCane.canPlace(bd, data, x, height, z, realX, realZ,
+                mantle == null ? null : mantle.getEngine())) {
+            return;
+        }
         if (IrisSpeleothems.isSpike(bd)) {
             if (height + 1 < data.getHeight() && allowsSurface(decorator, data.get(x, height + 1, z), irisData)) {
                 placeSingleSpike(bd, data, x, z, height, false, false);
@@ -232,6 +243,10 @@ final class DecoratorCore {
                     ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
                     : decorator.pickBlockData(rng, irisData, realX, realZ);
             if (block == null) {
+                break;
+            }
+            if (!IrisSugarCane.canPlace(block, data, x, y, z, realX, realZ,
+                    opts.mantle == null ? null : opts.mantle.getEngine())) {
                 break;
             }
             if (IrisSpeleothems.isSpike(block)) {
@@ -284,6 +299,10 @@ final class DecoratorCore {
             if (block == null) {
                 break;
             }
+            if (!IrisSugarCane.canPlace(block, data, x, y, z, realX, realZ,
+                    mantle == null ? null : mantle.getEngine())) {
+                break;
+            }
             if (IrisSpeleothems.isSpike(block)) {
                 if (!IrisSpeleothems.canPlace(block, data, x, z, y, false, opts.underwater)) {
                     break;
@@ -306,9 +325,13 @@ final class DecoratorCore {
     static void placeFloatingSimple(IrisDecorator decorator,
                                     int xf, int zf, int realX, int realZ,
                                     int height, int max, Hunk<PlatformBlockState> data,
-                                    RNG rng, IrisData irisData) {
+                                    RNG rng, IrisData irisData, EngineMantle mantle) {
         PlatformBlockState bd = decorator.pickBlockData(rng, irisData, realX, realZ);
         if (bd == null) {
+            return;
+        }
+        if (!IrisSugarCane.canPlace(bd, data, xf, height + 1, zf, realX, realZ,
+                mantle == null ? null : mantle.getEngine())) {
             return;
         }
 
@@ -346,7 +369,7 @@ final class DecoratorCore {
     static int placeFloatingStacked(IrisDecorator decorator,
                                     int xf, int zf, int realX, int realZ,
                                     int height, int max, Hunk<PlatformBlockState> data,
-                                    RNG rng, IrisData irisData) {
+                                    RNG rng, IrisData irisData, EngineMantle mantle) {
         int stack = decorator.getHeight(rng, realX, realZ, irisData);
         if (decorator.isScaleStack()) {
             stack = Math.min((int) Math.ceil((double) max * ((double) stack / 100)), decorator.getAbsoluteMaxStack());
@@ -366,6 +389,10 @@ final class DecoratorCore {
                     ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
                     : decorator.pickBlockData(rng, irisData, realX, realZ);
             if (bd == null) {
+                break;
+            }
+            if (!IrisSugarCane.canPlace(bd, data, xf, h, zf, realX, realZ,
+                    mantle == null ? null : mantle.getEngine())) {
                 break;
             }
             if (IrisSpeleothems.isSpike(bd)) {
@@ -450,7 +477,7 @@ final class DecoratorCore {
         if (!B.canPlaceOnto(decorator, surface)) {
             return false;
         }
-        return IrisSpeleothems.isSturdy(surface, true);
+        return IrisSugarCane.isSugarCane(decorator) || IrisSpeleothems.isSturdy(surface, true);
     }
 
     static boolean isValidShorelineSupport(IrisDecorator decorator, PlatformBlockState decorant, PlatformBlockState surface) {

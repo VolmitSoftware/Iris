@@ -9,6 +9,17 @@ import static org.junit.Assert.assertTrue;
 
 public class HydrologyCrossTileSurfaceAdmissionTest {
     @Test
+    public void separatedTributariesCanJoinTheSameRegionalOutlet() {
+        HydrologyCrossTileSurfaceAdmission.Claim first = claim(10L, 100L,
+                List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(256, 63, 0)), false, 128);
+        HydrologyCrossTileSurfaceAdmission.Claim second = claim(20L, 100L,
+                List.of(new HydrologyPoint(0, 70, 512), new HydrologyPoint(256, 63, 512)), false, 128);
+        assertTrue(HydrologyCrossTileSurfaceAdmission.admit(List.of(first), List.of(
+                new HydrologyCrossTileSurfaceAdmission.RankedClaim(new HydrologyTileKey(0, 1), 0, second)))
+                .rejections().isEmpty());
+    }
+
+    @Test
     public void rejectsClusteredIndependentMouths() {
         HydrologyCrossTileSurfaceAdmission.Claim current = claim(
                 10L,

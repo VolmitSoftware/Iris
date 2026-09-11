@@ -24,6 +24,47 @@ public class ValleyProfileSolverTest {
     };
 
     @Test
+    public void diagonalCourseUsesDistanceInBlocksForItsMinimumLength() {
+        HydrologyTerrainSampler terrain = (x, z) -> HydrologyTerrainSample.openLand(80, 0D, "land");
+        SurfaceCenterline centerline = SurfaceCenterline.densify(List.of(
+                new HydrologyPoint(0, 0, 0), new HydrologyPoint(48, 0, 48)));
+        ChannelProfile channel = new ChannelProfileBuilder(HydrologyPlannerSettings.defaults().surface(),
+                terrain, CONSTANT_GEOMETRY).build(centerline, "water", false);
+
+        ValleyProfile valley = solver(terrain).solve(centerline, channel, SurfaceTerminal.SINKHOLE, 40);
+
+        assertEquals(49, centerline.size());
+        assertNull(valley.rejection());
+    }
+
+    @Test
+    public void minimumLengthAcceptsItsExactDistanceAndRejectsOneBlockLess() {
+        ValleyProfile exact = solve(65, (x, z) -> 80, SurfaceTerminal.SINKHOLE, 40);
+        ValleyProfile shortCourse = solve(64, (x, z) -> 80, SurfaceTerminal.SINKHOLE, 40);
+
+        assertNull(exact.rejection());
+        assertEquals(HydrologyCandidateRejection.COURSE_TOO_SHORT, shortCourse.rejection());
+        assertEquals(63, shortCourse.rejectionDetail());
+    }
+
+    @Test
+    public void minimumLengthExcludesTheUnexposedOceanTerminal() {
+        HydrologyTerrainSampler terrain = (x, z) -> x >= 48
+                ? HydrologyTerrainSample.ocean(50, "ocean") : HydrologyTerrainSample.openLand(66, 0D, "land");
+        SurfaceCenterline centerline = SurfaceCenterline.densify(List.of(
+                new HydrologyPoint(0, 0, 0), new HydrologyPoint(80, 0, 80)));
+        HydrologyPlannerSettings.Surface surface = HydrologyPlannerSettings.defaults().surface();
+        ChannelProfile channel = new ChannelProfileBuilder(surface, terrain, CONSTANT_GEOMETRY)
+                .build(centerline, "water", false);
+
+        ValleyProfile valley = new ValleyProfileSolver(surface, terrain, SEA_LEVEL, 67)
+                .solve(centerline, channel, SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL);
+
+        assertEquals(HydrologyCandidateRejection.COURSE_TOO_SHORT, valley.rejection());
+        assertEquals(66, valley.rejectionDetail());
+    }
+
+    @Test
     public void flatTerrainHoldsTheHeadAtTheLowestBankByDefault() {
         ValleyProfile valley = solve(300, (x, z) -> 80, SurfaceTerminal.SINKHOLE, 40);
 
@@ -109,15 +150,16 @@ public class ValleyProfileSolverTest {
     }
 
     @Test
-    public void landAtSeaLevelAlsoEndsTheExposedCourse() {
+    public void dryLandAtSeaLevelRemainsPartOfTheExposedCourse() {
         ValleyProfile valley = solve(300, (x, z) -> x >= 200 ? SEA_LEVEL : 90, SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL);
 
         assertNull(valley.rejection());
-        assertTrue(valley.exposedStations() <= 200);
-        assertTrue(valley.exposedStations() >= 190);
+        assertEquals(300, valley.exposedStations());
         assertEquals(SEA_LEVEL, valley.head()[valley.exposedStations() - 1]);
-        assertEquals(90, valley.head()[valley.exposedStations() - 1 - HydrologyPlannerSettings.Inlet.defaults().length() * 3 / 2]);
-        assertEquals(SEA_LEVEL, valley.head()[valley.exposedStations()]);
+        assertEquals(90, valley.head()[100]);
+        for (int station = 200; station < valley.exposedStations(); station++) {
+            assertEquals(SEA_LEVEL, valley.head()[station]);
+        }
     }
 
     @Test
@@ -132,6 +174,71 @@ public class ValleyProfileSolverTest {
         assertEquals(10, largest);
         assertEquals(100, valley.head()[100]);
         assertEquals(90, valley.head()[200]);
+    }
+
+    @Test
+    public void aTwoBlockTerraceBoundsTheRoundedWetPerimeterBeforeTheNose() {
+        HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(x < 150 ? 100 : 98, 0D, "land");
+        SurfaceCenterline centerline = straight(300);
+        ChannelProfile channel = channel(300, terrain);
+        ValleyProfile valley = solver(terrain).solve(centerline, channel, SurfaceTerminal.TRIBUTARY, 40);
+
+        assertNull(valley.rejection());
+        assertEquals(100, valley.head()[130]);
+        assertEquals(98, valley.head()[149]);
+        ErosionField field = new ErosionFieldCompiler(HydrologyPlannerSettings.defaults().surface(), terrain, SEA_LEVEL)
+                .compile(77L, centerline, channel, valley, SurfaceTerminal.TRIBUTARY, 0,
+                        HydrologyPlannerSettings.Ponds.none());
+        assertEquals(0, field.uncontainedWetCells());
+        for (SurfaceColumn column : field.columns().values()) {
+            if (column.role() != SurfaceRole.CHANNEL) {
+                assertTrue(column.height() <= column.terrain().naturalHeight());
+            }
+        }
+    }
+
+    @Test
+    public void aRidgeExitUsesTheIncomingWaterHeadToBoundItsLowPerimeter() {
+        HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(
+                x < 96 ? 120 : x <= 128 ? 152 : 118, 0D, "land");
+        HydrologyPlannerSettings.Surface defaults = HydrologyPlannerSettings.defaults().surface();
+        HydrologyPlannerSettings.Surface surface = new HydrologyPlannerSettings.Surface(
+                defaults.enabled(), defaults.sources(), defaults.minimumWidth(), defaults.maximumWidth(),
+                defaults.minimumDepth(), defaults.maximumDepth(), 64, defaults.shoreWidth(), defaults.banks());
+        SurfaceCenterline centerline = straight(300);
+        ChannelProfile channel = channel(300, terrain);
+        ValleyProfile valley = new ValleyProfileSolver(surface, terrain, SEA_LEVEL, 64)
+                .solve(centerline, channel, SurfaceTerminal.TRIBUTARY, 40);
+
+        assertNull(valley.rejection());
+        assertEquals(120, valley.head()[110]);
+        assertEquals(118, valley.head()[128]);
+        assertContained(valley);
+        ErosionField field = new ErosionFieldCompiler(surface, terrain, SEA_LEVEL)
+                .compile(77L, centerline, channel, valley, SurfaceTerminal.TRIBUTARY, 0,
+                        HydrologyPlannerSettings.Ponds.none());
+        assertEquals(0, field.uncontainedWetCells());
+    }
+
+    @Test
+    public void aCoastalGrottoEndsTheExposedCourseBeforeItsRoundedCapReachesOcean() {
+        HydrologyTerrainSampler terrain = (int x, int z) -> x >= 240
+                ? HydrologyTerrainSample.ocean(50, "ocean") : HydrologyTerrainSample.openLand(92, 0D, "land");
+        SurfaceCenterline centerline = straight(240);
+        ChannelProfile channel = channel(240, terrain);
+        ValleyProfile valley = solver(terrain).solve(centerline, channel, SurfaceTerminal.COASTAL_GROTTO, SEA_LEVEL);
+
+        assertNull(valley.rejection());
+        assertTrue(valley.exposedStations() < 240);
+        assertEquals(92, valley.head()[valley.exposedStations() - 1]);
+        ErosionField field = new ErosionFieldCompiler(HydrologyPlannerSettings.defaults().surface(), terrain, SEA_LEVEL)
+                .compile(77L, centerline, channel, valley, SurfaceTerminal.COASTAL_GROTTO, 0,
+                        HydrologyPlannerSettings.Ponds.none());
+        assertEquals(0, field.uncontainedWetCells());
+        for (SurfaceColumn column : field.columns().values()) {
+            assertTrue(column.x() < 240);
+            assertTrue(column.height() <= column.terrain().naturalHeight());
+        }
     }
 
     @Test

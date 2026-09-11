@@ -310,7 +310,7 @@ public class HydrologyPlannerSeaCaveTest {
                 true, surfaceSources, 4, 18, 2, 4, 10, 1.5D, HydrologyPlannerSettings.Banks.defaults());
         return new HydrologyPlannerSettings(
                 SEA,
-                new HydrologyPlannerSettings.Routing(tileSize, 16, 512, 256, 0, 0, 0.5D, 12D, 0.5D, 0.1D, 1D, 0),
+                new HydrologyPlannerSettings.Routing(tileSize, 16, 512, 256, 0, 0, 0.5D, 12D, 0.5D, 0.1D, 1D, 0, HydrologyPlannerSettings.Regional.disabled()),
                 surface,
                 new HydrologyPlannerSettings.Hydraulics(4),
                 HydrologyPlannerSettings.Underground.of(

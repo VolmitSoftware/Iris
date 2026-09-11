@@ -55,9 +55,10 @@ public record HydrologyColumnSample(
             for (HydrologyColumnLayer layer : layers) {
                 if (layer.feature().type().isSurface()
                         && !layer.oceanApron()
-                        && (layer.terrainOwned() || layer.fluidOwned() || layer.grading() || layer.shore())) {
+                        && (layer.terrainOwned() || layer.fluidOwned() || layer.grading() || layer.shore())
+                        && (naturalHeight < seaLevel || layer.fluidHeadY() > seaLevel)) {
                     throw new IllegalArgumentException(
-                            "Naturally submerged columns cannot contain owned surface hydrology writes."
+                            "Surface hydrology cannot own submerged ground or raise sea-level water."
                     );
                 }
             }
@@ -129,7 +130,7 @@ public record HydrologyColumnSample(
 
     public int terrainHeight() {
         HydrologyColumnLayer primary = selectSurfaceLayer(false);
-        if (primary == null) {
+        if (primary == null || !primary.terrainOwned()) {
             return naturalHeight;
         }
         if (primary.channel()) {
@@ -164,8 +165,6 @@ public record HydrologyColumnSample(
                 if (!layer.channel() || !layer.connectedFluid() || !layer.fluidOwned()) {
                     continue;
                 }
-            } else if (!layer.terrainOwned()) {
-                continue;
             }
             if (selected == null || SURFACE_LAYER_ORDER.compare(layer, selected) < 0) {
                 selected = layer;
@@ -178,7 +177,10 @@ public record HydrologyColumnSample(
         if (layer.channel()) {
             return 0;
         }
-        return layer.shore() ? 1 : 2;
+        if (layer.terrainOwned()) {
+            return layer.shore() ? 1 : 2;
+        }
+        return layer.shore() ? 3 : 4;
     }
 
     private static int surfaceActionPriority(HydrologyCaveAction action) {

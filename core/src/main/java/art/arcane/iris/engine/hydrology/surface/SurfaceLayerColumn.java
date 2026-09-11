@@ -11,11 +11,15 @@ public record SurfaceLayerColumn(
         HydrologyTerrainSample terrain,
         HydrologyColumnLayer layer,
         SurfaceRole role,
-        boolean apron
+        boolean apron,
+        int station
 ) {
     public SurfaceLayerColumn {
         Objects.requireNonNull(terrain, "terrain");
         Objects.requireNonNull(layer, "layer");
         Objects.requireNonNull(role, "role");
+        if (station < 0) {
+            throw new IllegalArgumentException("A surface column requires a nonnegative station.");
+        }
     }
 }

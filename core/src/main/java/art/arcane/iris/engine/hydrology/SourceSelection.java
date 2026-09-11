@@ -87,15 +87,16 @@ final class SourceSelection {
         return !selectedCandidateIndices.isEmpty();
     }
 
-    boolean advanceAfterPublication(List<RiverCourse> acceptedCourses, HydrologySampledGrid grid) {
-        Set<Long> acceptedSourceNodeIds = acceptedSourceNodeIds(acceptedCourses);
+    boolean advanceAfterPublication(HydrologyCaveCourseFilter.Result result, HydrologySampledGrid grid) {
+        AcceptedSources acceptedSources = acceptedSources(result);
         boolean changed = false;
         int selectedPosition = 0;
         while (selectedPosition < selectedCandidateIndices.size()) {
             int candidateIndex = selectedCandidateIndices.get(selectedPosition);
             SourceCandidate candidate = candidates.get(candidateIndex);
-            long sourceNodeId = grid.node(candidate.nodeIndex()).id();
-            if (acceptedSourceNodeIds.contains(sourceNodeId)) {
+            HydrologyGridNode source = grid.node(candidate.nodeIndex());
+            if (acceptedSources.nodeIds().contains(source.id())
+                    || surface && acceptedSources.coordinates().contains(RiverFootprint.pack(source.x(), source.z()))) {
                 if (candidate.required()) {
                     attemptedCandidates[candidateIndex] = true;
                 }
@@ -131,15 +132,23 @@ final class SourceSelection {
         return changed;
     }
 
-    private Set<Long> acceptedSourceNodeIds(List<RiverCourse> acceptedCourses) {
+    private AcceptedSources acceptedSources(HydrologyCaveCourseFilter.Result result) {
         RiverCourseType expectedType = surface ? RiverCourseType.SURFACE : RiverCourseType.UNDERGROUND;
         HashSet<Long> accepted = new HashSet<>();
-        for (RiverCourse course : acceptedCourses) {
+        for (RiverCourse course : result.courses()) {
             if (course.type() == expectedType && course.sourceNodeId().isPresent()) {
                 accepted.add(course.sourceNodeId().getAsLong());
             }
         }
-        return accepted;
+        HashSet<Long> coordinates = new HashSet<>();
+        if (surface) {
+            for (DrainageNode node : result.nodes()) {
+                if (accepted.contains(node.id())) {
+                    coordinates.add(RiverFootprint.pack(node.x(), node.z()));
+                }
+            }
+        }
+        return new AcceptedSources(accepted, coordinates);
     }
 
     private int nextRequiredCandidate() {
@@ -197,5 +206,8 @@ final class SourceSelection {
                     diagnostics
             );
         }
+    }
+
+    private record AcceptedSources(Set<Long> nodeIds, Set<Long> coordinates) {
     }
 }

@@ -10,7 +10,8 @@ final class HydrologyOceanBoundaryRefiner {
     static Result refine(
             List<HydrologyPoint> crossing,
             HydrologyTerrainSampler terrainSampler,
-            HydrologyRoutingTerrainSampler routingSampler
+            HydrologyRoutingTerrainSampler routingSampler,
+            int seaLevel
     ) {
         Objects.requireNonNull(crossing, "crossing");
         Objects.requireNonNull(terrainSampler, "terrainSampler");
@@ -18,7 +19,6 @@ final class HydrologyOceanBoundaryRefiner {
         if (crossing.size() < 2) {
             return null;
         }
-        HydrologyPoint previous = crossing.getFirst();
         for (int index = 1; index < crossing.size(); index++) {
             HydrologyPoint point = crossing.get(index);
             HydrologyRoutingTerrainSampler.NaturalClassification classification =
@@ -27,13 +27,18 @@ final class HydrologyOceanBoundaryRefiner {
                 return null;
             }
             if (classification == HydrologyRoutingTerrainSampler.NaturalClassification.OCEAN) {
-                HydrologyTerrainSample landwardTerrain = terrainSampler.sample(previous.x(), previous.z());
-                if (landwardTerrain == null || landwardTerrain.ocean()) {
-                    return null;
+                for (int landward = index - 1; landward >= 0; landward--) {
+                    HydrologyPoint previous = crossing.get(landward);
+                    HydrologyTerrainSample landwardTerrain = terrainSampler.sample(previous.x(), previous.z());
+                    if (landwardTerrain == null || landwardTerrain.ocean()) {
+                        return null;
+                    }
+                    if (landwardTerrain.naturalHeight() >= seaLevel) {
+                        return new Result(previous, point, landwardTerrain);
+                    }
                 }
-                return new Result(previous, point, landwardTerrain);
+                return null;
             }
-            previous = point;
         }
         return null;
     }

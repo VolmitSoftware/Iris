@@ -5,6 +5,7 @@ import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
 import art.arcane.iris.engine.hydrology.HydrologyColumnSample;
 import art.arcane.iris.engine.hydrology.HydrologyFeatureRef;
 import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
+import art.arcane.iris.engine.hydrology.HydrologyGeometrySampler;
 import art.arcane.iris.engine.hydrology.HydrologyPlanner;
 import art.arcane.iris.engine.hydrology.HydrologyPlannerSettings;
 import art.arcane.iris.engine.hydrology.HydrologyTerrainSample;
@@ -31,6 +32,7 @@ public final class HydrologyPlannerProbe {
     private static final long SURFACE_INLAND_SEED = 7012L;
     private static final long UNDERGROUND_INLAND_SEED = 7013L;
     private static final long COASTAL_SEED = 7014L;
+    private static final long WATERFALL_SEED = 7015L;
     static final Set<HydrologyFeatureType> REQUIRED_FEATURE_TYPES =
             // The synthetic probe settings define no standing pools, so that type is not expected either.
             Set.copyOf(EnumSet.complementOf(EnumSet.of(HydrologyFeatureType.RIDGE_BORE, HydrologyFeatureType.STANDING_POOL)));
@@ -96,6 +98,7 @@ public final class HydrologyPlannerProbe {
         collectAccepted(firstFeatures, surfaceInlandTile());
         collectAccepted(firstFeatures, undergroundInlandTile());
         collectAccepted(firstFeatures, surfaceMouthTile());
+        collectAccepted(firstFeatures, surfaceWaterfallTile());
         collectAccepted(firstFeatures, coastalGrottoTile());
         requireCompleteCoverage(firstFeatures.keySet());
 
@@ -141,6 +144,7 @@ public final class HydrologyPlannerProbe {
         collectAccepted(coverage, surfaceInlandTile());
         collectAccepted(coverage, undergroundInlandTile());
         collectAccepted(coverage, surfaceMouthTile());
+        collectAccepted(coverage, surfaceWaterfallTile());
         collectAccepted(coverage, coastalGrottoTile());
         requireCompleteCoverage(coverage.keySet());
         return Map.copyOf(coverage);
@@ -167,7 +171,7 @@ public final class HydrologyPlannerProbe {
         return new HydrologyPlanner(
                 SURFACE_INLAND_SEED,
                 inlandSettings(0D, 0D),
-                inlandTerrain(true, false),
+                inlandTerrain(true, false, false),
                 solidCaveView()
         ).plan(ORIGIN);
     }
@@ -176,17 +180,27 @@ public final class HydrologyPlannerProbe {
         return new HydrologyPlanner(
                 UNDERGROUND_INLAND_SEED,
                 inlandSettings(0D, 1D),
-                inlandTerrain(false, true),
+                inlandTerrain(false, true, false),
                 solidCaveView()
         ).plan(ORIGIN);
     }
 
-    private static HydrologyTile surfaceMouthTile() {
+    static HydrologyTile surfaceMouthTile() {
         return new HydrologyPlanner(
                 COASTAL_SEED,
                 settings(false),
                 coastalTerrain(false)
         ).plan(ORIGIN);
+    }
+
+    static HydrologyTile surfaceWaterfallTile() {
+        HydrologyGeometrySampler geometry = request -> switch (request.field()) {
+            case SURFACE_WIDTH -> Math.clamp(6, request.minimum(), request.maximum());
+            case SURFACE_DEPTH -> Math.clamp(3, request.minimum(), request.maximum());
+            default -> request.minimum();
+        };
+        return new HydrologyPlanner(WATERFALL_SEED, inlandSettings(0D, 0D), inlandTerrain(true, false, true),
+                geometry, -4096, surface -> solidCaveView()).plan(ORIGIN);
     }
 
     private static HydrologyTile coastalGrottoTile() {
@@ -232,7 +246,7 @@ public final class HydrologyPlannerProbe {
                         0.5D,
                         0.1D,
                         1D,
-                        0
+                        0, HydrologyPlannerSettings.Regional.disabled()
                 ),
                 new HydrologyPlannerSettings.Surface(
                         true,
@@ -281,12 +295,13 @@ public final class HydrologyPlannerProbe {
 
     private static HydrologyTerrainSampler inlandTerrain(
             boolean surfaceSource,
-            boolean undergroundSource
+            boolean undergroundSource,
+            boolean waterfall
     ) {
         return (int x, int z) -> {
             boolean source = x == 0 && z == 0;
             boolean outlet = x == 64 && z == 64;
-            int height = 120 - Math.floorDiv(x + z, 16);
+            int height = 120 - Math.floorDiv(x + z, 16) - (waterfall && x + z >= 64 ? 10 : 0);
             return new HydrologyTerrainSample(
                     height,
                     1D,
@@ -330,15 +345,15 @@ public final class HydrologyPlannerProbe {
             }
             int height;
             double slope;
-            if (x < 104) {
+            if (!cliffCoast) {
+                height = 100 - Math.floorDiv(x, 6);
+                slope = 1D;
+            } else if (x < 104) {
                 height = 100 - Math.floorDiv(x, 8);
                 slope = 1D;
-            } else if (cliffCoast) {
+            } else {
                 height = 84 - Math.floorDiv(x - 104, 26);
                 slope = 1D;
-            } else {
-                height = 79 - Math.floorDiv(x - 104, 12);
-                slope = x < 112 ? 4D : 1D;
             }
             boolean surfaceSource = x <= 40;
             boolean undergroundSource = x <= 64;
@@ -458,7 +473,7 @@ public final class HydrologyPlannerProbe {
                         0.5D,
                         0.2D,
                         1D,
-                        0
+                        0, HydrologyPlannerSettings.Regional.disabled()
                 ),
                 new HydrologyPlannerSettings.Surface(
                         true,

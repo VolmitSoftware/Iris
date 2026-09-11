@@ -11,7 +11,8 @@ record CaveSurfaceOpening(
         double interiorZ,
         long radiusSquared,
         int minimumY,
-        boolean includeNeighborhood
+        boolean includeNeighborhood,
+        boolean surfaceFall
 ) {
     static CaveSurfaceOpening create(
             HydraulicSegment segment,
@@ -43,7 +44,8 @@ record CaveSurfaceOpening(
                 point.z() + deltaZ * scale,
                 radiusSquared,
                 minimumY,
-                includeNeighborhood
+                includeNeighborhood,
+                segment.type().isSurface() && segment.fallingFluid()
         );
     }
 
@@ -53,6 +55,9 @@ record CaveSurfaceOpening(
     }
 
     boolean matchesColumn(HydrologyColumnLayer layer, int x, int z) {
+        if (surfaceFall) {
+            return layer.fallingFluid() && layer.feature().segmentId() == segmentId;
+        }
         return (includeNeighborhood || layer.feature().segmentId() == segmentId)
                 && distanceSquared(x, z) <= radiusSquared;
     }

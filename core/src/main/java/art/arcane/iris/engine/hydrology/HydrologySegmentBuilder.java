@@ -40,7 +40,7 @@ final class HydrologySegmentBuilder {
                     depth,
                     false,
                     false,
-                    centerline
+                    centerline, HydraulicChannelProfile.uniform(width, depth)
             ));
             return true;
         }
@@ -114,7 +114,7 @@ final class HydrologySegmentBuilder {
                 flowDepth,
                 true,
                 true,
-                List.of(lip, receiver)
+                List.of(lip, receiver), HydraulicChannelProfile.uniform(flowWidth, flowDepth)
         ));
         addGradedTransitionSegment(
                 courseId,
@@ -227,7 +227,7 @@ final class HydrologySegmentBuilder {
                 dropDepth,
                 false,
                 !continuousSurfaceBore,
-                graded
+                graded, HydraulicChannelProfile.uniform(dropWidth, dropDepth)
         ));
         if (!continuousSurfaceBore) {
             addGradedTransitionSegment(
@@ -334,7 +334,7 @@ final class HydrologySegmentBuilder {
                 depth,
                 false,
                 false,
-                List.copyOf(centerline)
+                List.copyOf(centerline), HydraulicChannelProfile.uniform(width, depth)
         ));
     }
 
@@ -461,7 +461,6 @@ final class HydrologySegmentBuilder {
                     width,
                     depth,
                     pathEnd,
-                    landward,
                     segments
             );
             return;
@@ -540,20 +539,8 @@ final class HydrologySegmentBuilder {
             int width,
             int depth,
             HydrologyPoint pathEnd,
-            HydrologyPoint landward,
             List<HydraulicSegment> segments
     ) {
-        if (pathEnd.x() != landward.x() || pathEnd.z() != landward.z()) {
-            addFlatSegment(
-                    courseId,
-                    HydrologyFeatureType.SURFACE_POOL,
-                    surfaceHead,
-                    width,
-                    depth,
-                    line(pathEnd, landward, planner.settings.routing().refinementSpacing()),
-                    segments
-            );
-        }
         int seaLevel = outletHead(outlet);
         HydrologyPoint connection = HydrologyPlanner.withY(outlet.connectionPoint(), seaLevel);
         if (surfaceHead > seaLevel) {
@@ -564,7 +551,7 @@ final class HydrologySegmentBuilder {
                     seaLevel,
                     width,
                     depth,
-                    List.of(landward, connection),
+                    List.of(pathEnd, connection),
                     true,
                     segments
             );
@@ -635,7 +622,7 @@ final class HydrologySegmentBuilder {
                 throatDepth,
                 false,
                 true,
-                gradedDescent
+                gradedDescent, HydraulicChannelProfile.uniform(descentWidth, throatDepth)
         ));
         addFlatSegment(
                 courseId,
@@ -712,7 +699,7 @@ final class HydrologySegmentBuilder {
                 depth,
                 false,
                 false,
-                centerline
+                centerline, HydraulicChannelProfile.uniform(width, depth)
         ));
     }
 

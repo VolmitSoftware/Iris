@@ -671,7 +671,7 @@ public class HydrologyPlannerGlobalInvariantTest {
                         0.5D,
                         0.1D,
                         1D,
-                        0
+                        0, HydrologyPlannerSettings.Regional.disabled()
                 ),
                 new HydrologyPlannerSettings.Surface(
                         surfaceEnabled,
@@ -1254,6 +1254,11 @@ public class HydrologyPlannerGlobalInvariantTest {
             addBoolean(segment.fallingFluid());
             addBoolean(segment.receivingPool());
             addPoints(segment.centerline());
+            addInt(segment.channelProfile().size());
+            for (int station = 0; station < segment.channelProfile().size(); station++) {
+                addLong(Double.doubleToLongBits(segment.channelProfile().widthAt(station)));
+                addLong(Double.doubleToLongBits(segment.channelProfile().depthAt(station)));
+            }
         }
 
         private void add(HydrologyCavePlan plan) {

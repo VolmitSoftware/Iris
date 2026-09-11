@@ -114,7 +114,7 @@ public class HydrologyPlannerConfinementTest {
         HydrologyPlannerSettings.ChannelShape stableChannel = HydrologyPlannerSettings.ChannelShape.of(2D, 0D, 0D, 11);
         return new HydrologyPlannerSettings(
                 63,
-                new HydrologyPlannerSettings.Routing(256, 16, 1_089, 256, 16, 8, 0.5D, 12D, 0.5D, 0.2D, 1D, 0),
+                new HydrologyPlannerSettings.Routing(256, 16, 1_089, 256, 16, 8, 0.5D, 12D, 0.5D, 0.2D, 1D, 0, HydrologyPlannerSettings.Regional.disabled()),
                 new HydrologyPlannerSettings.Surface(true, surfaceSources, 4, 12, 2, 4, 12, 1.5D, HydrologyPlannerSettings.Banks.defaults()),
                 new HydrologyPlannerSettings.Hydraulics(4),
                 HydrologyPlannerSettings.Underground.of(false, undergroundSources, 68, 82, 4, 14, 2, 5, 6, 12, false, 0),

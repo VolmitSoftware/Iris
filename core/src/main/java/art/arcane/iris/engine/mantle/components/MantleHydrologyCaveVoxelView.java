@@ -4,6 +4,7 @@ import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.hydrology.HydrologyCaveVoxelViewFactory;
 import art.arcane.iris.engine.hydrology.HydrologyColumnSample;
+import art.arcane.iris.engine.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.engine.hydrology.RiverFootprint;
 import art.arcane.iris.engine.hydrology.cave.CavePosition;
 import art.arcane.iris.engine.hydrology.cave.CaveVoxel;
@@ -227,7 +228,7 @@ public final class MantleHydrologyCaveVoxelView implements CaveVoxelView {
         int surfaceHeight = sample == null
                 ? (int) Math.round(complex.getNaturalHeightStream().getDouble(x, z))
                 : sample.terrainHeight();
-        return new TerrainColumn(surfaceHeight, sample != null && sample.primarySurfaceLayer().isPresent());
+        return new TerrainColumn(surfaceHeight, sample != null && sample.primarySurfaceLayer().filter(HydrologyColumnLayer::terrainOwned).isPresent());
     }
 
     static void generateCarvingInput(

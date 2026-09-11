@@ -278,8 +278,9 @@ public final class HydrologyTile {
                 if (!coursesById.containsKey(courseId)) {
                     throw new IllegalArgumentException("Footprint references an unaccepted river course: " + courseId);
                 }
-                if (layer.oceanApron() || !layer.channel() || !layer.terrainOwned()
-                        || !isCaveLayer(layer)) {
+                if (layer.oceanApron() || !layer.channel()
+                        || !(layer.terrainOwned() || layer.fallingFluid() && layer.fluidOwned())
+                        || !isCaveLayer(layer, coursesById.get(courseId))) {
                     continue;
                 }
                 Map<CavePosition, HydrologyCaveAction> courseActions = expectedActions.computeIfAbsent(
@@ -433,15 +434,24 @@ public final class HydrologyTile {
 
     private boolean isCaveBearing(RiverCourse course) {
         for (HydraulicSegment segment : course.segments()) {
-            if (segment.type().isUnderground() || segment.type().isDeepFluid()) {
+            if (segment.type().isUnderground() || segment.type().isDeepFluid()
+                    || segment.type().isSurface() && segment.fallingFluid()) {
                 return true;
             }
         }
         return false;
     }
 
-    private boolean isCaveLayer(HydrologyColumnLayer layer) {
-        return layer.feature().type().isUnderground() || layer.feature().type().isDeepFluid();
+    private boolean isCaveLayer(HydrologyColumnLayer layer, RiverCourse course) {
+        if (layer.feature().type().isUnderground() || layer.feature().type().isDeepFluid()) {
+            return true;
+        }
+        for (HydraulicSegment segment : course.segments()) {
+            if (segment.id() == layer.feature().segmentId()) {
+                return segment.type().isSurface() && segment.fallingFluid();
+            }
+        }
+        return false;
     }
 
     private HydrologyCaveAction actionAt(HydrologyColumnLayer layer, int y) {

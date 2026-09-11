@@ -7,6 +7,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.engine.hydrology.HydrologyColumnSample;
+import art.arcane.iris.engine.hydrology.HydrologyColumnSnapshot;
 import art.arcane.iris.engine.hydrology.HydrologyDiagnosticCandidate;
 import art.arcane.iris.engine.hydrology.HydrologyDiagnosticRenderSample;
 import art.arcane.iris.engine.hydrology.HydrologyFeatureQuery;
@@ -125,7 +126,8 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
         IrisHydrologyRoutingTerrainSampler.Sources terrainSources = new IrisHydrologyRoutingTerrainSampler.Sources(
                 this::createTerrainBasis,
                 (int x, int z) -> context.naturalHeightProvider().sample(x, z),
-                (int x, int z) -> context.naturalOceanClassifier().isOcean(x, z)
+                (int x, int z) -> context.naturalOceanClassifier().isOcean(x, z),
+                settings.seaLevel()
         );
         this.routingTerrainSampler = new IrisHydrologyRoutingTerrainSampler(
                 terrainSources,
@@ -181,6 +183,10 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
         int blockX = (int) StrictMath.floor(x);
         int blockZ = (int) StrictMath.floor(z);
         return cache.columnAt(blockX, blockZ);
+    }
+
+    public HydrologyColumnSnapshot sampleSnapshot(int x, int z) {
+        return cache.columnSnapshot(x, z);
     }
 
     /** Plans a bounded window of tiles touching the block area ahead of time, nearest the centre first. */
@@ -560,9 +566,9 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
                 "Hydrology natural sample provider returned null at " + x + "," + z
         );
         double sampledNaturalHeight = naturalSample.naturalHeight();
-        double resolvedNaturalHeight = Double.isFinite(sampledNaturalHeight)
-                ? sampledNaturalHeight
-                : rawNaturalHeight;
+        double resolvedNaturalHeight = Double.isFinite(rawNaturalHeight)
+                ? rawNaturalHeight
+                : sampledNaturalHeight;
         if (!Double.isFinite(resolvedNaturalHeight)) {
             // A non-finite height is a transient fault in a shared sampling cache, not a fact about
             // the terrain: sample the column once more before giving the tile up.
@@ -579,7 +585,8 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
             ));
         }
         int naturalHeight = (int) StrictMath.round(resolvedNaturalHeight);
-        boolean ocean = naturalSample.ocean();
+        boolean ocean = IrisHydrologyRoutingTerrainSampler.physicalOcean(
+                naturalSample.ocean(), resolvedNaturalHeight, settings.seaLevel());
         IrisBiome biome = naturalSample.biome();
         IrisRegion region = naturalSample.region();
         ResolvedPolicy resolvedPolicy = resolvePolicy(region, biome);
@@ -877,7 +884,18 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
                 routing.getSlopePenalty(),
                 routing.getConfluenceAttraction(),
                 routing.getLengthPreference(),
-                routing.getTributaries()
+                routing.getTributaries(),
+                new HydrologyPlannerSettings.Regional(
+                        routing.getRegional().isEnabled(),
+                        routing.getRegional().getSampleSpacing(),
+                        routing.getRegional().getMinimumLength(),
+                        routing.getRegional().getMaximumTrunks(),
+                        routing.getRegional().getMaximumCachedBasins(),
+                        routing.getRegional().getMaximumCachedStations(),
+                        routing.getRegional().isCoastalChannels(),
+                        routing.getRegional().getCoastalChannelChance(),
+                        routing.getRegional().getMaximumCoastalIncision()
+                )
         );
         HydrologyPlannerSettings.Source plannerSurfaceSources = new HydrologyPlannerSettings.Source(
                 surfaceEnabled,
@@ -927,7 +945,12 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
                                 erosion.getCliffFraction(),
                                 erosion.getBedProfile(),
                                 banks.getShoreRise(),
-                                banks.getBlendBaseWidth()
+                                banks.getBlendBaseWidth(),
+                                new HydrologyPlannerSettings.Excavation(
+                                        banks.getExcavation().getMaximumDepth(),
+                                        banks.getExcavation().getMaximumWidth(),
+                                        banks.getExcavation().getMaximumVolumePerBlock()
+                                )
                         ),
                         new HydrologyPlannerSettings.Ponds(
                                 pond(surface.getPonds().getSource()),

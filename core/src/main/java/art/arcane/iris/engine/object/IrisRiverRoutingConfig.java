@@ -85,4 +85,7 @@ public class IrisRiverRoutingConfig {
     @MaxNumber(4)
     @Desc("Extra surface courses an outlet may accept as tributaries joining its main river; 0 keeps one river per outlet.")
     private int tributaries = 1;
+
+    @Desc("Regional drainage and channels between coasts, planned above the local tile lattice.")
+    private IrisRiverRegionalConfig regional = new IrisRiverRegionalConfig();
 }

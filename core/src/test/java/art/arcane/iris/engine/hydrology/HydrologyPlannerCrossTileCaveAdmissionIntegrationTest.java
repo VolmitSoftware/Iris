@@ -301,7 +301,7 @@ public class HydrologyPlannerCrossTileCaveAdmissionIntegrationTest {
         );
         return new HydrologyPlannerSettings(
                 63,
-                new HydrologyPlannerSettings.Routing(256, 16, 1_089, 256, 16, 8, 0.5D, 12D, 0.5D, 0.2D, 1D, 0),
+                new HydrologyPlannerSettings.Routing(256, 16, 1_089, 256, 16, 8, 0.5D, 12D, 0.5D, 0.2D, 1D, 0, HydrologyPlannerSettings.Regional.disabled()),
                 new HydrologyPlannerSettings.Surface(
                         true,
                         surfaceSources,

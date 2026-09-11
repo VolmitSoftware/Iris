@@ -125,13 +125,7 @@ public final class IrisWireReader {
      * @throws ProtocolException if the length is negative or exceeds the remaining bytes
      */
     public String readString() throws ProtocolException {
-        int declaredLength = readVarInt();
-        if (declaredLength < 0) {
-            throw new ProtocolException("negative string length");
-        }
-        if (declaredLength > remaining()) {
-            throw new ProtocolException("string length exceeds remaining frame bytes");
-        }
+        int declaredLength = readLength("negative string length", "string length exceeds remaining frame bytes");
         String value = new String(frame, position, declaredLength, StandardCharsets.UTF_8);
         position += declaredLength;
         return value;
@@ -143,17 +137,22 @@ public final class IrisWireReader {
      * @throws ProtocolException if the length is negative or exceeds the remaining bytes
      */
     public byte[] readBytes() throws ProtocolException {
-        int declaredLength = readVarInt();
-        if (declaredLength < 0) {
-            throw new ProtocolException("negative byte array length");
-        }
-        if (declaredLength > remaining()) {
-            throw new ProtocolException("byte array length exceeds remaining frame bytes");
-        }
+        int declaredLength = readLength("negative byte array length", "byte array length exceeds remaining frame bytes");
         byte[] value = new byte[declaredLength];
         System.arraycopy(frame, position, value, 0, declaredLength);
         position += declaredLength;
         return value;
+    }
+
+    private int readLength(String negativeMessage, String oversizedMessage) throws ProtocolException {
+        int declaredLength = readVarInt();
+        if (declaredLength < 0) {
+            throw new ProtocolException(negativeMessage);
+        }
+        if (declaredLength > remaining()) {
+            throw new ProtocolException(oversizedMessage);
+        }
+        return declaredLength;
     }
 
     private int remaining() {

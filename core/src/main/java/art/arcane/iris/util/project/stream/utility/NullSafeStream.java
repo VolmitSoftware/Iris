@@ -43,22 +43,12 @@ public class NullSafeStream<T> extends BasicStream<T> implements ProceduralStrea
     @Override
     public T get(double x, double z) {
         T t = stream.get(x, z);
-
-        if (t == null) {
-            return ifNull;
-        }
-
-        return t;
+        return t == null ? ifNull : t;
     }
 
     @Override
     public T get(double x, double y, double z) {
         T t = stream.get(x, y, z);
-
-        if (t == null) {
-            return ifNull;
-        }
-
-        return t;
+        return t == null ? ifNull : t;
     }
 }

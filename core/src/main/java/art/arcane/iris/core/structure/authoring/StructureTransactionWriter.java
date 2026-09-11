@@ -345,20 +345,7 @@ public final class StructureTransactionWriter {
             if (owner != null) {
                 verifyRecoveryClaim(transactionRoot, token.transactionId(), owner);
             }
-            Path journalPath = recoveryJournalPath(transactionRoot);
-            if (journalPath == null || !files.isRegularFile(journalPath)) {
-                throw new IOException("Missing prepared removal journal at " + transactionRoot);
-            }
-            StructureTransactionJournal journal;
-            try {
-                journal = StructureTransactionJournal.fromJson(readBoundedBytes(
-                        journalPath,
-                        MAX_STRUCTURE_STATE_BYTES,
-                        "Prepared removal journal"
-                ));
-            } catch (RuntimeException e) {
-                throw new IOException("Invalid prepared removal journal at " + journalPath, e);
-            }
+            StructureTransactionJournal journal = readPreparedRemovalJournal(transactionRoot);
             if (!journal.transactionId().equals(token.transactionId())) {
                 throw new IOException("Prepared removal journal id does not match " + token.transactionId());
             }
@@ -973,20 +960,7 @@ public final class StructureTransactionWriter {
     }
 
     private void verifyPreparedRemovalAuthority(Path transactionRoot, UUID transactionId) throws IOException {
-        Path journalPath = recoveryJournalPath(transactionRoot);
-        if (journalPath == null || !files.isRegularFile(journalPath)) {
-            throw new IOException("Missing prepared removal journal at " + transactionRoot);
-        }
-        StructureTransactionJournal journal;
-        try {
-            journal = StructureTransactionJournal.fromJson(readBoundedBytes(
-                    journalPath,
-                    MAX_STRUCTURE_STATE_BYTES,
-                    "Prepared removal journal"
-            ));
-        } catch (RuntimeException e) {
-            throw new IOException("Invalid prepared removal journal at " + journalPath, e);
-        }
+        StructureTransactionJournal journal = readPreparedRemovalJournal(transactionRoot);
         if (!journal.transactionId().equals(transactionId)
                 || journal.phase() != StructureTransactionJournal.Phase.PREPARED) {
             throw new IOException("Prepared removal journal does not match its datapack coordinator");
@@ -1012,6 +986,22 @@ public final class StructureTransactionWriter {
         }
         if (!ownershipManifestPresent) {
             throw new IOException("External coordinator removal has no structure ownership manifest");
+        }
+    }
+
+    private StructureTransactionJournal readPreparedRemovalJournal(Path transactionRoot) throws IOException {
+        Path journalPath = recoveryJournalPath(transactionRoot);
+        if (journalPath == null || !files.isRegularFile(journalPath)) {
+            throw new IOException("Missing prepared removal journal at " + transactionRoot);
+        }
+        try {
+            return StructureTransactionJournal.fromJson(readBoundedBytes(
+                    journalPath,
+                    MAX_STRUCTURE_STATE_BYTES,
+                    "Prepared removal journal"
+            ));
+        } catch (RuntimeException e) {
+            throw new IOException("Invalid prepared removal journal at " + journalPath, e);
         }
     }
 

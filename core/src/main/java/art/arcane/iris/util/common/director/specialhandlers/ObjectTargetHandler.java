@@ -37,18 +37,11 @@ public class ObjectTargetHandler implements DirectorParameterHandler<String> {
 
         IrisData data = data();
         if (data != null) {
-            for (String k : data.getObjectLoader().getPossibleKeys()) {
-                out.add(k);
-                collectPrefixes(k, prefixes);
-            }
+            collectObjectKeys(data, out, prefixes);
         } else {
             File packsFolder = IrisPlatforms.get().packsFolder();
             for (File pack : PackDirectoryResolver.listVisiblePackDirectories(packsFolder)) {
-                IrisData d = IrisData.get(pack);
-                for (String k : d.getObjectLoader().getPossibleKeys()) {
-                    out.add(k);
-                    collectPrefixes(k, prefixes);
-                }
+                collectObjectKeys(IrisData.get(pack), out, prefixes);
             }
         }
 
@@ -56,6 +49,13 @@ public class ObjectTargetHandler implements DirectorParameterHandler<String> {
             out.add(p);
         }
         return out;
+    }
+
+    private static void collectObjectKeys(IrisData data, KList<String> out, Set<String> prefixes) {
+        for (String key : data.getObjectLoader().getPossibleKeys()) {
+            out.add(key);
+            collectPrefixes(key, prefixes);
+        }
     }
 
     private static void collectPrefixes(String key, Set<String> prefixes) {

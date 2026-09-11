@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.hydrology;
 
+import art.arcane.iris.engine.hydrology.surface.SurfaceNoise;
+
 final class HydrologyChannelGeometry {
     private final HydrologyFootprintCompiler compiler;
 
@@ -149,7 +151,7 @@ final class HydrologyChannelGeometry {
         if (maximum == 0) {
             return 0;
         }
-        double sampled = organicNoise(seed, x, z, 12);
+        double sampled = SurfaceNoise.value(seed, x, z, 12);
         return (int) StrictMath.round(sampled * maximum);
     }
 
@@ -222,13 +224,13 @@ final class HydrologyChannelGeometry {
         )) * StrictMath.PI * 2D;
         double firstLobe = 0.5D + 0.5D * StrictMath.sin(angle * 3D + firstPhase);
         double secondLobe = 0.5D + 0.5D * StrictMath.sin(angle * 5D + secondPhase);
-        double coherent = signedOrganicNoise(
+        double coherent = SurfaceNoise.signed(
                 segment.courseId(),
                 worldX,
                 worldZ,
                 channelShape.roughnessWavelength()
         );
-        double detail = signedOrganicNoise(
+        double detail = SurfaceNoise.signed(
                 HydrologyHash.mix(segment.courseId(), ORGANIC_SHAPE_SECOND_PHASE_SALT),
                 worldX,
                 worldZ,
@@ -262,14 +264,14 @@ final class HydrologyChannelGeometry {
         }
         double signedCross = (deltaX * -flowZ + deltaZ * flowX) / flowLength;
         HydrologyPlannerSettings.ChannelShape channelShape = compiler.settings.geometry().surface();
-        double thalweg = signedOrganicNoise(
+        double thalweg = SurfaceNoise.signed(
                 HydrologyHash.mix(segment.courseId(), ORGANIC_BED_VARIATION_SALT),
                 worldX,
                 worldZ,
                 channelShape.roughnessWavelength()
         ) * shape.channelRadius() * channelShape.wallRoughness();
         long bankSeed = HydrologyHash.mix(segment.courseId(), ORGANIC_SHAPE_SECOND_PHASE_SALT);
-        double bankNoise = signedOrganicNoise(
+        double bankNoise = SurfaceNoise.signed(
                 bankSeed,
                 worldX,
                 worldZ,
@@ -295,10 +297,6 @@ final class HydrologyChannelGeometry {
             return compiler.settings.geometry().underground();
         }
         return compiler.settings.geometry().surface();
-    }
-
-    double signedOrganicNoise(long seed, int x, int z, int scale) {
-        return organicNoise(seed, x, z, scale) * 2D - 1D;
     }
 
     double deepPoolDistance(
@@ -330,33 +328,5 @@ final class HydrologyChannelGeometry {
                 rotatedZ / (radius * 0.7D)
         );
         return normalizedDistance * radius / radialScale;
-    }
-
-    double organicNoise(long seed, int x, int z, int scale) {
-        int cellX = Math.floorDiv(x, scale);
-        int cellZ = Math.floorDiv(z, scale);
-        double localX = Math.floorMod(x, scale) / (double) scale;
-        double localZ = Math.floorMod(z, scale) / (double) scale;
-        double smoothX = localX * localX * (3D - 2D * localX);
-        double smoothZ = localZ * localZ * (3D - 2D * localZ);
-        double top = interpolate(
-                organicCorner(seed, cellX, cellZ),
-                organicCorner(seed, cellX + 1, cellZ),
-                smoothX
-        );
-        double bottom = interpolate(
-                organicCorner(seed, cellX, cellZ + 1),
-                organicCorner(seed, cellX + 1, cellZ + 1),
-                smoothX
-        );
-        return interpolate(top, bottom, smoothZ);
-    }
-
-    double organicCorner(long seed, int cellX, int cellZ) {
-        return HydrologyHash.unit(HydrologyHash.mix(seed, cellX, cellZ));
-    }
-
-    double interpolate(double first, double second, double progress) {
-        return first + (second - first) * progress;
     }
 }

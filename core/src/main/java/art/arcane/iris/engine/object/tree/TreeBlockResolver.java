@@ -33,32 +33,27 @@ public final class TreeBlockResolver {
     }
 
     public static PlatformBlockState resolve(IrisProceduralTree tree, IrisData data, TreeBlockCanvas.Cell cell, TreeBlockCanvas.Vec pos, RNG paletteRng) {
-        switch (cell.role()) {
-            case TRUNK -> {
-                PlatformBlockState state = resolveBlock(tree.getTrunk(), tree.getTrunkPalette(), data, pos, paletteRng);
-                return finishTrunk(state, cell);
-            }
+        return switch (cell.role()) {
+            case TRUNK -> finishTrunk(resolveBlock(tree.getTrunk(), tree.getTrunkPalette(), data, pos, paletteRng), cell);
             case SECONDARY_TRUNK -> {
                 PlatformBlockState state = resolveBlock(tree.getSecondaryTrunk(), tree.getSecondaryTrunkPalette(), data, pos, paletteRng);
                 if (state == null) {
                     state = resolveBlock(tree.getTrunk(), tree.getTrunkPalette(), data, pos, paletteRng);
                 }
-                return finishTrunk(state, cell);
+                yield finishTrunk(state, cell);
             }
-            case LEAF -> {
-                return resolveBlock(tree.getLeaves(), tree.getLeavesPalette(), data, pos, paletteRng);
-            }
+            case LEAF -> resolveBlock(tree.getLeaves(), tree.getLeavesPalette(), data, pos, paletteRng);
             case SECONDARY_LEAF -> {
                 PlatformBlockState state = resolveSecondaryLeaf(tree, data, pos, paletteRng);
                 if (state == null) {
                     state = resolveBlock(tree.getLeaves(), tree.getLeavesPalette(), data, pos, paletteRng);
                 }
-                return state;
+                yield state;
             }
             case DECORATOR -> {
                 int index = cell.decoratorIndex();
                 if (index < 0 || tree.getDecorators() == null || index >= tree.getDecorators().size()) {
-                    return null;
+                    yield null;
                 }
                 IrisTreeDecorator dec = tree.getDecorators().get(index);
                 PlatformBlockState state = resolveBlock(dec.getBlock(), dec.getPalette(), data, pos, paletteRng);
@@ -68,12 +63,10 @@ public final class TreeBlockResolver {
                     } catch (IllegalArgumentException ignored) {
                     }
                 }
-                return state;
+                yield state;
             }
-            default -> {
-                return null;
-            }
-        }
+            default -> null;
+        };
     }
 
     private static PlatformBlockState finishTrunk(PlatformBlockState state, TreeBlockCanvas.Cell cell) {
@@ -93,7 +86,7 @@ public final class TreeBlockResolver {
     }
 
     private static PlatformBlockState resolveSecondaryLeaf(IrisProceduralTree tree, IrisData data, TreeBlockCanvas.Vec pos, RNG paletteRng) {
-        if (TreeTrunkBuilder.paletteSet(tree.getSecondaryLeavesPalette())) {
+        if (IrisProceduralBlocks.paletteSet(tree.getSecondaryLeavesPalette())) {
             return tree.getSecondaryLeavesPalette().get(paletteRng, pos.x(), pos.y(), pos.z(), data);
         }
         if (tree.getWeightedSecondaryLeaves() != null && !tree.getWeightedSecondaryLeaves().isEmpty()) {
@@ -126,7 +119,7 @@ public final class TreeBlockResolver {
     }
 
     private static PlatformBlockState resolveBlock(String block, IrisMaterialPalette palette, IrisData data, TreeBlockCanvas.Vec pos, RNG paletteRng) {
-        if (TreeTrunkBuilder.paletteSet(palette)) {
+        if (IrisProceduralBlocks.paletteSet(palette)) {
             return palette.get(paletteRng, pos.x(), pos.y(), pos.z(), data);
         }
         if (block != null && !block.isEmpty()) {

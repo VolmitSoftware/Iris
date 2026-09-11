@@ -7,7 +7,6 @@ import java.util.Optional;
 import art.arcane.iris.nativegen.NativeGenerationWriteGuard;
 import java.util.function.LongPredicate;
 import art.arcane.iris.engine.DimensionStackContext;
-import art.arcane.iris.engine.DimensionStackLayout;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineLifecycleTasks;
 import art.arcane.iris.engine.framework.GenerationSessionException;
@@ -1125,7 +1124,8 @@ public class IrisChunkGenerator extends CustomChunkGenerator implements LongPred
                     chunkPos.x(), chunkPos.z(), error);
         }
         IrisStaticObjectLayer staticObjects = engine.getDimension().getStaticObjectLayer(engine.getData());
-        Predicate<BlockPos> protectedPosition = nativeStructureProtection(staticObjects);
+        Predicate<BlockPos> protectedPosition = NativeGenerationWriteGuard.protectedPositions(
+                staticObjects, engine.getDimensionStackContext(), engine.getMinHeight());
         WorldGenLevel boundedWorld = NativeStructureWorldgenAccess.create(
                 world, chunkPos, hostWorldgenSurfaceHeight(), hostWorldgenFloorHeight(),
                 engine.getDimensionStackContext() != null,
@@ -1216,8 +1216,9 @@ public class IrisChunkGenerator extends CustomChunkGenerator implements LongPred
                 hostWorldgenSurfaceHeight(),
                 hostWorldgenFloorHeight(),
                 engine.getDimensionStackContext() != null,
-                nativeStructureProtection(
-                        engine.getDimension().getStaticObjectLayer(engine.getData())));
+                NativeGenerationWriteGuard.protectedPositions(
+                        engine.getDimension().getStaticObjectLayer(engine.getData()),
+                        engine.getDimensionStackContext(), engine.getMinHeight()));
         world.setCurrentlyGenerating(() -> "Iris native structure " + structureId);
         try {
             NativeStructurePostProcessor.place(boundedWorld, structureManager, this, random, area, chunkPos,
@@ -1226,28 +1227,6 @@ public class IrisChunkGenerator extends CustomChunkGenerator implements LongPred
         } finally {
             world.setCurrentlyGenerating(null);
         }
-    }
-
-    private Predicate<BlockPos> nativeStructureProtection(IrisStaticObjectLayer staticObjects) {
-        DimensionStackContext stackContext = engine.getDimensionStackContext();
-        int minimumY = engine.getMinHeight();
-        Map<Long, DimensionStackLayout> layouts = new ConcurrentHashMap<>();
-        return position -> {
-            if (!staticObjects.isEmpty() && staticObjects.contains(
-                    position.getX(), position.getY() - minimumY, position.getZ())) {
-                return true;
-            }
-            if (stackContext == null) {
-                return false;
-            }
-            long columnKey = ((long) position.getX() << 32)
-                    ^ (position.getZ() & 0xFFFFFFFFL);
-            DimensionStackLayout layout = layouts.computeIfAbsent(
-                    columnKey,
-                    ignored -> stackContext.sample(position.getX(), position.getZ())
-            );
-            return layout.isHostFeatureProtectedY(position.getY() - minimumY);
-        };
     }
 
     private List<List<Structure>> structuresByStep(Registry<Structure> registry) {

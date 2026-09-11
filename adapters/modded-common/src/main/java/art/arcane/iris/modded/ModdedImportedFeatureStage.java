@@ -20,6 +20,7 @@ package art.arcane.iris.modded;
 
 import art.arcane.iris.engine.DimensionStackContext;
 import art.arcane.iris.engine.DimensionStackLayout;
+import art.arcane.iris.nativegen.NativeGenerationWriteGuard;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
 import art.arcane.iris.engine.framework.NativeFeatureGenerationPolicy;
@@ -62,7 +63,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.IntBinaryOperator;
-import java.util.function.Predicate;
 
 /**
  * Native placed-feature passthrough for one Iris dimension, gated on {@code importedFeatures.enabled}.
@@ -353,7 +353,7 @@ final class ModdedImportedFeatureStage {
                 surfaceFirstFreeY,
                 floorFirstFreeY,
                 stackContext != null,
-                importedFeatureProtection(staticObjects, stackContext, staticMinY));
+                NativeGenerationWriteGuard.protectedPositions(staticObjects, stackContext, staticMinY));
 
         try {
             for (int stepIndex = 0; stepIndex < steps.size(); stepIndex++) {
@@ -399,30 +399,6 @@ final class ModdedImportedFeatureStage {
         if (normalized != null) {
             keys.add(normalized);
         }
-    }
-
-    private static Predicate<BlockPos> importedFeatureProtection(
-            IrisStaticObjectLayer staticObjects,
-            DimensionStackContext stackContext,
-            int minimumY
-    ) {
-        Map<Long, DimensionStackLayout> layouts = new ConcurrentHashMap<>();
-        return position -> {
-            if (!staticObjects.isEmpty() && staticObjects.contains(
-                    position.getX(), position.getY() - minimumY, position.getZ())) {
-                return true;
-            }
-            if (stackContext == null) {
-                return false;
-            }
-            long columnKey = ((long) position.getX() << 32)
-                    ^ (position.getZ() & 0xFFFFFFFFL);
-            DimensionStackLayout layout = layouts.computeIfAbsent(
-                    columnKey,
-                    ignored -> stackContext.sample(position.getX(), position.getZ())
-            );
-            return layout.isHostFeatureProtectedY(position.getY() - minimumY);
-        };
     }
 
     void evictRuntime(int runtimeIdentity) {

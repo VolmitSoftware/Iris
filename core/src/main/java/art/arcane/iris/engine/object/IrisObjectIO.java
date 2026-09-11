@@ -316,10 +316,7 @@ public final class IrisObjectIO {
 
     private static void writeValidated(IrisObject self, OutputStream o) throws IOException {
         DataOutputStream dos = new DataOutputStream(o);
-        dos.writeInt(self.w);
-        dos.writeInt(self.h);
-        dos.writeInt(self.d);
-        dos.writeUTF("Iris V2 IOB;");
+        writeHeader(self, dos);
         Palette palette = buildPalette(self);
 
         dos.writeShort(palette.size());
@@ -330,21 +327,13 @@ public final class IrisObjectIO {
 
         dos.writeInt(self.blocks.size());
 
-        for (var entry : self.blocks) {
-            var i = entry.getKey();
-            dos.writeShort(i.getBlockX());
-            dos.writeShort(i.getBlockY());
-            dos.writeShort(i.getBlockZ());
-            dos.writeShort(palette.indexOf(entry.getValue().key()));
+        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : self.blocks) {
+            writeBlock(dos, palette, entry);
         }
 
         dos.writeInt(self.states.size());
-        for (var entry : self.states) {
-            var i = entry.getKey();
-            dos.writeShort(i.getBlockX());
-            dos.writeShort(i.getBlockY());
-            dos.writeShort(i.getBlockZ());
-            entry.getValue().toBinary(dos);
+        for (Map.Entry<IrisBlockVector, TileData> entry : self.states) {
+            writeState(dos, entry);
         }
     }
 
@@ -369,10 +358,7 @@ public final class IrisObjectIO {
             public void execute() {
                 try {
                     DataOutputStream dos = new DataOutputStream(o);
-                    dos.writeInt(self.w);
-                    dos.writeInt(self.h);
-                    dos.writeInt(self.d);
-                    dos.writeUTF("Iris V2 IOB;");
+                    writeHeader(self, dos);
 
                     Palette palette = buildPalette(self);
                     c += self.blocks.size();
@@ -387,22 +373,14 @@ public final class IrisObjectIO {
 
                     dos.writeInt(self.blocks.size());
 
-                    for (var entry : self.blocks) {
-                        var i = entry.getKey();
-                        dos.writeShort(i.getBlockX());
-                        dos.writeShort(i.getBlockY());
-                        dos.writeShort(i.getBlockZ());
-                        dos.writeShort(palette.indexOf(entry.getValue().key()));
+                    for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : self.blocks) {
+                        writeBlock(dos, palette, entry);
                         ++c;
                     }
 
                     dos.writeInt(self.states.size());
-                    for (var entry : self.states) {
-                        var i = entry.getKey();
-                        dos.writeShort(i.getBlockX());
-                        dos.writeShort(i.getBlockY());
-                        dos.writeShort(i.getBlockZ());
-                        entry.getValue().toBinary(dos);
+                    for (Map.Entry<IrisBlockVector, TileData> entry : self.states) {
+                        writeState(dos, entry);
                         ++c;
                     }
                 } catch (IOException e) {
@@ -434,6 +412,31 @@ public final class IrisObjectIO {
         }
         if (ref.get() != null)
             throw ref.get();
+    }
+
+    private static void writeHeader(IrisObject self, DataOutputStream output) throws IOException {
+        output.writeInt(self.w);
+        output.writeInt(self.h);
+        output.writeInt(self.d);
+        output.writeUTF(V2_HEADER);
+    }
+
+    private static void writeBlock(DataOutputStream output, Palette palette,
+                                   Map.Entry<IrisBlockVector, PlatformBlockState> entry) throws IOException {
+        IrisBlockVector position = entry.getKey();
+        output.writeShort(position.getBlockX());
+        output.writeShort(position.getBlockY());
+        output.writeShort(position.getBlockZ());
+        output.writeShort(palette.indexOf(entry.getValue().key()));
+    }
+
+    private static void writeState(DataOutputStream output,
+                                   Map.Entry<IrisBlockVector, TileData> entry) throws IOException {
+        IrisBlockVector position = entry.getKey();
+        output.writeShort(position.getBlockX());
+        output.writeShort(position.getBlockY());
+        output.writeShort(position.getBlockZ());
+        entry.getValue().toBinary(output);
     }
 
     static void write(IrisObject self, File file) throws IOException {

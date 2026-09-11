@@ -27,7 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class IrisHydrologyRuntimeSettingsTest {
+public class IrisHydrologySettingsCompilerTest {
     @Test
     @SuppressWarnings("unchecked")
     public void regionalSurfaceControlsFingerprintAllScopesAndExpandSpacingReach() {
@@ -47,20 +47,20 @@ public class IrisHydrologyRuntimeSettingsTest {
         when(biomes.loadAll(any(String[].class))).thenReturn(new KList<>(volcanic));
 
         HydrologyPlannerSettings baseline = settings(dimension);
-        HydrologyPlannerSettings regional = IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> data);
+        HydrologyPlannerSettings regional = IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> data);
         assertEquals(HydrologyPlannerSettings.SurfacePolicyBounds.NONE, baseline.surfacePolicyBounds());
         assertNotEquals(baseline.fingerprint(), regional.fingerprint());
         assertEquals(384, regional.maximumSurfaceSourceSpacing());
 
         volcanic.getRiverPolicy().setSurfaceSourceSpacing(1600);
-        HydrologyPlannerSettings widened = IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> data);
+        HydrologyPlannerSettings widened = IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> data);
         assertNotEquals(regional.fingerprint(), widened.fingerprint());
         assertEquals(1600, widened.maximumSurfaceSourceSpacing());
         assertTrue(widened.publicationRadius() >= 1600);
-        assertEquals(widened.fingerprint(), IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> data).fingerprint());
+        assertEquals(widened.fingerprint(), IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> data).fingerprint());
 
         dimension.getRiverPolicy().setSurfaceInlandOutlets(7);
-        assertNotEquals(widened.fingerprint(), IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> data).fingerprint());
+        assertNotEquals(widened.fingerprint(), IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> data).fingerprint());
     }
 
     @Test
@@ -90,7 +90,7 @@ public class IrisHydrologyRuntimeSettingsTest {
         IrisRiverRoutingConfig routing = new IrisRiverRoutingConfig()
                 .setTileSize(256);
 
-        assertEquals(128, IrisHydrologyRuntime.maximumDeepChannelLength(deepFluid, routing));
+        assertEquals(128, IrisHydrologySettingsCompiler.maximumDeepChannelLength(deepFluid, routing));
     }
 
     @Test
@@ -101,7 +101,7 @@ public class IrisHydrologyRuntimeSettingsTest {
         IrisRiverRoutingConfig routing = new IrisRiverRoutingConfig()
                 .setTileSize(256);
 
-        assertEquals(0, IrisHydrologyRuntime.maximumDeepChannelLength(deepFluid, routing));
+        assertEquals(0, IrisHydrologySettingsCompiler.maximumDeepChannelLength(deepFluid, routing));
     }
 
     @Test
@@ -112,12 +112,12 @@ public class IrisHydrologyRuntimeSettingsTest {
         rivers.getGrottos().getInland().setEnabled(true).setConnectSurfaceRivers(true);
         rivers.getRouting().getInlandOutlets().add(IrisRiverInlandOutlet.SINKHOLE_GROTTO);
 
-        assertTrue(IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> null)
+        assertTrue(IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> null)
                 .outlets().surfaceSinkholesEnabled());
 
         rivers.getRouting().getInlandOutlets().clear();
 
-        assertFalse(IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> null)
+        assertFalse(IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> null)
                 .outlets().surfaceSinkholesEnabled());
     }
 
@@ -132,13 +132,13 @@ public class IrisHydrologyRuntimeSettingsTest {
         rivers.getUnderground().getSources().setDensity(4.5D);
         rivers.getRouting().setSampleSpacing(64);
 
-        assertEquals(5, IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> null)
+        assertEquals(5, IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> null)
                 .surface().sources().maximumPerTile());
-        assertEquals(384, IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> null)
+        assertEquals(384, IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> null)
                 .surface().sources().minimumSpacing());
-        assertEquals(5, IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> null)
+        assertEquals(5, IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> null)
                 .underground().sources().maximumPerTile());
-        assertEquals(512, IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> null)
+        assertEquals(512, IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> null)
                 .underground().sources().minimumSpacing());
     }
 
@@ -173,7 +173,7 @@ public class IrisHydrologyRuntimeSettingsTest {
                 .setSlopePenalty(3D)
                 .setConfluenceAttraction(0.4D);
 
-        HydrologyPlannerSettings settings = IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> null);
+        HydrologyPlannerSettings settings = IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> null);
         HydrologyPlannerSettings.Banks banks = settings.surface().banks();
 
         assertEquals(2, banks.sink());
@@ -220,8 +220,7 @@ public class IrisHydrologyRuntimeSettingsTest {
                 .setMaximumOutletsPerTile(2)
                 .setMaximumCoastalOutletsPerTile(5);
 
-        HydrologyPlannerSettings.Outlets outlets = IrisHydrologyRuntime
-                .createSettings(dimension, dimension.getHydrology(), () -> null)
+        HydrologyPlannerSettings.Outlets outlets = IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> null)
                 .outlets();
 
         assertEquals(2, outlets.maximumPerTile());
@@ -252,8 +251,7 @@ public class IrisHydrologyRuntimeSettingsTest {
                 .setBasinWidthRatio(2.1D)
                 .setMaximumBasinDepth(9);
 
-        HydrologyPlannerSettings.Geometry geometry = IrisHydrologyRuntime
-                .createSettings(dimension, dimension.getHydrology(), () -> null)
+        HydrologyPlannerSettings.Geometry geometry = IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> null)
                 .geometry();
 
         assertEquals(47, geometry.meanders().primaryWavelength());
@@ -284,12 +282,12 @@ public class IrisHydrologyRuntimeSettingsTest {
         coastal.setEnabled(true);
         coastal.getSeaCaves().setEnabled(true).setMaximumPerTile(5).setMinimumSpacing(200).setMinimumCoastHeight(9).setDepth(20);
 
-        HydrologyPlannerSettings.SeaCaves mapped = IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> null)
+        HydrologyPlannerSettings.SeaCaves mapped = IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> null)
                 .seaCaves();
         assertEquals(HydrologyPlannerSettings.SeaCaves.of(true, 5, 200, 9, 20), mapped);
 
         coastal.setEnabled(false);
-        HydrologyPlannerSettings.SeaCaves withoutCoastalGrottos = IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> null)
+        HydrologyPlannerSettings.SeaCaves withoutCoastalGrottos = IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> null)
                 .seaCaves();
         assertFalse(withoutCoastalGrottos.enabled());
         assertEquals(5, withoutCoastalGrottos.maximumPerTile());
@@ -297,7 +295,7 @@ public class IrisHydrologyRuntimeSettingsTest {
 
         coastal.setEnabled(true);
         coastal.getSeaCaves().setEnabled(false);
-        assertFalse(IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> null).seaCaves().enabled());
+        assertFalse(IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> null).seaCaves().enabled());
     }
 
     @Test
@@ -488,7 +486,7 @@ public class IrisHydrologyRuntimeSettingsTest {
         IrisDimension dimension = new IrisDimension().setRegions(new KList<>("valley"));
         dimension.getRiverPolicy().setShoreWidth(4D);
 
-        assertEquals(4D, IrisHydrologyRuntime.widestShoreBiomeWidth(dimension, () -> null, 1.5D), 0D);
+        assertEquals(4D, IrisHydrologySettingsCompiler.widestShoreBiomeWidth(dimension, () -> null, 1.5D), 0D);
         assertEquals(4D, settings(dimension).widestShoreBiomeWidth(), 0D);
 
         IrisRegion valley = new IrisRegion().setRiverPolicy(new IrisRiverPolicy().setShoreBiomeWidth(6D));
@@ -503,18 +501,18 @@ public class IrisHydrologyRuntimeSettingsTest {
         when(biomeLoader.getPossibleKeys()).thenReturn(new String[]{"beach", "plain"});
         when(biomeLoader.loadAll(any(String[].class))).thenReturn(new KList<>(beach, plain));
 
-        assertEquals(9D, IrisHydrologyRuntime.widestShoreBiomeWidth(dimension, () -> data, 1.5D), 0D);
+        assertEquals(9D, IrisHydrologySettingsCompiler.widestShoreBiomeWidth(dimension, () -> data, 1.5D), 0D);
 
         beach.getRiverPolicy().setShoreWidth(null).setShoreBiomeWidth(11D);
-        assertEquals(11D, IrisHydrologyRuntime.widestShoreBiomeWidth(dimension, () -> data, 1.5D), 0D);
+        assertEquals(11D, IrisHydrologySettingsCompiler.widestShoreBiomeWidth(dimension, () -> data, 1.5D), 0D);
 
         valley.getRiverPolicy().setShoreWidth(12D);
-        assertEquals(12D, IrisHydrologyRuntime.widestShoreBiomeWidth(dimension, () -> data, 1.5D), 0D);
+        assertEquals(12D, IrisHydrologySettingsCompiler.widestShoreBiomeWidth(dimension, () -> data, 1.5D), 0D);
 
         dimension.getRiverPolicy().setShoreWidth(null);
         valley.getRiverPolicy().setShoreWidth(null).setShoreBiomeWidth(null);
         beach.getRiverPolicy().setShoreBiomeWidth(null);
-        assertEquals(1.5D, IrisHydrologyRuntime.widestShoreBiomeWidth(dimension, () -> data, 1.5D), 0D);
+        assertEquals(1.5D, IrisHydrologySettingsCompiler.widestShoreBiomeWidth(dimension, () -> data, 1.5D), 0D);
     }
 
     @Test
@@ -537,6 +535,6 @@ public class IrisHydrologyRuntimeSettingsTest {
     }
 
     private static HydrologyPlannerSettings settings(IrisDimension dimension) {
-        return IrisHydrologyRuntime.createSettings(dimension, dimension.getHydrology(), () -> null);
+        return IrisHydrologySettingsCompiler.compile(dimension, dimension.getHydrology(), () -> null);
     }
 }

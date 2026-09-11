@@ -104,11 +104,7 @@ public final class IrisWireWriter {
      * Writes a varint-length-prefixed UTF-8 string. {@code value} must not be null.
      */
     public void writeString(String value) {
-        byte[] encoded = value.getBytes(StandardCharsets.UTF_8);
-        writeVarInt(encoded.length);
-        ensure(encoded.length);
-        System.arraycopy(encoded, 0, buffer, length, encoded.length);
-        length += encoded.length;
+        writeBytes(value.getBytes(StandardCharsets.UTF_8));
     }
 
     /**

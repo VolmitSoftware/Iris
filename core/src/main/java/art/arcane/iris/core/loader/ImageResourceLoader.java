@@ -22,7 +22,6 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.image.IrisImageMapCompiler;
 import art.arcane.iris.engine.object.IrisImage;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.data.KCache;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
@@ -143,7 +142,7 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
 
         for (File file : listedFiles) {
             if (file.isFile() && file.getName().endsWith(".png")) {
-                m.add(prefix + file.getName().replaceAll("\\Q.png\\E", ""));
+                m.add(prefix + file.getName().replace(".png", ""));
             } else if (file.isDirectory()) {
                 getPNGFiles(file, prefix + file.getName() + "/", m, visitedDirectories);
             }
@@ -164,8 +163,7 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
             getPNGFiles(i, "", m, visitedDirectories);
         }
 
-        KList<String> v = new KList<>(m);
-        possibleKeys = v.toArray(new String[0]);
+        possibleKeys = m.toArray(new String[0]);
         return possibleKeys;
     }
 

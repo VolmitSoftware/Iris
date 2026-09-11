@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.tree;
 
+import art.arcane.iris.engine.object.IrisProceduralBlocks;
 import art.arcane.iris.engine.object.IrisProceduralTree;
 import art.arcane.iris.engine.object.IrisTreeBranches;
 import art.arcane.iris.engine.object.IrisTreeCanopy;
@@ -245,7 +246,7 @@ public final class TreeCanopyBuilder {
     }
 
     private static TreeBlockCanvas.Role resolveLeaf(IrisProceduralTree tree, RNG rng) {
-        boolean hasSecondary = TreeTrunkBuilder.paletteSet(tree.getSecondaryLeavesPalette())
+        boolean hasSecondary = IrisProceduralBlocks.paletteSet(tree.getSecondaryLeavesPalette())
                 || (tree.getWeightedSecondaryLeaves() != null && !tree.getWeightedSecondaryLeaves().isEmpty())
                 || (tree.getSecondaryLeaves() != null && !tree.getSecondaryLeaves().isEmpty());
         if (!hasSecondary || tree.getSecondaryLeafFraction() <= 0.0) {

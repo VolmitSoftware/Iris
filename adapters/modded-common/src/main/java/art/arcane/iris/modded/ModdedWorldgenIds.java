@@ -3,6 +3,7 @@ package art.arcane.iris.modded;
 import art.arcane.iris.engine.framework.Engine;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -91,13 +92,7 @@ public final class ModdedWorldgenIds {
     }
 
     private static String encode(String value) {
-        byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
-        StringBuilder encoded = new StringBuilder(bytes.length * 2);
-        for (byte current : bytes) {
-            encoded.append(Character.forDigit((current >>> 4) & 0xF, 16));
-            encoded.append(Character.forDigit(current & 0xF, 16));
-        }
-        return encoded.toString();
+        return HexFormat.of().formatHex(value.getBytes(StandardCharsets.UTF_8));
     }
 
     private static String decode(String value) {

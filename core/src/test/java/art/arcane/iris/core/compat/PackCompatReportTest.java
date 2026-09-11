@@ -64,8 +64,27 @@ public class PackCompatReportTest {
     public void findingLineAndDedupKey() {
         CompatFinding finding = finding(CompatAction.EXCLUDED, "cave/sulfur", "layers[0].palette[1]");
         assertEquals("minecraft:sulfur (block): excluded Biome cave/sulfur at layers[0].palette[1]", finding.line());
+        assertEquals("excluded Biome cave/sulfur at layers[0].palette[1]", finding.subjectLine());
         assertEquals("BLOCK:minecraft:sulfur|EXCLUDED|Biome|cave/sulfur", finding.dedupKey());
         CompatFinding blank = new CompatFinding(CompatRegistry.ENTITY, "minecraft:camel", CompatAction.DROPPED, null, null, null);
         assertEquals("minecraft:camel (entity): dropped", blank.line());
+        assertEquals("dropped", blank.subjectLine());
+    }
+
+    @Test
+    public void findingRendersEachOptionalSubjectFieldIndependently() {
+        CompatFinding typeOnly = new CompatFinding(
+                CompatRegistry.BLOCK, "minecraft:sulfur", CompatAction.EXCLUDED, "Biome", "", "");
+        CompatFinding keyOnly = new CompatFinding(
+                CompatRegistry.BLOCK, "minecraft:sulfur", CompatAction.EXCLUDED, "", "cave/sulfur", "");
+        CompatFinding detailOnly = new CompatFinding(
+                CompatRegistry.BLOCK, "minecraft:sulfur", CompatAction.EXCLUDED, "", "", "layers[0]");
+
+        assertEquals("excluded Biome", typeOnly.subjectLine());
+        assertEquals("excluded cave/sulfur", keyOnly.subjectLine());
+        assertEquals("excluded at layers[0]", detailOnly.subjectLine());
+        assertEquals("minecraft:sulfur (block): excluded Biome", typeOnly.line());
+        assertEquals("minecraft:sulfur (block): excluded cave/sulfur", keyOnly.line());
+        assertEquals("minecraft:sulfur (block): excluded at layers[0]", detailOnly.line());
     }
 }

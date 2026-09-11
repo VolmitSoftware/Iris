@@ -2692,15 +2692,7 @@ public final class GenerationSemanticIndex {
                     }
                 }
             }
-            byte[] body = bodyBytes.toByteArray();
-            CRC32 checksum = new CRC32();
-            checksum.update(body);
-            ByteArrayOutputStream encodedBytes = new ByteArrayOutputStream(body.length + CHECKSUM_BYTES);
-            encodedBytes.write(body);
-            try (DataOutputStream output = new DataOutputStream(encodedBytes)) {
-                output.writeInt((int) checksum.getValue());
-            }
-            return encodedBytes.toByteArray();
+            return withChecksum(bodyBytes.toByteArray());
         }
 
         private record Summary(

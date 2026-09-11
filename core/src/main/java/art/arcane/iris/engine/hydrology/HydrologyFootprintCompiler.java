@@ -4,6 +4,7 @@ import art.arcane.iris.engine.hydrology.surface.SurfaceFootprint;
 import art.arcane.iris.engine.hydrology.surface.SurfaceBounds;
 import art.arcane.iris.engine.hydrology.surface.SurfaceFootprintCompiler;
 import art.arcane.iris.engine.hydrology.surface.SurfaceLayerColumn;
+import art.arcane.iris.engine.hydrology.surface.SurfaceNoise;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -763,7 +764,7 @@ final class HydrologyFootprintCompiler {
                     (normalized - thalwegFraction) / (1D - thalwegFraction)
             );
             int maximumDepth = Math.max(1, shape.fluidHead() - shape.bed());
-            double roughness = channelGeometry.signedOrganicNoise(
+            double roughness = SurfaceNoise.signed(
                     HydrologyHash.mix(segment.id(), HydrologyChannelGeometry.ORGANIC_BED_VARIATION_SALT),
                     worldX,
                     worldZ,
@@ -802,7 +803,7 @@ final class HydrologyFootprintCompiler {
             return shape.bed();
         }
         int lowerExtent = shape.fluidHead() - shape.bed();
-        double roughness = channelGeometry.signedOrganicNoise(
+        double roughness = SurfaceNoise.signed(
                 HydrologyHash.mix(segment.id(), HydrologyChannelGeometry.ORGANIC_BED_VARIATION_SALT),
                 worldX,
                 worldZ,
@@ -833,7 +834,7 @@ final class HydrologyFootprintCompiler {
         int upperExtent = shape.ceiling() - shape.fluidHead();
         double extent = upperExtent * scale;
         if (channelShape.ceilingRoughness() > 0D) {
-            double roughness = channelGeometry.signedOrganicNoise(
+            double roughness = SurfaceNoise.signed(
                     HydrologyHash.mix(segment.id(), HydrologyChannelGeometry.ORGANIC_CEILING_VARIATION_SALT),
                     worldX,
                     worldZ,

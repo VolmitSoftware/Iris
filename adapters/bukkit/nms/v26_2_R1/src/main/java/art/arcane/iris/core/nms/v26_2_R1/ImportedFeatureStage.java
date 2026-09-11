@@ -2,6 +2,7 @@ package art.arcane.iris.core.nms.v26_2_R1;
 
 import art.arcane.iris.engine.DimensionStackContext;
 import art.arcane.iris.engine.DimensionStackLayout;
+import art.arcane.iris.nativegen.NativeGenerationWriteGuard;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeFeatureGenerationPolicy;
 import art.arcane.iris.engine.object.IrisBiome;
@@ -44,7 +45,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.IntBinaryOperator;
-import java.util.function.Predicate;
 
 /**
  * Bukkit twin of the modded imported-feature stage. Same control, same semantics, same seeds: with
@@ -299,7 +299,7 @@ final class ImportedFeatureStage {
                 surfaceFirstFreeY,
                 floorFirstFreeY,
                 stackContext != null,
-                importedFeatureProtection(staticObjects, stackContext, staticMinY));
+                NativeGenerationWriteGuard.protectedPositions(staticObjects, stackContext, staticMinY));
 
         try {
             for (int stepIndex = 0; stepIndex < steps.size(); stepIndex++) {
@@ -315,30 +315,6 @@ final class ImportedFeatureStage {
         } finally {
             level.setCurrentlyGenerating(null);
         }
-    }
-
-    private static Predicate<BlockPos> importedFeatureProtection(
-            IrisStaticObjectLayer staticObjects,
-            DimensionStackContext stackContext,
-            int minimumY
-    ) {
-        Map<Long, DimensionStackLayout> layouts = new ConcurrentHashMap<>();
-        return position -> {
-            if (!staticObjects.isEmpty() && staticObjects.contains(
-                    position.getX(), position.getY() - minimumY, position.getZ())) {
-                return true;
-            }
-            if (stackContext == null) {
-                return false;
-            }
-            long columnKey = ((long) position.getX() << 32)
-                    ^ (position.getZ() & 0xFFFFFFFFL);
-            DimensionStackLayout layout = layouts.computeIfAbsent(
-                    columnKey,
-                    ignored -> stackContext.sample(position.getX(), position.getZ())
-            );
-            return layout.isHostFeatureProtectedY(position.getY() - minimumY);
-        };
     }
 
     private void placeStep(WorldGenLevel level, FeatureTable table, FeatureSorter.StepFeatureData stepData,

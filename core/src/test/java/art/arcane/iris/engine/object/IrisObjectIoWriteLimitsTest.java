@@ -2,12 +2,15 @@ package art.arcane.iris.engine.object;
 
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.collection.KMap;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -49,6 +52,39 @@ public class IrisObjectIoWriteLimitsTest {
             }
         }
         return object;
+    }
+
+    @Test
+    public void preservesV2HeaderSignedCoordinatesAndTilePayload() throws IOException {
+        IrisObject object = new IrisObject(7, 9, 11);
+        object.blocks.put(new IrisBlockVector(-3, 2, -1), state("minecraft:chest"));
+        KMap<String, Object> properties = new KMap<>();
+        properties.put("marker", "stored");
+        object.states.put(new IrisBlockVector(-3, 2, -1), new TileData("minecraft:chest", properties));
+        ByteArrayOutputStream encoded = new ByteArrayOutputStream();
+
+        IrisObjectIO.write(object, encoded);
+
+        try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(encoded.toByteArray()))) {
+            assertEquals(7, input.readInt());
+            assertEquals(9, input.readInt());
+            assertEquals(11, input.readInt());
+            assertEquals("Iris V2 IOB;", input.readUTF());
+            assertEquals(1, input.readShort());
+            assertEquals("minecraft:chest", input.readUTF());
+            assertEquals(1, input.readInt());
+            assertEquals(-3, input.readShort());
+            assertEquals(2, input.readShort());
+            assertEquals(-1, input.readShort());
+            assertEquals(0, input.readShort());
+            assertEquals(1, input.readInt());
+            assertEquals(-3, input.readShort());
+            assertEquals(2, input.readShort());
+            assertEquals(-1, input.readShort());
+            assertEquals("minecraft:chest", input.readUTF());
+            assertEquals("{\"marker\":\"stored\"}", input.readUTF());
+            assertEquals(-1, input.read());
+        }
     }
 
     @Test

@@ -1,13 +1,16 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.iris.engine.DimensionStackContext;
+import art.arcane.iris.engine.DimensionStackLayout;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.IrisEngine;
 import art.arcane.iris.engine.history.GenerationActivation;
 import art.arcane.iris.engine.history.GenerationHistory;
 import art.arcane.iris.engine.history.GenerationHistoryRuntimeRouter;
-import java.util.Optional;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.object.IrisStaticObjectLayer;
 import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.WorldGenLevel;
@@ -16,10 +19,17 @@ import net.minecraft.world.level.chunk.status.ChunkStatus;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.Optional;
+import java.util.function.Predicate;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public final class NativeGenerationWriteGuardTest {
@@ -27,6 +37,42 @@ public final class NativeGenerationWriteGuardTest {
     public static void bootstrap() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
+    }
+
+    @Test
+    public void staticObjectsProtectRelativeHeightBeforeStackSampling() {
+        IrisStaticObjectLayer objects = mock(IrisStaticObjectLayer.class);
+        DimensionStackContext stack = mock(DimensionStackContext.class);
+        when(objects.contains(-3, 74, -7)).thenReturn(true);
+
+        Predicate<BlockPos> protectedPositions = NativeGenerationWriteGuard.protectedPositions(objects, stack, -64);
+
+        assertTrue(protectedPositions.test(new BlockPos(-3, 10, -7)));
+        verifyNoInteractions(stack);
+        assertFalse(NativeGenerationWriteGuard.protectedPositions(objects, null, -64)
+                .test(new BlockPos(-3, 11, -7)));
+    }
+
+    @Test
+    public void emptyStaticLayerSkipsContainsAndCachesEachSignedColumn() {
+        IrisStaticObjectLayer objects = mock(IrisStaticObjectLayer.class);
+        DimensionStackContext stack = mock(DimensionStackContext.class);
+        DimensionStackLayout negative = mock(DimensionStackLayout.class);
+        DimensionStackLayout positive = mock(DimensionStackLayout.class);
+        when(objects.isEmpty()).thenReturn(true);
+        when(stack.sample(-1, -1)).thenReturn(negative);
+        when(stack.sample(-1, 1)).thenReturn(positive);
+        when(negative.isHostFeatureProtectedY(64)).thenReturn(true);
+        when(positive.isHostFeatureProtectedY(65)).thenReturn(true);
+
+        Predicate<BlockPos> protectedPositions = NativeGenerationWriteGuard.protectedPositions(objects, stack, -64);
+
+        assertTrue(protectedPositions.test(new BlockPos(-1, 0, -1)));
+        assertFalse(protectedPositions.test(new BlockPos(-1, 1, -1)));
+        assertTrue(protectedPositions.test(new BlockPos(-1, 1, 1)));
+        verify(stack, times(1)).sample(-1, -1);
+        verify(stack, times(1)).sample(-1, 1);
+        verify(objects, never()).contains(anyInt(), anyInt(), anyInt());
     }
 
     @Test

@@ -16,6 +16,9 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -76,5 +79,30 @@ public class IrisDataAuthoringCacheTest {
         assertSame(retained, epoch.getGeneratorLoader().load("sample"));
         assertEquals(3.0, retained.getZoom(), 0.0);
         assertEquals("{\"zoom\":3.0}", Files.readString(epochRoot.resolve("generators/sample.json")));
+    }
+
+    @Test
+    public void resourceKeyDiscoveryPreservesNestedNamesAndCachedArrays() throws Exception {
+        Path root = temporary.newFolder("resource-keys").toPath();
+        for (String name : List.of(
+                "generators/plain.json", "generators/nested.json/ridge.json.alt.json", "generators/ignored.JSON",
+                "images/plain.png", "images/nested.png/ridge.png.alt.png", "images/ignored.PNG",
+                "matter/plain.mat", "matter/nested.mat/ridge.mat.alt.mat", "matter/ignored.MAT")) {
+            Path file = root.resolve(name);
+            Files.createDirectories(file.getParent());
+            Files.write(file, new byte[0]);
+        }
+        source = IrisData.get(root.toFile());
+        Map<ResourceLoader<?>, Set<String>> expected = Map.of(
+                source.getGeneratorLoader(), Set.of("plain", "nested/ridge.alt"),
+                source.getImageLoader(), Set.of("plain", "nested.png/ridge.alt"),
+                source.getMatterLoader(), Set.of("plain", "nested.mat/ridge.alt"));
+
+        for (Map.Entry<ResourceLoader<?>, Set<String>> entry : expected.entrySet()) {
+            String[] keys = entry.getKey().getPossibleKeys();
+            assertEquals(entry.getValue(), Set.of(keys));
+            assertEquals(entry.getValue().size(), keys.length);
+            assertSame(keys, entry.getKey().getPossibleKeys());
+        }
     }
 }

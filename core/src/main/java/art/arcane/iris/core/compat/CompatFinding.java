@@ -53,22 +53,16 @@ public record CompatFinding(CompatRegistry registry,
     /** {@code <key> (<registry>): <action> <subjectType> <subjectKey> at <detail>} */
     public String line() {
         StringBuilder sb = new StringBuilder(96);
-        sb.append(key).append(" (").append(registry.label()).append("): ").append(action.label());
-        if (!subjectType.isEmpty()) {
-            sb.append(' ').append(subjectType);
-        }
-        if (!subjectKey.isEmpty()) {
-            sb.append(' ').append(subjectKey);
-        }
-        if (!detail.isEmpty()) {
-            sb.append(" at ").append(detail);
-        }
-        return sb.toString();
+        sb.append(key).append(" (").append(registry.label()).append("): ");
+        return appendSubject(sb);
     }
 
     /** The part after the key, for lines already grouped under the key. */
     public String subjectLine() {
-        StringBuilder sb = new StringBuilder(64);
+        return appendSubject(new StringBuilder(64));
+    }
+
+    private String appendSubject(StringBuilder sb) {
         sb.append(action.label());
         if (!subjectType.isEmpty()) {
             sb.append(' ').append(subjectType);

@@ -211,21 +211,7 @@ public final class GenerationOrderProbe {
             System.out.println(LOG_PREFIX + " FAIL: probe execution failed");
             failure.printStackTrace(System.out);
             AggregateSignature unavailable = new AggregateSignature("unavailable", "unavailable", "unavailable");
-            ProbeResult failed = new ProbeResult(
-                    "FAIL",
-                    configuration.dimensionKey(),
-                    configuration.seed(),
-                    configuration.chunkCount(),
-                    configuration.minimumChunkX(),
-                    configuration.maximumChunkX(),
-                    configuration.minimumChunkZ(),
-                    configuration.maximumChunkZ(),
-                    configuration.parallelism(),
-                    configuration.shuffleSeed(),
-                    configuration.multicore(),
-                    configuration.studio(),
-                    unavailable
-            );
+            ProbeResult failed = result(configuration, "FAIL", unavailable);
             System.out.println(failed.machineLine());
             System.exit(1);
         }
@@ -264,11 +250,12 @@ public final class GenerationOrderProbe {
         for (Map.Entry<ChunkCoordinate, ChunkHash> entry : ordered.entrySet()) {
             ChunkCoordinate coordinate = entry.getKey();
             ChunkHash hash = entry.getValue();
-            updateDigest(blocks, coordinate.x() + "," + coordinate.z());
+            byte[] encodedCoordinate = (coordinate.x() + "," + coordinate.z()).getBytes(StandardCharsets.UTF_8);
+            updateDigest(blocks, encodedCoordinate);
             updateDigest(blocks, hash.blocks());
-            updateDigest(biomes, coordinate.x() + "," + coordinate.z());
+            updateDigest(biomes, encodedCoordinate);
             updateDigest(biomes, hash.biomes());
-            updateDigest(combined, coordinate.x() + "," + coordinate.z());
+            updateDigest(combined, encodedCoordinate);
             updateDigest(combined, hash.combined());
         }
         return new AggregateSignature(
@@ -391,8 +378,12 @@ public final class GenerationOrderProbe {
                     + mismatches.size() + " chunk(s).");
         }
 
+        return result(configuration, "PASS", baseline.signature());
+    }
+
+    private static ProbeResult result(ProbeConfiguration configuration, String status, AggregateSignature signature) {
         return new ProbeResult(
-                "PASS",
+                status,
                 configuration.dimensionKey(),
                 configuration.seed(),
                 configuration.chunkCount(),
@@ -404,7 +395,7 @@ public final class GenerationOrderProbe {
                 configuration.shuffleSeed(),
                 configuration.multicore(),
                 configuration.studio(),
-                baseline.signature()
+                signature
         );
     }
 

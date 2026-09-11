@@ -18,13 +18,13 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.platform.BlockStateKey;
 import art.arcane.iris.spi.PlatformBlockState;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,7 +52,7 @@ public final class ModdedBlockState implements PlatformBlockState {
         this.state = state;
         this.parsedProperties = parsedProperties;
         this.key = key;
-        this.namespace = parseNamespace(key);
+        this.namespace = BlockStateKey.namespace(key);
         this.deferredPlacementKey = deferredPlacementKey;
     }
 
@@ -99,44 +99,6 @@ public final class ModdedBlockState implements PlatformBlockState {
     @Override
     public int hashCode() {
         return Objects.hash(state, deferredPlacementKey);
-    }
-
-    private static String parseNamespace(String key) {
-        String base = key;
-        int bracket = base.indexOf('[');
-        if (bracket >= 0) {
-            base = base.substring(0, bracket);
-        }
-        int colon = base.indexOf(':');
-        return colon >= 0 ? base.substring(0, colon) : "minecraft";
-    }
-
-    private static String mergeProperty(String key, String name, String value) {
-        int bracket = key.indexOf('[');
-        if (bracket < 0) {
-            return key + "[" + name + "=" + value + "]";
-        }
-        String base = key.substring(0, bracket);
-        String body = key.substring(bracket + 1, key.lastIndexOf(']'));
-        LinkedHashMap<String, String> properties = new LinkedHashMap<>();
-        for (String entry : body.split(",")) {
-            int equals = entry.indexOf('=');
-            if (equals < 0) {
-                continue;
-            }
-            properties.put(entry.substring(0, equals).trim(), entry.substring(equals + 1).trim());
-        }
-        properties.put(name, value);
-        StringBuilder merged = new StringBuilder(base).append('[');
-        boolean first = true;
-        for (Map.Entry<String, String> property : properties.entrySet()) {
-            if (!first) {
-                merged.append(',');
-            }
-            merged.append(property.getKey()).append('=').append(property.getValue());
-            first = false;
-        }
-        return merged.append(']').toString();
     }
 
     @Override
@@ -338,7 +300,7 @@ public final class ModdedBlockState implements PlatformBlockState {
 
     @Override
     public PlatformBlockState withProperty(String name, String value) {
-        String merged = mergeProperty(key, name, value);
+        String merged = BlockStateKey.withProperty(key, name, value);
         ModdedBlockState resolved = ModdedBlockResolution.strictParse(merged);
         return withHandle(resolved.handle(), resolved.parsedProperties());
     }

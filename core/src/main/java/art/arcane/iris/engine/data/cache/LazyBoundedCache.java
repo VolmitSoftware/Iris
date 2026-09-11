@@ -1,6 +1,5 @@
 package art.arcane.iris.engine.data.cache;
 
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.function.Function;
@@ -35,9 +34,7 @@ public final class LazyBoundedCache<K, V> {
         }
         entries.put(requiredKey, computed);
         if (entries.size() > maximumSize) {
-            Iterator<K> iterator = entries.keySet().iterator();
-            iterator.next();
-            iterator.remove();
+            entries.sequencedKeySet().removeFirst();
         }
         return computed;
     }

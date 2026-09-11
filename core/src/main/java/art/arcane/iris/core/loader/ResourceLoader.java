@@ -397,12 +397,11 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
         HashSet<String> m = new HashSet<>();
         for (File i : files) {
             for (File j : matchAllFiles(i, (f) -> f.getName().endsWith(".json"))) {
-                m.add(i.toURI().relativize(j.toURI()).getPath().replaceAll("\\Q.json\\E", ""));
+                m.add(i.toURI().relativize(j.toURI()).getPath().replace(".json", ""));
             }
         }
 
-        KList<String> v = new KList<>(m);
-        possibleKeys = v.toArray(new String[0]);
+        possibleKeys = m.toArray(new String[0]);
         return possibleKeys;
     }
 

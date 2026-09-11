@@ -704,6 +704,33 @@ public class StructureTransactionWriterTest {
     }
 
     @Test
+    public void preparedRemovalRejectsMissingAndInvalidJournalsWithoutDeletingRecoveryData() throws IOException {
+        Path root = temporaryFolder.newFolder("owned-removal-invalid-journal").toPath();
+        StructureTransactionWriter writer = new StructureTransactionWriter(root);
+        StructureTransactionWriter.PreparedRemovalToken token =
+                new StructureTransactionWriter.PreparedRemovalToken(root, UUID.randomUUID());
+        Path transactionRoot = transactionRoot(token.packRoot(), token.transactionId());
+        Path journalPath = transactionRoot.resolve(StructureTransactionJournal.FILE_NAME);
+        Files.createDirectories(transactionRoot);
+
+        for (boolean commit : new boolean[]{false, true}) {
+            IOException failure = assertThrows(
+                    IOException.class, () -> writer.resolvePreparedRemoval(token, commit));
+            assertEquals("Missing prepared removal journal at " + transactionRoot, failure.getMessage());
+            assertTrue(Files.isDirectory(transactionRoot));
+        }
+
+        Files.writeString(journalPath, "not-json", StandardCharsets.UTF_8);
+        for (boolean commit : new boolean[]{false, true}) {
+            IOException failure = assertThrows(
+                    IOException.class, () -> writer.resolvePreparedRemoval(token, commit));
+            assertEquals("Invalid prepared removal journal at " + journalPath, failure.getMessage());
+            assertTrue(failure.getCause() instanceof RuntimeException);
+            assertEquals("not-json", Files.readString(journalPath, StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
     public void symbolicLinkAncestorsCannotEscapeThePackRoot() throws IOException {
         Path root = temporaryFolder.newFolder("symlink-pack").toPath();
         Path outside = temporaryFolder.newFolder("symlink-outside").toPath();

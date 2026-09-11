@@ -283,26 +283,12 @@ final class HydrologyCaveCourseFilter {
                         || !compatibleSharedCandidates(firstCandidate, secondCandidate, coursesById)) {
                     continue;
                 }
-                LinkedHashMap<CavePosition, HydrologyCaveAction> firstActions = null;
-                LinkedHashMap<CavePosition, HydrologyCaveAction> secondActions = null;
-                for (Map.Entry<CavePosition, HydrologyCaveAction> entry : first.actions().entrySet()) {
-                    HydrologyCaveAction secondAction = second.actions().get(entry.getKey());
-                    if (secondAction == null || secondAction == entry.getValue()) {
-                        continue;
-                    }
-                    HydrologyCaveAction sharedAction = sharedTerminalAction(entry.getValue(), secondAction);
-                    if (firstActions == null) {
-                        firstActions = new LinkedHashMap<>(first.actions());
-                        secondActions = new LinkedHashMap<>(second.actions());
-                    }
-                    firstActions.put(entry.getKey(), sharedAction);
-                    secondActions.put(entry.getKey(), sharedAction);
-                }
-                if (firstActions == null) {
+                TerminalActions actions = alignTerminalActions(first.actions(), second.actions());
+                if (actions == null) {
                     continue;
                 }
-                aligned.set(firstIndex, withActions(first, firstActions));
-                aligned.set(secondIndex, withActions(second, secondActions));
+                aligned.set(firstIndex, withActions(first, actions.first()));
+                aligned.set(secondIndex, withActions(second, actions.second()));
             }
         }
         return List.copyOf(aligned);
@@ -336,32 +322,40 @@ final class HydrologyCaveCourseFilter {
                         && !sharesTerminalGrotto(firstCourse, secondCourse, first)) {
                     continue;
                 }
-                LinkedHashMap<CavePosition, HydrologyCaveAction> firstActions = null;
-                LinkedHashMap<CavePosition, HydrologyCaveAction> secondActions = null;
-                for (Map.Entry<CavePosition, HydrologyCaveAction> entry : first.actions().entrySet()) {
-                    HydrologyCaveAction secondAction = second.actions().get(entry.getKey());
-                    if (secondAction == null || secondAction == entry.getValue()) {
-                        continue;
-                    }
-                    HydrologyCaveAction sharedAction = sharedTerminalAction(entry.getValue(), secondAction);
-                    if (firstActions == null) {
-                        firstActions = new LinkedHashMap<>(first.actions());
-                        secondActions = new LinkedHashMap<>(second.actions());
-                    }
-                    firstActions.put(entry.getKey(), sharedAction);
-                    secondActions.put(entry.getKey(), sharedAction);
-                }
-                if (firstActions == null) {
+                TerminalActions actions = alignTerminalActions(first.actions(), second.actions());
+                if (actions == null) {
                     continue;
                 }
-                HydrologyCaveCandidate alignedFirst = withActions(first, firstActions);
-                HydrologyCaveCandidate alignedSecond = withActions(second, secondActions);
+                HydrologyCaveCandidate alignedFirst = withActions(first, actions.first());
+                HydrologyCaveCandidate alignedSecond = withActions(second, actions.second());
                 replaceExposureCandidate(exposureValidatedCandidates, first, alignedFirst);
                 replaceExposureCandidate(exposureValidatedCandidates, second, alignedSecond);
                 candidates.set(firstIndex, alignedFirst);
                 candidates.set(secondIndex, alignedSecond);
             }
         }
+    }
+
+    private TerminalActions alignTerminalActions(
+            Map<CavePosition, HydrologyCaveAction> first,
+            Map<CavePosition, HydrologyCaveAction> second
+    ) {
+        LinkedHashMap<CavePosition, HydrologyCaveAction> firstActions = null;
+        LinkedHashMap<CavePosition, HydrologyCaveAction> secondActions = null;
+        for (Map.Entry<CavePosition, HydrologyCaveAction> entry : first.entrySet()) {
+            HydrologyCaveAction secondAction = second.get(entry.getKey());
+            if (secondAction == null || secondAction == entry.getValue()) {
+                continue;
+            }
+            HydrologyCaveAction sharedAction = sharedTerminalAction(entry.getValue(), secondAction);
+            if (firstActions == null) {
+                firstActions = new LinkedHashMap<>(first);
+                secondActions = new LinkedHashMap<>(second);
+            }
+            firstActions.put(entry.getKey(), sharedAction);
+            secondActions.put(entry.getKey(), sharedAction);
+        }
+        return firstActions == null ? null : new TerminalActions(firstActions, secondActions);
     }
 
     HydrologyCaveAction sharedTerminalAction(
@@ -1249,6 +1243,12 @@ final class HydrologyCaveCourseFilter {
             }
         }
         return List.copyOf(openings);
+    }
+
+    private record TerminalActions(
+            LinkedHashMap<CavePosition, HydrologyCaveAction> first,
+            LinkedHashMap<CavePosition, HydrologyCaveAction> second
+    ) {
     }
 
     private record GeneratedChannelView(CaveVoxelView terrain) implements CaveVoxelView {

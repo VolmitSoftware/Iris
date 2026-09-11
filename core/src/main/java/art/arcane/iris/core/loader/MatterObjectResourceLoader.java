@@ -21,7 +21,6 @@ package art.arcane.iris.core.loader;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.object.matter.IrisMatterObject;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.data.KCache;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
@@ -84,7 +83,7 @@ public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject>
 
         for (File file : listedFiles) {
             if (file.isFile() && file.getName().endsWith(".mat")) {
-                m.add(prefix + file.getName().replaceAll("\\Q.mat\\E", ""));
+                m.add(prefix + file.getName().replace(".mat", ""));
             } else if (file.isDirectory()) {
                 findMatFiles(file, prefix + file.getName() + "/", m, visitedDirectories);
             }
@@ -104,8 +103,7 @@ public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject>
             findMatFiles(folder, "", m, visitedDirectories);
         }
 
-        KList<String> v = new KList<>(m);
-        possibleKeys = v.toArray(new String[0]);
+        possibleKeys = m.toArray(new String[0]);
         return possibleKeys;
     }
 

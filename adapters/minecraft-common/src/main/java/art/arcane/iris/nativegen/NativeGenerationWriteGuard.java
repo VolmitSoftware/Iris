@@ -1,13 +1,21 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.iris.engine.DimensionStackContext;
+import art.arcane.iris.engine.DimensionStackLayout;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.IrisEngine;
 import art.arcane.iris.engine.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.engine.object.IrisStaticObjectLayer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkPyramid;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 public final class NativeGenerationWriteGuard {
     private NativeGenerationWriteGuard() {
@@ -42,5 +50,29 @@ public final class NativeGenerationWriteGuard {
                 && chunk.getPersistedStatus().isOrAfter(ChunkStatus.NOISE)
                 && !chunk.getPersistedStatus().isOrAfter(stage)
                 && !engine.getComplex().allowsMantleChunkWrite(chunk.getPos().x(), chunk.getPos().z());
+    }
+
+    public static Predicate<BlockPos> protectedPositions(
+            IrisStaticObjectLayer staticObjects,
+            DimensionStackContext stackContext,
+            int minimumY
+    ) {
+        Map<Long, DimensionStackLayout> layouts = new ConcurrentHashMap<>();
+        return position -> {
+            if (!staticObjects.isEmpty() && staticObjects.contains(
+                    position.getX(), position.getY() - minimumY, position.getZ())) {
+                return true;
+            }
+            if (stackContext == null) {
+                return false;
+            }
+            long columnKey = ((long) position.getX() << 32)
+                    ^ (position.getZ() & 0xFFFFFFFFL);
+            DimensionStackLayout layout = layouts.computeIfAbsent(
+                    columnKey,
+                    ignored -> stackContext.sample(position.getX(), position.getZ())
+            );
+            return layout.isHostFeatureProtectedY(position.getY() - minimumY);
+        };
     }
 }

@@ -102,6 +102,11 @@ public final class GenerationOrderProbeTest {
                 GenerationOrderProbe.aggregateSignature(forward),
                 GenerationOrderProbe.aggregateSignature(reverse)
         );
+        assertEquals(new GenerationOrderProbe.AggregateSignature(
+                "f5a500c97351e576fb335317c0a716c48c320b1304a1f4dc9658f1634b80de98",
+                "1bf3a08fecb828a69b7c504459d2a53b7d089aa9b16040000bb5e06f9e1e2b5f",
+                "d667a0482bb425cee8f7384284472ce915cfdd6a1b9a123fa8a58ee26b67f9f9"),
+                GenerationOrderProbe.aggregateSignature(forward));
         reverse.put(first, new GenerationOrderProbe.ChunkHash("changed", "b", "changed"));
         assertNotEquals(
                 GenerationOrderProbe.aggregateSignature(forward),

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.tree;
 
-import art.arcane.iris.engine.object.IrisMaterialPalette;
+import art.arcane.iris.engine.object.IrisProceduralBlocks;
 import art.arcane.iris.engine.object.IrisProceduralTree;
 import art.arcane.iris.engine.object.IrisTreeAzimuthMode;
 
@@ -146,14 +146,10 @@ public final class TreeTrunkBuilder {
     }
 
     private static boolean hasSecondaryTrunk(IrisProceduralTree tree) {
-        if (paletteSet(tree.getSecondaryTrunkPalette())) {
+        if (IrisProceduralBlocks.paletteSet(tree.getSecondaryTrunkPalette())) {
             return true;
         }
         return tree.getSecondaryTrunk() != null && !tree.getSecondaryTrunk().isEmpty();
-    }
-
-    static boolean paletteSet(IrisMaterialPalette palette) {
-        return palette != null && palette.getPalette() != null && !palette.getPalette().isEmpty();
     }
 
     private static double[] leanOffset(IrisProceduralTree tree, int y, int height) {

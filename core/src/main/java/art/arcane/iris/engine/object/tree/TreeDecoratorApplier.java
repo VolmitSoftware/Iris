@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.tree;
 
+import art.arcane.iris.engine.object.IrisProceduralBlocks;
 import art.arcane.iris.engine.object.IrisProceduralTree;
 import art.arcane.iris.engine.object.IrisTreeDecorator;
 import art.arcane.volmlib.util.collection.KList;
@@ -40,7 +41,7 @@ public final class TreeDecoratorApplier {
 
         for (int idx = 0; idx < decorators.size(); idx++) {
             IrisTreeDecorator dec = decorators.get(idx);
-            boolean hasBlock = (dec.getBlock() != null && !dec.getBlock().isEmpty()) || TreeTrunkBuilder.paletteSet(dec.getPalette());
+            boolean hasBlock = (dec.getBlock() != null && !dec.getBlock().isEmpty()) || IrisProceduralBlocks.paletteSet(dec.getPalette());
             if (!hasBlock) {
                 continue;
             }

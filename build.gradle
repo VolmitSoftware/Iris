@@ -1,3 +1,4 @@
+import art.arcane.volmit.packaging.PackagingMode
 import org.gradle.api.file.CopySpec
 import org.gradle.api.file.DeleteSpec
 import org.gradle.api.file.FileSystemOperations
@@ -169,6 +170,7 @@ nmsBindings.each { key, value ->
                 transitive = false
             }
             testRuntimeOnly(project(':core'))
+            testRuntimeOnly(rootProject.libs.caffeine)
         }
     }
 }
@@ -790,7 +792,9 @@ pluginPackaging {
             policyName = 'Iris Bukkit'
             stripDirectories = true
             stripLocalVariables = true
-            releaseCompression = providers.gradleProperty('compactRelease').map { it.toBoolean() }.getOrElse(false)
+            releaseCompression = providers.gradleProperty('compactRelease')
+                .map { String value -> value.toBoolean() }
+                .getOrElse(!PackagingMode.resolve(providers).development())
             prunePrefixes = ['art/arcane/volmlib/']
             keepPrefixes = ['art/arcane/volmlib/util/matter/slices/']
             shrinkRules = [file('packaging/shrink.pro')]

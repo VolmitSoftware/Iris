@@ -1,4 +1,3 @@
-"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - fi_FI
 #
@@ -2080,7 +2079,7 @@ loading = "Ladataan kielen {locale} viestejä..."
 "part.line" = "Rivi {line}"
 "value.none" = "Ei ole"
 "value.empty" = "(tyhjä)"
-title = "{plugin} / {section}"
+title = "{plugin} › {section}"
 
 [debug.error]
 missing-permission = "Puuttuva käyttöoikeus: {permission}"

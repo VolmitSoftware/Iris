@@ -1,4 +1,3 @@
-"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - pl_PL
 #
@@ -2080,7 +2079,7 @@ loading = "Wczytywanie wiadomości w języku {locale}..."
 "part.line" = "Linia {line}"
 "value.none" = "Brak"
 "value.empty" = "(pusty)"
-title = "{plugin} / {section}"
+title = "{plugin} › {section}"
 
 [debug.error]
 missing-permission = "Brak uprawnienia: {permission}"

@@ -1,4 +1,3 @@
-"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - he_IL
 #
@@ -2080,7 +2079,7 @@ loading = "טוען הודעות עבור {locale}..."
 "part.line" = "שורה {line}"
 "value.none" = "אין"
 "value.empty" = "(ריק)"
-title = "{plugin} / {section}"
+title = "{plugin} › {section}"
 
 [debug.error]
 missing-permission = "חסרה הרשאה: {permission}"

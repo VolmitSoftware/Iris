@@ -1,4 +1,3 @@
-"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - ko_KR
 #
@@ -2078,7 +2077,7 @@ loading = "{locale} 메시지를 불러오는 중..."
 "part.line" = "{line}번째 줄"
 "value.none" = "없음"
 "value.empty" = "(비어 있음)"
-title = "{plugin} / {section}"
+title = "{plugin} › {section}"
 
 [debug.error]
 missing-permission = "권한이 없습니다: {permission}"

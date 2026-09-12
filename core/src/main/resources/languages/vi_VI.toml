@@ -1,4 +1,3 @@
-"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - vi_VI
 #
@@ -2078,7 +2077,7 @@ loading = "Đang tải tin nhắn cho {locale}..."
 "part.line" = "Dòng {line}"
 "value.none" = "Không có"
 "value.empty" = "(trống)"
-title = "{plugin} / {section}"
+title = "{plugin} › {section}"
 
 [debug.error]
 missing-permission = "Thiếu quyền: {permission}"

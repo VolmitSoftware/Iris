@@ -1,4 +1,3 @@
-"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - tr_TR
 #
@@ -2080,7 +2079,7 @@ loading = "{locale} mesajları yükleniyor..."
 "part.line" = "Satır {line}"
 "value.none" = "Yok"
 "value.empty" = "(boş)"
-title = "{plugin} / {section}"
+title = "{plugin} › {section}"
 
 [debug.error]
 missing-permission = "Eksik izin: {permission}"

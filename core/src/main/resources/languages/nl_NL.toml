@@ -272,6 +272,9 @@
 #   {zoom}  Huidig zoomniveau van de voorvertoning.
 # === End Iris language guide ===
 
+[iris.director.commanddebug]
+description = "Diagnosehulpmiddelen voor Iris"
+
 [iris.director.commandiris]
 "director.debugdump" = "Maak een diagnostisch rapport en upload het desgewenst"
 "param.debugdump_upload" = "Upload het rapport naar mclo.gs"
@@ -516,7 +519,6 @@ install_pack_and_restart = "§eInstall it with §b{command}§e and restart the s
 exception_raised_during_creation_see_console_more_details = "§cUitzondering bij de schepping.  Zie de console voor meer details."
 successfully_created_your_world = "§aSuccesvol jullie wereld gecreëerd!"
 specified_player_does_not_exist = "§cDe opgegeven speler bestaat niet."
-iris_v_by_volmit_software = "§aIris /{value} door Volmit Software"
 to = "§a{value} tot {value2}"
 total_height = "§aTotale hoogte: {value}"
 iris_worlds = "§9Iris Worlds. "

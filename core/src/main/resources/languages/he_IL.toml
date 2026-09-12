@@ -277,6 +277,9 @@
 #   {zoom}  רמת ההגדלה הנוכחית של התצוגה המקדימה.
 # === End Iris language guide ===
 
+[iris.director.commanddebug]
+description = "כלי אבחון של Iris"
+
 [iris.director.commandiris]
 "director.debugdump" = "יצירת דוח אבחון והעלאתו לפי בחירה"
 "param.debugdump_upload" = "העלאת הדוח אל mclo.gs"
@@ -521,7 +524,6 @@ install_pack_and_restart = "§eInstall it with §b{command}§e and restart the s
 exception_raised_during_creation_see_console_more_details = "§cלמעטים שגדלו במהלך הבריאה.  ראו את הקונסולה לפרטים נוספים."
 successfully_created_your_world = "§aיצרתם בהצלחה את עולמכם!"
 specified_player_does_not_exist = "§cהשחקן שצוין אינו קיים."
-iris_v_by_volmit_software = "§aאיריס v{value} על ידי Volmit Software"
 to = "§a{value} כדי {value2}"
 total_height = "§aגובה מוחלט: {value}"
 iris_worlds = "§9אייריס וורלד: "

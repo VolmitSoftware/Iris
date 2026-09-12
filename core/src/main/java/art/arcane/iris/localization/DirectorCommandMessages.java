@@ -6,6 +6,7 @@ import art.arcane.volmlib.util.localization.TextKey;
 import java.util.List;
 
 public final class DirectorCommandMessages {
+    public static final TextKey DEBUG_DESCRIPTION = TextKey.of("iris.director.commanddebug.description", "Iris diagnostic tools");
     public static final TextKey DEBUG_DUMP_DESCRIPTION = TextKey.of("iris.director.commandiris.director.debugdump", "Create and optionally upload a diagnostic report");
     public static final TextKey DEBUG_DUMP_UPLOAD = TextKey.of("iris.director.commandiris.param.debugdump_upload", "Upload the report to mclo.gs");
     public static final TextKey COMMAND_DATAPACK_DIRECTOR_DOWNLOAD_MANAGE_EXTERNAL_DATAPACK_IMPORTS_MODRINTH = TextKey.of(
@@ -874,6 +875,7 @@ public final class DirectorCommandMessages {
     );
 
     private static final List<MessageKey> KEYS = List.of(
+        DEBUG_DESCRIPTION,
         DEBUG_DUMP_DESCRIPTION,
         DEBUG_DUMP_UPLOAD,
             COMMAND_DATAPACK_DIRECTOR_DOWNLOAD_MANAGE_EXTERNAL_DATAPACK_IMPORTS_MODRINTH,

@@ -1,3 +1,4 @@
+"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - zh_CN
 #
@@ -336,7 +337,6 @@ parameters_hover = "将鼠标悬停在参数上以了解更多。"
 "error.default_parse_failed" = "无法解析参数 {parameter} 的默认值"
 "error.missing_argument" = "缺少参数 \"{parameter}\" ({type})"
 "error.execution_failed" = "执行命令 {command} 失败: {reason}"
-usage = "用法: {usage}"
 
 [iris.command]
 permission_denied = "你没有权限 '{permission}'。"

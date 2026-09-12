@@ -1,3 +1,4 @@
+"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - nl_NL
 #
@@ -333,7 +334,6 @@ parameters_hover = "Beweeg de muis over de parameters voor meer informatie."
 "error.default_parse_failed" = "Kan de standaardwaarde voor parameter {parameter} niet verwerken"
 "error.missing_argument" = "Ontbrekend argument \"{parameter}\" ({type})"
 "error.execution_failed" = "Opdracht {command} kon niet worden uitgevoerd: {reason}"
-usage = "Gebruik: {usage}"
 
 [iris.command]
 permission_denied = "Je hebt niet de vereiste permissie '{permission}'"

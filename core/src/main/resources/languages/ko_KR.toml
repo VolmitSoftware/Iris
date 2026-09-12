@@ -1,3 +1,4 @@
+"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - ko_KR
 #
@@ -336,7 +337,6 @@ parameters_hover = "매개변수 위에 마우스를 올리면 자세한 내용�
 "error.default_parse_failed" = "매개변수 {parameter}의 기본값을 분석할 수 없습니다"
 "error.missing_argument" = "인수 \"{parameter}\" ({type})가 필요합니다"
 "error.execution_failed" = "명령어 {command} 실행에 실패했습니다: {reason}"
-usage = "사용법: {usage}"
 
 [iris.command]
 permission_denied = "'{permission}' 권한이 없습니다"

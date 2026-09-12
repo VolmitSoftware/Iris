@@ -1,3 +1,4 @@
+"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - lt_LT
 #
@@ -338,7 +339,6 @@ parameters_hover = "Užveskite pelės žymeklį ant parametrų, kad sužinotumė
 "error.default_parse_failed" = "Nepavyko nuskaityti parametro {parameter} numatytosios reikšmės"
 "error.missing_argument" = "Trūksta argumento \"{parameter}\" ({type})"
 "error.execution_failed" = "Nepavyko įvykdyti komandos {command}: {reason}"
-usage = "Naudojimas: {usage}"
 
 [iris.command]
 permission_denied = "Jums trūksta leidimo '{permission}'"

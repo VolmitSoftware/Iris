@@ -1,3 +1,4 @@
+"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - it_IT
 #
@@ -333,7 +334,6 @@ parameters_hover = "Passa il cursore sui parametri per saperne di più."
 "error.default_parse_failed" = "Impossibile analizzare il valore predefinito del parametro {parameter}"
 "error.missing_argument" = "Argomento mancante \"{parameter}\" ({type})"
 "error.execution_failed" = "Impossibile eseguire il comando {command}: {reason}"
-usage = "Utilizzo: {usage}"
 
 [iris.command]
 permission_denied = "Non disponi del permesso '{permission}'"

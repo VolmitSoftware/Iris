@@ -167,7 +167,16 @@ public final class IrisLanguage {
             refreshLanguageGuide(override, requestedLocale);
         }
         SnapshotCapture capture = captureForReload(override, requestedLocale);
+        boolean initialLoad = dataFolder == null;
+        boolean changedLocale = !requestedLocale.equals(activeLocale);
         boolean applied = applyReload(resolvedRoot, requestedLocale, capture);
+        if (!applied && initialLoad) {
+            return applyReload(resolvedRoot, requestedLocale,
+                    new SnapshotCapture(LocaleHotloadSnapshot.missing(override, requestedLocale), null));
+        }
+        if (applied && changedLocale && selections != null) {
+            requestConfiguredLocale();
+        }
         if (applied && notifyManualReload) {
             notifyManualReload(capture.snapshot());
         }
@@ -198,6 +207,12 @@ public final class IrisLanguage {
         File expected = overrideFile(root, requestedLocale);
         if (!expected.equals(override.getAbsoluteFile())) {
             return true;
+        }
+        if (rawContent == null && !Files.notExists(expected.toPath(), LinkOption.NOFOLLOW_LINKS)) {
+            IOException failure = new IOException("Language file could not be read: " + expected);
+            IrisLogging.error("Could not reload Iris language " + requestedLocale + "; keeping the last valid messages.");
+            IrisLogging.reportError(failure);
+            return false;
         }
 
         LocaleHotloadSnapshot snapshot = rawContent == null
@@ -278,9 +293,6 @@ public final class IrisLanguage {
             return false;
         }
 
-        if (current != null) {
-            requestConfiguredLocale();
-        }
         int warnings = result.validation().warnings().size();
         IrisLogging.debug("Loaded locale " + requestedLocale + " with " + warnings + " fallback "
                 + (warnings == 1 ? "entry" : "entries") + ".");
@@ -629,11 +641,11 @@ public final class IrisLanguage {
     }
 
     static void validateDownload(String locale, String raw) {
-        LocaleOverlay overlay = parseDownloadedOverlay("download:" + locale, locale, raw);
+        LocaleOverlay overlay = parseOverlay("download:" + locale, locale, raw);
         LocalizationValidator.validate(CATALOG, List.of(overlay)).throwIfInvalid();
     }
 
-    static LocaleOverlay parseDownloadedOverlay(String source, String locale, String raw) {
+    static LocaleOverlay parseOverlay(String source, String locale, String raw) {
         LocaleOverlay.Builder builder = LocaleOverlay.builder(source, locale);
         try {
             for (Map.Entry<String, MessageValue> entry : TomlLanguageParser.parseValidValues(raw, CATALOG).entrySet()) {
@@ -643,16 +655,6 @@ public final class IrisLanguage {
             throw new IllegalArgumentException("Invalid TOML language file: " + source, failure);
         }
         return LocalizationValidator.validValues(CATALOG, builder.build());
-    }
-
-    static LocaleOverlay parseOverlay(String source, String locale, String raw) {
-        try {
-            return parseDownloadedOverlay(source, locale, raw);
-        } catch (IllegalArgumentException failure) {
-            IrisLogging.error("Using English for unreadable Iris language file " + source + ".");
-            IrisLogging.reportError(failure);
-            return LocaleOverlay.builder(source, locale).build();
-        }
     }
 
     static String englishReference() {
@@ -924,10 +926,7 @@ public final class IrisLanguage {
             }
             return new SnapshotCapture(snapshot, null);
         } catch (Exception failure) {
-            IrisLogging.error("Using English for unreadable Iris language file " + file.getPath() + ".");
-            IrisLogging.reportError(failure);
-            return new SnapshotCapture(LocaleHotloadSnapshot.present(
-                    file, locale, "", sha256(new byte[0])), null);
+            return new SnapshotCapture(null, failure);
         }
     }
 

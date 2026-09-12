@@ -1,3 +1,4 @@
+"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - ja-JP
 #
@@ -336,7 +337,6 @@ parameters_hover = "パラメータにカーソルを合わせると詳細が表
 "error.default_parse_failed" = "パラメーター {parameter} のデフォルト値を解析できません"
 "error.missing_argument" = "引数 \"{parameter}\" ({type}) が必要です"
 "error.execution_failed" = "コマンド {command} の実行に失敗しました: {reason}"
-usage = "使用法: {usage}"
 
 [iris.command]
 permission_denied = "権限 '{permission}' がありません"

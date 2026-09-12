@@ -1,3 +1,4 @@
+"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - tr_TR
 #
@@ -338,7 +339,6 @@ parameters_hover = "Daha fazla bilgi için imleci parametrelerin üzerine getiri
 "error.default_parse_failed" = "{parameter} parametresinin varsayılan değeri ayrıştırılamıyor"
 "error.missing_argument" = "Eksik bağımsız değişken \"{parameter}\" ({type})"
 "error.execution_failed" = "{command} komutu çalıştırılamadı: {reason}"
-usage = "Kullanım: {usage}"
 
 [iris.command]
 permission_denied = "'{permission}' iznine sahip değilsiniz"

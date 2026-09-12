@@ -5,6 +5,7 @@ import art.arcane.iris.localization.IrisMessages;
 import art.arcane.iris.testsupport.Await;
 import art.arcane.volmlib.util.hotload.ConfigHotloadEngine;
 import art.arcane.volmlib.util.localization.MessageArgument;
+import art.arcane.volmlib.util.localization.LanguageAudience;
 import java.time.Duration;
 import org.junit.After;
 import org.junit.Before;
@@ -17,7 +18,9 @@ import java.io.File;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -68,22 +71,23 @@ public class SettingsHotloadWatchTest {
     }
 
     @Test
-    public void activeLocaleSnapshotAppliesAndInvalidSnapshotUsesEnglish() {
+    public void activeLocaleSnapshotAppliesAndInvalidSnapshotRetainsValidMessages() {
         File override = override("en_US");
         String valid = locale("en_US", "Active {permission}");
 
         assertTrue(watch.applySnapshot(present(override, valid)));
         assertEquals("Active " + PERMISSION, permissionMessage());
 
-        assertTrue(watch.applySnapshot(present(override, "{ invalid")));
-        assertEquals("You lack the permission '" + PERMISSION + "'", permissionMessage());
+        assertFalse(watch.applySnapshot(present(override, "{ invalid")));
+        assertEquals("Active " + PERMISSION, permissionMessage());
     }
 
     @Test
-    public void activeLocaleDeletionFallsBackToCodeOwnedEnglish() {
+    public void activeLocaleDeletionFallsBackToCodeOwnedEnglish() throws Exception {
         File override = override("en_US");
         assertTrue(watch.applySnapshot(present(override, locale("en_US", "Temporary {permission}"))));
         assertEquals("Temporary " + PERMISSION, permissionMessage());
+        Files.delete(override.toPath());
 
         assertTrue(watch.applySnapshot(missing(override)));
 
@@ -120,13 +124,13 @@ public class SettingsHotloadWatchTest {
     }
 
     @Test
-    public void invalidLocaleAllowsItsSettingsSwitchWithEnglishFallback() throws Exception {
+    public void invalidLocaleRejectsItsSettingsSwitchAndRetainsTheCurrentDefault() throws Exception {
         Files.writeString(override("de_DE").toPath(), "{ invalid", StandardCharsets.UTF_8);
 
-        assertTrue(watch.applySnapshot(present(settingsFile, settings("de_DE"))));
+        assertFalse(watch.applySnapshot(present(settingsFile, settings("de_DE"))));
 
-        assertEquals("de_DE", IrisSettings.get().getGeneral().getLanguage());
-        assertEquals("de_DE", IrisLanguage.activeLocale());
+        assertEquals("en_US", IrisSettings.get().getGeneral().getLanguage());
+        assertEquals("en_US", IrisLanguage.activeLocale());
         assertEquals("You lack the permission '" + PERMISSION + "'", permissionMessage());
     }
 
@@ -226,7 +230,7 @@ public class SettingsHotloadWatchTest {
     }
 
     @Test(timeout = 8_000L)
-    public void oversizedActiveLanguageReportsOnceAndUsesEnglish() throws Exception {
+    public void oversizedActiveLanguageReportsOnceAndRetainsValidMessages() throws Exception {
         File override = override("en_US");
         assertTrue(watch.applySnapshot(present(override, locale("en_US", "Active {permission}"))));
         byte[] oversized = new byte[2 * 1024 * 1024 + 1];
@@ -238,11 +242,11 @@ public class SettingsHotloadWatchTest {
                 diagnostic,
                 "Failed to read watched Iris file " + override.getAbsolutePath()
         ));
-        assertEquals("You lack the permission '" + PERMISSION + "'", permissionMessage());
+        assertEquals("Active " + PERMISSION, permissionMessage());
     }
 
     @Test(timeout = 8_000L)
-    public void malformedUtf8FailureIsDeduplicatedAndUsesEnglish() throws Exception {
+    public void malformedUtf8FailureIsDeduplicatedAndRetainsValidMessages() throws Exception {
         File override = override("en_US");
         assertTrue(watch.applySnapshot(present(override, locale("en_US", "Active {permission}"))));
         Files.write(override.toPath(), new byte[]{(byte) 0xC3, 0x28});
@@ -253,7 +257,74 @@ public class SettingsHotloadWatchTest {
                 diagnostic,
                 "Failed to read watched Iris file " + override.getAbsolutePath()
         ));
-        assertEquals("You lack the permission '" + PERMISSION + "'", permissionMessage());
+        assertEquals("Active " + PERMISSION, permissionMessage());
+    }
+
+    @Test(timeout = 30_000L)
+    public void personalLanguageWatcherRetainsMalformedFilesAndHandlesDeletionAndRestoration() throws Exception {
+        File personal = override("de_DE");
+        Files.writeString(personal.toPath(), locale("de_DE", "Personal {permission}"));
+        UUID player = UUID.randomUUID();
+        IrisLanguage.start();
+        try {
+            IrisLanguage.selections().selectPlayer(player, "de_DE").get(5L, TimeUnit.SECONDS);
+            Path preferences = dataFolder.toPath().resolve("languages/language-preferences.properties");
+            String savedPreferences = Files.readString(preferences);
+            Files.writeString(personal.toPath(), locale("de_DE", "Live {permission}"));
+            awaitPersonalMessage(player, "Live " + PERMISSION);
+
+            Files.writeString(personal.toPath(), "[unterminated");
+            captureErrorsWhilePolling("Could not reload Iris language de_DE", 150L);
+            assertEquals("Live " + PERMISSION, personalMessage(player));
+
+            Files.writeString(override("en_US").toPath(), locale("en_US", "Server {permission}"));
+            awaitPermissionMessage("Server " + PERMISSION);
+            assertEquals("Live " + PERMISSION, personalMessage(player));
+            assertEquals("[unterminated", Files.readString(personal.toPath()));
+
+            String partial = "[iris.command]\nunknown = 'Partial'\n";
+            Files.writeString(personal.toPath(), partial);
+            awaitPersonalUnknown(player, "Partial");
+            assertEquals("You lack the permission '" + PERMISSION + "'", personalMessage(player));
+
+            Files.delete(personal.toPath());
+            awaitPersonalUnknown(player, "Unknown Iris command");
+            assertFalse(personal.exists());
+            assertEquals("de_DE", IrisLanguage.selections().playerLocale(player).orElseThrow());
+            assertEquals(savedPreferences, Files.readString(preferences));
+            assertEquals("en_US", IrisLanguage.activeLocale());
+            assertTrue(IrisLanguage.reload(dataFolder, "en_US"));
+            assertEquals("Unknown Iris command", personalUnknown(player));
+            assertFalse(personal.exists());
+
+            Files.writeString(personal.toPath(), partial);
+            awaitPersonalUnknown(player, "Partial");
+            assertEquals(savedPreferences, Files.readString(preferences));
+        } finally {
+            IrisLanguage.shutdown();
+        }
+    }
+
+    private void awaitPersonalMessage(UUID player, String expected) {
+        assertTrue(Await.reached("the personal permission message '" + expected + "'", Duration.ofSeconds(5L), () -> {
+            watch.checkConfigHotload();
+            return expected.equals(personalMessage(player));
+        }));
+    }
+
+    private void awaitPersonalUnknown(UUID player, String expected) {
+        assertTrue(Await.reached("the personal unknown-command message '" + expected + "'", Duration.ofSeconds(5L), () -> {
+            watch.checkConfigHotload();
+            return expected.equals(personalUnknown(player));
+        }));
+    }
+
+    private String personalMessage(UUID player) {
+        return LanguageAudience.call(player, this::permissionMessage);
+    }
+
+    private String personalUnknown(UUID player) {
+        return LanguageAudience.call(player, () -> IrisLanguage.plain(IrisMessages.COMMAND_UNKNOWN));
     }
 
     private void awaitPermissionMessage(String expected) {

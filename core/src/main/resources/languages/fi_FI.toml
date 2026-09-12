@@ -1,3 +1,4 @@
+"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - fi_FI
 #
@@ -338,7 +339,6 @@ parameters_hover = "Vie hiiri parametrien päälle saadaksesi lisätietoja."
 "error.default_parse_failed" = "Parametrin {parameter} oletusarvoa ei voi jäsentää"
 "error.missing_argument" = "Puuttuva argumentti \"{parameter}\" ({type})"
 "error.execution_failed" = "Komennon {command} suoritus epäonnistui: {reason}"
-usage = "Käyttö: {usage}"
 
 [iris.command]
 permission_denied = "Sinulta puuttuu käyttöoikeus '{permission}'"

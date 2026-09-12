@@ -1,3 +1,4 @@
+"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - zh_TW
 #
@@ -336,7 +337,6 @@ parameters_hover = "將滑鼠懸停在參數上以瞭解更多。"
 "error.default_parse_failed" = "無法解析參數 {parameter} 的預設值"
 "error.missing_argument" = "缺少參數 \"{parameter}\" ({type})"
 "error.execution_failed" = "執行指令 {command} 失敗: {reason}"
-usage = "用法: {usage}"
 
 [iris.command]
 permission_denied = "你沒有權限 '{permission}'。"

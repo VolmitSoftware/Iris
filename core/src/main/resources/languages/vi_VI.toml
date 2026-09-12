@@ -1,3 +1,4 @@
+"language.editor.title" = "{plugin} › {section}"
 # === Iris language guide ===
 # Iris - vi_VI
 #
@@ -336,7 +337,6 @@ parameters_hover = "Di chuột qua các tham số để tìm hiểu thêm."
 "error.default_parse_failed" = "Không thể phân tích giá trị mặc định của tham số {parameter}"
 "error.missing_argument" = "Thiếu đối số \"{parameter}\" ({type})"
 "error.execution_failed" = "Không thể thực thi lệnh {command}: {reason}"
-usage = "Cách dùng: {usage}"
 
 [iris.command]
 permission_denied = "Bạn không có quyền '{permission}'"

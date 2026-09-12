@@ -2078,6 +2078,7 @@ loading = "{locale}のメッセージを読み込んでいます..."
 "part.line" = "行{line}"
 "value.none" = "なし"
 "value.empty" = "(空)"
+title = "{plugin} / {section}"
 
 [debug.error]
 missing-permission = "権限がありません: {permission}"

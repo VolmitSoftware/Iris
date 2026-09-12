@@ -69,8 +69,9 @@ public class IrisRiverConfigurationTest {
         assertTrue(surface.getBanks().isExposeCutStrata());
         assertEquals(0D, surface.getBanks().getShoreRise(), 0D);
         assertEquals(0D, surface.getBanks().getBlendBaseWidth(), 0D);
-        assertDisabledMaterial(surface.getBanks().getShoreMaterial());
+        assertMaterial(surface.getBanks().getShoreMaterial(), "sand", 2);
         assertDisabledMaterial(surface.getBanks().getBankMaterial());
+        assertTrue(surface.getBed().isAllowGravityBlocks());
         assertDisabledMaterial(surface.getBed().getMaterial());
         assertEquals(2, surface.getFlow().getCascadeRun());
         assertEquals(6, surface.getFlow().getWaterfallMinimumDrop());

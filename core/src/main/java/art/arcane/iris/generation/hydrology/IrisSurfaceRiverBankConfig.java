@@ -49,8 +49,11 @@ public class IrisSurfaceRiverBankConfig {
     @Description("Blocks added to every eroded valley width before the blend width limits apply, so even a shallow cut erodes at least this far beyond the shore; 0 leaves the width proportional to the cut alone.")
     private double blendBaseWidth = 0D;
 
-    @Description("Optional palette painted over the shore bench columns instead of the biome's own layers. Disabled by default, which keeps the shore biome's layers.")
-    private IrisRiverMaterialConfig shoreMaterial = new IrisRiverMaterialConfig();
+    @Description("Palette painted over the shore bench columns instead of the biome's own layers. The default is a two-block sand beach.")
+    private IrisRiverMaterialConfig shoreMaterial = new IrisRiverMaterialConfig()
+            .setEnabled(true)
+            .setPalette(new IrisMaterialPalette().qclear().qadd("sand"))
+            .setDepth(2);
 
     @Description("Optional palette painted over the eroded bank columns outside the shore bench instead of the biome's own layers. Disabled by default, which keeps the bank biome's layers.")
     private IrisRiverMaterialConfig bankMaterial = new IrisRiverMaterialConfig();

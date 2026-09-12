@@ -2078,6 +2078,7 @@ loading = "Đang tải tin nhắn cho {locale}..."
 "part.line" = "Dòng {line}"
 "value.none" = "Không có"
 "value.empty" = "(trống)"
+title = "{plugin} / {section}"
 
 [debug.error]
 missing-permission = "Thiếu quyền: {permission}"

@@ -2,7 +2,6 @@ package art.arcane.iris.generation.concurrent;
 
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.configuration.IrisSettings;
-import art.arcane.volmlib.util.hunk.HunkBurst;
 import art.arcane.volmlib.util.parallel.MultiBurstSupport;
 import art.arcane.volmlib.util.math.M;
 import java.util.concurrent.ExecutorService;
@@ -24,13 +23,6 @@ public class MultiBurst extends MultiBurstSupport {
      */
     public static final MultiBurst hydrology = new MultiBurst("Iris Hydrology", () -> Math.max(2, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())));
     private final AtomicInteger parallelismBaseline = new AtomicInteger();
-
-    static {
-        // Hunk's parallel section splits live in VolmLib and have no view of Iris' concurrency
-        // settings, so point them at the same pool the generation stages use. Without this they
-        // would spin up a second, untuned pool alongside it.
-        HunkBurst.install(burst::burst);
-    }
 
     public MultiBurst() {
         this("Iris");

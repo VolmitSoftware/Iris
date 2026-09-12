@@ -66,10 +66,12 @@ public class IrisStaticObjectCompatTest {
     public void bindPlatform() {
         previousSettings = IrisSettings.settings;
         IrisSettings.settings = new IrisSettings();
-        // Water, clay and dirt are what a default dimension composes (fluid palette, river bed padding); without
-        // them the dimension itself is excluded and the static object is never the deciding unit.
+        // Water, clay, dirt and sand are what a default dimension composes (fluid palette, river bed padding, the
+        // default sand shore bench); without them the dimension itself is excluded and the static object is never
+        // the deciding unit.
         platform = CompatTestPlatform.bind(temporaryFolder.getRoot(), List.of("minecraft:stone",
-                "minecraft:cobblestone", "minecraft:air", "minecraft:water", "minecraft:clay", "minecraft:dirt"));
+                "minecraft:cobblestone", "minecraft:air", "minecraft:water", "minecraft:clay", "minecraft:dirt",
+                "minecraft:sand"));
         previousRotator = IrisObjectRotation.bindPlatformRotator((rotation, block, x, y, z) -> block);
     }
 

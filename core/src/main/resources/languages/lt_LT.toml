@@ -2080,6 +2080,7 @@ loading = "Įkeliami kalbos {locale} pranešimai..."
 "part.line" = "Eilutė {line}"
 "value.none" = "Nėra"
 "value.empty" = "(tuščia)"
+title = "{plugin} / {section}"
 
 [debug.error]
 missing-permission = "Trūksta leidimo: {permission}"

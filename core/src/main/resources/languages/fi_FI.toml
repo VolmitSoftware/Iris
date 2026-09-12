@@ -2080,6 +2080,7 @@ loading = "Ladataan kielen {locale} viestejä..."
 "part.line" = "Rivi {line}"
 "value.none" = "Ei ole"
 "value.empty" = "(tyhjä)"
+title = "{plugin} / {section}"
 
 [debug.error]
 missing-permission = "Puuttuva käyttöoikeus: {permission}"

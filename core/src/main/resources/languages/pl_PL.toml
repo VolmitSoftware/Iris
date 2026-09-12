@@ -2080,6 +2080,7 @@ loading = "Wczytywanie wiadomości w języku {locale}..."
 "part.line" = "Linia {line}"
 "value.none" = "Brak"
 "value.empty" = "(pusty)"
+title = "{plugin} / {section}"
 
 [debug.error]
 missing-permission = "Brak uprawnienia: {permission}"

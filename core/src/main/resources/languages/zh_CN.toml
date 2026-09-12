@@ -2078,6 +2078,7 @@ loading = "正在加载 {locale} 的消息..."
 "part.line" = "第 {line} 行"
 "value.none" = "无"
 "value.empty" = "(空)"
+title = "{plugin} / {section}"
 
 [debug.error]
 missing-permission = "缺少权限：{permission}"

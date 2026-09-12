@@ -4,9 +4,8 @@ import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.IrisMessages;
 import art.arcane.iris.testsupport.ProjectPaths;
 import art.arcane.volmlib.util.localization.MessageKey;
+import art.arcane.volmlib.util.localization.TomlLanguageParser;
 import art.arcane.volmlib.util.localization.VolmitLocales;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.junit.Test;
 
 import java.nio.file.Files;
@@ -30,9 +29,9 @@ public class ModdedMessageContributorTest {
     public void completeLoaderCatalogStillMatchesEveryDownloadableLocale() throws Exception {
         Path sourceRoot = ProjectPaths.repositoryFile("core/src/main/resources/languages");
         for (String locale : VolmitLocales.nonEnglish()) {
-            JsonObject document = JsonParser.parseString(Files.readString(sourceRoot.resolve(locale + ".json")))
-                    .getAsJsonObject();
-            assertEquals(locale, IrisLanguage.catalog().ids(), document.getAsJsonObject("messages").keySet());
+            Path source = sourceRoot.resolve(locale + ".toml");
+            assertEquals(locale, IrisLanguage.catalog().ids(),
+                    TomlLanguageParser.parseValidValues(Files.readString(source), IrisLanguage.catalog()).keySet());
         }
     }
 }

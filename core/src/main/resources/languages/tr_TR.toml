@@ -2080,6 +2080,7 @@ loading = "{locale} mesajları yükleniyor..."
 "part.line" = "Satır {line}"
 "value.none" = "Yok"
 "value.empty" = "(boş)"
+title = "{plugin} / {section}"
 
 [debug.error]
 missing-permission = "Eksik izin: {permission}"

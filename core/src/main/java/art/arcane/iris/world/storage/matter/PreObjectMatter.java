@@ -50,19 +50,19 @@ public final class PreObjectMatter extends MappedHunk<PreObjectMatterCell>
 
     @Override
     public PreObjectMatter iterateSync(Consumer4<Integer, Integer, Integer, PreObjectMatterCell> consumer) {
-        super.iterateSync(consumer);
+        super.iterateEntriesSync(consumer);
         return this;
     }
 
     @Override
     public PreObjectMatter iterateSyncIO(Consumer4IO<Integer, Integer, Integer, PreObjectMatterCell> consumer) throws IOException {
-        super.iterateSyncIO(consumer);
+        super.iterateEntriesSyncIO(consumer);
         return this;
     }
 
     @Override
     public void empty(PreObjectMatterCell value) {
-        super.empty(value);
+        clear();
     }
 
     @Override

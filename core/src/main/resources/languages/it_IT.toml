@@ -2075,6 +2075,7 @@ loading = "Caricamento dei messaggi in {locale}..."
 "part.line" = "Riga {line}"
 "value.none" = "Nessuno"
 "value.empty" = "(vuoto)"
+title = "{plugin} / {section}"
 
 [debug.error]
 missing-permission = "Permesso mancante: {permission}"

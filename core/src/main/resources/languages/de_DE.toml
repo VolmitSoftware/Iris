@@ -2075,6 +2075,7 @@ loading = "Nachrichten für {locale} werden geladen..."
 "part.line" = "Zeile {line}"
 "value.none" = "Keine"
 "value.empty" = "(leer)"
+title = "{plugin} / {section}"
 
 [debug.error]
 missing-permission = "Fehlende Berechtigung: {permission}"

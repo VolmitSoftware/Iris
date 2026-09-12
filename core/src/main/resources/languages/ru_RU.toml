@@ -2080,6 +2080,7 @@ loading = "Загрузка сообщений для {locale}..."
 "part.line" = "Строка {line}"
 "value.none" = "Нет"
 "value.empty" = "(пусто)"
+title = "{plugin} / {section}"
 
 [debug.error]
 missing-permission = "Нет разрешения: {permission}"

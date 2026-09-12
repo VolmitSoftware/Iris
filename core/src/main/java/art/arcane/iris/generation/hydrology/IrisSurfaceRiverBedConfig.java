@@ -15,7 +15,7 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisSurfaceRiverBedConfig {
     @Description("Allow sand, gravel and other falling blocks in the bed, shore and eroded banks. When false they are replaced by the padding palette.")
-    private boolean allowGravityBlocks = false;
+    private boolean allowGravityBlocks = true;
 
     @MinNumber(0)
     @MaxNumber(8)

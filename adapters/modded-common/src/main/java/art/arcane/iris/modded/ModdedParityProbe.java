@@ -18,16 +18,16 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.IrisEngine;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineTarget;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisWorld;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.EngineTarget;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.volmlib.util.hunk.Hunk;
 import net.minecraft.server.MinecraftServer;
 
 import java.io.File;

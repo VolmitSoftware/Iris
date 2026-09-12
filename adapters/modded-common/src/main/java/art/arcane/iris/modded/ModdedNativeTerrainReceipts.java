@@ -1,7 +1,7 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.history.GenerationHistoryRuntimeRouter;
-import art.arcane.iris.engine.history.NativeTerrainReceipt;
+import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.world.history.NativeTerrainReceipt;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ImposterProtoChunk;
 

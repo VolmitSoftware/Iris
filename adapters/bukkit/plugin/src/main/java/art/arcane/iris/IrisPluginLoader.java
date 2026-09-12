@@ -1,6 +1,6 @@
 package art.arcane.iris;
 
-import art.arcane.iris.util.common.misc.SlimJar;
+import art.arcane.iris.platform.bootstrap.SlimJar;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContext;
 import io.papermc.paper.plugin.loader.PluginClasspathBuilder;
 import io.papermc.paper.plugin.loader.PluginLoader;

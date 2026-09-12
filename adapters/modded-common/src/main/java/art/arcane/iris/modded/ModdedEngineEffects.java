@@ -18,15 +18,15 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.BiomeEnvironment;
-import art.arcane.iris.engine.history.SavedBiomeUnavailableException;
-import art.arcane.iris.engine.framework.EngineAssignedComponent;
-import art.arcane.iris.engine.framework.EngineEffects;
-import art.arcane.iris.engine.object.IrisCommand;
-import art.arcane.iris.engine.object.IrisCommandRegistry;
-import art.arcane.iris.engine.object.IrisEffect;
+import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.BiomeEnvironment;
+import art.arcane.iris.world.history.SavedBiomeUnavailableException;
+import art.arcane.iris.generation.runtime.EngineAssignedComponent;
+import art.arcane.iris.generation.runtime.EngineEffects;
+import art.arcane.iris.command.IrisCommand;
+import art.arcane.iris.command.IrisCommandRegistry;
+import art.arcane.iris.world.entity.IrisEffect;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.math.RNG;
 import net.minecraft.core.Holder;

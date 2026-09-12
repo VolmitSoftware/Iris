@@ -19,9 +19,9 @@
 package art.arcane.iris.modded.service;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.MeteredCache;
-import art.arcane.iris.engine.framework.PreservationRegistry;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.MeteredCache;
+import art.arcane.iris.generation.runtime.PreservationRegistry;
 
 import java.lang.ref.WeakReference;
 import java.util.List;

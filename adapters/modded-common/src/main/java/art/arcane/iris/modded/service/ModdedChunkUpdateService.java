@@ -18,12 +18,12 @@
 
 package art.arcane.iris.modded.service;
 
-import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.core.gui.PregeneratorJob;
-import art.arcane.iris.core.link.Identifier;
-import art.arcane.iris.engine.data.cache.Cache;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.studio.view.PregeneratorJob;
+import art.arcane.iris.integration.Identifier;
+import art.arcane.iris.generation.cache.Cache;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedBlockResolution;
 import art.arcane.iris.modded.ModdedLootApplier;
@@ -31,7 +31,7 @@ import art.arcane.iris.modded.ModdedServerLevels;
 import art.arcane.iris.modded.ModdedTileData;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.util.project.matter.TileWrapper;
+import art.arcane.iris.world.storage.matter.TileWrapper;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;

@@ -22,16 +22,16 @@ import net.minecraft.world.level.chunk.status.ChunkStatus;
 
 import art.arcane.iris.nativegen.NativeGenerationWriteGuard;
 
-import art.arcane.iris.engine.DimensionStackContext;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
-import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
-import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
-import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
-import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.object.IrisMaterialPalette;
-import art.arcane.iris.engine.object.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.IrisStaticObjectLayer;
+import art.arcane.iris.generation.runtime.DimensionStackContext;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.structure.placement.IrisStructureLocator;
+import art.arcane.iris.structure.nativegen.NativeStructureGenerationPolicy;
+import art.arcane.iris.structure.nativegen.NativeStructureOwnershipRecord;
+import art.arcane.iris.structure.nativegen.NativeStructureOwnershipStore;
+import art.arcane.iris.structure.nativegen.NativeStructureStartPlan;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
+import art.arcane.iris.structure.nativegen.IrisNativeStructureDecision;
+import art.arcane.iris.structure.object.IrisStaticObjectLayer;
 import art.arcane.iris.nativegen.NativeStructureGenerationException;
 import art.arcane.iris.nativegen.NativeStructureLocatePersistence;
 import art.arcane.iris.nativegen.NativeStructureLocateResults;

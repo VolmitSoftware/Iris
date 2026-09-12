@@ -19,11 +19,11 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.nms.datapack.DataVersion;
-import art.arcane.iris.core.pack.PackDirectoryResolver;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
+import art.arcane.iris.pack.PackDirectoryResolver;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedServerLevels;
 import art.arcane.volmlib.util.collection.KList;
@@ -50,9 +50,9 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import art.arcane.iris.core.localization.IrisLanguage;
+import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
-import art.arcane.iris.core.localization.RuntimeUiMessages;
+import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 public final class ModdedDatapackCommands {
     private static final Predicate<CommandSourceStack> GATE = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);

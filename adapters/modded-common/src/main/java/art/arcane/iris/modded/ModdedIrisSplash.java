@@ -19,9 +19,9 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.core.splash.IrisSplashComposer;
-import art.arcane.iris.core.splash.IrisSplashRenderer;
+import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.diagnostics.splash.IrisSplashComposer;
+import art.arcane.iris.diagnostics.splash.IrisSplashRenderer;
 import art.arcane.iris.spi.IrisLogging;
 
 import java.io.File;

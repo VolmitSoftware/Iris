@@ -18,15 +18,15 @@
 
 package art.arcane.iris.platform.bukkit;
 
-import art.arcane.iris.core.link.Identifier;
+import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockProperty;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.BukkitTestServer;
-import art.arcane.iris.util.common.data.IrisCustomData;
-import art.arcane.iris.util.project.matter.slices.PlatformBlockMatter;
+import art.arcane.iris.generation.block.IrisCustomData;
+import art.arcane.iris.world.storage.matter.PlatformBlockMatter;
 import io.papermc.paper.registry.RegistryAccess;
 import org.bukkit.Bukkit;
 import org.bukkit.World;

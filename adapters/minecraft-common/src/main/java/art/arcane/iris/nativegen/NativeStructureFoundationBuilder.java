@@ -1,6 +1,6 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.object.IrisStructureStiltSettings;
+import art.arcane.iris.structure.placement.IrisStructureStiltSettings;
 import art.arcane.volmlib.util.math.RNG;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

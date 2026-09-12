@@ -18,16 +18,16 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.DimensionStackContext;
-import art.arcane.iris.engine.DimensionTerrainContext;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisBiomeCustom;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.DimensionStackContext;
+import art.arcane.iris.generation.runtime.DimensionTerrainContext;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeCustom;
+import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBiomeWriter;
-import art.arcane.iris.util.project.context.IrisContext;
+import art.arcane.iris.generation.context.IrisContext;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;

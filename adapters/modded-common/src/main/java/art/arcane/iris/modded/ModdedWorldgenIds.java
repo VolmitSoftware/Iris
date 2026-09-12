@@ -1,6 +1,6 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.generation.runtime.Engine;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;

@@ -1,9 +1,9 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.volmlib.util.hunk.Hunk;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;

@@ -1,6 +1,6 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.generation.block.TileData;
 import art.arcane.volmlib.util.collection.KMap;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;

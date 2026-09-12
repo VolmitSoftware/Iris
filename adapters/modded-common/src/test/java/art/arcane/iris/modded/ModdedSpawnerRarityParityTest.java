@@ -1,7 +1,7 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.IRare;
-import art.arcane.iris.engine.object.IrisEntitySpawn;
+import art.arcane.volmlib.util.math.Rarity;
+import art.arcane.iris.world.entity.IrisEntitySpawn;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
@@ -21,7 +21,7 @@ public class ModdedSpawnerRarityParityTest {
         IrisEntitySpawn common = spawn(1);
         IrisEntitySpawn rare = spawn(4);
 
-        KList<IrisEntitySpawn> expanded = IRare.expandWeighted(List.of(common, rare));
+        KList<IrisEntitySpawn> expanded = Rarity.expandWeighted(List.of(common, rare));
 
         // totalRarity 5 -> common appears 5/1 = 5 times, rare 5/4 = 1 time.
         assertEquals(6, expanded.size());
@@ -31,8 +31,8 @@ public class ModdedSpawnerRarityParityTest {
 
     @Test
     public void rarityZeroAndNegativeAreClampedToOne() {
-        assertEquals(1, IRare.get(spawn(0)));
-        assertEquals(1, IRare.get(spawn(-5)));
-        assertEquals(3, IRare.get(spawn(3)));
+        assertEquals(1, Rarity.get(spawn(0)));
+        assertEquals(1, Rarity.get(spawn(-5)));
+        assertEquals(3, Rarity.get(spawn(3)));
     }
 }

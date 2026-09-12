@@ -1,12 +1,12 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.mantle.components.StructureCarveEnvelope;
-import art.arcane.iris.engine.mantle.components.StructureCarvingFootprint;
-import art.arcane.iris.engine.object.IrisMaterialPalette;
-import art.arcane.iris.engine.object.IrisStructureCarveShape;
-import art.arcane.iris.engine.object.IrisStructureTerrain;
-import art.arcane.iris.engine.object.IrisStructureTerrainMode;
-import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.iris.generation.mantle.StructureCarveEnvelope;
+import art.arcane.iris.generation.mantle.StructureCarvingFootprint;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
+import art.arcane.iris.structure.placement.IrisStructureCarveShape;
+import art.arcane.iris.structure.placement.IrisStructureTerrain;
+import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.math.RNG;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;

@@ -1,10 +1,10 @@
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.core.gui.PregeneratorJob;
-import art.arcane.iris.core.localization.IrisLanguage;
-import art.arcane.iris.core.localization.RuntimeUiMessages;
-import art.arcane.iris.core.protocol.IrisProtocolServer;
-import art.arcane.iris.core.protocol.IrisSession;
+import art.arcane.iris.studio.view.PregeneratorJob;
+import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.iris.platform.protocol.IrisProtocolServer;
+import art.arcane.iris.platform.protocol.IrisSession;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.spi.protocol.IrisProtocol;
 import art.arcane.volmlib.util.format.Form;

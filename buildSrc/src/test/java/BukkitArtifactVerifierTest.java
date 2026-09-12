@@ -22,7 +22,7 @@ public class BukkitArtifactVerifierTest {
     private static final String PLUGIN_DESCRIPTOR = "plugin.yml";
     private static final String SLIMJAR_DEPENDENCIES = "slimjar.dat";
     private static final String SLIMJAR_RESOLUTIONS = "slimjar-resolutions.dat";
-    private static final String NMS_BINDING = "art/arcane/iris/core/nms/v26_2_R1/NMSBinding";
+    private static final String NMS_BINDING = "art/arcane/iris/platform/bukkit/nms/v26_2_R1/NMSBinding";
     private static final List<String> REQUIRED_ENTRIES = List.of(
             PLUGIN_DESCRIPTOR,
             SLIMJAR_DEPENDENCIES,

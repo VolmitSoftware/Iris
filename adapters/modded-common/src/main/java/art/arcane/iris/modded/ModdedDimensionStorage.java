@@ -18,8 +18,8 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.IrisEngineMantle;
-import art.arcane.iris.engine.history.GenerationHistoryPaths;
+import art.arcane.iris.generation.runtime.IrisEngineMantle;
+import art.arcane.iris.world.history.GenerationHistoryPaths;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.Level;

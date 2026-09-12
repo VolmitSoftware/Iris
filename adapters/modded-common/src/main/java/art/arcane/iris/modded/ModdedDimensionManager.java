@@ -18,11 +18,11 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.pack.PackValidationRegistry;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.history.GenerationActivation;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.pack.PackValidationRegistry;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.world.history.GenerationActivation;
+import art.arcane.iris.generation.terrain.IrisDimension;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;

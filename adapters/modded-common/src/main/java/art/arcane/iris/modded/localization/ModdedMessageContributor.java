@@ -1,6 +1,6 @@
 package art.arcane.iris.modded.localization;
 
-import art.arcane.iris.core.localization.IrisMessageContributor;
+import art.arcane.iris.localization.IrisMessageContributor;
 import art.arcane.volmlib.util.localization.MessageKey;
 
 import java.util.ArrayList;

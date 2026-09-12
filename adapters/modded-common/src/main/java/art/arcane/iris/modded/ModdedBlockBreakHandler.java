@@ -18,16 +18,16 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
-import art.arcane.iris.engine.framework.TreeBlockMaterial;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisBlockData;
-import art.arcane.iris.engine.object.IrisBlockDrops;
-import art.arcane.iris.engine.object.IrisLoot;
-import art.arcane.iris.engine.object.IrisMarker;
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.structure.placement.LootResolver;
+import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.block.IrisBlockData;
+import art.arcane.iris.world.loot.IrisBlockDrops;
+import art.arcane.iris.world.loot.IrisLoot;
+import art.arcane.iris.world.entity.IrisMarker;
+import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.modded.service.ModdedTreeFellerService;
 import art.arcane.volmlib.util.collection.KList;

@@ -1,12 +1,12 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.hydrology.HydrologyColumnLayer;
-import art.arcane.iris.engine.hydrology.HydrologyColumnSample;
-import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
-import art.arcane.iris.engine.hydrology.RiverFootprint;
-import art.arcane.iris.engine.object.InferredType;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
+import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
+import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.RiverFootprint;
+import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.spi.PlatformBlockState;
 import com.google.gson.GsonBuilder;
 

@@ -1,8 +1,8 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.engine.hydrology.HydrologyFeatureRef;
-import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
-import art.arcane.iris.engine.hydrology.HydrologyTile;
+import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
+import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.HydrologyTile;
 import org.junit.Test;
 
 import java.util.EnumSet;

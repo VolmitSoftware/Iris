@@ -1,8 +1,8 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.engine.DimensionStackContext;
-import art.arcane.iris.engine.DimensionStackLayout;
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.generation.runtime.DimensionStackContext;
+import art.arcane.iris.generation.runtime.DimensionStackLayout;
+import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.testsupport.IrisRuntimeState;
 import org.junit.AfterClass;

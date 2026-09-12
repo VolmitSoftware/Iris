@@ -1,6 +1,6 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.history.TerrainBoundarySignature;
+import art.arcane.iris.world.history.TerrainBoundarySignature;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import com.mojang.brigadier.StringReader;

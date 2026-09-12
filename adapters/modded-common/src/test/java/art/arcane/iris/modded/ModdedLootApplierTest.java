@@ -1,7 +1,7 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.framework.LootResolver;
-import art.arcane.iris.engine.object.IrisLootMode;
+import art.arcane.iris.structure.placement.LootResolver;
+import art.arcane.iris.world.loot.IrisLootMode;
 import art.arcane.volmlib.util.math.RNG;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;

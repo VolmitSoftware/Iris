@@ -1,6 +1,6 @@
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.core.localization.IrisLanguage;
+import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.director.help.DirectorHelpMessages;
 import art.arcane.volmlib.util.localization.PluginLanguageService;

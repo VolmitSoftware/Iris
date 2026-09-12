@@ -1,7 +1,7 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.framework.StructureVerticalBounds;
-import art.arcane.iris.engine.object.IrisStructureYBand;
+import art.arcane.iris.structure.placement.StructureVerticalBounds;
+import art.arcane.iris.structure.placement.IrisStructureYBand;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.math.RNG;
 import net.minecraft.world.level.ChunkPos;

@@ -18,10 +18,10 @@
 
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.core.gui.GuiHost;
-import art.arcane.iris.core.gui.GuiOverlay;
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.studio.view.GuiHost;
+import art.arcane.iris.studio.view.GuiOverlay;
+import art.arcane.iris.generation.runtime.Engine;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 

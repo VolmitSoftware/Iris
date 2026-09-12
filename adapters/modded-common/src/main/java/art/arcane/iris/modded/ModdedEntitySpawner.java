@@ -18,13 +18,13 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
-import art.arcane.iris.engine.object.IrisAttributeModifier;
-import art.arcane.iris.engine.object.IrisEntity;
-import art.arcane.iris.engine.object.IrisEffect;
-import art.arcane.iris.engine.object.IrisLoot;
+import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.structure.placement.LootResolver;
+import art.arcane.iris.world.entity.IrisAttributeModifier;
+import art.arcane.iris.world.entity.IrisEntity;
+import art.arcane.iris.world.entity.IrisEffect;
+import art.arcane.iris.world.loot.IrisLoot;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;

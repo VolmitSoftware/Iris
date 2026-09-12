@@ -19,10 +19,10 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.pack.BrokenPackException;
-import art.arcane.iris.core.pack.PackValidationRegistry;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.pack.BrokenPackException;
+import art.arcane.iris.pack.PackValidationRegistry;
+import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.MainWorldService;
 import art.arcane.iris.modded.ModdedDimensionManager;
@@ -51,9 +51,9 @@ import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
-import art.arcane.iris.core.localization.IrisLanguage;
+import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
-import art.arcane.iris.core.localization.RuntimeUiMessages;
+import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 public final class ModdedWorldCommands {
     private static final Predicate<CommandSourceStack> GATE = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);

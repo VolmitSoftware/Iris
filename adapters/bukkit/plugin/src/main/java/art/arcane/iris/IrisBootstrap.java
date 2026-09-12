@@ -1,15 +1,15 @@
 package art.arcane.iris;
 
-import art.arcane.iris.core.lifecycle.BukkitStartupPaths;
-import art.arcane.iris.core.lifecycle.BukkitWorldConfiguration;
-import art.arcane.iris.core.lifecycle.BukkitWorldConfiguration.IrisWorldStorageEntry;
-import art.arcane.iris.core.lifecycle.HuskWorldQuarantine;
-import art.arcane.iris.core.lifecycle.MissingWorldStorageLog;
-import art.arcane.iris.core.lifecycle.WorldReplacementBootstrap;
-import art.arcane.iris.core.lifecycle.WorldReplacementBootstrapMarker;
-import art.arcane.iris.core.pack.DefaultPackBootstrapProvisioner;
-import art.arcane.iris.core.pack.DefaultPackBootstrapProvisioner.ProvisionResult;
-import art.arcane.iris.util.common.misc.SlimJar;
+import art.arcane.iris.world.lifecycle.BukkitStartupPaths;
+import art.arcane.iris.world.lifecycle.BukkitWorldConfiguration;
+import art.arcane.iris.world.lifecycle.BukkitWorldConfiguration.IrisWorldStorageEntry;
+import art.arcane.iris.world.lifecycle.HuskWorldQuarantine;
+import art.arcane.iris.world.lifecycle.MissingWorldStorageLog;
+import art.arcane.iris.world.lifecycle.WorldReplacementBootstrap;
+import art.arcane.iris.world.lifecycle.WorldReplacementBootstrapMarker;
+import art.arcane.iris.pack.DefaultPackBootstrapProvisioner;
+import art.arcane.iris.pack.DefaultPackBootstrapProvisioner.ProvisionResult;
+import art.arcane.iris.platform.bootstrap.SlimJar;
 import io.papermc.paper.plugin.bootstrap.BootstrapContext;
 import io.papermc.paper.plugin.bootstrap.PluginBootstrap;
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEvent;

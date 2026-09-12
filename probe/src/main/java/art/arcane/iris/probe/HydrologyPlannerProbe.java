@@ -1,21 +1,21 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.engine.hydrology.policy.SurfaceRiverPolicy;
+import art.arcane.iris.generation.hydrology.policy.SurfaceRiverPolicy;
 
-import art.arcane.iris.engine.hydrology.HydrologyColumnSample;
-import art.arcane.iris.engine.hydrology.HydrologyFeatureRef;
-import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
-import art.arcane.iris.engine.hydrology.HydrologyGeometrySampler;
-import art.arcane.iris.engine.hydrology.HydrologyPlanner;
-import art.arcane.iris.engine.hydrology.HydrologyPlannerSettings;
-import art.arcane.iris.engine.hydrology.HydrologyTerrainSample;
-import art.arcane.iris.engine.hydrology.HydrologyTerrainSampler;
-import art.arcane.iris.engine.hydrology.HydrologyTile;
-import art.arcane.iris.engine.hydrology.HydrologyTileCache;
-import art.arcane.iris.engine.hydrology.HydrologyTileKey;
-import art.arcane.iris.engine.hydrology.cave.CavePosition;
-import art.arcane.iris.engine.hydrology.cave.CaveVoxel;
-import art.arcane.iris.engine.hydrology.cave.CaveVoxelView;
+import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
+import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
+import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.HydrologyGeometrySampler;
+import art.arcane.iris.generation.hydrology.HydrologyPlanner;
+import art.arcane.iris.generation.hydrology.HydrologyPlannerSettings;
+import art.arcane.iris.generation.hydrology.HydrologyTerrainSample;
+import art.arcane.iris.generation.hydrology.HydrologyTerrainSampler;
+import art.arcane.iris.generation.hydrology.HydrologyTile;
+import art.arcane.iris.generation.hydrology.HydrologyTileCache;
+import art.arcane.iris.generation.hydrology.HydrologyTileKey;
+import art.arcane.iris.generation.hydrology.cave.CavePosition;
+import art.arcane.iris.generation.hydrology.cave.CaveVoxel;
+import art.arcane.iris.generation.hydrology.cave.CaveVoxelView;
 
 import java.util.Arrays;
 import java.util.EnumMap;

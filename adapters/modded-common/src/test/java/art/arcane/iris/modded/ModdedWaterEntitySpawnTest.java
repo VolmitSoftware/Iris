@@ -1,9 +1,9 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.IrisEntity;
-import art.arcane.iris.engine.object.IrisEntitySpawn;
-import art.arcane.iris.engine.object.IrisSpawnGroup;
-import art.arcane.iris.engine.object.IrisSurface;
+import art.arcane.iris.world.entity.IrisEntity;
+import art.arcane.iris.world.entity.IrisEntitySpawn;
+import art.arcane.iris.world.entity.IrisSpawnGroup;
+import art.arcane.iris.generation.decoration.IrisSurface;
 import art.arcane.volmlib.util.math.RNG;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;

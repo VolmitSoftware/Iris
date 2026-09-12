@@ -18,7 +18,7 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.protocol.IrisServerTransport;
+import art.arcane.iris.platform.protocol.IrisServerTransport;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 

@@ -1,7 +1,7 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisEntity;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.world.entity.IrisEntity;
 import art.arcane.volmlib.util.math.RNG;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
 import art.arcane.iris.modded.api.ModdedBlockData;
 import art.arcane.iris.spi.IrisLogging;

@@ -18,10 +18,10 @@
 
 package art.arcane.iris.probe;
 
-import art.arcane.iris.engine.decorator.DecoratorPlatformHooks;
-import art.arcane.iris.engine.object.BlockDataMergeSupport;
-import art.arcane.iris.engine.object.IrisObjectRotation;
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.generation.decoration.DecoratorPlatformHooks;
+import art.arcane.iris.generation.block.BlockDataMergeSupport;
+import art.arcane.iris.structure.object.IrisObjectRotation;
+import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.LogLevel;
 import art.arcane.iris.spi.PlatformBiome;
@@ -34,7 +34,7 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
 import art.arcane.iris.spi.PlatformWorld;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.iris.generation.geometry.IrisBlockVector;
 
 import java.io.File;
 import java.util.LinkedHashMap;

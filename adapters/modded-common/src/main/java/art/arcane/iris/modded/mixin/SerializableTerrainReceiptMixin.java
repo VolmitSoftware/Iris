@@ -1,6 +1,6 @@
 package art.arcane.iris.modded.mixin;
 
-import art.arcane.iris.engine.history.NativeTerrainReceipt;
+import art.arcane.iris.world.history.NativeTerrainReceipt;
 import art.arcane.iris.modded.ModdedNativeTerrainReceipts;
 import art.arcane.iris.modded.NativeTerrainReceiptHolder;
 import net.minecraft.nbt.CompoundTag;

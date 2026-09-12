@@ -1,11 +1,11 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisBiomeCustom;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisRange;
-import art.arcane.iris.engine.object.InferredType;
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeCustom;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.pack.value.IrisRange;
+import art.arcane.iris.generation.terrain.InferredType;
+import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import net.minecraft.SharedConstants;

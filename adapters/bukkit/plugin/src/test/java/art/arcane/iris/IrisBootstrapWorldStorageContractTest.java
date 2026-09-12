@@ -1,7 +1,7 @@
 package art.arcane.iris;
 
-import art.arcane.iris.core.lifecycle.BukkitStartupPaths;
-import art.arcane.iris.core.lifecycle.MissingWorldStorageLog;
+import art.arcane.iris.world.lifecycle.BukkitStartupPaths;
+import art.arcane.iris.world.lifecycle.MissingWorldStorageLog;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.Before;
 import org.junit.Rule;

@@ -1,9 +1,9 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.project.SchemaBuilder;
-import art.arcane.iris.engine.object.IrisDirection;
-import art.arcane.iris.engine.object.annotations.ArrayType;
-import art.arcane.iris.engine.object.annotations.Desc;
+import art.arcane.iris.pack.schema.SchemaBuilder;
+import art.arcane.iris.pack.value.IrisDirection;
+import art.arcane.iris.pack.schema.annotation.ArrayType;
+import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
@@ -38,12 +38,12 @@ public class SchemaBuilderPlatformIsolationTest {
                         .getJSONObject("items").getString("$ref"));
     }
 
-    @Desc("Direction model.")
+    @Description("Direction model.")
     public static class DirectionModel {
-        @Desc("Direction.")
+        @Description("Direction.")
         private IrisDirection direction = IrisDirection.NORTH_NEGATIVE_Z;
 
-        @Desc("Directions.")
+        @Description("Directions.")
         @ArrayType(type = IrisDirection.class)
         private KList<IrisDirection> directions = new KList<>();
     }

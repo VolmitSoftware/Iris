@@ -19,9 +19,9 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.tools.WorldMaintenance;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.mantle.EngineMantle;
+import art.arcane.iris.world.WorldMaintenance;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedBlockBuffer;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
@@ -29,9 +29,9 @@ import art.arcane.iris.modded.service.ModdedChunkUpdateService;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.math.ChunkSpiral;
-import art.arcane.iris.util.common.parallel.MultiBurst;
-import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.volmlib.util.math.ChunkSpiral;
+import art.arcane.iris.generation.concurrent.MultiBurst;
+import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.math.M;
 import net.minecraft.commands.CommandSourceStack;
@@ -61,7 +61,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import art.arcane.iris.core.localization.IrisLanguage;
+import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
 public final class ModdedRegen {
     private static final int APPLY_AHEAD = 8;

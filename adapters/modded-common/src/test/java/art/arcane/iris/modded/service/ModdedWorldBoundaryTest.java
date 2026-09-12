@@ -1,7 +1,7 @@
 package art.arcane.iris.modded.service;
 
-import art.arcane.iris.engine.object.IrisWorldBoundary;
-import art.arcane.iris.engine.object.IrisWorldBoundaryCenter;
+import art.arcane.iris.world.IrisWorldBoundary;
+import art.arcane.iris.world.IrisWorldBoundaryCenter;
 import net.minecraft.world.level.border.WorldBorder;
 import org.junit.Test;
 

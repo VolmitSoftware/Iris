@@ -18,9 +18,9 @@
 
 package art.arcane.iris.modded.api;
 
-import art.arcane.iris.core.tools.WorldMaintenance;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineLifecycleTasks;
+import art.arcane.iris.world.WorldMaintenance;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.EngineLifecycleTasks;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.command.ModdedPregenJob;
 import net.minecraft.server.level.ServerLevel;
@@ -39,7 +39,7 @@ import net.minecraft.world.level.chunk.ChunkGenerator;
  * global state and belong on the server thread, during mod setup or from a command.
  * <p>
  * <b>Stability.</b> This class and the {@code Modded*} types beside it are the intended integration surface. The
- * types they expose from {@code art.arcane.iris.engine.*} and {@code art.arcane.iris.core.*} - notably
+ * types they expose from {@code art.arcane.iris.generation.runtime.*} and {@code art.arcane.iris.pack.*} - notably
  * {@link Engine} - are internal to Iris and change without a deprecation cycle. Treat {@link Engine} as an opaque
  * token to hand back to Iris, and prefer the wrappers here over reaching into it.
  *

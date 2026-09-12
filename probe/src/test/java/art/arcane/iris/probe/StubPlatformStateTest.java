@@ -1,11 +1,11 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.engine.decorator.IrisSpeleothems;
-import art.arcane.iris.engine.object.IrisObjectRotation;
+import art.arcane.iris.generation.decoration.IrisSpeleothems;
+import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
-import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.volmlib.util.hunk.Hunk;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;

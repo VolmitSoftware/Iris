@@ -1,12 +1,12 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.IrisEngine;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
-import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
-import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
-import art.arcane.iris.engine.history.GenerationHistoryRuntimeRouter;
-import art.arcane.iris.engine.object.IrisNativeStructureDecision;
+import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.structure.nativegen.NativeStructureGenerationPolicy;
+import art.arcane.iris.structure.nativegen.NativeStructureOwnershipRecord;
+import art.arcane.iris.structure.nativegen.NativeStructureOwnershipStore;
+import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.structure.nativegen.IrisNativeStructureDecision;
 import art.arcane.iris.spi.IrisLogging;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;

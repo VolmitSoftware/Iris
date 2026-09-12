@@ -19,13 +19,13 @@
 package art.arcane.iris.modded;
 
 import art.arcane.volmlib.util.collection.KSet;
-import art.arcane.iris.core.nms.datapack.v1217.DataFixerV1217;
-import art.arcane.iris.engine.history.GenerationEpochContractFactory;
-import art.arcane.iris.engine.history.GenerationRegistryContract;
-import art.arcane.iris.engine.history.GenerationRegistryContractFactory;
-import art.arcane.iris.engine.object.IrisCustomBiomeAliasResolver;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisDimensionType;
+import art.arcane.iris.platform.bukkit.nms.datapack.v1217.DataFixerV1217;
+import art.arcane.iris.world.history.GenerationEpochContractFactory;
+import art.arcane.iris.world.history.GenerationRegistryContract;
+import art.arcane.iris.world.history.GenerationRegistryContractFactory;
+import art.arcane.iris.generation.biome.IrisCustomBiomeAliasResolver;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisDimensionType;
 import art.arcane.iris.spi.PlatformGenerationRegistry;
 import java.lang.reflect.Constructor;
 import java.util.Set;

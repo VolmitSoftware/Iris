@@ -19,13 +19,13 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.compat.PackCompatReport;
+import art.arcane.iris.pack.validation.PackCompatReport;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.core.pack.PackDirectoryResolver;
-import art.arcane.iris.core.pack.PackResourceCleanup;
-import art.arcane.iris.core.pack.PackValidationRegistry;
-import art.arcane.iris.core.pack.PackValidationResult;
-import art.arcane.iris.core.pack.PackValidator;
+import art.arcane.iris.pack.PackDirectoryResolver;
+import art.arcane.iris.pack.PackResourceCleanup;
+import art.arcane.iris.pack.PackValidationRegistry;
+import art.arcane.iris.pack.PackValidationResult;
+import art.arcane.iris.pack.PackValidator;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import art.arcane.iris.core.localization.IrisLanguage;
+import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 public final class ModdedPackCommands {

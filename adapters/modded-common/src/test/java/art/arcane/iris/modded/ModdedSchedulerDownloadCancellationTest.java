@@ -1,7 +1,7 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.lifecycle.LifecycleOperationCoordinator;
-import art.arcane.iris.core.pack.PackDownloadExecution;
+import art.arcane.iris.world.lifecycle.LifecycleOperationCoordinator;
+import art.arcane.iris.pack.PackDownloadExecution;
 import org.junit.Test;
 
 import java.util.concurrent.CountDownLatch;

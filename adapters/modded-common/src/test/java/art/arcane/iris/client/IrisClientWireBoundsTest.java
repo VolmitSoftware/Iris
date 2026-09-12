@@ -1,6 +1,6 @@
 package art.arcane.iris.client;
 
-import art.arcane.iris.core.protocol.IrisTileEncoder;
+import art.arcane.iris.platform.protocol.IrisTileEncoder;
 import art.arcane.iris.spi.protocol.IrisMessage;
 import org.junit.Test;
 

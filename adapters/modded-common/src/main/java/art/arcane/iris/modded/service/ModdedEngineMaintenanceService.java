@@ -19,14 +19,14 @@
 package art.arcane.iris.modded.service;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.core.service.EngineMaintenance;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.GenerationSessionException;
-import art.arcane.iris.engine.framework.GenerationSessionLease;
+import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.generation.runtime.EngineMaintenance;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationSessionException;
+import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.modded.ModdedWorldEngines;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.util.project.context.IrisContext;
+import art.arcane.iris.generation.context.IrisContext;
 import net.minecraft.server.MinecraftServer;
 
 import java.util.Collection;

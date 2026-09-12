@@ -1,8 +1,8 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.object.IrisMaterialPalette;
-import art.arcane.iris.engine.object.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.IrisStructureStiltSettings;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
+import art.arcane.iris.structure.nativegen.IrisNativeStructureDecision;
+import art.arcane.iris.structure.placement.IrisStructureStiltSettings;
 import art.arcane.volmlib.util.math.RNG;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.StructureManager;

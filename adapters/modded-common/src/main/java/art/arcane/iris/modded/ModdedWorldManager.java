@@ -18,25 +18,25 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.core.gui.PregeneratorJob;
-import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.BiomeEnvironment;
-import art.arcane.iris.engine.history.SavedBiomeUnavailableException;
-import art.arcane.iris.engine.framework.EngineLifecycleTasks;
-import art.arcane.iris.engine.framework.EngineWorldManager;
-import art.arcane.iris.engine.framework.LootResolver;
-import art.arcane.iris.engine.object.IRare;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisEntity;
-import art.arcane.iris.engine.object.IrisEntitySpawn;
-import art.arcane.iris.engine.object.IrisMarker;
-import art.arcane.iris.engine.object.IrisPosition;
-import art.arcane.iris.engine.object.IrisRange;
-import art.arcane.iris.engine.object.IrisSpawnGroup;
-import art.arcane.iris.engine.object.IrisSpawner;
-import art.arcane.iris.engine.object.IrisSurface;
+import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.studio.view.PregeneratorJob;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.BiomeEnvironment;
+import art.arcane.iris.world.history.SavedBiomeUnavailableException;
+import art.arcane.iris.generation.runtime.EngineLifecycleTasks;
+import art.arcane.iris.generation.runtime.EngineWorldManager;
+import art.arcane.iris.structure.placement.LootResolver;
+import art.arcane.volmlib.util.math.Rarity;
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.world.entity.IrisEntity;
+import art.arcane.iris.world.entity.IrisEntitySpawn;
+import art.arcane.iris.world.entity.IrisMarker;
+import art.arcane.iris.pack.value.IrisPosition;
+import art.arcane.iris.pack.value.IrisRange;
+import art.arcane.iris.world.entity.IrisSpawnGroup;
+import art.arcane.iris.world.entity.IrisSpawner;
+import art.arcane.iris.generation.decoration.IrisSurface;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
@@ -823,7 +823,7 @@ public final class ModdedWorldManager implements EngineWorldManager {
     }
 
     private IrisEntitySpawn rarityPick(KList<IrisEntitySpawn> entries) {
-        KList<IrisEntitySpawn> weighted = IRare.expandWeighted(entries);
+        KList<IrisEntitySpawn> weighted = Rarity.expandWeighted(entries);
         return weighted.isEmpty() ? entries.getRandom() : weighted.getRandom();
     }
 

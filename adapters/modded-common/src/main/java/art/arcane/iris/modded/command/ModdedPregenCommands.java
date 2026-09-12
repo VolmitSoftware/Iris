@@ -18,11 +18,11 @@
 
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.core.localization.IrisMessages;
-import art.arcane.iris.core.localization.IrisLanguage;
+import art.arcane.iris.localization.IrisMessages;
+import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
-import art.arcane.iris.core.localization.RuntimeUiMessages;
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;

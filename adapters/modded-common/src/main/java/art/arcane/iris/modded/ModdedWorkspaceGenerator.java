@@ -18,12 +18,12 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.loader.ResourceLoader;
-import art.arcane.iris.core.project.SchemaBuilder;
-import art.arcane.iris.engine.object.annotations.Snippet;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.pack.loading.ResourceLoader;
+import art.arcane.iris.pack.schema.SchemaBuilder;
+import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.util.common.scheduling.J;
+import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.io.IO;

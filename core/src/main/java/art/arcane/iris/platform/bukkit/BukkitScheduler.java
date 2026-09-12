@@ -20,7 +20,7 @@ package art.arcane.iris.platform.bukkit;
 
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformWorld;
-import art.arcane.iris.util.common.scheduling.J;
+import art.arcane.iris.world.task.J;
 import org.bukkit.World;
 
 /**

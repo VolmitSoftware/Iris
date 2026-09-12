@@ -19,16 +19,16 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.structure.StructureIndexService;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.PlacedStructurePiece;
-import art.arcane.iris.engine.framework.StructureAssembler;
-import art.arcane.iris.engine.framework.structure.StructureAssemblyResult;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
-import art.arcane.iris.engine.object.IrisPosition;
-import art.arcane.iris.engine.object.IrisStructure;
-import art.arcane.iris.engine.object.ObjectPlaceMode;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.structure.StructureIndexService;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.structure.placement.PlacedStructurePiece;
+import art.arcane.iris.structure.placement.StructureAssembler;
+import art.arcane.iris.structure.graph.StructureAssemblyResult;
+import art.arcane.iris.structure.object.IrisObjectPlacement;
+import art.arcane.iris.pack.value.IrisPosition;
+import art.arcane.iris.structure.placement.IrisStructure;
+import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.volmlib.util.math.RNG;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -48,7 +48,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
-import art.arcane.iris.core.localization.IrisLanguage;
+import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 public final class ModdedStructureCommands {

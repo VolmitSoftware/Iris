@@ -19,9 +19,9 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 public class GenerationRevisionScopeTest {
-    private static final String ENGINE_ROOT = "core/src/main/java/art/arcane/iris/engine/";
-    private static final String NMS_ROOT = "adapters/bukkit/nms/v26_2_R1/src/main/java/art/arcane/iris/core/nms/v26_2_R1/";
-    private static final String COMMAND_ROOT = "adapters/bukkit/plugin/src/main/java/art/arcane/iris/core/commands/";
+    private static final String ENGINE_ROOT = "core/src/main/java/art/arcane/iris/generation/runtime/";
+    private static final String NMS_ROOT = "adapters/bukkit/nms/v26_2_R1/src/main/java/art/arcane/iris/platform/bukkit/nms/v26_2_R1/";
+    private static final String COMMAND_ROOT = "adapters/bukkit/plugin/src/main/java/art/arcane/iris/command/";
 
     @Rule
     public final TemporaryFolder temporary = new TemporaryFolder();
@@ -72,7 +72,7 @@ public class GenerationRevisionScopeTest {
         assertNewSourceChangesRevision(fixture, ENGINE_ROOT + "NewDiagnostics.java");
         assertNewSourceChangesRevision(fixture, NMS_ROOT + "NmsWorldLifecycleHelper.java");
         assertNewSourceChangesRevision(fixture, COMMAND_ROOT + "NewCommand.java");
-        assertNewSourceChangesRevision(fixture, "core/src/main/java/art/arcane/iris/core/safeguard/task/NewTask.java");
+        assertNewSourceChangesRevision(fixture, "core/src/main/java/art/arcane/iris/world/safeguard/NewTask.java");
     }
 
     @Test
@@ -141,8 +141,8 @@ public class GenerationRevisionScopeTest {
                 ENGINE_ROOT + "history/GenerationKernelV1.java",
                 ENGINE_ROOT + "object/IrisDimension.java",
                 ENGINE_ROOT + "mode/ModeOverworld.java",
-                "core/src/main/java/art/arcane/iris/core/loader/IrisData.java",
-                "core/src/main/java/art/arcane/iris/core/IrisSettings.java",
+                "core/src/main/java/art/arcane/iris/pack/loading/IrisData.java",
+                "core/src/main/java/art/arcane/iris/configuration/IrisSettings.java",
                 "core/agent/src/main/java/GenerationTransformer.java",
                 NMS_ROOT + "NmsGenerationHooks.java",
                 NMS_ROOT + "NmsGenerationRegistry.java",

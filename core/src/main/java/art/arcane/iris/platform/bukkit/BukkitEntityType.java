@@ -18,7 +18,7 @@
 
 package art.arcane.iris.platform.bukkit;
 
-import art.arcane.iris.core.nms.INMS;
+import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.iris.spi.PlatformEntityType;
 import org.bukkit.entity.EntityType;
 

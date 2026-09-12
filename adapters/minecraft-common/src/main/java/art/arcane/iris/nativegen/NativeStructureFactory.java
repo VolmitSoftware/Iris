@@ -1,9 +1,9 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.object.IrisJigsawConfiguration;
-import art.arcane.iris.engine.object.IrisJigsawHeightmap;
-import art.arcane.iris.engine.object.IrisJigsawLiquidSettings;
+import art.arcane.iris.structure.nativegen.NativeStructureStartPlan;
+import art.arcane.iris.structure.jigsaw.IrisJigsawConfiguration;
+import art.arcane.iris.structure.jigsaw.IrisJigsawHeightmap;
+import art.arcane.iris.structure.jigsaw.IrisJigsawLiquidSettings;
 import art.arcane.iris.spi.PlatformStructureHooks.JigsawSourceMetadata;
 import net.minecraft.core.Holder;
 import net.minecraft.core.RegistryAccess;

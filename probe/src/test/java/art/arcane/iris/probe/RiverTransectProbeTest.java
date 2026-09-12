@@ -1,9 +1,9 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.engine.hydrology.RiverFootprint;
-import art.arcane.iris.engine.hydrology.HydrologyPoint;
-import art.arcane.iris.engine.hydrology.HydrologyPlannerSettings;
-import art.arcane.iris.engine.hydrology.surface.SurfaceCenterline;
+import art.arcane.iris.generation.hydrology.RiverFootprint;
+import art.arcane.iris.generation.hydrology.HydrologyPoint;
+import art.arcane.iris.generation.hydrology.HydrologyPlannerSettings;
+import art.arcane.iris.generation.hydrology.surface.SurfaceCenterline;
 import org.junit.Test;
 
 import java.util.HashMap;

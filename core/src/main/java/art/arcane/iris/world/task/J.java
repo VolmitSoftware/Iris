@@ -1,0 +1,888 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package art.arcane.iris.world.task;
+
+import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.platform.bukkit.BukkitPlatform;
+import art.arcane.iris.generation.runtime.PreservationRegistry;
+import art.arcane.iris.generation.concurrent.MultiBurst;
+import art.arcane.volmlib.util.function.NastyFunction;
+import art.arcane.volmlib.util.function.NastyFuture;
+import art.arcane.volmlib.util.function.NastyRunnable;
+import art.arcane.volmlib.util.function.NastySupplier;
+import art.arcane.volmlib.util.math.FinalInteger;
+import art.arcane.volmlib.util.scheduling.AR;
+import art.arcane.volmlib.util.scheduling.FoliaScheduler;
+import art.arcane.volmlib.util.scheduling.JSupport;
+import art.arcane.volmlib.util.scheduling.SR;
+import art.arcane.volmlib.util.scheduling.SchedulerBridge;
+import art.arcane.volmlib.util.scheduling.StartupQueueSupport;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Entity;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+@SuppressWarnings("ALL")
+public class J {
+    private static final long TICK_MS = 50L;
+    private static final AtomicInteger TASK_IDS = new AtomicInteger(1);
+    private static final Map<Integer, Runnable> REPEATING_CANCELLERS = new ConcurrentHashMap<>();
+    private static final StartupQueueSupport STARTUP_QUEUE = new StartupQueueSupport();
+    private static final boolean BUKKIT_PRESENT = detectBukkit();
+
+    private static boolean detectBukkit() {
+        try {
+            Class.forName("org.bukkit.Bukkit", false, J.class.getClassLoader());
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
+    static {
+        SchedulerBridge.setSyncScheduler(J::s);
+        SchedulerBridge.setDelayedSyncScheduler(J::s);
+        SchedulerBridge.setAsyncScheduler(J::a);
+        SchedulerBridge.setDelayedAsyncScheduler(J::a);
+        SchedulerBridge.setSyncRepeatingScheduler(J::sr);
+        SchedulerBridge.setAsyncRepeatingScheduler(J::ar);
+        SchedulerBridge.setCancelScheduler(J::car);
+        SchedulerBridge.setErrorHandler(e -> {
+            IrisLogging.reportError(e);
+        });
+        SchedulerBridge.setInfoLogger(IrisLogging::debug);
+        SchedulerBridge.setThreadRegistrar(thread -> {
+            try {
+                IrisServices.get(PreservationRegistry.class).register(thread);
+            } catch (Throwable e) {
+                IrisLogging.reportError(e);
+            }
+        });
+    }
+
+    public static void dofor(int a, Function<Integer, Boolean> c, int ch, Consumer<Integer> d) {
+        JSupport.dofor(a, c, ch, d);
+    }
+
+    public static boolean doif(Supplier<Boolean> c, Runnable g) {
+        return JSupport.doif(c, g, IrisLogging::reportError);
+    }
+
+    public static void arun(Runnable a) {
+        MultiBurst.burst.lazy(() -> {
+            try {
+                a.run();
+            } catch (Throwable e) {
+                IrisLogging.reportError(e);
+                IrisLogging.error("Failed to run async task");
+            }
+        });
+    }
+
+    public static void a(Runnable a) {
+        MultiBurst.burst.lazy(() -> {
+            try {
+                a.run();
+            } catch (Throwable e) {
+                IrisLogging.reportError(e);
+                IrisLogging.error("Failed to run async task");
+            }
+        });
+    }
+
+    public static void aBukkit(Runnable a) {
+        if (!usesBukkitScheduler()) {
+            if (IrisPlatforms.isBound()) {
+                IrisPlatforms.get().scheduler().async(a);
+            }
+            return;
+        }
+
+        if (!isPluginEnabled()) {
+            return;
+        }
+
+        if (!runAsyncImmediate(a)) {
+            a(a, 0);
+        }
+    }
+
+    public static <T> Future<T> a(Callable<T> a) {
+        return MultiBurst.burst.lazySubmit(a);
+    }
+
+    public static void attemptAsync(NastyRunnable r) {
+        JSupport.attemptAsync(r::run, J::a);
+    }
+
+    public static <R> R attemptResult(NastyFuture<R> r, R onError) {
+        return JSupport.attemptResult(r::run, onError, IrisLogging::reportError);
+    }
+
+    public static <T, R> R attemptFunction(NastyFunction<T, R> r, T param, R onError) {
+        return JSupport.attemptFunction(r::run, param, onError, IrisLogging::reportError);
+    }
+
+    public static boolean sleep(long ms) {
+        return JSupport.sleep(ms);
+    }
+
+    public static boolean attempt(NastyRunnable r) {
+        return JSupport.attempt(r::run);
+    }
+
+    public static <T> T attemptResult(NastySupplier<T> r) {
+        return JSupport.attemptNullable(r::get);
+    }
+
+    public static Throwable attemptCatch(NastyRunnable r) {
+        return JSupport.attemptCatch(r::run);
+    }
+
+    public static <T> T attempt(Supplier<T> t, T i) {
+        return JSupport.attempt(t::get, i, IrisLogging::reportError);
+    }
+
+    public static void executeAfterStartupQueue() {
+        JSupport.executeAfterStartupQueue(STARTUP_QUEUE, J::s, J::a);
+    }
+
+    public static void ass(Runnable r) {
+        JSupport.enqueueAfterStartupSync(STARTUP_QUEUE, r, J::s);
+    }
+
+    public static void asa(Runnable r) {
+        JSupport.enqueueAfterStartupAsync(STARTUP_QUEUE, r, J::a);
+    }
+
+    public static boolean isFolia() {
+        return usesBukkitScheduler() && FoliaScheduler.isFolia(Bukkit.getServer());
+    }
+
+    public static boolean isPrimaryThread() {
+        return FoliaScheduler.isPrimaryThread();
+    }
+
+    public static boolean isOwnedByCurrentRegion(Entity entity) {
+        if (entity == null) {
+            return false;
+        }
+
+        if (!isFolia()) {
+            return isPrimaryThread();
+        }
+
+        return FoliaScheduler.isOwnedByCurrentRegion(entity);
+    }
+
+    public static boolean isOwnedByCurrentRegion(World world, int chunkX, int chunkZ) {
+        if (world == null) {
+            return false;
+        }
+
+        if (!isFolia()) {
+            return isPrimaryThread();
+        }
+
+        return FoliaScheduler.isOwnedByCurrentRegion(world, chunkX, chunkZ);
+    }
+
+    public static boolean runEntity(Entity entity, Runnable runnable) {
+        if (entity == null || runnable == null) {
+            return false;
+        }
+
+        if (isFolia()) {
+            if (isOwnedByCurrentRegion(entity)) {
+                runnable.run();
+                return true;
+            }
+
+            return runEntityImmediate(entity, runnable);
+        }
+
+        if (isPrimaryThread()) {
+            runnable.run();
+            return true;
+        }
+
+        s(runnable);
+        return true;
+    }
+
+    public static boolean runEntity(Entity entity, Runnable runnable, int delayTicks) {
+        if (entity == null || runnable == null) {
+            return false;
+        }
+
+        if (delayTicks <= 0) {
+            return runEntity(entity, runnable);
+        }
+
+        if (isFolia() && runEntityDelayed(entity, runnable, delayTicks)) {
+            return true;
+        }
+
+        s(() -> runEntity(entity, runnable), delayTicks);
+        return true;
+    }
+
+    public static boolean runEntity(Entity entity, Runnable runnable, int delayTicks, Runnable retired) {
+        if (retired == null) {
+            return runEntity(entity, runnable, delayTicks);
+        }
+
+        if (entity == null || runnable == null) {
+            return false;
+        }
+
+        if (isFolia()) {
+            return FoliaScheduler.runEntity(BukkitPlatform.plugin(), entity, runnable, Math.max(0, delayTicks), retired);
+        }
+
+        Runnable guarded = () -> {
+            if (entity.isValid()) {
+                runnable.run();
+            } else {
+                retired.run();
+            }
+        };
+        return runEntity(entity, guarded, delayTicks);
+    }
+
+    public static boolean runRegion(World world, int chunkX, int chunkZ, Runnable runnable) {
+        if (world == null || runnable == null) {
+            return false;
+        }
+
+        if (isFolia() && isOwnedByCurrentRegion(world, chunkX, chunkZ)) {
+            runnable.run();
+            return true;
+        }
+
+        if (runRegionImmediate(world, chunkX, chunkZ, runnable)) {
+            return true;
+        }
+
+        if (isFolia()) {
+            IrisLogging.debug("Failed to schedule immediate region task for " + world.getName() + "@" + chunkX + "," + chunkZ + " on Folia.");
+            return false;
+        }
+
+        s(runnable);
+        return true;
+    }
+
+    public static CompletableFuture<Void> runRegionFuture(
+            World world,
+            int chunkX,
+            int chunkZ,
+            Runnable runnable
+    ) {
+        if (world == null || runnable == null) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException(
+                    "Region task world and runnable are required."));
+        }
+
+        if (isFolia()) {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            if (isOwnedByCurrentRegion(world, chunkX, chunkZ)) {
+                settle(future, runnable);
+                return future;
+            }
+            if (!runRegionImmediate(
+                    world,
+                    chunkX,
+                    chunkZ,
+                    () -> settle(future, runnable))) {
+                future.completeExceptionally(new IllegalStateException(
+                        "Failed to schedule region task for " + world.getName()
+                                + "@" + chunkX + "," + chunkZ + "."));
+            }
+            return future;
+        }
+
+        if (isPrimaryThread()) {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            settle(future, runnable);
+            return future;
+        }
+        return sfut(runnable);
+    }
+
+    public static boolean runGlobal(Runnable runnable) {
+        if (runnable == null) {
+            return false;
+        }
+
+        if (!usesBukkitScheduler()) {
+            if (!IrisPlatforms.isBound()) {
+                return false;
+            }
+            IrisPlatforms.get().scheduler().global(runnable);
+            return true;
+        }
+
+        if (!isPluginEnabled()) {
+            return false;
+        }
+
+        if (isFolia()) {
+            return FoliaScheduler.runGlobal(BukkitPlatform.plugin(), runnable);
+        }
+
+        if (Bukkit.isPrimaryThread()) {
+            runnable.run();
+            return true;
+        }
+
+        try {
+            Bukkit.getScheduler().runTask(BukkitPlatform.plugin(), runnable);
+            return true;
+        } catch (UnsupportedOperationException e) {
+            FoliaScheduler.forceFoliaThreading(Bukkit.getServer());
+            return FoliaScheduler.runGlobal(BukkitPlatform.plugin(), runnable);
+        }
+    }
+
+    public static boolean runRegion(World world, int chunkX, int chunkZ, Runnable runnable, int delayTicks) {
+        if (world == null || runnable == null) {
+            return false;
+        }
+
+        if (delayTicks <= 0) {
+            return runRegion(world, chunkX, chunkZ, runnable);
+        }
+
+        if (runRegionDelayed(world, chunkX, chunkZ, runnable, delayTicks)) {
+            return true;
+        }
+
+        if (isFolia()) {
+            IrisLogging.debug("Failed to schedule delayed region task for " + world.getName() + "@" + chunkX + "," + chunkZ
+                    + " (" + delayTicks + "t) on Folia.");
+            return false;
+        }
+
+        s(runnable, delayTicks);
+        return true;
+    }
+
+    public static boolean runAt(Location location, Runnable runnable) {
+        if (location == null || runnable == null || location.getWorld() == null) {
+            return false;
+        }
+
+        return runRegion(location.getWorld(), location.getBlockX() >> 4, location.getBlockZ() >> 4, runnable);
+    }
+
+    public static boolean runAt(Location location, Runnable runnable, int delayTicks) {
+        if (location == null || runnable == null || location.getWorld() == null) {
+            return false;
+        }
+
+        return runRegion(location.getWorld(), location.getBlockX() >> 4, location.getBlockZ() >> 4, runnable, delayTicks);
+    }
+
+    public static void cancelPluginTasks() {
+        cancelTrackedRepeatingTasks();
+        if (!usesBukkitScheduler() || !BukkitPlatform.hasPlugin()) {
+            return;
+        }
+
+        FoliaScheduler.cancelTasks(BukkitPlatform.plugin());
+
+        try {
+            Bukkit.getScheduler().cancelTasks(BukkitPlatform.plugin());
+        } catch (UnsupportedOperationException ex) {
+            // Folia blocks BukkitScheduler usage.
+            IrisLogging.debug("Skipping BukkitScheduler#cancelTasks for Iris on this server.");
+        }
+    }
+
+    static void cancelTrackedRepeatingTasks() {
+        List<Runnable> cancelActions;
+        synchronized (REPEATING_CANCELLERS) {
+            cancelActions = new ArrayList<>(REPEATING_CANCELLERS.values());
+            REPEATING_CANCELLERS.clear();
+        }
+        for (Runnable cancelAction : cancelActions) {
+            cancelAction.run();
+        }
+    }
+
+    public static void s(Runnable r) {
+        if (!usesBukkitScheduler()) {
+            if (IrisPlatforms.isBound()) {
+                IrisPlatforms.get().scheduler().global(r);
+            }
+            return;
+        }
+
+        if (!isPluginEnabled()) {
+            return;
+        }
+
+        if (isFolia()) {
+            if (runGlobalImmediate(r)) {
+                return;
+            }
+
+            throw new IllegalStateException("Failed to schedule sync task on Folia runtime.");
+        }
+
+        try {
+            Bukkit.getScheduler().scheduleSyncDelayedTask(BukkitPlatform.plugin(), r);
+        } catch (UnsupportedOperationException e) {
+            FoliaScheduler.forceFoliaThreading(Bukkit.getServer());
+            if (runGlobalImmediate(r)) {
+                return;
+            }
+
+            throw new IllegalStateException("Failed to schedule sync task (Folia scheduler unavailable, BukkitScheduler unsupported).", e);
+        }
+    }
+
+    /**
+     * Never returns null; the future always completes, exceptionally if the task throws or cannot be scheduled.
+     */
+    public static CompletableFuture<Void> sfut(Runnable r) {
+        CompletableFuture<Void> f = new CompletableFuture<>();
+
+        if (!canSchedule()) {
+            f.completeExceptionally(new IllegalStateException("Cannot schedule sync task, no scheduler available."));
+            return f;
+        }
+
+        try {
+            s(() -> settle(f, r));
+        } catch (Throwable e) {
+            f.completeExceptionally(e);
+        }
+
+        return f;
+    }
+
+    /**
+     * Never returns null; the future always completes, exceptionally if the supplier throws or cannot be scheduled.
+     */
+    public static <T> CompletableFuture<T> sfut(Supplier<T> r) {
+        CompletableFuture<T> f = new CompletableFuture<>();
+
+        if (!canSchedule()) {
+            f.completeExceptionally(new IllegalStateException("Cannot schedule sync task, no scheduler available."));
+            return f;
+        }
+
+        try {
+            s(() -> settleSupplied(f, r));
+        } catch (Throwable e) {
+            f.completeExceptionally(e);
+        }
+
+        return f;
+    }
+
+    /**
+     * Never returns null; the future always completes, exceptionally if the task throws or cannot be scheduled.
+     */
+    public static CompletableFuture<Void> sfut(Runnable r, int delay) {
+        CompletableFuture<Void> f = new CompletableFuture<>();
+
+        if (!canSchedule()) {
+            f.completeExceptionally(new IllegalStateException("Cannot schedule delayed sync task, no scheduler available."));
+            return f;
+        }
+
+        try {
+            s(() -> settle(f, r), delay);
+        } catch (Throwable e) {
+            f.completeExceptionally(e);
+        }
+
+        return f;
+    }
+
+    /**
+     * Never returns null; the future always completes, exceptionally if the task throws or cannot be scheduled.
+     */
+    public static CompletableFuture<Void> afut(Runnable r) {
+        CompletableFuture<Void> f = new CompletableFuture<>();
+
+        try {
+            J.a(() -> settle(f, r));
+        } catch (Throwable e) {
+            f.completeExceptionally(e);
+        }
+
+        return f;
+    }
+
+    private static void settle(CompletableFuture<Void> f, Runnable r) {
+        try {
+            r.run();
+            f.complete(null);
+        } catch (Throwable e) {
+            f.completeExceptionally(e);
+        }
+    }
+
+    private static <T> void settleSupplied(CompletableFuture<T> f, Supplier<T> r) {
+        try {
+            f.complete(r.get());
+        } catch (Throwable e) {
+            f.completeExceptionally(e);
+        }
+    }
+
+    public static void s(Runnable r, int delay) {
+        if (!usesBukkitScheduler()) {
+            if (IrisPlatforms.isBound()) {
+                IrisPlatforms.get().scheduler().laterGlobal(r, delay);
+            }
+            return;
+        }
+
+        if (!isPluginEnabled()) {
+            return;
+        }
+
+        if (delay <= 0) {
+            s(r);
+            return;
+        }
+
+        if (isFolia()) {
+            if (runGlobalDelayed(r, delay)) {
+                return;
+            }
+
+            a(() -> {
+                if (sleep(ticksToMilliseconds(delay))) {
+                    s(r);
+                }
+            });
+            return;
+        }
+
+        try {
+            Bukkit.getScheduler().scheduleSyncDelayedTask(BukkitPlatform.plugin(), r, delay);
+        } catch (UnsupportedOperationException e) {
+            FoliaScheduler.forceFoliaThreading(Bukkit.getServer());
+            if (runGlobalDelayed(r, delay)) {
+                return;
+            }
+
+            throw new IllegalStateException("Failed to schedule delayed sync task (Folia scheduler unavailable, BukkitScheduler unsupported).", e);
+        } catch (Throwable e) {
+            IrisLogging.reportError(e);
+        }
+    }
+
+    public static void csr(int id) {
+        cancelRepeatingTask(id);
+    }
+
+    public static int sr(Runnable r, int interval) {
+        if (!canSchedule()) {
+            return -1;
+        }
+
+        int safeInterval = Math.max(1, interval);
+        RepeatingState state = new RepeatingState();
+        int taskId = trackRepeatingTask(() -> state.cancelled = true);
+
+        Runnable[] loop = new Runnable[1];
+        loop[0] = () -> {
+            if (state.cancelled || !canSchedule()) {
+                REPEATING_CANCELLERS.remove(taskId);
+                return;
+            }
+
+            // A throwing body must not kill the loop (Bukkit's own runTaskTimer survives
+            // throws) or leak the canceller entry; the re-arm is unconditional.
+            try {
+                r.run();
+            } catch (Throwable e) {
+                IrisLogging.reportError(e);
+            }
+            if (state.cancelled || !canSchedule()) {
+                REPEATING_CANCELLERS.remove(taskId);
+                return;
+            }
+
+            s(loop[0], safeInterval);
+        };
+
+        // Delay 1, never inline: an immediate first run can execute before the caller has
+        // stored the returned id, making the body's own cancel() target a nonexistent id.
+        s(loop[0], 1);
+        return taskId;
+    }
+
+    public static void sr(Runnable r, int interval, int intervals) {
+        FinalInteger fi = new FinalInteger(0);
+
+        new SR(interval) {
+            @Override
+            public void run() {
+                fi.add(1);
+                r.run();
+
+                if (fi.get() >= intervals) {
+                    cancel();
+                }
+            }
+        };
+    }
+
+    public static void a(Runnable r, int delay) {
+        if (!usesBukkitScheduler()) {
+            if (IrisPlatforms.isBound()) {
+                if (delay <= 0) {
+                    IrisPlatforms.get().scheduler().async(r);
+                } else {
+                    IrisPlatforms.get().scheduler().laterGlobal(() -> IrisPlatforms.get().scheduler().async(r), delay);
+                }
+            }
+            return;
+        }
+
+        if (!isPluginEnabled()) {
+            return;
+        }
+
+        if (delay <= 0) {
+            if (!runAsyncImmediate(r)) {
+                a(r);
+            }
+            return;
+        }
+
+        if (!runAsyncDelayed(r, delay)) {
+            a(() -> {
+                if (sleep(ticksToMilliseconds(delay))) {
+                    r.run();
+                }
+            });
+        }
+    }
+
+    public static void car(int id) {
+        cancelRepeatingTask(id);
+    }
+
+    public static int ar(Runnable r, int interval) {
+        if (!canSchedule()) {
+            return -1;
+        }
+
+        int safeInterval = Math.max(1, interval);
+        RepeatingState state = new RepeatingState();
+        int taskId = trackRepeatingTask(() -> state.cancelled = true);
+
+        Runnable[] loop = new Runnable[1];
+        loop[0] = () -> {
+            if (state.cancelled || !canSchedule()) {
+                REPEATING_CANCELLERS.remove(taskId);
+                return;
+            }
+
+            // A throwing body must not kill the loop (Bukkit's own runTaskTimer survives
+            // throws) or leak the canceller entry; the re-arm is unconditional.
+            try {
+                r.run();
+            } catch (Throwable e) {
+                IrisLogging.reportError(e);
+            }
+            if (state.cancelled || !canSchedule()) {
+                REPEATING_CANCELLERS.remove(taskId);
+                return;
+            }
+
+            a(loop[0], safeInterval);
+        };
+
+        a(loop[0], 1);
+        return taskId;
+    }
+
+    public static void ar(Runnable r, int interval, int intervals) {
+        FinalInteger fi = new FinalInteger(0);
+
+        new AR(interval) {
+            @Override
+            public void run() {
+                fi.add(1);
+                r.run();
+
+                if (fi.get() >= intervals) {
+                    cancel();
+                }
+            }
+        };
+    }
+
+    private static int trackRepeatingTask(Runnable cancelAction) {
+        synchronized (REPEATING_CANCELLERS) {
+            int id = TASK_IDS.getAndIncrement();
+            REPEATING_CANCELLERS.put(id, cancelAction);
+            return id;
+        }
+    }
+
+    private static void cancelRepeatingTask(int id) {
+        Runnable cancelAction;
+        synchronized (REPEATING_CANCELLERS) {
+            cancelAction = REPEATING_CANCELLERS.remove(id);
+        }
+        if (cancelAction != null) {
+            cancelAction.run();
+        }
+    }
+
+    private static boolean isPluginEnabled() {
+        return usesBukkitScheduler() && BukkitPlatform.hasPlugin() && BukkitPlatform.plugin().isEnabled();
+    }
+
+    private static boolean canSchedule() {
+        return usesBukkitScheduler() ? isPluginEnabled() : IrisPlatforms.isBound();
+    }
+
+    static boolean usesBukkitScheduler() {
+        return BUKKIT_PRESENT
+                && IrisPlatforms.isBound()
+                && "bukkit".equalsIgnoreCase(IrisPlatforms.get().platformName());
+    }
+
+    private static long ticksToMilliseconds(int ticks) {
+        return Math.max(0L, ticks) * TICK_MS;
+    }
+
+    private static boolean runGlobalImmediate(Runnable runnable) {
+        if (!isFolia()) {
+            return false;
+        }
+
+        if (isPrimaryThread()) {
+            runnable.run();
+            return true;
+        }
+
+        return FoliaScheduler.runGlobal(BukkitPlatform.plugin(), runnable);
+    }
+
+    private static boolean runGlobalDelayed(Runnable runnable, int delayTicks) {
+        if (!isFolia()) {
+            return false;
+        }
+
+        if (delayTicks <= 0) {
+            return runGlobalImmediate(runnable);
+        }
+
+        return FoliaScheduler.runGlobal(BukkitPlatform.plugin(), runnable, Math.max(0, delayTicks));
+    }
+
+    private static boolean runRegionImmediate(World world, int chunkX, int chunkZ, Runnable runnable) {
+        if (!isFolia()) {
+            return false;
+        }
+
+        return FoliaScheduler.runRegion(BukkitPlatform.plugin(), world, chunkX, chunkZ, runnable);
+    }
+
+    private static boolean runRegionDelayed(World world, int chunkX, int chunkZ, Runnable runnable, int delayTicks) {
+        if (!isFolia()) {
+            return false;
+        }
+
+        return FoliaScheduler.runRegion(BukkitPlatform.plugin(), world, chunkX, chunkZ, runnable, Math.max(0, delayTicks));
+    }
+
+    private static boolean runAsyncImmediate(Runnable runnable) {
+        if (!isPluginEnabled()) {
+            return false;
+        }
+
+        if (!isFolia()) {
+            try {
+                Bukkit.getScheduler().runTaskAsynchronously(BukkitPlatform.plugin(), runnable);
+                return true;
+            } catch (Throwable e) {
+                IrisLogging.reportError(e);
+                return false;
+            }
+        }
+
+        return FoliaScheduler.runAsync(BukkitPlatform.plugin(), runnable);
+    }
+
+    private static boolean runAsyncDelayed(Runnable runnable, int delayTicks) {
+        if (!isPluginEnabled()) {
+            return false;
+        }
+
+        if (!isFolia()) {
+            try {
+                Bukkit.getScheduler().runTaskLaterAsynchronously(BukkitPlatform.plugin(), runnable, Math.max(0, delayTicks));
+                return true;
+            } catch (Throwable e) {
+                IrisLogging.reportError(e);
+                return false;
+            }
+        }
+
+        return FoliaScheduler.runAsync(BukkitPlatform.plugin(), runnable, Math.max(0, delayTicks));
+    }
+
+    private static boolean runEntityImmediate(Entity entity, Runnable runnable) {
+        if (!isFolia()) {
+            return false;
+        }
+
+        return FoliaScheduler.runEntity(BukkitPlatform.plugin(), entity, runnable);
+    }
+
+    private static boolean runEntityDelayed(Entity entity, Runnable runnable, int delayTicks) {
+        if (!isFolia()) {
+            return false;
+        }
+
+        return FoliaScheduler.runEntity(BukkitPlatform.plugin(), entity, runnable, Math.max(0, delayTicks));
+    }
+
+    private static final class RepeatingState {
+        private volatile boolean cancelled;
+    }
+}

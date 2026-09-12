@@ -1,15 +1,15 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.engine.hydrology.HydrologyColumnLayer;
-import art.arcane.iris.engine.hydrology.HydrologyColumnSample;
-import art.arcane.iris.engine.hydrology.HydrologyFeatureRef;
-import art.arcane.iris.engine.hydrology.HydrologyFeatureType;
-import art.arcane.iris.engine.hydrology.RiverFootprint;
+import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
+import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
+import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
+import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.RiverFootprint;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
-import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.volmlib.util.hunk.Hunk;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;

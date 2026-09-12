@@ -18,14 +18,14 @@
 
 package art.arcane.iris.probe;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.MeteredCache;
-import art.arcane.iris.engine.framework.PreservationRegistry;
-import art.arcane.iris.engine.object.IrisEntity;
-import art.arcane.iris.engine.object.IrisEntitySpawn;
-import art.arcane.iris.engine.object.IrisLoot;
-import art.arcane.iris.engine.object.IrisLootTable;
-import art.arcane.iris.engine.object.IrisSpawner;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.MeteredCache;
+import art.arcane.iris.generation.runtime.PreservationRegistry;
+import art.arcane.iris.world.entity.IrisEntity;
+import art.arcane.iris.world.entity.IrisEntitySpawn;
+import art.arcane.iris.world.loot.IrisLoot;
+import art.arcane.iris.world.loot.IrisLootTable;
+import art.arcane.iris.world.entity.IrisSpawner;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.volmlib.util.collection.KList;

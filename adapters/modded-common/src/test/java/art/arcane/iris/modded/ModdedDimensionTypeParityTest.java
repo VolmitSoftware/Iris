@@ -18,13 +18,13 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.nms.datapack.DataVersion;
-import art.arcane.iris.core.nms.datapack.IDataFixer;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisDimensionRuntimeContract;
-import art.arcane.iris.engine.object.IrisDimensionTypeOptions;
-import art.arcane.iris.engine.object.IrisEnvironment;
-import art.arcane.iris.engine.object.IrisRange;
+import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
+import art.arcane.iris.platform.bukkit.nms.datapack.IDataFixer;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisDimensionRuntimeContract;
+import art.arcane.iris.generation.terrain.IrisDimensionTypeOptions;
+import art.arcane.iris.world.IrisEnvironment;
+import art.arcane.iris.pack.value.IrisRange;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.json.JSONObject;
 import org.junit.Test;
@@ -40,8 +40,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static art.arcane.iris.engine.object.IrisDimensionTypeOptions.TriState.FALSE;
-import static art.arcane.iris.engine.object.IrisDimensionTypeOptions.TriState.TRUE;
+import static art.arcane.iris.generation.terrain.IrisDimensionTypeOptions.TriState.FALSE;
+import static art.arcane.iris.generation.terrain.IrisDimensionTypeOptions.TriState.TRUE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;

@@ -1,12 +1,12 @@
 package art.arcane.iris.platform.bukkit;
 
-import art.arcane.iris.core.link.Identifier;
-import art.arcane.iris.core.service.ExternalDataSVC;
-import art.arcane.iris.engine.object.IrisObjectRotation;
+import art.arcane.iris.integration.Identifier;
+import art.arcane.iris.integration.ExternalDataSVC;
+import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.testsupport.BukkitTestServer;
-import art.arcane.iris.util.common.data.IrisCustomData;
-import art.arcane.iris.util.common.data.registry.RegistryUtil;
+import art.arcane.iris.generation.block.IrisCustomData;
+import art.arcane.iris.platform.bukkit.registry.RegistryUtil;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.junit.BeforeClass;

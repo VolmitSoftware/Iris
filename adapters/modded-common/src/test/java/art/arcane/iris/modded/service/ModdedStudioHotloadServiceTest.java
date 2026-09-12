@@ -1,6 +1,6 @@
 package art.arcane.iris.modded.service;
 
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.modded.ModdedScheduler;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;

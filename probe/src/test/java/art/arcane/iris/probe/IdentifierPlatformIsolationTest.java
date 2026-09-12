@@ -1,6 +1,6 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.core.link.Identifier;
+import art.arcane.iris.integration.Identifier;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;

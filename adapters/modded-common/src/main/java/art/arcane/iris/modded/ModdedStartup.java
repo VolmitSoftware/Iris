@@ -18,12 +18,12 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.pack.BrokenPackException;
-import art.arcane.iris.core.pack.PackDirectoryResolver;
-import art.arcane.iris.core.pack.PackDownloader;
-import art.arcane.iris.core.pack.PackValidationRegistry;
-import art.arcane.iris.core.pack.PackValidationResult;
-import art.arcane.iris.core.pack.PackValidator;
+import art.arcane.iris.pack.BrokenPackException;
+import art.arcane.iris.pack.PackDirectoryResolver;
+import art.arcane.iris.pack.PackDownloader;
+import art.arcane.iris.pack.PackValidationRegistry;
+import art.arcane.iris.pack.PackValidationResult;
+import art.arcane.iris.pack.PackValidator;
 import art.arcane.iris.modded.command.ModdedPackCommands;
 import art.arcane.iris.spi.IrisPlatforms;
 import net.minecraft.commands.Commands;

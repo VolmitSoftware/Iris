@@ -19,17 +19,17 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.localization.IrisLanguage;
-import art.arcane.iris.core.localization.RuntimeUiMessages;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.GenerationSessionException;
-import art.arcane.iris.engine.framework.GenerationSessionLease;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationSessionException;
+import art.arcane.iris.generation.runtime.GenerationSessionLease;
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.modded.ModdedBlockState;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedScheduler;
-import art.arcane.iris.util.project.context.IrisContext;
+import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;

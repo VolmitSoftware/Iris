@@ -1,8 +1,8 @@
 package art.arcane.iris;
 
-import art.arcane.iris.core.splash.IrisSplashPackScanner;
-import art.arcane.iris.core.service.CommandSVC;
-import art.arcane.iris.util.common.plugin.IrisService;
+import art.arcane.iris.diagnostics.splash.IrisSplashPackScanner;
+import art.arcane.iris.command.CommandSVC;
+import art.arcane.iris.platform.bukkit.plugin.IrisService;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -21,7 +21,7 @@ import static org.junit.Assert.assertTrue;
 public class IrisDiagnosticsTest {
     @Test
     public void serviceInitializationSkipsPackageHelperClasses() throws Exception {
-        Class<?> registrar = Class.forName("art.arcane.iris.core.commands.PaperCommandRegistrar");
+        Class<?> registrar = Class.forName("art.arcane.iris.command.PaperCommandRegistrar");
 
         assertFalse(Iris.isConcreteImplementation(registrar, IrisService.class));
         assertTrue(Iris.isConcreteImplementation(CommandSVC.class, IrisService.class));
@@ -29,7 +29,7 @@ public class IrisDiagnosticsTest {
         // referencing Paper-only types there prints an NCDFE stack trace on plain Spigot.
         assertFalse(
                 "Paper-only command registrar must stay out of the JarScanner-scanned services package",
-                "art.arcane.iris.core.service".equals(registrar.getPackageName()));
+                "art.arcane.iris.generation.runtime".equals(registrar.getPackageName()));
     }
 
     @Test

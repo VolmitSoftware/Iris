@@ -1,21 +1,21 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.IrisEngine;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
-import art.arcane.iris.engine.framework.NativeStructureOwnershipBundle;
-import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
-import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
-import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.history.GenerationHistoryRuntimeRouter;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisNativeStructure;
-import art.arcane.iris.engine.object.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.IrisStructurePlacement;
-import art.arcane.iris.engine.object.IrisStructureTerrain;
-import art.arcane.iris.engine.object.IrisStructureTerrainMode;
-import art.arcane.iris.engine.object.NativeStructureGenerationStatus;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.structure.nativegen.NativeStructureGenerationPolicy;
+import art.arcane.iris.structure.nativegen.NativeStructureOwnershipBundle;
+import art.arcane.iris.structure.nativegen.NativeStructureOwnershipRecord;
+import art.arcane.iris.structure.nativegen.NativeStructureOwnershipStore;
+import art.arcane.iris.structure.nativegen.NativeStructureStartPlan;
+import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.structure.nativegen.IrisNativeStructure;
+import art.arcane.iris.structure.nativegen.IrisNativeStructureDecision;
+import art.arcane.iris.structure.placement.IrisStructurePlacement;
+import art.arcane.iris.structure.placement.IrisStructureTerrain;
+import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.iris.structure.nativegen.NativeStructureGenerationStatus;
 import art.arcane.volmlib.util.collection.KList;
 import com.github.benmanes.caffeine.cache.Cache;
 import net.minecraft.SharedConstants;
@@ -336,7 +336,7 @@ public class NativeStructureReferenceRepairTest {
         NativeStructureOwnershipBundle bundle =
                 NativeStructureOwnershipBundle.empty().with(ownership);
         Class<?> storageType = Class.forName(
-                "art.arcane.iris.engine.framework.NativeStructureOwnershipStore$Storage");
+                "art.arcane.iris.structure.nativegen.NativeStructureOwnershipStore$Storage");
         InvocationHandler storageHandler =
                 (Object proxy, Method method, Object[] arguments) -> {
                     return switch (method.getName()) {
@@ -354,7 +354,7 @@ public class NativeStructureReferenceRepairTest {
                 new Class<?>[]{storageType},
                 storageHandler);
         Class<?> stateType = Class.forName(
-                "art.arcane.iris.engine.framework.NativeStructureOwnershipStore$State");
+                "art.arcane.iris.structure.nativegen.NativeStructureOwnershipStore$State");
         Constructor<?> constructor = stateType.getDeclaredConstructor(Engine.class, storageType);
         constructor.setAccessible(true);
         Object state = constructor.newInstance(engine, storage);

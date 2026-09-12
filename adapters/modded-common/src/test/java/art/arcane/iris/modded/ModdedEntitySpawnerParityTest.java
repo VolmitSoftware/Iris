@@ -1,6 +1,6 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.IrisEffect;
+import art.arcane.iris.world.entity.IrisEffect;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.EntitySpawnReason;

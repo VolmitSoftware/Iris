@@ -19,12 +19,12 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
-import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
-import art.arcane.iris.engine.framework.StructureReachability;
-import art.arcane.iris.engine.object.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.NativeStructureGenerationStatus;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.structure.placement.IrisStructureLocator;
+import art.arcane.iris.structure.nativegen.NativeStructureGenerationPolicy;
+import art.arcane.iris.structure.placement.StructureReachability;
+import art.arcane.iris.structure.nativegen.IrisNativeStructureDecision;
+import art.arcane.iris.structure.nativegen.NativeStructureGenerationStatus;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;

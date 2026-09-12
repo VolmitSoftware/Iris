@@ -19,14 +19,14 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.runtime.GoldenHashEngine;
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.generation.validation.GoldenHashEngine;
+import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.modded.ModdedBlockBuffer;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.volmlib.util.hunk.Hunk;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -35,9 +35,9 @@ import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import art.arcane.iris.core.localization.IrisLanguage;
+import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
-import art.arcane.iris.core.localization.RuntimeProgressMessages;
+import art.arcane.iris.localization.RuntimeProgressMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 public final class ModdedGoldenHash {
     public enum Mode {

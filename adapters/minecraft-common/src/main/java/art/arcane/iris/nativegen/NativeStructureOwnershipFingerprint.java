@@ -1,9 +1,9 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
-import art.arcane.iris.engine.framework.NativeStructurePlacementPlanner;
-import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.framework.StructurePlacementGrid;
+import art.arcane.iris.structure.nativegen.NativeStructureOwnershipRecord;
+import art.arcane.iris.structure.nativegen.NativeStructurePlacementPlanner;
+import art.arcane.iris.structure.nativegen.NativeStructureStartPlan;
+import art.arcane.iris.structure.placement.StructurePlacementGrid;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;

@@ -18,10 +18,10 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.decorator.DecoratorPlatformHooks;
-import art.arcane.iris.engine.mantle.EngineMantle;
+import art.arcane.iris.generation.decoration.DecoratorPlatformHooks;
+import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.volmlib.util.hunk.Hunk;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.EmptyBlockGetter;

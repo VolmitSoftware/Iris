@@ -14,7 +14,7 @@ Consider supporting development by buying Iris on Spigot.
 
 ## Language and localization
 
-Canonical English is defined in the typed Java catalogs under `core/src/main/java/art/arcane/iris/core/localization`, next to the command, Studio, runtime, and UI surfaces that use it. Iris does not ship an English server translation file; the required Minecraft client asset remains at `assets/irisworldgen/lang/en_us.json`. Complete server bundles and matching client assets are included for German, Spanish, Finnish, French, Hebrew, Italian, Japanese, Korean, Lithuanian, Dutch, Polish, Portuguese, Russian, Turkish, Vietnamese, Simplified Chinese, and Traditional Chinese. Set `language` in Iris settings to select one. A JSON file at `languages/overrides/<locale>.json` can override only selected server messages; omitted entries resolve from the bundle and then code-owned English.
+Canonical English is defined in the typed Java catalogs under `core/src/main/java/art/arcane/iris/localization`, next to the command, Studio, runtime, and UI surfaces that use it. Iris does not ship an English server translation file; the required Minecraft client asset remains at `assets/irisworldgen/lang/en_us.json`. Complete server bundles and matching client assets are included for German, Spanish, Finnish, French, Hebrew, Italian, Japanese, Korean, Lithuanian, Dutch, Polish, Portuguese, Russian, Turkish, Vietnamese, Simplified Chinese, and Traditional Chinese. Set `language` in Iris settings to select one. A JSON file at `languages/overrides/<locale>.json` can override only selected server messages; omitted entries resolve from the bundle and then code-owned English.
 
 ## Platforms
 

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.modded.service;
 
-import art.arcane.iris.core.SettingsHotloadWatch;
+import art.arcane.iris.configuration.SettingsHotloadWatch;
 import art.arcane.iris.spi.IrisPlatforms;
 import net.minecraft.server.MinecraftServer;
 

@@ -18,17 +18,17 @@
 
 package art.arcane.iris.platform.bukkit;
 
-import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.core.link.Identifier;
-import art.arcane.iris.core.link.data.DataType;
-import art.arcane.iris.core.nms.INMS;
-import art.arcane.iris.core.nms.container.BlockProperty;
-import art.arcane.iris.core.service.ExternalDataSVC;
-import art.arcane.iris.engine.object.IrisCompat;
+import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.integration.Identifier;
+import art.arcane.iris.integration.data.DataType;
+import art.arcane.iris.platform.bukkit.nms.INMS;
+import art.arcane.iris.platform.bukkit.nms.container.BlockProperty;
+import art.arcane.iris.integration.ExternalDataSVC;
+import art.arcane.iris.pack.validation.IrisCompat;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.util.common.data.registry.Materials;
-import art.arcane.iris.util.common.reflect.KeyedType;
+import art.arcane.iris.platform.bukkit.registry.Materials;
+import art.arcane.iris.platform.reflect.KeyedType;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.data.BSupport;
@@ -208,7 +208,7 @@ public final class BukkitBlockResolution {
 
     /**
      * Strict lookup: null when nothing claims the key, never an air substitute. Unlike {@link #getOrNull(String)} this
-     * never reaches the {@link art.arcane.iris.engine.object.IrisCompat} legacy rewrite table, which is a Bukkit-only
+     * never reaches the {@link art.arcane.iris.pack.validation.IrisCompat} legacy rewrite table, which is a Bukkit-only
      * layer and must stay off the generation path.
      */
     public static BlockData resolveOrNull(String bdxf) {

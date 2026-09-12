@@ -18,12 +18,12 @@
 
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.core.gui.GuiHost;
-import art.arcane.iris.core.gui.GuiMarker;
-import art.arcane.iris.core.gui.GuiOverlay;
-import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.render.RenderType;
+import art.arcane.iris.studio.view.GuiHost;
+import art.arcane.iris.studio.view.GuiMarker;
+import art.arcane.iris.studio.view.GuiOverlay;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.studio.render.RenderType;
 import art.arcane.iris.modded.ModdedDimensionManager;
 import art.arcane.iris.modded.ModdedIrisLog;
 import net.minecraft.server.MinecraftServer;

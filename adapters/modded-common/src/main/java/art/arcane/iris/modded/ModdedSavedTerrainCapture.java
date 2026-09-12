@@ -1,7 +1,7 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.history.SavedTerrainChunk;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.world.history.SavedTerrainChunk;
 import art.arcane.iris.modded.mixin.ChunkMapTerrainReceiptAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;

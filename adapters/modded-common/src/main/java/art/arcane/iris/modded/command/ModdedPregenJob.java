@@ -18,16 +18,16 @@
 
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.core.gui.PregeneratorJob;
-import art.arcane.iris.core.localization.IrisLanguage;
-import art.arcane.iris.core.localization.RuntimeUiMessages;
-import art.arcane.iris.core.pregenerator.PregenPerformanceProfile;
-import art.arcane.iris.core.pregenerator.PregenTask;
-import art.arcane.iris.core.pregenerator.PregeneratorMethod;
-import art.arcane.iris.core.pregenerator.cache.PregenCache;
-import art.arcane.iris.core.pregenerator.cache.PregenSavedChunkStatus;
-import art.arcane.iris.core.pregenerator.methods.CachedPregenMethod;
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.studio.view.PregeneratorJob;
+import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.iris.world.pregen.PregenPerformanceProfile;
+import art.arcane.iris.world.pregen.PregenTask;
+import art.arcane.iris.world.pregen.PregeneratorMethod;
+import art.arcane.iris.world.pregen.PregenCache;
+import art.arcane.iris.world.pregen.PregenSavedChunkStatus;
+import art.arcane.iris.world.pregen.CachedPregenMethod;
+import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.localization.MessageArgument;

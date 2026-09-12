@@ -1,6 +1,6 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.IrisCommand;
+import art.arcane.iris.command.IrisCommand;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import net.minecraft.server.MinecraftServer;

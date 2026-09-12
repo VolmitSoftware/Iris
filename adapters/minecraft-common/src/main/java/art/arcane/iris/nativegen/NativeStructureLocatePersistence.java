@@ -1,8 +1,8 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
-import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.structure.placement.IrisStructureLocator;
+import art.arcane.iris.structure.nativegen.NativeStructureOwnershipRecord;
 import art.arcane.iris.spi.IrisLogging;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Registry;

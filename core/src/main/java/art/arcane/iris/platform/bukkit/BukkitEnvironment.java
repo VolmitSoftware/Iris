@@ -18,7 +18,7 @@
 
 package art.arcane.iris.platform.bukkit;
 
-import art.arcane.iris.engine.object.IrisEnvironment;
+import art.arcane.iris.world.IrisEnvironment;
 import org.bukkit.World;
 
 public final class BukkitEnvironment {

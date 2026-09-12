@@ -1,16 +1,16 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
-import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
-import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
-import art.arcane.iris.engine.framework.NativeStructurePlacementPlanner;
-import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.framework.StructurePlacementGrid;
-import art.arcane.iris.engine.object.IrisStructureTerrain;
-import art.arcane.iris.engine.object.IrisStructureTerrainMode;
-import art.arcane.iris.engine.object.NativeStructureGenerationStatus;
-import art.arcane.iris.engine.object.NativeStructureSuppression;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.structure.nativegen.NativeStructureGenerationPolicy;
+import art.arcane.iris.structure.nativegen.NativeStructureOwnershipRecord;
+import art.arcane.iris.structure.nativegen.NativeStructureOwnershipStore;
+import art.arcane.iris.structure.nativegen.NativeStructurePlacementPlanner;
+import art.arcane.iris.structure.nativegen.NativeStructureStartPlan;
+import art.arcane.iris.structure.placement.StructurePlacementGrid;
+import art.arcane.iris.structure.placement.IrisStructureTerrain;
+import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.iris.structure.nativegen.NativeStructureGenerationStatus;
+import art.arcane.iris.structure.nativegen.NativeStructureSuppression;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;

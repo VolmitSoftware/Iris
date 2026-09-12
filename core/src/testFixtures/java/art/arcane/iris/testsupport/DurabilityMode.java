@@ -1,6 +1,7 @@
 package art.arcane.iris.testsupport;
 
-import art.arcane.iris.util.common.io.Durability;
+
+import art.arcane.iris.world.storage.Durability;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;

@@ -1,6 +1,6 @@
 package art.arcane.iris.purity;
 
-import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.pack.loading.IrisData;
 import org.junit.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;

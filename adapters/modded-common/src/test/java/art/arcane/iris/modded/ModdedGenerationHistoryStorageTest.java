@@ -1,10 +1,10 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.history.GenerationEpoch;
-import art.arcane.iris.engine.history.GenerationEpochContractFactory;
-import art.arcane.iris.engine.history.GenerationHistory;
-import art.arcane.iris.engine.history.GenerationPackFingerprint;
-import art.arcane.iris.engine.history.GenerationRegistryContract;
+import art.arcane.iris.world.history.GenerationEpoch;
+import art.arcane.iris.world.history.GenerationEpochContractFactory;
+import art.arcane.iris.world.history.GenerationHistory;
+import art.arcane.iris.world.history.GenerationPackFingerprint;
+import art.arcane.iris.world.history.GenerationRegistryContract;
 import org.junit.Test;
 
 import java.io.IOException;

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.BlockDataMergeSupport;
+import art.arcane.iris.generation.block.BlockDataMergeSupport;
 import art.arcane.iris.spi.PlatformBlockState;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;

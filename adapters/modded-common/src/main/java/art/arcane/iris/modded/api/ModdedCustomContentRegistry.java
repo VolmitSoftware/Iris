@@ -19,7 +19,7 @@
 package art.arcane.iris.modded.api;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.modded.ModdedBlockResolution;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;

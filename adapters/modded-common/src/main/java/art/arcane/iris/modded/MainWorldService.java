@@ -18,7 +18,7 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.IrisEngineMantle;
+import art.arcane.iris.generation.runtime.IrisEngineMantle;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

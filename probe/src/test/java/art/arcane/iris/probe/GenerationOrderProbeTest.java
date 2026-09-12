@@ -2,7 +2,7 @@ package art.arcane.iris.probe;
 
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.volmlib.util.hunk.Hunk;
 import org.junit.Test;
 
 import java.io.File;

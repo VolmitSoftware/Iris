@@ -1,15 +1,15 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.BiomeEnvironment;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.history.SavedBiomeUnavailableException;
-import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisRegion;
-import art.arcane.iris.engine.object.IrisWorld;
+import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.BiomeEnvironment;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.world.history.SavedBiomeUnavailableException;
+import art.arcane.iris.generation.mantle.EngineMantle;
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.world.IrisWorld;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
@@ -20,7 +20,7 @@ import net.minecraft.server.level.ServerPlayer;
 import org.junit.Test;
 import org.junit.BeforeClass;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
+import art.arcane.iris.generation.block.B;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Constructor;

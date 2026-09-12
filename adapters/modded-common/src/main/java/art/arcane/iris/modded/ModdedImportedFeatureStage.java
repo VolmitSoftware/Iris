@@ -18,18 +18,18 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.DimensionStackContext;
-import art.arcane.iris.engine.DimensionStackLayout;
+import art.arcane.iris.generation.runtime.DimensionStackContext;
+import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.nativegen.NativeGenerationWriteGuard;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.GenerationSessionLease;
-import art.arcane.iris.engine.framework.NativeFeatureGenerationPolicy;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisBiomeCustom;
-import art.arcane.iris.engine.object.IrisDecorationStep;
-import art.arcane.iris.engine.object.IrisImportedFeatureControl;
-import art.arcane.iris.engine.object.IrisStaticObjectLayer;
-import art.arcane.iris.util.project.context.IrisContext;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationSessionLease;
+import art.arcane.iris.structure.nativegen.NativeFeatureGenerationPolicy;
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiomeCustom;
+import art.arcane.iris.generation.decoration.IrisDecorationStep;
+import art.arcane.iris.structure.nativegen.IrisImportedFeatureControl;
+import art.arcane.iris.structure.object.IrisStaticObjectLayer;
+import art.arcane.iris.generation.context.IrisContext;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minecraft.core.BlockPos;

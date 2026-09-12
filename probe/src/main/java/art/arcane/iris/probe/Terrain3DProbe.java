@@ -1,13 +1,13 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.actuator.IrisTerrainNormalActuator;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.terrain.Terrain3DColumn;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.stage.IrisTerrainNormalActuator;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.context.ChunkContext;
-import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.iris.generation.context.ChunkContext;
+import art.arcane.volmlib.util.hunk.Hunk;
 import com.google.gson.GsonBuilder;
 
 import javax.imageio.ImageIO;

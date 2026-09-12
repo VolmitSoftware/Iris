@@ -19,18 +19,18 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.tools.TreePlausibilizeBatch;
-import art.arcane.iris.core.tools.TreePlausibilizer;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisObject;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
-import art.arcane.iris.engine.object.IrisObjectRotation;
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.studio.tree.TreePlausibilizeBatch;
+import art.arcane.iris.studio.tree.TreePlausibilizer;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.structure.object.IrisObject;
+import art.arcane.iris.structure.object.IrisObjectPlacement;
+import art.arcane.iris.structure.object.IrisObjectRotation;
+import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.modded.ModdedBlockState;
 import art.arcane.iris.modded.ModdedTileData;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.scheduling.J;
+import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.math.RNG;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -68,9 +68,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-import art.arcane.iris.core.localization.IrisLanguage;
+import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
-import art.arcane.iris.core.localization.RuntimeUiMessages;
+import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 public final class ModdedObjectCommands {
     private static final Predicate<CommandSourceStack> GATE = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);

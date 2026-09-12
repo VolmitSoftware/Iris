@@ -18,7 +18,7 @@
 
 package art.arcane.iris.platform.bukkit;
 
-import art.arcane.iris.core.nms.INMS;
+import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.iris.spi.PlatformStructureHooks;
 import art.arcane.iris.spi.PlatformWorld;
 

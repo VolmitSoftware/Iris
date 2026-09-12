@@ -18,7 +18,7 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KMap;

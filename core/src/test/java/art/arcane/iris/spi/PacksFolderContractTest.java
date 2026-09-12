@@ -1,6 +1,6 @@
 package art.arcane.iris.spi;
 
-import art.arcane.iris.core.service.StudioSVC;
+import art.arcane.iris.studio.StudioSVC;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

@@ -19,7 +19,7 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.volmlib.util.hunk.Hunk;
 
 public final class ModdedBlockBuffer implements Hunk<PlatformBlockState> {
     private final PlatformBlockState[] data;

@@ -36,9 +36,10 @@ public final class ClassloadProbe {
     private static final String ALLOWLIST_RESOURCE = "/classload-allowlist.tsv";
 
     private static final String[] CRITICAL_PREFIXES = {
-            "art.arcane.iris.engine.",
-            "art.arcane.iris.util.",
-            "art.arcane.iris.core.loader.",
+            "art.arcane.iris.generation.",
+            "art.arcane.iris.pack.",
+            "art.arcane.iris.structure.",
+            "art.arcane.iris.world.storage.",
             "art.arcane.iris.spi.",
     };
 
@@ -194,8 +195,7 @@ public final class ClassloadProbe {
         BUKKIT_API,
         PAPERLIB_API,
         ADVENTURE_API,
-        MYTHICMOBS_API,
-        SERVER_RUNTIME_FILE
+        MYTHICMOBS_API
     }
 
     record Allowance(AllowanceCategory category, String detail) {
@@ -205,8 +205,6 @@ public final class ClassloadProbe {
                 case PAPERLIB_API -> detail.startsWith("io.papermc.lib.") && failure.isMissingClassIn("io.papermc.lib.");
                 case ADVENTURE_API -> detail.startsWith("net.kyori.adventure.") && failure.isMissingClassIn("net.kyori.adventure.");
                 case MYTHICMOBS_API -> detail.startsWith("io.lumine.mythic.") && failure.isMissingClassIn("io.lumine.mythic.");
-                case SERVER_RUNTIME_FILE -> failure.exceptionClass().equals("java.io.FileNotFoundException")
-                        && failure.message().startsWith(detail);
             };
         }
     }

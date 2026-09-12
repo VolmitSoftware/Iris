@@ -1,0 +1,1569 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package art.arcane.iris.generation.mantle;
+
+
+import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.world.storage.matter.TileWrapper;
+import art.arcane.iris.world.storage.matter.PreObjectMatterCell;
+import com.google.common.collect.ImmutableList;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.integration.Identifier;
+import art.arcane.iris.world.WorldMaintenance;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.terrain.Terrain3DColumn;
+import art.arcane.iris.world.history.TransitionGenerationPlan;
+import art.arcane.iris.world.history.TerrainBoundarySignature;
+import art.arcane.iris.world.history.BoundaryColumnGeometry;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.generation.noise.IrisGeneratorStyle;
+import art.arcane.iris.pack.value.IrisPosition;
+import art.arcane.iris.generation.block.TileData;
+import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.volmlib.util.collection.KSet;
+import art.arcane.volmlib.util.documentation.ChunkCoordinates;
+import art.arcane.volmlib.util.function.Function3;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.MatterCavern;
+import art.arcane.volmlib.util.matter.MatterSlice;
+import art.arcane.volmlib.util.noise.CNG;
+import art.arcane.iris.world.task.J;
+import lombok.Data;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.generation.block.B;
+import org.bukkit.util.Vector;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReferenceArray;
+
+import static art.arcane.iris.generation.mantle.EngineMantle.AIR;
+
+@Data
+public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
+    private static final int OBJECT_COMPONENT_PRIORITY = 2;
+
+    private final EngineMantle engineMantle;
+    private final Mantle<Matter> mantle;
+    private final int radius;
+    private final int x;
+    private final int z;
+    private final int windowSide;
+    private final AtomicReferenceArray<MantleChunk<Matter>> window;
+    private final TransitionGenerationPlan transitionGenerationPlan;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private final ThreadLocal<Integer> activeComponentPriority = new ThreadLocal<>();
+
+    public MantleWriter(EngineMantle engineMantle, Mantle<Matter> mantle, int x, int z, int radius, boolean multicore) {
+        this(engineMantle, mantle, x, z, radius, radius * 2, multicore);
+    }
+
+    public MantleWriter(
+            EngineMantle engineMantle,
+            Mantle<Matter> mantle,
+            int x,
+            int z,
+            int prefetchRadius,
+            int accessRadius,
+            boolean multicore
+    ) {
+        this.engineMantle = engineMantle;
+        this.mantle = mantle;
+        this.radius = accessRadius;
+        this.x = x;
+        this.z = z;
+        IrisComplex complex = engineMantle.getComplex();
+        this.transitionGenerationPlan = complex == null ? null : complex.getTransitionGenerationPlan();
+        // Every coordinate acquireChunk accepts lives in this window, so a flat array replaces the
+        // boxed per-block map lookup on the placement and carve hot paths.
+        this.windowSide = (this.radius * 2) + 1;
+        this.window = new AtomicReferenceArray<>(windowSide * windowSide);
+
+        final boolean foliaMaintenance = J.isFolia()
+                && WorldMaintenance.isWorldMaintenanceActive(engineMantle.getEngine().getWorld().identity());
+        final int parallelism = resolvePrefetchParallelism(
+                foliaMaintenance,
+                multicore,
+                Runtime.getRuntime().availableProcessors());
+        if (foliaMaintenance && IrisSettings.get().getGeneral().isDebug()) {
+            IrisLogging.info("MantleWriter using sequential chunk prefetch for maintenance regen at " + x + "," + z + ".");
+        }
+        // try-with-resources never calls close() when the initializer throws, so a failed
+        // prefetch must release the permits already pinned into the window here.
+        try {
+            mantle.getChunks(
+                    x - prefetchRadius,
+                    x + prefetchRadius,
+                    z - prefetchRadius,
+                    z + prefetchRadius,
+                    parallelism,
+                    this::storePrefetchedChunk
+            );
+        } catch (Throwable e) {
+            close();
+            throw e;
+        }
+    }
+
+    static int resolvePrefetchParallelism(boolean foliaMaintenance, boolean multicore, int availableProcessors) {
+        if (foliaMaintenance) {
+            return 1;
+        }
+        if (!multicore) {
+            return 4;
+        }
+        return Math.max(1, availableProcessors / 2);
+    }
+
+    public void withComponentPriority(int priority, Runnable task) {
+        Objects.requireNonNull(task, "task");
+        Integer previous = activeComponentPriority.get();
+        activeComponentPriority.set(priority);
+        try {
+            task.run();
+        } finally {
+            if (previous == null) {
+                activeComponentPriority.remove();
+            } else {
+                activeComponentPriority.set(previous);
+            }
+        }
+    }
+
+    @ChunkCoordinates
+    public void withChunkFence(int chunkX, int chunkZ, Runnable task) {
+        Objects.requireNonNull(task, "task");
+        MantleChunk<Matter> chunk = acquireChunk(chunkX, chunkZ);
+        if (chunk == null) {
+            throw new IllegalArgumentException("Chunk fence exceeds the prepared Mantle radius at "
+                    + chunkX + "," + chunkZ);
+        }
+        synchronized (chunk) {
+            task.run();
+        }
+    }
+
+    static Set<IrisPosition> getBallooned(Set<IrisPosition> vset, double radius) {
+        Set<IrisPosition> returnset = new HashSet<>();
+        int ceilrad = (int) Math.ceil(radius);
+        double r2 = Math.pow(radius, 2);
+
+        for (IrisPosition v : vset) {
+            int tipx = v.getX();
+            int tipy = v.getY();
+            int tipz = v.getZ();
+
+            for (int loopx = tipx - ceilrad; loopx <= tipx + ceilrad; loopx++) {
+                for (int loopy = tipy - ceilrad; loopy <= tipy + ceilrad; loopy++) {
+                    for (int loopz = tipz - ceilrad; loopz <= tipz + ceilrad; loopz++) {
+                        if (hypot(loopx - tipx, loopy - tipy, loopz - tipz) <= r2) {
+                            returnset.add(new IrisPosition(loopx, loopy, loopz));
+                        }
+                    }
+                }
+            }
+        }
+        return returnset;
+    }
+
+    static Set<IrisPosition> getHollowed(Set<IrisPosition> vset) {
+        PositionLookup lookup = PositionLookup.of(vset);
+        Set<IrisPosition> returnset = new KSet<>();
+        for (IrisPosition v : vset) {
+            int x = v.getX();
+            int y = v.getY();
+            int z = v.getZ();
+            if (!(lookup.contains(x + 1, y, z)
+                    && lookup.contains(x - 1, y, z)
+                    && lookup.contains(x, y + 1, z)
+                    && lookup.contains(x, y - 1, z)
+                    && lookup.contains(x, y, z + 1)
+                    && lookup.contains(x, y, z - 1))) {
+                returnset.add(v);
+            }
+        }
+        return returnset;
+    }
+
+    private static double hypot(double x, double y, double z) {
+        return Math.pow(x, 2) + Math.pow(y, 2) + Math.pow(z, 2);
+    }
+
+    record PositionLookup(LongOpenHashSet keys, Set<IrisPosition> positions, int originX, int originY, int originZ) {
+        private static final int AXIS_BITS = 21;
+        private static final long AXIS_LIMIT = 1L << AXIS_BITS;
+
+        static PositionLookup of(Set<IrisPosition> positions) {
+            if (positions.isEmpty()) {
+                return new PositionLookup(new LongOpenHashSet(), positions, 0, 0, 0);
+            }
+
+            int minX = Integer.MAX_VALUE;
+            int minY = Integer.MAX_VALUE;
+            int minZ = Integer.MAX_VALUE;
+            int maxX = Integer.MIN_VALUE;
+            int maxY = Integer.MIN_VALUE;
+            int maxZ = Integer.MIN_VALUE;
+            for (IrisPosition position : positions) {
+                minX = Math.min(minX, position.getX());
+                minY = Math.min(minY, position.getY());
+                minZ = Math.min(minZ, position.getZ());
+                maxX = Math.max(maxX, position.getX());
+                maxY = Math.max(maxY, position.getY());
+                maxZ = Math.max(maxZ, position.getZ());
+            }
+
+            if ((long) maxX - minX >= AXIS_LIMIT - 2L
+                    || (long) maxY - minY >= AXIS_LIMIT - 2L
+                    || (long) maxZ - minZ >= AXIS_LIMIT - 2L) {
+                return new PositionLookup(null, positions, 0, 0, 0);
+            }
+
+            LongOpenHashSet keys = new LongOpenHashSet(positions.size());
+            for (IrisPosition position : positions) {
+                keys.add(key(position.getX() - minX, position.getY() - minY, position.getZ() - minZ));
+            }
+            return new PositionLookup(keys, positions, minX, minY, minZ);
+        }
+
+        boolean contains(int x, int y, int z) {
+            if (keys == null) {
+                return positions.contains(new IrisPosition(x, y, z));
+            }
+
+            long dx = (long) x - originX;
+            long dy = (long) y - originY;
+            long dz = (long) z - originZ;
+            if ((dx | dy | dz) < 0L || dx >= AXIS_LIMIT || dy >= AXIS_LIMIT || dz >= AXIS_LIMIT) {
+                return false;
+            }
+            return keys.contains(key(dx, dy, dz));
+        }
+
+        private static long key(long x, long y, long z) {
+            return (x << (AXIS_BITS * 2)) | (y << AXIS_BITS) | z;
+        }
+    }
+
+    private static double lengthSq(double x, double y, double z) {
+        return (x * x) + (y * y) + (z * z);
+    }
+
+    private static double lengthSq(double x, double z) {
+        return (x * x) + (z * z);
+    }
+
+    public <T> void setDataWarped(int x, int y, int z, T t, RNG rng, IrisData data, IrisGeneratorStyle style) {
+        setData((int) Math.round(style.warp(rng, data, x, x, y, -z)),
+                (int) Math.round(style.warp(rng, data, y, z, -x, y)),
+                (int) Math.round(style.warp(rng, data, z, -y, z, x)), t);
+    }
+
+    public <T> void setData(int x, int y, int z, T t) {
+        if (t == null || !allowsWrite(x, z)) {
+            return;
+        }
+
+        int cx = x >> 4;
+        int cz = z >> 4;
+
+        if (y < 0 || y >= mantle.getWorldHeight()) {
+            return;
+        }
+
+        if (y == 0 && t instanceof PlatformBlockState && engineMantle.getEngine().getDimension().isBedrock()) {
+            return;
+        }
+
+        MantleChunk<Matter> chunk = acquireChunk(cx, cz);
+        if (chunk == null) return;
+
+        synchronized (chunk) {
+            Matter matter = chunk.getOrCreate(y >> 4);
+            if ((t instanceof PlatformBlockState || t instanceof MatterCavern)
+                    && hasProtectedHydrology(matter, x, y, z)) {
+                return;
+            }
+            if (t instanceof PlatformBlockState) {
+                clearDeferredPlacement(matter, x, y, z);
+            }
+            Class<?> sliceType = t instanceof PlatformBlockState ? PlatformBlockState.class : matter.getClass(t);
+            capturePreObjectOriginal(matter, x, y, z, sliceType);
+            matter.slice(sliceType).set(x & 15, y & 15, z & 15, t);
+        }
+    }
+
+    public boolean setDataIfAbsent(int x, int y, int z, MatterCavern value) {
+        if (value == null || !allowsWrite(x, z)) {
+            return false;
+        }
+
+        int cx = x >> 4;
+        int cz = z >> 4;
+
+        if (y < 0 || y >= mantle.getWorldHeight()) {
+            return false;
+        }
+
+        MantleChunk<Matter> chunk = acquireChunk(cx, cz);
+        if (chunk == null) {
+            return false;
+        }
+
+        synchronized (chunk) {
+            Matter matter = chunk.getOrCreate(y >> 4);
+            if (hasProtectedHydrology(matter, x, y, z)) {
+                return false;
+            }
+            MatterSlice<MatterCavern> cavernSlice = matter.getSlice(MatterCavern.class);
+            MatterCavern existing = cavernSlice == null
+                    ? null
+                    : cavernSlice.get(x & 15, y & 15, z & 15);
+            if (existing != null) {
+                return false;
+            }
+
+            capturePreObjectOriginal(matter, x, y, z, MatterCavern.class);
+            if (cavernSlice == null) {
+                cavernSlice = matter.slice(MatterCavern.class);
+            }
+            cavernSlice.set(x & 15, y & 15, z & 15, value);
+            return true;
+        }
+    }
+
+    public boolean carveDataIfAbsent(int x, int y, int z, MatterCavern value) {
+        if (value == null || !allowsWrite(x, z) || y < 0 || y >= mantle.getWorldHeight()) {
+            return false;
+        }
+
+        MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
+        if (chunk == null) {
+            return false;
+        }
+
+        synchronized (chunk) {
+            Matter matter = chunk.getOrCreate(y >> 4);
+            if (hasProtectedHydrology(matter, x, y, z)) {
+                return false;
+            }
+            MatterSlice<PlatformBlockState> blockSlice = matter.getSlice(PlatformBlockState.class);
+            if (blockSlice != null) {
+                capturePreObjectOriginal(matter, x, y, z, PlatformBlockState.class);
+                blockSlice.set(x & 15, y & 15, z & 15, null);
+            }
+            clearDeferredPlacement(matter, x, y, z);
+            MatterSlice<MatterCavern> cavernSlice = matter.getSlice(MatterCavern.class);
+            if (cavernSlice != null && cavernSlice.get(x & 15, y & 15, z & 15) != null) {
+                return false;
+            }
+            capturePreObjectOriginal(matter, x, y, z, MatterCavern.class);
+            if (cavernSlice == null) {
+                cavernSlice = matter.slice(MatterCavern.class);
+            }
+            cavernSlice.set(x & 15, y & 15, z & 15, value);
+            return true;
+        }
+    }
+
+    public void setForcedCarve(int x, int y, int z, MatterCavern value) {
+        if (value == null || !allowsWrite(x, z) || y < 0 || y >= mantle.getWorldHeight()) {
+            return;
+        }
+        MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
+        if (chunk == null) {
+            throw new IllegalStateException("Forced structure carve exceeded its prepared Mantle radius at "
+                    + x + "," + y + "," + z);
+        }
+        synchronized (chunk) {
+            Matter matter = chunk.getOrCreate(y >> 4);
+            if (hasProtectedHydrology(matter, x, y, z)) {
+                return;
+            }
+            MatterSlice<PlatformBlockState> blockSlice = matter.getSlice(PlatformBlockState.class);
+            if (blockSlice != null) {
+                capturePreObjectOriginal(matter, x, y, z, PlatformBlockState.class);
+                blockSlice.set(x & 15, y & 15, z & 15, null);
+            }
+            clearDeferredPlacement(matter, x, y, z);
+            capturePreObjectOriginal(matter, x, y, z, MatterCavern.class);
+            matter.<MatterCavern>slice(MatterCavern.class).set(x & 15, y & 15, z & 15, value);
+        }
+    }
+
+    public void clearBlock(int x, int y, int z) {
+        if (!allowsWrite(x, z) || y < 0 || y >= mantle.getWorldHeight()) {
+            return;
+        }
+        MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
+        if (chunk == null) {
+            return;
+        }
+        int section = y >> 4;
+        if (!chunk.exists(section)) {
+            return;
+        }
+        synchronized (chunk) {
+            Matter matter = chunk.get(section);
+            if (matter == null) {
+                return;
+            }
+            if (hasProtectedHydrology(matter, x, y, z)) {
+                return;
+            }
+            MatterSlice<PlatformBlockState> blockSlice = matter.getSlice(PlatformBlockState.class);
+            if (blockSlice != null) {
+                capturePreObjectOriginal(matter, x, y, z, PlatformBlockState.class);
+                blockSlice.set(x & 15, y & 15, z & 15, null);
+            }
+            clearDeferredPlacement(matter, x, y, z);
+        }
+    }
+
+    public <T> T getData(int x, int y, int z, Class<T> type) {
+        int cx = x >> 4;
+        int cz = z >> 4;
+
+        if (y < 0 || y >= mantle.getWorldHeight()) {
+            return null;
+        }
+
+        if (!allowsWrite(x, z)) {
+            return getDataIfPresent(x, y, z, type);
+        }
+
+        MantleChunk<Matter> chunk = acquireChunk(cx, cz);
+        if (chunk == null) {
+            return null;
+        }
+
+        return chunk.getOrCreate(y >> 4)
+                .<T>slice(type)
+                .get(x & 15, y & 15, z & 15);
+    }
+
+    public <T> T getDataIfPresent(int x, int y, int z, Class<T> type) {
+        if (y < 0 || y >= mantle.getWorldHeight()) {
+            return null;
+        }
+
+        MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
+        int section = y >> 4;
+        if (chunk == null || !chunk.exists(section)) {
+            return null;
+        }
+
+        Matter matter = chunk.get(section);
+        if (matter == null || !matter.hasSlice(type)) {
+            return null;
+        }
+        return matter.<T>getSlice(type).get(x & 15, y & 15, z & 15);
+    }
+
+    public <T> T getPrerequisiteDataIfPresent(int x, int y, int z, Class<T> type) {
+        Objects.requireNonNull(type, "type");
+        if (y < 0 || y >= mantle.getWorldHeight()) {
+            return null;
+        }
+
+        MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
+        int section = y >> 4;
+        if (chunk == null) {
+            return null;
+        }
+
+        synchronized (chunk) {
+            if (!chunk.exists(section)) {
+                return null;
+            }
+            Matter matter = chunk.get(section);
+            if (matter == null) {
+                return null;
+            }
+            return prerequisiteValue(matter, x, y, z, type);
+        }
+    }
+
+    private Optional<TerrainBoundarySignature> resolvedColumn(int x, int z) {
+        IrisComplex complex = engineMantle.getComplex();
+        return complex == null ? Optional.empty() : complex.resolvedTerrainColumn(x, z);
+    }
+
+    private PlatformBlockState resolvedBlock(TerrainBoundarySignature column, int y) {
+        String stateKey = column.geometry().voxelAt(y + engineMantle.getEngine().getMinHeight()).stateKey();
+        PlatformBlockState state = IrisPlatforms.get().registries().blockOrNull(stateKey);
+        if (state == null) {
+            throw new IllegalStateException("Saved terrain state is unavailable: " + stateKey);
+        }
+        return state;
+    }
+
+    public PlatformBlockState getPrerequisiteBlock(int x, int y, int z) {
+        Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
+        if (resolved.isPresent()) {
+            return resolvedBlock(resolved.get(), y);
+        }
+        PlatformBlockState block = getPrerequisiteDataIfPresent(x, y, z, PlatformBlockState.class);
+        return block == null ? AIR.get() : block;
+    }
+
+    public boolean isPrerequisiteCarved(int x, int y, int z) {
+        Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
+        if (resolved.isPresent()) {
+            return resolved.get().geometry().isEnclosedOpenAt(y + engineMantle.getEngine().getMinHeight());
+        }
+        HydrologyCaveCell hydrology = getPrerequisiteDataIfPresent(x, y, z, HydrologyCaveCell.class);
+        if (hydrology != null) {
+            return hydrology.carves();
+        }
+        return getPrerequisiteDataIfPresent(x, y, z, MatterCavern.class) != null
+                || engineMantle.getComplex().isTerrain3DOpening(x, y, z);
+    }
+
+    public byte[] getPrerequisiteCarvedColumn(int x, int z, int height) {
+        Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
+        if (resolved.isPresent()) {
+            return resolvedCarvedColumn(resolved.get(), height);
+        }
+        int cappedHeight = Math.min(Math.max(height, 0), mantle.getWorldHeight());
+        byte[] carvedColumn = new byte[cappedHeight];
+        if (cappedHeight <= 0) {
+            return carvedColumn;
+        }
+
+        Terrain3DColumn terrainColumn = engineMantle.getComplex().terrainColumn(x, z);
+        if (terrainColumn != null) {
+            int maximumY = Math.min(cappedHeight, terrainColumn.topY());
+            for (int y = Math.max(0, terrainColumn.minY()); y < maximumY; y++) {
+                if (!terrainColumn.isSolid(y)
+                        && !engineMantle.getEngine().isAdditionalTerrainOwned(x, y, z)) {
+                    carvedColumn[y] = 1;
+                }
+            }
+        }
+
+        MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
+        if (chunk == null) {
+            return carvedColumn;
+        }
+
+        synchronized (chunk) {
+            int lastSection = (cappedHeight - 1) >> 4;
+            for (int section = 0; section <= lastSection; section++) {
+                if (!chunk.exists(section)) {
+                    continue;
+                }
+                Matter matter = chunk.get(section);
+                if (matter == null) {
+                    continue;
+                }
+                MatterSlice<PreObjectMatterCell> journalSlice = matter.hasSlice(PreObjectMatterCell.class)
+                        ? matter.getSlice(PreObjectMatterCell.class)
+                        : null;
+                MatterSlice<MatterCavern> cavernSlice = matter.hasSlice(MatterCavern.class)
+                        ? matter.getSlice(MatterCavern.class)
+                        : null;
+                MatterSlice<HydrologyCaveCell> hydrologySlice = matter.hasSlice(HydrologyCaveCell.class)
+                        ? matter.getSlice(HydrologyCaveCell.class)
+                        : null;
+                int sectionBaseY = section << 4;
+                int sectionMaxY = Math.min(cappedHeight, sectionBaseY + 16);
+                for (int y = sectionBaseY; y < sectionMaxY; y++) {
+                    int localY = y & 15;
+                    HydrologyCaveCell hydrology = hydrologySlice == null
+                            ? null
+                            : hydrologySlice.get(x & 15, localY, z & 15);
+                    if (hydrology != null) {
+                        carvedColumn[y] = hydrology.carves() ? (byte) 1 : 0;
+                        continue;
+                    }
+                    PreObjectMatterCell cell = journalSlice == null
+                            ? null
+                            : journalSlice.get(x & 15, localY, z & 15);
+                    MatterCavern cavern = cell != null && cell.cavernCaptured()
+                            ? cell.cavern()
+                            : cavernSlice == null ? null : cavernSlice.get(x & 15, localY, z & 15);
+                    if (cavern != null) {
+                        carvedColumn[y] = 1;
+                    }
+                }
+            }
+        }
+        return carvedColumn;
+    }
+
+    public boolean restorePrerequisiteData(int x, int y, int z, Class<?> type) {
+        Objects.requireNonNull(type, "type");
+        if (!allowsWrite(x, z)
+                || y < 0
+                || y >= mantle.getWorldHeight()
+                || !isPreObjectType(type)) {
+            return false;
+        }
+
+        MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
+        int section = y >> 4;
+        if (chunk == null) {
+            return false;
+        }
+
+        synchronized (chunk) {
+            if (!chunk.exists(section)) {
+                return false;
+            }
+            Matter matter = chunk.get(section);
+            PreObjectMatterCell cell = preObjectCell(matter, x, y, z);
+            if (cell == null || !cell.captures(type)) {
+                return false;
+            }
+            restoreRaw(matter, x, y, z, type, cell.original(type));
+            return true;
+        }
+    }
+
+    public boolean restorePrerequisiteCell(int x, int y, int z) {
+        if (!allowsWrite(x, z) || y < 0 || y >= mantle.getWorldHeight()) {
+            return false;
+        }
+
+        MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
+        int section = y >> 4;
+        if (chunk == null) {
+            return false;
+        }
+
+        synchronized (chunk) {
+            if (!chunk.exists(section)) {
+                return false;
+            }
+            Matter matter = chunk.get(section);
+            PreObjectMatterCell cell = preObjectCell(matter, x, y, z);
+            if (cell == null) {
+                return false;
+            }
+            if (cell.blockCaptured()) {
+                restoreRaw(matter, x, y, z, PlatformBlockState.class, cell.block());
+            }
+            if (cell.stringCaptured()) {
+                restoreRaw(matter, x, y, z, String.class, cell.string());
+            }
+            if (cell.cavernCaptured()) {
+                restoreRaw(matter, x, y, z, MatterCavern.class, cell.cavern());
+            }
+            return true;
+        }
+    }
+
+    public void clearData(int x, int y, int z, Class<?> type) {
+        if (!allowsWrite(x, z) || y < 0 || y >= mantle.getWorldHeight()) {
+            return;
+        }
+
+        MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
+        int section = y >> 4;
+        if (chunk == null || !chunk.exists(section)) {
+            return;
+        }
+
+        synchronized (chunk) {
+            Matter matter = chunk.get(section);
+            if (matter == null || !matter.hasSlice(type)) {
+                return;
+            }
+            if ((type == PlatformBlockState.class || type == MatterCavern.class)
+                    && hasProtectedHydrology(matter, x, y, z)) {
+                return;
+            }
+            capturePreObjectOriginal(matter, x, y, z, type);
+            matter.getSlice(type).set(x & 15, y & 15, z & 15, null);
+        }
+    }
+
+    private static boolean hasProtectedHydrology(Matter matter, int x, int y, int z) {
+        MatterSlice<HydrologyCaveCell> slice = matter.getSlice(HydrologyCaveCell.class);
+        if (slice == null) {
+            return false;
+        }
+        HydrologyCaveCell hydrology = slice.get(x & 15, y & 15, z & 15);
+        return hydrology != null && hydrology.protectsPlacement();
+    }
+
+    private static void clearDeferredPlacement(Matter matter, int x, int y, int z) {
+        MatterSlice<Identifier> slice = matter.getSlice(Identifier.class);
+        if (slice != null) {
+            slice.set(x & 15, y & 15, z & 15, null);
+        }
+    }
+
+    private void setCustomBlock(int x, int y, int z, PlatformBlockState baseState, Identifier identifier) {
+        if (!allowsWrite(x, z) || y < 0 || y >= mantle.getWorldHeight()) {
+            return;
+        }
+        if (y == 0 && engineMantle.getEngine().getDimension().isBedrock()) {
+            return;
+        }
+
+        MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
+        if (chunk == null) {
+            return;
+        }
+
+        synchronized (chunk) {
+            Matter matter = chunk.getOrCreate(y >> 4);
+            if (hasProtectedHydrology(matter, x, y, z)) {
+                return;
+            }
+            MatterSlice<PlatformBlockState> blockSlice = matter.slice(PlatformBlockState.class);
+            MatterSlice<Identifier> identifierSlice = matter.slice(Identifier.class);
+            capturePreObjectOriginal(matter, x, y, z, PlatformBlockState.class);
+            blockSlice.set(x & 15, y & 15, z & 15, baseState);
+            identifierSlice.set(x & 15, y & 15, z & 15, identifier);
+        }
+    }
+
+    private void capturePreObjectOriginal(Matter matter, int x, int y, int z, Class<?> type) {
+        Integer priority = activeComponentPriority.get();
+        if (priority == null || priority < OBJECT_COMPONENT_PRIORITY || !isPreObjectType(type)) {
+            return;
+        }
+
+        int localX = x & 15;
+        int localY = y & 15;
+        int localZ = z & 15;
+        MatterSlice<PreObjectMatterCell> journal = matter.slice(PreObjectMatterCell.class);
+        PreObjectMatterCell current = journal.get(localX, localY, localZ);
+        if (current != null && current.captures(type)) {
+            return;
+        }
+        Object original = rawValue(matter, localX, localY, localZ, type);
+        PreObjectMatterCell updated;
+        if (type == PlatformBlockState.class) {
+            updated = current == null
+                    ? PreObjectMatterCell.block((PlatformBlockState) original)
+                    : current.captureBlock((PlatformBlockState) original);
+        } else if (type == String.class) {
+            updated = current == null
+                    ? PreObjectMatterCell.string((String) original)
+                    : current.captureString((String) original);
+        } else {
+            updated = current == null
+                    ? PreObjectMatterCell.cavern((MatterCavern) original)
+                    : current.captureCavern((MatterCavern) original);
+        }
+        journal.set(localX, localY, localZ, updated);
+    }
+
+    private static boolean isPreObjectType(Class<?> type) {
+        return type == PlatformBlockState.class || type == String.class || type == MatterCavern.class;
+    }
+
+    private static PreObjectMatterCell preObjectCell(Matter matter, int x, int y, int z) {
+        if (matter == null) {
+            return null;
+        }
+        MatterSlice<PreObjectMatterCell> slice = matter.getSlice(PreObjectMatterCell.class);
+        return slice == null ? null : slice.get(x & 15, y & 15, z & 15);
+    }
+
+    private static <T> T prerequisiteValue(Matter matter, int x, int y, int z, Class<T> type) {
+        PreObjectMatterCell cell = preObjectCell(matter, x, y, z);
+        if (cell != null && cell.captures(type)) {
+            return cell.original(type);
+        }
+        MatterSlice<T> slice = matter.getSlice(type);
+        return slice == null ? null : slice.get(x & 15, y & 15, z & 15);
+    }
+
+    private static Object rawValue(Matter matter, int x, int y, int z, Class<?> type) {
+        MatterSlice<?> slice = matter.getSlice(type);
+        return slice == null ? null : slice.get(x, y, z);
+    }
+
+    private boolean allowsWrite(int blockX, int blockZ) {
+        return transitionGenerationPlan == null
+                || !transitionGenerationPlan.isHistoricalBlock(blockX, blockZ);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void restoreRaw(Matter matter, int x, int y, int z, Class<?> type, Object value) {
+        MatterSlice<Object> slice;
+        if (value == null) {
+            slice = (MatterSlice<Object>) matter.getSlice(type);
+            if (slice == null) {
+                return;
+            }
+        } else {
+            slice = (MatterSlice<Object>) matter.slice(type);
+        }
+        slice.set(x & 15, y & 15, z & 15, value);
+    }
+
+    @ChunkCoordinates
+    public MantleChunk<Matter> acquireChunk(int cx, int cz) {
+        int index = windowIndex(cx, cz);
+        if (index < 0) {
+            IrisLogging.debug("Mantle Writer Accessed chunk out of bounds" + cx + "," + cz);
+            return null;
+        }
+
+        while (true) {
+            MantleChunk<Matter> chunk = window.get(index);
+            if (chunk != null) {
+                return chunk;
+            }
+
+            // Losing this race must release our own use, never the winner's: the winner is already
+            // writing through the chunk it published.
+            MantleChunk<Matter> acquired = mantle.getChunk(cx, cz).use();
+            if (window.compareAndSet(index, null, acquired)) {
+                return acquired;
+            }
+            acquired.release();
+        }
+    }
+
+    @ChunkCoordinates
+    private int windowIndex(int cx, int cz) {
+        int localX = cx - x + radius;
+        int localZ = cz - z + radius;
+        if (localX < 0 || localX >= windowSide || localZ < 0 || localZ >= windowSide) {
+            return -1;
+        }
+        return (localX * windowSide) + localZ;
+    }
+
+    @ChunkCoordinates
+    private void storePrefetchedChunk(int cx, int cz, MantleChunk<Matter> chunk) {
+        int index = windowIndex(cx, cz);
+        if (index < 0) {
+            return;
+        }
+
+        if (!window.compareAndSet(index, null, chunk.use())) {
+            chunk.release();
+        }
+    }
+
+    @Override
+    public int getHighest(int x, int z, IrisData data) {
+        return engineMantle.getHighest(x, z, data);
+    }
+
+    @Override
+    public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
+        return engineMantle.getHighest(x, z, data, ignoreFluid);
+    }
+
+    @Override
+    public void set(int x, int y, int z, PlatformBlockState s) {
+        if (s == null) {
+            return;
+        }
+        String placementKey = s.deferredPlacementKey();
+        PlatformBlockState baseState = s.placementBaseState();
+        if (s.isCustom() && placementKey != null && baseState != null) {
+            Identifier identifier = Identifier.fromString(placementKey);
+            setCustomBlock(x, y, z, baseState, identifier);
+            return;
+        }
+        setData(x, y, z, s);
+    }
+
+    @Override
+    public PlatformBlockState get(int x, int y, int z) {
+        // Read-only probe: getDataIfPresent returns the identical answer without materializing
+        // a 16^3 section + slice on a miss the way getData's getOrCreate path does.
+        PlatformBlockState block = getDataIfPresent(x, y, z, PlatformBlockState.class);
+        Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
+        if (resolved.isPresent()) {
+            PreObjectMatterCell cell = getDataIfPresent(x, y, z, PreObjectMatterCell.class);
+            if (cell == null || !cell.blockCaptured()) {
+                return resolvedBlock(resolved.get(), y);
+            }
+        }
+        if (block == null)
+            return AIR.get();
+        return block;
+    }
+
+    @Override
+    public boolean isPreventingDecay() {
+        return getEngineMantle().isPreventingDecay();
+    }
+
+    @Override
+    public boolean isCarved(int x, int y, int z) {
+        Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
+        if (resolved.isPresent()) {
+            PreObjectMatterCell cell = getDataIfPresent(x, y, z, PreObjectMatterCell.class);
+            if (cell != null && cell.blockCaptured()) {
+                PlatformBlockState block = getDataIfPresent(x, y, z, PlatformBlockState.class);
+                if (block != null) {
+                    return (block.isAir() || block.isFluid())
+                            && resolved.get().geometry().hasSolidAbove(y + engineMantle.getEngine().getMinHeight());
+                }
+            }
+            return cell != null && cell.cavernCaptured()
+                    ? getDataIfPresent(x, y, z, MatterCavern.class) != null
+                    : resolved.get().geometry().isEnclosedOpenAt(y + engineMantle.getEngine().getMinHeight());
+        }
+        HydrologyCaveCell hydrology = getDataIfPresent(x, y, z, HydrologyCaveCell.class);
+        if (hydrology != null) {
+            return hydrology.carves();
+        }
+        return getDataIfPresent(x, y, z, MatterCavern.class) != null
+                || engineMantle.getComplex().isTerrain3DOpening(x, y, z);
+    }
+
+    private byte[] resolvedCarvedColumn(TerrainBoundarySignature column, int height) {
+        int cappedHeight = Math.min(Math.max(height, 0), mantle.getWorldHeight());
+        byte[] carved = new byte[cappedHeight];
+        int minimumY = engineMantle.getEngine().getMinHeight();
+        BoundaryColumnGeometry geometry = column.geometry();
+        boolean ceiling = false;
+        for (int worldY = geometry.minimumY() + geometry.height() - 1; worldY >= minimumY; worldY--) {
+            BoundaryColumnGeometry.Voxel voxel = geometry.voxelAt(worldY);
+            int internalY = worldY - minimumY;
+            if (voxel.phase() == BoundaryColumnGeometry.Phase.SOLID) {
+                ceiling = true;
+            } else if (ceiling && internalY < cappedHeight) {
+                carved[internalY] = 1;
+            }
+        }
+        return carved;
+    }
+
+    public byte[] getCarvedColumn(int x, int z, int height) {
+        Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
+        if (resolved.isPresent()) {
+            byte[] carved = resolvedCarvedColumn(resolved.get(), height);
+            for (int y = 0; y < carved.length; y++) {
+                PreObjectMatterCell cell = getDataIfPresent(x, y, z, PreObjectMatterCell.class);
+                if (cell != null && cell.blockCaptured()) {
+                    PlatformBlockState block = getDataIfPresent(x, y, z, PlatformBlockState.class);
+                    if (block != null) {
+                        carved[y] = (block.isAir() || block.isFluid())
+                                && resolved.get().geometry().hasSolidAbove(y + engineMantle.getEngine().getMinHeight())
+                                ? (byte) 1 : 0;
+                        continue;
+                    }
+                }
+                if (cell != null && cell.cavernCaptured()) {
+                    carved[y] = getDataIfPresent(x, y, z, MatterCavern.class) != null ? (byte) 1 : 0;
+                }
+            }
+            return carved;
+        }
+        int cappedHeight = Math.min(Math.max(height, 0), mantle.getWorldHeight());
+        byte[] carvedColumn = new byte[cappedHeight];
+        if (cappedHeight <= 0) {
+            return carvedColumn;
+        }
+
+        Terrain3DColumn terrainColumn = engineMantle.getComplex().terrainColumn(x, z);
+        if (terrainColumn != null) {
+            int maximumY = Math.min(cappedHeight, terrainColumn.topY());
+            for (int y = terrainColumn.minY(); y < maximumY; y++) {
+                if (!terrainColumn.isSolid(y) && !engineMantle.getEngine().isAdditionalTerrainOwned(x, y, z)) {
+                    carvedColumn[y] = 1;
+                }
+            }
+        }
+
+        MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
+        if (chunk == null) {
+            return carvedColumn;
+        }
+
+        int localX = x & 15;
+        int localZ = z & 15;
+        int lastSection = (cappedHeight - 1) >> 4;
+        for (int section = 0; section <= lastSection; section++) {
+            if (!chunk.exists(section)) {
+                continue;
+            }
+
+            Matter matter = chunk.get(section);
+            if (matter == null) {
+                continue;
+            }
+
+            MatterSlice<MatterCavern> cavernSlice = matter.getSlice(MatterCavern.class);
+            MatterSlice<HydrologyCaveCell> hydrologySlice = matter.hasSlice(HydrologyCaveCell.class)
+                    ? matter.getSlice(HydrologyCaveCell.class)
+                    : null;
+            if (cavernSlice == null && hydrologySlice == null) {
+                continue;
+            }
+            int sectionBaseY = section << 4;
+            int sectionMaxY = Math.min(cappedHeight, sectionBaseY + 16);
+            for (int y = sectionBaseY; y < sectionMaxY; y++) {
+                HydrologyCaveCell hydrology = hydrologySlice == null
+                        ? null
+                        : hydrologySlice.get(localX, y & 15, localZ);
+                if (hydrology != null) {
+                    carvedColumn[y] = hydrology.carves() ? (byte) 1 : 0;
+                } else if (cavernSlice != null && cavernSlice.get(localX, y & 15, localZ) != null) {
+                    carvedColumn[y] = 1;
+                }
+            }
+        }
+
+        return carvedColumn;
+    }
+
+    @Override
+    public boolean isSurfaceSolid(int x, int y, int z) {
+        Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
+        if (resolved.isPresent()) {
+            return resolved.get().geometry()
+                    .voxelAt(y + engineMantle.getEngine().getMinHeight()).phase() == BoundaryColumnGeometry.Phase.SOLID;
+        }
+        return engineMantle.getEngine().isTerrainSurfaceSolid(x, y, z);
+    }
+
+    @Override
+    public boolean isSolid(int x, int y, int z) {
+        return B.isSolid(get(x, y, z));
+    }
+
+    @Override
+    public boolean isUnderwater(int x, int z) {
+        return getEngineMantle().isUnderwater(x, z);
+    }
+
+    @Override
+    public int getFluidHeight() {
+        return getEngineMantle().getFluidHeight();
+    }
+
+    @Override
+    public boolean isDebugSmartBore() {
+        return getEngineMantle().isDebugSmartBore();
+    }
+
+    @Override
+    public void setTile(int xx, int yy, int zz, TileData tile) {
+        setData(xx, yy, zz, new TileWrapper(tile));
+    }
+
+    @Override
+    public Engine getEngine() {
+        return getEngineMantle().getEngine();
+    }
+
+    /**
+     * Set a sphere into the mantle
+     *
+     * @param cx     the center x
+     * @param cy     the center y
+     * @param cz     the center z
+     * @param radius the radius of this sphere
+     * @param fill   should it be filled? or just the outer shell?
+     * @param data   the data to set
+     * @param <T>    the type of data to apply to the mantle
+     */
+    public <T> void setSphere(int cx, int cy, int cz, double radius, boolean fill, T data) {
+        setElipsoid(cx, cy, cz, radius, radius, radius, fill, data);
+    }
+
+    public <T> void setElipsoid(int cx, int cy, int cz, double rx, double ry, double rz, boolean fill, T data) {
+        setElipsoidFunction(cx, cy, cz, rx, ry, rz, fill, (a, b, c) -> data);
+    }
+
+    public <T> void setElipsoidWarped(int cx, int cy, int cz, double rx, double ry, double rz, boolean fill, T data, RNG rng, IrisData idata, IrisGeneratorStyle style) {
+        setElipsoidFunctionWarped(cx, cy, cz, rx, ry, rz, fill, (a, b, c) -> data, rng, idata, style);
+    }
+
+    /**
+     * Set an elipsoid into the mantle
+     *
+     * @param cx   the center x
+     * @param cy   the center y
+     * @param cz   the center z
+     * @param rx   the x radius
+     * @param ry   the y radius
+     * @param rz   the z radius
+     * @param fill should it be filled or just the outer shell?
+     * @param data the data to set
+     * @param <T>  the type of data to apply to the mantle
+     */
+    public <T> void setElipsoidFunction(int cx, int cy, int cz, double rx, double ry, double rz, boolean fill, Function3<Integer, Integer, Integer, T> data) {
+        rx += 0.5;
+        ry += 0.5;
+        rz += 0.5;
+        final double invRadiusX = 1 / rx;
+        final double invRadiusY = 1 / ry;
+        final double invRadiusZ = 1 / rz;
+        final int ceilRadiusX = (int) Math.ceil(rx);
+        final int ceilRadiusY = (int) Math.ceil(ry);
+        final int ceilRadiusZ = (int) Math.ceil(rz);
+        double nextXn = 0;
+
+        forX:
+        for (int x = 0; x <= ceilRadiusX; ++x) {
+            final double xn = nextXn;
+            nextXn = (x + 1) * invRadiusX;
+            double nextYn = 0;
+            forY:
+            for (int y = 0; y <= ceilRadiusY; ++y) {
+                final double yn = nextYn;
+                nextYn = (y + 1) * invRadiusY;
+                double nextZn = 0;
+                for (int z = 0; z <= ceilRadiusZ; ++z) {
+                    final double zn = nextZn;
+                    nextZn = (z + 1) * invRadiusZ;
+
+                    double distanceSq = lengthSq(xn, yn, zn);
+                    if (distanceSq > 1) {
+                        if (z == 0) {
+                            if (y == 0) {
+                                break forX;
+                            }
+                            break forY;
+                        }
+                        break;
+                    }
+
+                    if (!fill) {
+                        if (lengthSq(nextXn, yn, zn) <= 1 && lengthSq(xn, nextYn, zn) <= 1 && lengthSq(xn, yn, nextZn) <= 1) {
+                            continue;
+                        }
+                    }
+
+                    setData(x + cx, y + cy, z + cz, data.apply(x + cx, y + cy, z + cz));
+                    setData(-x + cx, y + cy, z + cz, data.apply(-x + cx, y + cy, z + cz));
+                    setData(x + cx, -y + cy, z + cz, data.apply(x + cx, -y + cy, z + cz));
+                    setData(x + cx, y + cy, -z + cz, data.apply(x + cx, y + cy, -z + cz));
+                    setData(-x + cx, y + cy, -z + cz, data.apply(-x + cx, y + cy, -z + cz));
+                    setData(-x + cx, -y + cy, z + cz, data.apply(-x + cx, -y + cy, z + cz));
+                    setData(x + cx, -y + cy, -z + cz, data.apply(x + cx, -y + cy, -z + cz));
+                    setData(-x + cx, y + cy, -z + cz, data.apply(-x + cx, y + cy, -z + cz));
+                    setData(-x + cx, -y + cy, -z + cz, data.apply(-x + cx, -y + cy, -z + cz));
+                }
+            }
+        }
+    }
+
+    public <T> void setElipsoidFunctionWarped(int cx, int cy, int cz, double rx, double ry, double rz, boolean fill, Function3<Integer, Integer, Integer, T> data, RNG rng, IrisData idata, IrisGeneratorStyle style) {
+        rx += 0.5;
+        ry += 0.5;
+        rz += 0.5;
+        final double invRadiusX = 1 / rx;
+        final double invRadiusY = 1 / ry;
+        final double invRadiusZ = 1 / rz;
+        final int ceilRadiusX = (int) Math.ceil(rx);
+        final int ceilRadiusY = (int) Math.ceil(ry);
+        final int ceilRadiusZ = (int) Math.ceil(rz);
+        double nextXn = 0;
+
+        forX:
+        for (int x = 0; x <= ceilRadiusX; ++x) {
+            final double xn = nextXn;
+            nextXn = (x + 1) * invRadiusX;
+            double nextYn = 0;
+            forY:
+            for (int y = 0; y <= ceilRadiusY; ++y) {
+                final double yn = nextYn;
+                nextYn = (y + 1) * invRadiusY;
+                double nextZn = 0;
+                for (int z = 0; z <= ceilRadiusZ; ++z) {
+                    final double zn = nextZn;
+                    nextZn = (z + 1) * invRadiusZ;
+
+                    double distanceSq = lengthSq(xn, yn, zn);
+                    if (distanceSq > 1) {
+                        if (z == 0) {
+                            if (y == 0) {
+                                break forX;
+                            }
+                            break forY;
+                        }
+                        break;
+                    }
+
+                    if (!fill) {
+                        if (lengthSq(nextXn, yn, zn) <= 1 && lengthSq(xn, nextYn, zn) <= 1 && lengthSq(xn, yn, nextZn) <= 1) {
+                            continue;
+                        }
+                    }
+
+                    setDataWarped(x + cx, y + cy, z + cz, data.apply(x + cx, y + cy, z + cz), rng, idata, style);
+                    setDataWarped(-x + cx, y + cy, z + cz, data.apply(-x + cx, y + cy, z + cz), rng, idata, style);
+                    setDataWarped(x + cx, -y + cy, z + cz, data.apply(x + cx, -y + cy, z + cz), rng, idata, style);
+                    setDataWarped(x + cx, y + cy, -z + cz, data.apply(x + cx, y + cy, -z + cz), rng, idata, style);
+                    setDataWarped(-x + cx, y + cy, -z + cz, data.apply(-x + cx, y + cy, -z + cz), rng, idata, style);
+                    setDataWarped(-x + cx, -y + cy, z + cz, data.apply(-x + cx, -y + cy, z + cz), rng, idata, style);
+                    setDataWarped(x + cx, -y + cy, -z + cz, data.apply(x + cx, -y + cy, -z + cz), rng, idata, style);
+                    setDataWarped(-x + cx, y + cy, -z + cz, data.apply(-x + cx, y + cy, -z + cz), rng, idata, style);
+                    setDataWarped(-x + cx, -y + cy, -z + cz, data.apply(-x + cx, -y + cy, -z + cz), rng, idata, style);
+                }
+            }
+        }
+    }
+
+    /**
+     * Set a cuboid of data in the mantle
+     *
+     * @param x1   the min x
+     * @param y1   the min y
+     * @param z1   the min z
+     * @param x2   the max x
+     * @param y2   the max y
+     * @param z2   the max z
+     * @param data the data to set
+     * @param <T>  the type of data to apply to the mantle
+     */
+    public <T> void setCuboid(int x1, int y1, int z1, int x2, int y2, int z2, T data) {
+        int j, k;
+
+        for (int i = x1; i <= x2; i++) {
+            for (j = x1; j <= x2; j++) {
+                for (k = x1; k <= x2; k++) {
+                    setData(i, j, k, data);
+                }
+            }
+        }
+    }
+
+    /**
+     * Set a pyramid of data in the mantle
+     *
+     * @param cx     the center x
+     * @param cy     the base y
+     * @param cz     the center z
+     * @param data   the data to set
+     * @param size   the size of the pyramid (width of base & height)
+     * @param filled should it be filled or hollow
+     * @param <T>    the type of data to apply to the mantle
+     */
+    @SuppressWarnings("ConstantConditions")
+    public <T> void setPyramid(int cx, int cy, int cz, T data, int size, boolean filled) {
+        int height = size;
+
+        for (int y = 0; y <= height; ++y) {
+            size--;
+            for (int x = 0; x <= size; ++x) {
+                for (int z = 0; z <= size; ++z) {
+                    if ((filled && z <= size && x <= size) || z == size || x == size) {
+                        setData(x + cx, y + cy, z + cz, data);
+                        setData(-x + cx, y + cy, z + cz, data);
+                        setData(x + cx, y + cy, -z + cz, data);
+                        setData(-x + cx, y + cy, -z + cz, data);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Set a 3d line
+     *
+     * @param a      the first point
+     * @param b      the second point
+     * @param radius the radius
+     * @param filled hollow or filled?
+     * @param data   the data
+     * @param <T>    the type of data to apply to the mantle
+     */
+    public <T> void setLine(IrisPosition a, IrisPosition b, double radius, boolean filled, T data) {
+        setLine(ImmutableList.of(a, b), radius, filled, data);
+    }
+
+    public <T> void setLine(List<IrisPosition> vectors, double radius, boolean filled, T data) {
+        setLineConsumer(vectors, radius, filled, (_x, _y, _z) -> data);
+    }
+
+    /**
+     * Set lines for points
+     *
+     * @param vectors the points
+     * @param radius  the radius
+     * @param filled  hollow or filled?
+     * @param data    the data to set
+     * @param <T>     the type of data to apply to the mantle
+     */
+    public <T> void setLineConsumer(List<IrisPosition> vectors, double radius, boolean filled, Function3<Integer, Integer, Integer, T> data) {
+        Set<IrisPosition> vset = cleanup(vectors);
+        vset = getBallooned(vset, radius);
+
+        if (!filled) {
+            vset = getHollowed(vset);
+        }
+
+        setConsumer(vset, data);
+    }
+
+    /**
+     * Set lines for points
+     *
+     * @param vectors the points
+     * @param radius  the radius
+     * @param filled  hollow or filled?
+     * @param data    the data to set
+     * @param <T>     the type of data to apply to the mantle
+     */
+    public <T> void setNoiseMasked(List<IrisPosition> vectors, double radius, double threshold, CNG shape, Set<IrisPosition> masks, boolean filled, Function3<Integer, Integer, Integer, T> data) {
+        Set<IrisPosition> vset = cleanup(vectors);
+        vset = masks == null ? getBallooned(vset, radius) : getMasked(vset, masks, radius);
+        vset.removeIf(p -> shape.noise(p.getX(), p.getY(), p.getZ()) < threshold);
+
+        if (!filled) {
+            vset = getHollowed(vset);
+        }
+
+        setConsumer(vset, data);
+    }
+
+    static Set<IrisPosition> getMasked(Set<IrisPosition> vectors, Set<IrisPosition> masks, double radius) {
+        Set<IrisPosition> vset = new KSet<>();
+        int ceil = (int) Math.ceil(radius);
+        double r2 = Math.pow(radius, 2);
+        PositionLookup maskLookup = PositionLookup.of(masks);
+
+        for (IrisPosition v : vectors) {
+            int tipX = v.getX();
+            int tipY = v.getY();
+            int tipZ = v.getZ();
+
+            for (int x = -ceil; x <= ceil; x++) {
+                for (int y = -ceil; y <= ceil; y++) {
+                    for (int z = -ceil; z <= ceil; z++) {
+                        if (hypot(x, y, z) > r2 || !maskLookup.contains(x, y, z))
+                            continue;
+                        vset.add(new IrisPosition(tipX + x, tipY + y, tipZ + z));
+                    }
+                }
+            }
+        }
+
+        return vset;
+    }
+
+    private static Set<IrisPosition> cleanup(List<IrisPosition> vectors) {
+        Set<IrisPosition> vset = new KSet<>();
+
+        for (int i = 0; vectors.size() != 0 && i < vectors.size() - 1; i++) {
+            IrisPosition pos1 = vectors.get(i);
+            IrisPosition pos2 = vectors.get(i + 1);
+            int x1 = pos1.getX();
+            int y1 = pos1.getY();
+            int z1 = pos1.getZ();
+            int x2 = pos2.getX();
+            int y2 = pos2.getY();
+            int z2 = pos2.getZ();
+            int tipx = x1;
+            int tipy = y1;
+            int tipz = z1;
+            int dx = Math.abs(x2 - x1);
+            int dy = Math.abs(y2 - y1);
+            int dz = Math.abs(z2 - z1);
+
+            if (dx + dy + dz == 0) {
+                vset.add(new IrisPosition(tipx, tipy, tipz));
+                continue;
+            }
+
+            int dMax = Math.max(Math.max(dx, dy), dz);
+            if (dMax == dx) {
+                for (int domstep = 0; domstep <= dx; domstep++) {
+                    tipx = x1 + domstep * (x2 - x1 > 0 ? 1 : -1);
+                    tipy = (int) Math.round(y1 + domstep * ((double) dy) / ((double) dx) * (y2 - y1 > 0 ? 1 : -1));
+                    tipz = (int) Math.round(z1 + domstep * ((double) dz) / ((double) dx) * (z2 - z1 > 0 ? 1 : -1));
+
+                    vset.add(new IrisPosition(tipx, tipy, tipz));
+                }
+            } else if (dMax == dy) {
+                for (int domstep = 0; domstep <= dy; domstep++) {
+                    tipy = y1 + domstep * (y2 - y1 > 0 ? 1 : -1);
+                    tipx = (int) Math.round(x1 + domstep * ((double) dx) / ((double) dy) * (x2 - x1 > 0 ? 1 : -1));
+                    tipz = (int) Math.round(z1 + domstep * ((double) dz) / ((double) dy) * (z2 - z1 > 0 ? 1 : -1));
+
+                    vset.add(new IrisPosition(tipx, tipy, tipz));
+                }
+            } else /* if (dMax == dz) */ {
+                for (int domstep = 0; domstep <= dz; domstep++) {
+                    tipz = z1 + domstep * (z2 - z1 > 0 ? 1 : -1);
+                    tipy = (int) Math.round(y1 + domstep * ((double) dy) / ((double) dz) * (y2 - y1 > 0 ? 1 : -1));
+                    tipx = (int) Math.round(x1 + domstep * ((double) dx) / ((double) dz) * (x2 - x1 > 0 ? 1 : -1));
+
+                    vset.add(new IrisPosition(tipx, tipy, tipz));
+                }
+            }
+        }
+
+        return vset;
+    }
+
+    /**
+     * Set a cylinder in the mantle
+     *
+     * @param cx     the center x
+     * @param cy     the base y
+     * @param cz     the center z
+     * @param data   the data to set
+     * @param radius the radius
+     * @param height the height of the cyl
+     * @param filled filled or not
+     */
+    public <T> void setCylinder(int cx, int cy, int cz, T data, double radius, int height, boolean filled) {
+        setCylinder(cx, cy, cz, data, radius, radius, height, filled);
+    }
+
+    /**
+     * Set a cylinder in the mantle
+     *
+     * @param cx      the center x
+     * @param cy      the base y
+     * @param cz      the center z
+     * @param data    the data to set
+     * @param radiusX the x radius
+     * @param radiusZ the z radius
+     * @param height  the height of this cyl
+     * @param filled  filled or hollow?
+     */
+    public <T> void setCylinder(int cx, int cy, int cz, T data, double radiusX, double radiusZ, int height, boolean filled) {
+        int affected = 0;
+        radiusX += 0.5;
+        radiusZ += 0.5;
+
+        if (height == 0) {
+            return;
+        } else if (height < 0) {
+            height = -height;
+            cy = cy - height;
+        }
+
+        if (cy < 0) {
+            cy = 0;
+        } else if (cy + height - 1 > getMantle().getWorldHeight()) {
+            height = getMantle().getWorldHeight() - cy + 1;
+        }
+
+        final double invRadiusX = 1 / radiusX;
+        final double invRadiusZ = 1 / radiusZ;
+        final int ceilRadiusX = (int) Math.ceil(radiusX);
+        final int ceilRadiusZ = (int) Math.ceil(radiusZ);
+        double nextXn = 0;
+
+        forX:
+        for (int x = 0; x <= ceilRadiusX; ++x) {
+            final double xn = nextXn;
+            nextXn = (x + 1) * invRadiusX;
+            double nextZn = 0;
+            for (int z = 0; z <= ceilRadiusZ; ++z) {
+                final double zn = nextZn;
+                nextZn = (z + 1) * invRadiusZ;
+                double distanceSq = lengthSq(xn, zn);
+
+                if (distanceSq > 1) {
+                    if (z == 0) {
+                        break forX;
+                    }
+
+                    break;
+                }
+
+                if (!filled) {
+                    if (lengthSq(nextXn, zn) <= 1 && lengthSq(xn, nextZn) <= 1) {
+                        continue;
+                    }
+                }
+
+                for (int y = 0; y < height; ++y) {
+                    setData(cx + x, cy + y, cz + z, data);
+                    setData(cx + -x, cy + y, cz + z, data);
+                    setData(cx + x, cy + y, cz + -z, data);
+                    setData(cx + -x, cy + y, cz + -z, data);
+                }
+            }
+        }
+    }
+
+    public <T> void set(IrisPosition pos, T data) {
+        try {
+            setData(pos.getX(), pos.getY(), pos.getZ(), data);
+        } catch (Throwable e) {
+            // Reached per position while an object writes past the edge of the writer window, which is
+            // how a large object is clipped. Nothing here is actionable from outside the engine.
+            IrisLogging.debug("No set? " + data.toString() + " for " + pos.toString());
+        }
+    }
+
+    public <T> void set(List<IrisPosition> positions, T data) {
+        for (IrisPosition i : positions) {
+            set(i, data);
+        }
+    }
+
+    public <T> void set(Set<IrisPosition> positions, T data) {
+        for (IrisPosition i : positions) {
+            set(i, data);
+        }
+    }
+
+    public <T> void setConsumer(Set<IrisPosition> positions, Function3<Integer, Integer, Integer, T> data) {
+        for (IrisPosition i : positions) {
+            set(i, data.apply(i.getX(), i.getY(), i.getZ()));
+        }
+    }
+
+    public boolean isWithin(Vector pos) {
+        return isWithin(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
+    }
+
+    public boolean isWithin(int x, int y, int z) {
+        int cx = x >> 4;
+        int cz = z >> 4;
+
+        if (y < 0 || y >= mantle.getWorldHeight()) {
+            return false;
+        }
+
+        return cx >= this.x - radius && cx <= this.x + radius
+                && cz >= this.z - radius && cz <= this.z + radius;
+    }
+
+    @Override
+    public void close() {
+        for (int index = 0; index < window.length(); index++) {
+            MantleChunk<Matter> chunk = window.getAndSet(index, null);
+            if (chunk != null) {
+                chunk.release();
+            }
+        }
+    }
+}

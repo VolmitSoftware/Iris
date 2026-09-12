@@ -19,20 +19,20 @@
 package art.arcane.iris.modded.service;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.gui.PregeneratorJob;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.tools.WorldMaintenance;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.history.SavedTerrainChunk;
+import art.arcane.iris.studio.view.PregeneratorJob;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.world.WorldMaintenance;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.world.history.SavedTerrainChunk;
 import art.arcane.iris.modded.ModdedSavedTerrainCapture;
 
 import java.util.concurrent.CompletableFuture;
-import art.arcane.iris.engine.framework.EnginePlatformHooks;
-import art.arcane.iris.engine.framework.NativeStructureVolume;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisDimensionRuntimeContract;
-import art.arcane.iris.engine.object.IrisWorld;
-import art.arcane.iris.engine.object.IrisWorldBoundary;
+import art.arcane.iris.generation.runtime.EnginePlatformHooks;
+import art.arcane.iris.structure.nativegen.NativeStructureVolume;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisDimensionRuntimeContract;
+import art.arcane.iris.world.IrisWorld;
+import art.arcane.iris.world.IrisWorldBoundary;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedDimensionManager;
 import art.arcane.iris.modded.ModdedForcedDatapack;

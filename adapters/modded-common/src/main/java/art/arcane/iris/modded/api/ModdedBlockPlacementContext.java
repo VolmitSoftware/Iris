@@ -18,7 +18,7 @@
 
 package art.arcane.iris.modded.api;
 
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.generation.runtime.Engine;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;

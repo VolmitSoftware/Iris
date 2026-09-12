@@ -18,12 +18,12 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.framework.LootResolver;
-import art.arcane.iris.engine.object.InventorySlotType;
-import art.arcane.iris.engine.object.IrisAttributeModifier;
-import art.arcane.iris.engine.object.IrisEnchantment;
-import art.arcane.iris.engine.object.IrisLoot;
-import art.arcane.iris.engine.object.IrisLootTable;
+import art.arcane.iris.structure.placement.LootResolver;
+import art.arcane.iris.world.loot.InventorySlotType;
+import art.arcane.iris.world.entity.IrisAttributeModifier;
+import art.arcane.iris.world.entity.IrisEnchantment;
+import art.arcane.iris.world.loot.IrisLoot;
+import art.arcane.iris.world.loot.IrisLootTable;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;

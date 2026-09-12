@@ -1,9 +1,9 @@
 package art.arcane.iris.modded.service;
 
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineMetrics;
-import art.arcane.iris.engine.object.IrisWorld;
-import art.arcane.iris.util.project.matter.TileWrapper;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.EngineMetrics;
+import art.arcane.iris.world.IrisWorld;
+import art.arcane.iris.world.storage.matter.TileWrapper;
 import art.arcane.volmlib.util.function.Consumer4;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.mantle.runtime.MantleDataAdapter;

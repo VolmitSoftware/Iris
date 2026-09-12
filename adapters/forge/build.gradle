@@ -18,6 +18,7 @@
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.gradle.api.file.DeleteSpec
+import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.FileTree
 import org.gradle.api.tasks.compile.JavaCompile
@@ -299,6 +300,9 @@ tasks.named('shadowJar', ShadowJar).configure {
     // loader has. Shipping it only adds dead classes that reference a missing package.
     exclude('art/arcane/iris/platform/bukkit/**')
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    filesMatching('META-INF/services/**') { FileCopyDetails entry ->
+        entry.duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    }
     relocate('org.objectweb.asm', 'art.arcane.iris.shadow.asm')
     // Split-package guard. A co-installed mod that ships any of these at their original coordinates
     // puts two copies of the same package on one module layer, which the loaders reject at boot

@@ -1,8 +1,8 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.object.IrisObjectVacuum;
-import art.arcane.iris.engine.object.IrisStructureTerrain;
-import art.arcane.iris.engine.object.IrisStructureTerrainMode;
+import art.arcane.iris.structure.object.IrisObjectVacuum;
+import art.arcane.iris.structure.placement.IrisStructureTerrain;
+import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
 import art.arcane.iris.spi.IrisLogging;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.WorldGenLevel;

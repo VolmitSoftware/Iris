@@ -19,13 +19,13 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.gui.GuiHost;
-import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.core.localization.IrisLanguage;
+import art.arcane.iris.studio.view.GuiHost;
+import art.arcane.iris.pack.loading.IrisRegistrant;
+import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;

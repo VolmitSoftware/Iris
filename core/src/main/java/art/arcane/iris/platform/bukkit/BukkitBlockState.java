@@ -18,15 +18,15 @@
 
 package art.arcane.iris.platform.bukkit;
 
-import art.arcane.iris.core.link.Identifier;
-import art.arcane.iris.core.nms.INMS;
-import art.arcane.iris.core.nms.container.Pair;
-import art.arcane.iris.core.service.ExternalDataSVC;
-import art.arcane.iris.engine.object.IrisObjectRotation;
+import art.arcane.iris.integration.Identifier;
+import art.arcane.iris.platform.bukkit.nms.INMS;
+import art.arcane.iris.platform.bukkit.nms.container.Pair;
+import art.arcane.iris.integration.ExternalDataSVC;
+import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.platform.BlockStateKey;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.IrisCustomData;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.iris.generation.block.IrisCustomData;
+import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.collection.KMap;
 import org.bukkit.Axis;
 import org.bukkit.Bukkit;

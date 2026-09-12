@@ -1,0 +1,21 @@
+package art.arcane.iris.generation.hydrology.cave;
+
+public enum HydrologyCaveRejection {
+    NONE,
+    INVALID_SOURCE,
+    NO_CAVE_TARGET,
+    THROAT_LIMIT,
+    RADIUS_LIMIT,
+    DEPTH_LIMIT,
+    VOLUME_LIMIT,
+    WORLD_BOUNDARY,
+    OPEN_SURFACE,
+    LAVA_CONTACT,
+    EXISTING_FLUID,
+    INCOMPATIBLE_FLUID,
+    GROTTO_INTERSECTION,
+    GROTTO_SHELL_OPEN,
+    DRY_HEADROOM_LIMIT,
+    WATERFALL_SHAFT_OPEN,
+    OVERLAPPING_SOURCE
+}

@@ -19,8 +19,8 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.localization.IrisLanguage;
-import art.arcane.iris.core.localization.RuntimeUiMessages;
+import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;

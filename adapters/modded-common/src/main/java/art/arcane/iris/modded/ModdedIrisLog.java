@@ -18,7 +18,7 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.LogLevel;
 import org.slf4j.Logger;

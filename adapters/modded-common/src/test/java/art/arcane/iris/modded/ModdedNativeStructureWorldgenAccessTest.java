@@ -1,7 +1,7 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.IrisStructureTerrain;
-import art.arcane.iris.engine.object.IrisStructureTerrainMode;
+import art.arcane.iris.structure.placement.IrisStructureTerrain;
+import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
 import art.arcane.iris.nativegen.NativeStructurePostProcessor;
 import art.arcane.iris.nativegen.NativeStructureTerrainIntegrator;
 import net.minecraft.SharedConstants;

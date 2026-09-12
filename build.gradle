@@ -502,10 +502,11 @@ tasks.named('check').configure {
 List<String> commonModdedArtifactEntries = [
     'META-INF/iris/generation-kernels/catalog.tsv',
     'META-INF/iris/generation-kernels/abi-1.revision',
-    'art/arcane/iris/engine/IrisEngine.class',
+    'META-INF/services/art.arcane.iris.localization.IrisMessageContributor',
+    'art/arcane/iris/generation/runtime/IrisEngine.class',
     'art/arcane/iris/spi/IrisPlatform.class',
     'art/arcane/volmlib/util/mantle/io/Lz4IOWorkerCodecSupport.class',
-    'art/arcane/iris/util/common/misc/getHardware.class',
+    'art/arcane/iris/platform/bootstrap/getHardware.class',
     // Both shared mixin configs plus the lang file and mod icon every loader's metadata points at.
     // A shadowJar exclude or a renamed resource that drops any of these is silent at build time and
     // shows up as a non-applied mixin or a missing-translation report from a user.
@@ -585,6 +586,25 @@ tasks.register('verifyModdedArtifacts') {
 // instrumentation agent, the JarScanner-driven command and service discovery, the Matter codec - plus
 // the two plugin descriptors and the slimjar manifests. Nothing in the reference graph points at
 // them, so a shadowJar exclude that drops one is silent until a server hits that path.
+File commandSourceRoot = layout.projectDirectory.dir('core/src/main/java').asFile
+FileTree commandHandlerSources = fileTree(commandSourceRoot) {
+    include('art/arcane/iris/command/handlers/**/*.java')
+    include('art/arcane/iris/command/context/**/*.java')
+    include('art/arcane/iris/command/specialhandlers/**/*.java')
+}
+List<String> requiredCommandHandlerEntries = commandHandlerSources.files.collect { File source ->
+    commandSourceRoot.toPath().relativize(source.toPath()).toString()
+        .replace(File.separator, '/').replaceAll(/\.java$/, '.class')
+}.sort()
+FileTree mantleComponentSources = fileTree(commandSourceRoot) {
+    include('art/arcane/iris/generation/mantle/**/*.java')
+}
+List<String> requiredMantleComponentEntries = mantleComponentSources.files.findAll { File source ->
+    source.getText('UTF-8') =~ /(?m)^\s*@ComponentFlag\b/
+}.collect { File source ->
+    commandSourceRoot.toPath().relativize(source.toPath()).toString()
+        .replace(File.separator, '/').replaceAll(/\.java$/, '.class')
+}.sort()
 List<String> requiredBukkitArtifactEntries = [
     'META-INF/iris/generation-kernels/catalog.tsv',
     'META-INF/iris/generation-kernels/abi-1.revision',
@@ -596,25 +616,27 @@ List<String> requiredBukkitArtifactEntries = [
     'agent.jar',
     'art/arcane/iris/Iris.class',
     'art/arcane/iris/IrisBootstrap.class',
-    'art/arcane/iris/core/nms/INMS.class',
-    'art/arcane/iris/core/nms/v26_2_R1/NMSBinding.class',
-    'art/arcane/iris/core/nms/v1X/NMSBinding1X.class',
-    'art/arcane/iris/engine/platform/PlatformChunkGenerator.class',
-    'art/arcane/iris/core/lifecycle/WorldLifecycleStaging.class',
-    'art/arcane/iris/util/simd/VectorSimdKernels.class',
-    'art/arcane/iris/util/project/agent/Agent.class',
-    'art/arcane/iris/util/common/misc/getHardware.class',
+    'art/arcane/iris/platform/bukkit/nms/INMS.class',
+    'art/arcane/iris/platform/bukkit/nms/v26_2_R1/NMSBinding.class',
+    'art/arcane/iris/platform/bukkit/nms/v1X/NMSBinding1X.class',
+    'art/arcane/iris/platform/generation/PlatformChunkGenerator.class',
+    'art/arcane/iris/world/lifecycle/WorldLifecycleStaging.class',
+    'art/arcane/iris/generation/simd/VectorSimdKernels.class',
+    'art/arcane/iris/platform/agent/Agent.class',
+    'art/arcane/iris/platform/bootstrap/getHardware.class',
     'art/arcane/volmlib/util/io/JarScanner.class',
     'art/arcane/volmlib/util/director/runtime/DirectorRuntimeEngine.class',
     'art/arcane/volmlib/util/mantle/io/Lz4IOWorkerCodecSupport.class',
     'art/arcane/volmlib/util/matter/Matter.class'
-]
+] + requiredCommandHandlerEntries + requiredMantleComponentEntries
 
 tasks.register('verifyBukkitArtifact') {
     group = 'verification'
     dependsOn('jar')
     File artifact = bukkitArtifact
     inputs.file(artifact)
+    inputs.files(commandHandlerSources)
+    inputs.files(mantleComponentSources)
     doLast {
         BukkitArtifactVerifier.verify(
                 artifact,

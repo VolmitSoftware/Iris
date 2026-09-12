@@ -1,12 +1,12 @@
 package art.arcane.iris.modded.service;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.core.service.tree.TreeDefinitionIndex;
-import art.arcane.iris.core.service.tree.TreeMarkerTraversal;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.StructurePlacementMarker;
-import art.arcane.iris.engine.framework.TreeBlockMaterial;
+import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.world.tree.TreeDefinitionIndex;
+import art.arcane.iris.world.tree.TreeMarkerTraversal;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.structure.placement.StructurePlacementMarker;
+import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.modded.ModdedBlockBreakHandler;
 import art.arcane.iris.modded.ModdedBlockState;
 import art.arcane.iris.modded.ModdedEngineBootstrap;

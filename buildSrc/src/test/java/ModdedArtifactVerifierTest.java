@@ -24,7 +24,7 @@ import static org.junit.Assert.assertTrue;
 public class ModdedArtifactVerifierTest {
     private static final String METADATA = "fabric.mod.json";
     private static final String CODEC_CLASS = "art/arcane/volmlib/util/mantle/io/Lz4IOWorkerCodecSupport.class";
-    private static final String HARDWARE_CLASS = "art/arcane/iris/util/common/misc/getHardware.class";
+    private static final String HARDWARE_CLASS = "art/arcane/iris/platform/bootstrap/getHardware.class";
     private static final String MIXIN_CONFIG = "irisworldgen.entity.mixins.json";
     private static final String CLIENT_MIXIN_CONFIG = "irisworldgen.client.mixins.json";
     private static final String NEOFORGE_METADATA = "META-INF/neoforge.mods.toml";
@@ -220,8 +220,8 @@ public class ModdedArtifactVerifierTest {
     @Test
     public void rejectsBukkitSupertypeOutsidePlatformPackage() throws Exception {
         Map<String, byte[]> entries = validEntries();
-        entries.put("art/arcane/iris/engine/platform/BukkitChunkGenerator.class",
-                classExtending("art/arcane/iris/engine/platform/BukkitChunkGenerator",
+        entries.put("art/arcane/iris/platform/generation/BukkitChunkGenerator.class",
+                classExtending("art/arcane/iris/platform/generation/BukkitChunkGenerator",
                         "org/bukkit/generator/ChunkGenerator"));
         File artifact = createArtifact(entries);
 
@@ -255,25 +255,25 @@ public class ModdedArtifactVerifierTest {
     @Test
     public void acceptsBukkitSupertypeDeclaredInThePurityAllowlist() throws Exception {
         Map<String, byte[]> entries = validEntries();
-        entries.put("art/arcane/iris/engine/platform/BukkitChunkGenerator.class",
-                classExtending("art/arcane/iris/engine/platform/BukkitChunkGenerator",
+        entries.put("art/arcane/iris/platform/generation/BukkitChunkGenerator.class",
+                classExtending("art/arcane/iris/platform/generation/BukkitChunkGenerator",
                         "org/bukkit/generator/ChunkGenerator"));
         File artifact = createArtifact(entries);
 
         ModdedArtifactVerifier.verify(artifact, REQUIRED_ENTRIES,
-                Set.of("art/arcane/iris/engine/platform/BukkitChunkGenerator"));
+                Set.of("art/arcane/iris/platform/generation/BukkitChunkGenerator"));
     }
 
     @Test
     public void acceptsBukkitSupertypeOnNestedClassOfAllowlistedSource() throws Exception {
         Map<String, byte[]> entries = validEntries();
-        entries.put("art/arcane/iris/engine/object/IrisEntity$BukkitOps$1.class",
-                classImplementing("art/arcane/iris/engine/object/IrisEntity$BukkitOps$1",
+        entries.put("art/arcane/iris/world/entity/IrisEntity$BukkitOps$1.class",
+                classImplementing("art/arcane/iris/world/entity/IrisEntity$BukkitOps$1",
                         "org/bukkit/event/Listener"));
         File artifact = createArtifact(entries);
 
         ModdedArtifactVerifier.verify(artifact, REQUIRED_ENTRIES,
-                Set.of("art/arcane/iris/engine/object/IrisEntity"));
+                Set.of("art/arcane/iris/world/entity/IrisEntity"));
     }
 
     @Test
@@ -289,14 +289,14 @@ public class ModdedArtifactVerifierTest {
     @Test
     public void rejectsBukkitSupertypeMissingFromThePurityAllowlist() throws Exception {
         Map<String, byte[]> entries = validEntries();
-        entries.put("art/arcane/iris/core/link/data/OraxenDataProvider.class",
-                classImplementing("art/arcane/iris/core/link/data/OraxenDataProvider",
+        entries.put("art/arcane/iris/integration/data/OraxenDataProvider.class",
+                classImplementing("art/arcane/iris/integration/data/OraxenDataProvider",
                         "org/bukkit/event/Listener"));
         File artifact = createArtifact(entries);
 
         GradleException failure = assertThrows(GradleException.class,
                 () -> ModdedArtifactVerifier.verify(artifact, REQUIRED_ENTRIES,
-                        Set.of("art/arcane/iris/core/link/data/ItemAdderDataProvider")));
+                        Set.of("art/arcane/iris/integration/data/ItemAdderDataProvider")));
         assertTrue(failure.getMessage().contains("core/purity-allowlist.txt"));
     }
 

@@ -1,11 +1,11 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.core.nms.v26_2_R1.IrisChunkGenerator;
-import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.GenerationSessionLease;
-import art.arcane.iris.engine.history.BoundaryColumnGeometry;
-import art.arcane.iris.engine.history.TerrainBoundarySignature;
+import art.arcane.iris.platform.bukkit.nms.v26_2_R1.IrisChunkGenerator;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationSessionLease;
+import art.arcane.iris.world.history.BoundaryColumnGeometry;
+import art.arcane.iris.world.history.TerrainBoundarySignature;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;

@@ -1,6 +1,6 @@
 package art.arcane.iris.purity;
 
-import art.arcane.iris.engine.object.annotations.Snippet;
+import art.arcane.iris.pack.schema.annotation.Snippet;
 import org.junit.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -71,12 +71,12 @@ import static org.junit.Assert.fail;
  * boot hazard. Fields and supertypes are, and both are asserted hard below.
  */
 public class PackTypeBukkitPurityGateTest {
-    private static final String SNIPPET_DESCRIPTOR = "Lart/arcane/iris/engine/object/annotations/Snippet;";
+    private static final String SNIPPET_DESCRIPTOR = "Lart/arcane/iris/pack/schema/annotation/Snippet;";
     private static final String BUKKIT_INTERNAL_PREFIX = "org/bukkit/";
     /** See {@link #theGateStillCatchesAClassThatNeedsBukkit()}. */
-    private static final String BUKKIT_DEPENDENT_CANARY = "art.arcane.iris.engine.object.IrisObjectRotation$Faces";
-    private static final String OBJECT_PACKAGE = "art/arcane/iris/engine/object";
-    private static final String IRIS_DATA = "art.arcane.iris.core.loader.IrisData";
+    private static final String BUKKIT_DEPENDENT_CANARY = "art.arcane.iris.structure.object.IrisObjectRotation$Faces";
+    private static final String IRIS_PACKAGE = "art/arcane/iris";
+    private static final String IRIS_DATA = "art.arcane.iris.pack.loading.IrisData";
 
     /**
      * Every type handed to {@code registerLoader} in {@code IrisData.hotloaded()} - i.e. every root
@@ -84,33 +84,33 @@ public class PackTypeBukkitPurityGateTest {
      * #registeredRootListMatchesIrisData()} fails if the compiled registrations drift away from it.
      */
     private static final List<String> GSON_REGISTERED_ROOTS = List.of(
-            "art.arcane.iris.engine.object.IrisLootTable",
-            "art.arcane.iris.engine.object.IrisSpawner",
-            "art.arcane.iris.engine.object.IrisEntity",
-            "art.arcane.iris.engine.object.IrisRegion",
-            "art.arcane.iris.engine.object.IrisBiome",
-            "art.arcane.iris.engine.object.IrisMod",
-            "art.arcane.iris.engine.object.IrisDimension",
-            "art.arcane.iris.engine.object.IrisGenerator",
-            "art.arcane.iris.engine.object.IrisMarker",
-            "art.arcane.iris.engine.object.IrisBlockData",
-            "art.arcane.iris.engine.object.IrisExpression",
-            "art.arcane.iris.engine.object.IrisObject",
-            "art.arcane.iris.engine.object.IrisImage",
-            "art.arcane.iris.engine.object.IrisImageMap",
-            "art.arcane.iris.engine.object.matter.IrisMatterObject",
-            "art.arcane.iris.engine.object.IrisStructure",
-            "art.arcane.iris.engine.object.IrisJigsawPool",
-            "art.arcane.iris.engine.object.IrisJigsawPiece");
+            "art.arcane.iris.world.loot.IrisLootTable",
+            "art.arcane.iris.world.entity.IrisSpawner",
+            "art.arcane.iris.world.entity.IrisEntity",
+            "art.arcane.iris.generation.terrain.IrisRegion",
+            "art.arcane.iris.generation.biome.IrisBiome",
+            "art.arcane.iris.pack.mod.IrisMod",
+            "art.arcane.iris.generation.terrain.IrisDimension",
+            "art.arcane.iris.generation.noise.IrisGenerator",
+            "art.arcane.iris.world.entity.IrisMarker",
+            "art.arcane.iris.generation.block.IrisBlockData",
+            "art.arcane.iris.generation.noise.IrisExpression",
+            "art.arcane.iris.structure.object.IrisObject",
+            "art.arcane.iris.generation.image.IrisImage",
+            "art.arcane.iris.generation.image.IrisImageMap",
+            "art.arcane.iris.structure.object.matter.IrisMatterObject",
+            "art.arcane.iris.structure.placement.IrisStructure",
+            "art.arcane.iris.structure.jigsaw.IrisJigsawPool",
+            "art.arcane.iris.structure.jigsaw.IrisJigsawPiece");
 
     /**
      * Types reachable from a pack that are not roots and carry no {@code @Snippet}, but are
      * deserialized/serialized all the same (object tile payloads, vanilla loot table adapters).
      */
     private static final List<String> ADDITIONAL_PACK_TYPES = List.of(
-            "art.arcane.iris.engine.object.TileData",
-            "art.arcane.iris.engine.object.LegacyTileData",
-            "art.arcane.iris.engine.object.IrisVanillaLootTable");
+            "art.arcane.iris.generation.block.TileData",
+            "art.arcane.iris.generation.block.LegacyTileData",
+            "art.arcane.iris.world.loot.IrisVanillaLootTable");
 
     /**
      * Bukkit-registry constant holders that a core pack type references, so their class initializer
@@ -119,7 +119,7 @@ public class PackTypeBukkitPurityGateTest {
      * Bukkit adapter, so they stay out of the gate.)
      */
     private static final List<String> BUKKIT_STATIC_HOLDERS = List.of(
-            "art.arcane.iris.util.common.data.registry.Particles");
+            "art.arcane.iris.platform.bukkit.registry.Particles");
 
     @Test
     public void theGateActuallyHidesBukkit() throws Exception {
@@ -134,7 +134,7 @@ public class PackTypeBukkitPurityGateTest {
         assertThrows(ClassNotFoundException.class,
                 () -> Class.forName("org.bukkit.Bukkit", false, hiding));
 
-        Class<?> selfDefined = Class.forName("art.arcane.iris.engine.object.IrisPosition", false, hiding);
+        Class<?> selfDefined = Class.forName("art.arcane.iris.pack.value.IrisPosition", false, hiding);
         assertEquals("iris classes must be defined by the hiding loader, not delegated to the parent",
                 hiding, selfDefined.getClassLoader());
     }
@@ -354,7 +354,7 @@ public class PackTypeBukkitPurityGateTest {
     @Test
     public void theGenericSignatureScanSeesWhatTheDescriptorErased() throws Exception {
         byte[] bytes = BukkitHidingClassLoader.readClassBytes(getClass().getClassLoader(),
-                "art.arcane.iris.engine.object.IrisBiome");
+                "art.arcane.iris.generation.biome.IrisBiome");
         assertNotNull("no class bytes for IrisBiome", bytes);
 
         ClassFileFacts.DeclaredField cache = null;
@@ -501,7 +501,7 @@ public class PackTypeBukkitPurityGateTest {
     private static List<String> snippetTypes() throws Exception {
         ClassLoader app = PackTypeBukkitPurityGateTest.class.getClassLoader();
         List<String> snippets = new ArrayList<>();
-        for (String candidate : classNamesUnder(OBJECT_PACKAGE)) {
+        for (String candidate : classNamesUnder(IRIS_PACKAGE)) {
             if (candidate.indexOf('$') >= 0) {
                 continue;
             }

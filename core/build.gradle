@@ -265,22 +265,14 @@ tasks.named('test', Test).configure {
 
 configurations.matching { it.name.startsWith('slim') }.all { }
 
-// VolmLib packages that Iris forked into art.arcane.iris.util.project.* or replaced outright. Every
+// Unused VolmLib packages excluded from the Bukkit artifact. Every
 // class in each of these packages is unreachable from every other class shipped in the Bukkit jar,
-// and none of them is a reflective target: Matter.read() resolves only matter/slices, JarScanner
+// and none of them is a reflective target: Matter.read() resolves only world/storage/matter, JarScanner
 // only walks Iris' own packages, and the remaining VolmLib Class.forName calls name Bukkit/NMS or
 // runtime-downloaded types. Package granularity is deliberate - a partially used package stays whole.
 // verifyBukkitArtifact re-derives the reference graph over the shipped jar and fails on any dangling
 // reference, so an exclude that stops being dead is a build failure rather than a runtime crash.
-List<String> supersededVolmLibPackages = [
-    'art/arcane/volmlib/util/noise/**',
-    'art/arcane/volmlib/util/stream/ProceduralStream.class',
-    'art/arcane/volmlib/util/stream/BasicStream.class',
-    'art/arcane/volmlib/util/stream/arithmetic/**',
-    'art/arcane/volmlib/util/stream/convert/**',
-    'art/arcane/volmlib/util/stream/interpolation/**',
-    'art/arcane/volmlib/util/stream/sources/**',
-    'art/arcane/volmlib/util/stream/utility/**',
+List<String> unusedVolmLibPackages = [
     'art/arcane/volmlib/util/uniques/**',
     'art/arcane/volmlib/util/bukkit/json/**',
     'art/arcane/volmlib/util/bukkit/registry/**',
@@ -289,8 +281,7 @@ List<String> supersededVolmLibPackages = [
     'art/arcane/volmlib/util/api/**',
     'art/arcane/volmlib/util/entity/**',
     'art/arcane/volmlib/util/reflect/**',
-    'art/arcane/volmlib/util/documentation/**',
-    'art/arcane/iris/core/report/**',
+    'art/arcane/iris/diagnostics/Report*.class',
     'art/arcane/volmlib/integration/VaultEconomy*.class'
 ]
 
@@ -349,21 +340,10 @@ List<String> unusedVolmLibClasses = [
     'art/arcane/volmlib/util/board/BoardManager',
     'art/arcane/volmlib/util/board/BoardUpdateTask',
     'art/arcane/volmlib/util/bukkit/Placeholders',
-    'art/arcane/volmlib/util/hunk/HunkFactory',
-    'art/arcane/volmlib/util/hunk/view/BiomeForceBridge',
-    'art/arcane/volmlib/util/hunk/view/BiomeGridForceSupport',
-    'art/arcane/volmlib/util/hunk/view/BiomeGridHunkHolder',
-    'art/arcane/volmlib/util/hunk/view/BiomeGridHunkView',
-    'art/arcane/volmlib/util/hunk/view/ChunkDataHunkHolder',
-    'art/arcane/volmlib/util/hunk/view/RotatedXHunkView',
-    'art/arcane/volmlib/util/hunk/view/RotatedYHunkView',
-    'art/arcane/volmlib/util/hunk/view/RotatedZHunkView',
     'art/arcane/volmlib/util/exceptions/MissingDimensionException',
     'art/arcane/volmlib/util/function/Supplier2',
     'art/arcane/volmlib/util/function/Supplier3',
     'art/arcane/volmlib/util/hud/HudPriority',
-    'art/arcane/volmlib/util/interpolation/InterpolationMethod3D',
-    'art/arcane/volmlib/util/interpolation/InterpolationType',
     'art/arcane/volmlib/util/inventorygui/UIRainbowDecorator',
     'art/arcane/volmlib/util/io/Converter',
     'art/arcane/volmlib/util/matter/MatterPlacer',
@@ -399,18 +379,18 @@ List<String> unusedVolmLibClasses = [
     'art/arcane/volmlib/util/bukkit/Events',
     'art/arcane/volmlib/util/json/SingleCollectionTypeFactory',
     'art/arcane/volmlib/util/collection/StateList',
-    'art/arcane/iris/core/pack/IrisPack',
-    'art/arcane/iris/core/pack/IrisPackRepository',
-    'art/arcane/iris/util/common/scheduling/jobs/DownloadJob',
-    'art/arcane/iris/util/common/scheduling/jobs/JobCollection',
-    'art/arcane/iris/util/common/scheduling/jobs/ParallelQueueJob',
-    'art/arcane/iris/util/common/scheduling/jobs/QueueJob',
-    'art/arcane/iris/engine/framework/placer/WorldObjectPlacer',
-    'art/arcane/iris/engine/object/IPostBlockAccess',
-    'art/arcane/iris/engine/object/IrisPotionEffect',
-    'art/arcane/iris/engine/platform/DummyChunkGenerator',
-    'art/arcane/iris/util/common/parallel/GridLock',
-    'art/arcane/iris/util/common/reflect/W',
+    'art/arcane/iris/pack/IrisPack',
+    'art/arcane/iris/pack/IrisPackRepository',
+    'art/arcane/iris/world/task/jobs/DownloadJob',
+    'art/arcane/iris/world/task/jobs/JobCollection',
+    'art/arcane/iris/world/task/jobs/ParallelQueueJob',
+    'art/arcane/iris/world/task/jobs/QueueJob',
+    'art/arcane/iris/structure/object/WorldObjectPlacer',
+    'art/arcane/iris/structure/object/IPostBlockAccess',
+    'art/arcane/iris/world/entity/IrisPotionEffect',
+    'art/arcane/iris/platform/generation/DummyChunkGenerator',
+    'art/arcane/iris/generation/concurrent/GridLock',
+    'art/arcane/iris/platform/reflect/W',
     'art/arcane/iris/util/slimjar/BuildConstants',
     'art/arcane/iris/util/slimjar/relocation/meta/AttributeMetaMediator',
     'art/arcane/iris/util/slimjar/relocation/meta/AttributeMetaMediatorFactory'
@@ -449,7 +429,7 @@ tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.Shadow
     relocate('io.github.slimjar', "${lib}.slimjar")
     relocate('com.moandjiezana.toml', "${lib}.toml")
     exclude('modules/loader-agent.isolated-jar')
-    exclude(supersededVolmLibPackages)
+    exclude(unusedVolmLibPackages)
     exclude { FileTreeElement entry ->
         !entry.isDirectory() && entry.path.startsWith('art/arcane/volmlib/util/config/')
                 && !entry.path.matches(languageTomlSupportClassPattern)

@@ -19,11 +19,11 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.core.pregenerator.PregenListener;
-import art.arcane.iris.core.pregenerator.PregenMantleBackpressure;
-import art.arcane.iris.core.pregenerator.PregeneratorMethod;
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.world.pregen.PregenListener;
+import art.arcane.iris.world.pregen.PregenMantleBackpressure;
+import art.arcane.iris.world.pregen.PregeneratorMethod;
+import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.modded.ModdedGenPool;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import net.minecraft.server.MinecraftServer;

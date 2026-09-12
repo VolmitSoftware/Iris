@@ -1,9 +1,9 @@
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.core.localization.IrisLanguage;
-import art.arcane.iris.core.localization.PackDownloadMessages;
-import art.arcane.iris.core.lifecycle.LifecycleOperationCoordinator;
-import art.arcane.iris.core.pack.PackDownloader;
+import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.localization.PackDownloadMessages;
+import art.arcane.iris.world.lifecycle.LifecycleOperationCoordinator;
+import art.arcane.iris.pack.PackDownloader;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.tree.CommandNode;
 import net.minecraft.SharedConstants;

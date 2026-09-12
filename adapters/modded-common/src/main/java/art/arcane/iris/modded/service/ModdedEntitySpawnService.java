@@ -18,8 +18,8 @@
 
 package art.arcane.iris.modded.service;
 
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineWorldManager;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.EngineWorldManager;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedServerLevels;
 import art.arcane.iris.modded.ModdedWorldManager;

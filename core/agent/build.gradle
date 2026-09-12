@@ -14,8 +14,8 @@ dependencies {
 
 tasks.named('jar', Jar).configure {
     manifest.attributes(
-        'Agent-Class': 'art.arcane.iris.util.project.agent.Installer',
-        'Premain-Class': 'art.arcane.iris.util.project.agent.Installer',
+        'Agent-Class': 'art.arcane.iris.platform.agent.Installer',
+        'Premain-Class': 'art.arcane.iris.platform.agent.Installer',
         'Can-Redefine-Classes': true,
         'Can-Retransform-Classes': true
     )

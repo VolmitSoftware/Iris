@@ -1,6 +1,6 @@
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.engine.object.IrisBiome;
+import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 

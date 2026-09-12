@@ -1,7 +1,7 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.object.IrisJigsawConfiguration;
-import art.arcane.iris.engine.object.IrisStructureTerrain;
+import art.arcane.iris.structure.jigsaw.IrisJigsawConfiguration;
+import art.arcane.iris.structure.placement.IrisStructureTerrain;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.MapCodec;

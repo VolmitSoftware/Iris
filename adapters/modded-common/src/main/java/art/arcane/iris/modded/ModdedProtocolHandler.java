@@ -18,13 +18,13 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.protocol.EngineResolver;
-import art.arcane.iris.core.protocol.IrisCursorRequestService;
-import art.arcane.iris.core.protocol.IrisProtocolServer;
-import art.arcane.iris.core.protocol.IrisSession;
-import art.arcane.iris.core.protocol.IrisSessionRegistry;
-import art.arcane.iris.core.protocol.IrisVisionRequestService;
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.platform.protocol.EngineResolver;
+import art.arcane.iris.platform.protocol.IrisCursorRequestService;
+import art.arcane.iris.platform.protocol.IrisProtocolServer;
+import art.arcane.iris.platform.protocol.IrisSession;
+import art.arcane.iris.platform.protocol.IrisSessionRegistry;
+import art.arcane.iris.platform.protocol.IrisVisionRequestService;
+import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.spi.protocol.IrisProtocol;
 import net.minecraft.server.MinecraftServer;

@@ -18,17 +18,17 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.core.gui.GuiHost;
-import art.arcane.iris.core.localization.IrisLanguage;
-import art.arcane.iris.engine.decorator.DecoratorPlatformHooks;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineEffectsProvider;
-import art.arcane.iris.engine.framework.EnginePlatformHooks;
-import art.arcane.iris.engine.framework.EngineWorldManagerProvider;
-import art.arcane.iris.engine.framework.PreservationRegistry;
-import art.arcane.iris.engine.object.BlockDataMergeSupport;
-import art.arcane.iris.engine.object.IrisObjectRotation;
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.studio.view.GuiHost;
+import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.iris.generation.decoration.DecoratorPlatformHooks;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.EngineEffectsProvider;
+import art.arcane.iris.generation.runtime.EnginePlatformHooks;
+import art.arcane.iris.generation.runtime.EngineWorldManagerProvider;
+import art.arcane.iris.generation.runtime.PreservationRegistry;
+import art.arcane.iris.generation.block.BlockDataMergeSupport;
+import art.arcane.iris.structure.object.IrisObjectRotation;
+import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
 import art.arcane.iris.modded.command.IrisModdedCommands;
 import art.arcane.iris.modded.command.ModdedGuiHost;
@@ -48,7 +48,7 @@ import art.arcane.iris.modded.service.ModdedTreeFellerService;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.util.common.parallel.MultiBurst;
+import art.arcane.iris.generation.concurrent.MultiBurst;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -60,9 +60,9 @@ import java.util.ArrayDeque;
 
 public final class ModdedEngineBootstrap {
     private static final String[] CORE_SELF_TEST_CLASSES = {
-        "art.arcane.iris.engine.IrisEngine",
-        "art.arcane.iris.util.common.data.B",
-        "art.arcane.iris.core.loader.IrisData"
+        "art.arcane.iris.generation.runtime.IrisEngine",
+        "art.arcane.iris.generation.block.B",
+        "art.arcane.iris.pack.loading.IrisData"
     };
     private static final Object LOCK = new Object();
     private static final ModdedServiceManager UNBOUND_SERVICE_MANAGER = new ModdedServiceManager();

@@ -18,10 +18,10 @@
 
 package art.arcane.iris.platform.bukkit;
 
-import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.core.nms.INMS;
-import art.arcane.iris.core.nms.MinecraftVersion;
-import art.arcane.iris.engine.object.IrisPosition;
+import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.platform.bukkit.nms.INMS;
+import art.arcane.iris.platform.bukkit.nms.MinecraftVersion;
+import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.LogLevel;
 import art.arcane.iris.spi.PlatformBiome;
@@ -30,8 +30,8 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
 import art.arcane.iris.spi.PlatformWorld;
-import art.arcane.iris.util.common.plugin.VolmitPlugin;
-import art.arcane.iris.util.common.plugin.VolmitSender;
+import art.arcane.iris.platform.bukkit.plugin.VolmitPlugin;
+import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.hud.HudActionBar;
 import art.arcane.volmlib.util.hud.HudBossBarLane;

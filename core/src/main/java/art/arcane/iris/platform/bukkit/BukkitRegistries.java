@@ -18,11 +18,11 @@
 
 package art.arcane.iris.platform.bukkit;
 
-import art.arcane.iris.core.link.Identifier;
-import art.arcane.iris.core.link.data.DataType;
-import art.arcane.iris.core.nms.INMS;
-import art.arcane.iris.core.nms.container.BlockProperty;
-import art.arcane.iris.core.service.ExternalDataSVC;
+import art.arcane.iris.integration.Identifier;
+import art.arcane.iris.integration.data.DataType;
+import art.arcane.iris.platform.bukkit.nms.INMS;
+import art.arcane.iris.platform.bukkit.nms.container.BlockProperty;
+import art.arcane.iris.integration.ExternalDataSVC;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockProperty;
@@ -32,7 +32,7 @@ import art.arcane.iris.spi.PlatformGenerationRegistry;
 import art.arcane.iris.spi.PlatformItem;
 import art.arcane.iris.spi.PlatformNumericRange;
 import art.arcane.iris.spi.PlatformRegistries;
-import art.arcane.iris.util.common.reflect.KeyedType;
+import art.arcane.iris.platform.reflect.KeyedType;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import org.bukkit.Material;

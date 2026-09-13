@@ -46,7 +46,8 @@ buildscript {
         maven { url = uri('https://jitpack.io') }
     }
     dependencies {
-        classpath('com.github.VolmitSoftware.VolmLib:packaging:master-SNAPSHOT')
+        String volmLibRevision = providers.gradleProperty('volmLibCoordinate').get().tokenize(':').last()
+        classpath("com.github.VolmitSoftware.VolmLib:packaging:${volmLibRevision}")
     }
 }
 
@@ -750,16 +751,51 @@ allprojects {
         maven { url = uri('https://repo.papermc.io/repository/maven-public/') }
         maven { url = uri('https://repo.codemc.org/repository/maven-public/') }
 
-        maven { url = uri('https://jitpack.io') } // score
-        maven { url = uri('https://repo.auxilor.io/repository/maven-releases/') } // eco
-        maven { url = uri('https://repo.nexomc.com/releases/') } // nexo
-        maven { url = uri('https://repo.oraxen.com/releases/') }
-        maven { url = uri('https://maven.devs.beer/') } // itemsadder
-        maven { url = uri('https://repo.extendedclip.com/releases/') } // placeholderapi
-        maven { url = uri('https://mvn.lumine.io/repository/maven-public/') } // mythic
-        maven { url = uri('https://nexus.phoenixdevt.fr/repository/maven-public/') } //MMOItems
-        maven { url = uri('https://repo.onarandombox.com/content/groups/public/') } //Multiverse Core
-        maven { url = uri('https://repo.momirealms.net/releases/') } // CraftEngine
+        maven {
+            url = uri('https://jitpack.io')
+            content { includeGroupByRegex('com\\.github\\..*') }
+        } // score
+        maven {
+            url = uri('https://repo.auxilor.io/repository/maven-releases/')
+            content { includeGroupByRegex('com\\.willfp(\\..*)?') }
+        } // eco
+        maven {
+            url = uri('https://repo.nexomc.com/releases/')
+            content {
+                includeGroup('com.nexomc')
+                includeGroup('team.unnamed')
+            }
+        } // nexo
+        maven {
+            url = uri('https://repo.oraxen.com/releases/')
+            content { includeGroup('io.th0rgal') }
+        }
+        maven {
+            url = uri('https://repo.extendedclip.com/releases/')
+            content { includeGroup('me.clip') }
+        } // placeholderapi
+        maven {
+            url = uri('https://mvn.lumine.io/repository/maven-public/')
+            content {
+                includeModule('io.lumine', 'Mythic-Dist')
+                includeModule('io.lumine', 'MythicCrucible-Dist')
+            }
+        } // mythic
+        maven {
+            url = uri('https://nexus.phoenixdevt.fr/repository/maven-public/')
+            content {
+                includeGroup('net.Indyuce')
+                includeModule('io.lumine', 'MythicLib-dist')
+            }
+        } //MMOItems
+        maven {
+            url = uri('https://repo.onarandombox.com/content/groups/public/')
+            content { includeGroupByRegex('org\\.mvplugins\\.multiverse(\\..*)?') }
+        } //Multiverse Core
+        maven {
+            url = uri('https://repo.momirealms.net/releases/')
+            content { includeGroup('net.momirealms') }
+        } // CraftEngine
     }
 
     /**

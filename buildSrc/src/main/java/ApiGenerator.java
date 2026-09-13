@@ -2,6 +2,7 @@ import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.publish.PublishingExtension;
 import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.tasks.InputFile;
@@ -19,6 +20,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
@@ -40,7 +43,8 @@ public class ApiGenerator implements Plugin<Project> {
         });
 
         publishing.getPublications().create("maven", MavenPublication.class, publication -> {
-            publication.setGroupId(target.getName());
+            publication.setGroupId(target.getGroup().toString());
+            publication.setArtifactId("iris");
             publication.setVersion(target.getVersion().toString());
             publication.artifact(task);
         });
@@ -56,69 +60,60 @@ public class ApiGenerator implements Plugin<Project> {
 }
 
 abstract class GenerateApiTask extends DefaultTask {
-    private final File inputFile;
-    private final File outputFile;
-
     public GenerateApiTask() {
         setGroup("iris");
         dependsOn("jar");
         finalizedBy("publishMavenPublicationToDeployDirRepository");
-        doLast(task -> getLogger().lifecycle("The API is located at " + getOutputFile().getAbsolutePath()));
+        doLast(task -> getLogger().lifecycle("The API is located at " + getOutputFile().get().getAsFile().getAbsolutePath()));
 
         TaskProvider<Jar> jarTask = getProject().getTasks().named("jar", Jar.class);
-        this.inputFile = jarTask.get().getArchiveFile().get().getAsFile();
-        this.outputFile = ApiGenerator.targetDirectory(getProject()).toPath().resolve(this.inputFile.getName()).toFile();
+        getInputFile().convention(jarTask.flatMap(Jar::getArchiveFile));
+        getOutputFile().convention(getProject().getLayout().file(getInputFile().getLocationOnly().map(input ->
+                new File(ApiGenerator.targetDirectory(getProject()), input.getAsFile().getName()))));
     }
 
     @InputFile
-    public File getInputFile() {
-        return inputFile;
-    }
+    public abstract RegularFileProperty getInputFile();
 
     @OutputFile
-    public File getOutputFile() {
-        return outputFile;
-    }
+    public abstract RegularFileProperty getOutputFile();
 
     @TaskAction
     public void generate() throws IOException {
+        File inputFile = getInputFile().get().getAsFile();
+        File outputFile = getOutputFile().get().getAsFile();
         File parent = outputFile.getParentFile();
         if (parent != null) {
-            parent.mkdirs();
+            Files.createDirectories(parent.toPath());
         }
 
         try (JarFile jar = new JarFile(inputFile);
              JarOutputStream out = new JarOutputStream(new FileOutputStream(outputFile))) {
-            jar.stream()
-                    .parallel()
-                    .filter(entry -> !entry.isDirectory())
-                    .filter(entry -> entry.getName().endsWith(".class"))
-                    .forEach(entry -> writeStrippedClass(jar, out, entry));
+            Enumeration<JarEntry> entries = jar.entries();
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                if (!entry.isDirectory() && entry.getName().endsWith(".class")) {
+                    writeStrippedClass(jar, out, entry);
+                }
+            }
         }
     }
 
-    private static void writeStrippedClass(JarFile jar, JarOutputStream out, JarEntry entry) {
+    private static void writeStrippedClass(JarFile jar, JarOutputStream out, JarEntry entry) throws IOException {
         byte[] bytes;
         try (InputStream input = jar.getInputStream(entry)) {
             ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             ClassVisitor visitor = new MethodClearingVisitor(writer);
             ClassReader reader = new ClassReader(input);
-            reader.accept(visitor, 0);
+            reader.accept(visitor, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES);
             bytes = writer.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
 
-        synchronized (out) {
-            try {
-                JarEntry outputEntry = new JarEntry(entry.getName());
-                out.putNextEntry(outputEntry);
-                out.write(bytes);
-                out.closeEntry();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
+        JarEntry outputEntry = new JarEntry(entry.getName());
+        outputEntry.setTime(0L);
+        out.putNextEntry(outputEntry);
+        out.write(bytes);
+        out.closeEntry();
     }
 }
 
@@ -129,7 +124,11 @@ class MethodClearingVisitor extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-        return new ExceptionThrowingMethodVisitor(super.visitMethod(access, name, descriptor, signature, exceptions));
+        MethodVisitor method = super.visitMethod(access, name, descriptor, signature, exceptions);
+        if (method == null || (access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE)) != 0) {
+            return method;
+        }
+        return new ExceptionThrowingMethodVisitor(method);
     }
 }
 
@@ -139,11 +138,7 @@ class ExceptionThrowingMethodVisitor extends MethodVisitor {
     }
 
     @Override
-    public void visitCode() {
-        if (mv == null) {
-            return;
-        }
-
+    public void visitEnd() {
         mv.visitCode();
         mv.visitTypeInsn(Opcodes.NEW, "java/lang/IllegalStateException");
         mv.visitInsn(Opcodes.DUP);

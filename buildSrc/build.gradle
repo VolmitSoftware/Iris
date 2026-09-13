@@ -24,6 +24,10 @@ tasks.named('jar').configure {
     dependsOn(tasks.named('test'))
 }
 
+tasks.named('test').configure {
+    jvmArgs('--add-opens=java.base/java.lang=ALL-UNNAMED')
+}
+
 dependencies {
     implementation(gradleApi())
     implementation('org.ow2.asm:asm:9.10.1')

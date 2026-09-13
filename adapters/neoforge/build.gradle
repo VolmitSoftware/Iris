@@ -32,7 +32,11 @@ buildscript {
         maven { url = uri('https://jitpack.io') }
     }
     dependencies {
-        classpath('com.github.VolmitSoftware.VolmLib:packaging:master-SNAPSHOT')
+        Properties libraryProperties = new Properties()
+        file('../../gradle.properties').withInputStream { InputStream stream -> libraryProperties.load(stream) }
+        String libraryCoordinate = providers.gradleProperty('volmLibCoordinate')
+            .getOrElse(libraryProperties.getProperty('volmLibCoordinate'))
+        classpath("com.github.VolmitSoftware.VolmLib:packaging:${libraryCoordinate.tokenize(':').last()}")
     }
 }
 

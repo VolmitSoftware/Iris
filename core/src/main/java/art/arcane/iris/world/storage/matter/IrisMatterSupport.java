@@ -40,14 +40,14 @@ public final class IrisMatterSupport {
         }
 
         IrisMatter.registerSliceType(new EntityMatter());
-        IrisMatter.registerSliceType(new IdentifierMatter());
-        IrisMatter.registerSliceType(new NativeStructureOwnershipMatter());
+        IrisMatter.registerSliceType("art.arcane.iris.core.link.Identifier", new IdentifierMatter());
+        IrisMatter.registerSliceType("art.arcane.iris.engine.framework.NativeStructureOwnershipBundle", new NativeStructureOwnershipMatter());
         IrisMatter.registerSliceType(new PlatformBlockMatter());
-        IrisMatter.registerSliceType(new HydrologyCaveMatter());
-        IrisMatter.registerSliceType(new PreObjectMatter());
-        IrisMatter.registerSliceType(new SpawnerMatter());
-        IrisMatter.registerSliceType(new TileMatter());
-        IrisMatter.registerSliceType(new TreeBlockMaterialMatter());
+        IrisMatter.registerSliceType("art.arcane.iris.engine.hydrology.cave.HydrologyCaveCell", new HydrologyCaveMatter());
+        IrisMatter.registerSliceType("art.arcane.iris.util.project.matter.PreObjectMatterCell", new PreObjectMatter());
+        IrisMatter.registerSliceType("art.arcane.iris.engine.object.IrisSpawner", new SpawnerMatter());
+        IrisMatter.registerSliceType("art.arcane.iris.util.project.matter.TileWrapper", new TileMatter());
+        IrisMatter.registerSliceType("art.arcane.iris.engine.framework.TreeBlockMaterial", new TreeBlockMaterialMatter());
         registered = true;
     }
 

@@ -3,8 +3,7 @@ package art.arcane.iris.generation.mantle;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.world.storage.matter.PreObjectMatterCell;
-import art.arcane.iris.world.storage.matter.HydrologyCaveMatter;
-import art.arcane.iris.world.storage.matter.PreObjectMatter;
+import art.arcane.iris.world.storage.matter.IrisMatterSupport;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
@@ -34,8 +33,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 public class TerrainComposedCavernTest {
     @BeforeClass
     public static void registerMatter() {
-        IrisMatter.registerSliceType(new PreObjectMatter());
-        IrisMatter.registerSliceType(new HydrologyCaveMatter());
+        IrisMatterSupport.ensureRegistered();
     }
 
     @Test

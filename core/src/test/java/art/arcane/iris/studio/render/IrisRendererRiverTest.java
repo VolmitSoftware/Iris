@@ -135,6 +135,32 @@ public class IrisRendererRiverTest {
     }
 
     @Test
+    public void biomeRefinementCopiesTheBaseAndRetainsTheFullRiverOverlay() {
+        Engine engine = mock(Engine.class);
+        IrisComplex complex = mock(IrisComplex.class);
+        IrisHydrologyRuntime runtime = mock(IrisHydrologyRuntime.class);
+        IrisBiome biome = mock(IrisBiome.class);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<IrisBiome> base = mock(ProceduralStream.class);
+        when(engine.getComplex()).thenReturn(complex);
+        when(complex.getHydrologyRuntime()).thenReturn(runtime);
+        when(complex.getBaseBiomeStream()).thenReturn(base);
+        when(base.get(12D, -7D)).thenReturn(biome);
+        when(biome.getColor(engine, RenderType.BIOME)).thenReturn(Color.GREEN);
+        when(runtime.sampleRenderFootprint(12D, -7D, 20D, 1D))
+                .thenReturn(sample(HydrologyFeatureType.SURFACE_POOL, false));
+        IrisRenderer renderer = new IrisRenderer(engine);
+        BufferedImage preview = renderer.renderStudioBase(12D, -7D, 8D, 1, RenderType.BIOME, () -> false);
+
+        BufferedImage refined = renderer.refineStudioBiome(12D, -7D, 8D, preview, () -> false);
+        BufferedImage complete = renderer.renderStudio(12D, -7D, 8D, 1, RenderType.BIOME, () -> false);
+
+        assertEquals(Color.GREEN.getRGB(), preview.getRGB(0, 0));
+        assertNotEquals(preview.getRGB(0, 0), refined.getRGB(0, 0));
+        assertEquals(complete.getRGB(0, 0), refined.getRGB(0, 0));
+    }
+
+    @Test
     public void riverVisionShowsAProjectedCandidateWithoutTreatingItAsAccepted() {
         Engine engine = mock(Engine.class);
         IrisComplex complex = mock(IrisComplex.class);

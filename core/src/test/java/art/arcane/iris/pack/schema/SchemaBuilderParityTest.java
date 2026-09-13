@@ -22,6 +22,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.IrisRegistrant;
 import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.generation.block.IrisBlockData;
+import art.arcane.iris.generation.decoration.IrisStiltSettings;
 import art.arcane.iris.generation.noise.IrisExpression;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.structure.jigsaw.IrisJigsawPiece;
@@ -122,6 +123,17 @@ public class SchemaBuilderParityTest {
         if (previous != null) {
             IrisPlatforms.bind(previous);
         }
+    }
+
+    @Test
+    public void stiltExclusionsExposeRegisteredMaterialKeys() {
+        IrisData data = structureSchemaData();
+        when(data.getBlockLoader().getPossibleKeys()).thenReturn(new String[] {"minecraft:barrel", "minecraft:calcite"});
+        JSONObject schema = new SchemaBuilder(IrisStiltSettings.class, data).construct();
+        JSONObject exclude = rootProperties(schema).getJSONObject("exclude");
+
+        assertEquals("array", exclude.getString("type"));
+        assertTrue(exclude.getJSONObject("items").getString("$ref").endsWith("enum-block-type"));
     }
 
     @Test

@@ -29,6 +29,8 @@ import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
+import java.util.Set;
+
 /**
  * Volume shaping for {@link IrisObject}: smart boring, shrinkwrapping, compaction and the shared block
  * classification helpers used by placement.
@@ -244,15 +246,21 @@ final class IrisObjectShaping {
         self.floatingFootprint.reset();
     }
 
-    static boolean shouldStilt(PlatformBlockState state) {
-        if (!state.isOccluding()) {
+    static boolean isStiltLayerBlock(PlatformBlockState state) {
+        String material = materialKey(state);
+        if (!state.isOccluding() && !material.equals("minecraft:ice") && !material.equals("minecraft:glass")
+                && !material.equals("minecraft:tinted_glass") && !material.endsWith("_stained_glass")) {
             return false;
         }
-        String material = materialKey(state);
         if (material.endsWith("_stairs") || material.endsWith("_slab")) {
             return false;
         }
         return !material.equals("minecraft:dirt_path");
+    }
+
+    static boolean shouldStilt(PlatformBlockState state, Set<String> excludedMaterials) {
+        return isStiltLayerBlock(state) && !state.isStorage() && !state.hasTileEntity()
+                && !excludedMaterials.contains(materialKey(state));
     }
 
     static String materialKey(PlatformBlockState state) {

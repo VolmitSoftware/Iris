@@ -173,6 +173,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     @Override
     public void start() {
+        getData().prepareBlockDropRules();
         super.start();
         if (!looper.isAlive()) {
             looper.start();

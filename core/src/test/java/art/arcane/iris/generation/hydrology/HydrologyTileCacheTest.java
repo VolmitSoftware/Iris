@@ -51,6 +51,57 @@ import static org.mockito.Mockito.when;
 
 public class HydrologyTileCacheTest {
     @Test
+    public void interruptedWaiterExitsWithoutCancellingTheSharedPlan() throws Exception {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        HydrologyTileKey key = new HydrologyTileKey(0, 0);
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        CountDownLatch waiterExited = new CountDownLatch(1);
+        AtomicBoolean interrupted = new AtomicBoolean();
+        AtomicReference<Thread> waiterThread = new AtomicReference<>();
+        when(planner.plan(key)).thenAnswer(invocation -> {
+            started.countDown();
+            assertTrue(release.await(5L, TimeUnit.SECONDS));
+            return tile;
+        });
+        ExecutorService workers = Executors.newSingleThreadExecutor();
+        ExecutorService callers = Executors.newFixedThreadPool(2);
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 4, workers);
+        try {
+            Future<?> waiter = callers.submit(() -> {
+                waiterThread.set(Thread.currentThread());
+                try {
+                    assertThrows(CancellationException.class, () -> cache.get(key));
+                    interrupted.set(Thread.currentThread().isInterrupted());
+                } finally {
+                    waiterExited.countDown();
+                }
+            });
+            assertTrue(started.await(5L, TimeUnit.SECONDS));
+            Future<HydrologyTile> other = callers.submit(() -> cache.get(key));
+
+            waiterThread.get().interrupt();
+            assertTrue(waiterExited.await(2L, TimeUnit.SECONDS));
+            waiter.get(2L, TimeUnit.SECONDS);
+            assertTrue(interrupted.get());
+            assertFalse(other.isDone());
+
+            release.countDown();
+            assertSame(tile, other.get(5L, TimeUnit.SECONDS));
+            assertSame(tile, cache.get(key));
+            verify(planner, times(1)).plan(key);
+        } finally {
+            release.countDown();
+            workers.shutdownNow();
+            callers.shutdownNow();
+            assertTrue(workers.awaitTermination(5L, TimeUnit.SECONDS));
+            assertTrue(callers.awaitTermination(5L, TimeUnit.SECONDS));
+            cache.close();
+        }
+    }
+
+    @Test
     public void closeDrainsBackgroundPlanningAndRejectsNewDemand() throws Exception {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
         HydrologyTile tile = mock(HydrologyTile.class);

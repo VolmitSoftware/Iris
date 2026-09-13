@@ -112,6 +112,24 @@ public final class SavedBiomeRuntime implements AutoCloseable {
         }
     }
 
+    public boolean mayHaveBlockDropRules(String material) {
+        if (engine.getData().hasBlockDropRules(material)) {
+            return true;
+        }
+        GenerationManifest manifest = history.manifest();
+        String activeEpoch = manifest.activeEpoch().epochId();
+        for (GenerationEpoch epoch : manifest.epochs()) {
+            if (epoch.epochId().equals(activeEpoch)) {
+                continue;
+            }
+            Definitions source = definitions.get(epoch.epochId());
+            if (source == null || source.data().hasBlockDropRules(material)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public Optional<BiomeEnvironment> resolveCaveBase(int blockX, int blockZ) {
         return resolve(blockX, 0, blockZ, QueryKind.CAVE_BASE);
     }
@@ -449,6 +467,7 @@ public final class SavedBiomeRuntime implements AutoCloseable {
                 }
                 Definitions loaded = new Definitions(data, dimension, NativeBiomeSpawnSelection.retainedDerivatives(data),
                         resolveFocusRegions(data, dimension));
+                data.prepareBlockDropRules();
                 definitions.put(epochId, loaded);
                 return loaded;
             } catch (Throwable failure) {

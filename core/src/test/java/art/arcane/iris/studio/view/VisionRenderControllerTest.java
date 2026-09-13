@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
@@ -68,7 +69,7 @@ public class VisionRenderControllerTest {
     public void everyPublishedPageIsFinalResolutionAndIdenticalRequestsAreCacheHits() throws Exception {
         IrisRenderer renderer = mock(IrisRenderer.class);
         AtomicInteger calls = new AtomicInteger();
-        when(renderer.renderStudio(
+        when(renderer.renderStudioBase(
                 anyDouble(),
                 anyDouble(),
                 anyDouble(),
@@ -84,6 +85,7 @@ public class VisionRenderControllerTest {
                     BufferedImage.TYPE_INT_RGB
             );
         });
+        passThroughRefinement(renderer);
         VisionRenderController controller = controller(2);
         VisionRenderController.RenderSpec spec = spec(renderer, RenderType.BIOME, 1L, 0D, 0D, 4D, 128, 128);
         try {
@@ -153,6 +155,12 @@ public class VisionRenderControllerTest {
             latestStarted.countDown();
             return new BufferedImage(64, 64, BufferedImage.TYPE_INT_RGB);
         });
+        when(renderer.renderStudioBase(anyDouble(), anyDouble(), anyDouble(), anyInt(),
+                any(RenderType.class), any(BooleanSupplier.class))).thenAnswer(invocation -> {
+            latestStarted.countDown();
+            return new BufferedImage(64, 64, BufferedImage.TYPE_INT_RGB);
+        });
+        passThroughRefinement(renderer);
         VisionRenderController controller = controller(2);
         try {
             controller.request(spec(renderer, RenderType.REGION, 1L, 0D, 0D, 4D, 64, 64));
@@ -162,6 +170,103 @@ public class VisionRenderControllerTest {
 
             assertTrue(latestStarted.await(1L, TimeUnit.SECONDS));
         } finally {
+            controller.close();
+        }
+    }
+
+    @Test
+    public void completeBaseIsVisibleBeforeBlockedHydrologyRefinementStarts() throws Exception {
+        IrisRenderer renderer = exactRenderer();
+        CountDownLatch overlayStarted = new CountDownLatch(1);
+        CountDownLatch releaseOverlay = new CountDownLatch(1);
+        AtomicInteger baseCalls = new AtomicInteger();
+        AtomicInteger overlays = new AtomicInteger();
+        when(renderer.renderStudioBase(anyDouble(), anyDouble(), anyDouble(), anyInt(),
+                any(RenderType.class), any(BooleanSupplier.class))).thenAnswer(invocation -> {
+            baseCalls.incrementAndGet();
+            return new BufferedImage(64, 64, BufferedImage.TYPE_INT_RGB);
+        });
+        when(renderer.refineStudioBiome(anyDouble(), anyDouble(), anyDouble(), any(BufferedImage.class),
+                any(BooleanSupplier.class))).thenAnswer(invocation -> {
+            overlays.incrementAndGet();
+            overlayStarted.countDown();
+            assertTrue(releaseOverlay.await(2L, TimeUnit.SECONDS));
+            return invocation.getArgument(3);
+        });
+        VisionRenderController controller = controller(3);
+        try {
+            VisionRenderController.RenderSpec spec = spec(renderer, RenderType.BIOME, 1L, 0D, 0D, 4D, 192, 128);
+            VisionRenderController.Frame frame = controller.request(spec);
+            assertTrue(overlayStarted.await(2L, TimeUnit.SECONDS));
+            assertEquals(frame.tiles().size(), baseCalls.get());
+            assertEquals(1, overlays.get());
+            assertEquals(0, controller.progress(frame).ready());
+            for (VisionRenderController.VisibleTile tile : frame.tiles()) {
+                assertEquals(64, controller.image(frame, tile).getWidth());
+            }
+
+            releaseOverlay.countDown();
+            Await.until("every biome overlay to complete", Duration.ofSeconds(2L),
+                    () -> controller.progress(frame).ready() == frame.tiles().size());
+            assertEquals(frame.tiles().size(), overlays.get());
+
+            VisionRenderController.Frame cached = controller.request(spec);
+            assertEquals(frame.tiles().size(), controller.progress(cached).ready());
+            assertEquals(frame.tiles().size(), baseCalls.get());
+            assertEquals(frame.tiles().size(), overlays.get());
+        } finally {
+            releaseOverlay.countDown();
+            controller.close();
+        }
+    }
+
+    @Test
+    public void cancelledOverlayKeepsCachedBaseWithoutMarkingItComplete() throws Exception {
+        IrisRenderer renderer = exactRenderer();
+        CountDownLatch staleStarted = new CountDownLatch(1);
+        CountDownLatch latestStarted = new CountDownLatch(1);
+        CountDownLatch releaseLatest = new CountDownLatch(1);
+        AtomicInteger baseCalls = new AtomicInteger();
+        AtomicInteger overlayCalls = new AtomicInteger();
+        when(renderer.renderStudioBase(anyDouble(), anyDouble(), anyDouble(), anyInt(),
+                any(RenderType.class), any(BooleanSupplier.class))).thenAnswer(invocation -> {
+            baseCalls.incrementAndGet();
+            return new BufferedImage(64, 64, BufferedImage.TYPE_INT_RGB);
+        });
+        when(renderer.refineStudioBiome(anyDouble(), anyDouble(), anyDouble(), any(BufferedImage.class),
+                any(BooleanSupplier.class))).thenAnswer(invocation -> {
+            if (overlayCalls.getAndIncrement() == 0) {
+                staleStarted.countDown();
+                BooleanSupplier cancelled = invocation.getArgument(4);
+                while (!cancelled.getAsBoolean()) {
+                    Thread.onSpinWait();
+                }
+                throw new CancellationException();
+            }
+            latestStarted.countDown();
+            assertTrue(releaseLatest.await(2L, TimeUnit.SECONDS));
+            return invocation.getArgument(3);
+        });
+        VisionRenderController controller = controller(2);
+        try {
+            VisionRenderController.RenderSpec spec = spec(renderer, RenderType.BIOME, 1L, 0D, 0D, 4D, 128, 128);
+            VisionRenderController.Frame stale = controller.request(spec);
+            assertTrue(staleStarted.await(2L, TimeUnit.SECONDS));
+
+            VisionRenderController.Frame latest = controller.request(spec);
+            assertTrue(latestStarted.await(2L, TimeUnit.SECONDS));
+            assertEquals(stale.tiles().size(), baseCalls.get());
+            assertEquals(0, controller.progress(latest).ready());
+            for (VisionRenderController.VisibleTile tile : latest.tiles()) {
+                assertEquals(64, controller.image(latest, tile).getWidth());
+            }
+
+            releaseLatest.countDown();
+            Await.until("the replacement frame to finish its overlays", Duration.ofSeconds(2L),
+                    () -> controller.progress(latest).ready() == latest.tiles().size());
+            assertEquals(0, controller.progress(stale).ready());
+        } finally {
+            releaseLatest.countDown();
             controller.close();
         }
     }
@@ -188,7 +293,16 @@ public class VisionRenderControllerTest {
                 invocation.getArgument(3),
                 BufferedImage.TYPE_INT_RGB
         ));
+        when(renderer.renderStudioBase(anyDouble(), anyDouble(), anyDouble(), anyInt(),
+                any(RenderType.class), any(BooleanSupplier.class))).thenAnswer(invocation -> new BufferedImage(
+                invocation.getArgument(3), invocation.getArgument(3), BufferedImage.TYPE_INT_RGB));
+        passThroughRefinement(renderer);
         return renderer;
+    }
+
+    private static void passThroughRefinement(IrisRenderer renderer) {
+        when(renderer.refineStudioBiome(anyDouble(), anyDouble(), anyDouble(), any(BufferedImage.class),
+                any(BooleanSupplier.class))).thenAnswer(invocation -> invocation.getArgument(3));
     }
 
     private static Set<VisionRenderController.TileKey> keys(VisionRenderController.Frame frame) {

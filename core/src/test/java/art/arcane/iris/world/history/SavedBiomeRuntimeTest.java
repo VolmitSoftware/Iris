@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -45,6 +46,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class SavedBiomeRuntimeTest {
     @ClassRule
@@ -99,6 +101,39 @@ public class SavedBiomeRuntimeTest {
         } finally {
             release.countDown();
             runtime.close();
+        }
+    }
+
+    @Test
+    public void packWithoutDropRulesDoesNotNeedAChunkQueryForTheOnlyEpoch() throws Exception {
+        IrisData current = mock(IrisData.class);
+        when(engine.getData()).thenReturn(current);
+        GenerationManifest manifest = history.manifest();
+        GenerationEpoch active = manifest.epoch("a".repeat(64)).orElseThrow();
+        when(manifest.activeEpoch()).thenReturn(active);
+        when(manifest.epochs()).thenReturn(List.of(active));
+
+        try (SavedBiomeRuntime runtime = new SavedBiomeRuntime(engine, history)) {
+            assertFalse(runtime.mayHaveBlockDropRules("minecraft:stone"));
+            verifyNoInteractions(store);
+            when(current.hasBlockDropRules("minecraft:stone")).thenReturn(true);
+            assertTrue(runtime.mayHaveBlockDropRules("minecraft:stone"));
+        }
+    }
+
+    @Test
+    public void unloadedHistoricalPackRetainsDropChecksWhenTheCurrentPackHasNoRules() throws Exception {
+        when(engine.getData()).thenReturn(mock(IrisData.class));
+        GenerationManifest manifest = history.manifest();
+        GenerationEpoch previous = manifest.epoch("a".repeat(64)).orElseThrow();
+        GenerationEpoch active = mock(GenerationEpoch.class);
+        when(active.epochId()).thenReturn("b".repeat(64));
+        when(manifest.activeEpoch()).thenReturn(active);
+        when(manifest.epochs()).thenReturn(List.of(previous, active));
+
+        try (SavedBiomeRuntime runtime = new SavedBiomeRuntime(engine, history)) {
+            assertTrue(runtime.mayHaveBlockDropRules("minecraft:stone"));
+            verifyNoInteractions(store);
         }
     }
 

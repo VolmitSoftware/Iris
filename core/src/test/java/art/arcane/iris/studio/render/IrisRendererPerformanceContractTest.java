@@ -140,6 +140,27 @@ public class IrisRendererPerformanceContractTest {
     }
 
     @Test
+    public void studioBiomeBaseDoesNotEnterHydrologyPlanning() {
+        Engine engine = mock(Engine.class);
+        IrisComplex complex = mock(IrisComplex.class);
+        IrisBiome biome = mock(IrisBiome.class);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<IrisBiome> base = mock(ProceduralStream.class);
+        when(engine.getComplex()).thenReturn(complex);
+        when(complex.getBaseBiomeStream()).thenReturn(base);
+        when(base.get(org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble()))
+                .thenReturn(biome);
+        when(biome.getColor(engine, RenderType.BIOME)).thenReturn(Color.GREEN);
+
+        BufferedImage image = new IrisRenderer(engine).renderStudioBase(
+                0D, 0D, 256D, 64, RenderType.BIOME, () -> false);
+
+        assertEquals(Color.GREEN.getRGB(), image.getRGB(0, 0));
+        assertEquals(Color.GREEN.getRGB(), image.getRGB(63, 63));
+        verify(complex, never()).getHydrologyRuntime();
+    }
+
+    @Test
     public void planarStudioHeightPagesInterpolateWithoutPerPixelEngineSampling() {
         Engine engine = mock(Engine.class);
         IrisComplex complex = mock(IrisComplex.class);

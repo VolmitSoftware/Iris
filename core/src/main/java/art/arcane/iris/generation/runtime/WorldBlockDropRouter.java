@@ -21,12 +21,14 @@ package art.arcane.iris.generation.runtime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.world.tree.BlockDropRouter;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
+import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.world.loot.IrisBlockDrops;
 import art.arcane.iris.world.entity.IrisMarker;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.platform.generation.EngineBukkitOps;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
+import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.collection.KList;
@@ -139,6 +141,9 @@ final class WorldBlockDropRouter {
     }
 
     private List<IrisBlockDrops> resolveDropProviders(BlockBreakEvent event) {
+        if (!mayHaveBlockDropRules(BukkitBlockState.of(event.getBlock().getBlockData()).materialKey())) {
+            return List.of();
+        }
         IrisBiome biome = EngineBukkitOps.getBiome(manager.getEngine(), event.getBlock().getLocation());
         List<IrisBlockDrops> providers = filterDrops(biome.getBlockDrops(), event, manager.getData());
         if (providers.stream().noneMatch(IrisBlockDrops::isSkipParents)) {
@@ -147,5 +152,16 @@ final class WorldBlockDropRouter {
             providers.addAll(filterDrops(manager.getEngine().getDimension().getBlockDrops(), event, manager.getData()));
         }
         return providers;
+    }
+
+    private boolean mayHaveBlockDropRules(String material) {
+        if (manager.getData().hasBlockDropRules(material)) {
+            return true;
+        }
+        if (manager.getEngine() instanceof IrisEngine engine) {
+            GenerationHistoryRuntimeRouter router = engine.getGenerationHistoryRuntimeRouter().orElse(null);
+            return router != null && router.biomes().mayHaveBlockDropRules(material);
+        }
+        return false;
     }
 }

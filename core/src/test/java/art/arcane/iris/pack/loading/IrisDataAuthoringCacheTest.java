@@ -3,6 +3,9 @@ package art.arcane.iris.pack.loading;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.runtime.PreservationRegistry;
 import art.arcane.iris.generation.noise.IrisGenerator;
+import art.arcane.iris.generation.block.B;
+import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.pack.validation.ContentGate;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import org.junit.After;
@@ -11,6 +14,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.MockedStatic;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -25,6 +29,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 public class IrisDataAuthoringCacheTest {
     @ClassRule
@@ -103,6 +109,63 @@ public class IrisDataAuthoringCacheTest {
             assertEquals(entry.getValue(), Set.of(keys));
             assertEquals(entry.getValue().size(), keys.length);
             assertSame(keys, entry.getKey().getPossibleKeys());
+        }
+    }
+
+    @Test
+    public void dropRulePresenceIncludesEachScopeAndIsResetByPackReload() throws Exception {
+        for (String folder : List.of("dimensions", "regions", "biomes")) {
+            Path root = temporary.newFolder(folder + "-drops").toPath();
+            Files.createDirectories(root.resolve(folder));
+            Path resource = root.resolve(folder + "/sample.json");
+            Files.writeString(resource, "{}");
+            source = IrisData.openRuntime(root.toFile());
+            try (MockedStatic<B> blocks = mockStatic(B.class)) {
+                PlatformBlockState state = mock(PlatformBlockState.class);
+                when(state.placementBaseState()).thenReturn(state);
+                when(state.materialKey()).thenReturn("minecraft:stone");
+                blocks.when(() -> B.getStateOrNull("minecraft:stone", false)).thenReturn(state);
+                source.setContentGate(mock(ContentGate.class));
+                assertTrue(source.hasBlockDropRules("minecraft:stone"));
+                source.prepareBlockDropRules();
+                assertFalse(source.hasBlockDropRules("minecraft:stone"));
+                Files.writeString(resource, "{\"blockDrops\":[{\"blocks\":[{\"block\":\"minecraft:stone\"}]}]}");
+                source.hotloaded();
+                source.setContentGate(mock(ContentGate.class));
+                assertTrue(source.hasBlockDropRules("minecraft:stone"));
+                source.prepareBlockDropRules();
+                assertTrue(source.hasBlockDropRules("minecraft:stone"));
+                assertFalse(source.hasBlockDropRules("minecraft:grass_block"));
+            } finally {
+                source.close();
+                source = null;
+            }
+        }
+    }
+
+    @Test
+    public void customDropCandidatesUseTheResolvedCarrierAndKeepExactStateRulesEligible() throws Exception {
+        Path root = temporary.newFolder("custom-drops").toPath();
+        Files.createDirectories(root.resolve("biomes"));
+        Files.writeString(root.resolve("biomes/sample.json"), """
+                {"blockDrops":[{"exactBlocks":true,"blocks":[{"block":"rocks:ruby_ore"}]}]}
+                """);
+        source = IrisData.openRuntime(root.toFile());
+        source.setContentGate(mock(ContentGate.class));
+        PlatformBlockState custom = mock(PlatformBlockState.class);
+        PlatformBlockState carrier = mock(PlatformBlockState.class);
+        when(custom.materialKey()).thenReturn("rocks:ruby_ore");
+        when(custom.placementBaseState()).thenReturn(carrier);
+        when(carrier.materialKey()).thenReturn("minecraft:note_block");
+
+        try (MockedStatic<B> blocks = mockStatic(B.class)) {
+            blocks.when(() -> B.getStateOrNull("rocks:ruby_ore", false)).thenReturn(custom);
+
+            source.prepareBlockDropRules();
+
+            assertTrue(source.hasBlockDropRules("minecraft:note_block"));
+            assertFalse(source.hasBlockDropRules("minecraft:stone"));
+            assertFalse(source.hasBlockDropRules("rocks:ruby_ore"));
         }
     }
 }

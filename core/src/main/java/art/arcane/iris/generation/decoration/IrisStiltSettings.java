@@ -3,13 +3,20 @@ package art.arcane.iris.generation.decoration;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 
 import art.arcane.volmlib.util.documentation.Description;
+import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
+import art.arcane.iris.pack.schema.annotation.RegistryListBlockType;
 import art.arcane.iris.pack.schema.annotation.Snippet;
+import art.arcane.volmlib.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 
 @Snippet("stilt-settings")
 @Accessors(chain = true)
@@ -32,6 +39,10 @@ public class IrisStiltSettings {
     private int overStilt;
     @Description("If defined, stilting will be done using this block palette rather than the last layer of the object.")
     private IrisMaterialPalette palette;
+    @ArrayType(min = 1, type = String.class)
+    @RegistryListBlockType
+    @Description("Block materials that must never extend into stilts. Matches all block states of each material, before and after palette replacement or object edits. Original object blocks remain in place. Containers and blocks with tile entities are always excluded.")
+    private KList<String> exclude = new KList<>();
     @MinNumber(1)
     @MaxNumber(256)
     @Description("For ORGANIC_STILT / CEILING_HANG: the maximum number of blocks to scan toward the cave floor (or ceiling) looking for solid ground before giving up.")
@@ -44,5 +55,17 @@ public class IrisStiltSettings {
     @MaxNumber(1)
     @Description("For ORGANIC_STILT / CEILING_HANG: in the deepest fraction of each stilt column, blocks are randomly skipped to break the tip up. Higher = more broken and scratchy. 0 disables.")
     private double organicScratch = 0.55;
+
+    public Set<String> excludedMaterials() {
+        if (exclude == null || exclude.isEmpty()) {
+            return Set.of();
+        }
+        Set<String> materials = new HashSet<>(exclude.size());
+        for (String block : exclude) {
+            String material = block.trim().toLowerCase(Locale.ROOT);
+            materials.add(material.indexOf(':') < 0 ? "minecraft:" + material : material);
+        }
+        return materials;
+    }
 
 }

@@ -136,7 +136,7 @@ final class VisionRenderController implements AutoCloseable {
         List<VisibleTile> tiles = visibleTiles(spec);
         Frame frame = new Frame(viewSequence.incrementAndGet(), spec, tiles);
         for (VisibleTile tile : tiles) {
-            tile.setImage(cache.get(frame.key(tile)));
+            tile.setResult(cache.get(frame.key(tile)));
         }
         CancellationToken token = new CancellationToken();
         WorkState work = new WorkState(frame, token);
@@ -165,7 +165,7 @@ final class VisionRenderController implements AutoCloseable {
         }
         int ready = 0;
         for (VisibleTile tile : frame.tiles()) {
-            if (tile.image() != null) {
+            if (tile.complete()) {
                 ready++;
             }
         }
@@ -275,14 +275,19 @@ final class VisionRenderController implements AutoCloseable {
             if (!isCurrent(work)) {
                 return;
             }
-            int admissionLimit = work.frame().spec().type() == RenderType.RIVER ? 1 : renderWorkerCount;
+            int admissionLimit = work.refining() || work.frame().spec().type() == RenderType.RIVER ? 1 : renderWorkerCount;
             while (work.inFlight() < admissionLimit) {
                 VisibleTile tile = work.nextMissing();
                 if (tile == null) {
+                    if (work.inFlight() == 0 && work.beginRefinement()) {
+                        admissionLimit = 1;
+                        continue;
+                    }
                     return;
                 }
+                boolean refining = work.refining();
                 work.incrementInFlight();
-                TrackedRenderTask task = new TrackedRenderTask(() -> render(work, tile), activeRenderTasks);
+                TrackedRenderTask task = new TrackedRenderTask(() -> render(work, tile, refining), activeRenderTasks);
                 activeRenderTasks.add(task);
                 try {
                     renderExecutor.execute(task);
@@ -295,7 +300,7 @@ final class VisionRenderController implements AutoCloseable {
         }
     }
 
-    private void render(WorkState work, VisibleTile tile) {
+    private void render(WorkState work, VisibleTile tile, boolean refining) {
         Frame frame = work.frame();
         CancellationToken token = work.token();
         try {
@@ -303,19 +308,26 @@ final class VisionRenderController implements AutoCloseable {
                 return;
             }
             double tileSpan = TILE_PIXELS * frame.spec().blocksPerPixel();
-            BufferedImage image = frame.spec().renderer().renderStudio(
-                    tile.tileX() * tileSpan,
-                    tile.tileZ() * tileSpan,
-                    tileSpan,
-                    TILE_PIXELS,
-                    frame.spec().type(),
-                    () -> !isCurrent(frame, token)
-            );
+            double startX = tile.tileX() * tileSpan;
+            double startZ = tile.tileZ() * tileSpan;
+            IrisRenderer renderer = frame.spec().renderer();
+            BufferedImage image;
+            if (refining) {
+                image = renderer.refineStudioBiome(startX, startZ, tileSpan, tile.image(),
+                        () -> !isCurrent(frame, token));
+            } else if (frame.spec().type() == RenderType.BIOME) {
+                image = renderer.renderStudioBase(startX, startZ, tileSpan, TILE_PIXELS, frame.spec().type(),
+                        () -> !isCurrent(frame, token));
+            } else {
+                image = renderer.renderStudio(startX, startZ, tileSpan, TILE_PIXELS, frame.spec().type(),
+                        () -> !isCurrent(frame, token));
+            }
             if (!isCurrent(frame, token)) {
                 return;
             }
-            cache.put(frame.key(tile), image);
-            tile.setImage(image);
+            TileResult result = new TileResult(image, refining || frame.spec().type() != RenderType.BIOME);
+            cache.put(frame.key(tile), result);
+            tile.setResult(result);
             publish(frame, token);
         } catch (CancellationException ignored) {
         } catch (Throwable error) {
@@ -446,7 +458,7 @@ final class VisionRenderController implements AutoCloseable {
         private final int screenX;
         private final int screenY;
         private final double distanceSquared;
-        private volatile BufferedImage image;
+        private volatile TileResult result;
 
         private VisibleTile(long tileX, long tileZ, int screenX, int screenY, double distanceSquared) {
             this.tileX = tileX;
@@ -477,11 +489,17 @@ final class VisionRenderController implements AutoCloseable {
         }
 
         BufferedImage image() {
-            return image;
+            TileResult current = result;
+            return current == null ? null : current.image();
         }
 
-        void setImage(BufferedImage image) {
-            this.image = image;
+        boolean complete() {
+            TileResult current = result;
+            return current != null && current.complete();
+        }
+
+        void setResult(TileResult result) {
+            this.result = result;
         }
     }
 
@@ -548,6 +566,7 @@ final class VisionRenderController implements AutoCloseable {
         private final CancellationToken token;
         private int index;
         private int inFlight;
+        private boolean refining;
 
         private WorkState(Frame frame, CancellationToken token) {
             this.frame = frame;
@@ -565,11 +584,24 @@ final class VisionRenderController implements AutoCloseable {
         VisibleTile nextMissing() {
             while (index < frame.tiles().size()) {
                 VisibleTile tile = frame.tiles().get(index++);
-                if (tile.image() == null) {
+                if (refining ? tile.image() != null && !tile.complete() : tile.image() == null) {
                     return tile;
                 }
             }
             return null;
+        }
+
+        boolean refining() {
+            return refining;
+        }
+
+        boolean beginRefinement() {
+            if (refining || frame.spec().type() != RenderType.BIOME) {
+                return false;
+            }
+            refining = true;
+            index = 0;
+            return true;
         }
 
         int inFlight() {
@@ -595,14 +627,15 @@ final class VisionRenderController implements AutoCloseable {
             this.entries = new LinkedHashMap<>(128, 0.75F, true);
         }
 
-        synchronized BufferedImage get(TileKey key) {
+        synchronized TileResult get(TileKey key) {
             CacheEntry entry = entries.get(key);
-            return entry == null ? null : entry.image();
+            return entry == null ? null : entry.result();
         }
 
-        synchronized void put(TileKey key, BufferedImage image) {
+        synchronized void put(TileKey key, TileResult result) {
+            BufferedImage image = result.image();
             long imageBytes = (long) image.getWidth() * image.getHeight() * Integer.BYTES;
-            CacheEntry previous = entries.put(key, new CacheEntry(image, imageBytes));
+            CacheEntry previous = entries.put(key, new CacheEntry(result, imageBytes));
             if (previous != null) {
                 bytes -= previous.bytes();
             }
@@ -621,6 +654,12 @@ final class VisionRenderController implements AutoCloseable {
         }
     }
 
-    private record CacheEntry(BufferedImage image, long bytes) {
+    private record TileResult(BufferedImage image, boolean complete) {
+        private TileResult {
+            Objects.requireNonNull(image, "image");
+        }
+    }
+
+    private record CacheEntry(TileResult result, long bytes) {
     }
 }

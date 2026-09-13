@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
@@ -890,8 +890,11 @@ public final class HydrologyTileCache implements AutoCloseable {
 
     private static <T> T awaitPlan(CompletableFuture<T> future) {
         try {
-            return future.join();
-        } catch (CompletionException failure) {
+            return future.get();
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new CancellationException("Hydrology plan wait interrupted.");
+        } catch (ExecutionException failure) {
             Throwable cause = failure.getCause();
             if (cause instanceof RuntimeException runtimeException) {
                 throw runtimeException;

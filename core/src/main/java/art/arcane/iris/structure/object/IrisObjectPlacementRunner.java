@@ -50,6 +50,7 @@ import art.arcane.volmlib.util.matter.MatterMarker;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.stream.StreamSupport;
@@ -143,6 +144,9 @@ final class IrisObjectPlacementRunner {
                 config.getMode() == ObjectPlaceMode.MIN_STILT || config.getMode() == ObjectPlaceMode.FAST_MIN_STILT ||
                 config.getMode() == ObjectPlaceMode.CENTER_STILT || config.getMode() == ObjectPlaceMode.ERODE_STILT || organic);
         boolean eroding = config.getMode() == ObjectPlaceMode.ERODE_STILT;
+        IrisStiltSettings stiltSettings = config.getStiltSettings();
+        Set<String> excludedStiltMaterials = stilting && stiltSettings != null
+                ? stiltSettings.excludedMaterials() : Set.of();
         KMap<Position2, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
         int spinx = rng.imax() / 1000;
         int spiny = rng.imax() / 1000;
@@ -539,7 +543,7 @@ final class IrisObjectPlacementRunner {
                     i.add(translateOffset);
                 }
 
-                if (stilting && IrisObjectShaping.shouldStilt(data)) {
+                if (stilting && IrisObjectShaping.isStiltLayerBlock(data)) {
                     if (i.getBlockY() < lowest) {
                         lowest = i.getBlockY();
                     }
@@ -654,7 +658,7 @@ final class IrisObjectPlacementRunner {
             self.readLock.lock();
             try {
                 VectorMap<PlatformBlockState> blocks = self.blocks;
-                IrisStiltSettings settings = config.getStiltSettings();
+                IrisStiltSettings settings = stiltSettings;
 
                 double erodeCentroidX = 0;
                 double erodeCentroidZ = 0;
@@ -670,7 +674,7 @@ final class IrisObjectPlacementRunner {
                         }
                         if (rot.getBlockY() == lowest) {
                             PlatformBlockState bd = centroidCursor.value();
-                            if (bd != null && IrisObjectShaping.shouldStilt(bd)) {
+                            if (bd != null && IrisObjectShaping.shouldStilt(bd, excludedStiltMaterials)) {
                                 erodeCentroidX += rot.getX();
                                 erodeCentroidZ += rot.getZ();
                                 centroidCount++;
@@ -690,7 +694,7 @@ final class IrisObjectPlacementRunner {
                         }
                         if (rot.getBlockY() == lowest) {
                             PlatformBlockState bd = spreadCursor.value();
-                            if (bd != null && IrisObjectShaping.shouldStilt(bd)) {
+                            if (bd != null && IrisObjectShaping.shouldStilt(bd, excludedStiltMaterials)) {
                                 double dx = rot.getX() - erodeCentroidX;
                                 double dz = rot.getZ() - erodeCentroidZ;
                                 double dist = Math.sqrt(dx * dx + dz * dz);
@@ -719,7 +723,7 @@ final class IrisObjectPlacementRunner {
                         sourceData = IrisObject.States.air();
                     }
 
-                    if (!IrisObjectShaping.shouldStilt(sourceData)) {
+                    if (!IrisObjectShaping.shouldStilt(sourceData, excludedStiltMaterials)) {
                         continue;
                     }
 
@@ -768,7 +772,7 @@ final class IrisObjectPlacementRunner {
                         }
                     }
 
-                    if (d == null || !d.isOccluding())
+                    if (d == null || !IrisObjectShaping.shouldStilt(d, excludedStiltMaterials))
                         continue;
 
                     xx = x + (int) Math.round(i.getX());

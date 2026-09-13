@@ -12,6 +12,7 @@ import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.collection.KList;
 import org.bukkit.Location;
+import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -41,6 +42,30 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class WorldBlockDropRouterTest {
+    @Test
+    public void packWithoutDropRulesAllowsTheFirstCreativeAndSurvivalBreakWhileBiomesAreCold() {
+        for (GameMode mode : new GameMode[] {GameMode.CREATIVE, GameMode.SURVIVAL}) {
+            try (Fixture fixture = new Fixture()) {
+                when(fixture.data.hasBlockDropRules("minecraft:stone")).thenReturn(false);
+                when(fixture.data.hasBlockDropRules("minecraft:grass_block")).thenReturn(true);
+                when(fixture.player.getGameMode()).thenReturn(mode);
+                fixture.queries.when(() -> EngineBukkitOps.getBiome(fixture.engine, fixture.location))
+                        .thenThrow(new SavedBiomeUnavailableException("Biome loading", true));
+                BlockBreakEvent event = fixture.event();
+
+                fixture.router.onBlockBreak(event);
+
+                assertFalse(mode.name(), event.isCancelled());
+                assertTrue(event.isDropItems());
+                fixture.queries.verifyNoInteractions();
+                verify(fixture.drops, never()).fillDrops(anyBoolean(), any());
+                assertEquals(1, fixture.delayed.size());
+                fixture.delayed.remove().run();
+                assertEquals(1, fixture.markers.size());
+            }
+        }
+    }
+
     @Test
     public void coldBiomeCancelsBeforeChangingDropsOrSchedulingWork() {
         try (Fixture fixture = new Fixture()) {
@@ -206,6 +231,7 @@ public class WorldBlockDropRouterTest {
             when(manager.getEngine()).thenReturn(engine);
             when(manager.getTarget()).thenReturn(target);
             when(manager.getData()).thenReturn(data);
+            when(data.hasBlockDropRules(anyString())).thenReturn(true);
             when(target.getWorld()).thenReturn(irisWorld);
             when(engine.getWorld()).thenReturn(irisWorld);
             when(irisWorld.minHeight()).thenReturn(-64);
@@ -217,6 +243,7 @@ public class WorldBlockDropRouterTest {
             when(block.getZ()).thenReturn(32);
             when(block.getLocation()).thenReturn(location);
             when(block.getBlockData()).thenReturn(blockData);
+            when(blockData.getAsString()).thenReturn("minecraft:stone");
             when(biome.getBlockDrops()).thenReturn(new KList<>(drops));
             when(region.getBlockDrops()).thenReturn(new KList<>());
             when(dimension.getBlockDrops()).thenReturn(new KList<>());

@@ -78,10 +78,6 @@ final class IrisBiomeLayerGenerator {
 
         for (int i = 0; i < layerCount; i++) {
             IrisBiomePaletteLayer layer = layers.get(i);
-            double zoom = layer.getZoom();
-            CNG hgen = heightGenerators.get(i);
-            int d = hgen.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / zoom, wz / zoom);
-
             IrisSlopeClip sc = layer.getSlopeCondition();
 
             if (!sc.isDefault()) {
@@ -90,10 +86,13 @@ final class IrisBiomeLayerGenerator {
                     sampledSlope = true;
                 }
                 if (!sc.isValid(surfaceSlope)) {
-                    d = 0;
+                    continue;
                 }
             }
 
+            double zoom = layer.getZoom();
+            CNG hgen = heightGenerators.get(i);
+            int d = hgen.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / zoom, wz / zoom);
             if (d <= 0) {
                 continue;
             }
@@ -171,56 +170,78 @@ final class IrisBiomeLayerGenerator {
 
     private static KList<PlatformBlockState> generateLockedLayers(IrisBiome biome, double wx, double wz, RNG random, int maxDepthf, int height, IrisData rdata, IrisComplex complex, ProceduralStream<Double> slopeStream) {
         KList<PlatformBlockState> data = new KList<>();
-        KList<PlatformBlockState> real = new KList<>();
         int maxDepth = Math.min(maxDepthf, biome.getLockLayersMax());
-        if (maxDepth <= 0) {
+        KList<IrisBiomePaletteLayer> layers = biome.getLayers();
+        int layerCount = layers.size();
+        if (maxDepth <= 0 || layerCount == 0) {
             return data;
         }
 
-        KList<IrisBiomePaletteLayer> layers = biome.getLayers();
-        int layerCount = layers.size();
-
-        if (layerCount > 0) {
-            KList<CNG> heightGenerators = getLayerHeightGenerators(biome, random, rdata);
-            double surfaceSlope = 0D;
-            boolean sampledSlope = false;
-
-            for (int i = 0; i < layerCount; i++) {
-                IrisBiomePaletteLayer layer = layers.get(i);
-                double zoom = layer.getZoom();
-                CNG hgen = heightGenerators.get(i);
-                int d = hgen.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / zoom, wz / zoom);
-
-                IrisSlopeClip sc = layer.getSlopeCondition();
-
-                if (!sc.isDefault()) {
-                    if (!sampledSlope) {
-                        surfaceSlope = resolveSurfaceSlope(complex, slopeStream, wx, height, wz);
-                        sampledSlope = true;
-                    }
-                    if (!sc.isValid(surfaceSlope)) {
-                        d = 0;
-                    }
+        KList<CNG> heightGenerators = getLayerHeightGenerators(biome, random, rdata);
+        int[] boundaries = new int[layerCount + 1];
+        double surfaceSlope = 0D;
+        boolean sampledSlope = false;
+        for (int i = 0; i < layerCount; i++) {
+            IrisBiomePaletteLayer layer = layers.get(i);
+            IrisSlopeClip sc = layer.getSlopeCondition();
+            boundaries[i + 1] = boundaries[i];
+            if (!sc.isDefault()) {
+                if (!sampledSlope) {
+                    surfaceSlope = resolveSurfaceSlope(complex, slopeStream, wx, height, wz);
+                    sampledSlope = true;
                 }
-
-                if (d <= 0) {
+                if (!sc.isValid(surfaceSlope)) {
                     continue;
                 }
+            }
 
-                appendLayer(data, layer, i, d, wx, wz, random, Integer.MAX_VALUE, rdata);
+            double zoom = layer.getZoom();
+            CNG hgen = heightGenerators.get(i);
+            int thickness = hgen.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / zoom, wz / zoom);
+            boundaries[i + 1] += Math.max(0, thickness);
+        }
+
+        int cycleLength = boundaries[layerCount];
+        if (cycleLength == 0) {
+            return data;
+        }
+
+        int sampledDepth = Math.min(maxDepth, cycleLength);
+        for (int depth = 0; depth < sampledDepth; depth++) {
+            int position = Math.floorMod(512L - height - depth, cycleLength);
+            int layerIndex = findLayer(boundaries, position);
+            IrisBiomePaletteLayer layer = layers.get(layerIndex);
+            int offset = position - boundaries[layerIndex];
+            double zoom = layer.getZoom();
+            try {
+                data.add(layer.get(random, layerIndex + offset,
+                        (wx + offset) / zoom, offset, (wz - offset) / zoom, rdata));
+            } catch (Throwable error) {
+                IrisLogging.reportError(error);
             }
         }
 
-        if (data.isEmpty()) {
-            return real;
+        if (sampledDepth == cycleLength && !data.isEmpty()) {
+            int resolvedCycleLength = data.size();
+            for (int depth = resolvedCycleLength; depth < maxDepth; depth++) {
+                data.add(data.get(depth % resolvedCycleLength));
+            }
         }
+        return data;
+    }
 
-        for (int i = 0; i < maxDepth; i++) {
-            long offset = 512L - height - i;
-            real.add(data.get(Math.floorMod(offset, data.size())));
+    private static int findLayer(int[] boundaries, int position) {
+        int low = 0;
+        int high = boundaries.length - 1;
+        while (low < high) {
+            int middle = (low + high) >>> 1;
+            if (boundaries[middle + 1] <= position) {
+                low = middle + 1;
+            } else {
+                high = middle;
+            }
         }
-
-        return real;
+        return low;
     }
 
     private static double resolveSurfaceSlope(

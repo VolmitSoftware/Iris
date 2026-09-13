@@ -37,6 +37,9 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.pack.PackDirectoryResolver;
 import art.arcane.iris.generation.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
+import art.arcane.iris.world.loot.IrisBlockDrops;
+import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.structure.graph.StructureGraphCatalog;
 import art.arcane.iris.world.history.GenerationPackFingerprint;
@@ -102,6 +105,7 @@ import java.util.Optional;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Data
@@ -157,6 +161,9 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     @EqualsAndHashCode.Exclude
     private transient volatile GenerationRegistryContractFactory.CustomBiomeResourceResolver customBiomeResourceResolver;
     private transient volatile Engine soleEngine;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private transient volatile Set<String> blockDropMaterials;
 
     private IrisData(File dataFolder) {
         this(dataFolder, false);
@@ -651,6 +658,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public synchronized void hotloaded() {
+        blockDropMaterials = null;
         StructureGraphCatalog.invalidate(this);
         IrisObjectScale.invalidate(this);
         contentGate = null;
@@ -730,6 +738,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public void dump() {
+        blockDropMaterials = null;
         StructureGraphCatalog.invalidate(this);
         IrisObjectScale.invalidate(this);
         for (ResourceLoader<?> i : loaders.values()) {
@@ -771,10 +780,41 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public void clearLists() {
+        blockDropMaterials = null;
         for (ResourceLoader<?> i : loaders.values()) {
             i.clearList();
         }
         possibleSnippets.clear();
+    }
+
+    public boolean hasBlockDropRules(String material) {
+        Set<String> materials = blockDropMaterials;
+        return materials == null || materials.contains(material);
+    }
+
+    public void prepareBlockDropRules() {
+        Set<String> materials = new HashSet<>();
+        for (IrisDimension dimension : dimensionLoader.loadAll(dimensionLoader.getPossibleKeys())) {
+            collectBlockDropMaterials(materials, dimension.getBlockDrops());
+        }
+        for (IrisRegion region : regionLoader.loadAll(regionLoader.getPossibleKeys())) {
+            collectBlockDropMaterials(materials, region.getBlockDrops());
+        }
+        for (IrisBiome biome : biomeLoader.loadAll(biomeLoader.getPossibleKeys())) {
+            collectBlockDropMaterials(materials, biome.getBlockDrops());
+        }
+        blockDropMaterials = Set.copyOf(materials);
+    }
+
+    private void collectBlockDropMaterials(Set<String> materials, KList<IrisBlockDrops> rules) {
+        for (IrisBlockDrops rule : rules) {
+            for (IrisBlockData block : rule.getBlocks()) {
+                PlatformBlockState state = block.getBlockData(this);
+                if (state != null) {
+                    materials.add(IrisProceduralBlocks.materialKey(state.placementBaseState()));
+                }
+            }
+        }
     }
 
     private void invalidateLoader(ResourceLoader<?> loader) {

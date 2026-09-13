@@ -24,6 +24,8 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
@@ -70,6 +72,7 @@ public final class IrisBiomeLayerSlopeSourceTest {
         assertEquals(1, ledge.size());
         assertSame(block, ledge.get(0));
         assertTrue(cap.isEmpty());
+        verify(heightGenerator, times(1)).fit(1, 1, 12D, -8D);
     }
 
     @Test
@@ -109,5 +112,6 @@ public final class IrisBiomeLayerSlopeSourceTest {
         assertTrue(hostLayers.isEmpty());
         assertEquals(1, sourceLayers.size());
         assertSame(surfaceBlock, sourceLayers.get(0));
+        verify(heightGenerator, times(1)).fit(1, 1, 12D, -8D);
     }
 }

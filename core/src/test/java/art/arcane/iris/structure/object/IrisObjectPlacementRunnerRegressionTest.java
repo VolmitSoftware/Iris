@@ -1,6 +1,11 @@
 package art.arcane.iris.structure.object;
 
 import art.arcane.iris.generation.block.TileData;
+import art.arcane.iris.generation.decoration.IrisStiltSettings;
+import art.arcane.iris.generation.block.IrisBlockData;
+import art.arcane.iris.generation.decoration.formation.FormationGenerator;
+import art.arcane.iris.generation.decoration.formation.IrisFormation;
+import art.arcane.iris.generation.decoration.formation.IrisFormationForm;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
@@ -413,6 +418,194 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         assertEquals(-1, lineObject(3).place(0, -1, 0, placer, placement, new RNG(2L), data));
         assertTrue(placer.writes().isEmpty());
+    }
+
+    @Test
+    public void everyStiltModePreservesTheBarrelAndItsTileWithoutRepeatingIt() {
+        PlatformBlockState barrel = state("minecraft:barrel[facing=up,open=false]", true);
+        when(barrel.materialKey()).thenReturn("minecraft:barrel");
+        when(barrel.isStorage()).thenReturn(true);
+        when(barrel.hasTileEntity()).thenReturn(true);
+        TileData tile = new TileData("minecraft:barrel", new KMap<>());
+        for (ObjectPlaceMode mode : List.of(ObjectPlaceMode.STILT, ObjectPlaceMode.FAST_STILT,
+                ObjectPlaceMode.MIN_STILT, ObjectPlaceMode.FAST_MIN_STILT, ObjectPlaceMode.CENTER_STILT,
+                ObjectPlaceMode.ERODE_STILT, ObjectPlaceMode.ORGANIC_STILT, ObjectPlaceMode.CEILING_HANG)) {
+            RecordingPlacer placer = new RecordingPlacer(null);
+            for (int x = -2; x <= 2; x++) {
+                for (int z = -2; z <= 2; z++) {
+                    placer.set(x, ANCHOR_Y, z, solid);
+                    placer.set(x, ANCHOR_Y + 20, z, solid);
+                }
+            }
+            placer.writes().clear();
+            IrisObject object = boxObject(5, 1, 5);
+            object.setUnsigned(3, 0, 2, barrel);
+            object.setUnsignedTile(3, 0, 2, tile);
+            IrisObjectPlacement placement = placement().setMode(mode)
+                    .setRotation(IrisObjectRotation.of(0, 0, 0))
+                    .setStiltSettings(new IrisStiltSettings().setOrganicJitter(0).setOrganicScratch(0));
+
+            object.place(0, ANCHOR_Y + 10, 0, placer, placement, new RNG(2L), data);
+
+            assertEquals(mode.name(), 1, placer.writesOf(barrel).size());
+            assertSame(mode.name(), barrel, placer.get(1, ANCHOR_Y + 10, 0));
+            assertSame(mode.name(), tile, placer.getData(1, ANCHOR_Y + 10, 0, TileData.class));
+            assertTrue(mode.name(), placer.writesOf(solid).stream()
+                    .anyMatch(write -> write.y() != ANCHOR_Y + 10));
+        }
+    }
+
+    @Test
+    public void excludedSourceMaterialKeepsItsBlockAndDoesNotUseTheStiltPalette() {
+        PlatformBlockState calcite = state("minecraft:calcite", true);
+        PlatformBlockState cobblestone = state("minecraft:cobblestone", true);
+        IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
+        when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+                .thenReturn(cobblestone);
+        IrisObject object = lineObject(3);
+        object.setUnsigned(2, 0, 0, calcite);
+        RecordingPlacer placer = new RecordingPlacer(null);
+        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.CENTER_STILT)
+                .setRotation(IrisObjectRotation.of(0, 0, 0))
+                .setStiltSettings(new IrisStiltSettings().setExclude(new KList<>("CALCITE")).setPalette(palette));
+
+        object.place(0, ANCHOR_Y + 10, 0, placer, placement, new RNG(2L), data);
+
+        assertEquals(1, placer.writesOf(calcite).size());
+        assertSame(calcite, placer.get(1, ANCHOR_Y + 10, 0));
+        assertNull(placer.get(1, ANCHOR_Y + 9, 0));
+        assertSame(cobblestone, placer.get(0, ANCHOR_Y + 9, 0));
+    }
+
+    @Test
+    public void translucentFullBlocksGrowFoundationsWhileCrystalModelsRemainUnextended() {
+        PlatformBlockState ice = state("minecraft:ice", true);
+        when(ice.isOccluding()).thenReturn(false);
+        PlatformBlockState cluster = state("minecraft:amethyst_cluster", true);
+        when(cluster.isOccluding()).thenReturn(false);
+        IrisObject object = new IrisObject(3, 1, 1);
+        object.setUnsigned(0, 0, 0, ice);
+        object.setUnsigned(2, 0, 0, cluster);
+        IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
+        when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+                .thenReturn(solid);
+        RecordingPlacer placer = new RecordingPlacer(null);
+        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.CENTER_STILT)
+                .setRotation(IrisObjectRotation.of(0, 0, 0))
+                .setStiltSettings(new IrisStiltSettings().setPalette(palette));
+
+        object.place(0, ANCHOR_Y + 10, 0, placer, placement, new RNG(2L), data);
+
+        assertSame(solid, placer.get(-1, ANCHOR_Y + 9, 0));
+        assertEquals(1, placer.writesOf(cluster).size());
+        assertNull(placer.get(1, ANCHOR_Y + 9, 0));
+    }
+
+    @Test
+    public void generatedGlacialOverhangGrowsPackedIceRootsToTerrain() {
+        PlatformBlockState ice = state("minecraft:ice", true);
+        when(ice.isOccluding()).thenReturn(false);
+        PlatformBlockState packedIce = state("minecraft:packed_ice", true);
+        IrisMaterialPalette body = mock(IrisMaterialPalette.class);
+        when(body.getPalette()).thenReturn(new KList<>(new IrisBlockData("minecraft:ice")));
+        when(body.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+                .thenReturn(ice);
+        IrisMaterialPalette roots = mock(IrisMaterialPalette.class);
+        when(roots.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+                .thenReturn(packedIce);
+        IrisFormation formation = new IrisFormation().setForm(IrisFormationForm.OVERHANG)
+                .setHeightMin(16).setHeightMax(25).setBaseWidthMin(5).setBaseWidthMax(8)
+                .setOverhangReach(13).setOverhangDrop(6).setRoughness(0.3).setJitter(0.08)
+                .setBlockPalette(body);
+        IrisObject object = FormationGenerator.generate(formation, 16, new RNG(5055004L + 16L), data);
+        RecordingPlacer placer = new RecordingPlacer(null);
+        for (int x = -32; x <= 32; x++) {
+            for (int z = -32; z <= 32; z++) {
+                placer.set(x, ANCHOR_Y, z, solid);
+            }
+        }
+        placer.writes().clear();
+        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.ORGANIC_STILT)
+                .setRotation(IrisObjectRotation.of(0, 0, 0))
+                .setStiltSettings(new IrisStiltSettings().setOrganicMaxScan(96).setOrganicJitter(0)
+                        .setOrganicScratch(0).setPalette(roots));
+
+        object.place(0, ANCHOR_Y + object.getCenter().getBlockY() + 12, 0, placer, placement,
+                new RNG(2L), data);
+
+        List<BlockWrite> rootWrites = placer.writesOf(packedIce);
+        assertFalse(rootWrites.isEmpty());
+        assertTrue(rootWrites.stream().anyMatch(write -> write.y() == ANCHOR_Y + 1));
+        for (BlockWrite root : rootWrites) {
+            for (int y = ANCHOR_Y + 1; y < root.y(); y++) {
+                assertSame(packedIce, placer.get(root.x(), y, root.z()));
+            }
+        }
+        assertFalse(placer.writesOf(ice).isEmpty());
+    }
+
+    @Test
+    public void excludedLowestBlockDoesNotMoveTheFoundationUpIntoTheOriginalObject() {
+        PlatformBlockState machine = state("test:machine", true);
+        when(machine.hasTileEntity()).thenReturn(true);
+        IrisObject object = new IrisObject(1, 3, 1);
+        object.setUnsigned(0, 0, 0, machine);
+        object.setUnsigned(0, 1, 0, solid);
+        RecordingPlacer placer = new RecordingPlacer(null);
+
+        object.place(0, ANCHOR_Y + 10, 0, placer, placement().setMode(ObjectPlaceMode.CENTER_STILT),
+                new RNG(2L), data);
+
+        assertEquals(2, placer.writes().size());
+        assertSame(machine, placer.get(0, ANCHOR_Y + 9, 0));
+    }
+
+    @Test
+    public void stiltPaletteCannotIntroduceExcludedMaterialsOrContainers() {
+        PlatformBlockState calcite = state("minecraft:calcite", true);
+        PlatformBlockState barrel = state("minecraft:barrel", true);
+        when(barrel.isStorage()).thenReturn(true);
+        for (PlatformBlockState replacement : List.of(calcite, barrel)) {
+            IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
+            when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+                    .thenReturn(replacement);
+            RecordingPlacer placer = new RecordingPlacer(null);
+            IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.CENTER_STILT)
+                    .setStiltSettings(new IrisStiltSettings().setExclude(new KList<>("minecraft:calcite"))
+                            .setPalette(palette));
+
+            lineObject(3).place(0, ANCHOR_Y + 10, 0, placer, placement, new RNG(2L), data);
+
+            assertEquals(replacement.key(), 3, placer.writes().size());
+            assertTrue(placer.writesOf(replacement).isEmpty());
+        }
+    }
+
+    @Test
+    public void objectEditsCannotIntroduceExcludedMaterialsOrTileEntitiesIntoStilts() {
+        PlatformBlockState calcite = state("minecraft:calcite", true);
+        PlatformBlockState machine = state("test:machine", true);
+        when(machine.hasTileEntity()).thenReturn(true);
+        for (PlatformBlockState replacement : List.of(calcite, machine)) {
+            IrisObjectReplace edit = mock(IrisObjectReplace.class);
+            IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
+            when(edit.getChance()).thenReturn(1F);
+            when(edit.getFind(data)).thenReturn(new KList<>(solid));
+            when(edit.getReplace(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+                    .thenReturn(replacement);
+            when(edit.getReplace()).thenReturn(palette);
+            when(palette.getTile(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+                    .thenReturn(Optional.empty());
+            RecordingPlacer placer = new RecordingPlacer(null);
+            IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.CENTER_STILT)
+                    .setStiltSettings(new IrisStiltSettings().setExclude(new KList<>("minecraft:calcite")));
+            placement.getEdit().add(edit);
+
+            lineObject(3).place(0, ANCHOR_Y + 10, 0, placer, placement, new RNG(2L), data);
+
+            assertEquals(replacement.key(), 3, placer.writesOf(replacement).size());
+            assertTrue(placer.writesOf(replacement).stream().allMatch(write -> write.y() == ANCHOR_Y + 10));
+        }
     }
 
     private IrisObjectPlacement placement() {

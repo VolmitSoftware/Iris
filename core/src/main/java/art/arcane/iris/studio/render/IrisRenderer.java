@@ -94,7 +94,7 @@ public final class IrisRenderer {
             RenderType currentType,
             BooleanSupplier cancelled
     ) {
-        return render(sx, sz, size, resolution, currentType, cancelled, false);
+        return render(sx, sz, size, resolution, currentType, cancelled, false, false);
     }
 
     public BufferedImage renderStudio(
@@ -105,7 +105,41 @@ public final class IrisRenderer {
             RenderType currentType,
             BooleanSupplier cancelled
     ) {
-        return render(sx, sz, size, resolution, currentType, cancelled, true);
+        return render(sx, sz, size, resolution, currentType, cancelled, true, true);
+    }
+
+    public BufferedImage renderStudioBase(
+            double sx,
+            double sz,
+            double size,
+            int resolution,
+            RenderType currentType,
+            BooleanSupplier cancelled
+    ) {
+        return render(sx, sz, size, resolution, currentType, cancelled, true, false);
+    }
+
+    public BufferedImage refineStudioBiome(
+            double sx,
+            double sz,
+            double size,
+            BufferedImage base,
+            BooleanSupplier cancelled
+    ) {
+        Objects.requireNonNull(base, "base");
+        Objects.requireNonNull(cancelled, "cancelled");
+        checkCancelled(cancelled);
+        if (!Double.isFinite(sx) || !Double.isFinite(sz) || !Double.isFinite(size) || size <= 0D
+                || base.getWidth() != base.getHeight()) {
+            throw new IllegalArgumentException("Vision biome refinement requires finite coordinates and a square base image");
+        }
+        int resolution = base.getWidth();
+        BufferedImage image = new BufferedImage(resolution, resolution, BufferedImage.TYPE_INT_RGB);
+        base.copyData(image.getRaster());
+        int[] pixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+        renderRiverAtlas(pixels, resolution, sx, sz, size / resolution, renderer.getComplex(), cancelled, true);
+        checkCancelled(cancelled);
+        return image;
     }
 
     private BufferedImage render(
@@ -115,7 +149,8 @@ public final class IrisRenderer {
             int resolution,
             RenderType currentType,
             BooleanSupplier cancelled,
-            boolean studio
+            boolean studio,
+            boolean riverOverlay
     ) {
         if (!Double.isFinite(sx) || !Double.isFinite(sz) || !Double.isFinite(size) || size <= 0D) {
             throw new IllegalArgumentException("Vision render coordinates and size must be finite");
@@ -142,7 +177,7 @@ public final class IrisRenderer {
         }
         if (studio && adaptiveStudioType(currentType)) {
             renderAdaptiveAtlas(pixels, resolution, sx, sz, step, shader, cancelled);
-            if (currentType == RenderType.BIOME) {
+            if (currentType == RenderType.BIOME && riverOverlay) {
                 renderRiverAtlas(pixels, resolution, sx, sz, step, renderer.getComplex(), cancelled, true);
             }
             return image;

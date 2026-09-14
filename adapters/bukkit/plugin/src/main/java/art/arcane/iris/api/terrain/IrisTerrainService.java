@@ -18,6 +18,8 @@ public interface IrisTerrainService {
 
     Optional<String> surfaceBiomeName(World world, int blockX, int blockZ);
 
+    Optional<IrisBiomeInfo> surfaceBiomeInfo(World world, int blockX, int blockZ);
+
     Optional<String> biomeKey(World world, int blockX, int blockY, int blockZ);
 
     Optional<String> regionKey(World world, int blockX, int blockZ);

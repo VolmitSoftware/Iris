@@ -184,6 +184,19 @@ returns `---`. A real zero returns `0`.
 | `%iris_world.available%` | `true` when the reading player is in an Iris world and a reading exists |
 | `%iris_world.biome%` | Surface biome display name at the player, e.g. `Hot Desert Dunes` |
 | `%iris_world.biome-key%` | Surface biome load key, e.g. `desert/hot-dunes` |
+| `%iris_world.biome-custom%` | `true` when the surface biome defines custom derivatives, otherwise `false` |
+| `%iris_world.biome-custom-id%` | Authored `customDerivitives[].id` when exactly one derivative is defined, for example `golden-dunes`; `---` for none or multiple |
+| `%iris_world.biome-custom-ids%` | All authored custom derivative IDs, comma-and-space separated in definition order; `---` for none |
+| `%iris_world.biome-custom-key%` | Namespaced Minecraft registry key for the sole custom derivative, such as `iris:biomes/<hash>`; `---` for none, multiple, or unavailable mapping |
+| `%iris_world.biome-custom-keys%` | Registry keys for all custom derivatives in definition order, comma-and-space separated; `---` for none or any unavailable mapping |
+| `%iris_world.biome-custom-count%` | Number of authored custom derivatives; `0` for a vanilla-only biome |
+| `%iris_world.biome-derivative%` | Configured base derivative registry key, for example `minecraft:desert` |
+| `%iris_world.biome-vanilla-derivative%` | Effective vanilla derivative registry key used when a vanilla biome is required |
+| `%iris_world.biome-type%` | Inferred biome category: `land`, `sea`, `shore`, or `cave`; `---` when unavailable |
+| `%iris_world.min-height%` | World minimum absolute Y, inclusive |
+| `%iris_world.max-height%` | World maximum absolute Y, exclusive |
+| `%iris_world.height%` | World vertical span, equal to maximum minus minimum height |
+| `%iris_world.fluid-height%` | Dimension fluid level in absolute world Y; this is configuration, not a measurement of water at the player |
 | `%iris_world.region%` | Region display name at the player |
 | `%iris_world.region-key%` | Region load key |
 | `%iris_world.dimension%` | Dimension (pack) load key of the player's world |
@@ -197,7 +210,9 @@ returns `---`. A real zero returns `0`.
 | `%iris_pregen.chunks-per-second%` | Current rate |
 | `%iris_pregen.paused%` | `true` while the job is paused |
 
-The world values are the surface reading at the player's block column. Walking refreshes them at most
+Custom derivative IDs are authored metadata. A singular ID or registry key is available only when the biome defines one derivative; plural keys list all definitions. Saved columns retain their historical biome definitions.
+
+Biome and region values describe the surface at the player's block column. Height values describe world configuration. Walking refreshes them at most
 once per second per player, so a whole board of `world.*` keys costs one refresh per player per
 second no matter how many of them are on it, and a value may lag a sprinting player by up to a
 second. A jump that is not walking - joining, respawning, changing worlds, stepping through a portal,

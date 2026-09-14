@@ -36,8 +36,21 @@ public class IrisPapiExpansionTest {
             "pregen.world",
             "world.available",
             "world.biome",
+            "world.biome-custom",
+            "world.biome-custom-count",
+            "world.biome-custom-id",
+            "world.biome-custom-ids",
+            "world.biome-custom-key",
+            "world.biome-custom-keys",
+            "world.biome-derivative",
             "world.biome-key",
+            "world.biome-type",
+            "world.biome-vanilla-derivative",
             "world.dimension",
+            "world.fluid-height",
+            "world.height",
+            "world.max-height",
+            "world.min-height",
             "world.region",
             "world.region-key");
 
@@ -102,6 +115,19 @@ public class IrisPapiExpansionTest {
         assertEquals("true", expansion.onRequest(player, "world.available"));
         assertEquals("Hot Desert Dunes", expansion.onRequest(player, "world.biome"));
         assertEquals("desert/hot-dunes", expansion.onRequest(player, "world.biome-key"));
+        assertEquals("true", expansion.onRequest(player, "world.biome-custom"));
+        assertEquals("golden-dunes", expansion.onRequest(player, "world.biome-custom-id"));
+        assertEquals("golden-dunes", expansion.onRequest(player, "world.biome-custom-ids"));
+        assertEquals("iris:biomes/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", expansion.onRequest(player, "world.biome-custom-key"));
+        assertEquals("iris:biomes/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", expansion.onRequest(player, "world.biome-custom-keys"));
+        assertEquals("1", expansion.onRequest(player, "world.biome-custom-count"));
+        assertEquals("minecraft:desert", expansion.onRequest(player, "world.biome-derivative"));
+        assertEquals("minecraft:desert", expansion.onRequest(player, "world.biome-vanilla-derivative"));
+        assertEquals("land", expansion.onRequest(player, "world.biome-type"));
+        assertEquals("-64", expansion.onRequest(player, "world.min-height"));
+        assertEquals("320", expansion.onRequest(player, "world.max-height"));
+        assertEquals("384", expansion.onRequest(player, "world.height"));
+        assertEquals("63", expansion.onRequest(player, "world.fluid-height"));
         assertEquals("Scorched Expanse", expansion.onRequest(player, "world.region"));
         assertEquals("scorched", expansion.onRequest(player, "world.region-key"));
         assertEquals("overworld", expansion.onRequest(player, "world.dimension"));

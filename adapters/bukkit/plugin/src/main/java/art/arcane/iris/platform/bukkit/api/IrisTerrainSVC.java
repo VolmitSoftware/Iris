@@ -1,5 +1,6 @@
 package art.arcane.iris.platform.bukkit.api;
 
+import art.arcane.iris.api.terrain.IrisBiomeInfo;
 import art.arcane.iris.api.terrain.IrisColumnField;
 import art.arcane.iris.api.terrain.IrisColumnQuery;
 import art.arcane.iris.api.terrain.IrisColumnSample;
@@ -10,6 +11,7 @@ import art.arcane.iris.api.terrain.IrisTerrainService;
 import art.arcane.iris.api.terrain.IrisWorldInfo;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.platform.bukkit.terrain.IrisApiFaultGuard;
+import art.arcane.iris.platform.bukkit.terrain.IrisBiomeInfoFactory;
 import art.arcane.iris.platform.bukkit.terrain.IrisColumnWalk;
 import art.arcane.iris.platform.bukkit.terrain.IrisSampleLimits;
 import art.arcane.iris.platform.bukkit.terrain.IrisSurfaceClassifier;
@@ -25,6 +27,7 @@ import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.platform.bukkit.plugin.IrisService;
+import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.generator.ChunkGenerator;
@@ -146,6 +149,22 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
             return name(engine.getSurfaceBiome(blockX, blockZ));
         } catch (Throwable error) {
             reportQueryFault("surfaceBiomeName", world, error);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<IrisBiomeInfo> surfaceBiomeInfo(World world, int blockX, int blockZ) {
+        Engine engine = liveEngineOf(world);
+        if (engine == null) {
+            return Optional.empty();
+        }
+
+        try {
+            return Optional.of(IrisBiomeInfoFactory.surface(engine, blockX, blockZ,
+                    error -> reportQueryFault("surfaceBiomeInfo", world, error)));
+        } catch (Throwable error) {
+            reportQueryFault("surfaceBiomeInfo", world, error);
             return Optional.empty();
         }
     }
@@ -371,6 +390,10 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
     }
 
     private void reportQueryFault(String operation, World world, Throwable error) {
+        if (error instanceof SavedBiomeUnavailableException unavailable
+                && unavailable.isLoading() && unavailable.getSuppressed().length == 0) {
+            return;
+        }
         if (queryFaults.record(System.currentTimeMillis())) {
             IrisLogging.reportError("Iris terrain API query \"" + operation + "\" failed for world \""
                     + (world == null ? "null" : world.getName()) + "\" (" + queryFaults.faults()
@@ -379,6 +402,10 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
     }
 
     private void reportSinkFault(World world, Throwable error) {
+        if (error instanceof SavedBiomeUnavailableException unavailable
+                && unavailable.isLoading() && unavailable.getSuppressed().length == 0) {
+            return;
+        }
         if (sinkFaults.record(System.currentTimeMillis())) {
             IrisLogging.reportError("Iris terrain API column sample failed for world \""
                     + (world == null ? "null" : world.getName()) + "\" (" + sinkFaults.faults()

@@ -1,5 +1,6 @@
 package art.arcane.iris.integration;
 
+import art.arcane.iris.api.terrain.IrisCustomBiomeInfo;
 import art.arcane.iris.api.pregen.IrisPregenPhase;
 import art.arcane.iris.api.pregen.IrisPregenProgress;
 import art.arcane.iris.api.terrain.IrisTerrainService;
@@ -110,6 +111,19 @@ public class IrisPapiStateTest {
             state.region(PLAYER);
             state.regionKey(PLAYER);
             state.dimension(PLAYER);
+            state.biomeCustom(PLAYER);
+            state.biomeCustomId(PLAYER);
+            state.biomeCustomIds(PLAYER);
+            state.biomeCustomKey(PLAYER);
+            state.biomeCustomKeys(PLAYER);
+            state.biomeCustomCount(PLAYER);
+            state.biomeDerivative(PLAYER);
+            state.biomeVanillaDerivative(PLAYER);
+            state.biomeType(PLAYER);
+            state.minHeight(PLAYER);
+            state.maxHeight(PLAYER);
+            state.height(PLAYER);
+            state.fluidHeight(PLAYER);
         }
 
         assertEquals(1, terrain.builds());
@@ -390,5 +404,118 @@ public class IrisPapiStateTest {
         assertEquals("false", state.available(PLAYER));
         assertEquals("false", state.worldAvailable(PLAYER));
         assertEquals(DASH, state.biome(PLAYER));
+    }
+
+    @Test
+    public void multipleCustomDerivativesExposeAllDefinitionsWithoutGuessingTheSelectedOne() {
+        FakeIrisTerrainService terrain = new FakeIrisTerrainService();
+        World world = IrisPapiTestSupport.world("sandbox");
+        terrain.addIrisWorld(world);
+        terrain.derivatives(List.of(
+                new IrisCustomBiomeInfo("golden-dunes", "iris:biomes/first"),
+                new IrisCustomBiomeInfo("red-dunes", "iris:biomes/second")));
+        IrisPapiState state = new IrisPapiState(() -> terrain, new IrisPapiTestSupport.Clock());
+        state.trackPosition(PLAYER, world, 10, 10);
+
+        assertEquals("true", state.biomeCustom(PLAYER));
+        assertEquals("2", state.biomeCustomCount(PLAYER));
+        assertEquals("golden-dunes, red-dunes", state.biomeCustomIds(PLAYER));
+        assertEquals("iris:biomes/first, iris:biomes/second", state.biomeCustomKeys(PLAYER));
+        assertEquals(DASH, state.biomeCustomId(PLAYER));
+        assertEquals(DASH, state.biomeCustomKey(PLAYER));
+    }
+
+    @Test
+    public void vanillaBiomesExposeFalseAndARealZeroCustomCount() {
+        FakeIrisTerrainService terrain = new FakeIrisTerrainService();
+        World world = IrisPapiTestSupport.world("sandbox");
+        terrain.addIrisWorld(world);
+        terrain.derivatives(List.of());
+        IrisPapiState state = new IrisPapiState(() -> terrain, new IrisPapiTestSupport.Clock());
+        state.trackPosition(PLAYER, world, 10, 10);
+
+        assertEquals("false", state.biomeCustom(PLAYER));
+        assertEquals("0", state.biomeCustomCount(PLAYER));
+        assertEquals(DASH, state.biomeCustomId(PLAYER));
+        assertEquals(DASH, state.biomeCustomIds(PLAYER));
+        assertEquals(DASH, state.biomeCustomKeys(PLAYER));
+        assertEquals("minecraft:desert", state.biomeVanillaDerivative(PLAYER));
+    }
+
+    @Test
+    public void anUnavailableRegistryKeyPreservesAuthoredIdsWithoutPublishingPartialKeyLists() {
+        FakeIrisTerrainService terrain = new FakeIrisTerrainService();
+        World world = IrisPapiTestSupport.world("sandbox");
+        terrain.addIrisWorld(world);
+        terrain.derivatives(List.of(new IrisCustomBiomeInfo("golden-dunes", "")));
+        IrisPapiTestSupport.Clock clock = new IrisPapiTestSupport.Clock();
+        IrisPapiState state = new IrisPapiState(() -> terrain, clock);
+        state.trackPosition(PLAYER, world, 10, 10);
+
+        assertEquals("golden-dunes", state.biomeCustomId(PLAYER));
+        assertEquals(DASH, state.biomeCustomKey(PLAYER));
+        terrain.derivatives(List.of(new IrisCustomBiomeInfo("golden-dunes", "iris:biomes/first"),
+                new IrisCustomBiomeInfo("red-dunes", "")));
+        clock.advance(IrisPapiState.VIEW_TTL_MS);
+        assertEquals("golden-dunes, red-dunes", state.biomeCustomIds(PLAYER));
+        assertEquals(DASH, state.biomeCustomKeys(PLAYER));
+    }
+
+    @Test
+    public void missingBiomeMetadataDoesNotHideKnownDimensionHeights() {
+        FakeIrisTerrainService terrain = new FakeIrisTerrainService();
+        World world = IrisPapiTestSupport.world("sandbox");
+        terrain.addIrisWorld(world);
+        terrain.biomeAvailable(false);
+        IrisPapiState state = new IrisPapiState(() -> terrain, new IrisPapiTestSupport.Clock());
+        state.trackPosition(PLAYER, world, 10, 10);
+
+        assertEquals("true", state.worldAvailable(PLAYER));
+        assertEquals(DASH, state.biomeCustom(PLAYER));
+        assertEquals(DASH, state.biomeCustomCount(PLAYER));
+        assertEquals(DASH, state.biomeDerivative(PLAYER));
+        assertEquals("overworld", state.dimension(PLAYER));
+        assertEquals("-64", state.minHeight(PLAYER));
+        assertEquals("320", state.maxHeight(PLAYER));
+        assertEquals("384", state.height(PLAYER));
+        assertEquals("63", state.fluidHeight(PLAYER));
+    }
+
+    @Test
+    public void pendingBiomeMetadataIsRetriedAfterTheViewExpiresWithoutPlayerMovement() {
+        FakeIrisTerrainService terrain = new FakeIrisTerrainService();
+        World world = IrisPapiTestSupport.world("sandbox");
+        terrain.addIrisWorld(world);
+        terrain.biomeAvailable(false);
+        IrisPapiTestSupport.Clock clock = new IrisPapiTestSupport.Clock();
+        IrisPapiState state = new IrisPapiState(() -> terrain, clock);
+        state.trackPosition(PLAYER, world, 10, 10);
+
+        assertEquals(DASH, state.biomeCustomId(PLAYER));
+        assertEquals("true", state.worldAvailable(PLAYER));
+        terrain.biomeAvailable(true);
+        clock.advance(IrisPapiState.VIEW_TTL_MS - 1L);
+        assertEquals(DASH, state.biomeCustomId(PLAYER));
+        clock.advance(1L);
+        assertEquals("golden-dunes", state.biomeCustomId(PLAYER));
+        assertEquals("Hot Desert Dunes", state.biome(PLAYER));
+    }
+
+    @Test
+    public void customDerivativeIdsAreScrubbedAndRefreshWithTheCachedView() {
+        FakeIrisTerrainService terrain = new FakeIrisTerrainService();
+        World world = IrisPapiTestSupport.world("sandbox");
+        terrain.addIrisWorld(world);
+        IrisPapiTestSupport.Clock clock = new IrisPapiTestSupport.Clock();
+        IrisPapiState state = new IrisPapiState(() -> terrain, clock);
+        state.trackPosition(PLAYER, world, 10, 10);
+        assertEquals("golden-dunes", state.biomeCustomId(PLAYER));
+
+        terrain.derivatives(List.of(new IrisCustomBiomeInfo("§6red%dunes", "iris:biomes/second")));
+        assertEquals("golden-dunes", state.biomeCustomIds(PLAYER));
+        clock.advance(IrisPapiState.VIEW_TTL_MS);
+        assertEquals("reddunes", state.biomeCustomId(PLAYER));
+        assertEquals("reddunes", state.biomeCustomIds(PLAYER));
+        assertEquals(2, terrain.builds());
     }
 }

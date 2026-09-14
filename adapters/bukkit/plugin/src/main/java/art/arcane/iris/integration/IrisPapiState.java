@@ -3,7 +3,6 @@ package art.arcane.iris.integration;
 import art.arcane.iris.api.pregen.IrisPregenPhase;
 import art.arcane.iris.api.pregen.IrisPregenProgress;
 import art.arcane.iris.api.terrain.IrisTerrainService;
-import art.arcane.iris.api.terrain.IrisWorldInfo;
 import art.arcane.volmlib.util.bukkit.papi.PlaceholderSnapshot;
 import art.arcane.volmlib.util.bukkit.papi.PlaceholderValues;
 import art.arcane.volmlib.util.bukkit.papi.PlayerSnapshotStore;
@@ -103,6 +102,71 @@ public final class IrisPapiState {
         return view == null ? PlaceholderValues.UNAVAILABLE : view.biomeKey();
     }
 
+    public String biomeCustom(UUID playerId) {
+        IrisPapiWorldView view = viewOf(playerId);
+        return view == null ? PlaceholderValues.UNAVAILABLE : view.details().custom();
+    }
+
+    public String biomeCustomId(UUID playerId) {
+        IrisPapiWorldView view = viewOf(playerId);
+        return view == null ? PlaceholderValues.UNAVAILABLE : view.details().customId();
+    }
+
+    public String biomeCustomIds(UUID playerId) {
+        IrisPapiWorldView view = viewOf(playerId);
+        return view == null ? PlaceholderValues.UNAVAILABLE : view.details().customIds();
+    }
+
+    public String biomeCustomKey(UUID playerId) {
+        IrisPapiWorldView view = viewOf(playerId);
+        return view == null ? PlaceholderValues.UNAVAILABLE : view.details().customKey();
+    }
+
+    public String biomeCustomKeys(UUID playerId) {
+        IrisPapiWorldView view = viewOf(playerId);
+        return view == null ? PlaceholderValues.UNAVAILABLE : view.details().customKeys();
+    }
+
+    public String biomeCustomCount(UUID playerId) {
+        IrisPapiWorldView view = viewOf(playerId);
+        return view == null ? PlaceholderValues.UNAVAILABLE : view.details().customCount();
+    }
+
+    public String biomeDerivative(UUID playerId) {
+        IrisPapiWorldView view = viewOf(playerId);
+        return view == null ? PlaceholderValues.UNAVAILABLE : view.details().derivative();
+    }
+
+    public String biomeVanillaDerivative(UUID playerId) {
+        IrisPapiWorldView view = viewOf(playerId);
+        return view == null ? PlaceholderValues.UNAVAILABLE : view.details().vanillaDerivative();
+    }
+
+    public String biomeType(UUID playerId) {
+        IrisPapiWorldView view = viewOf(playerId);
+        return view == null ? PlaceholderValues.UNAVAILABLE : view.details().type();
+    }
+
+    public String minHeight(UUID playerId) {
+        IrisPapiWorldView view = viewOf(playerId);
+        return view == null ? PlaceholderValues.UNAVAILABLE : view.heights().minimum();
+    }
+
+    public String maxHeight(UUID playerId) {
+        IrisPapiWorldView view = viewOf(playerId);
+        return view == null ? PlaceholderValues.UNAVAILABLE : view.heights().maximum();
+    }
+
+    public String height(UUID playerId) {
+        IrisPapiWorldView view = viewOf(playerId);
+        return view == null ? PlaceholderValues.UNAVAILABLE : view.heights().height();
+    }
+
+    public String fluidHeight(UUID playerId) {
+        IrisPapiWorldView view = viewOf(playerId);
+        return view == null ? PlaceholderValues.UNAVAILABLE : view.heights().fluid();
+    }
+
     public String region(UUID playerId) {
         IrisPapiWorldView view = viewOf(playerId);
         return view == null ? PlaceholderValues.UNAVAILABLE : view.region();
@@ -195,10 +259,7 @@ public final class IrisPapiState {
         return IrisPapiWorldView.present(
                 position,
                 now,
-                service.surfaceBiomeName(world, blockX, blockZ),
-                service.surfaceBiomeKey(world, blockX, blockZ),
-                service.regionName(world, blockX, blockZ),
-                service.regionKey(world, blockX, blockZ),
-                service.worldInfo(world).map(IrisWorldInfo::dimensionKey));
+                service.surfaceBiomeInfo(world, blockX, blockZ),
+                service.worldInfo(world));
     }
 }

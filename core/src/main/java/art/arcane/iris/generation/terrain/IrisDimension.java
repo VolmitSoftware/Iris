@@ -22,6 +22,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
 import art.arcane.iris.generation.biome.IrisCustomBiomeAliasResolver;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
+import art.arcane.iris.generation.biome.IrisSurfaceLayerFallback;
 import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositVariant;
@@ -323,6 +324,8 @@ public class IrisDimension extends IrisRegistrant {
     private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
     @Description("The palette of blocks for 'stone'")
     private IrisMaterialPalette rockPalette = new IrisMaterialPalette().qclear().qadd("stone");
+    @Description("What a column surfaces with when every biome layer is rejected. Biomes may override this.")
+    private IrisSurfaceLayerFallback surfaceLayerFallback = IrisSurfaceLayerFallback.ROCK;
     @Description("The dimension fluid block palette used for ocean columns and cave aquifers.")
     private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qclear().qadd("water");
     @Description("Collection of ores to be generated")

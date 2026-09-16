@@ -354,6 +354,8 @@ public final class DimensionTerrainContext implements DataProvider {
             );
             return mappedTerrainHeight(imageMapRuntime, proceduralHeight, x, z);
         }, Interpolated.DOUBLE), cachePrefix + "ImageMappedHeightStream", engine, cacheSize);
+        // heightStream is cached and never resolves the surface biome, so the shore band can read its slope.
+        ProceduralStream<Double> shoreSlopeStream = heightStream.slope(3);
         ProceduralStream<IrisBiome> finalBiomeStream = focusBiome == null
                 ? GenerationStreams.cache2D(heightStream.convertAware2D((height, x, z) -> {
                     IrisBiome mappedBiome = imageMapRuntime.sampleBiome(x, z);
@@ -370,7 +372,8 @@ public final class DimensionTerrainContext implements DataProvider {
                             fluidHeight,
                             landBiomeStream,
                             seaBiomeStream,
-                            shoreBiomeStream
+                            shoreBiomeStream,
+                            shoreSlopeStream
                     );
                     return resolvedBiome == baseBiome
                             ? baseBiome

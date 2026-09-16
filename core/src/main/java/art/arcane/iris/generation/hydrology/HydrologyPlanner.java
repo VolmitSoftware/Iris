@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.hydrology;
 
 import art.arcane.iris.generation.hydrology.cave.CaveVoxelView;
+import art.arcane.iris.generation.hydrology.cave.HydrologyCavePlan;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveContainmentPlanner;
 import art.arcane.iris.generation.hydrology.surface.SurfaceCourseBuilder;
 import art.arcane.iris.spi.IrisLogging;
@@ -220,6 +221,7 @@ public final class HydrologyPlanner {
                 List.of(),
                 List.of(),
                 List.of(),
+                Set.of(),
                 List.of(),
                 List.of(),
                 RiverFootprint.empty()
@@ -246,6 +248,15 @@ public final class HydrologyPlanner {
         return tile;
     }
 
+    public List<HydrologyDiagnosticCandidate> diagnosticCandidates(HydrologyTile tile) {
+        Objects.requireNonNull(tile, "tile");
+        ArrayList<HydrologyDiagnosticCandidate> diagnostics = new ArrayList<>(tile.localDiagnosticCandidates());
+        diagnostics.addAll(regional.diagnosticsIn(regional.ownerBounds(tile.key())));
+        ArrayList<HydrologyDiagnosticCandidate> unique = new ArrayList<>(sourcePlanner.uniqueDiagnostics(diagnostics));
+        unique.sort(Comparator.comparingLong(HydrologyDiagnosticCandidate::id));
+        return List.copyOf(unique);
+    }
+
     void clearOwnerDrafts() {
         resolvedOwners.invalidateAll();
         regional.clear();
@@ -258,18 +269,29 @@ public final class HydrologyPlanner {
                 || tile.tileSize() != settings.routing().tileSize()) {
             throw new IllegalArgumentException("Hydrology tile does not match this planner.");
         }
+        ArrayList<RiverCourse> localCourses = new ArrayList<>(tile.courses().size());
+        for (RiverCourse course : tile.courses()) {
+            if (!tile.regionalCourseIds().contains(course.id())) {
+                localCourses.add(course);
+            }
+        }
+        ArrayList<HydrologyCavePlan> localPlans = new ArrayList<>(tile.cavePlans().size());
+        for (HydrologyCavePlan plan : tile.cavePlans()) {
+            if (!tile.regionalCourseIds().contains(plan.source().sourceId())) {
+                localPlans.add(plan);
+            }
+        }
         HydrologyCaveCourseFilter.Result result = new HydrologyCaveCourseFilter.Result(
                 tile.nodes(),
                 tile.edges(),
                 tile.outlets(),
-                tile.courses(),
-                tile.cavePlans()
+                localCourses,
+                localPlans
         );
-        result = regional.withoutRegional(result, tile.key());
         HydrologyOwnerDraft draft = new HydrologyOwnerDraft(
                 tile.key(),
                 result,
-                tile.diagnosticCandidates(),
+                tile.localDiagnosticCandidates(),
                 null
         );
         resolvedOwners.put(tile.key(), new CrossTileResolvedOwner(draft, List.of()));

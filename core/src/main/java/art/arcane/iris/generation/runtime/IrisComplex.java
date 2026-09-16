@@ -19,6 +19,8 @@
 package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.generation.stream.GenerationStreams;
+import art.arcane.iris.generation.stream.CachedDoubleStream2D;
+import art.arcane.iris.generation.stream.CachedStream2D;
 
 
 import art.arcane.iris.configuration.IrisSettings;
@@ -36,6 +38,7 @@ import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyNaturalSample;
 import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
 import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntimeContext;
+import art.arcane.iris.generation.image.IrisImageMapApplication;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
 import art.arcane.iris.generation.mantle.MantleHydrologyCaveVoxelView;
 import art.arcane.iris.generation.terrain.InferredType;
@@ -78,6 +81,7 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 
 import java.lang.ref.WeakReference;
@@ -90,6 +94,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -111,6 +116,10 @@ public class IrisComplex implements DataProvider {
     /** One million corners: about 16 MB, roughly a 4000 by 4000 block area at the 4-block grid. */
     private static final int SHARED_CORNER_BOUNDS_CAPACITY = 1 << 20;
     private static final int HEIGHT_BOUNDS_GRID = 4;
+    /** The slope streams measure the rise across a run of this many blocks, so gradient is slope over run. */
+    private static final double SLOPE_RUN = 3D;
+    /** A sheer coast would let shoreMinimumWidth buy unbounded height, so the shore band stops climbing here. */
+    private static final double MAX_SHORE_BAND_GRADIENT = 3D;
     private static final Comparator<IrisInterpolator> INTERPOLATOR_ORDER = Comparator
             .comparing((IrisInterpolator interpolator) -> interpolator.getFunction().name())
             .thenComparingDouble(IrisInterpolator::getHorizontalScale);
@@ -134,6 +143,17 @@ public class IrisComplex implements DataProvider {
     @Getter(AccessLevel.NONE)
     private final transient Map<IrisRegion, Map<InferredType, ProceduralStream<IrisBiome>>> inferredBiomeStreams;
     private final TransitionGenerationPlan transitionGenerationPlan;
+    @Getter(AccessLevel.NONE)
+    private final transient boolean detached;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private transient List<NoiseCacheCapacity> hydrologyNoiseCaches = List.of();
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private transient HydrologyNoiseCacheBudget.Reservation hydrologyNoiseCacheReservation;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private transient boolean hydrologyNoiseCachesClosed;
     private RNG rng;
     private double fluidHeight;
     private IrisData data;
@@ -166,12 +186,16 @@ public class IrisComplex implements DataProvider {
     private final ResolvedTerrainProvider resolvedTerrain;
     private ProceduralStream<Double> placementHeightStream;
     private ProceduralStream<Double> heightStream;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private CachedDoubleStream2D cachedHeightStream;
     private ProceduralStream<Integer> roundedHeighteightStream;
     private ProceduralStream<Double> maxHeightStream;
     private ProceduralStream<Double> overlayStream;
     private ProceduralStream<Double> heightFluidStream;
     private ProceduralStream<Double> slopeStream;
     private ProceduralStream<Double> naturalSlopeStream;
+    private ProceduralStream<Double> shoreSlopeStream;
     private ProceduralStream<Double> riverDistanceStream;
     private ProceduralStream<Double> riverFlowStream;
     private ProceduralStream<Double> riverCarveWeightStream;
@@ -216,6 +240,7 @@ public class IrisComplex implements DataProvider {
 
     IrisComplex(Engine engine, boolean simple, TransitionGenerationPlan transitionGenerationPlan, boolean detached) {
         terrainEngine = engine;
+        this.detached = detached;
         this.transitionGenerationPlan = transitionGenerationPlan;
         this.resolvedTerrain = new ResolvedTerrainProvider(engine);
         int cacheSize = noiseCacheSize(engine, IrisSettings.get().getPerformance().getNoiseCacheSize(), detached);
@@ -317,7 +342,8 @@ public class IrisComplex implements DataProvider {
         ProceduralStream<IrisRegion> proceduralRegionStream = focusedRegions != null ? focusedRegions
                 : GenerationStreams.cache2D(regionStyleStream
                 .selectRarity(compatRegionPool(engine)), "regionStream", engine, cacheSize);
-        regionStream = focusedRegions != null ? proceduralRegionStream : GenerationStreams.cache2D(proceduralRegionStream
+        regionStream = focusedRegions != null || !imageMapRuntime.has(IrisImageMapApplication.REGION)
+                ? proceduralRegionStream : GenerationStreams.cache2D(proceduralRegionStream
                 .convertAware2D((region, x, z) -> {
                     IrisRegion mapped = imageMapRuntime.sampleRegion(x, z);
                     return mapped == null ? region : mapped;
@@ -347,7 +373,8 @@ public class IrisComplex implements DataProvider {
         ProceduralStream<IrisBiome> proceduralBaseBiomeStream = focusedBiomes != null ? focusedBiomes :
                 GenerationStreams.cache2D(bridgeStream.convertAware2D((t, x, z) -> inferredStreams.get(t).get(x, z))
                         .convertAware2D(this::implode), "baseBiomeStream", engine, cacheSize);
-        baseBiomeStream = focusedBiomes != null ? proceduralBaseBiomeStream : GenerationStreams.cache2D(proceduralBaseBiomeStream
+        baseBiomeStream = focusedBiomes != null || !imageMapRuntime.has(IrisImageMapApplication.BIOME)
+                ? proceduralBaseBiomeStream : GenerationStreams.cache2D(proceduralBaseBiomeStream
                 .convertAware2D((biome, x, z) -> {
                     IrisBiome mapped = imageMapRuntime.sampleBiome(x, z);
                     return mapped == null ? biome : mapped;
@@ -400,7 +427,8 @@ public class IrisComplex implements DataProvider {
                     (x, z) -> describeNaturalHeight(engine, x, z),
                     this::sampleNaturalOcean,
                     footprint -> new MantleHydrologyCaveVoxelView(engine, this, footprint),
-                    () -> engine.getPlatformHooks().isMainThread()
+                    () -> engine.getPlatformHooks().isMainThread(),
+                    this::expandHydrologyNoiseCaches
             ));
             hydrologyRuntime.setNeighbourPrefetchEnabled(!engine.isStudio());
             IrisRiverBank3DConfig banks3D = configuredHydrology.getRivers().getGeometry().getBanks3D();
@@ -415,7 +443,8 @@ public class IrisComplex implements DataProvider {
                                 Math.max(4096, cacheSize), data, banks3D));
             }
         }
-        ProceduralStream<Double> cachedHeightStream = GenerationStreams.cache2DDouble(ProceduralStream.ofDouble((x, z) -> resolveHydrologyTerrainHeight(x, z)), "heightStream", engine, cacheSize);
+        cachedHeightStream = new CachedDoubleStream2D("heightStream", engine,
+                ProceduralStream.ofDouble(this::resolveHydrologyTerrainHeight), cacheSize);
         heightStream = ProceduralStream.ofDouble((x, z) -> terrainEngine.getPlatformHooks().isMainThread()
                 ? nonblockingTerrainHeight(x, z) : cachedHeightStream.getDouble(x, z));
         placementHeightStream = ProceduralStream.ofDouble(this::samplePlacementHeight);
@@ -424,6 +453,8 @@ public class IrisComplex implements DataProvider {
         slopeStream = GenerationStreams.contextInjecting(placementHeightStream, engine, (c, x, z) -> c.getHeight().getDouble(x, z))
                 .slope(3);
         naturalSlopeStream = GenerationStreams.cache2DDouble(naturalHeightStream.slope(3), "naturalSlopeStream", engine, cacheSize);
+        // Terrain3D column heights resolve the surface biome, so the shore band reads the pre-terrain3D slope or it recurses.
+        shoreSlopeStream = terrain3DEnabled ? baseTerrainHeightStream.slope(3) : naturalSlopeStream;
         trueBiomeStream = focusedBiomes != null ? GenerationStreams.cache2D(focusedBiomes, "trueBiomeStream-focus", engine, cacheSize) : GenerationStreams.cache2D(heightStream
                 .convertAware2D((terrainHeight, x, z) -> resolveHydrologySurfaceBiome(terrainHeight, x, z)), "trueBiomeStream", engine, cacheSize);
         trueBiomeDerivativeStream = GenerationStreams.cache2D(GenerationStreams.contextInjecting(trueBiomeStream, engine, (c, x, z) -> c.getBiome().get(x, z))
@@ -467,6 +498,66 @@ public class IrisComplex implements DataProvider {
      */
     static int noiseCacheSize(Engine engine, int configuredSize, boolean detached) {
         return engine.isStudio() && !detached ? Math.max(configuredSize, STUDIO_NOISE_CACHE_SIZE) : configuredSize;
+    }
+
+    public synchronized void ensureTerrainNoiseCacheSize(int minimumChunks) {
+        if (minimumChunks <= 0) {
+            throw new IllegalArgumentException("Terrain noise cache size must be positive");
+        }
+        CachedDoubleStream2D naturalCache = (CachedDoubleStream2D) naturalHeightStream;
+        if (naturalCache.getMaxSize() < minimumChunks * 256L) {
+            naturalCache.setMaximumChunks(minimumChunks);
+        }
+        if (cachedHeightStream.getMaxSize() < minimumChunks * 256L) {
+            cachedHeightStream.setMaximumChunks(minimumChunks);
+        }
+    }
+
+    void expandHydrologyNoiseCaches() {
+        expandHydrologyNoiseCaches(HydrologyNoiseCacheBudget.SHARED);
+    }
+
+    synchronized void expandHydrologyNoiseCaches(HydrologyNoiseCacheBudget budget) {
+        if (detached || hydrologyRuntime == null || hydrologyNoiseCachesClosed || hydrologyNoiseCacheReservation != null) {
+            return;
+        }
+        IdentityHashMap<ProceduralStream<?>, Boolean> selected = new IdentityHashMap<>();
+        List<NoiseCacheCapacity> capacities = new ArrayList<>(5);
+        int additionalChunks = HydrologyNoiseCacheBudget.MAXIMUM_CHUNKS;
+        for (ProceduralStream<?> stream : new ProceduralStream<?>[]{
+                baseBiomeStream, baseTerrainHeightStream, unblendedNaturalHeightStream, regionStream, bridgeStream}) {
+            if (!(stream instanceof CachedStream2D<?> || stream instanceof CachedDoubleStream2D)
+                    || selected.put(stream, Boolean.TRUE) != null) {
+                continue;
+            }
+            int originalChunks = Math.toIntExact(((MeteredCache) stream).getMaxSize() / 256L);
+            if (originalChunks >= HydrologyNoiseCacheBudget.MAXIMUM_CHUNKS) {
+                continue;
+            }
+            capacities.add(new NoiseCacheCapacity(stream, originalChunks));
+            additionalChunks = Math.min(additionalChunks, HydrologyNoiseCacheBudget.MAXIMUM_CHUNKS - originalChunks);
+        }
+        if (capacities.isEmpty()) {
+            return;
+        }
+        hydrologyNoiseCaches = List.copyOf(capacities);
+        hydrologyNoiseCacheReservation = budget.reserve(capacities.size(), additionalChunks);
+        for (NoiseCacheCapacity capacity : hydrologyNoiseCaches) {
+            capacity.resize(capacity.originalChunks() + hydrologyNoiseCacheReservation.additionalChunks());
+        }
+    }
+
+    private synchronized void releaseHydrologyNoiseCaches() {
+        hydrologyNoiseCachesClosed = true;
+        if (hydrologyNoiseCacheReservation == null) {
+            return;
+        }
+        for (NoiseCacheCapacity capacity : hydrologyNoiseCaches) {
+            capacity.resize(capacity.originalChunks());
+        }
+        hydrologyNoiseCacheReservation.close();
+        hydrologyNoiseCacheReservation = null;
+        hydrologyNoiseCaches = List.of();
     }
 
     void enableStudioHydrologyCache(String runtimeIdentity, Path persistentRoot) {
@@ -684,11 +775,11 @@ public class IrisComplex implements DataProvider {
         if (biome == null || region == null) {
             return biome;
         }
-        double shoreHeight = region.getShoreHeight(x, z);
-        if (height >= fluidHeight - 1 && height <= fluidHeight + shoreHeight && !biome.isShore()) {
+        double shoreTop = shoreBandTop(height, region, x, z, fluidHeight, shoreSlopeStream);
+        if (height >= fluidHeight - 1 && height <= shoreTop && !biome.isShore()) {
             return sampleInferredBiome(region, InferredType.SHORE, x, z);
         }
-        if (height > fluidHeight + shoreHeight && !biome.isLand()) {
+        if (height > shoreTop && !biome.isLand()) {
             return sampleInferredBiome(region, InferredType.LAND, x, z);
         }
         if (height < fluidHeight && !biome.isAquatic()) {
@@ -1264,8 +1355,36 @@ public class IrisComplex implements DataProvider {
                 fluidHeight,
                 landBiomeStream,
                 seaBiomeStream,
-                shoreBiomeStream);
+                shoreBiomeStream,
+                shoreSlopeStream);
         return resolved == biome ? biome : implode(resolved, x, z);
+    }
+
+    /**
+     * The highest column the shore band still covers. Shore height alone is a vertical window, so a steep
+     * coast gets a beach only a fraction of a block wide; shoreMinimumWidth trades the local gradient back into
+     * height so the beach keeps that width across the ground. Zero width never reads the slope, and neither
+     * does a column that is already inside the vertical window or too high for any widening to reach.
+     */
+    static double shoreBandTop(
+            double height,
+            IrisRegion region,
+            double x,
+            double z,
+            double fluidHeight,
+            ProceduralStream<Double> shoreSlopes
+    ) {
+        double bandTop = fluidHeight + region.getShoreHeight(x, z);
+        double shoreMinimumWidth = region.getShoreMinimumWidth();
+
+        if (shoreMinimumWidth <= 0
+                || height <= bandTop
+                || height < fluidHeight - 1
+                || height > bandTop + shoreMinimumWidth * MAX_SHORE_BAND_GRADIENT) {
+            return bandTop;
+        }
+
+        return bandTop + shoreMinimumWidth * Math.min(shoreSlopes.getDouble(x, z) / SLOPE_RUN, MAX_SHORE_BAND_GRADIENT);
     }
 
     static IrisBiome resolveSurfaceBiome(
@@ -1277,18 +1396,19 @@ public class IrisComplex implements DataProvider {
             double fluidHeight,
             ProceduralStream<IrisBiome> landBiomes,
             ProceduralStream<IrisBiome> seaBiomes,
-            ProceduralStream<IrisBiome> shoreBiomes
+            ProceduralStream<IrisBiome> shoreBiomes,
+            ProceduralStream<Double> shoreSlopes
     ) {
         if (biome == null || region == null) {
             return biome;
         }
-        double sh = region.getShoreHeight(x, z);
+        double shoreTop = shoreBandTop(height, region, x, z, fluidHeight, shoreSlopes);
 
-        if (height >= fluidHeight - 1 && height <= fluidHeight + sh && !biome.isShore()) {
+        if (height >= fluidHeight - 1 && height <= shoreTop && !biome.isShore()) {
             return shoreBiomes.get(x, z);
         }
 
-        if (height > fluidHeight + sh && !biome.isLand()) {
+        if (height > shoreTop && !biome.isLand()) {
             return landBiomes.get(x, z);
         }
 
@@ -1944,6 +2064,16 @@ public class IrisComplex implements DataProvider {
     record GeneratorGroup(IrisInterpolator interpolator, IrisGenerator[] generators) {
     }
 
+    private record NoiseCacheCapacity(ProceduralStream<?> stream, int originalChunks) {
+        private void resize(int chunks) {
+            if (stream instanceof CachedDoubleStream2D doubles) {
+                doubles.setMaximumChunks(chunks);
+            } else if (stream instanceof CachedStream2D<?> objects) {
+                objects.setMaximumChunks(chunks);
+            }
+        }
+    }
+
     public void close() {
         if (hydrologyBanks3D != null) {
             hydrologyBanks3D.clear();
@@ -1954,6 +2084,7 @@ public class IrisComplex implements DataProvider {
         if (hydrologyRuntime != null) {
             hydrologyRuntime.close();
         }
+        releaseHydrologyNoiseCaches();
         resolvedTerrain.clear();
     }
 }

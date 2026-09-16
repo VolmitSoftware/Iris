@@ -119,6 +119,7 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
                 IrisPlatforms.isBound() ? MultiBurst.hydrology : null,
                 context.waitingForbidden()
         );
+        this.cache.setTerrainPreparation(context.terrainPreparation());
         IrisLogging.debug("Hydrology runtime: tileSize=%d publicationRadius=%d planningThreads=%d",
                 settings.routing().tileSize(), settings.publicationRadius(), MultiBurst.hydrology.parallelism());
     }
@@ -129,6 +130,10 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
 
     public HydrologyTile tile(HydrologyTileKey key) {
         return cache.get(key);
+    }
+
+    public List<HydrologyDiagnosticCandidate> diagnosticCandidates(HydrologyTileKey key) {
+        return cache.diagnosticCandidates(key);
     }
 
     /**
@@ -319,8 +324,8 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
         LinkedHashMap<Long, HydrologyDiagnosticCandidate> candidates = new LinkedHashMap<>();
         for (int tileZ = minimumTileZ; tileZ <= maximumTileZ; tileZ++) {
             for (int tileX = minimumTileX; tileX <= maximumTileX; tileX++) {
-                HydrologyTile tile = cache.get(new HydrologyTileKey(tileX, tileZ));
-                for (HydrologyDiagnosticCandidate candidate : tile.diagnosticCandidates()) {
+                HydrologyTileKey key = new HydrologyTileKey(tileX, tileZ);
+                for (HydrologyDiagnosticCandidate candidate : diagnosticCandidates(key)) {
                     if (candidate.point().x() < minX || candidate.point().x() >= maxX
                             || candidate.point().z() < minZ || candidate.point().z() >= maxZ) {
                         continue;

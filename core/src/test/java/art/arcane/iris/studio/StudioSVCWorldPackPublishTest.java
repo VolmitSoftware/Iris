@@ -16,6 +16,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.MockedStatic;
 
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
@@ -31,7 +32,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 
 public class StudioSVCWorldPackPublishTest {
     @ClassRule
@@ -262,6 +265,42 @@ public class StudioSVCWorldPackPublishTest {
         assertEquals(sourceFingerprint, copiedFingerprint);
         assertSame(sourceValidation, reused);
         assertSame(sourceValidation, PackValidationRegistry.requireLoadable(target));
+    }
+
+    @Test
+    public void immutableSnapshotDimensionLoadingReusesExactSourceValidation() throws Exception {
+        Path source = temporaryFolder.newFolder("snapshot-source").toPath();
+        Path target = temporaryFolder.getRoot().toPath().resolve("snapshot-target");
+        writeValidPack(source);
+        StudioSVC.copyPackTree(source, target);
+        PackValidationResult sourceValidation = new PackValidationResult(
+                "snapshot-source", List.of(), List.of("source warning"), 23L);
+        PackValidationRegistry.publish(source, sourceValidation,
+                ServerConfigurator.computePackTreeFingerprint(source.toFile()));
+
+        IrisData installed = IrisData.openDatapackCompiler(target.toFile());
+        try (MockedStatic<IrisData> data = mockStatic(IrisData.class, CALLS_REAL_METHODS)) {
+            data.when(() -> IrisData.get(target.toFile())).thenReturn(installed);
+
+            assertEquals("main", StudioSVC.loadInstalledDimension(target, source, "main").getLoadKey());
+            assertSame(sourceValidation, PackValidationRegistry.requireLoadable(target));
+        } finally {
+            installed.close();
+        }
+    }
+
+    @Test
+    public void immutableSnapshotDimensionLoadingRejectsChangedContent() throws Exception {
+        Path source = temporaryFolder.newFolder("changed-snapshot-source").toPath();
+        Path target = temporaryFolder.getRoot().toPath().resolve("changed-snapshot-target");
+        writeValidPack(source);
+        StudioSVC.copyPackTree(source, target);
+        PackValidationRegistry.publish(source, new PackValidationResult("snapshot-source", List.of(), List.of(), 29L),
+                ServerConfigurator.computePackTreeFingerprint(source.toFile()));
+        Files.writeString(target.resolve("dimensions/main.json"), "{");
+
+        assertThrows(BrokenPackException.class, () -> StudioSVC.loadInstalledDimension(target, source, "main"));
+        assertTrue(PackValidationRegistry.isBroken(target));
     }
 
     @Test

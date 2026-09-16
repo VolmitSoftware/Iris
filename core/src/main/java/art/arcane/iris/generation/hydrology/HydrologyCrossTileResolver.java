@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.hydrology;
 
+import art.arcane.iris.generation.concurrent.MultiBurst;
+import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.generation.hydrology.cave.CavePosition;
 import art.arcane.iris.generation.hydrology.cave.CaveVoxelView;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCandidate;
@@ -17,8 +19,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 
 final class HydrologyCrossTileResolver {
+    private static final int FALLBACK_TRIAL_PARALLELISM = 16;
     private final HydrologyPlanner planner;
 
     HydrologyCrossTileResolver(HydrologyPlanner planner) {
@@ -114,7 +118,6 @@ final class HydrologyCrossTileResolver {
                 )
         );
         seedRegionalSurface(key, footprintCompiler);
-        diagnostics.addAll(footprintCompiler.regionalNetwork.diagnostics());
         HashMap<Long, List<HydrologyPoint>> refinedEdges = new HashMap<>();
         HashMap<SourceCompilationKey, SourceCompilation> sourceCompilations = new HashMap<>();
         settleSelection(
@@ -147,6 +150,8 @@ final class HydrologyCrossTileResolver {
                 ? List.of()
                 : planner.outletPlanner.resolveSurfaceFallbackOutlets(grid);
         int fallbackOutletIndex = 0;
+        int fallbackBatchStart = 0;
+        List<FallbackTrial> fallbackTrials = List.of();
         while (true) {
             int maximumPublicationPasses = Math.addExact(
                     1,
@@ -225,41 +230,27 @@ final class HydrologyCrossTileResolver {
             }
             boolean fallbackSelected = false;
             while (fallbackOutletIndex < fallbackOutlets.size()) {
-                OutletCandidate fallbackOutlet = fallbackOutlets.get(fallbackOutletIndex++);
-                HydrologyRoutingPlan fallbackRouting = planner.sourcePlanner.requireOrganicSurface(planner.sourcePlanner.buildRouting(grid, List.of(fallbackOutlet), true));
-                HashMap<HydrologyTileKey, SourceRoutingContext> fallbackContexts = new HashMap<>();
-                fallbackContexts.put(key, new SourceRoutingContext(
-                        grid,
-                        fallbackRouting,
-                        undergroundRouting,
-                        List.of()
-                ));
-                SourceSelection fallbackSelection = planner.sourcePlanner.selectSources(
-                        key,
-                        grid,
-                        fallbackRouting,
-                        true,
-                        false,
-                        diagnostics,
-                        fallbackContexts
-                );
-                settleSelection(
-                        key,
-                        grid,
-                        fallbackRouting,
-                        undergroundRouting,
-                        fallbackSelection,
-                        true,
-                        footprintCompiler,
-                        refinedEdges,
-                        sourceCompilations,
-                        diagnostics
-                );
-                if (!fallbackSelection.hasAcceptedSelection()) {
+                if (fallbackOutletIndex >= fallbackBatchStart + fallbackTrials.size()) {
+                    fallbackBatchStart = fallbackOutletIndex;
+                    fallbackTrials = compileFallbackTrials(new FallbackContext(
+                            key, grid, undergroundRouting, footprintCompiler, refinedEdges, sourceCompilations
+                    ), fallbackOutlets, fallbackBatchStart);
+                }
+                FallbackTrial trial = fallbackTrials.get(fallbackOutletIndex++ - fallbackBatchStart);
+                if (trial.failure() != null) {
+                    throw HydrologyPlanner.propagateOwnerFailure(trial.failure());
+                }
+                refinedEdges.putAll(trial.refinedEdges());
+                sourceCompilations.putAll(trial.sourceCompilations());
+                if (!trial.selection().hasAcceptedSelection()) {
                     continue;
                 }
-                surfaceRouting = fallbackRouting;
-                surfaceSelection = fallbackSelection;
+                // Every trial re-selects over the whole owned lattice, so a discarded one invents a full set of
+                // per-node rejections for a plan that was never published. Only the adopted trial may report.
+                diagnostics.addAll(trial.diagnostics());
+                surfaceRouting = trial.routing();
+                surfaceSelection = trial.selection();
+                footprintCompiler = trial.footprintCompiler();
                 fallbackSelected = true;
                 break;
             }
@@ -285,6 +276,104 @@ final class HydrologyCrossTileResolver {
         );
         validateOwnerDraftReach(draft);
         return draft;
+    }
+
+    private List<FallbackTrial> compileFallbackTrials(
+            FallbackContext context,
+            List<OutletCandidate> outlets,
+            int start
+    ) {
+        int end = Math.min(outlets.size(), start + FALLBACK_TRIAL_PARALLELISM);
+        ArrayList<Callable<FallbackTrial>> tasks = new ArrayList<>(end - start);
+        for (int index = start; index < end; index++) {
+            OutletCandidate outlet = outlets.get(index);
+            tasks.add(() -> compileFallbackTrial(context, outlet));
+        }
+        List<FallbackTrial> trials = HydrologyForkJoin.invokeAll(tasks,
+                IrisPlatforms.isBound() ? MultiBurst.hydrology : null);
+        DraftProfile ownerProfile = planner.currentDraftProfile();
+        for (FallbackTrial trial : trials) {
+            DraftProfile trialProfile = trial.profile();
+            ownerProfile.routeCalls += trialProfile.routeCalls;
+            ownerProfile.routeSolves += trialProfile.routeSolves;
+            ownerProfile.routeSolveNanos += trialProfile.routeSolveNanos;
+            ownerProfile.rasterCalls += trialProfile.rasterCalls;
+            ownerProfile.rasterNanos += trialProfile.rasterNanos;
+            ownerProfile.filterCalls += trialProfile.filterCalls;
+            ownerProfile.filterNanos += trialProfile.filterNanos;
+        }
+        return trials;
+    }
+
+    private FallbackTrial compileFallbackTrial(FallbackContext context, OutletCandidate outlet) {
+        HydrologyPlanner.PlanningSamples previousSamples = planner.planningSamples.get();
+        DraftProfile previousProfile = planner.draftProfiles.get();
+        DraftProfile profile = new DraftProfile();
+        ArrayList<HydrologyDiagnosticCandidate> diagnostics = new ArrayList<>();
+        HashMap<Long, List<HydrologyPoint>> refinedEdges = new HashMap<>(context.refinedEdges());
+        HashMap<SourceCompilationKey, SourceCompilation> sourceCompilations = new HashMap<>(context.sourceCompilations());
+        HydrologyFootprintCompiler footprints = null;
+        try {
+            planner.planningSamples.set(new HydrologyPlanner.PlanningSamples());
+            planner.draftProfiles.set(profile);
+            footprints = new HydrologyFootprintCompiler(
+                    planner.settings,
+                    new HydrologyFootprintCompiler.Sampling(planner.sampler, planner.geometrySampler, planner.naturalSampler)
+            );
+            footprints.regionalNetwork = context.footprintCompiler().regionalNetwork;
+            footprints.regionalSurfaceFootprints.putAll(context.footprintCompiler().regionalSurfaceFootprints);
+            footprints.regionalDropRasters.putAll(context.footprintCompiler().regionalDropRasters);
+            HydrologyRoutingPlan routing = planner.sourcePlanner.requireOrganicSurface(
+                    planner.sourcePlanner.buildRouting(context.grid(), List.of(outlet), true)
+            );
+            HashMap<HydrologyTileKey, SourceRoutingContext> routingContexts = new HashMap<>();
+            routingContexts.put(context.key(), new SourceRoutingContext(
+                    context.grid(), routing, context.undergroundRouting(), List.of()
+            ));
+            SourceSelection selection = planner.sourcePlanner.selectSources(
+                    context.key(), context.grid(), routing, true, false, diagnostics, routingContexts
+            );
+            settleSelection(context.key(), context.grid(), routing, context.undergroundRouting(), selection,
+                    true, footprints, refinedEdges, sourceCompilations, diagnostics);
+            return new FallbackTrial(routing, selection, List.copyOf(diagnostics), footprints,
+                    refinedEdges, sourceCompilations, profile, null);
+        } catch (Throwable failure) {
+            return new FallbackTrial(null, null, List.copyOf(diagnostics), footprints,
+                    refinedEdges, sourceCompilations, profile, failure);
+        } finally {
+            if (previousSamples == null) {
+                planner.planningSamples.remove();
+            } else {
+                planner.planningSamples.set(previousSamples);
+            }
+            if (previousProfile == null) {
+                planner.draftProfiles.remove();
+            } else {
+                planner.draftProfiles.set(previousProfile);
+            }
+        }
+    }
+
+    private record FallbackContext(
+            HydrologyTileKey key,
+            HydrologySampledGrid grid,
+            HydrologyRoutingPlan undergroundRouting,
+            HydrologyFootprintCompiler footprintCompiler,
+            Map<Long, List<HydrologyPoint>> refinedEdges,
+            Map<SourceCompilationKey, SourceCompilation> sourceCompilations
+    ) {
+    }
+
+    private record FallbackTrial(
+            HydrologyRoutingPlan routing,
+            SourceSelection selection,
+            List<HydrologyDiagnosticCandidate> diagnostics,
+            HydrologyFootprintCompiler footprintCompiler,
+            Map<Long, List<HydrologyPoint>> refinedEdges,
+            Map<SourceCompilationKey, SourceCompilation> sourceCompilations,
+            DraftProfile profile,
+            Throwable failure
+    ) {
     }
 
     HydrologyTile materializeAcceptedTile(CrossTileResolution resolution) {
@@ -324,6 +413,16 @@ final class HydrologyCrossTileResolver {
         if (footprintCompiler.fullMaterializationCount() < 1) {
             throw new IllegalStateException("Hydrology publication did not materialize its full footprint.");
         }
+        HashSet<Long> regionalIds = new HashSet<>();
+        for (RiverCourse course : footprintCompiler.regionalNetwork.courses()) {
+            regionalIds.add(course.id());
+        }
+        HashSet<Long> publishedRegionalIds = new HashSet<>();
+        for (RiverCourse course : result.courses()) {
+            if (regionalIds.contains(course.id())) {
+                publishedRegionalIds.add(course.id());
+            }
+        }
         return new HydrologyTile(
                 resolution.draft().key(),
                 planner.worldSeed,
@@ -333,6 +432,7 @@ final class HydrologyCrossTileResolver {
                 result.edges(),
                 result.outlets(),
                 result.courses(),
+                publishedRegionalIds,
                 result.cavePlans(),
                 planner.sourcePlanner.uniqueDiagnostics(diagnostics),
                 footprint

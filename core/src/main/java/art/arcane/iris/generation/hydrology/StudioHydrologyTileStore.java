@@ -37,11 +37,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 final class StudioHydrologyTileStore {
-    private static final int SCHEMA_VERSION = 3;
+    private static final int SCHEMA_VERSION = 5;
     private static final long MAXIMUM_COMPRESSED_BYTES = 128L * 1024L * 1024L;
     private static final long MAXIMUM_DECOMPRESSED_BYTES = 512L * 1024L * 1024L;
     private static final Gson GSON = new GsonBuilder()
@@ -168,8 +169,9 @@ final class StudioHydrologyTileStore {
             List<DrainageEdge> edges,
             List<RiverOutlet> outlets,
             List<PersistedCourse> courses,
+            List<Long> regionalCourseIds,
             List<PersistedCavePlan> cavePlans,
-            List<HydrologyDiagnosticCandidate> diagnosticCandidates,
+            List<HydrologyDiagnosticCandidate> localDiagnosticCandidates,
             List<HydrologyColumnSample> columns
     ) {
         private static PersistedTile from(HydrologyTile tile) {
@@ -177,6 +179,8 @@ final class StudioHydrologyTileStore {
             for (RiverCourse course : tile.courses()) {
                 courses.add(PersistedCourse.from(course));
             }
+            ArrayList<Long> regionalCourseIds = new ArrayList<>(tile.regionalCourseIds());
+            regionalCourseIds.sort(Long::compareTo);
             ArrayList<PersistedCavePlan> cavePlans = new ArrayList<>(tile.cavePlans().size());
             for (HydrologyCavePlan cavePlan : tile.cavePlans()) {
                 cavePlans.add(PersistedCavePlan.from(cavePlan));
@@ -191,8 +195,9 @@ final class StudioHydrologyTileStore {
                     tile.edges(),
                     tile.outlets(),
                     courses,
+                    regionalCourseIds,
                     cavePlans,
-                    tile.diagnosticCandidates(),
+                    tile.localDiagnosticCandidates(),
                     new ArrayList<>(tile.footprint().columns().values())
             );
         }
@@ -202,8 +207,9 @@ final class StudioHydrologyTileStore {
             requireCollection(edges, "edges");
             requireCollection(outlets, "outlets");
             requireCollection(courses, "courses");
+            requireCollection(regionalCourseIds, "regionalCourseIds");
             requireCollection(cavePlans, "cavePlans");
-            requireCollection(diagnosticCandidates, "diagnosticCandidates");
+            requireCollection(localDiagnosticCandidates, "localDiagnosticCandidates");
             requireCollection(columns, "columns");
             ArrayList<RiverCourse> restoredCourses = new ArrayList<>(courses.size());
             for (PersistedCourse course : courses) {
@@ -231,8 +237,9 @@ final class StudioHydrologyTileStore {
                     edges,
                     outlets,
                     restoredCourses,
+                    Set.copyOf(regionalCourseIds),
                     restoredCavePlans,
-                    diagnosticCandidates,
+                    localDiagnosticCandidates,
                     new RiverFootprint(restoredColumns)
             );
         }

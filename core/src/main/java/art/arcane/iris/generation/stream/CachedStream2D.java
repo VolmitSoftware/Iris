@@ -75,6 +75,10 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
         return cache.getMaxSize();
     }
 
+    public void setMaximumChunks(int maximumChunks) {
+        cache.setMaximumChunks(maximumChunks);
+    }
+
     @Override
     public boolean isClosed() {
         return engine.isClosed();

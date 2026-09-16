@@ -17,7 +17,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class HydrologyPlanHashTest {
-    private static final String EXPECTED_PLAN_DIGEST = "20e96d6f310786d09e7182ae6f73e41e5b7d07591b5571a62b1299fe1ab58b9a";
+    private static final String EXPECTED_PLAN_DIGEST = "9ec4c9cf7dbdad16976041a70853b909816655170cd694058bf359092c2d5a10";
 
     private static final List<HydrologyTileKey> TILES = List.of(
             new HydrologyTileKey(0, 0),
@@ -66,7 +66,7 @@ public class HydrologyPlanHashTest {
         for (HydrologyCavePlan plan : tile.cavePlans()) {
             out.append("cave ").append(plan).append('\n');
         }
-        for (HydrologyDiagnosticCandidate diagnostic : tile.diagnosticCandidates()) {
+        for (HydrologyDiagnosticCandidate diagnostic : tile.localDiagnosticCandidates()) {
             out.append("diagnostic ").append(diagnostic).append('\n');
         }
         for (HydrologyFeatureRef feature : tile.features()) {

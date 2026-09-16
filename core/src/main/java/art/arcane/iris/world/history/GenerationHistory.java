@@ -18,7 +18,6 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +25,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.stream.Stream;
 
 public final class GenerationHistory {
     private static final int MAXIMUM_CACHED_BOUNDARIES = 4;
@@ -54,7 +52,8 @@ public final class GenerationHistory {
             GenerationPackRepository packs,
             GenerationHistoryStore store,
             ChunkGenerationOwnership ownership,
-            GenerationKernelRegistry kernels
+            GenerationKernelRegistry kernels,
+            Optional<FreshPublication> publication
     ) throws IOException {
         this.paths = Objects.requireNonNull(paths, "paths");
         this.packs = Objects.requireNonNull(packs, "packs");
@@ -68,7 +67,7 @@ public final class GenerationHistory {
         this.admission = new GenerationAdmission(paths.dimensionRoot());
         this.boundaryCache = boundedCache(MAXIMUM_CACHED_BOUNDARIES);
         this.terrainSignatureCache = boundedCache(MAXIMUM_CACHED_TERRAIN_SIGNATURES);
-        validateReferencedState();
+        validateReferencedState(publication);
     }
 
     public GenerationAdmission.RuntimeLease retainRuntime() {
@@ -132,7 +131,7 @@ public final class GenerationHistory {
         );
         requireSourceFingerprint(packSource, epoch.packFingerprint(), epoch.packFingerprintVersion());
         GenerationPackRepository packs = new GenerationPackRepository(paths.dimensionRoot());
-        packs.publish(
+        Path publishedPack = packs.publish(
                 epoch.epochId(),
                 epoch.packFingerprint(),
                 epoch.packFingerprintVersion(),
@@ -141,7 +140,8 @@ public final class GenerationHistory {
         forceEpochPublication(paths, epoch.epochId());
         GenerationSemanticIndex.initialize(paths.dimensionRoot());
         GenerationHistoryStore store = GenerationHistoryStore.initialize(paths.generationRoot(), epoch);
-        return new GenerationHistory(paths, packs, store, ownership, kernels);
+        return new GenerationHistory(paths, packs, store, ownership, kernels,
+                Optional.of(new FreshPublication(publishedPack, epoch)));
     }
 
     public static GenerationHistory open(Path dimensionRoot) throws IOException {
@@ -163,7 +163,7 @@ public final class GenerationHistory {
         GenerationPackRepository packs = new GenerationPackRepository(paths.dimensionRoot());
         GenerationHistoryStore store = GenerationHistoryStore.open(paths.generationRoot());
         ChunkGenerationOwnership ownership = ChunkGenerationOwnership.load(paths.ownershipRoot());
-        return new GenerationHistory(paths, packs, store, ownership, kernels);
+        return new GenerationHistory(paths, packs, store, ownership, kernels, Optional.empty());
     }
 
     public static Optional<GenerationHistory> openIfPresent(Path dimensionRoot) throws IOException {
@@ -436,7 +436,7 @@ public final class GenerationHistory {
             BoundarySignatureCapture signatureCapture
     ) throws IOException {
         WorldChunkInventory inventory = recoverUnstoredClaims();
-        validateReferencedState();
+        validateReferencedState(Optional.empty());
         Optional<GenerationActivation> pending = store.pendingActivation();
         if (pending.isEmpty()) {
             return store.activeActivation();
@@ -470,15 +470,15 @@ public final class GenerationHistory {
         return paths;
     }
 
-    public synchronized GenerationManifest manifest() {
+    public GenerationManifest manifest() {
         return store.manifest();
     }
 
-    public synchronized GenerationActivation activeActivation() {
+    public GenerationActivation activeActivation() {
         return store.activeActivation();
     }
 
-    public synchronized GenerationEpoch activeEpoch() {
+    public GenerationEpoch activeEpoch() {
         return store.activeEpoch();
     }
 
@@ -513,7 +513,7 @@ public final class GenerationHistory {
             synchronized (this) {
                 if (store.pendingActivation().isEmpty() && usesCurrentGenerator()) {
                     recoverUnstoredClaims();
-                    validateReferencedState();
+                    validateReferencedState(Optional.empty());
                 } else {
                     if (store.pendingActivation().isEmpty()) {
                         stageCurrentKernel(transitionWidthBlocks);
@@ -808,10 +808,14 @@ public final class GenerationHistory {
         return ownership.explicitChunkCount();
     }
 
-    private void validateReferencedState() throws IOException {
+    private void validateReferencedState(Optional<FreshPublication> publication) throws IOException {
         validateRuntimeVersions();
         GenerationEpoch active = store.activeEpoch();
-        packs.requireExactPack(active.epochId(), active.packFingerprint(), active.packFingerprintVersion());
+        if (publication.isEmpty()
+                || !publication.get().epoch().equals(active)
+                || !publication.get().pack().equals(paths.packRoot(active.epochId()))) {
+            packs.requireExactPack(active.epochId(), active.packFingerprint(), active.packFingerprintVersion());
+        }
         if (store.pendingEpoch().isPresent()) {
             GenerationEpoch pending = store.pendingEpoch().orElseThrow();
             packs.requireExactPack(pending.epochId(), pending.packFingerprint(), pending.packFingerprintVersion());
@@ -1138,15 +1142,8 @@ public final class GenerationHistory {
             throw new IOException("Generation epoch is not a safe directory: " + epochRoot);
         }
         if (File.separatorChar != '\\') {
-            List<Path> directories;
-            try (Stream<Path> entries = Files.walk(epochRoot)) {
-                directories = entries
-                        .filter(path -> Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS))
-                        .sorted(Comparator.comparingInt(Path::getNameCount).reversed())
-                        .toList();
-            }
-            for (Path directory : directories) {
-                forceDirectory(directory);
+            if (Durability.enabled()) {
+                GenerationPackRepository.forceDirectoryTree(epochRoot, GenerationHistory::forceDirectory);
             }
             forceDirectory(paths.epochsRoot());
             forceDirectory(paths.generationRoot());
@@ -1176,6 +1173,9 @@ public final class GenerationHistory {
                 return size() > maximumSize;
             }
         };
+    }
+
+    private record FreshPublication(Path pack, GenerationEpoch epoch) {
     }
 
     private static final class PendingSemanticClaim {

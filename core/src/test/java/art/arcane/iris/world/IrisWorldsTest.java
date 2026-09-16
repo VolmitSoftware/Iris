@@ -1,10 +1,17 @@
 package art.arcane.iris.world;
 
 import art.arcane.iris.world.lifecycle.MissingWorldStorageLog;
+import art.arcane.iris.world.history.GenerationHistory;
+import art.arcane.volmlib.util.collection.KMap;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.MockedStatic;
 
+import java.io.UncheckedIOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -14,7 +21,11 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 
 public class IrisWorldsTest {
     @Rule
@@ -109,5 +120,99 @@ public class IrisWorldsTest {
         );
 
         assertEquals(Map.of("world_iris_moon", "overworld"), selected);
+    }
+
+    @Test
+    public void registryHousekeepingDoesNotOpenFrozenPacks() throws Exception {
+        Path levelRoot = temporaryFolder.newFolder("housekeeping").toPath();
+        Path first = Files.createDirectories(levelRoot.resolve("dimensions/iris/first"));
+        Files.createDirectories(first.resolve("iris/generation"));
+        Files.writeString(first.resolve("iris/generation/manifest.json"), "invalid history");
+        Files.createDirectories(levelRoot.resolve("dimensions/iris/second"));
+        KMap<String, String> entries = new KMap<>();
+        entries.put("iris:first", "overworld");
+        IrisWorlds registry = registry(levelRoot, entries);
+
+        try (MockedStatic<GenerationHistory> history = mockStatic(GenerationHistory.class)) {
+            registry.clean();
+            registry.save();
+            registry.put("iris:second", "missing_dimension");
+            registry.save();
+            history.verifyNoInteractions();
+        }
+
+        assertEquals(Map.of("iris:first", "overworld", "iris:second", "missing_dimension"), entries);
+        JsonObject saved = savedRegistry(levelRoot);
+        assertEquals("overworld", saved.get("iris:first").getAsString());
+        assertEquals("missing_dimension", saved.get("iris:second").getAsString());
+    }
+
+    @Test
+    public void savingPersistsEntriesRemovedByStorageCleanup() throws Exception {
+        Path levelRoot = temporaryFolder.newFolder("cleanup").toPath();
+        Files.createDirectories(levelRoot.resolve("dimensions/iris/retained"));
+        KMap<String, String> entries = new KMap<>();
+        entries.put("iris:retained", "overworld");
+        entries.put("iris:missing", "overworld");
+        IrisWorlds registry = registry(levelRoot, entries);
+
+        registry.save();
+
+        assertEquals(Map.of("iris:retained", "overworld"), entries);
+        assertEquals(Set.of("iris:retained"), savedRegistry(levelRoot).keySet());
+    }
+
+    @Test
+    public void failedPutRestoresPreviousValueAndCanBeRetried() throws Exception {
+        Path levelRoot = temporaryFolder.newFolder("put-rollback").toPath();
+        Files.createDirectories(levelRoot.resolve("dimensions/iris/retained"));
+        Path blockedParent = levelRoot.resolve("iris");
+        Files.writeString(blockedParent, "not a directory");
+        KMap<String, String> entries = new KMap<>();
+        entries.put("iris:retained", "overworld");
+        IrisWorlds registry = registry(levelRoot, entries);
+
+        assertThrows(UncheckedIOException.class, () -> registry.put("iris:retained", "replacement"));
+        assertEquals("overworld", entries.get("iris:retained"));
+        Files.delete(blockedParent);
+        registry.save();
+
+        assertEquals("overworld", savedRegistry(levelRoot).get("iris:retained").getAsString());
+    }
+
+    @Test
+    public void failedRemovalRestoresEntryAndCanBeRetried() throws Exception {
+        Path levelRoot = temporaryFolder.newFolder("remove-rollback").toPath();
+        Files.createDirectories(levelRoot.resolve("dimensions/iris/retained"));
+        Path blockedParent = levelRoot.resolve("iris");
+        Files.writeString(blockedParent, "not a directory");
+        KMap<String, String> entries = new KMap<>();
+        entries.put("iris:retained", "overworld");
+        IrisWorlds registry = registry(levelRoot, entries);
+
+        assertThrows(UncheckedIOException.class, () -> registry.remove("iris:retained"));
+        assertEquals("overworld", entries.get("iris:retained"));
+        Files.delete(blockedParent);
+        assertTrue(registry.remove("iris:retained"));
+
+        assertTrue(savedRegistry(levelRoot).isEmpty());
+    }
+
+    private static IrisWorlds registry(Path levelRoot, KMap<String, String> entries) throws Exception {
+        IrisWorlds registry = mock(IrisWorlds.class, CALLS_REAL_METHODS);
+        setField(registry, "levelRoot", levelRoot.toAbsolutePath().normalize());
+        setField(registry, "registryFile", IrisWorlds.registryFile(levelRoot));
+        setField(registry, "worlds", entries);
+        return registry;
+    }
+
+    private static void setField(IrisWorlds registry, String name, Object value) throws Exception {
+        Field field = IrisWorlds.class.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(registry, value);
+    }
+
+    private static JsonObject savedRegistry(Path levelRoot) throws Exception {
+        return JsonParser.parseString(Files.readString(IrisWorlds.registryFile(levelRoot))).getAsJsonObject();
     }
 }

@@ -6,10 +6,13 @@ import art.arcane.iris.generation.hydrology.cave.CaveVoxelView;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCavePlan;
 import art.arcane.iris.generation.hydrology.surface.SurfaceBounds;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -22,6 +25,52 @@ import static org.junit.Assert.assertTrue;
 public final class HydrologyRegionalFallsTest {
     private static final HydrologyPlannerSettings SETTINGS = HydrologyPlannerSettings.defaults();
     private static final HydrologyTerrainSampler TERRAIN = (x, z) -> HydrologyTerrainSample.openLand(89, 0D, "parent");
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Test
+    public void persistedMixedSurfaceOwnershipRestoresWithoutTerrainPlanning() throws Exception {
+        HydrologyPlanner planner = new HydrologyPlanner(1L, SETTINGS, TERRAIN, solid(null));
+        RiverCourse regional = course();
+        HydrologyRegionalNetwork network = metadata(regional, List.of());
+        List<HydrologyCavePlan> plans = new HydrologyRegionalFalls(planner, regional)
+                .validate(network, new ArrayList<>());
+        network = metadata(regional, plans);
+        SurfaceBounds bounds = new SurfaceBounds(-2, -2, 1, 2);
+        HydrologyFootprintCompiler compiler = new HydrologyFootprintCompiler(SETTINGS, TERRAIN, planner.geometrySampler);
+        compiler.seedRegionalSurface(network, bounds);
+        HydrologyCrossTileResolver.MaterializedHydrology materialized = new HydrologyCrossTileResolver(planner)
+                .materializeFinalHydrology(new HydrologyCaveCourseFilter.Result(network.nodes(), network.edges(),
+                        network.outlets(), network.courses(), plans), new ArrayList<>(), compiler, true);
+        HydrologyCaveCourseFilter.Result clipped = HydrologyCrossTileResolver.clipRegionalPlans(materialized.result(), network, bounds);
+        RiverCourse local = new RiverCourse(101L, RiverCourseType.SURFACE, regional.sourceNodeId(), regional.outletId(),
+                "water", 1, List.of(), List.of(new HydraulicSegment(102L, 101L, HydrologyFeatureType.SURFACE_POOL,
+                72, 72, 4, 2, false, false, List.of(new HydrologyPoint(0, 72, 0), new HydrologyPoint(1, 72, 0)),
+                HydraulicChannelProfile.uniform(4, 2))));
+        HydrologyTile original = new HydrologyTile(new HydrologyTileKey(0, 0), 1L, SETTINGS.fingerprint(),
+                SETTINGS.routing().tileSize(), network.nodes(), network.edges(), network.outlets(),
+                List.of(regional, local), Set.of(regional.id()), clipped.cavePlans(), List.of(), materialized.footprint());
+        StudioHydrologyTileStore store = new StudioHydrologyTileStore(temporaryFolder.newFolder().toPath(),
+                new HydrologyTileCache.SharedCacheScope("regional-ownership", 1L, 128, "overworld", SETTINGS.fingerprint()),
+                SETTINGS.routing().tileSize());
+        store.save(original);
+        HydrologyTile restored = store.load(original.key()).orElseThrow();
+        assertEquals(original, restored);
+        assertFalse(restored.cavePlans().isEmpty());
+        HydrologyPlanner fresh = new HydrologyPlanner(1L, SETTINGS, (x, z) -> {
+            throw new AssertionError("Restoring final ownership must not sample terrain");
+        });
+
+        fresh.reuseResolvedTile(restored);
+
+        HydrologyCaveCourseFilter.Result owned = fresh.resolvedOwners.getIfPresent(restored.key()).draft().result();
+        assertEquals(List.of(local), owned.courses());
+        assertTrue(owned.cavePlans().isEmpty());
+        assertEquals(restored.nodes(), owned.nodes());
+        assertEquals(restored.edges(), owned.edges());
+        assertEquals(restored.outlets(), owned.outlets());
+    }
 
     @Test
     public void fullContainmentProofIsCachedAndOnlyFinalTileActionsAreClipped() {
@@ -55,7 +104,7 @@ public final class HydrologyRegionalFallsTest {
             assertEquals(full.actions().get(entry.getKey()), entry.getValue());
         }
         HydrologyTile tile = new HydrologyTile(new HydrologyTileKey(0, 0), 1L, SETTINGS.fingerprint(), 512,
-                clipped.nodes(), clipped.edges(), clipped.outlets(), clipped.courses(), clipped.cavePlans(), List.of(), materialized.footprint());
+                clipped.nodes(), clipped.edges(), clipped.outlets(), clipped.courses(), Set.of(clipped.courses().getFirst().id()), clipped.cavePlans(), List.of(), materialized.footprint());
         assertEquals(1, tile.courses().size());
         assertEquals(full, regional.cavePlans().getFirst());
     }

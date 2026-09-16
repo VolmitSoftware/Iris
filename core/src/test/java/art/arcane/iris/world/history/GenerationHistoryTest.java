@@ -4,14 +4,52 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 public class GenerationHistoryTest extends GenerationHistorySupport {
+    @Test
+    public void freshPublicationReusesOnlyItsInternalVerification() throws Exception {
+        Path world = temporaryFolder.newFolder("verified-publication-world").toPath();
+        Path pack = createPack("verified-publication-pack", "alpha");
+        String expected = fingerprint(pack);
+        AtomicInteger hashes = new AtomicInteger();
+        try (MockedStatic<GenerationPackFingerprint> ignored = mockStatic(GenerationPackFingerprint.class, invocation -> {
+            if (invocation.getMethod().getName().equals("compute")) {
+                hashes.incrementAndGet();
+            }
+            return invocation.callRealMethod();
+        })) {
+            GenerationHistory history = GenerationHistory.create(
+                    world, pack, expected, 42L, contract(), GenerationRegistryContract.empty());
+            assertEquals(2, hashes.get());
+            assertEquals(history.paths().packRoot(history.activeEpoch().epochId()), history.activePackRoot());
+            assertEquals(3, hashes.get());
+            GenerationHistory.open(world);
+            assertEquals(4, hashes.get());
+        }
+    }
+
+    @Test
+    public void firstPackAccessRejectsTamperingAfterCreation() throws Exception {
+        Path world = temporaryFolder.newFolder("tampered-publication-world").toPath();
+        Path pack = createPack("tampered-publication-pack", "alpha");
+        GenerationHistory history = createHistory(world, pack);
+        Path installed = history.paths().packRoot(history.activeEpoch().epochId());
+        Files.writeString(installed.resolve("dimensions/main.json"), "changed");
+
+        assertThrows(IOException.class, history::activePackRoot);
+        assertThrows(IOException.class, () -> history.packRoot(1L));
+        assertThrows(IOException.class, () -> GenerationHistory.open(world));
+    }
+
     @Test
     public void upperContentUpdatesPreserveLayoutAndDistinctActivationsAcrossRestarts() throws Exception {
         Path world = temporaryFolder.newFolder("upper-update-world").toPath();

@@ -23,7 +23,7 @@ public class HydrologyPlannerSurfacePoolTest {
 
         assertEquals(tile, replay);
         List<RiverCourse> pools = pools(tile);
-        assertFalse(tile.diagnosticCandidates().toString(), pools.isEmpty());
+        assertFalse(tile.localDiagnosticCandidates().toString(), pools.isEmpty());
         for (RiverCourse pool : pools) {
             assertEquals("lava_pool", pool.profileKey());
             assertEquals(1, pool.segments().size());

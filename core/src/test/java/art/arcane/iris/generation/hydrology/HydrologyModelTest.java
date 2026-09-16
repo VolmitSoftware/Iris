@@ -758,6 +758,7 @@ public class HydrologyModelTest {
                 List.of(),
                 List.of(),
                 List.of(course),
+                Set.of(),
                 List.of(plan),
                 List.of(),
                 new RiverFootprint(Map.of(

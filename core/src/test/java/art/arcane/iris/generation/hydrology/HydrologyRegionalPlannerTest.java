@@ -4,19 +4,46 @@ import art.arcane.iris.generation.hydrology.surface.SurfaceBounds;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class HydrologyRegionalPlannerTest {
+    @Test(timeout = 120000)
+    public void reusedRegionalTilePreservesAdjacentPlanningWithoutSamplingDuringRestore() {
+        HydrologyPlannerSettings settings = settings(false, 8);
+        HydrologyTerrainSampler terrain = coast();
+        HydrologyPlanner baseline = new HydrologyPlanner(71L, settings, terrain);
+        RiverCourse regional = baseline.regional.draft(new HydrologyTileKey(0, 0)).courses().getFirst();
+        HydrologyTileKey key = crossedTiles(regional, settings.routing().tileSize()).stream()
+                .min(Comparator.comparingInt(HydrologyTileKey::tileX).thenComparingInt(HydrologyTileKey::tileZ))
+                .orElseThrow();
+        HydrologyTile original = baseline.plan(key);
+        assertTrue(original.regionalCourseIds().contains(regional.id()));
+        HydrologyTileKey adjacent = new HydrologyTileKey(key.tileX(), key.tileZ() + 1);
+        HydrologyTile expected = baseline.plan(adjacent);
+        AtomicBoolean planning = new AtomicBoolean();
+        HydrologyPlanner restored = new HydrologyPlanner(71L, settings, (x, z) -> {
+            assertTrue("Restoring final ownership must not sample terrain", planning.get());
+            return terrain.sample(x, z);
+        });
+
+        restored.reuseResolvedTile(original);
+        planning.set(true);
+
+        assertEquals(expected, restored.plan(adjacent));
+    }
+
     @Test(timeout = 120000)
     public void oneRegionalCourseCrossesSeveralGenerationTilesWithStableHydraulics() {
         HydrologyPlanner planner = new HydrologyPlanner(71L, settings(false, 8), coast());
@@ -87,29 +114,48 @@ public class HydrologyRegionalPlannerTest {
         planner.regional.clear();
         assertEquals(first.diagnostics(), planner.regional.draft(key).diagnostics());
         HydrologyRegionalNetwork window = planner.regional.coursesIn(new SurfaceBounds(0, 0, 511, 511));
-        assertEquals(first.diagnostics(), window.diagnostics());
+        assertTrue(window.diagnostics().isEmpty());
+        assertEquals(first.diagnostics(), planner.regional.diagnosticsIn(new SurfaceBounds(0, 0, 511, 511)));
     }
 
     @Test(timeout = 120000)
     public void regionalCacheEvictionAndConcurrentRequestsKeepTheSameCourse() throws Exception {
-        HydrologyPlanner planner = new HydrologyPlanner(71L, settings(false, 1), coast());
+        HydrologyPlannerSettings settings = settings(false, 1);
+        HydrologyTerrainSampler terrain = coast();
+        Set<Thread> samplingThreads = ConcurrentHashMap.newKeySet();
+        HydrologyPlanner planner = new HydrologyPlanner(71L, settings, (x, z) -> {
+            samplingThreads.add(Thread.currentThread());
+            return terrain.sample(x, z);
+        });
         HydrologyTileKey key = new HydrologyTileKey(0, 0);
         HydrologyRegionalNetwork first = planner.regional.draft(key);
         assertFalse(first.courses().isEmpty());
+        assertTrue(first.courses().stream().allMatch(course -> course.type() == RiverCourseType.SURFACE));
+        SurfaceBounds bounds = networkBounds(first).expand(settings.publicationRadius());
+        RiverFootprint footprint = planner.regional.materialize(first, bounds);
+        assertFalse(footprint.columns().isEmpty());
+        assertTrue(footprint.columns().values().stream().anyMatch(column -> column.layers().stream().anyMatch(HydrologyColumnLayer::fluidOwned)));
         planner.regional.draft(new HydrologyTileKey(0, 1));
         assertEquals(first, planner.regional.draft(key));
         planner.regional.clear();
-        ExecutorService workers = Executors.newFixedThreadPool(3);
+        samplingThreads.clear();
+        ForkJoinPool workers = new ForkJoinPool(4);
         try {
             ArrayList<CompletableFuture<HydrologyRegionalNetwork>> futures = new ArrayList<>();
             for (int index = 0; index < 3; index++) {
                 futures.add(CompletableFuture.supplyAsync(() -> planner.regional.draft(key), workers));
             }
+            HydrologyRegionalNetwork parallel = futures.getFirst().get(90, TimeUnit.SECONDS);
             for (CompletableFuture<HydrologyRegionalNetwork> future : futures) {
                 assertEquals(first, future.get(90, TimeUnit.SECONDS));
             }
+            assertTrue("A cold successful basin must sample on multiple workers: " + samplingThreads, samplingThreads.size() > 1);
+            assertNetworkRawBits(first, parallel);
+            RiverFootprint actual = workers.submit(() -> planner.regional.materialize(parallel, bounds)).get(30, TimeUnit.SECONDS);
+            assertEquals(footprint.columns(), actual.columns());
         } finally {
             workers.shutdownNow();
+            assertTrue(workers.awaitTermination(5, TimeUnit.SECONDS));
         }
     }
 
@@ -123,6 +169,48 @@ public class HydrologyRegionalPlannerTest {
         for (RiverCourse course : network.courses()) {
             assertFalse("The coastal incision budget must exclude the ridge",
                     course.segments().getFirst().type() == HydrologyFeatureType.MOUTH);
+        }
+    }
+
+    private static SurfaceBounds networkBounds(HydrologyRegionalNetwork network) {
+        int minimumX = Integer.MAX_VALUE;
+        int minimumZ = Integer.MAX_VALUE;
+        int maximumX = Integer.MIN_VALUE;
+        int maximumZ = Integer.MIN_VALUE;
+        for (RiverCourse course : network.courses()) {
+            for (HydraulicSegment segment : course.segments()) {
+                for (HydrologyPoint point : segment.centerline()) {
+                    minimumX = Math.min(minimumX, point.x());
+                    minimumZ = Math.min(minimumZ, point.z());
+                    maximumX = Math.max(maximumX, point.x());
+                    maximumZ = Math.max(maximumZ, point.z());
+                }
+            }
+        }
+        return new SurfaceBounds(minimumX, minimumZ, maximumX, maximumZ);
+    }
+
+    private static void assertNetworkRawBits(HydrologyRegionalNetwork expected, HydrologyRegionalNetwork actual) {
+        assertEquals(expected, actual);
+        for (int index = 0; index < expected.nodes().size(); index++) {
+            assertEquals(Double.doubleToRawLongBits(expected.nodes().get(index).potential()),
+                    Double.doubleToRawLongBits(actual.nodes().get(index).potential()));
+        }
+        for (int index = 0; index < expected.edges().size(); index++) {
+            assertEquals(Double.doubleToRawLongBits(expected.edges().get(index).cost()),
+                    Double.doubleToRawLongBits(actual.edges().get(index).cost()));
+        }
+        for (int courseIndex = 0; courseIndex < expected.courses().size(); courseIndex++) {
+            List<HydraulicSegment> expectedSegments = expected.courses().get(courseIndex).segments();
+            List<HydraulicSegment> actualSegments = actual.courses().get(courseIndex).segments();
+            for (int segmentIndex = 0; segmentIndex < expectedSegments.size(); segmentIndex++) {
+                HydraulicChannelProfile first = expectedSegments.get(segmentIndex).channelProfile();
+                HydraulicChannelProfile second = actualSegments.get(segmentIndex).channelProfile();
+                for (int station = 0; station < first.size(); station++) {
+                    assertEquals(Double.doubleToRawLongBits(first.widthAt(station)), Double.doubleToRawLongBits(second.widthAt(station)));
+                    assertEquals(Double.doubleToRawLongBits(first.depthAt(station)), Double.doubleToRawLongBits(second.depthAt(station)));
+                }
+            }
         }
     }
 

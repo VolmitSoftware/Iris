@@ -159,7 +159,7 @@ public class IrisHydrologyPhysicalOceanTest {
         shore.setLoadKey("shore");
         return new IrisHydrologyRuntime(new IrisHydrologyRuntimeContext(17L, 768, dimension, data,
                 (x, z, height) -> new IrisHydrologyNaturalSample(height, oceanIntent.isOcean(x, z), shore, region),
-                heights, (x, z) -> "coast", oceanIntent, footprint -> null, () -> false));
+                heights, (x, z) -> "coast", oceanIntent, footprint -> null, () -> false, () -> {}));
     }
 
     private static IrisHydrologyRoutingTerrainSampler sampler(IrisHydrologyRuntime runtime) throws Exception {

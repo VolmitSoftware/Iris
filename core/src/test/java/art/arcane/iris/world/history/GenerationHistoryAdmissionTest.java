@@ -47,6 +47,7 @@ public class GenerationHistoryAdmissionTest {
     @Test
     public void stageMetadataProceedsWhileUnrelatedSemanticPersistenceWaits() throws Exception {
         GenerationHistory history = history();
+        GenerationManifest manifest = history.manifest();
         GenerationActivation active = history.activeActivation();
         GenerationEpoch epoch = history.activeEpoch();
         GenerationAdmission.RuntimeLease runtime = history.retainRuntime();
@@ -59,6 +60,9 @@ public class GenerationHistoryAdmissionTest {
             Future<Boolean> persisted = executor.submit(() -> persistPaused(history, writing, claim, entered, release));
             assertTrue(entered.await(5, TimeUnit.SECONDS));
             Future<?> admitted = executor.submit(() -> {
+                assertSame(manifest, history.manifest());
+                assertEquals(active, history.activeActivation());
+                assertEquals(epoch, history.activeEpoch());
                 try (GenerationHistory.GenerationStage stage = history.openStage(32, 64)) {
                     assertEquals(active, stage.activation());
                     assertEquals(epoch, stage.epoch());
@@ -109,6 +113,11 @@ public class GenerationHistoryAdmissionTest {
             writing.close();
             assertTrue(cutoverEntered.await(5, TimeUnit.SECONDS));
             assertThrows(TimeoutException.class, () -> promoted.get(100, TimeUnit.MILLISECONDS));
+            executor.submit(() -> {
+                assertEquals(writing.activation(), history.activeActivation());
+                assertEquals(writing.epoch(), history.activeEpoch());
+                assertEquals(writing.activation(), history.manifest().activeActivation());
+            }).get(1, TimeUnit.SECONDS);
             assertThrows(IllegalStateException.class, runtime::close);
             Future<?> admitted = executor.submit(() -> {
                 try (GenerationHistory.GenerationStage stage = history.openStage(32, 64)) {
@@ -122,6 +131,9 @@ public class GenerationHistoryAdmissionTest {
             release.countDown();
             assertTrue(persisted.get(5, TimeUnit.SECONDS));
             assertEquals(pending.activationId(), promoted.get(5, TimeUnit.SECONDS).activationId());
+            assertEquals(pending.activationId(), history.activeActivation().activationId());
+            assertEquals(pending.epochId(), history.activeEpoch().epochId());
+            assertEquals(pending.activationId(), history.manifest().activeActivation().activationId());
             admitted.get(5, TimeUnit.SECONDS);
         } finally {
             release.countDown();
@@ -143,6 +155,9 @@ public class GenerationHistoryAdmissionTest {
         IOException failure = new IOException("Manifest publication failed");
         failureField.set(store, failure);
         try {
+            assertSame(failure, assertThrows(IllegalStateException.class, history::manifest).getCause());
+            assertSame(failure, assertThrows(IllegalStateException.class, history::activeActivation).getCause());
+            assertSame(failure, assertThrows(IllegalStateException.class, history::activeEpoch).getCause());
             IllegalStateException rejected = assertThrows(IllegalStateException.class, () -> history.openStage(1, 2));
             assertSame(failure, rejected.getCause());
         } finally {

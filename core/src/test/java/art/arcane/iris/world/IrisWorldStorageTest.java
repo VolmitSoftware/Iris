@@ -9,6 +9,7 @@ import org.bukkit.NamespacedKey;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.MockedStatic;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,11 +17,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 public class IrisWorldStorageTest {
     @Rule
@@ -440,6 +443,36 @@ public class IrisWorldStorageTest {
                 IllegalStateException.class,
                 () -> IrisWorldStorage.requireActiveGenerationPackRoot(dimensionRoot, 43L)
         );
+    }
+
+    @Test
+    public void activePackResolutionHashesOnceAndRechecksLaterAccesses() throws Exception {
+        Path world = temporaryFolder.newFolder("generation-pack-resolution").toPath();
+        Path source = createGenerationPack("resolution-source");
+        GenerationHistory history = createGenerationHistory(world, source, 42L);
+        Path expectedPack = history.paths().packRoot(history.activeEpoch().epochId());
+        AtomicInteger hashes = new AtomicInteger();
+
+        try (MockedStatic<GenerationPackFingerprint> ignored = mockStatic(GenerationPackFingerprint.class, invocation -> {
+            if (invocation.getMethod().getName().equals("compute")) {
+                hashes.incrementAndGet();
+            }
+            return invocation.callRealMethod();
+        })) {
+            assertEquals(expectedPack.toFile(), IrisWorldStorage.requireActiveGenerationPackRoot(world.toFile()));
+            assertEquals(1, hashes.get());
+            assertEquals(expectedPack.toFile(), IrisWorldStorage.requireActiveGenerationPackRoot(world.toFile(), 42L));
+            assertEquals(2, hashes.get());
+
+            Files.writeString(expectedPack.resolve("dimensions/overworld.json"), "changed");
+
+            assertThrows(IllegalStateException.class,
+                    () -> IrisWorldStorage.requireActiveGenerationPackRoot(world.toFile()));
+            assertEquals(3, hashes.get());
+            assertThrows(IllegalStateException.class,
+                    () -> IrisWorldStorage.requireActiveGenerationPackRoot(world.toFile(), 42L));
+            assertEquals(4, hashes.get());
+        }
     }
 
     @Test

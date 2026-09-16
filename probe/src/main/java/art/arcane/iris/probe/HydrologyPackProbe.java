@@ -3078,7 +3078,7 @@ public final class HydrologyPackProbe {
                             deepCourses++;
                         }
                     }
-                    for (HydrologyDiagnosticCandidate candidate : tile.diagnosticCandidates()) {
+                    for (HydrologyDiagnosticCandidate candidate : runtime.diagnosticCandidates(tile.key())) {
                         RejectionKey rejection = new RejectionKey(
                                 candidate.kind(),
                                 candidate.projectedType(),
@@ -3738,7 +3738,6 @@ public final class HydrologyPackProbe {
                 surfaceBiome,
                 engine,
                 engine.getSeedManager().getBiome(),
-                engine.getDimension().getLoadKey(),
                 position.x(),
                 position.z()
         );
@@ -3759,7 +3758,6 @@ public final class HydrologyPackProbe {
             IrisBiome biome,
             Engine engine,
             long biomeSeed,
-            String dimensionKey,
             int x,
             int z
     ) {
@@ -3778,7 +3776,7 @@ public final class HydrologyPackProbe {
         if (custom == null || custom.getId() == null || custom.getId().isBlank()) {
             throw new IllegalStateException("Generated custom surface Iris biome resolved no custom biome id.");
         }
-        return IrisDimension.customBiomeKey(dimensionKey, custom.getId());
+        return engine.getData().customBiomeResourceKey(engine.getDimension(), custom);
     }
 
     private static void verifyCaveWitness(

@@ -1,43 +1,54 @@
 package art.arcane.iris.generation.hydrology;
 
+import art.arcane.volmlib.util.cache.CacheKey;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.concurrent.ConcurrentHashMap;
 
 final class HydrologyRegionalTerrainRefiner {
     private static final int GRID_SPACING = 16;
     private static final int MAXIMUM_EXPANSIONS = 4096;
     private static final int MAXIMUM_SAMPLES = 65536;
+    private static final int MAXIMUM_CACHED_SAMPLES = 4194304;
     private static final int MAXIMUM_SKIPPED_WAYPOINTS = 2;
     private static final int[][] NEIGHBOURS = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}, {1, 1}, {-1, 1}, {-1, -1}, {1, -1}};
 
     private final HydrologyPlanner planner;
-    private final Cache<Edge, Reach> edges;
     private final HydrologyRegionalHydraulics hydraulics;
-    private final Cache<Long, Terrain> terrain;
+    private volatile CacheState caches;
 
     HydrologyRegionalTerrainRefiner(HydrologyPlanner planner) {
         this.planner = planner;
         this.hydraulics = new HydrologyRegionalHydraulics(planner.settings);
-        this.edges = Caffeine.newBuilder().maximumSize(128).build();
-        this.terrain = Caffeine.newBuilder().maximumSize(MAXIMUM_SAMPLES).build();
+        this.caches = new CacheState();
     }
 
     void clear() {
-        edges.invalidateAll();
-        terrain.invalidateAll();
+        caches = new CacheState();
     }
 
     HydrologyTerrainSample sample(int x, int z) {
-        return terrain.get(RiverFootprint.pack(x, z), key -> new Terrain(planner.naturalSampler == null
-                ? planner.sampler.sample(x, z) : planner.naturalSampler.sampleBasisWithoutSlope(x, z))).sample();
+        return sample(caches.terrain, x, z);
+    }
+
+    private HydrologyTerrainSample sample(Cache<Long, Terrain> cache, int x, int z) {
+        long key = CacheKey.mix(RiverFootprint.pack(x, z));
+        Terrain cached = cache.getIfPresent(key);
+        if (cached != null) {
+            return cached.sample();
+        }
+        Terrain sampled = new Terrain(planner.naturalSampler == null
+                ? planner.sampler.sample(x, z) : planner.naturalSampler.sampleBasisWithoutSlope(x, z));
+        Terrain existing = cache.asMap().putIfAbsent(key, sampled);
+        return (existing == null ? sampled : existing).sample();
     }
 
     List<HydrologyPoint> refine(List<HydrologyPoint> guide, String profile, boolean coastal, HydrologyTerrainSampler receiver) {
@@ -61,7 +72,8 @@ final class HydrologyRegionalTerrainRefiner {
         double length = 0D;
         ArrayList<HydrologyPoint> refined = new ArrayList<>();
         refined.add(guide.getFirst());
-        Map<Long, Integer> stations = new HashMap<>();
+        Long2IntOpenHashMap stations = new Long2IntOpenHashMap();
+        stations.defaultReturnValue(-1);
         stations.put(RiverFootprint.pack(guide.getFirst().x(), guide.getFirst().z()), 0);
         for (int index = 1; index < guide.size(); index++) {
             int start = index - 1;
@@ -70,7 +82,7 @@ final class HydrologyRegionalTerrainRefiner {
             for (int candidate = index; candidate < guide.size() && candidate <= index + MAXIMUM_SKIPPED_WAYPOINTS; candidate++) {
                 Edge edge = new Edge(guide.get(start), guide.get(candidate), profile, coastal,
                         requiredHead[candidate], availableHead, terminal);
-                reach = edges.get(edge, this::route);
+                reach = edge(edge);
                 if (!reach.points().isEmpty()) {
                     selected = candidate;
                     break;
@@ -88,8 +100,8 @@ final class HydrologyRegionalTerrainRefiner {
             for (int point = 1; point < points.size(); point++) {
                 HydrologyPoint next = points.get(point);
                 long key = RiverFootprint.pack(next.x(), next.z());
-                Integer previous = stations.get(key);
-                if (previous != null) {
+                int previous = stations.get(key);
+                if (previous >= 0) {
                     while (refined.size() > previous + 1) {
                         HydrologyPoint removed = refined.removeLast();
                         stations.remove(RiverFootprint.pack(removed.x(), removed.z()));
@@ -158,7 +170,7 @@ final class HydrologyRegionalTerrainRefiner {
 
     private List<HydrologyPoint> simplify(List<HydrologyPoint> points, String profile, boolean coastal, Terminal terminal) {
         double maximumReach = Math.min(512D, planner.settings.routing().regional().sampleSpacing() * 2D);
-        Map<Long, HydrologyTerrainSample> samples = new HashMap<>();
+        Samples samples = new Samples();
         ArrayList<HydrologyPoint> simplified = new ArrayList<>();
         int current = 0;
         int[] requiredHead = requiredHeads(points, terminal, 1);
@@ -203,7 +215,7 @@ final class HydrologyRegionalTerrainRefiner {
     }
 
     private Reach route(Edge edge) {
-        Map<Long, HydrologyTerrainSample> samples = new HashMap<>();
+        Samples samples = new Samples();
         Traversal direct = traverse(edge.start(), edge.end(), edge, samples, edge.maximumHead());
         if (direct.cost() == 0D) {
             return new Reach(List.of(edge.start(), edge.end()), direct.availableHead());
@@ -213,7 +225,7 @@ final class HydrologyRegionalTerrainRefiner {
         int maximumX = Math.max(edge.start().x(), edge.end().x()) + margin;
         int minimumZ = Math.min(edge.start().z(), edge.end().z()) - margin;
         int maximumZ = Math.max(edge.start().z(), edge.end().z()) + margin;
-        Map<Long, List<Node>> visited = new HashMap<>();
+        Long2ObjectOpenHashMap<List<Node>> visited = new Long2ObjectOpenHashMap<>();
         PriorityQueue<Pending> pending = new PriorityQueue<>(Comparator.comparingDouble(Pending::estimate)
                 .thenComparingLong(Pending::key)
                 .thenComparing(Comparator.comparingInt(Pending::availableHead).reversed()));
@@ -249,10 +261,35 @@ final class HydrologyRegionalTerrainRefiner {
         return new Reach(List.of(), edge.maximumHead());
     }
 
+    private Reach edge(Edge edge) {
+        CacheState state = caches;
+        Reach cached = state.edges.getIfPresent(edge);
+        if (cached != null) {
+            return cached;
+        }
+        HydrologyForkJoin.Task<Reach> task = new HydrologyForkJoin.Task<>(() -> {
+            try {
+                Reach present = state.edges.getIfPresent(edge);
+                Reach result = present == null ? route(edge) : present;
+                state.edges.put(edge, result);
+                return result;
+            } finally {
+                state.loading.remove(edge);
+            }
+        });
+        HydrologyForkJoin.Task<Reach> existing = state.loading.putIfAbsent(edge, task);
+        return (existing == null ? task : existing).await();
+    }
+
     private void offer(Search search, Node current, HydrologyPoint target) {
-        HydrologyTerrainSample terrain = sample(target.x(), target.z(), search.samples());
+        applyOffer(search, current, evaluateOffer(search, current, target));
+    }
+
+    private Offer evaluateOffer(Search search, Node current, HydrologyPoint target) {
+        Samples samples = search.samples();
+        HydrologyTerrainSample terrain = samples.sample(target.x(), target.z());
         if (!allowed(terrain, search.edge())) {
-            return;
+            return null;
         }
         HydrologyPoint point = new HydrologyPoint(target.x(), terrain.naturalHeight(), target.z());
         double cost = current.cost() + distance(current.point(), point)
@@ -261,30 +298,39 @@ final class HydrologyRegionalTerrainRefiner {
         long key = RiverFootprint.pack(point.x(), point.z());
         List<Node> labels = search.visited().get(key);
         if (dominated(labels, cost, current.availableHead())) {
-            return;
+            return null;
         }
-        Traversal traversal = traverse(current.point(), point, search.edge(), search.samples(), current.availableHead());
+        Traversal traversal = traverse(current.point(), point, search.edge(), samples, current.availableHead());
         cost += traversal.cost();
         if (!Double.isFinite(cost) || dominated(labels, cost, traversal.availableHead())) {
-            return;
+            return null;
         }
-        cost += clearanceCost(point, search.edge(), search.samples());
+        cost += clearanceCost(point, search.edge(), samples);
         if (dominated(labels, cost, traversal.availableHead())) {
+            return null;
+        }
+        return new Offer(point, cost, traversal.availableHead());
+    }
+
+    private void applyOffer(Search search, Node current, Offer offer) {
+        if (offer == null) {
             return;
         }
+        long key = RiverFootprint.pack(offer.point().x(), offer.point().z());
+        List<Node> labels = search.visited().get(key);
         if (labels == null) {
             labels = new ArrayList<>(2);
             search.visited().put(key, labels);
         }
         for (int index = labels.size() - 1; index >= 0; index--) {
             Node previous = labels.get(index);
-            if (cost <= previous.cost() && traversal.availableHead() >= previous.availableHead()) {
+            if (offer.cost() <= previous.cost() && offer.availableHead() >= previous.availableHead()) {
                 labels.remove(index);
             }
         }
-        Node retained = new Node(point, cost, traversal.availableHead(), current);
+        Node retained = new Node(offer.point(), offer.cost(), offer.availableHead(), current);
         labels.add(retained);
-        search.pending().add(new Pending(key, retained, cost + distance(point, search.edge().end())));
+        search.pending().add(new Pending(key, retained, offer.cost() + distance(offer.point(), search.edge().end())));
     }
 
     private static boolean dominated(List<Node> labels, double cost, int availableHead) {
@@ -309,26 +355,25 @@ final class HydrologyRegionalTerrainRefiner {
     }
 
     private Traversal traverse(HydrologyPoint start, HydrologyPoint end, Edge edge,
-                               Map<Long, HydrologyTerrainSample> samples, int availableHead) {
+                               Samples samples, int availableHead) {
         int steps = Math.max(Math.abs(end.x() - start.x()), Math.abs(end.z() - start.z()));
         HydrologyTerrainSample previous = null;
         double distance = distance(start, end);
         double tangentX = distance == 0D ? 1D : (end.x() - start.x()) / distance;
         double tangentZ = distance == 0D ? 0D : (end.z() - start.z()) / distance;
-        HydrologyTerrainSampler bankSampler = (x, z) -> sample(x, z, samples);
         double cost = 0D;
         for (int step = 0; step <= steps; step++) {
             double progress = steps == 0 ? 0D : step / (double) steps;
             int x = (int) StrictMath.round(start.x() + (end.x() - start.x()) * progress);
             int z = (int) StrictMath.round(start.z() + (end.z() - start.z()) * progress);
-            HydrologyTerrainSample terrain = sample(x, z, samples);
+            HydrologyTerrainSample terrain = samples.sample(x, z);
             if (!allowed(terrain, edge) || previous != null && (!previous.drainsInto(terrain)
                     || edge.coastal() && !terrain.drainsInto(previous))) {
                 return new Traversal(Double.POSITIVE_INFINITY, availableHead);
             }
             if (!edge.coastal()) {
                 availableHead = hydraulics.supportedHead(new HydrologyRegionalHydraulics.HeadStation(
-                        x, z, tangentX, tangentZ, terrain, availableHead), bankSampler);
+                        x, z, tangentX, tangentZ, terrain, availableHead), samples);
                 if (availableHead < Math.max(edge.minimumHead(), minimumHead(terrain, x, z, edge.terminal()))) {
                     return new Traversal(Double.POSITIVE_INFINITY, availableHead);
                 }
@@ -356,7 +401,7 @@ final class HydrologyRegionalTerrainRefiner {
         return Math.max(0D, excess) * Math.max(1D, planner.settings.routing().uphillPenalty());
     }
 
-    private double clearanceCost(HydrologyPoint point, Edge edge, Map<Long, HydrologyTerrainSample> samples) {
+    private double clearanceCost(HydrologyPoint point, Edge edge, Samples samples) {
         double radius = planner.settings.surface().maximumWidth() / 2D
                 * (1D + planner.settings.surface().banks().roughness()) + 1D;
         int blocked = 0;
@@ -364,7 +409,7 @@ final class HydrologyRegionalTerrainRefiner {
             double scale = offset[0] != 0 && offset[1] != 0 ? radius / StrictMath.sqrt(2D) : radius;
             int x = point.x() + (int) StrictMath.round(offset[0] * scale);
             int z = point.z() + (int) StrictMath.round(offset[1] * scale);
-            if (!allowed(sample(x, z, samples), edge)) {
+            if (!allowed(samples.sample(x, z), edge)) {
                 blocked++;
             }
         }
@@ -379,17 +424,6 @@ final class HydrologyRegionalTerrainRefiner {
                 <= planner.settings.routing().regional().maximumCoastalIncision());
     }
 
-    private HydrologyTerrainSample sample(int x, int z, Map<Long, HydrologyTerrainSample> samples) {
-        long key = RiverFootprint.pack(x, z);
-        HydrologyTerrainSample sampled = samples.get(key);
-        if (sampled != null || samples.containsKey(key) || samples.size() >= MAXIMUM_SAMPLES) {
-            return sampled;
-        }
-        sampled = sample(x, z);
-        samples.put(key, sampled);
-        return sampled;
-    }
-
     private static List<HydrologyPoint> path(Node current) {
         ArrayList<HydrologyPoint> points = new ArrayList<>();
         while (current != null) {
@@ -402,6 +436,36 @@ final class HydrologyRegionalTerrainRefiner {
 
     private static double distance(HydrologyPoint first, HydrologyPoint second) {
         return StrictMath.sqrt(first.distanceSquared2D(second));
+    }
+
+    final class Samples implements HydrologyTerrainSampler {
+        private final Long2ObjectOpenHashMap<HydrologyTerrainSample> values = new Long2ObjectOpenHashMap<>();
+        private final Cache<Long, Terrain> terrainCache = caches.terrain;
+
+        @Override
+        public HydrologyTerrainSample sample(int x, int z) {
+            long key = RiverFootprint.pack(x, z);
+            HydrologyTerrainSample sampled = values.get(key);
+            if (sampled != null || values.containsKey(key)) {
+                return sampled;
+            }
+            if (values.size() >= MAXIMUM_SAMPLES) {
+                return null;
+            }
+            sampled = HydrologyRegionalTerrainRefiner.this.sample(terrainCache, x, z);
+            values.put(key, sampled);
+            return sampled;
+        }
+    }
+
+    private static final class CacheState {
+        private final Cache<Edge, Reach> edges = Caffeine.newBuilder().maximumSize(128).build();
+        private final ConcurrentHashMap<Edge, HydrologyForkJoin.Task<Reach>> loading = new ConcurrentHashMap<>();
+        private final Cache<Long, Terrain> terrain = Caffeine.newBuilder().maximumSize(Math.max(MAXIMUM_SAMPLES,
+                Math.min(MAXIMUM_CACHED_SAMPLES, Runtime.getRuntime().maxMemory() / 8192L))).build();
+    }
+
+    private record Offer(HydrologyPoint point, double cost, int availableHead) {
     }
 
     private record Edge(HydrologyPoint start, HydrologyPoint end, String profile, boolean coastal,
@@ -420,7 +484,7 @@ final class HydrologyRegionalTerrainRefiner {
     private record Terrain(HydrologyTerrainSample sample) {
     }
 
-    private record Search(Edge edge, Map<Long, HydrologyTerrainSample> samples, Map<Long, List<Node>> visited,
+    private record Search(Edge edge, Samples samples, Long2ObjectOpenHashMap<List<Node>> visited,
                           PriorityQueue<Pending> pending) {
     }
 

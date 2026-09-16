@@ -26,7 +26,7 @@ public class HydrologyPlannerConfinementTest {
         HydrologyTile tile = new HydrologyPlanner(91L, settings(), terrain(false, true)).plan(TILE);
 
         List<RiverCourse> westCourses = westCourses(tile);
-        assertFalse("diagnostics=" + tile.diagnosticCandidates(), westCourses.isEmpty());
+        assertFalse("diagnostics=" + tile.localDiagnosticCandidates(), westCourses.isEmpty());
         assertTrue("no western course crossed into the east: " + describe(westCourses),
                 westCourses.stream().anyMatch(course -> maximumX(course) >= BOUNDARY));
     }
@@ -36,7 +36,7 @@ public class HydrologyPlannerConfinementTest {
         HydrologyTile tile = new HydrologyPlanner(91L, settings(), terrain(true, true)).plan(TILE);
 
         List<RiverCourse> westCourses = westCourses(tile);
-        assertFalse("diagnostics=" + tile.diagnosticCandidates(), westCourses.isEmpty());
+        assertFalse("diagnostics=" + tile.localDiagnosticCandidates(), westCourses.isEmpty());
         for (RiverCourse course : westCourses) {
             assertTrue("western course left its region: " + describe(List.of(course)), maximumX(course) < BOUNDARY);
         }
@@ -47,7 +47,7 @@ public class HydrologyPlannerConfinementTest {
         HydrologyTile tile = new HydrologyPlanner(91L, settings(), terrain(true, false)).plan(TILE);
 
         assertTrue(describe(westCourses(tile)), westCourses(tile).isEmpty());
-        assertTrue("diagnostics=" + tile.diagnosticCandidates(), tile.diagnosticCandidates().stream()
+        assertTrue("diagnostics=" + tile.localDiagnosticCandidates(), tile.localDiagnosticCandidates().stream()
                 .anyMatch(candidate -> candidate.rejection() == HydrologyCandidateRejection.CONFINED_NO_OUTLET));
     }
 

@@ -20,6 +20,7 @@ package art.arcane.iris.world;
 
 import art.arcane.iris.world.runtime.TransientWorldCleanupSupport;
 import art.arcane.iris.world.runtime.WorldRuntimeControlService;
+import art.arcane.iris.world.history.GenerationHistory;
 import com.google.common.util.concurrent.AtomicDouble;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
@@ -125,7 +126,7 @@ public class IrisCreator {
     private boolean benchmark = false;
     private BiConsumer<Double, String> studioProgressConsumer;
     private BiConsumer<String, Long> studioTimingConsumer;
-    private DatapackPreparation datapackPreparation = DatapackPreparation.INSTALL_IF_CHANGED;
+    private DatapackPreparation datapackPreparation = DatapackPreparation.REUSE_LOADED_RUNTIME_IF_READY;
 
     public static boolean removeFromBukkitYml(NamespacedKey worldKey) throws IOException {
         return BukkitWorldConfiguration.remove(
@@ -258,9 +259,20 @@ public class IrisCreator {
 
             reportCreationProgress(creationReporter, 0.26D, "prepare_world_pack");
             StudioSVC studioService = IrisServices.get(StudioSVC.class);
-            IrisDimension installedDimension = benchmark && !studio
-                    ? studioService.installIntoTransientWorld(sender, resolvedDimension, dimensionRoot)
-                    : studioService.installIntoWorld(sender, resolvedDimension, dimensionRoot, seed);
+            long packPreparationStart = System.nanoTime();
+            GenerationHistory publishedHistory = null;
+            IrisDimension installedDimension;
+            if (benchmark && !studio) {
+                installedDimension = studioService.installIntoTransientWorld(sender, resolvedDimension, dimensionRoot);
+            } else {
+                StudioSVC.GenerationPublication publication = studioService.installIntoWorld(
+                        sender, resolvedDimension, dimensionRoot, seed);
+                installedDimension = publication == null ? null : publication.dimension();
+                if (publication != null) {
+                    publishedHistory = publication.history();
+                }
+            }
+            reportStudioTiming("prepare_world_pack", packPreparationStart);
             if (installedDimension == null) {
                 throw new IrisException("Failed to install dimension pack for " + dimension());
             }
@@ -276,14 +288,17 @@ public class IrisCreator {
             AtomicDouble pp = new AtomicDouble(0);
             AtomicBoolean done = new AtomicBoolean(false);
             long generatorPrepareStart = System.nanoTime();
-            WorldCreator wc = new IrisWorldCreator()
+            IrisWorldCreator worldCreator = new IrisWorldCreator()
                     .dimension(installedDimension)
                     .studioPackSource(resolvedDimension.getLoader().getDataFolder())
                     .name(name)
                     .seed(seed)
                     .studio(studio)
-                    .persistent(!studio && !benchmark)
-                    .create();
+                    .persistent(!studio && !benchmark);
+            if (publishedHistory != null) {
+                worldCreator.generationHistory(publishedHistory);
+            }
+            WorldCreator wc = worldCreator.create();
             reportStudioTiming("prepare_studio_generator", generatorPrepareStart);
             reportStudioProgress(0.40D, "install_datapacks");
 
@@ -292,6 +307,9 @@ public class IrisCreator {
                 throw new IrisException("Access is null. Something bad happened.");
             }
             stagedGenerator = access;
+            if (!studio && !benchmark) {
+                access.beginInitialEntry(sender != null && sender.isPlayer());
+            }
             AtomicInteger createProgressTask = startCreateProgressReporter(access, done, creationReporter);
 
             reportStudioProgress(0.46D, "create_world");
@@ -366,6 +384,7 @@ public class IrisCreator {
             }
             reportCreationProgress(creationReporter, 0.92D, "teleport_player");
             awaitSenderTeleport(world);
+            access.completeInitialEntry();
 
             if (pregen != null) {
                 CompletableFuture<Boolean> ff = new CompletableFuture<>();
@@ -401,6 +420,10 @@ public class IrisCreator {
                 throw irisException;
             }
             throw new IrisException("Failed to create world \"" + name + "\".", failure);
+        } finally {
+            if (stagedGenerator != null) {
+                stagedGenerator.completeInitialEntry();
+            }
         }
     }
 

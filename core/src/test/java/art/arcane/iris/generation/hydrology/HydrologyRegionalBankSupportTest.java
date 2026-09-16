@@ -9,9 +9,7 @@ import art.arcane.iris.generation.hydrology.surface.SurfaceTerminal;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -108,23 +106,14 @@ public class HydrologyRegionalBankSupportTest {
             return ground;
         };
         HydrologyRegionalTerrainRefiner refiner = new HydrologyRegionalTerrainRefiner(new HydrologyPlanner(71L, SETTINGS, terrain));
-        Map<Long, HydrologyTerrainSample> sampled = new HashMap<>();
+        HydrologyRegionalTerrainRefiner.Samples sampled = refiner.new Samples();
         for (int index = 0; index < 65536; index++) {
-            sampled.put(RiverFootprint.pack(index, 100000), ground);
+            sampled.sample(index, 100000);
         }
-        Method sample = HydrologyRegionalTerrainRefiner.class.getDeclaredMethod("sample", int.class, int.class, Map.class);
-        sample.setAccessible(true);
-        HydrologyTerrainSampler limited = (x, z) -> {
-            try {
-                return (HydrologyTerrainSample) sample.invoke(refiner, x, z, sampled);
-            } catch (ReflectiveOperationException failure) {
-                throw new AssertionError(failure);
-            }
-        };
+        requests.set(0);
 
-        assertEquals(65, new HydrologyRegionalHydraulics(SETTINGS).supportedHead(station(80), limited));
+        assertEquals(65, new HydrologyRegionalHydraulics(SETTINGS).supportedHead(station(80), sampled));
         assertEquals(0, requests.get());
-        assertEquals(65536, sampled.size());
     }
 
     private static HydrologyRegionalHydraulics.HeadStation station(int incomingHead) {

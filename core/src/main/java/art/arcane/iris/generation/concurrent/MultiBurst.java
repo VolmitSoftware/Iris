@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntSupplier;
 
@@ -21,7 +22,7 @@ public class MultiBurst extends MultiBurstSupport {
      * Long-running hydrology tile planning. Kept off {@link #burst} so a handful of twenty-second
      * plans never pin the workers that chunk generation's short stage and mantle tasks need.
      */
-    public static final MultiBurst hydrology = new MultiBurst("Iris Hydrology", () -> Math.max(2, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())));
+    public static final MultiBurst hydrology = new HydrologyBurst();
     private final AtomicInteger parallelismBaseline = new AtomicInteger();
 
     public MultiBurst() {
@@ -135,5 +136,22 @@ public class MultiBurst extends MultiBurstSupport {
 
     public static void close(ExecutorService service) {
         MultiBurstSupport.close(service, M::ms, IrisLogging::info, IrisLogging::warn, IrisLogging::reportError, TIMEOUT);
+    }
+
+    static final class HydrologyBurst extends MultiBurst {
+        HydrologyBurst() {
+            super("Iris Hydrology", () -> Math.max(2,
+                    IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())));
+        }
+
+        @Override
+        protected ForkJoinPool createPool(
+                int parallelism,
+                ForkJoinPool.ForkJoinWorkerThreadFactory factory,
+                Thread.UncaughtExceptionHandler handler
+        ) {
+            return new ForkJoinPool(parallelism, factory, handler, true,
+                    0, Integer.MAX_VALUE, parallelism, null, 60L, TimeUnit.SECONDS);
+        }
     }
 }

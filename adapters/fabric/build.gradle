@@ -59,7 +59,7 @@ apply from: file('../../gradle/modded-generation-build-revision.gradle')
 
 Properties rootProperties = new Properties()
 file('../../gradle.properties').withInputStream { InputStream stream -> rootProperties.load(stream) }
-String irisVersion = providers.gradleProperty('irisVersion').getOrElse(rootProperties.getProperty('irisVersion', '4.1.0-26.2'))
+String irisVersion = providers.gradleProperty('irisVersion').getOrElse(rootProperties.getProperty('irisVersion', '4.1.1-26.2'))
 String minecraftVersion = providers.gradleProperty('minecraftVersion').getOrElse(rootProperties.getProperty('minecraftVersion', '26.2'))
 String fabricLoaderVersion = providers.gradleProperty('fabricLoaderVersion').getOrElse(rootProperties.getProperty('fabricLoaderVersion', '0.19.3'))
 String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate').getOrElse(rootProperties.getProperty('volmLibCoordinate', 'com.github.VolmitSoftware:VolmLib:master-SNAPSHOT'))

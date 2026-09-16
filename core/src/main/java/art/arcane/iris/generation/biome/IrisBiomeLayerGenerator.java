@@ -56,7 +56,9 @@ final class IrisBiomeLayerGenerator {
 
     private static KList<PlatformBlockState> generateLayers(IrisBiome biome, IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex, ProceduralStream<Double> slopeStream) {
         if (biome.isLockLayers()) {
-            return generateLockedLayers(biome, wx, wz, random, maxDepth, height, rdata, complex, slopeStream);
+            KList<PlatformBlockState> data = generateLockedLayers(biome, wx, wz, random, maxDepth, height, rdata, complex, slopeStream);
+            appendSurfaceFallback(data, biome, dim, wx, wz, random, Math.min(maxDepth, biome.getLockLayersMax()), rdata);
+            return data;
         }
 
         KList<PlatformBlockState> data = new KList<>();
@@ -114,7 +116,22 @@ final class IrisBiomeLayerGenerator {
             }
         }
 
+        appendSurfaceFallback(data, biome, dim, wx, wz, random, maxDepth, rdata);
         return data;
+    }
+
+    private static void appendSurfaceFallback(KList<PlatformBlockState> data, IrisBiome biome, IrisDimension dim,
+                                              double wx, double wz, RNG random, int maxDepth, IrisData rdata) {
+        if (!data.isEmpty() || maxDepth <= 0 || biome.getLayers().isEmpty()) {
+            return;
+        }
+        IrisSurfaceLayerFallback fallback = biome.getSurfaceLayerFallback();
+        if (fallback == null) {
+            fallback = dim.getSurfaceLayerFallback();
+        }
+        if (fallback == IrisSurfaceLayerFallback.TOP_LAYER) {
+            appendLayer(data, biome.getLayers().get(0), 0, 1, wx, wz, random, maxDepth, rdata);
+        }
     }
 
     static KList<PlatformBlockState> generateCeilingLayers(IrisBiome biome, IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {

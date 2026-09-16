@@ -14,6 +14,10 @@ import art.arcane.iris.generation.hydrology.cave.CavePosition;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.world.history.GenerationRegistryContractFactory;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -25,6 +29,7 @@ import org.junit.rules.TemporaryFolder;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -37,6 +42,7 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -222,6 +228,7 @@ public final class HydrologyPackProbeTest {
                 List.of(),
                 List.of(),
                 List.of(),
+                Set.of(),
                 List.of(),
                 List.of(),
                 new RiverFootprint(Map.of(
@@ -265,7 +272,6 @@ public final class HydrologyPackProbeTest {
                         biome,
                         null,
                         19L,
-                        "overworld",
                         32,
                         -48
                 )
@@ -273,21 +279,32 @@ public final class HydrologyPackProbeTest {
     }
 
     @Test
-    public void generatedCustomSurfaceBiomeUsesRecursiveDimensionRegistryPath() {
-        IrisBiome biome = new IrisBiome()
-                .setCustomDerivitives(new KList<>(new IrisBiomeCustom().setId("Aurora")));
+    public void generatedCustomSurfaceBiomeUsesPhysicalRegistryIdentity() throws Exception {
+        IrisData data = IrisData.openDatapackCompiler(temporaryFolder.newFolder("custom-biome-identity"));
+        IrisDimension dimension = new IrisDimension();
+        dimension.setLoadKey("layers/sky");
+        Engine engine = (Engine) Proxy.newProxyInstance(Engine.class.getClassLoader(), new Class<?>[]{Engine.class},
+                (proxy, method, arguments) -> switch (method.getName()) {
+                    case "getData" -> data;
+                    case "getDimension" -> dimension;
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+        try {
+            IrisBiomeCustom first = new IrisBiomeCustom().setId("aurora").setGrassColor("#114422");
+            IrisBiomeCustom second = new IrisBiomeCustom().setId("aurora").setGrassColor("#BBCCDD");
+            IrisBiome firstBiome = new IrisBiome().setCustomDerivitives(new KList<>(first));
+            IrisBiome secondBiome = new IrisBiome().setCustomDerivitives(new KList<>(second));
+            String firstKey = HydrologyPackProbe.generatedSurfaceBiomeKey(firstBiome, engine, 19L, 32, -48);
+            String secondKey = HydrologyPackProbe.generatedSurfaceBiomeKey(secondBiome, engine, 19L, 32, -48);
 
-        assertEquals(
-                "layers:sky/aurora",
-                HydrologyPackProbe.generatedSurfaceBiomeKey(
-                        biome,
-                        null,
-                        19L,
-                        "Layers/Sky",
-                        32,
-                        -48
-                )
-        );
+            assertEquals(GenerationRegistryContractFactory.customBiomeResourceKey("layers/sky", first), firstKey);
+            assertEquals(GenerationRegistryContractFactory.customBiomeResourceKey("layers/sky", second), secondKey);
+            assertTrue(firstKey.startsWith("iris:biomes/"));
+            assertNotEquals(IrisDimension.customBiomeKey("layers/sky", "aurora"), firstKey);
+            assertNotEquals(firstKey, secondKey);
+        } finally {
+            data.close();
+        }
     }
 
     @Test

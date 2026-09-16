@@ -89,7 +89,7 @@ public final class HydrologyPlannerProbe {
                     warmTimings[seedIndex],
                     tile.courses().size(),
                     tile.features().size(),
-                    tile.diagnosticCandidates().size(),
+                    cache.diagnosticCandidates(tile.key()).size(),
                     counts
             );
             cache.close();

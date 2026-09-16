@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -345,7 +346,7 @@ public final class HydrologySurfaceDropRasterTest {
             columns.put(RiverFootprint.pack(sample.x(), sample.z()), sample);
         }
         HydrologyTile tile = new HydrologyTile(new HydrologyTileKey(0, 0), 1L, 1L, 128,
-                accepted.nodes(), accepted.edges(), accepted.outlets(), accepted.courses(), accepted.cavePlans(), List.of(), new RiverFootprint(columns));
+                accepted.nodes(), accepted.edges(), accepted.outlets(), accepted.courses(), Set.of(), accepted.cavePlans(), List.of(), new RiverFootprint(columns));
         assertEquals(1, tile.courses().size());
         for (boolean connectToExistingCaves : new boolean[] {false, true}) {
             diagnostics.clear();

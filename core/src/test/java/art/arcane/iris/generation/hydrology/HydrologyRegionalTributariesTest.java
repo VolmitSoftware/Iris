@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.OptionalLong;
 
@@ -43,7 +44,7 @@ public class HydrologyRegionalTributariesTest {
         HydrologyCaveCourseFilter.Result combined = planner.regional.include(new HydrologyCaveCourseFilter.Result(
                 connected.nodes(), connected.edges(), connected.outlets(), courses, List.of()), fixture.regional());
         HydrologyTile tile = new HydrologyTile(new HydrologyTileKey(0, 0), 19L, 0L, 512,
-                combined.nodes(), combined.edges(), combined.outlets(), combined.courses(), List.of(), diagnostics,
+                combined.nodes(), combined.edges(), combined.outlets(), combined.courses(), Set.of(fixture.regional().courses().getFirst().id()), List.of(), diagnostics,
                 RiverFootprint.empty());
         assertTrue(tile.acyclic());
         DrainageNode source = tile.node(tributary.sourceNodeId().orElseThrow()).orElseThrow();

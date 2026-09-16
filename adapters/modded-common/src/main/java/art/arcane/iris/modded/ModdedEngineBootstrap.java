@@ -102,6 +102,7 @@ public final class ModdedEngineBootstrap {
         // closed, MultiBurst falls back to a same-thread executor, so a second world load
         // without reopen() would silently run every burst inline.
         MultiBurst.burst.reopen();
+        MultiBurst.hydrology.reopen();
         MultiBurst.ioBurst.reopen();
         ModdedScheduler scheduler = schedulerOrNull();
         if (scheduler != null) {
@@ -189,10 +190,9 @@ public final class ModdedEngineBootstrap {
             failure = runStopStage(failure, "level snapshot", ModdedServerLevels::forget);
         }
         failure = runStopStage(failure, "generation pool", IrisModdedChunkGenerator::shutdownGenPool);
-        failure = runStopStage(failure, "burst pools", () -> {
-            MultiBurst.burst.close();
-            MultiBurst.ioBurst.close();
-        });
+        failure = runStopStage(failure, "generation burst pool", MultiBurst.burst::close);
+        failure = runStopStage(failure, "hydrology burst pool", MultiBurst.hydrology::close);
+        failure = runStopStage(failure, "I/O burst pool", MultiBurst.ioBurst::close);
         failure = runStopStage(failure, "startup state", ModdedStartup::reset);
         failure = runStopStage(failure, "server state", () -> {
             currentServer = null;

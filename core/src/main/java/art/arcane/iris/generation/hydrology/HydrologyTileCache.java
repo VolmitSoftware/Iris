@@ -44,6 +44,7 @@ public final class HydrologyTileCache implements AutoCloseable {
     private final int maximumEntries;
     private final Cache<HydrologyTileKey, HydrologyTile> tiles;
     private final Cache<Long, ChunkColumns> composedChunks;
+    private final Cache<HydrologyTileKey, List<HydrologyDiagnosticCandidate>> diagnostics;
     private final AtomicLong cacheEpoch;
     private final AtomicBoolean closed;
     private final ThreadLocal<LocalChunkColumns> localChunkColumns;
@@ -55,11 +56,14 @@ public final class HydrologyTileCache implements AutoCloseable {
     private final ConcurrentHashMap<CacheLoadKey<HydrologyTileKey>, CompletableFuture<HydrologyTile>> planning;
     private final ConcurrentHashMap<CacheLoadKey<HydrologyTileKey>, PendingLoad<HydrologyTile>> loading;
     private final ConcurrentHashMap<CacheLoadKey<Long>, PendingLoad<ChunkColumns>> composing;
+    private final ConcurrentHashMap<CacheLoadKey<HydrologyTileKey>, PendingLoad<List<HydrologyDiagnosticCandidate>>> diagnosing;
+    private final ConcurrentHashMap<CacheLoadKey<HydrologyTileKey>, PendingLoad<List<HydrologyDiagnosticCandidate>>> loadingDiagnostics;
     private final Object publicationLock = new Object();
     private final BooleanSupplier waitingForbidden;
     private volatile SharedCacheScope sharedCacheScope;
     private volatile StudioHydrologyTileStore persistentStore;
     private volatile boolean neighbourPrefetchEnabled;
+    private volatile Runnable terrainPreparation;
     private int demandBatches;
 
     public HydrologyTileCache(HydrologyPlanner planner) {
@@ -105,6 +109,8 @@ public final class HydrologyTileCache implements AutoCloseable {
         this.planning = new ConcurrentHashMap<>();
         this.loading = new ConcurrentHashMap<>();
         this.composing = new ConcurrentHashMap<>();
+        this.diagnosing = new ConcurrentHashMap<>();
+        this.loadingDiagnostics = new ConcurrentHashMap<>();
         if (maximumEntries < 1) {
             throw new IllegalArgumentException("maximumEntries must be positive.");
         }
@@ -118,6 +124,9 @@ public final class HydrologyTileCache implements AutoCloseable {
                 .build();
         this.composedChunks = Caffeine.newBuilder()
                 .maximumSize(MAXIMUM_COMPOSED_CHUNKS)
+                .build();
+        this.diagnostics = Caffeine.newBuilder()
+                .maximumSize(maximumEntries)
                 .build();
         this.cacheEpoch = new AtomicLong();
         this.closed = new AtomicBoolean();
@@ -140,6 +149,123 @@ public final class HydrologyTileCache implements AutoCloseable {
             return planDemandInline(key);
         }
         return awaitPlan(planDemandAsync(key));
+    }
+
+    public List<HydrologyDiagnosticCandidate> diagnosticCandidates(HydrologyTileKey key) {
+        Objects.requireNonNull(key, "key");
+        requireOpen();
+        List<HydrologyDiagnosticCandidate> present = diagnostics.getIfPresent(key);
+        if (present != null) {
+            return present;
+        }
+        if (waitsForbidden()) {
+            throw new IllegalStateException("Cold hydrology diagnostics cannot run on a thread that may not wait.");
+        }
+        long epoch = beginDemandBatch();
+        if (prefetchExecutor == null || plansInline()) {
+            try {
+                return loadDiagnostics(new CacheLoadKey<>(epoch, key));
+            } finally {
+                finishDemandBatch(epoch);
+            }
+        }
+        CompletableFuture<List<HydrologyDiagnosticCandidate>> future;
+        try {
+            future = diagnoseAsync(new CacheLoadKey<>(epoch, key));
+        } catch (Throwable failure) {
+            finishDemandBatch(epoch);
+            throw failure;
+        }
+        future.whenComplete((result, failure) -> finishDemandBatch(epoch));
+        return awaitPlan(future);
+    }
+
+    private List<HydrologyDiagnosticCandidate> loadDiagnostics(CacheLoadKey<HydrologyTileKey> loadKey) {
+        HydrologyTileKey key = loadKey.key();
+        List<HydrologyDiagnosticCandidate> present = diagnostics.getIfPresent(key);
+        if (present != null) {
+            return present;
+        }
+        PendingLoad<List<HydrologyDiagnosticCandidate>> owned =
+                new PendingLoad<>(Thread.currentThread(), new CompletableFuture<>());
+        PendingLoad<List<HydrologyDiagnosticCandidate>> existing;
+        synchronized (publicationLock) {
+            requireOpen();
+            existing = loadingDiagnostics.putIfAbsent(loadKey, owned);
+        }
+        if (existing != null) {
+            return awaitLoad(existing);
+        }
+        try {
+            present = diagnostics.getIfPresent(key);
+            if (present == null) {
+                prepareTerrain();
+            }
+            List<HydrologyDiagnosticCandidate> result = present == null
+                    ? List.copyOf(planner.diagnosticCandidates(planInline(key, loadKey.epoch()))) : present;
+            synchronized (publicationLock) {
+                if (!closed.get() && cacheEpoch.get() == loadKey.epoch()) {
+                    diagnostics.put(key, result);
+                }
+            }
+            owned.future().complete(result);
+            return result;
+        } catch (Throwable failure) {
+            owned.future().completeExceptionally(failure);
+            throw failure;
+        } finally {
+            loadingDiagnostics.remove(loadKey, owned);
+        }
+    }
+
+    private CompletableFuture<List<HydrologyDiagnosticCandidate>> diagnoseAsync(CacheLoadKey<HydrologyTileKey> loadKey) {
+        List<HydrologyDiagnosticCandidate> present = diagnostics.getIfPresent(loadKey.key());
+        if (present != null) {
+            return CompletableFuture.completedFuture(present);
+        }
+        PendingLoad<List<HydrologyDiagnosticCandidate>> queued = new PendingLoad<>(null, new CompletableFuture<>());
+        PendingLoad<List<HydrologyDiagnosticCandidate>> existing;
+        synchronized (publicationLock) {
+            if (closed.get()) {
+                return CompletableFuture.failedFuture(new CancellationException("Hydrology tile cache is closed."));
+            }
+            existing = diagnosing.putIfAbsent(loadKey, queued);
+        }
+        if (existing != null) {
+            return existing.future();
+        }
+        try {
+            prefetchExecutor.execute(() -> runDiagnostics(loadKey, queued));
+        } catch (RuntimeException | Error rejected) {
+            diagnosing.remove(loadKey, queued);
+            queued.future().completeExceptionally(rejected);
+        }
+        return queued.future();
+    }
+
+    private void runDiagnostics(CacheLoadKey<HydrologyTileKey> loadKey,
+                                PendingLoad<List<HydrologyDiagnosticCandidate>> queued) {
+        PendingLoad<List<HydrologyDiagnosticCandidate>> active =
+                new PendingLoad<>(Thread.currentThread(), queued.future());
+        boolean started;
+        synchronized (publicationLock) {
+            started = !closed.get() && diagnosing.replace(loadKey, queued, active);
+        }
+        if (!started) {
+            queued.future().completeExceptionally(new CancellationException("Hydrology tile cache is closed."));
+            diagnosing.remove(loadKey, queued);
+            return;
+        }
+        try {
+            active.future().complete(loadDiagnostics(loadKey));
+        } catch (Throwable failure) {
+            active.future().completeExceptionally(failure);
+            if (!(failure instanceof CancellationException) || !closed.get()) {
+                IrisLogging.reportError(failure);
+            }
+        } finally {
+            diagnosing.remove(loadKey, active);
+        }
     }
 
     private boolean plansInline() {
@@ -212,6 +338,7 @@ public final class HydrologyTileCache implements AutoCloseable {
                 return persisted;
             }
         }
+        prepareTerrain();
         try {
             HydrologyTile planned = planner.plan(key);
             synchronized (publicationLock) {
@@ -352,6 +479,7 @@ public final class HydrologyTileCache implements AutoCloseable {
                 planner.clearOwnerDrafts();
                 tiles.invalidateAll();
                 composedChunks.invalidateAll();
+                diagnostics.invalidateAll();
             }
             prefetchQueue.clear();
             queuedPrefetches.clear();
@@ -412,13 +540,23 @@ public final class HydrologyTileCache implements AutoCloseable {
     @Override
     public void close() {
         ArrayList<CompletableFuture<?>> active = new ArrayList<>();
-        ArrayList<CompletableFuture<HydrologyTile>> queued = new ArrayList<>();
+        ArrayList<CompletableFuture<?>> queued = new ArrayList<>();
         synchronized (publicationLock) {
             for (PendingLoad<HydrologyTile> load : loading.values()) {
                 collectActiveLoad(active, load);
             }
             for (PendingLoad<ChunkColumns> load : composing.values()) {
                 collectActiveLoad(active, load);
+            }
+            for (PendingLoad<List<HydrologyDiagnosticCandidate>> load : loadingDiagnostics.values()) {
+                collectActiveLoad(active, load);
+            }
+            for (PendingLoad<List<HydrologyDiagnosticCandidate>> load : diagnosing.values()) {
+                if (load.owner() == null) {
+                    queued.add(load.future());
+                } else {
+                    collectActiveLoad(active, load);
+                }
             }
             closed.set(true);
             planning.forEach((key, future) -> {
@@ -427,14 +565,26 @@ public final class HydrologyTileCache implements AutoCloseable {
                 }
             });
         }
-        for (CompletableFuture<HydrologyTile> future : queued) {
+        for (CompletableFuture<?> future : queued) {
             future.completeExceptionally(new CancellationException("Hydrology tile cache is closed."));
         }
         CompletableFuture.allOf(active.toArray(CompletableFuture<?>[]::new))
                 .handle((ignored, failure) -> null)
                 .join();
         planning.clear();
+        diagnosing.clear();
         clear();
+    }
+
+    public void setTerrainPreparation(Runnable preparation) {
+        terrainPreparation = Objects.requireNonNull(preparation, "terrainPreparation");
+    }
+
+    private void prepareTerrain() {
+        Runnable preparation = terrainPreparation;
+        if (preparation != null) {
+            preparation.run();
+        }
     }
 
     private static void collectActiveLoad(List<CompletableFuture<?>> active, PendingLoad<?> load) {

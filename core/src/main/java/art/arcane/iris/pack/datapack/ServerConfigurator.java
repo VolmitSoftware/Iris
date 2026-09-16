@@ -899,7 +899,7 @@ public class ServerConfigurator {
         try (Stream<Path> children = Files.list(root)) {
             for (Path child : children.toList()) {
                 String childName = child.getFileName().toString();
-                if (PackDirectoryResolver.isHiddenName(childName) || isGeneratedPackFile(childName)) {
+                if (PackDirectoryResolver.isHiddenName(childName) || isNonContentPackFile(childName)) {
                     continue;
                 }
                 if (Files.isSymbolicLink(child)) {
@@ -953,7 +953,7 @@ public class ServerConfigurator {
                 String fileName = file.getFileName().toString();
                 if ((treeRoot.relativize(file).getNameCount() == 1
                         && PackDirectoryResolver.isHiddenName(fileName))
-                        || isGeneratedPackFile(fileName)) {
+                        || isNonContentPackFile(fileName)) {
                     return FileVisitResult.CONTINUE;
                 }
                 if (attributes.isSymbolicLink() || Files.isSymbolicLink(file)) {
@@ -981,8 +981,8 @@ public class ServerConfigurator {
         });
     }
 
-    private static boolean isGeneratedPackFile(String name) {
-        return name != null && name.endsWith(CODE_WORKSPACE_SUFFIX);
+    private static boolean isNonContentPackFile(String name) {
+        return name != null && (name.equals(".DS_Store") || name.endsWith(CODE_WORKSPACE_SUFFIX));
     }
 
     private record FingerprintEntry(

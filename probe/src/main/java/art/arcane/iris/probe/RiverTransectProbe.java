@@ -224,7 +224,8 @@ public final class RiverTransectProbe {
                         tile.cavePlan(course.id()).map((plan) -> plan.accepted() ? "accepted" : "rejected").orElse("none")));
             }
 
-            for (String line : rejectionLines(tile)) {
+            List<HydrologyDiagnosticCandidate> diagnostics = runtime.diagnosticCandidates(key);
+            for (String line : rejectionLines(diagnostics)) {
                 System.out.println(PREFIX + " " + line);
             }
             writeTileDiagnostics(new File(configuration.output(), "tile-diagnostics.png"), tile, complex, runtime, seaLevel);
@@ -253,7 +254,7 @@ public final class RiverTransectProbe {
                     System.out.println(PREFIX + "   " + detail);
                 }
             }
-            writeSummary(new File(configuration.output(), "summary.txt"), configuration, tile, summaries);
+            writeSummary(new File(configuration.output(), "summary.txt"), configuration, tile, summaries, diagnostics);
             boolean pass = !summaries.isEmpty() && summaries.stream().allMatch(CourseSummary::passes);
             System.out.println(PREFIX + " " + (pass ? "PASS" : "FAIL")
                     + " surfaceCourses=" + summaries.size()
@@ -262,10 +263,10 @@ public final class RiverTransectProbe {
         }
     }
 
-    static List<String> rejectionLines(HydrologyTile tile) {
+    static List<String> rejectionLines(List<HydrologyDiagnosticCandidate> candidates) {
         TreeMap<String, Integer> counts = new TreeMap<>();
         TreeMap<String, ArrayList<Integer>> details = new TreeMap<>();
-        for (HydrologyDiagnosticCandidate candidate : tile.diagnosticCandidates()) {
+        for (HydrologyDiagnosticCandidate candidate : candidates) {
             String key = "rejected " + candidate.kind() + " " + candidate.projectedType() + " " + candidate.rejection();
             counts.merge(key, 1, Integer::sum);
             if (candidate.detail() != 0) {
@@ -652,7 +653,7 @@ public final class RiverTransectProbe {
                 }
             }
         }
-        for (HydrologyDiagnosticCandidate candidate : tile.diagnosticCandidates()) {
+        for (HydrologyDiagnosticCandidate candidate : runtime.diagnosticCandidates(tile.key())) {
             int rgb = switch (candidate.rejection()) {
                 case NO_DRAINAGE_PATH -> 0xFF2020;
                 case COURSE_TOO_SHORT -> 0xFFB000;
@@ -846,7 +847,8 @@ public final class RiverTransectProbe {
             File file,
             Configuration configuration,
             HydrologyTile tile,
-            List<CourseSummary> summaries
+            List<CourseSummary> summaries,
+            List<HydrologyDiagnosticCandidate> diagnostics
     ) throws IOException {
         StringBuilder text = new StringBuilder();
         text.append("tile=").append(tile.key().tileX()).append(',').append(tile.key().tileZ())
@@ -855,7 +857,7 @@ public final class RiverTransectProbe {
                 .append(" courses=").append(tile.courses().size())
                 .append(" surfaceCourses=").append(summaries.size())
                 .append('\n');
-        for (String line : rejectionLines(tile)) {
+        for (String line : rejectionLines(diagnostics)) {
             text.append(line).append('\n');
         }
         int maximumCut = 0;

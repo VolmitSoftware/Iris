@@ -28,7 +28,7 @@ public class HydrologyPlannerSeaCaveTest {
         HydrologyTile tile = new HydrologyPlanner(994L, settings, cliffCoast).plan(TILE);
         List<RiverCourse> caves = courses(tile, RiverCourseType.SEA_CAVE);
 
-        assertFalse("diagnostics=" + tile.diagnosticCandidates(), caves.isEmpty());
+        assertFalse("diagnostics=" + tile.localDiagnosticCandidates(), caves.isEmpty());
         for (RiverCourse cave : caves) {
             assertEquals(1, cave.segments().size());
             HydraulicSegment chamber = cave.segments().getFirst();
@@ -42,7 +42,7 @@ public class HydrologyPlannerSeaCaveTest {
             assertTrue("inner=" + inner + " connection=" + connection,
                     inner.distanceSquared2D(connection) >= (long) seaCaves.depth() * seaCaves.depth());
             HydrologyCavePlan plan = tile.cavePlan(cave.id()).orElse(null);
-            assertTrue("cave plan missing or rejected for " + cave.id() + " diagnostics=" + tile.diagnosticCandidates(),
+            assertTrue("cave plan missing or rejected for " + cave.id() + " diagnostics=" + tile.localDiagnosticCandidates(),
                     plan != null && plan.accepted());
 
             int chamberColumns = 0;
@@ -148,10 +148,10 @@ public class HydrologyPlannerSeaCaveTest {
         HydrologyTile tile = new HydrologyPlanner(17L, settings, coast).plan(TILE);
         List<RiverCourse> caves = courses(tile, RiverCourseType.SEA_CAVE);
 
-        assertEquals("diagnostics=" + tile.diagnosticCandidates(), 2, caves.size());
+        assertEquals("diagnostics=" + tile.localDiagnosticCandidates(), 2, caves.size());
         for (RiverCourse cave : caves) {
             HydrologyPoint connection = cave.segments().getFirst().end();
-            assertTrue("connection=" + connection + " diagnostics=" + tile.diagnosticCandidates(),
+            assertTrue("connection=" + connection + " diagnostics=" + tile.localDiagnosticCandidates(),
                     connection.z() >= 128 && connection.z() < 256);
         }
         HydrologyPoint first = caves.get(0).segments().getFirst().end();
@@ -159,7 +159,7 @@ public class HydrologyPlannerSeaCaveTest {
         long minimum = seaCaves.minimumSpacing() - 2L;
         assertTrue(first + " vs " + second, first.distanceSquared2D(second) >= minimum * minimum);
         int lowCoastRejections = 0;
-        for (HydrologyDiagnosticCandidate candidate : tile.diagnosticCandidates()) {
+        for (HydrologyDiagnosticCandidate candidate : tile.localDiagnosticCandidates()) {
             if (candidate.kind() != HydrologyCandidateKind.OUTLET
                     || candidate.projectedType() != HydrologyFeatureType.COASTAL_GROTTO
                     || candidate.point().z() < 0 || candidate.point().z() >= 128) {
@@ -195,8 +195,8 @@ public class HydrologyPlannerSeaCaveTest {
         }
         List<RiverCourse> caves = courses(tile, RiverCourseType.SEA_CAVE);
 
-        assertFalse("diagnostics=" + tile.diagnosticCandidates(), outletPoints.isEmpty());
-        assertFalse("diagnostics=" + tile.diagnosticCandidates(), caves.isEmpty());
+        assertFalse("diagnostics=" + tile.localDiagnosticCandidates(), outletPoints.isEmpty());
+        assertFalse("diagnostics=" + tile.localDiagnosticCandidates(), caves.isEmpty());
         long clearance = 2L * CHAMBER.horizontalRadius() + 12L;
         for (RiverCourse cave : caves) {
             for (HydrologyPoint point : cave.segments().getFirst().centerline()) {
@@ -213,7 +213,7 @@ public class HydrologyPlannerSeaCaveTest {
                 cliffCoast(112, 66)
         ).plan(TILE);
         assertTrue(courses(lowCoast, RiverCourseType.SEA_CAVE).isEmpty());
-        assertTrue(lowCoast.diagnosticCandidates().toString(),
+        assertTrue(lowCoast.localDiagnosticCandidates().toString(),
                 hasDiagnostic(lowCoast, HydrologyCandidateRejection.SURFACE_HEAD_RANGE));
     }
 
@@ -226,12 +226,12 @@ public class HydrologyPlannerSeaCaveTest {
         HydrologyTile tile = new HydrologyPlanner(994L, settings, cliffCoast(112, 92)).plan(TILE);
 
         assertTrue(courses(tile, RiverCourseType.SEA_CAVE).isEmpty());
-        assertTrue(tile.diagnosticCandidates().toString(),
+        assertTrue(tile.localDiagnosticCandidates().toString(),
                 hasDiagnostic(tile, HydrologyCandidateRejection.VOLUME_LIMIT));
     }
 
     private static boolean hasDiagnostic(HydrologyTile tile, HydrologyCandidateRejection rejection) {
-        for (HydrologyDiagnosticCandidate candidate : tile.diagnosticCandidates()) {
+        for (HydrologyDiagnosticCandidate candidate : tile.localDiagnosticCandidates()) {
             if (candidate.kind() == HydrologyCandidateKind.OUTLET
                     && candidate.projectedType() == HydrologyFeatureType.COASTAL_GROTTO
                     && candidate.rejection() == rejection) {

@@ -3,14 +3,19 @@ package art.arcane.iris.generation.hydrology;
 import art.arcane.volmlib.util.noise.SimplexNoise;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ForkJoinWorkerThread;
 
 final class HydrologyRegionalRoute {
     private static final double SAMPLE_SPACING = 4D;
     private static final double SIMPLEX_COORDINATE_SCALE = 100D;
     private static final int MAXIMUM_RECEIVER_SAMPLES = 65536;
+    private static final int CORRIDOR_SAMPLE_BATCH = 128;
+    private static final int MAXIMUM_CORRIDOR_WORKERS = 8;
 
     private final HydrologyPlanner planner;
     private final HydrologyRegionalTerrainRefiner terrainRefiner;
@@ -333,6 +338,7 @@ final class HydrologyRegionalRoute {
     }
 
     private Refinement validateCorridor(List<HydrologyPoint> points, String profile, boolean coastal) {
+        CorridorSamples samples = new CorridorSamples(points);
         Set<Long> visited = new HashSet<>();
         HydrologyTerrainSample previousTerrain = null;
         HydrologyPoint previousPoint = null;
@@ -345,7 +351,7 @@ final class HydrologyRegionalRoute {
                 double progress = steps == 0 ? 0D : step / (double) steps;
                 int x = (int) StrictMath.round(first.x() + (second.x() - first.x()) * progress);
                 int z = (int) StrictMath.round(first.z() + (second.z() - first.z()) * progress);
-                HydrologyTerrainSample terrain = terrainRefiner.sample(x, z);
+                HydrologyTerrainSample terrain = samples.next(index, step, x, z);
                 HydrologyPoint failure = new HydrologyPoint(x, terrain == null ? first.y() : terrain.naturalHeight(), z);
                 if (!visited.add(RiverFootprint.pack(x, z))) {
                     return new Refinement(List.of(), failure, HydrologyCandidateRejection.SURFACE_SHAPE_UNSUPPORTED, 2, null);
@@ -566,6 +572,83 @@ final class HydrologyRegionalRoute {
         return 0.5D * ((2D * start) + (-before + end) * progress
                 + (2D * before - 5D * start + 4D * end - after) * progress * progress
                 + (-before + 3D * start - 3D * end + after) * progress * progress * progress);
+    }
+
+    private final class CorridorSamples {
+        private final List<HydrologyPoint> points;
+        private final int workers;
+        private final int[] xs;
+        private final int[] zs;
+        private final HydrologyTerrainSample[] terrain;
+        private final RuntimeException[] failures;
+        private int count;
+        private int cursor;
+
+        private CorridorSamples(List<HydrologyPoint> points) {
+            this.points = points;
+            workers = Thread.currentThread() instanceof ForkJoinWorkerThread worker
+                    ? Math.min(MAXIMUM_CORRIDOR_WORKERS, worker.getPool().getParallelism()) : 1;
+            xs = workers > 1 ? new int[CORRIDOR_SAMPLE_BATCH] : null;
+            zs = workers > 1 ? new int[CORRIDOR_SAMPLE_BATCH] : null;
+            terrain = workers > 1 ? new HydrologyTerrainSample[CORRIDOR_SAMPLE_BATCH] : null;
+            failures = workers > 1 ? new RuntimeException[CORRIDOR_SAMPLE_BATCH] : null;
+        }
+
+        private HydrologyTerrainSample next(int segment, int step, int x, int z) {
+            if (workers == 1) {
+                return terrainRefiner.sample(x, z);
+            }
+            if (cursor == count) {
+                fill(segment, step);
+            }
+            int index = cursor++;
+            if (failures[index] != null) {
+                throw failures[index];
+            }
+            return terrain[index];
+        }
+
+        private void fill(int segment, int firstStep) {
+            count = 0;
+            cursor = 0;
+            Arrays.fill(failures, null);
+            for (int index = segment; index + 1 < points.size() && count < CORRIDOR_SAMPLE_BATCH; index++) {
+                HydrologyPoint first = points.get(index);
+                HydrologyPoint second = points.get(index + 1);
+                int steps = Math.max(Math.abs(second.x() - first.x()), Math.abs(second.z() - first.z()));
+                for (int step = index == segment ? firstStep : 1; step <= steps && count < CORRIDOR_SAMPLE_BATCH; step++) {
+                    double progress = steps == 0 ? 0D : step / (double) steps;
+                    xs[count] = (int) StrictMath.round(first.x() + (second.x() - first.x()) * progress);
+                    zs[count++] = (int) StrictMath.round(first.z() + (second.z() - first.z()) * progress);
+                }
+            }
+            int taskCount = Math.min(workers, Math.ceilDiv(count, 16));
+            if (taskCount < 2) {
+                sampleRange(0, count);
+                return;
+            }
+            int width = Math.ceilDiv(count, taskCount);
+            ArrayList<Callable<Void>> tasks = new ArrayList<>(taskCount);
+            for (int index = 0; index < taskCount; index++) {
+                int start = index * width;
+                int end = Math.min(count, start + width);
+                tasks.add(() -> {
+                    sampleRange(start, end);
+                    return null;
+                });
+            }
+            HydrologyForkJoin.invokeAll(tasks, null);
+        }
+
+        private void sampleRange(int start, int end) {
+            for (int index = start; index < end; index++) {
+                try {
+                    terrain[index] = terrainRefiner.sample(xs[index], zs[index]);
+                } catch (RuntimeException failure) {
+                    failures[index] = failure;
+                }
+            }
+        }
     }
 
     private final class CandidateSelection {

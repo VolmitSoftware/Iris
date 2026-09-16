@@ -229,7 +229,7 @@ public class IrisHydrologyPolicyCacheTest {
         private IrisHydrologyRuntime runtime() {
             return new IrisHydrologyRuntime(new IrisHydrologyRuntimeContext(17L, 768, dimension, data,
                     (x, z, height) -> new IrisHydrologyNaturalSample(height, false, biome.get(), region.get()),
-                    (x, z) -> 180D, (x, z) -> "constant", (x, z) -> false, footprint -> null, () -> false));
+                    (x, z) -> 180D, (x, z) -> "constant", (x, z) -> false, footprint -> null, () -> false, () -> {}));
         }
     }
 

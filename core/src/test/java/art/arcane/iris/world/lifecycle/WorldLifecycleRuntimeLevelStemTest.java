@@ -121,6 +121,14 @@ public class WorldLifecycleRuntimeLevelStemTest {
         }
 
         @Override
+        public void beginInitialEntry(boolean playerEntry) {
+        }
+
+        @Override
+        public void completeInitialEntry() {
+        }
+
+        @Override
         public void hotload() {
         }
     }

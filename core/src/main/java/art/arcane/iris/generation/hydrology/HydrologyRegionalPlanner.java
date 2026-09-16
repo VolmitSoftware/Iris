@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.hydrology;
 
+import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCavePlan;
 import art.arcane.iris.generation.hydrology.surface.SurfaceBounds;
 import art.arcane.iris.generation.hydrology.surface.SurfaceCenterline;
@@ -10,11 +11,13 @@ import art.arcane.iris.generation.hydrology.surface.SurfaceFootprint;
 import art.arcane.iris.generation.hydrology.surface.SurfaceFootprintCompiler;
 import art.arcane.iris.generation.hydrology.surface.SurfaceLayerColumn;
 import art.arcane.iris.generation.hydrology.surface.SurfaceTerminal;
+import art.arcane.iris.spi.IrisPlatforms;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,12 +25,14 @@ import java.util.Map;
 import java.util.OptionalLong;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 final class HydrologyRegionalPlanner {
     private static final long BASIN_SALT = 0x524547424153494eL;
     private static final long COURSE_SALT = 0x524547434f555253L;
     private static final long NODE_SALT = 0x5245474e4f444553L;
     private static final int MAXIMUM_SOURCE_TRIALS = 24;
+    private static final int SOURCE_TRIAL_WINDOW = 16;
     private static final int MAXIMUM_DIAGNOSTICS = 64;
 
     private final HydrologyPlanner planner;
@@ -35,6 +40,11 @@ final class HydrologyRegionalPlanner {
     private final HydrologyRegionalGraph graph;
     private final HydrologyRegionalRoute routes;
     private final Cache<HydrologyTileKey, HydrologyRegionalNetwork> drafts;
+    private final Cache<HydrologyTileKey, HydrologyRegionalCoarsePlan> coarsePlans;
+    private final Map<HydrologyTileKey, HydrologyForkJoin.Task<HydrologyRegionalCoarsePlan>> preparingCoarsePlans = new HashMap<>();
+    private final Map<HydrologyTileKey, HydrologyForkJoin.Task<HydrologyRegionalNetwork>> compilingDrafts = new HashMap<>();
+    private final Object draftPublicationLock = new Object();
+    private long draftEpoch;
 
     HydrologyRegionalPlanner(HydrologyPlanner planner) {
         this.planner = planner;
@@ -46,6 +56,10 @@ final class HydrologyRegionalPlanner {
                 .maximumWeight(settings.maximumCachedStations())
                 .weigher((HydrologyTileKey key, HydrologyRegionalNetwork network) -> Math.max(minimumWeight, network.stations()))
                 .build();
+        this.coarsePlans = Caffeine.newBuilder()
+                .maximumWeight(settings.maximumCachedStations())
+                .weigher((HydrologyTileKey key, HydrologyRegionalCoarsePlan plan) -> Math.max(minimumWeight, plan.weight()))
+                .build();
     }
 
     boolean enabled() {
@@ -55,8 +69,14 @@ final class HydrologyRegionalPlanner {
     }
 
     void clear() {
-        drafts.invalidateAll();
-        routes.clear();
+        synchronized (draftPublicationLock) {
+            draftEpoch++;
+            compilingDrafts.clear();
+            preparingCoarsePlans.clear();
+            coarsePlans.invalidateAll();
+            drafts.invalidateAll();
+            routes.clear();
+        }
     }
 
     private HydrologyTerrainSample sample(int x, int z) {
@@ -73,28 +93,54 @@ final class HydrologyRegionalPlanner {
         int maximumX = Math.floorDiv(bounds.maximumX() + reach, basinSize);
         int minimumZ = Math.floorDiv(bounds.minimumZ() - reach, basinSize);
         int maximumZ = Math.floorDiv(bounds.maximumZ() + reach, basinSize);
-        HydrologyTileKey primary = HydrologyTileKey.fromBlock(
-                (int) (((long) bounds.minimumX() + bounds.maximumX()) / 2L),
-                (int) (((long) bounds.minimumZ() + bounds.maximumZ()) / 2L), basinSize);
-        ArrayList<HydrologyRegionalNetwork> networks = new ArrayList<>();
+        ArrayList<HydrologyTileKey> keys = new ArrayList<>();
+        ArrayList<Callable<HydrologyRegionalNetwork>> tasks = new ArrayList<>();
         for (int z = minimumZ; z <= maximumZ; z++) {
             for (int x = minimumX; x <= maximumX; x++) {
                 HydrologyTileKey key = new HydrologyTileKey(x, z);
-                HydrologyRegionalNetwork draft = draft(key);
-                ArrayList<RiverCourse> accepted = new ArrayList<>();
-                for (RiverCourse course : draft.courses()) {
-                    if (intersects(course, bounds, footprintRadius()) && admitted(key, course)) {
-                        accepted.add(course);
-                    }
+                keys.add(key);
+                tasks.add(() -> demandedDraft(key, bounds));
+            }
+        }
+        List<HydrologyRegionalNetwork> loaded = HydrologyForkJoin.invokeAll(tasks,
+                IrisPlatforms.isBound() ? MultiBurst.hydrology : null);
+        ArrayList<HydrologyRegionalNetwork> networks = new ArrayList<>(loaded.size());
+        for (int index = 0; index < loaded.size(); index++) {
+            HydrologyTileKey key = keys.get(index);
+            HydrologyRegionalNetwork draft = loaded.get(index);
+            ArrayList<RiverCourse> accepted = new ArrayList<>();
+            for (RiverCourse course : draft.courses()) {
+                if (intersects(course, bounds, footprintRadius()) && admitted(key, course)) {
+                    accepted.add(course);
                 }
-                if (!accepted.isEmpty() || key.equals(primary)) {
-                    HydrologyRegionalNetwork selected = select(draft, accepted);
-                    networks.add(new HydrologyRegionalNetwork(selected.nodes(), selected.edges(), selected.outlets(),
-                            selected.courses(), key.equals(primary) ? draft.diagnostics() : List.of(), selected.cavePlans()));
-                }
+            }
+            if (!accepted.isEmpty()) {
+                HydrologyRegionalNetwork selected = select(draft, accepted);
+                networks.add(new HydrologyRegionalNetwork(selected.nodes(), selected.edges(), selected.outlets(),
+                        selected.courses(), List.of(), selected.cavePlans()));
             }
         }
         return merge(networks);
+    }
+
+    List<HydrologyDiagnosticCandidate> diagnosticsIn(SurfaceBounds bounds) {
+        if (!enabled()) {
+            return List.of();
+        }
+        int basinSize = settings.basinSize(planner.settings.routing());
+        HydrologyTileKey primary = HydrologyTileKey.fromBlock(
+                (int) (((long) bounds.minimumX() + bounds.maximumX()) / 2L),
+                (int) (((long) bounds.minimumZ() + bounds.maximumZ()) / 2L), basinSize);
+        return draft(primary).diagnostics();
+    }
+
+    private HydrologyRegionalNetwork demandedDraft(HydrologyTileKey key, SurfaceBounds bounds) {
+        HydrologyRegionalNetwork cached = drafts.getIfPresent(key);
+        if (cached != null) {
+            return cached;
+        }
+        PreparedCoarse prepared = prepareCoarse(key);
+        return prepared.plan().intersects(bounds) ? draft(key, prepared) : HydrologyRegionalNetwork.EMPTY;
     }
 
     RiverFootprint materialize(HydrologyRegionalNetwork network, SurfaceBounds bounds) {
@@ -125,24 +171,142 @@ final class HydrologyRegionalPlanner {
     }
 
     HydrologyRegionalNetwork draft(HydrologyTileKey key) {
-        return drafts.get(key, this::compile);
+        HydrologyRegionalNetwork cached = drafts.getIfPresent(key);
+        return cached != null ? cached : draft(key, prepareCoarse(key));
     }
 
-    private HydrologyRegionalNetwork compile(HydrologyTileKey key) {
+    private HydrologyRegionalNetwork draft(HydrologyTileKey key, PreparedCoarse prepared) {
+        HydrologyForkJoin.Task<HydrologyRegionalNetwork> task;
+        synchronized (draftPublicationLock) {
+            boolean current = prepared.epoch() == draftEpoch;
+            HydrologyRegionalNetwork cached = current ? drafts.getIfPresent(key) : null;
+            if (cached != null) {
+                return cached;
+            }
+            task = current ? compilingDrafts.get(key) : null;
+            if (task == null) {
+                task = new HydrologyForkJoin.Task<>(() -> compileDraft(key, prepared));
+                if (current) {
+                    compilingDrafts.put(key, task);
+                }
+            }
+        }
+        return task.await();
+    }
+
+    private PreparedCoarse prepareCoarse(HydrologyTileKey key) {
+        long epoch;
+        HydrologyForkJoin.Task<HydrologyRegionalCoarsePlan> task;
+        synchronized (draftPublicationLock) {
+            epoch = draftEpoch;
+            HydrologyRegionalCoarsePlan cached = coarsePlans.getIfPresent(key);
+            if (cached != null) {
+                return new PreparedCoarse(epoch, cached);
+            }
+            task = preparingCoarsePlans.get(key);
+            if (task == null) {
+                task = new HydrologyForkJoin.Task<>(() -> compileCoarse(key, epoch));
+                preparingCoarsePlans.put(key, task);
+            }
+        }
+        return new PreparedCoarse(epoch, task.await());
+    }
+
+    private HydrologyRegionalCoarsePlan compileCoarse(HydrologyTileKey key, long epoch) {
+        try {
+            HydrologyRegionalCoarsePlan plan = coarseSetup(key);
+            synchronized (draftPublicationLock) {
+                if (epoch == draftEpoch) {
+                    coarsePlans.put(key, plan);
+                }
+            }
+            return plan;
+        } finally {
+            synchronized (draftPublicationLock) {
+                if (epoch == draftEpoch) {
+                    preparingCoarsePlans.remove(key);
+                }
+            }
+        }
+    }
+
+    private HydrologyRegionalNetwork compileDraft(HydrologyTileKey key, PreparedCoarse prepared) {
+        try {
+            HydrologyRegionalNetwork network = compile(key, prepared.plan());
+            synchronized (draftPublicationLock) {
+                if (prepared.epoch() == draftEpoch) {
+                    drafts.put(key, network);
+                }
+            }
+            return network;
+        } finally {
+            synchronized (draftPublicationLock) {
+                if (prepared.epoch() == draftEpoch) {
+                    compilingDrafts.remove(key);
+                }
+            }
+        }
+    }
+
+    private HydrologyRegionalCoarsePlan coarseSetup(HydrologyTileKey key) {
         HydrologySampledGrid grid = sample(key);
-        ArrayList<HydrologyDiagnosticCandidate> diagnostics = new ArrayList<>();
-        HydrologyGridNode center = grid.nodes().get(grid.nodes().size() / 2);
-        ArrayList<OutletCandidate> outlets = planner.outletPlanner.oceanOutletCandidates(grid, true);
+        ArrayList<OutletCandidate> outlets = planner.outletPlanner.regionalOceanOutletCandidates(grid);
         outlets.removeIf(outlet -> outlet.outlet().type() != HydrologyFeatureType.MOUTH);
         outlets.sort(Comparator.comparingLong(outlet -> HydrologyHash.mix(planner.worldSeed, BASIN_SALT,
                 key.tileX(), key.tileZ(), outlet.outlet().id())));
+        long basinSeed = HydrologyHash.mix(planner.worldSeed, BASIN_SALT, key.tileX(), key.tileZ());
+        boolean coastal = settings.coastalChannels() && HydrologyHash.unit(basinSeed) < settings.coastalChannelChance();
+        if (outlets.isEmpty() || coastal) {
+            return new HydrologyRegionalCoarsePlan(grid, outlets, null, List.of(), List.of(), 0D, coastal, grid.nodes().size());
+        }
+        return routeCoarse(grid, outlets);
+    }
+
+    private HydrologyRegionalCoarsePlan routeCoarse(HydrologySampledGrid grid, List<OutletCandidate> outlets) {
+        ArrayList<OutletCandidate> roots = spacedOutlets(outlets, settings.maximumTrunks() * 2);
+        HydrologyRegionalGraph.Tree tree = graph.route(grid, roots, false);
+        ArrayList<Integer> sources = new ArrayList<>();
+        ArrayList<HydrologyRegionalEnvelope> envelopes = new ArrayList<>();
+        double longest = 0D;
+        for (HydrologyGridNode node : grid.nodes()) {
+            if (!grid.owns(node.x(), node.z()) || tree.root(node.index()) < 0) {
+                continue;
+            }
+            longest = Math.max(longest, tree.length(node.index()));
+            if (tree.length(node.index()) < settings.minimumLength()
+                    || !planner.sourcePlanner.rawSourceEligible(node.terrain(), planner.settings.surface().sources(), true)) {
+                continue;
+            }
+            sources.add(node.index());
+            ArrayList<HydrologyPoint> guide = new ArrayList<>();
+            for (int index : graph.path(tree, node.index())) {
+                guide.add(grid.node(index).naturalPoint());
+            }
+            RiverOutlet outlet = tree.outlets().get(tree.root(node.index())).outlet();
+            guide.add(outlet.landwardPoint());
+            guide.add(outlet.connectionPoint());
+            envelopes.add(HydrologyRegionalEnvelope.of(guide, planner.settings, footprintRadius()));
+        }
+        int weight = Math.addExact(Math.addExact(grid.nodes().size(), tree.selected().length),
+                Math.addExact(Math.ceilDiv(tree.accumulation().length, 16), envelopes.size()));
+        return new HydrologyRegionalCoarsePlan(grid, outlets, tree, sources, envelopes, longest, false, weight);
+    }
+
+    private record PreparedCoarse(long epoch, HydrologyRegionalCoarsePlan plan) {
+    }
+
+    private HydrologyRegionalNetwork compile(HydrologyTileKey key, HydrologyRegionalCoarsePlan coarse) {
+        HydrologySampledGrid grid = coarse.grid();
+        ArrayList<HydrologyDiagnosticCandidate> diagnostics = new ArrayList<>();
+        HydrologyGridNode center = grid.nodes().get(grid.nodes().size() / 2);
+        List<OutletCandidate> outlets = coarse.outlets();
         if (outlets.isEmpty()) {
             diagnostic(diagnostics, center.id(), center.naturalPoint(), false, HydrologyCandidateRejection.NO_LEGAL_OUTLET, 0);
             return new HydrologyRegionalNetwork(List.of(), List.of(), List.of(), List.of(), diagnostics, List.of());
         }
         ArrayList<HydrologyRegionalNetwork> accepted = new ArrayList<>();
         long basinSeed = HydrologyHash.mix(planner.worldSeed, BASIN_SALT, key.tileX(), key.tileZ());
-        if (settings.coastalChannels() && HydrologyHash.unit(basinSeed) < settings.coastalChannelChance()) {
+        if (coarse.coastal()) {
             ArrayList<HydrologyDiagnosticCandidate> coastalDiagnostics = new ArrayList<>();
             HydrologyRegionalNetwork coastal = coastalChannel(grid, outlets, basinSeed, coastalDiagnostics);
             diagnostics.addAll(coastalDiagnostics.subList(0, Math.min(16, coastalDiagnostics.size())));
@@ -150,23 +314,11 @@ final class HydrologyRegionalPlanner {
                 accepted.add(coastal);
             }
         }
-        ArrayList<OutletCandidate> roots = spacedOutlets(outlets, settings.maximumTrunks() * 2);
-        HydrologyRegionalGraph.Tree tree = graph.route(grid, roots, false);
-        ArrayList<Integer> sources = new ArrayList<>();
-        for (HydrologyGridNode node : grid.nodes()) {
-            if (grid.owns(node.x(), node.z()) && tree.root(node.index()) >= 0
-                    && tree.length(node.index()) >= settings.minimumLength()
-                    && planner.sourcePlanner.rawSourceEligible(node.terrain(), planner.settings.surface().sources(), true)) {
-                sources.add(node.index());
-            }
-        }
+        HydrologyRegionalCoarsePlan routed = coarse.tree() == null ? routeCoarse(grid, outlets) : coarse;
+        HydrologyRegionalGraph.Tree tree = routed.tree();
+        List<Integer> sources = routed.sources();
         if (sources.isEmpty()) {
-            double longest = 0D;
-            for (HydrologyGridNode node : grid.nodes()) {
-                if (grid.owns(node.x(), node.z()) && tree.root(node.index()) >= 0) {
-                    longest = Math.max(longest, tree.length(node.index()));
-                }
-            }
+            double longest = routed.longest();
             diagnostic(diagnostics, center.id(), center.naturalPoint(), false,
                     longest == 0D ? HydrologyCandidateRejection.NO_DRAINAGE_PATH
                             : longest < settings.minimumLength() ? HydrologyCandidateRejection.COURSE_TOO_SHORT
@@ -179,24 +331,68 @@ final class HydrologyRegionalPlanner {
             }
         }
         HydrologyRegionalSourceTrials sourceTrials = new HydrologyRegionalSourceTrials(grid, tree, sources);
-        for (int trials = 0; trials < MAXIMUM_SOURCE_TRIALS; trials++) {
-            if (accepted.size() >= settings.maximumTrunks()) {
+        SourceBuildContext sourceContext = new SourceBuildContext(grid, tree, basinSeed);
+        int trials = 0;
+        while (trials < MAXIMUM_SOURCE_TRIALS && accepted.size() < settings.maximumTrunks()) {
+            int window = Math.min(SOURCE_TRIAL_WINDOW, MAXIMUM_SOURCE_TRIALS - trials);
+            ArrayList<Callable<SourceTrial>> tasks = new ArrayList<>(window);
+            for (int index = 0; index < window; index++) {
+                OptionalInt selected = sourceTrials.next(usedOutlets);
+                if (selected.isEmpty()) {
+                    break;
+                }
+                int source = selected.getAsInt();
+                tasks.add(() -> buildSourceTrial(sourceContext, source));
+            }
+            if (tasks.isEmpty()) {
                 break;
             }
-            OptionalInt selected = sourceTrials.next(usedOutlets);
-            if (selected.isEmpty()) {
-                break;
-            }
-            int source = selected.getAsInt();
-            OutletCandidate outlet = tree.outlets().get(tree.root(source));
-            HydrologyRegionalNetwork candidate = build(grid, tree, source, null, basinSeed, diagnostics);
-            if (!candidate.courses().isEmpty() && !conflicts(candidate.courses().getFirst(), merge(accepted).courses())) {
-                accepted.add(candidate);
-                usedOutlets.add(outlet.outlet().id());
+            List<SourceTrial> completed = HydrologyForkJoin.invokeAll(tasks,
+                    IrisPlatforms.isBound() ? MultiBurst.hydrology : null);
+            for (SourceTrial trial : completed) {
+                if (accepted.size() >= settings.maximumTrunks()) {
+                    break;
+                }
+                if (usedOutlets.contains(trial.outletId())) {
+                    continue;
+                }
+                trials++;
+                if (trial.failure() instanceof Error error) {
+                    throw error;
+                }
+                if (trial.failure() instanceof RuntimeException failure) {
+                    throw failure;
+                }
+                int retained = Math.min(MAXIMUM_DIAGNOSTICS - diagnostics.size(), trial.diagnostics().size());
+                diagnostics.addAll(trial.diagnostics().subList(0, retained));
+                HydrologyRegionalNetwork candidate = trial.network();
+                if (!candidate.courses().isEmpty() && !conflicts(candidate.courses().getFirst(), merge(accepted).courses())) {
+                    accepted.add(candidate);
+                    usedOutlets.add(trial.outletId());
+                }
             }
         }
         HydrologyRegionalNetwork network = merge(accepted);
         return new HydrologyRegionalNetwork(network.nodes(), network.edges(), network.outlets(), network.courses(), diagnostics, network.cavePlans());
+    }
+
+    private SourceTrial buildSourceTrial(SourceBuildContext context, int source) {
+        long outletId = context.tree().outlets().get(context.tree().root(source)).outlet().id();
+        ArrayList<HydrologyDiagnosticCandidate> diagnostics = new ArrayList<>();
+        HydrologyPlanner.PlanningSamples previous = planner.planningSamples.get();
+        planner.planningSamples.set(new HydrologyPlanner.PlanningSamples());
+        try {
+            HydrologyRegionalNetwork network = build(context.grid(), context.tree(), source, null, context.basinSeed(), diagnostics);
+            return new SourceTrial(outletId, network, List.copyOf(diagnostics), null);
+        } catch (RuntimeException | Error failure) {
+            return new SourceTrial(outletId, null, List.of(), failure);
+        } finally {
+            if (previous == null) {
+                planner.planningSamples.remove();
+            } else {
+                planner.planningSamples.set(previous);
+            }
+        }
     }
 
     private HydrologyRegionalNetwork coastalChannel(HydrologySampledGrid grid, List<OutletCandidate> outlets,
@@ -536,29 +732,6 @@ final class HydrologyRegionalPlanner {
                 combined.courses(), combined.cavePlans());
     }
 
-    HydrologyCaveCourseFilter.Result withoutRegional(HydrologyCaveCourseFilter.Result result, HydrologyTileKey key) {
-        if (!enabled()) {
-            return result;
-        }
-        Set<Long> regionalIds = new HashSet<>();
-        for (RiverCourse course : coursesIn(ownerBounds(key)).courses()) {
-            regionalIds.add(course.id());
-        }
-        ArrayList<RiverCourse> local = new ArrayList<>();
-        for (RiverCourse course : result.courses()) {
-            if (!regionalIds.contains(course.id())) {
-                local.add(course);
-            }
-        }
-        ArrayList<HydrologyCavePlan> plans = new ArrayList<>();
-        for (HydrologyCavePlan plan : result.cavePlans()) {
-            if (!regionalIds.contains(plan.source().sourceId())) {
-                plans.add(plan);
-            }
-        }
-        return new HydrologyCaveCourseFilter.Result(result.nodes(), result.edges(), result.outlets(), local, plans);
-    }
-
     private int footprintRadius() {
         return (int) StrictMath.ceil(planner.settings.surface().maximumWidth() * 2D
                 + Math.max(planner.settings.surface().shoreWidth(), planner.settings.widestShoreBiomeWidth())
@@ -747,6 +920,13 @@ final class HydrologyRegionalPlanner {
         }
         return new HydrologyRegionalNetwork(new ArrayList<>(nodes.values()), new ArrayList<>(edges.values()),
                 new ArrayList<>(outlets.values()), new ArrayList<>(courses.values()), new ArrayList<>(diagnostics.values()), new ArrayList<>(plans.values()));
+    }
+
+    private record SourceBuildContext(HydrologySampledGrid grid, HydrologyRegionalGraph.Tree tree, long basinSeed) {
+    }
+
+    private record SourceTrial(long outletId, HydrologyRegionalNetwork network,
+                               List<HydrologyDiagnosticCandidate> diagnostics, Throwable failure) {
     }
 
     private record BuildContext(HydrologyGridNode source, OutletCandidate origin, long basinSeed, RiverOutlet outlet,

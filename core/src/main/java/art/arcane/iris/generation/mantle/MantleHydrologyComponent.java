@@ -324,6 +324,9 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
             CavePosition position = new CavePosition(sample.x(), y, sample.z());
             HydrologyCaveAction action = plan.actions().get(position);
             if (action == null || action == HydrologyCaveAction.SEAL_GUARD) {
+                if (!isCaveLayer(layer)) {
+                    continue;
+                }
                 throw new IllegalStateException("Accepted cave layer is absent from its containment plan at "
                         + position + ".");
             }

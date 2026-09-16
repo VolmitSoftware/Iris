@@ -5,6 +5,11 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.ToDoubleFunction;
@@ -89,6 +94,104 @@ public class IrisGeneratorSurfaceDetailTest {
         }
 
         assertEquals(91, samples.get());
+    }
+
+    @Test
+    public void repeatedCellSamplingMatchesColdCacheRawBits() {
+        Sampler source = (seed, x, z) -> Math.sin(x * 0.017D) + Math.cos(z * 0.031D);
+        IrisGenerator warm = generator(source).setSurfaceDetail(0.5D);
+        IrisGenerator cold = generator(source).setSurfaceDetail(0.5D);
+        double[][] points = {
+                {-6D, -6D}, {-5.75D, -5.5D}, {-4.25D, -4.5D}, {-3D, -3D},
+                {-0.25D, -0.125D}, {0D, 0D}, {1.25D, 1.75D}, {5.5D, 5.75D},
+                {6D, 6D}, {6.25D, 6.5D}, {8191.25D, -4096.75D}
+        };
+
+        for (double[] point : points) {
+            cold.rescale(1D);
+            long expected = Double.doubleToRawLongBits(cold.getHeight(point[0], point[1], 27L));
+            for (int repeat = 0; repeat < 4; repeat++) {
+                assertEquals(expected, Double.doubleToRawLongBits(warm.getHeight(point[0], point[1], 27L)));
+            }
+        }
+    }
+
+    @Test
+    public void repeatedLatticeSamplesRefreshSeedChanges() {
+        AtomicInteger samples = new AtomicInteger();
+        IrisGenerator generator = generator((seed, x, z) -> {
+            samples.incrementAndGet();
+            return seed * 0.000001D;
+        }).setSurfaceDetail(0.5D);
+
+        double first = generator.getHeight(0, 0, 27L);
+        assertEquals(Double.doubleToRawLongBits(first), Double.doubleToRawLongBits(generator.getHeight(0, 0, 27L)));
+        assertEquals(1, samples.get());
+
+        double second = generator.getHeight(0, 0, 28L);
+        assertEquals(0.000001D, second - first, 1e-12D);
+        assertEquals(Double.doubleToRawLongBits(second), Double.doubleToRawLongBits(generator.getHeight(0, 0, 28L)));
+        assertEquals(2, samples.get());
+
+        assertEquals(Double.doubleToRawLongBits(first), Double.doubleToRawLongBits(generator.getHeight(0, 0, 27L)));
+        assertEquals(3, samples.get());
+    }
+
+    @Test
+    public void collidingLatticeSamplesRecomputeWithoutReturningAnotherCoordinate() {
+        AtomicInteger originSamples = new AtomicInteger();
+        IrisGenerator generator = generator((seed, x, z) -> {
+            if (x == 0D && z == 0D) {
+                originSamples.incrementAndGet();
+            }
+            return x * 0.00001D;
+        }).setSurfaceDetail(0.5D);
+
+        assertEquals(0L, Double.doubleToRawLongBits(generator.getHeight(0, 0, 27L)));
+        assertEquals(0L, Double.doubleToRawLongBits(generator.getHeight(0, 0, 27L)));
+        assertEquals(1, originSamples.get());
+        assertEquals(Double.doubleToRawLongBits(71754D * 0.00001D),
+                Double.doubleToRawLongBits(generator.getHeight(71754, 0, 27L)));
+        assertEquals(0L, Double.doubleToRawLongBits(generator.getHeight(0, 0, 27L)));
+        assertEquals(2, originSamples.get());
+        assertEquals(0L, Double.doubleToRawLongBits(generator.getHeight(0, 0, 27L)));
+        assertEquals(2, originSamples.get());
+    }
+
+    @Test(timeout = 15000)
+    public void concurrentCollisionsAndSeedChangesPreserveRawHeightBits() throws Exception {
+        Sampler source = (seed, x, z) -> seed * 0.000001D + x * 0.00001D - z * 0.00003D;
+        IrisGenerator generator = generator(source).setSurfaceDetail(0.5D);
+        IrisGenerator reference = generator(source);
+        double[] xs = {0D, 71754D};
+        long[] seeds = {27L, 28L};
+        long[][] expected = new long[xs.length][seeds.length];
+        for (int coordinate = 0; coordinate < xs.length; coordinate++) {
+            for (int seed = 0; seed < seeds.length; seed++) {
+                expected[coordinate][seed] = Double.doubleToRawLongBits(reference.getHeight(xs[coordinate], 0D, seeds[seed]));
+            }
+        }
+        ForkJoinPool pool = new ForkJoinPool(4);
+        try {
+            List<Future<?>> tasks = new ArrayList<>();
+            for (int task = 0; task < 16; task++) {
+                int offset = task;
+                tasks.add(pool.submit(() -> {
+                    for (int sample = 0; sample < 64; sample++) {
+                        int coordinate = (sample + offset) & 1;
+                        int seed = (sample / 2 + offset) & 1;
+                        assertEquals(expected[coordinate][seed],
+                                Double.doubleToRawLongBits(generator.getHeight(xs[coordinate], 0D, seeds[seed])));
+                    }
+                }));
+            }
+            for (Future<?> task : tasks) {
+                task.get(5, TimeUnit.SECONDS);
+            }
+        } finally {
+            pool.shutdownNow();
+            assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+        }
     }
 
     @Test

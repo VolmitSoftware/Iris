@@ -1,6 +1,8 @@
 package art.arcane.iris.platform.generation;
 
-import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.io.ReactiveFolder;
 import art.arcane.volmlib.util.scheduling.Looper;
@@ -25,8 +27,39 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class BukkitChunkGeneratorCloseTest {
+    @Test
+    public void failedCloseReleasesInitialEntryDeferral() throws Exception {
+        CloseFixture fixture = new CloseFixture();
+        fixture.beginInitialEntry();
+        doThrow(new IllegalStateException("Planner remains active")).when(fixture.engine).close();
+        CompletableFuture<Void> operation = fixture.queueOperation();
+        CompletableFuture<Void> closed = fixture.generator.closeAsync();
+
+        operation.completeExceptionally(assertThrows(IllegalStateException.class, fixture.operation.get()::run));
+
+        assertTrue(closed.isCompletedExceptionally());
+        verify(fixture.hydrology).setNeighbourPrefetchEnabled(false);
+        verify(fixture.hydrology).setNeighbourPrefetchEnabled(true);
+        fixture.generator.completeInitialEntry();
+        verify(fixture.hydrology, times(1)).setNeighbourPrefetchEnabled(true);
+    }
+
+    @Test
+    public void rejectedCloseDispatchReleasesInitialEntryDeferral() throws Exception {
+        CloseFixture fixture = new CloseFixture();
+        fixture.beginInitialEntry();
+        doThrow(new IllegalStateException("Scheduler unavailable")).when(fixture.generator)
+                .withExclusiveControlFuture(any(Runnable.class));
+
+        assertTrue(fixture.generator.closeAsync().isCompletedExceptionally());
+
+        assertFalse(fixture.generator.isClosing());
+        verify(fixture.hydrology).setNeighbourPrefetchEnabled(true);
+    }
+
     @Test
     public void asynchronousCloseFailureCanRetryWithoutReopeningGeneration() throws Exception {
         CloseFixture fixture = new CloseFixture();
@@ -121,12 +154,16 @@ public class BukkitChunkGeneratorCloseTest {
 
     private static final class CloseFixture {
         private final BukkitChunkGenerator generator = mock(BukkitChunkGenerator.class, CALLS_REAL_METHODS);
-        private final Engine engine = mock(Engine.class);
+        private final IrisEngine engine = mock(IrisEngine.class);
+        private final IrisComplex complex = mock(IrisComplex.class);
+        private final IrisHydrologyRuntime hydrology = mock(IrisHydrologyRuntime.class);
         private final AtomicReference<Runnable> operation = new AtomicReference<>();
         private final AtomicReference<CompletableFuture<Void>> watcherHotload = new AtomicReference<>();
         private final ConcurrentLinkedQueue<CompletableFuture<Void>> operations = new ConcurrentLinkedQueue<>();
 
         private CloseFixture() throws Exception {
+            when(engine.getComplex()).thenReturn(complex);
+            when(complex.getHydrologyRuntime()).thenReturn(hydrology);
             setField(generator, "closeFuture", new AtomicReference<CompletableFuture<Void>>());
             setField(generator, "watcherHotload", watcherHotload);
             setField(generator, "startupReady", CompletableFuture.completedFuture(null));
@@ -143,6 +180,12 @@ public class BukkitChunkGeneratorCloseTest {
             CompletableFuture<Void> future = new CompletableFuture<>();
             operations.add(future);
             return future;
+        }
+
+        private void beginInitialEntry() {
+            generator.setEngine(null);
+            generator.beginInitialEntry(false);
+            generator.publishInitializedEngine(engine);
         }
     }
 }

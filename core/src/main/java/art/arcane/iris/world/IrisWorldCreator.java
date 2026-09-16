@@ -30,6 +30,7 @@ import org.bukkit.generator.ChunkGenerator;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Objects;
 
 public class IrisWorldCreator {
@@ -40,6 +41,7 @@ public class IrisWorldCreator {
     private long seed = 1337;
     private boolean persistent;
     private File studioPackSource;
+    private GenerationHistory generationHistory;
 
     public IrisWorldCreator() {
 
@@ -87,6 +89,11 @@ public class IrisWorldCreator {
         return this;
     }
 
+    public IrisWorldCreator generationHistory(GenerationHistory history) {
+        this.generationHistory = Objects.requireNonNull(history, "Generation history");
+        return this;
+    }
+
     public WorldCreator create() {
         IrisDimension dim = dimension == null ? IrisData.loadAnyDimension(dimensionName, null) : dimension;
         NamespacedKey worldKey = IrisWorldStorage.keyFromName(name);
@@ -106,39 +113,43 @@ public class IrisWorldCreator {
                 .seed(seed)
                 .worldFolder(worldFolder)
                 .build();
-        GenerationHistory generationHistory = persistent || studio
-                ? requireGenerationHistory(w.worldFolder(), seed)
-                : null;
+        GenerationHistory history = resolveGenerationHistory(w.worldFolder());
         File packRoot = studio
                 ? Objects.requireNonNull(studioPackSource, "Studio authoring source")
-                : generationHistory != null
-                ? requireActivePack(generationHistory)
+                : history != null
+                ? history.paths().packRoot(history.activeEpoch().epochId()).toFile()
                 : new File(w.worldFolder(), "iris/pack");
         ChunkGenerator g = new BukkitChunkGenerator(
                 w,
                 studio,
                 packRoot,
                 dimensionName,
-                generationHistory);
+                history);
 
         return creator.environment(environment)
                 .generateStructures(true)
                 .generator(g).seed(seed);
     }
 
-    private static GenerationHistory requireGenerationHistory(File dimensionRoot, long seed) {
+    GenerationHistory resolveGenerationHistory(File dimensionRoot) {
+        if (!persistent && !studio) {
+            if (generationHistory != null) {
+                throw new IllegalStateException("Generation history requires a persistent or Studio world.");
+            }
+            return null;
+        }
+        Path root = Objects.requireNonNull(dimensionRoot, "Dimension root").toPath().toAbsolutePath().normalize();
         try {
-            return GenerationHistory.open(dimensionRoot.toPath(), seed);
+            if (generationHistory == null) {
+                return GenerationHistory.open(root, seed);
+            }
+            if (!generationHistory.paths().dimensionRoot().equals(root)) {
+                throw new IllegalArgumentException("Generation history belongs to a different dimension root.");
+            }
+            generationHistory.requireWorldSeed(seed);
+            return generationHistory;
         } catch (IOException failure) {
             throw new IllegalStateException("Iris generation history is unusable at " + dimensionRoot + ".", failure);
-        }
-    }
-
-    private static File requireActivePack(GenerationHistory history) {
-        try {
-            return history.activePackRoot().toFile();
-        } catch (IOException failure) {
-            throw new IllegalStateException("Iris active generation pack is unusable.", failure);
         }
     }
 

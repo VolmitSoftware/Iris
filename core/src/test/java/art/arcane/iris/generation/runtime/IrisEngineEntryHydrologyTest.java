@@ -46,7 +46,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-public class IrisEngineStudioEntryHydrologyTest {
+public class IrisEngineEntryHydrologyTest {
     @Test
     @SuppressWarnings("unchecked")
     public void queuesScopedEntryDemandWithoutBlockingInitialization() throws Exception {
@@ -57,7 +57,7 @@ public class IrisEngineStudioEntryHydrologyTest {
         GenerationSessionLease lease = mock(GenerationSessionLease.class);
         IrisHydrologyRuntime hydrology = hydrology(engine);
         when(engine.getActiveGenerationRuntimeBinding()).thenReturn(binding);
-        when(engine.acquireGenerationLease("studio_entry_hydrology")).thenReturn(lease);
+        when(engine.acquireGenerationLease("initial_entry_hydrology")).thenReturn(lease);
         when(lease.sessionId()).thenReturn(93L);
         doAnswer(invocation -> {
             assertSame(engine, IrisContext.require().getEngine());
@@ -67,7 +67,7 @@ public class IrisEngineStudioEntryHydrologyTest {
         }).when(hydrology).prepareChunkColumns(0, 0);
         AtomicReference<Callable<Void>> queued = new AtomicReference<>();
         try (MockedStatic<J> scheduler = scheduler(queued)) {
-            engine.startStudioEntryHydrology(0, 0);
+            engine.startEntryHydrology(0, 0);
             assertNotNull(queued.get());
             verifyNoInteractions(hydrology, lease);
             verify(engine, never()).acquireGenerationLease(any());
@@ -86,7 +86,7 @@ public class IrisEngineStudioEntryHydrologyTest {
         tasks.openBackgroundTaskAdmission();
         IrisEngine engine = engine(tasks);
         GenerationSessionLease lease = mock(GenerationSessionLease.class);
-        when(engine.acquireGenerationLease("studio_entry_hydrology")).thenReturn(lease);
+        when(engine.acquireGenerationLease("initial_entry_hydrology")).thenReturn(lease);
         IrisHydrologyRuntime hydrology = hydrology(engine);
         IllegalStateException cause = new IllegalStateException("planning failed");
         doAnswer(invocation -> {
@@ -96,10 +96,10 @@ public class IrisEngineStudioEntryHydrologyTest {
         AtomicReference<Callable<Void>> queued = new AtomicReference<>();
         try (MockedStatic<J> scheduler = scheduler(queued);
              MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
-            engine.startStudioEntryHydrology(0, 0);
+            engine.startEntryHydrology(0, 0);
             IllegalStateException failure = assertThrows(IllegalStateException.class, () -> queued.get().call());
             assertSame(cause, failure.getCause());
-            assertTrue(failure.getMessage().contains("Studio entry hydrology preparation failed at 0,0"));
+            assertTrue(failure.getMessage().contains("World entry hydrology preparation failed at 0,0"));
             logging.verify(() -> IrisLogging.reportError(failure));
             verify(lease).close();
         }
@@ -110,14 +110,14 @@ public class IrisEngineStudioEntryHydrologyTest {
         EngineBackgroundTasks tasks = new EngineBackgroundTasks();
         IrisEngine engine = engine(tasks);
         IllegalStateException failure = assertThrows(IllegalStateException.class,
-                () -> engine.startStudioEntryHydrology(0, 0));
+                () -> engine.startEntryHydrology(0, 0));
         assertTrue(failure.getMessage().contains("admission closed"));
         tasks.openBackgroundTaskAdmission();
         RejectedExecutionException rejected = new RejectedExecutionException("scheduler closed");
         try (MockedStatic<J> scheduler = mockStatic(J.class)) {
             scheduler.when(() -> J.a(any(Callable.class))).thenThrow(rejected);
             assertSame(rejected, assertThrows(RejectedExecutionException.class,
-                    () -> engine.startStudioEntryHydrology(0, 0)));
+                    () -> engine.startEntryHydrology(0, 0)));
         }
         verify(engine, never()).acquireGenerationLease(any());
     }
@@ -133,7 +133,7 @@ public class IrisEngineStudioEntryHydrologyTest {
             AtomicReference<Callable<Void>> queued = new AtomicReference<>();
             try (MockedStatic<J> scheduler = scheduler(queued);
                  MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
-                engine.startStudioEntryHydrology(0, 0);
+                engine.startEntryHydrology(0, 0);
                 assertEquals(0, sessions.activeLeases());
                 closing(engine).set(true);
                 tasks.closeBackgroundTaskAdmission();
@@ -161,7 +161,7 @@ public class IrisEngineStudioEntryHydrologyTest {
             AtomicReference<Callable<Void>> queued = new AtomicReference<>();
             try (MockedStatic<J> scheduler = scheduler(queued);
                  MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
-                engine.startStudioEntryHydrology(0, 0);
+                engine.startEntryHydrology(0, 0);
                 if (transition) {
                     queued.get().call();
                     logging.verifyNoInteractions();
@@ -189,7 +189,7 @@ public class IrisEngineStudioEntryHydrologyTest {
                 queued.set(future);
                 return future;
             });
-            engine.startStudioEntryHydrology(0, 0);
+            engine.startEntryHydrology(0, 0);
             assertTrue(queued.get().cancel(false));
             queued.get().run();
             sessions.sealAndAwait("close", 0L, true);
@@ -216,7 +216,7 @@ public class IrisEngineStudioEntryHydrologyTest {
         AtomicReference<Callable<Void>> queued = new AtomicReference<>();
         try (MockedStatic<J> scheduler = scheduler(queued);
              ExecutorService executor = Executors.newFixedThreadPool(2)) {
-            engine.startStudioEntryHydrology(0, 0);
+            engine.startEntryHydrology(0, 0);
             Future<Void> worker = executor.submit(queued.get());
             assertTrue(admitted.await(5, TimeUnit.SECONDS));
             Future<?> drain = executor.submit(() -> {
@@ -328,7 +328,7 @@ public class IrisEngineStudioEntryHydrologyTest {
         Field lifecycle = IrisEngine.class.getDeclaredField("lifecycleLock");
         lifecycle.setAccessible(true);
         lifecycle.set(engine, new Object());
-        doCallRealMethod().when(engine).startStudioEntryHydrology(anyInt(), anyInt());
+        doCallRealMethod().when(engine).startEntryHydrology(anyInt(), anyInt());
         return engine;
     }
 }

@@ -653,7 +653,6 @@ final class HydrologySurfaceCoursePlanner {
     }
 
     double surfaceRouteCandidateBankPenalty(RouteCandidate candidate) {
-        int minimumBankDistance = surfaceBankDistance(planner.settings.surface().minimumWidth());
         int maximumBankDistance = surfaceBankDistance(planner.settings.surface().maximumWidth());
         HydrologyPoint point = candidate.point();
         HydrologyTerrainSample terrain = planner.sampleLandBasis(point.x(), point.z());
@@ -667,10 +666,9 @@ final class HydrologySurfaceCoursePlanner {
                 terrain.naturalHeight(),
                 planner.settings.surface().banks().sink()
         );
-        return surfaceRouteBankPenalty(
+        return surfaceRouteBankBandPenalty(
                 point,
                 candidate.tangent(),
-                minimumBankDistance,
                 maximumBankDistance,
                 head,
                 maximumSurfaceBankRise(terrain)
@@ -684,16 +682,16 @@ final class HydrologySurfaceCoursePlanner {
         );
     }
 
-    double surfaceRouteBankPenalty(
+    double surfaceRouteBankBandPenalty(
             HydrologyPoint point,
             RouteDirection tangent,
-            int minimumDistance,
             int maximumDistance,
             int head,
             int maximumBankRise
     ) {
+        int innerDistance = surfaceBankInnerDistance();
         double penalty = 0D;
-        for (int distance = minimumDistance; distance <= maximumDistance; distance++) {
+        for (int distance = innerDistance; distance <= maximumDistance; distance++) {
             penalty += surfaceRouteBankPenalty(point, tangent, distance, head, maximumBankRise);
             penalty += surfaceRouteBankPenalty(point, tangent, -distance, head, maximumBankRise);
         }
@@ -720,6 +718,25 @@ final class HydrologySurfaceCoursePlanner {
         return (double) excess * excess * 128D;
     }
 
+    /**
+     * Innermost probed ring, in blocks out from the centerline. It reads {@code surface.maximumWidth()} and
+     * nothing else - no {@code shoreWidth}, no candidate, no terrain - so raising the shore knob widens the
+     * probe band instead of sliding it. That is the whole guarantee.
+     *
+     * <p>The ring sits one block outside half the nominal maximum width, which is the widest channel the
+     * width sampler will draw, not the widest channel that gets cut: {@code ChannelProfileBuilder} clamps a
+     * station to {@code maximumWidth * 2} after the terrain width multiplier, then scales it again by
+     * {@code banks().springWidthRatio()} over the spring reach and {@code banks().mouthFlareRatio()} through
+     * the inlet flare. Routing runs before any profile exists, so no ring can promise to clear the channel.
+     */
+    int surfaceBankInnerDistance() {
+        return (int) StrictMath.ceil(planner.settings.surface().maximumWidth() / 2D) + 1;
+    }
+
+    /**
+     * Outermost probed ring: where the bank of the widest channel is expected once the shore is cut. It
+     * gains a ring per block of {@code shoreWidth}, which is what widens the band walked by the penalty.
+     */
     int surfaceBankDistance(int width) {
         int channelRadius = (int) StrictMath.ceil(width / 2D);
         return Math.max(

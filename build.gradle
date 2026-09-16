@@ -67,7 +67,7 @@ interface IrisFileOperations {
 IrisFileOperations irisFileOperations = objects.newInstance(IrisFileOperations)
 
 group = 'art.arcane'
-version = providers.gradleProperty('irisVersion').getOrElse('4.1.0-26.2')
+version = providers.gradleProperty('irisVersion').getOrElse('4.1.1-26.2')
 
 project(':core') {
     group = 'art.arcane'

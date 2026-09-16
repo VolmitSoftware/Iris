@@ -127,6 +127,10 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
     @MinNumber(0.0001)
     @Description("The varience of the shore height")
     private double shoreHeightZoom = 3.14;
+    @MinNumber(0)
+    @MaxNumber(64)
+    @Description("The minimum width of the shore in blocks. Shore height alone is a vertical window, so a steep coast gets almost no beach; above zero the shore band also climbs with the local slope to stay this wide across the ground.")
+    private double shoreMinimumWidth = 0;
     @MinNumber(0.0001)
     @Description("How large land biomes are in this region")
     private double landBiomeZoom = 1;

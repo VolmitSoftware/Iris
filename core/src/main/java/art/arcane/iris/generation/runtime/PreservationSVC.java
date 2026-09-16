@@ -27,14 +27,17 @@ import art.arcane.volmlib.util.scheduling.Looper;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class PreservationSVC implements IrisService, PreservationRegistry {
+    private static final long SHUTDOWN_TIMEOUT_MILLIS = 10_000L;
     private final List<Thread> threads = new CopyOnWriteArrayList<>();
     private final List<ExecutorService> services = new CopyOnWriteArrayList<>();
     private final List<WeakReference<MeteredCache>> caches = new CopyOnWriteArrayList<>();
@@ -114,27 +117,64 @@ public class PreservationSVC implements IrisService, PreservationRegistry {
         }
         dereference();
 
-        postShutdown(() -> {
-            for (Thread i : threads) {
-                if (i.isAlive()) {
-                    try {
-                        i.interrupt();
-                        IrisLogging.debug("Shutdown Thread " + i.getName());
-                    } catch (Throwable e) {
-                        IrisLogging.reportError(e);
-                    }
-                }
-            }
+        postShutdown(() -> shutdownResources(SHUTDOWN_TIMEOUT_MILLIS));
+    }
 
-            for (ExecutorService i : services) {
+    void shutdownResources(long timeoutMillis) {
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+        List<Thread> ownedThreads = new ArrayList<>(threads);
+        if (dereferencer != null && !ownedThreads.contains(dereferencer)) {
+            ownedThreads.add(dereferencer);
+        }
+        List<ExecutorService> ownedServices = List.copyOf(services);
+        for (Thread thread : ownedThreads) {
+            if (thread.isAlive() && thread != Thread.currentThread()) {
                 try {
-                    i.shutdownNow();
-                    IrisLogging.debug("Shutdown Executor Service " + i);
-                } catch (Throwable e) {
-                    IrisLogging.reportError(e);
+                    thread.interrupt();
+                } catch (Throwable failure) {
+                    IrisLogging.reportError("Failed to interrupt owned thread " + thread.getName(), failure);
                 }
             }
-        });
+        }
+        for (ExecutorService executor : ownedServices) {
+            try {
+                executor.shutdownNow();
+            } catch (Throwable failure) {
+                IrisLogging.reportError("Failed to stop owned executor " + executor, failure);
+            }
+        }
+        try {
+            for (Thread thread : ownedThreads) {
+                long remaining = deadline - System.nanoTime();
+                if (thread != Thread.currentThread() && thread.isAlive() && remaining > 0L) {
+                    TimeUnit.NANOSECONDS.timedJoin(thread, remaining);
+                }
+            }
+            for (ExecutorService executor : ownedServices) {
+                long remaining = deadline - System.nanoTime();
+                if (!executor.isTerminated() && remaining > 0L) {
+                    executor.awaitTermination(remaining, TimeUnit.NANOSECONDS);
+                }
+            }
+        } catch (InterruptedException failure) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while draining Iris background resources", failure);
+        }
+        List<String> activeResources = new ArrayList<>();
+        for (Thread thread : ownedThreads) {
+            if (thread.isAlive() && thread != Thread.currentThread()) {
+                activeResources.add("thread " + thread.getName() + " (" + thread.getState() + ")");
+            }
+        }
+        for (ExecutorService executor : ownedServices) {
+            if (!executor.isTerminated()) {
+                activeResources.add("executor " + executor);
+            }
+        }
+        if (!activeResources.isEmpty()) {
+            throw new IllegalStateException("Iris background resources did not terminate within "
+                    + timeoutMillis + " ms: " + String.join(", ", activeResources));
+        }
     }
 
     public void updateCaches() {

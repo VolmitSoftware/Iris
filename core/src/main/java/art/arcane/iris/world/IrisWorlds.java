@@ -180,19 +180,17 @@ public class IrisWorlds {
     }
 
     /**
-     * Drops registry entries whose pack snapshot no longer backs them.
+     * Drops registry entries whose canonical world directory no longer exists.
      * <p>
      * A world whose storage is present but unusable is kept and reported instead of dropped: the entry is
      * what lets {@code /iris remove} find the world, and dropping it would not stop the server from loading
-     * the folder anyway. It is excluded from {@link #getDimensions()} so one broken world cannot fail the
-     * whole registry - that failure used to propagate out of the constructor and null out {@link #get()}.
+     * the folder anyway. Pack history and dimension definitions are validated by {@link #getDimensions()}
+     * when callers load them, rather than while reading or saving the identity registry.
      */
     public synchronized void clean() {
         boolean removed = worlds.entrySet().removeIf(entry -> {
             try {
-                Optional<File> packRoot = packRoot(entry.getKey());
-                return packRoot.isEmpty()
-                        || !new File(packRoot.get(), "dimensions/" + entry.getValue() + ".json").exists();
+                return dimensionRoot(entry.getKey()).isEmpty();
             } catch (IllegalArgumentException e) {
                 return true;
             } catch (IllegalStateException e) {
@@ -353,7 +351,7 @@ public class IrisWorlds {
         return null;
     }
 
-    private Optional<File> packRoot(String worldIdentity) {
+    private Optional<File> dimensionRoot(String worldIdentity) {
         NamespacedKey worldKey = WorldIdentity.parse(worldIdentity);
         Path worldContainer = levelRoot.getParent();
         if (worldContainer == null) {
@@ -363,13 +361,12 @@ public class IrisWorlds {
                 worldKey,
                 levelRoot.getFileName().toString()
         );
-        Optional<File> dimensionRoot = IrisWorldStorage.frozenDimensionRoot(
+        return IrisWorldStorage.frozenDimensionRoot(
                 worldContainer.toFile(),
                 levelRoot.toFile(),
                 configuredWorldName,
                 worldKey
         );
-        return dimensionRoot.map(IrisWorldStorage::requireActiveGenerationPackRoot);
     }
 
     private static void warnUnusableStorage(String worldIdentity, IllegalStateException failure) {
@@ -385,7 +382,9 @@ public class IrisWorlds {
     private IrisDimension loadDimension(String worldIdentity, String id) {
         File pack;
         try {
-            pack = packRoot(worldIdentity).orElse(null);
+            pack = dimensionRoot(worldIdentity)
+                    .map(IrisWorldStorage::requireActiveGenerationPackRoot)
+                    .orElse(null);
         } catch (IllegalStateException unusableStorage) {
             warnUnusableStorage(worldIdentity, unusableStorage);
             return null;

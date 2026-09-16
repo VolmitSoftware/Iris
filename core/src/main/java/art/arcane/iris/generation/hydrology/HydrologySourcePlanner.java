@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.hydrology;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -281,8 +282,10 @@ final class HydrologySourcePlanner {
             candidates.add(new SourceCandidate(node.index(), stable, score, required));
             hasRequiredCandidate |= required;
         }
+        HashMap<Long, Boolean> admissions = new HashMap<>();
         if (surfaceBudgets != null && surfaceBudgets.overridden()) {
-            return selectLocalSurfaceSources(key, grid, routing, candidates, surfaceBudgets, enforceGlobalSpacing, routingContexts);
+            return selectLocalSurfaceSources(key, grid, routing, candidates, surfaceBudgets, enforceGlobalSpacing,
+                    routingContexts, admissions);
         }
         int target = expectedCount(sourceSettings.density(), HydrologyHash.mix(
                 planner.worldSeed,
@@ -330,7 +333,8 @@ final class HydrologySourcePlanner {
                             sourceSettings,
                             sourceSalt,
                             surface,
-                            routingContexts
+                            routingContexts,
+                            admissions
                     );
                 }
         );
@@ -358,7 +362,8 @@ final class HydrologySourcePlanner {
             List<SourceCandidate> candidates,
             HydrologySurfaceBudgets budgets,
             boolean enforceGlobalSpacing,
-            Map<HydrologyTileKey, SourceRoutingContext> routingContexts
+            Map<HydrologyTileKey, SourceRoutingContext> routingContexts,
+            Map<Long, Boolean> admissions
     ) {
         candidates.sort(Comparator.comparing(SourceCandidate::required).reversed()
                 .thenComparing(Comparator.comparingDouble(SourceCandidate::score).reversed())
@@ -404,7 +409,7 @@ final class HydrologySourcePlanner {
         boolean[] evaluated = new boolean[count];
         IntPredicate admitted = candidateIndex -> !enforceGlobalSpacing || globallyAdmittedSource(
                 grid.node(candidates.get(candidateIndex).nodeIndex()), planner.settings.surface().sources(),
-                SURFACE_SOURCE_SALT, true, routingContexts);
+                SURFACE_SOURCE_SALT, true, routingContexts, admissions);
         ArrayList<Integer> selectedIndices = new ArrayList<>(Math.min(count, target));
         int[] selectedByArea = new int[areas.size()];
         int[] selectedRequiredByArea = new int[areas.size()];
@@ -585,7 +590,73 @@ final class HydrologySourcePlanner {
         );
     }
 
+    /**
+     * Greedy min-separation admission over the lattice. A candidate yields its slot only to a higher-priority
+     * neighbour that is itself admitted, so a contender that loses its own contest costs nobody a source; under the
+     * old strict local maximum a doomed contender still suppressed everything beneath it. Contenders outrank the
+     * node they contest, so the walk is acyclic; {@code admissions} memoizes every decision by packed source
+     * coordinate and belongs to one surface or underground selection pass.
+     */
     boolean globallyAdmittedSource(
+            HydrologyGridNode candidate,
+            HydrologyPlannerSettings.Source sourceSettings,
+            long sourceSalt,
+            boolean surface,
+            Map<HydrologyTileKey, SourceRoutingContext> routingContexts,
+            Map<Long, Boolean> admissions
+    ) {
+        long candidateKey = RiverFootprint.pack(candidate.x(), candidate.z());
+        Boolean decided = admissions.get(candidateKey);
+        if (decided != null) {
+            return decided;
+        }
+        ArrayDeque<SourceContest> contests = new ArrayDeque<>();
+        contests.push(sourceContest(candidate, sourceSettings, sourceSalt, surface, routingContexts));
+        while (!contests.isEmpty()) {
+            SourceContest contest = contests.peek();
+            boolean descended = false;
+            boolean suppressed = false;
+            while (contest.cursor < contest.contenders.size()) {
+                HydrologyGridNode contender = contest.contenders.get(contest.cursor);
+                Boolean contenderAdmitted = admissions.get(RiverFootprint.pack(contender.x(), contender.z()));
+                if (contenderAdmitted == null) {
+                    contests.push(sourceContest(contender, sourceSettings, sourceSalt, surface, routingContexts));
+                    descended = true;
+                    break;
+                }
+                contest.cursor++;
+                if (contenderAdmitted) {
+                    suppressed = true;
+                    break;
+                }
+            }
+            if (descended) {
+                continue;
+            }
+            admissions.put(contest.key, !suppressed);
+            contests.pop();
+        }
+        return admissions.get(candidateKey);
+    }
+
+    private SourceContest sourceContest(
+            HydrologyGridNode node,
+            HydrologyPlannerSettings.Source sourceSettings,
+            long sourceSalt,
+            boolean surface,
+            Map<HydrologyTileKey, SourceRoutingContext> routingContexts
+    ) {
+        return new SourceContest(
+                RiverFootprint.pack(node.x(), node.z()),
+                higherPrioritySources(node, sourceSettings, sourceSalt, surface, routingContexts)
+        );
+    }
+
+    /**
+     * Every eligible lattice source inside {@code candidate}'s spacing that outranks it, best first. Required heads
+     * and unspaced underground sources contest nothing and so are admitted outright.
+     */
+    private List<HydrologyGridNode> higherPrioritySources(
             HydrologyGridNode candidate,
             HydrologyPlannerSettings.Source sourceSettings,
             long sourceSalt,
@@ -599,12 +670,13 @@ final class HydrologySourcePlanner {
                 ? candidate.terrain().surfaceSourceRequired()
                 : candidate.terrain().undergroundSourceRequired();
         if ((!surface && minimumSpacing <= 0) || required) {
-            return true;
+            return List.of();
         }
         SourcePriority candidatePriority = sourcePriority(candidate.x(), candidate.z(), candidate.terrain(), sourceSalt, surface);
         int sampleSpacing = planner.settings.routing().sampleSpacing();
         int searchSpacing = surface ? Math.max(minimumSpacing, planner.settings.maximumSurfaceSourceSpacing()) : minimumSpacing;
         int latticeRadius = (int) StrictMath.ceil(searchSpacing / (double) sampleSpacing);
+        ArrayList<SourceContender> contenders = new ArrayList<>();
         for (int offsetZ = -latticeRadius; offsetZ <= latticeRadius; offsetZ++) {
             for (int offsetX = -latticeRadius; offsetX <= latticeRadius; offsetX++) {
                 if (offsetX == 0 && offsetZ == 0) {
@@ -624,8 +696,7 @@ final class HydrologySourcePlanner {
                 }
                 int x = (int) neighborX;
                 int z = (int) neighborZ;
-                HydrologyTileKey owner = HydrologyTileKey.fromBlock(x, z, planner.settings.routing().tileSize());
-                SourceRoutingContext context = routingContexts.computeIfAbsent(owner, planner::sourceRoutingContext);
+                SourceRoutingContext context = sourceContext(x, z, routingContexts);
                 HydrologyGridNode neighbor = context.grid().nodeAtWorld(x, z);
                 if (neighbor == null) {
                     throw new IllegalStateException("Source coordinate is absent from its owner routing lattice.");
@@ -645,11 +716,28 @@ final class HydrologySourcePlanner {
                 }
                 SourcePriority neighborPriority = sourcePriority(x, z, terrain, sourceSalt, surface);
                 if (compareSourcePriority(neighborPriority, candidatePriority) > 0) {
-                    return false;
+                    contenders.add(new SourceContender(neighbor, neighborPriority));
                 }
             }
         }
-        return true;
+        // Best first: the strongest contender is the likeliest to hold its own slot and end the walk at depth one.
+        contenders.sort((first, second) -> compareSourcePriority(second.priority(), first.priority()));
+        ArrayList<HydrologyGridNode> ordered = new ArrayList<>(contenders.size());
+        for (SourceContender contender : contenders) {
+            ordered.add(contender.node());
+        }
+        return ordered;
+    }
+
+    private SourceRoutingContext sourceContext(
+            int x,
+            int z,
+            Map<HydrologyTileKey, SourceRoutingContext> routingContexts
+    ) {
+        return routingContexts.computeIfAbsent(
+                HydrologyTileKey.fromBlock(x, z, planner.settings.routing().tileSize()),
+                planner::sourceRoutingContext
+        );
     }
 
     SourceRoutingContext compileSourceRoutingContext(HydrologyTileKey key) {
@@ -720,6 +808,12 @@ final class HydrologySourcePlanner {
         return required || weight > 0D;
     }
 
+    /**
+     * Terrain only, never the routing plan: route length and potential are measured against the outlets of the
+     * tile that owns the node, so scoring the contest with them ranks neighbours either side of a tile seam
+     * against different outlet sets and the winner flips with ownership. Ordering ends in x then z, so distinct
+     * lattice nodes never tie and the contest graph stays acyclic.
+     */
     SourcePriority sourcePriority(
             int x,
             int z,
@@ -1027,5 +1121,20 @@ final class HydrologySourcePlanner {
             int x,
             int z
     ) {
+    }
+
+    private record SourceContender(HydrologyGridNode node, SourcePriority priority) {
+    }
+
+    /** One node's unresolved spacing contest: its contenders, and how many of them already answered. */
+    private static final class SourceContest {
+        private final long key;
+        private final List<HydrologyGridNode> contenders;
+        private int cursor;
+
+        private SourceContest(long key, List<HydrologyGridNode> contenders) {
+            this.key = key;
+            this.contenders = contenders;
+        }
     }
 }

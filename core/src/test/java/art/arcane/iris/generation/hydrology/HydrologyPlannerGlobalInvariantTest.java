@@ -443,7 +443,7 @@ public class HydrologyPlannerGlobalInvariantTest {
         ).plan(new HydrologyTileKey(0, 0));
 
         assertTrue(courses(tile, RiverCourseType.SURFACE).isEmpty());
-        assertTrue(tile.diagnosticCandidates().stream().anyMatch(
+        assertTrue(tile.localDiagnosticCandidates().stream().anyMatch(
                 (HydrologyDiagnosticCandidate candidate) -> candidate.rejection()
                         == HydrologyCandidateRejection.NO_DRAINAGE_PATH
         ));

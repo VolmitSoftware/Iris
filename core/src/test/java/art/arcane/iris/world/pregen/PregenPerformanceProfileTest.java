@@ -6,7 +6,6 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.platform.generation.PlatformChunkGenerator;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.volmlib.util.stream.ProceduralStream;
-import art.arcane.iris.generation.stream.CachedDoubleStream2D;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -26,8 +26,6 @@ public class PregenPerformanceProfileTest {
     private IrisSettings previousSettings;
     private Engine engine;
     private IrisComplex complex;
-    private CachedDoubleStream2D natural;
-    private CachedDoubleStream2D raw;
 
     @Before
     public void setUp() {
@@ -36,11 +34,7 @@ public class PregenPerformanceProfileTest {
         IrisSettings.get().getPerformance().setNoiseCacheSize(1_024);
         engine = mock(Engine.class);
         complex = mock(IrisComplex.class);
-        natural = mock(CachedDoubleStream2D.class);
-        raw = mock(CachedDoubleStream2D.class);
         when(engine.getComplex()).thenReturn(complex);
-        when(complex.getNaturalHeightStream()).thenReturn(natural);
-        when(complex.getRawHeightStream()).thenReturn(raw);
         when(complex.getHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 47D));
         doThrow(new IllegalStateException("Immutable history cannot rebuild its runtime"))
                 .when(engine).hotloadComplex();
@@ -56,8 +50,7 @@ public class PregenPerformanceProfileTest {
         PregenPerformanceProfile.apply(engine);
 
         assertEquals(4_096, IrisSettings.get().getPerformance().getNoiseCacheSize());
-        verify(natural).setMaximumChunks(4_096);
-        verify(raw).setMaximumChunks(4_096);
+        verify(complex).ensureTerrainNoiseCacheSize(4_096);
         verify(complex, never()).getHeightStream();
         verify(engine, never()).hotloadComplex();
     }
@@ -69,8 +62,7 @@ public class PregenPerformanceProfileTest {
 
         PregenPerformanceProfile.applyToGenerator(generator);
 
-        verify(natural).setMaximumChunks(4_096);
-        verify(raw).setMaximumChunks(4_096);
+        verify(complex).ensureTerrainNoiseCacheSize(4_096);
         verify(generator, never()).hotloadComplexAsync(30L, TimeUnit.SECONDS);
         verify(engine, never()).hotloadComplex();
     }
@@ -82,8 +74,21 @@ public class PregenPerformanceProfileTest {
         PregenPerformanceProfile.apply(engine);
 
         assertEquals(8_192, IrisSettings.get().getPerformance().getNoiseCacheSize());
-        verify(natural).setMaximumChunks(8_192);
-        verify(raw).setMaximumChunks(8_192);
+        verify(complex).ensureTerrainNoiseCacheSize(8_192);
+    }
+
+    @Test
+    public void failedCachePreparationDoesNotChangeGlobalTuningOrAcquireAParallelismHold() {
+        int holders = PregenPerformanceProfile.parallelismHolders();
+        int parallelism = MultiBurst.burst.parallelism();
+        doThrow(new IllegalStateException("Runtime closed"))
+                .when(complex).ensureTerrainNoiseCacheSize(4_096);
+
+        assertThrows(IllegalStateException.class, () -> PregenPerformanceProfile.apply(engine));
+
+        assertEquals(1_024, IrisSettings.get().getPerformance().getNoiseCacheSize());
+        assertEquals(parallelism, MultiBurst.burst.parallelism());
+        assertEquals(holders, PregenPerformanceProfile.parallelismHolders());
     }
 
     @Test

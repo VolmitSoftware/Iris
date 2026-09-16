@@ -61,8 +61,8 @@ public class HydrologyPlannerTributaryTest {
 
         List<RiverCourse> singleCourses = surface(single);
         List<RiverCourse> splitCourses = surface(split);
-        assertEquals(single.diagnosticCandidates().toString(), 1, singleCourses.size());
-        assertEquals(split.diagnosticCandidates().toString(), 2, splitCourses.size());
+        assertEquals(single.localDiagnosticCandidates().toString(), 1, singleCourses.size());
+        assertEquals(split.localDiagnosticCandidates().toString(), 2, splitCourses.size());
         RiverCourse stem = null;
         RiverCourse tributary = null;
         for (RiverCourse course : splitCourses) {
@@ -390,7 +390,7 @@ public class HydrologyPlannerTributaryTest {
         HydrologyTile split = SPLIT_TILE;
 
         List<RiverCourse> courses = surface(split);
-        assertEquals(split.diagnosticCandidates().toString(), 2, courses.size());
+        assertEquals(split.localDiagnosticCandidates().toString(), 2, courses.size());
         RiverCourse stem = stations(courses.get(0)) >= stations(courses.get(1)) ? courses.get(0) : courses.get(1);
         RiverCourse tributary = stem == courses.get(0) ? courses.get(1) : courses.get(0);
         java.util.Set<Long> stemEdges = new java.util.HashSet<>();
@@ -414,7 +414,7 @@ public class HydrologyPlannerTributaryTest {
         }
         assertNotNull("tributary ends on the stem", stemHead);
         assertEquals(stemHead.intValue(), tributary.segments().getLast().downstreamHeadY());
-        for (HydrologyDiagnosticCandidate candidate : split.diagnosticCandidates()) {
+        for (HydrologyDiagnosticCandidate candidate : split.localDiagnosticCandidates()) {
             assertTrue(candidate.toString(), candidate.kind() != HydrologyCandidateKind.TRIBUTARY);
         }
     }
@@ -426,8 +426,8 @@ public class HydrologyPlannerTributaryTest {
         HydrologyTile single = new HydrologyPlanner(19L, settings(0, 1D, 1), terrain).plan(TILE);
         HydrologyTile joined = new HydrologyPlanner(19L, settings(1, 1D, 1), terrain).plan(TILE);
 
-        assertEquals(single.diagnosticCandidates().toString(), 1, surface(single).size());
-        assertEquals(joined.diagnosticCandidates().toString(), 2, surface(joined).size());
+        assertEquals(single.localDiagnosticCandidates().toString(), 1, surface(single).size());
+        assertEquals(joined.localDiagnosticCandidates().toString(), 2, surface(joined).size());
     }
 
     @Test
@@ -437,9 +437,9 @@ public class HydrologyPlannerTributaryTest {
         HydrologyTile single = new HydrologyPlanner(23L, undergroundSettings(0), terrain).plan(TILE);
         HydrologyTile joined = new HydrologyPlanner(23L, undergroundSettings(1), terrain).plan(TILE);
 
-        assertEquals(single.diagnosticCandidates().toString(), 1, underground(single).size());
+        assertEquals(single.localDiagnosticCandidates().toString(), 1, underground(single).size());
         List<RiverCourse> courses = underground(joined);
-        assertEquals(joined.diagnosticCandidates().toString(), 2, courses.size());
+        assertEquals(joined.localDiagnosticCandidates().toString(), 2, courses.size());
         RiverCourse stem = stations(courses.get(0)) >= stations(courses.get(1)) ? courses.get(0) : courses.get(1);
         RiverCourse tributary = stem == courses.get(0) ? courses.get(1) : courses.get(0);
         assertEquals(stem.outletId(), tributary.outletId());

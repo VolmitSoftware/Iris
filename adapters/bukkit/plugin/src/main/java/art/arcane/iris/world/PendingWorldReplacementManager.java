@@ -176,15 +176,16 @@ public final class PendingWorldReplacementManager implements Listener {
                             seedSelection
                     );
                     progress.stage(RuntimeProgressMessages.WORLD_REPLACE_STAGE_PACK);
-                    IrisDimension installed = Iris.service(StudioSVC.class).installIntoWorld(
+                    StudioSVC.GenerationPublication publication = Iris.service(StudioSVC.class).installIntoWorld(
                             requiredSender,
                             requiredDimension,
                             paths.stage().toFile(),
                             effectiveSeed
                     );
-                    if (installed == null) {
+                    if (publication == null) {
                         throw new IOException("Iris could not stage the dimension pack.");
                     }
+                    IrisDimension installed = publication.dimension();
                     requireCompatibleEnvironment(target.slotKind(), installed.getEnvironment());
                     if (target.slotKind() == SlotKind.VANILLA_OVERWORLD) {
                         progress.stage(RuntimeProgressMessages.WORLD_REPLACE_STAGE_PLAYERS);

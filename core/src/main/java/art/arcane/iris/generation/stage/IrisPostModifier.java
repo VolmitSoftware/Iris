@@ -195,7 +195,9 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
         // Wall Patcher
         IrisBiome biome = context.getBiome().get(currentPostX, currentPostZ);
 
-        if (walls && !river) {
+        // Neighbour heights come from trueHeight, which excludes fluid, so every coastal column reads a
+        // seaward drop and would have its beach surface replaced with the wall palette.
+        if (walls && !river && !biome.isShore()) {
             if (!biome.getWall().getPalette().isEmpty()) {
                 if (ha < h - 2 || hb < h - 2 || hc < h - 2 || hd < h - 2) {
                     boolean brokeGround = false;

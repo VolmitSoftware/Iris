@@ -15,6 +15,34 @@ import static org.junit.Assert.assertTrue;
 
 public class HydrologyRegionalCacheTest {
     @Test
+    public void sharedTerrainRetentionIsIndependentOfEachSearchBudget() {
+        AtomicInteger reads = new AtomicInteger();
+        HydrologyTerrainSampler terrain = (x, z) -> {
+            reads.incrementAndGet();
+            return HydrologyTerrainSample.openLand(70, 0D, "land");
+        };
+        HydrologyPlanner planner = new HydrologyPlanner(15L, HydrologyRegionalPlannerTest.settings(false, 1), terrain);
+        HydrologyRegionalTerrainRefiner refiner = new HydrologyRegionalTerrainRefiner(planner);
+        HydrologyRegionalTerrainRefiner.Samples first = refiner.new Samples();
+        for (int x = 0; x < 65536; x++) {
+            assertNotNull(first.sample(x, 0));
+        }
+        assertNull(first.sample(65536, 0));
+        HydrologyRegionalTerrainRefiner.Samples second = refiner.new Samples();
+        for (int x = 65536; x < 100000; x++) {
+            assertNotNull(second.sample(x, 0));
+        }
+        assertEquals(100000, reads.get());
+        for (int x = 0; x < 100000; x++) {
+            assertEquals(70, refiner.sample(x, 0).naturalHeight());
+        }
+        assertEquals(100000, reads.get());
+        refiner.clear();
+        assertEquals(70, refiner.sample(0, 0).naturalHeight());
+        assertEquals(100001, reads.get());
+    }
+
+    @Test
     public void clearingTilesRefreshesChangedRegionalTerrain() throws Exception {
         AtomicInteger height = new AtomicInteger(70);
         AtomicInteger reads = new AtomicInteger();

@@ -26,8 +26,9 @@ public final class HydrologyTile {
     private final List<DrainageEdge> edges;
     private final List<RiverOutlet> outlets;
     private final List<RiverCourse> courses;
+    private final Set<Long> regionalCourseIds;
     private final List<HydrologyCavePlan> cavePlans;
-    private final List<HydrologyDiagnosticCandidate> diagnosticCandidates;
+    private final List<HydrologyDiagnosticCandidate> localDiagnosticCandidates;
     private final RiverFootprint footprint;
     private final Map<Long, DrainageNode> nodesById;
     private final Map<Long, RiverOutlet> outletsById;
@@ -43,8 +44,9 @@ public final class HydrologyTile {
             List<DrainageEdge> edges,
             List<RiverOutlet> outlets,
             List<RiverCourse> courses,
+            Set<Long> regionalCourseIds,
             List<HydrologyCavePlan> cavePlans,
-            List<HydrologyDiagnosticCandidate> diagnosticCandidates,
+            List<HydrologyDiagnosticCandidate> localDiagnosticCandidates,
             RiverFootprint footprint
     ) {
         this.key = Objects.requireNonNull(key, "key");
@@ -58,12 +60,13 @@ public final class HydrologyTile {
         this.edges = sortedCopy(edges, Comparator.comparingLong(DrainageEdge::id));
         this.outlets = sortedCopy(outlets, Comparator.comparingLong(RiverOutlet::id));
         this.courses = sortedCopy(courses, Comparator.comparingLong(RiverCourse::id));
+        this.regionalCourseIds = Set.copyOf(Objects.requireNonNull(regionalCourseIds, "regionalCourseIds"));
         this.cavePlans = sortedCopy(
                 cavePlans,
                 Comparator.comparingLong((HydrologyCavePlan plan) -> plan.source().sourceId())
         );
-        this.diagnosticCandidates = sortedCopy(
-                diagnosticCandidates,
+        this.localDiagnosticCandidates = sortedCopy(
+                localDiagnosticCandidates,
                 Comparator.comparingLong(HydrologyDiagnosticCandidate::id)
         );
         this.footprint = Objects.requireNonNull(footprint, "footprint");
@@ -107,12 +110,16 @@ public final class HydrologyTile {
         return courses;
     }
 
+    public Set<Long> regionalCourseIds() {
+        return regionalCourseIds;
+    }
+
     public List<HydrologyCavePlan> cavePlans() {
         return cavePlans;
     }
 
-    public List<HydrologyDiagnosticCandidate> diagnosticCandidates() {
-        return diagnosticCandidates;
+    public List<HydrologyDiagnosticCandidate> localDiagnosticCandidates() {
+        return localDiagnosticCandidates;
     }
 
     public RiverFootprint footprint() {
@@ -139,13 +146,13 @@ public final class HydrologyTile {
         return footprint.renderSample(x, z);
     }
 
-    public HydrologyDiagnosticRenderSample diagnosticRenderAt(int x, int z, int maximumDistance) {
+    public HydrologyDiagnosticRenderSample localDiagnosticRenderAt(int x, int z, int maximumDistance) {
         if (maximumDistance < 0) {
             throw new IllegalArgumentException("maximumDistance cannot be negative.");
         }
         long maximumDistanceSquared = (long) maximumDistance * maximumDistance;
         ArrayList<HydrologyDiagnosticCandidate> selected = new ArrayList<>();
-        for (HydrologyDiagnosticCandidate candidate : diagnosticCandidates) {
+        for (HydrologyDiagnosticCandidate candidate : localDiagnosticCandidates) {
             long distance = candidate.point().distanceSquared2D(new HydrologyPoint(x, candidate.point().y(), z));
             if (distance <= maximumDistanceSquared) {
                 selected.add(candidate);
@@ -264,6 +271,12 @@ public final class HydrologyTile {
             }
             if (isCaveBearing(course) != cavePlansByCourseId.containsKey(course.id())) {
                 throw new IllegalArgumentException("Every cave-bearing course must have one accepted containment plan.");
+            }
+        }
+        for (long courseId : regionalCourseIds) {
+            RiverCourse course = coursesById.get(courseId);
+            if (course == null || course.type() != RiverCourseType.SURFACE) {
+                throw new IllegalArgumentException("Regional ownership must reference an accepted surface course.");
             }
         }
         validateFootprintCourses(coursesById);
@@ -614,8 +627,9 @@ public final class HydrologyTile {
                 && edges.equals(tile.edges)
                 && outlets.equals(tile.outlets)
                 && courses.equals(tile.courses)
+                && regionalCourseIds.equals(tile.regionalCourseIds)
                 && cavePlans.equals(tile.cavePlans)
-                && diagnosticCandidates.equals(tile.diagnosticCandidates)
+                && localDiagnosticCandidates.equals(tile.localDiagnosticCandidates)
                 && footprint.equals(tile.footprint);
     }
 
@@ -630,8 +644,9 @@ public final class HydrologyTile {
                 edges,
                 outlets,
                 courses,
+                regionalCourseIds,
                 cavePlans,
-                diagnosticCandidates,
+                localDiagnosticCandidates,
                 footprint
         );
     }
@@ -639,6 +654,6 @@ public final class HydrologyTile {
     @Override
     public String toString() {
         return "HydrologyTile[key=" + key + ", courses=" + courses.size() + ", candidates="
-                + diagnosticCandidates.size() + ", columns=" + footprint.size() + "]";
+                + localDiagnosticCandidates.size() + ", columns=" + footprint.size() + "]";
     }
 }

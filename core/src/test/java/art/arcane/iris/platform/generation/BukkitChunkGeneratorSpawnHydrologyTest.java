@@ -17,6 +17,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -35,8 +36,56 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 public class BukkitChunkGeneratorSpawnHydrologyTest {
+    @Test
+    public void creationDefersNeighboursBeforePublishingAndKeepsEntryDemandTracked() throws Exception {
+        Fixture fixture = new Fixture();
+        fixture.generator.setEngine(null);
+        setField(fixture.generator, "studioEntryBootstrapActive", new AtomicBoolean(false));
+        fixture.generator.beginInitialEntry(false);
+        fixture.generator.publishInitializedEngine(fixture.engine);
+        verify(fixture.hydrology).setNeighbourPrefetchEnabled(false);
+        assertTrue(fixture.generator.shouldGenerateStructures());
+
+        CompletableFuture<Void> prefetch = fixture.prefetch();
+        fixture.lookup.complete(null);
+        prefetch.get(5L, TimeUnit.SECONDS);
+
+        verify(fixture.engine).startEntryHydrology(0, 0);
+        verify(fixture.hydrology, never()).prefetchArea(anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
+        verify(fixture.hydrology, never()).setNeighbourPrefetchEnabled(true);
+        fixture.generator.completeInitialEntry();
+        fixture.generator.completeInitialEntry();
+        verify(fixture.hydrology, times(1)).setNeighbourPrefetchEnabled(true);
+    }
+
+    @Test
+    public void completionBeforePublicationDoesNotLeaveNormalStartupDisabled() throws Exception {
+        Fixture fixture = new Fixture();
+        fixture.generator.setEngine(null);
+        fixture.generator.beginInitialEntry(false);
+        fixture.generator.completeInitialEntry();
+        fixture.generator.publishInitializedEngine(fixture.engine);
+        verifyNoInteractions(fixture.hydrology);
+
+        CompletableFuture<Void> prefetch = fixture.prefetch();
+        fixture.lookup.complete(null);
+        prefetch.get(5L, TimeUnit.SECONDS);
+
+        verify(fixture.hydrology).prefetchArea(-256, -256, 255, 255, 0, 0);
+        verify(fixture.engine, never()).startEntryHydrology(anyInt(), anyInt());
+    }
+
+    @Test
+    public void initializedGeneratorCannotBeginLateEntryDeferral() throws Exception {
+        Fixture fixture = new Fixture();
+
+        assertThrows(IllegalStateException.class, () -> fixture.generator.beginInitialEntry(false));
+        verifyNoInteractions(fixture.hydrology);
+    }
+
     @Test
     public void startupWaitsAsynchronouslyWithoutHoldingGenerationAdmission() throws Exception {
         Fixture fixture = new Fixture();
@@ -144,7 +193,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         fixture.lookup.complete(null);
         prefetch.get(5L, TimeUnit.SECONDS);
 
-        verify(fixture.engine).startStudioEntryHydrology(0, 0);
+        verify(fixture.engine).startEntryHydrology(0, 0);
         verifyNoInteractions(fixture.hydrology);
     }
 

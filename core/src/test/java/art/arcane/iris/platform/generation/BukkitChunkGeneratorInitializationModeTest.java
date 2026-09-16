@@ -63,7 +63,7 @@ public class BukkitChunkGeneratorInitializationModeTest {
 
         ((CompletableFuture<?>) prefetch.invoke(generator, engine, world)).get(5L, TimeUnit.SECONDS);
 
-        verify(engine).startStudioEntryHydrology(0, 0);
+        verify(engine).startEntryHydrology(0, 0);
         verifyNoInteractions(hydrology);
         assertEquals(0.5D, generator.getInitialSpawnLocation(world).getX(), 0D);
         assertEquals(96D, generator.getInitialSpawnLocation(world).getY(), 0D);
@@ -71,7 +71,7 @@ public class BukkitChunkGeneratorInitializationModeTest {
 
         when(dimension.getStudioMode()).thenReturn(StudioMode.BIOME_BUFFET_1x1);
         ((CompletableFuture<?>) prefetch.invoke(generator, engine, world)).get(5L, TimeUnit.SECONDS);
-        verify(engine, times(1)).startStudioEntryHydrology(0, 0);
+        verify(engine, times(1)).startEntryHydrology(0, 0);
         verify(hydrology).prefetchArea(anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
         when(dimension.getStudioMode()).thenReturn(StudioMode.NORMAL);
 
@@ -85,7 +85,7 @@ public class BukkitChunkGeneratorInitializationModeTest {
         doReturn(false).when(generator).usesFlatStudioTerrain();
         when(world.getChunkAtAsync(0, 0, false)).thenReturn(CompletableFuture.completedFuture(mock(Chunk.class)));
         ((CompletableFuture<?>) prefetch.invoke(generator, generated, world)).get(5L, TimeUnit.SECONDS);
-        verify(generated, never()).startStudioEntryHydrology(anyInt(), anyInt());
+        verify(generated, never()).startEntryHydrology(anyInt(), anyInt());
     }
 
     @Test
@@ -108,9 +108,9 @@ public class BukkitChunkGeneratorInitializationModeTest {
     @Test
     public void runtimeAndOrdinaryStudioWarmGenerationCaches() {
         IrisEngine.InitializationMode runtime =
-                BukkitChunkGenerator.selectInitializationMode(false, false, false);
+                BukkitChunkGenerator.selectInitializationMode(false, false, false, false);
         IrisEngine.InitializationMode studio =
-                BukkitChunkGenerator.selectInitializationMode(true, false, false);
+                BukkitChunkGenerator.selectInitializationMode(true, false, false, false);
 
         assertEquals(IrisEngine.InitializationMode.RUNTIME, runtime);
         assertFalse(runtime.studio());
@@ -121,9 +121,21 @@ public class BukkitChunkGeneratorInitializationModeTest {
     }
 
     @Test
+    public void onlyFreshNormalWorldsUseCreationCacheWarmMode() {
+        IrisEngine.InitializationMode mode =
+                BukkitChunkGenerator.selectInitializationMode(false, false, false, true);
+
+        assertEquals(IrisEngine.InitializationMode.WORLD_CREATION, mode);
+        assertFalse(mode.studio());
+        assertTrue(mode.warmGenerationCaches());
+        assertEquals(IrisEngine.InitializationMode.STUDIO,
+                BukkitChunkGenerator.selectInitializationMode(true, false, false, true));
+    }
+
+    @Test
     public void activeJigsawStudioSkipsGenerationCacheWarm() {
         IrisEngine.InitializationMode mode =
-                BukkitChunkGenerator.selectInitializationMode(true, true, false);
+                BukkitChunkGenerator.selectInitializationMode(true, true, false, false);
 
         assertEquals(IrisEngine.InitializationMode.JIGSAW_STUDIO, mode);
         assertTrue(mode.studio());
@@ -133,13 +145,13 @@ public class BukkitChunkGeneratorInitializationModeTest {
     @Test
     public void activeObjectStudioSkipsGenerationCacheWarm() {
         IrisEngine.InitializationMode mode =
-                BukkitChunkGenerator.selectInitializationMode(true, false, true);
+                BukkitChunkGenerator.selectInitializationMode(true, false, true, false);
 
         assertEquals(IrisEngine.InitializationMode.OBJECT_STUDIO, mode);
         assertTrue(mode.studio());
         assertFalse(mode.warmGenerationCaches());
         assertEquals(IrisEngine.InitializationMode.RUNTIME,
-                BukkitChunkGenerator.selectInitializationMode(false, false, true));
+                BukkitChunkGenerator.selectInitializationMode(false, false, true, false));
     }
 
     @Test

@@ -44,6 +44,12 @@ public final class IrisBiomeLayerSlopeSourceTest {
         this.lockLayers = lockLayers;
     }
 
+    // This test is about which slope source picks the palette, so it pins the fallback to ROCK to
+    // keep a rejected layer list empty instead of capping it with the top layer.
+    private static IrisDimension rockFallbackDimension() {
+        return new IrisDimension().setSurfaceLayerFallback(IrisSurfaceLayerFallback.ROCK);
+    }
+
     @Test
     public void lowerLedgeSlopeControlsSurfacePaletteSelection() {
         IrisData data = mock(IrisData.class);
@@ -65,9 +71,9 @@ public final class IrisBiomeLayerSlopeSourceTest {
         when(grass.get(rng, 0, 12D, 0D, -8D, data)).thenReturn(block);
 
         KList<PlatformBlockState> ledge = biome.generateLayers(
-                new IrisDimension(), 12D, -8D, rng, 1, 32, data, complex);
+                rockFallbackDimension(), 12D, -8D, rng, 1, 32, data, complex);
         KList<PlatformBlockState> cap = biome.generateLayers(
-                new IrisDimension(), 12D, -8D, rng, 1, 96, data, complex);
+                rockFallbackDimension(), 12D, -8D, rng, 1, 96, data, complex);
 
         assertEquals(1, ledge.size());
         assertSame(block, ledge.get(0));
@@ -105,9 +111,9 @@ public final class IrisBiomeLayerSlopeSourceTest {
         when(paletteLayer.get(rng, 0, 12D, 0D, -8D, data)).thenReturn(surfaceBlock);
 
         KList<PlatformBlockState> hostLayers = biome.generateLayers(
-                new IrisDimension(), 12D, -8D, rng, 1, 32, data, hostComplex);
+                rockFallbackDimension(), 12D, -8D, rng, 1, 32, data, hostComplex);
         KList<PlatformBlockState> sourceLayers = biome.generateLayersWithSlope(
-                new IrisDimension(), 12D, -8D, rng, 1, 32, data, sourceSlope);
+                rockFallbackDimension(), 12D, -8D, rng, 1, 32, data, sourceSlope);
 
         assertTrue(hostLayers.isEmpty());
         assertEquals(1, sourceLayers.size());

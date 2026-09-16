@@ -49,6 +49,9 @@ final class HydrologyChannelGeometry {
                     compiler.settings.surface().banks().maximumBlendWidth()
             );
             if (type == HydrologyFeatureType.WATERFALL) {
+                // A plunge has no floodplain: the shore bench is cut level with the bank top, so a wide one
+                // terraces the cliff the water falls down. Deliberate saturation, paired with the grading cap
+                // below - shoreWidth stops tracking the knob past 2.5.
                 shoreWidth = Math.min(2.5D, shoreWidth);
                 gradingWidth = Math.min(gradingWidth, Math.max(8D, channelRadius * 4D));
             }

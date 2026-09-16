@@ -77,6 +77,10 @@ public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
 
     CompletableFuture<Integer> getSpawnChunks();
 
+    void beginInitialEntry(boolean playerEntry);
+
+    void completeInitialEntry();
+
     default CompletableFuture<Void> getInitialSpawnReady() {
         return CompletableFuture.completedFuture(null);
     }

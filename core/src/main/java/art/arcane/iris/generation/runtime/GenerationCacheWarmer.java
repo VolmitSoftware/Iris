@@ -43,29 +43,24 @@ public final class GenerationCacheWarmer {
         RNG root = new RNG(engine.getSeedManager().getComponent() + 7777L);
         int[] counter = {0};
 
-        try {
-            KList<IrisBiome> biomes = engine.getAllBiomes();
-            biomes.sort(Comparator.comparing(IrisBiome::getLoadKey));
-            for (IrisBiome biome : biomes) {
-                warmPlacements(biome.getObjects(), root, counter, data, engine);
-                warmDecorators(biome.getDecorators(), root, counter, data);
-                warmOres(biome.getOres(), root, counter, data);
-                warmProcedural(biome.getProceduralObjects(), root, counter, data);
-            }
-
-            KList<IrisRegion> regions = engine.getDimension().getAllRegions(engine);
-            regions.sort(Comparator.comparing(IrisRegion::getLoadKey));
-            for (IrisRegion region : regions) {
-                warmPlacements(region.getObjects(), root, counter, data, engine);
-                warmOres(region.getOres(), root, counter, data);
-                warmProcedural(region.getProceduralObjects(), root, counter, data);
-            }
-
-            warmOres(engine.getDimension().getOres(), root, counter, data);
-        } catch (Throwable e) {
-            IrisLogging.reportError(e);
-            IrisLogging.warn("Generation cache warm pass failed: " + e.getMessage());
+        KList<IrisBiome> biomes = engine.getAllBiomes();
+        biomes.sort(Comparator.comparing(IrisBiome::getLoadKey));
+        for (IrisBiome biome : biomes) {
+            warmPlacements(biome.getObjects(), root, counter, data, engine);
+            warmDecorators(biome.getDecorators(), root, counter, data);
+            warmOres(biome.getOres(), root, counter, data);
+            warmProcedural(biome.getProceduralObjects(), root, counter, data);
         }
+
+        KList<IrisRegion> regions = engine.getDimension().getAllRegions(engine);
+        regions.sort(Comparator.comparing(IrisRegion::getLoadKey));
+        for (IrisRegion region : regions) {
+            warmPlacements(region.getObjects(), root, counter, data, engine);
+            warmOres(region.getOres(), root, counter, data);
+            warmProcedural(region.getProceduralObjects(), root, counter, data);
+        }
+
+        warmOres(engine.getDimension().getOres(), root, counter, data);
 
         IrisLogging.debug("[IrisEngine timing] cache warm " + counter[0] + " configs=" + (M.ms() - start) + "ms");
     }

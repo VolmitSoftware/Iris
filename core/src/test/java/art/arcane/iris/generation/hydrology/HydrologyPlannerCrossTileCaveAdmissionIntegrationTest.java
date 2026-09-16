@@ -73,8 +73,8 @@ public class HydrologyPlannerCrossTileCaveAdmissionIntegrationTest {
         assertEquals(forward, reverse);
         List<HydrologyPoint> firstSources = sourcePoints(forward.get(pair.first()), RiverCourseType.SURFACE);
         List<HydrologyPoint> secondSources = sourcePoints(forward.get(pair.second()), RiverCourseType.SURFACE);
-        assertEquals(forward.get(pair.first()).diagnosticCandidates().toString(), 1, firstSources.size());
-        assertEquals(forward.get(pair.second()).diagnosticCandidates().toString(), 1, secondSources.size());
+        assertEquals(forward.get(pair.first()).localDiagnosticCandidates().toString(), 1, firstSources.size());
+        assertEquals(forward.get(pair.second()).localDiagnosticCandidates().toString(), 1, secondSources.size());
         assertPointNear(new HydrologyPoint(32, 121, -272), firstSources.getFirst(), 8);
         // The second tile keeps the mouth on its own coast, so its heaviest required source no longer
         // competes with the first tile's network and is accepted ahead of the lighter fallback source.

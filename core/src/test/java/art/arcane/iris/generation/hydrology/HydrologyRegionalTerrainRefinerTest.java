@@ -8,6 +8,11 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.lang.reflect.Method;
 
@@ -17,6 +22,69 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class HydrologyRegionalTerrainRefinerTest {
+    @Test(timeout = 10000)
+    public void clearingDuringSamplingCannotPublishOldTerrain() throws Exception {
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger calls = new AtomicInteger();
+        HydrologyTerrainSampler terrain = (x, z) -> {
+            int call = calls.incrementAndGet();
+            if (call == 1) {
+                started.countDown();
+                try {
+                    assertTrue(release.await(5, TimeUnit.SECONDS));
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(interrupted);
+                }
+            }
+            return HydrologyTerrainSample.openLand(call == 1 ? 70 : 80, 0D, "land");
+        };
+        HydrologyRegionalTerrainRefiner refiner = new HydrologyRegionalTerrainRefiner(
+                new HydrologyPlanner(15L, HydrologyRegionalPlannerTest.settings(false, 1), terrain));
+        try (ExecutorService workers = Executors.newSingleThreadExecutor()) {
+            Future<HydrologyTerrainSample> first = workers.submit(() -> refiner.sample(0, 0));
+            try {
+                assertTrue(started.await(3, TimeUnit.SECONDS));
+                refiner.clear();
+                assertEquals(80, refiner.sample(0, 0).naturalHeight());
+            } finally {
+                release.countDown();
+            }
+            assertEquals(70, first.get(5, TimeUnit.SECONDS).naturalHeight());
+            assertEquals(80, refiner.sample(0, 0).naturalHeight());
+            assertEquals(2, calls.get());
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void independentDiagonalSamplesDoNotWaitForEachOthersTerrain() throws Exception {
+        CountDownLatch sampling = new CountDownLatch(2);
+        AtomicInteger calls = new AtomicInteger();
+        HydrologyTerrainSampler terrain = (x, z) -> {
+            calls.incrementAndGet();
+            sampling.countDown();
+            try {
+                assertTrue("Independent terrain samples were serialized", sampling.await(3, TimeUnit.SECONDS));
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(interrupted);
+            }
+            return HydrologyTerrainSample.openLand(70 + x, 0D, "land");
+        };
+        HydrologyRegionalTerrainRefiner refiner = new HydrologyRegionalTerrainRefiner(
+                new HydrologyPlanner(15L, HydrologyRegionalPlannerTest.settings(false, 1), terrain));
+        try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
+            Future<HydrologyTerrainSample> first = workers.submit(() -> refiner.sample(0, 0));
+            Future<HydrologyTerrainSample> second = workers.submit(() -> refiner.sample(1, 1));
+            assertEquals(70, first.get(5, TimeUnit.SECONDS).naturalHeight());
+            assertEquals(71, second.get(5, TimeUnit.SECONDS).naturalHeight());
+            assertEquals(first.get(), refiner.sample(0, 0));
+            assertEquals(second.get(), refiner.sample(1, 1));
+            assertEquals(2, calls.get());
+        }
+    }
+
     @Test
     public void aHigherHeadDetourSurvivesACheaperInfeasibleArrival() {
         int[][] heights = {

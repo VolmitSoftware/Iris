@@ -24,8 +24,6 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.platform.generation.PlatformChunkGenerator;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.generation.concurrent.MultiBurst;
-import art.arcane.volmlib.util.stream.ProceduralStream;
-import art.arcane.iris.generation.stream.CachedDoubleStream2D;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -76,9 +74,11 @@ public final class PregenPerformanceProfile {
     }
 
     public static void apply(Engine engine) {
-        apply();
         if (engine != null) {
             prepareNoiseCacheInPlace(engine);
+        }
+        apply();
+        if (engine != null) {
             IrisLogging.info("Pregen profile applied: noiseCacheSize="
                     + IrisSettings.get().getPerformance().getNoiseCacheSize());
         }
@@ -94,15 +94,7 @@ public final class PregenPerformanceProfile {
 
     private static void prepareNoiseCacheInPlace(Engine engine) {
         IrisComplex complex = Objects.requireNonNull(engine.getComplex(), "Pregeneration requires an active biome complex");
-        int configuredChunks = IrisSettings.get().getPerformance().getNoiseCacheSize();
-        resizeNoiseCache(complex.getNaturalHeightStream(), configuredChunks);
-        resizeNoiseCache(complex.getRawHeightStream(), configuredChunks);
-    }
-
-    private static void resizeNoiseCache(ProceduralStream<Double> stream, int configuredChunks) {
-        if (!(stream instanceof CachedDoubleStream2D cachedStream)) {
-            throw new IllegalStateException("Pregeneration requires a mutable double terrain cache");
-        }
-        cachedStream.setMaximumChunks(configuredChunks);
+        int configuredChunks = Math.max(IrisSettings.get().getPerformance().getNoiseCacheSize(), 4_096);
+        complex.ensureTerrainNoiseCacheSize(configuredChunks);
     }
 }

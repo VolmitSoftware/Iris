@@ -554,8 +554,13 @@ public final class SavedBiomeStore {
     }
 
     private WriteStripe regionLock(int chunkX, int chunkZ) {
-        long key = key(chunkX >> 5, chunkZ >> 5);
-        return regionLocks[(int) (key ^ (key >>> 32)) & (regionLocks.length - 1)];
+        long mixed = key(chunkX >> 5, chunkZ >> 5);
+        mixed ^= mixed >>> 33;
+        mixed *= 0xff51afd7ed558ccdL;
+        mixed ^= mixed >>> 33;
+        mixed *= 0xc4ceb9fe1a85ec53L;
+        mixed ^= mixed >>> 33;
+        return regionLocks[(int) (mixed ^ (mixed >>> 32)) & (regionLocks.length - 1)];
     }
 
     private static long key(int x, int z) {

@@ -1077,7 +1077,6 @@ final class HydrologyRouteGeometry {
             RouteCandidate start,
             RouteCandidate end
     ) {
-        int minimumBankDistance = planner.surfaceCourses.surfaceBankDistance(planner.settings.surface().minimumWidth());
         int maximumBankDistance = planner.surfaceCourses.surfaceBankDistance(planner.settings.surface().maximumWidth());
         RouteDirection tangent = planner.routePaths.direction(start.point().x(), start.point().z(), end.point().x(), end.point().z());
         int endpointCeiling = Math.max(start.point().y(), end.point().y());
@@ -1103,10 +1102,9 @@ final class HydrologyRouteGeometry {
                     terrain.naturalHeight(),
                     planner.settings.surface().banks().sink()
             );
-            penalty += planner.surfaceCourses.surfaceRouteBankPenalty(
+            penalty += planner.surfaceCourses.surfaceRouteBankBandPenalty(
                     point,
                     tangent,
-                    minimumBankDistance,
                     maximumBankDistance,
                     head,
                     planner.surfaceCourses.maximumSurfaceBankRise(terrain)
@@ -1129,10 +1127,9 @@ final class HydrologyRouteGeometry {
                         terrain.naturalHeight(),
                         planner.settings.surface().banks().sink()
                 );
-                penalty += planner.surfaceCourses.surfaceRouteBankPenalty(
+                penalty += planner.surfaceCourses.surfaceRouteBankBandPenalty(
                         point,
                         tangent,
-                        minimumBankDistance,
                         maximumBankDistance,
                         head,
                         planner.surfaceCourses.maximumSurfaceBankRise(terrain)

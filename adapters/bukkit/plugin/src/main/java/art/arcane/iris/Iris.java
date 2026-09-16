@@ -640,6 +640,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         generatorDrainCompleted = false;
         deferredShutdownGenerators.clear();
         MultiBurst.burst.reopen();
+        MultiBurst.hydrology.reopen();
         MultiBurst.ioBurst.reopen();
         IrisLanguage.initialize();
         debugDump = BukkitDebugDump.create(this, new BukkitDebugDump.Options(
@@ -1107,6 +1108,12 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 Iris.reportError("Failed to close Iris generation workers.", failure);
             }
             try {
+                MultiBurst.hydrology.close();
+            } catch (Throwable failure) {
+                runtimeTeardownFailed.set(true);
+                Iris.reportError("Failed to close Iris hydrology workers.", failure);
+            }
+            try {
                 MultiBurst.ioBurst.close();
             } catch (Throwable failure) {
                 runtimeTeardownFailed.set(true);
@@ -1273,7 +1280,8 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     }
 
     private boolean hasActiveShutdownResources() {
-        if (!MultiBurst.burst.isTerminated() || !MultiBurst.ioBurst.isTerminated()) {
+        if (!MultiBurst.burst.isTerminated() || !MultiBurst.hydrology.isTerminated()
+                || !MultiBurst.ioBurst.isTerminated()) {
             return true;
         }
         return services != null

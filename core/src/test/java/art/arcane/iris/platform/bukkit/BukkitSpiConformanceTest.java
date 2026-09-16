@@ -253,6 +253,9 @@ public class BukkitSpiConformanceTest {
 
     @Test
     public void blockStatePropertiesAreKeyedByNamespacedBlock() {
+        // Pre-flight before touching the registry: org.bukkit.Registry fail-initialises without a live
+        // RegistryAccess, and that is permanent and JVM-wide, so the catch below is already too late.
+        Assume.assumeTrue("live Bukkit registry unavailable in this environment", liveRegistriesAvailable());
         Map<String, List<PlatformBlockProperty>> states;
         try {
             states = registries().blockStateProperties();

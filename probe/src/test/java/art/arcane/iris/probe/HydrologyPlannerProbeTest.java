@@ -16,14 +16,14 @@ public final class HydrologyPlannerProbeTest {
     @Test
     public void coastalFixturePublishesAnAcceptedOceanMouth() {
         HydrologyTile tile = HydrologyPlannerProbe.surfaceMouthTile();
-        assertTrue(tile.diagnosticCandidates().stream().limit(16).toList().toString(),
+        assertTrue(tile.localDiagnosticCandidates().stream().limit(16).toList().toString(),
                 tile.features().stream().anyMatch(feature -> feature.type() == HydrologyFeatureType.MOUTH));
     }
 
     @Test
     public void inlandFixturePublishesAContainedWaterfall() {
         HydrologyTile tile = HydrologyPlannerProbe.surfaceWaterfallTile();
-        assertTrue(tile.diagnosticCandidates().stream().limit(16).toList().toString(),
+        assertTrue(tile.localDiagnosticCandidates().stream().limit(16).toList().toString(),
                 tile.features().stream().anyMatch(feature -> feature.type() == HydrologyFeatureType.WATERFALL));
         assertTrue(tile.courses().stream().anyMatch(course -> course.segments().stream().anyMatch(segment -> segment.fallingFluid()
                 && segment.type() == HydrologyFeatureType.WATERFALL)

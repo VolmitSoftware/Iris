@@ -73,6 +73,7 @@ public class HydrologyCaveCourseFilterTest {
                 filtered.edges(),
                 filtered.outlets(),
                 filtered.courses(),
+                Set.of(),
                 filtered.cavePlans(),
                 diagnostics,
                 RiverFootprint.empty()
@@ -83,9 +84,9 @@ public class HydrologyCaveCourseFilterTest {
         assertTrue(tile.features().isEmpty());
         assertTrue(tile.renderAt(8, 8).features().isEmpty());
         assertTrue(tile.nearestFeature(HydrologyFeatureType.UNDERGROUND_POOL, 8, 8, 16).isEmpty());
-        assertEquals(1, tile.diagnosticCandidates().size());
+        assertEquals(1, tile.localDiagnosticCandidates().size());
         assertEquals(HydrologyCandidateRejection.CAVE_CONTAINMENT,
-                tile.diagnosticCandidates().getFirst().rejection());
+                tile.localDiagnosticCandidates().getFirst().rejection());
     }
 
     @Test
@@ -650,6 +651,7 @@ public class HydrologyCaveCourseFilterTest {
                 filtered.edges(),
                 filtered.outlets(),
                 filtered.courses(),
+                Set.of(),
                 filtered.cavePlans(),
                 diagnostics,
                 footprint

@@ -31,7 +31,7 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.interpolation.IrisInterpolation;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CellGenerator;
-import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -262,12 +262,13 @@ public class IrisGenerator extends IrisRegistrant {
         mixed *= 0xff51afd7ed558ccdL;
         mixed ^= mixed >>> 33;
         SurfaceCacheStripe stripe = stripes[(int) mixed & (SURFACE_CACHE_STRIPES - 1)];
-        SurfaceSample cached = stripe.get(key, superSeed);
+        int slot = (int) (mixed >>> 4) & (SURFACE_CACHE_STRIPE_SIZE - 1);
+        SurfaceSample cached = stripe.get(key, superSeed, slot);
         if (cached != null) {
             return cached.height();
         }
         double height = sampleHeight(x, z, superSeed);
-        stripe.put(key, new SurfaceSample(superSeed, height));
+        stripe.put(slot, new SurfaceSample(key, superSeed, height));
         return height;
     }
 
@@ -347,22 +348,19 @@ public class IrisGenerator extends IrisRegistrant {
     private record SurfaceCache(IrisData data, Engine engine, SurfaceCacheStripe[] stripes) {
     }
 
-    private record SurfaceSample(long seed, double height) {
+    private record SurfaceSample(long key, long seed, double height) {
     }
 
     private static final class SurfaceCacheStripe {
-        private final Long2ObjectLinkedOpenHashMap<SurfaceSample> entries = new Long2ObjectLinkedOpenHashMap<>(16);
+        private final AtomicReferenceArray<SurfaceSample> entries = new AtomicReferenceArray<>(SURFACE_CACHE_STRIPE_SIZE);
 
-        private synchronized SurfaceSample get(long key, long seed) {
-            SurfaceSample sample = entries.getAndMoveToLast(key);
-            return sample != null && sample.seed() == seed ? sample : null;
+        private SurfaceSample get(long key, long seed, int slot) {
+            SurfaceSample sample = entries.get(slot);
+            return sample != null && sample.key() == key && sample.seed() == seed ? sample : null;
         }
 
-        private synchronized void put(long key, SurfaceSample sample) {
-            entries.putAndMoveToLast(key, sample);
-            if (entries.size() > SURFACE_CACHE_STRIPE_SIZE) {
-                entries.removeFirst();
-            }
+        private void put(int slot, SurfaceSample sample) {
+            entries.set(slot, sample);
         }
     }
 }

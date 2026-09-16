@@ -246,8 +246,9 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
                         continue;
                     }
 
+                    int strataIndex = strataIndex(depth, cut, blocks.size());
                     PlatformBlockState layerBlock = paintHydrologyMaterial(
-                            blocks.hasIndex(depth + cut) ? blocks.get(depth + cut) : null,
+                            blocks.hasIndex(strataIndex) ? blocks.get(strataIndex) : null,
                             roleMaterial, depth, localRng, realX, i, realZ, data);
                     if (layerBlock != null) {
                         if (riverOwned && depth <= riverBed.getPadding() && IrisProceduralBlocks.isGravityAffected(layerBlock)) {
@@ -322,6 +323,16 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
                 }
             }
         }
+    }
+
+    /**
+     * The palette index for a column that erosion cut {@code cut} blocks down into. The offset is
+     * clamped to the deepest authored layer so an exposed bank shows soil rather than raw rock,
+     * while a depth past the authored soil still runs off the end and falls through to rock. A
+     * cut of zero collapses to {@code depth}, leaving every uncut column untouched.
+     */
+    static int strataIndex(int depth, int cut, int paletteSize) {
+        return depth + Math.min(cut, Math.max(0, paletteSize - 1 - depth));
     }
 
     /**

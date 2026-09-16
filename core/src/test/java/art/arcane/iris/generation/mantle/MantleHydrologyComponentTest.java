@@ -305,7 +305,7 @@ public class MantleHydrologyComponentTest {
                 surfaceCourses.add(course);
             }
         }
-        assertEquals(tile.diagnosticCandidates().toString(), 1, surfaceCourses.size());
+        assertEquals(tile.localDiagnosticCandidates().toString(), 1, surfaceCourses.size());
         RiverCourse course = surfaceCourses.getFirst();
 
         LinkedHashMap<Long, HydrologyColumnLayer> fluidLayers = new LinkedHashMap<>();
@@ -1200,6 +1200,34 @@ public class MantleHydrologyComponentTest {
                 HydrologyCaveAction.SEAL_GUARD,
                 publication.caveCells().get(new CavePosition(9, 22, 8)).action()
         );
+    }
+
+    @Test
+    public void partiallyOverlappingSurfaceLayerPublishesOnlyAcceptedCaveCells() {
+        HydrologyColumnLayer surface = layerForCourse(
+                HydrologyFeatureType.SURFACE_POOL, 71L, 1L, 14L, 18, 25, 25, "river"
+        );
+        HydrologyColumnLayer cave = layerForCourse(
+                HydrologyFeatureType.UNDERGROUND_POOL, 72L, 1L, 15L, 20, 23, 24, "river"
+        );
+        HydrologyColumnSample sample = sample(8, 8, false, 80, List.of(surface, cave));
+
+        MantleHydrologyComponent.Publication publication = compile(
+                samples(sample), List.of(acceptedPlan(sample, cave)), new TestCaveVoxelView()
+        );
+
+        for (int y = 19; y <= 25; y++) {
+            CavePosition position = new CavePosition(8, y, 8);
+            if (y >= 21 && y <= 24) {
+                assertEquals(HydrologyCaveAction.WET_SOURCE, publication.caveCells().get(position).action());
+                assertFalse(publication.surfaceWrites().containsKey(position));
+            } else {
+                assertEquals(HydrologyCaveAction.WET_SOURCE, publication.surfaceWrites().get(position).action());
+                assertFalse(publication.caveCells().containsKey(position));
+            }
+        }
+        assertEquals(HydrologyCaveAction.SEAL_GUARD,
+                publication.caveCells().get(new CavePosition(9, 22, 8)).action());
     }
 
     @Test

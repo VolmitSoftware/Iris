@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.hydrology.runtime;
 
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.generation.hydrology.HydrologyNaturalTerrainSampler;
 import art.arcane.iris.generation.hydrology.HydrologyRoutingTerrainSampler;
 import art.arcane.iris.generation.hydrology.HydrologyTerrainSample;
@@ -18,17 +19,15 @@ import java.util.concurrent.Executor;
 final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrainSampler, AutoCloseable {
     private static final int MINIMUM_PARALLEL_BASIS_SAMPLES = 64;
     private static final int COORDINATE_MIX = 0x9E3779B9;
+    private static final int CACHE_STRIPES = 16;
+    private static final int MINIMUM_STRIPE_ENTRIES = 256;
 
     private final BasisProvider basisProvider;
     private final IrisHydrologyNaturalHeightProvider heightProvider;
     private final IrisHydrologyNaturalOceanClassifier oceanClassifier;
     private final int seaLevel;
-    private final int maximumEntries;
     private final SamplingOptions samplingOptions;
-    private final Object lock;
-    private final Long2ObjectLinkedOpenHashMap<TerrainBasis> bases;
-    private final Long2DoubleLinkedOpenHashMap naturalHeights;
-    private final Long2ObjectLinkedOpenHashMap<NaturalClassification> oceanClassifications;
+    private final CacheStripe[] stripes;
 
     IrisHydrologyRoutingTerrainSampler(Sources sources, SamplingOptions samplingOptions) {
         Objects.requireNonNull(sources, "sources");
@@ -38,12 +37,12 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
         this.oceanClassifier = Objects.requireNonNull(sources.oceanClassifier(), "oceanClassifier");
         this.seaLevel = sources.seaLevel();
         int maximumEntries = samplingOptions.maximumEntries();
-        this.maximumEntries = maximumEntries;
-        this.lock = new Object();
-        this.bases = new Long2ObjectLinkedOpenHashMap<>(maximumEntries);
-        this.naturalHeights = new Long2DoubleLinkedOpenHashMap(maximumEntries);
-        this.naturalHeights.defaultReturnValue(Double.NaN);
-        this.oceanClassifications = new Long2ObjectLinkedOpenHashMap<>(maximumEntries);
+        int stripeCount = Math.min(CACHE_STRIPES, Integer.highestOneBit(Math.max(1, maximumEntries / MINIMUM_STRIPE_ENTRIES)));
+        this.stripes = new CacheStripe[stripeCount];
+        for (int index = 0; index < stripeCount; index++) {
+            int capacity = maximumEntries / stripeCount + (index < maximumEntries % stripeCount ? 1 : 0);
+            stripes[index] = new CacheStripe(capacity);
+        }
     }
 
     @Override
@@ -78,19 +77,20 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
     @Override
     public NaturalClassification classifyNatural(int blockX, int blockZ) {
         long packed = pack(blockX, blockZ);
-        synchronized (lock) {
-            TerrainBasis basis = bases.getAndMoveToLast(packed);
+        CacheStripe stripe = stripe(packed);
+        synchronized (stripe) {
+            TerrainBasis basis = stripe.bases.getAndMoveToLast(packed);
             if (basis != null) {
                 return basis.terrain().ocean() ? NaturalClassification.OCEAN : NaturalClassification.LAND;
             }
-            NaturalClassification cached = oceanClassifications.getAndMoveToLast(packed);
+            NaturalClassification cached = stripe.oceanClassifications.getAndMoveToLast(packed);
             if (cached != null) {
                 return cached;
             }
         }
         NaturalClassification sampled = NaturalClassification.LAND;
         if (oceanClassifier.isOcean(blockX, blockZ)) {
-            double height = naturalHeight(packed, blockX, blockZ);
+            double height = naturalHeight(stripe, packed, blockX, blockZ);
             if (!Double.isFinite(height)) {
                 return NaturalClassification.UNAVAILABLE;
             }
@@ -98,17 +98,17 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
                 sampled = NaturalClassification.OCEAN;
             }
         }
-        synchronized (lock) {
-            TerrainBasis basis = bases.getAndMoveToLast(packed);
+        synchronized (stripe) {
+            TerrainBasis basis = stripe.bases.getAndMoveToLast(packed);
             if (basis != null) {
                 return basis.terrain().ocean() ? NaturalClassification.OCEAN : NaturalClassification.LAND;
             }
-            NaturalClassification existing = oceanClassifications.getAndMoveToLast(packed);
+            NaturalClassification existing = stripe.oceanClassifications.getAndMoveToLast(packed);
             if (existing != null) {
                 return existing;
             }
-            oceanClassifications.putAndMoveToLast(packed, sampled);
-            evictOldest(oceanClassifications);
+            stripe.oceanClassifications.putAndMoveToLast(packed, sampled);
+            stripe.evictOldest(stripe.oceanClassifications);
         }
         return sampled;
     }
@@ -127,55 +127,70 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
 
     TerrainBasis basis(int blockX, int blockZ) {
         long packed = pack(blockX, blockZ);
-        synchronized (lock) {
-            TerrainBasis cached = bases.getAndMoveToLast(packed);
+        CacheStripe stripe = stripe(packed);
+        synchronized (stripe) {
+            TerrainBasis cached = stripe.bases.getAndMoveToLast(packed);
             if (cached != null) {
                 return cached;
             }
         }
-        double naturalHeight = naturalHeight(packed, blockX, blockZ);
+        double naturalHeight = naturalHeight(stripe, packed, blockX, blockZ);
         TerrainBasis sampled = basisProvider.sample(blockX, blockZ, naturalHeight);
         if (sampled == null) {
             throw new NullPointerException(
                     "Hydrology terrain basis provider returned null at " + blockX + "," + blockZ
             );
         }
-        synchronized (lock) {
-            TerrainBasis existing = bases.getAndMoveToLast(packed);
+        synchronized (stripe) {
+            TerrainBasis existing = stripe.bases.getAndMoveToLast(packed);
             if (existing != null) {
                 return existing;
             }
-            bases.putAndMoveToLast(packed, sampled);
-            oceanClassifications.remove(packed);
-            evictOldest(bases);
+            stripe.bases.putAndMoveToLast(packed, sampled);
+            stripe.oceanClassifications.remove(packed);
+            stripe.evictOldest(stripe.bases);
         }
         return sampled;
     }
 
     int basisCacheSize() {
-        synchronized (lock) {
-            return bases.size();
+        int size = 0;
+        for (CacheStripe stripe : stripes) {
+            synchronized (stripe) {
+                size += stripe.bases.size();
+            }
         }
+        return size;
     }
 
     int naturalHeightCacheSize() {
-        synchronized (lock) {
-            return naturalHeights.size();
+        int size = 0;
+        for (CacheStripe stripe : stripes) {
+            synchronized (stripe) {
+                size += stripe.naturalHeights.size();
+            }
         }
+        return size;
     }
 
     int oceanClassificationCacheSize() {
-        synchronized (lock) {
-            return oceanClassifications.size();
+        int size = 0;
+        for (CacheStripe stripe : stripes) {
+            synchronized (stripe) {
+                size += stripe.oceanClassifications.size();
+            }
         }
+        return size;
     }
 
     @Override
     public void close() {
-        synchronized (lock) {
-            bases.clear();
-            naturalHeights.clear();
-            oceanClassifications.clear();
+        for (CacheStripe stripe : stripes) {
+            synchronized (stripe) {
+                stripe.bases.clear();
+                stripe.naturalHeights.clear();
+                stripe.oceanClassifications.clear();
+            }
         }
     }
 
@@ -275,29 +290,20 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
     }
 
 
-    private void evictOldest(Long2ObjectLinkedOpenHashMap<?> cache) {
-        if (cache.size() <= maximumEntries) {
-            return;
-        }
-        cache.removeFirst();
-    }
-
-    private void evictOldest(Long2DoubleLinkedOpenHashMap cache) {
-        if (cache.size() <= maximumEntries) {
-            return;
-        }
-        cache.removeFirstDouble();
-    }
-
     private double naturalHeight(int blockX, int blockZ) {
-        return naturalHeight(pack(blockX, blockZ), blockX, blockZ);
+        long packed = pack(blockX, blockZ);
+        return naturalHeight(stripe(packed), packed, blockX, blockZ);
     }
 
-    private double naturalHeight(long packed, int blockX, int blockZ) {
-        synchronized (lock) {
-            double cached = naturalHeights.getAndMoveToLast(packed);
-            if (!Double.isNaN(cached) || naturalHeights.containsKey(packed)) {
+    private double naturalHeight(CacheStripe stripe, long packed, int blockX, int blockZ) {
+        synchronized (stripe) {
+            double cached = stripe.naturalHeights.getAndMoveToLast(packed);
+            if (!Double.isNaN(cached) || stripe.naturalHeights.containsKey(packed)) {
                 return cached;
+            }
+            TerrainBasis cachedBasis = stripe.bases.getAndMoveToLast(packed);
+            if (cachedBasis != null) {
+                return cachedBasis.naturalHeight();
             }
         }
         double sampled = heightProvider.sample(blockX, blockZ);
@@ -306,20 +312,51 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
             // later sample of the same column gets a fresh chance instead of the cached failure.
             return sampled;
         }
-        synchronized (lock) {
-            double existing = naturalHeights.getAndMoveToLast(packed);
-            if (!Double.isNaN(existing) || naturalHeights.containsKey(packed)) {
+        synchronized (stripe) {
+            double existing = stripe.naturalHeights.getAndMoveToLast(packed);
+            if (!Double.isNaN(existing) || stripe.naturalHeights.containsKey(packed)) {
                 return existing;
             }
-            naturalHeights.putAndMoveToLast(packed, sampled);
-            evictOldest(naturalHeights);
+            stripe.naturalHeights.putAndMoveToLast(packed, sampled);
+            stripe.evictOldest(stripe.naturalHeights);
         }
         return sampled;
+    }
+
+    private CacheStripe stripe(long packed) {
+        return stripes[(int) CacheKey.mix(packed) & (stripes.length - 1)];
     }
 
     private static long pack(int blockX, int blockZ) {
         int mixedZ = blockZ ^ Integer.rotateLeft(blockX * COORDINATE_MIX, 16);
         return ((long) blockX << 32) ^ (mixedZ & 0xffffffffL);
+    }
+
+    private static final class CacheStripe {
+        private final int maximumEntries;
+        private final Long2ObjectLinkedOpenHashMap<TerrainBasis> bases;
+        private final Long2DoubleLinkedOpenHashMap naturalHeights;
+        private final Long2ObjectLinkedOpenHashMap<NaturalClassification> oceanClassifications;
+
+        private CacheStripe(int maximumEntries) {
+            this.maximumEntries = maximumEntries;
+            this.bases = new Long2ObjectLinkedOpenHashMap<>(maximumEntries);
+            this.naturalHeights = new Long2DoubleLinkedOpenHashMap(maximumEntries);
+            this.naturalHeights.defaultReturnValue(Double.NaN);
+            this.oceanClassifications = new Long2ObjectLinkedOpenHashMap<>(maximumEntries);
+        }
+
+        private void evictOldest(Long2ObjectLinkedOpenHashMap<?> cache) {
+            if (cache.size() > maximumEntries) {
+                cache.removeFirst();
+            }
+        }
+
+        private void evictOldest(Long2DoubleLinkedOpenHashMap cache) {
+            if (cache.size() > maximumEntries) {
+                cache.removeFirstDouble();
+            }
+        }
     }
 
     @FunctionalInterface

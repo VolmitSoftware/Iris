@@ -41,7 +41,7 @@ public class HydrologyPlannerUndergroundKnobsTest {
         ).plan(TILE);
         List<RiverCourse> planned = courses(fromFactory, RiverCourseType.UNDERGROUND);
 
-        assertFalse("diagnostics=" + fromFactory.diagnosticCandidates(), planned.isEmpty());
+        assertFalse("diagnostics=" + fromFactory.localDiagnosticCandidates(), planned.isEmpty());
         assertEquals(fromFactory.courses(), explicit.courses());
         assertCoveredByRock(coast, planned, base.underground().minimumHeadroom(), 1);
 
@@ -94,7 +94,7 @@ public class HydrologyPlannerUndergroundKnobsTest {
         ).plan(TILE);
 
         List<RiverCourse> shallowCourses = courses(shallow, RiverCourseType.UNDERGROUND);
-        assertFalse("diagnostics=" + shallow.diagnosticCandidates(), shallowCourses.isEmpty());
+        assertFalse("diagnostics=" + shallow.localDiagnosticCandidates(), shallowCourses.isEmpty());
         assertTrue(
                 "heads=" + heads(shallowCourses) + " bound=" + bound,
                 heads(shallowCourses).stream().anyMatch((Integer head) -> head < bound)
@@ -166,17 +166,17 @@ public class HydrologyPlannerUndergroundKnobsTest {
                 SOLID_CAVE_VIEW
         ).plan(TILE);
 
-        assertFalse("diagnostics=" + atTheDefault.diagnosticCandidates(), atTheDefault.outlets().isEmpty());
+        assertFalse("diagnostics=" + atTheDefault.localDiagnosticCandidates(), atTheDefault.outlets().isEmpty());
         for (RiverOutlet outlet : atTheDefault.outlets()) {
             assertNotEquals(HydrologyFeatureType.COASTAL_GROTTO, outlet.type());
         }
-        assertFalse("diagnostics=" + sensitive.diagnosticCandidates(), sensitive.outlets().isEmpty());
+        assertFalse("diagnostics=" + sensitive.localDiagnosticCandidates(), sensitive.outlets().isEmpty());
         boolean grotto = false;
         for (RiverOutlet outlet : sensitive.outlets()) {
             grotto |= outlet.type() == HydrologyFeatureType.COASTAL_GROTTO;
         }
         assertTrue("outlets=" + sensitive.outlets(), grotto);
-        assertFalse("diagnostics=" + slopeRuleOff.diagnosticCandidates(), slopeRuleOff.outlets().isEmpty());
+        assertFalse("diagnostics=" + slopeRuleOff.localDiagnosticCandidates(), slopeRuleOff.outlets().isEmpty());
         for (RiverOutlet outlet : slopeRuleOff.outlets()) {
             assertNotEquals(HydrologyFeatureType.COASTAL_GROTTO, outlet.type());
         }
@@ -205,8 +205,8 @@ public class HydrologyPlannerUndergroundKnobsTest {
         List<RiverCourse> turnedCaves = courses(turned, RiverCourseType.SEA_CAVE);
         List<RiverCourse> straightCaves = courses(straight, RiverCourseType.SEA_CAVE);
 
-        assertFalse("diagnostics=" + turned.diagnosticCandidates(), turnedCaves.isEmpty());
-        assertFalse("diagnostics=" + straight.diagnosticCandidates(), straightCaves.isEmpty());
+        assertFalse("diagnostics=" + turned.localDiagnosticCandidates(), turnedCaves.isEmpty());
+        assertFalse("diagnostics=" + straight.localDiagnosticCandidates(), straightCaves.isEmpty());
         boolean offNormal = false;
         for (RiverCourse cave : turnedCaves) {
             HydraulicSegment chamber = cave.segments().getFirst();

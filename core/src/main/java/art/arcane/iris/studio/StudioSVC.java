@@ -205,7 +205,7 @@ public class StudioSVC implements IrisService {
         queueStudioWorldDeletionOnStartup(worldNamesToDelete);
     }
 
-    public IrisDimension installIntoWorld(
+    public GenerationPublication installIntoWorld(
             VolmitSender sender,
             IrisDimension dimension,
             File dimensionRoot,
@@ -220,7 +220,8 @@ public class StudioSVC implements IrisService {
             File dimensionRoot,
             long worldSeed
     ) {
-        return publishGenerationHistory(sender, dimension, dimensionRoot, worldSeed, true);
+        GenerationPublication publication = publishGenerationHistory(sender, dimension, dimensionRoot, worldSeed, true);
+        return publication == null ? null : publication.dimension();
     }
 
     public IrisDimension installIntoTransientWorld(
@@ -235,7 +236,7 @@ public class StudioSVC implements IrisService {
         return installIntoDirectory(sender, dimension, folder, true);
     }
 
-    private IrisDimension publishGenerationHistory(
+    private GenerationPublication publishGenerationHistory(
             VolmitSender sender,
             IrisDimension dimension,
             File dimensionRoot,
@@ -288,11 +289,11 @@ public class StudioSVC implements IrisService {
             Path installedPack = stageUpdate && history.pendingActivation().isPresent()
                     ? history.packRoot(history.pendingActivation().orElseThrow().activationId())
                     : history.activePackRoot();
-            IrisDimension installed = loadInstalledDimension(installedPack, dimensionKey);
+            IrisDimension installed = loadInstalledDimension(installedPack, source, dimensionKey);
             if (restartRequired) {
                 ServerConfigurator.restart("An Iris generation epoch update is pending activation.");
             }
-            return installed;
+            return new GenerationPublication(installed, history);
         } catch (Throwable failure) {
             IrisLogging.reportError("Failed to publish generation history for dimension '"
                     + dimensionKey + "' into " + dimensionRoot.getPath(), failure);
@@ -383,8 +384,9 @@ public class StudioSVC implements IrisService {
         }
     }
 
-    private static IrisDimension loadInstalledDimension(Path packRoot, String dimensionKey) throws IOException {
-        PackValidationResult validation = validatePublishedPack(packRoot);
+    static IrisDimension loadInstalledDimension(Path packRoot, Path validatedSource, String dimensionKey) throws IOException {
+        String copiedFingerprint = ServerConfigurator.computePackTreeFingerprint(packRoot.toFile());
+        PackValidationResult validation = validatePublishedPack(packRoot, validatedSource, copiedFingerprint);
         if (!validation.isLoadable()) {
             throw new BrokenPackException(packRoot.toString(), validation.getBlockingErrors());
         }
@@ -1753,6 +1755,13 @@ public class StudioSVC implements IrisService {
         FAILED,
         OPEN,
         RESTART
+    }
+
+    public record GenerationPublication(IrisDimension dimension, GenerationHistory history) {
+        public GenerationPublication {
+            Objects.requireNonNull(dimension, "Published dimension");
+            Objects.requireNonNull(history, "Published generation history");
+        }
     }
 
     private record GenerationCandidate(

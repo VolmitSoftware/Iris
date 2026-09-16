@@ -322,16 +322,7 @@ public class IrisEngine implements Engine {
             diagnostics.logPackCompatSummary();
             diagnostics.logStudioInitializationPhase("build_runtime", phaseStartedAt, false);
             phaseStartedAt = System.nanoTime();
-            if (requiredMode.warmGenerationCaches()) {
-                if (requiredMode.studio()) {
-                    startGenerationCacheWarm(phaseStartedAt);
-                } else {
-                    warmGenerationCaches(phaseStartedAt);
-                }
-            } else {
-                generationCacheWarm.complete(null);
-                diagnostics.logStudioInitializationPhase("generation_cache_warm", phaseStartedAt, true);
-            }
+            prepareGenerationCaches(requiredMode, phaseStartedAt);
             EngineTickRegistry.registerTicking(this);
         } catch (Throwable e) {
             shutdownSequence.cleanupFailedConstruction(e);
@@ -353,6 +344,19 @@ public class IrisEngine implements Engine {
 
     public boolean isGenerationCacheWarmPending() {
         return !generationCacheWarm.isDone();
+    }
+
+    void prepareGenerationCaches(InitializationMode mode, long phaseStartedAt) {
+        if (!mode.warmGenerationCaches()) {
+            generationCacheWarm.complete(null);
+            diagnostics.logStudioInitializationPhase("generation_cache_warm", phaseStartedAt, true);
+            return;
+        }
+        if (mode == InitializationMode.RUNTIME) {
+            warmGenerationCaches(phaseStartedAt);
+        } else {
+            startGenerationCacheWarm(phaseStartedAt);
+        }
     }
 
     private String currentStudioCacheIdentity() {
@@ -396,32 +400,32 @@ public class IrisEngine implements Engine {
         return packRoot.resolve(".iris").resolve("studio-hydrology");
     }
 
-    public void startStudioEntryHydrology(int blockX, int blockZ) {
+    public void startEntryHydrology(int blockX, int blockZ) {
         GenerationRuntimeBinding binding = getActiveGenerationRuntimeBinding();
-        if (!backgroundTasks.scheduleTrackedTask(() -> prepareStudioEntryHydrology(binding, blockX, blockZ))) {
-            throw new IllegalStateException("Iris background task admission closed before Studio entry preparation.");
+        if (!backgroundTasks.scheduleTrackedTask(() -> prepareEntryHydrology(binding, blockX, blockZ))) {
+            throw new IllegalStateException("Iris background task admission closed before world entry preparation.");
         }
     }
 
-    private void prepareStudioEntryHydrology(GenerationRuntimeBinding binding, int blockX, int blockZ) {
+    private void prepareEntryHydrology(GenerationRuntimeBinding binding, int blockX, int blockZ) {
         if (closing.get()) {
             return;
         }
         GenerationSessionLease lease;
         try {
-            lease = acquireGenerationLease("studio_entry_hydrology");
+            lease = acquireGenerationLease("initial_entry_hydrology");
         } catch (GenerationSessionException failure) {
             if (closing.get()) {
                 return;
             }
-            throw new IllegalStateException("Studio entry hydrology preparation could not acquire its generation session.", failure);
+            throw new IllegalStateException("World entry hydrology preparation could not acquire its generation session.", failure);
         }
         try (lease;
              GenerationRuntimeScope runtimeScope = generationRuntimeScopes.open(binding);
              IrisContext.Scope context = IrisContext.open(this, lease.sessionId(), null)) {
             getComplex().getHydrologyRuntime().prepareChunkColumns(blockX, blockZ);
         } catch (Exception failure) {
-            throw new IllegalStateException("Studio entry hydrology preparation failed at "
+            throw new IllegalStateException("World entry hydrology preparation failed at "
                     + blockX + "," + blockZ + ".", failure);
         }
     }
@@ -1685,6 +1689,7 @@ public class IrisEngine implements Engine {
 
     public enum InitializationMode {
         RUNTIME(false, true),
+        WORLD_CREATION(false, true),
         STUDIO(true, true),
         OBJECT_STUDIO(true, false),
         JIGSAW_STUDIO(true, false);

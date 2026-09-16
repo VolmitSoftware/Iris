@@ -206,6 +206,8 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     @ArrayType(type = IrisBiomePaletteLayer.class)
     @Description("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
     private KList<IrisBiomePaletteLayer> layers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
+    @Description("What this biome's columns surface with when every layer is rejected, usually because all of them are slope gated and the column is too steep. Omit to inherit the dimension setting.")
+    private IrisSurfaceLayerFallback surfaceLayerFallback = null;
     @ArrayType(type = IrisBiomePaletteLayer.class)
     @Description("Layers of materials placed on cave ceilings in this biome, indexed upward from the ceiling surface. Must not have more entries than layers, whose height generators it reuses. Omitting this leaves cave ceilings unchanged.")
     private KList<IrisBiomePaletteLayer> caveCeilingLayers = new KList<>();

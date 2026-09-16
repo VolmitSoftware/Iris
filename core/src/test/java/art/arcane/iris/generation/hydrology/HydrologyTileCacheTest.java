@@ -388,6 +388,13 @@ public class HydrologyTileCacheTest {
         when(tile.tileSize()).thenReturn(64);
         HydrologyTileCache first = new HydrologyTileCache(firstPlanner, 4, null, null, scope);
         HydrologyTileCache second = new HydrologyTileCache(secondPlanner, 4, null, null, scope);
+        AtomicInteger terrainPreparations = new AtomicInteger();
+        first.setTerrainPreparation(terrainPreparations::incrementAndGet);
+        second.setTerrainPreparation(() -> {
+            throw new AssertionError("Shared tile reuse must not prepare terrain caches");
+        });
+
+        assertEquals(0, terrainPreparations.get());
 
         assertSame(tile, first.get(key));
         assertSame(tile, second.get(key));
@@ -395,6 +402,7 @@ public class HydrologyTileCacheTest {
         verify(firstPlanner, times(1)).plan(key);
         verify(secondPlanner, never()).plan(key);
         verify(secondPlanner, times(1)).reuseResolvedTile(tile);
+        assertEquals(1, terrainPreparations.get());
     }
 
     @Test
@@ -801,7 +809,7 @@ public class HydrologyTileCacheTest {
     public void planningFailureFallsBackToTheEmptyTileAndIsCached() {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
         HydrologyTileKey key = new HydrologyTileKey(3, -2);
-        HydrologyTile empty = new HydrologyTile(key, 7L, 11L, 1024, List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), RiverFootprint.empty());
+        HydrologyTile empty = new HydrologyTile(key, 7L, 11L, 1024, List.of(), List.of(), List.of(), List.of(), Set.of(), List.of(), List.of(), RiverFootprint.empty());
         when(planner.settings()).thenReturn(emptySettings());
         when(planner.plan(key)).thenThrow(new IllegalStateException("Hydrology natural height was not finite at -66,-641"));
         when(planner.emptyTile(key)).thenReturn(empty);
@@ -868,6 +876,33 @@ public class HydrologyTileCacheTest {
         int width = Math.floorDiv(32 + 15 + radius, tileSize) - Math.floorDiv(32 - radius, tileSize) + 1;
         int height = Math.floorDiv(48 + 15 + radius, tileSize) - Math.floorDiv(48 - radius, tileSize) + 1;
         assertEquals(width * height, cache.size());
+    }
+
+    @Test
+    public void deferredNeighboursAllowFurtherDemandAndResumeAfterEntry() {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        HydrologyPlannerSettings settings = emptySettings();
+        when(planner.settings()).thenReturn(settings);
+        when(planner.plan(any(HydrologyTileKey.class))).thenReturn(tile);
+        when(tile.columnAt(anyInt(), anyInt())).thenReturn(Optional.empty());
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 64, Runnable::run);
+        cache.setNeighbourPrefetchEnabled(false);
+        int tileSize = settings.routing().tileSize();
+
+        cache.prepareChunkColumns(0, 0);
+        int requiredTiles = cache.size();
+        HydrologyTileKey distant = new HydrologyTileKey(20, 20);
+        assertSame(tile, cache.get(distant));
+        assertEquals(requiredTiles + 1, cache.size());
+        verify(planner, never()).plan(new HydrologyTileKey(-2, -2));
+
+        cache.setNeighbourPrefetchEnabled(true);
+        cache.prepareChunkColumns(tileSize * 20 + 32, tileSize * 20 + 48);
+
+        verify(planner).plan(new HydrologyTileKey(19, 19));
+        assertTrue(cache.size() > requiredTiles + 1);
+        cache.close();
     }
 
     @Test

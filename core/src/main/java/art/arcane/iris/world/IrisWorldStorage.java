@@ -488,7 +488,8 @@ public final class IrisWorldStorage {
                 .toAbsolutePath()
                 .normalize();
         try {
-            return GenerationHistory.open(root).activePackRoot().toFile();
+            GenerationHistory history = GenerationHistory.open(root);
+            return history.paths().packRoot(history.activeEpoch().epochId()).toFile();
         } catch (IOException failure) {
             throw new IllegalStateException("Iris generation history is unusable at " + root + ".", failure);
         }
@@ -500,7 +501,8 @@ public final class IrisWorldStorage {
                 .toAbsolutePath()
                 .normalize();
         try {
-            return GenerationHistory.open(root, expectedWorldSeed).activePackRoot().toFile();
+            GenerationHistory history = GenerationHistory.open(root, expectedWorldSeed);
+            return history.paths().packRoot(history.activeEpoch().epochId()).toFile();
         } catch (IOException failure) {
             throw new IllegalStateException("Iris generation history is unusable at " + root + ".", failure);
         }

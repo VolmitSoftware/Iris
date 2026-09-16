@@ -199,6 +199,49 @@ public class ServerConfiguratorDatapackFingerprintTest {
     }
 
     @Test
+    public void fingerprintsIgnoreNestedFinderMetadata() throws Exception {
+        File packsDir = tmp.newFolder("finder-metadata-packs");
+        Path pack = packsDir.toPath().resolve("overworld");
+        Path dimension = pack.resolve("dimensions/overworld.json");
+        Path metadata = pack.resolve("objects/nested/.DS_Store");
+        Files.createDirectories(dimension.getParent());
+        Files.createDirectories(metadata.getParent());
+        Files.writeString(dimension, "authored", StandardCharsets.UTF_8);
+        ServerConfigurator.PackContentSnapshot before = ServerConfigurator.computePackContentSnapshot(packsDir);
+        String metadataBefore = ServerConfigurator.computePackMetadataDigest(packsDir);
+
+        for (String content : new String[]{"initial Finder layout", "updated Finder layout with different length"}) {
+            Files.writeString(metadata, content, StandardCharsets.UTF_8);
+            ServerConfigurator.PackContentSnapshot after = ServerConfigurator.computePackContentSnapshot(packsDir);
+            assertEquals(before, after);
+            assertEquals(before.packContents().get("overworld"),
+                    ServerConfigurator.computePackTreeFingerprint(pack.toFile()));
+            assertEquals(metadataBefore, ServerConfigurator.computePackMetadataDigest(packsDir));
+        }
+    }
+
+    @Test
+    public void fingerprintsStillDetectNestedResourceChangesAlongsideFinderMetadata() throws Exception {
+        File packsDir = tmp.newFolder("finder-resource-packs");
+        Path pack = packsDir.toPath().resolve("overworld");
+        Path resource = pack.resolve("objects/nested/tree.iob");
+        Files.createDirectories(resource.getParent());
+        Files.writeString(resource, "aaaa", StandardCharsets.UTF_8);
+        Files.writeString(resource.resolveSibling(".DS_Store"), "Finder layout", StandardCharsets.UTF_8);
+        FileTime originalMtime = Files.getLastModifiedTime(resource);
+        ServerConfigurator.PackContentSnapshot before = ServerConfigurator.computePackContentSnapshot(packsDir);
+
+        Files.writeString(resource, "bbbb", StandardCharsets.UTF_8);
+        Files.setLastModifiedTime(resource, originalMtime);
+        ServerConfigurator.PackContentSnapshot after = ServerConfigurator.computePackContentSnapshot(packsDir);
+
+        assertNotEquals(before.content(), after.content());
+        assertNotEquals(before.packContents().get("overworld"), after.packContents().get("overworld"));
+        assertEquals(after.packContents().get("overworld"),
+                ServerConfigurator.computePackTreeFingerprint(pack.toFile()));
+    }
+
+    @Test
     public void resolvePackFingerprintReusesCachedContentWhileMetadataIsUnchanged() throws Exception {
         File packsDir = tmp.newFolder("two-tier-packs");
         Path dimension = packsDir.toPath().resolve("testpack/dimensions/overworld.json");

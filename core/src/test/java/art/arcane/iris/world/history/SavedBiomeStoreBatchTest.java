@@ -9,13 +9,17 @@ import org.mockito.MockedConstruction;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -40,6 +44,56 @@ import static org.mockito.Mockito.withSettings;
 public class SavedBiomeStoreBatchTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Test
+    public void independentOriginRegionsPersistWhileOneRegionRemainsLocked() throws Exception {
+        Path root = temporaryFolder.newFolder().toPath();
+        SavedBiomeStore store = SavedBiomeStore.open(root);
+        Object lockedRegion = regionLock(store, 0, 0);
+        List<SavedBiomeChunk> independent = List.of(chunk(-1, -1, 3L), chunk(-1, 0, 3L), chunk(0, -1, 3L));
+        Set<Object> owners = Collections.newSetFromMap(new IdentityHashMap<>());
+        owners.add(lockedRegion);
+        for (SavedBiomeChunk chunk : independent) {
+            Object owner = regionLock(store, chunk.chunkX(), chunk.chunkZ());
+            assertTrue(owners.add(owner));
+            assertSame(owner, regionLock(store, chunk.chunkX() & ~31, chunk.chunkZ() & ~31));
+            assertSame(owner, regionLock(store, chunk.chunkX() | 31, chunk.chunkZ() | 31));
+        }
+        CountDownLatch started = new CountDownLatch(4);
+        ExecutorService workers = Executors.newFixedThreadPool(4);
+        List<Future<Boolean>> writes = new ArrayList<>();
+        Future<Boolean> sameRegion;
+        try {
+            synchronized (lockedRegion) {
+                for (SavedBiomeChunk chunk : independent) {
+                    writes.add(workers.submit(() -> {
+                        started.countDown();
+                        return store.claimAndPersist(chunk);
+                    }));
+                }
+                sameRegion = workers.submit(() -> {
+                    started.countDown();
+                    return store.claimAndPersist(chunk(31, 31, 3L));
+                });
+                assertTrue(started.await(5, TimeUnit.SECONDS));
+                for (Future<Boolean> write : writes) {
+                    assertTrue(write.get(5, TimeUnit.SECONDS));
+                }
+                assertFalse(sameRegion.isDone());
+                assertTrue(store.cached(31, 31).isEmpty());
+                assertSame(lockedRegion, regionLock(store, 31, 31));
+            }
+            assertTrue(sameRegion.get(5, TimeUnit.SECONDS));
+            SavedBiomeStore reopened = SavedBiomeStore.open(root);
+            for (SavedBiomeChunk chunk : independent) {
+                assertEquals(chunk, reopened.get(chunk.chunkX(), chunk.chunkZ()).orElseThrow());
+            }
+            assertEquals(chunk(31, 31, 3L), reopened.get(31, 31).orElseThrow());
+        } finally {
+            workers.shutdownNow();
+            assertTrue(workers.awaitTermination(10, TimeUnit.SECONDS));
+        }
+    }
 
     @Test
     public void queuedClaimsShareOneForceAndPublishAfterItCompletes() throws Exception {
@@ -158,8 +212,9 @@ public class SavedBiomeStoreBatchTest {
             List<Future<ClaimResult>> results = enqueue(store, root, control, workers,
                     List.of(chunk(1, 3L), chunk(2, 3L), chunk(3, 3L), chunk(4, 3L)));
             assertTrue(control.forcing.await(5, TimeUnit.SECONDS));
+            Object writingRegion = regionLock(store, 0, 0);
             for (int region = 1; region <= 132; region++) {
-                if ((region & 63) != 0) {
+                if (regionLock(store, region << 5, 0) != writingRegion) {
                     assertTrue(store.get(region << 5, 0).isEmpty());
                 }
             }
@@ -194,9 +249,7 @@ public class SavedBiomeStoreBatchTest {
 
     private static List<Future<ClaimResult>> enqueue(SavedBiomeStore store, Path root, BatchControl control,
                                                     ExecutorService workers, List<SavedBiomeChunk> chunks) throws Exception {
-        Field locksField = SavedBiomeStore.class.getDeclaredField("regionLocks");
-        locksField.setAccessible(true);
-        Object stripe = ((Object[]) locksField.get(store))[0];
+        Object stripe = regionLock(store, 0, 0);
         Field writingField = stripe.getClass().getDeclaredField("writing");
         Field pendingField = stripe.getClass().getDeclaredField("pending");
         writingField.setAccessible(true);
@@ -252,16 +305,26 @@ public class SavedBiomeStoreBatchTest {
     }
 
     private static SavedBiomeChunk chunk(int x, long activation) {
+        return chunk(x, 0, activation);
+    }
+
+    private static SavedBiomeChunk chunk(int x, int z, long activation) {
         SavedBiomeChunk.Cell cell = new SavedBiomeChunk.Cell(activation, "biome", "region");
         SavedBiomeChunk.Column column = new SavedBiomeChunk.Column(cell, cell,
                 List.of(new SavedBiomeChunk.Span(-64, 320, cell)));
-        SavedBiomeChunk.Builder builder = SavedBiomeChunk.builder(new SavedBiomeChunk.Header(x, 0, activation, -64, 384));
-        for (int z = 0; z < 16; z++) {
+        SavedBiomeChunk.Builder builder = SavedBiomeChunk.builder(new SavedBiomeChunk.Header(x, z, activation, -64, 384));
+        for (int localZ = 0; localZ < 16; localZ++) {
             for (int localX = 0; localX < 16; localX++) {
-                builder.column(localX, z, column);
+                builder.column(localX, localZ, column);
             }
         }
         return builder.build();
+    }
+
+    private static Object regionLock(SavedBiomeStore store, int x, int z) throws ReflectiveOperationException {
+        Method lock = SavedBiomeStore.class.getDeclaredMethod("regionLock", int.class, int.class);
+        lock.setAccessible(true);
+        return lock.invoke(store, x, z);
     }
 
     private static final class BatchControl {

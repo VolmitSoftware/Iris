@@ -73,6 +73,28 @@ public class GenerationPackRepositoryTest {
     }
 
     @Test
+    public void rejectsAChangedCopyBeforePublishingTheEpoch() throws Exception {
+        Path dimensionRoot = temporaryFolder.newFolder("changed-copy-world").toPath();
+        Path source = createPack("changed-copy-source", "{}");
+        String expected = fingerprint(source);
+        String epochId = digest('a');
+        GenerationPackRepository repository = new GenerationPackRepository(dimensionRoot);
+        try (MockedStatic<GenerationPackFingerprint> ignored = mockStatic(GenerationPackFingerprint.class, invocation -> {
+            if (invocation.getMethod().getName().equals("compute")) {
+                Path pack = invocation.getArgument(0);
+                if (pack.getFileName().toString().startsWith(".pack-")) {
+                    Files.writeString(pack.resolve("dimensions/main.json"), "changed");
+                }
+            }
+            return invocation.callRealMethod();
+        })) {
+            assertThrows(IOException.class, () -> repository.publish(
+                    epochId, expected, GenerationPackFingerprint.CURRENT_VERSION, source));
+            assertFalse(Files.exists(repository.packRoot(epochId)));
+        }
+    }
+
+    @Test
     public void finderMetadataCreatedDuringPublicationDoesNotChangeVersionTwoIdentity() throws Exception {
         Path dimensionRoot = temporaryFolder.newFolder("finder-world").toPath();
         Path source = createPack("finder-source", "{}");

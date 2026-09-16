@@ -42,7 +42,7 @@ final class PaperLikeRuntimeControlBackend implements WorldRuntimeControlBackend
         }
 
         TimeAccessStrategy strategy = resolveTimeAccessStrategy(world);
-        if (strategy == null) {
+        if (strategy == null || strategy.handleMethod() == null || strategy.readMethod() == null) {
             return OptionalLong.empty();
         }
 

@@ -1,19 +1,27 @@
 package art.arcane.iris.generation.hydrology;
 
 import art.arcane.iris.generation.hydrology.policy.SurfaceRiverPolicy;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.OptionalLong;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class StudioHydrologyTileStoreTest {
@@ -35,9 +43,29 @@ public class StudioHydrologyTileStoreTest {
         assertEquals(original.edges(), restored.edges());
         assertEquals(original.outlets(), restored.outlets());
         assertEquals(original.courses(), restored.courses());
+        assertEquals(original.regionalCourseIds(), restored.regionalCourseIds());
         assertEquals(original.cavePlans(), restored.cavePlans());
-        assertEquals(original.diagnosticCandidates(), restored.diagnosticCandidates());
+        assertEquals(original.localDiagnosticCandidates(), restored.localDiagnosticCandidates());
         assertEquals(original.footprint(), restored.footprint());
+        assertThrows(UnsupportedOperationException.class, () -> restored.regionalCourseIds().clear());
+    }
+
+    @Test
+    public void entryRequiresRegionalOwnershipMetadata() throws Exception {
+        HydrologyTile original = tile();
+        StudioHydrologyTileStore store = store();
+        store.save(original);
+        Path file = store.file(original.key());
+        JsonObject persisted;
+        try (InputStream input = new GZIPInputStream(Files.newInputStream(file))) {
+            persisted = JsonParser.parseString(new String(input.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
+        }
+        persisted.remove("regionalCourseIds");
+        try (OutputStream output = new GZIPOutputStream(Files.newOutputStream(file))) {
+            output.write(persisted.toString().getBytes(StandardCharsets.UTF_8));
+        }
+
+        assertTrue(store.load(original.key()).isEmpty());
     }
 
     @Test
@@ -168,6 +196,7 @@ public class StudioHydrologyTileStoreTest {
                 List.of(),
                 List.of(outlet),
                 List.of(course),
+                Set.of(course.id()),
                 List.of(),
                 List.of(),
                 new RiverFootprint(Map.of(RiverFootprint.pack(0, 0), column))

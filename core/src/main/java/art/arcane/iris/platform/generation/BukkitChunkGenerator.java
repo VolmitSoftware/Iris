@@ -77,6 +77,7 @@ import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.volmlib.util.io.ReactiveFolder;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.iris.world.task.J;
+import art.arcane.iris.world.runtime.WorldRuntimeControlService;
 import art.arcane.volmlib.util.scheduling.Looper;
 import io.papermc.lib.PaperLib;
 import lombok.Data;
@@ -98,6 +99,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -121,6 +123,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private static final int LOAD_LOCKS = Runtime.getRuntime().availableProcessors() * 4;
     private static final long HOTLOAD_LOOP_DELAY_MS = 250L;
     private static final long HOTLOAD_MAINTENANCE_DELAY_MS = 4000L;
+    private static final int PLAYER_ENTRY_MOVE_PADDING = 3;
     private final GenerationStageGate loadLock;
     private final IrisWorld world;
     private final File dataLocation;
@@ -153,6 +156,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private volatile CompletableFuture<Void> startupContentReady = CompletableFuture.completedFuture(null);
     private volatile CompletableFuture<Void> startupReady = CompletableFuture.completedFuture(null);
     private volatile boolean closing;
+    private volatile boolean initialEntryPending;
+    private volatile boolean initialPlayerEntryPending;
     @Setter
     private volatile StudioGenerator studioGenerator;
 
@@ -391,9 +396,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
             int spawnX = spawn.getBlockX();
             int spawnZ = spawn.getBlockZ();
-            if (studio && expectedEngine.getDimension().getStudioMode() == StudioMode.NORMAL
+            if ((initialEntryPending || studio && expectedEngine.getDimension().getStudioMode() == StudioMode.NORMAL)
                     && expectedEngine instanceof IrisEngine irisEngine) {
-                irisEngine.startStudioEntryHydrology(spawnX, spawnZ);
+                irisEngine.startEntryHydrology(spawnX, spawnZ);
                 return;
             }
             int reach = Math.max(16, hydrology.settings().routing().tileSize() / 2);
@@ -411,9 +416,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private void updateSpawnLocation(World world) {
         try {
             Location initialSpawn = getInitialSpawnLocation(world);
-            int chunkX = initialSpawn.getBlockX() >> 4;
-            int chunkZ = initialSpawn.getBlockZ() >> 4;
-            CompletableFuture<Chunk> chunkFuture = requestChunkAsync(world, chunkX, chunkZ, true);
+            CompletableFuture<Chunk> chunkFuture = requestInitialSpawnChunks(world, initialSpawn);
             if (chunkFuture == null) {
                 initialSpawnReady.completeExceptionally(new IllegalStateException(
                         "Initial spawn chunk request returned no completion future for world \""
@@ -452,6 +455,72 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         } catch (Throwable failure) {
             initialSpawnReady.completeExceptionally(failure);
         }
+    }
+
+    private CompletableFuture<Chunk> requestInitialSpawnChunks(World world, Location initialSpawn) {
+        int chunkX = initialSpawn.getBlockX() >> 4;
+        int chunkZ = initialSpawn.getBlockZ() >> 4;
+        if (!initialEntryPending) {
+            return requestChunkAsync(world, chunkX, chunkZ, true);
+        }
+        WorldRuntimeControlService runtime = WorldRuntimeControlService.get();
+        CompletableFuture<Chunk> canonical = runtime.requestChunkAsync(world, chunkX, chunkZ, true, true);
+        if (canonical == null || !initialPlayerEntryPending) {
+            return canonical;
+        }
+        List<CompletableFuture<Chunk>> requests = new ArrayList<>(4);
+        requests.add(canonical);
+        int minimumX = (initialSpawn.getBlockX() - PLAYER_ENTRY_MOVE_PADDING) >> 4;
+        int maximumX = (initialSpawn.getBlockX() + PLAYER_ENTRY_MOVE_PADDING) >> 4;
+        int minimumZ = (initialSpawn.getBlockZ() - PLAYER_ENTRY_MOVE_PADDING) >> 4;
+        int maximumZ = (initialSpawn.getBlockZ() + PLAYER_ENTRY_MOVE_PADDING) >> 4;
+        for (int x = minimumX; x <= maximumX; x++) {
+            for (int z = minimumZ; z <= maximumZ; z++) {
+                if (x == chunkX && z == chunkZ) {
+                    continue;
+                }
+                try {
+                    CompletableFuture<Chunk> request = runtime.requestChunkAsync(world, x, z, true, true);
+                    if (request == null) {
+                        throw new IllegalStateException("Initial player entry chunk request returned no completion future for world \""
+                                + world.getName() + "\" at " + x + "," + z + ".");
+                    }
+                    requests.add(request.thenApply(chunk -> Objects.requireNonNull(chunk,
+                            "Initial player entry chunk request completed without a chunk.")));
+                } catch (RuntimeException | Error failure) {
+                    requests.add(CompletableFuture.failedFuture(failure));
+                }
+            }
+        }
+        CompletableFuture<Chunk> prepared = new CompletableFuture<>();
+        CompletableFuture.allOf(requests.toArray(CompletableFuture<?>[]::new)).whenComplete((ignored, failure) -> {
+            if (failure == null) {
+                prepared.complete(canonical.getNow(null));
+                return;
+            }
+            Throwable firstFailure = null;
+            IdentityHashMap<Throwable, Boolean> failures = new IdentityHashMap<>();
+            for (CompletableFuture<Chunk> request : requests) {
+                Throwable requestFailure = request.handle((chunk, cause) -> cause).getNow(null);
+                if (requestFailure == null) {
+                    continue;
+                }
+                Throwable distinctCause = requestFailure;
+                while (distinctCause instanceof CompletionException && distinctCause.getCause() != null) {
+                    distinctCause = distinctCause.getCause();
+                }
+                if (failures.put(distinctCause, Boolean.TRUE) != null) {
+                    continue;
+                }
+                if (firstFailure == null) {
+                    firstFailure = request == canonical ? requestFailure : distinctCause;
+                } else {
+                    firstFailure.addSuppressed(distinctCause);
+                }
+            }
+            prepared.completeExceptionally(firstFailure);
+        });
+        return prepared;
     }
 
     private void completeSpawnLocation(World world, Location initialSpawn) {
@@ -515,8 +584,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             lastJigsawStudioRequestId = null;
             if (generationHistory != null) {
                 try {
-                    generationHistory.prepareCurrentGenerator(IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks());
-                    targetCache.reset();
+                    prepareGenerationHistoryTarget(IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks());
                 } catch (IOException failure) {
                     throw new IllegalStateException("Unable to prepare saved Iris terrain for the current generator.", failure);
                 }
@@ -568,9 +636,38 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                     isAuthoringStudio(),
                     studioEntryBootstrapActive.get(),
                     initializationFailure != null));
-            engine = createdEngine;
+            publishInitializedEngine(createdEngine);
             populators.clear();
             targetCache.reset();
+        }
+    }
+
+    synchronized void publishInitializedEngine(IrisEngine initializedEngine) {
+        if (initialEntryPending) {
+            setInitialEntryNeighbourPrefetch(initializedEngine, false);
+        }
+        engine = initializedEngine;
+    }
+
+    void prepareGenerationHistoryTarget(int transitionWidthBlocks) throws IOException {
+        generationHistory.prepareCurrentGenerator(transitionWidthBlocks);
+        EngineTarget cachedTarget = targetCache.getIfPresent();
+        if (cachedTarget == null) {
+            return;
+        }
+        Path activePackRoot = generationHistory.activePackRoot();
+        IrisData cachedData = cachedTarget.getData();
+        if (!cachedData.isClosed() && cachedData.getDataFolder().toPath().equals(activePackRoot)) {
+            return;
+        }
+        targetCache.reset();
+        EngineTarget pendingTarget = startupTarget;
+        Engine activeEngine = engine;
+        if (!cachedData.isClosed()
+                && cachedData.getEngines().isEmpty()
+                && (pendingTarget == null || pendingTarget.getData() != cachedData)
+                && (activeEngine == null || activeEngine.getData() != cachedData)) {
+            cachedData.close();
         }
     }
 
@@ -604,7 +701,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private IrisEngine createEngine(EngineTarget engineTarget) {
-        IrisEngine.InitializationMode mode = selectInitializationMode(studio, jigsawStudioActive, objectStudioActive);
+        IrisEngine.InitializationMode mode = selectInitializationMode(studio, jigsawStudioActive, objectStudioActive,
+                initialEntryPending);
         if (generationHistory == null) {
             return new IrisEngine(engineTarget, mode);
         }
@@ -638,9 +736,10 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         return new IllegalStateException("Unable to attach Iris generation history.", failure);
     }
 
-    static IrisEngine.InitializationMode selectInitializationMode(boolean studio, boolean jigsawStudioActive, boolean objectStudioActive) {
+    static IrisEngine.InitializationMode selectInitializationMode(boolean studio, boolean jigsawStudioActive,
+                                                                 boolean objectStudioActive, boolean initialEntry) {
         if (!studio) {
-            return IrisEngine.InitializationMode.RUNTIME;
+            return initialEntry ? IrisEngine.InitializationMode.WORLD_CREATION : IrisEngine.InitializationMode.RUNTIME;
         }
         return jigsawStudioActive
                 ? IrisEngine.InitializationMode.JIGSAW_STUDIO
@@ -864,12 +963,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 // reject generation for a world that may still be loaded.
                 closing = false;
             }
+            completeInitialEntry();
             closeFuture.compareAndSet(future, null);
             future.completeExceptionally(throwable);
             return future;
         }
 
         operation.whenComplete((ignored, throwable) -> {
+            completeInitialEntry();
             if (throwable == null) {
                 future.complete(null);
             } else {
@@ -896,6 +997,36 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public boolean isStudio() {
         return studio;
+    }
+
+    @Override
+    public synchronized void beginInitialEntry(boolean playerEntry) {
+        if (studio || closing || engine != null) {
+            throw new IllegalStateException("Initial world entry must begin before a normal generator initializes.");
+        }
+        initialEntryPending = true;
+        initialPlayerEntryPending = playerEntry;
+    }
+
+    @Override
+    public synchronized void completeInitialEntry() {
+        if (!initialEntryPending) {
+            return;
+        }
+        initialEntryPending = false;
+        initialPlayerEntryPending = false;
+        setInitialEntryNeighbourPrefetch(engine, true);
+    }
+
+    private void setInitialEntryNeighbourPrefetch(Engine activeEngine, boolean enabled) {
+        if (activeEngine == null || activeEngine.isClosed()) {
+            return;
+        }
+        IrisComplex complex = activeEngine.getComplex();
+        IrisHydrologyRuntime hydrology = complex == null ? null : complex.getHydrologyRuntime();
+        if (hydrology != null) {
+            hydrology.setNeighbourPrefetchEnabled(enabled);
+        }
     }
 
     public void endStudioEntryBootstrap() {

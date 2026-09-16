@@ -1,16 +1,21 @@
 package art.arcane.iris.generation.hydrology;
 
+import art.arcane.iris.generation.concurrent.MultiBurst;
+import art.arcane.iris.generation.hydrology.policy.SurfaceRiverPolicy;
+import art.arcane.iris.spi.IrisPlatforms;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import art.arcane.iris.generation.hydrology.policy.SurfaceRiverPolicy;
+import java.util.Objects;
+import java.util.concurrent.Callable;
 
 final class HydrologyOutletPlanner {
+    private static final int REGIONAL_SHORELINE_WINDOW = 4;
     private final HydrologyPlanner planner;
 
     HydrologyOutletPlanner(HydrologyPlanner planner) {
@@ -133,43 +138,93 @@ final class HydrologyOutletPlanner {
     ArrayList<OutletCandidate> oceanOutletCandidates(HydrologySampledGrid grid, boolean surface) {
         ArrayList<OutletCandidate> oceanCandidates = new ArrayList<>();
         for (HydrologyGridNode land : grid.nodes()) {
-            if (land.terrain().ocean() || !land.terrain().transitAllowed() || !land.terrain().outletAllowed()) {
+            Shoreline shoreline = shoreline(grid, land, surface);
+            if (shoreline == null) {
                 continue;
             }
-            HydrologyGridNode ocean = firstOceanNeighbor(grid, land, surface);
-            if (ocean == null || !land.terrain().drainsInto(ocean.terrain())) {
-                // A confined shore only reaches a sea that belongs to its own area.
-                continue;
+            OutletCandidate candidate = oceanOutletCandidate(shoreline.land(), shoreline.ocean(), surface);
+            if (candidate != null) {
+                oceanCandidates.add(candidate);
             }
-            HydrologyOceanBoundaryRefiner.Result boundary = refineOceanBoundary(land, ocean);
-            if (boundary == null) {
-                continue;
-            }
-            HydrologyTerrainSample receiving = planner.sampleBasisWithoutSlope(boundary.oceanPoint().x(), boundary.oceanPoint().z());
-            if (receiving == null || !boundary.landwardTerrain().drainsInto(receiving)
-                    || !boundary.landwardTerrain().transitAllowed()
-                    || !boundary.landwardTerrain().outletAllowed()
-                    || surface && !HydrologySurfaceProfiles.sharesProfile(boundary.landwardTerrain(), receiving)) {
-                continue;
-            }
-            HydrologyFeatureType type = coastalOutletType(boundary.landwardTerrain());
-            if (type == null) {
-                continue;
-            }
-            long outletId = HydrologyHash.mix(planner.worldSeed, OUTLET_SALT, land.id(), ocean.id(), type.ordinal());
-            int seaLevel = planner.settingsSeaLevel(ocean.terrain());
-            RiverOutlet outlet = new RiverOutlet(
-                    outletId,
-                    type,
-                    land.id(),
-                    HydrologyPlanner.withY(boundary.landwardPoint(), seaLevel),
-                    HydrologyPlanner.withY(boundary.oceanPoint(), seaLevel),
-                    seaLevel,
-                    true
-            );
-            oceanCandidates.add(new OutletCandidate(land.index(), ocean.index(), outlet));
         }
         return oceanCandidates;
+    }
+
+    ArrayList<OutletCandidate> regionalOceanOutletCandidates(HydrologySampledGrid grid) {
+        ArrayList<OutletCandidate> oceanCandidates = new ArrayList<>();
+        int index = 0;
+        while (index < grid.nodes().size()) {
+            ArrayList<Callable<OutletCandidate>> tasks = new ArrayList<>(REGIONAL_SHORELINE_WINDOW);
+            while (index < grid.nodes().size() && tasks.size() < REGIONAL_SHORELINE_WINDOW) {
+                Shoreline shoreline = shoreline(grid, grid.nodes().get(index++), true);
+                if (shoreline != null) {
+                    tasks.add(() -> regionalOceanOutletCandidate(shoreline));
+                }
+            }
+            for (OutletCandidate candidate : HydrologyForkJoin.invokeAll(tasks,
+                    IrisPlatforms.isBound() ? MultiBurst.hydrology : null)) {
+                if (candidate != null) {
+                    oceanCandidates.add(candidate);
+                }
+            }
+        }
+        return oceanCandidates;
+    }
+
+    private OutletCandidate regionalOceanOutletCandidate(Shoreline shoreline) {
+        HydrologyPlanner.PlanningSamples previous = planner.planningSamples.get();
+        planner.planningSamples.set(new HydrologyPlanner.PlanningSamples());
+        try {
+            return oceanOutletCandidate(shoreline.land(), shoreline.ocean(), true);
+        } finally {
+            if (previous == null) {
+                planner.planningSamples.remove();
+            } else {
+                planner.planningSamples.set(previous);
+            }
+        }
+    }
+
+    private Shoreline shoreline(HydrologySampledGrid grid, HydrologyGridNode land, boolean surface) {
+        if (land.terrain().ocean() || !land.terrain().transitAllowed() || !land.terrain().outletAllowed()) {
+            return null;
+        }
+        HydrologyGridNode ocean = firstOceanNeighbor(grid, land, surface);
+        if (ocean == null || !land.terrain().drainsInto(ocean.terrain())) {
+            // A confined shore only reaches a sea that belongs to its own area.
+            return null;
+        }
+        return new Shoreline(land, ocean);
+    }
+
+    private OutletCandidate oceanOutletCandidate(HydrologyGridNode land, HydrologyGridNode ocean, boolean surface) {
+        HydrologyOceanBoundaryRefiner.Result boundary = refineOceanBoundary(land, ocean);
+        if (boundary == null) {
+            return null;
+        }
+        HydrologyTerrainSample receiving = planner.sampleBasisWithoutSlope(boundary.oceanPoint().x(), boundary.oceanPoint().z());
+        if (receiving == null || !boundary.landwardTerrain().drainsInto(receiving)
+                || !boundary.landwardTerrain().transitAllowed()
+                || !boundary.landwardTerrain().outletAllowed()
+                || surface && !HydrologySurfaceProfiles.sharesProfile(boundary.landwardTerrain(), receiving)) {
+            return null;
+        }
+        HydrologyFeatureType type = coastalOutletType(boundary.landwardTerrain());
+        if (type == null) {
+            return null;
+        }
+        long outletId = HydrologyHash.mix(planner.worldSeed, OUTLET_SALT, land.id(), ocean.id(), type.ordinal());
+        int seaLevel = planner.settingsSeaLevel(ocean.terrain());
+        RiverOutlet outlet = new RiverOutlet(
+                outletId,
+                type,
+                land.id(),
+                HydrologyPlanner.withY(boundary.landwardPoint(), seaLevel),
+                HydrologyPlanner.withY(boundary.oceanPoint(), seaLevel),
+                seaLevel,
+                true
+        );
+        return new OutletCandidate(land.index(), ocean.index(), outlet);
     }
 
     List<OutletCandidate> resolveSurfaceFallbackOutlets(HydrologySampledGrid grid) {
@@ -727,5 +782,8 @@ final class HydrologyOutletPlanner {
     }
 
     record InlandConnection(HydrologyPoint point, HydrologyTerrainSample terrain) {
+    }
+
+    private record Shoreline(HydrologyGridNode land, HydrologyGridNode ocean) {
     }
 }

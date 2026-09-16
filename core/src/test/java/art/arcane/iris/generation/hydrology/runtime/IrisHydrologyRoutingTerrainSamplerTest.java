@@ -269,6 +269,43 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
     }
 
     @Test
+    public void slopeReusesBasisHeightAfterNaturalHeightEvictionUntilClose() {
+        Map<Long, Integer> heightCalls = new HashMap<>();
+        IrisHydrologyRoutingTerrainSampler sampler = new IrisHydrologyRoutingTerrainSampler(
+                new IrisHydrologyRoutingTerrainSampler.Sources(
+                        (int x, int z, double naturalHeight) -> basis(x, z, naturalHeight),
+                        (int x, int z) -> {
+                            heightCalls.merge(pack(x, z), 1, Integer::sum);
+                            return height(x, z);
+                        },
+                        (int x, int z) -> false,
+                        128
+                ),
+                IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(2)
+        );
+
+        sampler.sampleBasisWithoutSlope(0, 0);
+        sampler.localSlope(16, 16, height(16, 16));
+        assertEquals(3, heightCalls.size());
+        assertEquals(2, sampler.naturalHeightCacheSize());
+        assertEquals(1, sampler.basisCacheSize());
+
+        double expected = IrisHydrologyRoutingTerrainSampler.localSlope(
+                height(-3, 0), height(0, 0), height(-3, 3));
+        double actual = sampler.localSlope(-3, 0, height(-3, 0));
+
+        assertEquals(Double.doubleToRawLongBits(expected), Double.doubleToRawLongBits(actual));
+        assertEquals(1, heightCalls.get(pack(0, 0)).intValue());
+        assertEquals(4, heightCalls.size());
+
+        sampler.close();
+        double afterClose = sampler.localSlope(-3, 0, height(-3, 0));
+
+        assertEquals(Double.doubleToRawLongBits(expected), Double.doubleToRawLongBits(afterClose));
+        assertEquals(2, heightCalls.get(pack(0, 0)).intValue());
+    }
+
+    @Test
     public void denseDetailedStencilsShareRawNaturalHeights() {
         AtomicInteger basisCalls = new AtomicInteger();
         AtomicInteger heightCalls = new AtomicInteger();

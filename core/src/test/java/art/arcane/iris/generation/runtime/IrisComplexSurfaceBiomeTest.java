@@ -129,7 +129,8 @@ public class IrisComplexSurfaceBiomeTest {
                 70D,
                 constant(base),
                 constant(sea),
-                constant(base)
+                constant(base),
+                constantSlope(0D)
         );
 
         assertSame(sea, resolved);
@@ -152,7 +153,8 @@ public class IrisComplexSurfaceBiomeTest {
                 63D,
                 constant(base),
                 constant(base),
-                constant(shore)
+                constant(shore),
+                constantSlope(0D)
         );
 
         assertSame(shore, resolved);
@@ -176,10 +178,149 @@ public class IrisComplexSurfaceBiomeTest {
                 63D,
                 constant(land),
                 constant(aquatic),
-                constant(aquatic)
+                constant(aquatic),
+                constantSlope(0D)
         );
 
         assertSame(land, resolved);
+    }
+
+    @Test
+    public void zeroShoreMinimumWidthLeavesTheVerticalBandAlone() {
+        IrisBiome base = mock(IrisBiome.class);
+        IrisBiome land = mock(IrisBiome.class);
+        IrisRegion region = mock(IrisRegion.class);
+        doReturn(false).when(base).isShore();
+        doReturn(false).when(base).isLand();
+        doReturn(3D).when(region).getShoreHeight(12D, 18D);
+        doReturn(0D).when(region).getShoreMinimumWidth();
+
+        IrisBiome resolved = IrisComplex.resolveSurfaceBiome(
+                72D,
+                base,
+                region,
+                12D,
+                18D,
+                63D,
+                constant(land),
+                constant(base),
+                constant(base),
+                unsampledSlopes()
+        );
+
+        assertSame(land, resolved);
+    }
+
+    @Test
+    public void shoreMinimumWidthWidensTheBandOnSteepGround() {
+        IrisBiome base = mock(IrisBiome.class);
+        IrisBiome shore = mock(IrisBiome.class);
+        IrisRegion region = mock(IrisRegion.class);
+        doReturn(false).when(base).isShore();
+        doReturn(3D).when(region).getShoreHeight(12D, 18D);
+        doReturn(3D).when(region).getShoreMinimumWidth();
+
+        IrisBiome resolved = IrisComplex.resolveSurfaceBiome(
+                74D,
+                base,
+                region,
+                12D,
+                18D,
+                63D,
+                constant(base),
+                constant(base),
+                constant(shore),
+                constantSlope(9D)
+        );
+
+        assertSame(shore, resolved);
+    }
+
+    @Test
+    public void shoreMinimumWidthDoesNothingOnFlatGround() {
+        IrisBiome base = mock(IrisBiome.class);
+        IrisBiome land = mock(IrisBiome.class);
+        IrisRegion region = mock(IrisRegion.class);
+        doReturn(false).when(base).isShore();
+        doReturn(false).when(base).isLand();
+        doReturn(3D).when(region).getShoreHeight(12D, 18D);
+        doReturn(3D).when(region).getShoreMinimumWidth();
+
+        IrisBiome resolved = IrisComplex.resolveSurfaceBiome(
+                67D,
+                base,
+                region,
+                12D,
+                18D,
+                63D,
+                constant(land),
+                constant(base),
+                constant(base),
+                constantSlope(0D)
+        );
+
+        assertSame(land, resolved);
+    }
+
+    @Test
+    public void widenedBandStillLeavesDeepWaterAndHighGroundAlone() {
+        IrisBiome base = mock(IrisBiome.class);
+        IrisBiome sea = mock(IrisBiome.class);
+        IrisBiome land = mock(IrisBiome.class);
+        IrisRegion region = mock(IrisRegion.class);
+        doReturn(false).when(base).isShore();
+        doReturn(false).when(base).isLand();
+        doReturn(false).when(base).isAquatic();
+        doReturn(3D).when(region).getShoreHeight(12D, 18D);
+        doReturn(3D).when(region).getShoreMinimumWidth();
+
+        assertSame(sea, IrisComplex.resolveSurfaceBiome(
+                60D,
+                base,
+                region,
+                12D,
+                18D,
+                63D,
+                constant(land),
+                constant(sea),
+                constant(base),
+                unsampledSlopes()
+        ));
+        assertSame(land, IrisComplex.resolveSurfaceBiome(
+                200D,
+                base,
+                region,
+                12D,
+                18D,
+                63D,
+                constant(land),
+                constant(sea),
+                constant(base),
+                unsampledSlopes()
+        ));
+    }
+
+    @Test
+    public void shoreBandTopTradesHorizontalWidthForHeightOnSlopes() {
+        IrisRegion region = mock(IrisRegion.class);
+        doReturn(3D).when(region).getShoreHeight(12D, 18D);
+        doReturn(3D).when(region).getShoreMinimumWidth();
+
+        assertEquals(66D, IrisComplex.shoreBandTop(67D, region, 12D, 18D, 63D, constantSlope(0D)), 0D);
+        assertEquals(75D, IrisComplex.shoreBandTop(74D, region, 12D, 18D, 63D, constantSlope(9D)), 0D);
+        assertEquals(75D, IrisComplex.shoreBandTop(74D, region, 12D, 18D, 63D, constantSlope(120D)), 0D);
+        assertEquals(66D, IrisComplex.shoreBandTop(80D, region, 12D, 18D, 63D, constantSlope(120D)), 0D);
+        assertEquals(66D, IrisComplex.shoreBandTop(64D, region, 12D, 18D, 63D, unsampledSlopes()), 0D);
+    }
+
+    private static ProceduralStream<Double> constantSlope(double slope) {
+        return ProceduralStream.ofDouble((x, z) -> slope);
+    }
+
+    private static ProceduralStream<Double> unsampledSlopes() {
+        return ProceduralStream.ofDouble((x, z) -> {
+            throw new AssertionError("The shore band sampled the slope for a column that cannot be widened");
+        });
     }
 
     private static ProceduralStream<IrisBiome> constant(IrisBiome biome) {
@@ -187,6 +328,11 @@ public class IrisComplexSurfaceBiomeTest {
         ProceduralStream<IrisBiome> stream = mock(ProceduralStream.class);
         doReturn(biome).when(stream).get(anyDouble(), anyDouble());
         return stream;
+    }
+
+    @Test
+    public void regionShoreMinimumWidthDefaultsToZeroSoExistingPacksAreUnchanged() {
+        assertEquals(0D, new IrisRegion().getShoreMinimumWidth(), 0D);
     }
 
     private static ProceduralStream<InferredType> constantType(InferredType type) {

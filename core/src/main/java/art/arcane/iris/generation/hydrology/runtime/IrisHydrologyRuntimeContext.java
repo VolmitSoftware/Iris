@@ -17,7 +17,8 @@ public record IrisHydrologyRuntimeContext(
         IrisHydrologyNaturalHeightDescriber naturalHeightDescriber,
         IrisHydrologyNaturalOceanClassifier naturalOceanClassifier,
         HydrologyCaveVoxelViewFactory caveViewFactory,
-        BooleanSupplier waitingForbidden
+        BooleanSupplier waitingForbidden,
+        Runnable terrainPreparation
 ) {
     /**
      * {@code waitingForbidden} is true on a thread that must never wait for a cold hydrology plan,
@@ -36,5 +37,6 @@ public record IrisHydrologyRuntimeContext(
         Objects.requireNonNull(naturalOceanClassifier);
         Objects.requireNonNull(caveViewFactory);
         Objects.requireNonNull(waitingForbidden);
+        Objects.requireNonNull(terrainPreparation);
     }
 }

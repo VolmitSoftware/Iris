@@ -69,6 +69,9 @@ public class EngineShutdownDrainTest {
     @ClassRule
     public static final DurabilityMode DURABILITY = DurabilityMode.relaxed();
 
+    @ClassRule
+    public static final TemporaryFolder PLATFORM_FILES = new TemporaryFolder();
+
     private static IrisPlatform previousPlatform;
 
     @Rule
@@ -79,6 +82,7 @@ public class EngineShutdownDrainTest {
         previousPlatform = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
         IrisPlatforms.unbind();
         IrisPlatform platform = mock(IrisPlatform.class);
+        when(platform.dataFile("iris.json")).thenReturn(PLATFORM_FILES.getRoot().toPath().resolve("iris.json").toFile());
         PlatformRegistries registries = mock(PlatformRegistries.class);
         when(platform.registries()).thenReturn(registries);
         when(registries.block(anyString())).thenReturn(mock(PlatformBlockState.class));

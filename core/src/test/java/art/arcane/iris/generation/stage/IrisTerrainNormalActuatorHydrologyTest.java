@@ -270,7 +270,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
             assertSame(rock, output.get(0, 58, 0));
             material.setEnabled(false);
             new IrisTerrainNormalActuator(engine).terrainSliver(11, -4, 0, output, context);
-            assertSame(rock, output.get(0, 60, 0));
+            assertSame(grass, output.get(0, 60, 0));
 
             Terrain3DColumn carved = mock(Terrain3DColumn.class);
             when(carved.spanCount()).thenReturn(2);
@@ -287,7 +287,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
                     anyInt(), anyInt(), eq(data), eq(complex))).thenReturn(new KList<>());
             new IrisTerrainNormalActuator(engine).terrainSliver(11, -4, 0, output, context);
             assertSame(grass, output.get(0, 60, 0));
-            assertSame(rock, output.get(0, 40, 0));
+            assertSame(grass, output.get(0, 40, 0));
             material.setEnabled(true);
             new IrisTerrainNormalActuator(engine).terrainSliver(11, -4, 0, output, context);
             assertSame(painted, output.get(0, 60, 0));

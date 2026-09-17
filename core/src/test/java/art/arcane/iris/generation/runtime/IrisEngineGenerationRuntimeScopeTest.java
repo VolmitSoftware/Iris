@@ -880,6 +880,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         setField(engine, "generationRuntimeRetirementListeners", new CopyOnWriteArraySet<IntConsumer>());
         setField(engine, "shutdownSequence", new EngineShutdownSequence(engine));
         setField(engine, "hotloader", new EngineHotloader(engine));
+        setField(engine, "nativeStructureBootstrapBarrier", new NativeStructureBootstrapBarrier());
         setField(engine, "nativeStructureVolumeMemo", new NativeStructureVolumeMemo());
         setField(engine, "closing", new AtomicBoolean(false));
         engine.lifecycleState = IrisEngine.LifecycleState.RUNNING;

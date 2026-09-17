@@ -60,10 +60,11 @@ final class EngineHotloader {
             hotloadSilently();
             return;
         }
+        engine.awaitNativeStructureBootstrap("complex hotload");
         synchronized (engine.lifecycleLock) {
             engine.requireRunning("rebuild the biome complex");
             requireMutableGenerationRuntime("rebuild the biome complex");
-            engine.awaitNativeStructureBootstrap("complex hotload");
+            engine.requireNativeStructureBootstrapComplete("complex hotload");
             engine.lifecycleState = LifecycleState.HOTLOADING;
             EngineRuntime previous = engine.runtime;
             GenerationRuntime previousGeneration = previous.generation();
@@ -133,10 +134,11 @@ final class EngineHotloader {
             hotloadStudio(router);
             return;
         }
+        engine.awaitNativeStructureBootstrap("hotload");
         synchronized (engine.lifecycleLock) {
             engine.requireRunning("hotload");
             requireMutableGenerationRuntime("hotload");
-            engine.awaitNativeStructureBootstrap("hotload");
+            engine.requireNativeStructureBootstrapComplete("hotload");
             engine.lifecycleState = LifecycleState.HOTLOADING;
             EngineRuntime previousRuntime = engine.runtime;
             IrisDimension previousDimension = engine.getDimension();

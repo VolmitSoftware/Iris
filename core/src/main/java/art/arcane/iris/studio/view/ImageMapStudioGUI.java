@@ -159,7 +159,14 @@ public final class ImageMapStudioGUI {
     }
 
     public static void launch(Engine engine) {
-        EventQueue.invokeLater(() -> new ImageMapStudioGUI(engine).show());
+        if (!GuiHost.isAvailable()) {
+            return;
+        }
+        EventQueue.invokeLater(() -> {
+            if (GuiHost.isAvailable()) {
+                new ImageMapStudioGUI(engine).show();
+            }
+        });
     }
 
     static void reloadActiveEngine(Engine engine) {

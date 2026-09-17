@@ -209,10 +209,16 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
     }
 
     public static void launch(Engine engine, UUID openerId) {
+        if (!GuiHost.isAvailable()) {
+            return;
+        }
         EventQueue.invokeLater(() -> createAndShowGUI(engine, openerId));
     }
 
     private static void createAndShowGUI(Engine engine, UUID openerId) {
+        if (!GuiHost.isAvailable()) {
+            return;
+        }
         JFrame frame = new JFrame(IrisLanguage.plain(DesktopUiMessages.VISION_TITLE));
         GuiHost.prepareFrame(frame);
         VisionGUI vision = new VisionGUI(frame, engine, openerId);

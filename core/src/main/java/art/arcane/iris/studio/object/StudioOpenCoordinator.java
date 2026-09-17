@@ -47,16 +47,14 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public final class StudioOpenCoordinator {
-    private static final long STUDIO_CLOSE_TIMEOUT_SECONDS = 120L;
-    private static final long STUDIO_STRUCTURE_ACTIVATION_TIMEOUT_SECONDS = 30L;
+    private static final long STUDIO_CLOSE_WARNING_SECONDS = 120L;
     private static volatile StudioOpenCoordinator instance;
 
     private StudioOpenCoordinator() {
@@ -136,6 +134,7 @@ public final class StudioOpenCoordinator {
     private void executeOpen(StudioOpenRequest request, CompletableFuture<StudioOpenResult> future) {
         World world = null;
         PlatformChunkGenerator provider = null;
+        CompletableFuture<Void> entryBootstrap = null;
         try {
             long openStart = System.nanoTime();
             long t = openStart;
@@ -166,15 +165,14 @@ public final class StudioOpenCoordinator {
             }
             World entryWorld = world;
             PlatformChunkGenerator entryProvider = provider;
-            CompletableFuture<Void> entryBootstrap = J.afut(
-                    () -> endStudioEntryBootstrap(entryWorld, entryProvider));
+            entryBootstrap = endStudioEntryBootstrap(entryWorld, entryProvider);
 
             updateStage(request, "apply_world_rules", 0.72D);
             final World rulesWorld = world;
             CompletableFuture<Boolean> rulesApplied =
                     J.sfut(() -> WorldRuntimeControlService.get().applyStudioWorldRules(rulesWorld));
             if (rulesApplied != null) {
-                rulesApplied.get(15L, TimeUnit.SECONDS);
+                rulesApplied.get();
             }
             t = logStudioPhase(request, "apply_world_rules", t, openStart);
 
@@ -191,7 +189,7 @@ public final class StudioOpenCoordinator {
             t = logStudioPhase(request, "resolve_entry_anchor", t, openStart);
 
             updateStage(request, "prepare_structure_rings", 0.79D);
-            entryBootstrap.get(STUDIO_STRUCTURE_ACTIVATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            entryBootstrap.get();
             t = logStudioPhase(request, "prepare_structure_rings", t, openStart);
 
             updateStage(request, "prepare_generation_caches", 0.88D);
@@ -251,6 +249,9 @@ public final class StudioOpenCoordinator {
                     + elapsedMillis(openStart) + "ms");
             future.complete(new StudioOpenResult(world, entryLocation));
         } catch (Throwable e) {
+            if (entryBootstrap != null) {
+                entryBootstrap.handle((ignored, failure) -> null).join();
+            }
             abandonStudioEntryBootstrap(world, e);
             IrisLogging.reportError("Studio open failed for world \"" + request.worldName() + "\".", e);
             if (!request.retainOnFailure()) {
@@ -269,7 +270,7 @@ public final class StudioOpenCoordinator {
                                 request.worldName(),
                                 world,
                                 request.project());
-                        cleanup.get(45L, TimeUnit.SECONDS);
+                        cleanup.get();
                     } catch (Throwable cleanupError) {
                         IrisLogging.reportError("Studio cleanup failed for world \""
                                 + request.worldName() + "\".", unwrapFailure(cleanupError));
@@ -317,7 +318,7 @@ public final class StudioOpenCoordinator {
     }
 
     private void runOpenFinalizer(Consumer<World> finalizer, World world)
-            throws InterruptedException, ExecutionException, TimeoutException {
+            throws InterruptedException, ExecutionException {
         if (finalizer == null) {
             return;
         }
@@ -327,7 +328,7 @@ public final class StudioOpenCoordinator {
         }
 
         CompletableFuture<Void> completion = J.sfut(() -> finalizer.accept(world));
-        completion.get(STUDIO_STRUCTURE_ACTIVATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        completion.get();
     }
 
     private long elapsedMillis(long startedAtNanos) {
@@ -342,60 +343,23 @@ public final class StudioOpenCoordinator {
                 duration);
     }
 
-    private void endStudioEntryBootstrap(World world, PlatformChunkGenerator provider) {
+    private CompletableFuture<Void> endStudioEntryBootstrap(World world, PlatformChunkGenerator provider) {
         if (!(provider instanceof BukkitChunkGenerator bukkitGenerator)) {
-            throw new IllegalStateException("Studio runtime provider cannot finish its entry bootstrap.");
+            return CompletableFuture.failedFuture(new IllegalStateException(
+                    "Studio runtime provider cannot finish its entry bootstrap."));
         }
-        AtomicBoolean activationClaim = new AtomicBoolean(true);
         CompletableFuture<CompletableFuture<Void>> scheduledActivation = J.sfut(() -> {
-            if (!activationClaim.compareAndSet(true, false)) {
-                INMS.get().abandonStudioStructureBootstrap(world);
-                return CompletableFuture.failedFuture(new IllegalStateException(
-                        "Studio native structure activation was cancelled before it began."));
-            }
             try {
-                CompletableFuture<Void> nativeActivation =
-                        INMS.get().completeStudioStructureBootstrap(world);
-                if (nativeActivation == null) {
-                    return CompletableFuture.failedFuture(new IllegalStateException(
-                            "Studio native structure activation returned no completion future."));
-                }
-                return nativeActivation;
+                return Objects.requireNonNull(INMS.get().completeStudioStructureBootstrap(world),
+                        "Studio native structure activation completion");
             } catch (ReflectiveOperationException e) {
                 return CompletableFuture.failedFuture(new IllegalStateException(
                         "Studio native structure state could not be activated after entry bootstrap.", e));
             }
         });
-        CompletableFuture<Void> activation = scheduledActivation
+        return scheduledActivation
                 .thenCompose(nativeActivation -> nativeActivation)
                 .thenCompose(ignored -> J.sfut(bukkitGenerator::endStudioEntryBootstrap));
-        try {
-            activation.get(STUDIO_STRUCTURE_ACTIVATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            activationClaim.compareAndSet(true, false);
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Studio native structure activation was interrupted.", e);
-        } catch (ExecutionException e) {
-            activationClaim.compareAndSet(true, false);
-            throw new IllegalStateException("Studio native structure activation did not complete.",
-                    unwrapFailure(e));
-        } catch (TimeoutException e) {
-            if (!activationClaim.compareAndSet(true, false)) {
-                try {
-                    activation.get(5L, TimeUnit.SECONDS);
-                    return;
-                } catch (InterruptedException interrupted) {
-                    Thread.currentThread().interrupt();
-                    throw new IllegalStateException(
-                            "Studio native structure activation was interrupted.", interrupted);
-                } catch (ExecutionException | TimeoutException settlementFailure) {
-                    throw new IllegalStateException(
-                            "Studio native structure activation did not settle after claiming completion.",
-                            unwrapFailure(settlementFailure));
-                }
-            }
-            throw new IllegalStateException("Studio native structure activation did not complete.", e);
-        }
     }
 
     private void abandonStudioEntryBootstrap(World world, Throwable failure) {
@@ -413,12 +377,12 @@ public final class StudioOpenCoordinator {
         CompletableFuture<Void> abandonment = J.sfut(
                 () -> INMS.get().abandonStudioStructureBootstrap(world));
         try {
-            abandonment.get(STUDIO_STRUCTURE_ACTIVATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            abandonment.get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             failure.addSuppressed(new IllegalStateException(
                     "Studio native structure abandonment was interrupted.", e));
-        } catch (ExecutionException | TimeoutException e) {
+        } catch (ExecutionException e) {
             failure.addSuppressed(new IllegalStateException(
                     "Studio native structure abandonment did not complete.", unwrapFailure(e)));
         }
@@ -475,7 +439,15 @@ public final class StudioOpenCoordinator {
                     failure
             ));
         }
-        return closeFuture.whenComplete((result, throwable) -> lease.close());
+        return closeFuture.whenComplete((result, throwable) -> {
+            if (throwable == null && result.failureCause() == null) {
+                lease.close();
+            } else {
+                IrisLogging.error("Studio cleanup remains incomplete for \"" + operationTarget
+                        + "\". Further Iris world operations are blocked. Resolve the reported failure "
+                        + "and restart the server manually before opening another world.");
+            }
+        }).copy();
     }
 
     private CompletableFuture<StudioCloseResult> closeWorldReserved(
@@ -486,69 +458,37 @@ public final class StudioOpenCoordinator {
             IrisProject project
     ) {
         AtomicBoolean unloadConfirmed = new AtomicBoolean(false);
-        AtomicBoolean unloadStarted = new AtomicBoolean(false);
         AtomicBoolean folderDeleted = new AtomicBoolean(!deleteFolder);
-        AtomicBoolean terminalTimeout = new AtomicBoolean(false);
         if (world != null) {
             IrisToolbelt.beginWorldMaintenance(world, "studio-close", true);
         }
 
         CompletableFuture<Void> sequence = sequenceStudioClose(
                 () -> evacuateWorldFamily(worldName, world),
-                () -> {
-                    unloadStarted.set(true);
-                    return unloadWorldFamily(worldName, world).thenRun(() -> {
-                        if (terminalTimeout.get()) {
-                            throw new CompletionException(new TimeoutException(
-                                    "Studio close stopped after its terminal timeout."));
-                        }
-                        unloadConfirmed.set(true);
-                        if (project != null) {
-                            project.setActiveProvider(null);
-                            project.setActiveOpenKind(null);
-                        }
-                    });
-                },
+                () -> unloadWorldFamily(worldName, world).thenRun(() -> unloadConfirmed.set(true)),
                 () -> provider == null ? CompletableFuture.completedFuture(null) : provider.closeAsync(),
                 () -> deleteFolder
                         ? deleteWorldFamily(worldName).thenRun(() -> folderDeleted.set(true))
-                        : CompletableFuture.completedFuture(null),
-                terminalTimeout::get
+                        : CompletableFuture.completedFuture(null)
         );
-        CompletableFuture<StudioCloseResult> operation = guardCloseCompletion(
-                sequence,
-                terminalTimeout,
-                worldName)
-                .thenApply(ignored -> new StudioCloseResult(
-                        worldName,
-                        true,
-                        folderDeleted.get(),
-                        false,
-                        null
-                ))
+        warnOnSlowClose(sequence, worldName,
+                CompletableFuture.delayedExecutor(STUDIO_CLOSE_WARNING_SECONDS, TimeUnit.SECONDS));
+        return sequence.thenApply(ignored -> {
+                    if (project != null) {
+                        project.setActiveProvider(null);
+                        project.setActiveOpenKind(null);
+                    }
+                    if (world != null) {
+                        IrisToolbelt.endWorldMaintenance(world, "studio-close", true);
+                    }
+                    return new StudioCloseResult(worldName, true, folderDeleted.get(), false, null);
+                })
                 .exceptionally(throwable -> {
                     Throwable failure = unwrapFailure(throwable);
-                    requestRestartAfterPartialClose(worldName, unloadStarted.get());
                     boolean queued = deleteFolder && queueStartupCleanup(worldName, failure);
                     return new StudioCloseResult(
-                            worldName,
-                            unloadConfirmed.get(),
-                            folderDeleted.get(),
-                            queued,
-                            failure
-                    );
+                            worldName, unloadConfirmed.get(), folderDeleted.get(), queued, failure);
                 });
-        return operation.whenComplete((result, throwable) -> {
-            if (world != null) {
-                IrisToolbelt.endWorldMaintenance(world, "studio-close", true);
-            }
-        });
-    }
-
-    static void requestRestartAfterPartialClose(String worldName, boolean unloadStarted) {
-        if (unloadStarted) {
-            ServerConfigurator.restart("Studio close failed after world unload began for \"" + worldName + "\".");
-        }
     }
 
     static CompletableFuture<Void> sequenceStudioClose(
@@ -557,74 +497,27 @@ public final class StudioOpenCoordinator {
             Supplier<CompletableFuture<Void>> closeGenerator,
             Supplier<CompletableFuture<Void>> deleteFolders
     ) {
-        return sequenceStudioClose(evacuate, unload, closeGenerator, deleteFolders, () -> false);
-    }
-
-    static CompletableFuture<Void> sequenceStudioClose(
-            Supplier<CompletableFuture<Void>> evacuate,
-            Supplier<CompletableFuture<Void>> unload,
-            Supplier<CompletableFuture<Void>> closeGenerator,
-            Supplier<CompletableFuture<Void>> deleteFolders,
-            BooleanSupplier terminalTimeout
-    ) {
         return invokePhase(evacuate)
-                .thenCompose(ignored -> invokePhaseUnlessTimedOut(unload, terminalTimeout))
-                .thenCompose(ignored -> invokePhaseUnlessTimedOut(closeGenerator, terminalTimeout))
-                .thenCompose(ignored -> invokePhaseUnlessTimedOut(deleteFolders, terminalTimeout));
+                .thenCompose(ignored -> invokePhase(unload))
+                .thenCompose(ignored -> invokePhase(closeGenerator))
+                .thenCompose(ignored -> invokePhase(deleteFolders));
     }
 
     private static CompletableFuture<Void> invokePhase(Supplier<CompletableFuture<Void>> phase) {
         try {
-            CompletableFuture<Void> future = phase.get();
-            if (future == null) {
-                return CompletableFuture.failedFuture(new IllegalStateException("Studio close phase returned no completion future."));
-            }
-            return future;
+            return Objects.requireNonNull(phase.get(), "Studio close phase completion");
         } catch (Throwable failure) {
             return CompletableFuture.failedFuture(failure);
         }
     }
 
-    private static CompletableFuture<Void> invokePhaseUnlessTimedOut(
-            Supplier<CompletableFuture<Void>> phase,
-            BooleanSupplier terminalTimeout
-    ) {
-        if (terminalTimeout.getAsBoolean()) {
-            return CompletableFuture.failedFuture(new TimeoutException(
-                    "Studio close stopped after its terminal timeout."));
-        }
-        return invokePhase(phase);
-    }
-
-    private CompletableFuture<Void> guardCloseCompletion(
-            CompletableFuture<Void> source,
-            AtomicBoolean terminalTimeout,
-            String worldName
-    ) {
-        CompletableFuture<Void> guarded = new CompletableFuture<>();
-        AtomicBoolean settled = new AtomicBoolean(false);
-        source.whenComplete((ignored, throwable) -> {
-            if (!settled.compareAndSet(false, true)) {
-                return;
-            }
-            if (throwable == null) {
-                guarded.complete(null);
-            } else {
-                guarded.completeExceptionally(throwable);
+    static void warnOnSlowClose(CompletableFuture<Void> completion, String worldName, Executor warningExecutor) {
+        warningExecutor.execute(() -> {
+            if (!completion.isDone()) {
+                IrisLogging.warn("Studio cleanup is still running for \"" + worldName
+                        + "\". Iris is waiting for active work before releasing world resources.");
             }
         });
-        CompletableFuture.delayedExecutor(STUDIO_CLOSE_TIMEOUT_SECONDS, TimeUnit.SECONDS).execute(() -> {
-            if (!settled.compareAndSet(false, true)) {
-                return;
-            }
-            terminalTimeout.set(true);
-            TimeoutException timeout = new TimeoutException(
-                    "Studio close did not settle within " + STUDIO_CLOSE_TIMEOUT_SECONDS
-                            + " seconds for \"" + worldName + "\".");
-            ServerConfigurator.restart("Studio close timed out for \"" + worldName + "\".");
-            guarded.completeExceptionally(timeout);
-        });
-        return guarded;
     }
 
     private CompletableFuture<Void> evacuateWorldFamily(String worldName, World primaryWorld) {
@@ -653,7 +546,7 @@ public final class StudioOpenCoordinator {
             CompletableFuture<Boolean> unload = J.sfut(() ->
                             IrisServices.get(MultiverseCoreLink.class)
                                     .removeIfPresent(loadedWorld))
-                    .thenCompose(ignored -> WorldLifecycleService.get().unloadAsync(loadedWorld, false));
+                    .thenCompose(ignored -> WorldLifecycleService.get().unloadSettledAsync(loadedWorld, false));
             unloads.add(unload);
         }
 
@@ -743,7 +636,7 @@ public final class StudioOpenCoordinator {
                         null,
                         true,
                         null
-                ).get(30L, TimeUnit.SECONDS);
+                ).get();
                 if (cleanupResult.failureCause() != null) {
                     IrisLogging.reportError("Stale studio world cleanup failed for \"" + staleWorldName + "\".", cleanupResult.failureCause());
                 }

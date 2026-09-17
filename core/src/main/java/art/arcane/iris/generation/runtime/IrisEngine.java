@@ -515,6 +515,21 @@ public class IrisEngine implements Engine {
         nativeStructureBootstrapBarrier.await(transition);
     }
 
+    void requireNativeStructureBootstrapComplete(String transition) {
+        if (nativeStructureBootstrapBarrier.isActive()) {
+            throw new IllegalStateException("Native structure bootstrap started while preparing "
+                    + transition + "; retry after structure initialization completes.");
+        }
+    }
+
+    void drainNativeStructureBootstrap() {
+        Throwable failure = nativeStructureBootstrapBarrier.awaitForClose();
+        if (failure != null) {
+            IrisLogging.reportError("Native structure bootstrap failed for " + getWorld().name()
+                    + "; its workers have stopped and engine cleanup will continue.", failure);
+        }
+    }
+
     @Override
     public void generateMatter(int x, int z, boolean multicore, ChunkContext context) {
         awaitGenerationCacheWarm();

@@ -8,9 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import art.arcane.iris.spi.IrisLogging;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mockStatic;
@@ -77,47 +79,32 @@ public class StudioOpenCoordinatorCloseSequenceTest {
     }
 
     @Test
-    public void terminalTimeoutPreventsLateUnloadFromClosingOrDeleting() {
+    public void slowCloseKeepsWaitingAndFinishesRemainingPhasesWithoutRestart() {
         ArrayList<String> phases = new ArrayList<>();
-        AtomicBoolean terminalTimeout = new AtomicBoolean(false);
         CompletableFuture<Void> unload = new CompletableFuture<>();
+        AtomicReference<Runnable> warning = new AtomicReference<>();
+        try (MockedStatic<ServerConfigurator> configurator = mockStatic(ServerConfigurator.class);
+             MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
+            CompletableFuture<Void> close = StudioOpenCoordinator.sequenceStudioClose(
+                    () -> phase(phases, "evacuate"),
+                    () -> {
+                        phases.add("unload");
+                        return unload;
+                    },
+                    () -> phase(phases, "close-generator"),
+                    () -> phase(phases, "delete-folders"));
+            StudioOpenCoordinator.warnOnSlowClose(close, "studio-world", warning::set);
 
-        CompletableFuture<Void> close = StudioOpenCoordinator.sequenceStudioClose(
-                () -> phase(phases, "evacuate"),
-                () -> {
-                    phases.add("unload");
-                    return unload;
-                },
-                () -> phase(phases, "close-generator"),
-                () -> phase(phases, "delete-folders"),
-                terminalTimeout::get);
+            warning.get().run();
+            assertFalse(close.isDone());
+            assertFalse(unload.isDone());
+            assertEquals(List.of("evacuate", "unload"), phases);
+            configurator.verifyNoInteractions();
 
-        terminalTimeout.set(true);
-        unload.complete(null);
-        try {
+            unload.complete(null);
             close.join();
-            fail("Expected terminal timeout");
-        } catch (CompletionException exception) {
-            assertEquals("Studio close stopped after its terminal timeout.", exception.getCause().getMessage());
-        }
-        assertEquals(List.of("evacuate", "unload"), phases);
-    }
 
-    @Test
-    public void closeFailureAfterUnloadBeginsRequestsTerminalRestart() {
-        try (MockedStatic<ServerConfigurator> configurator = mockStatic(ServerConfigurator.class)) {
-            StudioOpenCoordinator.requestRestartAfterPartialClose("studio-world", true);
-
-            configurator.verify(() -> ServerConfigurator.restart(
-                    "Studio close failed after world unload began for \"studio-world\"."));
-        }
-    }
-
-    @Test
-    public void closeFailureBeforeUnloadDoesNotRequestRestart() {
-        try (MockedStatic<ServerConfigurator> configurator = mockStatic(ServerConfigurator.class)) {
-            StudioOpenCoordinator.requestRestartAfterPartialClose("studio-world", false);
-
+            assertEquals(List.of("evacuate", "unload", "close-generator", "delete-folders"), phases);
             configurator.verifyNoInteractions();
         }
     }

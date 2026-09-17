@@ -667,6 +667,7 @@ you_must_be_iris_world_2 = "Iris ワールド内にいる必要があります�
 capturing_igendata_from_nearby_chunks = "周辺の {value} チャンクから IGenData をキャプチャしています。"
 reported = "報告: {value}"
 you_must_have_server_launched_guis_enabled_settings = "§c設定でサーバー起動 GUI を有効にする必要があります!"
+desktop_unavailable = "§cこのサーバーには利用可能なデスクトップ画面がありません。Studio のウィンドウはサーバー上で開くため、グラフィカルなデスクトップセッションで Iris を実行してください。"
 players_only = "§cプレイヤーのみ!"
 no_studio_world_is_open_2 = "§c開いているスタジオワールドはありません!"
 you_must_be_studio_world = "§cスタジオワールドでなければいけません!"

@@ -669,6 +669,7 @@ you_must_be_iris_world_2 = "Вы должны быть в мире радужн�
 capturing_igendata_from_nearby_chunks = "захватывать IGenData из {value} близлежащих кусков."
 reported = "Сообщалось: {value}"
 you_must_have_server_launched_guis_enabled_settings = "§cВы должны запустить сервер GUIs Включено в настройках!"
+desktop_unavailable = "§cНа этом сервере недоступен графический рабочий стол. Окна Studio открываются на сервере. Запустите Iris в графическом сеансе рабочего стола."
 players_only = "§cТолько игроки!"
 no_studio_world_is_open_2 = "§cНи один студийный мир не открыт!"
 you_must_be_studio_world = "§cВы должны быть в студии!"

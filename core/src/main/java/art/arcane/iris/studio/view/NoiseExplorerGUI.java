@@ -216,17 +216,29 @@ public final class NoiseExplorerGUI extends JPanel {
     }
 
     public static void launch() {
+        if (!GuiHost.isAvailable()) {
+            return;
+        }
         Engine engine = GuiHost.get().findActiveEngine();
         EventQueue.invokeLater(() -> {
+            if (!GuiHost.isAvailable()) {
+                return;
+            }
             NoiseExplorerGUI explorer = new NoiseExplorerGUI(engine, null, null, null, DEFAULT_SEED, null, null);
             buildFrame(IrisLanguage.plain(DesktopUiMessages.NOISE_TITLE), explorer);
         });
     }
 
     public static void launchGeneratorKey(String generatorKey, IrisGenerator fallbackGenerator, long initialSeed) {
+        if (!GuiHost.isAvailable()) {
+            return;
+        }
         Engine engine = GuiHost.get().findActiveEngine();
         String displayName = generatorKey == null || generatorKey.isBlank() ? "Custom Generator" : generatorKey;
         EventQueue.invokeLater(() -> {
+            if (!GuiHost.isAvailable()) {
+                return;
+            }
             NoiseExplorerGUI explorer = new NoiseExplorerGUI(
                     engine,
                     generatorKey,

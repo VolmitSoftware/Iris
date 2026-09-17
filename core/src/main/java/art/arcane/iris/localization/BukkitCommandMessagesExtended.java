@@ -699,6 +699,10 @@ public final class BukkitCommandMessagesExtended {
             "iris.bukkit.commandstudio.you_must_have_server_launched_guis_enabled_settings",
             C.RED + "You must have server launched GUIs enabled in the settings!"
     );
+    public static final TextKey COMMAND_STUDIO_DESKTOP_UNAVAILABLE = TextKey.of(
+            "iris.bukkit.commandstudio.desktop_unavailable",
+            C.RED + "This server has no available desktop display. Studio GUIs open on the server, so run Iris in a graphical desktop session."
+    );
     public static final TextKey COMMAND_STUDIO_PLAYERS_ONLY = TextKey.of(
             "iris.bukkit.commandstudio.players_only",
             C.RED + "Players only!"
@@ -973,6 +977,7 @@ public final class BukkitCommandMessagesExtended {
             COMMAND_STUDIO_CAPTURING_IGENDATA_FROM_NEARBY_CHUNKS,
             COMMAND_STUDIO_REPORTED,
             COMMAND_STUDIO_YOU_MUST_HAVE_SERVER_LAUNCHED_GUIS_ENABLED_SETTINGS,
+            COMMAND_STUDIO_DESKTOP_UNAVAILABLE,
             COMMAND_STUDIO_PLAYERS_ONLY,
             COMMAND_STUDIO_NO_STUDIO_WORLD_IS_OPEN_2,
             COMMAND_STUDIO_YOU_MUST_BE_STUDIO_WORLD,

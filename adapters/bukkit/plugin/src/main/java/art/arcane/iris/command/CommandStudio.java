@@ -21,6 +21,7 @@ package art.arcane.iris.command;
 import art.arcane.iris.Iris;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.studio.view.GuiHost;
 import art.arcane.iris.studio.view.ImageMapStudioGUI;
 import art.arcane.iris.studio.view.NoiseExplorerGUI;
 import art.arcane.iris.studio.view.VisionGUI;
@@ -272,10 +273,6 @@ public class CommandStudio implements DirectorExecutor {
             World world
     ) {
         if (noGUI()) {
-            return;
-        }
-        if (!ImageMapStudioGUI.isAvailable()) {
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_MUST_HAVE_SERVER_LAUNCHED_GUIS_ENABLED_SETTINGS));
             return;
         }
         if (!IrisToolbelt.isIrisWorld(world)) {
@@ -881,6 +878,10 @@ public class CommandStudio implements DirectorExecutor {
     private boolean noGUI() {
         if (!IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_MUST_HAVE_SERVER_LAUNCHED_GUIS_ENABLED_SETTINGS));
+            return true;
+        }
+        if (!GuiHost.isAvailable()) {
+            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_DESKTOP_UNAVAILABLE));
             return true;
         }
         return false;

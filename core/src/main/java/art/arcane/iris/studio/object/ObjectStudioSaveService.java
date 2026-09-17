@@ -18,6 +18,7 @@
 
 package art.arcane.iris.studio.object;
 
+import art.arcane.volmlib.util.event.ProtectionProbe;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
@@ -180,6 +181,9 @@ public class ObjectStudioSaveService implements IrisService {
 
     @EventHandler(ignoreCancelled = true)
     public void onPlayerInteract(PlayerInteractEvent event) {
+        if (ProtectionProbe.isProbe(event)) {
+            return;
+        }
         if (event.getHand() != EquipmentSlot.HAND) return;
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_BLOCK && action != Action.LEFT_CLICK_BLOCK) return;

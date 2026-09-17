@@ -10,10 +10,72 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class NativeStructureBootstrapBarrierTest {
+    @Test
+    public void failedRingWorkersCanBeReleasedOnceTheirCompletionSettles() {
+        NativeStructureBootstrapBarrier barrier = new NativeStructureBootstrapBarrier();
+        CompletableFuture<Void> rings = new CompletableFuture<>();
+        IllegalStateException failure = new IllegalStateException("ring failure");
+        barrier.start(() -> {
+        }, () -> rings);
+        rings.completeExceptionally(failure);
+
+        assertSame(failure, barrier.awaitForClose());
+        assertFalse(barrier.isActive());
+    }
+
+    @Test
+    public void untrackedStarterFailureDoesNotAllowResourceRelease() {
+        NativeStructureBootstrapBarrier barrier = new NativeStructureBootstrapBarrier();
+        assertThrows(IllegalStateException.class, () -> barrier.start(() -> {
+        }, () -> {
+            throw new IllegalStateException("partial scheduling");
+        }));
+
+        assertThrows(IllegalStateException.class, barrier::awaitForClose);
+        assertTrue(barrier.isActive());
+    }
+
+    @Test
+    public void exposedCompletionCannotReleaseRunningRingWork() {
+        NativeStructureBootstrapBarrier barrier = new NativeStructureBootstrapBarrier();
+        CompletableFuture<Void> rings = new CompletableFuture<>();
+        CompletableFuture<Void> completion = barrier.start(() -> {
+        }, () -> rings);
+
+        completion.complete(null);
+
+        assertTrue(barrier.isActive());
+        rings.complete(null);
+        assertFalse(barrier.isActive());
+    }
+
+    @Test
+    public void waitingDoesNotHoldTheBarrierMonitor() throws Exception {
+        NativeStructureBootstrapBarrier barrier = new NativeStructureBootstrapBarrier();
+        CompletableFuture<Void> rings = new CompletableFuture<>();
+        barrier.start(() -> {
+        }, () -> rings);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> close = executor.submit(() -> barrier.await("close"));
+            assertThrows(TimeoutException.class, () -> close.get(50L, TimeUnit.MILLISECONDS));
+            Future<?> worker = executor.submit(() -> {
+                assertTrue(barrier.isActive());
+                rings.complete(null);
+            });
+            worker.get(1L, TimeUnit.SECONDS);
+            close.get(1L, TimeUnit.SECONDS);
+        } finally {
+            rings.complete(null);
+            executor.shutdownNow();
+        }
+    }
+
     @Test
     public void immediateCloseWaitsForExactRingCompletion() throws Exception {
         NativeStructureBootstrapBarrier barrier = new NativeStructureBootstrapBarrier();

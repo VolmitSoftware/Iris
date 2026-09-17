@@ -122,7 +122,7 @@ public class CommandFind implements DirectorExecutor {
         EngineBukkitOps.gotoPOI(e, type, player(), teleport);
     }
 
-    @Director(description = "Find an accepted hydrology feature")
+    @Director(description = "Find an accepted hydrology feature", sync = true)
     public void river(
             @Param(description = "Feature type: surface, waterfall, underground, grotto, mouth, or a deep-fluid id", customHandler = HydrologyTypeHandler.class)
             String type,
@@ -147,6 +147,7 @@ public class CommandFind implements DirectorExecutor {
             return;
         }
         Location origin = target.getLocation();
+        World originWorld = origin.getWorld();
         int requestedDistance = runtime == null
                 ? 8192
                 : Math.min(8192, runtime.settings().routing().tileSize() * 15);
@@ -179,9 +180,9 @@ public class CommandFind implements DirectorExecutor {
                     return;
                 }
                 Location destination = new Location(
-                        target.getWorld(), feature.x(), feature.y(), feature.z());
+                        originWorld, feature.x(), feature.y(), feature.z());
                 prepareStructureTeleport(
-                        target, target.getWorld(), commandSender, label, destination, true);
+                        target, originWorld, commandSender, label, destination, true);
             } catch (Throwable error) {
                 sendStructureMessage(target, commandSender,
                         C.RED + "Could not locate " + type + " hydrology: " + error.getClass().getSimpleName());
@@ -737,20 +738,39 @@ public class CommandFind implements DirectorExecutor {
 
     private void prepareStructureTeleport(Player target, World world, VolmitSender commandSender, String structure,
                                           Location at, boolean useLocatedY) {
-        int chunkX = at.getBlockX() >> 4;
-        int chunkZ = at.getBlockZ() >> 4;
-        BukkitPlatform.chunkAtAsync(world, chunkX, chunkZ, true).whenComplete((chunk, error) -> {
-            if (error != null) {
-                sendStructureMessage(target, commandSender, C.RED + "Could not load the destination for " + structure + ".");
-                Iris.reportError("Could not load structure destination '" + structure + "'.", error);
+        J.runEntity(target, () -> {
+            if (!target.isOnline()) {
                 return;
             }
-            boolean scheduled = J.runRegion(world, chunkX, chunkZ,
-                    () -> teleportToStructure(target, world, commandSender, structure, at, useLocatedY));
-            if (!scheduled) {
-                sendStructureMessage(target, commandSender, C.RED + "Could not schedule the destination lookup for " + structure + ".");
+            if (!world.equals(target.getWorld())) {
+                commandSender.sendMessage(C.YELLOW + "Cancelled teleport to " + structure + " because your world changed.");
+                return;
             }
+            loadStructureDestination(target, world, commandSender, structure, at, useLocatedY);
         });
+    }
+
+    private void loadStructureDestination(Player target, World world, VolmitSender commandSender, String structure,
+                                          Location at, boolean useLocatedY) {
+        int chunkX = at.getBlockX() >> 4;
+        int chunkZ = at.getBlockZ() >> 4;
+        try {
+            BukkitPlatform.chunkAtAsync(world, chunkX, chunkZ, true).whenComplete((chunk, error) -> {
+                if (error != null) {
+                    sendStructureMessage(target, commandSender, C.RED + "Could not load the destination for " + structure + ".");
+                    Iris.reportError("Could not load structure destination '" + structure + "'.", error);
+                    return;
+                }
+                boolean scheduled = J.runRegion(world, chunkX, chunkZ,
+                        () -> teleportToStructure(target, world, commandSender, structure, at, useLocatedY));
+                if (!scheduled) {
+                    sendStructureMessage(target, commandSender, C.RED + "Could not schedule the destination lookup for " + structure + ".");
+                }
+            });
+        } catch (Throwable error) {
+            sendStructureMessage(target, commandSender, C.RED + "Could not load the destination for " + structure + ".");
+            Iris.reportError("Could not load structure destination '" + structure + "'.", error);
+        }
     }
 
     private void teleportToStructure(Player target, World world, VolmitSender commandSender, String structure,
@@ -760,13 +780,38 @@ public class CommandFind implements DirectorExecutor {
                     ? Math.max(world.getMinHeight() + 1, Math.min(world.getMaxHeight() - 1, at.getBlockY() + 2))
                     : world.getHighestBlockYAt(at.getBlockX(), at.getBlockZ()) + 2;
             Location destination = new Location(world, at.getBlockX() + 0.5, y, at.getBlockZ() + 0.5);
-            J.runEntity(target, () -> {
-                BukkitPlatform.teleportAsync(target, destination);
-                commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_FIND_TELEPORTED, MessageArgument.untrusted("structure", structure), MessageArgument.untrusted("value", at.getBlockX()), MessageArgument.untrusted("y", y), MessageArgument.untrusted("value2", at.getBlockZ())));
-            });
+            J.runEntity(target, () -> completeStructureTeleport(target, world, commandSender, structure, destination));
         } catch (Throwable t) {
             sendStructureMessage(target, commandSender, C.RED + "Could not prepare the destination for " + structure + ".");
             Iris.reportError("Could not prepare structure destination '" + structure + "'.", t);
+        }
+    }
+
+    private void completeStructureTeleport(Player target, World world, VolmitSender commandSender, String structure,
+                                           Location destination) {
+        if (!target.isOnline()) {
+            return;
+        }
+        if (!world.equals(target.getWorld())) {
+            commandSender.sendMessage(C.YELLOW + "Cancelled teleport to " + structure + " because your world changed.");
+            return;
+        }
+        try {
+            BukkitPlatform.teleportAsync(target, destination).whenComplete((teleported, error) -> {
+                if (error != null) {
+                    Iris.reportError("Could not teleport to '" + structure + "'.", error);
+                }
+                sendStructureMessage(target, commandSender, error == null && Boolean.TRUE.equals(teleported)
+                        ? IrisLanguage.text(BukkitCommandMessages.COMMAND_FIND_TELEPORTED,
+                                MessageArgument.untrusted("structure", structure),
+                                MessageArgument.untrusted("value", destination.getBlockX()),
+                                MessageArgument.untrusted("y", destination.getBlockY()),
+                                MessageArgument.untrusted("value2", destination.getBlockZ()))
+                        : C.RED + "Could not teleport to " + structure + ".");
+            });
+        } catch (Throwable error) {
+            commandSender.sendMessage(C.RED + "Could not teleport to " + structure + ".");
+            Iris.reportError("Could not teleport to '" + structure + "'.", error);
         }
     }
 

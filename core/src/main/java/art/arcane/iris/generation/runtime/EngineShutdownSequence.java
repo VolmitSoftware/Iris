@@ -70,7 +70,10 @@ final class EngineShutdownSequence {
         if (!engine.beginShutdown()) {
             return;
         }
-        Throwable routerFailure = stopWorldManager();
+        Throwable routerFailure = runCleanup(null, engine::drainNativeStructureBootstrap);
+        if (routerFailure == null) {
+            routerFailure = stopWorldManager();
+        }
         if (routerFailure == null) {
             routerFailure = runCleanup(null, engine::closeAttachedGenerationHistoryRuntimeRouter);
         }
@@ -86,7 +89,6 @@ final class EngineShutdownSequence {
             if (engine.closed) {
                 return;
             }
-            engine.awaitNativeStructureBootstrap("close");
             engine.lifecycleState = LifecycleState.CLOSING;
             engine.getClosing().set(true);
             engine.backgroundTasks.closeBackgroundTaskAdmission();

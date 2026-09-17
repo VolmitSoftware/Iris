@@ -98,6 +98,59 @@ public class EngineShutdownDrainTest {
     }
 
     @Test
+    public void settledStructureBootstrapFailureDoesNotPreventEngineCleanup() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        NativeStructureBootstrapBarrier barrier = new NativeStructureBootstrapBarrier();
+        setField(fixture.engine, "nativeStructureBootstrapBarrier", barrier);
+        CompletableFuture<Void> rings = new CompletableFuture<>();
+        barrier.start(() -> {
+        }, () -> rings);
+        rings.completeExceptionally(new IllegalStateException("Ring worker failed"));
+        doCallRealMethod().when(fixture.engine).drainNativeStructureBootstrap();
+
+        try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class)) {
+            fixture.shutdown.close();
+        }
+
+        verify(fixture.engine).closeAttachedGenerationHistoryRuntimeRouter();
+        verify(fixture.mantle).close();
+        assertTrue(fixture.engine.closed);
+    }
+
+    @Test
+    public void untrackedStructureBootstrapKeepsItsRuntimeAndRouterOpen() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        doThrow(new IllegalStateException("Bootstrap could not be tracked"))
+                .when(fixture.engine).drainNativeStructureBootstrap();
+
+        assertThrows(IllegalStateException.class, fixture.shutdown::close);
+
+        verify(fixture.engine, never()).closeAttachedGenerationHistoryRuntimeRouter();
+        verify(fixture.mantle, never()).close();
+        assertFalse(fixture.engine.closed);
+    }
+
+    @Test
+    public void structureBootstrapDrainsBeforeItsHistoryRouterCloses() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        AtomicBoolean ringsRunning = new AtomicBoolean(true);
+        doAnswer(invocation -> {
+            assertFalse(Thread.holdsLock(fixture.engine.lifecycleLock));
+            ringsRunning.set(false);
+            return null;
+        }).when(fixture.engine).drainNativeStructureBootstrap();
+        doAnswer(invocation -> {
+            assertFalse("Ring workers still need their generation-history router", ringsRunning.get());
+            return null;
+        }).when(fixture.engine).closeAttachedGenerationHistoryRuntimeRouter();
+
+        try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class)) {
+            fixture.shutdown.close();
+        }
+        assertTrue(fixture.engine.closed);
+    }
+
+    @Test
     public void queuedWorldManagerRoutesAreCancelledBeforeRouterDrain() throws Exception {
         ShutdownFixture fixture = new ShutdownFixture();
         AtomicBoolean queuedRoute = new AtomicBoolean(true);
@@ -541,6 +594,11 @@ public class EngineShutdownDrainTest {
         ShutdownFixture fixture = new ShutdownFixture();
         IrisComplex replacement = mock(IrisComplex.class);
         fixture.prepareComplexHotload(replacement);
+        doAnswer(invocation -> {
+            assertFalse("Ring workers need the lifecycle lock while hotload waits",
+                    Thread.holdsLock(fixture.engine.lifecycleLock));
+            return null;
+        }).when(fixture.engine).awaitNativeStructureBootstrap("complex hotload");
 
         new EngineHotloader(fixture.engine).hotloadComplex();
 

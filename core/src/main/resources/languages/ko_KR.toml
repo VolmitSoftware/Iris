@@ -667,6 +667,7 @@ you_must_be_iris_world_2 = "당신은 아이리스 세계에 있어야합니다.
 capturing_igendata_from_nearby_chunks = "주변 {value}개 청크에서 IGenData를 캡처하는 중입니다."
 reported = "보고 위치: {value}"
 you_must_have_server_launched_guis_enabled_settings = "§c서버가 시작되어야 합니다. GUIs 설정에서 활성화!"
+desktop_unavailable = "§c이 서버에는 사용 가능한 데스크톱 화면이 없습니다. Studio 창은 서버에서 열리므로 그래픽 데스크톱 세션에서 Iris를 실행하세요."
 players_only = "§c플레이어 만!"
 no_studio_world_is_open_2 = "§c스튜디오 세계가 오픈!"
 you_must_be_studio_world = "§c스튜디오 세계에 있어야합니다!"

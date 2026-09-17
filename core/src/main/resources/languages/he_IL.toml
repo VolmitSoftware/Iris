@@ -669,6 +669,7 @@ you_must_be_iris_world_2 = "אתה חייב להיות בעולם חג המול�
 capturing_igendata_from_nearby_chunks = "איסוף הנתונים של {value} הסמוך."
 reported = "דווח על: {value}"
 you_must_have_server_launched_guis_enabled_settings = "§cאתה חייב לפתוח את השרת GUIs אפשרו בהגדרות!"
+desktop_unavailable = "§cאין לשרת הזה תצוגת שולחן עבודה זמינה. חלונות Studio נפתחים בשרת. יש להפעיל את Iris בסביבת שולחן עבודה גרפית."
 players_only = "§cשחקנים בלבד!"
 no_studio_world_is_open_2 = "§cאין עולם סטודיו פתוח!"
 you_must_be_studio_world = "§cאתה חייב להיות בעולם סטודיו!"

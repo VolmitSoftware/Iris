@@ -2,10 +2,12 @@ package art.arcane.iris.studio.jigsaw;
 
 import art.arcane.iris.studio.jigsaw.JigsawStudioService.ActiveStudio;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.volmlib.util.event.ProtectionProbe;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -161,8 +163,13 @@ final class JigsawStudioProtectionListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onUseTool(PlayerInteractEvent event) {
+        if (ProtectionProbe.isProbe(event)
+                || event.useItemInHand() == Event.Result.DENY
+                || (event.getClickedBlock() != null && event.useInteractedBlock() == Event.Result.DENY)) {
+            return;
+        }
         if (event.getHand() != EquipmentSlot.HAND
                 || (event.getAction() != Action.RIGHT_CLICK_AIR
                 && event.getAction() != Action.RIGHT_CLICK_BLOCK)) {
@@ -299,6 +306,9 @@ final class JigsawStudioProtectionListener implements Listener {
             return;
         }
         event.setCancelled(true);
+        if (ProtectionProbe.isProbe(event)) {
+            return;
+        }
         ActiveStudio studio = service.studios.get(event.getPlayer().getWorld().getUID());
         if (!authorizeOwner(event.getPlayer(), studio)) {
             return;
@@ -501,6 +511,9 @@ final class JigsawStudioProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerInteract(PlayerInteractEvent event) {
+        if (ProtectionProbe.isProbe(event)) {
+            return;
+        }
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK && event.getAction() != Action.PHYSICAL) {
             return;
         }

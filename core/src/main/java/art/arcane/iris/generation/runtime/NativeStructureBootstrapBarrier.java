@@ -31,7 +31,7 @@ final class NativeStructureBootstrapBarrier {
                     starter.get(),
                     "Native structure bootstrap completion");
             completion.whenComplete((ignored, failure) -> completeBridge(bridge, failure));
-            return bridge;
+            return bridge.copy();
         } catch (Throwable failure) {
             poisoned = bridge;
             bridge.completeExceptionally(failure);
@@ -45,30 +45,16 @@ final class NativeStructureBootstrapBarrier {
         }
     }
 
-    synchronized void await(String transition) {
-        CompletableFuture<Void> completion = active;
-        if (completion == null) {
-            return;
+    void await(String transition) {
+        Throwable failure = awaitCompletion(transition);
+        if (failure != null) {
+            throw new IllegalStateException(
+                    "Native structure bootstrap failed before " + transition + ".", failure);
         }
-        try {
-            completion.get(TRANSITION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            active = null;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(
-                    "Interrupted while waiting for native structure bootstrap before " + transition + ".", e);
-        } catch (ExecutionException e) {
-            if (poisoned != completion) {
-                active = null;
-            }
-            Throwable cause = e.getCause() == null ? e : e.getCause();
-            throw new IllegalStateException(
-                    "Native structure bootstrap failed before " + transition + ".", cause);
-        } catch (TimeoutException e) {
-            throw new IllegalStateException(
-                    "Native structure bootstrap did not finish before " + transition + " within "
-                            + TRANSITION_TIMEOUT_SECONDS + " seconds.", e);
-        }
+    }
+
+    Throwable awaitForClose() {
+        return awaitCompletion("close");
     }
 
     synchronized boolean isActive() {
@@ -77,6 +63,45 @@ final class NativeStructureBootstrapBarrier {
 
     synchronized boolean isPoisoned() {
         return poisoned != null;
+    }
+
+    private Throwable awaitCompletion(String transition) {
+        CompletableFuture<Void> completion;
+        synchronized (this) {
+            completion = active;
+        }
+        if (completion == null) {
+            return null;
+        }
+        try {
+            completion.get(TRANSITION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            clearCompleted(completion);
+            return null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                    "Interrupted while waiting for native structure bootstrap before " + transition + ".", e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            synchronized (this) {
+                if (poisoned == completion) {
+                    throw new IllegalStateException(
+                            "Native structure bootstrap could not be tracked before " + transition + ".", cause);
+                }
+                clearCompleted(completion);
+            }
+            return cause;
+        } catch (TimeoutException e) {
+            throw new IllegalStateException(
+                    "Native structure bootstrap did not finish before " + transition + " within "
+                            + TRANSITION_TIMEOUT_SECONDS + " seconds.", e);
+        }
+    }
+
+    private synchronized void clearCompleted(CompletableFuture<Void> completion) {
+        if (active == completion) {
+            active = null;
+        }
     }
 
     private void completeBridge(CompletableFuture<Void> bridge, Throwable failure) {

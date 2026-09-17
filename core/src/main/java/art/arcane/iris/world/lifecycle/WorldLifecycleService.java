@@ -124,6 +124,11 @@ public final class WorldLifecycleService {
 
     public CompletableFuture<Boolean> unloadAsync(World world, boolean save) {
         World requiredWorld = Objects.requireNonNull(world, "world");
+        return guardUnloadCompletion(requiredWorld.getName(), unloadSettledAsync(requiredWorld, save));
+    }
+
+    public CompletableFuture<Boolean> unloadSettledAsync(World world, boolean save) {
+        World requiredWorld = Objects.requireNonNull(world, "world");
         String worldIdentity = WorldIdentity.serialize(requiredWorld);
         String worldName = requiredWorld.getName();
         WorldLifecycleBackend backend = selectUnloadBackend(worldIdentity);
@@ -150,8 +155,7 @@ public final class WorldLifecycleService {
         unloadFuture.whenComplete((unloaded, throwable) ->
                 WorldUnloadBoundaryRegistry.complete(rawBoundary, unloaded, throwable));
 
-        CompletableFuture<Boolean> guardedFuture = guardUnloadCompletion(worldName, unloadFuture);
-        return guardedFuture.whenComplete((unloaded, throwable) -> {
+        return unloadFuture.whenComplete((unloaded, throwable) -> {
             if (throwable != null) {
                 Throwable cause = WorldLifecycleSupport.unwrap(throwable);
                 IrisLogging.reportError("WorldLifecycle unload failed: world=\"" + worldName
@@ -162,7 +166,7 @@ public final class WorldLifecycleService {
             if (Boolean.TRUE.equals(unloaded)) {
                 worldBackendByKey.remove(worldIdentity, backend.backendName());
             }
-        });
+        }).copy();
     }
 
     private CompletableFuture<Boolean> guardUnloadCompletion(

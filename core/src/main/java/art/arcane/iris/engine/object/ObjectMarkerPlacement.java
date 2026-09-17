@@ -14,11 +14,13 @@ class ObjectMarkerPlacement {
 
     private IrisObjectPlacement config;
     private PlacementContext context;
+    private final IObjectPlacer placer;
     private RNG markerRng;
     List<ObjectMarkerPlacement.MarkerPlacement> placements;
 
-    public ObjectMarkerPlacement(IrisObjectPlacement config, PlacementContext context) {
-        this.config = config;
+    public ObjectMarkerPlacement(PlacementContext context, PlacementState state) {
+        this.config = state.config;
+        this.placer = state.placer;
         this.context = context;
         this.markerRng = context.rng.nextParallelRNG(((((long) context.x) << 32) | (context.z & 0xFFFFFFFFL)) * 31L + context.yv);
         this.placements = new ArrayList<>();
@@ -59,10 +61,10 @@ class ObjectMarkerPlacement {
                     break;
                 }
 
-                boolean firstAboveAir = B.isAir(context.placer.get(position.getX(), position.getY() + 1, position.getZ()));
-                boolean secondAboveAir = B.isAir(context.placer.get(position.getX(), position.getY() + 2, position.getZ()));
+                boolean firstAboveAir = B.isAir(placer.get(position.getX(), position.getY() + 1, position.getZ()));
+                boolean secondAboveAir = B.isAir(placer.get(position.getX(), position.getY() + 2, position.getZ()));
                 if (!markerPlacement.marker.isEmptyAbove() || (firstAboveAir && secondAboveAir)) {
-                    context.placer.setData(position.getX(), position.getY(), position.getZ(),
+                    placer.setData(position.getX(), position.getY(), position.getZ(),
                             new MatterMarker(markerPlacement.config.getMarker()));
                     max--;
                 }
@@ -99,4 +101,3 @@ class ObjectMarkerPlacement {
     }
 
 }
-

@@ -35,6 +35,7 @@ import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.iris.engine.object.IrisDimensionMode;
 import art.arcane.iris.engine.object.IrisDimensionModeType;
 import art.arcane.iris.engine.object.IrisObjectPlacement;
+import art.arcane.iris.engine.object.PlacementLifecycles;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.util.project.context.IrisContext;
@@ -300,10 +301,12 @@ final class EngineRuntimeBuilder {
         EngineMode mode;
         EngineWorldManager worldManager;
         CompletableFuture<Long> hash32;
+        final PlacementLifecycles placementLifecycles;
 
         RuntimeAssembly(int cacheId, EngineTarget target) {
             this.cacheId = cacheId;
             this.target = target;
+            this.placementLifecycles = PlacementLifecycles.resolve();
         }
 
         EngineRuntime freeze(BiomeMaxes biomeMaxes) {
@@ -319,7 +322,8 @@ final class EngineRuntimeBuilder {
                     mode,
                     worldManager,
                     hash32,
-                    biomeMaxes);
+                    biomeMaxes,
+                    placementLifecycles);
         }
     }
 }

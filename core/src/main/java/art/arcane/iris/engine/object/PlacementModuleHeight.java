@@ -1,16 +1,10 @@
 package art.arcane.iris.engine.object;
 
-public class PlacementModuleHeight extends PlacementModule {
+public final class PlacementModuleHeight implements PlacementModule {
+    private final boolean fast;
+    private final Mode mode;
 
-    int minX;
-    int maxX;
-    int minZ;
-    int maxZ;
-
-   private boolean fast;
-   private Mode mode;
-
-   public enum Mode {
+    public enum Mode {
         MIN,
         MAX
     }
@@ -21,45 +15,35 @@ public class PlacementModuleHeight extends PlacementModule {
     }
 
     @Override
-    public void setHeight() {
-        minX = context.x + state.bounds.minX();
-        maxX = context.x + state.bounds.maxX();
-        minZ = context.z + state.bounds.minZ();
-        maxZ = context.z + state.bounds.maxZ();
+    public void install(PlacementLifecycleBuilder lifecycle) {
+        PlacementModuleAnchor.install(lifecycle, this::sample);
+    }
+
+    private void sample(PlacementContext context, PlacementState state, Void ignored) {
+        int minX = context.x + state.bounds.minX();
+        int maxX = context.x + state.bounds.maxX();
+        int minZ = context.z + state.bounds.minZ();
+        int maxZ = context.z + state.bounds.maxZ();
         if (Mode.MIN == mode) {
-            state.y = context.placer.getEngine().getHeight() + 1;
+            state.y = Integer.MAX_VALUE;
         }
-        if (fast) {
-            computeFastHeight(context);
-        } else {
-            computeHeight(context);
-        }
-    }
-
-    private void computeFastHeight(PlacementContext context) {
-        int xRadius = Math.max(0, (maxX - minX) / 2);
-        int zRadius = Math.max(0, (maxZ - minZ) / 2);
-
-        for (int i = minX; i <= maxX; i += Math.abs(xRadius) + 1) {
-            for (int ii = minZ; ii <= maxZ; ii += Math.abs(zRadius) + 1) {
-                columnHeight(context, i, ii);
+        int xStep = fast ? Math.max(0, (maxX - minX) / 2) + 1 : 1;
+        int zStep = fast ? Math.max(0, (maxZ - minZ) / 2) + 1 : 1;
+        for (int i = minX; i <= maxX; i += xStep) {
+            for (int ii = minZ; ii <= maxZ; ii += zStep) {
+                columnHeight(context, state, i, ii);
+                if (state.isRejected()) {
+                    return;
+                }
             }
         }
     }
 
-    private void computeHeight(PlacementContext context) {
-        for (int i = minX; i <= maxX; i++) {
-            for (int ii = minZ; ii <= maxZ; ii++) {
-                columnHeight(context, i, ii);
-            }
-        }
-    }
-
-    private void columnHeight(PlacementContext context, int i, int ii) {
-        int h = context.placer.getHighest(i, ii, context.self.getLoader(), context.config.isUnderwater()) + context.rty;
-        if (!context.config.isForcePlace()) {
-            if (context.shouldBailForCarvingAnchor(i, h, ii)) {
-                state.bail = true;
+    private void columnHeight(PlacementContext context, PlacementState state, int i, int ii) {
+        int h = state.placer.getHighest(i, ii, context.self.getLoader(), state.config.isUnderwater()) + state.rty;
+        if (!state.config.isForcePlace()) {
+            if (PlacementModuleSurfaceSupport.rejectsAnchor(context, state, i, h, ii)) {
+                state.reject("carving-anchor");
             }
         }
 

@@ -501,6 +501,19 @@ public class IrisEngine implements Engine {
     }
 
     @Override
+    public art.arcane.iris.engine.object.PlacementLifecycles getPlacementLifecycles() {
+        RuntimeAssembly assembly = runtimeAssembly.get();
+        if (assembly != null) {
+            return assembly.placementLifecycles;
+        }
+        EngineRuntime current = runtime;
+        if (current == null) {
+            throw new IllegalStateException("Placement requires an active Iris runtime.");
+        }
+        return current.placementLifecycles();
+    }
+
+    @Override
     public EngineTarget getTarget() {
         RuntimeAssembly assembly = runtimeAssembly.get();
         if (assembly != null) {

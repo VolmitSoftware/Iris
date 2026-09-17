@@ -42,6 +42,8 @@ import org.junit.rules.TemporaryFolder;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -55,9 +57,20 @@ public class MantleFloatingObjectComponentBoundaryRadiusTest {
     @Before
     public void bindPlatform() {
         IrisPlatforms.unbind();
-        PlatformBlockState block = mock(PlatformBlockState.class);
         PlatformRegistries registries = mock(PlatformRegistries.class);
-        when(registries.block(anyString())).thenReturn(block);
+        // IrisObject retains these built-in states after this fixture unbinds its platform.
+        Map<String, PlatformBlockState> registryStates = new HashMap<>();
+        when(registries.block(anyString())).thenAnswer(invocation -> {
+            String key = invocation.<String>getArgument(0).toLowerCase(java.util.Locale.ROOT);
+            return registryStates.computeIfAbsent(key, value -> {
+                PlatformBlockState block = mock(PlatformBlockState.class);
+                when(block.key()).thenReturn(value);
+                when(block.materialKey()).thenReturn(value.split("\\[", 2)[0]);
+                when(block.isSolid()).thenReturn(!value.contains("air"));
+                when(block.isOccluding()).thenReturn(!value.contains("air"));
+                return block;
+            });
+        });
         IrisPlatform platform = mock(IrisPlatform.class);
         when(platform.registries()).thenReturn(registries);
         IrisPlatforms.bind(platform);

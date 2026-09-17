@@ -67,7 +67,8 @@ final class EngineHotloader {
                     nextComplex = assembly.complex;
                     assembly.upperContext = engine.runtimeBuilder.buildUpperContext();
                     BiomeMaxes biomeMaxes = engine.runtimeBuilder.computeBiomeMaxes();
-                    next = previous.withComplex(assembly.cacheId, assembly.complex, assembly.upperContext, biomeMaxes);
+                    next = previous.withComplex(assembly.cacheId, assembly.complex, assembly.upperContext, biomeMaxes,
+                            assembly.placementLifecycles);
                 } finally {
                     engine.runtimeAssembly.remove();
                 }

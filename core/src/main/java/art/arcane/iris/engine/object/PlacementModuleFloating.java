@@ -1,10 +1,10 @@
 package art.arcane.iris.engine.object;
 
-public class PlacementModuleFloating extends PlacementModule {
+public final class PlacementModuleFloating implements PlacementModule {
 
     @Override
-    public void setHeight() {
-        state.y = context.rty;
+    public void install(PlacementLifecycleBuilder lifecycle) {
+        PlacementModuleAnchor.install(lifecycle, (context, state, ignored) -> state.y = state.rty);
     }
 
 }

@@ -1,13 +1,11 @@
 package art.arcane.iris.engine.object;
 
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.VectorMap;
-import art.arcane.iris.util.common.math.IrisBlockVector;
-
-public class ObjectModuleCeilingHang extends PlacementModule {
+public final class ObjectModuleCeilingHang implements PlacementModule {
+    static final PlacementLifecycleDependency FLIP = new PlacementLifecycleDependency("ceiling.flip");
 
     @Override
-    public void onBlock(VectorMap<PlatformBlockState> blocks, VectorMap<TileData> states, PlatformBlockState block, TileData tile, IrisBlockVector vector) {
-        vector.setY(-vector.getBlockY());
+    public void install(PlacementLifecycleBuilder lifecycle) {
+        lifecycle.add(FLIP, PlacementStage.TRANSFORM_BLOCK,
+                (context, state, block) -> block.vector().setY(-block.vector().getBlockY()));
     }
 }

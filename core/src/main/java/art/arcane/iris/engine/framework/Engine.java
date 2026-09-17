@@ -84,6 +84,10 @@ import java.util.stream.Collectors;
 public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, Hotloadable {
     IrisComplex getComplex();
 
+    default art.arcane.iris.engine.object.PlacementLifecycles getPlacementLifecycles() {
+        return art.arcane.iris.engine.object.PlacementLifecycles.defaults();
+    }
+
     default @Nullable UpperDimensionContext getUpperContext() {
         return null;
     }

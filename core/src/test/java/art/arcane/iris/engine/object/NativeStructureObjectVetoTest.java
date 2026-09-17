@@ -16,7 +16,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -36,9 +38,20 @@ public class NativeStructureObjectVetoTest {
     @Before
     public void bindPlatform() {
         IrisPlatforms.unbind();
-        PlatformBlockState block = mock(PlatformBlockState.class);
         PlatformRegistries registries = mock(PlatformRegistries.class);
-        when(registries.block(anyString())).thenReturn(block);
+        // IrisObject caches built-in states across test fixtures; every registry answer must be usable.
+        Map<String, PlatformBlockState> registryStates = new HashMap<>();
+        when(registries.block(anyString())).thenAnswer(invocation -> {
+            String key = invocation.<String>getArgument(0).toLowerCase(java.util.Locale.ROOT);
+            return registryStates.computeIfAbsent(key, value -> {
+                PlatformBlockState block = mock(PlatformBlockState.class);
+                when(block.key()).thenReturn(value);
+                when(block.materialKey()).thenReturn(value.split("\\[", 2)[0]);
+                when(block.isSolid()).thenReturn(!value.contains("air"));
+                when(block.isOccluding()).thenReturn(!value.contains("air"));
+                return block;
+            });
+        });
         IrisPlatform platform = mock(IrisPlatform.class);
         when(platform.registries()).thenReturn(registries);
         IrisPlatforms.bind(platform);

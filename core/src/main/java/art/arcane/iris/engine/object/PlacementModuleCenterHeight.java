@@ -1,13 +1,17 @@
 package art.arcane.iris.engine.object;
 
-public class PlacementModuleCenterHeight extends PlacementModule {
+public final class PlacementModuleCenterHeight implements PlacementModule {
 
     @Override
-    public void setHeight() {
-        state.y = (context.caveResult != null ? context.caveResult.getSurface() : context.placer.getHighest(context.x, context.z, context.self.getLoader(), context.config.isUnderwater())) + context.rty;
-        if (!context.config.isForcePlace()) {
-            if (context.shouldBailForCarvingAnchor(context.x, state.y, context.z)) {
-               state.bail = true;
+    public void install(PlacementLifecycleBuilder lifecycle) {
+        PlacementModuleAnchor.install(lifecycle, PlacementModuleCenterHeight::sample);
+    }
+
+    private static void sample(PlacementContext context, PlacementState state, Void ignored) {
+        state.y = (context.caveResult != null ? context.caveResult.getSurface() : state.placer.getHighest(context.x, context.z, context.self.getLoader(), state.config.isUnderwater())) + state.rty;
+        if (!state.config.isForcePlace()) {
+            if (PlacementModuleSurfaceSupport.rejectsAnchor(context, state, context.x, state.y, context.z)) {
+                state.reject("carving-anchor");
             }
         }
     }

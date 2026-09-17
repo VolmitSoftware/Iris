@@ -22,6 +22,7 @@ import art.arcane.iris.engine.framework.EngineEffects;
 import art.arcane.iris.engine.framework.EngineMode;
 import art.arcane.iris.engine.framework.EngineTarget;
 import art.arcane.iris.engine.framework.EngineWorldManager;
+import art.arcane.iris.engine.object.PlacementLifecycles;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -38,13 +39,15 @@ record EngineRuntime(
         EngineMode mode,
         EngineWorldManager worldManager,
         CompletableFuture<Long> hash32,
-        BiomeMaxes biomeMaxes
+        BiomeMaxes biomeMaxes,
+        PlacementLifecycles placementLifecycles
 ) {
     EngineRuntime withComplex(
             int nextCacheId,
             IrisComplex nextComplex,
             UpperDimensionContext nextUpperContext,
-            BiomeMaxes nextBiomeMaxes
+            BiomeMaxes nextBiomeMaxes,
+            PlacementLifecycles nextPlacementLifecycles
     ) {
         return new EngineRuntime(
                 nextCacheId,
@@ -55,7 +58,8 @@ record EngineRuntime(
                 mode,
                 worldManager,
                 hash32,
-                nextBiomeMaxes);
+                nextBiomeMaxes,
+                nextPlacementLifecycles);
     }
 
     record BiomeMaxes(double objectDensity, double layerDensity, double decoratorDensity) {

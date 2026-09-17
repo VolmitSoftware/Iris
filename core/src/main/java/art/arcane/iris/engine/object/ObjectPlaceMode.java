@@ -73,27 +73,27 @@ public enum ObjectPlaceMode {
 
     @Desc("Hangs the object upside-down from a cave ceiling. The object is flipped vertically (its tip points down like a stalactite) and its top is anchored to the ceiling, while an organic, noise-varied stilt grows up into the ceiling so it never floats below the roof. Use inside caves; tune with stilt-settings (organicMaxScan, organicJitter, organicScratch).")
 
-    CEILING_HANG,
+    CEILING_HANG(() -> new PlacementModuleStilt(PlacementModuleStilt.Mode.CEILING, false)),
 
     @Desc("Anchors the object at the terrain surface (plus translate.y) like CENTER_HEIGHT, then bends the surrounding terrain to be flush with the object's base. Columns inside the object footprint are raised (or lowered) to meet the base, and the deformation falls off parabolically out to a radius so the terrain smoothly blends back to its natural height. Use this to seat a floating/translated object on the ground without a flat stilt disc, e.g. a cube translated up 10 on a mountain pulls the terrain up to meet it. Tune with vacuum-settings (radius, falloff).")
 
-    VACUUM,
+    VACUUM(PlacementModuleCenterHeight::new),
 
     @Desc("VACUUM with a larger radius and finer per-column sampling for the smoothest terrain blend. More expensive.")
 
-    VACUUM_HIGH,
+    VACUUM_HIGH(PlacementModuleCenterHeight::new),
 
     @Desc("VACUUM with a smaller radius and coarser sampling for performance. Use when seating many objects.")
 
-    VACUUM_FAST,
+    VACUUM_FAST(PlacementModuleCenterHeight::new),
 
     @Desc("VACUUM whose falloff radius is perturbed by noise per column, so the terrain meets the object with an irregular organic edge rather than a clean parabolic bowl.")
 
-    VACUUM_ORGANIC,
+    VACUUM_ORGANIC(PlacementModuleCenterHeight::new),
 
     @Desc("VACUUM whose terrain bend is bent by smooth coherent simplex noise so the surface meets the object with a gently rolling, wavy slope instead of the ragged white-noise edge of VACUUM_ORGANIC or a clean parabolic bowl. The object itself still seats flush; the waves fade to zero under the object and at the outer rim, peaking across the mid-slope. Tune with vacuum-settings (waveAmplitude, waveScale).")
 
-    VACUUM_WAVY,
+    VACUUM_WAVY(PlacementModuleCenterHeight::new),
 
     @Desc("Samples the height of the terrain at every x,z position of your object and pushes it down to the surface. It's pretty much like a melt function over the terrain.")
 
@@ -105,7 +105,8 @@ public enum ObjectPlaceMode {
 
     @Desc("Raw stamp at the caller-supplied (x, y, z). No terrain sampling, no stilting, no Y recomputation, no underwater or carving anchor guards. Used internally to route native Minecraft structure pieces (villages etc.) through the Iris object placer.")
 
-    STRUCTURE_PIECE;
+    STRUCTURE_PIECE(() -> lifecycle -> PlacementModuleAnchor.install(lifecycle,
+            (context, state, ignored) -> state.y = context.yv));
 
 
     private final Supplier<? extends PlacementModule> factory;
@@ -114,8 +115,34 @@ public enum ObjectPlaceMode {
         this.factory = factory;
     }
 
-    PlacementModule createBehavior(PlacementContext context, PlacementState state) {
-        return factory.get().load(context, state);
+    PlacementLifecycle createLifecycle() {
+        PlacementLifecycleBuilder lifecycle = new PlacementLifecycleBuilder();
+        install(lifecycle);
+        return lifecycle.build();
+    }
+
+    void install(PlacementLifecycleBuilder lifecycle) {
+        new PlacementModulePreparation().install(lifecycle);
+        new PlacementModuleSlope().install(lifecycle);
+        factory.get().install(lifecycle);
+        new PlacementModuleAnchor().install(lifecycle);
+        new PlacementModuleSurfaceSupport().install(lifecycle);
+        new PlacementModuleLimits().install(lifecycle);
+        new PlacementModuleNativeStructureProtection().install(lifecycle);
+        new PlacementModuleBounds().install(lifecycle);
+        new PlacementModuleCollision().install(lifecycle);
+        new PlacementModuleBore().install(lifecycle);
+        new PlacementModuleBlocks().install(lifecycle);
+        PlacementLifecycleDependency finish = switch (this) {
+            case STILT, FAST_STILT, MIN_STILT, FAST_MIN_STILT, CENTER_STILT, ERODE_STILT, ORGANIC_STILT, CEILING_HANG ->
+                    PlacementModuleStilt.FILL;
+            case VACUUM, VACUUM_HIGH, VACUUM_FAST, VACUUM_ORGANIC, VACUUM_WAVY -> {
+                new PlacementModuleVacuum().install(lifecycle);
+                yield PlacementModuleVacuum.FINISH;
+            }
+            default -> PlacementModuleBlocks.COMPLETE;
+        };
+        new PlacementModuleSnow(finish).install(lifecycle);
     }
 
 

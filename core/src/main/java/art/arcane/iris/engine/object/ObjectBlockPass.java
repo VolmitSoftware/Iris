@@ -7,84 +7,83 @@ import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.common.data.VectorMap;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.iris.util.project.noise.CNG;
-import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.BlockPosition;
-import art.arcane.volmlib.util.math.Position2;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
-class ObjectBlockPass {
+final class ObjectBlockPass {
 
-    private KMap<Position2, Integer> heightmap;
     private List<ObjectMarkerPlacement.MarkerPlacement> matchingMarkers;
-    private BiConsumer<BlockPosition, PlatformBlockState> listener;
+    private final BiConsumer<BlockPosition, PlatformBlockState> listener;
 
-    private PlacementContext context;
-    private PlacementState state;
-    private VectorMap<PlatformBlockState> blocks;
-    private VectorMap<TileData> states;
-    private  ObjectMarkerPlacement markerPlacer;
-    private PlacementModule behavior;
+    private final PlacementContext context;
+    private final PlacementState state;
+    private final VectorMap<PlatformBlockState> blocks;
+    private final VectorMap<TileData> states;
+    private final ObjectMarkerPlacement markerPlacer;
+    private final PlacementLifecycle lifecycle;
 
-     ObjectBlockPass(
-             PlacementContext context,
-             PlacementState state,
-             PlacementModule behavior,
-             BiConsumer<BlockPosition, PlatformBlockState> listener
-     ) {
+    ObjectBlockPass(
+            PlacementContext context,
+            PlacementState state,
+            PlacementLifecycle lifecycle,
+            BiConsumer<BlockPosition, PlatformBlockState> listener
+    ) {
         this.context = context;
         this.state = state;
-        this.behavior = behavior;
+        this.lifecycle = lifecycle;
         this.listener = listener;
         this.blocks = context.self.blocks;
         this.states = context.self.states;
-        this.heightmap = context.config.getSnow() > 0 ? new KMap<>() : null;
 
-        if (context.config.getMarkers().isNotEmpty() && context.placer.getEngine() != null) {
-            markerPlacer = new ObjectMarkerPlacement(context.config, context);
+        if (state.config.getMarkers().isNotEmpty() && state.placer.getEngine() != null) {
+            markerPlacer = new ObjectMarkerPlacement(context, state);
             markerPlacer.loadPossibleMarkers();
+        } else {
+            markerPlacer = null;
         }
     }
 
     void process() {
         VectorMap<PlatformBlockState>.Cursor cursor = blocks.cursor();
-        IrisObjectTranslate translate = context.config.getTranslate();
-        CNG surfaceWarp = !context.config.getWarp().isFlat() ? context.config.getSurfaceWarp(context.rng, context.self.getLoader()) : null;
+        IrisObjectTranslate translate = state.config.getTranslate();
+        CNG surfaceWarp = !state.config.getWarp().isFlat() ? state.config.getSurfaceWarp(context.rng, context.self.getLoader()) : null;
+        boolean preventingDecay = state.placer.isPreventingDecay();
+        boolean waterlogCandidate = state.config.isWaterloggable() || state.config.isUnderwater();
+        boolean hasStates = !states.isEmpty();
         int xx, zz;
 
-        double warpHalf = context.config.getWarp().isFlat() ? context.config.getWarp().getMultiplier() / 2D : 0D;
+        double warpHalf = !state.config.getWarp().isFlat() ? state.config.getWarp().getMultiplier() / 2D : 0D;
 
         while (cursor.next()) {
-            var read = readStateFrom(cursor);
+            var read = readStateFrom(cursor, hasStates);
 
             PlatformBlockState data = read.getA();
             TileData tile = read.getB();
             IrisBlockVector vector = cursor.key().clone();
 
-            context.spin.rotate(vector);
-            behavior.onBlock(blocks, states, data, tile, vector);
-
-            if (translate.canTranslate()) {
-                vector.add(translateOffset);
+            state.spin.rotate(vector);
+            PlacementBlock block = new PlacementBlock(data, tile, vector);
+            lifecycle.run(PlacementStage.TRANSFORM_BLOCK, context, state, block);
+            if (state.isRejected()) {
+                return;
             }
 
-            if (context.placer.isPreventingDecay() && IrisProceduralBlocks.hasProperty(data, "distance") && "false".equals(IrisProceduralBlocks.propertyValue(data, "persistent"))) {
+            if (translate.canTranslate()) {
+                vector.add(state.translateOffset);
+            }
+
+            lifecycle.run(PlacementStage.COLLECT_BLOCK, context, state, block);
+            if (state.isRejected()) {
+                return;
+            }
+            if (preventingDecay && IrisProceduralBlocks.hasProperty(data, "distance") && "false".equals(IrisProceduralBlocks.propertyValue(data, "persistent"))) {
                 data = data.withProperty("persistent", "true");
             }
 
-            //todo move this under stilt mode
-//                if (stilting && IrisObjectShaping.shouldStilt(data)) {
-//                    if (i.getBlockY() < lowest) {
-//                        lowest = i.getBlockY();
-//                    }
-//                    if (i.getBlockY() > topLayer) {
-//                        topLayer = i.getBlockY();
-//                    }
-//                }
-
-            if (!context.config.getEdit().isEmpty()) {
+            if (!state.config.getEdit().isEmpty()) {
                 var result = applyEdits(vector, data, tile);
                 data = result.data();
                 tile = result.tile();
@@ -92,39 +91,37 @@ class ObjectBlockPass {
 
             matchingMarkers = markerPlacer != null ? markerPlacer.matchMarkers(data) : null;
 
-            data = context.spin.rotate(data);
+            data = state.spin.rotate(data);
             xx = context.x + (int) Math.round(vector.getX());
             int yy = state.y + (int) Math.round(vector.getY());
             zz = context.z + (int) Math.round(vector.getZ());
 
-            if (!context.config.getWarp().isFlat()) {
+            if (!state.config.getWarp().isFlat()) {
                 xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, vector.getX() + context.x, vector.getY() + state.y, vector.getZ() + context.z);
                 zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, vector.getZ() + context.z, vector.getY() + state.y, vector.getX() + context.x);
             }
 
             if (context.yv < 0 && (is(ObjectPlaceMode.PAINT)) && !B.isVineBlock(data)) {
-                yy = (int) Math.round(vector.getY()) + Math.floorDiv(context.self.h, 2) + context.placer.getHighest(xx, zz, context.self.getLoader(), context.config.isUnderwater());
+                yy = (int) Math.round(vector.getY()) + Math.floorDiv(context.self.h, 2) + state.placer.getHighest(xx, zz, context.self.getLoader(), state.config.isUnderwater());
             }
 
-            if (context.config.isMeld() && !is(ObjectPlaceMode.STRUCTURE_PIECE) && !context.placer.isSolid(xx, yy, zz)) {
+            if (state.config.isMeld() && !is(ObjectPlaceMode.STRUCTURE_PIECE) && !state.placer.isSolid(xx, yy, zz)) {
                 continue;
             }
 
-            if ((context.config.isWaterloggable() || context.config.isUnderwater()) && IrisProceduralBlocks.hasProperty(data, "waterlogged") && shouldAutoWaterlogBlock(context.yv, xx, yy, zz)) {
+            if (waterlogCandidate && IrisProceduralBlocks.hasProperty(data, "waterlogged") && shouldAutoWaterlogBlock(context, state, xx, yy, zz)) {
                 data = data.withProperty("waterlogged", "true");
             }
 
             if (B.isVineBlock(data)) {
-                data = attachVineFaces(context.placer, data, xx, yy, zz);
+                data = attachVineFaces(state.placer, data, xx, yy, zz);
             }
 
-            handleCustomData(data, tile, xx, yy, zz);
-
-            if (vacuuming && yy < vacuumLowest) {
-                vacuumLowest = yy;
-            }
-            if (vacuuming && yy > vacuumHighest) {
-                vacuumHighest = yy;
+            if (handleCustomData(data, tile, xx, yy, zz)) {
+                lifecycle.run(PlacementStage.BLOCK_WRITTEN, context, state, new PlacementBlockWrite(xx, yy, zz, data));
+                if (state.isRejected()) {
+                    return;
+                }
             }
         }
 
@@ -136,31 +133,24 @@ class ObjectBlockPass {
     }
 
     private boolean is(ObjectPlaceMode mode) {
-         return context.config.getMode() == mode;
+        return state.config.getMode() == mode;
     }
 
     static boolean shouldPlaceObjectBlock(boolean rawStructurePiece, boolean air, boolean wouldReplace) {
         return !wouldReplace && (rawStructurePiece || !air);
     }
 
-    private void handleCustomData(PlatformBlockState data, TileData tile, int xx, int yy, int zz) {
+    private boolean handleCustomData(PlatformBlockState data, TileData tile, int xx, int yy, int zz) {
         // Short-circuit order matters for cost only: the mantle read is paid solely
         // for vine blocks. Both operands are pure, so the value is unchanged.
-        boolean wouldReplace = B.isVineBlock(data) && B.isSolid(context.placer.get(xx, yy, zz));
+        boolean wouldReplace = B.isVineBlock(data) && B.isSolid(state.placer.get(xx, yy, zz));
         String material = IrisObjectShaping.materialKey(data);
         boolean air = material.equals("minecraft:air") || material.equals("minecraft:cave_air");
         boolean place = shouldPlaceObjectBlock(is(ObjectPlaceMode.STRUCTURE_PIECE), air, wouldReplace);
         if (data.isCustom() || place) {
-            context.placer.set(xx, yy, zz, data);
-            if (heightmap != null) {
-                Position2 pos = new Position2(xx, zz);
-                Integer currentHeight = heightmap.get(pos);
-                if (currentHeight == null || currentHeight < yy) {
-                    heightmap.put(pos, yy);
-                }
-            }
+            state.placer.set(xx, yy, zz, data);
             if (tile != null) {
-                context.placer.setTile(xx, yy, zz, tile);
+                state.placer.setTile(xx, yy, zz, tile);
             }
             if (matchingMarkers != null) {
                 BlockPosition markerPosition = new BlockPosition(xx, yy, zz);
@@ -171,11 +161,13 @@ class ObjectBlockPass {
             if (listener != null) {
                 listener.accept(new BlockPosition(xx, yy, zz), data);
             }
+            return true;
         }
+        return false;
     }
 
     private EditResult applyEdits(IrisBlockVector vector, PlatformBlockState data, TileData tile) {
-        for (IrisObjectReplace j : context.config.getEdit()) {
+        for (IrisObjectReplace j : state.config.getEdit()) {
             if (context.rng.chance(j.getChance())) {
                 for (PlatformBlockState k : j.getFind(context.rdata)) {
                     if (j.isExact() ? k.matches(data) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(data))) {
@@ -194,19 +186,19 @@ class ObjectBlockPass {
                 }
             }
         }
-        new EditResult(data, tile);
+        return new EditResult(data, tile);
     }
 
-    public boolean shouldAutoWaterlogBlock(int yv, int x, int y, int z) {
-        if (!(context.config.isWaterloggable() || context.config.isUnderwater())) {
+    static boolean shouldAutoWaterlogBlock(PlacementContext context, PlacementState state, int x, int y, int z) {
+        if (!(state.config.isWaterloggable() || state.config.isUnderwater())) {
             return false;
         }
 
-        if (yv >= 0 && context.config.getCarvingSupport().equals(CarvingMode.CARVING_ONLY)) {
+        if (context.yv >= 0 && state.config.getCarvingSupport().equals(CarvingMode.CARVING_ONLY)) {
             return false;
         }
 
-        PlatformBlockState existing = context.placer.get(x, y, z);
+        PlatformBlockState existing = state.placer.get(x, y, z);
         if (existing == null) {
             return false;
         }
@@ -214,7 +206,7 @@ class ObjectBlockPass {
         return B.isWater(existing) || B.isWaterLogged(existing);
     }
 
-    private static PlatformBlockState attachVineFaces(IObjectPlacer placer, PlatformBlockState data, int x, int y, int z) {
+    static PlatformBlockState attachVineFaces(IObjectPlacer placer, PlatformBlockState data, int x, int y, int z) {
         PlatformBlockState result = data;
         for (String face : IrisProceduralBlocks.FACE_PROPERTIES) {
             if (!IrisProceduralBlocks.hasProperty(data, face)) {
@@ -230,11 +222,10 @@ class ObjectBlockPass {
     }
 
 
-    private Pair<PlatformBlockState, TileData> readStateFrom(VectorMap<PlatformBlockState>.Cursor cursor) {
+    private Pair<PlatformBlockState, TileData> readStateFrom(VectorMap<PlatformBlockState>.Cursor cursor, boolean hasStates) {
         PlatformBlockState block;
         TileData tile = null;
         IrisBlockVector vector = cursor.key();
-        boolean hasStates = !states.isEmpty();
         try {
             block = cursor.value();
             if (hasStates) {
@@ -250,7 +241,7 @@ class ObjectBlockPass {
             IrisLogging.warn("Failed to read block node " + vector.getBlockX() + "," + vector.getBlockY() + "," + vector.getBlockZ() + " in object " + context.self.getLoadKey() + " (null)");
             block = IrisObject.States.AIR;
         }
-        if (context.placer.isDebugSmartBore() && IrisObject.States.VAIR.equals(block)) {
+        if (state.placer.isDebugSmartBore() && IrisObject.States.VAIR.equals(block)) {
             block = IrisObject.States.VAIR_DEBUG;
         }
         return new Pair<>(block, tile);

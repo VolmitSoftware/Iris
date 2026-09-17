@@ -1,5 +1,6 @@
 package art.arcane.iris.util.common.data.registry;
 
+import art.arcane.iris.engine.object.entity.IrisEntity;
 import org.bukkit.Particle;
 
 import static art.arcane.iris.util.common.data.registry.RegistryUtil.find;

@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.image;
 
-import art.arcane.iris.engine.object.IrisImageColorMode;
+import art.arcane.iris.engine.object.image.IrisImageColorMode;
 
 public record IrisImageMapSourceMetadata(
         String format,

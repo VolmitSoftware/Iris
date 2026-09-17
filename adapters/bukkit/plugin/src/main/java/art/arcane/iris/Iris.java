@@ -81,7 +81,7 @@ import art.arcane.iris.engine.EnginePanic;
 import art.arcane.iris.engine.framework.BlockEditAccess;
 import art.arcane.iris.engine.framework.PreservationRegistry;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
-import art.arcane.iris.engine.object.IrisCompat;
+import art.arcane.iris.engine.object.compatibility.IrisCompat;
 import art.arcane.iris.core.safeguard.IrisSafeguard;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;

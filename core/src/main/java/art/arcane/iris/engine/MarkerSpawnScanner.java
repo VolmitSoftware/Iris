@@ -19,9 +19,9 @@
 package art.arcane.iris.engine;
 
 import art.arcane.iris.engine.data.cache.Cache;
-import art.arcane.iris.engine.object.IrisMarker;
-import art.arcane.iris.engine.object.IrisPosition;
-import art.arcane.iris.engine.object.IrisSpawner;
+import art.arcane.iris.engine.object.marker.IrisMarker;
+import art.arcane.iris.engine.object.value.IrisPosition;
+import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.plugin.Chunks;
 import art.arcane.iris.util.common.scheduling.J;

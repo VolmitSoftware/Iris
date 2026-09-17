@@ -21,7 +21,7 @@ package art.arcane.iris.engine.decorator;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedComponent;
 import art.arcane.iris.engine.framework.EngineDecorator;
-import art.arcane.iris.engine.object.IrisDecorationPart;
+import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.math.RNG;
 import lombok.Getter;

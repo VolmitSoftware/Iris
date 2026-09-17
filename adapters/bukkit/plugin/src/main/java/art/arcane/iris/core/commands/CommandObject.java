@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.commands;
 
+import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.Iris;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.core.link.WorldEditLink;
@@ -32,13 +33,12 @@ import art.arcane.iris.core.service.WandSVC;
 import art.arcane.iris.core.tools.IrisConverter;
 import art.arcane.iris.core.tools.TreePlausibilizeBatch;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IObjectPlacer;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisObject;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
-import art.arcane.iris.engine.object.IrisObjectPlacementScaleInterpolator;
-import art.arcane.iris.engine.object.IrisObjectRotation;
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.engine.object.placement.IObjectPlacer;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObjectPlacementScaleInterpolator;
+import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
+import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.data.Cuboid;

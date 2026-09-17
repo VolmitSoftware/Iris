@@ -18,7 +18,7 @@
 
 package art.arcane.iris.util.common.director.handlers;
 
-import art.arcane.iris.engine.object.IrisGenerator;
+import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.util.common.director.specialhandlers.RegistrantHandler;
 
 public class GeneratorHandler extends RegistrantHandler<IrisGenerator> {

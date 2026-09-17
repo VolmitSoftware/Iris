@@ -19,8 +19,8 @@
 package art.arcane.iris.core.protocol;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.protocol.IrisMessage;
 
 public final class IrisCursorResolver {

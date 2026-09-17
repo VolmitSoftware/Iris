@@ -1,8 +1,8 @@
 package art.arcane.iris.core.project;
 
-import art.arcane.iris.engine.object.IrisImportedStructureControl;
-import art.arcane.iris.engine.object.IrisStructureSetFrequencyOverride;
-import art.arcane.iris.engine.object.IrisVanillaStructureAdjustment;
+import art.arcane.iris.engine.object.structure.vanilla.IrisStructureSetFrequencyOverride;
+import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
+import art.arcane.iris.engine.object.structure.vanilla.IrisVanillaStructureAdjustment;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.RegistryListVanillaStructure;

@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.IrisEngineStatistics;
+import art.arcane.iris.engine.object.runtime.IrisEngineStatistics;
 
 import java.util.LinkedHashMap;
 import java.util.List;

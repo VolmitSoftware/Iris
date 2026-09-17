@@ -1,7 +1,7 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.core.project.SchemaBuilder;
-import art.arcane.iris.engine.object.IrisDirection;
+import art.arcane.iris.engine.object.value.IrisDirection;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.volmlib.util.collection.KList;

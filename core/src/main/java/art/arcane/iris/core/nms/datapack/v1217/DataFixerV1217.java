@@ -1,7 +1,7 @@
 package art.arcane.iris.core.nms.datapack.v1217;
 
+import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.core.nms.datapack.v1213.DataFixerV1213;
-import art.arcane.iris.engine.object.IrisBiomeCustom;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 

@@ -1,9 +1,9 @@
 package art.arcane.iris.core.nms.datapack.v1192;
 
-import static art.arcane.iris.engine.object.IrisDimensionTypeOptions.TriState.FALSE;
-import static art.arcane.iris.engine.object.IrisDimensionTypeOptions.TriState.TRUE;
+import static art.arcane.iris.engine.object.world.dimension.IrisDimensionTypeOptions.TriState.FALSE;
+import static art.arcane.iris.engine.object.world.dimension.IrisDimensionTypeOptions.TriState.TRUE;
 import art.arcane.iris.core.nms.datapack.IDataFixer;
-import art.arcane.iris.engine.object.IrisDimensionTypeOptions;
+import art.arcane.iris.engine.object.world.dimension.IrisDimensionTypeOptions;
 import art.arcane.volmlib.util.json.JSONObject;
 import org.jetbrains.annotations.Nullable;
 

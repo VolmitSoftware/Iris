@@ -32,7 +32,7 @@ import art.arcane.iris.core.tools.IrisPackBenchmarking;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.IrisEngineMantle;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.util.project.matter.IrisMatterContext;
 import art.arcane.iris.util.common.director.DirectorExecutor;

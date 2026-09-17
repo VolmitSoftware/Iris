@@ -18,15 +18,15 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.tools.TreePlausibilizeBatch;
 import art.arcane.iris.core.tools.TreePlausibilizer;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisObject;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
-import art.arcane.iris.engine.object.IrisObjectRotation;
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
+import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.modded.ModdedBlockState;
 import art.arcane.iris.modded.ModdedTileData;
 import art.arcane.iris.spi.PlatformBlockState;

@@ -1,8 +1,8 @@
 package art.arcane.iris.engine.platform.studio.generators;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.collection.KList;

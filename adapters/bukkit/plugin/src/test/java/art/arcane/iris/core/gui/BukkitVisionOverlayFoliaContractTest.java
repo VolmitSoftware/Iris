@@ -1,7 +1,7 @@
 package art.arcane.iris.core.gui;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisWorld;
+import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.util.common.scheduling.J;

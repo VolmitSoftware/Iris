@@ -20,7 +20,7 @@ package art.arcane.iris.util.common.director.context;
 
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisGenerator;
+import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.platform.EngineBukkitOps;
 import art.arcane.iris.util.common.director.DirectorContextHandler;
 import art.arcane.iris.util.common.plugin.VolmitSender;

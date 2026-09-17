@@ -18,10 +18,10 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisBiomeCustom;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.util.common.data.DataProvider;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;

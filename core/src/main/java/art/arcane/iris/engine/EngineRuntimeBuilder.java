@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine;
 
+import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.EngineRuntime.BiomeMaxes;
@@ -28,14 +29,13 @@ import art.arcane.iris.engine.framework.EngineMode;
 import art.arcane.iris.engine.framework.EngineTarget;
 import art.arcane.iris.engine.framework.EngineWorldManager;
 import art.arcane.iris.engine.framework.EngineWorldManagerProvider;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisBiomePaletteLayer;
-import art.arcane.iris.engine.object.IrisDecorator;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisDimensionMode;
-import art.arcane.iris.engine.object.IrisDimensionModeType;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
-import art.arcane.iris.engine.object.PlacementLifecycles;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
+import art.arcane.iris.engine.object.decoration.IrisDecorator;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.world.dimension.IrisDimensionMode;
+import art.arcane.iris.engine.object.world.dimension.IrisDimensionModeType;
+import art.arcane.iris.engine.object.placement.PlacementLifecycles;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.util.project.context.IrisContext;

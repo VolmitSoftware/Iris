@@ -18,8 +18,8 @@
 
 package art.arcane.iris.core.tools;
 
-import art.arcane.iris.engine.object.IrisObject;
-import art.arcane.iris.engine.object.IrisProceduralBlocks;
+import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.VectorMap;
 import art.arcane.iris.util.common.math.IrisBlockVector;

@@ -1,8 +1,8 @@
 package art.arcane.iris.core.commands;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IObjectPlacer;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.placement.IObjectPlacer;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;

@@ -1,9 +1,9 @@
 package art.arcane.iris.core.runtime;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisWorldBoundary;
-import art.arcane.iris.engine.object.IrisWorldBoundaryCenter;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.world.IrisWorldBoundary;
+import art.arcane.iris.engine.object.world.IrisWorldBoundaryCenter;
 import org.bukkit.WorldBorder;
 import org.junit.Test;
 

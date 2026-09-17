@@ -21,9 +21,9 @@ package art.arcane.iris.util.project.noise;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.image.CompiledIrisImageMap;
 import art.arcane.iris.engine.image.IrisImageMapValidationException;
-import art.arcane.iris.engine.object.IrisImage;
-import art.arcane.iris.engine.object.IrisImageMap;
-import art.arcane.iris.engine.object.IrisImageMapType;
+import art.arcane.iris.engine.object.image.IrisImage;
+import art.arcane.iris.engine.object.image.IrisImageMap;
+import art.arcane.iris.engine.object.image.IrisImageMapType;
 
 public class ImageNoise implements NoiseGenerator {
     private final CompiledIrisImageMap compiled;

@@ -21,10 +21,10 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.MantleWriter;
-import art.arcane.iris.engine.object.FloatingIslandSample;
-import art.arcane.iris.engine.object.IObjectPlacer;
-import art.arcane.iris.engine.object.IrisFloatingChildBiomes;
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
+import art.arcane.iris.engine.object.placement.IObjectPlacer;
+import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
+import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.PlatformBlockState;
 import org.jetbrains.annotations.Nullable;
 

@@ -1,8 +1,8 @@
 package art.arcane.iris.engine;
 
 import art.arcane.iris.engine.image.IrisImageMapRuntime;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.PlatformBlockState;
 import org.junit.Test;
 

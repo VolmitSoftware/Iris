@@ -1,9 +1,9 @@
 package art.arcane.iris.core.service;
 
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
-import art.arcane.iris.engine.object.IrisJigsawConnector;
-import art.arcane.iris.engine.object.IrisObject;
-import art.arcane.iris.engine.object.IrisObjectRotation;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
+import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;

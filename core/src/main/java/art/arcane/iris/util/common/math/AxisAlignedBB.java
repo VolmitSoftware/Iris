@@ -20,7 +20,7 @@ package art.arcane.iris.util.common.math;
 
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.volmlib.util.math.AlignedPoint;
-import art.arcane.iris.engine.object.IrisPosition;
+import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.volmlib.util.data.Cuboid;
 import org.bukkit.World;
 import org.bukkit.util.BlockVector;

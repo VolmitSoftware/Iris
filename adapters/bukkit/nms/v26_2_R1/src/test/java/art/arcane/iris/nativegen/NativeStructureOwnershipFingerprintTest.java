@@ -2,10 +2,10 @@ package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.object.IrisNativeStructure;
-import art.arcane.iris.engine.object.IrisStructurePlacement;
-import art.arcane.iris.engine.object.IrisStructureTerrain;
-import art.arcane.iris.engine.object.IrisStructureTerrainMode;
+import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
+import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
+import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
+import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
 import art.arcane.volmlib.util.collection.KList;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;

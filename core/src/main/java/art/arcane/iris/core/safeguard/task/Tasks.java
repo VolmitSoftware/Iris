@@ -8,7 +8,7 @@ import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.nms.v1X.NMSBinding1X;
 import art.arcane.iris.core.safeguard.Mode;
 import art.arcane.iris.core.splash.IrisSplashComposer;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.util.common.misc.getHardware;
 import art.arcane.iris.util.project.agent.Agent;
 import org.bukkit.Bukkit;

@@ -18,10 +18,10 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.IrisImportedStructureControl;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
+import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
 
 import java.util.Objects;
 

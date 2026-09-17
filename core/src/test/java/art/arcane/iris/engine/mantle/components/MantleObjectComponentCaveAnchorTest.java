@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.engine.object.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import org.junit.Test;
 

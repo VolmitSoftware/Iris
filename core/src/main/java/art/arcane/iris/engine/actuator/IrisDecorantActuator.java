@@ -26,7 +26,7 @@ import art.arcane.iris.engine.decorator.IrisSurfaceDecorator;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedActuator;
 import art.arcane.iris.engine.framework.EngineDecorator;
-import art.arcane.iris.engine.object.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;

@@ -22,7 +22,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.localization.RuntimeUiMessages;
-import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.volmlib.util.localization.TextKey;

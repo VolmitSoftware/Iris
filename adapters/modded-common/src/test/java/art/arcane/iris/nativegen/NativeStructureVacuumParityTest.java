@@ -1,7 +1,7 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.object.IrisStructureTerrain;
-import art.arcane.iris.engine.object.IrisStructureTerrainMode;
+import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
+import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.HolderSet;
 import net.minecraft.server.Bootstrap;

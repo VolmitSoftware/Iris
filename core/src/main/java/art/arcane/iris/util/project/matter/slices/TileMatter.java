@@ -18,7 +18,7 @@
 
 package art.arcane.iris.util.project.matter.slices;
 
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.engine.object.prefab.TileData;
 
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.util.project.matter.TileWrapper;

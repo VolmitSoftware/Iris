@@ -1,7 +1,7 @@
 package art.arcane.iris.core.commands;
 
-import art.arcane.iris.engine.object.IrisObject;
-import art.arcane.iris.engine.object.IrisObjectRotation;
+import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

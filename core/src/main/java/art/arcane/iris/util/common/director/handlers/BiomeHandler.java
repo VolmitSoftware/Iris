@@ -18,7 +18,7 @@
 
 package art.arcane.iris.util.common.director.handlers;
 
-import art.arcane.iris.engine.object.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.util.common.director.specialhandlers.RegistrantHandler;
 
 public class BiomeHandler extends RegistrantHandler<IrisBiome> {

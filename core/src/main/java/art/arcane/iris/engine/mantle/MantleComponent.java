@@ -20,7 +20,7 @@ package art.arcane.iris.engine.mantle;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;

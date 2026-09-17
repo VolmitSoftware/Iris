@@ -18,15 +18,15 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.engine.object.loot.IrisObjectLoot;
+import art.arcane.iris.engine.object.loot.IrisObjectVanillaLoot;
+import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.framework.PlacedObject;
-import art.arcane.iris.engine.object.IObjectLoot;
-import art.arcane.iris.engine.object.InventorySlotType;
-import art.arcane.iris.engine.object.IrisLootTable;
-import art.arcane.iris.engine.object.IrisObjectLoot;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
-import art.arcane.iris.engine.object.IrisObjectVanillaLoot;
+import art.arcane.iris.engine.object.loot.IObjectLoot;
+import art.arcane.iris.engine.object.loot.InventorySlotType;
+import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KList;

@@ -18,17 +18,17 @@
 
 package art.arcane.iris.core.project;
 
+import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.loader.ResourceLoader;
-import art.arcane.iris.engine.object.IrisBlockData;
-import art.arcane.iris.engine.object.IrisExpression;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisJigsawPiece;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
-import art.arcane.iris.engine.object.IrisStructure;
-import art.arcane.iris.engine.object.IrisStructurePlacement;
-import art.arcane.iris.engine.object.IrisVanillaStructureAdjustment;
+import art.arcane.iris.engine.object.material.IrisBlockData;
+import art.arcane.iris.engine.object.noise.expression.IrisExpression;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
+import art.arcane.iris.engine.object.structure.IrisStructure;
+import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
+import art.arcane.iris.engine.object.structure.vanilla.IrisVanillaStructureAdjustment;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MaxNumber;

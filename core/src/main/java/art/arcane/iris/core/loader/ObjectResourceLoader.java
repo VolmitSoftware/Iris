@@ -20,7 +20,7 @@ package art.arcane.iris.core.loader;
 
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.data.KCache;

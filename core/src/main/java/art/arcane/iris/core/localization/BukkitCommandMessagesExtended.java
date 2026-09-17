@@ -1,5 +1,6 @@
 package art.arcane.iris.core.localization;
 
+import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.localization.MessageKey;
 import art.arcane.volmlib.util.localization.TextKey;

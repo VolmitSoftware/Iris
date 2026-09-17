@@ -1,7 +1,7 @@
 package art.arcane.iris.core.service.terrain;
 
 import art.arcane.iris.api.terrain.IrisSurfaceKind;
-import art.arcane.iris.engine.object.InferredType;
+import art.arcane.iris.engine.object.world.biome.InferredType;
 
 public final class IrisSurfaceClassifier {
     private IrisSurfaceClassifier() {

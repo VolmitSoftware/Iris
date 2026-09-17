@@ -18,8 +18,10 @@
 
 package art.arcane.iris.core.pack;
 
-import art.arcane.iris.engine.object.IrisDimensionType;
-import art.arcane.iris.engine.object.IrisWorldBoundary;
+import art.arcane.iris.engine.object.value.IrisRange;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.world.dimension.IrisDimensionType;
+import art.arcane.iris.engine.object.world.IrisWorldBoundary;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 

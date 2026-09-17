@@ -1,6 +1,6 @@
 package art.arcane.iris.engine;
 
-import art.arcane.iris.engine.object.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;

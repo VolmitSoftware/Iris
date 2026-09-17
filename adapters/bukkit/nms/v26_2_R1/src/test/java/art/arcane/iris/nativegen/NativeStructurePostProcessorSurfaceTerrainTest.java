@@ -1,9 +1,9 @@
 package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.mantle.components.StructureCarvingFootprint;
-import art.arcane.iris.engine.object.IrisStructureCarveShape;
-import art.arcane.iris.engine.object.IrisStructureTerrain;
-import art.arcane.iris.engine.object.IrisStructureTerrainMode;
+import art.arcane.iris.engine.object.structure.IrisStructureCarveShape;
+import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
+import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import net.minecraft.SharedConstants;

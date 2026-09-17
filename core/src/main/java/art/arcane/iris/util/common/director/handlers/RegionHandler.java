@@ -18,7 +18,7 @@
 
 package art.arcane.iris.util.common.director.handlers;
 
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.util.common.director.specialhandlers.RegistrantHandler;
 
 public class RegionHandler extends RegistrantHandler<IrisRegion> {

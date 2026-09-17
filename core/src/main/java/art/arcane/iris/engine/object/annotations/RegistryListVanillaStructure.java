@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.annotations;
 
+import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 

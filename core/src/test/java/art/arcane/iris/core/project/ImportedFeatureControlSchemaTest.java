@@ -18,8 +18,8 @@
 
 package art.arcane.iris.core.project;
 
-import art.arcane.iris.engine.object.IrisDecorationStep;
-import art.arcane.iris.engine.object.IrisImportedFeatureControl;
+import art.arcane.iris.engine.object.decoration.IrisDecorationStep;
+import art.arcane.iris.engine.object.decoration.IrisImportedFeatureControl;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;

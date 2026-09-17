@@ -18,8 +18,8 @@
 
 package art.arcane.iris.util.project.noise;
 
-import art.arcane.iris.engine.object.IRare;
-import art.arcane.iris.engine.object.NoiseStyle;
+import art.arcane.iris.engine.object.value.IRare;
+import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.cache.FloatCache;
 import art.arcane.volmlib.util.collection.KList;

@@ -20,7 +20,7 @@ package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.volmlib.util.math.RollingSequence;

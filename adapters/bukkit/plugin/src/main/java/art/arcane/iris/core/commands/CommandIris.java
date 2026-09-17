@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.commands;
 
+import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.BukkitWorldReconciler;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
@@ -36,7 +37,7 @@ import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.bukkit.WorldIdentity;
 import art.arcane.volmlib.util.director.DirectorParameterHandler;

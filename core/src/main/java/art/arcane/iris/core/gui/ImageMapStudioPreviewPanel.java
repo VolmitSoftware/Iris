@@ -5,10 +5,10 @@ import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.engine.image.CompiledIrisImageMap;
 import art.arcane.iris.engine.image.IrisImageMapRuntime;
 import art.arcane.iris.engine.image.IrisImageMapMaskSampler;
-import art.arcane.iris.engine.object.IrisImageMap;
-import art.arcane.iris.engine.object.IrisImageMapApplication;
-import art.arcane.iris.engine.object.IrisImageMapType;
-import art.arcane.iris.engine.object.IrisWorldBoundary;
+import art.arcane.iris.engine.object.image.IrisImageMap;
+import art.arcane.iris.engine.object.image.IrisImageMapApplication;
+import art.arcane.iris.engine.object.image.IrisImageMapType;
+import art.arcane.iris.engine.object.world.IrisWorldBoundary;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.localization.MessageArgument;
 

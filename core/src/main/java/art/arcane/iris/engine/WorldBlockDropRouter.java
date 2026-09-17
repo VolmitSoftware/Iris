@@ -20,10 +20,10 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.service.tree.BlockDropRouter;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisBlockDrops;
-import art.arcane.iris.engine.object.IrisMarker;
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.loot.IrisBlockDrops;
+import art.arcane.iris.engine.object.marker.IrisMarker;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.platform.EngineBukkitOps;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.spi.IrisLogging;

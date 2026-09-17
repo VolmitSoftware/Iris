@@ -1,10 +1,10 @@
 package art.arcane.iris.engine.framework.structure;
 
-import art.arcane.iris.engine.object.IrisJigsawPiece;
-import art.arcane.iris.engine.object.IrisJigsawPieceEntry;
-import art.arcane.iris.engine.object.IrisJigsawPieceRules;
-import art.arcane.iris.engine.object.IrisJigsawThemeSet;
-import art.arcane.iris.engine.object.IrisStructure;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceEntry;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceRules;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
+import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
 

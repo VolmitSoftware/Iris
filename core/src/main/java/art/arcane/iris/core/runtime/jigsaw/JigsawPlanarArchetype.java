@@ -1,6 +1,6 @@
 package art.arcane.iris.core.runtime.jigsaw;
 
-import art.arcane.iris.engine.object.IrisJigsawWorkcellArchetype;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcellArchetype;
 
 import java.util.Objects;
 

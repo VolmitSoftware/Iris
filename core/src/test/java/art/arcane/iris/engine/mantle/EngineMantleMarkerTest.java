@@ -2,7 +2,7 @@ package art.arcane.iris.engine.mantle;
 
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EnginePlatformHooks;
-import art.arcane.iris.engine.object.IrisPosition;
+import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;

@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.mantle;
 
 
+import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.project.matter.TileWrapper;
 import com.google.common.collect.ImmutableList;
@@ -27,10 +28,9 @@ import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.tools.WorldMaintenance;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IObjectPlacer;
-import art.arcane.iris.engine.object.IrisGeneratorStyle;
-import art.arcane.iris.engine.object.IrisPosition;
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.engine.object.placement.IObjectPlacer;
+import art.arcane.iris.engine.object.value.IrisPosition;
+import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.function.Function3;

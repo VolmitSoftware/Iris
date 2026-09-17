@@ -18,7 +18,7 @@
 
 package art.arcane.iris.util.project.matter;
 
-import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.project.matter.slices.EntityMatter;

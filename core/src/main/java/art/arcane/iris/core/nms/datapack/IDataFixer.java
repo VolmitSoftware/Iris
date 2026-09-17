@@ -1,7 +1,7 @@
 package art.arcane.iris.core.nms.datapack;
 
-import art.arcane.iris.engine.object.IrisBiomeCustom;
-import art.arcane.iris.engine.object.IrisDimensionTypeOptions;
+import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
+import art.arcane.iris.engine.object.world.dimension.IrisDimensionTypeOptions;
 import art.arcane.volmlib.util.json.JSONObject;
 import org.jetbrains.annotations.Nullable;
 

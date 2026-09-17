@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.IrisWorld;
+import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.collection.KList;
 import com.github.benmanes.caffeine.cache.Cache;

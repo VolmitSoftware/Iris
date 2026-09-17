@@ -20,11 +20,11 @@ package art.arcane.iris.engine.framework.structure;
 
 import art.arcane.iris.core.structure.authoring.StructureResourceBundle;
 import art.arcane.iris.engine.framework.StructureAssembler;
-import art.arcane.iris.engine.object.IrisJigsawPiece;
-import art.arcane.iris.engine.object.IrisJigsawPool;
-import art.arcane.iris.engine.object.IrisObject;
-import art.arcane.iris.engine.object.IrisPosition;
-import art.arcane.iris.engine.object.IrisStructure;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
+import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.value.IrisPosition;
+import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

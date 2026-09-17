@@ -20,7 +20,7 @@ package art.arcane.iris.util.common.director.specialhandlers;
 
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.tools.IrisToolbelt;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
 

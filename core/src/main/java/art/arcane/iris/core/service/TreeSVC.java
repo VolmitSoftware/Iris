@@ -18,6 +18,8 @@
 
 package art.arcane.iris.core.service;
 
+import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.engine.object.procedural.tree.IrisTreeModes;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.core.loader.IrisData;
@@ -25,15 +27,13 @@ import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineLifecycleTasks;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
-import art.arcane.iris.engine.object.IObjectPlacer;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisObject;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
-import art.arcane.iris.engine.object.IrisRegion;
-import art.arcane.iris.engine.object.IrisTreeModes;
-import art.arcane.iris.engine.object.IrisTreeSize;
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.engine.object.placement.IObjectPlacer;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.engine.object.placement.IrisTreeSize;
+import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.PlatformBlockState;

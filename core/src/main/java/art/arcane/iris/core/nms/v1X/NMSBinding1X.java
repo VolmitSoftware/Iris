@@ -20,7 +20,7 @@ package art.arcane.iris.core.nms.v1X;
 
 import art.arcane.iris.core.datapack.DatapackStructureScopeIndex;
 import art.arcane.iris.core.nms.DatapackStructureScopeResult;
-import art.arcane.iris.engine.object.IrisImportedStructureControl;
+import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.nms.INMSBinding;
 import art.arcane.iris.core.nms.container.BiomeColor;

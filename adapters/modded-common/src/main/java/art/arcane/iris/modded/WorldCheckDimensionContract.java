@@ -19,7 +19,7 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.core.nms.datapack.DataVersion;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.volmlib.util.json.JSONObject;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.item.ItemEntity;

@@ -1,7 +1,7 @@
 package art.arcane.iris.core.pack;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.IrisImageMap;
+import art.arcane.iris.engine.object.image.IrisImageMap;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONObject;
 

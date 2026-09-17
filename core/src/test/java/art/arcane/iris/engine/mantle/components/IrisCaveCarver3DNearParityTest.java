@@ -1,18 +1,18 @@
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineMetrics;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.mantle.MantleWriter;
-import art.arcane.iris.engine.object.IrisCaveFieldModule;
-import art.arcane.iris.engine.object.IrisCaveProfile;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisGeneratorStyle;
-import art.arcane.iris.engine.object.IrisRange;
-import art.arcane.iris.engine.object.IrisStyledRange;
-import art.arcane.iris.engine.object.IrisWorld;
-import art.arcane.iris.engine.object.NoiseStyle;
+import art.arcane.iris.engine.object.terrain.carving.IrisCaveFieldModule;
+import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfile;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.value.IrisRange;
+import art.arcane.iris.engine.object.noise.IrisStyledRange;
+import art.arcane.iris.engine.object.world.IrisWorld;
+import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;

@@ -1,5 +1,6 @@
 package art.arcane.iris.core;
 
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.core.lifecycle.MissingWorldStorageLog;
 import org.junit.Rule;
 import org.junit.Test;

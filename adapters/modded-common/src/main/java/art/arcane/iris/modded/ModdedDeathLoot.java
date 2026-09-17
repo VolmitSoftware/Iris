@@ -19,8 +19,8 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.InventorySlotType;
-import art.arcane.iris.engine.object.IrisLootTable;
+import art.arcane.iris.engine.object.loot.InventorySlotType;
+import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;

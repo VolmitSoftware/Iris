@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.project;
 
+import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import com.google.gson.Gson;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.localization.BukkitRuntimeMessages;
@@ -26,18 +27,17 @@ import art.arcane.iris.core.pack.ImageMapPackageClosure;
 import art.arcane.iris.core.pack.PackValidationResult;
 import art.arcane.iris.core.pack.PackValidator;
 import art.arcane.iris.core.pack.StructurePackageClosure;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisBlockData;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisEntity;
-import art.arcane.iris.engine.object.IrisGenerator;
-import art.arcane.iris.engine.object.IrisLootTable;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.material.IrisBlockData;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.entity.IrisEntity;
+import art.arcane.iris.engine.object.terrain.IrisGenerator;
+import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.core.pack.PackExportClosure;
-import art.arcane.iris.engine.object.IrisMarker;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
-import art.arcane.iris.engine.object.IrisRegion;
-import art.arcane.iris.engine.object.IrisSpawner;
-import art.arcane.iris.engine.object.IrisStructurePlacement;
+import art.arcane.iris.engine.object.marker.IrisMarker;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
+import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.util.common.plugin.VolmitSender;

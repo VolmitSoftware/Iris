@@ -20,7 +20,7 @@ package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedModifier;
-import art.arcane.iris.engine.object.IrisProceduralBlocks;
+import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.hunk.Hunk;

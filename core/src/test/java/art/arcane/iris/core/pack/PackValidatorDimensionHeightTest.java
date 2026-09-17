@@ -1,7 +1,7 @@
 package art.arcane.iris.core.pack;
 
-import art.arcane.iris.engine.object.IrisDimensionType;
-import art.arcane.iris.engine.object.IrisDimensionTypeOptions;
+import art.arcane.iris.engine.object.world.dimension.IrisDimensionType;
+import art.arcane.iris.engine.object.world.dimension.IrisDimensionTypeOptions;
 import art.arcane.iris.core.nms.datapack.IDataFixer;
 import org.junit.Rule;
 import org.junit.Test;

@@ -8,7 +8,7 @@ import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.platform.BukkitChunkGenerator;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
-import art.arcane.iris.engine.object.IrisImportedStructureControl;
+import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.plugin.IrisService;
 import org.bukkit.Bukkit;

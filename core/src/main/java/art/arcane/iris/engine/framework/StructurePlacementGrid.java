@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.IrisNativeStructure;
-import art.arcane.iris.engine.object.IrisStructureAnchorMode;
-import art.arcane.iris.engine.object.IrisStructurePlacement;
+import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
+import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
+import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.util.Locale;

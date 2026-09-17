@@ -1,8 +1,8 @@
 package art.arcane.iris.engine.framework.placer;
 
+import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IObjectPlacer;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
+import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
 

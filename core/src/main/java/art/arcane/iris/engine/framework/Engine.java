@@ -19,6 +19,8 @@
 package art.arcane.iris.engine.framework;
 
 
+import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.engine.object.placement.PlacementLifecycles;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.engine.framework.render.Renderer;
@@ -30,18 +32,17 @@ import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.data.chunk.TerrainChunk;
 import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisColor;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisDimensionCarvingEntry;
-import art.arcane.iris.engine.object.IrisDimensionCarvingResolver;
-import art.arcane.iris.engine.object.IrisEngineData;
-import art.arcane.iris.engine.object.IrisObject;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
-import art.arcane.iris.engine.object.IrisPosition;
-import art.arcane.iris.engine.object.IrisRegion;
-import art.arcane.iris.engine.object.IrisStructure;
-import art.arcane.iris.engine.object.IrisWorld;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.value.IrisColor;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingEntry;
+import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
+import art.arcane.iris.engine.object.runtime.IrisEngineData;
+import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.value.IrisPosition;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.engine.object.structure.IrisStructure;
+import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -84,8 +85,8 @@ import java.util.stream.Collectors;
 public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, Hotloadable {
     IrisComplex getComplex();
 
-    default art.arcane.iris.engine.object.PlacementLifecycles getPlacementLifecycles() {
-        return art.arcane.iris.engine.object.PlacementLifecycles.defaults();
+    default art.arcane.iris.engine.object.placement.PlacementLifecycles getPlacementLifecycles() {
+        return art.arcane.iris.engine.object.placement.PlacementLifecycles.defaults();
     }
 
     default @Nullable UpperDimensionContext getUpperContext() {

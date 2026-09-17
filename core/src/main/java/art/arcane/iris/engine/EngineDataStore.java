@@ -20,7 +20,7 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.core.lifecycle.VanishedWorldStorage;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.IrisEngineData;
+import art.arcane.iris.engine.object.runtime.IrisEngineData;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.io.IO;

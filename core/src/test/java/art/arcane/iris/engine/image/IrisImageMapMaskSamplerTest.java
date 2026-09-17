@@ -1,11 +1,11 @@
 package art.arcane.iris.engine.image;
 
-import art.arcane.iris.engine.object.IrisImage;
-import art.arcane.iris.engine.object.IrisImageMap;
-import art.arcane.iris.engine.object.IrisImageMapMask;
-import art.arcane.iris.engine.object.IrisImageMapMaskOperation;
-import art.arcane.iris.engine.object.IrisImageMapOutOfBounds;
-import art.arcane.iris.engine.object.IrisImageMapType;
+import art.arcane.iris.engine.object.image.IrisImage;
+import art.arcane.iris.engine.object.image.IrisImageMap;
+import art.arcane.iris.engine.object.image.IrisImageMapMask;
+import art.arcane.iris.engine.object.image.IrisImageMapMaskOperation;
+import art.arcane.iris.engine.object.image.IrisImageMapOutOfBounds;
+import art.arcane.iris.engine.object.image.IrisImageMapType;
 import org.junit.Test;
 
 import java.awt.image.BufferedImage;

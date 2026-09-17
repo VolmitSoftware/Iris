@@ -2,7 +2,7 @@ package art.arcane.iris.core.nms.v26_2_R1;
 
 import art.arcane.iris.core.datapack.DatapackStructureScopeIndex;
 import art.arcane.iris.engine.framework.NativeStructureFrequencyScale;
-import art.arcane.iris.engine.object.IrisImportedStructureControl;
+import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderOwner;
 import net.minecraft.core.Vec3i;

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.volmlib.util.collection.KMap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

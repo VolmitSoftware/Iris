@@ -1,11 +1,11 @@
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.IrisStructureCarveShape;
-import art.arcane.iris.engine.object.IrisStructureStiltSettings;
-import art.arcane.iris.engine.object.IrisStructureTerrain;
-import art.arcane.iris.engine.object.IrisStructureTerrainMode;
-import art.arcane.iris.engine.object.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
+import art.arcane.iris.engine.object.structure.IrisStructureCarveShape;
+import art.arcane.iris.engine.object.structure.IrisStructureStiltSettings;
+import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
+import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
+import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;

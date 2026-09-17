@@ -20,7 +20,7 @@ package art.arcane.iris.util.project.interpolation;
 
 import com.google.common.util.concurrent.AtomicDouble;
 import art.arcane.volmlib.util.interpolation.Starcast;
-import art.arcane.iris.engine.object.NoiseStyle;
+import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.volmlib.util.function.NoiseProvider;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.util.project.noise.CNG;

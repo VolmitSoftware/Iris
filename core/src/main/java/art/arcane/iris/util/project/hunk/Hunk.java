@@ -19,7 +19,7 @@
 package art.arcane.iris.util.project.hunk;
 
 import art.arcane.iris.engine.data.chunk.TerrainChunk;
-import art.arcane.iris.engine.object.IrisPosition;
+import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.function.Consumer2;
 import art.arcane.volmlib.util.function.Consumer3;

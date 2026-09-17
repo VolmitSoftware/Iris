@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.engine.object.IrisCaveFieldModule;
-import art.arcane.iris.engine.object.IrisRange;
+import art.arcane.iris.engine.object.terrain.carving.IrisCaveFieldModule;
+import art.arcane.iris.engine.object.value.IrisRange;
 import art.arcane.iris.util.project.noise.CNG;
 
 final class CaveFieldModuleState {

@@ -1,10 +1,10 @@
 package art.arcane.iris.engine.decorator;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisBlockData;
-import art.arcane.iris.engine.object.IrisDecorationPart;
-import art.arcane.iris.engine.object.IrisDecorator;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.material.IrisBlockData;
+import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
+import art.arcane.iris.engine.object.decoration.IrisDecorator;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;

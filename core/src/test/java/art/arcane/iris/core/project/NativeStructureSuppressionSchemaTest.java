@@ -1,6 +1,6 @@
 package art.arcane.iris.core.project;
 
-import art.arcane.iris.engine.object.NativeStructureSuppression;
+import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;

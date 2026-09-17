@@ -18,8 +18,8 @@
 
 package art.arcane.iris.core.pack;
 
-import art.arcane.iris.engine.object.IrisObjectMarker;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
+import art.arcane.iris.engine.object.marker.IrisObjectMarker;
+import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.volmlib.util.collection.KSet;
 
 /**

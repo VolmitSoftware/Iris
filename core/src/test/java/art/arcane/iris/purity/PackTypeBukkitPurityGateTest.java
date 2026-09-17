@@ -1,5 +1,32 @@
 package art.arcane.iris.purity;
 
+import art.arcane.iris.engine.object.entity.IrisEffect;
+import art.arcane.iris.engine.object.entity.IrisEntity;
+import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
+import art.arcane.iris.engine.object.image.IrisImage;
+import art.arcane.iris.engine.object.image.IrisImageMap;
+import art.arcane.iris.engine.object.loot.IrisLoot;
+import art.arcane.iris.engine.object.loot.IrisLootTable;
+import art.arcane.iris.engine.object.loot.IrisVanillaLootTable;
+import art.arcane.iris.engine.object.marker.IrisMarker;
+import art.arcane.iris.engine.object.material.IrisBlockData;
+import art.arcane.iris.engine.object.mod.IrisMod;
+import art.arcane.iris.engine.object.noise.expression.IrisExpression;
+import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
+import art.arcane.iris.engine.object.prefab.LegacyTileData;
+import art.arcane.iris.engine.object.prefab.TileData;
+import art.arcane.iris.engine.object.prefab.matter.IrisMatterObject;
+import art.arcane.iris.engine.object.structure.IrisStructure;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
+import art.arcane.iris.engine.object.terrain.IrisGenerator;
+import art.arcane.iris.engine.object.value.IrisPosition;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustomParticle;
+import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustomSpawn;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.annotations.Snippet;
 import org.junit.Test;
 
@@ -72,7 +99,7 @@ public class PackTypeBukkitPurityGateTest {
     private static final String SNIPPET_DESCRIPTOR = "Lart/arcane/iris/engine/object/annotations/Snippet;";
     private static final String BUKKIT_INTERNAL_PREFIX = "org/bukkit/";
     /** See {@link #theGateStillCatchesAClassThatNeedsBukkit()}. */
-    private static final String BUKKIT_DEPENDENT_CANARY = "art.arcane.iris.engine.object.IrisObjectRotation$Faces";
+    private static final String BUKKIT_DEPENDENT_CANARY = "art.arcane.iris.engine.object.prefab.IrisObjectRotation$Faces";
     private static final String OBJECT_PACKAGE = "art/arcane/iris/engine/object";
     private static final Path IRIS_DATA_SOURCE =
             Paths.get("src", "main", "java", "art", "arcane", "iris", "core", "loader", "IrisData.java");
@@ -83,33 +110,33 @@ public class PackTypeBukkitPurityGateTest {
      * #registeredRootListMatchesIrisData()} fails if the source drifts away from it.
      */
     private static final List<String> GSON_REGISTERED_ROOTS = List.of(
-            "art.arcane.iris.engine.object.IrisLootTable",
-            "art.arcane.iris.engine.object.IrisSpawner",
-            "art.arcane.iris.engine.object.IrisEntity",
-            "art.arcane.iris.engine.object.IrisRegion",
-            "art.arcane.iris.engine.object.IrisBiome",
-            "art.arcane.iris.engine.object.IrisMod",
-            "art.arcane.iris.engine.object.IrisDimension",
-            "art.arcane.iris.engine.object.IrisGenerator",
-            "art.arcane.iris.engine.object.IrisMarker",
-            "art.arcane.iris.engine.object.IrisBlockData",
-            "art.arcane.iris.engine.object.IrisExpression",
-            "art.arcane.iris.engine.object.IrisObject",
-            "art.arcane.iris.engine.object.IrisImage",
-            "art.arcane.iris.engine.object.IrisImageMap",
-            "art.arcane.iris.engine.object.matter.IrisMatterObject",
-            "art.arcane.iris.engine.object.IrisStructure",
-            "art.arcane.iris.engine.object.IrisJigsawPool",
-            "art.arcane.iris.engine.object.IrisJigsawPiece");
+            "art.arcane.iris.engine.object.loot.IrisLootTable",
+            "art.arcane.iris.engine.object.entity.spawn.IrisSpawner",
+            "art.arcane.iris.engine.object.entity.IrisEntity",
+            "art.arcane.iris.engine.object.world.region.IrisRegion",
+            "art.arcane.iris.engine.object.world.biome.IrisBiome",
+            "art.arcane.iris.engine.object.mod.IrisMod",
+            "art.arcane.iris.engine.object.world.dimension.IrisDimension",
+            "art.arcane.iris.engine.object.terrain.IrisGenerator",
+            "art.arcane.iris.engine.object.marker.IrisMarker",
+            "art.arcane.iris.engine.object.material.IrisBlockData",
+            "art.arcane.iris.engine.object.noise.expression.IrisExpression",
+            "art.arcane.iris.engine.object.prefab.IrisObject",
+            "art.arcane.iris.engine.object.image.IrisImage",
+            "art.arcane.iris.engine.object.image.IrisImageMap",
+            "art.arcane.iris.engine.object.prefab.matter.IrisMatterObject",
+            "art.arcane.iris.engine.object.structure.IrisStructure",
+            "art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool",
+            "art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece");
 
     /**
      * Types reachable from a pack that are not roots and carry no {@code @Snippet}, but are
      * deserialized/serialized all the same (object tile payloads, vanilla loot table adapters).
      */
     private static final List<String> ADDITIONAL_PACK_TYPES = List.of(
-            "art.arcane.iris.engine.object.TileData",
-            "art.arcane.iris.engine.object.LegacyTileData",
-            "art.arcane.iris.engine.object.IrisVanillaLootTable");
+            "art.arcane.iris.engine.object.prefab.TileData",
+            "art.arcane.iris.engine.object.prefab.LegacyTileData",
+            "art.arcane.iris.engine.object.loot.IrisVanillaLootTable");
 
     /**
      * Bukkit-registry constant holders that a core pack type references, so their class initializer
@@ -133,7 +160,7 @@ public class PackTypeBukkitPurityGateTest {
         assertThrows(ClassNotFoundException.class,
                 () -> Class.forName("org.bukkit.Bukkit", false, hiding));
 
-        Class<?> selfDefined = Class.forName("art.arcane.iris.engine.object.IrisPosition", false, hiding);
+        Class<?> selfDefined = Class.forName("art.arcane.iris.engine.object.value.IrisPosition", false, hiding);
         assertEquals("iris classes must be defined by the hiding loader, not delegated to the parent",
                 hiding, selfDefined.getClassLoader());
     }
@@ -322,7 +349,7 @@ public class PackTypeBukkitPurityGateTest {
     @Test
     public void theGenericSignatureScanSeesWhatTheDescriptorErased() throws Exception {
         byte[] bytes = BukkitHidingClassLoader.readClassBytes(getClass().getClassLoader(),
-                "art.arcane.iris.engine.object.IrisBiome");
+                "art.arcane.iris.engine.object.world.biome.IrisBiome");
         assertNotNull("no class bytes for IrisBiome", bytes);
 
         ClassFileFacts.DeclaredField cache = null;

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.util.project.noise;
 
-import art.arcane.iris.engine.object.IrisExpression;
+import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.volmlib.util.math.RNG;
 
 public class ExpressionNoise implements NoiseGenerator {

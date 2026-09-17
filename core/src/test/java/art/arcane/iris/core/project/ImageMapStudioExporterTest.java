@@ -1,12 +1,12 @@
 package art.arcane.iris.core.project;
 
 import art.arcane.iris.engine.image.IrisImageMapValidationException;
-import art.arcane.iris.engine.object.IrisImage;
-import art.arcane.iris.engine.object.IrisImageMap;
-import art.arcane.iris.engine.object.IrisImageMapApplication;
-import art.arcane.iris.engine.object.IrisImageMapOutOfBounds;
-import art.arcane.iris.engine.object.IrisImageMapSampling;
-import art.arcane.iris.engine.object.IrisImageMapType;
+import art.arcane.iris.engine.object.image.IrisImage;
+import art.arcane.iris.engine.object.image.IrisImageMap;
+import art.arcane.iris.engine.object.image.IrisImageMapApplication;
+import art.arcane.iris.engine.object.image.IrisImageMapOutOfBounds;
+import art.arcane.iris.engine.object.image.IrisImageMapSampling;
+import art.arcane.iris.engine.object.image.IrisImageMapType;
 import art.arcane.volmlib.util.collection.KMap;
 import org.junit.Rule;
 import org.junit.Test;

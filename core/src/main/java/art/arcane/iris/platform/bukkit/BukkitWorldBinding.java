@@ -19,7 +19,7 @@
 package art.arcane.iris.platform.bukkit;
 
 import art.arcane.iris.core.IrisWorldStorage;
-import art.arcane.iris.engine.object.IrisWorld;
+import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.bukkit.WorldIdentity;
 import org.bukkit.Location;

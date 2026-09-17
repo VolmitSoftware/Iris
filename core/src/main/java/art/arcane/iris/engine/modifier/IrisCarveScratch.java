@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.engine.object.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
 

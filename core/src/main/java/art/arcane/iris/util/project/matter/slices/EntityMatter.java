@@ -20,7 +20,7 @@ package art.arcane.iris.util.project.matter.slices;
 
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.core.nms.INMS;
-import art.arcane.iris.engine.object.IrisPosition;
+import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;

@@ -2,7 +2,7 @@ package art.arcane.iris.core.structure.export;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.structure.StructureGraphResolver;
-import art.arcane.iris.engine.object.IrisStructure;
+import art.arcane.iris.engine.object.structure.IrisStructure;
 
 import java.util.Objects;
 

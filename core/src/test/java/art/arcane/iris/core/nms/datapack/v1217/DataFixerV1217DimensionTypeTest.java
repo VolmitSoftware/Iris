@@ -1,7 +1,7 @@
 package art.arcane.iris.core.nms.datapack.v1217;
 
 import art.arcane.iris.core.nms.datapack.IDataFixer.Dimension;
-import art.arcane.iris.engine.object.IrisDimensionTypeOptions;
+import art.arcane.iris.engine.object.world.dimension.IrisDimensionTypeOptions;
 import art.arcane.volmlib.util.json.JSONObject;
 import org.junit.Test;
 

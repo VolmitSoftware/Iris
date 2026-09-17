@@ -2,7 +2,7 @@ package art.arcane.iris.core.structure;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
-import art.arcane.iris.engine.object.IrisStructure;
+import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformStructureHooks;

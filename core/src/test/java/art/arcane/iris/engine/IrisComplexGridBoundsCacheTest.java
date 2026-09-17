@@ -1,8 +1,8 @@
 package art.arcane.iris.engine;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisGenerator;
-import art.arcane.iris.engine.object.IrisInterpolator;
+import art.arcane.iris.engine.object.terrain.IrisGenerator;
+import art.arcane.iris.engine.object.noise.IrisInterpolator;
 import art.arcane.iris.util.project.interpolation.NoiseBounds;
 import art.arcane.iris.util.project.interpolation.NoiseBoundsProvider;
 import org.junit.Test;

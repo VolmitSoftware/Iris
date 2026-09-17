@@ -1,9 +1,9 @@
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.engine.object.FloatingIslandSample;
-import art.arcane.iris.engine.object.FloatingObjectFootprint;
-import art.arcane.iris.engine.object.IrisFloatingChildBiomes;
-import art.arcane.iris.engine.object.IrisObjectRotation;
+import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
+import art.arcane.iris.engine.object.placement.FloatingObjectFootprint;
+import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
+import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import org.junit.Test;
 
 import java.lang.reflect.Constructor;

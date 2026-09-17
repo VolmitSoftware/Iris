@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.IrisLootMode;
+import art.arcane.iris.engine.object.loot.IrisLootMode;
 import org.junit.Test;
 
 import java.util.ArrayList;

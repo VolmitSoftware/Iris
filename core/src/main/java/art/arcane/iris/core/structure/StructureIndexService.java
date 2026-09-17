@@ -22,7 +22,7 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
-import art.arcane.iris.engine.object.IrisStructure;
+import art.arcane.iris.engine.object.structure.IrisStructure;
 import com.google.gson.GsonBuilder;
 
 import java.io.File;

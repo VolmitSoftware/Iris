@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.pack;
 
-import art.arcane.iris.engine.object.ObjectPlaceMode;
+import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 

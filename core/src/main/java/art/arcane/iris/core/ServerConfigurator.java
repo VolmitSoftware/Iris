@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core;
 
+import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.core.datapack.DatapackIngestService;
@@ -34,9 +35,8 @@ import art.arcane.iris.core.pack.AtomicDirectoryPublisher;
 import art.arcane.iris.core.pack.DefaultPackBootstrapProvisioner;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisBiomeCustom;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.iris.util.common.misc.ServerProperties;

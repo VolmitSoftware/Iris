@@ -19,8 +19,8 @@
 package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisWorld;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

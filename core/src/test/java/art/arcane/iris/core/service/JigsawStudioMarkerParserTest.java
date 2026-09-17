@@ -1,8 +1,8 @@
 package art.arcane.iris.core.service;
 
-import art.arcane.iris.engine.object.IrisDirection;
-import art.arcane.iris.engine.object.IrisJigsawConnector;
-import art.arcane.iris.engine.object.JigsawJoint;
+import art.arcane.iris.engine.object.value.IrisDirection;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
+import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import org.bukkit.block.Orientation;
 import org.junit.Test;
 

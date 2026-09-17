@@ -18,12 +18,13 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.nms.container.BlockPos;
 import art.arcane.iris.core.nms.container.Pair;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisObject;
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.math.Position2;
@@ -57,7 +58,7 @@ public interface Locator<T> {
         return new HintedLocator<>(exact, (engine) -> HintedLocator.biomePlan(engine, loadKey));
     }
 
-    static Locator<art.arcane.iris.engine.object.IrisStructure> structure(String key) {
+    static Locator<art.arcane.iris.engine.object.structure.IrisStructure> structure(String key) {
         return (e, c) -> IrisStructureLocator.startsInChunk(e, key, c.getX(), c.getZ());
     }
 

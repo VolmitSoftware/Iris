@@ -1,13 +1,13 @@
 package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.object.InventorySlotType;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisLootMode;
-import art.arcane.iris.engine.object.IrisLootReference;
-import art.arcane.iris.engine.object.IrisLootTable;
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.object.loot.InventorySlotType;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.loot.IrisLootMode;
+import art.arcane.iris.engine.object.loot.IrisLootReference;
+import art.arcane.iris.engine.object.loot.IrisLootTable;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MaxNumber;
 import art.arcane.volmlib.util.collection.KList;

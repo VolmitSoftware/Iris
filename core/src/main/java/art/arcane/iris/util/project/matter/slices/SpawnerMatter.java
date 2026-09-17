@@ -18,7 +18,7 @@
 
 package art.arcane.iris.util.project.matter.slices;
 
-import art.arcane.iris.engine.object.IrisSpawner;
+import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.volmlib.util.matter.Sliced;
 
 @Sliced

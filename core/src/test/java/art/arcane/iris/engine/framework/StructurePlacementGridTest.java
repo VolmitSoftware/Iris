@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.IrisStructurePlacement;
-import art.arcane.iris.engine.object.IrisStructureAnchorMode;
-import art.arcane.iris.engine.object.StructureDistribution;
+import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
+import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
+import art.arcane.iris.engine.object.structure.StructureDistribution;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

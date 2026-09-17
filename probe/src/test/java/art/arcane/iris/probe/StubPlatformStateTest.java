@@ -1,6 +1,6 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.engine.object.IrisObjectRotation;
+import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import org.junit.BeforeClass;

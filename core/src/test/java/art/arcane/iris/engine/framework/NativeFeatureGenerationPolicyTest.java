@@ -18,11 +18,11 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisDecorationStep;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisImportedFeatureControl;
-import art.arcane.iris.engine.object.NativeFeatureGenerationStatus;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.decoration.IrisDecorationStep;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.decoration.IrisImportedFeatureControl;
+import art.arcane.iris.engine.object.decoration.NativeFeatureGenerationStatus;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 

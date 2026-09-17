@@ -1,8 +1,8 @@
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisStructureAnchorMode;
-import art.arcane.iris.engine.object.IrisStructurePlacement;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
+import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import org.junit.Test;

@@ -27,7 +27,7 @@ import art.arcane.iris.engine.data.chunk.TerrainChunk;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
 import art.arcane.iris.engine.framework.WrongEngineBroException;
-import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.platform.studio.EnginedStudioGenerator;
 import art.arcane.iris.platform.bukkit.BukkitBiome;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;

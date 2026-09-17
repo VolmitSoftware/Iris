@@ -1,5 +1,6 @@
 package art.arcane.iris.engine;
 
+import art.arcane.iris.engine.object.runtime.IrisEngineData;
 import org.junit.Test;
 
 import java.io.IOException;

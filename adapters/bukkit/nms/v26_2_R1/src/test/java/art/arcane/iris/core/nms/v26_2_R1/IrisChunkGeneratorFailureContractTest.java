@@ -1,5 +1,6 @@
 package art.arcane.iris.core.nms.v26_2_R1;
 
+import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
 import org.junit.Test;
 
 import java.io.IOException;

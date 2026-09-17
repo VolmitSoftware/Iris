@@ -1,7 +1,7 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.IRare;
-import art.arcane.iris.engine.object.IrisEntitySpawn;
+import art.arcane.iris.engine.object.value.IRare;
+import art.arcane.iris.engine.object.entity.IrisEntitySpawn;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 

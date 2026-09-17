@@ -1,12 +1,12 @@
 package art.arcane.iris.engine.framework.structure;
 
-import art.arcane.iris.engine.object.IrisJigsawConnector;
-import art.arcane.iris.engine.object.IrisJigsawBranchFailurePolicy;
-import art.arcane.iris.engine.object.IrisJigsawPiece;
-import art.arcane.iris.engine.object.IrisJigsawPieceEntry;
-import art.arcane.iris.engine.object.IrisJigsawPool;
-import art.arcane.iris.engine.object.IrisJigsawThemeSet;
-import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceEntry;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 
 import java.util.ArrayList;
 import java.util.Collections;

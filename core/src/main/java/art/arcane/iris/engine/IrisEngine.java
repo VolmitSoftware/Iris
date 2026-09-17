@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine;
 
+import art.arcane.iris.engine.object.placement.PlacementLifecycles;
 import art.arcane.iris.engine.EngineBackgroundTasks.BackgroundTaskDrain;
 import art.arcane.iris.engine.EngineRuntimeBuilder.RuntimeAssembly;
 import art.arcane.iris.engine.framework.Engine;
@@ -35,10 +36,10 @@ import art.arcane.iris.engine.framework.GenerationSessionLease;
 import art.arcane.iris.engine.framework.GenerationSessionManager;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.framework.WrongEngineBroException;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisEngineData;
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.runtime.IrisEngineData;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.IrisLogging;
 import com.google.common.util.concurrent.AtomicDouble;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -501,7 +502,7 @@ public class IrisEngine implements Engine {
     }
 
     @Override
-    public art.arcane.iris.engine.object.PlacementLifecycles getPlacementLifecycles() {
+    public art.arcane.iris.engine.object.placement.PlacementLifecycles getPlacementLifecycles() {
         RuntimeAssembly assembly = runtimeAssembly.get();
         if (assembly != null) {
             return assembly.placementLifecycles;

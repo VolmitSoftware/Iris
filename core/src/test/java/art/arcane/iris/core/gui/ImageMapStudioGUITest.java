@@ -3,7 +3,7 @@ package art.arcane.iris.core.gui;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisImageMap;
+import art.arcane.iris.engine.object.image.IrisImageMap;
 import org.junit.Test;
 import org.mockito.InOrder;
 

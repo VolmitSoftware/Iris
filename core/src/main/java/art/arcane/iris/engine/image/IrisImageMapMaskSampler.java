@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.image;
 
-import art.arcane.iris.engine.object.IrisImageMapMask;
-import art.arcane.iris.engine.object.IrisImageMapMaskOperation;
+import art.arcane.iris.engine.object.image.IrisImageMapMask;
+import art.arcane.iris.engine.object.image.IrisImageMapMaskOperation;
 
 import java.util.ArrayList;
 import java.util.List;

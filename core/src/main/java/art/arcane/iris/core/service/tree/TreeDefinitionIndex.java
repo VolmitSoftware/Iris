@@ -1,12 +1,12 @@
 package art.arcane.iris.core.service.tree;
 
+import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.StructurePlacementMarker;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
-import art.arcane.iris.engine.object.IrisProceduralObjects;
-import art.arcane.iris.engine.object.IrisProceduralTree;
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
+import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 
 import java.util.HashSet;
 import java.util.Set;

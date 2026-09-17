@@ -1,6 +1,6 @@
 package art.arcane.iris.core.runtime.jigsaw;
 
-import art.arcane.iris.engine.object.IrisJigsawPieceRules;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceRules;
 
 import java.util.Objects;
 

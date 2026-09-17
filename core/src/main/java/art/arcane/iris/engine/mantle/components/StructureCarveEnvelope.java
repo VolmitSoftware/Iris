@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.engine.object.IrisStructureCarveShape;
+import art.arcane.iris.engine.object.structure.IrisStructureCarveShape;
 import art.arcane.iris.util.project.noise.CNG;
 
 /**

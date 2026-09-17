@@ -1,8 +1,8 @@
 package art.arcane.iris.util.project.context;
 
 import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import org.bukkit.block.data.BlockData;
 import org.junit.Test;

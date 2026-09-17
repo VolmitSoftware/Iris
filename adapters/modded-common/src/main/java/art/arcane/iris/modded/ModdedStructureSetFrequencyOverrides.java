@@ -19,7 +19,7 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.engine.framework.NativeStructureFrequencyScale;
-import art.arcane.iris.engine.object.IrisImportedStructureControl;
+import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderOwner;
 import net.minecraft.core.Vec3i;

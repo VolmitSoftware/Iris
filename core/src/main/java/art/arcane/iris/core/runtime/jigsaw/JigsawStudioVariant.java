@@ -1,6 +1,6 @@
 package art.arcane.iris.core.runtime.jigsaw;
 
-import art.arcane.iris.engine.object.IrisPosition;
+import art.arcane.iris.engine.object.value.IrisPosition;
 
 import java.util.List;
 import java.util.Objects;

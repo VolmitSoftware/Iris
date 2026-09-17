@@ -1,6 +1,6 @@
 package art.arcane.iris.core.tools;
 
-import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;

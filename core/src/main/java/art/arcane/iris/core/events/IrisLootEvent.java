@@ -1,8 +1,8 @@
 package art.arcane.iris.core.events;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.InventorySlotType;
-import art.arcane.iris.engine.object.IrisLootTable;
+import art.arcane.iris.engine.object.loot.InventorySlotType;
+import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;

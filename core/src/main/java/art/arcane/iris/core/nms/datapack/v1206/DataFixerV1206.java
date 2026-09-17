@@ -1,10 +1,10 @@
 package art.arcane.iris.core.nms.datapack.v1206;
 
+import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
+import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustomSpawn;
+import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustomSpawnType;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.nms.datapack.v1192.DataFixerV1192;
-import art.arcane.iris.engine.object.IrisBiomeCustom;
-import art.arcane.iris.engine.object.IrisBiomeCustomSpawn;
-import art.arcane.iris.engine.object.IrisBiomeCustomSpawnType;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.json.JSONArray;

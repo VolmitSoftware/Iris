@@ -1,9 +1,9 @@
 package art.arcane.iris.core.nms.v26_2_R1;
 
+import art.arcane.iris.engine.object.structure.vanilla.IrisStructureSetFrequencyOverride;
 import art.arcane.iris.core.datapack.DatapackIngestService;
 import art.arcane.iris.core.datapack.DatapackStructureScopeIndex;
-import art.arcane.iris.engine.object.IrisImportedStructureControl;
-import art.arcane.iris.engine.object.IrisStructureSetFrequencyOverride;
+import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
 import art.arcane.volmlib.util.collection.KList;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.SharedConstants;

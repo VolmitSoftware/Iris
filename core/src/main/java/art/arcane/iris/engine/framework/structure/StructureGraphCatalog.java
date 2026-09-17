@@ -2,8 +2,8 @@ package art.arcane.iris.engine.framework.structure;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.StructureAssembler;
-import art.arcane.iris.engine.object.IrisPosition;
-import art.arcane.iris.engine.object.IrisStructure;
+import art.arcane.iris.engine.object.value.IrisPosition;
+import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.math.RNG;
 import com.github.benmanes.caffeine.cache.Cache;

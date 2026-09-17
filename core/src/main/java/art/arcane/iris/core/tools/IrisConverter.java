@@ -3,7 +3,7 @@ package art.arcane.iris.core.tools;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.volmlib.util.data.Varint;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.format.Form;

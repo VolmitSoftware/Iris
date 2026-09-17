@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.engine.object.IrisDepositHeightDistribution;
-import art.arcane.iris.engine.object.IrisDepositPlacementScope;
+import art.arcane.iris.engine.object.terrain.deposit.IrisDepositHeightDistribution;
+import art.arcane.iris.engine.object.terrain.deposit.IrisDepositPlacementScope;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;

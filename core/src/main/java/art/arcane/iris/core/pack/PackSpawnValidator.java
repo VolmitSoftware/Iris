@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.pack;
 
-import art.arcane.iris.engine.object.IrisBiomeCustomSpawnType;
+import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustomSpawnType;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformEntityType;

@@ -18,9 +18,9 @@
 
 package art.arcane.iris.probe;
 
-import art.arcane.iris.engine.object.BlockDataMergeSupport;
-import art.arcane.iris.engine.object.IrisObjectRotation;
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.engine.object.material.BlockDataMergeSupport;
+import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
+import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.LogLevel;
 import art.arcane.iris.spi.PlatformBiome;

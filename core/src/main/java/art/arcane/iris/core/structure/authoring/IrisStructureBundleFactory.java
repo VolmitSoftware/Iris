@@ -1,6 +1,6 @@
 package art.arcane.iris.core.structure.authoring;
 
-import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 

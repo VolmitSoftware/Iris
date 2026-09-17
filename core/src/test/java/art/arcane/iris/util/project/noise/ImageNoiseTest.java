@@ -2,9 +2,9 @@ package art.arcane.iris.util.project.noise;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.image.IrisImageMapValidationException;
-import art.arcane.iris.engine.object.IrisImageMap;
-import art.arcane.iris.engine.object.IrisImageMapOutOfBounds;
-import art.arcane.iris.engine.object.IrisImageMapType;
+import art.arcane.iris.engine.object.image.IrisImageMap;
+import art.arcane.iris.engine.object.image.IrisImageMapOutOfBounds;
+import art.arcane.iris.engine.object.image.IrisImageMapType;
 import com.google.gson.Gson;
 import org.junit.Rule;
 import org.junit.Test;

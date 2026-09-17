@@ -29,7 +29,7 @@ import art.arcane.iris.core.pack.AtomicDirectoryPublisher;
 import art.arcane.iris.core.runtime.WorldDeletionQueue;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.core.tools.TreePlausibilizer;
-import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;

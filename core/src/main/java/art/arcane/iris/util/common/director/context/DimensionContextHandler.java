@@ -19,7 +19,7 @@
 package art.arcane.iris.util.common.director.context;
 
 import art.arcane.iris.core.tools.IrisToolbelt;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.util.common.director.DirectorContextHandler;
 import art.arcane.iris.util.common.plugin.VolmitSender;
 

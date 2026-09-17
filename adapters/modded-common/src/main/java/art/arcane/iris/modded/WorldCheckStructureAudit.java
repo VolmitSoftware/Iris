@@ -20,7 +20,7 @@ package art.arcane.iris.modded;
 
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
-import art.arcane.iris.engine.object.IrisNativeStructureDecision;
+import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
 import art.arcane.iris.nativegen.NativeStructureFoundationBuilder;
 import art.arcane.iris.nativegen.NativeStructureVegetationClearer;
 import com.mojang.datafixers.util.Pair;

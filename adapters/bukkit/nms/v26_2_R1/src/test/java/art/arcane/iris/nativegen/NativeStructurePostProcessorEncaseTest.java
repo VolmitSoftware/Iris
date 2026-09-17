@@ -1,9 +1,9 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.object.IrisMaterialPalette;
-import art.arcane.iris.engine.object.IrisStructureTerrain;
-import art.arcane.iris.engine.object.IrisStructureTerrainMode;
-import art.arcane.iris.engine.object.IrisStructureYBand;
+import art.arcane.iris.engine.object.material.IrisMaterialPalette;
+import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
+import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
+import art.arcane.iris.engine.object.structure.IrisStructureYBand;
 import art.arcane.volmlib.util.math.RNG;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;

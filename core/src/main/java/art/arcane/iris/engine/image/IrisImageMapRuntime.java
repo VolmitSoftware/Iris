@@ -2,16 +2,16 @@ package art.arcane.iris.engine.image;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisImage;
-import art.arcane.iris.engine.object.IrisImageMap;
-import art.arcane.iris.engine.object.IrisImageMapApplication;
-import art.arcane.iris.engine.object.IrisImageMapBinding;
-import art.arcane.iris.engine.object.IrisImageMapMask;
-import art.arcane.iris.engine.object.IrisImageMapType;
-import art.arcane.iris.engine.object.IrisRegion;
-import art.arcane.iris.engine.object.InferredType;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.image.IrisImage;
+import art.arcane.iris.engine.object.image.IrisImageMap;
+import art.arcane.iris.engine.object.image.IrisImageMapApplication;
+import art.arcane.iris.engine.object.image.IrisImageMapBinding;
+import art.arcane.iris.engine.object.image.IrisImageMapMask;
+import art.arcane.iris.engine.object.image.IrisImageMapType;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 

@@ -1,7 +1,7 @@
 package art.arcane.iris.core.service;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

@@ -1,9 +1,9 @@
 package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisRegion;
-import art.arcane.iris.engine.object.IrisStructurePlacement;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.volmlib.util.collection.KList;
 
 import java.lang.ref.WeakReference;

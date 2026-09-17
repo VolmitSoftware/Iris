@@ -2,7 +2,7 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.mantle.MantleWriter;
-import art.arcane.iris.engine.object.IrisMaterialPalette;
+import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.math.RNG;

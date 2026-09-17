@@ -4,7 +4,7 @@ import art.arcane.iris.engine.framework.EngineEffects;
 import art.arcane.iris.engine.framework.EngineMode;
 import art.arcane.iris.engine.framework.EngineTarget;
 import art.arcane.iris.engine.framework.EngineWorldManager;
-import art.arcane.iris.engine.object.ObjectPlaceMode;
+import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import org.junit.Test;
 
 import java.util.concurrent.CompletableFuture;

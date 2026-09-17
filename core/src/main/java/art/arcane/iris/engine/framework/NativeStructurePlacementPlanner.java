@@ -1,10 +1,10 @@
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.IrisNativeStructure;
-import art.arcane.iris.engine.object.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.IrisStructureAnchorMode;
-import art.arcane.iris.engine.object.IrisStructurePlacement;
-import art.arcane.iris.engine.object.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
+import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
+import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
+import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
+import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 

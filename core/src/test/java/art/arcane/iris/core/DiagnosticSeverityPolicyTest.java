@@ -1,5 +1,8 @@
 package art.arcane.iris.core;
 
+import art.arcane.iris.engine.object.compatibility.IrisCompat;
+import art.arcane.iris.engine.object.decoration.IrisDecorator;
+import art.arcane.iris.engine.object.image.IrisImage;
 import org.junit.Test;
 
 import java.io.IOException;

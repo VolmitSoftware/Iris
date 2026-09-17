@@ -19,7 +19,7 @@
 package art.arcane.iris.core.pack;
 
 import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.engine.object.IrisObjectIO;
+import art.arcane.iris.engine.object.prefab.IrisObjectIO;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockProperty;

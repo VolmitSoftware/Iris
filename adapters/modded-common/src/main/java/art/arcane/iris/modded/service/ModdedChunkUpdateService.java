@@ -23,7 +23,7 @@ import art.arcane.iris.core.gui.PregeneratorJob;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.engine.data.cache.Cache;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedBlockResolution;
 import art.arcane.iris.modded.ModdedLootApplier;

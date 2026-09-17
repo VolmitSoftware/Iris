@@ -18,15 +18,15 @@
 
 package art.arcane.iris.engine;
 
+import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisDecorator;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
-import art.arcane.iris.engine.object.IrisOreGenerator;
-import art.arcane.iris.engine.object.IrisProceduralObjects;
-import art.arcane.iris.engine.object.IrisProceduralPlacement;
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.decoration.IrisDecorator;
+import art.arcane.iris.engine.object.terrain.deposit.IrisOreGenerator;
+import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
+import art.arcane.iris.engine.object.procedural.IrisProceduralPlacement;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.M;

@@ -1,6 +1,6 @@
 package art.arcane.iris.core.commands;
 
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.util.common.director.specialhandlers.NullableDimensionHandler;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;

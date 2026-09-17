@@ -20,7 +20,7 @@ package art.arcane.iris.core.structure;
 
 import art.arcane.iris.core.structure.authoring.StructureCapability;
 import art.arcane.iris.core.structure.authoring.StructureLoss;
-import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 import org.junit.Test;
 
 import java.util.List;

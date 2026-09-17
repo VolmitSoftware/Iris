@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.modifier;
 
 
+import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.decorator.FloatingDecorator;
@@ -26,16 +27,15 @@ import art.arcane.iris.engine.decorator.IrisSeaSurfaceDecorator;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedModifier;
 import art.arcane.iris.engine.framework.EngineDecorator;
-import art.arcane.iris.engine.object.FloatingBottomPaletteMode;
-import art.arcane.iris.engine.object.FloatingIslandBoundarySampler;
-import art.arcane.iris.engine.object.FloatingIslandSample;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisBiomePaletteLayer;
-import art.arcane.iris.engine.object.IrisBiomeCustom;
-import art.arcane.iris.engine.object.IrisDecorationPart;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisFloatingChildBiomes;
-import art.arcane.iris.engine.object.IrisSlopeClip;
+import art.arcane.iris.engine.object.terrain.floating.FloatingBottomPaletteMode;
+import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
+import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
+import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
+import art.arcane.iris.engine.object.placement.IrisSlopeClip;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.context.ChunkContext;

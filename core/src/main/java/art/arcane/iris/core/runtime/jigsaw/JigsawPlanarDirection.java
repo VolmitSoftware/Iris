@@ -1,6 +1,6 @@
 package art.arcane.iris.core.runtime.jigsaw;
 
-import art.arcane.iris.engine.object.IrisDirection;
+import art.arcane.iris.engine.object.value.IrisDirection;
 
 public enum JigsawPlanarDirection {
     NORTH(1),

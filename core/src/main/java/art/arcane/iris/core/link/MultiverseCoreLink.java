@@ -20,7 +20,7 @@ package art.arcane.iris.core.link;
 
 import art.arcane.iris.core.IrisWorldStorage;
 import art.arcane.iris.core.IrisWorlds;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.platform.bukkit.BukkitEnvironment;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.bukkit.WorldIdentity;

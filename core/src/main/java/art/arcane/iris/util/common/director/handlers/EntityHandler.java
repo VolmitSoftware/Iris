@@ -18,7 +18,7 @@
 
 package art.arcane.iris.util.common.director.handlers;
 
-import art.arcane.iris.engine.object.IrisEntity;
+import art.arcane.iris.engine.object.entity.IrisEntity;
 import art.arcane.iris.util.common.director.specialhandlers.RegistrantHandler;
 
 public class EntityHandler extends RegistrantHandler<IrisEntity> {

@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.framework.structure;
 
-import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 

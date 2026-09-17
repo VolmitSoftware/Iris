@@ -23,7 +23,7 @@ import art.arcane.iris.core.lifecycle.BukkitWorldConfiguration;
 import art.arcane.iris.core.lifecycle.LifecycleOperationCoordinator;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.tools.IrisToolbelt;
-import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.platform.bukkit.BukkitEnvironment;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.iris.util.common.misc.ServerProperties;

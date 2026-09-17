@@ -18,7 +18,7 @@
 
 package art.arcane.iris.util.project.matter;
 
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.engine.object.prefab.TileData;
 import lombok.Data;
 
 @Data

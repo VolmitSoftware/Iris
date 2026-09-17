@@ -1,14 +1,14 @@
 package art.arcane.iris.engine.image;
 
-import art.arcane.iris.engine.object.IrisImage;
-import art.arcane.iris.engine.object.IrisImageColorMode;
-import art.arcane.iris.engine.object.IrisImageMap;
-import art.arcane.iris.engine.object.IrisImageMapAlpha;
-import art.arcane.iris.engine.object.IrisImageMapOrigin;
-import art.arcane.iris.engine.object.IrisImageMapOutOfBounds;
-import art.arcane.iris.engine.object.IrisImageMapSampling;
-import art.arcane.iris.engine.object.IrisImageMapType;
-import art.arcane.iris.engine.object.IrisImageMapUnknownColor;
+import art.arcane.iris.engine.object.image.IrisImage;
+import art.arcane.iris.engine.object.image.IrisImageColorMode;
+import art.arcane.iris.engine.object.image.IrisImageMap;
+import art.arcane.iris.engine.object.image.IrisImageMapAlpha;
+import art.arcane.iris.engine.object.image.IrisImageMapOrigin;
+import art.arcane.iris.engine.object.image.IrisImageMapOutOfBounds;
+import art.arcane.iris.engine.object.image.IrisImageMapSampling;
+import art.arcane.iris.engine.object.image.IrisImageMapType;
+import art.arcane.iris.engine.object.image.IrisImageMapUnknownColor;
 import art.arcane.volmlib.util.collection.KMap;
 
 import java.nio.charset.StandardCharsets;

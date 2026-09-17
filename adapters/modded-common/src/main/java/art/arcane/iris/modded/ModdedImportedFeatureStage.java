@@ -18,13 +18,13 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
 import art.arcane.iris.engine.framework.NativeFeatureGenerationPolicy;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisBiomeCustom;
-import art.arcane.iris.engine.object.IrisDecorationStep;
-import art.arcane.iris.engine.object.IrisImportedFeatureControl;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.decoration.IrisDecorationStep;
+import art.arcane.iris.engine.object.decoration.IrisImportedFeatureControl;
 import art.arcane.iris.util.project.context.IrisContext;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntSet;

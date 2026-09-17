@@ -1,9 +1,9 @@
 package art.arcane.iris.engine.framework.structure;
 
-import art.arcane.iris.engine.object.IrisJigsawPiece;
-import art.arcane.iris.engine.object.IrisJigsawPool;
-import art.arcane.iris.engine.object.IrisObject;
-import art.arcane.iris.engine.object.IrisStructure;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
+import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.structure.IrisStructure;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

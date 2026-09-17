@@ -1,5 +1,6 @@
 package art.arcane.iris;
 
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import org.junit.Test;
 
 import java.nio.file.Files;

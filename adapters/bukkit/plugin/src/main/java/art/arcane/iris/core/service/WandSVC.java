@@ -33,7 +33,7 @@ import art.arcane.iris.core.localization.RuntimeUiMessages;
 import art.arcane.iris.core.edit.DustRevealer;
 import art.arcane.iris.core.link.WorldEditLink;
 import art.arcane.iris.core.wand.WandSelection;
-import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.util.project.matter.WorldMatter;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.bukkit.WorldIdentity;

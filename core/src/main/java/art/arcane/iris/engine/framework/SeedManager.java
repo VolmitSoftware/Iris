@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.NoiseStyle;
+import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.util.project.noise.CNG;
 import lombok.AccessLevel;

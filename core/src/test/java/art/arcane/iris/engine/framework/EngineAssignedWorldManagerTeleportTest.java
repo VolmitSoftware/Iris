@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.IrisWorld;
+import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import org.bukkit.Chunk;

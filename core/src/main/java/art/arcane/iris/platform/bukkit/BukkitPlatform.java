@@ -21,7 +21,7 @@ package art.arcane.iris.platform.bukkit;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.nms.MinecraftVersion;
-import art.arcane.iris.engine.object.IrisPosition;
+import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.LogLevel;
 import art.arcane.iris.spi.PlatformBiome;

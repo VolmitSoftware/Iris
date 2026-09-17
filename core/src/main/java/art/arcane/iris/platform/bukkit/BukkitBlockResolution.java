@@ -24,7 +24,7 @@ import art.arcane.iris.core.link.data.DataType;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.nms.container.BlockProperty;
 import art.arcane.iris.core.service.ExternalDataSVC;
-import art.arcane.iris.engine.object.IrisCompat;
+import art.arcane.iris.engine.object.compatibility.IrisCompat;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.util.common.data.registry.Materials;
@@ -208,7 +208,7 @@ public final class BukkitBlockResolution {
 
     /**
      * Strict lookup: null when nothing claims the key, never an air substitute. Unlike {@link #getOrNull(String)} this
-     * never reaches the {@link art.arcane.iris.engine.object.IrisCompat} legacy rewrite table, which is a Bukkit-only
+     * never reaches the {@link art.arcane.iris.engine.object.compatibility.IrisCompat} legacy rewrite table, which is a Bukkit-only
      * layer and must stay off the generation path.
      */
     public static BlockData resolveOrNull(String bdxf) {

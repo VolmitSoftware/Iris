@@ -1,13 +1,13 @@
 package art.arcane.iris.core.gui;
 
-import art.arcane.iris.engine.object.IrisImageMap;
-import art.arcane.iris.engine.object.IrisImageMapOrigin;
-import art.arcane.iris.engine.object.IrisImageMapMask;
-import art.arcane.iris.engine.object.IrisImageMapMaskOperation;
-import art.arcane.iris.engine.object.IrisImageMapRotation;
-import art.arcane.iris.engine.object.IrisImageMapType;
-import art.arcane.iris.engine.object.IrisWorldBoundary;
-import art.arcane.iris.engine.object.IrisWorldBoundaryCenter;
+import art.arcane.iris.engine.object.image.IrisImageMap;
+import art.arcane.iris.engine.object.image.IrisImageMapOrigin;
+import art.arcane.iris.engine.object.image.IrisImageMapMask;
+import art.arcane.iris.engine.object.image.IrisImageMapMaskOperation;
+import art.arcane.iris.engine.object.image.IrisImageMapRotation;
+import art.arcane.iris.engine.object.image.IrisImageMapType;
+import art.arcane.iris.engine.object.world.IrisWorldBoundary;
+import art.arcane.iris.engine.object.world.IrisWorldBoundaryCenter;
 import art.arcane.volmlib.util.collection.KMap;
 import org.junit.Test;
 

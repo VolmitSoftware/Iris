@@ -20,10 +20,10 @@ package art.arcane.iris.engine.decorator;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisDecorationPart;
-import art.arcane.iris.engine.object.IrisDecorator;
-import art.arcane.iris.engine.object.IrisProceduralBlocks;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
+import art.arcane.iris.engine.object.decoration.IrisDecorator;
+import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;

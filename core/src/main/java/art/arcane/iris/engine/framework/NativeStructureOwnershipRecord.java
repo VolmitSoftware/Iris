@@ -1,9 +1,9 @@
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.IrisStructureStiltSettings;
-import art.arcane.iris.engine.object.IrisStructureTerrain;
-import art.arcane.iris.engine.object.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
+import art.arcane.iris.engine.object.structure.IrisStructureStiltSettings;
+import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
+import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
 import com.google.gson.Gson;
 
 import java.io.DataInputStream;

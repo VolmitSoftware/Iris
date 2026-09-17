@@ -18,9 +18,9 @@
 
 package art.arcane.iris.core.pack;
 
-import art.arcane.iris.engine.object.IrisLoot;
-import art.arcane.iris.engine.object.IrisLootReference;
-import art.arcane.iris.engine.object.IrisLootTable;
+import art.arcane.iris.engine.object.loot.IrisLoot;
+import art.arcane.iris.engine.object.loot.IrisLootReference;
+import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 

@@ -1,5 +1,9 @@
 package art.arcane.iris.modded;
 
+import art.arcane.iris.engine.object.material.BlockDataMergeSupport;
+import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
+import art.arcane.iris.engine.object.prefab.TileData;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import org.junit.Test;
 
 import java.io.IOException;

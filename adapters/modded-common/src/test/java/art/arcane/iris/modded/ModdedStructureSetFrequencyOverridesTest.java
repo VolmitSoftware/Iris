@@ -1,7 +1,7 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.IrisImportedStructureControl;
-import art.arcane.iris.engine.object.IrisStructureSetFrequencyOverride;
+import art.arcane.iris.engine.object.structure.vanilla.IrisStructureSetFrequencyOverride;
+import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
 import art.arcane.volmlib.util.collection.KList;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Holder;

@@ -1,12 +1,13 @@
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisObjectPlacement;
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.util.project.stream.ProceduralStream;
@@ -430,7 +431,7 @@ public class HintedLocatorTest {
             return found;
         });
 
-        Locator<art.arcane.iris.engine.object.IrisObject> locator = Locator.object("trees/oak");
+        Locator<art.arcane.iris.engine.object.prefab.IrisObject> locator = Locator.object("trees/oak");
         Position2 result = locator.find(engine, new Position2(0, 0), 60_000, (Integer count) -> {
         }).get();
 

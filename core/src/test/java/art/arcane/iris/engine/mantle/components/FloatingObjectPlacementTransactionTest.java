@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.TileData;
+import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.PlatformBlockState;
 import org.junit.Test;
 

@@ -1,5 +1,6 @@
 package art.arcane.iris.core.service;
 
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.core.ServerConfigurator;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.pack.AtomicDirectoryPublisher;

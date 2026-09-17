@@ -18,11 +18,11 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.IrisBiome;
-import art.arcane.iris.engine.object.IrisLootMode;
-import art.arcane.iris.engine.object.IrisLootReference;
-import art.arcane.iris.engine.object.IrisLootTable;
-import art.arcane.iris.engine.object.IrisRegion;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.loot.IrisLootMode;
+import art.arcane.iris.engine.object.loot.IrisLootReference;
+import art.arcane.iris.engine.object.loot.IrisLootTable;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 

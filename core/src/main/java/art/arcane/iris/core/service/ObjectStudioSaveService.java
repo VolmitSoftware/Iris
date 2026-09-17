@@ -26,7 +26,7 @@ import art.arcane.iris.core.runtime.ObjectStudioActivation;
 import art.arcane.iris.core.runtime.ObjectStudioLayout;
 import art.arcane.iris.core.runtime.ObjectStudioLayout.GridCell;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.IrisObject;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.platform.studio.generators.ObjectStudioGenerator;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.iris.util.common.plugin.IrisService;

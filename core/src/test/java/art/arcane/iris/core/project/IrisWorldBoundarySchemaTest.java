@@ -1,8 +1,8 @@
 package art.arcane.iris.core.project;
 
-import art.arcane.iris.engine.object.IrisDimension;
-import art.arcane.iris.engine.object.IrisWorldBoundary;
-import art.arcane.iris.engine.object.IrisWorldBoundaryCenter;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.world.IrisWorldBoundary;
+import art.arcane.iris.engine.object.world.IrisWorldBoundaryCenter;
 import art.arcane.volmlib.util.json.JSONObject;
 import org.junit.Test;
 

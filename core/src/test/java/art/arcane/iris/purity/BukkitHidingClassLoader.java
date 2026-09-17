@@ -1,5 +1,6 @@
 package art.arcane.iris.purity;
 
+import art.arcane.iris.engine.object.prefab.matter.IrisMatterObject;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;

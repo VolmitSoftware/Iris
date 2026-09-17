@@ -3,7 +3,7 @@ package art.arcane.iris.util.project.matter;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.loader.ResourceLoader;
-import art.arcane.iris.engine.object.IrisSpawner;
+import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.util.project.matter.slices.SpawnerMatter;
 import art.arcane.volmlib.util.collection.KMap;
 import org.junit.Test;

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.platform.bukkit;
 
+import art.arcane.iris.engine.object.compatibility.IrisCompat;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.link.data.DataType;
 import art.arcane.iris.core.nms.INMS;

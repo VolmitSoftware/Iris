@@ -1,7 +1,7 @@
 package art.arcane.iris.core.project;
 
-import art.arcane.iris.engine.object.IrisEntitySpawn;
-import art.arcane.iris.engine.object.IrisSpawner;
+import art.arcane.iris.engine.object.entity.IrisEntitySpawn;
+import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.volmlib.util.collection.KSet;
 import org.junit.Test;
 

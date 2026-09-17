@@ -18,7 +18,7 @@
 
 package art.arcane.iris.util.project.stream.interpolation;
 
-import art.arcane.iris.engine.object.CaveResult;
+import art.arcane.iris.engine.object.terrain.carving.CaveResult;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KList;

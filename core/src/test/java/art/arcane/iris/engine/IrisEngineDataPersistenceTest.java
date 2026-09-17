@@ -1,7 +1,7 @@
 package art.arcane.iris.engine;
 
 import art.arcane.iris.core.lifecycle.VanishedWorldStorage;
-import art.arcane.iris.engine.object.IrisEngineData;
+import art.arcane.iris.engine.object.runtime.IrisEngineData;
 import com.google.gson.Gson;
 import org.junit.Rule;
 import org.junit.Test;

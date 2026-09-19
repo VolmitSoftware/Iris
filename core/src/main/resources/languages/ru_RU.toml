@@ -1582,6 +1582,10 @@ failed_fragment = "  неудачный {failed}"
 "commandpack.compat_header" = "§eПак '{pack}': содержимое недоступно в Minecraft {version}"
 "commandpack.compat_none" = "§aПак '{pack}' не использует содержимое, которого нет в Minecraft {version}."
 "commandpack.compat_remedy" = "§7Обновите сервер до более новой версии Minecraft, чтобы вернуть это содержимое, или объявите замены (blockFallbacks измерения, backup блока)."
+"commandpack.update_world_requires_persistent_world" = "§cВыберите загруженный мир Iris. Миры Studio не могут получать обновления генерации."
+"commandpack.update_world_staged" = "§a{pack} v{version} подготовлен для мира '{world}'. Штатный перезапуск активирует пакет с плавным переходом рельефа."
+"commandpack.update_world_unchanged" = "§aМир '{world}' уже использует {pack} v{version} с теми же настройками генерации. Перезапуск не требуется."
+
 
 [iris.runtime.studio]
 opening = "§6Studio §bОТКРЫТИЕ"
@@ -1693,7 +1697,7 @@ chunk_failed = "Кусок {x},{z}  не удалось: {type}"
 "progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
 "progress.detail" = "§8  - §7{detail}"
 "progress.complete" = "§aПак Iris «{pack}» установлен§8 | §f{transferred}§7 за §f{elapsed}"
-"progress.unchanged" = "§eПак Iris «{pack}» уже установлен."
+"progress.unchanged" = "§eПак Iris «{pack}» уже установлен. Используйте overwrite=true, чтобы создать резервную копию и заменить его."
 "progress.failed" = "§cНе удалось загрузить пак Iris.§7 Проверьте сведения о загрузке выше и повторите попытку."
 "progress.failed_detail" = "§cНе удалось загрузить пак Iris.§7 {error}"
 "progress.cancelled" = "§eЗагрузка пака Iris отменена до публикации."
@@ -1719,14 +1723,17 @@ check_github = "Убедитесь, что он присутствует на Gi
 invalid_dimension = "Недействительная размерная папка под dimensions/."
 importing = "импортировать {name} ({key})"
 dimension_key_conflict = "Еще одно измерение в папке пакетов уже использует ключ {key}.  Импорт провалился!"
-pack_key_conflict = "Другой пакет использует ключ. {key}.  Импорт провалился!"
+"pack_key_conflict" = "Пак Iris «{key}» уже установлен. Используйте overwrite=true, чтобы создать резервную копию и заменить его."
 acquired = "Успешно приобретенный {name}."
-already_installed = "Пак {key} уже установлен, загрузка пропущена."
+"already_installed" = "Пак {key} уже установлен, загрузка пропущена. Используйте overwrite=true, чтобы создать резервную копию и заменить его."
 in_progress = "Уже выполняется загрузка другого пака Iris. Дождитесь её завершения, прежде чем повторить попытку."
 validation_failed = "Пакуй.{pack}Неудачная проверка; мир и создание студии будут отклонены.  Причины:"
 validation_reason = "  - {reason}"
 validated_with_warnings = { other = "Пакуй.{pack}подтвержденный {count} предупреждения.", one = "Пакуй.{pack}подтвержденный {count} предупреждение." }
 validated = "Пакуй.{pack}Подтверждено."
+"close_studio" = "Закройте активный проект Studio перед заменой установленного пакета."
+"backup_retained" = "Предыдущий пакет сохранён в {path}."
+
 
 [iris.client.vision]
 title = "Iris Видение"

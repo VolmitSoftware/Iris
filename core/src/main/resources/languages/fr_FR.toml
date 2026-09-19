@@ -1577,6 +1577,10 @@ failed_fragment = "  échecs {failed}"
 "commandpack.compat_header" = "§ePack '{pack}' : contenu indisponible sur Minecraft {version}"
 "commandpack.compat_none" = "§aLe pack '{pack}' n'utilise aucun contenu absent de Minecraft {version}."
 "commandpack.compat_remedy" = "§7Mettez le serveur à jour vers un Minecraft plus récent pour restaurer ce contenu, ou déclarez des replis (blockFallbacks de la dimension, backup du bloc)."
+"commandpack.update_world_requires_persistent_world" = "§cChoisissez un monde Iris chargé. Les mondes Studio ne peuvent pas recevoir de mises à jour de génération."
+"commandpack.update_world_staged" = "§a{pack} v{version} préparé pour le monde '{world}'. Un redémarrage propre activera le pack avec une transition du terrain."
+"commandpack.update_world_unchanged" = "§aLe monde '{world}' utilise déjà {pack} v{version} avec les mêmes paramètres de génération. Aucun redémarrage nécessaire."
+
 
 [iris.runtime.studio]
 opening = "§6Studio §bOUVERTURE"
@@ -1688,7 +1692,7 @@ chunk_failed = "Chunk {x},{z} ÉCHEC : {type}"
 "progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
 "progress.detail" = "§8  - §7{detail}"
 "progress.complete" = "§aLe pack Iris '{pack}' est installé§8 | §f{transferred}§7 en §f{elapsed}"
-"progress.unchanged" = "§eLe pack Iris '{pack}' est déjà installé."
+"progress.unchanged" = "§eLe pack Iris '{pack}' est déjà installé. Utilisez overwrite=true pour le sauvegarder et le remplacer."
 "progress.failed" = "§cÉchec du téléchargement du pack Iris.§7 Consultez les détails du téléchargement ci-dessus et réessayez."
 "progress.failed_detail" = "§cÉchec du téléchargement du pack Iris.§7 {error}"
 "progress.cancelled" = "§eTéléchargement du pack Iris annulé avant sa publication."
@@ -1714,14 +1718,17 @@ check_github = "Vérifiez qu'il est présent sur GitHub et signalez-le à l'équ
 invalid_dimension = "Dossier de dimension non valide dans dimensions/."
 importing = "Importation de {name} ({key})"
 dimension_key_conflict = "Une autre dimension du dossier packs utilise déjà la clé {key}. Échec de l'importation !"
-pack_key_conflict = "Un autre pack utilise la clé {key}. Échec de l'importation !"
+"pack_key_conflict" = "Le pack Iris '{key}' est déjà installé. Utilisez overwrite=true pour le sauvegarder et le remplacer."
 acquired = "{name} obtenu avec succès."
-already_installed = "Le pack {key} est déjà installé, téléchargement ignoré."
+"already_installed" = "Le pack {key} est déjà installé, téléchargement ignoré. Utilisez overwrite=true pour le sauvegarder et le remplacer."
 in_progress = "Un autre téléchargement de pack Iris est déjà en cours. Attendez qu’il se termine avant de réessayer."
 validation_failed = "Le pack '{pack}' a échoué à la validation ; la création de mondes et de Studio sera refusée. Raisons :"
 validation_reason = "  - {reason}"
 validated_with_warnings = { one = "Le pack '{pack}' a été validé avec {count} avertissement.", other = "Le pack '{pack}' a été validé avec {count} avertissements." }
 validated = "Le pack '{pack}' a été validé."
+"close_studio" = "Fermez le projet Studio actif avant de remplacer un pack installé."
+"backup_retained" = "Ancien pack sauvegardé dans {path}."
+
 
 [iris.client.vision]
 title = "Iris Vision"

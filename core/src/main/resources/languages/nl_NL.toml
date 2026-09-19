@@ -1577,6 +1577,10 @@ failed_fragment = "  mislukt {failed}"
 "commandpack.compat_header" = "§ePack '{pack}': inhoud niet beschikbaar op Minecraft {version}"
 "commandpack.compat_none" = "§aPack '{pack}' gebruikt geen inhoud die ontbreekt in Minecraft {version}."
 "commandpack.compat_remedy" = "§7Werk de server bij naar een nieuwere Minecraft om deze inhoud te herstellen, of declareer terugvallen (blockFallbacks van de dimensie, backup van het blok)."
+"commandpack.update_world_requires_persistent_world" = "§cKies een geladen Iris-wereld. Studio-werelden kunnen geen generatie-updates ontvangen."
+"commandpack.update_world_staged" = "§a{pack} v{version} klaargezet voor wereld '{world}'. Een nette herstart activeert het pakket met terreinovergangen."
+"commandpack.update_world_unchanged" = "§aWereld '{world}' gebruikt al {pack} v{version} met dezelfde generatie-instellingen. Herstarten is niet nodig."
+
 
 [iris.runtime.studio]
 opening = "§6Studio §bOPENEN"
@@ -1688,7 +1692,7 @@ chunk_failed = "Chunk. {x},{z}  mislukt: {type}"
 "progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
 "progress.detail" = "§8  - §7{detail}"
 "progress.complete" = "§aIris-pack '{pack}' geïnstalleerd§8 | §f{transferred}§7 in §f{elapsed}"
-"progress.unchanged" = "§eIris-pack '{pack}' is al geïnstalleerd."
+"progress.unchanged" = "§eIris-pack '{pack}' is al geïnstalleerd. Gebruik overwrite=true om een reservekopie te maken en het te vervangen."
 "progress.failed" = "§cDownload van het Iris-pack mislukt.§7 Bekijk de downloadgegevens hierboven en probeer het opnieuw."
 "progress.failed_detail" = "§cDownload van het Iris-pack mislukt.§7 {error}"
 "progress.cancelled" = "§eDownload van het Iris-pack geannuleerd vóór publicatie."
@@ -1714,14 +1718,17 @@ check_github = "Controleer of het aanwezig is op GitHub En meld dit aan het pers
 invalid_dimension = "Ongeldige dimensiemap onder dimensions/."
 importing = "Importeren {name} ({key})"
 dimension_key_conflict = "Een andere dimensie in de packs-map gebruikt al de sleutel {key}.  Importeren mislukt!"
-pack_key_conflict = "Een ander pakje gebruikt de sleutel {key}.  Importeren mislukt!"
+"pack_key_conflict" = "Iris-pack '{key}' is al geïnstalleerd. Gebruik overwrite=true om een reservekopie te maken en het te vervangen."
 acquired = "Succesvol verworven {name}."
-already_installed = "Pack {key} is al geïnstalleerd, download wordt overgeslagen."
+"already_installed" = "Pack {key} is al geïnstalleerd, download wordt overgeslagen. Gebruik overwrite=true om een reservekopie te maken en het te vervangen."
 in_progress = "Er wordt al een ander Iris-pack gedownload. Wacht tot dit is voltooid voordat je het opnieuw probeert."
 validation_failed = "Verpakking{pack}' mislukte validatie; wereld en Studio creatie zal worden geweigerd.  Motivering:"
 validation_reason = "  - {reason}"
 validated_with_warnings = { other = "Verpakking{pack}' gevalideerd met {count} waarschuwingen.", one = "Verpakking{pack}' gevalideerd met {count} waarschuwing." }
 validated = "Verpakking{pack}' gevalideerd."
+"close_studio" = "Sluit het actieve Studio-project voordat je een geïnstalleerd pakket vervangt."
+"backup_retained" = "Vorig pakket opgeslagen in {path}."
+
 
 [iris.client.vision]
 title = "Iris Gezicht"

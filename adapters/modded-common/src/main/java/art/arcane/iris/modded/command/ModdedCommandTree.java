@@ -43,7 +43,7 @@ final class ModdedCommandTree {
     private static final SuggestionProvider<CommandSourceStack> DOWNLOAD_SOURCES =
             (context, builder) ->
                     SharedSuggestionProvider.suggest(
-                            List.of("pack=overworld", "pack=underworld", "link="),
+                            List.of("pack=overworld", "pack=underworld", "link=", "pack=overworld overwrite=true", "pack=underworld overwrite=true"),
                             builder
                     );
     private static final Predicate<CommandSourceStack> GATE = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);

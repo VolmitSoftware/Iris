@@ -1580,6 +1580,10 @@ failed_fragment = "  失敗 {failed}"
 "commandpack.compat_header" = "§eパック '{pack}': Minecraft {version} では利用できない内容があります"
 "commandpack.compat_none" = "§aパック '{pack}' に Minecraft {version} で欠けている内容はありません。"
 "commandpack.compat_remedy" = "§7この内容を復元するにはサーバーを新しい Minecraft に更新するか、代替を宣言してください (ディメンションの blockFallbacks、ブロックの backup)。"
+"commandpack.update_world_requires_persistent_world" = "§c読み込み済みの Iris ワールドを選択してください。Studio ワールドには生成の更新を適用できません。"
+"commandpack.update_world_staged" = "§aワールド '{world}' 用に {pack} v{version} を準備しました。正常な再起動後、地形をなじませながら新しいパックが有効になります。"
+"commandpack.update_world_unchanged" = "§aワールド '{world}' は同じ生成設定の {pack} v{version} を使用しています。再起動は不要です。"
+
 
 [iris.runtime.studio]
 opening = "§6Studio §bオープン中"
@@ -1691,7 +1695,7 @@ chunk_failed = "チャンク {x},{z} 失敗: {type}"
 "progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
 "progress.detail" = "§8  - §7{detail}"
 "progress.complete" = "§aIris パック '{pack}' をインストールしました§8 | §f{transferred}§7、所要時間 §f{elapsed}"
-"progress.unchanged" = "§eIris パック '{pack}' はすでにインストールされています。"
+"progress.unchanged" = "§eIris パック '{pack}' はすでにインストールされています。 バックアップして置き換えるには overwrite=true を指定してください。"
 "progress.failed" = "§cIris パックのダウンロードに失敗しました。§7 上記のダウンロード詳細を確認して、もう一度お試しください。"
 "progress.failed_detail" = "§cIris パックのダウンロードに失敗しました。§7 {error}"
 "progress.cancelled" = "§eIris パックのダウンロードは公開前にキャンセルされました。"
@@ -1717,14 +1721,17 @@ check_github = "GitHub に存在することを確認し、スタッフへ報告
 invalid_dimension = "dimensions/ 内のディメンションフォルダーが無効です。"
 importing = "{name}（{key}）をインポートしています"
 dimension_key_conflict = "packs フォルダー内の別のディメンションがキー {key} をすでに使用しています。インポートに失敗しました!"
-pack_key_conflict = "別のパックがキー {key} を使用しています。インポートに失敗しました!"
+"pack_key_conflict" = "Iris パック '{key}' はすでにインストールされています。 バックアップして置き換えるには overwrite=true を指定してください。"
 acquired = "{name} を取得しました。"
-already_installed = "パック {key} は既にインストールされているため、ダウンロードをスキップします。"
+"already_installed" = "パック {key} は既にインストールされているため、ダウンロードをスキップします。 バックアップして置き換えるには overwrite=true を指定してください。"
 in_progress = "別の Iris パックのダウンロードがすでに進行中です。完了してからもう一度お試しください。"
 validation_failed = "パック '{pack}' は検証に失敗しました。ワールドと Studio の作成を拒否します。理由:"
 validation_reason = "  - {reason}"
 validated_with_warnings = { other = "パック '{pack}' の検証が {count} 件の警告付きで完了しました。", one = "パック '{pack}' の検証が {count} 件の警告付きで完了しました。" }
 validated = "パック '{pack}' の検証が完了しました。"
+"close_studio" = "インストール済みのパックを置き換える前に、開いている Studio プロジェクトを閉じてください。"
+"backup_retained" = "以前のパックを {path} に保存しました。"
+
 
 [iris.client.vision]
 title = "Iris ビジョン"

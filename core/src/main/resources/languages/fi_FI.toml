@@ -1582,6 +1582,10 @@ failed_fragment = "  epäonnistui {failed}"
 "commandpack.compat_header" = "§ePaketti '{pack}': sisältö ei ole käytettävissä Minecraft {version} -versiossa"
 "commandpack.compat_none" = "§aPaketti '{pack}' ei käytä sisältöä, joka puuttuisi Minecraft {version} -versiosta."
 "commandpack.compat_remedy" = "§7Päivitä palvelin uudempaan Minecraft-versioon palauttaaksesi tämän sisällön tai määritä varasisältö (ulottuvuuden blockFallbacks, lohkon backup)."
+"commandpack.update_world_requires_persistent_world" = "§cValitse ladattu Iris-maailma. Studio-maailmat eivät voi vastaanottaa generointipäivityksiä."
+"commandpack.update_world_staged" = "§a{pack} v{version} valmisteltu maailmalle '{world}'. Hallittu uudelleenkäynnistys ottaa paketin ja maaston häivytyksen käyttöön."
+"commandpack.update_world_unchanged" = "§aMaailma '{world}' käyttää jo pakettia {pack} v{version} samoilla generointiasetuksilla. Uudelleenkäynnistystä ei tarvita."
+
 
 [iris.runtime.studio]
 opening = "§6Studio §bAVATAAN"
@@ -1693,7 +1697,7 @@ chunk_failed = "Liha {x},{z}  epäonnistui: {type}"
 "progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
 "progress.detail" = "§8  - §7{detail}"
 "progress.complete" = "§aIris-paketti '{pack}' asennettu§8 | §f{transferred}§7 ajassa §f{elapsed}"
-"progress.unchanged" = "§eIris-paketti '{pack}' on jo asennettu."
+"progress.unchanged" = "§eIris-paketti '{pack}' on jo asennettu. Varmuuskopioi ja korvaa se käyttämällä overwrite=true."
 "progress.failed" = "§cIris-paketin lataus epäonnistui.§7 Tarkista yllä olevat lataustiedot ja yritä uudelleen."
 "progress.failed_detail" = "§cIris-paketin lataus epäonnistui.§7 {error}"
 "progress.cancelled" = "§eIris-paketin lataus peruutettiin ennen julkaisua."
@@ -1719,14 +1723,17 @@ check_github = "Tarkista, että se on läsnä GitHub Ja raportoikaa tästä henk
 invalid_dimension = "Virheellinen ulottuvuuskansio alla dimensions/."
 importing = "Tuo {name} ({key})"
 dimension_key_conflict = "Toinen ulottuvuus pakkauskansiossa jo käyttää avainta {key}.  Tuonti epäonnistui!"
-pack_key_conflict = "Toinen pakkaus käyttää avainta {key}.  Tuonti epäonnistui!"
+"pack_key_conflict" = "Iris-paketti '{key}' on jo asennettu. Varmuuskopioi ja korvaa se käyttämällä overwrite=true."
 acquired = "Onnistunut hankinta {name}."
-already_installed = "Pack {key} on jo asennettu, lataus ohitetaan."
+"already_installed" = "Pack {key} on jo asennettu, lataus ohitetaan. Varmuuskopioi ja korvaa se käyttämällä overwrite=true."
 in_progress = "Toinen Iris-paketin lataus on jo käynnissä. Odota sen valmistumista ennen kuin yrität uudelleen."
 validation_failed = "Pakkaus{pack}' Epäonnistunut validointi; maailma ja Studio luominen hylätään.  Perusteet:"
 validation_reason = "  - {reason}"
 validated_with_warnings = { other = "Pakkaus{pack}\" validoitu {count} varoitukset.", one = "Pakkaus{pack}\" validoitu {count} Varoitus." }
 validated = "Pakkaus{pack}' validoitu."
+"close_studio" = "Sulje aktiivinen Studio-projekti ennen asennetun paketin korvaamista."
+"backup_retained" = "Edellinen paketti tallennettu polkuun {path}."
+
 
 [iris.client.vision]
 title = "Iris Näkö"

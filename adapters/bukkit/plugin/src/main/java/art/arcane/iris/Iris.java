@@ -1465,9 +1465,11 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
 
     private void printPacks() {
         File packFolder = Iris.service(StudioSVC.class).getWorkspaceFolder();
-        for (String line : IrisSplashComposer.composePackLines(packFolder, Iris::reportError)) {
-            Iris.info(line);
-        }
+        IrisSplashComposer.composePackLines(packFolder, Iris::reportError).thenAccept(lines -> {
+            if (isEnabled()) {
+                lines.forEach(Iris::info);
+            }
+        });
     }
 
     public int getIrisVersion() {

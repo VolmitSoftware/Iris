@@ -7,7 +7,12 @@ import art.arcane.iris.pack.BrokenPackException;
 import art.arcane.iris.pack.PackValidationRegistry;
 import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.generation.runtime.PreservationRegistry;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
+import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.world.history.GenerationHistory;
+import art.arcane.iris.world.task.J;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import org.junit.Assume;
 import org.junit.After;
@@ -35,6 +40,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 public class StudioSVCWorldPackPublishTest {
     @ClassRule
@@ -52,6 +58,34 @@ public class StudioSVCWorldPackPublishTest {
     public void clearValidationRegistry() {
         PackValidationRegistry.clear();
         IrisServices.remove(PreservationRegistry.class);
+    }
+
+    @Test
+    public void brokenSourceIsRejectedBeforeOpeningOrChangingWorldHistory() throws Exception {
+        Path source = temporaryFolder.newFolder("invalid-generation-update").toPath();
+        writeValidPack(source);
+        Files.writeString(source.resolve("biomes/biome.json"), "{");
+        Path world = temporaryFolder.newFolder("untouched-generation-world").toPath();
+        Files.writeString(world.resolve("level.dat"), "world-state");
+        IrisData sourceData = mock(IrisData.class);
+        when(sourceData.getDataFolder()).thenReturn(source.toFile());
+        IrisDimension dimension = new IrisDimension();
+        dimension.setLoadKey("main");
+        dimension.setLoader(sourceData);
+        VolmitSender sender = mock(VolmitSender.class);
+
+        try (MockedStatic<J> scheduler = mockStatic(J.class);
+             MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class);
+             MockedStatic<GenerationHistory> history = mockStatic(GenerationHistory.class);
+             MockedStatic<ServerConfigurator> configurator = mockStatic(ServerConfigurator.class)) {
+            assertNull(new StudioSVC().replaceIntoWorld(sender, dimension, world.toFile(), 42L));
+
+            history.verifyNoInteractions();
+            configurator.verifyNoInteractions();
+            assertFalse(Files.exists(world.resolve("iris")));
+            assertEquals("world-state", Files.readString(world.resolve("level.dat")));
+            assertTrue(PackValidationRegistry.isBroken(source));
+        }
     }
 
     @Test

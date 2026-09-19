@@ -89,7 +89,27 @@ public class IrisModdedCommandParityTest {
         assertNull(IrisModdedCommands.parseDownloadRequest("pack=custom"));
         assertNull(IrisModdedCommands.parseDownloadRequest("link=https://packs.example.test/custom.tar.gz"));
         assertNull(IrisModdedCommands.parseDownloadRequest("pack=underworld branch=stable"));
-        assertNull(IrisModdedCommands.parseDownloadRequest("pack=underworld overwrite=true"));
+        assertFalse(overworld.overwrite());
+    }
+
+    @Test
+    public void downloadOverwriteRequiresOneSourceAndAnExplicitBoolean() {
+        IrisModdedCommands.DownloadRequest pack = IrisModdedCommands.parseDownloadRequest("pack=underworld overwrite=true");
+        IrisModdedCommands.DownloadRequest link = IrisModdedCommands.parseDownloadRequest(
+                "overwrite=true link=https://packs.example.test/custom.zip?token=a=b");
+
+        assertNotNull(pack);
+        assertTrue(pack.overwrite());
+        assertEquals("underworld", pack.pack());
+        assertNotNull(link);
+        assertTrue(link.overwrite());
+        assertEquals("https://packs.example.test/custom.zip?token=a=b", link.url());
+        assertFalse(IrisModdedCommands.parseDownloadRequest("pack=overworld overwrite=false").overwrite());
+        assertNull(IrisModdedCommands.parseDownloadRequest("overwrite=true"));
+        assertNull(IrisModdedCommands.parseDownloadRequest("pack=overworld overwrite=yes"));
+        assertNull(IrisModdedCommands.parseDownloadRequest("pack=overworld overwrite=true overwrite=false"));
+        assertNull(IrisModdedCommands.parseDownloadRequest("pack=overworld pack=underworld"));
+        assertNull(IrisModdedCommands.parseDownloadRequest("pack=overworld link=https://packs.example.test/custom.zip"));
     }
 
     @Test

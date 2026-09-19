@@ -21,13 +21,11 @@ package art.arcane.iris.command;
 import com.google.gson.JsonObject;
 import art.arcane.iris.Iris;
 import art.arcane.iris.pack.datapack.ServerConfigurator;
-import art.arcane.iris.world.lifecycle.LifecycleOperationCoordinator;
 import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
 import art.arcane.iris.world.runtime.ChunkClearer;
 import art.arcane.iris.generation.validation.GoldenHashScanner;
 import art.arcane.iris.world.runtime.InPlaceChunkRegenerator;
 import art.arcane.iris.generation.runtime.IrisEngineSVC;
-import art.arcane.iris.studio.StudioSVC;
 import art.arcane.iris.pack.IrisPackBenchmarking;
 import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.generation.runtime.IrisEngineMantle;
@@ -68,7 +66,6 @@ import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.BukkitCommandMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.iris.localization.BukkitCommandMessagesExtended;
-import art.arcane.iris.localization.BukkitRuntimeMessages;
 @Director(name = "Developer", origin = DirectorOrigin.BOTH, description = "Iris World Manager", descriptionKey = "iris.director.commanddeveloper.director.iris_world_manager", aliases = {"dev"})
 public class CommandDeveloper implements DirectorExecutor {
     @Director(description = "Get Loaded TectonicPlates Count", descriptionKey = "iris.director.commanddeveloper.director.get_loaded_tectonicplates_count", origin = DirectorOrigin.BOTH, sync = true)
@@ -184,27 +181,7 @@ public class CommandDeveloper implements DirectorExecutor {
             @Param(description = "Make sure to make a backup & read the warnings first!", descriptionKey = "iris.director.commanddeveloper.param.make_sure_make_backup_read_warnings_first", defaultValue = "false", aliases = "c")
             boolean confirm
     ) {
-        if (!confirm) {
-            sender().sendMessage(IrisLanguage.text(
-                    BukkitRuntimeMessages.COMMAND_DEVELOPER_UPDATE_WORLD_WARNING,
-                    MessageArgument.untrusted("world", world.getName()),
-                    MessageArgument.untrusted("pack", pack.getLoadKey())
-            ));
-            return;
-        }
-
-        File folder = world.getWorldFolder();
-        folder.mkdirs();
-
-        try (LifecycleOperationCoordinator.Lease lease = LifecycleOperationCoordinator.get().acquire(
-                LifecycleOperationCoordinator.Domain.PACK_MUTATION,
-                LifecycleOperationCoordinator.OperationKind.PACK_PUBLISH,
-                pack.getLoadKey()
-        )) {
-            Iris.service(StudioSVC.class).replaceIntoWorld(sender(), pack, folder, world.getSeed());
-        } catch (LifecycleOperationCoordinator.BusyException e) {
-            sender().sendMessage(C.YELLOW + e.getMessage());
-        }
+        CommandPack.stageWorldUpdate(sender(), world, pack, confirm);
     }
 
     @Director(description = "Test", descriptionKey = "iris.director.commanddeveloper.director.test")

@@ -1582,6 +1582,10 @@ failed_fragment = "  Başarısız oldu {failed}"
 "commandpack.compat_header" = "§ePaket '{pack}': içerik Minecraft {version} sürümünde yok"
 "commandpack.compat_none" = "§aPaket '{pack}' Minecraft {version} sürümünde eksik olan içerik kullanmıyor."
 "commandpack.compat_remedy" = "§7Bu içeriği geri kazanmak için sunucuyu daha yeni bir Minecraft sürümüne güncelleyin veya yedekler tanımlayın (boyutun blockFallbacks, bloğun backup)."
+"commandpack.update_world_requires_persistent_world" = "§cYüklü bir Iris dünyası seçin. Studio dünyaları üretim güncellemeleri alamaz."
+"commandpack.update_world_staged" = "§a'{world}' dünyası için {pack} v{version} hazırlandı. Düzgün bir yeniden başlatma, paketi arazi geçişleriyle etkinleştirir."
+"commandpack.update_world_unchanged" = "§a'{world}' dünyası aynı üretim ayarlarıyla zaten {pack} v{version} kullanıyor. Yeniden başlatma gerekmiyor."
+
 
 [iris.runtime.studio]
 opening = "§6Studio §bAÇILIYOR"
@@ -1693,7 +1697,7 @@ chunk_failed = "Chunk. {x},{z}  başarısız: {type}"
 "progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
 "progress.detail" = "§8  - §7{detail}"
 "progress.complete" = "§aIris paketi '{pack}' kuruldu§8 | §f{transferred}§7, süre: §f{elapsed}"
-"progress.unchanged" = "§eIris paketi '{pack}' zaten kurulu."
+"progress.unchanged" = "§eIris paketi '{pack}' zaten kurulu. Yedeklemek ve değiştirmek için overwrite=true kullanın."
 "progress.failed" = "§cIris paketi indirilemedi.§7 Yukarıdaki indirme ayrıntılarını inceleyip yeniden deneyin."
 "progress.failed_detail" = "§cIris paketi indirilemedi.§7 {error}"
 "progress.cancelled" = "§eIris paketi indirme işlemi yayınlanmadan önce iptal edildi."
@@ -1719,14 +1723,17 @@ check_github = "GitHub'de mevcut olduğunu kontrol edin ve bunu personele rapor 
 invalid_dimension = "geçersiz boyut klasörü altında dimensions/."
 importing = "İthalat {name} ({key})"
 dimension_key_conflict = "Paketlerdeki başka bir boyut zaten anahtarı kullanıyor {key}.  İthalat başarısız oldu!"
-pack_key_conflict = "Başka bir paket anahtarı kullanıyor {key}.  İthalat başarısız oldu!"
+"pack_key_conflict" = "Iris paketi '{key}' zaten kurulu. Yedeklemek ve değiştirmek için overwrite=true kullanın."
 acquired = "Başarılı bir şekilde satın alındı {name}."
-already_installed = "{key} paketi zaten kurulu, indirme atlanıyor."
+"already_installed" = "{key} paketi zaten kurulu, indirme atlanıyor. Yedeklemek ve değiştirmek için overwrite=true kullanın."
 in_progress = "Başka bir Iris paketi indirme işlemi zaten devam ediyor. Yeniden denemeden önce tamamlanmasını bekleyin."
 validation_failed = "Pack \"{pack}“Başarısız doğrulama; dünya ve Stüdyo yaratımı reddedilecektir.  Sebepler:"
 validation_reason = "  - {reason}"
 validated_with_warnings = { other = "Pack \"{pack}\" ile doğrulandı\" {count} Uyarılar.", one = "Pack \"{pack}\" ile doğrulandı\" {count} Uyarı." }
 validated = "Pack \"{pack}\"Doğrulandı."
+"close_studio" = "Yüklü bir paketi değiştirmeden önce etkin Studio projesini kapatın."
+"backup_retained" = "Önceki paket {path} konumuna kaydedildi."
+
 
 [iris.client.vision]
 title = "Iris Vizyon"

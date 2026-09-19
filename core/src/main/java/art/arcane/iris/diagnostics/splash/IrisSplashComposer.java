@@ -1,12 +1,15 @@
 package art.arcane.iris.diagnostics.splash;
 
 import art.arcane.iris.BuildConstants;
+import art.arcane.iris.pack.BuiltInPackUpdates;
 
 import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public final class IrisSplashComposer {
     private static final String SPLASH_PADDING = " ".repeat(4);
@@ -40,8 +43,14 @@ public final class IrisSplashComposer {
         return builder.toString();
     }
 
-    public static List<String> composePackLines(File packFolder, IrisSplashPackScanner.SplashPackErrorReporter reporter) {
+    public static CompletableFuture<List<String>> composePackLines(File packFolder, IrisSplashPackScanner.SplashPackErrorReporter reporter) {
         List<IrisSplashPackScanner.SplashPackMetadata> packs = IrisSplashPackScanner.collect(packFolder, reporter);
+        return BuiltInPackUpdates.check(packs.stream().map(IrisSplashPackScanner.SplashPackMetadata::name).toList())
+                .thenApply(updates -> composePackLines(packs, updates));
+    }
+
+    static List<String> composePackLines(List<IrisSplashPackScanner.SplashPackMetadata> packs,
+                                       Map<String, BuiltInPackUpdates.Update> updates) {
         if (packs.isEmpty()) {
             return List.of();
         }
@@ -49,7 +58,15 @@ public final class IrisSplashComposer {
         List<String> lines = new ArrayList<>(packs.size() + 1);
         lines.add("Custom Dimensions: " + packs.size());
         for (IrisSplashPackScanner.SplashPackMetadata pack : packs) {
-            lines.add("  " + pack.name() + " v" + pack.version());
+            BuiltInPackUpdates.Update update = updates.get(pack.name());
+            lines.add("  " + pack.name() + " v" + pack.version()
+                    + (update == null ? "" : update.suffix(pack.version())));
+        }
+        for (IrisSplashPackScanner.SplashPackMetadata pack : packs) {
+            BuiltInPackUpdates.Update update = updates.get(pack.name());
+            if (update != null && update.newerThan(pack.version())) {
+                lines.add("Update " + pack.name() + ": /iris download pack=" + pack.name() + " overwrite=true");
+            }
         }
         return lines;
     }

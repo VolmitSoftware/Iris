@@ -39,7 +39,7 @@ public final class PackDownloadMessages {
     );
     public static final TextKey PROGRESS_UNCHANGED = TextKey.of(
             "iris.runtime.pack_download.progress.unchanged",
-            C.YELLOW + "Iris pack '{pack}' is already installed."
+            C.YELLOW + "Iris pack '{pack}' is already installed. Use overwrite=true to back up and replace it."
     );
     public static final TextKey PROGRESS_FAILED = TextKey.of(
             "iris.runtime.pack_download.progress.failed",
@@ -99,6 +99,14 @@ public final class PackDownloadMessages {
             "iris.runtime.pack_download.shutting_down",
             C.YELLOW + "Iris is shutting down and is not accepting pack downloads."
     );
+    public static final TextKey CLOSE_STUDIO = TextKey.of(
+            "iris.runtime.pack_download.close_studio",
+            "Close the active Studio project before replacing an installed pack."
+    );
+    public static final TextKey BACKUP_RETAINED = TextKey.of(
+            "iris.runtime.pack_download.backup_retained",
+            "Previous pack saved to {path}."
+    );
     public static final TextKey DOWNLOADING = TextKey.of(
             "iris.runtime.pack_download.downloading",
             "Downloading {url}"
@@ -150,7 +158,7 @@ public final class PackDownloadMessages {
     );
     public static final TextKey PACK_KEY_CONFLICT = TextKey.of(
             "iris.runtime.pack_download.pack_key_conflict",
-            "Another pack is using the key {key}. Import failed!"
+            "Pack {key} is already installed. Use overwrite=true to back up and replace it."
     );
     public static final TextKey ACQUIRED = TextKey.of(
             "iris.runtime.pack_download.acquired",
@@ -158,7 +166,7 @@ public final class PackDownloadMessages {
     );
     public static final TextKey ALREADY_INSTALLED = TextKey.of(
             "iris.runtime.pack_download.already_installed",
-            "Pack {key} is already installed, skipping download."
+            "Pack {key} is already installed, skipping download. Use overwrite=true to back up and replace it."
     );
     public static final TextKey IN_PROGRESS = TextKey.of(
             "iris.runtime.pack_download.in_progress",
@@ -207,6 +215,8 @@ public final class PackDownloadMessages {
             INVALID_URL,
             INVALID_BUILT_IN,
             SHUTTING_DOWN,
+            CLOSE_STUDIO,
+            BACKUP_RETAINED,
             DOWNLOADING,
             UNPACKING,
             UNPACK_FAILED,

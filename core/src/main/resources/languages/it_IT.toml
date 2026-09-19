@@ -1577,6 +1577,10 @@ failed_fragment = "  non riusciti {failed}"
 "commandpack.compat_header" = "§ePack '{pack}': contenuti non disponibili su Minecraft {version}"
 "commandpack.compat_none" = "§aIl pack '{pack}' non usa contenuti assenti da Minecraft {version}."
 "commandpack.compat_remedy" = "§7Aggiorna il server a un Minecraft più recente per ripristinare questi contenuti, oppure dichiara delle alternative (blockFallbacks della dimensione, backup del blocco)."
+"commandpack.update_world_requires_persistent_world" = "§cScegli un mondo Iris caricato. I mondi Studio non possono ricevere aggiornamenti della generazione."
+"commandpack.update_world_staged" = "§a{pack} v{version} preparato per il mondo '{world}'. Un riavvio regolare attiverà il pacchetto con raccordo del terreno."
+"commandpack.update_world_unchanged" = "§aIl mondo '{world}' usa già {pack} v{version} con le stesse impostazioni di generazione. Non serve riavviare."
+
 
 [iris.runtime.studio]
 opening = "§6Studio §bAPERTURA"
@@ -1688,7 +1692,7 @@ chunk_failed = "Chunk {x},{z} NON RIUSCITO: {type}"
 "progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
 "progress.detail" = "§8  - §7{detail}"
 "progress.complete" = "§aPack Iris '{pack}' installato§8 | §f{transferred}§7 in §f{elapsed}"
-"progress.unchanged" = "§eIl pack Iris '{pack}' è già installato."
+"progress.unchanged" = "§eIl pack Iris '{pack}' è già installato. Usa overwrite=true per crearne una copia di sicurezza e sostituirlo."
 "progress.failed" = "§cDownload del pack Iris non riuscito.§7 Controlla i dettagli del download qui sopra e riprova."
 "progress.failed_detail" = "§cDownload del pack Iris non riuscito.§7 {error}"
 "progress.cancelled" = "§eDownload del pack Iris annullato prima della pubblicazione."
@@ -1714,14 +1718,17 @@ check_github = "Verifica che sia presente su GitHub e segnala il problema allo s
 invalid_dimension = "Cartella di dimensione non valida in dimensions/."
 importing = "Importazione {name} ({key})"
 dimension_key_conflict = "Un'altra dimensione nella cartella dei Pack usa già la chiave {key}. Importazione non riuscita!"
-pack_key_conflict = "Un altro Pack usa già la chiave {key}. Importazione non riuscita!"
+"pack_key_conflict" = "Il pack Iris '{key}' è già installato. Usa overwrite=true per crearne una copia di sicurezza e sostituirlo."
 acquired = "{name} acquisito correttamente."
-already_installed = "Il pack {key} è già installato, download saltato."
+"already_installed" = "Il pack {key} è già installato, download saltato. Usa overwrite=true per crearne una copia di sicurezza e sostituirlo."
 in_progress = "È già in corso il download di un altro pack Iris. Attendi che termini prima di riprovare."
 validation_failed = "Il Pack '{pack}' non ha superato la convalida; la creazione di mondi e Studio verrà rifiutata. Motivi:"
 validation_reason = "  - {reason}"
 validated_with_warnings = { other = "Pack '{pack}' convalidato con {count} avvisi.", one = "Pack '{pack}' convalidato con {count} avviso." }
 validated = "Pack '{pack}' convalidato."
+"close_studio" = "Chiudi il progetto Studio attivo prima di sostituire un pacchetto installato."
+"backup_retained" = "Pacchetto precedente salvato in {path}."
+
 
 [iris.client.vision]
 title = "Iris Vision"

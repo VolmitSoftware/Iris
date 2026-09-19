@@ -606,6 +606,13 @@ public class PackDownloaderTest {
         assertTrue(result.restartRequired());
         assertEquals("new", Files.readString(target.toPath().resolve("state.txt"), StandardCharsets.UTF_8));
         assertFalse(Files.exists(target.toPath().resolve("old-only.txt")));
+        File[] backups = new File(packsFolder, ".backups").listFiles();
+        assertNotNull(backups);
+        assertEquals(1, backups.length);
+        assertEquals("old", Files.readString(backups[0].toPath().resolve("state.txt")));
+        assertEquals("old", Files.readString(backups[0].toPath().resolve("old-only.txt")));
+        assertTrue(feedback.stream().anyMatch(message -> message.contains(backups[0].getPath())));
+        assertFalse(PackDirectoryResolver.isVisiblePackDirectory(new File(packsFolder, ".backups")));
         assertTransactionStateClean(packsFolder);
         assertEquals(0, PackDownloader.downloadLockCount());
     }

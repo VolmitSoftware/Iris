@@ -15,22 +15,25 @@ import static org.junit.Assert.assertTrue;
 
 public class CommandIrisDownloadContractTest {
     @Test
-    public void commandExposesOnlyPackAndLinkParameters() throws NoSuchMethodException {
-        Method method = CommandIris.class.getDeclaredMethod("download", String.class, String.class);
+    public void commandRequiresExplicitOverwriteForPackReplacement() throws NoSuchMethodException {
+        Method method = CommandIris.class.getDeclaredMethod("download", String.class, String.class, boolean.class);
         Parameter[] parameters = method.getParameters();
         Param pack = parameters[0].getAnnotation(Param.class);
         Param link = parameters[1].getAnnotation(Param.class);
+        Param overwrite = parameters[2].getAnnotation(Param.class);
         List<Method> downloadMethods = Arrays.stream(CommandIris.class.getDeclaredMethods())
                 .filter((Method candidate) -> candidate.getName().equals("download"))
                 .toList();
 
         assertEquals(1, downloadMethods.size());
-        assertEquals(2, downloadMethods.getFirst().getParameterCount());
+        assertEquals(3, downloadMethods.getFirst().getParameterCount());
         assertEquals("pack", pack.name());
         assertEquals(0L, Arrays.stream(pack.aliases()).filter((String alias) -> !alias.isBlank()).count());
         assertEquals(CommandIris.DownloadPackHandler.class, pack.customHandler());
         assertEquals("link", link.name());
         assertEquals(0L, Arrays.stream(link.aliases()).filter((String alias) -> !alias.isBlank()).count());
+        assertEquals("overwrite", overwrite.name());
+        assertEquals("false", overwrite.defaultValue());
     }
 
     @Test

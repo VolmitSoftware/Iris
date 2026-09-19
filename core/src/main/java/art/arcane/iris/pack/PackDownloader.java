@@ -646,16 +646,36 @@ public final class PackDownloader {
         }
         IrisData.getLoaded(new File(packsFolder, prepared.key())).ifPresent(IrisData::close);
         IrisData.getLoaded(target.toFile()).ifPresent(IrisData::close);
-        try (AtomicDirectoryPublisher.Publication publication = AtomicDirectoryPublisher.publish(staging, target)) {
-            publication.commit();
-            try {
-                publication.cleanupBackup();
-            } catch (IOException exception) {
-                IrisLogging.reportError(
-                        "Pack '" + prepared.key() + "' was published, but its transaction backup could not be cleaned.",
-                        exception
-                );
+        Path retainedBackup = null;
+        if (forceOverwrite && Files.exists(target)) {
+            Path backupRoot = packsRoot.resolve(".backups");
+            if (Files.isSymbolicLink(backupRoot)) {
+                throw new IOException("Pack backup folder is an unsafe symbolic link: " + backupRoot);
             }
+            Files.createDirectories(backupRoot);
+            retainedBackup = backupRoot.resolve(prepared.key() + "-" + UUID.randomUUID());
+        }
+        try (AtomicDirectoryPublisher.Publication publication = AtomicDirectoryPublisher.publish(staging, target)) {
+            if (retainedBackup != null) {
+                publication.retainBackup(retainedBackup);
+            }
+            publication.commit();
+            if (retainedBackup == null) {
+                try {
+                    publication.cleanupBackup();
+                } catch (IOException exception) {
+                    IrisLogging.reportError(
+                            "Pack '" + prepared.key() + "' was published, but its transaction backup could not be cleaned.",
+                            exception
+                    );
+                }
+            }
+        }
+        if (retainedBackup != null) {
+            sendFeedback(feedback, IrisLanguage.plain(
+                    PackDownloadMessages.BACKUP_RETAINED,
+                    MessageArgument.untrusted("path", retainedBackup.toString())
+            ));
         }
         PackValidationRegistry.publish(prepared.validation());
         sendValidationFeedback(prepared.validation(), feedback);

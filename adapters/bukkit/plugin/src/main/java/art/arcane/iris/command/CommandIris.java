@@ -437,7 +437,9 @@ public class CommandIris implements DirectorExecutor {
             @Param(name = "pack", description = "The built-in pack to download", descriptionKey = "iris.director.commandiris.param.pack_download", defaultValue = NO_DOWNLOAD_SOURCE, customHandler = DownloadPackHandler.class)
             String pack,
             @Param(name = "link", description = "A direct HTTP or HTTPS zip link", defaultValue = NO_DOWNLOAD_SOURCE)
-            String link
+            String link,
+            @Param(name = "overwrite", description = "Back up and replace an installed pack", defaultValue = "false")
+            boolean overwrite
     ) {
         String builtInPack = NO_DOWNLOAD_SOURCE.equals(pack) ? null : pack;
         String directLink = NO_DOWNLOAD_SOURCE.equals(link) ? null : link;
@@ -446,14 +448,14 @@ public class CommandIris implements DirectorExecutor {
             return;
         }
         if (builtInPack != null) {
-            Iris.service(StudioSVC.class).downloadBuiltIn(sender(), builtInPack);
+            Iris.service(StudioSVC.class).downloadBuiltIn(sender(), builtInPack, overwrite);
             return;
         }
         if (!PackDownloader.isDirectZipUrl(directLink)) {
             sender().sendMessage(IrisLanguage.text(PackDownloadMessages.INVALID_URL));
             return;
         }
-        Iris.service(StudioSVC.class).downloadUrl(sender(), directLink);
+        Iris.service(StudioSVC.class).downloadUrl(sender(), directLink, overwrite);
     }
 
     @Director(description = "Get metrics for your world", descriptionKey = "iris.director.commandiris.director.get_metrics_your_world", aliases = "measure", origin = DirectorOrigin.PLAYER)

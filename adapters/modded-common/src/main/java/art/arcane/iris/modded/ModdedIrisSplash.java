@@ -40,9 +40,8 @@ public final class ModdedIrisSplash {
 
     private static void printPacks(ModdedLoader loader) {
         File packFolder = IrisPlatforms.get().packsFolderNoCreate();
-        for (String line : IrisSplashComposer.composePackLines(packFolder, IrisLogging::reportError)) {
-            IrisLogging.info(line);
-        }
+        IrisSplashComposer.composePackLines(packFolder, IrisLogging::reportError)
+                .thenAccept(lines -> lines.forEach(IrisLogging::info));
     }
 
     private static void printLogo(ModdedLoader loader) {

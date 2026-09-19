@@ -1582,6 +1582,10 @@ failed_fragment = "  nieudany {failed}"
 "commandpack.compat_header" = "§ePaczka '{pack}': zawartość niedostępna w Minecraft {version}"
 "commandpack.compat_none" = "§aPaczka '{pack}' nie używa zawartości brakującej w Minecraft {version}."
 "commandpack.compat_remedy" = "§7Zaktualizuj serwer do nowszego Minecraft, aby przywrócić tę zawartość, albo zadeklaruj zamienniki (blockFallbacks wymiaru, backup bloku)."
+"commandpack.update_world_requires_persistent_world" = "§cWybierz wczytany świat Iris. Światy Studio nie mogą otrzymywać aktualizacji generowania."
+"commandpack.update_world_staged" = "§aPrzygotowano {pack} v{version} dla świata '{world}'. Prawidłowy restart aktywuje pakiet z przejściami terenu."
+"commandpack.update_world_unchanged" = "§aŚwiat '{world}' już używa {pack} v{version} z tymi samymi ustawieniami generowania. Restart nie jest potrzebny."
+
 
 [iris.runtime.studio]
 opening = "§6Studio §bOTWIERANIE"
@@ -1693,7 +1697,7 @@ chunk_failed = "Chunk Przewodniczący {x},{z}  niepowodzenie: {type}"
 "progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
 "progress.detail" = "§8  - §7{detail}"
 "progress.complete" = "§aPakiet Iris '{pack}' zainstalowany§8 | §f{transferred}§7 w §f{elapsed}"
-"progress.unchanged" = "§ePakiet Iris '{pack}' jest już zainstalowany."
+"progress.unchanged" = "§ePakiet Iris '{pack}' jest już zainstalowany. Użyj overwrite=true, aby utworzyć kopię zapasową i go zastąpić."
 "progress.failed" = "§cPobieranie pakietu Iris nie powiodło się.§7 Sprawdź powyższe szczegóły pobierania i spróbuj ponownie."
 "progress.failed_detail" = "§cPobieranie pakietu Iris nie powiodło się.§7 {error}"
 "progress.cancelled" = "§ePobieranie pakietu Iris anulowano przed publikacją."
@@ -1719,14 +1723,17 @@ check_github = "Sprawdź, czy jest obecny na GitHub i zgłosić do do personelu!
 invalid_dimension = "Nieprawidłowy folder wymiarów pod dimensions/."
 importing = "Przywóz {name} ({key})"
 dimension_key_conflict = "Inny wymiar w folderze pakietów już używa klucza {key}.  Import nie powiódł się!"
-pack_key_conflict = "Inny pakiet używa klucza {key}.  Import nie powiódł się!"
+"pack_key_conflict" = "Pakiet Iris '{key}' jest już zainstalowany. Użyj overwrite=true, aby utworzyć kopię zapasową i go zastąpić."
 acquired = "Udane nabycie {name}."
-already_installed = "Pakiet {key} jest już zainstalowany, pomijanie pobierania."
+"already_installed" = "Pakiet {key} jest już zainstalowany, pomijanie pobierania. Użyj overwrite=true, aby utworzyć kopię zapasową i go zastąpić."
 in_progress = "Trwa już pobieranie innego pakietu Iris. Poczekaj na jego zakończenie, zanim spróbujesz ponownie."
 validation_failed = "Paczka \"{pack}\"nieudaną walidację; świat i tworzenie studia zostaną odrzucone.  Uzasadnienie:"
 validation_reason = "  - {reason}"
 validated_with_warnings = { other = "Paczka \"{pack}\"zatwierdzone {count} Ostrzeżenia.", one = "Paczka \"{pack}\"zatwierdzone {count} Ostrzeżenie." }
 validated = "Paczka \"{pack}\"zatwierdzone."
+"close_studio" = "Zamknij aktywny projekt Studio przed zastąpieniem zainstalowanego pakietu."
+"backup_retained" = "Poprzedni pakiet zapisano w {path}."
+
 
 [iris.client.vision]
 title = "Iris Wizja"

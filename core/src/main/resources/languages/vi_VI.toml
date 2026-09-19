@@ -1580,6 +1580,10 @@ failed_fragment = "  bị lỗi {failed}"
 "commandpack.compat_header" = "§eGói '{pack}': nội dung không có trên Minecraft {version}"
 "commandpack.compat_none" = "§aGói '{pack}' không dùng nội dung nào thiếu trên Minecraft {version}."
 "commandpack.compat_remedy" = "§7Cập nhật máy chủ lên Minecraft mới hơn để khôi phục nội dung này, hoặc khai báo phương án dự phòng (blockFallbacks của chiều, backup của khối)."
+"commandpack.update_world_requires_persistent_world" = "§cChọn một thế giới Iris đã được tải. Thế giới Studio không thể nhận bản cập nhật tạo địa hình."
+"commandpack.update_world_staged" = "§aĐã chuẩn bị {pack} v{version} cho thế giới '{world}'. Khởi động lại đúng cách sẽ kích hoạt gói với chuyển tiếp địa hình."
+"commandpack.update_world_unchanged" = "§aThế giới '{world}' đã dùng {pack} v{version} với cùng thiết lập tạo địa hình. Không cần khởi động lại."
+
 
 [iris.runtime.studio]
 opening = "§6Studio §bĐANG MỞ"
@@ -1691,7 +1695,7 @@ chunk_failed = "Chunk. {x},{z}  thất bại: {type}"
 "progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
 "progress.detail" = "§8  - §7{detail}"
 "progress.complete" = "§aĐã cài đặt gói Iris '{pack}'§8 | §f{transferred}§7 trong §f{elapsed}"
-"progress.unchanged" = "§eGói Iris '{pack}' đã được cài đặt."
+"progress.unchanged" = "§eGói Iris '{pack}' đã được cài đặt. Dùng overwrite=true để sao lưu và thay thế gói."
 "progress.failed" = "§cKhông thể tải gói Iris.§7 Hãy xem lại thông tin tải xuống ở trên rồi thử lại."
 "progress.failed_detail" = "§cKhông thể tải gói Iris.§7 {error}"
 "progress.cancelled" = "§eĐã hủy tải gói Iris trước khi xuất bản."
@@ -1717,14 +1721,17 @@ check_github = "Kiểm tra xem nó có ở trên không GitHub và báo cáo v�
 invalid_dimension = "Thư mục chiều không hợp lệ nằm dưới dimensions/."
 importing = "Nhập {name} ({key})"
 dimension_key_conflict = "Một chiều không gian khác trong thư mục gói là đã sử dụng phím {key}.  Nhập thất bại!"
-pack_key_conflict = "Name {key}.  Nhập thất bại!"
+"pack_key_conflict" = "Gói Iris '{key}' đã được cài đặt. Dùng overwrite=true để sao lưu và thay thế gói."
 acquired = "Được thành công {name}."
-already_installed = "Gói {key} đã được cài đặt, bỏ qua tải xuống."
+"already_installed" = "Gói {key} đã được cài đặt, bỏ qua tải xuống. Dùng overwrite=true để sao lưu và thay thế gói."
 in_progress = "Một gói Iris khác đang được tải xuống. Hãy chờ quá trình này hoàn tất trước khi thử lại."
 validation_failed = "Gói '{pack}'Đã thất bại trong việc xác nhận; thế giới và phòng thu sẽ bị từ chối.  Lý do:"
 validation_reason = "  - {reason}"
 validated_with_warnings = { other = "Gói '{pack}Xác nhận với {count} Cảnh báo.", one = "Gói '{pack}Xác nhận với {count} Cảnh báo." }
 validated = "Gói '{pack}Xác nhận."
+"close_studio" = "Đóng dự án Studio đang hoạt động trước khi thay thế gói đã cài đặt."
+"backup_retained" = "Đã lưu gói trước đó tại {path}."
+
 
 [iris.client.vision]
 title = "Iris Tầm nhìn"

@@ -180,6 +180,18 @@ public final class BukkitRuntimeMessages {
             C.RED + "To stage the update and request a clean restart:",
             C.RED + "/iris developer update-world {world} {pack} confirm=true"
     );
+    public static final TextKey COMMAND_PACK_UPDATE_WORLD_REQUIRES_PERSISTENT_WORLD = TextKey.of(
+            "iris.bukkit.runtime.commandpack.update_world_requires_persistent_world",
+            C.RED + "Choose a loaded Iris world. Studio worlds cannot receive generation updates."
+    );
+    public static final TextKey COMMAND_PACK_UPDATE_WORLD_STAGED = TextKey.of(
+            "iris.bukkit.runtime.commandpack.update_world_staged",
+            C.GREEN + "Staged {pack} v{version} for world '{world}'. A clean restart will activate the pack with terrain blending."
+    );
+    public static final TextKey COMMAND_PACK_UPDATE_WORLD_UNCHANGED = TextKey.of(
+            "iris.bukkit.runtime.commandpack.update_world_unchanged",
+            C.GREEN + "World '{world}' already uses {pack} v{version} with the same generation settings. No restart is needed."
+    );
     public static final TextKey BULK_STRUCTURE_IMPORTER_IMPORTING_VANILLA_DATAPACK_STRUCTURES_MODE_INCLUDENONJIGSAW = TextKey.of(
             "iris.bukkit.runtime.bulkstructureimporter.importing_vanilla_datapack_structures_mode_includenonjigsaw",
             C.GREEN + "Importing " + C.WHITE + "{total}" + C.GREEN + " vanilla & datapack structures (mode=" + "{mode}" + ", includeNonJigsaw=" + "{includeNonJigsaw}" + ")..."
@@ -658,6 +670,9 @@ public final class BukkitRuntimeMessages {
             COMMAND_PACK_COMPAT_NONE,
             COMMAND_PACK_COMPAT_REMEDY,
             COMMAND_DEVELOPER_UPDATE_WORLD_WARNING,
+            COMMAND_PACK_UPDATE_WORLD_REQUIRES_PERSISTENT_WORLD,
+            COMMAND_PACK_UPDATE_WORLD_STAGED,
+            COMMAND_PACK_UPDATE_WORLD_UNCHANGED,
             BULK_STRUCTURE_IMPORTER_IMPORTING_VANILLA_DATAPACK_STRUCTURES_MODE_INCLUDENONJIGSAW,
             BULK_STRUCTURE_IMPORTER_FAIL_INVALID_KEY,
             BULK_STRUCTURE_IMPORTER_JIGSAW,

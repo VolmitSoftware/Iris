@@ -1577,6 +1577,10 @@ failed_fragment = "  fehlgeschlagen {failed}"
 "commandpack.compat_header" = "§ePack '{pack}': Inhalte in Minecraft {version} nicht verfügbar"
 "commandpack.compat_none" = "§aPack '{pack}' verwendet keine Inhalte, die in Minecraft {version} fehlen."
 "commandpack.compat_remedy" = "§7Aktualisiere den Server auf ein neueres Minecraft, um diese Inhalte wiederherzustellen, oder deklariere Ersatzwerte (Dimension blockFallbacks, Block backup)."
+"commandpack.update_world_requires_persistent_world" = "§cWähle eine geladene Iris-Welt. Studio-Welten können keine Generierungsaktualisierungen erhalten."
+"commandpack.update_world_staged" = "§a{pack} v{version} für Welt '{world}' vorgemerkt. Ein sauberer Neustart aktiviert das Pack mit Geländeübergängen."
+"commandpack.update_world_unchanged" = "§aWelt '{world}' verwendet bereits {pack} v{version} mit denselben Generierungseinstellungen. Kein Neustart erforderlich."
+
 
 [iris.runtime.studio]
 opening = "§6Studio §bÖFFNET"
@@ -1688,7 +1692,7 @@ chunk_failed = "Chunk {x},{z} FEHLGESCHLAGEN: {type}"
 "progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
 "progress.detail" = "§8  - §7{detail}"
 "progress.complete" = "§aIris-Pack '{pack}' installiert§8 | §f{transferred}§7 in §f{elapsed}"
-"progress.unchanged" = "§eIris-Pack '{pack}' ist bereits installiert."
+"progress.unchanged" = "§eIris-Pack '{pack}' ist bereits installiert. Verwende overwrite=true, um es zu sichern und zu ersetzen."
 "progress.failed" = "§cDownload des Iris-Packs fehlgeschlagen.§7 Prüfe die Download-Details oben und versuche es erneut."
 "progress.failed_detail" = "§cDownload des Iris-Packs fehlgeschlagen.§7 {error}"
 "progress.cancelled" = "§eDownload des Iris-Packs vor der Veröffentlichung abgebrochen."
@@ -1714,14 +1718,17 @@ check_github = "Prüfe, ob die Datei auf GitHub vorhanden ist, und melde das Pro
 invalid_dimension = "Ungültiger Dimensionsordner unter dimensions/."
 importing = "{name} ({key}) wird importiert"
 dimension_key_conflict = "Eine andere Dimension im Pack-Ordner verwendet bereits den Schlüssel {key}. Import fehlgeschlagen!"
-pack_key_conflict = "Ein anderer Pack verwendet bereits den Schlüssel {key}. Import fehlgeschlagen!"
+"pack_key_conflict" = "Iris-Pack '{key}' ist bereits installiert. Verwende overwrite=true, um es zu sichern und zu ersetzen."
 acquired = "{name} erfolgreich abgerufen."
-already_installed = "Pack {key} ist bereits installiert, Download wird übersprungen."
+"already_installed" = "Pack {key} ist bereits installiert, Download wird übersprungen. Verwende overwrite=true, um es zu sichern und zu ersetzen."
 in_progress = "Ein anderer Iris-Pack-Download läuft bereits. Warte, bis er abgeschlossen ist, bevor du es erneut versuchst."
 validation_failed = "Pack '{pack}' hat die Validierung nicht bestanden; Welt- und Studio-Erstellung werden verweigert. Gründe:"
 validation_reason = "  - {reason}"
 validated_with_warnings = { other = "Pack '{pack}' mit {count} Warnungen validiert.", one = "Pack '{pack}' mit {count} Warnung validiert." }
 validated = "Pack '{pack}' validiert."
+"close_studio" = "Schließe das aktive Studio-Projekt, bevor du ein installiertes Pack ersetzt."
+"backup_retained" = "Vorheriges Pack unter {path} gesichert."
+
 
 [iris.client.vision]
 title = "Iris Vision"

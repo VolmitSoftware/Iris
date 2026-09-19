@@ -19,6 +19,31 @@ public class AtomicDirectoryPublisherTest {
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
+    public void retainedBackupSurvivesCommitAndRemainsAvailableForRollback() throws Exception {
+        Path root = temporaryFolder.getRoot().toPath();
+        Path target = Files.createDirectory(root.resolve("target"));
+        Files.writeString(target.resolve("value.txt"), "old");
+        Path staged = Files.createDirectory(root.resolve("stage"));
+        Files.writeString(staged.resolve("value.txt"), "new");
+        Path retained = root.resolve("retained");
+
+        try (AtomicDirectoryPublisher.Publication publication = AtomicDirectoryPublisher.publish(staged, target)) {
+            assertTrue(publication.retainBackup(retained));
+        }
+
+        assertEquals("old", Files.readString(target.resolve("value.txt")));
+        assertFalse(Files.exists(retained));
+        Files.createDirectory(staged);
+        Files.writeString(staged.resolve("value.txt"), "new");
+        try (AtomicDirectoryPublisher.Publication publication = AtomicDirectoryPublisher.publish(staged, target)) {
+            assertTrue(publication.retainBackup(retained));
+            publication.commit();
+        }
+        assertEquals("old", Files.readString(retained.resolve("value.txt")));
+        assertEquals("new", Files.readString(target.resolve("value.txt")));
+    }
+
+    @Test
     public void commitPublishesStagedDirectoryAndRemovesBackup() throws Exception {
         Path root = temporaryFolder.getRoot().toPath();
         Path target = Files.createDirectory(root.resolve("target"));

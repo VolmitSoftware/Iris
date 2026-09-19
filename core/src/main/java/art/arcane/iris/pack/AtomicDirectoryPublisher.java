@@ -71,7 +71,7 @@ public final class AtomicDirectoryPublisher {
 
     public static final class Publication implements AutoCloseable {
         private final Path target;
-        private final Path backup;
+        private Path backup;
         private boolean committed;
         private boolean closed;
 
@@ -85,6 +85,22 @@ public final class AtomicDirectoryPublisher {
                 throw new IllegalStateException("Directory publication is already closed.");
             }
             committed = true;
+        }
+
+        public synchronized boolean retainBackup(Path destination) throws IOException {
+            if (closed || committed) {
+                throw new IllegalStateException("Directory publication is already finalized.");
+            }
+            if (backup == null) {
+                return false;
+            }
+            Path retained = Objects.requireNonNull(destination, "destination").toAbsolutePath().normalize();
+            if (Files.exists(retained) || Files.isSymbolicLink(retained)) {
+                throw new FileAlreadyExistsException(retained.toString());
+            }
+            move(backup, retained);
+            backup = retained;
+            return true;
         }
 
         public synchronized void cleanupBackup() throws IOException {

@@ -70,7 +70,7 @@ final class ModdedCommandHelp {
                 Entry.command("seed", "", ModdedHelpMessages.COMMAND_SEED_PRINT_WORLD_AND_ENGINE_SEED_INFORMATION),
                 Entry.command("debug", "", ModdedHelpMessages.COMMAND_DEBUG_TOGGLE_IRIS_DEBUG_LOGGING_AND_SAVE_SETTINGS_JSON),
                 Entry.command("reload", "", ModdedHelpMessages.COMMAND_RELOAD_RELOAD_SETTINGS_JSON_ALSO_HOTLOADED_AUTOMATICALLY_EVERY_3S),
-                Entry.command("download", "<pack=overworld|pack=underworld|link=<zip-url>>", ModdedHelpMessages.COMMAND_DOWNLOAD_DOWNLOAD_A_PACK_PROJECT, "dl"),
+                Entry.command("download", "<pack=overworld|pack=underworld|link=<zip-url>> [overwrite=true]", ModdedHelpMessages.COMMAND_DOWNLOAD_DOWNLOAD_A_PACK_PROJECT, "dl"),
                 Entry.command("metrics", "", ModdedHelpMessages.COMMAND_METRICS_PRINT_GENERATION_METRICS_FOR_YOUR_CURRENT_IRIS_DIMENSION, "measure"),
                 Entry.command("regen", "[radius]", ModdedHelpMessages.COMMAND_REGEN_DELETE_AND_REGENERATE_NEARBY_CHUNKS_IN_PLACE, "rg"),
                 Entry.group("pregen", ModdedHelpMessages.GROUP_PREGEN_PREGENERATE_AN_IRIS_DIMENSION, "pregenerate"),

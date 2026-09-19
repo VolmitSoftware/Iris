@@ -290,6 +290,16 @@ public class StudioSVC implements IrisService {
                     ? history.packRoot(history.pendingActivation().orElseThrow().activationId())
                     : history.activePackRoot();
             IrisDimension installed = loadInstalledDimension(installedPack, source, dimensionKey);
+            if (stageUpdate) {
+                sender.sendMessage(IrisLanguage.text(
+                        restartRequired
+                                ? BukkitRuntimeMessages.COMMAND_PACK_UPDATE_WORLD_STAGED
+                                : BukkitRuntimeMessages.COMMAND_PACK_UPDATE_WORLD_UNCHANGED,
+                        MessageArgument.untrusted("world", dimensionRoot.getName()),
+                        MessageArgument.untrusted("pack", installed.getLoadKey()),
+                        MessageArgument.untrusted("version", installed.getVersion())
+                ));
+            }
             if (restartRequired) {
                 ServerConfigurator.restart("An Iris generation epoch update is pending activation.");
             }
@@ -352,6 +362,7 @@ public class StudioSVC implements IrisService {
                 packRoot,
                 GenerationPackFingerprint.CURRENT_VERSION
         );
+        validatePublishedPack(packRoot);
         IrisData data = IrisData.openDatapackCompiler(packRoot.toFile());
         try {
             IrisDimension dimension = data.getDimensionLoader().load(dimensionKey, false);
@@ -378,6 +389,10 @@ public class StudioSVC implements IrisService {
                     fingerprint,
                     aliasPolicy
             );
+            if (!fingerprint.equals(GenerationPackFingerprint.compute(
+                    packRoot, GenerationPackFingerprint.CURRENT_VERSION))) {
+                throw new IOException("Generation pack changed during validation: " + packRoot);
+            }
             return new GenerationCandidate(fingerprint, dimensionContract, registryContract);
         } finally {
             data.close();
@@ -628,14 +643,15 @@ public class StudioSVC implements IrisService {
         return replaceIntoPackDirectory(sender, dimension, folder);
     }
 
-    public void downloadBuiltIn(VolmitSender sender, String key) {
+    public void downloadBuiltIn(VolmitSender sender, String key, boolean overwrite) {
         if (!PackDownloader.isBuiltInPack(key)) {
             sender.sendMessage(IrisLanguage.text(PackDownloadMessages.INVALID_BUILT_IN));
             return;
         }
         PackDownloadProgressReporter reporter = new PackDownloadProgressReporter(sender, key);
         runPackMutation(sender, LifecycleOperationCoordinator.OperationKind.PACK_DOWNLOAD, key, reporter, cancellation -> {
-            PackDownloader.PackInstallResult result = downloadBuiltInLocked(key, cancellation, reporter);
+            requireClosedStudioForPackOverwrite(overwrite);
+            PackDownloader.PackInstallResult result = downloadBuiltInLocked(key, overwrite, cancellation, reporter);
             if (result == null) {
                 reporter.fail(null);
                 return;
@@ -645,7 +661,7 @@ public class StudioSVC implements IrisService {
         }, "Failed to download built-in Iris pack '" + key + "'.");
     }
 
-    public void downloadUrl(VolmitSender sender, String url) {
+    public void downloadUrl(VolmitSender sender, String url, boolean overwrite) {
         if (!PackDownloader.isDirectZipUrl(url)) {
             sender.sendMessage(IrisLanguage.text(PackDownloadMessages.INVALID_URL));
             return;
@@ -656,10 +672,11 @@ public class StudioSVC implements IrisService {
                 url
         );
         runPackMutation(sender, LifecycleOperationCoordinator.OperationKind.PACK_DOWNLOAD, "remote-zip", reporter, cancellation -> {
+            requireClosedStudioForPackOverwrite(overwrite);
             PackDownloader.PackInstallResult result = PackDownloader.downloadUrl(
                     getWorkspaceFolder(),
                     url,
-                    false,
+                    overwrite,
                     reporter::detail,
                     cancellation,
                     reporter
@@ -675,21 +692,28 @@ public class StudioSVC implements IrisService {
 
     private PackDownloader.PackInstallResult downloadBuiltInLocked(
             String expectedKey,
+            boolean overwrite,
             PackDownloader.DownloadCancellation cancellation,
             PackDownloadProgressReporter reporter
     ) throws IOException {
-        if (PackDownloader.isBuiltInPackPresent(getWorkspaceFolder(), expectedKey)) {
+        if (!overwrite && PackDownloader.isBuiltInPackPresent(getWorkspaceFolder(), expectedKey)) {
             return new PackDownloader.PackInstallResult(expectedKey, false, false);
         }
 
         return PackDownloader.downloadBuiltIn(
                 getWorkspaceFolder(),
                 expectedKey,
-                false,
+                overwrite,
                 reporter::detail,
                 cancellation,
                 reporter
         );
+    }
+
+    private void requireClosedStudioForPackOverwrite(boolean overwrite) throws IOException {
+        if (overwrite && activeProject != null) {
+            throw new IOException(IrisLanguage.plain(PackDownloadMessages.CLOSE_STUDIO));
+        }
     }
 
     public boolean isProjectOpen() {

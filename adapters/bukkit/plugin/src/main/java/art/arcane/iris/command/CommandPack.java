@@ -27,6 +27,9 @@ import art.arcane.iris.pack.PackValidationRegistry;
 import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.pack.PackValidator;
 import art.arcane.iris.studio.StudioSVC;
+import art.arcane.iris.world.IrisToolbelt;
+import art.arcane.iris.world.lifecycle.LifecycleOperationCoordinator;
+import art.arcane.iris.localization.C;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.command.handlers.DimensionHandler;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
@@ -35,6 +38,7 @@ import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.volmlib.util.localization.TextKey;
 
 import art.arcane.iris.spi.IrisPlatforms;
+import org.bukkit.World;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,6 +52,42 @@ import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.iris.localization.BukkitRuntimeMessages;
 @Director(name = "pack", aliases = {"pk"}, description = "Pack validation and maintenance", descriptionKey = "iris.director.commandpack.director.pack_validation_maintenance")
 public class CommandPack implements DirectorExecutor {
+    @Director(name = "update-world", description = "Stage an installed pack for a world and request a clean restart", descriptionKey = "iris.director.commanddeveloper.director.stage_world_generation_update")
+    public void updateWorld(
+            @Param(description = "The world to update", descriptionKey = "iris.director.commanddeveloper.param.world_update", contextual = true, contextualOverride = true)
+            World world,
+            @Param(description = "The installed dimension to use", descriptionKey = "iris.director.commanddeveloper.param.pack_install_into_world", contextual = true, contextualOverride = true, aliases = "dimension")
+            IrisDimension pack,
+            @Param(description = "Confirm that the complete world has been backed up", descriptionKey = "iris.director.commanddeveloper.param.make_sure_make_backup_read_warnings_first", defaultValue = "false", aliases = "c")
+            boolean confirm
+    ) {
+        stageWorldUpdate(sender(), world, pack, confirm);
+    }
+
+    static void stageWorldUpdate(VolmitSender sender, World world, IrisDimension pack, boolean confirm) {
+        if (!IrisToolbelt.isIrisWorld(world) || IrisToolbelt.isIrisStudioWorld(world)) {
+            sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_UPDATE_WORLD_REQUIRES_PERSISTENT_WORLD));
+            return;
+        }
+        if (!confirm) {
+            sender.sendMessage(IrisLanguage.text(
+                    BukkitRuntimeMessages.COMMAND_DEVELOPER_UPDATE_WORLD_WARNING,
+                    MessageArgument.untrusted("world", world.getName()),
+                    MessageArgument.untrusted("pack", pack.getLoadKey())
+            ));
+            return;
+        }
+        try (LifecycleOperationCoordinator.Lease lease = LifecycleOperationCoordinator.get().acquire(
+                LifecycleOperationCoordinator.Domain.PACK_MUTATION,
+                LifecycleOperationCoordinator.OperationKind.PACK_PUBLISH,
+                world.getName()
+        )) {
+            Iris.service(StudioSVC.class).replaceIntoWorld(sender, pack, world.getWorldFolder(), world.getSeed());
+        } catch (LifecycleOperationCoordinator.BusyException e) {
+            sender.sendMessage(C.YELLOW + e.getMessage());
+        }
+    }
+
     /**
      * Director treats a blank defaultValue as "required", which made the all-packs branch
      * unreachable from chat. The "*" sentinel keeps the parameter genuinely optional; a blank

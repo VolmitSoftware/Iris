@@ -1582,6 +1582,10 @@ failed_fragment = "  nepavyko {failed}"
 "commandpack.compat_header" = "§ePaketas '{pack}': turinys nepasiekiamas Minecraft {version}"
 "commandpack.compat_none" = "§aPaketas '{pack}' nenaudoja turinio, kurio trūksta Minecraft {version}."
 "commandpack.compat_remedy" = "§7Atnaujinkite serverį į naujesnį Minecraft, kad atkurtumėte šį turinį, arba paskelbkite atsargas (dimensijos blockFallbacks, bloko backup)."
+"commandpack.update_world_requires_persistent_world" = "§cPasirinkite įkeltą Iris pasaulį. Studio pasauliams negalima taikyti generavimo atnaujinimų."
+"commandpack.update_world_staged" = "§aPasauliui '{world}' paruoštas {pack} v{version}. Tvarkingai paleidus iš naujo, paketas bus aktyvuotas su reljefo perėjimais."
+"commandpack.update_world_unchanged" = "§aPasaulis '{world}' jau naudoja {pack} v{version} su tais pačiais generavimo nustatymais. Paleisti iš naujo nereikia."
+
 
 [iris.runtime.studio]
 opening = "§6Studio §bATIDAROMA"
@@ -1693,7 +1697,7 @@ chunk_failed = "Šriftas {x},{z}  nepavyko: {type}"
 "progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
 "progress.detail" = "§8  - §7{detail}"
 "progress.complete" = "§a„Iris“ paketas '{pack}' įdiegtas§8 | §f{transferred}§7 per §f{elapsed}"
-"progress.unchanged" = "§e„Iris“ paketas '{pack}' jau įdiegtas."
+"progress.unchanged" = "§e„Iris“ paketas '{pack}' jau įdiegtas. Naudokite overwrite=true, kad sukurtumėte atsarginę kopiją ir jį pakeistumėte."
 "progress.failed" = "§cNepavyko atsisiųsti „Iris“ paketo.§7 Peržiūrėkite aukščiau pateiktą atsisiuntimo informaciją ir bandykite dar kartą."
 "progress.failed_detail" = "§cNepavyko atsisiųsti „Iris“ paketo.§7 {error}"
 "progress.cancelled" = "§e„Iris“ paketo atsisiuntimas atšauktas prieš publikavimą."
@@ -1719,14 +1723,17 @@ check_github = "Patikrinkite, ar jis yra GitHub ir pranešti apie tai darbuotoja
 invalid_dimension = "Netinkamas dimensijos aplankas pagal dimensions/."
 importing = "Importuojama {name} ({key})"
 dimension_key_conflict = "Kitas matmuo paketų aplanke jau naudoja raktą {key}.  Importuoti nepavyko!"
-pack_key_conflict = "Kita pakuotė naudoja raktą {key}.  Importuoti nepavyko!"
+"pack_key_conflict" = "„Iris“ paketas '{key}' jau įdiegtas. Naudokite overwrite=true, kad sukurtumėte atsarginę kopiją ir jį pakeistumėte."
 acquired = "Sėkmingai įgyta {name}."
-already_installed = "Paketas {key} jau įdiegtas, atsisiuntimas praleidžiamas."
+"already_installed" = "Paketas {key} jau įdiegtas, atsisiuntimas praleidžiamas. Naudokite overwrite=true, kad sukurtumėte atsarginę kopiją ir jį pakeistumėte."
 in_progress = "Jau vyksta kitas „Iris“ paketo atsisiuntimas. Palaukite, kol jis bus baigtas, ir bandykite dar kartą."
 validation_failed = "Pakuotė \"{pack}\"nepavyko patvirtinimas; pasaulio ir Studio kūrimas bus atsisakyta.  Motyvai:"
 validation_reason = "  - {reason}"
 validated_with_warnings = { other = "Pakuotė \"{pack}\"patvirtinta {count} įspėjimai.", one = "Pakuotė \"{pack}\"patvirtinta {count} įspėjimas." }
 validated = "Pakuotė \"{pack}\"patvirtintas."
+"close_studio" = "Prieš pakeisdami įdiegtą paketą, uždarykite aktyvų Studio projektą."
+"backup_retained" = "Ankstesnis paketas išsaugotas čia: {path}."
+
 
 [iris.client.vision]
 title = "Iris Regėjimas"

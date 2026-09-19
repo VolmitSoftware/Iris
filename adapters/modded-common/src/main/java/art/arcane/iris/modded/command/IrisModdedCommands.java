@@ -406,14 +406,14 @@ public final class IrisModdedCommands {
                     ? PackDownloader.downloadUrl(
                             packs,
                             request.url(),
-                            false,
+                            request.overwrite(),
                             (String message) -> dispatchDownloadFeedback(source, () -> ok(source, message)),
                             cancellation
                     )
                     : PackDownloader.downloadBuiltIn(
                             packs,
                             request.pack(),
-                            false,
+                            request.overwrite(),
                             (String message) -> dispatchDownloadFeedback(source, () -> ok(source, message)),
                             cancellation
                     );
@@ -478,15 +478,33 @@ public final class IrisModdedCommands {
         if (rawRequest == null || rawRequest.isBlank()) {
             return null;
         }
-        if (rawRequest.startsWith("pack=")) {
-            String pack = rawRequest.substring("pack=".length()).trim().toLowerCase(Locale.ROOT);
-            return PackDownloader.isBuiltInPack(pack) ? new DownloadRequest(pack, null) : null;
+        String pack = null;
+        String url = null;
+        Boolean overwrite = null;
+        for (String argument : rawRequest.trim().split("\\s+")) {
+            if (argument.startsWith("pack=") && pack == null) {
+                pack = argument.substring("pack=".length()).toLowerCase(Locale.ROOT);
+                if (!PackDownloader.isBuiltInPack(pack)) {
+                    return null;
+                }
+            } else if (argument.startsWith("link=") && url == null) {
+                url = argument.substring("link=".length());
+                if (!PackDownloader.isDirectZipUrl(url)) {
+                    return null;
+                }
+            } else if (argument.startsWith("overwrite=") && overwrite == null) {
+                String value = argument.substring("overwrite=".length());
+                if (!"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
+                    return null;
+                }
+                overwrite = Boolean.parseBoolean(value);
+            } else {
+                return null;
+            }
         }
-        if (rawRequest.startsWith("link=")) {
-            String url = rawRequest.substring("link=".length()).trim();
-            return PackDownloader.isDirectZipUrl(url) ? new DownloadRequest(null, url) : null;
-        }
-        return null;
+        return (pack == null) == (url == null)
+                ? null
+                : new DownloadRequest(pack, url, Boolean.TRUE.equals(overwrite));
     }
 
     static int metrics(CommandSourceStack source) {
@@ -555,6 +573,6 @@ public final class IrisModdedCommands {
         ModdedCommandFeedback.fail(source, message);
     }
 
-    record DownloadRequest(String pack, String url) {
+    record DownloadRequest(String pack, String url, boolean overwrite) {
     }
 }

@@ -1582,6 +1582,10 @@ failed_fragment = "  נכשל {failed}"
 "commandpack.compat_header" = "§eחבילה '{pack}': תוכן לא זמין ב-Minecraft {version}"
 "commandpack.compat_none" = "§aהחבילה '{pack}' אינה משתמשת בתוכן שחסר ב-Minecraft {version}."
 "commandpack.compat_remedy" = "§7עדכן את השרת ל-Minecraft חדש יותר כדי לשחזר את התוכן הזה, או הגדר חלופות (blockFallbacks של הממד, backup של הבלוק)."
+"commandpack.update_world_requires_persistent_world" = "§cיש לבחור עולם Iris טעון. עולמות Studio אינם יכולים לקבל עדכוני יצירת עולם."
+"commandpack.update_world_staged" = "§a{pack} v{version} הוכן עבור העולם '{world}'. הפעלה מחדש מסודרת תפעיל את החבילה עם שילוב פני השטח."
+"commandpack.update_world_unchanged" = "§aהעולם '{world}' כבר משתמש בחבילה {pack} v{version} עם אותן הגדרות יצירה. אין צורך בהפעלה מחדש."
+
 
 [iris.runtime.studio]
 opening = "§6Studio §bנפתח"
@@ -1693,7 +1697,7 @@ chunk_failed = "צ'אנק {x},{z}  נכשל: {type}"
 "progress.indeterminate" = "{bar}§7 §b{phase}§8 | §f{transferred}§8 | §b{rate}/s"
 "progress.detail" = "§8  - §7{detail}"
 "progress.complete" = "§aחבילת Iris '{pack}' הותקנה§8 | §f{transferred}§7 בתוך §f{elapsed}"
-"progress.unchanged" = "§eחבילת Iris '{pack}' כבר מותקנת."
+"progress.unchanged" = "§eחבילת Iris '{pack}' כבר מותקנת. יש להשתמש ב־overwrite=true כדי לגבות ולהחליף אותה."
 "progress.failed" = "§cהורדת חבילת Iris נכשלה.§7 יש לעיין בפרטי ההורדה שלעיל ולנסות שוב."
 "progress.failed_detail" = "§cהורדת חבילת Iris נכשלה.§7 {error}"
 "progress.cancelled" = "§eהורדת חבילת Iris בוטלה לפני הפרסום."
@@ -1719,14 +1723,17 @@ check_github = "בדוק כי הוא נוכח GitHub לדווח על זה לצו
 invalid_dimension = "תיקיית מימד לא חוקית תחת dimensions/."
 importing = "יבוא {name} ({key})"
 dimension_key_conflict = "מימד נוסף בתיקיה של הלהקה כבר משתמש המפתח {key}.  ייבוא נכשל!"
-pack_key_conflict = "חבילה נוספת משתמשת במפתח {key}.  ייבוא נכשל!"
+"pack_key_conflict" = "חבילת Iris '{key}' כבר מותקנת. יש להשתמש ב־overwrite=true כדי לגבות ולהחליף אותה."
 acquired = "נרכשה בהצלחה {name}."
-already_installed = "החבילה {key} כבר מותקנת, ההורדה מדולגת."
+"already_installed" = "החבילה {key} כבר מותקנת, ההורדה מדולגת. יש להשתמש ב־overwrite=true כדי לגבות ולהחליף אותה."
 in_progress = "הורדה אחרת של חבילת Iris כבר מתבצעת. יש להמתין לסיומה לפני ניסיון נוסף."
 validation_failed = "Pack »{pack}\"התאימות הכושל; יצירת העולם והסטודיו לא תסרב.  סיבות:"
 validation_reason = "  - {reason}"
 validated_with_warnings = { other = "Pack »{pack}\"תאמת עם {count} אזהרות", one = "Pack »{pack}\"תאמת עם {count} אזהרה." }
 validated = "Pack »{pack}\"מאומת."
+"close_studio" = "יש לסגור את פרויקט Studio הפעיל לפני החלפת חבילה מותקנת."
+"backup_retained" = "החבילה הקודמת נשמרה בנתיב {path}."
+
 
 [iris.client.vision]
 title = "Iris חזון"

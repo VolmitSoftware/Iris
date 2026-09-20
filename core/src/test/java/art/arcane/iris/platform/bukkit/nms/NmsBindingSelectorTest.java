@@ -8,6 +8,12 @@ import static org.junit.Assert.assertTrue;
 
 public class NmsBindingSelectorTest {
     @Test
+    public void selects263Revision() {
+        assertEquals("v26_3_R1", NmsBindingSelector.select(MinecraftVersion.fromBukkitVersion("26.3-R0.1-SNAPSHOT")));
+        assertEquals("v26_3_R1", NmsBindingSelector.select(MinecraftVersion.fromBukkitVersion("26.3.0-R0.1-SNAPSHOT")));
+    }
+
+    @Test
     public void selectsOnlyTheExactSupportedRevision() {
         MinecraftVersion version = MinecraftVersion.fromBukkitVersion("26.2-R0.1-SNAPSHOT");
 
@@ -23,12 +29,12 @@ public class NmsBindingSelectorTest {
 
     @Test
     public void rejectsUnsupportedVersionsWithoutProbingAnotherRevision() {
-        MinecraftVersion version = MinecraftVersion.fromBukkitVersion("26.3-R0.1-SNAPSHOT");
+        MinecraftVersion version = MinecraftVersion.fromBukkitVersion("26.4-R0.1-SNAPSHOT");
 
         IllegalStateException failure = assertThrows(IllegalStateException.class,
                 () -> NmsBindingSelector.select(version));
 
-        assertTrue(failure.getMessage().contains("26.3"));
+        assertTrue(failure.getMessage().contains("26.4"));
     }
 
     @Test

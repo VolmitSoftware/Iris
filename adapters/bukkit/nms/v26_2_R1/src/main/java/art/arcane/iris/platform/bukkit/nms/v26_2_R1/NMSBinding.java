@@ -958,7 +958,7 @@ public class NMSBinding implements INMSBinding {
         if (global == null) {
             throw new IllegalStateException("Iris cannot build the global block state palette on this server version");
         }
-        java.util.Map<CompoundTag, BlockState> innerDecodeCache = new java.util.concurrent.ConcurrentHashMap<>(64);
+        java.util.Map<art.arcane.volmlib.util.nbt.tag.Tag<?>, BlockState> innerDecodeCache = new java.util.concurrent.ConcurrentHashMap<>(64);
         java.util.Map<CompoundTag, BlockState> outerDecodeCache = new java.util.concurrent.ConcurrentHashMap<>(64);
         MCAPalettedContainer<BlockState> container = new MCAPalettedContainer<>(global, registry,
                 i -> innerDecodeCache.computeIfAbsent(i, t -> ((CraftBlockData) NBTWorld.getBlockData(t)).getState()),

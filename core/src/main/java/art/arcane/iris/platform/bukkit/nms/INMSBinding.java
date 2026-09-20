@@ -321,7 +321,7 @@ public interface INMSBinding {
         if (!supportsIrisWorldGeneration()) {
             throw new IllegalStateException("Iris world '" + c.name() + "' cannot be created with limited NMS binding "
                     + getClass().getSimpleName()
-                    + "; set general.disableNMS=false and use a supported Minecraft server runtime (26.1.2 or 26.2)");
+                    + "; set general.disableNMS=false and use a supported Minecraft server runtime (26.1.2, 26.2 or 26.3)");
         }
         if (missingDimensionTypes(generator.getTarget().getDimension().getDimensionTypeKey())) {
             throw new IllegalStateException("Missing dimension types to create world");

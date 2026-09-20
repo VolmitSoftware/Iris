@@ -317,6 +317,6 @@ public class NMSBinding1X implements INMSBinding {
     private IllegalStateException unsupportedStructureHook(String operation) {
         return new IllegalStateException("Iris cannot " + operation + " with limited NMS binding "
                 + getClass().getSimpleName()
-                + "; set general.disableNMS=false and use a supported Minecraft server runtime (26.1.2 or 26.2)");
+                + "; set general.disableNMS=false and use a supported Minecraft server runtime (26.1.2, 26.2 or 26.3)");
     }
 }

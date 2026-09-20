@@ -5,6 +5,12 @@ import art.arcane.volmlib.util.nbt.tag.CompoundTag;
 import art.arcane.volmlib.util.nbt.tag.ListTag;
 import art.arcane.volmlib.util.nbt.tag.StringTag;
 import net.jpountz.lz4.LZ4BlockOutputStream;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.spi.PlatformRegistries;
+import org.junit.Before;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -18,6 +24,8 @@ import java.nio.file.Path;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPOutputStream;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -26,6 +34,76 @@ import static org.junit.Assert.assertTrue;
 public final class SavedTerrainChunkTest {
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Before
+    public void bindPlatform() {
+        IrisPlatforms.unbind();
+        IrisPlatform platform = mock(IrisPlatform.class);
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(platform.registries()).thenReturn(registries);
+        for (String state : new String[]{"minecraft:stone", "minecraft:water[level=0]",
+                "minecraft:sea_pickle[pickles=1,waterlogged=true]"}) {
+            PlatformBlockState block = mock(PlatformBlockState.class);
+            when(block.key()).thenReturn(state);
+            when(registries.blockOrNull(state.split("\\[")[0])).thenReturn(block);
+        }
+        IrisPlatforms.bind(platform);
+    }
+
+    @After
+    public void unbindPlatform() {
+        IrisPlatforms.unbind();
+    }
+
+    @Test
+    public void reads263LowercasePaletteAtTerrainStatus() throws Exception {
+        Path world = temporaryFolder.newFolder("terrain-263").toPath();
+        CompoundTag saved = root("minecraft:terrain");
+        saved.putInt("DataVersion", 5023);
+        CompoundTag section = (CompoundTag) saved.getListTag("sections").get(0);
+        ListTag<?> palette = section.getCompoundTag("block_states").getListTag("palette");
+        for (int index = 0; index < palette.size(); index++) {
+            CompoundTag state = (CompoundTag) palette.get(index);
+            state.put("id", state.remove("Name"));
+            if (state.containsKey("Properties")) {
+                state.put("properties", state.remove("Properties"));
+            }
+        }
+        writeChunk(world, saved, 2, false);
+        SavedTerrainChunk chunk = SavedTerrainChunk.read(world, -1, -2, -16, 16);
+        assertEquals("minecraft:terrain", chunk.nativeStatus());
+        assertEquals("minecraft:water[level=0]", chunk.column(-16, -32).geometry().voxelAt(-15).stateKey());
+    }
+
+    @Test
+    public void reads263StringAndWrappedPaletteEntries() throws Exception {
+        for (String name : new String[]{"minecraft:stone", "minecraft:water", "minecraft:sea_pickle"}) {
+            for (boolean wrapped : new boolean[]{false, true}) {
+                Path world = temporaryFolder.newFolder("terrain-string-" + name.substring(10) + "-" + wrapped).toPath();
+                CompoundTag saved = root("minecraft:full");
+                saved.putInt("DataVersion", 5023);
+                CompoundTag section = (CompoundTag) saved.getListTag("sections").get(0);
+                CompoundTag blocks = section.getCompoundTag("block_states");
+                blocks.remove("data");
+                if (wrapped) {
+                    ListTag<CompoundTag> palette = new ListTag<>(CompoundTag.class);
+                    CompoundTag state = new CompoundTag();
+                    state.putString("", name);
+                    palette.add(state);
+                    blocks.put("palette", palette);
+                } else {
+                    ListTag<StringTag> palette = new ListTag<>(StringTag.class);
+                    palette.add(new StringTag(name));
+                    blocks.put("palette", palette);
+                }
+                writeChunk(world, saved, 2, false);
+                SavedTerrainChunk chunk = SavedTerrainChunk.read(world, -1, -2, -16, 16);
+                BoundaryColumnGeometry.Voxel voxel = chunk.column(-16, -32).geometry().voxelAt(-16);
+                assertEquals(IrisPlatforms.get().registries().blockOrNull(name).key(), voxel.stateKey());
+                assertEquals(name.equals("minecraft:stone") ? "" : "minecraft:water[level=0]", voxel.fluidStateKey());
+            }
+        }
+    }
 
     @Test
     public void readsModernPaletteAtNegativeCoordinatesWithEveryCompression() throws Exception {

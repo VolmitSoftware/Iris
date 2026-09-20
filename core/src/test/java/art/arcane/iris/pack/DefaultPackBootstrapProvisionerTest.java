@@ -1,5 +1,7 @@
 package art.arcane.iris.pack;
 
+import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
+
 import art.arcane.iris.world.lifecycle.BukkitStartupPaths;
 import art.arcane.iris.world.history.GenerationRegistryContractFactory;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
@@ -50,6 +52,28 @@ public class DefaultPackBootstrapProvisionerTest {
     }
 
     @Test
+    public void bootstrapUsesTheSelectedRuntimeBiomeSchema() throws Exception {
+        Path root = Files.createTempDirectory("iris-bootstrap-runtime");
+        try {
+            Path dataDirectory = root.resolve("plugins/Iris");
+            writePack(dataDirectory.resolve("packs/overworld"), "overworld", "runtime");
+            BukkitStartupPaths startupPaths = BukkitStartupPaths.resolve(root, new String[0]);
+            for (DataVersion version : new DataVersion[]{DataVersion.V26_1_2, DataVersion.V26_2, DataVersion.V26_3}) {
+                DefaultPackBootstrapProvisioner.ProvisionResult result = DefaultPackBootstrapProvisioner.provision(
+                        new DefaultPackBootstrapProvisioner.BootstrapRequest(dataDirectory, ignored -> {}, startupPaths, version));
+                Path biomeRoot = result.datapackRoot().resolve("data/iris/worldgen/biome/biomes");
+                try (Stream<Path> paths = Files.list(biomeRoot)) {
+                    String json = Files.readString(paths.findFirst().orElseThrow());
+                    assertEquals(version != DataVersion.V26_3, json.contains("\"spawners\""));
+                    assertEquals(version == DataVersion.V26_3, json.contains("minecraft:gameplay/natural_mob_spawns"));
+                }
+            }
+        } finally {
+            delete(root);
+        }
+    }
+
+    @Test
     public void emptyInstallPublishesValidDatapackWithoutNetworkRequests() throws Exception {
         AtomicInteger requests = new AtomicInteger();
         HttpServer server = server(packArchive("overworld", "unused"), requests);
@@ -66,7 +90,8 @@ public class DefaultPackBootstrapProvisionerTest {
                     1,
                     Duration.ZERO,
                     8L * 1024L * 1024L,
-                    root
+                    root,
+                    DataVersion.getLatest()
             );
 
             DefaultPackBootstrapProvisioner.ProvisionResult result = DefaultPackBootstrapProvisioner.provision(
@@ -648,8 +673,8 @@ public class DefaultPackBootstrapProvisionerTest {
             BukkitStartupPaths startupPaths = BukkitStartupPaths.resolve(serverRoot, new String[0]);
 
             DefaultPackBootstrapProvisioner.ProvisionResult installed =
-                    DefaultPackBootstrapProvisioner.provision(dataDirectory, ignored -> {
-                    }, startupPaths);
+                    DefaultPackBootstrapProvisioner.provision(new DefaultPackBootstrapProvisioner.BootstrapRequest(dataDirectory, ignored -> {
+                    }, startupPaths, DataVersion.getLatest()));
 
             Path levelStem = installed.datapackRoot().resolve("data/iris/dimension/moon.json");
             assertEquals(DefaultPackBootstrapProvisioner.ProvisionStatus.INSTALLED, installed.status());
@@ -661,8 +686,8 @@ public class DefaultPackBootstrapProvisionerTest {
                     StandardCharsets.UTF_8
             );
             DefaultPackBootstrapProvisioner.ProvisionResult updated =
-                    DefaultPackBootstrapProvisioner.provision(dataDirectory, ignored -> {
-                    }, startupPaths);
+                    DefaultPackBootstrapProvisioner.provision(new DefaultPackBootstrapProvisioner.BootstrapRequest(dataDirectory, ignored -> {
+                    }, startupPaths, DataVersion.getLatest()));
 
             assertEquals(DefaultPackBootstrapProvisioner.ProvisionStatus.UPDATED, updated.status());
             assertTrue(Files.readString(levelStem).contains("\"type\": \"iris:underworld\""));
@@ -709,7 +734,8 @@ public class DefaultPackBootstrapProvisionerTest {
                 1,
                 Duration.ZERO,
                 8L * 1024L * 1024L,
-                serverRoot
+                serverRoot,
+                DataVersion.getLatest()
         );
     }
 

@@ -71,6 +71,7 @@ public class VanillaJigsawDatapackExporterTest {
         when(registries.block(anyString())).thenReturn(stone);
         IrisPlatform platform = mock(IrisPlatform.class);
         when(platform.registries()).thenReturn(registries);
+        when(platform.minecraftVersion()).thenReturn("26.2");
         IrisPlatforms.bind(platform);
     }
 
@@ -139,6 +140,30 @@ public class VanillaJigsawDatapackExporterTest {
         CompoundTag paletteEntry = (CompoundTag) template.getListTag("palette").get(0);
         assertEquals("minecraft:jigsaw", paletteEntry.getString("Name"));
         assertEquals("north_up", paletteEntry.getCompoundTag("Properties").getString("orientation"));
+    }
+
+    @Test
+    public void exports26_3RuntimeBlockStatesAndPackFormat() throws Exception {
+        when(IrisPlatforms.get().minecraftVersion()).thenReturn("26.3.0");
+        try {
+            Path output = temporaryFolder.getRoot().toPath().resolve("village-263");
+            VanillaJigsawExportResult result = new VanillaJigsawDatapackExporter().export(
+                    request(connectorGraph(), output).namespace("studio").resourcePath("village/test").build());
+            assertTrue(result.diagnostics().toString(), result.isSuccess());
+            JsonObject pack = json(output.resolve("pack.mcmeta")).getAsJsonObject("pack");
+            assertEquals(121, pack.get("min_format").getAsJsonArray().get(0).getAsInt());
+            assertEquals(0, pack.get("min_format").getAsJsonArray().get(1).getAsInt());
+            assertEquals(121, pack.get("max_format").getAsInt());
+            CompoundTag template = (CompoundTag) NBTUtil.read(output.resolve(
+                    "data/studio/structure/village/test/piece/pieces/start.nbt").toFile()).getTag();
+            assertEquals(5023, template.getInt("DataVersion"));
+            CompoundTag palette = (CompoundTag) template.getListTag("palette").get(0);
+            assertEquals("minecraft:jigsaw", palette.getString("id"));
+            assertEquals("north_up", palette.getCompoundTag("properties").getString("orientation"));
+            assertFalse(palette.containsKey("Name"));
+        } finally {
+            when(IrisPlatforms.get().minecraftVersion()).thenReturn("26.2");
+        }
     }
 
     @Test

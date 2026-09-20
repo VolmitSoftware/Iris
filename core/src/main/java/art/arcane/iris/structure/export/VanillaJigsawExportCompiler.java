@@ -211,7 +211,7 @@ final class VanillaJigsawExportCompiler {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.INVALID_MAX_DEPTH,
                     structureKey(structure),
-                    "Minecraft 26.2 jigsaw size must be within 0..20; Iris export requires 1..20.");
+                    "Minecraft jigsaw size must be within 0..20; Iris export requires 1..20.");
         }
         long horizontalDistance = (long) structure.getMaxSizeChunks() * 16L;
         if (horizontalDistance < 1L || horizontalDistance > MAX_HORIZONTAL_DISTANCE) {
@@ -219,7 +219,7 @@ final class VanillaJigsawExportCompiler {
                     VanillaJigsawExportDiagnostic.Code.INVALID_MAX_DISTANCE,
                     structureKey(structure),
                     "Iris maxSizeChunks maps to " + horizontalDistance
-                            + " blocks, outside Minecraft 26.2's 1..128 horizontal limit.");
+                            + " blocks, outside Minecraft's 1..128 horizontal limit.");
         }
         int terrainPadding = settings.terrainAdaptation() == VanillaJigsawExportSettings.TerrainAdaptation.NONE
                 ? 0 : 12;
@@ -315,7 +315,7 @@ final class VanillaJigsawExportCompiler {
                 addError(diagnostics,
                         VanillaJigsawExportDiagnostic.Code.INVALID_POOL_WEIGHT,
                         poolKey + "/pieces[" + index + "]",
-                        "Minecraft 26.2 template-pool weights must be within 1..150.");
+                        "Minecraft template-pool weights must be within 1..150.");
             }
             if (entry.getChance() != 1D) {
                 addError(diagnostics,
@@ -577,10 +577,12 @@ final class VanillaJigsawExportCompiler {
         JsonObject pack = new JsonObject();
         pack.addProperty("description", request.description());
         JsonArray minimum = new JsonArray();
-        minimum.add(107);
-        minimum.add(1);
+        boolean current = VanillaStructureTemplateEncoder.targets263();
+        int packFormat = current ? 121 : 107;
+        minimum.add(packFormat);
+        minimum.add(current ? 0 : 1);
         pack.add("min_format", minimum);
-        pack.addProperty("max_format", 107);
+        pack.addProperty("max_format", packFormat);
         JsonObject root = new JsonObject();
         root.add("pack", pack);
         return root;

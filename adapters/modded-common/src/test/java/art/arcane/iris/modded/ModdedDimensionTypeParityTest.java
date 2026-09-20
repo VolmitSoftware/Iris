@@ -77,7 +77,7 @@ public class ModdedDimensionTypeParityTest {
         IrisDimension end = dimension("the_end", IrisEnvironment.THE_END, 0, 256, 256, new IrisDimensionTypeOptions());
         IrisDimension custom = dimension("custom_contract", IrisEnvironment.CUSTOM, -128, 384, 384, customOptions);
         List<IrisDimension> dimensions = List.of(overworld, nether, end, custom);
-        IDataFixer fixer = DataVersion.getLatest().get();
+        IDataFixer fixer = DataVersion.V26_2.get();
         Path packDirectory = Files.createTempDirectory("iris-dimension-contracts");
         KList<File> roots = new KList<>();
         roots.add(packDirectory.toFile());

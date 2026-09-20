@@ -1,6 +1,7 @@
 package art.arcane.iris.structure.export;
 
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
+import art.arcane.volmlib.util.nbt.mca.MCABlockStateCodecSupport;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -73,15 +74,15 @@ record VanillaBlockState(String name, Map<String, String> properties) {
         return builder.append(']').toString();
     }
 
-    CompoundTag toNbt() {
+    CompoundTag toNbt(MCABlockStateCodecSupport.Format format) {
         CompoundTag state = new CompoundTag();
-        state.putString("Name", name);
+        state.putString(format.nameKey(), name);
         if (!properties.isEmpty()) {
             CompoundTag propertyTag = new CompoundTag();
             for (Map.Entry<String, String> property : properties.entrySet()) {
                 propertyTag.putString(property.getKey(), property.getValue());
             }
-            state.put("Properties", propertyTag);
+            state.put(format.propertiesKey(), propertyTag);
         }
         return state;
     }

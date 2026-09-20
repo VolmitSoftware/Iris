@@ -65,7 +65,7 @@ public final class VanillaJigsawExportRequest {
         private final Path output;
         private String namespace = "iris";
         private String resourcePath;
-        private String description = "Iris vanilla jigsaw export for Minecraft 26.2";
+        private String description = "Iris vanilla jigsaw export";
         private VanillaJigsawExportFormat format = VanillaJigsawExportFormat.DIRECTORY;
         private VanillaJigsawExportSettings settings = VanillaJigsawExportSettings.defaults();
         private boolean replaceExisting;

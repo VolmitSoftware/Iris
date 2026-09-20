@@ -19,6 +19,7 @@
 package art.arcane.iris.modded;
 
 import art.arcane.volmlib.util.collection.KSet;
+import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.iris.platform.bukkit.nms.datapack.v1217.DataFixerV1217;
 import art.arcane.iris.world.history.GenerationEpochContractFactory;
 import art.arcane.iris.world.history.GenerationRegistryContract;
@@ -49,6 +50,21 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class ModdedForcedDatapackTest {
+    @Test
+    public void metadataRetains262FormatWhenBukkitAlsoSupports263() throws IOException {
+        Path packDirectory = Files.createTempDirectory("iris-modded-pack-format");
+        try {
+            ModdedForcedDatapack.writePackMeta(packDirectory);
+            JSONObject pack = new JSONObject(Files.readString(packDirectory.resolve("pack.mcmeta")))
+                    .getJSONObject("pack");
+            assertEquals(107, pack.getInt("pack_format"));
+            assertEquals(107, pack.getInt("min_format"));
+            assertEquals(107, pack.getInt("max_format"));
+        } finally {
+            deleteTree(packDirectory);
+        }
+    }
+
     @Test
     public void retainedDimensionSourceRendersBeforeNativeRegistryExists() throws Exception {
         DataFixerV1217 fixer = new DataFixerV1217();

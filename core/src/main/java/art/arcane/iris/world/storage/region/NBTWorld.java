@@ -19,6 +19,8 @@
 package art.arcane.iris.world.storage.region;
 
 import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
+import art.arcane.volmlib.util.nbt.mca.MCABlockStateCodecSupport;
+import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
 
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.platform.bukkit.nms.INMS;
@@ -30,6 +32,7 @@ import art.arcane.volmlib.util.nbt.mca.NBTWorldSupport;
 import art.arcane.iris.platform.reflect.KeyedType;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
+import art.arcane.volmlib.util.nbt.tag.Tag;
 import art.arcane.iris.generation.concurrent.HyperLock;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -43,7 +46,7 @@ import java.util.Locale;
 public class NBTWorld {
     private static final class Holder {
         private static final BlockData AIR = BukkitBlockResolution.get("AIR");
-        private static final NBTWorldSupport.BlockStateCodec<BlockData> BLOCK_STATE_CODEC = NBTWorldSupport.blockStateCodec(
+        private static final NBTWorldSupport.BlockStateCodec<BlockData> BLOCK_STATE_CODEC = NBTWorldSupport.blockStateCodec(new NBTWorldSupport.BlockStateCodecOptions<>(
                 blockStateString -> BukkitBlockResolution.getOrNull(blockStateString, true),
                 BukkitBlockResolution::getAir,
                 blockData -> blockData.getAsString(true),
@@ -53,8 +56,11 @@ public class NBTWorld {
                         return "minecraft:" + blockData.getMaterial().name().toLowerCase(Locale.ROOT);
                     }
                     return key.getNamespace() + ":" + key.getKey();
-                }
-        );
+                },
+                INMS.get().getDataVersion() == DataVersion.V26_3
+                        ? MCABlockStateCodecSupport.Format.LOWERCASE
+                        : MCABlockStateCodecSupport.Format.CAPITALIZED
+        ));
         private static final Map<Biome, Integer> BIOME_IDS = computeBiomeIDs();
     }
 
@@ -127,7 +133,7 @@ public class NBTWorld {
         );
     }
 
-    public static BlockData getBlockData(CompoundTag tag) {
+    public static BlockData getBlockData(Tag<?> tag) {
         return Holder.BLOCK_STATE_CODEC.decode(tag);
     }
 

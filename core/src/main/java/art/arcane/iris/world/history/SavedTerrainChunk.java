@@ -171,7 +171,7 @@ public final class SavedTerrainChunk {
             case "biomes" -> 3;
             case "noise" -> 4;
             case "surface" -> 5;
-            case "carvers" -> 6;
+            case "carvers", "terrain" -> 6;
             case "features" -> 7;
             case "initialize_light" -> 8;
             case "light" -> 9;

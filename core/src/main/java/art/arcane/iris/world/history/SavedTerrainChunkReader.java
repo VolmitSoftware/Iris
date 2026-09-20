@@ -1,6 +1,9 @@
 package art.arcane.iris.world.history;
 
 import art.arcane.volmlib.util.nbt.io.NBTUtil;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.util.nbt.mca.MCABlockStateCodecSupport;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
 import art.arcane.volmlib.util.nbt.tag.ByteArrayTag;
 import art.arcane.volmlib.util.nbt.tag.ListTag;
@@ -81,7 +84,8 @@ final class SavedTerrainChunkReader {
             if (sectionY * 16 < minimumY || sectionY * 16 >= (long) minimumY + height) {
                 continue;
             }
-            if (sections.put(sectionY, decodeSection(section)) != null) {
+            if (sections.put(sectionY, decodeSection(section, root.getInt("DataVersion") >= 5023
+                    ? MCABlockStateCodecSupport.Format.LOWERCASE : MCABlockStateCodecSupport.Format.CAPITALIZED)) != null) {
                 throw new IOException("Saved chunk contains duplicate section " + sectionY);
             }
         }
@@ -158,16 +162,29 @@ final class SavedTerrainChunkReader {
         return section;
     }
 
-    private static Section decodeSection(CompoundTag section) throws IOException {
+    private static Section decodeSection(CompoundTag section, MCABlockStateCodecSupport.Format format) throws IOException {
         CompoundTag blocks = compound(section, "block_states");
         CompoundTag biomes = compound(section, "biomes");
         ListTag<?> blockPalette = list(blocks, "palette");
         List<BoundaryColumnGeometry.Voxel> decodedBlocks = new ArrayList<>(blockPalette.size());
         for (Tag<?> entry : blockPalette) {
-            if (!(entry instanceof CompoundTag state)) {
-                throw new IOException("Saved block palette entry is not a compound");
+            Tag<?> state = entry;
+            if (format == MCABlockStateCodecSupport.Format.LOWERCASE
+                    && state instanceof CompoundTag wrapped && wrapped.size() == 1 && wrapped.containsKey("")) {
+                state = wrapped.get("");
             }
-            decodedBlocks.add(decodeBlock(state));
+            if (format == MCABlockStateCodecSupport.Format.LOWERCASE && state instanceof StringTag name) {
+                PlatformBlockState resolved = IrisPlatforms.get().registries().blockOrNull(name.getValue());
+                if (resolved == null) {
+                    throw new IOException("Saved block state cannot be resolved: " + name.getValue());
+                }
+                decodedBlocks.add(decodeBlock(MCABlockStateCodecSupport.encodeBlockState(
+                        resolved.key(), name.getValue(), format), format));
+            } else if (state instanceof CompoundTag compound) {
+                decodedBlocks.add(decodeBlock(compound, format));
+            } else {
+                throw new IOException("Saved block palette entry is not a block state");
+            }
         }
         ListTag<?> biomePalette = list(biomes, "palette");
         List<String> decodedBiomes = new ArrayList<>(biomePalette.size());
@@ -181,16 +198,23 @@ final class SavedTerrainChunkReader {
                 new Palette<>(decodedBiomes, packedData(biomes), 1, 64));
     }
 
-    private static BoundaryColumnGeometry.Voxel decodeBlock(CompoundTag state) throws IOException {
-        String name = string(state, "Name");
+    private static BoundaryColumnGeometry.Voxel decodeBlock(CompoundTag state, MCABlockStateCodecSupport.Format format) throws IOException {
+        String name = string(state, format.nameKey());
         TreeMap<String, String> properties = new TreeMap<>();
-        if (state.get("Properties") instanceof CompoundTag values) {
+        if (state.get(format.propertiesKey()) instanceof CompoundTag values) {
             for (Map.Entry<String, Tag<?>> property : values) {
                 if (!(property.getValue() instanceof StringTag value)) {
                     throw new IOException("Saved block property is not a string");
                 }
                 properties.put(property.getKey(), value.getValue());
             }
+        }
+        return decodeBlock(name, properties);
+    }
+
+    private static BoundaryColumnGeometry.Voxel decodeBlock(String name, Map<String, String> properties) throws IOException {
+        if (name.isBlank()) {
+            throw new IOException("Saved block state has no resource key");
         }
         String stateKey = stateKey(name, properties);
         if (name.equals("minecraft:air") || name.equals("minecraft:cave_air") || name.equals("minecraft:void_air")) {

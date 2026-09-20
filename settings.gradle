@@ -29,6 +29,7 @@ include(':probe')
 include(':spi')
 include(':adapters:bukkit:plugin')
 include(':adapters:bukkit:nms:v26_2_R1')
+include(':adapters:bukkit:nms:v26_3_R1')
 
 /*
  * Opt-in: surface the three modded adapter builds to the IDE.

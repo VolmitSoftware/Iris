@@ -8,6 +8,9 @@ import art.arcane.iris.world.lifecycle.MissingWorldStorageLog;
 import art.arcane.iris.world.lifecycle.WorldReplacementBootstrap;
 import art.arcane.iris.world.lifecycle.WorldReplacementBootstrapMarker;
 import art.arcane.iris.pack.DefaultPackBootstrapProvisioner;
+import art.arcane.iris.pack.DefaultPackBootstrapProvisioner.BootstrapRequest;
+import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
+import io.papermc.paper.ServerBuildInfo;
 import art.arcane.iris.pack.DefaultPackBootstrapProvisioner.ProvisionResult;
 import art.arcane.iris.platform.bootstrap.SlimJar;
 import io.papermc.paper.plugin.bootstrap.BootstrapContext;
@@ -184,11 +187,12 @@ public final class IrisBootstrap implements PluginBootstrap {
 
     private static ProvisionResult provision(BootstrapContext context, BukkitStartupPaths startupPaths) {
         try {
-            return DefaultPackBootstrapProvisioner.provision(
+            return DefaultPackBootstrapProvisioner.provision(new BootstrapRequest(
                     context.getDataDirectory(),
                     message -> context.getLogger().info(message),
-                    startupPaths
-            );
+                    startupPaths,
+                    DataVersion.forMinecraftVersion(ServerBuildInfo.buildInfo().minecraftVersionId())
+            ));
         } catch (IOException e) {
             throw new IllegalStateException("Unable to provision the Iris startup datapack", e);
         }

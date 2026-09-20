@@ -170,14 +170,16 @@ public class IrisDatapackCompilerTest {
         int maxFormat = pack.getInt("max_format");
 
         assertEquals(101, minFormat);
-        assertEquals(107, maxFormat);
+        assertEquals(121, maxFormat);
         assertEquals(maxFormat, pack.getInt("pack_format"));
 
-        // One artifact serves both runtimes: each supported DataVersion's format must be in range.
+        // One artifact serves supported runtimes: each supported DataVersion's format must be in range.
         assertTrue(minFormat <= DataVersion.V26_1_2.getPackFormat()
                 && DataVersion.V26_1_2.getPackFormat() <= maxFormat);
         assertTrue(minFormat <= DataVersion.V26_2.getPackFormat()
                 && DataVersion.V26_2.getPackFormat() <= maxFormat);
+        assertTrue(minFormat <= DataVersion.V26_3.getPackFormat()
+                && DataVersion.V26_3.getPackFormat() <= maxFormat);
     }
 
     @Test
@@ -496,14 +498,14 @@ public class IrisDatapackCompilerTest {
                 Path dataDirectory = server.resolve("plugins/Iris");
                 BukkitStartupPaths startupPaths = BukkitStartupPaths.resolve(server, new String[0]);
                 DefaultPackBootstrapProvisioner.ProvisionResult installed =
-                        DefaultPackBootstrapProvisioner.provision(dataDirectory, ignored -> {
-                        }, startupPaths);
+                        DefaultPackBootstrapProvisioner.provision(new DefaultPackBootstrapProvisioner.BootstrapRequest(dataDirectory, ignored -> {
+                        }, startupPaths, DataVersion.getLatest()));
                 assertEquals(DefaultPackBootstrapProvisioner.ProvisionStatus.INSTALLED, installed.status());
                 assertTrue(Files.isRegularFile(installed.datapackRoot().resolve("data/iris/dimension_type/upper.json")));
                 assertEquals(2, regularFileCount(installed.datapackRoot().resolve("data/iris/worldgen/biome/biomes")));
                 DefaultPackBootstrapProvisioner.ProvisionResult unchanged =
-                        DefaultPackBootstrapProvisioner.provision(dataDirectory, ignored -> {
-                        }, startupPaths);
+                        DefaultPackBootstrapProvisioner.provision(new DefaultPackBootstrapProvisioner.BootstrapRequest(dataDirectory, ignored -> {
+                        }, startupPaths, DataVersion.getLatest()));
                 assertEquals(DefaultPackBootstrapProvisioner.ProvisionStatus.UNCHANGED, unchanged.status());
                 assertFalse(IrisPlatforms.isBound());
             }

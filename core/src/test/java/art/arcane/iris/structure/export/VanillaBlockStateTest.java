@@ -1,6 +1,7 @@
 package art.arcane.iris.structure.export;
 
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
+import art.arcane.volmlib.util.nbt.mca.MCABlockStateCodecSupport;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -9,6 +10,16 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class VanillaBlockStateTest {
+    @Test
+    public void writes263NamesWithoutChangingTheOlderFormat() {
+        CompoundTag state = VanillaBlockState.parse("minecraft:oak_stairs[facing=north]")
+                .toNbt(MCABlockStateCodecSupport.Format.LOWERCASE);
+        assertEquals("minecraft:oak_stairs", state.getString("id"));
+        assertEquals("north", state.getCompoundTag("properties").getString("facing"));
+        assertNull(state.get("Name"));
+        assertNull(state.get("Properties"));
+    }
+
     @Test
     public void aBareBlockKeepsItsNameAndNoProperties() {
         VanillaBlockState state = VanillaBlockState.parse("  minecraft:stone  ");
@@ -35,8 +46,8 @@ public class VanillaBlockStateTest {
 
     @Test
     public void theNbtFormCarriesTheNameAndOnlyRealProperties() {
-        CompoundTag bare = VanillaBlockState.parse("minecraft:air").toNbt();
-        CompoundTag stairs = VanillaBlockState.parse("minecraft:oak_stairs[facing=north]").toNbt();
+        CompoundTag bare = VanillaBlockState.parse("minecraft:air").toNbt(MCABlockStateCodecSupport.Format.CAPITALIZED);
+        CompoundTag stairs = VanillaBlockState.parse("minecraft:oak_stairs[facing=north]").toNbt(MCABlockStateCodecSupport.Format.CAPITALIZED);
 
         assertEquals("minecraft:air", bare.getString("Name"));
         assertNull(bare.get("Properties"));

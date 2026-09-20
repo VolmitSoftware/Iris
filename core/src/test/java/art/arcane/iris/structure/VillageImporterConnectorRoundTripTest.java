@@ -15,6 +15,10 @@ import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.placement.IrisStructure;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
+import org.junit.Before;
+import org.junit.After;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.nbt.io.NBTUtil;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
@@ -40,6 +44,19 @@ public class VillageImporterConnectorRoundTripTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Before
+    public void bindPlatform() {
+        IrisPlatforms.unbind();
+        IrisPlatform platform = mock(IrisPlatform.class);
+        when(platform.minecraftVersion()).thenReturn("26.2");
+        IrisPlatforms.bind(platform);
+    }
+
+    @After
+    public void unbindPlatform() {
+        IrisPlatforms.unbind();
+    }
 
     @Test
     public void vanillaNbtMetadataSurvivesIrisPieceAndVanillaExport() throws Exception {

@@ -1,6 +1,8 @@
 package art.arcane.iris.structure.export;
 
 import art.arcane.iris.pack.value.IrisDirection;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.volmlib.util.nbt.mca.MCABlockStateCodecSupport;
 import art.arcane.iris.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.structure.object.IrisObject;
@@ -51,16 +53,24 @@ final class VanillaStructureTemplateEncoder {
             }
         }
 
+        boolean lowercase = targets263();
+        MCABlockStateCodecSupport.Format format = lowercase
+                ? MCABlockStateCodecSupport.Format.LOWERCASE : MCABlockStateCodecSupport.Format.CAPITALIZED;
         CompoundTag root = new CompoundTag();
         root.put("size", intList(object.getW(), object.getH(), object.getD()));
-        root.put("palette", palette(paletteStates));
+        root.put("palette", palette(paletteStates, format));
         root.put("blocks", blocks(orderedBlocks, paletteIndexes));
         root.put("entities", new ListTag<>(CompoundTag.class));
-        root.putInt("DataVersion", DATA_VERSION_26_2);
+        root.putInt("DataVersion", lowercase ? 5023 : DATA_VERSION_26_2);
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         NBTUtil.write(new NamedTag("", root), output, true);
         return output.toByteArray();
+    }
+
+    static boolean targets263() {
+        String minecraftVersion = IrisPlatforms.get().minecraftVersion();
+        return "26.3".equals(minecraftVersion) || "26.3.0".equals(minecraftVersion);
     }
 
     private Map<BlockPosition, BlockEntry> objectBlocks(IrisObject object) {
@@ -135,10 +145,10 @@ final class VanillaStructureTemplateEncoder {
         };
     }
 
-    private ListTag<CompoundTag> palette(List<VanillaBlockState> states) {
+    private ListTag<CompoundTag> palette(List<VanillaBlockState> states, MCABlockStateCodecSupport.Format format) {
         ListTag<CompoundTag> palette = new ListTag<>(CompoundTag.class);
         for (VanillaBlockState state : states) {
-            palette.add(state.toNbt());
+            palette.add(state.toNbt(format));
         }
         return palette;
     }

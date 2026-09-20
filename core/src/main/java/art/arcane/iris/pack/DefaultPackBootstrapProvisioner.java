@@ -62,15 +62,10 @@ public final class DefaultPackBootstrapProvisioner {
         return DEFAULT_PACKS;
     }
 
-    public static ProvisionResult provision(Path dataDirectory, Consumer<String> feedback) throws IOException {
-        return provision(dataDirectory, feedback, BukkitStartupPaths.resolveCurrent());
-    }
-
-    public static ProvisionResult provision(
-            Path dataDirectory,
-            Consumer<String> feedback,
-            BukkitStartupPaths startupPaths
-    ) throws IOException {
+    public static ProvisionResult provision(BootstrapRequest request) throws IOException {
+        Path dataDirectory = request.dataDirectory();
+        Consumer<String> feedback = request.feedback();
+        BukkitStartupPaths startupPaths = request.startupPaths();
         Objects.requireNonNull(dataDirectory, "dataDirectory");
         Objects.requireNonNull(feedback, "feedback");
         BukkitStartupPaths requiredStartupPaths = Objects.requireNonNull(startupPaths, "startupPaths");
@@ -94,7 +89,8 @@ public final class DefaultPackBootstrapProvisioner {
                 3,
                 Duration.ofMillis(250),
                 MAX_ARCHIVE_BYTES,
-                levelRoot
+                levelRoot,
+                request.dataVersion()
         );
         return provision(dataDirectory, feedback, options);
     }
@@ -135,7 +131,7 @@ public final class DefaultPackBootstrapProvisioner {
             if (!Integer.toString(MARKER_SCHEMA).equals(marker.getProperty("schema"))) {
                 return false;
             }
-            IDataFixer fixer = DataVersion.getLatest().get();
+            IDataFixer fixer = DataVersion.getRuntime().get();
             if (fixer == null
                     || !IrisDatapackCompiler.compilerIdentity(fixer)
                     .equals(marker.getProperty("compilerIdentity"))) {
@@ -248,9 +244,9 @@ public final class DefaultPackBootstrapProvisioner {
             }
 
             List<File> packRoots = IrisDatapackCompiler.collectPackRoots(normalizedData, options.levelRoot());
-            IDataFixer fixer = DataVersion.getLatest().get();
+            IDataFixer fixer = options.dataVersion().get();
             if (fixer == null) {
-                throw new IOException("Latest Iris datapack fixer is unavailable during bootstrap");
+                throw new IOException("Selected Iris datapack fixer is unavailable during bootstrap");
             }
             String compilerIdentity = IrisDatapackCompiler.compilerIdentity(fixer);
             String aggregateFingerprint = packRootsFingerprint(packRoots);
@@ -915,6 +911,16 @@ public final class DefaultPackBootstrapProvisioner {
         }
     }
 
+    public record BootstrapRequest(Path dataDirectory, Consumer<String> feedback,
+                                   BukkitStartupPaths startupPaths, DataVersion dataVersion) {
+        public BootstrapRequest {
+            Objects.requireNonNull(dataDirectory);
+            Objects.requireNonNull(feedback);
+            Objects.requireNonNull(startupPaths);
+            Objects.requireNonNull(dataVersion);
+        }
+    }
+
     record ProvisionOptions(
             List<PackSpec> packs,
             List<IrisGeneratorBinding> bindings,
@@ -925,7 +931,8 @@ public final class DefaultPackBootstrapProvisioner {
             int attempts,
             Duration retryDelay,
             long maxArchiveBytes,
-            Path levelRoot
+            Path levelRoot,
+            DataVersion dataVersion
     ) {
         ProvisionOptions {
             packs = List.copyOf(Objects.requireNonNull(packs, "packs"));
@@ -936,6 +943,10 @@ public final class DefaultPackBootstrapProvisioner {
             Objects.requireNonNull(requestTimeout, "requestTimeout");
             Objects.requireNonNull(retryDelay, "retryDelay");
             Objects.requireNonNull(levelRoot, "levelRoot");
+            Objects.requireNonNull(dataVersion, "dataVersion");
+            if (dataVersion == DataVersion.UNSUPPORTED) {
+                throw new IllegalArgumentException("Unsupported bootstrap datapack version");
+            }
             if (attempts < 1 || maxArchiveBytes < 1L) {
                 throw new IllegalArgumentException("Invalid bootstrap provisioning options");
             }

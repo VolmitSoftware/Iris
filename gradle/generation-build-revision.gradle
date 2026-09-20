@@ -50,7 +50,7 @@ Closure<Map<String, Path>> resolvedKernelDependencies = {
 TaskProvider<Task> revisionResources = tasks.register('generateGenerationBuildRevision') {
     group = 'build'
     description = 'Captures generation sources and resolved dependencies as build revision provenance.'
-    dependsOn(kernelDependencies, kernelAgentJar, ":adapters:bukkit:nms:v26_2_R1:convert")
+    dependsOn(kernelDependencies, kernelAgentJar, ":adapters:bukkit:nms:v26_2_R1:convert", ":adapters:bukkit:nms:v26_3_R1:convert")
     inputs.files(revisionScope.roots().collect { String source -> rootProject.file(source) })
     inputs.property('revisionScope', revisionScope.toString())
     inputs.files(catalogFile, kernelDependencies, kernelAgentJar.flatMap { Jar jar -> jar.archiveFile })

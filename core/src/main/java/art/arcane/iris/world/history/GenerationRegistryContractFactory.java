@@ -110,7 +110,7 @@ public final class GenerationRegistryContractFactory {
                 data,
                 dimension,
                 packFingerprint,
-                DataVersion.getLatest().get(),
+                DataVersion.getRuntime().get(),
                 registries,
                 registries.generationRegistry(),
                 aliasPolicy
@@ -224,7 +224,7 @@ public final class GenerationRegistryContractFactory {
                 data,
                 dimension,
                 customBiome,
-                DataVersion.getLatest().get(),
+                DataVersion.getRuntime().get(),
                 registry
         );
     }
@@ -508,7 +508,7 @@ public final class GenerationRegistryContractFactory {
     ) throws IOException {
         return captureRequiredDefinitions(
                 requiredContracts,
-                DataVersion.getLatest().get(),
+                DataVersion.getRuntime().get(),
                 IrisPlatforms.get().registries().generationRegistry()
         );
     }
@@ -519,7 +519,7 @@ public final class GenerationRegistryContractFactory {
     ) throws IOException {
         return captureRequiredDefinitions(
                 requiredContracts,
-                DataVersion.getLatest().get(),
+                DataVersion.getRuntime().get(),
                 generationRegistry
         );
     }
@@ -603,7 +603,7 @@ public final class GenerationRegistryContractFactory {
         return requireGeneratedSource(
                 contract,
                 key,
-                DataVersion.getLatest().get(),
+                DataVersion.getRuntime().get(),
                 IrisPlatforms.get().registries().generationRegistry()
         );
     }
@@ -652,7 +652,7 @@ public final class GenerationRegistryContractFactory {
         return requireGeneratedSource(
                 contract,
                 key,
-                DataVersion.getLatest().get(),
+                DataVersion.getRuntime().get(),
                 generationRegistry
         );
     }

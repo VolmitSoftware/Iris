@@ -343,11 +343,11 @@ public final class ModdedForcedDatapack {
             throw new IllegalStateException("SHA-256 is unavailable", missing);
         }
         digest.update((HASH_SALT + '|' + ModdedEngineBootstrap.loader().platformName()
-                + '|' + DataVersion.getLatest().getPackFormat() + '\n').getBytes(StandardCharsets.UTF_8));
+                + '|' + DataVersion.V26_2.getPackFormat() + '\n').getBytes(StandardCharsets.UTF_8));
         String inputFingerprint = IrisDatapackCompiler.computeInputFingerprint(
                 compilationPackRoots(),
                 List.of(),
-                DataVersion.getLatest().get(),
+                DataVersion.V26_2.get(),
                 false
         );
         digest.update(inputFingerprint.getBytes(StandardCharsets.UTF_8));
@@ -356,7 +356,7 @@ public final class ModdedForcedDatapack {
 
     private static void writeStagedPack(Path stagingDirectory) throws IOException {
         Map<String, KSet<String>> seenBiomes = new LinkedHashMap<>();
-        IDataFixer fixer = DataVersion.getLatest().get();
+        IDataFixer fixer = DataVersion.V26_2.get();
 
         int packCount = 0;
         KList<String> presetIds = new KList<>();
@@ -706,8 +706,8 @@ public final class ModdedForcedDatapack {
                 + "}\n", StandardCharsets.UTF_8);
     }
 
-    private static void writePackMeta(Path packDirectory) throws IOException {
-        int packFormat = DataVersion.getLatest().getPackFormat();
+    static void writePackMeta(Path packDirectory) throws IOException {
+        int packFormat = DataVersion.V26_2.getPackFormat();
         String json = "{\n"
                 + "  \"pack\": {\n"
                 + "    \"description\": \"Iris world generation biomes and dimension types for installed packs.\",\n"

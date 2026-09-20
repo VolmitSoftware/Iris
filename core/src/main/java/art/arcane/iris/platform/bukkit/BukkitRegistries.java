@@ -21,16 +21,16 @@ package art.arcane.iris.platform.bukkit;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.integration.data.DataType;
 import art.arcane.iris.platform.bukkit.nms.INMS;
-import art.arcane.iris.platform.bukkit.nms.container.BlockProperty;
+import art.arcane.volmlib.nativelib.terrain.BlockProperty;
 import art.arcane.iris.integration.ExternalDataSVC;
 import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockProperty;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformEntityType;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.entity.NativeEntityType;
 import art.arcane.iris.spi.PlatformGenerationRegistry;
-import art.arcane.iris.spi.PlatformItem;
-import art.arcane.iris.spi.PlatformNumericRange;
+import art.arcane.volmlib.nativelib.item.NativeItem;
+import art.arcane.volmlib.nativelib.terrain.NativeNumericRange;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.platform.reflect.KeyedType;
 import art.arcane.volmlib.util.json.JSONArray;
@@ -61,7 +61,7 @@ public final class BukkitRegistries implements PlatformRegistries {
     }
 
     @Override
-    public PlatformBlockState block(String key) {
+    public NativeBlockState block(String key) {
         BlockData data = BukkitBlockResolution.get(key);
         return data == null ? null : BukkitBlockState.of(data);
     }
@@ -70,29 +70,29 @@ public final class BukkitRegistries implements PlatformRegistries {
     // BukkitBlockResolution.getOrNull, which substitutes air for an unregistered key and feeds the Bukkit-only
     // IrisCompat rewrite table used by block().
     @Override
-    public PlatformBlockState blockOrNull(String key) {
+    public NativeBlockState blockOrNull(String key) {
         BlockData data = BukkitBlockResolution.resolveOrNull(key);
         return data == null ? null : BukkitBlockState.of(data);
     }
 
     @Override
-    public PlatformBlockState blockOrNull(String key, boolean warn) {
+    public NativeBlockState blockOrNull(String key, boolean warn) {
         BlockData data = BukkitBlockResolution.resolveOrNull(key, warn);
         return data == null ? null : BukkitBlockState.of(data);
     }
 
     @Override
-    public PlatformBlockState air() {
+    public NativeBlockState air() {
         return BukkitBlockState.of(BukkitBlockResolution.getAir());
     }
 
     @Override
-    public PlatformBlockState deepSlateOre(PlatformBlockState block, PlatformBlockState ore) {
+    public NativeBlockState deepSlateOre(NativeBlockState block, NativeBlockState ore) {
         return BukkitBlockState.of(BukkitBlockResolution.toDeepSlateOre((BlockData) block.nativeHandle(), (BlockData) ore.nativeHandle()));
     }
 
     @Override
-    public PlatformBiome biome(String key) {
+    public NativeBiome biome(String key) {
         NamespacedKey namespacedKey = NamespacedKey.fromString(key);
         if (namespacedKey == null) {
             return null;
@@ -102,13 +102,13 @@ public final class BukkitRegistries implements PlatformRegistries {
     }
 
     @Override
-    public PlatformItem item(String key) {
+    public NativeItem item(String key) {
         Material material = Material.matchMaterial(key);
         return material == null ? null : BukkitItem.of(material);
     }
 
     @Override
-    public PlatformEntityType entity(String key) {
+    public NativeEntityType entity(String key) {
         NamespacedKey namespacedKey = NamespacedKey.fromString(key);
         if (namespacedKey == null) {
             return null;
@@ -223,17 +223,17 @@ public final class BukkitRegistries implements PlatformRegistries {
     }
 
     @Override
-    public Map<String, List<PlatformBlockProperty>> blockStateProperties() {
-        Map<String, List<PlatformBlockProperty>> properties = new LinkedHashMap<>();
+    public Map<String, List<NativeBlockProperty>> blockStateProperties() {
+        Map<String, List<NativeBlockProperty>> properties = new LinkedHashMap<>();
         BukkitBlockResolution.getBlockStates().forEach((blocks, blockProperties) -> {
             if (blocks.isEmpty()) {
                 return;
             }
-            List<PlatformBlockProperty> converted = new ArrayList<>(blockProperties.size());
+            List<NativeBlockProperty> converted = new ArrayList<>(blockProperties.size());
             for (BlockProperty blockProperty : blockProperties) {
                 converted.add(toPlatformProperty(blockProperty));
             }
-            List<PlatformBlockProperty> shared = List.copyOf(converted);
+            List<NativeBlockProperty> shared = List.copyOf(converted);
             for (String block : blocks) {
                 properties.put(block, shared);
             }
@@ -241,7 +241,7 @@ public final class BukkitRegistries implements PlatformRegistries {
         return properties;
     }
 
-    private static PlatformBlockProperty toPlatformProperty(BlockProperty property) {
+    private static NativeBlockProperty toPlatformProperty(BlockProperty property) {
         JSONObject json = property.buildJson();
         Object defaultValue = json.has("default") ? json.get("default") : null;
         List<Object> allowedValues = new ArrayList<>();
@@ -251,10 +251,10 @@ public final class BukkitRegistries implements PlatformRegistries {
                 allowedValues.add(values.get(index));
             }
         }
-        PlatformNumericRange range = null;
+        NativeNumericRange range = null;
         if (json.has("minimum")) {
-            range = new PlatformNumericRange(json.getDouble("minimum"), json.getDouble("maximum"), json.getBoolean("exclusiveMinimum"), json.getBoolean("exclusiveMaximum"));
+            range = new NativeNumericRange(json.getDouble("minimum"), json.getDouble("maximum"), json.getBoolean("exclusiveMinimum"), json.getBoolean("exclusiveMaximum"));
         }
-        return new PlatformBlockProperty(property.name(), json.getString("type"), defaultValue, List.copyOf(allowedValues), range);
+        return new NativeBlockProperty(property.name(), json.getString("type"), defaultValue, List.copyOf(allowedValues), range);
     }
 }

@@ -18,6 +18,8 @@
 
 package art.arcane.iris.spi;
 
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+
 import java.util.List;
 
 /**
@@ -42,5 +44,5 @@ public interface PlatformBiomeWriter {
     /**
      * Every biome in the host registry, including datapack and mod biomes. Never null.
      */
-    List<PlatformBiome> allBiomes();
+    List<NativeBiome> allBiomes();
 }

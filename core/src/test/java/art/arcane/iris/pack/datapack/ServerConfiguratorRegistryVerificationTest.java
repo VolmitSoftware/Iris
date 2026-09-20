@@ -96,7 +96,7 @@ public class ServerConfiguratorRegistryVerificationTest {
 
         INMSBinding binding = mock(INMSBinding.class);
         when(binding.supportsDataPacks()).thenReturn(true);
-        when(binding.getCustomBiomeBaseFor("overworld:missing")).thenReturn(null);
+        when(binding.hasBiome("overworld:missing")).thenReturn(false);
         when(binding.missingDimensionTypes("iris:overworld")).thenReturn(true);
         return new VerificationFixture(data, dimension, binding);
     }

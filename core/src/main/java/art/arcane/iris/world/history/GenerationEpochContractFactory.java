@@ -1,7 +1,7 @@
 package art.arcane.iris.world.history;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.platform.bukkit.nms.datapack.IDataFixer;
+import art.arcane.iris.pack.datapack.IDataFixer;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionMode;
 import art.arcane.iris.generation.terrain.IrisDimensionModeType;

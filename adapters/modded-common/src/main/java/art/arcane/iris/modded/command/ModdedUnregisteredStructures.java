@@ -18,6 +18,8 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeStructureQueries;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
@@ -25,13 +27,7 @@ import art.arcane.iris.structure.nativegen.NativeStructureGenerationPolicy;
 import art.arcane.iris.structure.placement.StructureReachability;
 import art.arcane.iris.structure.nativegen.IrisNativeStructureDecision;
 import art.arcane.iris.structure.nativegen.NativeStructureGenerationStatus;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.levelgen.structure.Structure;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -47,8 +43,8 @@ final class ModdedUnregisteredStructures {
     private ModdedUnregisteredStructures() {
     }
 
-    static int print(CommandSourceStack source) {
-        ServerLevel level = source.getLevel();
+    static int print(NativeCommandSource source) {
+        NativeWorld level = source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
             IrisModdedCommands.fail(source,
@@ -57,7 +53,7 @@ final class ModdedUnregisteredStructures {
         }
         try {
             List<ExcludedStructure> excluded = collect(source, level, engine);
-            String dimension = level.dimension().identifier().toString();
+            String dimension = level.name();
             long unregistered = excluded.stream()
                     .filter((ExcludedStructure entry) -> entry.status() == ReportStatus.UNREGISTERED)
                     .count();
@@ -81,26 +77,26 @@ final class ModdedUnregisteredStructures {
             return 1;
         } catch (Throwable error) {
             ModdedIrisLog.error("Iris failed to build the excluded structure report for {}",
-                    level.dimension().identifier(), error);
+                    level.name(), error);
             IrisModdedCommands.fail(source,
                     "Iris could not build the excluded structure report; see the server console.");
             return 0;
         }
     }
 
-    static List<ExcludedStructure> collect(CommandSourceStack source, ServerLevel level, Engine engine) {
+    static List<ExcludedStructure> collect(NativeCommandSource source, NativeWorld level, Engine engine) {
         boolean nativeGenerationEnabled =
-                source.getServer().getWorldGenSettings().options().generateStructures();
+                source.server().generateStructures();
         Set<String> reachableNativeKeys = StructureReachability.reachableKeys(engine);
-        Registry<Structure> registry = source.getServer().registryAccess().lookupOrThrow(Registries.STRUCTURE);
+        NativeStructureQueries registry = new NativeStructureQueries(level);
         Map<String, ExcludedStructure> excluded = new TreeMap<>();
-        Set<String> registeredKeys = new HashSet<>(registry.keySet().size());
-        Set<String> eligibleRegisteredKeys = new HashSet<>(registry.keySet().size());
-        for (Identifier identifier : registry.keySet()) {
+        Set<String> registeredKeys = new HashSet<>(registry.keys().size());
+        Set<String> eligibleRegisteredKeys = new HashSet<>(registry.keys().size());
+        for (String identifier : registry.keys()) {
             String key = identifier.toString();
             String normalizedKey = ModdedCommandSuggestions.normalizeKey(key);
             registeredKeys.add(normalizedKey);
-            Optional<Holder.Reference<Structure>> holder = registry.get(identifier);
+            Optional<NativeStructureQueries.Reference> holder = registry.resolve(identifier);
             if (holder.isEmpty()) {
                 excluded.put(normalizedKey, new ExcludedStructure(ReportStatus.EXCLUDED,
                         key, "The live structure registry contains this key but has no bound structure holder."));

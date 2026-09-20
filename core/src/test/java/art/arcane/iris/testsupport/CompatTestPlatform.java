@@ -23,11 +23,11 @@ import art.arcane.iris.generation.runtime.PreservationRegistry;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockProperty;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformEntityType;
-import art.arcane.iris.spi.PlatformItem;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.entity.NativeEntityType;
+import art.arcane.volmlib.nativelib.item.NativeItem;
 import art.arcane.iris.spi.PlatformRegistries;
 import org.mockito.Answers;
 
@@ -155,43 +155,43 @@ public final class CompatTestPlatform {
         }
 
         @Override
-        public PlatformBlockState block(String key) {
-            PlatformBlockState state = blockOrNull(key, false);
+        public NativeBlockState block(String key) {
+            NativeBlockState state = blockOrNull(key, false);
             return state == null ? air() : state;
         }
 
         @Override
-        public PlatformBlockState blockOrNull(String key) {
+        public NativeBlockState blockOrNull(String key) {
             return blockOrNull(key, false);
         }
 
         @Override
-        public PlatformBlockState blockOrNull(String key, boolean warn) {
+        public NativeBlockState blockOrNull(String key, boolean warn) {
             return has(key) ? StateCache.of(base(key)) : null;
         }
 
         @Override
-        public PlatformBlockState air() {
+        public NativeBlockState air() {
             return StateCache.of("minecraft:air");
         }
 
         @Override
-        public PlatformBlockState deepSlateOre(PlatformBlockState block, PlatformBlockState ore) {
+        public NativeBlockState deepSlateOre(NativeBlockState block, NativeBlockState ore) {
             return ore;
         }
 
         @Override
-        public PlatformBiome biome(String key) {
+        public NativeBiome biome(String key) {
             return null;
         }
 
         @Override
-        public PlatformItem item(String key) {
+        public NativeItem item(String key) {
             return null;
         }
 
         @Override
-        public PlatformEntityType entity(String key) {
+        public NativeEntityType entity(String key) {
             return null;
         }
 
@@ -241,7 +241,7 @@ public final class CompatTestPlatform {
         }
 
         @Override
-        public Map<String, List<PlatformBlockProperty>> blockStateProperties() {
+        public Map<String, List<NativeBlockProperty>> blockStateProperties() {
             return Map.of();
         }
     }
@@ -252,15 +252,15 @@ public final class CompatTestPlatform {
      * handed out here can outlive the test that bound this platform.
      */
     private static final class StateCache {
-        private static final Map<String, PlatformBlockState> STATES = new LinkedHashMap<>();
+        private static final Map<String, NativeBlockState> STATES = new LinkedHashMap<>();
 
         private StateCache() {
         }
 
-        static synchronized PlatformBlockState of(String key) {
+        static synchronized NativeBlockState of(String key) {
             return STATES.computeIfAbsent(key, k -> {
                 boolean air = k.endsWith("air");
-                PlatformBlockState state = mock(PlatformBlockState.class);
+                NativeBlockState state = mock(NativeBlockState.class);
                 when(state.key()).thenReturn(k);
                 when(state.materialKey()).thenReturn(k);
                 when(state.isAir()).thenReturn(air);

@@ -8,7 +8,7 @@ import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.generation.block.IrisCustomData;
-import art.arcane.iris.platform.bukkit.registry.RegistryUtil;
+import art.arcane.iris.platform.registry.RegistryUtil;
 import art.arcane.volmlib.util.collection.KMap;
 import net.momirealms.craftengine.bukkit.api.CraftEngineBlocks;
 import net.momirealms.craftengine.bukkit.api.CraftEngineFurniture;

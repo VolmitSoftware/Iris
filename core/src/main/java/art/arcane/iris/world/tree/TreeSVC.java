@@ -38,7 +38,7 @@ import art.arcane.iris.generation.decoration.tree.IrisTreeSize;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.platform.generation.PlatformChunkGenerator;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.data.Cuboid;
@@ -183,7 +183,7 @@ public class TreeSVC implements IrisService {
             }
 
             @Override
-            public void set(int x, int y, int z, PlatformBlockState s) {
+            public void set(int x, int y, int z, NativeBlockState s) {
                 BlockData d = (BlockData) s.nativeHandle();
                 Block b = event.getWorld().getBlockAt(x, y, z);
                 // Listeners get the post-growth tree, per the StructureGrowEvent contract;
@@ -197,7 +197,7 @@ public class TreeSVC implements IrisService {
             }
 
             @Override
-            public PlatformBlockState get(int x, int y, int z) {
+            public NativeBlockState get(int x, int y, int z) {
                 return BukkitBlockState.of(event.getWorld().getBlockAt(x, y, z).getBlockData());
             }
 

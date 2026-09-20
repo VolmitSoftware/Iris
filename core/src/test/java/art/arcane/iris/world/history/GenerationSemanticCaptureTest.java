@@ -7,7 +7,7 @@ import art.arcane.iris.structure.placement.StructurePlacementMarker;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.biome.IrisBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.function.Consumer4;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -40,7 +40,7 @@ import static org.mockito.Mockito.when;
 public final class GenerationSemanticCaptureTest {
     @BeforeClass
     public static void initializeMantleBlockState() throws Exception {
-        PlatformBlockState air = mock(PlatformBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
         try (MockedStatic<B> blocks = mockStatic(B.class)) {
             blocks.when(() -> B.getState("AIR")).thenReturn(air);
             Class.forName(EngineMantle.class.getName());

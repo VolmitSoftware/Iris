@@ -1,12 +1,22 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.volmlib.nativelib.terrain.structure.StructureOwnershipRecordView;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureOwnershipRecovery;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureOwnershipFingerprint;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureVerticalPlacer;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureReferenceEnvelope;
+
 import art.arcane.iris.structure.nativegen.NativeStructureOwnershipRecord;
 import art.arcane.iris.structure.nativegen.NativeStructureStartPlan;
 import art.arcane.iris.structure.placement.StructurePlacementGrid;
 import art.arcane.iris.structure.nativegen.IrisNativeStructure;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
-import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import art.arcane.volmlib.util.collection.KList;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Direction;
@@ -63,7 +73,7 @@ public class NativeStructureOwnershipRecoveryTest {
         NativeStructureOwnershipRecord recovered =
                 NativeStructureOwnershipRecovery.proveCandidate(
                         "minecraft:monument", structure, reloaded,
-                        plan, expected, false);
+                        plan, expected, false, NativeStructureOwnershipRecord::capture);
 
         assertNotNull(recovered);
         assertEquals(StructurePlacementGrid.placementIdentity(plan.placement()),
@@ -71,7 +81,7 @@ public class NativeStructureOwnershipRecoveryTest {
         assertEquals(expectedLocatorY, recovered.locatorY());
         assertNotEquals(NativeStructureOwnershipFingerprint.locatorY(reloaded),
                 recovered.locatorY());
-        assertEquals(IrisStructureTerrainMode.FORCE_CARVE,
+        assertEquals(StructureTerrainMode.FORCE_CARVE,
                 recovered.restoredDecision().terrain().resolvedMode());
         assertEquals(24, recovered.restoredDecision().terrain().getHorizontalPadding());
         assertTrue(recovered.referenceMinChunkX()
@@ -89,7 +99,7 @@ public class NativeStructureOwnershipRecoveryTest {
         NativeStructureOwnershipRecord recovered =
                 NativeStructureOwnershipRecovery.proveCandidate(
                         "minecraft:monument", structure, natural,
-                        plan, natural, true);
+                        plan, natural, true, NativeStructureOwnershipRecord::capture);
 
         assertNull(recovered);
     }
@@ -114,10 +124,10 @@ public class NativeStructureOwnershipRecoveryTest {
                 StructurePlacementGrid.placementIdentity(changedIdentity.placement()));
         assertNull(NativeStructureOwnershipRecovery.proveCandidate(
                 "minecraft:monument", structure, expected,
-                changedIdentity, expected, false));
+                changedIdentity, expected, false, NativeStructureOwnershipRecord::capture));
         assertNull(NativeStructureOwnershipRecovery.proveCandidate(
                 "minecraft:monument", structure, changedGeometry,
-                plan(origin, "geometry-check", 0), expected, false));
+                plan(origin, "geometry-check", 0), expected, false, NativeStructureOwnershipRecord::capture));
     }
 
     @Test
@@ -129,7 +139,7 @@ public class NativeStructureOwnershipRecoveryTest {
         NativeStructureOwnershipRecord recovered =
                 NativeStructureOwnershipRecovery.proveCandidate(
                         "minecraft:monument", structure, expected,
-                        plan(origin, "fingerprint-check", 16), expected, false);
+                        plan(origin, "fingerprint-check", 16), expected, false, NativeStructureOwnershipRecord::capture);
         assertNotNull(recovered);
 
         StructureStart moved = monumentStart(structure, origin, seed);
@@ -148,10 +158,11 @@ public class NativeStructureOwnershipRecoveryTest {
         OceanMonumentStructure structure = structure();
         StructureStart start = monumentStart(structure, origin, seed);
         NativeStructureStartPlan plan = plan(
-                origin, "vacuum-envelope-refresh", IrisStructureTerrainMode.VACUUM, 0);
+                origin, "vacuum-envelope-refresh", StructureTerrainMode.VACUUM, 0);
         BoundingBox content = NativeStructureReferenceEnvelope.contentBounds(start);
-        NativeStructureOwnershipRecord stale = NativeStructureOwnershipFingerprint.capture(
-                structureKey, start, plan, content);
+        NativeStructureOwnershipRecord stale = NativeStructureOwnershipRecord.capture(
+                NativeStructureOwnershipFingerprint.capture(
+                        structureKey, start, content), plan);
 
         NativeStructureOwnershipRecord refreshed =
                 NativeStructureOwnershipRecovery.refreshReferenceEnvelope(
@@ -166,7 +177,7 @@ public class NativeStructureOwnershipRecoveryTest {
         assertEquals(stale.locatorY(), refreshed.locatorY());
         assertEquals(stale.contentFingerprint(), refreshed.contentFingerprint());
         assertEquals(stale.decision(), refreshed.decision());
-        assertEquals(IrisStructureTerrainMode.VACUUM,
+        assertEquals(StructureTerrainMode.VACUUM,
                 refreshed.restoredDecision().terrain().resolvedMode());
         BoundingBox expected = NativeStructureReferenceEnvelope.referenceBounds(
                 start, structure, plan.placement().resolvedTerrain(), structureKey);
@@ -187,10 +198,10 @@ public class NativeStructureOwnershipRecoveryTest {
         OceanMonumentStructure structure = structure();
         StructureStart expected = monumentStart(structure, origin, seed);
         NativeStructureStartPlan plan = plan(
-                origin, "vacuum-content-check", IrisStructureTerrainMode.VACUUM, 0);
-        NativeStructureOwnershipRecord stale = NativeStructureOwnershipFingerprint.capture(
-                structureKey, expected, plan,
-                NativeStructureReferenceEnvelope.contentBounds(expected));
+                origin, "vacuum-content-check", StructureTerrainMode.VACUUM, 0);
+        NativeStructureOwnershipRecord stale = NativeStructureOwnershipRecord.capture(
+                NativeStructureOwnershipFingerprint.capture(
+                        structureKey, expected, NativeStructureReferenceEnvelope.contentBounds(expected)), plan);
         StructureStart moved = monumentStart(structure, origin, seed);
         for (StructurePiece piece : moved.getPieces()) {
             piece.move(1, 0, 0);
@@ -210,8 +221,9 @@ public class NativeStructureOwnershipRecoveryTest {
         NativeStructureStartPlan plan = plan(origin, "current-force-carve", 24);
         BoundingBox envelope = NativeStructureReferenceEnvelope.referenceBounds(
                 start, structure, plan.placement().resolvedTerrain(), structureKey);
-        NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(
-                structureKey, start, plan, envelope);
+        NativeStructureOwnershipRecord ownership = NativeStructureOwnershipRecord.capture(
+                NativeStructureOwnershipFingerprint.capture(
+                        structureKey, start, envelope), plan);
 
         assertSame(ownership, NativeStructureOwnershipRecovery.refreshReferenceEnvelope(
                 structureKey, structure, start, ownership));
@@ -226,19 +238,20 @@ public class NativeStructureOwnershipRecoveryTest {
         StructureStart start = monumentStart(structure, origin, seed);
         BoundingBox initial = NativeStructureReferenceEnvelope.contentBounds(start);
         int maximumReferenceBlockX = ((origin.x()
-                + NativeStructureOwnershipRecord.MAX_REFERENCE_DISTANCE_CHUNKS) << 4) + 15;
+                + StructureOwnershipRecordView.MAX_REFERENCE_DISTANCE_CHUNKS) << 4) + 15;
         int shiftX = maximumReferenceBlockX - initial.maxX();
         for (StructurePiece piece : start.getPieces()) {
             piece.move(shiftX, 0, 0);
         }
         NativeStructureStartPlan plan = plan(
-                origin, "clipped-vacuum", IrisStructureTerrainMode.VACUUM, 0);
+                origin, "clipped-vacuum", StructureTerrainMode.VACUUM, 0);
         BoundingBox envelope = NativeStructureReferenceEnvelope.referenceBounds(
                 start, structure, plan.placement().resolvedTerrain(), structureKey);
-        NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(
-                structureKey, start, plan, envelope);
+        NativeStructureOwnershipRecord ownership = NativeStructureOwnershipRecord.capture(
+                NativeStructureOwnershipFingerprint.capture(
+                        structureKey, start, envelope), plan);
 
-        assertEquals(origin.x() + NativeStructureOwnershipRecord.MAX_REFERENCE_DISTANCE_CHUNKS,
+        assertEquals(origin.x() + StructureOwnershipRecordView.MAX_REFERENCE_DISTANCE_CHUNKS,
                 ownership.referenceMaxChunkX());
         assertSame(ownership, NativeStructureOwnershipRecovery.refreshReferenceEnvelope(
                 structureKey, structure, start, ownership));
@@ -270,12 +283,12 @@ public class NativeStructureOwnershipRecoveryTest {
                                                   String placementId,
                                                   int horizontalPadding) {
         return plan(origin, placementId,
-                IrisStructureTerrainMode.FORCE_CARVE, horizontalPadding);
+                StructureTerrainMode.FORCE_CARVE, horizontalPadding);
     }
 
     private static NativeStructureStartPlan plan(ChunkPos origin,
                                                   String placementId,
-                                                  IrisStructureTerrainMode terrainMode,
+                                                  StructureTerrainMode terrainMode,
                                                   int horizontalPadding) {
         IrisNativeStructure source = new IrisNativeStructure()
                 .setStructure("minecraft:monument")

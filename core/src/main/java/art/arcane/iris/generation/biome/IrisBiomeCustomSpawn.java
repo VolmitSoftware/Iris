@@ -18,14 +18,14 @@
 
 package art.arcane.iris.generation.biome;
 
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
 import art.arcane.iris.pack.schema.annotation.RegistryListEntityType;
 import art.arcane.iris.pack.schema.annotation.Required;
 import art.arcane.iris.pack.schema.annotation.Snippet;
-import art.arcane.iris.platform.bukkit.registry.RegistryUtil;
+import art.arcane.iris.platform.registry.RegistryUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

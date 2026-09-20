@@ -19,6 +19,8 @@
 package art.arcane.iris.structure;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.volmlib.nativelib.NativeAdapters;
+import art.arcane.volmlib.nativelib.terrain.NativeStructureReader;
 import art.arcane.iris.structure.authoring.StructureBackend;
 import art.arcane.iris.structure.authoring.StructureCapability;
 import art.arcane.iris.structure.authoring.StructureKey;
@@ -40,9 +42,6 @@ import org.bukkit.structure.Structure;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,7 +50,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -93,59 +91,38 @@ public final class VillageImporter {
         StructureImporter.Mode activeMode = mode == null ? StructureImporter.Mode.ADD_ONLY : mode;
         List<StructureLoss> losses = new ArrayList<>();
         boolean retryableFailure = false;
-        Object server;
-        Object registryAccess;
-        Object structureManager;
+        NativeStructureReader.Session session;
         String writeNote = "";
         try {
-            Object craftServer = Bukkit.getServer();
-            Object dedicated = invoke(craftServer, "getHandle");
-            server = invoke(dedicated, "getServer");
-            registryAccess = resolveRegistryAccess(server);
-            structureManager = invoke(server, "getStructureManager");
+            session = NativeAdapters.require(NativeStructureReader.class).open();
         } catch (Throwable e) {
             reportFailure(e);
-            return failed("Failed to access server registries via reflection: " + e, losses, true);
-        }
-        if (registryAccess == null) {
-            return failed("Could not resolve RegistryAccess from the server", losses, true);
+            return failed("Failed to access server registries: " + e, losses, true);
         }
 
-        Object startPool;
+        NativeStructureReader.Structure nativeStructure;
         int maxDepth;
         int maxDistanceFromCenter;
         try {
-            Object structureRegistry = lookupRegistry(registryAccess, "STRUCTURE");
-            Object structure = registryGet(structureRegistry, structureKey);
-            if (structure == null) {
+            nativeStructure = session.structure(structureKey.toString());
+            if (nativeStructure == null) {
                 return failed("No structure registered for key " + structureKey, losses);
             }
-            if (!structure.getClass().getName().endsWith("JigsawStructure")) {
+            if (!nativeStructure.jigsaw()) {
                 return failed("Structure " + structureKey + " is not a jigsaw structure ("
-                        + structure.getClass().getSimpleName() + "); use 'import' for single-template structures", losses);
+                        + nativeStructure.typeName() + "); use 'import' for single-template structures", losses);
             }
-            Object startPoolHolder = invoke(structure, "getStartPool");
-            startPool = unwrapHolder(startPoolHolder);
-            maxDepth = readIntMember(structure, "maxDepth");
-            maxDistanceFromCenter = readIntMember(structure, "maxDistanceFromCenter");
+            maxDepth = nativeStructure.maxDepth();
+            maxDistanceFromCenter = nativeStructure.maxDistanceFromCenter();
         } catch (Throwable e) {
             reportFailure(e);
             return failed("Failed to read jigsaw structure graph: " + e, losses, true);
         }
 
-        Object templatePoolRegistry;
-        java.util.Random random;
-        try {
-            templatePoolRegistry = lookupRegistry(registryAccess, "TEMPLATE_POOL");
-            random = new java.util.Random(structureKey.hashCode());
-        } catch (Throwable e) {
-            reportFailure(e);
-            return failed("Failed to access TEMPLATE_POOL registry: " + e, losses, true);
-        }
-
+        java.util.Random random = new java.util.Random(structureKey.hashCode());
         String startPoolKey;
         try {
-            startPoolKey = registryKeyOf(templatePoolRegistry, startPool);
+            startPoolKey = nativeStructure.startPoolKey();
         } catch (Throwable e) {
             reportFailure(e);
             return failed("Could not resolve the start pool key for " + structureKey + ": " + e, losses, true);
@@ -179,9 +156,9 @@ public final class VillageImporter {
             if (!visitedPools.add(poolKey)) {
                 continue;
             }
-            Object pool;
+            NativeStructureReader.Pool pool;
             try {
-                pool = registryGetByKey(templatePoolRegistry, poolKey);
+                pool = session.pool(poolKey);
             } catch (Throwable e) {
                 reportFailure(e);
                 retryableFailure = true;
@@ -198,9 +175,7 @@ public final class VillageImporter {
 
             String fallbackKey = null;
             try {
-                Object fallbackHolder = invoke(pool, "getFallback");
-                Object fallbackPool = unwrapHolder(fallbackHolder);
-                fallbackKey = registryKeyOf(templatePoolRegistry, fallbackPool);
+                fallbackKey = pool.fallbackKey();
             } catch (Throwable e) {
                 reportFailure(e);
                 retryableFailure = true;
@@ -214,9 +189,9 @@ public final class VillageImporter {
                 poolQueue.add(fallbackKey);
             }
 
-            List<?> templates;
+            List<NativeStructureReader.Entry> templates;
             try {
-                templates = (List<?>) invoke(pool, "getTemplates");
+                templates = pool.entries();
             } catch (Throwable e) {
                 reportFailure(e);
                 retryableFailure = true;
@@ -224,13 +199,12 @@ public final class VillageImporter {
                 templates = List.of();
             }
 
-            for (Object pair : templates) {
-                Object element;
+            for (NativeStructureReader.Entry pair : templates) {
+                NativeStructureReader.Element element;
                 int weight;
                 try {
-                    element = invoke(pair, "getFirst");
-                    Object second = invoke(pair, "getSecond");
-                    weight = second instanceof Number ? Math.max(1, ((Number) second).intValue()) : 1;
+                    element = pair.element();
+                    weight = Math.max(1, pair.weight());
                 } catch (Throwable e) {
                     reportFailure(e);
                     retryableFailure = true;
@@ -261,12 +235,12 @@ public final class VillageImporter {
                     losses.add(listElementFallbackLoss(elementResolution, poolKey)
                             .affecting("jigsaw-pools/" + irisPoolName + ".json"));
                 }
-                Object physicalElement = elementResolution.physicalElement();
+                NativeStructureReader.Element physicalElement = elementResolution.physicalElement();
                 String templateLocation = elementResolution.templateLocation();
                 if (templateLocation == null) {
                     String elementType = physicalElement == null
-                            ? element.getClass().getSimpleName()
-                            : physicalElement.getClass().getSimpleName();
+                            ? element.typeName()
+                            : physicalElement.typeName();
                     if (elementType.endsWith("EmptyPoolElement")) {
                         pieceEntries.add(emptyPoolEntry(weight));
                         emittedPoolMembers++;
@@ -316,7 +290,7 @@ public final class VillageImporter {
                         losses.add(loss.affecting("objects/" + irisPieceName + ".iob"));
                     }
 
-                    Connectors result = readConnectors(element, structureManager, random, name, irisPieceName);
+                    Connectors result = readConnectors(element, random, name, irisPieceName);
                     retryableFailure |= result.retryableFailure();
                     importedTemplate = new ImportedTemplate(
                             captured.object(),
@@ -508,8 +482,7 @@ public final class VillageImporter {
     }
 
     private static Connectors readConnectors(
-            Object element,
-            Object structureManager,
+            NativeStructureReader.Element element,
             java.util.Random random,
             String baseName,
             String pieceName
@@ -520,10 +493,8 @@ public final class VillageImporter {
         boolean retryableFailure = false;
         String affectedResource = "jigsaw-pieces/" + pieceName + ".json";
         try {
-            Object zero = staticField("net.minecraft.core.BlockPos", "ZERO");
-            Object rotationNone = staticField("net.minecraft.world.level.block.Rotation", "NONE");
-            Method m = findMethod4(element.getClass(), "getShuffledJigsawBlocks");
-            if (m == null) {
+            NativeStructureReader.ConnectorSet extracted = element.connectors(random::nextLong);
+            if (extracted.status() == NativeStructureReader.ConnectorStatus.UNSUPPORTED) {
                 losses.add(StructureLoss.warning(
                         StructureCapability.CONNECTORS,
                         "connector_extraction_unavailable",
@@ -531,10 +502,7 @@ public final class VillageImporter {
                         .affecting(affectedResource));
                 return new Connectors(connectors, targets, losses, false);
             }
-            m.setAccessible(true);
-            Object random0 = freshRandomSource(random);
-            List<?> blocks = (List<?>) m.invoke(element, structureManager, zero, rotationNone, random0);
-            if (blocks == null) {
+            if (extracted.status() == NativeStructureReader.ConnectorStatus.MISSING) {
                 losses.add(StructureLoss.warning(
                         StructureCapability.CONNECTORS,
                         "connector_extraction_returned_null",
@@ -542,7 +510,7 @@ public final class VillageImporter {
                         .affecting(affectedResource));
                 return new Connectors(connectors, targets, losses, false);
             }
-            for (Object jigsaw : blocks) {
+            for (NativeStructureReader.Connector jigsaw : extracted.connectors()) {
                 String[] rawPoolKey = new String[1];
                 try {
                     Map<String, Object> connector = connectorFrom(jigsaw, baseName, rawPoolKey);
@@ -572,38 +540,11 @@ public final class VillageImporter {
         return new Connectors(connectors, targets, losses, retryableFailure);
     }
 
-    private static Map<String, Object> connectorFrom(Object jigsaw, String baseName, String[] rawPoolKeyOut) throws Exception {
-        Object info = invoke(jigsaw, "info");
-        Object pos = invoke(info, "pos");
-        Object blockState = invoke(info, "state");
-        int x = readInt(pos, "getX");
-        int y = readInt(pos, "getY");
-        int z = readInt(pos, "getZ");
-
-        Object poolKey = invoke(jigsaw, "pool");
-        String poolId = identifierString(invoke(poolKey, "identifier"));
-        Object nameId = invoke(jigsaw, "name");
-        Object targetId = invoke(jigsaw, "target");
-        Object jointType = invoke(jigsaw, "jointType");
-
-        String front = frontFacing(blockState);
-        String top = topFacing(blockState);
-        rawPoolKeyOut[0] = poolId;
-
-        ConnectorMetadata metadata = readConnectorMetadata(jigsaw, info);
-        return connectorJson(
-                x,
-                y,
-                z,
-                front,
-                top,
-                poolId,
-                baseName,
-                identifierString(nameId),
-                identifierString(targetId),
-                jointType,
-                metadata
-        );
+    private static Map<String, Object> connectorFrom(NativeStructureReader.Connector jigsaw, String baseName, String[] rawPoolKeyOut) throws Exception {
+        NativeStructureReader.ConnectorData value = jigsaw.read();
+        rawPoolKeyOut[0] = value.pool();
+        return connectorJson(value.x(), value.y(), value.z(), value.front(), value.top(), value.pool(), baseName,
+                value.name(), value.target(), value.joint(), readConnectorMetadata(value.metadata()));
     }
 
     static Map<String, Object> connectorJson(
@@ -637,73 +578,12 @@ public final class VillageImporter {
         return connector;
     }
 
-    static ConnectorMetadata readConnectorMetadata(Object jigsaw, Object info) throws Exception {
-        Object nbt = invoke(info, "nbt");
-        String finalState = readNbtString(nbt, "final_state");
+    static ConnectorMetadata readConnectorMetadata(NativeStructureReader.ConnectorMetadata source) {
+        String finalState = source.finalState();
         String normalizedFinalState = finalState == null || finalState.isBlank()
                 ? "minecraft:air"
                 : StructureImporter.normalizeJigsawFinalState(finalState);
-        return new ConnectorMetadata(
-                normalizedFinalState,
-                readIntAccessor(jigsaw, "selectionPriority"),
-                readIntAccessor(jigsaw, "placementPriority")
-        );
-    }
-
-    private static String readNbtString(Object nbt, String key) throws Exception {
-        if (nbt == null) {
-            return null;
-        }
-        Method method = findMethod(nbt.getClass(), "getString", 1);
-        if (method == null) {
-            throw new NoSuchMethodException("getString(String) on " + nbt.getClass().getName());
-        }
-        method.setAccessible(true);
-        Object value = method.invoke(nbt, key);
-        if (value instanceof String string) {
-            return string;
-        }
-        if (value instanceof Optional<?> optional) {
-            return optional.isPresent() ? String.valueOf(optional.get()) : null;
-        }
-        return value == null ? null : String.valueOf(value);
-    }
-
-    private static int readIntAccessor(Object value, String accessor) throws Exception {
-        Method method = findMethod(value.getClass(), accessor);
-        if (method == null) {
-            throw new NoSuchMethodException(accessor + "() on " + value.getClass().getName());
-        }
-        method.setAccessible(true);
-        Object result = method.invoke(value);
-        if (result instanceof Number number) {
-            return number.intValue();
-        }
-        throw new IllegalStateException(accessor + " on " + value.getClass().getName() + " is not numeric");
-    }
-
-    private static String frontFacing(Object blockState) throws Exception {
-        Class<?> jigsawBlock = Class.forName("net.minecraft.world.level.block.JigsawBlock");
-        Method getFront = jigsawBlock.getMethod("getFrontFacing", Class.forName("net.minecraft.world.level.block.state.BlockState"));
-        Object direction = getFront.invoke(null, blockState);
-        if (direction == null) {
-            return "north";
-        }
-        Method getName = direction.getClass().getMethod("getName");
-        getName.setAccessible(true);
-        return String.valueOf(getName.invoke(direction)).toLowerCase();
-    }
-
-    private static String topFacing(Object blockState) throws Exception {
-        Class<?> jigsawBlock = Class.forName("net.minecraft.world.level.block.JigsawBlock");
-        Method getTop = jigsawBlock.getMethod("getTopFacing", Class.forName("net.minecraft.world.level.block.state.BlockState"));
-        Object direction = getTop.invoke(null, blockState);
-        if (direction == null) {
-            return "up";
-        }
-        Method getName = direction.getClass().getMethod("getName");
-        getName.setAccessible(true);
-        return String.valueOf(getName.invoke(direction)).toLowerCase();
+        return new ConnectorMetadata(normalizedFinalState, source.selectionPriority(), source.placementPriority());
     }
 
     private static String irisDirection(String front) {
@@ -717,26 +597,13 @@ public final class VillageImporter {
         };
     }
 
-    private static String templateLocationOf(Object element) throws Exception {
-        Method m = findMethod(element.getClass(), "getTemplateLocation");
-        if (m == null) {
-            return null;
-        }
-        m.setAccessible(true);
-        Object id = m.invoke(element);
-        return identifierString(id);
-    }
-
-    static PoolElementResolution resolvePoolElement(Object element) throws Exception {
+    static PoolElementResolution resolvePoolElement(NativeStructureReader.Element element) throws Exception {
         if (element == null) {
             return new PoolElementResolution(null, null, 0, 0);
         }
-        if (!element.getClass().getSimpleName().endsWith("ListPoolElement")) {
-            return new PoolElementResolution(element, templateLocationOf(element), 0, 0);
-        }
-        Object rawElements = invoke(element, "getElements");
-        if (!(rawElements instanceof List<?> elements)) {
-            throw new IllegalStateException("getElements on " + element.getClass().getName() + " is not a list");
+        List<NativeStructureReader.Element> elements = element.children();
+        if (elements == null) {
+            return new PoolElementResolution(element, element.templateLocation(), 0, 0);
         }
         if (elements.isEmpty()) {
             return new PoolElementResolution(null, null, 1, 0);
@@ -761,283 +628,6 @@ public final class VillageImporter {
                         + " and omitted " + omitted + " colocated " + elementLabel
                         + ", including their processors, across " + resolution.listLevels() + " " + levelLabel + "."
         );
-    }
-
-    private static Object resolveRegistryAccess(Object server) {
-        try {
-            Class<?> frozen = Class.forName("net.minecraft.core.RegistryAccess$Frozen");
-            for (Method m : server.getClass().getMethods()) {
-                if (m.getParameterCount() == 0 && frozen.isAssignableFrom(m.getReturnType())) {
-                    m.setAccessible(true);
-                    Object o = m.invoke(server);
-                    if (o != null) {
-                        return o;
-                    }
-                }
-            }
-            Class<?> ra = Class.forName("net.minecraft.core.RegistryAccess");
-            for (Method m : server.getClass().getMethods()) {
-                if (m.getParameterCount() == 0 && ra.isAssignableFrom(m.getReturnType())) {
-                    m.setAccessible(true);
-                    Object o = m.invoke(server);
-                    if (o != null) {
-                        return o;
-                    }
-                }
-            }
-        } catch (Throwable e) {
-            reportFailure(e);
-        }
-        return null;
-    }
-
-    private static Object lookupRegistry(Object registryAccess, String registryName) throws Exception {
-        Class<?> registries = Class.forName("net.minecraft.core.registries.Registries");
-        Object resourceKey = registries.getField(registryName).get(null);
-        Class<?> registryClass = Class.forName("net.minecraft.core.Registry");
-        Method registryOverload = null;
-        for (Method m : registryAccess.getClass().getMethods()) {
-            if (m.getName().equals("lookupOrThrow") && m.getParameterCount() == 1
-                    && m.getParameterTypes()[0].getName().endsWith("ResourceKey")
-                    && registryClass.isAssignableFrom(m.getReturnType())) {
-                registryOverload = m;
-                break;
-            }
-        }
-        if (registryOverload == null) {
-            for (Method m : registryAccess.getClass().getMethods()) {
-                if (m.getName().equals("lookupOrThrow") && m.getParameterCount() == 1
-                        && m.getParameterTypes()[0].getName().endsWith("ResourceKey")) {
-                    registryOverload = m;
-                    break;
-                }
-            }
-        }
-        if (registryOverload == null) {
-            throw new NoSuchMethodException("lookupOrThrow(ResourceKey) on " + registryAccess.getClass().getName());
-        }
-        registryOverload.setAccessible(true);
-        return registryOverload.invoke(registryAccess, resourceKey);
-    }
-
-    private static Object registryGet(Object registry, NamespacedKey key) throws Exception {
-        Object id = identifierOf(key);
-        for (Method m : registry.getClass().getMethods()) {
-            if (m.getName().equals("getValue") && m.getParameterCount() == 1 && m.getParameterTypes()[0].getName().endsWith("Identifier")) {
-                m.setAccessible(true);
-                return m.invoke(registry, id);
-            }
-        }
-        for (Method m : registry.getClass().getMethods()) {
-            if (m.getName().equals("getOptional") && m.getParameterCount() == 1 && m.getParameterTypes()[0].getName().endsWith("Identifier")) {
-                m.setAccessible(true);
-                return unwrapOptional(m.invoke(registry, id));
-            }
-        }
-        return null;
-    }
-
-    private static Object registryGetByKey(Object registry, String key) throws Exception {
-        NamespacedKey nk = NamespacedKey.fromString(key.toLowerCase());
-        if (nk == null) {
-            return null;
-        }
-        return registryGet(registry, nk);
-    }
-
-    private static String registryKeyOf(Object registry, Object value) throws Exception {
-        if (value == null) {
-            return null;
-        }
-        for (Method m : registry.getClass().getMethods()) {
-            if (m.getName().equals("getKey") && m.getParameterCount() == 1) {
-                m.setAccessible(true);
-                Object id = m.invoke(registry, value);
-                String s = identifierString(id);
-                if (s != null) {
-                    return s;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static Object identifierOf(NamespacedKey key) throws Exception {
-        Class<?> identifier = Class.forName("net.minecraft.resources.Identifier");
-        try {
-            Method fromNamespaceAndPath = identifier.getMethod("fromNamespaceAndPath", String.class, String.class);
-            return fromNamespaceAndPath.invoke(null, key.getNamespace(), key.getKey());
-        } catch (NoSuchMethodException e) {
-            Method withDefaultNamespace = identifier.getMethod("parse", String.class);
-            return withDefaultNamespace.invoke(null, key.toString());
-        }
-    }
-
-    private static String identifierString(Object id) {
-        if (id == null) {
-            return null;
-        }
-        try {
-            Method getNamespace = id.getClass().getMethod("getNamespace");
-            Method getPath = id.getClass().getMethod("getPath");
-            getNamespace.setAccessible(true);
-            getPath.setAccessible(true);
-            return getNamespace.invoke(id) + ":" + getPath.invoke(id);
-        } catch (Throwable e) {
-            return id.toString();
-        }
-    }
-
-    private static Object unwrapHolder(Object holder) {
-        if (holder == null) {
-            return null;
-        }
-        try {
-            Method value = findMethod(holder.getClass(), "value");
-            if (value != null) {
-                value.setAccessible(true);
-                return value.invoke(holder);
-            }
-        } catch (Throwable ignored) {
-        }
-        return holder;
-    }
-
-    private static Object unwrapOptional(Object opt) {
-        if (opt == null) {
-            return null;
-        }
-        if (opt instanceof java.util.Optional<?> o) {
-            return o.orElse(null);
-        }
-        return opt;
-    }
-
-    static int readIntMember(Object value, String memberName) throws Exception {
-        Class<?> type = value.getClass();
-        while (type != null) {
-            try {
-                Field field = type.getDeclaredField(memberName);
-                field.setAccessible(true);
-                return coerceInt(field.get(value), memberName, value);
-            } catch (NoSuchFieldException ignored) {
-                type = type.getSuperclass();
-            }
-        }
-        Method method = findMethod(value.getClass(), memberName);
-        if (method != null) {
-            method.setAccessible(true);
-            return coerceInt(method.invoke(value), memberName, value);
-        }
-        throw new NoSuchFieldException(memberName + " on " + value.getClass().getName());
-    }
-
-    /**
-     * Members that are plain numbers on one server build are wrapper objects on another
-     * (JigsawStructure.maxDistanceFromCenter became a MaxDistance{horizontal, vertical} record).
-     * Numbers pass through; a wrapper contributes its horizontal component, else its largest
-     * integral component, so a distance bound is never under-read.
-     */
-    private static int coerceInt(Object member, String memberName, Object owner) throws Exception {
-        if (member instanceof Number n) {
-            return n.intValue();
-        }
-        if (member == null) {
-            throw new NoSuchFieldException(memberName + " on " + owner.getClass().getName() + " is null");
-        }
-        Method horizontal = findMethod(member.getClass(), "horizontal");
-        if (horizontal != null && Number.class.isAssignableFrom(boxedType(horizontal.getReturnType()))) {
-            horizontal.setAccessible(true);
-            return ((Number) horizontal.invoke(member)).intValue();
-        }
-        Integer widest = null;
-        for (Field component : member.getClass().getDeclaredFields()) {
-            if (Modifier.isStatic(component.getModifiers())
-                    || !Number.class.isAssignableFrom(boxedType(component.getType()))) {
-                continue;
-            }
-            component.setAccessible(true);
-            Object componentValue = component.get(member);
-            if (componentValue instanceof Number n && (widest == null || n.intValue() > widest)) {
-                widest = n.intValue();
-            }
-        }
-        if (widest != null) {
-            return widest;
-        }
-        throw new NoSuchFieldException(memberName + " on " + owner.getClass().getName()
-                + " is a " + member.getClass().getName() + " with no integral component");
-    }
-
-    private static Class<?> boxedType(Class<?> type) {
-        return type == int.class ? Integer.class : type;
-    }
-
-    private static int readInt(Object o, String method) throws Exception {
-        Method m = o.getClass().getMethod(method);
-        m.setAccessible(true);
-        return ((Number) m.invoke(o)).intValue();
-    }
-
-    private static Object staticField(String className, String fieldName) throws Exception {
-        Class<?> c = Class.forName(className);
-        Field f = c.getField(fieldName);
-        return f.get(null);
-    }
-
-    private static Object invoke(Object target, String method) throws Exception {
-        Method m = findMethod(target.getClass(), method);
-        if (m == null) {
-            throw new NoSuchMethodException(method + " on " + target.getClass().getName());
-        }
-        m.setAccessible(true);
-        return m.invoke(target);
-    }
-
-    private static Method findMethod(Class<?> type, String name) {
-        Class<?> c = type;
-        while (c != null) {
-            for (Method m : c.getDeclaredMethods()) {
-                if (m.getName().equals(name) && m.getParameterCount() == 0) {
-                    return m;
-                }
-            }
-            c = c.getSuperclass();
-        }
-        for (Method m : type.getMethods()) {
-            if (m.getName().equals(name) && m.getParameterCount() == 0) {
-                return m;
-            }
-        }
-        return null;
-    }
-
-    private static Method findMethod4(Class<?> type, String name) {
-        return findMethod(type, name, 4);
-    }
-
-    private static Method findMethod(Class<?> type, String name, int parameterCount) {
-        Class<?> c = type;
-        while (c != null) {
-            for (Method m : c.getDeclaredMethods()) {
-                if (m.getName().equals(name) && m.getParameterCount() == parameterCount) {
-                    return m;
-                }
-            }
-            c = c.getSuperclass();
-        }
-        for (Method m : type.getMethods()) {
-            if (m.getName().equals(name) && m.getParameterCount() == parameterCount) {
-                return m;
-            }
-        }
-        return null;
-    }
-
-    private static Object freshRandomSource(java.util.Random random) throws Exception {
-        Class<?> randomSource = Class.forName("net.minecraft.util.RandomSource");
-        Method create = randomSource.getMethod("create", long.class);
-        return create.invoke(null, random.nextLong());
     }
 
     static String poolName(String base, String poolKey) {
@@ -1257,7 +847,7 @@ public final class VillageImporter {
     }
 
     record PoolElementResolution(
-            Object physicalElement,
+            NativeStructureReader.Element physicalElement,
             String templateLocation,
             int listLevels,
             int omittedElements

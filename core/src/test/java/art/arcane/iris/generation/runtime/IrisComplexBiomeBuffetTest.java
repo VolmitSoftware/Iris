@@ -8,7 +8,7 @@ import art.arcane.iris.studio.generation.BiomeBuffetLayout;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.generation.block.B;
 import org.junit.ClassRule;
@@ -66,7 +66,7 @@ public class IrisComplexBiomeBuffetTest {
         Path pack = fixture();
         IrisData data = IrisData.openRuntime(pack.toFile());
         try (MockedStatic<B> blocks = mockStatic(B.class)) {
-            PlatformBlockState block = mock(PlatformBlockState.class);
+            NativeBlockState block = mock(NativeBlockState.class);
             when(block.isFluid()).thenReturn(true);
             blocks.when(() -> B.getState(anyString())).thenReturn(block);
             blocks.when(() -> B.getStateOrNull(anyString(), eq(false))).thenReturn(block);
@@ -157,7 +157,7 @@ public class IrisComplexBiomeBuffetTest {
                 "{\"composite\":[{\"enabled\":false,\"offsetY\":1}]}");
         IrisData data = IrisData.openRuntime(pack.toFile());
         try (MockedStatic<B> blocks = mockStatic(B.class)) {
-            PlatformBlockState block = mock(PlatformBlockState.class);
+            NativeBlockState block = mock(NativeBlockState.class);
             when(block.isFluid()).thenReturn(true);
             blocks.when(() -> B.getStateOrNull(anyString(), eq(false))).thenReturn(block);
             IrisDimension dimension = data.getDimensionLoader().load("main");

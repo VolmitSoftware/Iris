@@ -10,7 +10,7 @@ import art.arcane.iris.structure.object.IrisObjectTranslate;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import org.junit.Test;
 
@@ -138,8 +138,8 @@ public class IrisSurfaceSupportTest {
 
     @Test
     public void objectCachesItsLowestNonFoliageSupportBlocks() {
-        PlatformBlockState solid = mock(PlatformBlockState.class);
-        PlatformBlockState foliage = mock(PlatformBlockState.class);
+        NativeBlockState solid = mock(NativeBlockState.class);
+        NativeBlockState foliage = mock(NativeBlockState.class);
         when(solid.isSolid()).thenReturn(true);
         when(foliage.isSolid()).thenReturn(true);
         when(foliage.isFoliage()).thenReturn(true);
@@ -224,11 +224,11 @@ public class IrisSurfaceSupportTest {
         }
 
         @Override
-        public void set(int x, int y, int z, PlatformBlockState state) {
+        public void set(int x, int y, int z, NativeBlockState state) {
         }
 
         @Override
-        public PlatformBlockState get(int x, int y, int z) {
+        public NativeBlockState get(int x, int y, int z) {
             return null;
         }
 

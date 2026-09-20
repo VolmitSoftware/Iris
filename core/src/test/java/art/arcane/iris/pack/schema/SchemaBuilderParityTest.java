@@ -30,7 +30,7 @@ import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.structure.placement.IrisStructure;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
-import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import art.arcane.iris.structure.nativegen.IrisVanillaStructureAdjustment;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
@@ -48,16 +48,16 @@ import art.arcane.iris.pack.schema.annotation.functions.LootTableKeyFunction;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.LogLevel;
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.iris.spi.PlatformBiomeWriter;
-import art.arcane.iris.spi.PlatformBlockProperty;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformEntityType;
-import art.arcane.iris.spi.PlatformItem;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.entity.NativeEntityType;
+import art.arcane.volmlib.nativelib.item.NativeItem;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -203,7 +203,7 @@ public class SchemaBuilderParityTest {
         assertEquals(0, horizontalPadding.getInt("minimum"));
         assertEquals(128, horizontalPadding.getInt("maximum"));
         IrisStructureTerrain terrainDefaults = new IrisStructureTerrain();
-        assertEquals(IrisStructureTerrainMode.SOURCE, terrainDefaults.resolvedMode());
+        assertEquals(StructureTerrainMode.SOURCE, terrainDefaults.resolvedMode());
         assertEquals(64, terrainDefaults.getFlattenRange());
         assertEquals(0, terrainDefaults.getHorizontalPadding());
         assertEquals(List.of("BOX", "ROUNDED", "ERODED"), oneOfValues(
@@ -460,42 +460,42 @@ public class SchemaBuilderParityTest {
 
     private static final class FakeRegistries implements PlatformRegistries {
         @Override
-        public PlatformBlockState block(String key) {
+        public NativeBlockState block(String key) {
             return null;
         }
 
         @Override
-        public PlatformBlockState blockOrNull(String key) {
+        public NativeBlockState blockOrNull(String key) {
             return null;
         }
 
         @Override
-        public PlatformBlockState blockOrNull(String key, boolean warn) {
+        public NativeBlockState blockOrNull(String key, boolean warn) {
             return null;
         }
 
         @Override
-        public PlatformBlockState air() {
+        public NativeBlockState air() {
             return null;
         }
 
         @Override
-        public PlatformBlockState deepSlateOre(PlatformBlockState block, PlatformBlockState ore) {
+        public NativeBlockState deepSlateOre(NativeBlockState block, NativeBlockState ore) {
             return null;
         }
 
         @Override
-        public PlatformBiome biome(String key) {
+        public NativeBiome biome(String key) {
             return null;
         }
 
         @Override
-        public PlatformItem item(String key) {
+        public NativeItem item(String key) {
             return null;
         }
 
         @Override
-        public PlatformEntityType entity(String key) {
+        public NativeEntityType entity(String key) {
             return null;
         }
 
@@ -550,7 +550,7 @@ public class SchemaBuilderParityTest {
         }
 
         @Override
-        public Map<String, List<PlatformBlockProperty>> blockStateProperties() {
+        public Map<String, List<NativeBlockProperty>> blockStateProperties() {
             return Map.of();
         }
     }
@@ -622,7 +622,7 @@ public class SchemaBuilderParityTest {
         }
 
         @Override
-        public boolean spawnEntity(PlatformWorld world, String entityKey, double x, double y, double z) {
+        public boolean spawnEntity(NativeWorld world, String entityKey, double x, double y, double z) {
             return false;
         }
 

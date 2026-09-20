@@ -18,7 +18,7 @@
 
 package art.arcane.iris.world;
 
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
@@ -39,7 +39,7 @@ public class IrisWorld {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private long seed;
-    private PlatformWorld platformWorld;
+    private NativeWorld platformWorld;
     private int minHeight;
     private int maxHeight;
 

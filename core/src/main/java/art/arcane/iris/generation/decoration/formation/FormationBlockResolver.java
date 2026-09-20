@@ -21,7 +21,7 @@ package art.arcane.iris.generation.decoration.formation;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -38,13 +38,13 @@ public final class FormationBlockResolver {
         paletteRng = new RNG(formation.getSeed());
     }
 
-    public PlatformBlockState resolve(FormationCanvas.Role role, Vector3i raw) {
+    public NativeBlockState resolve(FormationCanvas.Role role, Vector3i raw) {
         int x = raw.getBlockX();
         int y = raw.getBlockY();
         int z = raw.getBlockZ();
 
         if (role == FormationCanvas.Role.CAP && capDefined(formation)) {
-            PlatformBlockState cap = IrisProceduralBlocks.resolve(formation.getCapBlock(), formation.getCapPalette(), data, x, y, z, paletteRng);
+            NativeBlockState cap = IrisProceduralBlocks.resolve(formation.getCapBlock(), formation.getCapPalette(), data, x, y, z, paletteRng);
             if (cap != null) {
                 return cap;
             }
@@ -59,7 +59,7 @@ public final class FormationBlockResolver {
                 strataRng = new RNG(formation.getSeed() + band * 31L);
                 strataRngs.put(band, strataRng);
             }
-            PlatformBlockState strataState = strata.get(strataRng, x, band, z, data);
+            NativeBlockState strataState = strata.get(strataRng, x, band, z, data);
             if (strataState != null) {
                 return strataState;
             }

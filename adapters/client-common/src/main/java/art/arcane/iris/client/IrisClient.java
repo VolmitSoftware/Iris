@@ -4,11 +4,10 @@ import art.arcane.iris.spi.protocol.IrisMessage;
 import art.arcane.iris.spi.protocol.IrisMessageCodec;
 import art.arcane.iris.spi.protocol.IrisProtocol;
 import art.arcane.iris.spi.protocol.ProtocolException;
-import net.minecraft.resources.Identifier;
 
 public final class IrisClient {
-    public static final Identifier HUD_ELEMENT_ID = Identifier.fromNamespaceAndPath("irisworldgen", "pregen_hud");
-    public static final Identifier KEYBIND_CATEGORY_ID = Identifier.fromNamespaceAndPath("irisworldgen", "iris");
+    public static final String HUD_ELEMENT_ID = "irisworldgen:pregen_hud";
+    public static final String KEYBIND_CATEGORY_ID = "irisworldgen:iris";
     public static final String KEYBIND_TOGGLE_HUD = "key.irisworldgen.toggle_pregen_hud";
     public static final String KEYBIND_OPEN_MAP = "key.irisworldgen.open_vision_map";
     public static final String KEYBIND_TOGGLE_WHAT = "key.irisworldgen.toggle_what_overlay";

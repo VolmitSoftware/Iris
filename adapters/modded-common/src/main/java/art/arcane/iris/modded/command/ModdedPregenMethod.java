@@ -19,6 +19,8 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
+import art.arcane.volmlib.nativelib.terrain.NativePregenRuntime;
+import art.arcane.volmlib.nativelib.terrain.NativePregenRuntime.ChunkLoad;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.world.pregen.PregenListener;
 import art.arcane.iris.world.pregen.PregenMantleBackpressure;
@@ -26,19 +28,10 @@ import art.arcane.iris.world.pregen.PregeneratorMethod;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.modded.ModdedGenPool;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.dedicated.DedicatedServer;
-import net.minecraft.server.level.ChunkResult;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.TicketType;
-import net.minecraft.world.level.ChunkPos;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,14 +40,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class ModdedPregenMethod implements PregeneratorMethod {
-    private static final TicketType PREGEN_TICKET = new TicketType(TicketType.NO_TIMEOUT, TicketType.FLAG_LOADING | TicketType.FLAG_KEEP_DIMENSION_ACTIVE);
     private static final int ADAPTIVE_TIMEOUT_STEP = 3;
     private static final long ADAPTIVE_RECOVERY_INTERVAL = 64L;
     private static final long FINAL_SAVE_TIMEOUT_MILLIS = 10_000L;
     private static final long FINAL_SAVE_POLL_MILLIS = 50L;
     private static final AtomicBoolean SERVER_DEAD_LOGGED = new AtomicBoolean();
 
-    private final ServerLevel level;
+    private final NativePregenRuntime runtime;
     private final Engine engine;
     private final boolean sync;
     private final int maxInFlight;
@@ -76,15 +68,11 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
     private final PregenMantleBackpressure backpressure;
     private final PauseWhenEmptyGuard pauseGuard;
 
-    public ModdedPregenMethod(ServerLevel level, Engine engine) {
-        this(level, engine, false);
-    }
-
-    public ModdedPregenMethod(ServerLevel level, Engine engine, boolean sync) {
-        this.level = level;
-        this.engine = engine;
-        this.sync = sync;
-        this.pauseGuard = new PauseWhenEmptyGuard(level.getServer());
+    public ModdedPregenMethod(Configuration configuration) {
+        runtime = configuration.runtime();
+        engine = configuration.engine();
+        sync = configuration.sync();
+        pauseGuard = new PauseWhenEmptyGuard(runtime);
         IrisSettings.IrisSettingsPregen pregen = IrisSettings.get().getPregen();
         this.maxInFlight = Math.max(8, pregen.getModdedPregenInFlight());
         this.minInFlight = Math.max(4, Math.min(16, maxInFlight / 4));
@@ -98,14 +86,14 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
                 pregen.getMantleBackpressureTimeoutMs(),
                 () -> {
                 },
-                () -> "dim=" + level.dimension().identifier());
+                () -> "dim=" + runtime.worldIdentity());
     }
 
     @Override
     public void init() {
         pauseGuard.suspend();
         ModdedIrisLog.info("Iris modded pregen init: dim={} mode={} inFlightCap={} timeout={}s workerPool={} chunkSystem={}",
-                level.dimension().identifier(),
+                runtime.worldIdentity(),
                 sync ? "sync" : "async",
                 sync ? 1 : maxInFlight,
                 timeoutSeconds,
@@ -127,7 +115,7 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
                 }
             }
             ModdedIrisLog.info("Iris modded pregen done: dim={} completed={} peakInFlight={} finalLimit={}",
-                    level.dimension().identifier(), completed.get(), inFlightPeak.get(), adaptiveLimit.get());
+                    runtime.worldIdentity(), completed.get(), inFlightPeak.get(), adaptiveLimit.get());
             if (deferFinalSaveIfRequested()) {
                 return;
             }
@@ -143,7 +131,7 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
     }
 
     boolean deferFinalSaveToServerThread() {
-        if (!level.getServer().isSameThread()) {
+        if (!runtime.isServerThread()) {
             return false;
         }
         finalSaveOnServerThread.set(true);
@@ -185,8 +173,8 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
             saveFinalLevel();
             return;
         }
-        MinecraftServer server = level.getServer();
-        if (server.isSameThread()) {
+        NativePregenRuntime server = runtime;
+        if (server.isServerThread()) {
             saveLevelOnServerThread();
             return;
         }
@@ -194,8 +182,8 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
     }
 
     private void saveFinalLevel() {
-        MinecraftServer server = level.getServer();
-        if (server.isSameThread()) {
+        NativePregenRuntime server = runtime;
+        if (server.isServerThread()) {
             saveLevelOnServerThread();
             finalSaveCompleted.set(true);
             return;
@@ -207,7 +195,7 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
         FinalSaveRequest request = new FinalSaveRequest();
         if (!queuedFinalSave.compareAndSet(null, request)) {
             throw new IllegalStateException("Iris pregen final save is already queued for "
-                    + level.dimension().identifier());
+                    + runtime.worldIdentity());
         }
         try {
             server.execute(() -> executeFinalSave(request));
@@ -243,7 +231,7 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
             }
             long remainingNanos = deadline - System.nanoTime();
             if (remainingNanos <= 0L) {
-                ModdedIrisLog.warn("Iris pregen level save did not complete in time for {}", level.dimension().identifier());
+                ModdedIrisLog.warn("Iris pregen level save did not complete in time for {}", runtime.worldIdentity());
                 return;
             }
             long waitMillis = Math.max(1L, Math.min(FINAL_SAVE_POLL_MILLIS,
@@ -258,9 +246,9 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
                 continue;
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause() == null ? e : e.getCause();
-                ModdedIrisLog.error("Iris pregen level save failed for {}", level.dimension().identifier(), cause);
+                ModdedIrisLog.error("Iris pregen level save failed for {}", runtime.worldIdentity(), cause);
                 throw new IllegalStateException("Iris pregen level save failed for "
-                        + level.dimension().identifier(), cause);
+                        + runtime.worldIdentity(), cause);
             }
         }
     }
@@ -285,13 +273,13 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
     }
 
     private void saveLevelOnServerThread() {
-        level.save(null, false, false);
+        runtime.save();
     }
 
     private void requireServerThreadForFinalSave() {
-        if (!level.getServer().isSameThread()) {
+        if (!runtime.isServerThread()) {
             throw new IllegalStateException("Iris pregen final save must run on the Minecraft server thread for "
-                    + level.dimension().identifier());
+                    + runtime.worldIdentity());
         }
     }
 
@@ -327,15 +315,12 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
 
     private void generateChunkSync(int x, int z, PregenListener listener) {
         listener.onChunkGenerating(x, z);
-        ChunkPos pos = new ChunkPos(x, z);
-        CompletableFuture<?> loadFuture = CompletableFuture
-                .supplyAsync(() -> level.getChunkSource().addTicketAndLoadWithRadius(PREGEN_TICKET, pos, 0), level.getServer())
-                .thenCompose((CompletableFuture<?> inner) -> inner);
+        CompletableFuture<ChunkLoad> loadFuture = runtime.loadChunk(x, z);
         markSubmitted();
         try {
-            Object result = loadFuture.get(timeoutSeconds, TimeUnit.SECONDS);
-            if (result instanceof ChunkResult<?> chunkResult && !chunkResult.isSuccess()) {
-                ModdedIrisLog.warn("Iris pregen chunk {},{} returned no chunk: {}", x, z, chunkResult.getError());
+            ChunkLoad result = loadFuture.get(timeoutSeconds, TimeUnit.SECONDS);
+            if (result != null && !result.successful()) {
+                ModdedIrisLog.warn("Iris pregen chunk {},{} returned no chunk: {}", x, z, result.error());
                 listener.onChunkFailed(x, z);
                 return;
             }
@@ -352,16 +337,16 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
             listener.onChunkFailed(x, z);
         } finally {
             markFinished();
-            level.getServer().execute(() -> level.getChunkSource().removeTicketWithRadius(PREGEN_TICKET, pos, 0));
+            runtime.releaseChunk(x, z);
         }
     }
 
     private void generateChunkAsync(int x, int z, PregenListener listener) {
         // A stopped server executes submitted tasks inline and its chunk futures never complete; without
         // this abort the pregen thread spins hot against the dead chunk source until the JVM dies.
-        if (level.getServer().isStopped() || !level.getServer().isRunning()) {
+        if (!runtime.isRunning()) {
             if (SERVER_DEAD_LOGGED.compareAndSet(false, true)) {
-                ModdedIrisLog.error("Iris pregen aborting: the server is no longer running (dim={})", level.dimension().identifier());
+                ModdedIrisLog.error("Iris pregen aborting: the server is no longer running (dim={})", runtime.worldIdentity());
             }
             listener.onChunkFailed(x, z);
             ModdedPregenJob.stop();
@@ -381,13 +366,10 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
         }
         markSubmitted();
 
-        ChunkPos pos = new ChunkPos(x, z);
-        CompletableFuture<?> loadFuture = CompletableFuture
-                .supplyAsync(() -> level.getChunkSource().addTicketAndLoadWithRadius(PREGEN_TICKET, pos, 0), level.getServer())
-                .thenCompose((CompletableFuture<?> inner) -> inner);
+        CompletableFuture<ChunkLoad> loadFuture = runtime.loadChunk(x, z);
 
-        loadFuture.orTimeout(timeoutSeconds, TimeUnit.SECONDS).whenComplete((Object result, Throwable error) -> {
-            level.getServer().execute(() -> level.getChunkSource().removeTicketWithRadius(PREGEN_TICKET, pos, 0));
+        loadFuture.orTimeout(timeoutSeconds, TimeUnit.SECONDS).whenComplete((ChunkLoad result, Throwable error) -> {
+            runtime.releaseChunk(x, z);
             try {
                 if (error != null) {
                     if (unwrap(error) instanceof TimeoutException) {
@@ -397,8 +379,8 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
                     listener.onChunkFailed(x, z);
                     return;
                 }
-                if (result instanceof ChunkResult<?> chunkResult && !chunkResult.isSuccess()) {
-                    ModdedIrisLog.warn("Iris pregen chunk {},{} returned no chunk: {}", x, z, chunkResult.getError());
+                if (result != null && !result.successful()) {
+                    ModdedIrisLog.warn("Iris pregen chunk {},{} returned no chunk: {}", x, z, result.error());
                     listener.onChunkFailed(x, z);
                     return;
                 }
@@ -501,17 +483,7 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
     }
 
     private String describeWorkerPool() {
-        Executor exec = level.getServer().executor;
-        if (exec == null) {
-            return "unknown";
-        }
-        if (exec instanceof ThreadPoolExecutor tpe) {
-            return "ThreadPoolExecutor(core=" + tpe.getCorePoolSize() + ",max=" + tpe.getMaximumPoolSize() + ")";
-        }
-        if (exec instanceof ForkJoinPool fjp) {
-            return "ForkJoinPool(parallelism=" + fjp.getParallelism() + ")";
-        }
-        return exec.getClass().getSimpleName();
+        return runtime.workerPoolDescription();
     }
 
     private static Throwable unwrap(Throwable error) {
@@ -546,21 +518,21 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
     private static final class PauseWhenEmptyGuard {
         private static final int NOT_SUSPENDED = -1;
 
-        private final MinecraftServer server;
+        private final NativePregenRuntime server;
         private final AtomicInteger suspendedFrom = new AtomicInteger(NOT_SUSPENDED);
         private final AtomicReference<Thread> crashRestoreHook = new AtomicReference<>();
 
-        private PauseWhenEmptyGuard(MinecraftServer server) {
+        private PauseWhenEmptyGuard(NativePregenRuntime server) {
             this.server = server;
         }
 
         private void suspend() {
-            if (!(server instanceof DedicatedServer dedicated)) {
+            if (!server.supportsPauseWhenEmpty()) {
                 return;
             }
             int current;
             try {
-                current = dedicated.pauseWhenEmptySeconds();
+                current = server.pauseWhenEmptySeconds();
             } catch (Throwable e) {
                 ModdedIrisLog.warn("Iris pregen could not read pause-when-empty-seconds: {}", e.toString());
                 return;
@@ -569,14 +541,14 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
                 return;
             }
             try {
-                dedicated.setPauseWhenEmptySeconds(0);
+                server.pauseWhenEmptySeconds(0);
             } catch (Throwable e) {
                 refuse(current, e.toString());
                 return;
             }
             int applied;
             try {
-                applied = dedicated.pauseWhenEmptySeconds();
+                applied = server.pauseWhenEmptySeconds();
             } catch (Throwable e) {
                 refuse(current, e.toString());
                 return;
@@ -597,11 +569,11 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
 
         private void restoreOnce(String what) {
             int previous = suspendedFrom.getAndSet(NOT_SUSPENDED);
-            if (previous == NOT_SUSPENDED || !(server instanceof DedicatedServer dedicated)) {
+            if (previous == NOT_SUSPENDED || !server.supportsPauseWhenEmpty()) {
                 return;
             }
             try {
-                dedicated.setPauseWhenEmptySeconds(previous);
+                server.pauseWhenEmptySeconds(previous);
                 ModdedIrisLog.info("Iris pregen: {} pause-when-empty ({}s)", what, previous);
             } catch (Throwable e) {
                 ModdedIrisLog.error("Iris pregen could not restore pause-when-empty-seconds={}: {}. Set pause-when-empty-seconds={} in server.properties.",
@@ -637,11 +609,11 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
          * True when the server can still stop ticking under a running job.
          */
         private boolean pauseStillArmed() {
-            if (suspendedFrom.get() != NOT_SUSPENDED || !(server instanceof DedicatedServer dedicated)) {
+            if (suspendedFrom.get() != NOT_SUSPENDED || !server.supportsPauseWhenEmpty()) {
                 return false;
             }
             try {
-                return dedicated.pauseWhenEmptySeconds() > 0 && server.getPlayerCount() == 0;
+                return server.pauseWhenEmptySeconds() > 0 && server.playerCount() == 0;
             } catch (Throwable e) {
                 return false;
             }
@@ -658,6 +630,9 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
             ModdedIrisLog.error("Iris pregen could not suspend pause-when-empty-seconds={} ({}). The server stops ticking once empty, which stalls pregen: set pause-when-empty-seconds=0 in server.properties, or keep a player online while pregenerating.",
                     current, reason);
         }
+    }
+
+    public record Configuration(NativePregenRuntime runtime, Engine engine, boolean sync) {
     }
 
     private static final class FinalSaveRequest {

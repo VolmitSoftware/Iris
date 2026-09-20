@@ -3,7 +3,7 @@ package art.arcane.iris.generation.block;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.generation.chunk.ChunkDataHunkHolder;
@@ -46,7 +46,7 @@ public class PlatformStateRebindTest {
 
     @Test
     public void chunkDataAirIsResolvedAgainstTheCurrentlyBoundPlatform() {
-        PlatformBlockState first = bindPlatform("first");
+        NativeBlockState first = bindPlatform("first");
         ChunkGenerator.ChunkData chunk = mock(ChunkGenerator.ChunkData.class);
         when(chunk.getMinHeight()).thenReturn(-64);
         when(chunk.getMaxHeight()).thenReturn(320);
@@ -55,26 +55,26 @@ public class PlatformStateRebindTest {
         assertSame(first, holder.getRaw(0, -1, 0));
 
         IrisPlatforms.unbind();
-        PlatformBlockState second = bindPlatform("second");
+        NativeBlockState second = bindPlatform("second");
 
         assertSame(second, holder.getRaw(0, -1, 0));
     }
 
     @Test
     public void mantleAirIsResolvedAgainstTheCurrentlyBoundPlatform() {
-        PlatformBlockState first = bindPlatform("first");
+        NativeBlockState first = bindPlatform("first");
 
         assertSame(first, EngineMantle.AIR.get());
 
         IrisPlatforms.unbind();
-        PlatformBlockState second = bindPlatform("second");
+        NativeBlockState second = bindPlatform("second");
 
         assertSame(second, EngineMantle.AIR.get());
     }
 
     @Test
     public void aLatchKeepsServingTheLastResolutionWhileNothingIsBound() {
-        PlatformBlockState first = bindPlatform("first");
+        NativeBlockState first = bindPlatform("first");
         BoundBlockState state = BoundBlockState.of("AIR");
 
         assertSame(first, state.get());
@@ -105,20 +105,20 @@ public class PlatformStateRebindTest {
                 continue;
             }
             Class<?> fieldType = field.getType();
-            if (PlatformBlockState.class.isAssignableFrom(fieldType)
-                    || (fieldType.isArray() && PlatformBlockState.class.isAssignableFrom(fieldType.getComponentType()))) {
+            if (NativeBlockState.class.isAssignableFrom(fieldType)
+                    || (fieldType.isArray() && NativeBlockState.class.isAssignableFrom(fieldType.getComponentType()))) {
                 latched.add(type.getName() + "." + field.getName());
             }
         }
     }
 
-    private static PlatformBlockState bindPlatform(String label) {
-        Map<String, PlatformBlockState> states = new HashMap<>();
+    private static NativeBlockState bindPlatform(String label) {
+        Map<String, NativeBlockState> states = new HashMap<>();
         PlatformRegistries registries = mock(PlatformRegistries.class);
         when(registries.block(anyString())).thenAnswer(invocation -> states.computeIfAbsent(
                 label + ':' + invocation.<String>getArgument(0),
                 key -> {
-                    PlatformBlockState state = mock(PlatformBlockState.class);
+                    NativeBlockState state = mock(NativeBlockState.class);
                     when(state.key()).thenReturn(key);
                     return state;
                 }));

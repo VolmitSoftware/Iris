@@ -21,7 +21,7 @@ package art.arcane.iris.structure.object;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.block.TileData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.RNG;
 
 public class HeightmapObjectPlacer implements IObjectPlacer {
@@ -43,11 +43,11 @@ public class HeightmapObjectPlacer implements IObjectPlacer {
         return (int) Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2, data));
     }
 
-    public void set(int param1Int1, int param1Int2, int param1Int3, PlatformBlockState param1BlockData) {
+    public void set(int param1Int1, int param1Int2, int param1Int3, NativeBlockState param1BlockData) {
         oplacer.set(param1Int1, param1Int2, param1Int3, param1BlockData);
     }
 
-    public PlatformBlockState get(int param1Int1, int param1Int2, int param1Int3) {
+    public NativeBlockState get(int param1Int1, int param1Int2, int param1Int3) {
         return oplacer.get(param1Int1, param1Int2, param1Int3);
     }
 

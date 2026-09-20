@@ -9,7 +9,7 @@ import art.arcane.iris.generation.biome.IrisBiomePaletteLayer;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
 import art.arcane.iris.world.IrisWorld;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
@@ -74,13 +74,13 @@ public class IrisCarveWallPaletteScopeTest {
     }
 
     private static void verifyWalls(Mode mode) throws Exception {
-        PlatformBlockState air = block("minecraft:cave_air", false);
-        PlatformBlockState stone = block("minecraft:stone", true);
-        PlatformBlockState wall = block("minecraft:calcite", true);
+        NativeBlockState air = block("minecraft:cave_air", false);
+        NativeBlockState stone = block("minecraft:stone", true);
+        NativeBlockState wall = block("minecraft:calcite", true);
         try (MockedStatic<B> blocks = mockStatic(B.class)) {
             blocks.when(() -> B.getState(anyString())).thenReturn(air);
             blocks.when(() -> B.isSolid(any())).thenAnswer(call ->
-                    call.<PlatformBlockState>getArgument(0).isSolid());
+                    call.<NativeBlockState>getArgument(0).isSolid());
             Fixture fixture = new Fixture(air, wall);
             GenerationRuntime selected = mode == Mode.DETACHED ? fixture.detached : fixture.active;
             IrisData expectedData = mode == Mode.ASSEMBLY ? fixture.assemblyData : selected.data();
@@ -88,7 +88,7 @@ public class IrisCarveWallPaletteScopeTest {
             fixture.expectedData = expectedData;
             doReturn(expectedComplex).when(fixture.context).getComplex();
             doReturn(mode == Mode.NATURAL).when(fixture.context).isNaturalTerrain();
-            Hunk<PlatformBlockState> output = Hunk.newArrayHunk(16, 64, 16);
+            Hunk<NativeBlockState> output = Hunk.newArrayHunk(16, 64, 16);
             for (int x = 0; x < 16; x++) {
                 for (int y = 0; y < 64; y++) {
                     for (int z = 0; z < 16; z++) {
@@ -120,7 +120,7 @@ public class IrisCarveWallPaletteScopeTest {
                     for (int x = 0; x < 16; x++) {
                         for (int y = 0; y < 64; y++) {
                             for (int z = 0; z < 16; z++) {
-                                PlatformBlockState expected = stone;
+                                NativeBlockState expected = stone;
                                 for (int coordinate : new int[]{4, 8, 12}) {
                                     if (y == 10 && x == coordinate && z == coordinate) {
                                         expected = air;
@@ -142,8 +142,8 @@ public class IrisCarveWallPaletteScopeTest {
         }
     }
 
-    private static PlatformBlockState block(String key, boolean solid) {
-        PlatformBlockState block = mock(PlatformBlockState.class);
+    private static NativeBlockState block(String key, boolean solid) {
+        NativeBlockState block = mock(NativeBlockState.class);
         doReturn(key).when(block).key();
         doReturn(solid).when(block).isSolid();
         return block;
@@ -186,7 +186,7 @@ public class IrisCarveWallPaletteScopeTest {
         private IrisData expectedData;
 
         @SuppressWarnings("unchecked")
-        private Fixture(PlatformBlockState air, PlatformBlockState wall) throws Exception {
+        private Fixture(NativeBlockState air, NativeBlockState wall) throws Exception {
             Mantle<Matter> mantle = mock(Mantle.class);
             doReturn(new KMap<>()).when(mantle).getLoadedRegions();
             chunk = mock(MantleChunk.class);

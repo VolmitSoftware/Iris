@@ -23,7 +23,7 @@ import art.arcane.iris.pack.validation.ContentGate;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.IrisRegistrant;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
@@ -31,7 +31,7 @@ import art.arcane.iris.pack.schema.annotation.RegistryListBlockType;
 import art.arcane.iris.pack.schema.annotation.RegistryMapBlockState;
 import art.arcane.iris.pack.schema.annotation.Required;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import lombok.AllArgsConstructor;
@@ -50,7 +50,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisBlockData extends IrisRegistrant {
-    private final transient AtomicCache<PlatformBlockState> blockdata = new AtomicCache<>();
+    private final transient AtomicCache<NativeBlockState> blockdata = new AtomicCache<>();
     private final transient AtomicCache<String> realProperties = new AtomicCache<>();
     @RegistryListBlockType
     @Required
@@ -154,13 +154,13 @@ public class IrisBlockData extends IrisRegistrant {
         return keyify(getBlock()) + computeProperties();
     }
 
-    public PlatformBlockState getBlockData(IrisData data) {
+    public NativeBlockState getBlockData(IrisData data) {
         return blockdata.aquire(() ->
         {
             IrisBlockData customData = data.getBlockLoader() == null ? null : data.getBlockLoader().load(getBlock(), false);
 
             if (customData != null) {
-                PlatformBlockState customState = customData.getBlockData(data);
+                NativeBlockState customState = customData.getBlockData(data);
 
                 if (customState != null) {
                     if (getData().isEmpty()) {
@@ -175,7 +175,7 @@ public class IrisBlockData extends IrisRegistrant {
                         IrisLogging.debug("Block Data used " + sx + " (CUSTOM)");
                     }
 
-                    PlatformBlockState bx = resolve(data, sx);
+                    NativeBlockState bx = resolve(data, sx);
 
                     if (bx != null) {
                         return bx;
@@ -186,7 +186,7 @@ public class IrisBlockData extends IrisRegistrant {
             }
 
             String ss = stateKey();
-            PlatformBlockState resolved = resolve(data, ss);
+            NativeBlockState resolved = resolve(data, ss);
 
             if (debug) {
                 IrisLogging.debug("Block Data used " + ss);
@@ -210,7 +210,7 @@ public class IrisBlockData extends IrisRegistrant {
      * (after custom blocks, the gate chain and every backup) yields a {@link art.arcane.iris.pack.validation.MissingBlockState}
      * carrying the key instead of air, so a palette placeholder with the same key can still be matched and rewritten.
      */
-    public PlatformBlockState getBlockDataOrPlaceholder(IrisData data) {
+    public NativeBlockState getBlockDataOrPlaceholder(IrisData data) {
         ContentGate gate = data.getContentGate();
         String state = stateKey();
 
@@ -222,7 +222,7 @@ public class IrisBlockData extends IrisRegistrant {
             return backup.getBlockDataOrPlaceholder(data);
         }
 
-        PlatformBlockState placeholder = gate.resolveBlockOrPlaceholder(state);
+        NativeBlockState placeholder = gate.resolveBlockOrPlaceholder(state);
         return placeholder == null ? getBlockData(data) : placeholder;
     }
 
@@ -237,7 +237,7 @@ public class IrisBlockData extends IrisRegistrant {
      * {@link art.arcane.iris.pack.validation.KeyStatus#UNKNOWN}) gates nothing and answers null for every key, so this
      * keeps the plain registry lookup in that case - otherwise every block in the pack would resolve to air.
      */
-    private static PlatformBlockState resolve(IrisData data, String state) {
+    private static NativeBlockState resolve(IrisData data, String state) {
         ContentGate gate = data.getContentGate();
 
         if (gate == null || !gate.ready()) {
@@ -250,7 +250,7 @@ public class IrisBlockData extends IrisRegistrant {
 
     public TileData tryGetTile(IrisData data) {
         //TODO Do like a registry thing with the tile data registry. Also update the parsing of data to include **block** entities.
-        PlatformBlockState state = getBlockData(data);
+        NativeBlockState state = getBlockData(data);
         String stateKey = state.key();
         int bracket = stateKey.indexOf('[');
         String blockKey = bracket >= 0 ? stateKey.substring(0, bracket) : stateKey;

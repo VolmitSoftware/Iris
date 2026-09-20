@@ -21,7 +21,7 @@ package art.arcane.iris.generation.runtime;
 import art.arcane.iris.world.history.ChunkGenerationSemantics;
 
 import art.arcane.iris.structure.nativegen.NativeStructureOwnershipStore;
-import art.arcane.iris.structure.nativegen.NativeStructureVolume;
+import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 import art.arcane.iris.structure.placement.PlacedObject;
 import art.arcane.iris.structure.placement.StructurePlacementMarker;
 
@@ -49,8 +49,8 @@ import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveStorage;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.iris.generation.context.ChunkContext;
@@ -251,7 +251,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
     }
 
     @BlockCoordinates
-    void generate(int x, int z, Hunk<PlatformBlockState> blocks, Hunk<PlatformBiome> biomes, boolean multicore) throws WrongEngineBroException;
+    void generate(int x, int z, Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes, boolean multicore) throws WrongEngineBroException;
 
     EngineMetrics getMetrics();
 
@@ -542,7 +542,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     @Override
-    default void catchBlockUpdates(int x, int y, int z, PlatformBlockState data) {
+    default void catchBlockUpdates(int x, int y, int z, NativeBlockState data) {
         if (data == null) {
             return;
         }

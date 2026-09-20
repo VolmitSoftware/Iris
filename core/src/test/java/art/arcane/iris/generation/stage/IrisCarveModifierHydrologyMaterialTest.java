@@ -5,7 +5,7 @@ import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.hydrology.IrisRiverMaterialConfig;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
 
@@ -20,8 +20,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class IrisCarveModifierHydrologyMaterialTest {
-    private final PlatformBlockState biomeLayer = mock(PlatformBlockState.class);
-    private final PlatformBlockState painted = mock(PlatformBlockState.class);
+    private final NativeBlockState biomeLayer = mock(NativeBlockState.class);
+    private final NativeBlockState painted = mock(NativeBlockState.class);
     private final IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
     private final IrisData data = mock(IrisData.class);
     private final RNG rng = new RNG(13L);
@@ -67,7 +67,7 @@ public class IrisCarveModifierHydrologyMaterialTest {
         return new IrisRiverMaterialConfig().setEnabled(true).setPalette(palette).setDepth(depth);
     }
 
-    private PlatformBlockState paint(IrisRiverMaterialConfig material, HydrologyCaveCell floorHydrology, int index) {
+    private NativeBlockState paint(IrisRiverMaterialConfig material, HydrologyCaveCell floorHydrology, int index) {
         return IrisCarveModifier.paintUndergroundBedMaterial(
                 biomeLayer, material, floorHydrology, index, rng, 48, 31, -9, data);
     }

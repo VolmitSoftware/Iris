@@ -17,7 +17,7 @@ import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.structure.placement.IrisStructure;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -386,8 +386,8 @@ final class VanillaJigsawExportCompiler {
                     pieceKey,
                     "The .iob contains tile payloads; exact registry-aware block-entity NBT export is not available in core.");
         }
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : object.getBlocks()) {
-            PlatformBlockState state = entry.getValue();
+        for (Map.Entry<IrisBlockVector, NativeBlockState> entry : object.getBlocks()) {
+            NativeBlockState state = entry.getValue();
             String resource = pieceKey + "@" + entry.getKey();
             IrisBlockVector position = entry.getKey();
             int x = position.getBlockX() + object.getCenter().getX();
@@ -519,7 +519,7 @@ final class VanillaJigsawExportCompiler {
             return;
         }
         IrisPosition position = connector.getPosition();
-        PlatformBlockState objectState = object.getBlocks().get(
+        NativeBlockState objectState = object.getBlocks().get(
                 object.getSigned(position.getX(), position.getY(), position.getZ()));
         String expectedSource = objectState == null ? "minecraft:structure_void" : objectState.key();
         try {

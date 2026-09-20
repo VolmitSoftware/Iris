@@ -1,6 +1,0 @@
-accessWidener v2 official
-accessible field net/minecraft/server/MinecraftServer levels Ljava/util/Map;
-accessible field net/minecraft/server/MinecraftServer executor Ljava/util/concurrent/Executor;
-accessible field net/minecraft/server/MinecraftServer storageSource Lnet/minecraft/world/level/storage/LevelStorageSource$LevelStorageAccess;
-accessible field net/minecraft/server/packs/repository/PackRepository sources Ljava/util/Set;
-mutable field net/minecraft/server/packs/repository/PackRepository sources Ljava/util/Set;

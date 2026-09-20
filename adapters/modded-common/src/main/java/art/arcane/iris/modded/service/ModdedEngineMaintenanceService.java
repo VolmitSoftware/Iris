@@ -27,7 +27,7 @@ import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.modded.ModdedWorldEngines;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.generation.context.IrisContext;
-import net.minecraft.server.MinecraftServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -89,7 +89,7 @@ public final class ModdedEngineMaintenanceService implements ModdedTickableServi
     }
 
     @Override
-    public void onServerTick(MinecraftServer server) {
+    public void onServerTick(NativeModdedServer server) {
         ExecutorService active = service;
         if (active == null || active.isShutdown()) {
             return;

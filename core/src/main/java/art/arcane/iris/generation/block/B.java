@@ -2,7 +2,7 @@ package art.arcane.iris.generation.block;
 
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.collection.KList;
 
@@ -12,111 +12,111 @@ public class B {
     private record BoundRegistries(IrisPlatform platform, PlatformRegistries registries) {
     }
 
-    public static PlatformBlockState getState(String bdxf) {
+    public static NativeBlockState getState(String bdxf) {
         return registries().block(bdxf);
     }
 
-    public static PlatformBlockState getStateOrNull(String bdxf) {
+    public static NativeBlockState getStateOrNull(String bdxf) {
         return registries().blockOrNull(bdxf);
     }
 
-    public static PlatformBlockState getStateOrNull(String bdxf, boolean warn) {
+    public static NativeBlockState getStateOrNull(String bdxf, boolean warn) {
         return registries().blockOrNull(bdxf, warn);
     }
 
-    public static KList<PlatformBlockState> getStates(KList<String> find) {
-        KList<PlatformBlockState> states = new KList<>(find.size());
+    public static KList<NativeBlockState> getStates(KList<String> find) {
+        KList<NativeBlockState> states = new KList<>(find.size());
         for (String key : find) {
             states.add(getState(key));
         }
         return states;
     }
 
-    public static PlatformBlockState getAirState() {
+    public static NativeBlockState getAirState() {
         return registries().air();
     }
 
-    public static PlatformBlockState toDeepSlateOre(PlatformBlockState block, PlatformBlockState ore) {
+    public static NativeBlockState toDeepSlateOre(NativeBlockState block, NativeBlockState ore) {
         return registries().deepSlateOre(block, ore);
     }
 
-    public static boolean isAir(PlatformBlockState state) {
+    public static boolean isAir(NativeBlockState state) {
         return state == null || state.isAir();
     }
 
-    public static boolean isSolid(PlatformBlockState state) {
+    public static boolean isSolid(NativeBlockState state) {
         return state != null && state.isSolid();
     }
 
-    public static boolean isOccluding(PlatformBlockState state) {
+    public static boolean isOccluding(NativeBlockState state) {
         return state != null && state.isOccluding();
     }
 
-    public static boolean isFluid(PlatformBlockState state) {
+    public static boolean isFluid(NativeBlockState state) {
         return state != null && state.isFluid();
     }
 
-    public static boolean isAirOrFluid(PlatformBlockState state) {
+    public static boolean isAirOrFluid(NativeBlockState state) {
         return state == null || state.isAirOrFluid();
     }
 
-    public static boolean isWater(PlatformBlockState state) {
+    public static boolean isWater(NativeBlockState state) {
         return state != null && state.isWater();
     }
 
-    public static boolean isWaterLogged(PlatformBlockState state) {
+    public static boolean isWaterLogged(NativeBlockState state) {
         return state != null && state.isWaterLogged();
     }
 
-    public static boolean isLit(PlatformBlockState state) {
+    public static boolean isLit(NativeBlockState state) {
         return state != null && state.isLit();
     }
 
-    public static boolean isUpdatable(PlatformBlockState state) {
+    public static boolean isUpdatable(NativeBlockState state) {
         return state != null && state.isUpdatable();
     }
 
-    public static boolean isFoliage(PlatformBlockState state) {
+    public static boolean isFoliage(NativeBlockState state) {
         return state != null && state.isFoliage();
     }
 
-    public static boolean isTreeBlock(PlatformBlockState state) {
+    public static boolean isTreeBlock(NativeBlockState state) {
         return state != null && state.isTreeBlock();
     }
 
-    public static boolean isFoliagePlantable(PlatformBlockState state) {
+    public static boolean isFoliagePlantable(NativeBlockState state) {
         return state != null && state.isFoliagePlantable();
     }
 
-    public static boolean isDecorant(PlatformBlockState state) {
+    public static boolean isDecorant(NativeBlockState state) {
         return state != null && state.isDecorant();
     }
 
-    public static boolean isStorage(PlatformBlockState state) {
+    public static boolean isStorage(NativeBlockState state) {
         return state != null && state.isStorage();
     }
 
-    public static boolean isStorageChest(PlatformBlockState state) {
+    public static boolean isStorageChest(NativeBlockState state) {
         return state != null && state.isStorageChest();
     }
 
-    public static boolean isOre(PlatformBlockState state) {
+    public static boolean isOre(NativeBlockState state) {
         return state != null && state.isOre();
     }
 
-    public static boolean isDeepSlate(PlatformBlockState state) {
+    public static boolean isDeepSlate(NativeBlockState state) {
         return state != null && state.isDeepSlate();
     }
 
-    public static boolean isVineBlock(PlatformBlockState state) {
+    public static boolean isVineBlock(NativeBlockState state) {
         return state != null && state.isVineBlock();
     }
 
-    public static boolean canPlaceOnto(PlatformBlockState mat, PlatformBlockState onto) {
+    public static boolean canPlaceOnto(NativeBlockState mat, NativeBlockState onto) {
         return mat != null && onto != null && mat.canPlaceOnto(onto);
     }
 
-    public static boolean matches(PlatformBlockState filter, PlatformBlockState state) {
+    public static boolean matches(NativeBlockState filter, NativeBlockState state) {
         return filter != null && state != null && filter.matches(state);
     }
 

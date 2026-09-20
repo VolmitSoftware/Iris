@@ -17,7 +17,7 @@
  */
 package art.arcane.iris.pack.validation;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -29,14 +29,14 @@ import java.util.Objects;
  * everywhere else: every physical predicate and {@link #nativeHandle()} come from the real air state, so a placeholder
  * that does reach the world places air and never throws.
  */
-public final class MissingBlockState implements PlatformBlockState {
+public final class MissingBlockState implements NativeBlockState {
     private final String key;
     private final String materialKey;
     private final String namespace;
     private final Map<String, String> properties;
-    private final PlatformBlockState air;
+    private final NativeBlockState air;
 
-    private MissingBlockState(String key, PlatformBlockState air) {
+    private MissingBlockState(String key, NativeBlockState air) {
         this.key = key;
         this.materialKey = ContentGate.baseKey(key);
         int colon = materialKey.indexOf(':');
@@ -46,11 +46,11 @@ public final class MissingBlockState implements PlatformBlockState {
     }
 
     /** @param normalizedKey the missing key as {@link ContentGate#normalizeState(String)} returns it */
-    public static MissingBlockState of(String normalizedKey, PlatformBlockState air) {
+    public static MissingBlockState of(String normalizedKey, NativeBlockState air) {
         return new MissingBlockState(Objects.requireNonNull(normalizedKey, "key"), Objects.requireNonNull(air, "air"));
     }
 
-    public static boolean isPlaceholder(PlatformBlockState state) {
+    public static boolean isPlaceholder(NativeBlockState state) {
         return state instanceof MissingBlockState;
     }
 
@@ -165,7 +165,7 @@ public final class MissingBlockState implements PlatformBlockState {
     }
 
     @Override
-    public boolean canPlaceOnto(PlatformBlockState onto) {
+    public boolean canPlaceOnto(NativeBlockState onto) {
         return air.canPlaceOnto(onto);
     }
 
@@ -174,7 +174,7 @@ public final class MissingBlockState implements PlatformBlockState {
      * the partial-match contract the adapters use for exact {@code find} entries.
      */
     @Override
-    public boolean matches(PlatformBlockState state) {
+    public boolean matches(NativeBlockState state) {
         if (!(state instanceof MissingBlockState other) || !materialKey.equals(other.materialKey)) {
             return false;
         }
@@ -192,7 +192,7 @@ public final class MissingBlockState implements PlatformBlockState {
     }
 
     @Override
-    public PlatformBlockState withProperty(String name, String value) {
+    public NativeBlockState withProperty(String name, String value) {
         Map<String, String> merged = new LinkedHashMap<>(properties);
         merged.put(name, value);
         StringBuilder rebuilt = new StringBuilder(materialKey).append('[');

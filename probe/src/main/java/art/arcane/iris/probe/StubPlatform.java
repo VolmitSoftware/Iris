@@ -24,16 +24,16 @@ import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.LogLevel;
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.iris.spi.PlatformBiomeWriter;
-import art.arcane.iris.spi.PlatformBlockProperty;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformEntityType;
-import art.arcane.iris.spi.PlatformItem;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.entity.NativeEntityType;
+import art.arcane.volmlib.nativelib.item.NativeItem;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 
 import java.io.File;
@@ -66,15 +66,15 @@ public final class StubPlatform implements IrisPlatform {
         TileData.bindPlatformFactory(StubTileData::fromProperties);
     }
 
-    static PlatformBlockState rotateForTest(IrisObjectRotation rotation, PlatformBlockState state) {
+    static NativeBlockState rotateForTest(IrisObjectRotation rotation, NativeBlockState state) {
         return rotateState(rotation, state, 0, 0, 0);
     }
 
-    static PlatformBlockState mergeForTest(PlatformBlockState base, PlatformBlockState update) {
+    static NativeBlockState mergeForTest(NativeBlockState base, NativeBlockState update) {
         return mergeStates(base, update);
     }
 
-    static PlatformBlockState blockStateForTest(String key) {
+    static NativeBlockState blockStateForTest(String key) {
         return StubBlockState.of(key);
     }
 
@@ -92,7 +92,7 @@ public final class StubPlatform implements IrisPlatform {
         this.dataFolder = dataFolder;
     }
 
-    private static final class StubBlockState implements PlatformBlockState {
+    private static final class StubBlockState implements NativeBlockState {
         private static final ConcurrentHashMap<String, StubBlockState> CACHE = new ConcurrentHashMap<>();
         private final String key;
         private final String blockKey;
@@ -225,7 +225,7 @@ public final class StubPlatform implements IrisPlatform {
         }
 
         @Override
-        public boolean canPlaceOnto(PlatformBlockState onto) {
+        public boolean canPlaceOnto(NativeBlockState onto) {
             if (!blockKey.equals("minecraft:sugar_cane")) {
                 return true;
             }
@@ -242,7 +242,7 @@ public final class StubPlatform implements IrisPlatform {
         }
 
         @Override
-        public boolean matches(PlatformBlockState state) {
+        public boolean matches(NativeBlockState state) {
             return equals(state);
         }
 
@@ -252,7 +252,7 @@ public final class StubPlatform implements IrisPlatform {
         }
 
         @Override
-        public PlatformBlockState withProperty(String name, String value) {
+        public NativeBlockState withProperty(String name, String value) {
             String propertyName = normalizeProperty(name);
             String propertyValue = normalizeProperty(value);
             if (propertyValue.equals(properties.get(propertyName))) {
@@ -277,7 +277,7 @@ public final class StubPlatform implements IrisPlatform {
         }
     }
 
-    private static PlatformBlockState rotateState(IrisObjectRotation rotation, PlatformBlockState state,
+    private static NativeBlockState rotateState(IrisObjectRotation rotation, NativeBlockState state,
                                                    int spinX, int spinY, int spinZ) {
         if (state == null || rotation == null || !rotation.canRotate()) {
             return state;
@@ -311,7 +311,7 @@ public final class StubPlatform implements IrisPlatform {
         return StubBlockState.of(parsed);
     }
 
-    private static PlatformBlockState mergeStates(PlatformBlockState base, PlatformBlockState update) {
+    private static NativeBlockState mergeStates(NativeBlockState base, NativeBlockState update) {
         if (base == null) {
             return update;
         }
@@ -331,7 +331,7 @@ public final class StubPlatform implements IrisPlatform {
         return original.equals(parsedBase.properties()) ? base : StubBlockState.of(parsedBase);
     }
 
-    private static ParsedState parsedState(PlatformBlockState state) {
+    private static ParsedState parsedState(NativeBlockState state) {
         return state instanceof StubBlockState stub ? stub.parsed() : ParsedState.parse(state.key());
     }
 
@@ -486,7 +486,7 @@ public final class StubPlatform implements IrisPlatform {
         }
     }
 
-    private static final class StubBiome implements PlatformBiome {
+    private static final class StubBiome implements NativeBiome {
         private static final ConcurrentHashMap<String, StubBiome> CACHE = new ConcurrentHashMap<>();
         private final String key;
 
@@ -522,7 +522,7 @@ public final class StubPlatform implements IrisPlatform {
         }
 
         @Override
-        public void region(PlatformWorld world, int chunkX, int chunkZ, Runnable task) {
+        public void region(NativeWorld world, int chunkX, int chunkZ, Runnable task) {
             task.run();
         }
 
@@ -536,7 +536,7 @@ public final class StubPlatform implements IrisPlatform {
         }
 
         @Override
-        public void laterRegion(PlatformWorld world, int chunkX, int chunkZ, Runnable task, int ticks) {
+        public void laterRegion(NativeWorld world, int chunkX, int chunkZ, Runnable task, int ticks) {
         }
     }
 
@@ -562,22 +562,22 @@ public final class StubPlatform implements IrisPlatform {
         }
 
         @Override
-        public List<String> reachableStructureKeys(PlatformWorld world) {
+        public List<String> reachableStructureKeys(NativeWorld world) {
             return List.of();
         }
 
         @Override
-        public List<String> possibleBiomeKeys(PlatformWorld world) {
+        public List<String> possibleBiomeKeys(NativeWorld world) {
             return List.of();
         }
 
         @Override
-        public boolean placeFeature(PlatformWorld world, int x, int y, int z, String featureKey, long seed) {
+        public boolean placeFeature(NativeWorld world, int x, int y, int z, String featureKey, long seed) {
             return false;
         }
 
         @Override
-        public int[] placeStructure(PlatformWorld world, int chunkX, int chunkZ, String structureKey, long seed, int maxSpan) {
+        public int[] placeStructure(NativeWorld world, int chunkX, int chunkZ, String structureKey, long seed, int maxSpan) {
             return null;
         }
 
@@ -594,12 +594,12 @@ public final class StubPlatform implements IrisPlatform {
         }
 
         @Override
-        public List<PlatformBiome> allBiomes() {
+        public List<NativeBiome> allBiomes() {
             return List.of();
         }
     }
 
-    private record StubEntityType(String key) implements PlatformEntityType {
+    private record StubEntityType(String key) implements NativeEntityType {
         @Override
         public String namespace() {
             return "minecraft";
@@ -618,42 +618,42 @@ public final class StubPlatform implements IrisPlatform {
 
     private static final class StubRegistries implements PlatformRegistries {
         @Override
-        public PlatformBlockState block(String key) {
+        public NativeBlockState block(String key) {
             return StubBlockState.of(key);
         }
 
         @Override
-        public PlatformBlockState blockOrNull(String key) {
+        public NativeBlockState blockOrNull(String key) {
             return StubBlockState.of(key);
         }
 
         @Override
-        public PlatformBlockState blockOrNull(String key, boolean warn) {
+        public NativeBlockState blockOrNull(String key, boolean warn) {
             return StubBlockState.of(key);
         }
 
         @Override
-        public PlatformBlockState air() {
+        public NativeBlockState air() {
             return StubBlockState.of("minecraft:air");
         }
 
         @Override
-        public PlatformBlockState deepSlateOre(PlatformBlockState block, PlatformBlockState ore) {
+        public NativeBlockState deepSlateOre(NativeBlockState block, NativeBlockState ore) {
             return ore;
         }
 
         @Override
-        public PlatformBiome biome(String key) {
+        public NativeBiome biome(String key) {
             return StubBiome.of(key);
         }
 
         @Override
-        public PlatformItem item(String key) {
+        public NativeItem item(String key) {
             return null;
         }
 
         @Override
-        public PlatformEntityType entity(String key) {
+        public NativeEntityType entity(String key) {
             return key != null && key.startsWith("minecraft:") ? new StubEntityType(key) : null;
         }
 
@@ -708,7 +708,7 @@ public final class StubPlatform implements IrisPlatform {
         }
 
         @Override
-        public Map<String, List<PlatformBlockProperty>> blockStateProperties() {
+        public Map<String, List<NativeBlockProperty>> blockStateProperties() {
             return Map.of();
         }
     }
@@ -777,7 +777,7 @@ public final class StubPlatform implements IrisPlatform {
     }
 
     @Override
-    public boolean spawnEntity(PlatformWorld world, String entityKey, double x, double y, double z) {
+    public boolean spawnEntity(NativeWorld world, String entityKey, double x, double y, double z) {
         return false;
     }
 

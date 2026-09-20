@@ -1,5 +1,10 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.volmlib.nativelib.terrain.NativeGenerationRoute;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPositionPredicate;
+
+import art.arcane.volmlib.nativelib.terrain.NativeGenerationScope;
+
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.IrisEngineMantle;
@@ -1316,7 +1321,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         }
     }
 
-    public static final class RuntimeRoute implements AutoCloseable {
+    public static final class RuntimeRoute implements NativeGenerationRoute {
         private final GenerationHistoryRuntimeRouter router;
         private final GenerationHistory.GenerationStage stage;
         private final RuntimeLease lease;
@@ -1378,7 +1383,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
             return claimGeneratedSemantics((x, y, z) -> true);
         }
 
-        public boolean claimGeneratedSemantics(GenerationSemanticCapture.CaveSpace caveSpace) throws IOException {
+        public boolean claimGeneratedSemantics(NativeBlockPositionPredicate caveSpace) throws IOException {
             if (router.scopedRoute.get() != this) {
                 throw new IllegalStateException(
                         "Generation semantics must be captured inside this route's runtime scope."
@@ -1484,7 +1489,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
             activeScopes--;
         }
 
-        public static final class RuntimeScope implements AutoCloseable {
+        public static final class RuntimeScope implements NativeGenerationScope {
             private final RuntimeRoute route;
             private final IrisEngine.GenerationRuntimeScope runtimeScope;
             private final Thread owner;
@@ -1627,7 +1632,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         }
     }
 
-    public static final class CoordinateScope implements AutoCloseable {
+    public static final class CoordinateScope implements NativeGenerationScope {
         private final int blockX;
         private final int blockZ;
         private final RuntimeRoute route;

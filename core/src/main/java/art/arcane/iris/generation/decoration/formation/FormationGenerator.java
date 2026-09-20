@@ -21,7 +21,7 @@ package art.arcane.iris.generation.decoration.formation;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -60,10 +60,10 @@ public final class FormationGenerator {
             return null;
         }
 
-        Map<Vector3i, PlatformBlockState> resolved = new HashMap<>();
+        Map<Vector3i, NativeBlockState> resolved = new HashMap<>();
         FormationBlockResolver resolver = new FormationBlockResolver(f, data);
         for (Map.Entry<Vector3i, FormationCanvas.Role> entry : canvas.getCells().entrySet()) {
-            PlatformBlockState bd = resolver.resolve(entry.getValue(), entry.getKey());
+            NativeBlockState bd = resolver.resolve(entry.getValue(), entry.getKey());
             if (bd == null) {
                 continue;
             }

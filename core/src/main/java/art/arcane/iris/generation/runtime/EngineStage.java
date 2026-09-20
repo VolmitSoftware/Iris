@@ -18,15 +18,15 @@
 
 package art.arcane.iris.generation.runtime;
 
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.hunk.Hunk;
 
 public interface EngineStage {
     @BlockCoordinates
-    void generate(int x, int z, Hunk<PlatformBlockState> blocks, Hunk<PlatformBiome> biomes, boolean multicore, ChunkContext context);
+    void generate(int x, int z, Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes, boolean multicore, ChunkContext context);
 
     default void close() {
         if (this instanceof EngineComponent c) {

@@ -1,7 +1,12 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedLoader;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.MinecraftServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedServerAccess;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedServerLevels;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.state.BlockState;
@@ -20,7 +25,7 @@ public class ModdedPlatformPathsTest {
 
     private ModdedPlatform platform() {
         Path configDir = temporaryFolder.getRoot().toPath();
-        return new ModdedPlatform(new ModdedLoader() {
+        return new ModdedPlatform(new NativeModdedLoader() {
             @Override
             public String platformName() {
                 return "test";
@@ -37,20 +42,21 @@ public class ModdedPlatformPathsTest {
             }
 
             @Override
-            public MinecraftServer currentServer() {
+            public NativeModdedServer currentServer() {
                 return null;
             }
 
             @Override
-            public void invalidateLevelCache(MinecraftServer server) {
+            public ModdedServerAccess serverAccess() {
+                return new ModdedServerLevels(server -> {});
             }
 
             @Override
-            public void fireDynamicLevelLoad(MinecraftServer server, ServerLevel level) {
+            public void fireDynamicLevelLoad(NativeWorld level) {
             }
 
             @Override
-            public void fireDynamicLevelUnload(MinecraftServer server, ServerLevel level) {
+            public void fireDynamicLevelUnload(NativeWorld level) {
             }
 
             @Override
@@ -69,12 +75,12 @@ public class ModdedPlatformPathsTest {
             }
 
             @Override
-            public boolean hasTreeFellerPermission(ServerPlayer player) {
+            public boolean hasBlockBreakPermission(ServerPlayer player) {
                 return false;
             }
 
             @Override
-            public boolean canTreeFellerBreak(ServerLevel level, ServerPlayer player, BlockPos position, BlockState state) {
+            public boolean canBreakBlock(ServerLevel level, ServerPlayer player, BlockPos position, BlockState state) {
                 return false;
             }
         });

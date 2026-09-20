@@ -18,7 +18,7 @@ import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.collection.KList;
@@ -58,7 +58,7 @@ public class VanillaJigsawDatapackExporterTest {
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
 
-    private static PlatformBlockState stone;
+    private static NativeBlockState stone;
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -196,7 +196,7 @@ public class VanillaJigsawDatapackExporterTest {
     @Test
     public void preservesExplicitAirAndStructureVoidConnectorFinalStates() throws Exception {
         TestGraph graph = terminalGraph();
-        PlatformBlockState air = blockState("minecraft:air");
+        NativeBlockState air = blockState("minecraft:air");
         IrisObject object = graph.objects.get("objects/start");
         object.setUnsigned(0, 1, 1, air);
         IrisJigsawPiece piece = graph.pieces.get("pieces/start");
@@ -407,8 +407,8 @@ public class VanillaJigsawDatapackExporterTest {
         return new IrisJigsawPieceEntry().setEmpty(true).setWeight(weight);
     }
 
-    private static PlatformBlockState blockState(String key) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private static NativeBlockState blockState(String key) {
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.key()).thenReturn(key);
         when(state.namespace()).thenReturn(key.substring(0, key.indexOf(':')));
         return state;

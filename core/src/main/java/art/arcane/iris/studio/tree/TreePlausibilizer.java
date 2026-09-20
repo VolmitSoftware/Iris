@@ -20,7 +20,7 @@ package art.arcane.iris.studio.tree;
 
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.VectorMap;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
@@ -95,7 +95,7 @@ public final class TreePlausibilizer {
     }
 
     private static Result run(IrisObject obj, boolean mutate, long seed, int reach) {
-        VectorMap<PlatformBlockState> blocks = obj.getBlocks();
+        VectorMap<NativeBlockState> blocks = obj.getBlocks();
         Workspace ws = new Workspace(blocks);
 
         int totalLeaves = ws.leaves.size();
@@ -132,9 +132,9 @@ public final class TreePlausibilizer {
         List<Long> sortedLeaves = new ArrayList<>(ws.leaves);
         Collections.sort(sortedLeaves);
         for (long leaf : sortedLeaves) {
-            PlatformBlockState state = ws.positions.get(leaf);
+            NativeBlockState state = ws.positions.get(leaf);
             Integer d = finalDistances.get(leaf);
-            PlatformBlockState next;
+            NativeBlockState next;
             if (d != null) {
                 next = state.withProperty("persistent", "false")
                         .withProperty("distance", String.valueOf(Math.max(1, Math.min(MAX_DISTANCE, d))));
@@ -170,7 +170,7 @@ public final class TreePlausibilizer {
         );
     }
 
-    private static PlatformBlockState pickBranchTemplate(Map<Long, PlatformBlockState> positions, Set<Long> wood) {
+    private static NativeBlockState pickBranchTemplate(Map<Long, NativeBlockState> positions, Set<Long> wood) {
         if (wood.isEmpty()) {
             return null;
         }
@@ -188,9 +188,9 @@ public final class TreePlausibilizer {
             }
         }
         Map<String, Integer> stateCounts = new HashMap<>();
-        Map<String, PlatformBlockState> statesByKey = new HashMap<>();
+        Map<String, NativeBlockState> statesByKey = new HashMap<>();
         for (long key : wood) {
-            PlatformBlockState state = positions.get(key);
+            NativeBlockState state = positions.get(key);
             if (!IrisProceduralBlocks.materialKey(state).equals(dominant)) {
                 continue;
             }
@@ -356,7 +356,7 @@ public final class TreePlausibilizer {
         return dist;
     }
 
-    private static boolean isWood(PlatformBlockState state) {
+    private static boolean isWood(NativeBlockState state) {
         String material = IrisProceduralBlocks.materialKey(state);
         return material.endsWith("_log")
                 || material.endsWith("_wood")
@@ -364,12 +364,12 @@ public final class TreePlausibilizer {
                 || STEM_WOOD.contains(material);
     }
 
-    private static boolean isDecayableLeaf(PlatformBlockState state) {
+    private static boolean isDecayableLeaf(NativeBlockState state) {
         return IrisProceduralBlocks.hasProperty(state, "distance")
                 && IrisProceduralBlocks.hasProperty(state, "persistent");
     }
 
-    private static PlatformBlockState axisVariant(PlatformBlockState template, int dx, int dy, int dz) {
+    private static NativeBlockState axisVariant(NativeBlockState template, int dx, int dy, int dz) {
         if (!IrisProceduralBlocks.hasProperty(template, "axis")) {
             return template;
         }
@@ -429,20 +429,20 @@ public final class TreePlausibilizer {
         return new IrisBlockVector(xyz[0], xyz[1], xyz[2]);
     }
 
-    private record WoodPlacement(long key, PlatformBlockState state) {
+    private record WoodPlacement(long key, NativeBlockState state) {
     }
 
-    private record LeafRewrite(long key, PlatformBlockState state) {
+    private record LeafRewrite(long key, NativeBlockState state) {
     }
 
     private static final class Workspace {
-        private final Map<Long, PlatformBlockState> positions;
+        private final Map<Long, NativeBlockState> positions;
         private final Set<Long> wood = new HashSet<>();
         private final Set<Long> leaves = new HashSet<>();
         private final List<WoodPlacement> placements = new ArrayList<>();
         private Map<Long, Integer> distances = new HashMap<>();
         private Set<Long> unreached = new HashSet<>();
-        private PlatformBlockState template;
+        private NativeBlockState template;
         private GapTracker tracker;
         private int minX = Integer.MAX_VALUE;
         private int minY = Integer.MAX_VALUE;
@@ -454,11 +454,11 @@ public final class TreePlausibilizer {
         private int converted;
         private int branches;
 
-        private Workspace(VectorMap<PlatformBlockState> blocks) {
+        private Workspace(VectorMap<NativeBlockState> blocks) {
             positions = new HashMap<>(blocks.size() * 2);
-            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : blocks) {
+            for (Map.Entry<IrisBlockVector, NativeBlockState> entry : blocks) {
                 IrisBlockVector pos = entry.getKey();
-                PlatformBlockState state = entry.getValue();
+                NativeBlockState state = entry.getValue();
                 long key = packKey(pos);
                 positions.put(key, state);
                 int x = pos.getBlockX();
@@ -640,12 +640,12 @@ public final class TreePlausibilizer {
             if (wood.contains(key)) {
                 return;
             }
-            PlatformBlockState existing = positions.get(key);
+            NativeBlockState existing = positions.get(key);
             boolean convertLeaf = existing != null && leaves.contains(key);
             if (existing != null && !convertLeaf) {
                 return;
             }
-            PlatformBlockState state = axisVariant(template, dx, dy, dz);
+            NativeBlockState state = axisVariant(template, dx, dy, dz);
             positions.put(key, state);
             wood.add(key);
             if (convertLeaf) {

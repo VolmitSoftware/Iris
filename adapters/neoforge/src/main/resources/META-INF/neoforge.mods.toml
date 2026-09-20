@@ -4,10 +4,10 @@ license = "GPL-3.0"
 issueTrackerURL = "https://github.com/VolmitSoftware/Iris/issues"
 
 [[mixins]]
-config = "irisworldgen.entity.mixins.json"
+config = "volmlib.entity.mixins.json"
 
 [[mixins]]
-config = "irisworldgen.client.mixins.json"
+config = "volmlib.client.mixins.json"
 
 [[accessTransformers]]
 file = "META-INF/accesstransformer.cfg"

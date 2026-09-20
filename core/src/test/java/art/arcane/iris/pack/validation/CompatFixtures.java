@@ -6,16 +6,16 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.spi.LogLevel;
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.iris.spi.PlatformBiomeWriter;
-import art.arcane.iris.spi.PlatformBlockProperty;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformEntityType;
-import art.arcane.iris.spi.PlatformItem;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.entity.NativeEntityType;
+import art.arcane.volmlib.nativelib.item.NativeItem;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -81,18 +81,18 @@ final class CompatFixtures {
         int blockLookups = 0;
 
         @Override
-        public PlatformBlockState block(String key) {
-            PlatformBlockState state = blockOrNull(key, false);
+        public NativeBlockState block(String key) {
+            NativeBlockState state = blockOrNull(key, false);
             return state == null ? air() : state;
         }
 
         @Override
-        public PlatformBlockState blockOrNull(String key) {
+        public NativeBlockState blockOrNull(String key) {
             return blockOrNull(key, false);
         }
 
         @Override
-        public PlatformBlockState blockOrNull(String key, boolean warn) {
+        public NativeBlockState blockOrNull(String key, boolean warn) {
             blockLookups++;
             String normalized = key.trim();
             int props = normalized.indexOf('[');
@@ -108,27 +108,27 @@ final class CompatFixtures {
         }
 
         @Override
-        public PlatformBlockState air() {
+        public NativeBlockState air() {
             return new FakeBlockState("minecraft:air");
         }
 
         @Override
-        public PlatformBlockState deepSlateOre(PlatformBlockState block, PlatformBlockState ore) {
+        public NativeBlockState deepSlateOre(NativeBlockState block, NativeBlockState ore) {
             return ore;
         }
 
         @Override
-        public PlatformBiome biome(String key) {
+        public NativeBiome biome(String key) {
             return null;
         }
 
         @Override
-        public PlatformItem item(String key) {
+        public NativeItem item(String key) {
             return null;
         }
 
         @Override
-        public PlatformEntityType entity(String key) {
+        public NativeEntityType entity(String key) {
             return null;
         }
 
@@ -178,12 +178,12 @@ final class CompatFixtures {
         }
 
         @Override
-        public Map<String, List<PlatformBlockProperty>> blockStateProperties() {
+        public Map<String, List<NativeBlockProperty>> blockStateProperties() {
             return Map.of();
         }
     }
 
-    record FakeBlockState(String key) implements PlatformBlockState {
+    record FakeBlockState(String key) implements NativeBlockState {
         private static final Map<String, Object> HANDLES = new java.util.concurrent.ConcurrentHashMap<>();
 
         @Override
@@ -282,12 +282,12 @@ final class CompatFixtures {
         }
 
         @Override
-        public boolean canPlaceOnto(PlatformBlockState onto) {
+        public boolean canPlaceOnto(NativeBlockState onto) {
             return true;
         }
 
         @Override
-        public boolean matches(PlatformBlockState state) {
+        public boolean matches(NativeBlockState state) {
             return state != null && key.equals(state.key());
         }
 
@@ -297,7 +297,7 @@ final class CompatFixtures {
         }
 
         @Override
-        public PlatformBlockState withProperty(String name, String value) {
+        public NativeBlockState withProperty(String name, String value) {
             return this;
         }
 
@@ -387,7 +387,7 @@ final class CompatFixtures {
         }
 
         @Override
-        public boolean spawnEntity(PlatformWorld world, String entityKey, double x, double y, double z) {
+        public boolean spawnEntity(NativeWorld world, String entityKey, double x, double y, double z) {
             return false;
         }
 

@@ -1,5 +1,7 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeStructureInspection;
+
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
@@ -126,7 +128,7 @@ public class ModdedWorldCheckTest {
     public void smallStructureFootprintIncludesEveryChunk() {
         BoundingBox bounds = new BoundingBox(-16, -20, -16, 31, 120, 31);
 
-        List<ChunkPos> chunks = WorldCheckStructureAudit.boundedFootprintChunks(bounds, ChunkPos.ZERO, 96);
+        List<ChunkPos> chunks = NativeStructureInspection.boundedFootprintChunks(bounds, ChunkPos.ZERO, 96);
 
         assertEquals(9, chunks.size());
         assertTrue(chunks.contains(new ChunkPos(-1, -1)));
@@ -137,7 +139,7 @@ public class ModdedWorldCheckTest {
     public void largeStructureFootprintIsBoundedAndSamplesEdges() {
         BoundingBox bounds = new BoundingBox(-512, -64, -512, 511, 300, 511);
 
-        List<ChunkPos> chunks = WorldCheckStructureAudit.boundedFootprintChunks(bounds, ChunkPos.ZERO, 20);
+        List<ChunkPos> chunks = NativeStructureInspection.boundedFootprintChunks(bounds, ChunkPos.ZERO, 20);
 
         assertTrue(chunks.size() <= 20);
         assertTrue(chunks.size() >= 16);
@@ -267,6 +269,6 @@ public class ModdedWorldCheckTest {
 
     private static boolean characteristic(String structureLabel, String structureKey, String blockKey) {
         return WorldCheckMaterials.isCharacteristicMaterial(structureLabel,
-                Identifier.parse(structureKey), Identifier.parse(blockKey));
+                structureKey, blockKey);
     }
 }

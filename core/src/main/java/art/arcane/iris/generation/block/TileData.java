@@ -19,7 +19,7 @@
 package art.arcane.iris.generation.block;
 
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.Strictness;
@@ -72,7 +72,7 @@ public class TileData implements Cloneable {
     }
 
     public interface TileFactory {
-        TileData create(PlatformBlockState state, KMap<String, Object> properties);
+        TileData create(NativeBlockState state, KMap<String, Object> properties);
     }
 
     public static synchronized TileReader bindPlatformReader(TileReader reader) {
@@ -136,7 +136,7 @@ public class TileData implements Cloneable {
         return new TileData().fromBukkit(block);
     }
 
-    public static TileData of(PlatformBlockState state, KMap<String, Object> properties) {
+    public static TileData of(NativeBlockState state, KMap<String, Object> properties) {
         TileFactory factory = PLATFORM_FACTORY;
         if (factory != null) {
             return factory.create(state, properties);

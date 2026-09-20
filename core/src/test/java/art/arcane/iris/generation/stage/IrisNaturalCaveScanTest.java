@@ -9,7 +9,7 @@ import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisDecorator;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -69,7 +69,7 @@ public class IrisNaturalCaveScanTest {
     public void listenerFailureReleasesMantleChunk() throws Exception {
         Fixture fixture = new Fixture();
         IllegalStateException failure = new IllegalStateException("listener rejected decoration");
-        Hunk<PlatformBlockState> output = fixture.output(3, 2).listen((x, y, z, state) -> {
+        Hunk<NativeBlockState> output = fixture.output(3, 2).listen((x, y, z, state) -> {
             throw failure;
         });
         assertSame(failure, assertThrows(IllegalStateException.class,
@@ -81,7 +81,7 @@ public class IrisNaturalCaveScanTest {
     @SuppressWarnings("unchecked")
     public void dimensionFailureReleasesMantleChunk() throws Exception {
         Fixture fixture = new Fixture();
-        Hunk<PlatformBlockState> output = mock(Hunk.class);
+        Hunk<NativeBlockState> output = mock(Hunk.class);
         doReturn(3).when(output).getWidth();
         doReturn(2).when(output).getDepth();
         IllegalStateException failure = new IllegalStateException("height unavailable");
@@ -93,7 +93,7 @@ public class IrisNaturalCaveScanTest {
 
     private static void verifyScan(int width, int depth) throws Exception {
         Fixture fixture = new Fixture();
-        Hunk<PlatformBlockState> output = fixture.output(width, depth);
+        Hunk<NativeBlockState> output = fixture.output(width, depth);
         List<String> writes = new ArrayList<>();
         fixture.modifier.decorateNaturalCaves(-32, 48,
                 output.listen((x, y, z, state) -> writes.add(x + ":" + y + ":" + z + ":" + state.key())));
@@ -124,7 +124,7 @@ public class IrisNaturalCaveScanTest {
                     }
                 }
                 for (int y = 0; y < 32; y++) {
-                    PlatformBlockState expected = initialState(fixture, y);
+                    NativeBlockState expected = initialState(fixture, y);
                     if (y == 2 || y == 20) {
                         expected = fixture.floor;
                     } else if (y == 5 || y == 22) {
@@ -146,13 +146,13 @@ public class IrisNaturalCaveScanTest {
         verify(fixture.chunk).release();
     }
 
-    private static PlatformBlockState initialState(Fixture fixture, int y) {
+    private static NativeBlockState initialState(Fixture fixture, int y) {
         return y >= 2 && y <= 5 || y == 10 || y >= 14 && y <= 17 || y >= 28
                 ? fixture.air : fixture.stone;
     }
 
-    private static PlatformBlockState block(String key, boolean solid) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private static NativeBlockState block(String key, boolean solid) {
+        NativeBlockState state = mock(NativeBlockState.class);
         doReturn(key).when(state).key();
         doReturn(key).when(state).materialKey();
         doReturn(solid).when(state).isSolid();
@@ -160,10 +160,10 @@ public class IrisNaturalCaveScanTest {
     }
 
     private static final class Fixture {
-        private final PlatformBlockState air = block("minecraft:cave_air", false);
-        private final PlatformBlockState stone = block("minecraft:stone", true);
-        private final PlatformBlockState floor = block("minecraft:moss_block", true);
-        private final PlatformBlockState ceiling = block("minecraft:calcite", true);
+        private final NativeBlockState air = block("minecraft:cave_air", false);
+        private final NativeBlockState stone = block("minecraft:stone", true);
+        private final NativeBlockState floor = block("minecraft:moss_block", true);
+        private final NativeBlockState ceiling = block("minecraft:calcite", true);
         private final IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
         private final MantleChunk<Matter> chunk;
         private final List<String> calls = new ArrayList<>();
@@ -203,7 +203,7 @@ public class IrisNaturalCaveScanTest {
                 int x = call.getArgument(0);
                 int z = call.getArgument(1);
                 int y = call.getArgument(11);
-                Hunk<PlatformBlockState> output = call.getArgument(8);
+                Hunk<NativeBlockState> output = call.getArgument(8);
                 calls.add("floor:" + x + ":" + z + ":" + y + ":" + call.getArgument(12));
                 output.setRaw(x, y + 1, z, floor);
                 if (y == 1) {
@@ -218,15 +218,15 @@ public class IrisNaturalCaveScanTest {
                 int x = call.getArgument(0);
                 int z = call.getArgument(1);
                 int y = call.getArgument(11);
-                Hunk<PlatformBlockState> output = call.getArgument(8);
+                Hunk<NativeBlockState> output = call.getArgument(8);
                 calls.add("ceiling:" + x + ":" + z + ":" + y + ":" + call.getArgument(12));
                 output.setRaw(x, y, z, ceiling);
                 return null;
             }).when(roof).decorate(anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), any(), eq(biome), any(), anyInt(), anyInt());
         }
 
-        private Hunk<PlatformBlockState> output(int width, int depth) {
-            Hunk<PlatformBlockState> output = Hunk.newArrayHunk(width, 32, depth);
+        private Hunk<NativeBlockState> output(int width, int depth) {
+            Hunk<NativeBlockState> output = Hunk.newArrayHunk(width, 32, depth);
             for (int x = 0; x < width; x++) {
                 for (int z = 0; z < depth; z++) {
                     for (int y = 0; y < 32; y++) {

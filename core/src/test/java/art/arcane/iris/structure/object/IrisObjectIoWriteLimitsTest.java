@@ -3,7 +3,7 @@ package art.arcane.iris.structure.object;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.testsupport.KeyedBlockState;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.collection.KMap;
 import org.junit.BeforeClass;
@@ -34,7 +34,7 @@ public class IrisObjectIoWriteLimitsTest {
         oversizedPaletteObject = objectWithDistinctStates(32_768);
     }
 
-    private static PlatformBlockState state(String key) {
+    private static NativeBlockState state(String key) {
         return new KeyedBlockState(key);
     }
 

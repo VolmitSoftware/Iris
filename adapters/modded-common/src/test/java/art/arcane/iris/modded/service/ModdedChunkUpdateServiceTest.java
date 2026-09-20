@@ -1,5 +1,7 @@
 package art.arcane.iris.modded.service;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedPlatformWorld;
+
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineMetrics;
 import art.arcane.iris.world.IrisWorld;
@@ -49,13 +51,14 @@ public class ModdedChunkUpdateServiceTest {
         when(engine.getMetrics()).thenReturn(new EngineMetrics(8));
         ServerLevel level = mock(ServerLevel.class);
         when(level.getMinY()).thenReturn(-64);
-        when(level.getMaxY()).thenReturn(320);
+        when(level.getMaxY()).thenReturn(319);
+        when(level.getHeight()).thenReturn(384);
         BlockPos position = new BlockPos(15, -59, 14);
         BlockState falling = Blocks.WATER.defaultBlockState().setValue(LiquidBlock.LEVEL, 8);
         when(level.getBlockState(position)).thenReturn(falling);
         UpdateRecordingMantleChunk chunk = new UpdateRecordingMantleChunk();
 
-        new ModdedChunkUpdateService().runUpdatePass(engine, level, 0, 0, chunk);
+        new ModdedChunkUpdateService().runUpdatePass(engine, new ModdedPlatformWorld(level), 0, 0, chunk);
 
         assertEquals(8, falling.getValue(LiquidBlock.LEVEL).intValue());
         if (falling.getFluidState().hasProperty(FlowingFluid.FALLING)) {

@@ -5,9 +5,9 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.iris.spi.PlatformBiomeWriter;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import org.junit.After;
@@ -35,8 +35,8 @@ public class EngineHostHeightTest {
     @Before
     public void bindPlatform() {
         IrisPlatforms.unbind();
-        PlatformBiome biome = mock(PlatformBiome.class);
-        PlatformBlockState block = mock(PlatformBlockState.class);
+        NativeBiome biome = mock(NativeBiome.class);
+        NativeBlockState block = mock(NativeBlockState.class);
         PlatformRegistries registries = mock(PlatformRegistries.class);
         when(registries.biome(anyString())).thenReturn(biome);
         when(registries.block(anyString())).thenReturn(block);

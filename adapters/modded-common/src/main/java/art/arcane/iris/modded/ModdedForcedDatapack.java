@@ -18,12 +18,15 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeDatapackSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldPaths;
+
 import art.arcane.iris.pack.datapack.IrisDatapackCompiler;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.RuntimeUiMessages;
-import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
-import art.arcane.iris.platform.bukkit.nms.datapack.IDataFixer;
+import art.arcane.iris.pack.datapack.DataVersion;
+import art.arcane.iris.pack.datapack.IDataFixer;
 import art.arcane.iris.pack.PackDirectoryResolver;
 import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.pack.PackValidator;
@@ -41,21 +44,6 @@ import art.arcane.iris.generation.terrain.IrisDimensionType;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
-import net.minecraft.network.chat.Component;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.packs.PackLocationInfo;
-import net.minecraft.server.packs.PackSelectionConfig;
-import net.minecraft.server.packs.PackType;
-import net.minecraft.server.packs.PathPackResources;
-import net.minecraft.server.packs.repository.Pack;
-import net.minecraft.server.packs.repository.PackSource;
-import net.minecraft.server.packs.repository.RepositorySource;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.dimension.DimensionType;
-import net.minecraft.world.level.storage.LevelResource;
 
 import java.io.File;
 import java.io.IOException;
@@ -77,7 +65,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public final class ModdedForcedDatapack {
@@ -94,12 +81,8 @@ public final class ModdedForcedDatapack {
     private ModdedForcedDatapack() {
     }
 
-    public static RepositorySource repositorySource() {
-        return (Consumer<Pack> consumer) -> {
-            Pack pack = servePack();
-            consumer.accept(pack);
-            LOADED.set(true);
-        };
+    public static NativeDatapackSource repositorySource() {
+        return new NativeDatapackSource(ModdedForcedDatapack::servePack, () -> LOADED.set(true));
     }
 
     /**
@@ -112,7 +95,7 @@ public final class ModdedForcedDatapack {
      * after an upgrade, and serving that directory hands Create World a pack without the current biome tags.
      * A published pack whose hash cannot be computed at all is still served, with one warning.
      */
-    private static Pack servePack() {
+    private static NativeDatapackSource.PackHandle servePack() {
         String currentHash = packsHashOrEmpty();
         PublishedState current = publishedState();
         if (current != null && !currentHash.isEmpty() && current.packsHash().equals(currentHash)) {
@@ -173,24 +156,13 @@ public final class ModdedForcedDatapack {
         return datapackRoot().resolve(PACK_FOLDER);
     }
 
-    private static Pack buildPack() {
+    private static NativeDatapackSource.PackHandle buildPack() {
         return requireReadablePack(regenerate());
     }
 
-    private static Pack requireReadablePack(Path directory) {
-        PackLocationInfo location = new PackLocationInfo(
-                PACK_ID,
-                Component.literal(IrisLanguage.plain(RuntimeUiMessages.FORCED_DATAPACK_NAME)),
-                PackSource.BUILT_IN,
-                Optional.empty());
-        PackSelectionConfig selection = new PackSelectionConfig(true, Pack.Position.TOP, true);
-        PathPackResources.PathResourcesSupplier supplier = new PathPackResources.PathResourcesSupplier(directory);
-        Pack pack = Pack.readMetaAndCreate(location, supplier, PackType.SERVER_DATA, selection);
-        if (pack == null) {
-            throw new IllegalStateException("Iris forced datapack at " + directory
-                    + " produced no readable pack metadata");
-        }
-        return pack;
+    private static NativeDatapackSource.PackHandle requireReadablePack(Path directory) {
+        return NativeDatapackSource.read(new NativeDatapackSource.Options(PACK_ID,
+                IrisLanguage.plain(RuntimeUiMessages.FORCED_DATAPACK_NAME), directory));
     }
 
     public static Path regenerate() {
@@ -782,9 +754,9 @@ public final class ModdedForcedDatapack {
     }
 
     private static Path worldRootOrNull() throws IOException {
-        MinecraftServer server = ModdedEngineBootstrap.currentServer();
-        if (server != null) {
-            return server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
+        Optional<Path> root = NativeWorldPaths.root(ModdedEngineBootstrap.currentServer());
+        if (root.isPresent()) {
+            return root.get();
         }
         if (ModdedEngineBootstrap.loader().clientEnvironment()) {
             return null;
@@ -799,12 +771,8 @@ public final class ModdedForcedDatapack {
         Set<PackSelection> selections = new LinkedHashSet<>();
         for (ModdedDimensionRegistryStore.PersistentDimension dimension
                 : ModdedDimensionRegistryStore.loadWorldRoot(worldRoot)) {
-            Identifier identifier = Identifier.tryParse(dimension.id());
-            if (identifier == null) {
-                throw new IOException("Invalid persistent Iris dimension ID '" + dimension.id() + "'.");
-            }
-            ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, identifier);
-            Path dimensionRoot = DimensionType.getStorageFolder(key, worldRoot).toAbsolutePath().normalize();
+            Path dimensionRoot = NativeWorldPaths.dimensionStorage(worldRoot, dimension.id())
+                    .orElseThrow(() -> new IOException("Invalid persistent Iris dimension ID '" + dimension.id() + "'."));
             Path generationRoot = GenerationHistoryPaths.forDimension(dimensionRoot).generationRoot();
             if (!Files.exists(generationRoot)) {
                 selections.add(new PackSelection(dimension.pack(), dimension.dimension()));

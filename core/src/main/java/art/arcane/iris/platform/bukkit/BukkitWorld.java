@@ -18,16 +18,16 @@
 
 package art.arcane.iris.platform.bukkit;
 
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 
 /**
  * Bukkit adapter for a neutral world view backed by org.bukkit.World.
  */
-public final class BukkitWorld implements PlatformWorld {
+public final class BukkitWorld implements NativeWorld {
     private final World world;
 
     public BukkitWorld(World world) {
@@ -55,17 +55,17 @@ public final class BukkitWorld implements PlatformWorld {
     }
 
     @Override
-    public PlatformBlockState getBlock(int x, int y, int z) {
+    public NativeBlockState getBlock(int x, int y, int z) {
         return BukkitBlockState.of(world.getBlockAt(x, y, z).getBlockData());
     }
 
     @Override
-    public void setBlock(int x, int y, int z, PlatformBlockState block, int flags) {
+    public void setBlock(int x, int y, int z, NativeBlockState block, int flags) {
         world.getBlockAt(x, y, z).setBlockData((BlockData) block.nativeHandle(), (flags & 1) != 0);
     }
 
     @Override
-    public PlatformBiome getBiome(int x, int y, int z) {
+    public NativeBiome getBiome(int x, int y, int z) {
         return BukkitBiome.of(world.getBiome(x, y, z));
     }
 

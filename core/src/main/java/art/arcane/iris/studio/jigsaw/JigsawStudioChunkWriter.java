@@ -13,7 +13,7 @@ import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.studio.generation.JigsawStudioGenerator;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -100,7 +100,7 @@ final class JigsawStudioChunkWriter {
             return rendered.failure();
         }
         for (JigsawStudioGenerator.RenderedBlock block : rendered.blocks()) {
-            PlatformBlockState state = block.state();
+            NativeBlockState state = block.state();
             if (state.isCustom()) {
                 return "custom block '" + state.key()
                         + "' requires provider-owned placement and cannot be swapped live in Studio";

@@ -18,13 +18,10 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+
 import art.arcane.iris.generation.runtime.IrisEngineMantle;
 import art.arcane.iris.world.history.GenerationHistoryPaths;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.dimension.DimensionType;
-import net.minecraft.world.level.storage.LevelResource;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,11 +43,11 @@ public final class ModdedDimensionStorage {
     private ModdedDimensionStorage() {
     }
 
-    public static File storageFolder(MinecraftServer server, ResourceKey<Level> dimension) {
-        return DimensionType.getStorageFolder(dimension, server.getWorldPath(LevelResource.ROOT)).toFile();
+    public static File storageFolder(NativeModdedServer server, String dimension) {
+        return server.dimensionFolder(dimension).toFile();
     }
 
-    public static void wipe(MinecraftServer server, ResourceKey<Level> dimension) {
+    public static void wipe(NativeModdedServer server, String dimension) {
         File storageFolder = storageFolder(server, dimension);
         try {
             for (String folder : CHUNK_DATA_FOLDERS) {

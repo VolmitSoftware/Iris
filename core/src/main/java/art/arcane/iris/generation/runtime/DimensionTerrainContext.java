@@ -15,7 +15,7 @@ import art.arcane.iris.generation.noise.IrisShapedGeneratorStyle;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.generation.terrain.Terrain3DRuntime;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.DataProvider;
 import art.arcane.volmlib.util.interpolation.NoiseBounds;
 import art.arcane.volmlib.util.stream.ProceduralStream;
@@ -43,7 +43,7 @@ public final class DimensionTerrainContext implements DataProvider {
     private final ProceduralStream<Double> fluidHeightStream;
     private final ProceduralStream<IrisBiome> biomeStream;
     private final ProceduralStream<IrisRegion> regionStream;
-    private final ProceduralStream<PlatformBlockState> rockStream;
+    private final ProceduralStream<NativeBlockState> rockStream;
     private final FluidBlockSampler fluidBlockSampler;
     private final IrisImageMapRuntime imageMapRuntime;
     private final boolean selfReferencing;
@@ -400,12 +400,12 @@ public final class DimensionTerrainContext implements DataProvider {
                 : GenerationStreams.cache2DDouble(ProceduralStream.ofDouble((x, z) -> shapedHeight(terrain3D, x, z)), cachePrefix + "Terrain3DHeightStream", engine, cacheSize);
         ProceduralStream<Double> slopeStream = GenerationStreams.cache2DDouble(shapedHeightStream.slope(3), cachePrefix + "SlopeStream", engine, cacheSize);
 
-        ProceduralStream<PlatformBlockState> rockStream = dimension.getRockPalette()
+        ProceduralStream<NativeBlockState> rockStream = dimension.getRockPalette()
                 .getLayerGenerator(rng.nextParallelRNG(45), dimensionData).stream()
                 .select(dimension.getRockPalette().getBlockData(dimensionData));
         FluidBlockSampler fluidBlockSampler;
         if (includeFluid) {
-            ProceduralStream<PlatformBlockState> fluidStream = dimension.getFluidPalette()
+            ProceduralStream<NativeBlockState> fluidStream = dimension.getFluidPalette()
                     .getLayerGenerator(rng.nextParallelRNG(78), dimensionData).stream()
                     .select(dimension.getFluidPalette().getBlockData(dimensionData));
             fluidBlockSampler = fluidStream::get;
@@ -493,13 +493,13 @@ public final class DimensionTerrainContext implements DataProvider {
         return mappedBiome == null ? proceduralBiome : mappedBiome;
     }
 
-    static PlatformBlockState mappedSurfaceBlock(
+    static NativeBlockState mappedSurfaceBlock(
             IrisImageMapRuntime imageMapRuntime,
-            PlatformBlockState proceduralBlock,
+            NativeBlockState proceduralBlock,
             double worldX,
             double worldZ
     ) {
-        PlatformBlockState mappedBlock = imageMapRuntime.sampleSurfaceBlock(worldX, worldZ);
+        NativeBlockState mappedBlock = imageMapRuntime.sampleSurfaceBlock(worldX, worldZ);
         return mappedBlock == null ? proceduralBlock : mappedBlock;
     }
 
@@ -722,22 +722,22 @@ public final class DimensionTerrainContext implements DataProvider {
         return regionStream == null ? null : regionStream.get(x, z);
     }
 
-    public PlatformBlockState getRockBlock(double x, double z) {
+    public NativeBlockState getRockBlock(double x, double z) {
         return rockStream.get(x, z);
     }
 
-    public PlatformBlockState getFluidBlock(double x, double z) {
+    public NativeBlockState getFluidBlock(double x, double z) {
         return getFluidBlock(x, z, usesNaturalFallback(x, z));
     }
 
-    private PlatformBlockState getFluidBlock(double x, double z, boolean naturalFallback) {
+    private NativeBlockState getFluidBlock(double x, double z, boolean naturalFallback) {
         if (naturalFallback && selfFallback != null) {
             return selfFallback.fluidBlockSampler().sample(x, z);
         }
         return fluidBlockSampler.sample(x, z);
     }
 
-    public PlatformBlockState getSurfaceBlock(double x, double z) {
+    public NativeBlockState getSurfaceBlock(double x, double z) {
         return imageMapRuntime.sampleSurfaceBlock(x, z);
     }
 
@@ -779,7 +779,7 @@ public final class DimensionTerrainContext implements DataProvider {
     }
 
     private interface FluidBlockSampler {
-        PlatformBlockState sample(double x, double z);
+        NativeBlockState sample(double x, double z);
     }
 
     private record ContextState(
@@ -792,7 +792,7 @@ public final class DimensionTerrainContext implements DataProvider {
             ProceduralStream<Double> fluidHeightStream,
             ProceduralStream<IrisBiome> biomeStream,
             ProceduralStream<IrisRegion> regionStream,
-            ProceduralStream<PlatformBlockState> rockStream,
+            ProceduralStream<NativeBlockState> rockStream,
             FluidBlockSampler fluidBlockSampler,
             IrisImageMapRuntime imageMapRuntime,
             boolean selfReferencing,
@@ -815,9 +815,9 @@ public final class DimensionTerrainContext implements DataProvider {
             double fluidHeight,
             IrisBiome biome,
             IrisRegion region,
-            PlatformBlockState rockBlock,
-            PlatformBlockState fluidBlock,
-            PlatformBlockState surfaceBlock,
+            NativeBlockState rockBlock,
+            NativeBlockState fluidBlock,
+            NativeBlockState surfaceBlock,
             Terrain3DColumn terrainColumn
     ) {
     }

@@ -26,7 +26,7 @@ import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.pack.validation.MissingBlockState;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.IrisCustomData;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.collection.KList;
@@ -61,7 +61,7 @@ public class IrisObjectRotation {
     private static volatile StateRotator PLATFORM_ROTATOR = null;
 
     public interface StateRotator {
-        PlatformBlockState rotate(IrisObjectRotation rotation, PlatformBlockState state, int spinx, int spiny, int spinz);
+        NativeBlockState rotate(IrisObjectRotation rotation, NativeBlockState state, int spinx, int spiny, int spinz);
     }
 
     public static synchronized StateRotator bindPlatformRotator(StateRotator rotator) {
@@ -289,7 +289,7 @@ public class IrisObjectRotation {
 
     }
 
-    public PlatformBlockState rotate(PlatformBlockState state, int spinx, int spiny, int spinz) {
+    public NativeBlockState rotate(NativeBlockState state, int spinx, int spiny, int spinz) {
         if (state == null) {
             return null;
         }

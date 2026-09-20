@@ -1,6 +1,7 @@
 package art.arcane.iris;
 
 import art.arcane.iris.platform.bootstrap.SlimJar;
+import io.papermc.paper.ServerBuildInfo;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContext;
 import io.papermc.paper.plugin.loader.PluginClasspathBuilder;
 import io.papermc.paper.plugin.loader.PluginLoader;
@@ -18,7 +19,7 @@ public final class IrisPluginLoader implements PluginLoader {
     public void classloader(PluginClasspathBuilder classpathBuilder) {
         PluginProviderContext context = classpathBuilder.getContext();
         Path libraryRoot = context.getDataDirectory().resolve("cache").resolve("libraries");
-        SlimJar.loadBootstrap(libraryRoot, new SlimJar.BootstrapLogger() {
+        SlimJar.loadBootstrap(libraryRoot, ServerBuildInfo.buildInfo().minecraftVersionId(), new SlimJar.BootstrapLogger() {
             @Override
             public void info(String message) {
                 context.getLogger().info(message);
@@ -35,7 +36,9 @@ public final class IrisPluginLoader implements PluginLoader {
             }
         });
         for (Path library : relocatedLibraries(libraryRoot)) {
-            classpathBuilder.addLibrary(new JarLibrary(library));
+            if (!library.startsWith(libraryRoot.resolve("com/github/VolmitSoftware/VolmLib"))) {
+                classpathBuilder.addLibrary(new JarLibrary(library));
+            }
         }
     }
 

@@ -35,11 +35,11 @@ import com.google.gson.stream.JsonWriter;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.pack.PackDirectoryResolver;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 import art.arcane.iris.world.loot.IrisBlockDrops;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.structure.graph.StructureGraphCatalog;
 import art.arcane.iris.world.history.GenerationPackFingerprint;
@@ -809,7 +809,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private void collectBlockDropMaterials(Set<String> materials, KList<IrisBlockDrops> rules) {
         for (IrisBlockDrops rule : rules) {
             for (IrisBlockData block : rule.getBlocks()) {
-                PlatformBlockState state = block.getBlockData(this);
+                NativeBlockState state = block.getBlockData(this);
                 if (state != null) {
                     materials.add(IrisProceduralBlocks.materialKey(state.placementBaseState()));
                 }

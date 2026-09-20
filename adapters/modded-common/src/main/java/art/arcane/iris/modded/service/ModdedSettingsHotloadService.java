@@ -20,7 +20,7 @@ package art.arcane.iris.modded.service;
 
 import art.arcane.iris.configuration.SettingsHotloadWatch;
 import art.arcane.iris.spi.IrisPlatforms;
-import net.minecraft.server.MinecraftServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +45,7 @@ public final class ModdedSettingsHotloadService implements ModdedTickableService
     }
 
     @Override
-    public void onServerTick(MinecraftServer server) {
+    public void onServerTick(NativeModdedServer server) {
         SettingsHotloadWatch active = hotloadWatch;
         if (active == null) {
             return;

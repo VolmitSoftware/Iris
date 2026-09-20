@@ -19,101 +19,63 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.studio.view.GuiHost;
-import art.arcane.iris.studio.view.GuiMarker;
+import art.arcane.volmlib.nativelib.view.WorldMarker;
 import art.arcane.iris.studio.view.GuiOverlay;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.studio.render.RenderType;
-import art.arcane.iris.modded.ModdedDimensionManager;
 import art.arcane.iris.modded.ModdedIrisLog;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.phys.Vec3;
 
 import java.awt.Desktop;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import art.arcane.volmlib.nativelib.view.WorldView;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public final class ModdedVisionOverlay implements GuiOverlay {
-    private final MinecraftServer server;
-    private final ServerLevel level;
+    private final WorldView world;
     private final Engine engine;
     private final UUID opener;
 
-    public ModdedVisionOverlay(MinecraftServer server, ServerLevel level, Engine engine, UUID opener) {
-        this.server = server;
-        this.level = level;
-        this.engine = engine;
-        this.opener = opener;
+    public ModdedVisionOverlay(Context context) {
+        world = context.world();
+        engine = context.engine();
+        opener = context.opener();
     }
 
     @Override
-    public List<GuiMarker> players() {
-        List<GuiMarker> markers = new ArrayList<>();
-        for (ServerPlayer player : level.players()) {
-            Vec3 position = player.position();
-            markers.add(GuiMarker.player(player.getScoreboardName(), position.x(), position.z()));
-        }
-        return markers;
+    public List<WorldMarker> players() {
+        return world.players();
     }
 
     @Override
-    public void requestEntities(Consumer<List<GuiMarker>> sink) {
-        server.execute(() -> {
-            List<GuiMarker> markers = new ArrayList<>();
-            for (Entity entity : level.getAllEntities()) {
-                if (entity instanceof ServerPlayer || !(entity instanceof LivingEntity living)) {
-                    continue;
-                }
-                Vec3 position = living.position();
-                markers.add(GuiMarker.entity(living.getType().toShortString(), position.x(), position.y(), position.z(),
-                        living.getHealth(), living.getMaxHealth()));
-            }
-            sink.accept(markers);
-        });
+    public void requestEntities(Consumer<List<WorldMarker>> sink) {
+        world.requestEntities(sink);
     }
 
     @Override
     public void teleport(double worldX, double worldZ) {
         int blockX = (int) Math.floor(worldX);
         int blockZ = (int) Math.floor(worldZ);
-        server.execute(() -> {
-            ServerPlayer player = opener == null ? null : server.getPlayerList().getPlayer(opener);
-            if (player == null) {
-                if (opener != null) {
-                    return;
-                }
-                List<ServerPlayer> players = level.players();
-                if (players.isEmpty()) {
-                    return;
-                }
-                player = players.get(0);
-            }
+        world.execute(() -> {
             int surfaceY = engine.getMinHeight() + engine.getHeight(blockX, blockZ, false) + 2;
-            CompletableFuture<Boolean> teleport = ModdedDimensionManager.teleportAsync(
-                    player,
-                    server,
-                    level,
-                    blockX + 0.5D,
-                    surfaceY,
-                    blockZ + 0.5D,
-                    System.nanoTime() + TimeUnit.SECONDS.toNanos(10L));
-            UUID playerId = player.getUUID();
-            teleport.whenComplete((success, failure) -> {
+            Optional<WorldView.TeleportOperation> operation = world.teleport(opener,
+                    new WorldView.Destination(blockX + 0.5D, surfaceY, blockZ + 0.5D,
+                            System.nanoTime() + TimeUnit.SECONDS.toNanos(10L)));
+            if (operation.isEmpty()) {
+                return;
+            }
+            WorldView.TeleportOperation teleport = operation.get();
+            teleport.result().whenComplete((success, failure) -> {
                 if (failure != null) {
                     ModdedIrisLog.error("Iris Vision teleport failed for {} at {},{}",
-                            playerId, blockX, blockZ, failure);
+                            teleport.playerId(), blockX, blockZ, failure);
                 } else if (!Boolean.TRUE.equals(success)) {
                     ModdedIrisLog.warn("Iris Vision teleport did not complete for {} at {},{}",
-                            playerId, blockX, blockZ);
+                            teleport.playerId(), blockX, blockZ);
                 }
             });
         });
@@ -136,4 +98,7 @@ public final class ModdedVisionOverlay implements GuiOverlay {
         };
         return file == null ? null : file.getName();
     }
+    public record Context(WorldView world, Engine engine, UUID opener) {
+    }
+
 }

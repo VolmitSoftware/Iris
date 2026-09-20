@@ -1,6 +1,11 @@
 package art.arcane.iris.structure.nativegen;
 
 import art.arcane.iris.structure.placement.IrisStructureStiltSettings;
+import art.arcane.iris.structure.placement.StructurePlacementGrid;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureFingerprint;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureOwnershipRecordView;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureReferenceBounds;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureTerrainSettings;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
 import com.google.gson.Gson;
 
@@ -31,9 +36,8 @@ public record NativeStructureOwnershipRecord(
         int referenceMaxChunkZ,
         String contentFingerprint,
         DecisionSnapshot decision
-) {
+) implements StructureOwnershipRecordView<NativeStructureOwnershipRecord> {
     public static final int CURRENT_SCHEMA = 2;
-    public static final int MAX_REFERENCE_DISTANCE_CHUNKS = 8;
     private static final int MAX_KEY_BYTES = 512;
     private static final int MAX_FINGERPRINT_BYTES = 128;
 
@@ -68,6 +72,21 @@ public record NativeStructureOwnershipRecord(
             throw new IllegalArgumentException("Native structure content fingerprint must be SHA-256 hex");
         }
         decision = Objects.requireNonNull(decision, "Native structure decision snapshot must not be null");
+    }
+
+    public static NativeStructureOwnershipRecord capture(
+            StructureFingerprint fingerprint, NativeStructureStartPlan plan) {
+        Objects.requireNonNull(fingerprint, "Native structure fingerprint must not be null");
+        Objects.requireNonNull(plan, "Native structure start plan must not be null");
+        return create(
+                fingerprint.structureKey(), fingerprint.originChunkX(), fingerprint.originChunkZ(),
+                StructurePlacementGrid.placementIdentity(plan.placement()), plan.baseY(),
+                fingerprint.contentMinX(), fingerprint.contentMinY(), fingerprint.contentMinZ(),
+                fingerprint.contentMaxX(), fingerprint.contentMaxY(), fingerprint.contentMaxZ(),
+                fingerprint.locatorY(),
+                fingerprint.referenceMinChunkX(), fingerprint.referenceMaxChunkX(),
+                fingerprint.referenceMinChunkZ(), fingerprint.referenceMaxChunkZ(),
+                fingerprint.contentFingerprint(), NativeStructurePlacementPlanner.decisionFor(plan));
     }
 
     public static NativeStructureOwnershipRecord create(String structureKey,
@@ -111,14 +130,14 @@ public record NativeStructureOwnershipRecord(
         );
     }
 
-    public boolean covers(int chunkX, int chunkZ) {
-        return chunkX >= referenceMinChunkX && chunkX <= referenceMaxChunkX
-                && chunkZ >= referenceMinChunkZ && chunkZ <= referenceMaxChunkZ;
+    @Override
+    public StructureTerrainSettings terrain() {
+        return restoredDecision().terrain();
     }
 
+    @Override
     public NativeStructureOwnershipRecord withReferenceEnvelope(
-            int referenceMinChunkX, int referenceMaxChunkX,
-            int referenceMinChunkZ, int referenceMaxChunkZ) {
+            StructureReferenceBounds bounds) {
         return new NativeStructureOwnershipRecord(
                 schema,
                 structureKey,
@@ -133,10 +152,10 @@ public record NativeStructureOwnershipRecord(
                 contentMaxY,
                 contentMaxZ,
                 locatorY,
-                referenceMinChunkX,
-                referenceMaxChunkX,
-                referenceMinChunkZ,
-                referenceMaxChunkZ,
+                bounds.minChunkX(),
+                bounds.maxChunkX(),
+                bounds.minChunkZ(),
+                bounds.maxChunkZ(),
                 contentFingerprint,
                 decision
         );

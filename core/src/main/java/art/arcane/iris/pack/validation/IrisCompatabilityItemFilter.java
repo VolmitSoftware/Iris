@@ -21,7 +21,7 @@ package art.arcane.iris.pack.validation;
 import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.Required;
 import lombok.Data;

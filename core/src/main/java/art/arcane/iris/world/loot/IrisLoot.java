@@ -26,7 +26,7 @@ import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.integration.ExternalDataSVC;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.structure.placement.LootResolver;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;

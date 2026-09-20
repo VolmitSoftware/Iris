@@ -23,7 +23,7 @@ import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.structure.object.IrisObject;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
@@ -31,7 +31,7 @@ import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
 import art.arcane.iris.pack.schema.annotation.Required;
 import art.arcane.iris.pack.schema.annotation.Snippet;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.math.Vector3i;
@@ -57,7 +57,7 @@ public class IrisDepositGenerator {
     private static final long FNV_PRIME = 0x100000001b3L;
 
     private final transient ConcurrentMap<ClumpCacheKey, KList<IrisObject>> objects = new ConcurrentHashMap<>();
-    private final transient AtomicCache<KList<PlatformBlockState>> blockData = new AtomicCache<>();
+    private final transient AtomicCache<KList<NativeBlockState>> blockData = new AtomicCache<>();
     private final transient AtomicCache<Boolean> ore = new AtomicCache<>();
     private final transient AtomicCache<KSet<String>> replaceableBlockData = new AtomicCache<>();
     private final transient AtomicCache<KSet<String>> surfaceReplaceableBlockData = new AtomicCache<>();
@@ -210,9 +210,9 @@ public class IrisDepositGenerator {
         hash = mix(hash, Double.doubleToLongBits(spawnChance));
         hash = mix(hash, Double.doubleToLongBits(perClumpSpawnChance));
         hash = mix(hash, Double.doubleToLongBits(discardChanceOnAirExposure));
-        KList<PlatformBlockState> resolvedPalette = getBlockData(rdata);
+        KList<NativeBlockState> resolvedPalette = getBlockData(rdata);
         hash = mix(hash, resolvedPalette.size());
-        for (PlatformBlockState block : resolvedPalette) {
+        for (NativeBlockState block : resolvedPalette) {
             hash = mixString(hash, block == null ? null : block.key());
         }
         hash = mix(hash, varience);
@@ -443,17 +443,17 @@ public class IrisDepositGenerator {
         return o;
     }
 
-    private PlatformBlockState nextBlock(RNG rngv, IrisData rdata) {
+    private NativeBlockState nextBlock(RNG rngv, IrisData rdata) {
         return getBlockData(rdata).get(rngv.i(0, getBlockData(rdata).size()));
     }
 
-    public KList<PlatformBlockState> getBlockData(IrisData rdata) {
+    public KList<NativeBlockState> getBlockData(IrisData rdata) {
         return blockData.aquire(() ->
         {
-            KList<PlatformBlockState> blockData = new KList<>();
+            KList<NativeBlockState> blockData = new KList<>();
 
             for (IrisBlockData ix : palette) {
-                PlatformBlockState bx = ix.getBlockData(rdata);
+                NativeBlockState bx = ix.getBlockData(rdata);
 
                 if (bx != null) {
                     blockData.add(bx);
@@ -466,7 +466,7 @@ public class IrisDepositGenerator {
 
     public boolean isOre(IrisData rdata) {
         return ore.aquire(() -> {
-            for (PlatformBlockState block : getBlockData(rdata)) {
+            for (NativeBlockState block : getBlockData(rdata)) {
                 if (block.isOre()) {
                     return true;
                 }
@@ -476,7 +476,7 @@ public class IrisDepositGenerator {
         });
     }
 
-    public boolean canReplace(PlatformBlockState state) {
+    public boolean canReplace(NativeBlockState state) {
         if (replaceableBlocks == null || replaceableBlocks.isEmpty()) {
             return true;
         }
@@ -492,7 +492,7 @@ public class IrisDepositGenerator {
         return this;
     }
 
-    public boolean canReplaceSurface(PlatformBlockState state) {
+    public boolean canReplaceSurface(NativeBlockState state) {
         if (surfaceReplaceableBlocks == null || surfaceReplaceableBlocks.isEmpty()) {
             return true;
         }
@@ -507,7 +507,7 @@ public class IrisDepositGenerator {
         return surfaceReplaceableBlocks != null && !surfaceReplaceableBlocks.isEmpty();
     }
 
-    public boolean canReplaceSurface(PlatformBlockState state, IrisBiome surfaceBiome) {
+    public boolean canReplaceSurface(NativeBlockState state, IrisBiome surfaceBiome) {
         if (surfaceBiome != null && surfaceBiome.hasSurfaceOreReplaceableBlocks()) {
             return surfaceBiome.canReplaceSurfaceOre(state);
         }
@@ -539,7 +539,7 @@ public class IrisDepositGenerator {
     private KSet<String> resolveBlockKeys(KList<String> keys) {
         KSet<String> resolved = new KSet<>();
         for (String key : keys) {
-            PlatformBlockState state = B.getStateOrNull(key, false);
+            NativeBlockState state = B.getStateOrNull(key, false);
             if (state != null) {
                 resolved.add(IrisProceduralBlocks.materialKey(state));
             }

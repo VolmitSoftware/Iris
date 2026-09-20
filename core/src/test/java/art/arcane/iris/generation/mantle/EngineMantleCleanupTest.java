@@ -3,7 +3,7 @@ package art.arcane.iris.generation.mantle;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.world.storage.matter.PreObjectMatterCell;
 import art.arcane.iris.world.storage.matter.TileWrapper;
@@ -52,7 +52,7 @@ public class EngineMantleCleanupTest {
         fixture.engineMantle().cleanupChunk(7, -4);
 
         verify(fixture.chunk(), never()).deleteSlices(MatterCavern.class);
-        verify(fixture.chunk()).deleteSlices(PlatformBlockState.class);
+        verify(fixture.chunk()).deleteSlices(NativeBlockState.class);
     }
 
     @Test
@@ -66,7 +66,7 @@ public class EngineMantleCleanupTest {
         verify(fixture.chunk(), never()).deleteSlices(TreeBlockMaterial.class);
         verify(fixture.chunk(), never()).deleteSlices(String.class);
         verify(fixture.chunk()).deleteSlices(MatterCavern.class);
-        verify(fixture.chunk()).deleteSlices(PlatformBlockState.class);
+        verify(fixture.chunk()).deleteSlices(NativeBlockState.class);
     }
 
     @Test
@@ -85,12 +85,12 @@ public class EngineMantleCleanupTest {
 
     @Test
     public void blockStateSliceIsNeverRetainable() {
-        MantleSliceRetention.retain(PlatformBlockState.class.getCanonicalName());
+        MantleSliceRetention.retain(NativeBlockState.class.getCanonicalName());
         CleanupFixture fixture = cleanupFixture();
 
         fixture.engineMantle().forceCleanupChunk(7, -4);
 
-        verify(fixture.chunk()).deleteSlices(PlatformBlockState.class);
+        verify(fixture.chunk()).deleteSlices(NativeBlockState.class);
     }
 
     @Test
@@ -180,7 +180,7 @@ public class EngineMantleCleanupTest {
     }
 
     private void verifyCleanup(MantleChunk<Matter> chunk) {
-        verify(chunk).deleteSlices(PlatformBlockState.class);
+        verify(chunk).deleteSlices(NativeBlockState.class);
         verify(chunk).deleteSlices(MatterCavern.class);
         verify(chunk).deleteSlices(PreObjectMatterCell.class);
         verify(chunk, never()).deleteSlices(TileWrapper.class);

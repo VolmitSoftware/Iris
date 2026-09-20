@@ -33,7 +33,7 @@ import art.arcane.iris.pack.loading.IrisRegistrant;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.volmlib.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -101,12 +101,12 @@ public class IrisSpawner extends IrisRegistrant {
         };
     }
 
-    public boolean isValid(PlatformWorld world) {
+    public boolean isValid(NativeWorld world) {
         return timeBlock.isWithin(world) && weather.is(world);
     }
 
     public boolean canSpawn(Engine engine) {
-        PlatformWorld world = engine.getWorld().platformWorld();
+        NativeWorld world = engine.getWorld().platformWorld();
         if (world == null || !isValid(world))
             return false;
 

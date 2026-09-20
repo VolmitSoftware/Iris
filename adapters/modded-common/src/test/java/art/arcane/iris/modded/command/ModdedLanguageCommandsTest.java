@@ -6,7 +6,7 @@ import art.arcane.volmlib.util.localization.PluginLanguageService;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.SharedConstants;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.Bootstrap;
@@ -67,13 +67,13 @@ public class ModdedLanguageCommandsTest {
             language.when(IrisLanguage::availableLocales).thenReturn(Set.of("de_DE"));
             language.when(() -> IrisLanguage.plain(DirectorHelpMessages.BACK)).thenReturn("Back");
             CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
-            dispatcher.register(Commands.literal("iris").then(ModdedLanguageCommands.tree()));
+            new NativeCommandRegistration(dispatcher).register(NativeCommandRegistration.literal("iris").then(ModdedLanguageCommands.tree()));
 
             assertEquals(1, dispatcher.execute("iris language", source));
         }
 
         assertEquals(6, rendered.size());
-        assertEquals(ModdedCommandFeedback.banner("/iris language"), rendered.getFirst());
+        assertEquals(ModdedCommandFeedback.banner("/iris language").getString(), rendered.getFirst().getString());
         assertEquals(new ClickEvent.RunCommand("/iris"), rendered.get(1).getStyle().getClickEvent());
         assertEquals("Iris language: en_US", rendered.get(2).getString());
         Component locale = rendered.get(3);
@@ -82,7 +82,7 @@ public class ModdedLanguageCommandsTest {
         assertEquals(new ClickEvent.RunCommand("/iris language self de_DE"),
                 locale.getSiblings().getFirst().getStyle().getClickEvent());
         assertEquals(new ClickEvent.RunCommand("/iris language self reset"), rendered.get(4).getStyle().getClickEvent());
-        assertEquals(ModdedCommandFeedback.footer(), rendered.getLast());
+        assertEquals(ModdedCommandFeedback.footer().getString(), rendered.getLast().getString());
     }
 
     private void assertPersonalCompletion(String requested, String selected, String expected) throws Exception {
@@ -114,7 +114,7 @@ public class ModdedLanguageCommandsTest {
         try (MockedStatic<IrisLanguage> language = mockStatic(IrisLanguage.class)) {
             language.when(IrisLanguage::selections).thenReturn(service);
             CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
-            dispatcher.register(Commands.literal("iris").then(ModdedLanguageCommands.tree()));
+            new NativeCommandRegistration(dispatcher).register(NativeCommandRegistration.literal("iris").then(ModdedLanguageCommands.tree()));
             assertEquals(1, dispatcher.execute("iris language self " + requested, source));
             assertTrue(rendered.isEmpty());
             selection.complete(null);

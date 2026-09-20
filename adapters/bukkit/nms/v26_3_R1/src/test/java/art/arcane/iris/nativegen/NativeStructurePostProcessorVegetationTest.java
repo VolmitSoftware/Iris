@@ -1,5 +1,11 @@
 package art.arcane.iris.nativegen.v26_3_R1;
 
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureVerticalPlacer;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureSurfaceFitter;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureVegetationClearer;
+
 import com.mojang.serialization.Codec;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;

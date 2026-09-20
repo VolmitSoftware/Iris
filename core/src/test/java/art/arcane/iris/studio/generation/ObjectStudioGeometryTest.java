@@ -11,7 +11,7 @@ import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.generation.block.TileData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.iris.world.storage.matter.PreObjectMatterTest;
 import art.arcane.volmlib.util.collection.KMap;
@@ -109,7 +109,7 @@ public class ObjectStudioGeometryTest {
         IrisObject source = filled(5, 3, 4, new Position(-3, -2, -2), new Position(1, -1, 1));
         Fixture fixture = fixture(source, 64, new Position(14, 65, 14));
 
-        Map<Position, PlatformBlockState> rendered = render(fixture);
+        Map<Position, NativeBlockState> rendered = render(fixture);
 
         assertPlacement(fixture, rendered, new Position(-3, -2, -2));
         assertEquals(40, source.getBlocks().size());
@@ -130,11 +130,11 @@ public class ObjectStudioGeometryTest {
             TileData tile = new TileData("minecraft:chest", properties);
             source.getStates().put(new IrisBlockVector(minimum.x(), minimum.y(), minimum.z()), tile);
             Fixture fixture = fixture(source, 64, new Position(-18, 65, -17));
-            Map<Position, PlatformBlockState> rendered = render(fixture);
+            Map<Position, NativeBlockState> rendered = render(fixture);
             assertPlacement(fixture, rendered, minimum);
 
             IrisObject captured = fixture.generator().createCapture(fixture.cell());
-            for (Map.Entry<Position, PlatformBlockState> entry : rendered.entrySet()) {
+            for (Map.Entry<Position, NativeBlockState> entry : rendered.entrySet()) {
                 Position position = entry.getKey();
                 captured.setUnsigned(position.x() - fixture.cell().originX(),
                         position.y() - fixture.cell().originY(), position.z() - fixture.cell().originZ(),
@@ -160,7 +160,7 @@ public class ObjectStudioGeometryTest {
         IrisObject source = filled(5, 3, 4, new Position(-3, -2, -2), new Position(1, -1, 1));
         Fixture fixture = fixture(source, 160, new Position(2, 65, 2));
 
-        Map<Position, PlatformBlockState> rendered = render(fixture);
+        Map<Position, NativeBlockState> rendered = render(fixture);
 
         assertEquals(161, fixture.cell().originY());
         assertPlacement(fixture, rendered, new Position(-3, -2, -2));
@@ -168,7 +168,7 @@ public class ObjectStudioGeometryTest {
     }
 
     private static IrisObject filled(int width, int height, int depth, Position minimum, Position maximum) {
-        PlatformBlockState block = mock(PlatformBlockState.class);
+        NativeBlockState block = mock(NativeBlockState.class);
         when(block.key()).thenReturn("minecraft:oak_leaves[persistent=true]");
         IrisObject object = new IrisObject(width, height, depth);
         for (int x = minimum.x(); x <= maximum.x(); x++) {
@@ -215,7 +215,7 @@ public class ObjectStudioGeometryTest {
         when(engine.getMaxHeight()).thenReturn(320);
         when(engine.acquireGenerationLease(anyString())).thenAnswer(invocation -> GenerationSessionLease.noop());
         ObjectStudioGenerator generator = new ObjectStudioGenerator(engine, 2,
-                mock(PlatformBlockState.class), mock(PlatformBlockState.class), mock(PlatformBlockState.class));
+                mock(NativeBlockState.class), mock(NativeBlockState.class), mock(NativeBlockState.class));
         TerrainChunk initial = mock(TerrainChunk.class);
         when(initial.getMaxHeight()).thenReturn(320);
         Map<Position, TileData> tiles = new HashMap<>();
@@ -238,9 +238,9 @@ public class ObjectStudioGeometryTest {
         return new Fixture(generator, engine, placed, source, tiles, service);
     }
 
-    private static Map<Position, PlatformBlockState> render(Fixture fixture) throws Exception {
-        Map<Position, PlatformBlockState> rendered = new HashMap<>();
-        PlatformBlockState objectBlock = fixture.source().getBlocks().values().iterator().next();
+    private static Map<Position, NativeBlockState> render(Fixture fixture) throws Exception {
+        Map<Position, NativeBlockState> rendered = new HashMap<>();
+        NativeBlockState objectBlock = fixture.source().getBlocks().values().iterator().next();
         for (int chunkX = fixture.cell().chunkMinX(); chunkX <= fixture.cell().chunkMaxX(); chunkX++) {
             for (int chunkZ = fixture.cell().chunkMinZ(); chunkZ <= fixture.cell().chunkMaxZ(); chunkZ++) {
                 int originX = chunkX << 4;
@@ -252,7 +252,7 @@ public class ObjectStudioGeometryTest {
                     int y = invocation.getArgument(1);
                     int z = invocation.getArgument(2);
                     assertTrue(x >= 0 && x < 16 && z >= 0 && z < 16);
-                    PlatformBlockState block = invocation.getArgument(3);
+                    NativeBlockState block = invocation.getArgument(3);
                     if (block == objectBlock) {
                         rendered.put(new Position(originX + x, y, originZ + z), block);
                     }
@@ -267,9 +267,9 @@ public class ObjectStudioGeometryTest {
         return rendered;
     }
 
-    private static void assertPlacement(Fixture fixture, Map<Position, PlatformBlockState> rendered, Position minimum) {
+    private static void assertPlacement(Fixture fixture, Map<Position, NativeBlockState> rendered, Position minimum) {
         assertEquals(fixture.source().getBlocks().size(), rendered.size());
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : fixture.source().getBlocks()) {
+        for (Map.Entry<IrisBlockVector, NativeBlockState> entry : fixture.source().getBlocks()) {
             IrisBlockVector signed = entry.getKey();
             Position expected = new Position(fixture.cell().originX() + signed.getBlockX() - minimum.x(),
                     fixture.cell().originY() + signed.getBlockY() - minimum.y(),

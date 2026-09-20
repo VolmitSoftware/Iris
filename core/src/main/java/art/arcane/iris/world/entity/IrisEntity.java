@@ -18,6 +18,8 @@
 
 package art.arcane.iris.world.entity;
 
+import art.arcane.volmlib.nativelib.entity.NativeEntityOptions;
+
 import art.arcane.iris.command.IrisCommand;
 import art.arcane.iris.generation.decoration.IrisSurface;
 import art.arcane.iris.world.loot.InventorySlotType;
@@ -41,9 +43,9 @@ import art.arcane.iris.pack.schema.annotation.RegistryListEntityType;
 import art.arcane.iris.pack.schema.annotation.RegistryListSpecialEntity;
 import art.arcane.iris.pack.schema.annotation.Required;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
-import art.arcane.iris.platform.bukkit.registry.RegistryUtil;
+import art.arcane.iris.platform.registry.RegistryUtil;
 import art.arcane.iris.platform.bukkit.BukkitWorld;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.localization.C;
 import art.arcane.volmlib.util.math.M;
@@ -83,7 +85,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static art.arcane.iris.platform.bukkit.registry.Particles.ITEM;
+import static art.arcane.iris.platform.registry.Particles.ITEM;
 
 @SuppressWarnings("ALL")
 @Accessors(chain = true)
@@ -92,7 +94,7 @@ import static art.arcane.iris.platform.bukkit.registry.Particles.ITEM;
 @Description("Represents an iris entity.")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisEntity extends IrisRegistrant {
+public class IrisEntity extends IrisRegistrant implements NativeEntityOptions {
     @Required
     @RegistryListEntityType
     @Description("The namespaced key of the entity type to spawn, such as minecraft:zombie or alexsmobs:grizzly_bear. To spawn a mob from another plugin or provider, set this type to unknown and define the special type.")
@@ -384,7 +386,7 @@ public class IrisEntity extends IrisRegistrant {
 
         if (rawCommands.isNotEmpty()) {
             final Location fat = at;
-            final PlatformWorld commandWorld = new BukkitWorld(fat.getWorld());
+            final NativeWorld commandWorld = new BukkitWorld(fat.getWorld());
             rawCommands.forEach(r -> r.run(commandWorld, fat.getBlockX(), fat.getBlockY(), fat.getBlockZ()));
         }
 

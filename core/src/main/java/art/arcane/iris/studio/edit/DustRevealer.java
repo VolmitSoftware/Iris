@@ -260,7 +260,7 @@ public class DustRevealer {
             lines.add(new DustLine(IrisLanguage.text(
                     RuntimeUiMessages.DUST_SERVER_BIOME,
                     MessageArgument.untrusted("biome", INMS.get().getTrueBiomeBaseKey(block.getLocation())),
-                    MessageArgument.trusted("id", INMS.get().getTrueBiomeBaseId(INMS.get().getTrueBiomeBase(block.getLocation())))
+                    MessageArgument.trusted("id", INMS.get().getBiomeId(block.getLocation()))
             ), false));
         } catch (Throwable e) {
             IrisLogging.reportError(e);

@@ -1,6 +1,8 @@
 package art.arcane.iris.platform.bukkit.nms.v26_2_R1;
 
-import art.arcane.iris.nativegen.WorldgenTerrainHeightmaps;
+import art.arcane.volmlib.nativelib.v26_2_R1.terrain.NativeTerrainPipeline;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.WorldgenTerrainHeightmaps;
 import com.mojang.serialization.Codec;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
@@ -68,7 +70,7 @@ public class WorldgenTerrainHeightmapsTest {
     public void authoringHeightmapsReadPlacedObjectsAndFluidsWithoutTerrainResolvers() {
         ProtoChunk chunk = terrainChunk(new ChunkPos(0, 0));
 
-        IrisChunkGenerator.primeAuthoringHeightmaps(chunk);
+        NativeTerrainPipeline.primeAuthoringHeightmaps(chunk);
 
         assertEquals(LAND_CANOPY_TOP, chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, LAND_X, LAND_Z));
         assertEquals(LAND_CANOPY_TOP, chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, LAND_X, LAND_Z));

@@ -25,7 +25,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.math.Vector3i;
@@ -139,7 +139,7 @@ public final class IrisObjectIO {
 
         for (int i = 0; i < s; i++) {
             IrisBlockVector pos = new IrisBlockVector(din.readShort(), din.readShort(), din.readShort());
-            PlatformBlockState data = resolvePaletteState(self, din.readUTF());
+            NativeBlockState data = resolvePaletteState(self, din.readUTF());
             if (isExcludedObjectBlock(data)) {
                 continue;
             }
@@ -181,7 +181,7 @@ public final class IrisObjectIO {
 
         // Resolve the palette once: B.getState per BLOCK was a registry lookup times the
         // block count (tens of thousands) instead of times the palette size (hundreds).
-        PlatformBlockState[] resolved = new PlatformBlockState[palette.size()];
+        NativeBlockState[] resolved = new NativeBlockState[palette.size()];
         for (i = 0; i < resolved.length; i++) {
             resolved[i] = resolvePaletteState(self, palette.get(i));
         }
@@ -190,7 +190,7 @@ public final class IrisObjectIO {
 
         for (i = 0; i < s; i++) {
             IrisBlockVector pos = new IrisBlockVector(din.readShort(), din.readShort(), din.readShort());
-            PlatformBlockState data = resolved[din.readShort()];
+            NativeBlockState data = resolved[din.readShort()];
             if (isExcludedObjectBlock(data)) {
                 continue;
             }
@@ -233,8 +233,8 @@ public final class IrisObjectIO {
      * before the plain lookup, so a declared fallback actually reaches the world instead of becoming air. Present
      * keys take exactly one registry lookup, as before.
      */
-    private static PlatformBlockState resolvePaletteState(IrisObject self, String key) {
-        PlatformBlockState direct = B.getStateOrNull(key, false);
+    private static NativeBlockState resolvePaletteState(IrisObject self, String key) {
+        NativeBlockState direct = B.getStateOrNull(key, false);
 
         if (direct != null) {
             return direct;
@@ -247,7 +247,7 @@ public final class IrisObjectIO {
                 ContentGate gate = data.getContentGate();
 
                 if (gate != null && gate.ready()) {
-                    PlatformBlockState viaGate = gate.resolveBlockOrPlaceholder(key);
+                    NativeBlockState viaGate = gate.resolveBlockOrPlaceholder(key);
 
                     if (viaGate != null) {
                         return viaGate;
@@ -261,7 +261,7 @@ public final class IrisObjectIO {
         return B.getState(key);
     }
 
-    private static boolean isExcludedObjectBlock(PlatformBlockState data) {
+    private static boolean isExcludedObjectBlock(NativeBlockState data) {
         if (data == null) {
             return false;
         }
@@ -291,7 +291,7 @@ public final class IrisObjectIO {
 
     private static Palette buildPalette(IrisObject self) {
         Palette palette = new Palette();
-        for (PlatformBlockState i : self.blocks.values()) {
+        for (NativeBlockState i : self.blocks.values()) {
             palette.add(i.key());
         }
         return palette;
@@ -329,7 +329,7 @@ public final class IrisObjectIO {
 
         dos.writeInt(self.blocks.size());
 
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : self.blocks) {
+        for (Map.Entry<IrisBlockVector, NativeBlockState> entry : self.blocks) {
             writeBlock(dos, palette, entry);
         }
 
@@ -375,7 +375,7 @@ public final class IrisObjectIO {
 
                     dos.writeInt(self.blocks.size());
 
-                    for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : self.blocks) {
+                    for (Map.Entry<IrisBlockVector, NativeBlockState> entry : self.blocks) {
                         writeBlock(dos, palette, entry);
                         ++c;
                     }
@@ -424,7 +424,7 @@ public final class IrisObjectIO {
     }
 
     private static void writeBlock(DataOutputStream output, Palette palette,
-                                   Map.Entry<IrisBlockVector, PlatformBlockState> entry) throws IOException {
+                                   Map.Entry<IrisBlockVector, NativeBlockState> entry) throws IOException {
         IrisBlockVector position = entry.getKey();
         output.writeShort(position.getBlockX());
         output.writeShort(position.getBlockY());

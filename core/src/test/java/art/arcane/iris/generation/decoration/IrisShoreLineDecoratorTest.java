@@ -8,7 +8,7 @@ import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformRegistries;
@@ -43,7 +43,7 @@ public class IrisShoreLineDecoratorTest {
     @BeforeClass
     public static void bindPlatform() {
         IrisPlatforms.unbind();
-        PlatformBlockState air = mock(PlatformBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
         doReturn(true).when(air).isAir();
         doReturn("minecraft:air").when(air).key();
         PlatformRegistries registries = mock(PlatformRegistries.class);
@@ -62,9 +62,9 @@ public class IrisShoreLineDecoratorTest {
     @Test
     public void carvedSurfaceRejectsShorelineDecoration() {
         Fixture fixture = createFixture(false);
-        PlatformBlockState carvedAir = airState();
-        PlatformBlockState targetAir = airState();
-        Hunk<PlatformBlockState> output = output(carvedAir, targetAir);
+        NativeBlockState carvedAir = airState();
+        NativeBlockState targetAir = airState();
+        Hunk<NativeBlockState> output = output(carvedAir, targetAir);
 
         fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1,
                 output, fixture.biome, FLUID_HEIGHT, output.getHeight());
@@ -78,10 +78,10 @@ public class IrisShoreLineDecoratorTest {
     @Test
     public void preservedFluidRejectsShorelineDecoration() {
         Fixture fixture = createFixture(false);
-        PlatformBlockState fluid = mock(PlatformBlockState.class);
-        PlatformBlockState targetAir = airState();
+        NativeBlockState fluid = mock(NativeBlockState.class);
+        NativeBlockState targetAir = airState();
         when(fluid.isFluid()).thenReturn(true);
-        Hunk<PlatformBlockState> output = output(fluid, targetAir);
+        Hunk<NativeBlockState> output = output(fluid, targetAir);
 
         fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1,
                 output, fixture.biome, FLUID_HEIGHT, output.getHeight());
@@ -94,10 +94,10 @@ public class IrisShoreLineDecoratorTest {
     @Test
     public void sturdySurfacePlacesShorelineDecoration() {
         Fixture fixture = createFixture(false);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState targetAir = airState();
+        NativeBlockState support = sturdyState();
+        NativeBlockState targetAir = airState();
         when(fixture.decorant.canPlaceOnto(support)).thenReturn(true);
-        Hunk<PlatformBlockState> output = output(support, targetAir);
+        Hunk<NativeBlockState> output = output(support, targetAir);
 
         fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1,
                 output, fixture.biome, FLUID_HEIGHT, output.getHeight());
@@ -108,10 +108,10 @@ public class IrisShoreLineDecoratorTest {
     @Test
     public void acceptedShoreUsesPublishedGeometry() {
         Fixture fixture = createFixture(false, false);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState targetAir = airState();
+        NativeBlockState support = sturdyState();
+        NativeBlockState targetAir = airState();
         when(fixture.decorant.canPlaceOnto(support)).thenReturn(true);
-        Hunk<PlatformBlockState> output = output(support, targetAir);
+        Hunk<NativeBlockState> output = output(support, targetAir);
 
         fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1,
                 output, fixture.biome, FLUID_HEIGHT, output.getHeight());
@@ -135,8 +135,8 @@ public class IrisShoreLineDecoratorTest {
     @Test
     public void forcePlaceStillRejectsMissingSurface() {
         Fixture fixture = createFixture(true);
-        PlatformBlockState targetAir = airState();
-        Hunk<PlatformBlockState> output = output(airState(), targetAir);
+        NativeBlockState targetAir = airState();
+        Hunk<NativeBlockState> output = output(airState(), targetAir);
 
         fixture.shoreline.decorateAcceptedShore(
                 0,
@@ -155,13 +155,13 @@ public class IrisShoreLineDecoratorTest {
     @Test
     public void acceptedShoreCaneRequiresWaterBesideTheActualSubstrate() {
         Fixture fixture = createFixture(false, false);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState air = airState();
-        PlatformBlockState water = mock(PlatformBlockState.class);
+        NativeBlockState support = sturdyState();
+        NativeBlockState air = airState();
+        NativeBlockState water = mock(NativeBlockState.class);
         when(water.isWater()).thenReturn(true);
         when(fixture.decorant.key()).thenReturn("minecraft:sugar_cane[age=0]");
         when(fixture.decorant.canPlaceOnto(support)).thenReturn(true);
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(3, FLUID_HEIGHT + 3, 3);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(3, FLUID_HEIGHT + 3, 3);
         output.set(1, FLUID_HEIGHT, 1, support);
         output.set(1, FLUID_HEIGHT + 1, 1, air);
 
@@ -175,11 +175,11 @@ public class IrisShoreLineDecoratorTest {
     @Test
     public void forcedShoreCaneCannotUseStone() {
         Fixture fixture = createFixture(true, false);
-        PlatformBlockState stone = sturdyState();
-        PlatformBlockState air = airState();
+        NativeBlockState stone = sturdyState();
+        NativeBlockState air = airState();
         when(fixture.decorant.key()).thenReturn("minecraft:sugar_cane[age=0]");
         when(fixture.decorant.canPlaceOnto(stone)).thenReturn(false);
-        Hunk<PlatformBlockState> output = output(stone, air);
+        Hunk<NativeBlockState> output = output(stone, air);
 
         fixture.shoreline.decorateAcceptedShore(0, 0, 0, 0, output, fixture.biome, FLUID_HEIGHT, output.getHeight());
 
@@ -189,10 +189,10 @@ public class IrisShoreLineDecoratorTest {
     @Test
     public void unsupportedWaterloggedStackRestoresEveryOriginalBlock() {
         Fixture fixture = createFixture(false, false);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState lowerOriginal = airState();
-        PlatformBlockState upperOriginal = airState();
-        PlatformBlockState waterloggedTop = mock(PlatformBlockState.class);
+        NativeBlockState support = sturdyState();
+        NativeBlockState lowerOriginal = airState();
+        NativeBlockState upperOriginal = airState();
+        NativeBlockState waterloggedTop = mock(NativeBlockState.class);
         when(fixture.decorant.key()).thenReturn("minecraft:grass");
         when(fixture.decorant.canPlaceOnto(support)).thenReturn(true);
         when(waterloggedTop.isWaterLogged()).thenReturn(true);
@@ -201,14 +201,14 @@ public class IrisShoreLineDecoratorTest {
         when(fixture.decorator.getStackMax()).thenReturn(2);
         when(fixture.decorator.getHeight(any(), anyDouble(), anyDouble(), eq(fixture.data))).thenReturn(2);
         when(fixture.decorator.getTopThreshold()).thenReturn(1D);
-        when(fixture.decorator.getBlockDataArray(fixture.data)).thenReturn(new PlatformBlockState[0]);
+        when(fixture.decorator.getBlockDataArray(fixture.data)).thenReturn(new NativeBlockState[0]);
         when(fixture.decorator.getBlockDataTopsArray(fixture.data))
-                .thenReturn(new PlatformBlockState[]{waterloggedTop});
+                .thenReturn(new NativeBlockState[]{waterloggedTop});
         when(fixture.decorator.getBlockDataForTop(
                 eq(fixture.biome), any(), anyDouble(), anyDouble(), anyDouble(), eq(fixture.data)))
                 .thenReturn(waterloggedTop);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, FLUID_HEIGHT + 3, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, FLUID_HEIGHT + 3, 1);
         output.set(0, FLUID_HEIGHT, 0, support);
         output.set(0, FLUID_HEIGHT + 1, 0, lowerOriginal);
         output.set(0, FLUID_HEIGHT + 2, 0, upperOriginal);
@@ -243,7 +243,7 @@ public class IrisShoreLineDecoratorTest {
         IrisBiome biome = mock(IrisBiome.class);
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisSlopeClip slope = mock(IrisSlopeClip.class);
-        PlatformBlockState decorant = mock(PlatformBlockState.class);
+        NativeBlockState decorant = mock(NativeBlockState.class);
         ProceduralStream<Double> heightStream = mock(ProceduralStream.class);
         EngineMantle mantle = mock(EngineMantle.class);
 
@@ -273,21 +273,21 @@ public class IrisShoreLineDecoratorTest {
         return new Fixture(new IrisShoreLineDecorator(engine), data, biome, decorator, decorant);
     }
 
-    private Hunk<PlatformBlockState> output(PlatformBlockState support, PlatformBlockState target) {
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, FLUID_HEIGHT + 3, 1);
+    private Hunk<NativeBlockState> output(NativeBlockState support, NativeBlockState target) {
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, FLUID_HEIGHT + 3, 1);
         output.set(0, FLUID_HEIGHT, 0, support);
         output.set(0, FLUID_HEIGHT + 1, 0, target);
         return output;
     }
 
-    private PlatformBlockState airState() {
-        PlatformBlockState air = mock(PlatformBlockState.class);
+    private NativeBlockState airState() {
+        NativeBlockState air = mock(NativeBlockState.class);
         when(air.isAir()).thenReturn(true);
         return air;
     }
 
-    private PlatformBlockState sturdyState() {
-        PlatformBlockState support = mock(PlatformBlockState.class);
+    private NativeBlockState sturdyState() {
+        NativeBlockState support = mock(NativeBlockState.class);
         BlockData blockData = mock(BlockData.class);
         when(support.isSolid()).thenReturn(true);
         when(support.nativeHandle()).thenReturn(blockData);
@@ -300,7 +300,7 @@ public class IrisShoreLineDecoratorTest {
             IrisData data,
             IrisBiome biome,
             IrisDecorator decorator,
-            PlatformBlockState decorant
+            NativeBlockState decorant
     ) {
     }
 }

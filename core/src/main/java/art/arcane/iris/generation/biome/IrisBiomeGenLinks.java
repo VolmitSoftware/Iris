@@ -18,7 +18,7 @@
 
 package art.arcane.iris.generation.biome;
 
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.util.collection.KMap;
 

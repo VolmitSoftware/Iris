@@ -1,5 +1,7 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.volmlib.nativelib.terrain.NativeBlockColumn;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -9,7 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeSet;
 
-public final class BoundaryColumnGeometry {
+public final class BoundaryColumnGeometry implements NativeBlockColumn {
     public static final int MAXIMUM_HEIGHT = 65_536;
     private static final Comparator<Voxel> VOXEL_ORDER = Comparator.comparing(Voxel::stateKey)
             .thenComparing(Voxel::phase)
@@ -102,6 +104,11 @@ public final class BoundaryColumnGeometry {
 
     Voxel runVoxel(int run) {
         return palette.get(paletteIndices[run]);
+    }
+
+    @Override
+    public String stateKeyAt(int worldY) {
+        return voxelAt(worldY).stateKey();
     }
 
     public Voxel voxelAt(int worldY) {

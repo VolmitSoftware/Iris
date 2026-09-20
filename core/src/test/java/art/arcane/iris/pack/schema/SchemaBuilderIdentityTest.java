@@ -39,17 +39,17 @@ import art.arcane.iris.structure.nativegen.IrisVanillaStructureAdjustment;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.LogLevel;
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.iris.spi.PlatformBiomeWriter;
-import art.arcane.iris.spi.PlatformBlockProperty;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformEntityType;
-import art.arcane.iris.spi.PlatformItem;
-import art.arcane.iris.spi.PlatformNumericRange;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.entity.NativeEntityType;
+import art.arcane.volmlib.nativelib.item.NativeItem;
+import art.arcane.volmlib.nativelib.terrain.NativeNumericRange;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -78,7 +78,7 @@ public class SchemaBuilderIdentityTest {
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
 
-    private static final String EXPECTED_SCHEMA_DIGEST = "5f041feb24213ee5b7e2e06c84b113ec0242b8f8e04c73dde6ea2356944d93fd";
+    private static final String EXPECTED_SCHEMA_DIGEST = "91c36f3cdb0a10a0700b62fb6a6d2456576bd50f75a4d588103acdd42a7763c1";
 
     private static final List<Class<?>> SCHEMA_ROOTS = List.of(
             IrisDimension.class,
@@ -202,50 +202,50 @@ public class SchemaBuilderIdentityTest {
     }
 
     private static final class FakeRegistries implements PlatformRegistries {
-        private static final List<PlatformBlockProperty> STONE_PROPERTIES = List.of(
-                new PlatformBlockProperty("waterlogged", "boolean", Boolean.FALSE, List.of(Boolean.TRUE, Boolean.FALSE), null),
-                new PlatformBlockProperty("level", "integer", 0, List.of(0, 1, 2),
-                        new PlatformNumericRange(0D, 2D, false, false)));
-        private static final List<PlatformBlockProperty> LOG_PROPERTIES = List.of(
-                new PlatformBlockProperty("axis", "string", "y", List.of("x", "y", "z"), null));
+        private static final List<NativeBlockProperty> STONE_PROPERTIES = List.of(
+                new NativeBlockProperty("waterlogged", "boolean", Boolean.FALSE, List.of(Boolean.TRUE, Boolean.FALSE), null),
+                new NativeBlockProperty("level", "integer", 0, List.of(0, 1, 2),
+                        new NativeNumericRange(0D, 2D, false, false)));
+        private static final List<NativeBlockProperty> LOG_PROPERTIES = List.of(
+                new NativeBlockProperty("axis", "string", "y", List.of("x", "y", "z"), null));
 
         @Override
-        public PlatformBlockState block(String key) {
+        public NativeBlockState block(String key) {
             return null;
         }
 
         @Override
-        public PlatformBlockState blockOrNull(String key) {
+        public NativeBlockState blockOrNull(String key) {
             return null;
         }
 
         @Override
-        public PlatformBlockState blockOrNull(String key, boolean warn) {
+        public NativeBlockState blockOrNull(String key, boolean warn) {
             return null;
         }
 
         @Override
-        public PlatformBlockState air() {
+        public NativeBlockState air() {
             return null;
         }
 
         @Override
-        public PlatformBlockState deepSlateOre(PlatformBlockState block, PlatformBlockState ore) {
+        public NativeBlockState deepSlateOre(NativeBlockState block, NativeBlockState ore) {
             return null;
         }
 
         @Override
-        public PlatformBiome biome(String key) {
+        public NativeBiome biome(String key) {
             return null;
         }
 
         @Override
-        public PlatformItem item(String key) {
+        public NativeItem item(String key) {
             return null;
         }
 
         @Override
-        public PlatformEntityType entity(String key) {
+        public NativeEntityType entity(String key) {
             return null;
         }
 
@@ -300,8 +300,8 @@ public class SchemaBuilderIdentityTest {
         }
 
         @Override
-        public Map<String, List<PlatformBlockProperty>> blockStateProperties() {
-            Map<String, List<PlatformBlockProperty>> properties = new LinkedHashMap<>();
+        public Map<String, List<NativeBlockProperty>> blockStateProperties() {
+            Map<String, List<NativeBlockProperty>> properties = new LinkedHashMap<>();
             properties.put("minecraft:stone", STONE_PROPERTIES);
             properties.put("minecraft:andesite", STONE_PROPERTIES);
             properties.put("minecraft:oak_log", LOG_PROPERTIES);
@@ -376,7 +376,7 @@ public class SchemaBuilderIdentityTest {
         }
 
         @Override
-        public boolean spawnEntity(PlatformWorld world, String entityKey, double x, double y, double z) {
+        public boolean spawnEntity(NativeWorld world, String entityKey, double x, double y, double z) {
             return false;
         }
 

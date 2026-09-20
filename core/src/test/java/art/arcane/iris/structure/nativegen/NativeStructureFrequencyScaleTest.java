@@ -1,5 +1,7 @@
 package art.arcane.iris.structure.nativegen;
 
+import art.arcane.volmlib.nativelib.terrain.NativeStructureFrequencyScale;
+
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

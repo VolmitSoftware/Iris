@@ -1,5 +1,12 @@
 package art.arcane.iris.modded.service;
 
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeHarvestSession;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeItemStack;
+
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.world.tree.TreeDefinitionIndex;
@@ -8,22 +15,10 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.placement.StructurePlacementMarker;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.modded.ModdedBlockBreakHandler;
-import art.arcane.iris.modded.ModdedBlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedScheduler;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 
 import java.util.Collections;
 import java.util.List;
@@ -79,7 +74,7 @@ public final class ModdedTreeFellerService implements ModdedTickableService {
     }
 
     @Override
-    public void onServerTick(MinecraftServer server) {
+    public void onServerTick(NativeModdedServer server) {
         for (FellingRun run : List.copyOf(activeRuns)) {
             if (!isRunControlActive(run)) {
                 finish(run);
@@ -88,34 +83,34 @@ public final class ModdedTreeFellerService implements ModdedTickableService {
     }
 
     public PreparedOrigin prepare(
-            ServerLevel level,
-            ServerPlayer player,
-            BlockPos position,
-            BlockState state
+            NativeWorld level,
+            NativeProtocolPlayer player,
+            NativeBlockPoint position,
+            NativeBlockState state
     ) {
         IrisSettings.IrisSettingsTreeFeller settings = IrisSettings.get().getTreeFeller();
         if (!enabled.get()
                 || settings == null
                 || !settings.isEnabled()
-                || !player.gameMode().isSurvival()
-                || !player.isShiftKeyDown()
-                || !state.is(BlockTags.LOGS)
-                || !player.getInventory().getSelectedItem().is(ItemTags.AXES)
-                || !ModdedEngineBootstrap.loader().hasTreeFellerPermission(player)) {
+                || !NativeHarvestSession.survival(player)
+                || !NativeHarvestSession.sneaking(player)
+                || !NativeHarvestSession.log(state)
+                || !NativeHarvestSession.holdingAxe(player)
+                || !NativeHarvestSession.hasPermission(ModdedEngineBootstrap.loader(), player)) {
             return null;
         }
         Engine engine = ModdedBlockBreakHandler.engineFor(level);
         if (engine == null || engine.isClosed()) {
             return null;
         }
-        int minimumY = level.getMinY();
+        int minimumY = level.minHeight();
         String marker = markerAt(engine, minimumY, position);
         StructurePlacementMarker.Decoded decoded = StructurePlacementMarker.decode(marker);
         if (decoded == null || decoded.structureAware()) {
             return null;
         }
         TreeBlockMaterial expectedMaterial = materialAt(engine, minimumY, position);
-        if (expectedMaterial != null && !expectedMaterial.matches(ModdedBlockState.serialize(state))) {
+        if (expectedMaterial != null && !expectedMaterial.matches(state.key())) {
             return null;
         }
         if (expectedMaterial == null
@@ -123,19 +118,18 @@ public final class ModdedTreeFellerService implements ModdedTickableService {
                 && !definitionIndex(engine).isTreeMarker(marker)) {
             return null;
         }
-        ItemStack tool = player.getInventory().getSelectedItem();
+        NativeHarvestSession harvest = new NativeHarvestSession(level, player);
         return new PreparedOrigin(
                 this,
                 level,
                 player,
-                position.immutable(),
+                position,
                 state,
                 engine,
                 marker,
                 minimumY,
-                level.getMaxY(),
-                player.getInventory().getSelectedSlot(),
-                tool.copy(),
+                level.maxHeight() - 1,
+                harvest,
                 settings.getDurabilityPreservationChance()
         );
     }
@@ -163,7 +157,7 @@ public final class ModdedTreeFellerService implements ModdedTickableService {
         activeRuns.add(run);
         presentation.activate(prepared.position(), prepared.state());
         OriginDropRoute route = presentation::route;
-        if (run.toolBroken) {
+        if (prepared.harvest().toolBroken()) {
             ModdedBlockBreakHandler.completeManagedBreak(prepared.level(), prepared.position());
             finish(run);
             return route;
@@ -179,48 +173,8 @@ public final class ModdedTreeFellerService implements ModdedTickableService {
     }
 
     private boolean normalizeOriginTool(FellingRun run) {
-        PreparedOrigin prepared = run.prepared;
-        ItemStack before = prepared.toolBefore();
-        ItemStack current = prepared.player().getInventory().getItem(prepared.heldSlot());
-        boolean currentMatches = !current.isEmpty()
-                && ItemStack.matchesIgnoringComponents(
-                before,
-                current,
-                (componentType) -> componentType == DataComponents.DAMAGE
-        );
-        if (!before.isDamageableItem()) {
-            if (!currentMatches || !ItemStack.isSameItemSameComponents(before, current)) {
-                return false;
-            }
-            run.expectedTool = current.copy();
-            return true;
-        }
-
-        boolean preserve = ThreadLocalRandom.current().nextInt(100) < prepared.preservationChance();
-        int desiredDamage = before.getDamageValue() + (preserve ? 0 : 1);
-        if (desiredDamage >= before.getMaxDamage()) {
-            if (!current.isEmpty() && !currentMatches) {
-                return false;
-            }
-            Item brokenItem = before.getItem();
-            prepared.player().getInventory().setItem(prepared.heldSlot(), ItemStack.EMPTY);
-            if (!current.isEmpty()) {
-                prepared.player().onEquippedItemBroken(brokenItem, EquipmentSlot.MAINHAND);
-            }
-            prepared.player().inventoryMenu.sendAllDataToRemote();
-            run.expectedTool = ItemStack.EMPTY;
-            run.toolBroken = true;
-            return true;
-        }
-        if (!current.isEmpty() && !currentMatches) {
-            return false;
-        }
-        ItemStack normalized = before.copy();
-        normalized.setDamageValue(desiredDamage);
-        prepared.player().getInventory().setItem(prepared.heldSlot(), normalized);
-        prepared.player().inventoryMenu.sendAllDataToRemote();
-        run.expectedTool = normalized.copy();
-        return true;
+        return run.prepared.harvest().normalizeOriginTool(
+                ThreadLocalRandom.current().nextInt(100) < run.prepared.preservationChance());
     }
 
     private void discover(FellingRun run) {
@@ -308,13 +262,13 @@ public final class ModdedTreeFellerService implements ModdedTickableService {
 
     private MemberResult processMember(FellingRun run, TreeMarkerTraversal.Position position) {
         PreparedOrigin prepared = run.prepared;
-        BlockPos blockPosition = blockPosition(position);
-        ServerLevel level = prepared.level();
-        if (!level.isLoaded(blockPosition)) {
+        NativeBlockPoint blockPosition = blockPosition(position);
+        NativeWorld level = prepared.level();
+        if (!prepared.harvest().loaded(blockPosition)) {
             return MemberResult.STOP;
         }
-        BlockState state = level.getBlockState(blockPosition);
-        if (state.isAir()) {
+        NativeBlockState state = level.getBlock(blockPosition.x(), blockPosition.y(), blockPosition.z());
+        if (NativeHarvestSession.air(state)) {
             ModdedBlockBreakHandler.completeManagedBreak(level, blockPosition);
             return MemberResult.CONTINUE;
         }
@@ -322,56 +276,38 @@ public final class ModdedTreeFellerService implements ModdedTickableService {
             return MemberResult.STOP;
         }
         TreeBlockMaterial expectedMaterial = materialAt(prepared.engine(), prepared.minimumY(), blockPosition);
-        if (expectedMaterial != null && !expectedMaterial.matches(ModdedBlockState.serialize(state))) {
+        if (expectedMaterial != null && !expectedMaterial.matches(state.key())) {
             ModdedBlockBreakHandler.completeManagedBreak(level, blockPosition);
-            return state.is(BlockTags.LOGS) ? MemberResult.STOP : MemberResult.CONTINUE;
+            return NativeHarvestSession.log(state) ? MemberResult.STOP : MemberResult.CONTINUE;
         }
-        boolean log = state.is(BlockTags.LOGS);
-        ServerPlayer player = prepared.player();
-        if (!level.mayInteract(player, blockPosition)
-                || player.blockActionRestricted(level, blockPosition, player.gameMode())
-                || !player.getInventory().getSelectedItem().canDestroyBlock(
-                state,
-                level,
-                blockPosition,
-                player
-        )) {
+        boolean log = NativeHarvestSession.log(state);
+        NativeProtocolPlayer player = prepared.player();
+        if (!prepared.harvest().mayDestroy(blockPosition, state)) {
             return log ? MemberResult.STOP : MemberResult.CONTINUE;
         }
-        if (!ModdedEngineBootstrap.loader().canTreeFellerBreak(
-                level,
-                player,
-                blockPosition,
-                state
-        )) {
+        if (!prepared.harvest().canBreak(ModdedEngineBootstrap.loader(), blockPosition, state)) {
             return log ? MemberResult.STOP : MemberResult.CONTINUE;
         }
-        if (!state.equals(level.getBlockState(blockPosition))
+        if (!state.equals(level.getBlock(blockPosition.x(), blockPosition.y(), blockPosition.z()))
                 || !prepared.marker().equals(markerAt(prepared.engine(), prepared.minimumY(), blockPosition))) {
             return MemberResult.STOP;
         }
 
-        ItemStack toolForDrops = prepared.player().getInventory().getSelectedItem().copy();
-        BlockEntity blockEntity = state.hasBlockEntity() ? level.getBlockEntity(blockPosition) : null;
-        List<ItemStack> vanillaDrops = Block.getDrops(
-                state,
-                level,
-                blockPosition,
-                blockEntity,
-                player,
-                toolForDrops
-        );
+        List<NativeItemStack> vanillaDrops = prepared.harvest().drops(blockPosition, state);
         ModdedBlockBreakHandler.Result customDrops = ModdedBlockBreakHandler.evaluateManagedDrops(
                 level,
                 blockPosition,
                 state
         );
-        ToolReservation reservation = log ? reserveToolDamage(run) : ToolReservation.free(toolForDrops);
-        if (reservation == null) {
+        NativeHarvestSession.Reservation reservation = log ? prepared.harvest().reserveToolDamage(
+                ThreadLocalRandom.current().nextInt(100) < prepared.preservationChance()) : null;
+        if (log && reservation == null) {
             return MemberResult.STOP;
         }
-        if (!level.destroyBlock(blockPosition, false, player, 512)) {
-            refundToolDamage(run, reservation);
+        if (!prepared.harvest().destroy(blockPosition)) {
+            if (reservation != null) {
+                prepared.harvest().refundToolDamage(reservation);
+            }
             return MemberResult.STOP;
         }
         ModdedBlockBreakHandler.completeManagedBreak(level, blockPosition);
@@ -380,71 +316,15 @@ public final class ModdedTreeFellerService implements ModdedTickableService {
         float pitch = Math.min(1.95F, 0.65F + (progress * 1.25F));
         run.presentation.erode(blockPosition, state, processed, run.effectStride, pitch);
         run.presentation.route(customDrops.combinedDrops(vanillaDrops));
-        return reservation.broke() ? MemberResult.STOP : MemberResult.CONTINUE;
-    }
-
-    private ToolReservation reserveToolDamage(FellingRun run) {
-        PreparedOrigin prepared = run.prepared;
-        ItemStack current = prepared.player().getInventory().getSelectedItem();
-        if (!ItemStack.isSameItemSameComponents(current, run.expectedTool) || !current.is(ItemTags.AXES)) {
-            return null;
-        }
-        ItemStack before = current.copy();
-        if (!current.isDamageableItem()
-                || ThreadLocalRandom.current().nextInt(100) < prepared.preservationChance()) {
-            return ToolReservation.free(before);
-        }
-        int nextDamage = current.getDamageValue() + 1;
-        if (nextDamage >= current.getMaxDamage()) {
-            Item brokenItem = current.getItem();
-            prepared.player().getInventory().setSelectedItem(ItemStack.EMPTY);
-            prepared.player().onEquippedItemBroken(brokenItem, EquipmentSlot.MAINHAND);
-            prepared.player().inventoryMenu.sendAllDataToRemote();
-            run.expectedTool = ItemStack.EMPTY;
-            return new ToolReservation(before, true, true);
-        }
-        current.setDamageValue(nextDamage);
-        prepared.player().getInventory().setSelectedItem(current);
-        prepared.player().inventoryMenu.sendAllDataToRemote();
-        run.expectedTool = current.copy();
-        return new ToolReservation(before, true, false);
-    }
-
-    private void refundToolDamage(FellingRun run, ToolReservation reservation) {
-        if (!reservation.charged()) {
-            return;
-        }
-        PreparedOrigin prepared = run.prepared;
-        ItemStack current = prepared.player().getInventory().getSelectedItem();
-        boolean expectedEmpty = run.expectedTool.isEmpty();
-        if ((expectedEmpty && current.isEmpty())
-                || (!expectedEmpty && ItemStack.isSameItemSameComponents(current, run.expectedTool))) {
-            ItemStack restored = reservation.before().copy();
-            prepared.player().getInventory().setSelectedItem(restored);
-            prepared.player().inventoryMenu.sendAllDataToRemote();
-            run.expectedTool = restored.copy();
-        }
+        return reservation != null && reservation.broke() ? MemberResult.STOP : MemberResult.CONTINUE;
     }
 
     private boolean isRunControlActive(FellingRun run) {
         PreparedOrigin prepared = run.prepared;
-        ServerPlayer player = prepared.player();
+        NativeHarvestSession harvest = prepared.harvest();
         IrisSettings.IrisSettingsTreeFeller settings = IrisSettings.get().getTreeFeller();
-        if (!enabled.get()
-                || settings == null
-                || !settings.isEnabled()
-                || run.finished.get()
-                || player.isRemoved()
-                || player.hasDisconnected()
-                || player.level() != prepared.level()
-                || !player.gameMode().isSurvival()
-                || !player.isShiftKeyDown()
-                || player.getInventory().getSelectedSlot() != prepared.heldSlot()
-                || run.expectedTool.isEmpty()) {
-            return false;
-        }
-        ItemStack current = player.getInventory().getSelectedItem();
-        return current.is(ItemTags.AXES) && ItemStack.isSameItemSameComponents(current, run.expectedTool);
+        return enabled.get() && settings != null && settings.isEnabled() && !run.finished.get()
+                && harvest.active() && harvest.survival() && harvest.sneaking() && harvest.holdingAxe();
     }
 
     private void finish(FellingRun run) {
@@ -456,43 +336,42 @@ public final class ModdedTreeFellerService implements ModdedTickableService {
         }
     }
 
-    private String markerAt(Engine engine, int minimumY, BlockPos position) {
-        return markerAt(engine, minimumY, position.getX(), position.getY(), position.getZ());
+    private String markerAt(Engine engine, int minimumY, NativeBlockPoint position) {
+        return markerAt(engine, minimumY, position.x(), position.y(), position.z());
     }
 
     private String markerAt(Engine engine, int minimumY, int x, int y, int z) {
         return engine.getMantle().getMantle().get(x, y - minimumY, z, String.class);
     }
 
-    private TreeBlockMaterial materialAt(Engine engine, int minimumY, BlockPos position) {
+    private TreeBlockMaterial materialAt(Engine engine, int minimumY, NativeBlockPoint position) {
         return engine.getMantle().getMantle().get(
-                position.getX(),
-                position.getY() - minimumY,
-                position.getZ(),
+                position.x(),
+                position.y() - minimumY,
+                position.z(),
                 TreeBlockMaterial.class
         );
     }
 
-    private TreeMarkerTraversal.Position positionOf(BlockPos position) {
-        return new TreeMarkerTraversal.Position(position.getX(), position.getY(), position.getZ());
+    private TreeMarkerTraversal.Position positionOf(NativeBlockPoint position) {
+        return new TreeMarkerTraversal.Position(position.x(), position.y(), position.z());
     }
 
-    private BlockPos blockPosition(TreeMarkerTraversal.Position position) {
-        return new BlockPos(position.x(), position.y(), position.z());
+    private NativeBlockPoint blockPosition(TreeMarkerTraversal.Position position) {
+        return new NativeBlockPoint(position.x(), position.y(), position.z());
     }
 
     public record PreparedOrigin(
             ModdedTreeFellerService owner,
-            ServerLevel level,
-            ServerPlayer player,
-            BlockPos position,
-            BlockState state,
+            NativeWorld level,
+            NativeProtocolPlayer player,
+            NativeBlockPoint position,
+            NativeBlockState state,
             Engine engine,
             String marker,
             int minimumY,
             int maximumY,
-            int heldSlot,
-            ItemStack toolBefore,
+            NativeHarvestSession harvest,
             int preservationChance
     ) {
         public PreparedOrigin {
@@ -503,13 +382,13 @@ public final class ModdedTreeFellerService implements ModdedTickableService {
             Objects.requireNonNull(state, "state");
             Objects.requireNonNull(engine, "engine");
             Objects.requireNonNull(marker, "marker");
-            Objects.requireNonNull(toolBefore, "toolBefore");
+            Objects.requireNonNull(harvest, "harvest");
         }
     }
 
     @FunctionalInterface
     public interface OriginDropRoute {
-        boolean route(Iterable<ItemStack> drops);
+        boolean route(Iterable<NativeItemStack> drops);
     }
 
     private enum MemberResult {
@@ -517,13 +396,7 @@ public final class ModdedTreeFellerService implements ModdedTickableService {
         STOP
     }
 
-    private record TreeClaim(ServerLevel level, String marker) {
-    }
-
-    private record ToolReservation(ItemStack before, boolean charged, boolean broke) {
-        private static ToolReservation free(ItemStack before) {
-            return new ToolReservation(before, false, false);
-        }
+    private record TreeClaim(NativeWorld level, String marker) {
     }
 
     private static final class FellingRun {
@@ -531,13 +404,11 @@ public final class ModdedTreeFellerService implements ModdedTickableService {
         private final PreparedOrigin prepared;
         private final ModdedTreeFellerPresentation presentation;
         private final AtomicBoolean finished = new AtomicBoolean();
-        private ItemStack expectedTool = ItemStack.EMPTY;
         private List<TreeMarkerTraversal.Position> work = List.of();
         private int cursor;
         private int processed;
         private int blocksPerPulse = 1;
         private int effectStride = 1;
-        private boolean toolBroken;
 
         private FellingRun(
                 TreeClaim claim,

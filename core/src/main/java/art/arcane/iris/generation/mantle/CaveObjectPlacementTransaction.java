@@ -25,7 +25,7 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.collection.KList;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
@@ -43,7 +43,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     private final int minDepthBelowSurface;
     private final int worldHeight;
     private final KList<BufferedMutation> mutations;
-    private final Map<PositionKey, PlatformBlockState> bufferedBlocks;
+    private final Map<PositionKey, NativeBlockState> bufferedBlocks;
     private final Long2IntOpenHashMap surfaceHeights;
     private final Long2IntOpenHashMap caveCeilings;
     private int blockWrites;
@@ -127,7 +127,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     }
 
     @Override
-    public void set(int x, int y, int z, PlatformBlockState state) {
+    public void set(int x, int y, int z, NativeBlockState state) {
         if (state == null) {
             return;
         }
@@ -137,8 +137,8 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     }
 
     @Override
-    public PlatformBlockState get(int x, int y, int z) {
-        PlatformBlockState buffered = bufferedBlocks.get(new PositionKey(x, y, z));
+    public NativeBlockState get(int x, int y, int z) {
+        NativeBlockState buffered = bufferedBlocks.get(new PositionKey(x, y, z));
         return buffered == null ? delegate.get(x, y, z) : buffered;
     }
 
@@ -159,7 +159,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
 
     @Override
     public boolean isSolid(int x, int y, int z) {
-        PlatformBlockState buffered = bufferedBlocks.get(new PositionKey(x, y, z));
+        NativeBlockState buffered = bufferedBlocks.get(new PositionKey(x, y, z));
         return buffered == null ? delegate.isSolid(x, y, z) : B.isSolid(buffered);
     }
 
@@ -191,7 +191,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
             return;
         }
         mutations.add(new DataMutation(x, y, z, data));
-        if (data instanceof PlatformBlockState state) {
+        if (data instanceof NativeBlockState state) {
             bufferedBlocks.put(new PositionKey(x, y, z), state);
             blockWrites++;
         }
@@ -276,7 +276,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         void apply(IObjectPlacer placer);
     }
 
-    private record BlockMutation(int x, int y, int z, PlatformBlockState value) implements BufferedMutation {
+    private record BlockMutation(int x, int y, int z, NativeBlockState value) implements BufferedMutation {
         @Override
         public void apply(IObjectPlacer placer) {
             placer.set(x, y, z, value);

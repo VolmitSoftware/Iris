@@ -1,5 +1,7 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeTileReader;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.volmlib.util.collection.KMap;
 import net.minecraft.SharedConstants;
@@ -39,7 +41,8 @@ public class ModdedTileParityTest {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
         registries = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
-        TileData.bindPlatformReader(new ModdedTileReader(() -> null));
+        NativeTileReader nativeTileReader = new NativeTileReader(() -> null);
+        TileData.bindPlatformReader(in -> ModdedTileData.wrap(nativeTileReader.read(in)));
         TileData.bindPlatformFactory(ModdedTileData::fromProperties);
     }
 
@@ -55,7 +58,7 @@ public class ModdedTileParityTest {
         });
         SignBlockEntity sign = new SignBlockEntity(BlockPos.ZERO, Blocks.OAK_SIGN.defaultBlockState());
 
-        sign.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, registries, tile.payload()));
+        sign.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, registries, tile.nativeData().payload()));
 
         assertEquals("Iris", sign.getFrontText().getMessage(0, false).getString());
         assertEquals("parity", sign.getBackText().getMessage(3, false).getString());
@@ -70,7 +73,7 @@ public class ModdedTileParityTest {
         });
         SpawnerBlockEntity spawner = new SpawnerBlockEntity(BlockPos.ZERO, Blocks.SPAWNER.defaultBlockState());
 
-        spawner.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, registries, tile.payload()));
+        spawner.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, registries, tile.nativeData().payload()));
         CompoundTag saved = spawner.saveWithoutMetadata(registries);
 
         assertTrue(saved.toString().contains("minecraft:zombie"));
@@ -84,7 +87,7 @@ public class ModdedTileParityTest {
         });
         SpawnerBlockEntity spawner = new SpawnerBlockEntity(BlockPos.ZERO, Blocks.SPAWNER.defaultBlockState());
 
-        spawner.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, registries, tile.payload()));
+        spawner.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, registries, tile.nativeData().payload()));
         CompoundTag saved = spawner.saveWithoutMetadata(registries);
 
         assertTrue(saved.toString().contains("minecraft:command_block_minecart"));
@@ -98,7 +101,7 @@ public class ModdedTileParityTest {
         });
         SpawnerBlockEntity spawner = new SpawnerBlockEntity(BlockPos.ZERO, Blocks.SPAWNER.defaultBlockState());
 
-        spawner.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, registries, tile.payload()));
+        spawner.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, registries, tile.nativeData().payload()));
         CompoundTag saved = spawner.saveWithoutMetadata(registries);
 
         assertTrue(saved.toString().contains("minecraft:pig"));
@@ -114,7 +117,7 @@ public class ModdedTileParityTest {
         });
         ChestBlockEntity chest = new ChestBlockEntity(BlockPos.ZERO, Blocks.CHEST.defaultBlockState());
 
-        chest.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, registries, tile.payload()));
+        chest.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, registries, tile.nativeData().payload()));
         RandomizableContainer lootable = chest;
 
         assertNotNull(lootable.getLootTable());
@@ -132,35 +135,35 @@ public class ModdedTileParityTest {
 
         assertEquals(
                 BuiltInRegistries.BLOCK.getValue(Identifier.parse("minecraft:red_banner")),
-                tile.adjustBlockState(BuiltInRegistries.BLOCK.getValue(Identifier.parse("minecraft:white_banner")).defaultBlockState()).getBlock());
-        assertEquals(Blocks.BARREL, tile.adjustBlockState(Blocks.BARREL.defaultBlockState()).getBlock());
+                tile.nativeData().adjustBlockState(BuiltInRegistries.BLOCK.getValue(Identifier.parse("minecraft:white_banner")).defaultBlockState()).getBlock());
+        assertEquals(Blocks.BARREL, tile.nativeData().adjustBlockState(Blocks.BARREL.defaultBlockState()).getBlock());
     }
 
     @Test
     public void paper26_2LegacyBannerFirstOrdinalIsSmallStripes() {
         assertEquals(
                 Identifier.parse("minecraft:small_stripes"),
-                ModdedTileReader.legacyBannerPatternKey(0));
+                NativeTileReader.legacyBannerPatternKey(0));
     }
 
     @Test
     public void paper26_2LegacyBannerMiddleOrdinalIsStripeLeft() {
         assertEquals(
                 Identifier.parse("minecraft:stripe_left"),
-                ModdedTileReader.legacyBannerPatternKey(21));
+                NativeTileReader.legacyBannerPatternKey(21));
     }
 
     @Test
     public void paper26_2LegacyBannerLastOrdinalIsHalfVerticalRight() {
         assertEquals(
                 Identifier.parse("minecraft:half_vertical_right"),
-                ModdedTileReader.legacyBannerPatternKey(42));
+                NativeTileReader.legacyBannerPatternKey(42));
     }
 
     @Test
     public void invalidLegacyBannerOrdinalFallsBackToBase() {
-        assertEquals(Identifier.parse("minecraft:base"), ModdedTileReader.legacyBannerPatternKey(-1));
-        assertEquals(Identifier.parse("minecraft:base"), ModdedTileReader.legacyBannerPatternKey(43));
+        assertEquals(Identifier.parse("minecraft:base"), NativeTileReader.legacyBannerPatternKey(-1));
+        assertEquals(Identifier.parse("minecraft:base"), NativeTileReader.legacyBannerPatternKey(43));
     }
 
     @Test
@@ -173,13 +176,13 @@ public class ModdedTileParityTest {
         assertTrue(tile instanceof ModdedTileData);
         ChestBlockEntity chest = new ChestBlockEntity(BlockPos.ZERO, Blocks.CHEST.defaultBlockState());
         chest.loadWithComponents(TagValueInput.create(
-                ProblemReporter.DISCARDING, registries, ((ModdedTileData) tile).payload()));
+                ProblemReporter.DISCARDING, registries, ((ModdedTileData) tile).nativeData().payload()));
 
         assertNotNull(chest.getLootTable());
         assertEquals("minecraft:chests/abandoned_mineshaft", chest.getLootTable().identifier().toString());
         assertEquals(9124L, chest.getLootTableSeed());
-        assertTrue(((ModdedTileData) tile).isApplicable(Blocks.CHEST.defaultBlockState(), chest));
-        assertFalse(((ModdedTileData) tile).isApplicable(
+        assertTrue(((ModdedTileData) tile).nativeData().isApplicable(Blocks.CHEST.defaultBlockState(), chest));
+        assertFalse(((ModdedTileData) tile).nativeData().isApplicable(
                 Blocks.BARREL.defaultBlockState(),
                 new BarrelBlockEntity(BlockPos.ZERO, Blocks.BARREL.defaultBlockState())));
     }
@@ -197,8 +200,8 @@ public class ModdedTileParityTest {
         SignBlockEntity sign = new SignBlockEntity(BlockPos.ZERO, Blocks.OAK_SIGN.defaultBlockState());
         ChestBlockEntity chest = new ChestBlockEntity(BlockPos.ZERO, Blocks.CHEST.defaultBlockState());
 
-        assertTrue(tile.isApplicable(Blocks.OAK_SIGN.defaultBlockState(), sign));
-        assertFalse(tile.isApplicable(Blocks.CHEST.defaultBlockState(), chest));
+        assertTrue(tile.nativeData().isApplicable(Blocks.OAK_SIGN.defaultBlockState(), sign));
+        assertFalse(tile.nativeData().isApplicable(Blocks.CHEST.defaultBlockState(), chest));
     }
 
     private static ModdedTileData legacyTile(TileWriter writer) throws Exception {

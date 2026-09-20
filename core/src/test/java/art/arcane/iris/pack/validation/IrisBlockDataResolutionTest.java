@@ -3,7 +3,7 @@ package art.arcane.iris.pack.validation;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.block.IrisBlockData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -108,7 +108,7 @@ public class IrisBlockDataResolutionTest {
         IrisBlockData entry = new IrisBlockData("fancy");
         entry.getData().put("axis", "x");
 
-        PlatformBlockState resolved = entry.getBlockData(data);
+        NativeBlockState resolved = entry.getBlockData(data);
         IrisBlockData parsed = IrisBlockData.from(resolved.key());
 
         assertEquals("craftengine:forest/amber_log", parsed.getBlock());
@@ -124,7 +124,7 @@ public class IrisBlockDataResolutionTest {
         entry.getData().put("randomYaw", true);
         entry.getData().put("variant", "OakLarge");
 
-        PlatformBlockState resolved = entry.getBlockData(data);
+        NativeBlockState resolved = entry.getBlockData(data);
         IrisBlockData parsed = IrisBlockData.from(resolved.key());
 
         assertEquals(true, parsed.getData().get("randomYaw"));

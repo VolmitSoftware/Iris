@@ -18,6 +18,8 @@
 
 package art.arcane.iris.platform.generation;
 
+import art.arcane.volmlib.nativelib.terrain.NativeGenerationScope;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.HeightMap;
@@ -39,7 +41,7 @@ import art.arcane.iris.studio.StudioSVC;
 import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.IrisEngine;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.chunk.TerrainChunk;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineTarget;
@@ -64,7 +66,7 @@ import art.arcane.iris.studio.generation.JigsawStudioGenerator;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.iris.localization.C;
 import art.arcane.volmlib.util.bukkit.WorldIdentity;
 import art.arcane.volmlib.util.collection.KList;
@@ -1312,7 +1314,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 selected.generateChunk(engine, tc, x, z);
             } else {
                 ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(d);
-                Hunk<PlatformBiome> biomes = new TerrainChunkBiomeHunkView(tc);
+                Hunk<NativeBiome> biomes = new TerrainChunkBiomeHunkView(tc);
                 try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope =
                              openGenerationHistoryCoordinateScope(engine, x << 4, z << 4);
                      GenerationSessionLease lease = engine.acquireGenerationLease("bukkit_terrain_stage");
@@ -1612,7 +1614,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         }
     }
 
-    public static final class GenerationStagePermit implements AutoCloseable {
+    public static final class GenerationStagePermit implements NativeGenerationScope {
         private static final GenerationStagePermit NOOP = new GenerationStagePermit(null);
 
         private final Semaphore permits;

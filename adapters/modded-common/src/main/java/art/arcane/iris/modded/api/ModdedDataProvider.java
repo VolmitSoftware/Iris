@@ -18,9 +18,9 @@
 
 package art.arcane.iris.modded.api;
 
-import net.minecraft.resources.Identifier;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Entity;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntityRuntime;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeSpawnedEntity;
 
 import java.util.Collection;
 import java.util.Map;
@@ -35,10 +35,10 @@ import java.util.Map;
  * name; the class needs a public no-argument constructor.
  * <p>
  * <b>Threading.</b> Implementations must be thread-safe.
- * {@link #getBlockData(Identifier, Map)} is called from generation threads, potentially many at once, for every
+ * {@link #getBlockData(String, Map)} is called from generation threads, potentially many at once, for every
  * unresolved key a pack names - it must be fast and must not touch world state.
  * {@link #processBlockPlacement(ModdedBlockPlacementContext)} and
- * {@link #spawnMob(ServerLevel, double, double, double, Identifier)} are called on the server thread, where
+ * {@link #spawnMob(NativeEntityRuntime.CustomSpawn)} are called on the server thread, where
  * touching the level is safe.
  * <p>
  * <b>Failure handling.</b> Iris catches throwables from every callback except {@link #init()} during
@@ -64,27 +64,27 @@ public interface ModdedDataProvider {
 
     /**
      * Every identifier this provider can supply for {@code type}. Used for command suggestion and pack tooling, not
-     * on the resolution path - {@link #isValidProvider(Identifier, ModdedDataType)} decides that. Return an empty
+     * on the resolution path - {@link #isValidProvider(String, ModdedDataType)} decides that. Return an empty
      * collection rather than null.
      */
-    Collection<Identifier> getTypes(ModdedDataType type);
+    Collection<String> getTypes(ModdedDataType type);
 
     /**
      * Whether this provider claims {@code id} for {@code type}. Called before every resolution callback, on
      * generation threads, so keep it to a set lookup. A cheap namespace check is usually enough.
      */
-    boolean isValidProvider(Identifier id, ModdedDataType type);
+    boolean isValidProvider(String id, ModdedDataType type);
 
     /**
      * Resolves a claimed block identifier into a concrete block state.
      * <p>
      * {@code state} holds the {@code [prop=value]} pairs from the pack's key, already parsed and possibly empty;
      * never null. Return null to decline, in which case Iris tries the next provider and finally falls back to air.
-     * Return {@link ModdedBlockData#deferred(net.minecraft.world.level.block.state.BlockState)} when the real block
+     * Return {@link ModdedBlockData#deferred(ModdedBlockState)} when the real block
      * needs a loaded level - Iris then writes the placeholder state and calls
      * {@link #processBlockPlacement(ModdedBlockPlacementContext)} later. Called from generation threads.
      */
-    default ModdedBlockData getBlockData(Identifier blockId, Map<String, String> state) {
+    default ModdedBlockData getBlockData(String blockId, Map<String, String> state) {
         return null;
     }
 
@@ -102,7 +102,7 @@ public interface ModdedDataProvider {
      * Spawns a claimed custom entity at the given position. Return null to decline and let the next provider try.
      * Called on the server thread from Iris's entity spawning.
      */
-    default Entity spawnMob(ServerLevel level, double x, double y, double z, Identifier entityId) {
+    default NativeSpawnedEntity spawnMob(NativeEntityRuntime.CustomSpawn request) {
         return null;
     }
 

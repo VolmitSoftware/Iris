@@ -25,7 +25,7 @@ import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformStructureHooks;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -104,7 +104,7 @@ public class StructureReachabilityContractTest {
     public void failedReachabilityBuildIsNotCachedAsEmpty() {
         Engine engine = mock(Engine.class);
         IrisWorld world = mock(IrisWorld.class);
-        PlatformWorld platformWorld = mock(PlatformWorld.class);
+        NativeWorld platformWorld = mock(NativeWorld.class);
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
         IllegalStateException cause = new IllegalStateException("registry unavailable");
@@ -131,7 +131,7 @@ public class StructureReachabilityContractTest {
     public void missingBiomeKeysForwardsCanonicalStructureKey() {
         Engine engine = mock(Engine.class);
         IrisWorld world = mock(IrisWorld.class);
-        PlatformWorld platformWorld = mock(PlatformWorld.class);
+        NativeWorld platformWorld = mock(NativeWorld.class);
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
         when(engine.getWorld()).thenReturn(world);

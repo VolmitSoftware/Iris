@@ -32,18 +32,14 @@ import art.arcane.iris.structure.nativegen.IrisNativeStructureDecision;
 import art.arcane.iris.structure.nativegen.NativeStructureGenerationStatus;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
-import art.arcane.iris.modded.ModdedServerLevels;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.levelgen.structure.Structure;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -60,14 +56,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
 final class ModdedCommandSuggestions {
-    static final SuggestionProvider<CommandSourceStack> BIOME_KEYS = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) -> suggestBiomeKeys(context, builder);
-    static final SuggestionProvider<CommandSourceStack> REGION_KEYS = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) -> suggestRegionKeys(context, builder);
-    static final SuggestionProvider<CommandSourceStack> OBJECT_KEYS = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) -> suggestObjectKeys(context, builder);
-    static final SuggestionProvider<CommandSourceStack> STRUCTURE_KEYS = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) -> suggestStructureKeys(context, builder);
-    static final SuggestionProvider<CommandSourceStack> POI_TYPES = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) -> SharedSuggestionProvider.suggest(List.of("buried_treasure"), builder);
-    static final SuggestionProvider<CommandSourceStack> HYDROLOGY_TYPES = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) -> suggestHydrologyTypes(context, builder);
-    static final SuggestionProvider<CommandSourceStack> PACK_NAMES = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) -> suggestPackNames(context, builder);
-    static final SuggestionProvider<CommandSourceStack> DIMENSION_NAMES = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) -> suggestDimensionNames(context, builder);
+    static final SuggestionProvider<NativeCommandSource> BIOME_KEYS = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> suggestBiomeKeys(context, builder);
+    static final SuggestionProvider<NativeCommandSource> REGION_KEYS = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> suggestRegionKeys(context, builder);
+    static final SuggestionProvider<NativeCommandSource> OBJECT_KEYS = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> suggestObjectKeys(context, builder);
+    static final SuggestionProvider<NativeCommandSource> STRUCTURE_KEYS = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> suggestStructureKeys(context, builder);
+    static final SuggestionProvider<NativeCommandSource> POI_TYPES = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> NativeCommandRegistration.suggest(List.of("buried_treasure"), builder);
+    static final SuggestionProvider<NativeCommandSource> HYDROLOGY_TYPES = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> suggestHydrologyTypes(context, builder);
+    static final SuggestionProvider<NativeCommandSource> PACK_NAMES = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> suggestPackNames(context, builder);
+    static final SuggestionProvider<NativeCommandSource> DIMENSION_NAMES = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> suggestDimensionNames(context, builder);
 
     private static final int TAB_FAILURE_KEYS_MAX = 256;
     private static final Set<String> REPORTED_TAB_FAILURES = ConcurrentHashMap.newKeySet();
@@ -78,12 +74,12 @@ final class ModdedCommandSuggestions {
     private ModdedCommandSuggestions() {
     }
 
-    private static CompletableFuture<Suggestions> suggestBiomeKeys(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+    private static CompletableFuture<Suggestions> suggestBiomeKeys(CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) {
         ModdedCommandFeedback.tab(context.getSource());
         try {
-            Engine engine = IrisModdedCommands.engineFor(context.getSource().getLevel());
+            Engine engine = IrisModdedCommands.engineFor(context.getSource().world());
             if (engine != null) {
-                return SharedSuggestionProvider.suggest(reachableBiomeKeys(engine), builder);
+                return NativeCommandRegistration.suggest(reachableBiomeKeys(engine), builder);
             }
         } catch (Throwable e) {
             warnTabFailure("biome keys", context.getSource(), e);
@@ -92,20 +88,20 @@ final class ModdedCommandSuggestions {
     }
 
     private static CompletableFuture<Suggestions> suggestHydrologyTypes(
-            CommandContext<CommandSourceStack> context,
+            CommandContext<NativeCommandSource> context,
             SuggestionsBuilder builder
     ) {
         ModdedCommandFeedback.tab(context.getSource());
         try {
-            Engine engine = IrisModdedCommands.engineFor(context.getSource().getLevel());
+            Engine engine = IrisModdedCommands.engineFor(context.getSource().world());
             if (engine != null && engine.getComplex().getHydrologyRuntime() != null) {
-                return SharedSuggestionProvider.suggest(
+                return NativeCommandRegistration.suggest(
                         engine.getComplex().getHydrologyRuntime().featureQueryKeys(), builder);
             }
         } catch (Throwable error) {
             warnTabFailure("hydrology types", context.getSource(), error);
         }
-        return SharedSuggestionProvider.suggest(
+        return NativeCommandRegistration.suggest(
                 HydrologyFeatureQuery.suggestions(List.of()), builder);
     }
 
@@ -131,12 +127,12 @@ final class ModdedCommandSuggestions {
         return biomeKey != null && reachableBiomeKeys(biomes).contains(biomeKey.trim());
     }
 
-    private static CompletableFuture<Suggestions> suggestRegionKeys(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+    private static CompletableFuture<Suggestions> suggestRegionKeys(CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) {
         ModdedCommandFeedback.tab(context.getSource());
         try {
-            Engine engine = IrisModdedCommands.engineFor(context.getSource().getLevel());
+            Engine engine = IrisModdedCommands.engineFor(context.getSource().world());
             if (engine != null) {
-                return SharedSuggestionProvider.suggest(GenerationFindCatalog.regions(engine).stream()
+                return NativeCommandRegistration.suggest(GenerationFindCatalog.regions(engine).stream()
                         .map(region -> region.getLoadKey()), builder);
             }
         } catch (Throwable e) {
@@ -145,12 +141,12 @@ final class ModdedCommandSuggestions {
         return builder.buildFuture();
     }
 
-    private static CompletableFuture<Suggestions> suggestObjectKeys(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+    private static CompletableFuture<Suggestions> suggestObjectKeys(CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) {
         ModdedCommandFeedback.tab(context.getSource());
         try {
-            Engine engine = IrisModdedCommands.engineFor(context.getSource().getLevel());
+            Engine engine = IrisModdedCommands.engineFor(context.getSource().world());
             if (engine != null) {
-                return SharedSuggestionProvider.suggest(GenerationFindCatalog.objectKeys(engine), builder);
+                return NativeCommandRegistration.suggest(GenerationFindCatalog.objectKeys(engine), builder);
             }
         } catch (Throwable e) {
             warnTabFailure("object keys", context.getSource(), e);
@@ -158,24 +154,23 @@ final class ModdedCommandSuggestions {
         return builder.buildFuture();
     }
 
-    static CompletableFuture<Suggestions> suggestStructureKeys(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
-        CommandSourceStack source = context.getSource();
+    static CompletableFuture<Suggestions> suggestStructureKeys(CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) {
+        NativeCommandSource source = context.getSource();
         ModdedCommandFeedback.tab(source);
         try {
-            ServerLevel level = source.getLevel();
+            NativeWorld level = source.world();
             Engine engine = IrisModdedCommands.engineFor(level);
             if (engine == null) {
                 return builder.buildFuture();
             }
             boolean nativeGenerationEnabled =
-                    source.getServer().getWorldGenSettings().options().generateStructures();
+                    source.server().generateStructures();
             Collection<String> irisKeys = IrisStructureLocator.locatableEditableKeys(engine);
             Set<String> reachableNativeKeys = StructureReachability.reachableKeys(engine);
-            Registry<Structure> registry = source.getServer().registryAccess().lookupOrThrow(Registries.STRUCTURE);
-            List<String> nativeKeys = new ArrayList<>(registry.keySet().size());
-            Set<String> registeredKeys = new HashSet<>(registry.keySet().size());
-            for (Identifier identifier : registry.keySet()) {
-                String key = identifier.toString();
+            List<String> registered = source.server().structureKeys();
+            List<String> nativeKeys = new ArrayList<>(registered.size());
+            Set<String> registeredKeys = new HashSet<>(registered.size());
+            for (String key : registered) {
                 registeredKeys.add(normalizeKey(key));
                 IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(engine, key, false);
                 boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, key);
@@ -194,7 +189,7 @@ final class ModdedCommandSuggestions {
                     irisKeys, registeredKeys,
                     (String candidate) -> IrisStructureLocator.hasNativePlacement(engine, candidate));
             nativeKeys.addAll(GenerationFindCatalog.retainedStructureKeys(engine));
-            return SharedSuggestionProvider.suggest(
+            return NativeCommandRegistration.suggest(
                     combineStructureKeys(unregisteredIrisKeys, nativeKeys), builder);
         } catch (Throwable e) {
             warnTabFailure("structure keys", source, e);
@@ -216,7 +211,7 @@ final class ModdedCommandSuggestions {
                 && (reachable || nativePlacement && locatableNativePlacement);
     }
 
-    static void warnTabFailure(String suggestion, CommandSourceStack source, Throwable error) {
+    static void warnTabFailure(String suggestion, NativeCommandSource source, Throwable error) {
         String origin = tabOrigin(source);
         if (!REPORTED_TAB_FAILURES.add(suggestion + '|' + origin + '|' + error.getClass().getName())) {
             return;
@@ -227,12 +222,12 @@ final class ModdedCommandSuggestions {
         ModdedIrisLog.warn("Iris tab-complete for {} in {} failed; suggestions will be empty", suggestion, origin, error);
     }
 
-    private static String tabOrigin(CommandSourceStack source) {
+    private static String tabOrigin(NativeCommandSource source) {
         if (source == null) {
             return "<no source>";
         }
         try {
-            return source.getLevel().dimension().identifier().toString();
+            return source.world().name();
         } catch (Throwable originFailure) {
             return "<no level>";
         }
@@ -273,14 +268,14 @@ final class ModdedCommandSuggestions {
         return key == null ? "" : key.trim().toLowerCase(Locale.ROOT);
     }
 
-    private static CompletableFuture<Suggestions> suggestPackNames(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+    private static CompletableFuture<Suggestions> suggestPackNames(CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) {
         ModdedCommandFeedback.tab(context.getSource());
         // Suggestion packets arrive per keystroke; a short-lived snapshot keeps the directory
         // walk off the hot path without ever serving stale names for more than a few seconds.
         long now = System.currentTimeMillis();
         Set<String> cached = cachedPackNames;
         if (cached != null && now - cachedPackNamesAt < PACK_NAME_CACHE_TTL_MS) {
-            return SharedSuggestionProvider.suggest(cached, builder);
+            return NativeCommandRegistration.suggest(cached, builder);
         }
         Set<String> names = new TreeSet<>();
         names.add("overworld");
@@ -305,17 +300,17 @@ final class ModdedCommandSuggestions {
         }
         cachedPackNames = names;
         cachedPackNamesAt = now;
-        return SharedSuggestionProvider.suggest(names, builder);
+        return NativeCommandRegistration.suggest(names, builder);
     }
 
-    private static CompletableFuture<Suggestions> suggestDimensionNames(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+    private static CompletableFuture<Suggestions> suggestDimensionNames(CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) {
         ModdedCommandFeedback.tab(context.getSource());
         List<String> names = new ArrayList<>();
-        for (ServerLevel level : ModdedServerLevels.levels(context.getSource().getServer())) {
-            if (level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator) {
-                names.add(level.dimension().identifier().toString());
+        for (NativeWorld level : context.getSource().server().worlds()) {
+            if (NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class) != null) {
+                names.add(level.name());
             }
         }
-        return SharedSuggestionProvider.suggest(names, builder);
+        return NativeCommandRegistration.suggest(names, builder);
     }
 }

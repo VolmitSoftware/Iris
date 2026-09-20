@@ -27,8 +27,8 @@ import art.arcane.iris.generation.chunk.ChunkDataHunkView;
 import art.arcane.iris.generation.chunk.TerrainChunkBiomeHunkView;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.localization.C;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import org.bukkit.Bukkit;
@@ -99,12 +99,12 @@ public final class GoldenHashScanner {
             }
 
             @Override
-            public PlatformBlockState block(int x, int y, int z) {
+            public NativeBlockState block(int x, int y, int z) {
                 return buffer.getBlockData(x, y, z);
             }
 
             @Override
-            public PlatformBiome biome(int x, int y, int z) {
+            public NativeBiome biome(int x, int y, int z) {
                 return buffer.getBiome(x, y, z);
             }
         };

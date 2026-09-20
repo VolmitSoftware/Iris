@@ -59,14 +59,6 @@ public class INMS {
         return binding;
     }
 
-    public static String getNMSTag() {
-        if (IrisSettings.get().getGeneral().isDisableNMS()) {
-            return "BUKKIT";
-        }
-
-        return NmsBindingSelector.select(requireMinecraftVersion());
-    }
-
     private static INMSBinding bind() {
         boolean disableNms = IrisSettings.get().getGeneral().isDisableNMS();
         if (disableNms) {
@@ -74,43 +66,7 @@ public class INMS {
             IrisLogging.warn("NMS support is disabled. Iris world creation is unavailable until general.disableNMS=false.");
             return new NMSBinding1X();
         }
-        return bindExact(getNMSTag());
+        return new BukkitBinding();
     }
 
-    private static MinecraftVersion requireMinecraftVersion() {
-        try {
-            MinecraftVersion detected = MinecraftVersion.detect(Bukkit.getServer());
-            if (detected == null) {
-                throw new IllegalStateException("Iris could not determine the exact Minecraft server version");
-            }
-            return detected;
-        } catch (Throwable e) {
-            IrisLogging.reportError(e);
-            IrisLogging.error("Failed to determine server minecraft version!");
-            if (e instanceof IllegalStateException illegalStateException) {
-                throw illegalStateException;
-            }
-            throw new IllegalStateException("Iris could not determine the exact Minecraft server version", e);
-        }
-    }
-
-    private static INMSBinding bindExact(String code) {
-        IrisLogging.debug("Locating exact NMS Binding for " + code);
-        try {
-            Class<?> clazz = Class.forName("art.arcane.iris.platform.bukkit.nms." + code + ".NMSBinding");
-            Object candidate = clazz.getConstructor().newInstance();
-            if (candidate instanceof INMSBinding binding) {
-                IrisLogging.debug("Craftbukkit " + code + " <-> " + candidate.getClass().getSimpleName() + " Successfully Bound");
-                return binding;
-            }
-            throw new IllegalStateException("Exact NMS binding class for " + code
-                    + " does not implement " + INMSBinding.class.getName());
-        } catch (Throwable e) {
-            IrisLogging.reportError(e);
-            if (e instanceof IllegalStateException illegalStateException) {
-                throw illegalStateException;
-            }
-            throw new IllegalStateException("Failed to bind exact NMS revision " + code, e);
-        }
-    }
 }

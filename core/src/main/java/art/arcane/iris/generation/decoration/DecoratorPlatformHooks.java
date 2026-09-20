@@ -19,7 +19,7 @@
 package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.generation.mantle.EngineMantle;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 
 public final class DecoratorPlatformHooks {
@@ -30,11 +30,11 @@ public final class DecoratorPlatformHooks {
     }
 
     public interface FaceFixer {
-        PlatformBlockState fixFaces(PlatformBlockState state, Hunk<PlatformBlockState> hunk, int rX, int rZ, int x, int y, int z, EngineMantle mantle);
+        NativeBlockState fixFaces(NativeBlockState state, Hunk<NativeBlockState> hunk, int rX, int rZ, int x, int y, int z, EngineMantle mantle);
     }
 
     public interface SurfaceSturdiness {
-        boolean canGoOn(PlatformBlockState surface, boolean upward);
+        boolean canGoOn(NativeBlockState surface, boolean upward);
     }
 
     public static synchronized Bindings bind(FaceFixer faceFixer, SurfaceSturdiness surfaceSturdiness) {

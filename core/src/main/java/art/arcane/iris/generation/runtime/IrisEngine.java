@@ -21,7 +21,7 @@ package art.arcane.iris.generation.runtime;
 import art.arcane.iris.generation.runtime.EngineBackgroundTasks.BackgroundTaskDrain;
 import art.arcane.iris.generation.runtime.EngineRuntimeBuilder.RuntimeAssembly;
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.structure.nativegen.NativeStructureVolume;
+import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 import art.arcane.iris.structure.nativegen.NativeStructureVolumeMemo;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.structure.nativegen.NativeStructureOwnershipStore;
@@ -44,8 +44,8 @@ import art.arcane.iris.structure.StructureIndexService;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.block.B;
 import java.util.function.Consumer;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.atomics.AtomicRollingSequence;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
@@ -1497,7 +1497,7 @@ public class IrisEngine implements Engine {
 
     @BlockCoordinates
     @Override
-    public void generate(int x, int z, Hunk<PlatformBlockState> vblocks, Hunk<PlatformBiome> vbiomes, boolean multicore) throws WrongEngineBroException {
+    public void generate(int x, int z, Hunk<NativeBlockState> vblocks, Hunk<NativeBiome> vbiomes, boolean multicore) throws WrongEngineBroException {
         awaitGenerationCacheWarm();
         try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope =
                      openGenerationHistoryCoordinateScope(x, z);
@@ -1505,10 +1505,10 @@ public class IrisEngine implements Engine {
              IrisContext.Scope generationScope = IrisContext.open(this, lease.sessionId(), null)) {
             getEngineData().getStatistics().generatedChunk();
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            Hunk<PlatformBlockState> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y, z + zz, t));
+            Hunk<NativeBlockState> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y, z + zz, t));
 
             if (getDimension().isDebugChunkCrossSections() && ((x >> 4) % getDimension().getDebugCrossSectionsMod() == 0 || (z >> 4) % getDimension().getDebugCrossSectionsMod() == 0)) {
-                PlatformBlockState crossSection = B.getState("CRYING_OBSIDIAN");
+                NativeBlockState crossSection = B.getState("CRYING_OBSIDIAN");
                 for (int i = 0; i < 16; i++) {
                     for (int j = 0; j < 16; j++) {
                         blocks.set(i, 0, j, crossSection);

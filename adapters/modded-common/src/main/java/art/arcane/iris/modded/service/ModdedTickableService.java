@@ -18,8 +18,8 @@
 
 package art.arcane.iris.modded.service;
 
-import net.minecraft.server.MinecraftServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 
 public interface ModdedTickableService extends ModdedService {
-    void onServerTick(MinecraftServer server);
+    void onServerTick(NativeModdedServer server);
 }

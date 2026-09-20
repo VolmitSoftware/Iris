@@ -2,7 +2,7 @@ package art.arcane.iris.generation.decoration.tree;
 
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
@@ -26,10 +26,10 @@ public class TreeBlockResolverTest {
         IrisProceduralTree tree = new IrisProceduralTree();
         tree.setSeed(91874L);
         tree.setLeavesPalette(palette("oak_leaves", "birch_leaves"));
-        PlatformBlockState blossom = mock(PlatformBlockState.class);
-        PlatformBlockState light = mock(PlatformBlockState.class);
-        List<PlatformBlockState> normal = new ArrayList<>();
-        List<PlatformBlockState> large = new ArrayList<>();
+        NativeBlockState blossom = mock(NativeBlockState.class);
+        NativeBlockState light = mock(NativeBlockState.class);
+        List<NativeBlockState> normal = new ArrayList<>();
+        List<NativeBlockState> large = new ArrayList<>();
         TreeBlockCanvas.Cell cell = new TreeBlockCanvas.Cell(
                 TreeBlockCanvas.Role.SECONDARY_LEAF, TreeBlockCanvas.Axis.NONE, false, -1, null);
         try (MockedStatic<B> blocks = mockStatic(B.class)) {
@@ -39,7 +39,7 @@ public class TreeBlockResolverTest {
                 tree.setWeightedSecondaryLeaves(new KList<>(
                         new IrisTreeSecondaryLeaf("minecraft:cherry_leaves", weight),
                         new IrisTreeSecondaryLeaf("minecraft:shroomlight", weight)));
-                List<PlatformBlockState> resolved = weight == 1 ? normal : large;
+                List<NativeBlockState> resolved = weight == 1 ? normal : large;
                 for (int x = -16; x <= 16; x++) {
                     for (int y = 0; y < 16; y++) {
                         resolved.add(TreeBlockResolver.resolve(tree, null, cell,
@@ -74,8 +74,8 @@ public class TreeBlockResolverTest {
                 TreeBlockCanvas.Vec position = new TreeBlockCanvas.Vec(x, y, x - y);
                 TreeBlockCanvas.Cell cell = new TreeBlockCanvas.Cell(
                         roles[Math.floorMod(x + y, roles.length)], TreeBlockCanvas.Axis.NONE, false, -1, null);
-                PlatformBlockState expected = TreeBlockResolver.resolve(tree, null, cell, position, new RNG(tree.getSeed()));
-                PlatformBlockState actual = TreeBlockResolver.resolve(tree, null, cell, position, shared);
+                NativeBlockState expected = TreeBlockResolver.resolve(tree, null, cell, position, new RNG(tree.getSeed()));
+                NativeBlockState actual = TreeBlockResolver.resolve(tree, null, cell, position, shared);
                 freshBlocks.add(position + ":" + expected.key());
                 sharedBlocks.add(position + ":" + actual.key());
                 materials.add(actual.key());
@@ -94,7 +94,7 @@ public class TreeBlockResolverTest {
     }
 
     private static IrisBlockData block(String material) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.key()).thenReturn("minecraft:" + material);
         IrisBlockData block = mock(IrisBlockData.class);
         when(block.getWeight()).thenReturn(1);

@@ -1,6 +1,6 @@
 package art.arcane.iris.world.storage.matter;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.data.palette.Palette;
 import art.arcane.volmlib.util.matter.Sliced;
@@ -11,29 +11,29 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 @Sliced
-public class PlatformBlockMatter extends RawMatter<PlatformBlockState> {
+public class PlatformBlockMatter extends RawMatter<NativeBlockState> {
 
     public PlatformBlockMatter() {
         this(1, 1, 1);
     }
 
     public PlatformBlockMatter(int width, int height, int depth) {
-        super(width, height, depth, PlatformBlockState.class);
+        super(width, height, depth, NativeBlockState.class);
     }
 
     @Override
-    public Palette<PlatformBlockState> getGlobalPalette() {
+    public Palette<NativeBlockState> getGlobalPalette() {
         return null;
     }
 
     @Override
-    public void writeNode(PlatformBlockState b, DataOutputStream dos) throws IOException {
+    public void writeNode(NativeBlockState b, DataOutputStream dos) throws IOException {
         dos.writeUTF(b.key());
     }
 
     @Override
-    public PlatformBlockState readNode(DataInputStream din) throws IOException {
-        PlatformBlockState state = B.getState(din.readUTF());
+    public NativeBlockState readNode(DataInputStream din) throws IOException {
+        NativeBlockState state = B.getState(din.readUTF());
         return state == null ? B.getAirState() : state;
     }
 }

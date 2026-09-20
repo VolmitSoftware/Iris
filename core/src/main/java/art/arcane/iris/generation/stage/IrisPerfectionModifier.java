@@ -28,7 +28,7 @@ import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.iris.generation.concurrent.BurstExecutor;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlockState> {
+public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockState> {
     private static final BoundBlockState AIR = BoundBlockState.of("AIR");
     private static final BoundBlockState WATER = BoundBlockState.of("WATER");
     private static final Map<String, BoundBlockState> ORE_BASES = buildOreBases();
@@ -74,14 +74,14 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlock
         return map;
     }
 
-    private static String baseKey(PlatformBlockState state) {
+    private static String baseKey(NativeBlockState state) {
         String key = state.key();
         int bracket = key.indexOf('[');
         return bracket < 0 ? key : key.substring(0, bracket);
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
+    public void onModify(int x, int z, Hunk<NativeBlockState> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         if (getDimension().isHideOresForHiddenOre()) {
             hideOres(output, multicore);
@@ -103,7 +103,7 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlock
                         surfaces.add(top);
 
                         for (int k = top; k >= 0; k--) {
-                            PlatformBlockState b = output.get(finalI, k, j);
+                            NativeBlockState b = output.get(finalI, k, j);
                             if (IrisSpeleothems.isSpike(b)) {
                                 b = normalizeSpike(b, output, finalI, j, k, AIR.get(), WATER.get());
                             }
@@ -121,7 +121,7 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlock
                         }
 
                         for (int k : surfaces) {
-                            PlatformBlockState tip = output.get(finalI, k, j);
+                            NativeBlockState tip = output.get(finalI, k, j);
 
                             if (tip == null) {
                                 continue;
@@ -131,14 +131,14 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlock
                             boolean remove2 = false;
 
                             if (B.isDecorant(tip)) {
-                                PlatformBlockState bel = output.get(finalI, k - 1, j);
+                                NativeBlockState bel = output.get(finalI, k - 1, j);
 
                                 if (bel == null) {
                                     remove = true;
                                 } else if (!B.canPlaceOnto(tip, bel)) {
                                     remove = true;
                                 } else if (IrisProceduralBlocks.hasProperty(bel, "half")) {
-                                    PlatformBlockState bb = output.get(finalI, k - 2, j);
+                                    NativeBlockState bb = output.get(finalI, k - 2, j);
                                     if (bb == null || !B.canPlaceOnto(bel, bb)) {
                                         remove = true;
                                         remove2 = true;
@@ -164,8 +164,8 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlock
         getEngine().getMetrics().getPerfection().put(p.getMilliseconds());
     }
 
-    static PlatformBlockState normalizeSpike(PlatformBlockState state, Hunk<PlatformBlockState> output,
-                                              int x, int z, int y, PlatformBlockState air, PlatformBlockState water) {
+    static NativeBlockState normalizeSpike(NativeBlockState state, Hunk<NativeBlockState> output,
+                                              int x, int z, int y, NativeBlockState air, NativeBlockState water) {
         if (IrisSpeleothems.isSupported(state, output, x, z, y)) {
             IrisSpeleothems.finishAtTip(output, x, z, y);
             return output.get(x, y, z);
@@ -177,7 +177,7 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlock
         int step = upward ? 1 : -1;
         int nextY = y;
         while (nextY >= 0 && nextY < output.getHeight()) {
-            PlatformBlockState current = output.get(x, nextY, z);
+            NativeBlockState current = output.get(x, nextY, z);
             if (!IrisSpeleothems.isSpike(current)
                     || !material.equals(IrisProceduralBlocks.materialKey(current))
                     || !direction.equals(IrisProceduralBlocks.propertyValue(current, "vertical_direction"))) {
@@ -188,7 +188,7 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlock
         }
 
         if (nextY >= 0 && nextY < output.getHeight()) {
-            PlatformBlockState retained = output.get(x, nextY, z);
+            NativeBlockState retained = output.get(x, nextY, z);
             if (IrisSpeleothems.isSpike(retained)
                     && material.equals(IrisProceduralBlocks.materialKey(retained))
                     && !direction.equals(IrisProceduralBlocks.propertyValue(retained, "vertical_direction"))) {
@@ -198,7 +198,7 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlock
         return output.get(x, y, z);
     }
 
-    private void hideOres(Hunk<PlatformBlockState> output, boolean multicore) {
+    private void hideOres(Hunk<NativeBlockState> output, boolean multicore) {
         BurstExecutor burst = burst().burst(multicore);
         int height = output.getHeight();
         for (int i = 0; i < 16; i++) {
@@ -206,7 +206,7 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlock
             burst.queue(() -> {
                 for (int j = 0; j < 16; j++) {
                     for (int k = height - 1; k >= 0; k--) {
-                        PlatformBlockState block = output.get(finalI, k, j);
+                        NativeBlockState block = output.get(finalI, k, j);
                         if (block == null) {
                             continue;
                         }
@@ -221,9 +221,9 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<PlatformBlock
         burst.complete();
     }
 
-    private int getHeight(Hunk<PlatformBlockState> output, int x, int z) {
+    private int getHeight(Hunk<NativeBlockState> output, int x, int z) {
         for (int i = output.getHeight() - 1; i >= 0; i--) {
-            PlatformBlockState b = output.get(x, i, z);
+            NativeBlockState b = output.get(x, i, z);
 
             if (b != null) {
                 if (!B.isAir(b) && !B.isFluid(b)) {

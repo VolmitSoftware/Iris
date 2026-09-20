@@ -119,7 +119,7 @@ public class PackTypeBukkitPurityGateTest {
      * Bukkit adapter, so they stay out of the gate.)
      */
     private static final List<String> BUKKIT_STATIC_HOLDERS = List.of(
-            "art.arcane.iris.platform.bukkit.registry.Particles");
+            "art.arcane.iris.platform.registry.Particles");
 
     @Test
     public void theGateActuallyHidesBukkit() throws Exception {

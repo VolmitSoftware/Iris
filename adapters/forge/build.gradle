@@ -84,6 +84,9 @@ java {
     }
 }
 
+ext.nativeSourceLoader = 'forge'
+apply from: file('../../gradle/native-minecraft-sources.gradle')
+
 sourceSets {
     main {
         java {
@@ -208,13 +211,13 @@ dependencies {
 }
 
 minecraft {
-    accessTransformer.from(file('src/main/resources/META-INF/accesstransformer.cfg'))
+    accessTransformer.from(art.arcane.volmit.packaging.NativeAccessRules.prepare(nativeSourceImplementation, "forge", layout.buildDirectory.dir("native-access").get().asFile))
     runs {
         register('client') {
             workingDir = layout.projectDirectory.dir('run')
             jvmArgs('-Xmx8G')
-            args('--mixin.config', 'irisworldgen.entity.mixins.json',
-                    '--mixin.config', 'irisworldgen.client.mixins.json')
+            args('--mixin.config', 'volmlib.entity.mixins.json',
+                    '--mixin.config', 'volmlib.client.mixins.json')
         }
         register('server') {
             workingDir = layout.projectDirectory.dir('run')
@@ -235,7 +238,7 @@ minecraft {
                 systemProperty('iris.worldcheck', worldCheck)
             }
             jvmArgs('-Xmx8G')
-            args('--mixin.config', 'irisworldgen.entity.mixins.json', '--nogui')
+            args('--mixin.config', 'volmlib.entity.mixins.json', '--nogui')
         }
     }
 }
@@ -272,7 +275,7 @@ tasks.named('shadowJar', ShadowJar).configure {
         // FML 26.2 has no TOML mixin handling at all (ModFileParser reads neither [[mixins]] nor
         // accessTransformers on Forge). This manifest attribute is the only registration mechanism;
         // do not move it into mods.toml.
-        attributes('MixinConfigs': 'irisworldgen.entity.mixins.json,irisworldgen.client.mixins.json')
+        attributes('MixinConfigs': 'volmlib.entity.mixins.json,volmlib.client.mixins.json')
     }
     archiveFileName.set(irisArtifactName('Forge', "${minecraftVersion}+${loaderDisplayVersion(forgeVersion)}"))
     configurations = [project.configurations.named('bundle').get()]

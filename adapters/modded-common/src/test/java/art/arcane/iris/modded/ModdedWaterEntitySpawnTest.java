@@ -1,5 +1,9 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntityRuntime;
+
 import art.arcane.iris.world.entity.IrisEntity;
 import art.arcane.iris.world.entity.IrisEntitySpawn;
 import art.arcane.iris.world.entity.IrisSpawnGroup;
@@ -37,13 +41,13 @@ public class ModdedWaterEntitySpawnTest {
         ServerLevel level = mock(ServerLevel.class);
         IrisEntity entity = new IrisEntity().setType("tadpole").setSurface(IrisSurface.WATER);
         when(level.getBlockState(any(BlockPos.class))).thenReturn(Blocks.WATER.defaultBlockState());
-        assertTrue(ModdedEntitySpawner.isAreaClearForSpawn(level, entity, 0, 78, 0));
+        assertTrue(ModdedEntitySpawner.isAreaClearForSpawn(new NativeEntityRuntime(level), entity, 0, 78, 0));
         when(level.getBlockState(any(BlockPos.class))).thenReturn(Blocks.SEAGRASS.defaultBlockState());
-        assertTrue(ModdedEntitySpawner.isAreaClearForSpawn(level, entity, 0, 78, 0));
+        assertTrue(ModdedEntitySpawner.isAreaClearForSpawn(new NativeEntityRuntime(level), entity, 0, 78, 0));
         when(level.getBlockState(any(BlockPos.class))).thenReturn(Blocks.AIR.defaultBlockState());
-        assertFalse(ModdedEntitySpawner.isAreaClearForSpawn(level, entity, 0, 79, 0));
+        assertFalse(ModdedEntitySpawner.isAreaClearForSpawn(new NativeEntityRuntime(level), entity, 0, 79, 0));
         when(level.getBlockState(any(BlockPos.class))).thenReturn(Blocks.LAVA.defaultBlockState());
-        assertFalse(ModdedEntitySpawner.isAreaClearForSpawn(level, entity, 0, 78, 0));
+        assertFalse(ModdedEntitySpawner.isAreaClearForSpawn(new NativeEntityRuntime(level), entity, 0, 78, 0));
     }
 
     @Test
@@ -51,38 +55,38 @@ public class ModdedWaterEntitySpawnTest {
         ServerLevel level = mock(ServerLevel.class);
         IrisEntity entity = new IrisEntity().setType("tadpole").setSurface(IrisSurface.LAVA);
         when(level.getBlockState(any(BlockPos.class))).thenReturn(Blocks.LAVA.defaultBlockState());
-        assertTrue(ModdedEntitySpawner.isAreaClearForSpawn(level, entity, 0, 78, 0));
+        assertTrue(ModdedEntitySpawner.isAreaClearForSpawn(new NativeEntityRuntime(level), entity, 0, 78, 0));
         when(level.getBlockState(any(BlockPos.class))).thenReturn(Blocks.WATER.defaultBlockState());
-        assertFalse(ModdedEntitySpawner.isAreaClearForSpawn(level, entity, 0, 78, 0));
+        assertFalse(ModdedEntitySpawner.isAreaClearForSpawn(new NativeEntityRuntime(level), entity, 0, 78, 0));
     }
 
     @Test
     public void waterloggedSolidBlocksStillObstructWaterSpawns() {
         assertTrue(ModdedWorldManager.matchesSurface(IrisSurface.WATER,
-                Blocks.SEA_PICKLE.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true)));
+                ModdedBlockState.of(Blocks.SEA_PICKLE.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true), null)));
         assertFalse(ModdedWorldManager.matchesSurface(IrisSurface.WATER,
-                Blocks.OAK_FENCE.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true)));
+                ModdedBlockState.of(Blocks.OAK_FENCE.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true), null)));
     }
 
     @Test
     public void fractionalFluidVolumeIncludesHorizontalEdgesAndCenteredHeight() {
         Set<BlockPos> checked = new HashSet<>();
-        assertTrue(ModdedEntitySpawner.isFluidAreaClearForSpawn(-1, 78, -1, 1.3F, 0.8F, position -> {
-            checked.add(position);
+        assertTrue(NativeEntityRuntime.isFluidAreaClearForSpawn(-1, 78, -1, 1.3F, 0.8F, (x, y, z) -> {
+            checked.add(new BlockPos(x, y, z));
             return true;
         }));
         assertEquals(18, checked.size());
         assertTrue(checked.contains(new BlockPos(-2, 79, -2)));
         assertTrue(checked.contains(new BlockPos(0, 78, 0)));
-        assertFalse(ModdedEntitySpawner.isFluidAreaClearForSpawn(-1, 78, -1, 1.3F, 0.8F,
-                position -> !position.equals(new BlockPos(-2, 79, -2))));
+        assertFalse(NativeEntityRuntime.isFluidAreaClearForSpawn(-1, 78, -1, 1.3F, 0.8F,
+                (x, y, z) -> !new BlockPos(x, y, z).equals(new BlockPos(-2, 79, -2))));
     }
 
     @Test
     public void exactUpperBoundaryDoesNotRequireWaterOutsideTheBody() {
         Set<BlockPos> checked = new HashSet<>();
-        assertTrue(ModdedEntitySpawner.isFluidAreaClearForSpawn(0, 78, 0, 1F, 0.5F, position -> {
-            checked.add(position);
+        assertTrue(NativeEntityRuntime.isFluidAreaClearForSpawn(0, 78, 0, 1F, 0.5F, (x, y, z) -> {
+            checked.add(new BlockPos(x, y, z));
             return true;
         }));
         assertEquals(Set.of(new BlockPos(0, 78, 0)), checked);

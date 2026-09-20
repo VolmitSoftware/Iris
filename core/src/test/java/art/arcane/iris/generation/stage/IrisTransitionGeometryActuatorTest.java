@@ -9,8 +9,8 @@ import art.arcane.iris.world.history.SavedTerrainChunk;
 import art.arcane.iris.world.history.TransitionGenerationPlan;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.generation.context.ChunkContext;
@@ -38,8 +38,8 @@ public class IrisTransitionGeometryActuatorTest {
 
     private IrisPlatform previous;
     private PlatformRegistries registries;
-    private PlatformBlockState stone;
-    private PlatformBlockState air;
+    private NativeBlockState stone;
+    private NativeBlockState air;
 
     @Before
     public void bind() {
@@ -67,15 +67,15 @@ public class IrisTransitionGeometryActuatorTest {
     @Test
     public void boundaryReceiptRetainsCustomKeyAndCarrierPhysics() throws Exception {
         String key = "itemsadder:rocks/ruby_ore";
-        PlatformBlockState carrier = state("minecraft:oak_slab[type=bottom,waterlogged=true]", false);
+        NativeBlockState carrier = state("minecraft:oak_slab[type=bottom,waterlogged=true]", false);
         when(carrier.isWaterLogged()).thenReturn(true);
-        PlatformBlockState custom = state(key, false);
+        NativeBlockState custom = state(key, false);
         when(custom.isCustom()).thenReturn(true);
         when(custom.placementBaseState()).thenReturn(carrier);
-        Hunk<PlatformBlockState> blocks = filled();
+        Hunk<NativeBlockState> blocks = filled();
         blocks.setRaw(0, 3, 0, custom);
-        Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(16, 16, 16);
-        PlatformBiome biome = mock(PlatformBiome.class);
+        Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, 16, 16);
+        NativeBiome biome = mock(NativeBiome.class);
         when(biome.key()).thenReturn("minecraft:plains");
         biomes.fill(biome);
         ChunkContext context = mock(ChunkContext.class);
@@ -94,7 +94,7 @@ public class IrisTransitionGeometryActuatorTest {
 
     @Test
     public void appliesCaveAndIslandGeometryThenUpdatesDecorationHeight() {
-        Hunk<PlatformBlockState> blocks = filled();
+        Hunk<NativeBlockState> blocks = filled();
         ChunkContext context = context("minecraft:stone");
         Engine engine = mock(Engine.class);
 
@@ -113,8 +113,8 @@ public class IrisTransitionGeometryActuatorTest {
     public void refusesUnresolvableRetainedMaterialInsteadOfReplacingItWithAir() {
         Engine engine = mock(Engine.class);
         ChunkContext context = context("removed:stone");
-        Hunk<PlatformBlockState> blocks = filled();
-        Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(16, 16, 16);
+        Hunk<NativeBlockState> blocks = filled();
+        Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, 16, 16);
 
         assertThrows(IllegalStateException.class, () -> new IrisTransitionGeometryActuator(engine)
                 .generate(16, 0, blocks, biomes, false, context));
@@ -142,8 +142,8 @@ public class IrisTransitionGeometryActuatorTest {
         return context;
     }
 
-    private Hunk<PlatformBlockState> filled() {
-        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, 16, 16);
+    private Hunk<NativeBlockState> filled() {
+        Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(16, 16, 16);
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 for (int y = 0; y < 16; y++) {
@@ -154,8 +154,8 @@ public class IrisTransitionGeometryActuatorTest {
         return blocks;
     }
 
-    private static PlatformBlockState state(String key, boolean isAir) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private static NativeBlockState state(String key, boolean isAir) {
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.key()).thenReturn(key);
         when(state.isAir()).thenReturn(isAir);
         when(state.isSolid()).thenReturn(!isAir);

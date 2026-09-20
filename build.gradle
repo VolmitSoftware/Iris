@@ -1,4 +1,10 @@
 import art.arcane.volmit.packaging.PackagingMode
+import art.arcane.volmit.packaging.NativeDevelopmentTargets
+import io.papermc.paperweight.userdev.PaperweightUser
+import io.papermc.paperweight.userdev.PaperweightUserDependenciesExtension
+import io.papermc.paperweight.userdev.PaperweightUserExtension
+import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.jvm.toolchain.JavaToolchainService
 import org.gradle.api.file.CopySpec
 import org.gradle.api.file.DeleteSpec
 import org.gradle.api.file.FileSystemOperations
@@ -28,17 +34,6 @@ import javax.inject.Inject
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-buildscript {
-    repositories {
-        maven {
-            url = uri('https://jitpack.io')
-        }
-    }
-    dependencies {
-        classpath('com.github.VolmitSoftware:NMSTools:c88961416f')
-    }
-}
 
 buildscript {
     repositories {
@@ -139,27 +134,26 @@ String fabricConsumerPath = "${consumerLocation}/fabric-mod-consumers/dropins/mo
 String forgeConsumerPath = "${consumerLocation}/forge-mod-consumers/dropins/mods"
 String neoForgeConsumerPath = "${consumerLocation}/neoforge-mod-consumers/dropins/mods"
 
-def nmsBindings = [
-    v26_2_R1: '26.1.2.build.74-stable',
-    v26_3_R1: '26.3.build.25-alpha',
-]
-Class nmsTypeClass = Class.forName('NMSBinding$Type')
-nmsBindings.each { key, value ->
+List<String> nmsBindings = ['v26_2_R1', 'v26_3_R1']
+ext.nativeDevelopmentAdapters = nmsBindings
+nmsBindings.each { String key ->
     project(":adapters:bukkit:nms:${key}") {
         apply plugin: JavaPlugin
-
-        def nmsConfig = new Config()
-        nmsConfig.jvm = 25
-        nmsConfig.version = value
-        nmsConfig.type = Enum.valueOf(nmsTypeClass, 'USER_DEV')
-        extensions.extraProperties.set('nms', nmsConfig)
-        plugins.apply(NMSBinding)
-
-        if (key == 'v26_2_R1') {
-            sourceSets.main.java.srcDir(rootProject.file('adapters/minecraft-common/src/main/java'))
+        apply plugin: PaperweightUser
+        NativeDevelopmentTargets.Target nativeTarget = NativeDevelopmentTargets.require(key)
+        dependencies.extensions.getByType(PaperweightUserDependenciesExtension)
+            .paperDevBundle(nativeTarget.paperBundle())
+        JavaPluginExtension javaExtension = extensions.getByType(JavaPluginExtension)
+        javaExtension.toolchain.languageVersion.set(JavaLanguageVersion.of(nativeTarget.javaVersion()))
+        JavaToolchainService nativeToolchains = extensions.getByType(JavaToolchainService)
+        extensions.configure(PaperweightUserExtension) { PaperweightUserExtension extension ->
+            extension.javaLauncher.set(nativeToolchains.launcherFor(javaExtension.toolchain))
         }
 
         dependencies {
+            implementation("com.github.VolmitSoftware.VolmLib:native-${key}:${volmLibCoordinate.tokenize(':').last()}") {
+                transitive = false
+            }
             compileOnly(project(':core'))
             compileOnly(volmLibCoordinate) {
                 transitive = false
@@ -170,6 +164,9 @@ nmsBindings.each { key, value ->
             testImplementation('org.mockito:mockito-core:5.23.0')
             testImplementation(project(':core'))
             testImplementation(testFixtures(project(':core')))
+            testImplementation("com.github.VolmitSoftware.VolmLib:native-common:${volmLibCoordinate.tokenize(':').last()}") {
+                transitive = false
+            }
             testCompileOnly(volmLibCoordinate) {
                 transitive = false
             }
@@ -180,11 +177,37 @@ nmsBindings.each { key, value ->
 }
 
 def included = configurations.create('included')
+def nativeRuntime = configurations.create('nativeRuntime')
+def nativeRuntimeOutput = layout.buildDirectory.dir('generated/native-runtime')
+def nativeRuntimeRules = layout.buildDirectory.file('generated/native-runtime-keep.pro')
+dependencies {
+    (['native-common'] + nmsBindings.collect { String adapter -> 'native-' + adapter }).each { String module ->
+        add('nativeRuntime', "com.github.VolmitSoftware.VolmLib:${module}:${volmLibCoordinate.tokenize(':').last()}") {
+            transitive = false
+        }
+    }
+}
+def generateNativeRuntime = tasks.register('generateNativeRuntime') {
+    inputs.files(nativeRuntime)
+    inputs.property('version', volmLibCoordinate.tokenize(':').last())
+    inputs.property('adapters', nmsBindings)
+    outputs.dir(nativeRuntimeOutput)
+    outputs.file(nativeRuntimeRules)
+    doLast {
+        Map<String, File> artifacts = new TreeMap<>()
+        nativeRuntime.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+            String module = artifact.moduleVersion.id.name
+            if (module.startsWith('v') && module.contains('_R')) {
+                module = 'native-' + module
+            }
+            artifacts.put(module, artifact.file)
+        }
+        NativeRuntimeArtifacts.generate(artifacts, volmLibCoordinate.tokenize(':').last(),
+            nativeRuntimeOutput.get().asFile, nativeRuntimeRules.get().asFile)
+    }
+}
 def jarJar = configurations.create('jarJar')
 dependencies {
-    nmsBindings.keySet().each { key ->
-        add('included', project(path: ":adapters:bukkit:nms:${key}", configuration: 'runtimeElements'))
-    }
     add('included', project(path: ':core', configuration: 'shadow'))
     add('included', project(path: ':adapters:bukkit:plugin', configuration: 'runtimeElements'))
     add('jarJar', project(':core:agent'))
@@ -192,11 +215,15 @@ dependencies {
 
 tasks.named('jar', Jar).configure {
     inputs.files(included)
+    dependsOn(generateNativeRuntime)
+    from(nativeRuntimeOutput)
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     includeEmptyDirs = false
     from(jarJar)
     from(provider { included.resolve().collect { zipTree(it) } }) {
         exclude('languages/**')
+        exclude('com/fren_gor/**')
+
     }
     doFirst {
         irisFileOperations.fileSystemOperations.delete { DeleteSpec spec -> spec.delete(legacyBukkitJar) }
@@ -303,11 +330,18 @@ List<Object> moddedSharedInputs = []
     'gradle/libs.versions.toml',
     'gradle/volmlib-resolution.settings.gradle',
     'gradle/generation-build-revision.gradle',
-    'gradle/modded-generation-build-revision.gradle'
+    'gradle/modded-generation-build-revision.gradle',
+    'gradle/native-minecraft-sources.gradle'
 ].each { String path -> moddedSharedInputs.add(layout.projectDirectory.file(path).asFile) }
 File localVolmLibCheckout = useLocalVolmLib.equalsIgnoreCase('true') ? resolveLocalVolmLibDirectory() : null
 if (localVolmLibCheckout != null) {
-    moddedSharedInputs.add(new File(localVolmLibCheckout, 'shared/src/main'))
+    moddedSharedInputs.add(fileTree(localVolmLibCheckout) {
+        include('shared/src/main/**', 'native-api/src/main/**', 'native-terrain-api/src/main/**',
+            'native/**/src/main/**',
+            'native/minecraft-common/src/**', 'packaging/src/main/**',
+            '**/build.gradle', 'settings.gradle', 'gradle.properties', 'gradle/libs.versions.toml')
+        exclude('**/build/**', '**/.gradle/**')
+    })
 }
 
 Closure<Void> declareModdedJarIo = { Exec task, String adapter, String artifactName, Map<String, String> versions ->
@@ -508,14 +542,18 @@ List<String> commonModdedArtifactEntries = [
     'META-INF/iris/generation-kernels/abi-1.revision',
     'META-INF/services/art.arcane.iris.localization.IrisMessageContributor',
     'art/arcane/iris/generation/runtime/IrisEngine.class',
+    'art/arcane/iris/pack/datapack/DataVersion.class',
+    'art/arcane/iris/pack/datapack/IDataFixer.class',
     'art/arcane/iris/spi/IrisPlatform.class',
     'art/arcane/volmlib/util/mantle/io/Lz4IOWorkerCodecSupport.class',
     'art/arcane/iris/platform/bootstrap/getHardware.class',
     // Both shared mixin configs plus the lang file and mod icon every loader's metadata points at.
     // A shadowJar exclude or a renamed resource that drops any of these is silent at build time and
     // shows up as a non-applied mixin or a missing-translation report from a user.
-    'irisworldgen.entity.mixins.json',
-    'irisworldgen.client.mixins.json',
+    'volmlib.entity.mixins.json',
+    'volmlib.client.mixins.json',
+    'art/arcane/volmlib/nativelib/minecraft26_2/client/mixin/NativeWorldOpenFlowsMixin.class',
+    'art/arcane/volmlib/nativelib/minecraft26_2/client/mixin/NativeWorldTypeEntryMixin.class',
     'assets/irisworldgen/lang/en_us.json',
     'assets/irisworldgen/icon.png'
 ]
@@ -538,8 +576,8 @@ tasks.register('verifyFabricArtifact') {
     doLast {
         List<String> requiredEntries = commonModdedArtifactEntries + [
             'fabric.mod.json',
-            'irisworldgen.mixins.json',
-            'irisworldgen.accesswidener',
+            'volmlib.fabric.mixins.json',
+            'volmlib.accesswidener',
             'art/arcane/iris/fabric/IrisFabricBootstrap.class'
         ]
         ModdedArtifactVerifier.verify(artifact, requiredEntries, bukkitCoupledCoreClasses)
@@ -616,13 +654,15 @@ List<String> requiredBukkitArtifactEntries = [
     'paper-plugin.yml',
     'slimjar.dat',
     'slimjar-resolutions.dat',
+    'META-INF/iris/native-runtime.properties',
     'iris-language-source.properties',
     'agent.jar',
     'art/arcane/iris/Iris.class',
     'art/arcane/iris/IrisBootstrap.class',
     'art/arcane/iris/platform/bukkit/nms/INMS.class',
-    'art/arcane/iris/platform/bukkit/nms/v26_2_R1/NMSBinding.class',
-    'art/arcane/iris/platform/bukkit/nms/v26_3_R1/NMSBinding.class',
+    'art/arcane/iris/platform/bukkit/nms/BukkitBinding.class',
+    'art/arcane/volmlib/nativelib/NativeAdapters.class',
+    'art/arcane/volmlib/nativelib/terrain/NativeWorldGeneration.class',
     'art/arcane/iris/platform/bukkit/nms/v1X/NMSBinding1X.class',
     'art/arcane/iris/platform/generation/PlatformChunkGenerator.class',
     'art/arcane/iris/world/lifecycle/WorldLifecycleStaging.class',
@@ -648,6 +688,7 @@ tasks.register('verifyBukkitArtifact') {
                 requiredBukkitArtifactEntries,
                 16,
                 runtimeDownloadedPrefixes)
+        NativeRuntimeArtifacts.verify(artifact, nmsBindings, volmLibCoordinate.tokenize(':').last())
         logger.lifecycle("Verified ${artifact.name} packaging and class reference graph")
     }
 }
@@ -858,8 +899,8 @@ pluginPackaging {
                 .map { String value -> value.toBoolean() }
                 .getOrElse(!PackagingMode.resolve(providers).development())
             prunePrefixes = ['art/arcane/volmlib/']
-            keepPrefixes = ['art/arcane/volmlib/util/matter/slices/']
-            shrinkRules = [file('packaging/shrink.pro')]
+            keepPrefixes = ['art/arcane/volmlib/util/matter/slices/', 'art/arcane/volmlib/nativelib/']
+            shrinkRules = [file('packaging/shrink.pro'), nativeRuntimeRules.get().asFile]
             shrinkDontwarn = [
                 'java.lang.invoke.MethodHandle',
                 'java.lang.invoke.VarHandle',
@@ -885,8 +926,11 @@ pluginPackaging {
             ]
             shrinkLibraries.from(provider { project(':core').configurations.compileClasspath })
             shrinkLibraries.from(provider { project(':adapters:bukkit:plugin').configurations.compileClasspath })
-            nmsBindings.keySet().each { binding ->
-                shrinkLibraries.from(provider { project(":adapters:bukkit:nms:${binding}").configurations.compileClasspath })
+            nmsBindings.each { binding ->
+                shrinkLibraries.from(provider { project(":adapters:bukkit:nms:${binding}").configurations.compileClasspath.incoming.artifactView {
+                    Set nativeComponents = nativeRuntime.incoming.artifacts.artifacts.collect { artifact -> artifact.id.componentIdentifier }.toSet()
+                    componentFilter { component -> !nativeComponents.contains(component) }
+                }.files })
             }
             shrinkRelocations = runtimeDownloadRelocations
         }

@@ -21,7 +21,7 @@ package art.arcane.iris.structure.object;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.pack.value.IrisPosition;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.block.VectorMap;
 import art.arcane.iris.generation.geometry.AxisAlignedBB;
@@ -56,11 +56,11 @@ final class IrisObjectTransforms {
     static void rotate(IrisObject self, IrisObjectRotation r, int spinx, int spiny, int spinz) {
         self.writeLock.lock();
         try {
-            VectorMap<PlatformBlockState> d = new VectorMap<>();
+            VectorMap<NativeBlockState> d = new VectorMap<>();
             Set<IrisBlockVector> omitted = new HashSet<>();
 
-            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : self.blocks) {
-                PlatformBlockState rotated = r.rotate(entry.getValue(), spinx, spiny, spinz);
+            for (Map.Entry<IrisBlockVector, NativeBlockState> entry : self.blocks) {
+                NativeBlockState rotated = r.rotate(entry.getValue(), spinx, spiny, spinz);
                 if (rotated == null) {
                     omitted.add(entry.getKey());
                     continue;
@@ -114,7 +114,7 @@ final class IrisObjectTransforms {
             Vector3i sourceCenter = self.getCenter();
             IrisBlockVector targetCenter = new IrisBlockVector(output.getCenter().getX(),
                     output.getCenter().getY(), output.getCenter().getZ());
-            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : self.blocks) {
+            for (Map.Entry<IrisBlockVector, NativeBlockState> entry : self.blocks) {
                 IrisBlockVector sourcePosition = entry.getKey();
                 IrisBlockVector position = savedOrigin ? sourcePosition : new IrisBlockVector(
                         sourcePosition.getBlockX() + sourceCenter.getX(),
@@ -142,7 +142,7 @@ final class IrisObjectTransforms {
             writeScaledVoxel(output, voxel);
         }
 
-        VectorMap<PlatformBlockState> scaledBlocks = output.blocks;
+        VectorMap<NativeBlockState> scaledBlocks = output.blocks;
         if (scale > 1) {
             switch (interpolation) {
                 case TRILINEAR -> trilinear(output, (int) Math.round(scale));
@@ -215,11 +215,11 @@ final class IrisObjectTransforms {
                 Math.ceil((position.getZ() + 1) * scale) - 1);
     }
 
-    private static void removeInapplicableTiles(IrisObject object, VectorMap<PlatformBlockState> sourceBlocks) {
+    private static void removeInapplicableTiles(IrisObject object, VectorMap<NativeBlockState> sourceBlocks) {
         Iterator<Map.Entry<IrisBlockVector, TileData>> iterator = object.states.iterator();
         while (iterator.hasNext()) {
             Map.Entry<IrisBlockVector, TileData> entry = iterator.next();
-            PlatformBlockState block = object.blocks.get(entry.getKey());
+            NativeBlockState block = object.blocks.get(entry.getKey());
             String tileKey = entry.getValue().getMaterialKey();
             if (tileKey == null) {
                 tileKey = IrisObjectShaping.materialKey(sourceBlocks.get(entry.getKey()));
@@ -238,8 +238,8 @@ final class IrisObjectTransforms {
     static void trilinear(IrisObject self, int rad) {
         self.writeLock.lock();
         try {
-            VectorMap<PlatformBlockState> v = self.blocks;
-            VectorMap<PlatformBlockState> b = new VectorMap<>();
+            VectorMap<NativeBlockState> v = self.blocks;
+            VectorMap<NativeBlockState> b = new VectorMap<>();
             IrisPosition min = self.getAABB().min();
             IrisPosition max = self.getAABB().max();
             NearestBlockIndex nearestBlocks = NearestBlockIndex.create(v);
@@ -248,7 +248,7 @@ final class IrisObjectTransforms {
                 for (int y = min.getY(); y <= max.getY(); y++) {
                     for (int z = min.getZ(); z <= max.getZ(); z++) {
                         if (Interpolation3D.getTrilinear(x, y, z, rad, (xx, yy, zz) -> {
-                            PlatformBlockState data = v.get(new IrisBlockVector((int) xx, (int) yy, (int) zz));
+                            NativeBlockState data = v.get(new IrisBlockVector((int) xx, (int) yy, (int) zz));
 
                             if (B.isAir(data)) {
                                 return 0;
@@ -275,8 +275,8 @@ final class IrisObjectTransforms {
     static void tricubic(IrisObject self, int rad) {
         self.writeLock.lock();
         try {
-            VectorMap<PlatformBlockState> v = self.blocks;
-            VectorMap<PlatformBlockState> b = new VectorMap<>();
+            VectorMap<NativeBlockState> v = self.blocks;
+            VectorMap<NativeBlockState> b = new VectorMap<>();
             IrisPosition min = self.getAABB().min();
             IrisPosition max = self.getAABB().max();
             NearestBlockIndex nearestBlocks = NearestBlockIndex.create(v);
@@ -285,7 +285,7 @@ final class IrisObjectTransforms {
                 for (int y = min.getY(); y <= max.getY(); y++) {
                     for (int z = min.getZ(); z <= max.getZ(); z++) {
                         if (Interpolation3D.getTricubic(x, y, z, rad, (xx, yy, zz) -> {
-                            PlatformBlockState data = v.get(new IrisBlockVector((int) xx, (int) yy, (int) zz));
+                            NativeBlockState data = v.get(new IrisBlockVector((int) xx, (int) yy, (int) zz));
 
                             if (B.isAir(data)) {
                                 return 0;
@@ -316,8 +316,8 @@ final class IrisObjectTransforms {
     static void trihermite(IrisObject self, int rad, double tension, double bias) {
         self.writeLock.lock();
         try {
-            VectorMap<PlatformBlockState> v = self.blocks;
-            VectorMap<PlatformBlockState> b = new VectorMap<>();
+            VectorMap<NativeBlockState> v = self.blocks;
+            VectorMap<NativeBlockState> b = new VectorMap<>();
             IrisPosition min = self.getAABB().min();
             IrisPosition max = self.getAABB().max();
             NearestBlockIndex nearestBlocks = NearestBlockIndex.create(v);
@@ -326,7 +326,7 @@ final class IrisObjectTransforms {
                 for (int y = min.getY(); y <= max.getY(); y++) {
                     for (int z = min.getZ(); z <= max.getZ(); z++) {
                         if (Interpolation3D.getTrihermite(x, y, z, rad, (xx, yy, zz) -> {
-                            PlatformBlockState data = v.get(new IrisBlockVector((int) xx, (int) yy, (int) zz));
+                            NativeBlockState data = v.get(new IrisBlockVector((int) xx, (int) yy, (int) zz));
 
                             if (B.isAir(data)) {
                                 return 0;
@@ -350,11 +350,11 @@ final class IrisObjectTransforms {
         }
     }
 
-    private static PlatformBlockState nearestBlockData(VectorMap<PlatformBlockState> blocks,
+    private static NativeBlockState nearestBlockData(VectorMap<NativeBlockState> blocks,
                                                        NearestBlockIndex nearestBlocks,
                                                        int x, int y, int z) {
         IrisBlockVector vv = new IrisBlockVector(x, y, z);
-        PlatformBlockState direct = blocks.get(vv);
+        NativeBlockState direct = blocks.get(vv);
         if (!B.isAir(direct)) {
             return direct;
         }
@@ -373,7 +373,7 @@ final class IrisObjectTransforms {
                 .thenComparingInt(NearestBlock::rank);
 
         private final NearestNode root;
-        private PlatformBlockState bestState;
+        private NativeBlockState bestState;
         private double bestDistance;
         private int bestRank;
 
@@ -381,12 +381,12 @@ final class IrisObjectTransforms {
             this.root = root;
         }
 
-        static NearestBlockIndex create(VectorMap<PlatformBlockState> blocks) {
+        static NearestBlockIndex create(VectorMap<NativeBlockState> blocks) {
             List<NearestBlock> points = new ArrayList<>(blocks.size());
-            VectorMap<PlatformBlockState>.Cursor cursor = blocks.cursor();
+            VectorMap<NativeBlockState>.Cursor cursor = blocks.cursor();
             int rank = 0;
             while (cursor.next()) {
-                PlatformBlockState state = cursor.value();
+                NativeBlockState state = cursor.value();
                 if (!B.isAir(state)) {
                     IrisBlockVector position = cursor.key();
                     points.add(new NearestBlock(position.getBlockX(), position.getBlockY(), position.getBlockZ(),
@@ -399,7 +399,7 @@ final class IrisObjectTransforms {
             return new NearestBlockIndex(build(pointArray, 0, pointArray.length, 0));
         }
 
-        PlatformBlockState nearest(int x, int y, int z, PlatformBlockState fallback) {
+        NativeBlockState nearest(int x, int y, int z, NativeBlockState fallback) {
             if (root == null) {
                 return fallback;
             }
@@ -468,11 +468,11 @@ final class IrisObjectTransforms {
     private record NearestNode(NearestBlock point, int axis, NearestNode lower, NearestNode upper) {
     }
 
-    private record NearestBlock(int x, int y, int z, int rank, PlatformBlockState state) {
+    private record NearestBlock(int x, int y, int z, int rank, NativeBlockState state) {
     }
 
     private record ScaledVoxel(IrisBlockVector source, IrisBlockVector minimum, IrisBlockVector maximum,
-                               PlatformBlockState block, TileData tile) {
+                               NativeBlockState block, TileData tile) {
     }
 
     private enum ScaleOrigin {

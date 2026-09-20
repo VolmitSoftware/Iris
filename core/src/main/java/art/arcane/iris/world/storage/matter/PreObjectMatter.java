@@ -1,6 +1,6 @@
 package art.arcane.iris.world.storage.matter;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.data.palette.Palette;
@@ -114,7 +114,7 @@ public final class PreObjectMatter extends MappedHunk<PreObjectMatterCell>
     public PreObjectMatterCell readNode(DataInputStream input) throws IOException {
         int flags = input.readUnsignedByte();
         validateFlags(flags);
-        PlatformBlockState block = (flags & BLOCK_PRESENT) == 0 ? null : B.getState(input.readUTF());
+        NativeBlockState block = (flags & BLOCK_PRESENT) == 0 ? null : B.getState(input.readUTF());
         String string = (flags & STRING_PRESENT) == 0 ? null : input.readUTF();
         MatterCavern cavern = (flags & CAVERN_PRESENT) == 0
                 ? null

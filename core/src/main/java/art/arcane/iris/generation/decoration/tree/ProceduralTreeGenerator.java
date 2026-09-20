@@ -20,7 +20,7 @@ package art.arcane.iris.generation.decoration.tree;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.structure.object.IrisObject;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -62,13 +62,13 @@ public final class ProceduralTreeGenerator {
             TreeSupport.ensureLeavesSupported(canvas, 24);
         }
 
-        Map<TreeBlockCanvas.Vec, PlatformBlockState> resolved = new HashMap<>();
+        Map<TreeBlockCanvas.Vec, NativeBlockState> resolved = new HashMap<>();
         Set<TreeBlockCanvas.Vec> trunkPositions = new HashSet<>();
         Set<TreeBlockCanvas.Vec> leafPositions = new HashSet<>();
         RNG paletteRng = new RNG(tree.getSeed());
         for (Map.Entry<TreeBlockCanvas.Vec, TreeBlockCanvas.Cell> entry : canvas.getCells().entrySet()) {
             TreeBlockCanvas.Cell cell = entry.getValue();
-            PlatformBlockState state = TreeBlockResolver.resolve(tree, data, cell, entry.getKey(), paletteRng);
+            NativeBlockState state = TreeBlockResolver.resolve(tree, data, cell, entry.getKey(), paletteRng);
             if (state == null) {
                 continue;
             }
@@ -85,7 +85,7 @@ public final class ProceduralTreeGenerator {
         return assemble(resolved);
     }
 
-    private static IrisObject assemble(Map<TreeBlockCanvas.Vec, PlatformBlockState> resolved) {
+    private static IrisObject assemble(Map<TreeBlockCanvas.Vec, NativeBlockState> resolved) {
         if (resolved.isEmpty()) {
             return null;
         }
@@ -113,7 +113,7 @@ public final class ProceduralTreeGenerator {
         int cz = d / 2;
 
         IrisObject object = new IrisObject(w, h, d);
-        for (Map.Entry<TreeBlockCanvas.Vec, PlatformBlockState> entry : resolved.entrySet()) {
+        for (Map.Entry<TreeBlockCanvas.Vec, NativeBlockState> entry : resolved.entrySet()) {
             TreeBlockCanvas.Vec v = entry.getKey();
             int nx = v.x() - minX - cx;
             int ny = v.y() - cy + 1;

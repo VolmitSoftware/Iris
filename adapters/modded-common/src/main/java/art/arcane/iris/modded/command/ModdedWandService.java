@@ -18,31 +18,19 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEditPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEditWorld;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEditInteraction;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeTaggedItems;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeItemStack;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
-import net.minecraft.ChatFormatting;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Unit;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.CustomData;
-import net.minecraft.world.item.component.ItemLore;
-import net.minecraft.world.item.component.TooltipDisplay;
-import net.minecraft.world.level.Level;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText.Format;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText;
 
 import java.awt.Color;
 import java.util.List;
@@ -64,128 +52,87 @@ public final class ModdedWandService {
     private ModdedWandService() {
     }
 
-    public record Selection(ResourceKey<Level> dimension, BlockPos first, BlockPos second) {
+    public record Selection(String dimension, NativeBlockPoint first, NativeBlockPoint second) {
         public boolean complete() {
             return first != null && second != null;
         }
 
-        public BlockPos min() {
-            return new BlockPos(Math.min(first.getX(), second.getX()), Math.min(first.getY(), second.getY()), Math.min(first.getZ(), second.getZ()));
+        public NativeBlockPoint min() {
+            return new NativeBlockPoint(Math.min(first.x(), second.x()), Math.min(first.y(), second.y()), Math.min(first.z(), second.z()));
         }
 
-        public BlockPos max() {
-            return new BlockPos(Math.max(first.getX(), second.getX()), Math.max(first.getY(), second.getY()), Math.max(first.getZ(), second.getZ()));
+        public NativeBlockPoint max() {
+            return new NativeBlockPoint(Math.max(first.x(), second.x()), Math.max(first.y(), second.y()), Math.max(first.z(), second.z()));
         }
     }
 
-    public static ItemStack createWand() {
-        ItemStack stack = new ItemStack(Items.BLAZE_ROD);
-        stack.set(DataComponents.CUSTOM_NAME, Component.literal(IrisLanguage.plain(RuntimeUiMessages.WAND_NAME)).withStyle(ChatFormatting.BOLD, ChatFormatting.GOLD));
-        stack.set(DataComponents.LORE, new ItemLore(List.of(
-                Component.literal(IrisLanguage.plain(RuntimeUiMessages.WAND_LORE_FIRST)),
-                Component.literal(IrisLanguage.plain(RuntimeUiMessages.WAND_LORE_SECOND)))));
-        stack.set(DataComponents.UNBREAKABLE, Unit.INSTANCE);
-        stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, Boolean.TRUE);
-        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(flagTag(WAND_TAG)));
-        stack.set(DataComponents.TOOLTIP_DISPLAY,
-                TooltipDisplay.DEFAULT.withHidden(DataComponents.UNBREAKABLE, true));
-        return stack;
+    public static NativeItemStack createWand() {
+        return NativeTaggedItems.create(new NativeTaggedItems.Options("minecraft:blaze_rod",
+                NativeCommandText.literal(IrisLanguage.plain(RuntimeUiMessages.WAND_NAME)).withStyle(NativeCommandText.Format.BOLD, NativeCommandText.Format.GOLD),
+                List.of(NativeCommandText.literal(IrisLanguage.plain(RuntimeUiMessages.WAND_LORE_FIRST)),
+                        NativeCommandText.literal(IrisLanguage.plain(RuntimeUiMessages.WAND_LORE_SECOND))),
+                WAND_TAG, true, true));
     }
 
-    public static ItemStack createDust() {
-        ItemStack stack = new ItemStack(Items.GLOWSTONE_DUST);
-        stack.set(DataComponents.CUSTOM_NAME, Component.literal(IrisLanguage.plain(RuntimeUiMessages.DUST_NAME)).withStyle(ChatFormatting.BOLD, ChatFormatting.YELLOW));
-        stack.set(DataComponents.LORE, new ItemLore(List.of(
-                Component.literal(IrisLanguage.plain(RuntimeUiMessages.DUST_LORE)))));
-        stack.set(DataComponents.UNBREAKABLE, Unit.INSTANCE);
-        stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, Boolean.TRUE);
-        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(flagTag(DUST_TAG)));
-        stack.set(DataComponents.TOOLTIP_DISPLAY,
-                TooltipDisplay.DEFAULT.withHidden(DataComponents.UNBREAKABLE, true));
-        return stack;
+    public static NativeItemStack createDust() {
+        return NativeTaggedItems.create(new NativeTaggedItems.Options("minecraft:glowstone_dust",
+                NativeCommandText.literal(IrisLanguage.plain(RuntimeUiMessages.DUST_NAME)).withStyle(NativeCommandText.Format.BOLD, NativeCommandText.Format.YELLOW),
+                List.of(NativeCommandText.literal(IrisLanguage.plain(RuntimeUiMessages.DUST_LORE))),
+                DUST_TAG, true, true));
     }
 
-    private static CompoundTag flagTag(String key) {
-        CompoundTag tag = new CompoundTag();
-        tag.putBoolean(key, true);
-        return tag;
+    public static boolean isHoldingWand(NativeEditPlayer player) {
+        return player.holdingFlaggedItem(WAND_TAG);
     }
 
-    public static boolean isWand(ItemStack stack) {
-        return hasFlag(stack, WAND_TAG);
-    }
-
-    public static boolean isDust(ItemStack stack) {
-        return hasFlag(stack, DUST_TAG);
-    }
-
-    private static boolean hasFlag(ItemStack stack, String key) {
-        if (stack == null || stack.isEmpty()) {
-            return false;
-        }
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-        return data != null && data.copyTag().getBooleanOr(key, false);
-    }
-
-    public static boolean isHoldingWand(ServerPlayer player) {
-        return isWand(player.getMainHandItem());
-    }
-
-    public static boolean attackBlock(Player player, Level level, InteractionHand hand, BlockPos pos) {
-        if (hand != InteractionHand.MAIN_HAND || level.isClientSide() || !(player instanceof ServerPlayer serverPlayer) || !(level instanceof ServerLevel serverLevel)) {
-            return false;
-        }
-        if (isWand(serverPlayer.getMainHandItem())) {
-            setCorner(serverPlayer, serverLevel, pos, true);
+    public static boolean attackBlock(NativeEditInteraction interaction) {
+        if (isHoldingWand(interaction.player())) {
+            setCorner(interaction.player(), interaction.world(), interaction.position(), true);
             return true;
         }
         return false;
     }
 
-    public static boolean useBlock(Player player, Level level, InteractionHand hand, BlockPos pos) {
-        if (hand != InteractionHand.MAIN_HAND || level.isClientSide() || !(player instanceof ServerPlayer serverPlayer) || !(level instanceof ServerLevel serverLevel)) {
-            return false;
-        }
-        ItemStack held = serverPlayer.getMainHandItem();
-        if (isWand(held)) {
-            setCorner(serverPlayer, serverLevel, pos, false);
+    public static boolean useBlock(NativeEditInteraction interaction) {
+        if (isHoldingWand(interaction.player())) {
+            setCorner(interaction.player(), interaction.world(), interaction.position(), false);
             return true;
         }
-        if (isDust(held)) {
-            serverLevel.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 2.0F, 1.97F);
-            ModdedDustRevealer.reveal(serverPlayer, serverLevel, pos);
+        if (interaction.player().holdingFlaggedItem(DUST_TAG)) {
+            interaction.world().sound(interaction.position(), "minecraft:block.amethyst_block.chime", new NativeEditWorld.SoundOptions(2.0F, 1.97F));
+            ModdedDustRevealer.reveal(interaction.player(), interaction.world(), interaction.position());
             return true;
         }
         return false;
     }
 
-    private static void setCorner(ServerPlayer player, ServerLevel level, BlockPos pos, boolean first) {
-        ResourceKey<Level> dimension = level.dimension();
-        BlockPos corner = pos.immutable();
-        SELECTIONS.compute(player.getUUID(), (UUID uuid, Selection existing) -> {
-            BlockPos other = existing != null && existing.dimension().equals(dimension) ? (first ? existing.second() : existing.first()) : null;
+    private static void setCorner(NativeEditPlayer player, NativeEditWorld level, NativeBlockPoint pos, boolean first) {
+        String dimension = level.key();
+        NativeBlockPoint corner = pos;
+        SELECTIONS.compute(player.id(), (UUID uuid, Selection existing) -> {
+            NativeBlockPoint other = existing != null && existing.dimension().equals(dimension) ? (first ? existing.second() : existing.first()) : null;
             return first ? new Selection(dimension, corner, other) : new Selection(dimension, other, corner);
         });
-        level.playSound(null, pos, SoundEvents.END_PORTAL_FRAME_FILL, SoundSource.PLAYERS, 1.0F, first ? 0.67F : 1.17F);
-        player.sendOverlayMessage(Component.literal(IrisLanguage.plain(
+        level.sound(pos, "minecraft:block.end_portal_frame.fill", new NativeEditWorld.SoundOptions(1.0F, first ? 0.67F : 1.17F));
+        player.sendOverlayMessage(NativeCommandText.literal(IrisLanguage.plain(
                 RuntimeUiMessages.WAND_POSITION_SET,
                 MessageArgument.trusted("position", first ? 1 : 2),
-                MessageArgument.trusted("x", corner.getX()),
-                MessageArgument.trusted("y", corner.getY()),
-                MessageArgument.trusted("z", corner.getZ())
+                MessageArgument.trusted("x", corner.x()),
+                MessageArgument.trusted("y", corner.y()),
+                MessageArgument.trusted("z", corner.z())
         )));
     }
 
-    public static Selection selection(ServerPlayer player) {
-        Selection selection = SELECTIONS.get(player.getUUID());
-        if (selection == null || !selection.complete() || !selection.dimension().equals(player.level().dimension())) {
+    public static Selection selection(NativeEditPlayer player) {
+        Selection selection = SELECTIONS.get(player.id());
+        if (selection == null || !selection.complete() || !selection.dimension().equals(player.world().key())) {
             return null;
         }
         return selection;
     }
 
-    public static void setSelection(ServerPlayer player, BlockPos first, BlockPos second) {
-        SELECTIONS.put(player.getUUID(), new Selection(player.level().dimension(), first.immutable(), second.immutable()));
+    public static void setSelection(NativeEditPlayer player, NativeBlockPoint first, NativeBlockPoint second) {
+        SELECTIONS.put(player.id(), new Selection(player.world().key(), first, second));
     }
 
     public static void clearAll() {
@@ -194,36 +141,37 @@ public final class ModdedWandService {
         ModdedWhatCommands.clear();
     }
 
-    public static void serverTick(MinecraftServer server) {
+    public static void serverTick(NativeModdedServer server) {
         tickCounter++;
         if (tickCounter % DRAW_INTERVAL_TICKS != 0) {
             return;
         }
         try {
-            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-                if (!isHoldingWand(player)) {
-                    continue;
-                }
-                Selection selection = selection(player);
-                if (selection == null) {
-                    continue;
-                }
-                draw(player.level(), player, selection);
-            }
+            server.forEachPlayer(context -> drawSelection(context.editing()));
         } catch (Throwable e) {
             ModdedIrisLog.error("Iris wand selection draw failed", e);
         }
     }
 
-    private static void draw(ServerLevel level, ServerPlayer player, Selection selection) {
-        BlockPos min = selection.min();
-        BlockPos max = selection.max();
-        double lowX = min.getX();
-        double lowY = min.getY();
-        double lowZ = min.getZ();
-        double highX = max.getX() + 1;
-        double highY = max.getY() + 1;
-        double highZ = max.getZ() + 1;
+    private static void drawSelection(NativeEditPlayer player) {
+        if (!isHoldingWand(player)) {
+            return;
+        }
+        Selection selection = selection(player);
+        if (selection != null) {
+            draw(player, selection);
+        }
+    }
+
+    private static void draw(NativeEditPlayer player, Selection selection) {
+        NativeBlockPoint min = selection.min();
+        NativeBlockPoint max = selection.max();
+        double lowX = min.x();
+        double lowY = min.y();
+        double lowZ = min.z();
+        double highX = max.x() + 1;
+        double highY = max.y() + 1;
+        double highZ = max.z() + 1;
         double[][] edges = {
                 {lowX, lowY, lowZ, highX, lowY, lowZ},
                 {lowX, lowY, lowZ, lowX, highY, lowZ},
@@ -240,9 +188,9 @@ public final class ModdedWandService {
         };
 
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        double px = player.getX();
-        double py = player.getY();
-        double pz = player.getZ();
+        double px = player.x();
+        double py = player.y();
+        double pz = player.z();
         int sent = 0;
         for (double[] edge : edges) {
             double dx = edge[3] - edge[0];
@@ -268,10 +216,9 @@ public final class ModdedWandService {
                 if (distX * distX + distY * distY + distZ * distZ > DRAW_DISTANCE_SQUARED) {
                     continue;
                 }
-                float hue = (float) (0.5F + (Math.sin((x + y + z + (player.tickCount / 2.0F)) / 20.0F) / 2.0D));
+                float hue = (float) (0.5F + (Math.sin((x + y + z + (player.ticks() / 2.0F)) / 20.0F) / 2.0D));
                 Color color = Color.getHSBColor(hue, 1.0F, 1.0F);
-                DustParticleOptions options = new DustParticleOptions(color.getRGB() & 0xFFFFFF, 0.9F);
-                level.sendParticles(player, options, true, true, x, y, z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                player.coloredDust(color.getRGB() & 0xFFFFFF, 0.9F, x, y, z);
                 sent++;
                 if (sent >= DRAW_POINT_CAP) {
                     return;

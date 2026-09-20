@@ -2,7 +2,7 @@ package art.arcane.iris.generation.decoration.formation;
 
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
@@ -50,7 +50,7 @@ public class FormationBlockResolverTest {
                                 ? Math.floorDiv(position.getBlockY(), formation.getStrataThickness()) : position.getBlockY();
                         long sampleSeed = formation.getSeed() + (expectedPalette == strata ? sampleY * 31L : 0L);
                         RNG fresh = new RNG(sampleSeed);
-                        PlatformBlockState expected = expectedPalette.get(fresh,
+                        NativeBlockState expected = expectedPalette.get(fresh,
                                 position.getBlockX(), sampleY, position.getBlockZ(), null);
                         assertSame(expected, resolver.resolve(role, position));
                         assertEquals(new RNG(sampleSeed).nextLong(), fresh.nextLong());
@@ -68,7 +68,7 @@ public class FormationBlockResolverTest {
     }
 
     private static IrisBlockData block(String material) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.key()).thenReturn("minecraft:" + material);
         IrisBlockData block = mock(IrisBlockData.class);
         when(block.getWeight()).thenReturn(1);

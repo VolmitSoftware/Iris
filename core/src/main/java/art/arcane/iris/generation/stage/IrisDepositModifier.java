@@ -42,14 +42,14 @@ import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.iris.generation.concurrent.BurstExecutor;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.block.VectorMap;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockState> {
+public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState> {
     private static final int CLUMPS_PER_BATCH = 8;
     private static final int PREPARATION_BATCH_COUNT = 4;
 
@@ -61,13 +61,13 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
+    public void onModify(int x, int z, Hunk<NativeBlockState> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         generateDeposits(output, Math.floorDiv(x, 16), Math.floorDiv(z, 16), multicore, context);
         getEngine().getMetrics().getDeposit().put(p.getMilliseconds());
     }
 
-    public void generateDeposits(Hunk<PlatformBlockState> terrain, int x, int z, boolean multicore, ChunkContext context) {
+    public void generateDeposits(Hunk<NativeBlockState> terrain, int x, int z, boolean multicore, ChunkContext context) {
         IrisRegion region = context.getRegion().get(7, 7);
         IrisBiome biome = context.getBiome().get(7, 7);
         List<IrisDepositGenerator> generators = new ArrayList<>(
@@ -123,7 +123,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
     }
 
     private void completeBatches(BurstExecutor burst, PreparedDeposit[] prepared, MantleChunk chunk,
-                                 Hunk<PlatformBlockState> terrain, int x, int z, PreparationContext preparation) {
+                                 Hunk<NativeBlockState> terrain, int x, int z, PreparationContext preparation) {
         burst.complete();
         Throwable failure = preparation.takeFailure(null);
         if (failure instanceof Error error) {
@@ -158,11 +158,11 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
         };
     }
 
-    public void generate(IrisDepositGenerator k, MantleChunk chunk, Hunk<PlatformBlockState> data, RNG rng, int cx, int cz, boolean safe, ChunkContext context) {
+    public void generate(IrisDepositGenerator k, MantleChunk chunk, Hunk<NativeBlockState> data, RNG rng, int cx, int cz, boolean safe, ChunkContext context) {
         generate(k, chunk, data, rng, cx, cz, safe, null, context);
     }
 
-    public void generate(IrisDepositGenerator k, MantleChunk chunk, Hunk<PlatformBlockState> data, RNG rng, int cx, int cz, boolean safe, HeightMap he, ChunkContext context) {
+    public void generate(IrisDepositGenerator k, MantleChunk chunk, Hunk<NativeBlockState> data, RNG rng, int cx, int cz, boolean safe, HeightMap he, ChunkContext context) {
         DepositPlan plan = plan(k, rng);
         for (int first = 0; first < plan.attempts(); first += CLUMPS_PER_BATCH) {
             int limit = Math.min(plan.attempts(), first + CLUMPS_PER_BATCH);
@@ -262,7 +262,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
         return new PreparedDeposit(k, oreDeposit, clumps);
     }
 
-    private void place(PreparedDeposit deposit, MantleChunk chunk, Hunk<PlatformBlockState> data,
+    private void place(PreparedDeposit deposit, MantleChunk chunk, Hunk<NativeBlockState> data,
                        int cx, int cz, HeightMap he, ChunkContext context) {
         if (deposit.clumps().isEmpty()) {
             return;
@@ -278,7 +278,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
             int z = prepared.z();
             RNG rng = prepared.rng();
 
-            VectorMap<PlatformBlockState>.Cursor cursor = clump.getBlocks().cursor();
+            VectorMap<NativeBlockState>.Cursor cursor = clump.getBlocks().cursor();
             while (cursor.next()) {
                 IrisBlockVector j = cursor.key();
                 int nx = j.getBlockX() + x;
@@ -299,7 +299,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
                     continue;
                 }
 
-                PlatformBlockState current = data.get(nx, ny, nz);
+                NativeBlockState current = data.get(nx, ny, nz);
                 if (!canReplaceDepositTarget(current)) {
                     continue;
                 }
@@ -324,10 +324,10 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
                 }
 
                 if (chunk.get(nx, ny, nz, MatterCavern.class) == null) {
-                    PlatformBlockState ore = cursor.value();
-                    PlatformBlockState remapped = resolveDepositVariant(
+                    NativeBlockState ore = cursor.value();
+                    NativeBlockState remapped = resolveDepositVariant(
                             cx, cz, nx, ny, nz, ore, dimension, context, carvingState);
-                    PlatformBlockState finalBlock = remapped != null
+                    NativeBlockState finalBlock = remapped != null
                             ? remapped
                             : B.toDeepSlateOre(current, ore);
                     data.set(nx, ny, nz, finalBlock);
@@ -366,12 +366,12 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
         return minHeight + localY;
     }
 
-    static boolean canReplaceDepositTarget(PlatformBlockState state) {
+    static boolean canReplaceDepositTarget(NativeBlockState state) {
         return state != null && !state.isAir() && !state.isFluid();
     }
 
     static boolean canReplaceDepositHost(
-            IrisDepositGenerator generator, PlatformBlockState state,
+            IrisDepositGenerator generator, NativeBlockState state,
             IrisBiome surfaceBiome, boolean terrainSurface) {
         if (terrainSurface && generator.hasSurfaceReplaceableBlocks(surfaceBiome)) {
             return generator.canReplaceSurface(state, surfaceBiome);
@@ -409,7 +409,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
     }
 
     static boolean isTerrainSurface(
-            Hunk<PlatformBlockState> data, int x, int y, int z, int columnSurface) {
+            Hunk<NativeBlockState> data, int x, int y, int z, int columnSurface) {
         return y == columnSurface
                 || isExteriorAirAt(data, x - 1, y, z)
                 || isExteriorAirAt(data, x + 1, y, z)
@@ -419,7 +419,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
                 || isExteriorAirAt(data, x, y, z + 1);
     }
 
-    static boolean isAdjacentToAir(Hunk<PlatformBlockState> data, int x, int y, int z) {
+    static boolean isAdjacentToAir(Hunk<NativeBlockState> data, int x, int y, int z) {
         return isAirAt(data, x - 1, y, z)
                 || isAirAt(data, x + 1, y, z)
                 || isAirAt(data, x, y - 1, z)
@@ -428,23 +428,23 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
                 || isAirAt(data, x, y, z + 1);
     }
 
-    private static boolean isAirAt(Hunk<PlatformBlockState> data, int x, int y, int z) {
+    private static boolean isAirAt(Hunk<NativeBlockState> data, int x, int y, int z) {
         if (x < 0 || x >= data.getWidth()
                 || y < 0 || y >= data.getHeight()
                 || z < 0 || z >= data.getDepth()) {
             return false;
         }
-        PlatformBlockState state = data.getRaw(x, y, z);
+        NativeBlockState state = data.getRaw(x, y, z);
         return state == null || state.isAir();
     }
 
-    private static boolean isExteriorAirAt(Hunk<PlatformBlockState> data, int x, int y, int z) {
+    private static boolean isExteriorAirAt(Hunk<NativeBlockState> data, int x, int y, int z) {
         if (x < 0 || x >= data.getWidth()
                 || y < 0 || y >= data.getHeight()
                 || z < 0 || z >= data.getDepth()) {
             return false;
         }
-        PlatformBlockState state = data.getRaw(x, y, z);
+        NativeBlockState state = data.getRaw(x, y, z);
         return state == null
                 || (state.isAir()
                         && !"minecraft:cave_air".equals(IrisProceduralBlocks.materialKey(state)));
@@ -460,14 +460,14 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
         return Math.max(minimum, Math.min(center, maximum));
     }
 
-    private PlatformBlockState resolveDepositVariant(int cx, int cz, int nx, int localY, int nz, PlatformBlockState ore, IrisDimension dimension, ChunkContext context, IrisDimensionCarvingResolver.State carvingState) {
+    private NativeBlockState resolveDepositVariant(int cx, int cz, int nx, int localY, int nz, NativeBlockState ore, IrisDimension dimension, ChunkContext context, IrisDimensionCarvingResolver.State carvingState) {
         int worldX = (cx << 4) + nx;
         int worldZ = (cz << 4) + nz;
         int worldY = absoluteWorldY(getEngine().getMinHeight(), localY);
 
         IrisBiome biome = getEngine().getCaveBiome(worldX, localY, worldZ, carvingState);
         if (biome != null) {
-            PlatformBlockState match = matchDepositVariant(biome.getDepositVariants(), ore, worldY);
+            NativeBlockState match = matchDepositVariant(biome.getDepositVariants(), ore, worldY);
             if (match != null) {
                 return match;
             }
@@ -475,14 +475,14 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
 
         IrisRegion region = context.getRegion().get(nx, nz);
         if (region != null) {
-            PlatformBlockState match = matchDepositVariant(region.getDepositVariants(), ore, worldY);
+            NativeBlockState match = matchDepositVariant(region.getDepositVariants(), ore, worldY);
             if (match != null) {
                 return match;
             }
         }
 
         if (dimension != null) {
-            PlatformBlockState match = matchDepositVariant(dimension.getDepositVariants(), ore, worldY);
+            NativeBlockState match = matchDepositVariant(dimension.getDepositVariants(), ore, worldY);
             if (match != null) {
                 return match;
             }
@@ -491,7 +491,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
         return null;
     }
 
-    private PlatformBlockState matchDepositVariant(java.util.List<IrisDepositVariant> variants, PlatformBlockState ore, int y) {
+    private NativeBlockState matchDepositVariant(java.util.List<IrisDepositVariant> variants, NativeBlockState ore, int y) {
         if (variants == null || variants.isEmpty()) {
             return null;
         }
@@ -501,7 +501,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockSta
                 continue;
             }
 
-            PlatformBlockState swapped = variant.remapOrNull(ore, getData());
+            NativeBlockState swapped = variant.remapOrNull(ore, getData());
             if (swapped != null) {
                 return swapped;
             }

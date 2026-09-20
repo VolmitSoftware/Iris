@@ -27,34 +27,35 @@ import art.arcane.volmlib.util.localization.MessageArgument;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.arguments.DimensionArgument;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandArguments;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
 final class ModdedPregenCommands {
     private ModdedPregenCommands() {
     }
 
-    static int pregenStart(CommandContext<CommandSourceStack> context, boolean withDimension, boolean withCenter, boolean gui, boolean sync, boolean nocache) throws CommandSyntaxException {
-        CommandSourceStack source = context.getSource();
+    static int pregenStart(CommandContext<NativeCommandSource> context, boolean withDimension, boolean withCenter, boolean gui, boolean sync, boolean nocache) throws CommandSyntaxException {
+        NativeCommandSource source = context.getSource();
         int radius = IntegerArgumentType.getInteger(context, "radius");
         int centerX = withCenter ? IntegerArgumentType.getInteger(context, "x") : 0;
         int centerZ = withCenter ? IntegerArgumentType.getInteger(context, "z") : 0;
-        ServerLevel level = withDimension ? DimensionArgument.getDimension(context, "dimension") : source.getLevel();
+        NativeWorld level = withDimension ? NativeCommandArguments.getDimension(context, "dimension") : source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
             if (withDimension) {
-                IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_IS_NOT_GENERATED_BY_IRIS_SEE_IRIS_INFO_LOADED_IRIS, MessageArgument.untrusted("value", level.dimension().identifier())));
+                IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_IS_NOT_GENERATED_BY_IRIS_SEE_IRIS_INFO_LOADED_IRIS, MessageArgument.untrusted("value", level.name())));
             } else {
-                IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_CURRENT_DIMENSION_IS_NOT_GENERATED_BY_IRIS_NAME_ONE_EXPLICITLY, MessageArgument.untrusted("value", level.dimension().identifier()), MessageArgument.untrusted("radius", radius)));
+                IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_CURRENT_DIMENSION_IS_NOT_GENERATED_BY_IRIS_NAME_ONE_EXPLICITLY, MessageArgument.untrusted("value", level.name()), MessageArgument.untrusted("radius", radius)));
             }
             return 0;
         }
         boolean showGui = gui && ModdedGuiHost.isGuiLaunchable();
         boolean started;
         try {
-            started = ModdedPregenJob.start(source.getServer(), level, engine, radius, centerX, centerZ, showGui, sync, !nocache);
+            started = ModdedPregenJob.start(level, engine, new ModdedPregenJob.PregenOptions(
+                    radius, centerX, centerZ, showGui, sync, !nocache));
         } catch (IllegalArgumentException failure) {
             IrisModdedCommands.fail(source, failure.getMessage());
             return 0;
@@ -63,7 +64,7 @@ final class ModdedPregenCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(IrisMessages.PREGEN_ALREADY_RUNNING));
             return 0;
         }
-        ModdedPregenBossBar.begin(source.getPlayer());
+        ModdedPregenBossBar.begin(source);
         String guiNote;
         if (!gui) {
             guiNote = "";
@@ -73,11 +74,11 @@ final class ModdedPregenCommands {
             guiNote = " (GUI requested but unavailable: " + ModdedGuiHost.guiUnavailableReason() + ")";
         }
         String modeNote = " Mode: " + (sync ? "sync" : "async") + (nocache ? ", cache disabled." : ", resumable (checkpoint cache).");
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_PREGEN_STARTED_BY_BLOCKS_FROM_PROGRESS_LOGS_CONSOLE_SEE_IRIS, MessageArgument.untrusted("value", level.dimension().identifier()), MessageArgument.untrusted("value2", (radius * 2)), MessageArgument.untrusted("value3", (radius * 2)), MessageArgument.untrusted("centerX", centerX), MessageArgument.untrusted("centerZ", centerZ), MessageArgument.untrusted("modeNote", modeNote), MessageArgument.untrusted("guiNote", guiNote)));
+        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_PREGEN_STARTED_BY_BLOCKS_FROM_PROGRESS_LOGS_CONSOLE_SEE_IRIS, MessageArgument.untrusted("value", level.name()), MessageArgument.untrusted("value2", (radius * 2)), MessageArgument.untrusted("value3", (radius * 2)), MessageArgument.untrusted("centerX", centerX), MessageArgument.untrusted("centerZ", centerZ), MessageArgument.untrusted("modeNote", modeNote), MessageArgument.untrusted("guiNote", guiNote)));
         return 1;
     }
 
-    static int pregenStop(CommandSourceStack source) {
+    static int pregenStop(NativeCommandSource source) {
         if (ModdedPregenJob.stop()) {
             ModdedPregenBossBar.clear();
             IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_STOPPING_PREGENERATION_FINISHING_UP_CURRENT_REGION));
@@ -87,7 +88,7 @@ final class ModdedPregenCommands {
         return 0;
     }
 
-    static int pregenPause(CommandSourceStack source) {
+    static int pregenPause(NativeCommandSource source) {
         Boolean paused = ModdedPregenJob.pauseResume();
         if (paused == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_NO_ACTIVE_PREGENERATION_TASK_PAUSE_RESUME));
@@ -97,8 +98,8 @@ final class ModdedPregenCommands {
         return 1;
     }
 
-    static int pregenStatus(CommandSourceStack source) {
-        Component status = ModdedPregenJob.statusComponent();
+    static int pregenStatus(NativeCommandSource source) {
+        NativeCommandText status = ModdedPregenJob.statusComponent();
         if (status == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_NO_ACTIVE_PREGENERATION_TASK));
             return 0;

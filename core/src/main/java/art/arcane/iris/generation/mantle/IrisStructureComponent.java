@@ -18,6 +18,10 @@
 
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.volmlib.util.structure.StructureCarvingFootprint;
+
+import art.arcane.volmlib.util.structure.StructureCarveEnvelope;
+
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.cache.Cache;
@@ -35,13 +39,13 @@ import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.structure.placement.IrisStructure;
-import art.arcane.iris.structure.placement.IrisStructureCarveShape;
+import art.arcane.volmlib.util.structure.StructureCarveShape;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.iris.structure.placement.IrisStructureStiltSettings;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
-import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.iris.world.storage.matter.TileWrapper;
@@ -114,8 +118,8 @@ public class IrisStructureComponent extends IrisMantleComponent {
         }
         IrisStructureTerrain terrain = placement.resolvedTerrain();
         int[] bounds = computePieceBounds(pieces);
-        int horizontalPadding = terrain.resolvedMode() == IrisStructureTerrainMode.FORCE_CARVE
-                || terrain.resolvedMode() == IrisStructureTerrainMode.BORE
+        int horizontalPadding = terrain.resolvedMode() == StructureTerrainMode.FORCE_CARVE
+                || terrain.resolvedMode() == StructureTerrainMode.BORE
                 ? Math.max(0, terrain.getHorizontalPadding())
                 : 0;
         if (bounds == null || !complex.allowsNewGenerationFootprint(
@@ -135,13 +139,13 @@ public class IrisStructureComponent extends IrisMantleComponent {
             clearIntersectingObjectTrees(writer, resolved);
         }
 
-        IrisStructureTerrainMode terrainMode = terrain.resolvedMode();
-        if (terrainMode == IrisStructureTerrainMode.FORCE_CARVE) {
+        StructureTerrainMode terrainMode = terrain.resolvedMode();
+        if (terrainMode == StructureTerrainMode.FORCE_CARVE) {
             forceCarveStructure(writer, pieces, terrain);
-        } else if (terrainMode == IrisStructureTerrainMode.BORE) {
+        } else if (terrainMode == StructureTerrainMode.BORE) {
             boreStructure(writer, pieces, terrain);
-        } else if (terrainMode != IrisStructureTerrainMode.PRESERVE
-                && terrainMode != IrisStructureTerrainMode.SOURCE) {
+        } else if (terrainMode != StructureTerrainMode.PRESERVE
+                && terrainMode != StructureTerrainMode.SOURCE) {
             throw new IllegalStateException("Iris assembly terrain mode " + terrainMode
                     + " is not implemented for structure '" + key + "'");
         }
@@ -198,8 +202,8 @@ public class IrisStructureComponent extends IrisMantleComponent {
             int worldX = StructureFoundationPlanner.unpackX(column.getLongKey());
             int worldZ = StructureFoundationPlanner.unpackZ(column.getLongKey());
             int foundationY = column.getIntValue();
-            PlatformBlockState foundationState = writer.getDataIfPresent(
-                    worldX, foundationY, worldZ, PlatformBlockState.class);
+            NativeBlockState foundationState = writer.getDataIfPresent(
+                    worldX, foundationY, worldZ, NativeBlockState.class);
             if (foundationState == null || !foundationState.isSolid()) {
                 continue;
             }
@@ -207,8 +211,8 @@ public class IrisStructureComponent extends IrisMantleComponent {
             int groundY = StructureFoundationPlanner.findGroundY(
                     foundationY, maxDepth, 0,
                     y -> {
-                        PlatformBlockState overlay = writer.getDataIfPresent(
-                                worldX, y, worldZ, PlatformBlockState.class);
+                        NativeBlockState overlay = writer.getDataIfPresent(
+                                worldX, y, worldZ, NativeBlockState.class);
                         boolean carved = writer.getDataIfPresent(
                                 worldX, y, worldZ, MatterCavern.class) != null;
                         return surfaceStructure
@@ -231,7 +235,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
                                        IrisData data, int worldX, int mantleY, int worldZ,
                                        int mantleOffset) {
         int worldY = mantleY + mantleOffset;
-        PlatformBlockState support = palette.get(rng, worldX, worldY, worldZ, data);
+        NativeBlockState support = palette.get(rng, worldX, worldY, worldZ, data);
         if (support == null) {
             throw new IllegalStateException("Structure stilt palette resolved no block at "
                     + worldX + "," + worldY + "," + worldZ);
@@ -301,7 +305,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
         if (bounds == null) {
             return;
         }
-        IrisStructureCarveShape shape = terrain.resolvedShape();
+        StructureCarveShape shape = terrain.resolvedShape();
         int margin = Math.max(0, terrain.getHorizontalPadding());
         int head = Math.max(0, terrain.getCeilingPadding());
         int floorCut = Math.max(0, terrain.getFloorPadding());
@@ -311,20 +315,20 @@ public class IrisStructureComponent extends IrisMantleComponent {
         int worldMax = getEngineMantle().getEngine().getMinHeight() + getEngineMantle().getEngine().getHeight() - 1;
         int upExtension = shape.maximumCeilingExtension(head, strength);
 
-        if (shape == IrisStructureCarveShape.BOX) {
+        if (shape == StructureCarveShape.BOX) {
             carveOverboreBox(writer, bounds, margin, head, floorCut, mantleOffset, worldMin, worldMax);
             return;
         }
 
         long work = overboreCandidateVolume(bounds, margin, upExtension, floorCut);
-        StructureCarvingFootprint footprint = StructureCarvingFootprint.from(
+        StructureCarvingFootprint footprint = StructurePieceColumns.from(
                 pieces, margin, Integer.MAX_VALUE);
         if (footprint == null) {
             throw new IllegalStateException("Structure force-carve footprint is empty or exceeds addressable memory");
         }
 
         double frequency = terrain.resolvedErosionFrequency();
-        boolean eroded = shape == IrisStructureCarveShape.ERODED && strength > 0D;
+        boolean eroded = shape == StructureCarveShape.ERODED && strength > 0D;
         CNG blob = null;
         CNG roll = null;
         if (eroded) {
@@ -428,7 +432,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
         Map<String, ObjectMarkerBounds> intersectingObjects = new HashMap<>();
         for (PlacedStructurePiece piece : resolved.pieces()) {
             for (IrisBlockVector local : piece.getObject().getBlocks().keys()) {
-                PlatformBlockState structureState = piece.getObject().getBlocks().get(local);
+                NativeBlockState structureState = piece.getObject().getBlocks().get(local);
                 if (!isOccupiedStructureState(structureState)) {
                     continue;
                 }
@@ -446,13 +450,13 @@ public class IrisStructureComponent extends IrisMantleComponent {
         }
     }
 
-    static boolean isOccupiedStructureState(PlatformBlockState state) {
+    static boolean isOccupiedStructureState(NativeBlockState state) {
         return !B.isAir(state);
     }
 
     private void collectIntersectingObjectTreeMarker(MantleWriter writer, int x, int y, int z,
                                                      Map<String, ObjectMarkerBounds> intersectingObjects) {
-        PlatformBlockState state = writer.getDataIfPresent(x, y, z, PlatformBlockState.class);
+        NativeBlockState state = writer.getDataIfPresent(x, y, z, NativeBlockState.class);
         if (state == null || !state.isTreeBlock()) {
             return;
         }
@@ -585,7 +589,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
         }, null, getData());
     }
 
-    static boolean shouldWriteStructureMarker(PlatformBlockState state) {
+    static boolean shouldWriteStructureMarker(NativeBlockState state) {
         return state != null && state.isStorageChest();
     }
 
@@ -631,8 +635,8 @@ public class IrisStructureComponent extends IrisMantleComponent {
                 continue;
             }
             IrisStructureTerrain terrain = placement.resolvedTerrain();
-            int carvePadding = terrain.resolvedMode() == IrisStructureTerrainMode.FORCE_CARVE
-                    || terrain.resolvedMode() == IrisStructureTerrainMode.BORE
+            int carvePadding = terrain.resolvedMode() == StructureTerrainMode.FORCE_CARVE
+                    || terrain.resolvedMode() == StructureTerrainMode.BORE
                     ? Math.max(0, terrain.getHorizontalPadding()) : 0;
             for (String key : placement.getStructures()) {
                 IrisStructure structure = getData().load(IrisStructure.class, key, false);

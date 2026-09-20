@@ -1,7 +1,7 @@
 package art.arcane.iris.studio.tree;
 
 import art.arcane.iris.structure.object.IrisObject;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import org.junit.ClassRule;
@@ -39,7 +39,7 @@ public class TreePlausibilizerTest {
     private record Pos(int x, int y, int z) {
     }
 
-    private static final class TestState implements PlatformBlockState {
+    private static final class TestState implements NativeBlockState {
         private final String key;
 
         private TestState(String raw) {
@@ -95,7 +95,7 @@ public class TreePlausibilizerTest {
         }
 
         @Override
-        public PlatformBlockState withProperty(String name, String value) {
+        public NativeBlockState withProperty(String name, String value) {
             int bracket = key.indexOf('[');
             String material = bracket < 0 ? key : key.substring(0, bracket);
             TreeMap<String, String> props = new TreeMap<>();
@@ -119,12 +119,12 @@ public class TreePlausibilizerTest {
         }
 
         @Override
-        public boolean matches(PlatformBlockState state) {
+        public boolean matches(NativeBlockState state) {
             return state != null && key.equals(state.key());
         }
 
         @Override
-        public boolean canPlaceOnto(PlatformBlockState onto) {
+        public boolean canPlaceOnto(NativeBlockState onto) {
             return true;
         }
 
@@ -260,7 +260,7 @@ public class TreePlausibilizerTest {
 
     private static Map<Pos, String> snapshot(IrisObject obj) {
         Map<Pos, String> out = new HashMap<>();
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> e : obj.getBlocks()) {
+        for (Map.Entry<IrisBlockVector, NativeBlockState> e : obj.getBlocks()) {
             IrisBlockVector v = e.getKey();
             out.put(new Pos(v.getBlockX(), v.getBlockY(), v.getBlockZ()), e.getValue().key());
         }

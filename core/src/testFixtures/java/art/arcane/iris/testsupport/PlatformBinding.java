@@ -3,7 +3,7 @@ package art.arcane.iris.testsupport;
 
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -19,7 +19,7 @@ public final class PlatformBinding implements TestRule {
     private final Supplier<IrisPlatform> factory;
     private IrisPlatform platform;
     private PlatformRegistries registries;
-    private PlatformBlockState block;
+    private NativeBlockState block;
 
     private PlatformBinding(Supplier<IrisPlatform> factory) {
         this.factory = factory;
@@ -53,7 +53,7 @@ public final class PlatformBinding implements TestRule {
         return registries;
     }
 
-    public PlatformBlockState block() {
+    public NativeBlockState block() {
         if (block == null) {
             block = registries().block("minecraft:stone");
         }
@@ -86,7 +86,7 @@ public final class PlatformBinding implements TestRule {
 
     private void bind() {
         if (factory == null) {
-            block = mock(PlatformBlockState.class);
+            block = mock(NativeBlockState.class);
             registries = mock(PlatformRegistries.class);
             when(registries.block(anyString())).thenReturn(block);
             platform = mock(IrisPlatform.class);

@@ -31,7 +31,7 @@ public class Section implements MCASectionLike {
     }
 
     public Section(CompoundTag sectionRoot, int dataVersion, long loadFlags) {
-        support = new MCASectionSupport(sectionRoot, loadFlags, () -> INMS.get().createPalette());
+        support = new MCASectionSupport(sectionRoot, loadFlags, () -> INMS.get().createPalette(NBTWorld.blockStateCodec()));
     }
 
     private Section(MCASectionSupport support) {
@@ -44,7 +44,7 @@ public class Section implements MCASectionLike {
      * @return An empty Section
      */
     public static Section newSection() {
-        return new Section(MCASectionSupport.createNew(() -> INMS.get().createPalette()));
+        return new Section(MCASectionSupport.createNew(() -> INMS.get().createPalette(NBTWorld.blockStateCodec())));
     }
 
     /**

@@ -4,7 +4,7 @@ import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
 import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import org.junit.Test;
 
@@ -86,9 +86,9 @@ public class IrisDecorantActuatorRiverTest {
 
     @Test
     public void seaDecoratorsRequireConnectedWaterBelowTheConfiguredSurface() {
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(3, 4, 1);
-        PlatformBlockState water = mock(PlatformBlockState.class);
-        PlatformBlockState adjacentWater = mock(PlatformBlockState.class);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(3, 4, 1);
+        NativeBlockState water = mock(NativeBlockState.class);
+        NativeBlockState adjacentWater = mock(NativeBlockState.class);
         doReturn(true).when(water).isWater();
         doReturn(true).when(adjacentWater).isWater();
         output.set(1, 1, 0, water);
@@ -102,10 +102,10 @@ public class IrisDecorantActuatorRiverTest {
 
     @Test
     public void seaDecoratorStacksRequireConnectedWaterAtEveryPlacedLevel() {
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(3, 4, 1);
-        PlatformBlockState lowerWater = waterState();
-        PlatformBlockState upperWater = waterState();
-        PlatformBlockState adjacentWater = waterState();
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(3, 4, 1);
+        NativeBlockState lowerWater = waterState();
+        NativeBlockState upperWater = waterState();
+        NativeBlockState adjacentWater = waterState();
         output.set(1, 1, 0, lowerWater);
         output.set(1, 2, 0, upperWater);
         output.set(0, 1, 0, adjacentWater);
@@ -118,9 +118,9 @@ public class IrisDecorantActuatorRiverTest {
 
     @Test
     public void dryAquaticSeaSurfacePlacementRestoresTheOriginalBlock() {
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(3, 3, 1);
-        PlatformBlockState air = state("minecraft:air");
-        PlatformBlockState seagrass = state("minecraft:seagrass");
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(3, 3, 1);
+        NativeBlockState air = state("minecraft:air");
+        NativeBlockState seagrass = state("minecraft:seagrass");
         output.set(1, 1, 0, air);
 
         output.set(1, 1, 0, seagrass);
@@ -237,14 +237,14 @@ public class IrisDecorantActuatorRiverTest {
         );
     }
 
-    private static PlatformBlockState waterState() {
-        PlatformBlockState water = state("minecraft:water");
+    private static NativeBlockState waterState() {
+        NativeBlockState water = state("minecraft:water");
         doReturn(true).when(water).isWater();
         return water;
     }
 
-    private static PlatformBlockState state(String key) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private static NativeBlockState state(String key) {
+        NativeBlockState state = mock(NativeBlockState.class);
         doReturn(key).when(state).key();
         return state;
     }

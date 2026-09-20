@@ -3,7 +3,7 @@ package art.arcane.iris.generation.runtime;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -33,7 +33,7 @@ public class UpperDimensionImageMapRuntimeTest {
         IrisImageMapRuntime runtime = mock(IrisImageMapRuntime.class);
         IrisRegion proceduralRegion = new IrisRegion();
         IrisBiome proceduralBiome = new IrisBiome();
-        PlatformBlockState proceduralBlock = mock(PlatformBlockState.class);
+        NativeBlockState proceduralBlock = mock(NativeBlockState.class);
 
         assertSame(proceduralRegion, UpperDimensionContext.mappedRegion(
                 runtime, proceduralRegion, -2D, 4D));
@@ -46,8 +46,8 @@ public class UpperDimensionImageMapRuntimeTest {
     @Test
     public void mappedHeightAndSurfaceBlockAreAuthoritative() {
         IrisImageMapRuntime runtime = mock(IrisImageMapRuntime.class);
-        PlatformBlockState proceduralBlock = mock(PlatformBlockState.class);
-        PlatformBlockState mappedBlock = mock(PlatformBlockState.class);
+        NativeBlockState proceduralBlock = mock(NativeBlockState.class);
+        NativeBlockState mappedBlock = mock(NativeBlockState.class);
         when(runtime.sampleTerrainHeight(3D, 9D, 80D)).thenReturn(144D);
         when(runtime.sampleSurfaceBlock(3D, 9D)).thenReturn(mappedBlock);
 

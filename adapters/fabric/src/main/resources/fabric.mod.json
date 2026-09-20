@@ -4,8 +4,14 @@
   "version": "${version}",
   "name": "Iris",
   "description": "Iris World Generation Engine (Fabric adapter - native chunk generator, explicit Iris world datapack workflow, engine lifecycle)",
-  "authors": ["Arcane Arts (Volmit Software)"],
-  "contributors": ["cyberpwn", "NextdoorPsycho", "Vatuu"],
+  "authors": [
+    "Arcane Arts (Volmit Software)"
+  ],
+  "contributors": [
+    "cyberpwn",
+    "NextdoorPsycho",
+    "Vatuu"
+  ],
   "contact": {
     "homepage": "https://docs.volmit.com/iris/",
     "issues": "https://github.com/VolmitSoftware/Iris/issues",
@@ -14,30 +20,54 @@
   "license": "GPL-3.0",
   "icon": "assets/irisworldgen/icon.png",
   "environment": "*",
-  "accessWidener": "irisworldgen.accesswidener",
+  "accessWidener": "volmlib.accesswidener",
   "mixins": [
-    "irisworldgen.mixins.json",
-    "irisworldgen.entity.mixins.json",
+    "volmlib.fabric.mixins.json",
+    "volmlib.entity.mixins.json",
     {
-      "config": "irisworldgen.client.mixins.json",
+      "config": "volmlib.client.mixins.json",
       "environment": "client"
     }
   ],
   "entrypoints": {
-    "main": ["art.arcane.iris.fabric.IrisFabricBootstrap"],
-    "client": ["art.arcane.iris.fabric.IrisFabricClient"]
+    "main": [
+      "art.arcane.iris.fabric.IrisFabricBootstrap"
+    ],
+    "client": [
+      "art.arcane.iris.fabric.IrisFabricClient"
+    ]
   },
   "jars": [
-    { "file": "META-INF/jars/fabric-api-base.jar" },
-    { "file": "META-INF/jars/fabric-registry-sync-v0.jar" },
-    { "file": "META-INF/jars/fabric-resource-loader-v1.jar" },
-    { "file": "META-INF/jars/fabric-lifecycle-events-v1.jar" },
-    { "file": "META-INF/jars/fabric-command-api-v2.jar" },
-    { "file": "META-INF/jars/fabric-events-interaction-v0.jar" },
-    { "file": "META-INF/jars/fabric-networking-api-v1.jar" },
-    { "file": "META-INF/jars/fabric-rendering-v1.jar" },
-    { "file": "META-INF/jars/fabric-key-mapping-api-v1.jar" },
-    { "file": "META-INF/jars/fabric-permission-api-v1.jar" }
+    {
+      "file": "META-INF/jars/fabric-api-base.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-registry-sync-v0.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-resource-loader-v1.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-lifecycle-events-v1.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-command-api-v2.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-events-interaction-v0.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-networking-api-v1.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-rendering-v1.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-key-mapping-api-v1.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-permission-api-v1.jar"
+    }
   ],
   "depends": {
     "fabricloader": ">=0.19.3",

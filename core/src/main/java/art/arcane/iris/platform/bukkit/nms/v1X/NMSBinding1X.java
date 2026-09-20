@@ -18,14 +18,20 @@
 
 package art.arcane.iris.platform.bukkit.nms.v1X;
 
+import art.arcane.volmlib.nativelib.terrain.TileWriteScheduler;
+
+import org.bukkit.block.data.BlockData;
+
+import art.arcane.volmlib.util.nbt.mca.NBTWorldSupport;
+
 import art.arcane.iris.pack.datapack.DatapackStructureScopeIndex;
 import art.arcane.iris.platform.bukkit.nms.DatapackStructureScopeResult;
 import art.arcane.iris.structure.nativegen.IrisImportedStructureControl;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.platform.bukkit.nms.INMSBinding;
-import art.arcane.iris.platform.bukkit.nms.container.BiomeColor;
-import art.arcane.iris.platform.bukkit.nms.container.BlockProperty;
-import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
+import art.arcane.volmlib.nativelib.terrain.BiomeColor;
+import art.arcane.volmlib.nativelib.terrain.BlockProperty;
+import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -86,7 +92,7 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
-    public void deserializeTile(KMap<String, Object> s, Location newPosition) {
+    public void deserializeTile(KMap<String, Object> s, Location newPosition, TileWriteScheduler scheduler) {
 
     }
 
@@ -169,10 +175,7 @@ public class NMSBinding1X implements INMSBinding {
         return supportsCustomHeight;
     }
 
-    @Override
-    public Object getBiomeBaseFromId(int id) {
-        return null;
-    }
+
 
     @Override
     public int getMinHeight(World world) {
@@ -189,14 +192,18 @@ public class NMSBinding1X implements INMSBinding {
         return false;
     }
 
+
+
+
+
     @Override
-    public int getTrueBiomeBaseId(Object biomeBase) {
+    public int getBiomeId(Location location) {
         return 0;
     }
 
     @Override
-    public Object getTrueBiomeBase(Location location) {
-        return null;
+    public boolean hasBiome(String key) {
+        return false;
     }
 
     @Override
@@ -204,34 +211,20 @@ public class NMSBinding1X implements INMSBinding {
         return null;
     }
 
-    @Override
-    public Object getCustomBiomeBaseFor(String mckey) {
-        return null;
-    }
+
+
+
 
     @Override
-    public Object getCustomBiomeBaseHolderFor(String mckey) {
-        return null;
-    }
-
-    @Override
-    public int getBiomeBaseIdForKey(String key) {
+    public int getBiomeId(String key) {
         return 0;
     }
 
-    @Override
-    public String getKeyForBiomeBase(Object biomeBase) {
-        return null;
-    }
 
-    public Object getBiomeBase(World world, Biome biome) {
-        return null;
-    }
 
-    @Override
-    public Object getBiomeBase(Object registry, Biome biome) {
-        return null;
-    }
+
+
+
 
     @Override
     public KList<Biome> getBiomes() {
@@ -309,7 +302,7 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
-    public MCAPaletteAccess createPalette() {
+    public MCAPaletteAccess createPalette(NBTWorldSupport.BlockStateCodec<BlockData> codec) {
         IrisLogging.error("Cannot use the global data palette! Iris is incapable of using MCA generation on this version of minecraft!");
         return null;
     }

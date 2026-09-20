@@ -12,6 +12,9 @@ java {
 }
 
 dependencies {
+    api("com.github.VolmitSoftware.VolmLib:native-api:${providers.gradleProperty('volmLibCoordinate').get().tokenize(':').last()}") {
+        transitive = false
+    }
     testImplementation('junit:junit:4.13.2')
 }
 

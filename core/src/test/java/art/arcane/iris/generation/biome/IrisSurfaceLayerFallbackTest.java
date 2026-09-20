@@ -4,7 +4,7 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
@@ -23,8 +23,8 @@ public final class IrisSurfaceLayerFallbackTest {
     private final IrisData data = mock(IrisData.class);
     private final IrisBiomePaletteLayer layer = mock(IrisBiomePaletteLayer.class);
     private final CNG heightGenerator = mock(CNG.class);
-    private final PlatformBlockState surfaceBlock = mock(PlatformBlockState.class);
-    private final PlatformBlockState secondBlock = mock(PlatformBlockState.class);
+    private final NativeBlockState surfaceBlock = mock(NativeBlockState.class);
+    private final NativeBlockState secondBlock = mock(NativeBlockState.class);
     private final RNG rng = new RNG(19L);
 
     @SuppressWarnings("unchecked")
@@ -42,7 +42,7 @@ public final class IrisSurfaceLayerFallbackTest {
         return new IrisBiome().setLayers(new KList<>(layer));
     }
 
-    private KList<PlatformBlockState> generate(IrisBiome biome, IrisDimension dim) {
+    private KList<NativeBlockState> generate(IrisBiome biome, IrisDimension dim) {
         return biome.generateLayersWithSlope(dim, 12D, -8D, rng, 4, 32, data, slopeStream);
     }
 
@@ -51,7 +51,7 @@ public final class IrisSurfaceLayerFallbackTest {
         IrisBiome biome = biome();
         when(layer.getSlopeCondition()).thenReturn(new IrisSlopeClip(0D, 4D));
 
-        KList<PlatformBlockState> blocks = generate(biome,
+        KList<NativeBlockState> blocks = generate(biome,
                 new IrisDimension().setSurfaceLayerFallback(IrisSurfaceLayerFallback.TOP_LAYER));
 
         assertEquals(1, blocks.size());
@@ -63,7 +63,7 @@ public final class IrisSurfaceLayerFallbackTest {
         IrisBiome biome = biome();
         when(layer.getSlopeCondition()).thenReturn(new IrisSlopeClip(0D, 4D));
 
-        KList<PlatformBlockState> blocks = generate(biome,
+        KList<NativeBlockState> blocks = generate(biome,
                 new IrisDimension().setSurfaceLayerFallback(IrisSurfaceLayerFallback.ROCK));
 
         assertTrue(blocks.isEmpty());
@@ -74,9 +74,9 @@ public final class IrisSurfaceLayerFallbackTest {
         IrisBiome biome = biome();
         when(layer.getSlopeCondition()).thenReturn(new IrisSlopeClip());
 
-        KList<PlatformBlockState> topLayer = generate(biome,
+        KList<NativeBlockState> topLayer = generate(biome,
                 new IrisDimension().setSurfaceLayerFallback(IrisSurfaceLayerFallback.TOP_LAYER));
-        KList<PlatformBlockState> rock = generate(biome,
+        KList<NativeBlockState> rock = generate(biome,
                 new IrisDimension().setSurfaceLayerFallback(IrisSurfaceLayerFallback.ROCK));
 
         assertEquals(2, topLayer.size());
@@ -90,7 +90,7 @@ public final class IrisSurfaceLayerFallbackTest {
         IrisBiome pinnedToTopLayer = biome().setSurfaceLayerFallback(IrisSurfaceLayerFallback.TOP_LAYER);
         when(layer.getSlopeCondition()).thenReturn(new IrisSlopeClip(0D, 4D));
 
-        KList<PlatformBlockState> overRock = generate(pinnedToTopLayer,
+        KList<NativeBlockState> overRock = generate(pinnedToTopLayer,
                 new IrisDimension().setSurfaceLayerFallback(IrisSurfaceLayerFallback.ROCK));
 
         assertEquals(1, overRock.size());
@@ -98,7 +98,7 @@ public final class IrisSurfaceLayerFallbackTest {
 
         IrisBiome pinnedToRock = biome().setSurfaceLayerFallback(IrisSurfaceLayerFallback.ROCK);
 
-        KList<PlatformBlockState> overTopLayer = generate(pinnedToRock,
+        KList<NativeBlockState> overTopLayer = generate(pinnedToRock,
                 new IrisDimension().setSurfaceLayerFallback(IrisSurfaceLayerFallback.TOP_LAYER));
 
         assertTrue(overTopLayer.isEmpty());
@@ -110,7 +110,7 @@ public final class IrisSurfaceLayerFallbackTest {
         when(layer.getSlopeCondition()).thenReturn(new IrisSlopeClip(0D, 4D));
         IrisDimension dimension = new IrisDimension().setSurfaceLayerFallback(IrisSurfaceLayerFallback.TOP_LAYER);
 
-        KList<PlatformBlockState> blocks = generate(biome, dimension);
+        KList<NativeBlockState> blocks = generate(biome, dimension);
 
         assertEquals(1, blocks.size());
         assertSame(surfaceBlock, blocks.get(0));

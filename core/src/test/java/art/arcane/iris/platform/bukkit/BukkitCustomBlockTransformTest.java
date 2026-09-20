@@ -3,10 +3,10 @@ package art.arcane.iris.platform.bukkit;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.integration.ExternalDataSVC;
 import art.arcane.iris.structure.object.IrisObjectRotation;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.generation.block.IrisCustomData;
-import art.arcane.iris.platform.bukkit.registry.RegistryUtil;
+import art.arcane.iris.platform.registry.RegistryUtil;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.junit.BeforeClass;
@@ -34,11 +34,11 @@ public class BukkitCustomBlockTransformTest {
     public void waterloggingUpdatesSemanticIdentityAndResolvedCarrier() {
         IrisCustomData original = custom("craftengine:forest/amber_slab[axis=x,waterlogged=false]", 1);
         IrisCustomData expected = custom("craftengine:forest/amber_slab[axis=x,waterlogged=true]", 2);
-        PlatformBlockState state = BukkitBlockState.of(original);
+        NativeBlockState state = BukkitBlockState.of(original);
 
         try (MockedStatic<BukkitBlockResolution> resolution = mockStatic(BukkitBlockResolution.class)) {
             resolveTo(resolution, expected);
-            PlatformBlockState result = state.withProperty("waterlogged", "true");
+            NativeBlockState result = state.withProperty("waterlogged", "true");
 
             assertSame(expected, result.nativeHandle());
             assertEquals(expected.getCustom().toString(), result.deferredPlacementKey());
@@ -50,7 +50,7 @@ public class BukkitCustomBlockTransformTest {
 
     @Test
     public void customPropertyRejectsAnUnresolvableValue() {
-        PlatformBlockState state = BukkitBlockState.of(custom("craftengine:forest/amber_log[axis=x]", 1));
+        NativeBlockState state = BukkitBlockState.of(custom("craftengine:forest/amber_log[axis=x]", 1));
 
         try (MockedStatic<BukkitBlockResolution> resolution = mockStatic(BukkitBlockResolution.class)) {
             IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
@@ -66,11 +66,11 @@ public class BukkitCustomBlockTransformTest {
     public void semanticFacingRotatesWithoutDirectionalCarrier() {
         IrisCustomData original = custom("craftengine:forest/amber_lamp[facing=north,waterlogged=true]", 1);
         IrisCustomData expected = custom("craftengine:forest/amber_lamp[facing=west,waterlogged=true]", 2);
-        PlatformBlockState state = BukkitBlockState.of(original);
+        NativeBlockState state = BukkitBlockState.of(original);
 
         try (MockedStatic<BukkitBlockResolution> resolution = mockStatic(BukkitBlockResolution.class)) {
             resolveTo(resolution, expected);
-            PlatformBlockState result = IrisObjectRotation.of(0, 90, 0).rotate(state, 0, 0, 0);
+            NativeBlockState result = IrisObjectRotation.of(0, 90, 0).rotate(state, 0, 0, 0);
 
             assertSame(expected, result.nativeHandle());
             assertEquals(expected.getCustom().toString(), result.key());
@@ -96,12 +96,12 @@ public class BukkitCustomBlockTransformTest {
 
     @Test
     public void semanticRotationPreservesSixteenWayOrientation() {
-        PlatformBlockState state = BukkitBlockState.of(custom("craftengine:forest/amber_sign[rotation=0]", 1));
+        NativeBlockState state = BukkitBlockState.of(custom("craftengine:forest/amber_sign[rotation=0]", 1));
         IrisCustomData expected = custom("craftengine:forest/amber_sign[rotation=12]", 2);
 
         try (MockedStatic<BukkitBlockResolution> resolution = mockStatic(BukkitBlockResolution.class)) {
             resolveTo(resolution, expected);
-            PlatformBlockState result = IrisObjectRotation.of(0, 90, 0).rotate(state, 0, 0, 0);
+            NativeBlockState result = IrisObjectRotation.of(0, 90, 0).rotate(state, 0, 0, 0);
 
             assertSame(expected, result.nativeHandle());
             resolution.verify(() -> BukkitBlockResolution.resolveOrNull(anyString()));
@@ -110,14 +110,14 @@ public class BukkitCustomBlockTransformTest {
 
     @Test
     public void semanticConnectionsRotateTogether() {
-        PlatformBlockState state = BukkitBlockState.of(custom(
+        NativeBlockState state = BukkitBlockState.of(custom(
                 "craftengine:forest/amber_fence[north=true,east=false,south=false,west=false]", 1));
         IrisCustomData expected = custom(
                 "craftengine:forest/amber_fence[north=false,east=false,south=false,west=true]", 2);
 
         try (MockedStatic<BukkitBlockResolution> resolution = mockStatic(BukkitBlockResolution.class)) {
             resolveTo(resolution, expected);
-            PlatformBlockState result = IrisObjectRotation.of(0, 90, 0).rotate(state, 0, 0, 0);
+            NativeBlockState result = IrisObjectRotation.of(0, 90, 0).rotate(state, 0, 0, 0);
 
             assertSame(expected, result.nativeHandle());
             resolution.verify(() -> BukkitBlockResolution.resolveOrNull(anyString()));
@@ -126,7 +126,7 @@ public class BukkitCustomBlockTransformTest {
 
     @Test
     public void unsupportedRotationRetainsTheOriginalCustomBlock() {
-        PlatformBlockState state = BukkitBlockState.of(custom("craftengine:forest/amber_lamp[facing=north]", 1));
+        NativeBlockState state = BukkitBlockState.of(custom("craftengine:forest/amber_lamp[facing=north]", 1));
 
         try (MockedStatic<BukkitBlockResolution> resolution = mockStatic(BukkitBlockResolution.class)) {
             assertSame(state, IrisObjectRotation.of(90, 0, 0).rotate(state, 0, 0, 0));
@@ -136,7 +136,7 @@ public class BukkitCustomBlockTransformTest {
 
     @Test
     public void unchangedSemanticAxisDoesNotResolveOrMutateCarrier() {
-        PlatformBlockState state = BukkitBlockState.of(custom("craftengine:forest/amber_log[axis=y]", 1));
+        NativeBlockState state = BukkitBlockState.of(custom("craftengine:forest/amber_log[axis=y]", 1));
 
         try (MockedStatic<BukkitBlockResolution> resolution = mockStatic(BukkitBlockResolution.class)) {
             assertSame(state, IrisObjectRotation.of(0, 90, 0).rotate(state, 0, 0, 0));

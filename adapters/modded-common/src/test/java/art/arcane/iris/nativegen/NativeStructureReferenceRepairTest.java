@@ -1,5 +1,17 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.iris.structure.nativegen.IrisStructurePolicy;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureReferenceRepair;
+
+import art.arcane.volmlib.nativelib.terrain.structure.StructureOwnershipRecordView;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureOwnershipFingerprint;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureVerticalPlacer;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureReferenceEnvelope;
+
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.Engine;
@@ -14,7 +26,7 @@ import art.arcane.iris.structure.nativegen.IrisNativeStructure;
 import art.arcane.iris.structure.nativegen.IrisNativeStructureDecision;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
-import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import art.arcane.iris.structure.nativegen.NativeStructureGenerationStatus;
 import art.arcane.volmlib.util.collection.KList;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -75,18 +87,16 @@ public class NativeStructureReferenceRepairTest {
         NativeStructureVerticalPlacer.alignOceanMonumentToSeaLevel(
                 generated, 0, 80, -64, 320);
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
+                .setMode(StructureTerrainMode.FORCE_CARVE)
                 .setHorizontalPadding(24);
         StructureStart wrapped = NativeStructureReferenceEnvelope.wrap(
                 generated,
                 structure,
                 0,
                 terrain);
-        NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(
-                "minecraft:monument",
-                wrapped,
-                plan(origin, NativeStructureReferenceEnvelope.contentBounds(wrapped).minY()),
-                NativeStructureReferenceEnvelope.referenceBounds(wrapped, structure, terrain));
+        NativeStructureOwnershipRecord ownership = NativeStructureOwnershipRecord.capture(
+                NativeStructureOwnershipFingerprint.capture(
+                        "minecraft:monument", wrapped, NativeStructureReferenceEnvelope.referenceBounds(wrapped, structure, terrain)), plan(origin, NativeStructureReferenceEnvelope.contentBounds(wrapped).minY()));
         PiecesContainer regeneratedPieces = OceanMonumentStructure.regeneratePiecesAfterLoad(
                 origin, seed, new PiecesContainer(wrapped.getPieces()));
         StructureStart reloaded = new StructureStart(structure, origin, 0, regeneratedPieces);
@@ -128,15 +138,13 @@ public class NativeStructureReferenceRepairTest {
         NativeStructureVerticalPlacer.alignOceanMonumentToSeaLevel(
                 generated, 0, 80, -64, 320);
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
+                .setMode(StructureTerrainMode.FORCE_CARVE)
                 .setHorizontalPadding(24);
         StructureStart start = NativeStructureReferenceEnvelope.wrap(
                 generated, structure, 0, terrain);
-        NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(
-                structureKey,
-                start,
-                plan(origin, NativeStructureReferenceEnvelope.contentBounds(start).minY()),
-                NativeStructureReferenceEnvelope.referenceBounds(start, structure, terrain));
+        NativeStructureOwnershipRecord ownership = NativeStructureOwnershipRecord.capture(
+                NativeStructureOwnershipFingerprint.capture(
+                        structureKey, start, NativeStructureReferenceEnvelope.referenceBounds(start, structure, terrain)), plan(origin, NativeStructureReferenceEnvelope.contentBounds(start).minY()));
         IrisDimension dimension = new IrisDimension();
         dimension.getImportedStructures().getDisabled().add(structureKey);
         IrisData data = allocateWithoutConstructor(IrisData.class);
@@ -165,7 +173,7 @@ public class NativeStructureReferenceRepairTest {
                     registry, serverLevel, originChunk, emptyScannedChunk);
             ProtoChunk coveredChunk = emptyChunk(coveredTarget);
             NativeStructureReferenceRepair.createReferences(
-                    engine, level, structureManager, coveredChunk);
+                    new IrisStructurePolicy(engine), level, structureManager, coveredChunk);
 
             assertSame(start, originChunk.getStartForStructure(structure));
             assertTrue(originChunk.getStartForStructure(structure).isValid());
@@ -173,7 +181,7 @@ public class NativeStructureReferenceRepairTest {
 
             ProtoChunk uncoveredChunk = emptyChunk(uncoveredTarget);
             NativeStructureReferenceRepair.createReferences(
-                    engine, level, structureManager, uncoveredChunk);
+                    new IrisStructurePolicy(engine), level, structureManager, uncoveredChunk);
 
             assertSame(start, originChunk.getStartForStructure(structure));
             assertTrue(originChunk.getStartForStructure(structure).isValid());
@@ -248,9 +256,9 @@ public class NativeStructureReferenceRepairTest {
         for (ChunkPos candidate : candidates) {
             if (!ownership.covers(candidate.x(), candidate.z())
                     && Math.abs(candidate.x() - originX)
-                    <= NativeStructureOwnershipRecord.MAX_REFERENCE_DISTANCE_CHUNKS
+                    <= StructureOwnershipRecordView.MAX_REFERENCE_DISTANCE_CHUNKS
                     && Math.abs(candidate.z() - originZ)
-                    <= NativeStructureOwnershipRecord.MAX_REFERENCE_DISTANCE_CHUNKS) {
+                    <= StructureOwnershipRecordView.MAX_REFERENCE_DISTANCE_CHUNKS) {
                 return candidate;
             }
         }

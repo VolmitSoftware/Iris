@@ -56,7 +56,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import org.bukkit.util.Vector;
 
@@ -304,7 +304,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             return;
         }
 
-        if (y == 0 && t instanceof PlatformBlockState && engineMantle.getEngine().getDimension().isBedrock()) {
+        if (y == 0 && t instanceof NativeBlockState && engineMantle.getEngine().getDimension().isBedrock()) {
             return;
         }
 
@@ -313,14 +313,14 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
         synchronized (chunk) {
             Matter matter = chunk.getOrCreate(y >> 4);
-            if ((t instanceof PlatformBlockState || t instanceof MatterCavern)
+            if ((t instanceof NativeBlockState || t instanceof MatterCavern)
                     && hasProtectedHydrology(matter, x, y, z)) {
                 return;
             }
-            if (t instanceof PlatformBlockState) {
+            if (t instanceof NativeBlockState) {
                 clearDeferredPlacement(matter, x, y, z);
             }
-            Class<?> sliceType = t instanceof PlatformBlockState ? PlatformBlockState.class : matter.getClass(t);
+            Class<?> sliceType = t instanceof NativeBlockState ? NativeBlockState.class : matter.getClass(t);
             capturePreObjectOriginal(matter, x, y, z, sliceType);
             matter.slice(sliceType).set(x & 15, y & 15, z & 15, t);
         }
@@ -380,9 +380,9 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             if (hasProtectedHydrology(matter, x, y, z)) {
                 return false;
             }
-            MatterSlice<PlatformBlockState> blockSlice = matter.getSlice(PlatformBlockState.class);
+            MatterSlice<NativeBlockState> blockSlice = matter.getSlice(NativeBlockState.class);
             if (blockSlice != null) {
-                capturePreObjectOriginal(matter, x, y, z, PlatformBlockState.class);
+                capturePreObjectOriginal(matter, x, y, z, NativeBlockState.class);
                 blockSlice.set(x & 15, y & 15, z & 15, null);
             }
             clearDeferredPlacement(matter, x, y, z);
@@ -413,9 +413,9 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             if (hasProtectedHydrology(matter, x, y, z)) {
                 return;
             }
-            MatterSlice<PlatformBlockState> blockSlice = matter.getSlice(PlatformBlockState.class);
+            MatterSlice<NativeBlockState> blockSlice = matter.getSlice(NativeBlockState.class);
             if (blockSlice != null) {
-                capturePreObjectOriginal(matter, x, y, z, PlatformBlockState.class);
+                capturePreObjectOriginal(matter, x, y, z, NativeBlockState.class);
                 blockSlice.set(x & 15, y & 15, z & 15, null);
             }
             clearDeferredPlacement(matter, x, y, z);
@@ -444,9 +444,9 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             if (hasProtectedHydrology(matter, x, y, z)) {
                 return;
             }
-            MatterSlice<PlatformBlockState> blockSlice = matter.getSlice(PlatformBlockState.class);
+            MatterSlice<NativeBlockState> blockSlice = matter.getSlice(NativeBlockState.class);
             if (blockSlice != null) {
-                capturePreObjectOriginal(matter, x, y, z, PlatformBlockState.class);
+                capturePreObjectOriginal(matter, x, y, z, NativeBlockState.class);
                 blockSlice.set(x & 15, y & 15, z & 15, null);
             }
             clearDeferredPlacement(matter, x, y, z);
@@ -522,21 +522,21 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         return complex == null ? Optional.empty() : complex.resolvedTerrainColumn(x, z);
     }
 
-    private PlatformBlockState resolvedBlock(TerrainBoundarySignature column, int y) {
+    private NativeBlockState resolvedBlock(TerrainBoundarySignature column, int y) {
         String stateKey = column.geometry().voxelAt(y + engineMantle.getEngine().getMinHeight()).stateKey();
-        PlatformBlockState state = IrisPlatforms.get().registries().blockOrNull(stateKey);
+        NativeBlockState state = IrisPlatforms.get().registries().blockOrNull(stateKey);
         if (state == null) {
             throw new IllegalStateException("Saved terrain state is unavailable: " + stateKey);
         }
         return state;
     }
 
-    public PlatformBlockState getPrerequisiteBlock(int x, int y, int z) {
+    public NativeBlockState getPrerequisiteBlock(int x, int y, int z) {
         Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
         if (resolved.isPresent()) {
             return resolvedBlock(resolved.get(), y);
         }
-        PlatformBlockState block = getPrerequisiteDataIfPresent(x, y, z, PlatformBlockState.class);
+        NativeBlockState block = getPrerequisiteDataIfPresent(x, y, z, NativeBlockState.class);
         return block == null ? AIR.get() : block;
     }
 
@@ -675,7 +675,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
                 return false;
             }
             if (cell.blockCaptured()) {
-                restoreRaw(matter, x, y, z, PlatformBlockState.class, cell.block());
+                restoreRaw(matter, x, y, z, NativeBlockState.class, cell.block());
             }
             if (cell.stringCaptured()) {
                 restoreRaw(matter, x, y, z, String.class, cell.string());
@@ -703,7 +703,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             if (matter == null || !matter.hasSlice(type)) {
                 return;
             }
-            if ((type == PlatformBlockState.class || type == MatterCavern.class)
+            if ((type == NativeBlockState.class || type == MatterCavern.class)
                     && hasProtectedHydrology(matter, x, y, z)) {
                 return;
             }
@@ -728,7 +728,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         }
     }
 
-    private void setCustomBlock(int x, int y, int z, PlatformBlockState baseState, Identifier identifier) {
+    private void setCustomBlock(int x, int y, int z, NativeBlockState baseState, Identifier identifier) {
         if (!allowsWrite(x, z) || y < 0 || y >= mantle.getWorldHeight()) {
             return;
         }
@@ -746,9 +746,9 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             if (hasProtectedHydrology(matter, x, y, z)) {
                 return;
             }
-            MatterSlice<PlatformBlockState> blockSlice = matter.slice(PlatformBlockState.class);
+            MatterSlice<NativeBlockState> blockSlice = matter.slice(NativeBlockState.class);
             MatterSlice<Identifier> identifierSlice = matter.slice(Identifier.class);
-            capturePreObjectOriginal(matter, x, y, z, PlatformBlockState.class);
+            capturePreObjectOriginal(matter, x, y, z, NativeBlockState.class);
             blockSlice.set(x & 15, y & 15, z & 15, baseState);
             identifierSlice.set(x & 15, y & 15, z & 15, identifier);
         }
@@ -770,10 +770,10 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         }
         Object original = rawValue(matter, localX, localY, localZ, type);
         PreObjectMatterCell updated;
-        if (type == PlatformBlockState.class) {
+        if (type == NativeBlockState.class) {
             updated = current == null
-                    ? PreObjectMatterCell.block((PlatformBlockState) original)
-                    : current.captureBlock((PlatformBlockState) original);
+                    ? PreObjectMatterCell.block((NativeBlockState) original)
+                    : current.captureBlock((NativeBlockState) original);
         } else if (type == String.class) {
             updated = current == null
                     ? PreObjectMatterCell.string((String) original)
@@ -787,7 +787,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     }
 
     private static boolean isPreObjectType(Class<?> type) {
-        return type == PlatformBlockState.class || type == String.class || type == MatterCavern.class;
+        return type == NativeBlockState.class || type == String.class || type == MatterCavern.class;
     }
 
     private static PreObjectMatterCell preObjectCell(Matter matter, int x, int y, int z) {
@@ -888,12 +888,12 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     }
 
     @Override
-    public void set(int x, int y, int z, PlatformBlockState s) {
+    public void set(int x, int y, int z, NativeBlockState s) {
         if (s == null) {
             return;
         }
         String placementKey = s.deferredPlacementKey();
-        PlatformBlockState baseState = s.placementBaseState();
+        NativeBlockState baseState = s.placementBaseState();
         if (s.isCustom() && placementKey != null && baseState != null) {
             Identifier identifier = Identifier.fromString(placementKey);
             setCustomBlock(x, y, z, baseState, identifier);
@@ -903,10 +903,10 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     }
 
     @Override
-    public PlatformBlockState get(int x, int y, int z) {
+    public NativeBlockState get(int x, int y, int z) {
         // Read-only probe: getDataIfPresent returns the identical answer without materializing
         // a 16^3 section + slice on a miss the way getData's getOrCreate path does.
-        PlatformBlockState block = getDataIfPresent(x, y, z, PlatformBlockState.class);
+        NativeBlockState block = getDataIfPresent(x, y, z, NativeBlockState.class);
         Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
         if (resolved.isPresent()) {
             PreObjectMatterCell cell = getDataIfPresent(x, y, z, PreObjectMatterCell.class);
@@ -930,7 +930,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         if (resolved.isPresent()) {
             PreObjectMatterCell cell = getDataIfPresent(x, y, z, PreObjectMatterCell.class);
             if (cell != null && cell.blockCaptured()) {
-                PlatformBlockState block = getDataIfPresent(x, y, z, PlatformBlockState.class);
+                NativeBlockState block = getDataIfPresent(x, y, z, NativeBlockState.class);
                 if (block != null) {
                     return (block.isAir() || block.isFluid())
                             && resolved.get().geometry().hasSolidAbove(y + engineMantle.getEngine().getMinHeight());
@@ -973,7 +973,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             for (int y = 0; y < carved.length; y++) {
                 PreObjectMatterCell cell = getDataIfPresent(x, y, z, PreObjectMatterCell.class);
                 if (cell != null && cell.blockCaptured()) {
-                    PlatformBlockState block = getDataIfPresent(x, y, z, PlatformBlockState.class);
+                    NativeBlockState block = getDataIfPresent(x, y, z, NativeBlockState.class);
                     if (block != null) {
                         carved[y] = (block.isAir() || block.isFluid())
                                 && resolved.get().geometry().hasSolidAbove(y + engineMantle.getEngine().getMinHeight())

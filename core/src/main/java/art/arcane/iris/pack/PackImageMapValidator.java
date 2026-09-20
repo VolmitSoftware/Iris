@@ -22,7 +22,7 @@ import art.arcane.iris.pack.value.IrisRange;
 import art.arcane.iris.world.IrisWorldBoundary;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
@@ -495,7 +495,7 @@ final class PackImageMapValidator {
         } else if (application == IrisImageMapApplication.SURFACE_BLOCK && registries != null) {
             for (String target : targets) {
                 try {
-                    PlatformBlockState block = registries.blockOrNull(target, false);
+                    NativeBlockState block = registries.blockOrNull(target, false);
                     if (block == null) {
                         blockingErrors.add(context + " references unknown surface block target '" + target + "'.");
                     }

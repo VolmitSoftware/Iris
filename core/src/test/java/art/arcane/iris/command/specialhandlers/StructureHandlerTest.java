@@ -16,7 +16,7 @@ import art.arcane.iris.structure.placement.StructureDistribution;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformStructureHooks;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
@@ -82,7 +82,7 @@ public class StructureHandlerTest {
         Engine engine = mock(Engine.class);
         IrisDimension dimension = mock(IrisDimension.class);
         IrisWorld world = mock(IrisWorld.class);
-        PlatformWorld platformWorld = mock(PlatformWorld.class);
+        NativeWorld platformWorld = mock(NativeWorld.class);
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
         IrisImportedStructureControl control = new IrisImportedStructureControl();
@@ -159,7 +159,7 @@ public class StructureHandlerTest {
         Engine engine = mock(Engine.class);
         IrisDimension dimension = mock(IrisDimension.class);
         IrisWorld world = mock(IrisWorld.class);
-        PlatformWorld platformWorld = mock(PlatformWorld.class);
+        NativeWorld platformWorld = mock(NativeWorld.class);
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
         IrisImportedStructureControl control = new IrisImportedStructureControl();

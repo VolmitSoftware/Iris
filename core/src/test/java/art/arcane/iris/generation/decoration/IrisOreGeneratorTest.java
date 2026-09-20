@@ -4,7 +4,7 @@ import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
@@ -52,7 +52,7 @@ public class IrisOreGeneratorTest {
 
     private static final class Fixture {
         private final RNG rng = new RNG(34L);
-        private final PlatformBlockState ore = mock(PlatformBlockState.class);
+        private final NativeBlockState ore = mock(NativeBlockState.class);
         private final CNG noise = mock(CNG.class);
         private final IrisGeneratorStyle style = mock(IrisGeneratorStyle.class);
         private final IrisOreGenerator generator = new IrisOreGenerator();

@@ -1,6 +1,7 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBiomeRegistry;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import org.junit.Test;
 
 import java.util.List;
@@ -12,7 +13,7 @@ import static org.junit.Assert.assertTrue;
 public class ModdedBiomeWriterCacheTest {
     @Test
     public void unavailableServerFallsBackToBiomeIdZero() {
-        ModdedBiomeWriter writer = new ModdedBiomeWriter(() -> null);
+        ModdedBiomeWriter writer = new ModdedBiomeWriter(new NativeBiomeRegistry(() -> null, "minecraft:plains"));
 
         assertEquals(0, writer.biomeIdFor("minecraft:plains"));
         assertEquals(0, writer.biomeIdFor("minecraft:plains"));
@@ -20,10 +21,10 @@ public class ModdedBiomeWriterCacheTest {
 
     @Test
     public void unavailableServerYieldsAnEmptyMutableBiomeList() {
-        ModdedBiomeWriter writer = new ModdedBiomeWriter(() -> null);
+        ModdedBiomeWriter writer = new ModdedBiomeWriter(new NativeBiomeRegistry(() -> null, "minecraft:plains"));
 
-        List<PlatformBiome> first = writer.allBiomes();
-        List<PlatformBiome> second = writer.allBiomes();
+        List<NativeBiome> first = writer.allBiomes();
+        List<NativeBiome> second = writer.allBiomes();
 
         assertTrue(first.isEmpty());
         assertNotSame("callers must never share the writer cache instance", first, second);

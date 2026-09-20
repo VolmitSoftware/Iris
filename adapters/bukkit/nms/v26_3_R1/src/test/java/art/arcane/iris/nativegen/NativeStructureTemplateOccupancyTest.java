@@ -1,5 +1,9 @@
 package art.arcane.iris.nativegen.v26_3_R1;
 
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureTemplateOccupancy;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureReflection;
+
 import com.mojang.datafixers.util.Either;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;

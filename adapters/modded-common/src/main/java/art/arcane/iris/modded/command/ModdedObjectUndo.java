@@ -19,11 +19,8 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEditWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -41,7 +38,7 @@ public final class ModdedObjectUndo {
     private ModdedObjectUndo() {
     }
 
-    private record Entry(ServerLevel level, Map<BlockPos, BlockState> blocks) {
+    private record Entry(NativeEditWorld.EditSession blocks) {
     }
 
     public static void init() {
@@ -50,13 +47,13 @@ public final class ModdedObjectUndo {
         }
     }
 
-    public static void record(UUID owner, ServerLevel level, Map<BlockPos, BlockState> oldBlocks) {
-        if (oldBlocks == null || oldBlocks.isEmpty()) {
+    public static void record(UUID owner, NativeEditWorld.EditSession oldBlocks) {
+        if (oldBlocks == null || oldBlocks.empty()) {
             return;
         }
         Deque<Entry> queue = UNDOS.computeIfAbsent(owner, (UUID key) -> new ArrayDeque<>());
         synchronized (queue) {
-            queue.addLast(new Entry(level, oldBlocks));
+            queue.addLast(new Entry(oldBlocks));
             while (queue.size() > MAX_ENTRIES_PER_OWNER) {
                 queue.pollFirst();
             }
@@ -89,22 +86,14 @@ public final class ModdedObjectUndo {
             }
             // Identity check, not just null: a studio closed and reopened under the same
             // dimension id must never have blocks replayed into the dead ServerLevel.
-            MinecraftServer server = entry.level().getServer();
-            if (server == null || server.getLevel(entry.level().dimension()) != entry.level()) {
+            if (!entry.blocks().world().current()) {
                 ModdedIrisLog.warn("Iris object undo: skipped a stale entry for removed dimension {}",
-                        entry.level().dimension().identifier());
+                        entry.blocks().world().key());
                 continue;
             }
-            int writes = 0;
-            for (Map.Entry<BlockPos, BlockState> block : entry.blocks().entrySet()) {
-                try {
-                    entry.level().setBlock(block.getKey(), block.getValue(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
-                    writes++;
-                } catch (Throwable e) {
-                    ModdedIrisLog.error("Iris object undo: failed to revert a block at {}", block.getKey(), e);
-                }
-            }
-            ModdedIrisLog.info("Iris object undo: reverted {} block(s) in {}", writes, entry.level().dimension().identifier());
+            int writes = entry.blocks().restore(failure -> ModdedIrisLog.error(
+                    "Iris object undo: failed to revert a block at {}", failure.position(), failure.error()));
+            ModdedIrisLog.info("Iris object undo: reverted {} block(s) in {}", writes, entry.blocks().world().key());
             reverted++;
         }
         return reverted;
@@ -114,14 +103,14 @@ public final class ModdedObjectUndo {
      * Drops every entry recorded against the given level. Called on dimension removal so a
      * closed studio releases its block snapshots and the ServerLevel reference.
      */
-    public static void forget(ServerLevel level) {
+    public static void forget(NativeWorld level) {
         if (level == null) {
             return;
         }
         UNDOS.entrySet().removeIf((Map.Entry<UUID, Deque<Entry>> ownerEntry) -> {
             Deque<Entry> queue = ownerEntry.getValue();
             synchronized (queue) {
-                queue.removeIf((Entry entry) -> entry.level() == level);
+                queue.removeIf((Entry entry) -> entry.blocks().world().represents(level));
                 return queue.isEmpty();
             }
         });

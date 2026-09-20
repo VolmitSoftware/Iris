@@ -18,7 +18,7 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.structure.placement.StructureVerticalBounds;
+import art.arcane.volmlib.util.structure.StructureVerticalBounds;
 import art.arcane.iris.modded.WorldCheckStructureAudit.StructureCheck;
 
 import java.security.MessageDigest;

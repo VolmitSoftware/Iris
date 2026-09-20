@@ -19,14 +19,14 @@
 package art.arcane.iris.structure;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.volmlib.nativelib.NativeAdapters;
+import art.arcane.volmlib.nativelib.terrain.NativeStructureReader;
 import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.iris.localization.C;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.volmlib.util.collection.KList;
-import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.function.Predicate;
 
 import art.arcane.iris.localization.BukkitRuntimeMessages;
 import art.arcane.iris.localization.IrisLanguage;
@@ -524,86 +523,7 @@ public final class BulkStructureImporter {
     }
 
     private static List<String> enumerateTemplateKeys() throws Exception {
-        Object craftServer = Bukkit.getServer();
-        Object dedicated = invoke(craftServer, "getHandle");
-        Object server = invoke(dedicated, "getServer");
-        Object resourceManager = resolveResourceManager(server);
-        if (resourceManager == null) {
-            throw new IllegalStateException("Could not resolve the server ResourceManager via reflection");
-        }
-
-        Method listResources = null;
-        for (Method m : resourceManager.getClass().getMethods()) {
-            if (m.getName().equals("listResources") && m.getParameterCount() == 2
-                    && m.getParameterTypes()[0] == String.class
-                    && m.getParameterTypes()[1] == Predicate.class
-                    && Map.class.isAssignableFrom(m.getReturnType())) {
-                listResources = m;
-                break;
-            }
-        }
-        if (listResources == null) {
-            throw new NoSuchMethodException("listResources(String, Predicate) on " + resourceManager.getClass().getName());
-        }
-        listResources.setAccessible(true);
-
-        Predicate<Object> endsWithNbt = location -> {
-            String path = identifierPath(location);
-            return path != null && path.endsWith(".nbt");
-        };
-
-        Object resultMap = listResources.invoke(resourceManager, "structure", endsWithNbt);
-        TreeSet<String> keys = new TreeSet<>();
-        if (resultMap instanceof Map<?, ?> map) {
-            for (Object location : map.keySet()) {
-                String namespace = identifierNamespace(location);
-                String path = identifierPath(location);
-                if (namespace == null || path == null) {
-                    continue;
-                }
-                String stripped = path;
-                if (stripped.startsWith("structure/")) {
-                    stripped = stripped.substring("structure/".length());
-                }
-                if (stripped.endsWith(".nbt")) {
-                    stripped = stripped.substring(0, stripped.length() - ".nbt".length());
-                }
-                if (stripped.isEmpty()) {
-                    continue;
-                }
-                keys.add(namespace + ":" + stripped);
-            }
-        }
-        return new ArrayList<>(keys);
-    }
-
-    private static Object resolveResourceManager(Object server) {
-        try {
-            Class<?> resourceManagerClass = Class.forName("net.minecraft.server.packs.resources.ResourceManager");
-            Method getter = null;
-            for (Method m : server.getClass().getMethods()) {
-                if (m.getName().equals("getResourceManager") && m.getParameterCount() == 0
-                        && resourceManagerClass.isAssignableFrom(m.getReturnType())) {
-                    getter = m;
-                    break;
-                }
-            }
-            if (getter == null) {
-                for (Method m : server.getClass().getMethods()) {
-                    if (m.getParameterCount() == 0 && resourceManagerClass.isAssignableFrom(m.getReturnType())) {
-                        getter = m;
-                        break;
-                    }
-                }
-            }
-            if (getter == null) {
-                return null;
-            }
-            getter.setAccessible(true);
-            return getter.invoke(server);
-        } catch (Throwable e) {
-            return null;
-        }
+        return NativeAdapters.require(NativeStructureReader.class).templates();
     }
 
     private static TreeSet<String> normalizeKeys(Iterable<String> keys) {
@@ -619,48 +539,6 @@ public final class BulkStructureImporter {
 
     private static String bundleKey(String name) {
         return "iris:" + name;
-    }
-
-    private static String identifierNamespace(Object location) {
-        try {
-            Method m = location.getClass().getMethod("getNamespace");
-            m.setAccessible(true);
-            Object value = m.invoke(location);
-            return value == null ? null : value.toString();
-        } catch (Throwable e) {
-            return null;
-        }
-    }
-
-    private static String identifierPath(Object location) {
-        try {
-            Method m = location.getClass().getMethod("getPath");
-            m.setAccessible(true);
-            Object value = m.invoke(location);
-            return value == null ? null : value.toString();
-        } catch (Throwable e) {
-            return null;
-        }
-    }
-
-    private static Object invoke(Object target, String method) throws Exception {
-        Class<?> c = target.getClass();
-        while (c != null) {
-            for (Method m : c.getDeclaredMethods()) {
-                if (m.getName().equals(method) && m.getParameterCount() == 0) {
-                    m.setAccessible(true);
-                    return m.invoke(target);
-                }
-            }
-            c = c.getSuperclass();
-        }
-        for (Method m : target.getClass().getMethods()) {
-            if (m.getName().equals(method) && m.getParameterCount() == 0) {
-                m.setAccessible(true);
-                return m.invoke(target);
-            }
-        }
-        throw new NoSuchMethodException(method + " on " + target.getClass().getName());
     }
 
     record KeySelection(List<String> present, List<String> missing) {

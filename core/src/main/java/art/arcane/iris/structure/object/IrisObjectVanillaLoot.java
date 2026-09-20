@@ -3,7 +3,7 @@ package art.arcane.iris.structure.object;
 import art.arcane.iris.generation.block.IrisBlockData;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
@@ -15,7 +15,7 @@ import art.arcane.volmlib.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import lombok.experimental.Accessors;
 
 @Snippet("object-vanilla-loot")
@@ -25,7 +25,7 @@ import lombok.experimental.Accessors;
 @Description("Represents vanilla loot within this object")
 @Data
 public class IrisObjectVanillaLoot implements IObjectLoot {
-    private final transient AtomicCache<KList<PlatformBlockState>> filterCache = new AtomicCache<>();
+    private final transient AtomicCache<KList<NativeBlockState>> filterCache = new AtomicCache<>();
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Description("The list of blocks this loot table should apply to")
     private KList<IrisBlockData> filter = new KList<>();
@@ -39,13 +39,13 @@ public class IrisObjectVanillaLoot implements IObjectLoot {
     @MinNumber(1)
     private int weight = 1;
 
-    public KList<PlatformBlockState> getFilter(IrisData rdata) {
+    public KList<NativeBlockState> getFilter(IrisData rdata) {
         return filterCache.aquire(() ->
         {
-            KList<PlatformBlockState> b = new KList<>();
+            KList<NativeBlockState> b = new KList<>();
 
             for (IrisBlockData i : filter) {
-                PlatformBlockState bx = i.getBlockData(rdata);
+                NativeBlockState bx = i.getBlockData(rdata);
 
                 if (bx != null) {
                     b.add(bx);

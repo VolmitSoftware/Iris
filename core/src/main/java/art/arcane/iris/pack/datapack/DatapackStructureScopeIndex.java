@@ -1,5 +1,7 @@
 package art.arcane.iris.pack.datapack;
 
+import art.arcane.volmlib.nativelib.terrain.StructureScope;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -7,7 +9,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-public final class DatapackStructureScopeIndex {
+public final class DatapackStructureScopeIndex implements StructureScope {
     private final Map<String, Set<String>> sourcesByStructure;
     private final Map<String, Set<String>> sourcesByStructureSet;
 

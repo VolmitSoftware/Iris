@@ -18,7 +18,7 @@
 
 package art.arcane.iris.generation.terrain;
 
-import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
+import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.volmlib.util.json.JSONObject;
 
 import java.util.Objects;

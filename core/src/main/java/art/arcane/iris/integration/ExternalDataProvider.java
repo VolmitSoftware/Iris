@@ -1,9 +1,9 @@
 package art.arcane.iris.integration;
 
 import art.arcane.iris.integration.data.DataType;
-import art.arcane.iris.platform.bukkit.nms.container.BiomeColor;
-import art.arcane.iris.platform.bukkit.nms.container.BlockProperty;
-import art.arcane.iris.platform.bukkit.nms.container.Pair;
+import art.arcane.volmlib.nativelib.terrain.BiomeColor;
+import art.arcane.volmlib.nativelib.terrain.BlockProperty;
+import art.arcane.volmlib.util.collection.Pair;
 import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.util.collection.KMap;

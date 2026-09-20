@@ -24,12 +24,12 @@ import art.arcane.iris.pack.BrokenPackException;
 import art.arcane.iris.pack.PackValidationRegistry;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
 import art.arcane.iris.modded.MainWorldService;
 import art.arcane.iris.modded.ModdedDimensionManager;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedModConfig;
 import art.arcane.iris.modded.ModdedPrimaryWorldRouter;
-import art.arcane.iris.modded.ModdedServerLevels;
 import art.arcane.iris.modded.ModdedStartup;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -37,12 +37,11 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.context.ParsedCommandNode;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.commands.arguments.IdentifierArgument;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandArguments;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -56,25 +55,25 @@ import art.arcane.iris.modded.localization.ModdedCommandMessages;
 import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 public final class ModdedWorldCommands {
-    private static final Predicate<CommandSourceStack> GATE = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
+    private static final Predicate<NativeCommandSource> GATE = NativeCommandRegistration.GAMEMASTERS;
     private static final String DEFAULT_NAMESPACE = "irisworldgen";
     private static final long DEFAULT_SEED = 1337L;
-    private static final SuggestionProvider<CommandSourceStack> LOADED_DIMENSIONS = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) -> SharedSuggestionProvider.suggest(loadedIrisDimensions(context.getSource().getServer()), builder);
+    private static final SuggestionProvider<NativeCommandSource> LOADED_DIMENSIONS = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> NativeCommandRegistration.suggest(loadedIrisDimensions(context.getSource().server()), builder);
 
     private ModdedWorldCommands() {
     }
 
-    public static LiteralArgumentBuilder<CommandSourceStack> tree(String name) {
-        LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal(name).requires(GATE);
+    public static LiteralArgumentBuilder<NativeCommandSource> tree(String name) {
+        LiteralArgumentBuilder<NativeCommandSource> root = NativeCommandRegistration.literal(name).requires(GATE);
 
-        root.executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> ModdedCommandHelp.send(context.getSource(), name)));
+        root.executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> ModdedCommandHelp.send(context.getSource(), name)));
 
-        root.then(Commands.literal("status")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> status(context.getSource()))));
-        root.then(Commands.literal("list")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> list(context.getSource()))));
-        root.then(Commands.literal("ls")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> list(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("status")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> status(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("list")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> list(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("ls")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> list(context.getSource()))));
 
         root.then(enableTree("enable"));
         root.then(enableTree("create"));
@@ -90,34 +89,34 @@ public final class ModdedWorldCommands {
         return root;
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> enableTree(String name) {
-        return Commands.literal(name)
-                .then(Commands.argument("dimension", IdentifierArgument.id())
-                        .then(Commands.argument("pack", StringArgumentType.string()).suggests(IrisModdedCommands.PACK_NAMES)
-                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> enable(context.getSource(),
+    private static LiteralArgumentBuilder<NativeCommandSource> enableTree(String name) {
+        return NativeCommandRegistration.literal(name)
+                .then(NativeCommandRegistration.argument("dimension", NativeCommandArguments.identifier())
+                        .then(NativeCommandRegistration.argument("pack", StringArgumentType.string()).suggests(IrisModdedCommands.PACK_NAMES)
+                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> enable(context.getSource(),
                                         dimensionArgument(context),
                                         StringArgumentType.getString(context, "pack"),
                                         null)))
-                                .then(Commands.argument("seed", StringArgumentType.word())
-                                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> enable(context.getSource(),
+                                .then(NativeCommandRegistration.argument("seed", StringArgumentType.word())
+                                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> enable(context.getSource(),
                                                 dimensionArgument(context),
                                                 StringArgumentType.getString(context, "pack"),
                                                 StringArgumentType.getString(context, "seed")))))));
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> disableTree() {
-        return Commands.literal("disable")
-                .then(Commands.argument("dimension", IdentifierArgument.id()).suggests(LOADED_DIMENSIONS)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> disable(context.getSource(), dimensionArgument(context), false))));
+    private static LiteralArgumentBuilder<NativeCommandSource> disableTree() {
+        return NativeCommandRegistration.literal("disable")
+                .then(NativeCommandRegistration.argument("dimension", NativeCommandArguments.identifier()).suggests(LOADED_DIMENSIONS)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> disable(context.getSource(), dimensionArgument(context), false))));
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> updateTree() {
-        return Commands.literal("update")
-                .then(Commands.argument("dimension", IdentifierArgument.id()).suggests(LOADED_DIMENSIONS)
-                        .then(Commands.argument("pack", StringArgumentType.string())
+    private static LiteralArgumentBuilder<NativeCommandSource> updateTree() {
+        return NativeCommandRegistration.literal("update")
+                .then(NativeCommandRegistration.argument("dimension", NativeCommandArguments.identifier()).suggests(LOADED_DIMENSIONS)
+                        .then(NativeCommandRegistration.argument("pack", StringArgumentType.string())
                                 .suggests(IrisModdedCommands.PACK_NAMES)
                                 .executes(ModdedCommandTree.localized(
-                                        (CommandContext<CommandSourceStack> context) -> update(
+                                        (CommandContext<NativeCommandSource> context) -> update(
                                                 context.getSource(),
                                                 dimensionArgument(context),
                                                 StringArgumentType.getString(context, "pack")
@@ -125,44 +124,44 @@ public final class ModdedWorldCommands {
                                 ))));
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> deleteTree(String name) {
-        return Commands.literal(name)
-                .then(Commands.argument("dimension", IdentifierArgument.id()).suggests(LOADED_DIMENSIONS)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> disable(context.getSource(), dimensionArgument(context), true))));
+    private static LiteralArgumentBuilder<NativeCommandSource> deleteTree(String name) {
+        return NativeCommandRegistration.literal(name)
+                .then(NativeCommandRegistration.argument("dimension", NativeCommandArguments.identifier()).suggests(LOADED_DIMENSIONS)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> disable(context.getSource(), dimensionArgument(context), true))));
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> replaceOverworldTree() {
-        return Commands.literal("replace-overworld")
-                .then(Commands.argument("pack", StringArgumentType.string()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> replaceOverworld(context.getSource(),
+    private static LiteralArgumentBuilder<NativeCommandSource> replaceOverworldTree() {
+        return NativeCommandRegistration.literal("replace-overworld")
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.string()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> replaceOverworld(context.getSource(),
                                 StringArgumentType.getString(context, "pack"),
                                 null)))
-                        .then(Commands.argument("seed", StringArgumentType.word())
-                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> replaceOverworld(context.getSource(),
+                        .then(NativeCommandRegistration.argument("seed", StringArgumentType.word())
+                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> replaceOverworld(context.getSource(),
                                         StringArgumentType.getString(context, "pack"),
                                         StringArgumentType.getString(context, "seed"))))));
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> mainWorldTree() {
-        return Commands.literal("mainworld")
-                .then(Commands.literal("off")
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> clearMainWorld(context.getSource()))))
-                .then(Commands.argument("pack", StringArgumentType.string()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> mainWorld(context.getSource(),
+    private static LiteralArgumentBuilder<NativeCommandSource> mainWorldTree() {
+        return NativeCommandRegistration.literal("mainworld")
+                .then(NativeCommandRegistration.literal("off")
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> clearMainWorld(context.getSource()))))
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.string()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> mainWorld(context.getSource(),
                                 StringArgumentType.getString(context, "pack"),
                                 null)))
-                        .then(Commands.argument("seed", StringArgumentType.word())
-                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> mainWorld(context.getSource(),
+                        .then(NativeCommandRegistration.argument("seed", StringArgumentType.word())
+                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> mainWorld(context.getSource(),
                                         StringArgumentType.getString(context, "pack"),
                                         StringArgumentType.getString(context, "seed"))))));
     }
 
-    public static int createWorld(CommandSourceStack source, String name, String pack, long seed) {
+    public static int createWorld(NativeCommandSource source, String name, String pack, long seed) {
         String[] packRef = parsePackRef(pack);
         return enable(source, name, packRef[0], packRef[1], seed);
     }
 
-    private static int enable(CommandSourceStack source, String targetDimension, String packRaw, String seedRaw) {
+    private static int enable(NativeCommandSource source, String targetDimension, String packRaw, String seedRaw) {
         Long seed = parseSeed(source, seedRaw);
         if (seed == null) {
             return 0;
@@ -171,8 +170,8 @@ public final class ModdedWorldCommands {
         return enable(source, targetDimension, packRef[0], packRef[1], seed);
     }
 
-    private static int enable(CommandSourceStack source, String targetDimension, String pack, String packDimension, long seed) {
-        MinecraftServer server = source.getServer();
+    private static int enable(NativeCommandSource source, String targetDimension, String pack, String packDimension, long seed) {
+        NativeModdedServer server = source.server();
         String dimensionId;
         try {
             dimensionId = normalizeDimensionId(targetDimension);
@@ -193,7 +192,7 @@ public final class ModdedWorldCommands {
         return 0;
     }
 
-    private static int enableInstalled(CommandSourceStack source, MinecraftServer server, String dimensionId, String pack, String packDimension, long seed) {
+    private static int enableInstalled(NativeCommandSource source, NativeModdedServer server, String dimensionId, String pack, String packDimension, long seed) {
         if (blockIfPackBroken(source, dimensionId, pack)) {
             return 0;
         }
@@ -212,7 +211,7 @@ public final class ModdedWorldCommands {
         return 1;
     }
 
-    private static int update(CommandSourceStack source, String targetDimension, String packRaw) {
+    private static int update(NativeCommandSource source, String targetDimension, String packRaw) {
         String dimensionId;
         try {
             dimensionId = normalizeDimensionId(targetDimension);
@@ -230,7 +229,7 @@ public final class ModdedWorldCommands {
         }
         try {
             ModdedDimensionManager.UpdateResult result = ModdedDimensionManager.stagePersistentUpdate(
-                    source.getServer(),
+                    source.server(),
                     dimensionId,
                     pack,
                     packDimension
@@ -253,8 +252,8 @@ public final class ModdedWorldCommands {
         }
     }
 
-    private static int replaceOverworld(CommandSourceStack source, String packRaw, String seedRaw) {
-        MinecraftServer server = source.getServer();
+    private static int replaceOverworld(NativeCommandSource source, String packRaw, String seedRaw) {
+        NativeModdedServer server = source.server();
         Long seed = parseSeed(source, seedRaw);
         if (seed == null) {
             return 0;
@@ -287,15 +286,15 @@ public final class ModdedWorldCommands {
         return 1;
     }
 
-    private static int clearMainWorld(CommandSourceStack source) {
+    private static int clearMainWorld(NativeCommandSource source) {
         ModdedModConfig.setMainWorld("", 0L);
         MainWorldService.clearOverride();
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_IRIS_MAIN_WORLD_OVERRIDE_CLEARED_OVERWORLD_KEEPS_ITS_CURRENT_GENERATOR));
         return 1;
     }
 
-    private static int mainWorld(CommandSourceStack source, String packRaw, String seedRaw) {
-        MinecraftServer server = source.getServer();
+    private static int mainWorld(NativeCommandSource source, String packRaw, String seedRaw) {
+        NativeModdedServer server = source.server();
         long seed;
         if (seedRaw == null || seedRaw.isBlank()) {
             seed = 0L;
@@ -326,7 +325,7 @@ public final class ModdedWorldCommands {
         return 0;
     }
 
-    private static int applyMainWorld(CommandSourceStack source, String pack, String packDimension, String packRef, long seed) {
+    private static int applyMainWorld(NativeCommandSource source, String pack, String packDimension, String packRef, long seed) {
         if (blockIfPackBroken(source, "the main world", pack)) {
             return 0;
         }
@@ -357,14 +356,14 @@ public final class ModdedWorldCommands {
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_PLAYER_DATA_INVENTORIES_ADVANCEMENTS_STATS_IS_KEPT_EXISTING_TERRAIN_THOSE));
         if (ModdedModConfig.get().mainWorldAutoRestart()) {
             IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_MAINWORLDAUTORESTART_IS_ENABLED_STOPPING_SERVER_NOW_SO_YOUR_RESTART_WRAPPER));
-            source.getServer().halt(false);
+            source.server().halt(false);
         } else {
             IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_RESTART_SERVER_NOW_GENERATE_IT_SET_MAINWORLDAUTORESTART_TRUE_MODDED_JSON));
         }
         return 1;
     }
 
-    private static boolean blockIfPackBroken(CommandSourceStack source, String dimensionId, String pack) {
+    private static boolean blockIfPackBroken(NativeCommandSource source, String dimensionId, String pack) {
         try {
             ModdedStartup.requirePackForWorldCreation(pack);
             return false;
@@ -378,7 +377,7 @@ public final class ModdedWorldCommands {
         }
     }
 
-    private static boolean loadPackDimension(CommandSourceStack source, String pack, String packDimension) {
+    private static boolean loadPackDimension(NativeCommandSource source, String pack, String packDimension) {
         File packFolder = new File(ModdedPackCommands.packsRoot(), pack);
         if (!packFolder.isDirectory()) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_PACK_WAS_NOT_FOUND_UNDER, MessageArgument.untrusted("pack", pack), MessageArgument.untrusted("value", ModdedPackCommands.packsRoot().getAbsolutePath())));
@@ -402,7 +401,7 @@ public final class ModdedWorldCommands {
         return new String[]{value, value};
     }
 
-    private static boolean validPackRef(CommandSourceStack source, String pack, String packDimension) {
+    private static boolean validPackRef(NativeCommandSource source, String pack, String packDimension) {
         if (pack.matches("[A-Za-z0-9_.-]+") && !pack.contains("..")
                 && packDimension.matches("[A-Za-z0-9_/.-]+") && !packDimension.contains("..")) {
             return true;
@@ -411,7 +410,7 @@ public final class ModdedWorldCommands {
         return false;
     }
 
-    private static Long parseSeed(CommandSourceStack source, String seedRaw) {
+    private static Long parseSeed(NativeCommandSource source, String seedRaw) {
         if (seedRaw == null || seedRaw.isBlank()) {
             return DEFAULT_SEED;
         }
@@ -427,8 +426,8 @@ public final class ModdedWorldCommands {
         }
     }
 
-    private static int disable(CommandSourceStack source, String targetDimension, boolean wipeStorage) {
-        MinecraftServer server = source.getServer();
+    private static int disable(NativeCommandSource source, String targetDimension, boolean wipeStorage) {
+        NativeModdedServer server = source.server();
         String dimensionId;
         try {
             dimensionId = normalizeDimensionId(targetDimension);
@@ -465,13 +464,14 @@ public final class ModdedWorldCommands {
         return 1;
     }
 
-    private static int status(CommandSourceStack source) {
-        MinecraftServer server = source.getServer();
+    private static int status(NativeCommandSource source) {
+        NativeModdedServer server = source.server();
         int loaded = 0;
-        for (ServerLevel level : ModdedServerLevels.levels(server)) {
-            if (level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator generator) {
+        for (NativeWorld level : server.worlds()) {
+            IrisModdedChunkGenerator generator = NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class);
+            if (generator != null) {
                 loaded++;
-                IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_LOADED_IRIS_LEVEL_PACK_DIMENSION, MessageArgument.untrusted("value", level.dimension().identifier()), MessageArgument.untrusted("value2", generator.activePack()), MessageArgument.untrusted("value3", generator.activeDimensionKey())));
+                IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_LOADED_IRIS_LEVEL_PACK_DIMENSION, MessageArgument.untrusted("value", level.name()), MessageArgument.untrusted("value2", generator.activePack()), MessageArgument.untrusted("value3", generator.activeDimensionKey())));
             }
         }
         String primary = ModdedModConfig.get().primaryWorld();
@@ -484,8 +484,8 @@ public final class ModdedWorldCommands {
         return loaded > 0 ? 1 : 0;
     }
 
-    private static int list(CommandSourceStack source) {
-        List<String> dimensions = loadedIrisDimensions(source.getServer());
+    private static int list(NativeCommandSource source) {
+        List<String> dimensions = loadedIrisDimensions(source.server());
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_LOADED_IRIS_DIMENSIONS, MessageArgument.untrusted("value", dimensions.size())));
         for (String dimension : dimensions) {
             IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_MESSAGE_2, MessageArgument.untrusted("dimension", dimension)));
@@ -496,23 +496,23 @@ public final class ModdedWorldCommands {
         return 1;
     }
 
-    private static List<String> loadedIrisDimensions(MinecraftServer server) {
+    private static List<String> loadedIrisDimensions(NativeModdedServer server) {
         List<String> dimensions = new ArrayList<>();
-        for (ServerLevel level : ModdedServerLevels.levels(server)) {
-            if (level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator) {
-                dimensions.add(level.dimension().identifier().toString());
+        for (NativeWorld level : server.worlds()) {
+            if (NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class) != null) {
+                dimensions.add(level.name());
             }
         }
         return dimensions;
     }
 
-    private static String dimensionArgument(CommandContext<CommandSourceStack> context) {
-        for (ParsedCommandNode<CommandSourceStack> node : context.getNodes()) {
+    private static String dimensionArgument(CommandContext<NativeCommandSource> context) {
+        for (ParsedCommandNode<NativeCommandSource> node : context.getNodes()) {
             if ("dimension".equals(node.getNode().getName())) {
                 return node.getRange().get(context.getInput());
             }
         }
-        return IdentifierArgument.getId(context, "dimension").toString();
+        return NativeCommandArguments.getIdentifier(context, "dimension");
     }
 
     private static String normalizeDimensionId(String value) {

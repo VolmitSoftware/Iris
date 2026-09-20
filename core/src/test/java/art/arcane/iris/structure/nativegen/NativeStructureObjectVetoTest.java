@@ -1,5 +1,7 @@
 package art.arcane.iris.structure.nativegen;
 
+import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
+
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.structure.object.IObjectPlacer;
@@ -11,7 +13,7 @@ import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.stream.ProceduralStream;
@@ -39,7 +41,7 @@ public class NativeStructureObjectVetoTest {
 
     private IrisData data;
     private Engine engine;
-    private PlatformBlockState log;
+    private NativeBlockState log;
 
     @Before
     public void bindPlatform() {
@@ -251,8 +253,8 @@ public class NativeStructureObjectVetoTest {
         return new NativeStructureVolume("minecraft:village_plains", minX, minY, minZ, maxX, maxY, maxZ);
     }
 
-    private static PlatformBlockState state(String key, boolean solid) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private static NativeBlockState state(String key, boolean solid) {
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.isSolid()).thenReturn(solid);
         when(state.key()).thenReturn(key);
         when(state.materialKey()).thenReturn(key);
@@ -261,7 +263,7 @@ public class NativeStructureObjectVetoTest {
 
     private static final class RecordingPlacer implements IObjectPlacer {
         private final List<int[]> written = new ArrayList<>();
-        private final PlatformBlockState air = state("minecraft:air", false);
+        private final NativeBlockState air = state("minecraft:air", false);
         private final Engine engine;
         private int tiles;
         private int markers;
@@ -293,12 +295,12 @@ public class NativeStructureObjectVetoTest {
         }
 
         @Override
-        public void set(int x, int y, int z, PlatformBlockState state) {
+        public void set(int x, int y, int z, NativeBlockState state) {
             written.add(new int[]{x, y, z});
         }
 
         @Override
-        public PlatformBlockState get(int x, int y, int z) {
+        public NativeBlockState get(int x, int y, int z) {
             return air;
         }
 

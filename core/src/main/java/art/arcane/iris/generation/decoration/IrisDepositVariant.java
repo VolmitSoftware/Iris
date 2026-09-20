@@ -19,7 +19,7 @@
 package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
@@ -29,7 +29,7 @@ import art.arcane.volmlib.util.collection.KMap;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import lombok.experimental.Accessors;
 
@@ -40,7 +40,7 @@ import lombok.experimental.Accessors;
 @Description("Remaps ore block ids to alternate block ids within a vertical band. Ores declared at dimension, region, and biome scope can be rewritten at placement time (for example, iron_ore -> deepslate_iron_ore inside a deep carving band, or yourmod:iron -> yourmod:moon_iron inside a lunar biome).")
 @Data
 public class IrisDepositVariant {
-    private final transient AtomicCache<KMap<String, PlatformBlockState>> resolved = new AtomicCache<>();
+    private final transient AtomicCache<KMap<String, NativeBlockState>> resolved = new AtomicCache<>();
 
     @Required
     @MinNumber(-2048)
@@ -58,21 +58,21 @@ public class IrisDepositVariant {
     @Description("Source block id (for example `minecraft:iron_ore`) -> replacement block id (for example `minecraft:deepslate_iron_ore`). Any block id the data loader resolves is accepted, including external/mod blocks. Source match is by material only, so block properties on the source key are ignored.")
     private KMap<String, String> remap = new KMap<>();
 
-    public PlatformBlockState remapOrNull(PlatformBlockState ore, IrisData rdata) {
+    public NativeBlockState remapOrNull(NativeBlockState ore, IrisData rdata) {
         if (ore == null || remap == null || remap.isEmpty()) {
             return null;
         }
 
-        KMap<String, PlatformBlockState> map = resolved.aquire(() -> buildResolved(rdata));
+        KMap<String, NativeBlockState> map = resolved.aquire(() -> buildResolved(rdata));
         return map.get(IrisProceduralBlocks.materialKey(ore));
     }
 
-    private KMap<String, PlatformBlockState> buildResolved(IrisData rdata) {
-        KMap<String, PlatformBlockState> out = new KMap<>();
+    private KMap<String, NativeBlockState> buildResolved(IrisData rdata) {
+        KMap<String, NativeBlockState> out = new KMap<>();
 
         for (java.util.Map.Entry<String, String> entry : remap.entrySet()) {
-            PlatformBlockState source = B.getStateOrNull(entry.getKey(), false);
-            PlatformBlockState target = B.getStateOrNull(entry.getValue(), true);
+            NativeBlockState source = B.getStateOrNull(entry.getKey(), false);
+            NativeBlockState target = B.getStateOrNull(entry.getValue(), true);
 
             if (source == null || target == null) {
                 continue;

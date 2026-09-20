@@ -6,8 +6,8 @@ import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.RiverFootprint;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.hunk.Hunk;
 import org.junit.AfterClass;
@@ -211,8 +211,8 @@ public final class HydrologyBlockProbeTest {
     private static Map<Long, RealPackProbeSupport.GeneratedChunk> chunks(int minimumX, int maximumX) {
         Map<Long, RealPackProbeSupport.GeneratedChunk> chunks = new HashMap<>();
         for (int x = minimumX; x <= maximumX; x++) {
-            Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, 16, 16);
-            Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(16, 16, 16);
+            Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(16, 16, 16);
+            Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, 16, 16);
             chunks.put(RiverFootprint.pack(x, 0), new RealPackProbeSupport.GeneratedChunk(x, 0, 16, blocks, biomes));
         }
         return chunks;
@@ -223,7 +223,7 @@ public final class HydrologyBlockProbeTest {
                 .blocks().set(Math.floorMod(x, 16), y, Math.floorMod(z, 16), state(key));
     }
 
-    private static PlatformBlockState state(String key) {
+    private static NativeBlockState state(String key) {
         return IrisPlatforms.get().registries().block("minecraft:" + key);
     }
 

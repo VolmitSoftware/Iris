@@ -21,7 +21,7 @@ package art.arcane.iris.world.loot;
 import art.arcane.iris.generation.block.IrisBlockData;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.structure.placement.LootResolver;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
@@ -32,7 +32,7 @@ import art.arcane.volmlib.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
@@ -64,7 +64,7 @@ public class IrisBlockDrops {
             KList<BlockData> b = new KList<>();
 
             for (IrisBlockData i : getBlocks()) {
-                PlatformBlockState state = i.getBlockData(rdata);
+                NativeBlockState state = i.getBlockData(rdata);
 
                 if (state != null) {
                     b.add((BlockData) state.nativeHandle());

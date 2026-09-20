@@ -3,7 +3,7 @@ package art.arcane.iris.structure.object;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.terrain.IrisDimension;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.collection.KMap;
@@ -85,7 +85,7 @@ public class IrisObjectTransientBlockTest {
             IrisObject object = placement.scaleObject(new RNG(1337), source,
                     new IrisDimension().setAllObjectScaleFactor(factor));
             assertEquals(factor == 2D ? 8 : 1, object.getStates().size());
-            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : object.getBlocks()) {
+            for (Map.Entry<IrisBlockVector, NativeBlockState> entry : object.getBlocks()) {
                 assertFalse(entry.getValue().materialKey().equals("minecraft:moving_piston"));
                 if (entry.getValue().materialKey().equals("minecraft:chest")) {
                     assertNotNull(object.getStates().get(entry.getKey()));
@@ -151,9 +151,9 @@ public class IrisObjectTransientBlockTest {
         output.writeShort(0);
     }
 
-    private static PlatformBlockState state(String key) {
+    private static NativeBlockState state(String key) {
         String material = key.substring(0, key.indexOf('['));
-        PlatformBlockState state = mock(PlatformBlockState.class);
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.key()).thenReturn(key);
         when(state.materialKey()).thenReturn(material);
         return state;

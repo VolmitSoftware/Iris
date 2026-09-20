@@ -32,7 +32,7 @@ import art.arcane.iris.structure.object.IrisObjectScale;
 import art.arcane.volmlib.util.math.Rarity;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;

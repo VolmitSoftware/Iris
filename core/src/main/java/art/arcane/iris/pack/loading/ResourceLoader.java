@@ -26,7 +26,7 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.schema.SchemaBuilder;
 import art.arcane.iris.pack.PackValidator;
 import art.arcane.iris.generation.runtime.PreservationRegistry;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.MeteredCache;
 import art.arcane.iris.generation.terrain.IrisDimension;

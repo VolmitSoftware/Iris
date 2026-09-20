@@ -1,5 +1,7 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedHeightmaps;
+
 import net.minecraft.util.Mth;
 import net.minecraft.util.SimpleBitStorage;
 import org.junit.Test;

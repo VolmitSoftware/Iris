@@ -48,7 +48,7 @@ import art.arcane.iris.world.runtime.TransientWorldCleanupSupport;
 import art.arcane.iris.world.runtime.WorldDeletionQueue;
 import art.arcane.iris.studio.jigsaw.JigsawStudioActivation;
 import art.arcane.iris.world.IrisToolbelt;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.world.history.GenerationActivation;
 import art.arcane.iris.world.history.GenerationEpoch;
 import art.arcane.iris.world.history.GenerationEpochContractFactory;

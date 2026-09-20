@@ -1,15 +1,18 @@
 package art.arcane.iris.platform.bootstrap;
 
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
+import art.arcane.volmlib.nativelib.NativeAdapters;
 import art.arcane.iris.platform.bukkit.plugin.VolmitPlugin;
 import io.github.slimjar.app.builder.ApplicationBuilder;
-import io.github.slimjar.app.builder.SpigotApplicationBuilder;
 import io.github.slimjar.injector.loader.factory.InjectableFactory;
 import io.github.slimjar.logging.ProcessLogger;
+import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
+import java.net.URLClassLoader;
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -18,8 +21,9 @@ public class SlimJar {
 
     private static final ReentrantLock lock = new ReentrantLock();
     private static final AtomicBoolean loaded = new AtomicBoolean();
+    private static URLClassLoader nativeProviders;
 
-    public static void loadBootstrap(Path downloadPath, BootstrapLogger logger) {
+    public static void loadBootstrap(Path downloadPath, String minecraftVersion, BootstrapLogger logger) {
         if (loaded.get()) {
             return;
         }
@@ -28,7 +32,8 @@ public class SlimJar {
             if (loaded.get()) {
                 return;
             }
-            ApplicationBuilder.appending("Iris")
+            NativeRuntimeLibraries libraries = NativeRuntimeLibraries.load(minecraftVersion);
+            libraries.configure(ApplicationBuilder.appending("Iris"), downloadPath)
                     .injectableFactory(InjectableFactory.selecting(
                             InjectableFactory.ERROR,
                             InjectableFactory.INJECTABLE,
@@ -52,6 +57,7 @@ public class SlimJar {
                         }
                     })
                     .build();
+            nativeProviders = libraries.openProviderLoader(downloadPath);
             loaded.set(true);
         } finally {
             lock.unlock();
@@ -71,38 +77,44 @@ public class SlimJar {
             VolmitPlugin plugin = BukkitPlatform.volmitPlugin();
             Path downloadPath = plugin.getDataFolder("cache", "libraries").toPath();
             debug(plugin, "Loading libraries...");
-            try {
-                new SpigotApplicationBuilder(plugin)
-                        .downloadDirectoryPath(downloadPath)
-                        .debug(DEBUG)
-                        .build();
-            } catch (Throwable e) {
-                // The Spigot builder is a probe: not every server exposes it, and the fallback is the
-                // supported path on the ones that do not.
-                debug(plugin, "Failed to inject the library loader, falling back to application builder");
-                ApplicationBuilder.appending(plugin.getName())
-                        .injectableFactory(InjectableFactory.selecting(InjectableFactory.ERROR, InjectableFactory.INJECTABLE, InjectableFactory.WRAPPED, InjectableFactory.UNSAFE))
-                        .downloadDirectoryPath(downloadPath)
-                        .logger(new ProcessLogger() {
-                            @Override
-                            public void info(@NotNull String message, @Nullable Object... args) {
-                                SlimJar.debug(plugin, message.formatted(args));
-                            }
+            NativeRuntimeLibraries libraries = NativeRuntimeLibraries.load(Bukkit.getBukkitVersion());
+            libraries.configure(ApplicationBuilder.appending(plugin.getName()), downloadPath)
+                    .injectableFactory(InjectableFactory.selecting(InjectableFactory.ERROR, InjectableFactory.INJECTABLE,
+                            InjectableFactory.WRAPPED, InjectableFactory.UNSAFE))
+                    .downloadDirectoryPath(downloadPath)
+                    .logger(new ProcessLogger() {
+                        @Override
+                        public void info(@NotNull String message, @Nullable Object... args) {
+                            SlimJar.debug(plugin, message.formatted(args));
+                        }
 
-                            @Override
-                            public void error(@NotNull String message, @Nullable Object... args) {
-                                plugin.getLogger().severe(message.formatted(args));
-                            }
+                        @Override
+                        public void error(@NotNull String message, @Nullable Object... args) {
+                            plugin.getLogger().severe(message.formatted(args));
+                        }
 
-                            @Override
-                            public void debug(@NotNull String message, @Nullable Object... args) {
-                                SlimJar.debug(plugin, message.formatted(args));
-                            }
-                        })
-                        .build();
-            }
+                        @Override
+                        public void debug(@NotNull String message, @Nullable Object... args) {
+                            SlimJar.debug(plugin, message.formatted(args));
+                        }
+                    })
+                    .build();
+            nativeProviders = libraries.openProviderLoader(downloadPath);
             loaded.set(true);
             debug(plugin, "Libraries loaded successfully!");
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public static void closeNativeProviders() throws IOException {
+        lock.lock();
+        try {
+            if (nativeProviders != null) {
+                NativeAdapters.releaseProviderLoader(nativeProviders);
+                nativeProviders.close();
+                nativeProviders = null;
+            }
         } finally {
             lock.unlock();
         }

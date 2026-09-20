@@ -1,6 +1,6 @@
 package art.arcane.iris.platform.bukkit;
 
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import com.github.benmanes.caffeine.cache.Cache;
 import org.bukkit.NamespacedKey;
 import org.junit.Before;
@@ -39,7 +39,7 @@ public class BukkitBiomeTest {
         AtomicInteger keyReads = new AtomicInteger();
         Object biome = biome("iris", "riverbank", keyReads);
 
-        PlatformBiome wrapped = wrap(biome);
+        NativeBiome wrapped = wrap(biome);
         assertEquals("iris:riverbank", wrapped.key());
         assertEquals("iris", wrapped.namespace());
         assertSame(biome, wrapped.nativeHandle());
@@ -53,8 +53,8 @@ public class BukkitBiomeTest {
         Object previous = biome("iris", "registry_replacement", new AtomicInteger());
         Object replacement = biome("iris", "registry_replacement", new AtomicInteger());
 
-        PlatformBiome oldHandle = wrap(previous);
-        PlatformBiome newHandle = wrap(replacement);
+        NativeBiome oldHandle = wrap(previous);
+        NativeBiome newHandle = wrap(replacement);
 
         assertNotSame(oldHandle, newHandle);
         assertEquals(oldHandle.key(), newHandle.key());
@@ -65,8 +65,8 @@ public class BukkitBiomeTest {
 
     @Test
     public void customAndVanillaNamespacesRemainDistinct() throws Exception {
-        PlatformBiome vanilla = wrap(biome("minecraft", "plains", new AtomicInteger()));
-        PlatformBiome custom = wrap(biome("iris", "plains", new AtomicInteger()));
+        NativeBiome vanilla = wrap(biome("minecraft", "plains", new AtomicInteger()));
+        NativeBiome custom = wrap(biome("iris", "plains", new AtomicInteger()));
 
         assertEquals("minecraft:plains", vanilla.key());
         assertEquals("minecraft", vanilla.namespace());
@@ -77,7 +77,7 @@ public class BukkitBiomeTest {
     @Test
     public void cacheEvictionPreservesBiomeKeysAndNativeHandles() throws Exception {
         Object retained = biome("iris", "retained", new AtomicInteger());
-        PlatformBiome original = wrap(retained);
+        NativeBiome original = wrap(retained);
         for (int index = 0; index < 8_192; index++) {
             wrap(biome("iris", "eviction_" + index, new AtomicInteger()));
         }
@@ -87,14 +87,14 @@ public class BukkitBiomeTest {
         cache.cleanUp();
 
         assertTrue(cache.estimatedSize() <= 4_096);
-        PlatformBiome restored = wrap(retained);
+        NativeBiome restored = wrap(retained);
         assertEquals(original.key(), restored.key());
         assertEquals(original.namespace(), restored.namespace());
         assertSame(retained, restored.nativeHandle());
     }
 
-    private PlatformBiome wrap(Object biome) throws Exception {
-        return (PlatformBiome) wrap.invoke(null, biome);
+    private NativeBiome wrap(Object biome) throws Exception {
+        return (NativeBiome) wrap.invoke(null, biome);
     }
 
     private Object biome(String namespace, String name, AtomicInteger keyReads) {

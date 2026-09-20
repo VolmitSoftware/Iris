@@ -18,27 +18,27 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
+
+import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.volmlib.util.json.JSONObject;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.dimension.DimensionType;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldInspection;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldInspection.Dimension;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
 final class WorldCheckDimensionContract {
 
     private WorldCheckDimensionContract() {
     }
 
-    static boolean checkDimensionType(ServerLevel level, IrisModdedChunkGenerator generator) {
+    static boolean checkDimensionType(NativeWorld level, IrisModdedChunkGenerator generator) {
         try {
             IrisDimension dimension = generator.commandEngine().getDimension();
-            DimensionContract expected = expectedDimensionContract(dimension);
-            DimensionContract actual = runtimeDimensionContract(level.dimensionType());
-            boolean pass = matchesDimensionContract(level.getMinY(), level.getHeight(), expected, actual);
+            Dimension expected = expectedDimensionContract(dimension);
+            Dimension actual = new NativeWorldInspection(level).dimension();
+            boolean pass = matchesDimensionContract(level.minHeight(), (level.maxHeight() - level.minHeight()), expected, actual);
             String detail = "expected=" + expected + ",actual=" + actual
-                    + ",levelMinY=" + level.getMinY() + ",levelHeight=" + level.getHeight();
+                    + ",levelMinY=" + level.minHeight() + ",levelHeight=" + (level.maxHeight() - level.minHeight());
             WorldCheckPredicates.qaEvent("dimension_type", dimension.getLoadKey(), pass, detail);
             if (!pass) {
                 ModdedIrisLog.error("[worldcheck] dimension type mismatch for {}: {}", dimension.getLoadKey(), detail);
@@ -54,9 +54,9 @@ final class WorldCheckDimensionContract {
         }
     }
 
-    static DimensionContract expectedDimensionContract(IrisDimension dimension) {
+    static Dimension expectedDimensionContract(IrisDimension dimension) {
         JSONObject json = new JSONObject(dimension.getDimensionType().toJson(DataVersion.V26_2.get()));
-        return new DimensionContract(
+        return new Dimension(
                 json.getInt("min_y"),
                 json.getInt("height"),
                 json.getInt("logical_height"),
@@ -68,33 +68,18 @@ final class WorldCheckDimensionContract {
                 json.getInt("monster_spawn_block_light_limit"));
     }
 
-    static DimensionContract runtimeDimensionContract(DimensionType dimensionType) {
-        return new DimensionContract(
-                dimensionType.minY(),
-                dimensionType.height(),
-                dimensionType.logicalHeight(),
-                dimensionType.coordinateScale(),
-                dimensionType.ambientLight(),
-                dimensionType.hasSkyLight(),
-                dimensionType.hasCeiling(),
-                dimensionType.hasEnderDragonFight(),
-                dimensionType.monsterSpawnBlockLightLimit());
-    }
-
     static boolean matchesDimensionContract(int levelMinY, int levelHeight,
-                                            DimensionContract expected, DimensionContract actual) {
+                                            Dimension expected, Dimension actual) {
         return levelMinY == expected.minY()
                 && levelHeight == expected.height()
                 && actual.equals(expected);
     }
 
-    static boolean checkEntityMixins(ServerLevel level) {
-        ItemEntity item = new ItemEntity(level, 0D, level.getMinY(), 0D, Items.COBBLESTONE.getDefaultInstance());
-        boolean vanillaSave = item.shouldBeSaved();
-        ModdedEntityPersistence.configure(item, false);
-        boolean suppressed = !item.shouldBeSaved();
-        ModdedEntityPersistence.configure(item, true);
-        boolean restored = item.shouldBeSaved();
+    static boolean checkEntityMixins(NativeWorld level) {
+        NativeWorldInspection.Persistence result = new NativeWorldInspection(level).persistence();
+        boolean vanillaSave = result.vanilla();
+        boolean suppressed = result.suppressed();
+        boolean restored = result.restored();
         boolean pass = vanillaSave && suppressed && restored;
         WorldCheckPredicates.qaEvent("entity_mixin", "persistence", pass,
                 "vanilla=" + vanillaSave + ",suppressed=" + suppressed + ",restored=" + restored);
@@ -104,8 +89,4 @@ final class WorldCheckDimensionContract {
         return pass;
     }
 
-    record DimensionContract(int minY, int height, int logicalHeight, double coordinateScale,
-                             float ambientLight, boolean hasSkyLight, boolean hasCeiling,
-                             boolean hasEnderDragonFight, int monsterSpawnBlockLightLimit) {
-    }
 }

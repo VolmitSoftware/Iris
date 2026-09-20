@@ -11,7 +11,7 @@ import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.world.task.J;
@@ -356,7 +356,7 @@ public class EngineBukkitOpsDeferredMaterializationTest {
         IrisPlatform previous = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformRegistries registries = mock(PlatformRegistries.class);
-        when(registries.block("AIR")).thenReturn(mock(PlatformBlockState.class));
+        when(registries.block("AIR")).thenReturn(mock(NativeBlockState.class));
         when(platform.registries()).thenReturn(registries);
         IrisPlatforms.unbind();
         IrisPlatforms.bind(platform);

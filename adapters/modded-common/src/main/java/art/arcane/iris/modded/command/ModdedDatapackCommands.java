@@ -20,22 +20,21 @@ package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
+import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.PackDirectoryResolver;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
-import art.arcane.iris.modded.ModdedServerLevels;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
 import art.arcane.volmlib.util.collection.KList;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.dimension.DimensionType;
-import net.minecraft.world.level.storage.LevelResource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldDimensions;
 
 import java.io.File;
 import java.io.IOException;
@@ -55,27 +54,27 @@ import art.arcane.iris.modded.localization.ModdedCommandMessages;
 import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 public final class ModdedDatapackCommands {
-    private static final Predicate<CommandSourceStack> GATE = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
+    private static final Predicate<NativeCommandSource> GATE = NativeCommandRegistration.GAMEMASTERS;
     private static final String WORLD_PACK_NAME = "iris";
 
     private ModdedDatapackCommands() {
     }
 
-    public static LiteralArgumentBuilder<CommandSourceStack> tree(String name) {
-        LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal(name).requires(GATE);
+    public static LiteralArgumentBuilder<NativeCommandSource> tree(String name) {
+        LiteralArgumentBuilder<NativeCommandSource> root = NativeCommandRegistration.literal(name).requires(GATE);
 
-        root.executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> ModdedCommandHelp.send(context.getSource(), name)));
+        root.executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> ModdedCommandHelp.send(context.getSource(), name)));
 
-        root.then(Commands.literal("status")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> status(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("status")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> status(context.getSource()))));
 
-        root.then(Commands.literal("install")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> install(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("install")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> install(context.getSource()))));
 
-        root.then(Commands.literal("list")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> list(context.getSource()))));
-        root.then(Commands.literal("ls")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> list(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("list")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> list(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("ls")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> list(context.getSource()))));
 
         root.then(message("ingest", "Managed Modrinth datapack ingest is Bukkit-only. On modded servers install the datapack folder or zip in world/datapacks, enable it, restart, then use /iris datapack list to confirm it is enabled. Registered structures generate natively in Iris dimensions."));
         root.then(message("pull", "Managed Modrinth datapack ingest is Bukkit-only. On modded servers install the datapack folder or zip in world/datapacks, enable it, restart, then use /iris datapack list to confirm it is enabled. Registered structures generate natively in Iris dimensions."));
@@ -86,43 +85,42 @@ public final class ModdedDatapackCommands {
         return root;
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> message(String name, String text) {
-        return Commands.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> {
+    private static LiteralArgumentBuilder<NativeCommandSource> message(String name, String text) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> {
                     IrisModdedCommands.fail(context.getSource(), text);
                     return 0;
                 }))
-                .then(Commands.argument("args", StringArgumentType.greedyString())
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> {
+                .then(NativeCommandRegistration.argument("args", StringArgumentType.greedyString())
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> {
                             IrisModdedCommands.fail(context.getSource(), text);
                             return 0;
                         })));
     }
 
-    private static File worldDatapacksFolder(MinecraftServer server) {
-        return server.getWorldPath(LevelResource.DATAPACK_DIR).toFile();
+    private static File worldDatapacksFolder(NativeModdedServer server) {
+        return server.datapacks().toFile();
     }
 
-    private static File overrideFile(MinecraftServer server, String dimensionKey) {
+    private static File overrideFile(NativeModdedServer server, String dimensionKey) {
         return new File(worldDatapacksFolder(server), WORLD_PACK_NAME + "/data/irisworldgen/dimension_type/" + IrisDimension.sanitizeDimensionTypeKeyValue(dimensionKey) + ".json");
     }
 
-    private static int status(CommandSourceStack source) {
-        MinecraftServer server = source.getServer();
+    private static int status(NativeCommandSource source) {
+        NativeModdedServer server = source.server();
         int irisLevels = 0;
         int mismatches = 0;
-        for (ServerLevel level : ModdedServerLevels.levels(server)) {
-            if (!(level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator irisGenerator)) {
+        for (NativeWorld level : server.worlds()) {
+            IrisModdedChunkGenerator irisGenerator = NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class);
+            if (irisGenerator == null) {
                 continue;
             }
             irisLevels++;
-            String dimensionId = level.dimension().identifier().toString();
-            String typeKey = level.dimensionTypeRegistration().unwrapKey()
-                    .map((net.minecraft.resources.ResourceKey<DimensionType> key) -> key.identifier().toString())
-                    .orElse("inline");
-            DimensionType active = level.dimensionType();
-            int activeMin = active.minY();
-            int activeMax = active.minY() + active.height();
+            String dimensionId = level.name();
+            NativeWorldDimensions.Settings active = NativeWorldDimensions.settings(level);
+            String typeKey = active.key();
+            int activeMin = active.minimumHeight();
+            int activeMax = active.maximumHeight();
 
             Engine engine = IrisModdedCommands.engineFor(level);
             if (engine == null || engine.getDimension() == null) {
@@ -151,16 +149,17 @@ public final class ModdedDatapackCommands {
         return 1;
     }
 
-    private static int install(CommandSourceStack source) {
-        MinecraftServer server = source.getServer();
+    private static int install(NativeCommandSource source) {
+        NativeModdedServer server = source.server();
         List<String> written = new ArrayList<>();
-        for (ServerLevel level : ModdedServerLevels.levels(server)) {
-            if (!(level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator irisGenerator)) {
+        for (NativeWorld level : server.worlds()) {
+            IrisModdedChunkGenerator irisGenerator = NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class);
+            if (irisGenerator == null) {
                 continue;
             }
             Engine engine = IrisModdedCommands.engineFor(level);
             if (engine == null || engine.getDimension() == null) {
-                IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_DATAPACK_COMMANDS_ENGINE_NOT_STARTED_CANNOT_DERIVE_ITS_DIMENSION_TYPE_YET, MessageArgument.untrusted("value", level.dimension().identifier())));
+                IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_DATAPACK_COMMANDS_ENGINE_NOT_STARTED_CANNOT_DERIVE_ITS_DIMENSION_TYPE_YET, MessageArgument.untrusted("value", level.name())));
                 continue;
             }
             IrisDimension dimension = engine.getDimension();
@@ -169,7 +168,7 @@ public final class ModdedDatapackCommands {
                 json = dimension.getDimensionType().toJson(DataVersion.V26_2.get());
             } catch (Throwable e) {
                 ModdedIrisLog.error("Iris dimension type generation failed for {}", dimension.getLoadKey(), e);
-                IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_DATAPACK_COMMANDS_DIMENSION_TYPE_GENERATION_FAILED, MessageArgument.untrusted("value", level.dimension().identifier()), MessageArgument.untrusted("value2", String.valueOf(e.getMessage()))));
+                IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_DATAPACK_COMMANDS_DIMENSION_TYPE_GENERATION_FAILED, MessageArgument.untrusted("value", level.name()), MessageArgument.untrusted("value2", String.valueOf(e.getMessage()))));
                 continue;
             }
             File output = overrideFile(server, irisGenerator.dimensionKey());
@@ -214,8 +213,8 @@ public final class ModdedDatapackCommands {
         return 1;
     }
 
-    private static int list(CommandSourceStack source) {
-        MinecraftServer server = source.getServer();
+    private static int list(NativeCommandSource source) {
+        NativeModdedServer server = source.server();
         LinkedHashSet<String> configured = new LinkedHashSet<>();
         File packsRoot = ModdedPackCommands.packsRoot();
         for (File pack : PackDirectoryResolver.listVisiblePackDirectories(packsRoot)) {
@@ -251,8 +250,8 @@ public final class ModdedDatapackCommands {
         File[] installed = datapacks.isDirectory()
                 ? datapacks.listFiles(file -> file.isDirectory() || file.isFile() && file.getName().toLowerCase(Locale.ROOT).endsWith(".zip"))
                 : null;
-        Set<String> availableIds = new HashSet<>(server.getPackRepository().getAvailableIds());
-        Set<String> selectedIds = new HashSet<>(server.getPackRepository().getSelectedIds());
+        Set<String> availableIds = new HashSet<>(server.availableDatapacks());
+        Set<String> selectedIds = new HashSet<>(server.selectedDatapacks());
         KList<String> names = new KList<>();
         if (installed != null) {
             for (File installedPack : installed) {

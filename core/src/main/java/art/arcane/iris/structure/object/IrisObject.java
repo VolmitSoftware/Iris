@@ -28,13 +28,13 @@ import art.arcane.iris.pack.validation.CompatStatus;
 import art.arcane.iris.pack.validation.ContentGate;
 import art.arcane.iris.pack.loading.IrisRegistrant;
 import art.arcane.iris.integration.ExternalDataSVC;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.block.IrisCustomData;
 import art.arcane.iris.generation.block.VectorMap;
@@ -82,11 +82,11 @@ public class IrisObject extends IrisRegistrant {
 
         private record Bound(
                 IrisPlatform platform,
-                PlatformBlockState air,
-                PlatformBlockState stone,
-                PlatformBlockState vair,
-                PlatformBlockState vairDebug,
-                PlatformBlockState[] snowLayers) {
+                NativeBlockState air,
+                NativeBlockState stone,
+                NativeBlockState vair,
+                NativeBlockState vairDebug,
+                NativeBlockState[] snowLayers) {
         }
 
         private static Bound bound() {
@@ -102,28 +102,28 @@ public class IrisObject extends IrisRegistrant {
                     B.getState("STONE"),
                     B.getState("VOID_AIR"),
                     B.getState("COBWEB"),
-                    new PlatformBlockState[]{B.getState("minecraft:snow[layers=1]"), B.getState("minecraft:snow[layers=2]"), B.getState("minecraft:snow[layers=3]"), B.getState("minecraft:snow[layers=4]"), B.getState("minecraft:snow[layers=5]"), B.getState("minecraft:snow[layers=6]"), B.getState("minecraft:snow[layers=7]"), B.getState("minecraft:snow[layers=8]")});
+                    new NativeBlockState[]{B.getState("minecraft:snow[layers=1]"), B.getState("minecraft:snow[layers=2]"), B.getState("minecraft:snow[layers=3]"), B.getState("minecraft:snow[layers=4]"), B.getState("minecraft:snow[layers=5]"), B.getState("minecraft:snow[layers=6]"), B.getState("minecraft:snow[layers=7]"), B.getState("minecraft:snow[layers=8]")});
             bound = resolved;
             return resolved;
         }
 
-        static PlatformBlockState air() {
+        static NativeBlockState air() {
             return bound().air();
         }
 
-        static PlatformBlockState stone() {
+        static NativeBlockState stone() {
             return bound().stone();
         }
 
-        static PlatformBlockState vair() {
+        static NativeBlockState vair() {
             return bound().vair();
         }
 
-        static PlatformBlockState vairDebug() {
+        static NativeBlockState vairDebug() {
             return bound().vairDebug();
         }
 
-        static PlatformBlockState snowLayer(int layerIndex) {
+        static NativeBlockState snowLayer(int layerIndex) {
             return bound().snowLayers()[layerIndex];
         }
     }
@@ -137,7 +137,7 @@ public class IrisObject extends IrisRegistrant {
     transient final AtomicCache<KList<IrisBlockVector>> surfaceSupportOffsets = new AtomicCache<>();
     transient final AtomicCache<FloatingObjectFootprint> floatingFootprint = new AtomicCache<>();
     @Getter
-    VectorMap<PlatformBlockState> blocks;
+    VectorMap<NativeBlockState> blocks;
     @Getter
     VectorMap<TileData> states;
     @Getter
@@ -264,7 +264,7 @@ public class IrisObject extends IrisRegistrant {
         return new IrisBlockVector(x - center.getX(), y - center.getY(), z - center.getZ());
     }
 
-    public void setUnsigned(int x, int y, int z, PlatformBlockState block) {
+    public void setUnsigned(int x, int y, int z, NativeBlockState block) {
         IrisBlockVector v = getSigned(x, y, z);
 
         if (block == null) {
@@ -328,7 +328,7 @@ public class IrisObject extends IrisRegistrant {
         return place(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), placer, config, rng, rdata);
     }
 
-    public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, BiConsumer<BlockPosition, PlatformBlockState> listener, CarveResult c, IrisData rdata) {
+    public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, BiConsumer<BlockPosition, NativeBlockState> listener, CarveResult c, IrisData rdata) {
         return new IrisObjectPlacementRunner(this).place(x, yv, z, oplacer, config, rng, listener, c, rdata);
     }
 
@@ -338,8 +338,8 @@ public class IrisObject extends IrisRegistrant {
             try {
                 int lowestY = Integer.MAX_VALUE;
                 KList<IrisBlockVector> offsets = new KList<>();
-                for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : blocks) {
-                    PlatformBlockState state = entry.getValue();
+                for (Map.Entry<IrisBlockVector, NativeBlockState> entry : blocks) {
+                    NativeBlockState state = entry.getValue();
                     if (state == null || !state.isSolid() || state.isFoliage()) {
                         continue;
                     }
@@ -375,7 +375,7 @@ public class IrisObject extends IrisRegistrant {
     public void place(Location at) {
         readLock.lock();
         try {
-            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : blocks) {
+            for (Map.Entry<IrisBlockVector, NativeBlockState> entry : blocks) {
                 IrisBlockVector i = entry.getKey();
                 Block b = at.clone().add(0, getCenter().getY(), 0).add(i.getX(), i.getY(), i.getZ()).getBlock();
                 placeBlock(b, (BlockData) Objects.requireNonNull(entry.getValue()).nativeHandle());
@@ -393,7 +393,7 @@ public class IrisObject extends IrisRegistrant {
     public void placeCenterY(Location at) {
         readLock.lock();
         try {
-            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : blocks) {
+            for (Map.Entry<IrisBlockVector, NativeBlockState> entry : blocks) {
                 IrisBlockVector i = entry.getKey();
                 Block b = at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i.getX(), i.getY(), i.getZ()).getBlock();
                 placeBlock(b, (BlockData) Objects.requireNonNull(entry.getValue()).nativeHandle());

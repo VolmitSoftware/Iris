@@ -19,7 +19,7 @@
 package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.generation.biome.IrisBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -27,15 +27,15 @@ import art.arcane.volmlib.util.hunk.Hunk;
 public interface EngineDecorator extends EngineComponent {
 
     @BlockCoordinates
-    void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<PlatformBlockState> data, IrisBiome biome, int height, int max);
+    void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<NativeBlockState> data, IrisBiome biome, int height, int max);
 
     @BlockCoordinates
-    default void decorate(int x, int z, int realX, int realZ, Hunk<PlatformBlockState> data, IrisBiome biome, int height, int max) {
+    default void decorate(int x, int z, int realX, int realZ, Hunk<NativeBlockState> data, IrisBiome biome, int height, int max) {
         decorate(x, z, realX, realX, realX, realZ, realZ, realZ, data, biome, height, max);
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    default boolean canGoOn(PlatformBlockState decorant, PlatformBlockState atop) {
+    default boolean canGoOn(NativeBlockState decorant, NativeBlockState atop) {
         if (atop == null || atop.isAir()) {
             return false;
         }

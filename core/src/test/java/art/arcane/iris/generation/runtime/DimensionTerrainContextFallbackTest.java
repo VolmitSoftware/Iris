@@ -4,7 +4,7 @@ import art.arcane.iris.generation.image.IrisImageMapRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.generation.terrain.Terrain3DColumnFixtures;
@@ -76,13 +76,13 @@ public class DimensionTerrainContextFallbackTest {
         ProceduralStream<IrisBiome> naturalBiome = mock(ProceduralStream.class);
         ProceduralStream<IrisBiome> resolvedBiome = mock(ProceduralStream.class);
         ProceduralStream<IrisRegion> region = mock(ProceduralStream.class);
-        ProceduralStream<PlatformBlockState> rock = mock(ProceduralStream.class);
-        ProceduralStream<PlatformBlockState> configuredFluid = mock(ProceduralStream.class);
+        ProceduralStream<NativeBlockState> rock = mock(ProceduralStream.class);
+        ProceduralStream<NativeBlockState> configuredFluid = mock(ProceduralStream.class);
         IrisImageMapRuntime imageMapRuntime = mock(IrisImageMapRuntime.class);
         IrisBiome naturalBiomeValue = mock(IrisBiome.class);
         IrisBiome resolvedBiomeValue = mock(IrisBiome.class);
-        PlatformBlockState naturalFluid = mock(PlatformBlockState.class);
-        PlatformBlockState resolvedFluid = mock(PlatformBlockState.class);
+        NativeBlockState naturalFluid = mock(NativeBlockState.class);
+        NativeBlockState resolvedFluid = mock(NativeBlockState.class);
 
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getComplex()).thenReturn(complex);

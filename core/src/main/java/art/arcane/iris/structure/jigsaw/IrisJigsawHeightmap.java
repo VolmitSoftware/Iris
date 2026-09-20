@@ -1,9 +1,11 @@
 package art.arcane.iris.structure.jigsaw;
 
+import art.arcane.volmlib.nativelib.terrain.structure.JigsawHeightmap;
+
 import art.arcane.volmlib.util.documentation.Description;
 
 @Description("Controls whether a configured native jigsaw projects its start onto a Minecraft heightmap.")
-public enum IrisJigsawHeightmap {
+public enum IrisJigsawHeightmap implements JigsawHeightmap {
     @Description("Keeps the registered structure's own heightmap projection exactly as the vanilla, datapack, or mod definition declares it.")
     SOURCE,
 
@@ -26,5 +28,15 @@ public enum IrisJigsawHeightmap {
     MOTION_BLOCKING,
 
     @Description("Behaves like WORLD_SURFACE in Iris worlds; Iris height queries have no leaf layer to skip.")
-    MOTION_BLOCKING_NO_LEAVES
+    MOTION_BLOCKING_NO_LEAVES;
+
+    @Override
+    public boolean useSource() {
+        return this == SOURCE;
+    }
+
+    @Override
+    public boolean removeProjection() {
+        return this == NONE;
+    }
 }

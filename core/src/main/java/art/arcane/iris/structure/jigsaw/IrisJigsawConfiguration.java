@@ -1,5 +1,7 @@
 package art.arcane.iris.structure.jigsaw;
 
+import art.arcane.volmlib.nativelib.terrain.structure.JigsawSettings;
+
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
@@ -14,7 +16,7 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Data
 @Description("Optional overrides applied to a live vanilla, datapack, or modded jigsaw definition before Minecraft assembles it. Omitted values preserve the registered source definition.")
-public class IrisJigsawConfiguration {
+public class IrisJigsawConfiguration implements JigsawSettings {
     @Description("Optional registered template-pool key used instead of the source jigsaw's start pool. Empty preserves the source pool.")
     @RegistryListNativeJigsawPool
     private String startPool = "";

@@ -7,7 +7,7 @@ import art.arcane.iris.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.pack.value.IrisPosition;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.nbt.io.NBTUtil;
@@ -76,7 +76,7 @@ final class VanillaStructureTemplateEncoder {
     private Map<BlockPosition, BlockEntry> objectBlocks(IrisObject object) {
         Map<BlockPosition, BlockEntry> blocks = new LinkedHashMap<>();
         Vector3i center = object.getCenter();
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : object.getBlocks()) {
+        for (Map.Entry<IrisBlockVector, NativeBlockState> entry : object.getBlocks()) {
             IrisBlockVector signed = entry.getKey();
             BlockPosition position = new BlockPosition(
                     signed.getBlockX() + center.getX(),

@@ -20,7 +20,7 @@ package art.arcane.iris.world;
 
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.Snippet;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import lombok.Data;
 
 @Snippet("time-block")
@@ -33,7 +33,7 @@ public class IrisTimeBlock {
     @Description("The ending hour. Set both to the same number for any time. If they are both set to -1, it will always be not allowed.")
     private double endHour = 0;
 
-    public boolean isWithin(PlatformWorld world) {
+    public boolean isWithin(NativeWorld world) {
         return isWithin(((world.getTime() / 1000D) + 6) % 24);
     }
 

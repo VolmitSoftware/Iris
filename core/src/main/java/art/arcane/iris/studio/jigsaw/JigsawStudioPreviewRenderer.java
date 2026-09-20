@@ -5,7 +5,7 @@ import art.arcane.iris.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.iris.world.task.J;
@@ -193,9 +193,9 @@ public final class JigsawStudioPreviewRenderer {
     ) throws IOException {
         IrisObject object = piece.getObject();
         IrisObjectRotation rotation = piece.getRotation();
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : object.getBlocks()) {
+        for (Map.Entry<IrisBlockVector, NativeBlockState> entry : object.getBlocks()) {
             IrisBlockVector rotated = rotation.rotate(entry.getKey());
-            PlatformBlockState state = rotation.rotate(entry.getValue(), 0, 0, 0);
+            NativeBlockState state = rotation.rotate(entry.getValue(), 0, 0, 0);
             putState(
                     blocks,
                     new BlockPosition(
@@ -225,8 +225,8 @@ public final class JigsawStudioPreviewRenderer {
                     connector.getPosition().getY() - object.getCenter().getBlockY(),
                     connector.getPosition().getZ() - object.getCenter().getBlockZ());
             IrisBlockVector rotated = rotation.rotate(signed);
-            PlatformBlockState source = B.getStateOrNull(connector.getFinalState(), false);
-            PlatformBlockState state = source == null ? null : rotation.rotate(source, 0, 0, 0);
+            NativeBlockState source = B.getStateOrNull(connector.getFinalState(), false);
+            NativeBlockState state = source == null ? null : rotation.rotate(source, 0, 0, 0);
             putState(
                     blocks,
                     new BlockPosition(
@@ -241,7 +241,7 @@ public final class JigsawStudioPreviewRenderer {
     private static void putState(
             Map<BlockPosition, String> blocks,
             BlockPosition position,
-            PlatformBlockState state,
+            NativeBlockState state,
             String source
     ) throws IOException {
         if (state == null || state.key() == null || state.key().isBlank()) {

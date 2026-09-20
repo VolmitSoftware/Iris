@@ -1,6 +1,6 @@
 package art.arcane.iris.generation.decoration.tree;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 import java.util.Objects;
 
@@ -12,7 +12,7 @@ public record TreeBlockMaterial(String materialKey) {
         }
     }
 
-    public static TreeBlockMaterial of(PlatformBlockState state) {
+    public static TreeBlockMaterial of(NativeBlockState state) {
         return of(Objects.requireNonNull(state, "state").key());
     }
 

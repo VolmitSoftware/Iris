@@ -18,6 +18,8 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedLoader;
+
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.diagnostics.splash.IrisSplashComposer;
@@ -31,20 +33,20 @@ public final class ModdedIrisSplash {
     private ModdedIrisSplash() {
     }
 
-    public static void print(ModdedLoader loader) {
+    public static void print(NativeModdedLoader loader) {
         printPacks(loader);
         if (isLogoEnabled()) {
             printLogo(loader);
         }
     }
 
-    private static void printPacks(ModdedLoader loader) {
+    private static void printPacks(NativeModdedLoader loader) {
         File packFolder = IrisPlatforms.get().packsFolderNoCreate();
         IrisSplashComposer.composePackLines(packFolder, IrisLogging::reportError)
                 .thenAccept(lines -> lines.forEach(IrisLogging::info));
     }
 
-    private static void printLogo(ModdedLoader loader) {
+    private static void printLogo(NativeModdedLoader loader) {
         String serverLine = loader.platformName() + " / Minecraft " + loader.minecraftVersion();
         String[] splash = IrisSplashRenderer.renderPlain();
         String[] info = IrisSplashComposer.composeInfo(loader.modVersion(), serverLine, IrisSplashComposer.InfoStyle.PLAIN);

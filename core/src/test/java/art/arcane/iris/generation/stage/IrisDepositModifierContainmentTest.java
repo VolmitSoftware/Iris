@@ -22,7 +22,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositHeightDistribution;
 import art.arcane.iris.generation.decoration.IrisDepositPlacementScope;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
@@ -65,9 +65,9 @@ public class IrisDepositModifierContainmentTest {
 
     @Test
     public void airAndFluidTargetsAreRejected() {
-        PlatformBlockState solid = mock(PlatformBlockState.class);
-        PlatformBlockState air = mock(PlatformBlockState.class);
-        PlatformBlockState fluid = mock(PlatformBlockState.class);
+        NativeBlockState solid = mock(NativeBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
+        NativeBlockState fluid = mock(NativeBlockState.class);
         when(air.isAir()).thenReturn(true);
         when(fluid.isFluid()).thenReturn(true);
 
@@ -81,8 +81,8 @@ public class IrisDepositModifierContainmentTest {
     public void surfacePolicyReplacesBuriedHostPolicyWithoutAffectingCaves() {
         IrisDepositGenerator generator = mock(IrisDepositGenerator.class);
         IrisBiome biome = mock(IrisBiome.class);
-        PlatformBlockState sand = mock(PlatformBlockState.class);
-        PlatformBlockState basalt = mock(PlatformBlockState.class);
+        NativeBlockState sand = mock(NativeBlockState.class);
+        NativeBlockState basalt = mock(NativeBlockState.class);
         when(generator.hasSurfaceReplaceableBlocks(biome)).thenReturn(true);
         when(generator.canReplaceSurface(sand, biome)).thenReturn(true);
         when(generator.canReplace(sand)).thenReturn(false);
@@ -175,10 +175,10 @@ public class IrisDepositModifierContainmentTest {
 
     @Test
     public void terrainSurfaceIncludesExteriorAirButExcludesCaveAir() {
-        Hunk<PlatformBlockState> data = Hunk.newHunk(3, 3, 3);
-        PlatformBlockState solid = mock(PlatformBlockState.class);
-        PlatformBlockState exteriorAir = mock(PlatformBlockState.class);
-        PlatformBlockState caveAir = mock(PlatformBlockState.class);
+        Hunk<NativeBlockState> data = Hunk.newHunk(3, 3, 3);
+        NativeBlockState solid = mock(NativeBlockState.class);
+        NativeBlockState exteriorAir = mock(NativeBlockState.class);
+        NativeBlockState caveAir = mock(NativeBlockState.class);
         when(exteriorAir.isAir()).thenReturn(true);
         when(exteriorAir.key()).thenReturn("minecraft:air");
         when(caveAir.isAir()).thenReturn(true);
@@ -202,9 +202,9 @@ public class IrisDepositModifierContainmentTest {
 
     @Test
     public void exposureProbeChecksOnlyInBoundsOrthogonalNeighbors() {
-        Hunk<PlatformBlockState> data = Hunk.newHunk(3, 3, 3);
-        PlatformBlockState solid = mock(PlatformBlockState.class);
-        PlatformBlockState air = mock(PlatformBlockState.class);
+        Hunk<NativeBlockState> data = Hunk.newHunk(3, 3, 3);
+        NativeBlockState solid = mock(NativeBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
         when(air.isAir()).thenReturn(true);
         for (int x = 0; x < 3; x++) {
             for (int y = 0; y < 3; y++) {

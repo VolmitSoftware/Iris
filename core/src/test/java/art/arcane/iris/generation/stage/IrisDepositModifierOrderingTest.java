@@ -9,7 +9,7 @@ import art.arcane.iris.generation.decoration.IrisDepositPlacementScope;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.generation.block.B;
@@ -59,7 +59,7 @@ public class IrisDepositModifierOrderingTest {
     public void bindPlatform() {
         IrisPlatforms.unbind();
         PlatformRegistries registries = mock(PlatformRegistries.class);
-        PlatformBlockState stone = state("stone");
+        NativeBlockState stone = state("stone");
         when(registries.block(anyString())).thenReturn(stone);
         IrisPlatform platform = mock(IrisPlatform.class);
         when(platform.registries()).thenReturn(registries);
@@ -111,11 +111,11 @@ public class IrisDepositModifierOrderingTest {
         }
     }
 
-    private static PlatformBlockState state(String material) {
+    private static NativeBlockState state(String material) {
         return new KeyedBlockState("minecraft:" + material);
     }
 
-    private static final class KeyedBlockState implements PlatformBlockState {
+    private static final class KeyedBlockState implements NativeBlockState {
         private final String key;
 
         private KeyedBlockState(String key) {
@@ -163,7 +163,7 @@ public class IrisDepositModifierOrderingTest {
         }
 
         @Override
-        public PlatformBlockState placementBaseState() {
+        public NativeBlockState placementBaseState() {
             return null;
         }
 
@@ -238,12 +238,12 @@ public class IrisDepositModifierOrderingTest {
         }
 
         @Override
-        public boolean canPlaceOnto(PlatformBlockState onto) {
+        public boolean canPlaceOnto(NativeBlockState onto) {
             return false;
         }
 
         @Override
-        public boolean matches(PlatformBlockState state) {
+        public boolean matches(NativeBlockState state) {
             return false;
         }
 
@@ -258,7 +258,7 @@ public class IrisDepositModifierOrderingTest {
         }
 
         @Override
-        public PlatformBlockState withProperty(String name, String value) {
+        public NativeBlockState withProperty(String name, String value) {
             return null;
         }
 
@@ -276,11 +276,11 @@ public class IrisDepositModifierOrderingTest {
         private final CountDownLatch regionReady = new CountDownLatch(1);
         private final Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
         private final ChunkContext context = mock(ChunkContext.class, RETURNS_DEEP_STUBS);
-        private final PlatformBlockState stone = state("stone");
-        private final PlatformBlockState granite = state("granite");
-        private final PlatformBlockState diorite = state("diorite");
-        private final PlatformBlockState diamond = state("diamond_ore");
-        private final Hunk<PlatformBlockState> output = Hunk.newArrayHunk(16, 16, 16);
+        private final NativeBlockState stone = state("stone");
+        private final NativeBlockState granite = state("granite");
+        private final NativeBlockState diorite = state("diorite");
+        private final NativeBlockState diamond = state("diamond_ore");
+        private final Hunk<NativeBlockState> output = Hunk.newArrayHunk(16, 16, 16);
         private final MantleChunk<Matter> chunk;
         private final boolean parallel;
         private final int attempts;
@@ -316,7 +316,7 @@ public class IrisDepositModifierOrderingTest {
             }
         }
 
-        private IrisDepositGenerator generator(String name, PlatformBlockState requiredHost, PlatformBlockState replacement) {
+        private IrisDepositGenerator generator(String name, NativeBlockState requiredHost, NativeBlockState replacement) {
             IrisDepositGenerator generator = mock(IrisDepositGenerator.class);
             when(generator.getSpawnChance()).thenReturn(1D);
             when(generator.getPerClumpSpawnChance()).thenReturn(1D);

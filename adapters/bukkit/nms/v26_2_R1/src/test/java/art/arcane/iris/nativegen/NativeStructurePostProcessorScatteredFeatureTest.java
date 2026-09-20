@@ -1,5 +1,11 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureVerticalPlacer;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureSurfaceFitter;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureReflection;
+
 import net.minecraft.SharedConstants;
 import net.minecraft.core.HolderSet;
 import net.minecraft.server.Bootstrap;

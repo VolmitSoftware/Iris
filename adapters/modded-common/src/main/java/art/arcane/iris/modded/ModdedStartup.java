@@ -26,10 +26,8 @@ import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.pack.PackValidator;
 import art.arcane.iris.modded.command.ModdedPackCommands;
 import art.arcane.iris.spi.IrisPlatforms;
-import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
 
 import java.io.File;
 import java.io.IOException;
@@ -107,8 +105,8 @@ public final class ModdedStartup {
         }
     }
 
-    public static void runOnce(MinecraftServer server) {
-        if (server == null || server.getPlayerList() == null) {
+    public static void runOnce(NativeModdedServer server) {
+        if (server == null || !server.hasPlayerList()) {
             return;
         }
         prepareForStartup();
@@ -210,7 +208,7 @@ public final class ModdedStartup {
         }
     }
 
-    private static void reinjectPersistentDimensions(MinecraftServer server) {
+    private static void reinjectPersistentDimensions(NativeModdedServer server) {
         List<ModdedDimensionRegistryStore.PersistentDimension> dimensions =
                 ModdedDimensionRegistryStore.loadForStartup(server);
         if (dimensions.isEmpty()) {
@@ -266,8 +264,8 @@ public final class ModdedStartup {
      * SP-6: a pack excluded by validation is otherwise only visible in the console. Tell the operators who
      * can actually act on it when they join.
      */
-    public static void warnPackFailuresTo(ServerPlayer player) {
-        if (player == null || !Commands.LEVEL_GAMEMASTERS.check(player.permissions())) {
+    public static void warnPackFailuresTo(NativeProtocolPlayer player) {
+        if (player == null || !player.isGameMaster()) {
             return;
         }
         for (Map.Entry<String, PackValidationResult> entry : PackValidationRegistry.snapshot().entrySet()) {
@@ -278,8 +276,8 @@ public final class ModdedStartup {
             String reason = result.getBlockingErrors().isEmpty()
                     ? "unknown validation failure"
                     : result.getBlockingErrors().getFirst();
-            player.sendSystemMessage(Component.literal("Iris pack '" + entry.getKey()
-                    + "' failed validation and cannot be used: " + reason));
+            player.sendMessage("Iris pack '" + entry.getKey()
+                    + "' failed validation and cannot be used: " + reason);
         }
     }
 

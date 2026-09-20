@@ -1,6 +1,7 @@
 package art.arcane.iris.structure;
 
 import art.arcane.iris.structure.export.VanillaJigsawDatapackExporter;
+import art.arcane.volmlib.nativelib.terrain.NativeStructureReader;
 import art.arcane.iris.structure.export.VanillaJigsawExportRequest;
 import art.arcane.iris.structure.export.VanillaJigsawExportResult;
 import art.arcane.iris.structure.export.VanillaJigsawExportSource;
@@ -14,7 +15,7 @@ import art.arcane.iris.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.placement.IrisStructure;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import org.junit.Before;
@@ -31,7 +32,6 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -60,9 +60,8 @@ public class VillageImporterConnectorRoundTripTest {
 
     @Test
     public void vanillaNbtMetadataSurvivesIrisPieceAndVanillaExport() throws Exception {
-        FakeJigsawBlockInfo jigsaw = new FakeJigsawBlockInfo(-29, -17);
-        FakeStructureBlockInfo info = new FakeStructureBlockInfo(new FakeCompoundTag(FINAL_STATE));
-        VillageImporter.ConnectorMetadata metadata = VillageImporter.readConnectorMetadata(jigsaw, info);
+        VillageImporter.ConnectorMetadata metadata = VillageImporter.readConnectorMetadata(
+                new NativeStructureReader.ConnectorMetadata(FINAL_STATE, -17, -29));
         Map<String, Object> importedConnector = VillageImporter.connectorJson(
                 1,
                 1,
@@ -115,7 +114,7 @@ public class VillageImporterConnectorRoundTripTest {
     private static TestGraph graph(IrisJigsawPiece piece, IrisJigsawConnector connector) {
         TestGraph graph = new TestGraph();
         IrisObject object = new IrisObject(3, 3, 3);
-        PlatformBlockState finalState = mock(PlatformBlockState.class);
+        NativeBlockState finalState = mock(NativeBlockState.class);
         when(finalState.key()).thenReturn(connector.getFinalState());
         object.setUnsigned(1, 1, 0, finalState);
         graph.objects.put("objects/start", object);
@@ -135,18 +134,6 @@ public class VillageImporterConnectorRoundTripTest {
                 .setPlaceMode(ObjectPlaceMode.STRUCTURE_PIECE);
         graph.structure.setLoadKey("metadata");
         return graph;
-    }
-
-    private record FakeJigsawBlockInfo(int placementPriority, int selectionPriority) {
-    }
-
-    private record FakeStructureBlockInfo(FakeCompoundTag nbt) {
-    }
-
-    private record FakeCompoundTag(String finalState) {
-        public Optional<String> getString(String key) {
-            return "final_state".equals(key) ? Optional.of(finalState) : Optional.empty();
-        }
     }
 
     private static final class TestGraph implements StructureGraphResolver {

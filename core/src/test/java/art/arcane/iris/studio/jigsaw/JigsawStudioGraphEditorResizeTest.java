@@ -5,7 +5,7 @@ import art.arcane.iris.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.pack.value.IrisPosition;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.DurabilityMode;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import com.google.gson.JsonArray;
@@ -141,8 +141,8 @@ public class JigsawStudioGraphEditorResizeTest {
     @Test
     public void preservesCanonicalCoordinatesForRotatedVariantsAndMovesExplicitAirUnderlays() throws Exception {
         IrisObject source = new IrisObject(7, 3, 5);
-        PlatformBlockState explicitAir = state("minecraft:air", true);
-        PlatformBlockState stone = state("minecraft:stone", false);
+        NativeBlockState explicitAir = state("minecraft:air", true);
+        NativeBlockState stone = state("minecraft:stone", false);
         source.setUnsigned(6, 1, 2, explicitAir);
         source.setUnsigned(4, 1, 1, stone);
         IrisJigsawPiece piece = endPiece(IrisDirection.EAST_POSITIVE_X, new IrisPosition(6, 1, 2));
@@ -169,7 +169,7 @@ public class JigsawStudioGraphEditorResizeTest {
     @Test
     public void rejectsExplicitAirOutsideShrunkBoundsWithoutMutatingTheSource() {
         IrisObject source = new IrisObject(8, 4, 8);
-        PlatformBlockState explicitAir = state("minecraft:air", true);
+        NativeBlockState explicitAir = state("minecraft:air", true);
         source.setUnsigned(7, 1, 1, explicitAir);
         IrisJigsawPiece piece = new IrisJigsawPiece().setObject("resize/blank");
 
@@ -190,8 +190,8 @@ public class JigsawStudioGraphEditorResizeTest {
     @Test
     public void rejectsConnectorDestinationCollisionsBeforeChangingThePiece() {
         IrisObject source = new IrisObject(5, 3, 5);
-        PlatformBlockState underlay = state("minecraft:air", true);
-        PlatformBlockState collision = state("minecraft:stone", false);
+        NativeBlockState underlay = state("minecraft:air", true);
+        NativeBlockState collision = state("minecraft:stone", false);
         source.setUnsigned(2, 1, 0, underlay);
         source.setUnsigned(3, 1, 0, collision);
         IrisPosition originalPosition = new IrisPosition(2, 1, 0);
@@ -250,14 +250,14 @@ public class JigsawStudioGraphEditorResizeTest {
         return sources;
     }
 
-    private static PlatformBlockState state(String key, boolean air) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private static NativeBlockState state(String key, boolean air) {
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.key()).thenReturn(key);
         when(state.isAir()).thenReturn(air);
         return state;
     }
 
-    private static PlatformBlockState blockAt(IrisObject object, int x, int y, int z) {
+    private static NativeBlockState blockAt(IrisObject object, int x, int y, int z) {
         return object.getBlocks().get(object.getSigned(x, y, z));
     }
 

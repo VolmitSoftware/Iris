@@ -4,7 +4,7 @@ import art.arcane.iris.generation.block.TileData;
 
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
@@ -41,7 +41,7 @@ public class IrisObjectTransformsTileTest {
     public void bindPlatform() {
         IrisPlatforms.unbind();
         PlatformRegistries registries = mock(PlatformRegistries.class);
-        Map<String, PlatformBlockState> states = new HashMap<>();
+        Map<String, NativeBlockState> states = new HashMap<>();
         when(registries.block(anyString())).thenAnswer(invocation -> {
             String key = invocation.getArgument(0);
             return states.computeIfAbsent(key, IrisObjectTransformsTileTest::state);
@@ -59,7 +59,7 @@ public class IrisObjectTransformsTileTest {
     @Test
     public void rotationOmitsUnsupportedBlocksAndTheirTiles() {
         IrisObject source = new IrisObject(3, 1, 1);
-        PlatformBlockState unsupported = state("minecraft:wall_torch");
+        NativeBlockState unsupported = state("minecraft:wall_torch");
         source.setUnsigned(0, 0, 0, unsupported);
         source.setUnsignedTile(0, 0, 0, tile("minecraft:wall_torch", "omitted"));
         source.setUnsigned(1, 0, 0, state("minecraft:chest"));
@@ -102,7 +102,7 @@ public class IrisObjectTransformsTileTest {
         assertEquals(8, scaled.getBlocks().size());
         assertEquals(8, scaled.getStates().size());
         Set<TileData> copies = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> block : scaled.getBlocks()) {
+        for (Map.Entry<IrisBlockVector, NativeBlockState> block : scaled.getBlocks()) {
             TileData copy = scaled.getStates().get(block.getKey());
             assertNotNull(copy);
             assertNotSame(original, copy);
@@ -125,7 +125,7 @@ public class IrisObjectTransformsTileTest {
 
         assertTrue(scaled.getBlocks().size() < source.getBlocks().size());
         assertEquals(scaled.getBlocks().size(), scaled.getStates().size());
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> block : scaled.getBlocks()) {
+        for (Map.Entry<IrisBlockVector, NativeBlockState> block : scaled.getBlocks()) {
             TileData copy = scaled.getStates().get(block.getKey());
             assertNotNull(copy);
             assertEquals(block.getValue().materialKey(), copy.getMaterialKey());
@@ -148,7 +148,7 @@ public class IrisObjectTransformsTileTest {
 
             assertFalse(scaled.getStates().isEmpty());
             for (Map.Entry<IrisBlockVector, TileData> tile : scaled.getStates()) {
-                PlatformBlockState block = scaled.getBlocks().get(tile.getKey());
+                NativeBlockState block = scaled.getBlocks().get(tile.getKey());
                 assertNotNull(block);
                 assertEquals(tile.getValue().getMaterialKey(), block.materialKey());
             }
@@ -247,7 +247,7 @@ public class IrisObjectTransformsTileTest {
             assertEquals(1, first.getStates().size());
             assertEquals("minecraft:stone", first.getBlocks().get(new IrisBlockVector(-1, 0, 0)).materialKey());
             assertEquals("winner", first.getStates().get(new IrisBlockVector(0, 0, 0)).getProperties().get("name"));
-            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : first.getBlocks()) {
+            for (Map.Entry<IrisBlockVector, NativeBlockState> entry : first.getBlocks()) {
                 assertEquals(entry.getValue().materialKey(), second.getBlocks().get(entry.getKey()).materialKey());
                 assertEquals(first.getStates().get(entry.getKey()), second.getStates().get(entry.getKey()));
             }
@@ -316,7 +316,7 @@ public class IrisObjectTransformsTileTest {
             assertEquals(expected.getD(), actual.getD());
             assertEquals(expected.getBlocks().size(), actual.getBlocks().size());
             assertEquals(expected.getStates().size(), actual.getStates().size());
-            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : expected.getBlocks()) {
+            for (Map.Entry<IrisBlockVector, NativeBlockState> entry : expected.getBlocks()) {
                 assertEquals(entry.getValue(), actual.getBlocks().get(entry.getKey()));
                 assertEquals(expected.getStates().get(entry.getKey()), actual.getStates().get(entry.getKey()));
             }
@@ -343,8 +343,8 @@ public class IrisObjectTransformsTileTest {
         return new TileData(material, properties);
     }
 
-    private static PlatformBlockState state(String key) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private static NativeBlockState state(String key) {
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.key()).thenReturn(key);
         when(state.materialKey()).thenReturn(key);
         when(state.isAir()).thenReturn(key.contains("air"));

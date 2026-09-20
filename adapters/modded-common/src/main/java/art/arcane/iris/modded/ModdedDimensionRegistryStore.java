@@ -18,10 +18,10 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.storage.LevelResource;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -45,7 +45,7 @@ public final class ModdedDimensionRegistryStore {
     private ModdedDimensionRegistryStore() {
     }
 
-    public static List<PersistentDimension> load(MinecraftServer server) {
+    public static List<PersistentDimension> load(NativeModdedServer server) {
         return load(storeFile(server));
     }
 
@@ -61,7 +61,7 @@ public final class ModdedDimensionRegistryStore {
      * Boot-safe load: a corrupt registry must not abort server start. The broken file is renamed aside so the
      * next write starts clean, and every id we can still recognise in the raw text is reported as lost.
      */
-    public static List<PersistentDimension> loadForStartup(MinecraftServer server) {
+    public static List<PersistentDimension> loadForStartup(NativeModdedServer server) {
         return loadForStartup(storeFile(server));
     }
 
@@ -153,11 +153,11 @@ public final class ModdedDimensionRegistryStore {
         }
     }
 
-    public static PersistentDimension get(MinecraftServer server, String id) {
+    public static PersistentDimension get(NativeModdedServer server, String id) {
         return index(load(server)).get(id);
     }
 
-    public static synchronized void put(MinecraftServer server, PersistentDimension dimension) {
+    public static synchronized void put(NativeModdedServer server, PersistentDimension dimension) {
         Path file = storeFile(server);
         Contents contents = contents(file);
         Map<String, PersistentDimension> current = index(contents.dimensions());
@@ -165,7 +165,7 @@ public final class ModdedDimensionRegistryStore {
         write(file, new ArrayList<>(current.values()), contents.unparsed());
     }
 
-    public static synchronized void remove(MinecraftServer server, String id) {
+    public static synchronized void remove(NativeModdedServer server, String id) {
         Path file = storeFile(server);
         Contents contents = contents(file);
         Map<String, PersistentDimension> current = index(contents.dimensions());
@@ -235,8 +235,8 @@ public final class ModdedDimensionRegistryStore {
         }
     }
 
-    private static Path storeFile(MinecraftServer server) {
-        return storeFile(server.getWorldPath(LevelResource.ROOT));
+    private static Path storeFile(NativeModdedServer server) {
+        return storeFile(server.root());
     }
 
     private static Path storeFile(Path worldRoot) {

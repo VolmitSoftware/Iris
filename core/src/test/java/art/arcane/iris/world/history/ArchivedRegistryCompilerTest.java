@@ -3,7 +3,7 @@ package art.arcane.iris.world.history;
 import art.arcane.iris.pack.datapack.IrisDatapackCompiler;
 import art.arcane.iris.pack.AtomicDirectoryPublisher;
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.platform.bukkit.nms.datapack.v1217.DataFixerV1217;
+import art.arcane.iris.pack.datapack.v1217.DataFixerV1217;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;

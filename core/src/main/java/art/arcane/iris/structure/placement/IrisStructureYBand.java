@@ -1,5 +1,7 @@
 package art.arcane.iris.structure.placement;
 
+import art.arcane.volmlib.nativelib.terrain.structure.StructureVerticalBand;
+
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
@@ -13,7 +15,7 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Data
 @Description("An absolute world Y band a native structure is relocated into. Reversed bounds are normalized.")
-public class IrisStructureYBand {
+public class IrisStructureYBand implements StructureVerticalBand {
     @MinNumber(-4064)
     @MaxNumber(4064)
     @Description("Lowest absolute world Y of the band.")

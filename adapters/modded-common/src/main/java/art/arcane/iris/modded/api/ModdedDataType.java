@@ -24,10 +24,10 @@ package art.arcane.iris.modded.api;
  * Constants may be added. Switch expressions over this enum need a {@code default} arm.
  */
 public enum ModdedDataType {
-    /** Block states, resolved through {@link ModdedDataProvider#getBlockData(net.minecraft.resources.Identifier, java.util.Map)}. */
+    /** Block states, resolved through {@link ModdedDataProvider#getBlockData(String, java.util.Map)}. */
     BLOCK,
     /** Item types, claimed for loot and pack tooling. */
     ITEM,
-    /** Entity types, spawned through {@link ModdedDataProvider#spawnMob(net.minecraft.server.level.ServerLevel, double, double, double, net.minecraft.resources.Identifier)}. */
+    /** Entity types, spawned through {@link ModdedDataProvider#spawnMob(art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntityRuntime.CustomSpawn)}. */
     ENTITY
 }

@@ -1,5 +1,9 @@
 package art.arcane.iris.nativegen.v26_3_R1;
 
+import art.arcane.iris.structure.nativegen.GenerationWritePolicy;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeGenerationWriteGuard;
+
 import art.arcane.iris.generation.runtime.DimensionStackContext;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -45,11 +49,11 @@ public final class NativeGenerationWriteGuardTest {
         DimensionStackContext stack = mock(DimensionStackContext.class);
         when(objects.contains(-3, 74, -7)).thenReturn(true);
 
-        Predicate<BlockPos> protectedPositions = NativeGenerationWriteGuard.protectedPositions(objects, stack, -64);
+        Predicate<BlockPos> protectedPositions = NativeGenerationWriteGuard.protectedPositions(GenerationWritePolicy.protectedPositions(objects, stack, -64));
 
         assertTrue(protectedPositions.test(new BlockPos(-3, 10, -7)));
         verifyNoInteractions(stack);
-        assertFalse(NativeGenerationWriteGuard.protectedPositions(objects, null, -64)
+        assertFalse(NativeGenerationWriteGuard.protectedPositions(GenerationWritePolicy.protectedPositions(objects, null, -64))
                 .test(new BlockPos(-3, 11, -7)));
     }
 
@@ -65,7 +69,7 @@ public final class NativeGenerationWriteGuardTest {
         when(negative.isHostFeatureProtectedY(64)).thenReturn(true);
         when(positive.isHostFeatureProtectedY(65)).thenReturn(true);
 
-        Predicate<BlockPos> protectedPositions = NativeGenerationWriteGuard.protectedPositions(objects, stack, -64);
+        Predicate<BlockPos> protectedPositions = NativeGenerationWriteGuard.protectedPositions(GenerationWritePolicy.protectedPositions(objects, stack, -64));
 
         assertTrue(protectedPositions.test(new BlockPos(-1, 0, -1)));
         assertFalse(protectedPositions.test(new BlockPos(-1, 1, -1)));
@@ -85,10 +89,10 @@ public final class NativeGenerationWriteGuardTest {
         when(router.history()).thenReturn(history);
         when(history.activeActivation()).thenReturn(active);
         when(active.activationId()).thenReturn(4L);
-        assertTrue(NativeGenerationWriteGuard.isHistoricalStructure(engine, 3));
-        assertFalse(NativeGenerationWriteGuard.isHistoricalStructure(engine, 0));
-        assertFalse(NativeGenerationWriteGuard.isHistoricalStructure(engine, 4));
-        assertFalse(NativeGenerationWriteGuard.isHistoricalStructure(engine, 5));
+        assertTrue(GenerationWritePolicy.isHistoricalStructure(engine, 3));
+        assertFalse(GenerationWritePolicy.isHistoricalStructure(engine, 0));
+        assertFalse(GenerationWritePolicy.isHistoricalStructure(engine, 4));
+        assertFalse(GenerationWritePolicy.isHistoricalStructure(engine, 5));
     }
 
     @Test
@@ -100,11 +104,11 @@ public final class NativeGenerationWriteGuardTest {
         ChunkAccess partial = mock(ChunkAccess.class);
         when(partial.getPersistedStatus()).thenReturn(ChunkStatus.TERRAIN);
         when(region.getChunk(anyInt(), anyInt())).thenReturn(partial);
-        assertTrue(NativeGenerationWriteGuard.allowsDecoration(engine, region, new ChunkPos(0, 0)));
+        assertTrue(NativeGenerationWriteGuard.allowsDecoration(engine.getComplex()::allowsMantleChunkWrite, region, new ChunkPos(0, 0)));
         ChunkAccess complete = mock(ChunkAccess.class);
         when(complete.getPersistedStatus()).thenReturn(ChunkStatus.FULL);
         when(region.getChunk(1, -1)).thenReturn(complete);
-        assertFalse(NativeGenerationWriteGuard.allowsDecoration(engine, region, new ChunkPos(0, 0)));
+        assertFalse(NativeGenerationWriteGuard.allowsDecoration(engine.getComplex()::allowsMantleChunkWrite, region, new ChunkPos(0, 0)));
     }
 
     @Test
@@ -115,11 +119,11 @@ public final class NativeGenerationWriteGuardTest {
         ChunkAccess chunk = mock(ChunkAccess.class);
         when(chunk.getPos()).thenReturn(new ChunkPos(-2, 3));
         when(chunk.getPersistedStatus()).thenReturn(ChunkStatus.TERRAIN);
-        assertTrue(NativeGenerationWriteGuard.allowsPendingStage(engine, chunk, ChunkStatus.FEATURES));
-        assertFalse(NativeGenerationWriteGuard.allowsPendingStage(engine, chunk, ChunkStatus.TERRAIN));
+        assertTrue(NativeGenerationWriteGuard.allowsPendingStage(engine.getComplex()::allowsMantleChunkWrite, chunk, ChunkStatus.FEATURES));
+        assertFalse(NativeGenerationWriteGuard.allowsPendingStage(engine.getComplex()::allowsMantleChunkWrite, chunk, ChunkStatus.TERRAIN));
         when(chunk.getPersistedStatus()).thenReturn(ChunkStatus.FEATURES);
-        assertFalse(NativeGenerationWriteGuard.allowsPendingStage(engine, chunk, ChunkStatus.FEATURES));
+        assertFalse(NativeGenerationWriteGuard.allowsPendingStage(engine.getComplex()::allowsMantleChunkWrite, chunk, ChunkStatus.FEATURES));
         when(chunk.getPersistedStatus()).thenReturn(ChunkStatus.FULL);
-        assertFalse(NativeGenerationWriteGuard.allowsPendingStage(engine, chunk, ChunkStatus.SPAWN));
+        assertFalse(NativeGenerationWriteGuard.allowsPendingStage(engine.getComplex()::allowsMantleChunkWrite, chunk, ChunkStatus.SPAWN));
     }
 }

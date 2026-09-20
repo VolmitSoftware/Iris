@@ -19,7 +19,7 @@
 package art.arcane.iris.platform.bukkit;
 
 import art.arcane.iris.platform.bukkit.nms.INMS;
-import art.arcane.iris.spi.PlatformEntityType;
+import art.arcane.volmlib.nativelib.entity.NativeEntityType;
 import org.bukkit.entity.EntityType;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Interned Bukkit adapter for a neutral entity type handle.
  */
-public final class BukkitEntityType implements PlatformEntityType {
+public final class BukkitEntityType implements NativeEntityType {
     private static final ConcurrentHashMap<String, BukkitEntityType> CACHE = new ConcurrentHashMap<>();
 
     private final EntityType type;

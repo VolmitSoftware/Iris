@@ -1,5 +1,7 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntityRuntime;
+
 import art.arcane.iris.world.entity.IrisEffect;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Mob;
@@ -22,9 +24,9 @@ public class ModdedEntitySpawnerParityTest {
     public void collisionCheckUsesPaperInclusiveIntegerDimensions() {
         Set<BlockPos> checked = new HashSet<>();
 
-        boolean clear = ModdedEntitySpawner.isAreaClearForSpawn(
-                10, 64, 20, 0.6F, 1.95F, position -> {
-                    checked.add(position);
+        boolean clear = NativeEntityRuntime.isAreaClearForSpawn(
+                10, 64, 20, 0.6F, 1.95F, (x, y, z) -> {
+                    checked.add(new BlockPos(x, y, z));
                     return true;
                 });
 
@@ -35,8 +37,8 @@ public class ModdedEntitySpawnerParityTest {
     @Test
     public void collisionCheckCoversWideEntityVolumeAndRejectsOneBlockedCell() {
         AtomicInteger checked = new AtomicInteger();
-        boolean fullyClear = ModdedEntitySpawner.isAreaClearForSpawn(
-                0, 10, 0, 4F, 3.2F, position -> {
+        boolean fullyClear = NativeEntityRuntime.isAreaClearForSpawn(
+                0, 10, 0, 4F, 3.2F, (x, y, z) -> {
                     checked.incrementAndGet();
                     return true;
                 });
@@ -46,8 +48,8 @@ public class ModdedEntitySpawnerParityTest {
 
         BlockPos obstruction = new BlockPos(2, 12, -2);
 
-        boolean clear = ModdedEntitySpawner.isAreaClearForSpawn(
-                0, 10, 0, 4F, 3.2F, position -> !position.equals(obstruction));
+        boolean clear = NativeEntityRuntime.isAreaClearForSpawn(
+                0, 10, 0, 4F, 3.2F, (x, y, z) -> !new BlockPos(x, y, z).equals(obstruction));
 
         assertFalse(clear);
     }
@@ -61,19 +63,19 @@ public class ModdedEntitySpawnerParityTest {
             }
         }
 
-        assertTrue(ModdedEntitySpawner.allNeighborChunksLoaded(5, -2,
+        assertTrue(NativeEntityRuntime.allNeighborChunksLoaded(5, -2,
                 (x, z) -> loaded.contains(pack(x, z))));
 
         loaded.remove(pack(4, -3));
 
-        assertFalse(ModdedEntitySpawner.allNeighborChunksLoaded(5, -2,
+        assertFalse(NativeEntityRuntime.allNeighborChunksLoaded(5, -2,
                 (x, z) -> loaded.contains(pack(x, z))));
     }
 
     @Test
     public void onlyAiFalseUsesVanillaNoAi() {
-        assertFalse(ModdedEntitySpawner.shouldDisableAi(true));
-        assertTrue(ModdedEntitySpawner.shouldDisableAi(false));
+        assertFalse(NativeEntityRuntime.shouldDisableAi(true));
+        assertTrue(NativeEntityRuntime.shouldDisableAi(false));
     }
 
     @Test
@@ -137,16 +139,16 @@ public class ModdedEntitySpawnerParityTest {
 
         assertEquals(47, expected.size());
         for (Map.Entry<String, EntitySpawnReason> entry : expected.entrySet()) {
-            assertEquals(entry.getKey(), entry.getValue(), ModdedEntitySpawner.reasonFor(entry.getKey()));
-            assertEquals(entry.getKey(), entry.getValue(), ModdedEntitySpawner.reasonFor(entry.getKey().toLowerCase()));
+            assertEquals(entry.getKey(), entry.getValue(), NativeEntityRuntime.reasonFor(entry.getKey()));
+            assertEquals(entry.getKey(), entry.getValue(), NativeEntityRuntime.reasonFor(entry.getKey().toLowerCase()));
         }
     }
 
     @Test
     public void invalidConfiguredSpawnReasonIntentionallyDefaultsToNatural() {
-        assertEquals(EntitySpawnReason.NATURAL, ModdedEntitySpawner.reasonFor(null));
-        assertEquals(EntitySpawnReason.NATURAL, ModdedEntitySpawner.reasonFor(""));
-        assertEquals(EntitySpawnReason.NATURAL, ModdedEntitySpawner.reasonFor("not_a_spawn_reason"));
+        assertEquals(EntitySpawnReason.NATURAL, NativeEntityRuntime.reasonFor(null));
+        assertEquals(EntitySpawnReason.NATURAL, NativeEntityRuntime.reasonFor(""));
+        assertEquals(EntitySpawnReason.NATURAL, NativeEntityRuntime.reasonFor("not_a_spawn_reason"));
     }
 
     @Test

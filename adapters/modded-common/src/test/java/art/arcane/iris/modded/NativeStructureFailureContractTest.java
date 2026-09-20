@@ -1,6 +1,6 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.nativegen.NativeStructureGenerationException;
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureGenerationException;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import org.junit.BeforeClass;

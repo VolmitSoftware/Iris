@@ -1,6 +1,6 @@
 package art.arcane.iris.generation.mantle;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 
 import java.util.function.IntConsumer;
@@ -13,7 +13,7 @@ final class StructureFoundationPlanner {
     }
 
     static void recordBaseCell(Long2IntOpenHashMap columns, int x, int y, int z,
-                               PlatformBlockState state, boolean supportNonOccluding) {
+                               NativeBlockState state, boolean supportNonOccluding) {
         if (columns == null || state == null
                 || !(supportNonOccluding ? state.isSolid() : state.isOccluding())) {
             return;
@@ -38,7 +38,7 @@ final class StructureFoundationPlanner {
         return NO_GROUND;
     }
 
-    static boolean isGroundSolid(PlatformBlockState overlay, boolean carved, int mantleY, int terrainHeight) {
+    static boolean isGroundSolid(NativeBlockState overlay, boolean carved, int mantleY, int terrainHeight) {
         if (mantleY <= 0) {
             return true;
         }
@@ -48,7 +48,7 @@ final class StructureFoundationPlanner {
         return !carved && mantleY <= terrainHeight;
     }
 
-    static boolean isSurfaceSupportBoundary(PlatformBlockState overlay, boolean carved,
+    static boolean isSurfaceSupportBoundary(NativeBlockState overlay, boolean carved,
                                             int mantleY, int terrainHeight) {
         return carved || isGroundSolid(overlay, false, mantleY, terrainHeight);
     }

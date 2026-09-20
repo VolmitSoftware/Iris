@@ -1,5 +1,7 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeTerrainHeightCache;
+
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.levelgen.Heightmap;

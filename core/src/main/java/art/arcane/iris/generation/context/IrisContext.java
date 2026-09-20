@@ -18,6 +18,8 @@
 
 package art.arcane.iris.generation.context;
 
+import art.arcane.volmlib.nativelib.terrain.NativeGenerationScope;
+
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.mantle.EngineMantle;
@@ -97,7 +99,7 @@ public final class IrisContext {
                         .qput("queued", mantle.getUnloadRegionCount()));
     }
 
-    public static final class Scope implements AutoCloseable {
+    public static final class Scope implements NativeGenerationScope {
         private final Thread owner;
         private final IrisContext previous;
         private final IrisContext installed;

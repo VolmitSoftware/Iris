@@ -10,8 +10,8 @@ import art.arcane.iris.world.history.SavedTerrainChunk;
 import art.arcane.iris.world.history.TransitionGenerationPlan;
 import art.arcane.iris.world.history.TransitionGeometryBlender;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -35,7 +35,7 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
     }
 
     @Override
-    public void generate(int x, int z, Hunk<PlatformBlockState> blocks, Hunk<PlatformBiome> biomes,
+    public void generate(int x, int z, Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes,
                          boolean multicore, ChunkContext context) {
         TransitionGenerationPlan plan = context.getComplex().getTransitionGenerationPlan();
         if (plan == null || !plan.hasTransitionAtChunk(x >> 4, z >> 4)) {
@@ -45,8 +45,8 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
         blendGeometry(x, z, blocks, context, source, plan);
     }
 
-    public static SavedTerrainChunk capture(int x, int z, Hunk<PlatformBlockState> blocks,
-                                             Hunk<PlatformBiome> biomes, int minimumY,
+    public static SavedTerrainChunk capture(int x, int z, Hunk<NativeBlockState> blocks,
+                                             Hunk<NativeBiome> biomes, int minimumY,
                                              ChunkContext context, boolean boundaryOnly) throws IOException {
         GeometrySource source = new GeometrySource(blocks, biomes, minimumY, context);
         return boundaryOnly
@@ -54,10 +54,10 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
                 : SavedTerrainChunk.capture(x >> 4, z >> 4, minimumY, blocks.getHeight(), "minecraft:noise", source);
     }
 
-    private void blendGeometry(int x, int z, Hunk<PlatformBlockState> blocks, ChunkContext context,
+    private void blendGeometry(int x, int z, Hunk<NativeBlockState> blocks, ChunkContext context,
                                GeometrySource source, TransitionGenerationPlan plan) {
         PlatformRegistries registries = IrisPlatforms.get().registries();
-        Map<String, PlatformBlockState> resolved = new HashMap<>();
+        Map<String, NativeBlockState> resolved = new HashMap<>();
         for (int localX = 0; localX < blocks.getWidth(); localX++) {
             for (int localZ = 0; localZ < blocks.getDepth(); localZ++) {
                 BoundaryGeometryInfluence influence = plan.geometryAt(x + localX, z + localZ);
@@ -77,11 +77,11 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
                 List<BoundaryColumnGeometry.Voxel> voxels = blended.voxels();
                 for (int offset = 0; offset < voxels.size(); offset++) {
                     BoundaryColumnGeometry.Voxel voxel = voxels.get(offset);
-                    PlatformBlockState existing = blocks.getRaw(localX, offset, localZ);
+                    NativeBlockState existing = blocks.getRaw(localX, offset, localZ);
                     if (existing != null && existing.key().equals(voxel.stateKey())) {
                         continue;
                     }
-                    PlatformBlockState replacement = resolved.computeIfAbsent(voxel.stateKey(), registries::blockOrNull);
+                    NativeBlockState replacement = resolved.computeIfAbsent(voxel.stateKey(), registries::blockOrNull);
                     if (replacement == null) {
                         throw new IllegalStateException("Terrain boundary requires unavailable block state " + voxel.stateKey());
                     }
@@ -93,13 +93,13 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
     }
 
     private static final class GeometrySource implements SavedTerrainChunk.VoxelSource {
-        private final Hunk<PlatformBlockState> blocks;
-        private final Hunk<PlatformBiome> biomes;
+        private final Hunk<NativeBlockState> blocks;
+        private final Hunk<NativeBiome> biomes;
         private final int minimumY;
         private final ChunkContext context;
-        private final Map<PlatformBlockState, BoundaryColumnGeometry.Voxel> voxels = new IdentityHashMap<>();
+        private final Map<NativeBlockState, BoundaryColumnGeometry.Voxel> voxels = new IdentityHashMap<>();
 
-        private GeometrySource(Hunk<PlatformBlockState> blocks, Hunk<PlatformBiome> biomes, int minimumY, ChunkContext context) {
+        private GeometrySource(Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes, int minimumY, ChunkContext context) {
             this.blocks = blocks;
             this.biomes = biomes;
             this.minimumY = minimumY;
@@ -108,7 +108,7 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
 
         @Override
         public BoundaryColumnGeometry.Voxel voxel(int localX, int worldY, int localZ) {
-            PlatformBlockState state = blocks.getRaw(localX, worldY - minimumY, localZ);
+            NativeBlockState state = blocks.getRaw(localX, worldY - minimumY, localZ);
             if (state == null) {
                 state = IrisPlatforms.get().registries().air();
             }
@@ -122,7 +122,7 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
 
         @Override
         public String biome(int localX, int worldY, int localZ) throws IOException {
-            PlatformBiome biome = biomes.getRaw(localX, worldY - minimumY, localZ);
+            NativeBiome biome = biomes.getRaw(localX, worldY - minimumY, localZ);
             if (biome == null) {
                 throw new IOException("Natural terrain has no physical biome at " + localX + "," + worldY + "," + localZ);
             }
@@ -137,10 +137,10 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
             return BoundaryColumnGeometry.fromVoxels(minimumY, values);
         }
 
-        private static BoundaryColumnGeometry.Voxel encode(PlatformBlockState state) {
+        private static BoundaryColumnGeometry.Voxel encode(NativeBlockState state) {
             String stateKey = state.key();
             boolean custom = state.isCustom();
-            PlatformBlockState nativeState = state.placementBaseState();
+            NativeBlockState nativeState = state.placementBaseState();
             if (nativeState != null) {
                 state = nativeState;
             }

@@ -1,36 +1,36 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandExecutor;
+
 import art.arcane.iris.command.IrisCommand;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 
 final class ModdedEntityCommandRunner {
     private ModdedEntityCommandRunner() {
     }
 
-    static void run(KList<IrisCommand> commands, ServerLevel level, int blockX, int blockY, int blockZ) {
+    static void run(KList<IrisCommand> commands, NativeWorld world, int blockX, int blockY, int blockZ) {
         if (commands.isEmpty()) {
             return;
         }
-        MinecraftServer server = level.getServer();
+        NativeCommandExecutor executor = NativeCommandExecutor.fromWorld(world, IrisLogging::reportError);
         ModdedScheduler scheduler = ModdedEngineBootstrap.schedulerOrNull();
-        if (server == null || scheduler == null) {
+        if (executor == null || scheduler == null) {
             IrisLogging.error("Iris could not schedule entity commands because the modded server scheduler is unavailable.");
             return;
         }
 
-        ModdedPlatformWorld world = new ModdedPlatformWorld(level);
         for (IrisCommand command : commands) {
             if (command == null || !command.isValid(world)) {
                 continue;
             }
-            schedule(command, server, scheduler, blockX, blockY, blockZ);
+            schedule(command, executor, scheduler, blockX, blockY, blockZ);
         }
     }
 
-    private static void schedule(IrisCommand command, MinecraftServer server, ModdedScheduler scheduler, int blockX, int blockY, int blockZ) {
+    private static void schedule(IrisCommand command, NativeCommandExecutor executor, ModdedScheduler scheduler, int blockX, int blockY, int blockZ) {
         int delay = clampDelay(command.getDelay(), 0);
         int repeatDelay = clampDelay(command.getRepeatDelay(), 1);
         for (String raw : command.getCommands()) {
@@ -39,9 +39,9 @@ final class ModdedEntityCommandRunner {
                 continue;
             }
             if (command.isRepeat()) {
-                scheduler.laterGlobal(() -> new RepeatingCommand(server, scheduler, prepared, repeatDelay).run(), delay);
+                scheduler.laterGlobal(() -> new RepeatingCommand(executor, scheduler, prepared, repeatDelay).run(), delay);
             } else {
-                scheduler.laterGlobal(() -> ModdedServerCommands.dispatch(server, prepared), delay);
+                scheduler.laterGlobal(() -> executor.dispatch(prepared), delay);
             }
         }
     }
@@ -61,13 +61,13 @@ final class ModdedEntityCommandRunner {
     }
 
     private static final class RepeatingCommand implements Runnable {
-        private final MinecraftServer server;
+        private final NativeCommandExecutor executor;
         private final ModdedScheduler scheduler;
         private final String command;
         private final int interval;
 
-        private RepeatingCommand(MinecraftServer server, ModdedScheduler scheduler, String command, int interval) {
-            this.server = server;
+        private RepeatingCommand(NativeCommandExecutor executor, ModdedScheduler scheduler, String command, int interval) {
+            this.executor = executor;
             this.scheduler = scheduler;
             this.command = command;
             this.interval = interval;
@@ -75,7 +75,7 @@ final class ModdedEntityCommandRunner {
 
         @Override
         public void run() {
-            ModdedServerCommands.dispatch(server, command);
+            executor.dispatch(command);
             scheduler.laterGlobal(this, interval);
         }
     }

@@ -18,16 +18,17 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedGeneratorPolicy;
 import art.arcane.volmlib.util.hunk.Hunk;
 
-public final class ModdedBlockBuffer implements Hunk<PlatformBlockState> {
-    private final PlatformBlockState[] data;
-    private final PlatformBlockState air;
+public final class ModdedBlockBuffer implements Hunk<NativeBlockState>, NativeModdedGeneratorPolicy.BlockBuffer {
+    private final NativeBlockState[] data;
+    private final NativeBlockState air;
     private final int height;
 
-    public ModdedBlockBuffer(int height, PlatformBlockState air) {
-        this.data = new PlatformBlockState[16 * height * 16];
+    public ModdedBlockBuffer(int height, NativeBlockState air) {
+        this.data = new NativeBlockState[16 * height * 16];
         this.air = air;
         this.height = height;
     }
@@ -44,7 +45,7 @@ public final class ModdedBlockBuffer implements Hunk<PlatformBlockState> {
      * Direct slot read, null when unset — lets writeBlocks pay one index + one array load per
      * block instead of the isAir + getRaw pair.
      */
-    public PlatformBlockState rawOrNull(int x, int y, int z) {
+    public NativeBlockState rawOrNull(int x, int y, int z) {
         return data[index(x, y, z)];
     }
 
@@ -64,7 +65,7 @@ public final class ModdedBlockBuffer implements Hunk<PlatformBlockState> {
     }
 
     @Override
-    public void set(int x, int y, int z, PlatformBlockState t) {
+    public void set(int x, int y, int z, NativeBlockState t) {
         if (t == null) {
             return;
         }
@@ -75,7 +76,7 @@ public final class ModdedBlockBuffer implements Hunk<PlatformBlockState> {
     }
 
     @Override
-    public void setRaw(int x, int y, int z, PlatformBlockState t) {
+    public void setRaw(int x, int y, int z, NativeBlockState t) {
         if (t == null) {
             return;
         }
@@ -83,13 +84,13 @@ public final class ModdedBlockBuffer implements Hunk<PlatformBlockState> {
     }
 
     @Override
-    public PlatformBlockState getRaw(int x, int y, int z) {
-        PlatformBlockState state = data[index(x, y, z)];
+    public NativeBlockState getRaw(int x, int y, int z) {
+        NativeBlockState state = data[index(x, y, z)];
         return state == null ? air : state;
     }
 
     @Override
-    public PlatformBlockState get(int x, int y, int z) {
+    public NativeBlockState get(int x, int y, int z) {
         if (x < 0 || y < 0 || z < 0 || x >= 16 || y >= height || z >= 16) {
             return air;
         }

@@ -1,9 +1,11 @@
 package art.arcane.iris.structure.nativegen;
 
-import art.arcane.iris.structure.placement.IrisStructureCarveShape;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureReferenceBounds;
+
+import art.arcane.volmlib.util.structure.StructureCarveShape;
 import art.arcane.iris.structure.placement.IrisStructureStiltSettings;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
-import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -46,11 +48,11 @@ public class NativeStructureOwnershipRecordTest {
     @Test
     public void decisionSnapshotFreezesTerrainAndStiltSettings() {
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
+                .setMode(StructureTerrainMode.FORCE_CARVE)
                 .setHorizontalPadding(9)
                 .setCeilingPadding(3)
                 .setFloorPadding(2)
-                .setShape(IrisStructureCarveShape.ERODED)
+                .setShape(StructureCarveShape.ERODED)
                 .setErosionStrength(0.42D)
                 .setErosionFrequency(0.17D)
                 .setLobeFrequency(0.03D)
@@ -75,8 +77,8 @@ public class NativeStructureOwnershipRecordTest {
         IrisNativeStructureDecision restored = snapshot.restore();
 
         assertTrue(restored.generate());
-        assertEquals(IrisStructureTerrainMode.FORCE_CARVE, restored.terrain().resolvedMode());
-        assertEquals(IrisStructureCarveShape.ERODED, restored.terrain().resolvedShape());
+        assertEquals(StructureTerrainMode.FORCE_CARVE, restored.terrain().resolvedMode());
+        assertEquals(StructureCarveShape.ERODED, restored.terrain().resolvedShape());
         assertEquals(9, restored.terrain().getHorizontalPadding());
         assertEquals(0.42D, restored.terrain().getErosionStrength(), 0D);
         assertNotNull(restored.stilt());
@@ -103,8 +105,7 @@ public class NativeStructureOwnershipRecordTest {
         NativeStructureOwnershipRecord original = record(
                 "nova_structures:tavern_oak", -3, 9, 83L);
 
-        NativeStructureOwnershipRecord refreshed = original.withReferenceEnvelope(
-                -6, 0, 6, 12);
+        NativeStructureOwnershipRecord refreshed = original.withReferenceEnvelope(new StructureReferenceBounds(-6, 0, 6, 12));
 
         assertEquals(original.schema(), refreshed.schema());
         assertEquals(original.ownershipKey(), refreshed.ownershipKey());

@@ -13,7 +13,7 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.generation.block.B;
@@ -51,7 +51,7 @@ public class IrisDepositModifierParityTest {
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
 
-    private final Map<String, PlatformBlockState> states = new HashMap<>();
+    private final Map<String, NativeBlockState> states = new HashMap<>();
 
     @Before
     public void bindPlatform() {
@@ -137,7 +137,7 @@ public class IrisDepositModifierParityTest {
             int y = invocation.getArgument(1);
             return x == 4 && y % 7 == 0 ? cavern : null;
         });
-        Hunk<PlatformBlockState> terrain = Hunk.newArrayHunk(16, 48, 16);
+        Hunk<NativeBlockState> terrain = Hunk.newArrayHunk(16, 48, 16);
         for (int y = 0; y < 48; y++) {
             for (int z = 0; z < 16; z++) {
                 for (int x = 0; x < 16; x++) {
@@ -153,8 +153,8 @@ public class IrisDepositModifierParityTest {
             blocks.when(() -> B.getStateOrNull(anyString(), anyBoolean()))
                     .thenAnswer(invocation -> state(invocation.getArgument(0)));
             blocks.when(() -> B.toDeepSlateOre(any(), any())).thenAnswer(invocation -> {
-                PlatformBlockState host = invocation.getArgument(0);
-                PlatformBlockState ore = invocation.getArgument(1);
+                NativeBlockState host = invocation.getArgument(0);
+                NativeBlockState ore = invocation.getArgument(1);
                 return host.isDeepSlate() && ore.isOre()
                         ? state("deepslate_" + ore.key().substring(10)) : ore;
             });
@@ -166,7 +166,7 @@ public class IrisDepositModifierParityTest {
         for (int y = 0; y < 48; y++) {
             for (int z = 0; z < 16; z++) {
                 for (int x = 0; x < 16; x++) {
-                    PlatformBlockState block = terrain.get(x, y, z);
+                    NativeBlockState block = terrain.get(x, y, z);
                     result[0] = (result[0] ^ block.key().hashCode()) * 0x100000001b3L;
                     if (block.key().endsWith("granite")) {
                         result[1]++;
@@ -202,12 +202,12 @@ public class IrisDepositModifierParityTest {
                 .setReplaceableBlocks(new KList<>(hosts));
     }
 
-    private PlatformBlockState state(String block) {
+    private NativeBlockState state(String block) {
         String key = block.contains(":") ? block : "minecraft:" + block;
         return states.computeIfAbsent(key, KeyedBlockState::new);
     }
 
-    private static final class KeyedBlockState implements PlatformBlockState {
+    private static final class KeyedBlockState implements NativeBlockState {
         private final String key;
         private final boolean ore;
         private final boolean deepSlate;
@@ -261,7 +261,7 @@ public class IrisDepositModifierParityTest {
         }
 
         @Override
-        public PlatformBlockState placementBaseState() {
+        public NativeBlockState placementBaseState() {
             return null;
         }
 
@@ -336,12 +336,12 @@ public class IrisDepositModifierParityTest {
         }
 
         @Override
-        public boolean canPlaceOnto(PlatformBlockState onto) {
+        public boolean canPlaceOnto(NativeBlockState onto) {
             return false;
         }
 
         @Override
-        public boolean matches(PlatformBlockState state) {
+        public boolean matches(NativeBlockState state) {
             return false;
         }
 
@@ -356,7 +356,7 @@ public class IrisDepositModifierParityTest {
         }
 
         @Override
-        public PlatformBlockState withProperty(String name, String value) {
+        public NativeBlockState withProperty(String name, String value) {
             return null;
         }
 
@@ -367,14 +367,14 @@ public class IrisDepositModifierParityTest {
     }
 
     private static final class PaletteGenerator extends IrisDepositGenerator {
-        private final KList<PlatformBlockState> blocks;
+        private final KList<NativeBlockState> blocks;
 
-        private PaletteGenerator(PlatformBlockState block) {
+        private PaletteGenerator(NativeBlockState block) {
             blocks = new KList<>(block);
         }
 
         @Override
-        public KList<PlatformBlockState> getBlockData(IrisData data) {
+        public KList<NativeBlockState> getBlockData(IrisData data) {
             return blocks;
         }
     }

@@ -1,5 +1,7 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedStructureStage;
+
 import com.mojang.serialization.Codec;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
@@ -58,7 +60,7 @@ public class ModdedNativeStructurePoiRegistrationTest {
         chunk.setBlockState(ordinaryPosition, Blocks.STONE.defaultBlockState(), 0);
         Map<BlockPos, BlockState> visited = new LinkedHashMap<>();
 
-        ModdedNativeStructureStage.visitExistingPois(
+        NativeModdedStructureStage.visitExistingPois(
                 chunk, (position, state) -> visited.put(position.immutable(), state));
 
         assertEquals(poiState, visited.get(poiPosition));
@@ -92,7 +94,7 @@ public class ModdedNativeStructurePoiRegistrationTest {
         Deque<Runnable> serverQueue = new ArrayDeque<>();
         AtomicInteger missingRemovals = new AtomicInteger();
 
-        ModdedNativeStructureStage.visitExistingPois(chunk,
+        NativeModdedStructureStage.visitExistingPois(chunk,
                 (poiPosition, state) -> queuePoiTransition(
                         serverQueue, section, poiPosition,
                         Blocks.AIR.defaultBlockState(), state, missingRemovals));

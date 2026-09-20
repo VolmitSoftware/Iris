@@ -18,15 +18,14 @@
 
 package art.arcane.iris.modded.api;
 
-import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.modded.ModdedBlockResolution;
-import net.minecraft.core.BlockPos;
-import net.minecraft.resources.Identifier;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.block.state.BlockState;
-
+import art.arcane.iris.modded.ModdedIrisLog;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockPlacement;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockResolver;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntityRuntime;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeSpawnedEntity;
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeResourceKeys;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -38,6 +37,7 @@ import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Supplier;
 
 /**
  * Registry of {@link ModdedDataProvider} instances and static block-data aliases, and the resolution path Iris
@@ -57,7 +57,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public final class ModdedCustomContentRegistry {
     private static final List<ModdedDataProvider> PROVIDERS = new CopyOnWriteArrayList<>();
-    private static final Map<String, BlockState> CUSTOM_BLOCKS = new ConcurrentHashMap<>();
+    private static final Map<String, ModdedBlockState> CUSTOM_BLOCKS = new ConcurrentHashMap<>();
     private static volatile boolean scanned = false;
     private static DiscoveryBatch discoveryBatch;
 
@@ -73,23 +73,23 @@ public final class ModdedCustomContentRegistry {
         if (namespace == null || key == null || state == null) {
             return;
         }
-        Identifier identifier = Identifier.tryParse(namespace + ":" + key);
+        String identifier = NativeResourceKeys.normalize(namespace + ":" + key);
         if (identifier == null) {
             ModdedIrisLog.warn("Iris custom block data registration rejected invalid id {}:{}", namespace, key);
             return;
         }
-        BlockState parsed;
+        ModdedBlockState parsed;
         try {
-            parsed = ModdedBlockResolution.strictParse(state).handle();
+            parsed = NativeBlockResolver.strictParse(state);
         } catch (Throwable error) {
             ModdedIrisLog.error("Iris custom block data '{}:{}' has unparseable state '{}'", namespace, key, state, error);
             return;
         }
         DiscoveryBatch activeBatch = discoveryBatch;
         if (activeBatch == null) {
-            CUSTOM_BLOCKS.put(identifier.toString(), parsed);
+            CUSTOM_BLOCKS.put(identifier, parsed);
         } else {
-            activeBatch.customBlocks.put(identifier.toString(), parsed);
+            activeBatch.customBlocks.put(identifier, parsed);
         }
         ModdedIrisLog.info("Iris registered custom block data {}:{} -> {}", namespace, key, state);
     }
@@ -142,7 +142,7 @@ public final class ModdedCustomContentRegistry {
 
     static synchronized Discovery discover(Iterable<ModdedDataProvider> discoveredProviders) {
         List<ModdedDataProvider> previousProviders = List.copyOf(PROVIDERS);
-        Map<String, BlockState> previousCustomBlocks = new LinkedHashMap<>(CUSTOM_BLOCKS);
+        Map<String, ModdedBlockState> previousCustomBlocks = new LinkedHashMap<>(CUSTOM_BLOCKS);
         boolean previousDiscoveryComplete = scanned;
         DiscoveryBatch batch = new DiscoveryBatch(previousProviders, previousCustomBlocks);
         discoveryBatch = batch;
@@ -236,7 +236,7 @@ public final class ModdedCustomContentRegistry {
         List<String> keys = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (ModdedDataProvider provider : PROVIDERS) {
-            Collection<Identifier> types;
+            Collection<String> types;
             try {
                 types = provider.getTypes(type);
             } catch (Throwable error) {
@@ -246,9 +246,9 @@ public final class ModdedCustomContentRegistry {
             if (types == null) {
                 continue;
             }
-            for (Identifier identifier : types) {
-                if (identifier != null && seen.add(identifier.toString())) {
-                    keys.add(identifier.toString());
+            for (String identifier : types) {
+                if (identifier != null && seen.add(identifier)) {
+                    keys.add(identifier);
                 }
             }
         }
@@ -264,11 +264,11 @@ public final class ModdedCustomContentRegistry {
         if (key == null || (PROVIDERS.isEmpty() && CUSTOM_BLOCKS.isEmpty())) {
             return null;
         }
-        Identifier base = parseIdentifier(key);
+        String base = parseIdentifier(key);
         if (base == null) {
             return null;
         }
-        BlockState custom = CUSTOM_BLOCKS.get(base.toString());
+        ModdedBlockState custom = CUSTOM_BLOCKS.get(base);
         if (custom != null) {
             return ModdedBlockData.direct(custom);
         }
@@ -297,8 +297,8 @@ public final class ModdedCustomContentRegistry {
      * consulted for that position. An unparseable key or no matching provider is logged and skipped. Called on the
      * server thread with the chunk loaded.
      */
-    public static void processBlockPlacement(Engine engine, ServerLevel level, BlockPos position, String key) {
-        Identifier base = parseIdentifier(key);
+    public static void processBlockPlacement(Engine engine, String key, Supplier<NativeBlockPlacement> placement) {
+        String base = parseIdentifier(key);
         if (base == null) {
             ModdedIrisLog.warn("Iris deferred custom block placement rejected invalid id {}", key);
             return;
@@ -310,9 +310,9 @@ public final class ModdedCustomContentRegistry {
             }
             try {
                 provider.processBlockPlacement(new ModdedBlockPlacementContext(
-                        engine, level, position.immutable(), base, state, level.getBlockState(position)));
+                        engine, placement.get(), base, state));
             } catch (Throwable error) {
-                ModdedIrisLog.error("Iris custom content provider '{}' failed post-placement for {} at {}", provider.modId(), key, position, error);
+                ModdedIrisLog.error("Iris custom content provider '{}' failed post-placement for {}", provider.modId(), key, error);
             }
             return;
         }
@@ -323,20 +323,23 @@ public final class ModdedCustomContentRegistry {
      * Asks each ready provider claiming {@code key} to spawn a custom entity, returning the first non-null result.
      * Null when no provider claims it or every attempt declined. Called on the server thread.
      */
-    public static Entity spawnMob(ServerLevel level, double x, double y, double z, String key) {
-        if (PROVIDERS.isEmpty() || level == null || key == null) {
+    public static NativeSpawnedEntity spawnMob(NativeEntityRuntime.CustomSpawn request) {
+        String key = request.key();
+        if (PROVIDERS.isEmpty() || request.runtime() == null || key == null) {
             return null;
         }
-        Identifier base = parseIdentifier(key);
+        String base = parseIdentifier(key);
         if (base == null) {
             return null;
         }
+        NativeEntityRuntime.CustomSpawn normalized = new NativeEntityRuntime.CustomSpawn(
+                request.runtime(), request.position(), base);
         for (ModdedDataProvider provider : PROVIDERS) {
             if (!provider.isReady() || !provider.isValidProvider(base, ModdedDataType.ENTITY)) {
                 continue;
             }
             try {
-                Entity entity = provider.spawnMob(level, x, y, z, base);
+                NativeSpawnedEntity entity = provider.spawnMob(normalized);
                 if (entity != null) {
                     return entity;
                 }
@@ -347,11 +350,11 @@ public final class ModdedCustomContentRegistry {
         return null;
     }
 
-    private static Identifier parseIdentifier(String key) {
+    private static String parseIdentifier(String key) {
         String trimmed = key.trim();
         int bracket = trimmed.indexOf('[');
         String head = bracket < 0 ? trimmed : trimmed.substring(0, bracket);
-        return Identifier.tryParse(head);
+        return NativeResourceKeys.normalize(head);
     }
 
     private static Map<String, String> parseState(String key) {
@@ -376,7 +379,7 @@ public final class ModdedCustomContentRegistry {
     }
 
     private static synchronized void restore(List<ModdedDataProvider> providers,
-                                             Map<String, BlockState> customBlocks,
+                                             Map<String, ModdedBlockState> customBlocks,
                                              boolean discoveryComplete) {
         PROVIDERS.clear();
         PROVIDERS.addAll(providers);
@@ -391,11 +394,11 @@ public final class ModdedCustomContentRegistry {
      */
     public static final class Discovery {
         private final List<ModdedDataProvider> providers;
-        private final Map<String, BlockState> customBlocks;
+        private final Map<String, ModdedBlockState> customBlocks;
         private final boolean discoveryComplete;
         private boolean active;
 
-        private Discovery(List<ModdedDataProvider> providers, Map<String, BlockState> customBlocks,
+        private Discovery(List<ModdedDataProvider> providers, Map<String, ModdedBlockState> customBlocks,
                           boolean discoveryComplete, boolean active) {
             this.providers = providers;
             this.customBlocks = customBlocks;
@@ -423,9 +426,9 @@ public final class ModdedCustomContentRegistry {
     private static final class DiscoveryBatch {
         private final List<ModdedDataProvider> providers;
         private final List<ModdedDataProvider> additions = new ArrayList<>();
-        private final Map<String, BlockState> customBlocks;
+        private final Map<String, ModdedBlockState> customBlocks;
 
-        private DiscoveryBatch(List<ModdedDataProvider> providers, Map<String, BlockState> customBlocks) {
+        private DiscoveryBatch(List<ModdedDataProvider> providers, Map<String, ModdedBlockState> customBlocks) {
             this.providers = new ArrayList<>(providers);
             this.customBlocks = new LinkedHashMap<>(customBlocks);
         }

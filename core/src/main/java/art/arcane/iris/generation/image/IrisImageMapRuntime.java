@@ -6,7 +6,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.InferredType;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 
 import java.util.ArrayList;
@@ -116,7 +116,7 @@ public final class IrisImageMapRuntime {
         return target == null ? null : binding.biomes.get(target);
     }
 
-    public PlatformBlockState sampleSurfaceBlock(double worldX, double worldZ) {
+    public NativeBlockState sampleSurfaceBlock(double worldX, double worldZ) {
         RuntimeBinding binding = applications.get(IrisImageMapApplication.SURFACE_BLOCK);
         if (binding == null || !selectCategorical(binding.maskWeight(worldX, worldZ))) {
             return null;
@@ -172,7 +172,7 @@ public final class IrisImageMapRuntime {
         }
         Map<String, IrisRegion> regions = new LinkedHashMap<>();
         Map<String, IrisBiome> biomes = new LinkedHashMap<>();
-        Map<String, PlatformBlockState> blocks = new LinkedHashMap<>();
+        Map<String, NativeBlockState> blocks = new LinkedHashMap<>();
         Set<String> targets = legendTargets(definition);
 
         if (application == IrisImageMapApplication.REGION) {
@@ -197,7 +197,7 @@ public final class IrisImageMapRuntime {
             }
         } else if (application == IrisImageMapApplication.SURFACE_BLOCK) {
             for (String target : targets) {
-                PlatformBlockState block = B.getStateOrNull(target, false);
+                NativeBlockState block = B.getStateOrNull(target, false);
                 if (block == null) {
                     throw validation("Image-map '" + key + "' references unknown surface block target '" + target + "'");
                 }
@@ -351,7 +351,7 @@ public final class IrisImageMapRuntime {
         private final CompiledIrisImageMap compiled;
         private final Map<String, IrisRegion> regions;
         private final Map<String, IrisBiome> biomes;
-        private final Map<String, PlatformBlockState> blocks;
+        private final Map<String, NativeBlockState> blocks;
         private final List<IrisImageMapMask> maskDefinitions;
         private IrisImageMapMaskSampler masks = IrisImageMapMaskSampler.empty();
 
@@ -361,7 +361,7 @@ public final class IrisImageMapRuntime {
                 CompiledIrisImageMap compiled,
                 Map<String, IrisRegion> regions,
                 Map<String, IrisBiome> biomes,
-                Map<String, PlatformBlockState> blocks,
+                Map<String, NativeBlockState> blocks,
                 List<IrisImageMapMask> maskDefinitions
         ) {
             this.key = key;

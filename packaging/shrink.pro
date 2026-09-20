@@ -12,3 +12,9 @@
     public static org.bukkit.event.HandlerList getHandlerList();
     public org.bukkit.event.HandlerList getHandlers();
 }
+
+-keep class art.arcane.volmlib.nativelib.**.scoreboard.NativeScoreboardPackets { public <init>(); }
+-keep @art.arcane.volmlib.nativelib.NativeBinding interface * { *; }
+-keep class art.arcane.volmlib.nativelib.**.terrain.Native* { public <init>(); }
+
+-keep class art.arcane.volmlib.nativelib.**.server.NativeServerDiagnosticsImpl { public <init>(); }

@@ -1,5 +1,6 @@
 package art.arcane.iris.platform.bukkit.nms.v26_2_R1;
 
+import art.arcane.volmlib.nativelib.v26_2_R1.terrain.NativeTerrainAccessImpl;
 import ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
@@ -83,7 +84,7 @@ public class NmsChunkIOFlushTest {
     }
 
     private static final class Fixture {
-        private final NMSBinding binding = mock(NMSBinding.class, CALLS_REAL_METHODS);
+        private final NativeTerrainAccessImpl binding = mock(NativeTerrainAccessImpl.class, CALLS_REAL_METHODS);
         private final CraftWorld world = mock(CraftWorld.class);
         private final ServerLevel level = mock(ServerLevel.class);
         private final RegionDataController chunks = mock(RegionDataController.class);

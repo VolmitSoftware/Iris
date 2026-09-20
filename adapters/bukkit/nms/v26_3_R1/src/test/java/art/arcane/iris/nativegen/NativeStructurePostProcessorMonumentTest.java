@@ -1,7 +1,11 @@
 package art.arcane.iris.nativegen.v26_3_R1;
 
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureVerticalPlacer;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureReferenceEnvelope;
+
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
-import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderSet;
@@ -95,7 +99,7 @@ public class NativeStructurePostProcessorMonumentTest {
                 start.getStructure(),
                 0,
                 new IrisStructureTerrain()
-                        .setMode(IrisStructureTerrainMode.FORCE_CARVE)
+                        .setMode(StructureTerrainMode.FORCE_CARVE)
                         .setHorizontalPadding(4));
 
         int offset = NativeStructureVerticalPlacer.applyVerticalPlacement(

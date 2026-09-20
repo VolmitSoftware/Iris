@@ -18,6 +18,8 @@
 
 package art.arcane.iris.structure.nativegen;
 
+import art.arcane.volmlib.nativelib.terrain.StructureFrequencyControl;
+
 import art.arcane.iris.structure.placement.IrisStructureSetFrequencyOverride;
 import art.arcane.iris.structure.placement.IrisStructureStiltSettings;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
@@ -42,7 +44,7 @@ import java.util.Objects;
 @AllArgsConstructor
 @Description("Controls native vanilla, mod, and ingested datapack structure generation for this dimension (set as the dimension's 'importedStructures' field). Every registered structure generates through its native placement unless its key matches 'disabled', equals a key in 'disabledExact', or a viable dimension-level Iris placement explicitly replaces its source. Family matching uses namespace, slash, or underscore boundaries, while exact matching compares normalized complete keys only. Run '/iris structure list <dimension>' to dump every valid key. Only affects newly generated chunks and is separate from Iris structure placements.")
 @Data
-public class IrisImportedStructureControl {
+public class IrisImportedStructureControl implements StructureFrequencyControl {
     @ArrayType(type = String.class, min = 1)
     @RegistryListVanillaStructure(prefixes = true)
     @Description("Structure keys to deny explicitly, e.g. 'minecraft:stronghold'. A namespace:path prefix also matches, so 'minecraft:village' disables every village variant and 'minecraft:ruined_portal' disables every ruined portal. Every key not matched here remains enabled.")

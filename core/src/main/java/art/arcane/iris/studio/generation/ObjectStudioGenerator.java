@@ -32,8 +32,8 @@ import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.platform.bukkit.BukkitBiome;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.VectorMap;
 import art.arcane.volmlib.util.math.Vector3i;
 import org.bukkit.Material;
@@ -51,15 +51,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ObjectStudioGenerator extends EnginedStudioGenerator {
     public static final int DEFAULT_PADDING = 2;
-    private static final PlatformBlockState FLOOR = BukkitBlockState.of(Material.POLISHED_DEEPSLATE.createBlockData());
-    private static final PlatformBlockState FRAME = BukkitBlockState.of(Material.SMOOTH_QUARTZ.createBlockData());
-    private static final PlatformBlockState MARKER = BukkitBlockState.of(Material.END_ROD.createBlockData());
-    private static final PlatformBiome DEFAULT_BIOME = BukkitBiome.of(Biome.PLAINS);
+    private static final NativeBlockState FLOOR = BukkitBlockState.of(Material.POLISHED_DEEPSLATE.createBlockData());
+    private static final NativeBlockState FRAME = BukkitBlockState.of(Material.SMOOTH_QUARTZ.createBlockData());
+    private static final NativeBlockState MARKER = BukkitBlockState.of(Material.END_ROD.createBlockData());
+    private static final NativeBiome DEFAULT_BIOME = BukkitBiome.of(Biome.PLAINS);
 
     private final int padding;
-    private final PlatformBlockState floor;
-    private final PlatformBlockState frame;
-    private final PlatformBlockState marker;
+    private final NativeBlockState floor;
+    private final NativeBlockState frame;
+    private final NativeBlockState marker;
     private final AtomicBoolean layoutBuilt = new AtomicBoolean(false);
     private final Object layoutLock = new Object();
     private final Map<String, DisplayObject> objectCache = new ConcurrentHashMap<>();
@@ -70,7 +70,7 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
         this(engine, DEFAULT_PADDING, FLOOR, FRAME, MARKER);
     }
 
-    public ObjectStudioGenerator(Engine engine, int padding, PlatformBlockState floor, PlatformBlockState frame, PlatformBlockState marker) {
+    public ObjectStudioGenerator(Engine engine, int padding, NativeBlockState floor, NativeBlockState frame, NativeBlockState marker) {
         super(engine);
         this.padding = padding;
         this.floor = floor;
@@ -203,14 +203,14 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
     }
 
     private void placeSlice(DisplayObject object, GridCell cell, TerrainChunk tc, int chunkWorldX, int chunkWorldZ, int minHeight, int maxHeight, List<PlacedTile> tiles) {
-        VectorMap<PlatformBlockState> blocks = object.source().getBlocks();
+        VectorMap<NativeBlockState> blocks = object.source().getBlocks();
         if (blocks == null || blocks.isEmpty()) return;
 
         int originX = cell.originX();
         int originY = cell.originY();
         int originZ = cell.originZ();
 
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : blocks) {
+        for (Map.Entry<IrisBlockVector, NativeBlockState> entry : blocks) {
             IrisBlockVector signed = entry.getKey();
             int worldX = originX + signed.getBlockX() - object.minimumX();
             int worldY = originY + signed.getBlockY() - object.minimumY();
@@ -220,7 +220,7 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
             if (worldZ < chunkWorldZ || worldZ > chunkWorldZ + 15) continue;
             if (worldY < minHeight || worldY >= maxHeight) continue;
 
-            PlatformBlockState data = entry.getValue();
+            NativeBlockState data = entry.getValue();
             if (data == null) continue;
 
             tc.setBlock(worldX - chunkWorldX, worldY, worldZ - chunkWorldZ, data);
@@ -332,7 +332,7 @@ public class ObjectStudioGenerator extends EnginedStudioGenerator {
             int minimumX = Integer.MAX_VALUE;
             int minimumY = Integer.MAX_VALUE;
             int minimumZ = Integer.MAX_VALUE;
-            for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : object.getBlocks()) {
+            for (Map.Entry<IrisBlockVector, NativeBlockState> entry : object.getBlocks()) {
                 if (entry.getValue() == null) {
                     continue;
                 }

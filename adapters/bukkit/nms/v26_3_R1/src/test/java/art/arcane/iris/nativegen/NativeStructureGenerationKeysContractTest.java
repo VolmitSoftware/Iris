@@ -1,5 +1,7 @@
 package art.arcane.iris.nativegen.v26_3_R1;
 
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureGenerationKeys;
+
 import net.minecraft.world.level.levelgen.structure.placement.AbstractSpreadingStructurePlacement;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Vec3i;

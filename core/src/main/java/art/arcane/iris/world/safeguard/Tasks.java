@@ -1,5 +1,7 @@
 package art.arcane.iris.world.safeguard;
 
+import art.arcane.volmlib.nativelib.NativeAdapters;
+import art.arcane.volmlib.nativelib.server.NativeServerDiagnostics;
 import art.arcane.iris.BuildConstants;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.configuration.IrisSettings;
@@ -9,7 +11,6 @@ import art.arcane.iris.world.IrisWorldStorage;
 import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.iris.platform.bukkit.nms.v1X.NMSBinding1X;
 import art.arcane.iris.diagnostics.splash.IrisSplashComposer;
-import art.arcane.iris.spi.CapabilityProbe;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.platform.bootstrap.getHardware;
 import art.arcane.iris.platform.agent.Agent;
@@ -249,8 +250,8 @@ public final class Tasks {
 
     private static boolean isCanvasServer() {
         ClassLoader loader = server().getClass().getClassLoader();
-        if (CapabilityProbe.succeeds("io.canvasmc.canvas.region.WorldRegionizer",
-                () -> Class.forName("io.canvasmc.canvas.region.WorldRegionizer", false, loader))) {
+        if (NativeAdapters.find(NativeServerDiagnostics.class)
+                .map(diagnostics -> diagnostics.isCanvas(loader)).orElse(false)) {
             return true;
         }
         return server().getName().toLowerCase(Locale.ROOT).contains("canvas");

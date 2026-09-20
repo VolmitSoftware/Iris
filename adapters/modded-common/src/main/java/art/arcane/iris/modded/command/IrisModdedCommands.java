@@ -31,27 +31,26 @@ import art.arcane.iris.pack.PackDownloader;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedDimensionManager;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldTeleport;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedForcedDatapack;
-import art.arcane.iris.modded.ModdedLoader;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedLoader;
 import art.arcane.iris.modded.ModdedScheduler;
-import art.arcane.iris.modded.ModdedServerLevels;
 import art.arcane.iris.modded.ModdedWorldgenIds;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KMap;
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.chunk.ChunkGenerator;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
 
 import java.io.File;
 import java.io.IOException;
@@ -69,17 +68,17 @@ public final class IrisModdedCommands {
     private static final long DOWNLOAD_SHUTDOWN_POLL_SECONDS = 15L;
     private static final Object DOWNLOAD_MONITOR = new Object();
 
-    static final SuggestionProvider<CommandSourceStack> PACK_NAMES = ModdedCommandSuggestions.PACK_NAMES;
+    static final SuggestionProvider<NativeCommandSource> PACK_NAMES = ModdedCommandSuggestions.PACK_NAMES;
     private static PackDownloadExecution activeDownload;
     private static boolean downloadAdmissionOpen;
 
     private IrisModdedCommands() {
     }
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        LiteralCommandNode<CommandSourceStack> root = dispatcher.register(ModdedCommandTree.rootTree());
-        dispatcher.register(Commands.literal("ir").redirect(root));
-        dispatcher.register(Commands.literal("irs").redirect(root));
+    public static void register(NativeCommandRegistration dispatcher) {
+        LiteralCommandNode<NativeCommandSource> root = dispatcher.register(ModdedCommandTree.rootTree());
+        dispatcher.register(NativeCommandRegistration.literal("ir").redirect(root));
+        dispatcher.register(NativeCommandRegistration.literal("irs").redirect(root));
         IrisLogging.debug("Iris /iris command tree registered");
     }
 
@@ -120,59 +119,55 @@ public final class IrisModdedCommands {
         }
     }
 
-    static int tp(CommandSourceStack source, ServerLevel level, ServerPlayer target) {
-        ServerPlayer player = target != null ? target : source.getPlayer();
+    static int tp(NativeCommandSource source, NativeWorld level, NativeProtocolPlayer target) {
+        NativeProtocolPlayer player = target != null ? target : source.player();
         if (player == null) {
             fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_CONSOLE_MUST_NAME_PLAYER_IRIS_TP_DIMENSION_PLAYER));
             return 0;
         }
-        if (!(level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator)) {
-            fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_IS_NOT_GENERATED_BY_IRIS, MessageArgument.untrusted("value", level.dimension().identifier())));
+        if (NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class) == null) {
+            fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_IS_NOT_GENERATED_BY_IRIS, MessageArgument.untrusted("value", level.name())));
             return 0;
         }
-        String dimensionId = level.dimension().identifier().toString();
-        MinecraftServer server = source.getServer();
-        CompletableFuture<Boolean> teleport = ModdedDimensionManager.teleportAsync(
-                player,
-                server,
-                dimensionId,
-                8.5D,
-                Double.MIN_VALUE,
-                8.5D);
+        String dimensionId = level.name();
+        NativeModdedServer server = source.server();
+        CompletableFuture<Boolean> teleport = NativeWorldTeleport.teleport(player, new NativeWorldTeleport.Destination(
+                server, ModdedDimensionManager.level(server, dimensionId), 8.5D, Double.MIN_VALUE, 8.5D,
+                System.nanoTime() + TimeUnit.SECONDS.toNanos(10L)));
         teleport.whenComplete((success, failure) -> {
             if (Boolean.TRUE.equals(success) && failure == null) {
                 return;
             }
             if (failure != null) {
                 ModdedIrisLog.error("Iris teleport into '{}' failed for {}",
-                        dimensionId, player.getUUID(), failure);
+                        dimensionId, player.id(), failure);
             }
             server.execute(() -> fail(source, IrisLanguage.plain(
                     ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORT_FAILED_DIMENSION_IS_NOT_LOADED,
                     MessageArgument.untrusted("dimensionId", dimensionId))));
         });
-        ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORTING, MessageArgument.untrusted("value", player.getScoreboardName()), MessageArgument.untrusted("dimensionId", dimensionId)));
+        ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORTING, MessageArgument.untrusted("value", player.name()), MessageArgument.untrusted("dimensionId", dimensionId)));
         return 1;
     }
 
-    static int evacuate(CommandSourceStack source, ServerLevel target) {
-        MinecraftServer server = source.getServer();
-        ServerLevel level = target != null ? target : source.getLevel();
-        if (!(level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator)) {
-            fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_IS_NOT_GENERATED_BY_IRIS_2, MessageArgument.untrusted("value", level.dimension().identifier())));
+    static int evacuate(NativeCommandSource source, NativeWorld target) {
+        NativeModdedServer server = source.server();
+        NativeWorld level = target != null ? target : source.world();
+        if (NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class) == null) {
+            fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_IS_NOT_GENERATED_BY_IRIS_2, MessageArgument.untrusted("value", level.name())));
             return 0;
         }
-        ServerLevel fallback = server.overworld();
-        if (fallback == level) {
+        NativeWorld fallback = server.overworld();
+        if (fallback.name().equals(level.name())) {
             fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_CANNOT_EVACUATE_PRIMARY_WORLD_THERE_IS_NOWHERE_SEND_PLAYERS));
             return 0;
         }
-        int count = ModdedDimensionManager.evacuate(server, level);
-        ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_EVACUATED_PLAYER_S_FROM, MessageArgument.untrusted("count", count), MessageArgument.untrusted("value", level.dimension().identifier()), MessageArgument.untrusted("value2", fallback.dimension().identifier())));
+        int count = NativeWorldTeleport.evacuate(server, level);
+        ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_EVACUATED_PLAYER_S_FROM, MessageArgument.untrusted("count", count), MessageArgument.untrusted("value", level.name()), MessageArgument.untrusted("value2", fallback.name())));
         return 1;
     }
 
-    static int debug(CommandSourceStack source) {
+    static int debug(NativeCommandSource source) {
         boolean to = !IrisSettings.get().getGeneral().isDebug();
         IrisSettings.get().getGeneral().setDebug(to);
         IrisSettings.get().forceSave();
@@ -180,7 +175,7 @@ public final class IrisModdedCommands {
         return 1;
     }
 
-    static int reload(CommandSourceStack source) {
+    static int reload(NativeCommandSource source) {
         if (IrisSettings.settings != null) {
             IrisSettings.invalidate();
         }
@@ -204,26 +199,27 @@ public final class IrisModdedCommands {
         return 0;
     }
 
-    static int height(CommandSourceStack source) {
-        ServerLevel level = source.getLevel();
+    static int height(NativeCommandSource source) {
+        NativeWorld level = source.world();
         IrisModdedCommands.ok(source, IrisLanguage.plain(
                 RuntimeUiMessages.WORLD_HEIGHT_RANGE,
-                MessageArgument.trusted("minY", level.getMinY()),
-                MessageArgument.trusted("maxY", level.getMaxY())));
+                MessageArgument.trusted("minY", level.minHeight()),
+                MessageArgument.trusted("maxY", (level.maxHeight() - 1))));
         IrisModdedCommands.ok(source, IrisLanguage.plain(
                 RuntimeUiMessages.WORLD_HEIGHT_TOTAL,
-                MessageArgument.trusted("height", level.getHeight())));
+                MessageArgument.trusted("height", (level.maxHeight() - level.minHeight()))));
         return 1;
     }
 
-    static int regen(CommandSourceStack source, int radius) {
-        ServerPlayer player = source.getPlayer();
+    static int regen(NativeCommandSource source, int radius) {
+        NativeProtocolPlayer player = source.player();
         if (player == null) {
             fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS));
             return 0;
         }
-        ServerLevel level = source.getLevel();
-        if (!(level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator irisGenerator)) {
+        NativeWorld level = source.world();
+        IrisModdedChunkGenerator irisGenerator = NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class);
+        if (irisGenerator == null) {
             fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_4));
             return 0;
         }
@@ -236,29 +232,29 @@ public final class IrisModdedCommands {
         return 1;
     }
 
-    static int version(CommandSourceStack source) {
-        ModdedLoader loader = ModdedEngineBootstrap.loader();
-        int engines = engineCount(source.getServer());
+    static int version(NativeCommandSource source) {
+        NativeModdedLoader loader = ModdedEngineBootstrap.loader();
+        int engines = engineCount(source.server());
         ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_IRIS_BY_VOLMIT_SOFTWARE_ON_MINECRAFT_IRIS_DIMENSION_S, MessageArgument.untrusted("value", loader.modVersion()), MessageArgument.untrusted("value2", loader.platformName()), MessageArgument.untrusted("value3", loader.minecraftVersion()), MessageArgument.untrusted("engines", engines)));
         return 1;
     }
 
-    static int info(CommandSourceStack source, String filter) {
-        MinecraftServer server = source.getServer();
+    static int info(NativeCommandSource source, String filter) {
+        NativeModdedServer server = source.server();
         // The seed is the one field in this listing that is not free to hand a plain player, and /iris worlds
         // routes here too: emit it only for sources that pass the same gate /iris seed requires.
         boolean showSeed = ModdedCommandTree.isGamemaster(source);
         List<String> lines = new ArrayList<>();
         int total = 0;
         int iris = 0;
-        for (ServerLevel level : ModdedServerLevels.levels(server)) {
+        for (NativeWorld level : server.worlds()) {
             total++;
-            ChunkGenerator generator = level.getChunkSource().getGenerator();
-            if (!(generator instanceof IrisModdedChunkGenerator irisGenerator)) {
+            IrisModdedChunkGenerator irisGenerator = NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class);
+            if (irisGenerator == null) {
                 continue;
             }
             iris++;
-            String dimensionId = level.dimension().identifier().toString();
+            String dimensionId = level.name();
             String irisIdentity = ModdedWorldgenIds.generatorIdentity(irisGenerator.dimensionKey());
             if (filter != null && !dimensionId.contains(filter)
                     && !irisIdentity.contains(filter)
@@ -274,7 +270,7 @@ public final class IrisModdedCommands {
             String featureStatus = irisGenerator.importedFeaturesStatus();
             lines.add(irisIdentity + ": pack=" + engine.getDimension().getLoadKey()
                     + " world=" + dimensionId
-                    + (showSeed ? " seed=" + level.getSeed() : "")
+                    + (showSeed ? " seed=" + level.seed() : "")
                     + " height=" + engine.getMinHeight() + ".." + engine.getMaxHeight()
                     + " generated=" + engine.getGenerated()
                     + (featureStatus == null ? "" : " importedFeatures=" + featureStatus)
@@ -295,30 +291,30 @@ public final class IrisModdedCommands {
         return 1;
     }
 
-    static int seed(CommandSourceStack source) {
-        ServerLevel level = source.getLevel();
+    static int seed(NativeCommandSource source) {
+        NativeWorld level = source.world();
         Engine engine = engineFor(level);
         if (engine == null) {
             fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_14));
             return 0;
         }
-        ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_WORLD_SEED, MessageArgument.untrusted("value", level.getSeed())));
+        ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_WORLD_SEED, MessageArgument.untrusted("value", level.seed())));
         ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_ENGINE_SEED_MIXED, MessageArgument.untrusted("value", engine.getSeedManager().getSeed()), MessageArgument.untrusted("value2", engine.getSeedManager().getFullMixedSeed())));
         return 1;
     }
 
-    static int goldenhash(CommandSourceStack source, int radius, int threads, ModdedGoldenHash.Mode mode) {
-        ServerLevel level = source.getLevel();
+    static int goldenhash(NativeCommandSource source, int radius, int threads, ModdedGoldenHash.Mode mode) {
+        NativeWorld level = source.world();
         Engine engine = engineFor(level);
         if (engine == null) {
             fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_15));
             return 0;
         }
-        ModdedGoldenHash.start(source, level, engine, radius, threads, mode);
+        ModdedGoldenHash.start(source, engine, new ModdedGoldenHash.ScanOptions(radius, threads, mode));
         return 1;
     }
 
-    static int download(CommandSourceStack source, String rawRequest) {
+    static int download(NativeCommandSource source, String rawRequest) {
         DownloadRequest request = parseDownloadRequest(rawRequest);
         if (request == null) {
             fail(source, "Use /iris download pack=overworld, /iris download pack=underworld, or /iris download link=<zip-url>.");
@@ -394,7 +390,7 @@ public final class IrisModdedCommands {
     }
 
     private static void executeDownload(
-            CommandSourceStack source,
+            NativeCommandSource source,
             DownloadRequest request,
             String target,
             String downloadSource,
@@ -438,8 +434,8 @@ public final class IrisModdedCommands {
                 MessageArgument.untrusted("downloadSource", downloadSource))));
     }
 
-    private static void dispatchDownloadFeedback(CommandSourceStack source, Runnable feedback) {
-        source.getServer().execute(feedback);
+    private static void dispatchDownloadFeedback(NativeCommandSource source, Runnable feedback) {
+        source.server().execute(feedback);
     }
 
     static String downloadBusyMessage(LifecycleOperationCoordinator.ActiveOperation operation) {
@@ -507,8 +503,8 @@ public final class IrisModdedCommands {
                 : new DownloadRequest(pack, url, Boolean.TRUE.equals(overwrite));
     }
 
-    static int metrics(CommandSourceStack source) {
-        ServerLevel level = source.getLevel();
+    static int metrics(NativeCommandSource source) {
+        NativeWorld level = source.world();
         Engine engine = engineFor(level);
         if (engine == null) {
             fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_16));
@@ -526,50 +522,50 @@ public final class IrisModdedCommands {
         return 1;
     }
 
-    static int verifyStructures(CommandSourceStack source, String keyRaw) {
+    static int verifyStructures(NativeCommandSource source, String keyRaw) {
         return ModdedLocateCommands.verifyStructures(source, keyRaw);
     }
 
-    static CompletableFuture<Suggestions> suggestStructureKeys(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+    static CompletableFuture<Suggestions> suggestStructureKeys(CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) {
         return ModdedCommandSuggestions.suggestStructureKeys(context, builder);
     }
 
-    static void warnTabFailure(String suggestion, CommandSourceStack source, Throwable error) {
+    static void warnTabFailure(String suggestion, NativeCommandSource source, Throwable error) {
         ModdedCommandSuggestions.warnTabFailure(suggestion, source, error);
     }
 
-    static Engine engineFor(ServerLevel level) {
-        ChunkGenerator generator = level.getChunkSource().getGenerator();
-        if (generator instanceof IrisModdedChunkGenerator irisGenerator) {
+    static Engine engineFor(NativeWorld level) {
+        IrisModdedChunkGenerator irisGenerator = NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class);
+        if (irisGenerator != null) {
             try {
                 return irisGenerator.commandEngine();
             } catch (Throwable e) {
-                ModdedIrisLog.error("Iris engine lookup failed for {}", level.dimension().identifier(), e);
+                ModdedIrisLog.error("Iris engine lookup failed for {}", level.name(), e);
                 return null;
             }
         }
         return null;
     }
 
-    private static int engineCount(MinecraftServer server) {
+    private static int engineCount(NativeModdedServer server) {
         int count = 0;
-        for (ServerLevel level : ModdedServerLevels.levels(server)) {
-            if (level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator) {
+        for (NativeWorld level : server.worlds()) {
+            if (NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class) != null) {
                 count++;
             }
         }
         return count;
     }
 
-    static void ok(CommandSourceStack source, String message) {
+    static void ok(NativeCommandSource source, String message) {
         ModdedCommandFeedback.ok(source, message);
     }
 
-    static void ok(CommandSourceStack source, Component component) {
+    static void ok(NativeCommandSource source, NativeCommandText component) {
         ModdedCommandFeedback.ok(source, component);
     }
 
-    static void fail(CommandSourceStack source, String message) {
+    static void fail(NativeCommandSource source, String message) {
         ModdedCommandFeedback.fail(source, message);
     }
 

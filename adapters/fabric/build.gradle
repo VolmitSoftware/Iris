@@ -76,6 +76,9 @@ java {
     }
 }
 
+ext.nativeSourceLoader = 'fabric'
+apply from: file('../../gradle/native-minecraft-sources.gradle')
+
 sourceSets {
     main {
         java {
@@ -216,7 +219,7 @@ tasks.named('test').configure {
 }
 
 loom {
-    accessWidenerPath = file('src/main/resources/irisworldgen.accesswidener')
+    accessWidenerPath = art.arcane.volmit.packaging.NativeAccessRules.prepare(nativeSourceImplementation, "fabric", layout.buildDirectory.dir("native-access").get().asFile)
     runs {
         client {
             runDir(providers.gradleProperty('irisClientRunDir').getOrElse('run'))

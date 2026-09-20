@@ -18,6 +18,9 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.volmlib.nativelib.view.WorldView;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldView;
+
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.studio.view.GuiHost;
@@ -62,12 +65,12 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldTeleport;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.awt.Desktop;
@@ -91,7 +94,7 @@ import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 public final class ModdedStudioCommands {
-    private static final Predicate<CommandSourceStack> GATE = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
+    private static final Predicate<NativeCommandSource> GATE = NativeCommandRegistration.GAMEMASTERS;
     private static final Pattern PROJECT_NAME = Pattern.compile("[a-z0-9_-]+");
     private static final Pattern STUDIO_ID_SANITIZER = Pattern.compile("[^a-z0-9_-]");
     private static final String STUDIO_NAMESPACE = "irisworldgen";
@@ -100,12 +103,12 @@ public final class ModdedStudioCommands {
     private static final UUID CONSOLE_OWNER = new UUID(0L, 0L);
     private static final Map<UUID, String> STUDIOS = new ConcurrentHashMap<>();
     private static final ModdedStudioTransitionQueue TRANSITIONS = new ModdedStudioTransitionQueue();
-    private static final SuggestionProvider<CommandSourceStack> GENERATOR_KEYS = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) -> {
+    private static final SuggestionProvider<NativeCommandSource> GENERATOR_KEYS = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> {
         ModdedCommandFeedback.tab(context.getSource());
         try {
-            Engine engine = IrisModdedCommands.engineFor(context.getSource().getLevel());
+            Engine engine = IrisModdedCommands.engineFor(context.getSource().world());
             if (engine != null) {
-                return SharedSuggestionProvider.suggest(engine.getData().getGeneratorLoader().getPossibleKeys(), builder);
+                return NativeCommandRegistration.suggest(engine.getData().getGeneratorLoader().getPossibleKeys(), builder);
             }
         } catch (Throwable e) {
             IrisModdedCommands.warnTabFailure("generator keys", context.getSource(), e);
@@ -116,10 +119,10 @@ public final class ModdedStudioCommands {
     private ModdedStudioCommands() {
     }
 
-    public static LiteralArgumentBuilder<CommandSourceStack> tree(String name) {
-        LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal(name).requires(GATE);
+    public static LiteralArgumentBuilder<NativeCommandSource> tree(String name) {
+        LiteralArgumentBuilder<NativeCommandSource> root = NativeCommandRegistration.literal(name).requires(GATE);
 
-        root.executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> ModdedCommandHelp.send(context.getSource(), name)));
+        root.executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> ModdedCommandHelp.send(context.getSource(), name)));
 
         root.then(createTree("create"));
         root.then(createTree("+"));
@@ -127,28 +130,28 @@ public final class ModdedStudioCommands {
         root.then(packageTree("package"));
         root.then(packageTree("pkg"));
 
-        root.then(Commands.literal("version")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> version(context.getSource(), null)))
-                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> version(context.getSource(), StringArgumentType.getString(context, "pack"))))));
+        root.then(NativeCommandRegistration.literal("version")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> version(context.getSource(), null)))
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> version(context.getSource(), StringArgumentType.getString(context, "pack"))))));
 
-        root.then(Commands.literal("regions")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> regions(context.getSource(), 500)))
-                .then(Commands.argument("radius", IntegerArgumentType.integer(8, 1000))
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> regions(context.getSource(), IntegerArgumentType.getInteger(context, "radius"))))));
+        root.then(NativeCommandRegistration.literal("regions")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> regions(context.getSource(), 500)))
+                .then(NativeCommandRegistration.argument("radius", IntegerArgumentType.integer(8, 1000))
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> regions(context.getSource(), IntegerArgumentType.getInteger(context, "radius"))))));
 
         root.then(openTree("open"));
         root.then(openTree("o"));
-        root.then(Commands.literal("close")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> close(context.getSource()))));
-        root.then(Commands.literal("x")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> close(context.getSource()))));
-        root.then(Commands.literal("tpstudio")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> tpStudio(context.getSource()))));
-        root.then(Commands.literal("stp")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> tpStudio(context.getSource()))));
-        root.then(Commands.literal("status")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> status(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("close")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> close(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("x")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> close(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("tpstudio")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> tpStudio(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("stp")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> tpStudio(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("status")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> status(context.getSource()))));
         root.then(workspaceTree("vscode", true));
         root.then(workspaceTree("vsc", true));
         root.then(workspaceTree("update", false));
@@ -171,27 +174,27 @@ public final class ModdedStudioCommands {
         return root;
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> createTree(String name) {
-        return Commands.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) ->
+    private static LiteralArgumentBuilder<NativeCommandSource> createTree(String name) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) ->
                         create(context.getSource(), "studio", DEFAULT_TEMPLATE)))
-                .then(Commands.argument("name", StringArgumentType.word())
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) ->
+                .then(NativeCommandRegistration.argument("name", StringArgumentType.word())
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) ->
                                 create(context.getSource(), StringArgumentType.getString(context, "name"), DEFAULT_TEMPLATE)))
-                        .then(Commands.argument("template", StringArgumentType.word())
+                        .then(NativeCommandRegistration.argument("template", StringArgumentType.word())
                                 .suggests(IrisModdedCommands.PACK_NAMES)
-                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) ->
+                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) ->
                                         create(context.getSource(),
                                                 StringArgumentType.getString(context, "name"),
                                                 StringArgumentType.getString(context, "template"))))));
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> packageTree(String name) {
-        return Commands.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> pkg(context.getSource(), null)))
-                .then(Commands.argument("pack", StringArgumentType.word())
+    private static LiteralArgumentBuilder<NativeCommandSource> packageTree(String name) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> pkg(context.getSource(), null)))
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.word())
                         .suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) ->
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) ->
                                 pkg(context.getSource(), StringArgumentType.getString(context, "pack")))));
     }
 
@@ -200,49 +203,49 @@ public final class ModdedStudioCommands {
         STUDIOS.clear();
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> openTree(String name) {
-        return Commands.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> openHelp(context.getSource())))
-                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> open(context.getSource(), StringArgumentType.getString(context, "pack"), 1337L)))
-                        .then(Commands.argument("seed", LongArgumentType.longArg())
-                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> open(context.getSource(), StringArgumentType.getString(context, "pack"), LongArgumentType.getLong(context, "seed"))))));
+    private static LiteralArgumentBuilder<NativeCommandSource> openTree(String name) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> openHelp(context.getSource())))
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> open(context.getSource(), StringArgumentType.getString(context, "pack"), 1337L)))
+                        .then(NativeCommandRegistration.argument("seed", LongArgumentType.longArg())
+                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> open(context.getSource(), StringArgumentType.getString(context, "pack"), LongArgumentType.getLong(context, "seed"))))));
     }
 
-    private static int openHelp(CommandSourceStack source) {
+    private static int openHelp(NativeCommandSource source) {
         IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_PROVIDE_DIMENSION_PACK_IRIS_STUDIO_OPEN_PACK_SEED));
         return 0;
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> noiseTree(String name) {
-        return Commands.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> noise(context.getSource(), null, 12345L)))
-                .then(Commands.argument("generator", StringArgumentType.word()).suggests(GENERATOR_KEYS)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> noise(context.getSource(), StringArgumentType.getString(context, "generator"), 12345L)))
-                        .then(Commands.argument("seed", LongArgumentType.longArg())
-                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> noise(context.getSource(), StringArgumentType.getString(context, "generator"), LongArgumentType.getLong(context, "seed"))))));
+    private static LiteralArgumentBuilder<NativeCommandSource> noiseTree(String name) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> noise(context.getSource(), null, 12345L)))
+                .then(NativeCommandRegistration.argument("generator", StringArgumentType.word()).suggests(GENERATOR_KEYS)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> noise(context.getSource(), StringArgumentType.getString(context, "generator"), 12345L)))
+                        .then(NativeCommandRegistration.argument("seed", LongArgumentType.longArg())
+                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> noise(context.getSource(), StringArgumentType.getString(context, "generator"), LongArgumentType.getLong(context, "seed"))))));
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> mapTree(String name) {
-        return Commands.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> map(context.getSource())));
+    private static LiteralArgumentBuilder<NativeCommandSource> mapTree(String name) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> map(context.getSource())));
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> imageMapTree(String name) {
-        return Commands.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> imageMap(context.getSource())));
+    private static LiteralArgumentBuilder<NativeCommandSource> imageMapTree(String name) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> imageMap(context.getSource())));
     }
 
-    private static int noise(CommandSourceStack source, String generatorKey, long seed) {
-        ServerLevel level = source.getLevel();
+    private static int noise(NativeCommandSource source, String generatorKey, long seed) {
+        NativeWorld level = source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         if (!GuiHost.isAvailable() || !IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
             IrisModdedCommands.fail(source, guiUnavailableMessage());
             return 0;
         }
         if (engine != null) {
-            ServerPlayer player = source.getPlayer();
-            ModdedGuiHost.bindContext(source.getServer(), level, engine, player == null ? null : player.getUUID());
+            NativeProtocolPlayer player = source.player();
+            ModdedGuiHost.bindContext(worldView(source.server(), level), engine, player == null ? null : player.id());
         }
         if (generatorKey == null || generatorKey.isBlank()) {
             NoiseExplorerGUI.launch();
@@ -264,8 +267,8 @@ public final class ModdedStudioCommands {
         return 1;
     }
 
-    private static int map(CommandSourceStack source) {
-        ServerLevel level = source.getLevel();
+    private static int map(NativeCommandSource source) {
+        NativeWorld level = source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_STAND_IRIS_STUDIO));
@@ -275,15 +278,15 @@ public final class ModdedStudioCommands {
             IrisModdedCommands.fail(source, guiUnavailableMessage());
             return 0;
         }
-        ServerPlayer player = source.getPlayer();
-        ModdedGuiHost.bindContext(source.getServer(), level, engine, player == null ? null : player.getUUID());
-        VisionGUI.launch(engine, player == null ? null : player.getUUID());
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_VISION_MAP_ON_SERVER_DISPLAY, MessageArgument.untrusted("value", level.dimension().identifier())));
+        NativeProtocolPlayer player = source.player();
+        ModdedGuiHost.bindContext(worldView(source.server(), level), engine, player == null ? null : player.id());
+        VisionGUI.launch(engine, player == null ? null : player.id());
+        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_VISION_MAP_ON_SERVER_DISPLAY, MessageArgument.untrusted("value", level.name())));
         return 1;
     }
 
-    private static int imageMap(CommandSourceStack source) {
-        ServerLevel level = source.getLevel();
+    private static int imageMap(NativeCommandSource source) {
+        NativeWorld level = source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(
@@ -295,24 +298,24 @@ public final class ModdedStudioCommands {
             IrisModdedCommands.fail(source, guiUnavailableMessage());
             return 0;
         }
-        ServerPlayer player = source.getPlayer();
-        ModdedGuiHost.bindContext(source.getServer(), level, engine, player == null ? null : player.getUUID());
+        NativeProtocolPlayer player = source.player();
+        ModdedGuiHost.bindContext(worldView(source.server(), level), engine, player == null ? null : player.id());
         ImageMapStudioGUI.launch(engine);
         IrisModdedCommands.ok(source, IrisLanguage.plain(
                 ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_IMAGE_MAP_STUDIO_ON_SERVER_DISPLAY,
-                MessageArgument.untrusted("value", level.dimension().identifier())
+                MessageArgument.untrusted("value", level.name())
         ));
         return 1;
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> workspaceTree(String name, boolean open) {
-        return Commands.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> workspace(context.getSource(), null, open)))
-                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> workspace(context.getSource(), StringArgumentType.getString(context, "pack"), open))));
+    private static LiteralArgumentBuilder<NativeCommandSource> workspaceTree(String name, boolean open) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> workspace(context.getSource(), null, open)))
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> workspace(context.getSource(), StringArgumentType.getString(context, "pack"), open))));
     }
 
-    private static int workspace(CommandSourceStack source, String pack, boolean open) {
+    private static int workspace(NativeCommandSource source, String pack, boolean open) {
         File folder = resolvePack(source, pack);
         if (folder == null) {
             return 0;
@@ -354,23 +357,23 @@ public final class ModdedStudioCommands {
         return "Server-launched GUIs are disabled (gui.useServerLaunchedGuis=false in Iris settings).";
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> message(String name, String text) {
-        return Commands.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> {
+    private static LiteralArgumentBuilder<NativeCommandSource> message(String name, String text) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> {
                     IrisModdedCommands.fail(context.getSource(), text);
                     return 0;
                 }))
-                .then(Commands.argument("args", StringArgumentType.greedyString())
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> {
+                .then(NativeCommandRegistration.argument("args", StringArgumentType.greedyString())
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> {
                             IrisModdedCommands.fail(context.getSource(), text);
                             return 0;
                         })));
     }
 
-    private static File resolvePack(CommandSourceStack source, String pack) {
+    private static File resolvePack(NativeCommandSource source, String pack) {
         String name = pack;
         if (name == null || name.isBlank()) {
-            Engine engine = IrisModdedCommands.engineFor(source.getLevel());
+            Engine engine = IrisModdedCommands.engineFor(source.world());
             if (engine == null || engine.getDimension() == null) {
                 IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_SPECIFY_PACK_NAME));
                 return null;
@@ -385,10 +388,10 @@ public final class ModdedStudioCommands {
         return folder;
     }
 
-    private static String studioDimensionId(ServerPlayer player) {
-        String base = STUDIO_ID_SANITIZER.matcher(player.getScoreboardName().toLowerCase(Locale.ROOT)).replaceAll("_");
+    private static String studioDimensionId(NativeProtocolPlayer player) {
+        String base = STUDIO_ID_SANITIZER.matcher(player.name().toLowerCase(Locale.ROOT)).replaceAll("_");
         if (base.isBlank()) {
-            base = player.getUUID().toString().replace("-", "");
+            base = player.id().toString().replace("-", "");
         }
         return STUDIO_NAMESPACE + ":" + STUDIO_PREFIX + base;
     }
@@ -397,15 +400,15 @@ public final class ModdedStudioCommands {
         return STUDIO_NAMESPACE + ":" + STUDIO_PREFIX + "console";
     }
 
-    private static int open(CommandSourceStack source, String pack, long seed) {
+    private static int open(NativeCommandSource source, String pack, long seed) {
         if (pack == null || pack.isBlank()) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_PROVIDE_DIMENSION_PACK_IRIS_STUDIO_OPEN_PACK_SEED_2));
             return 0;
         }
-        ServerPlayer player = source.getPlayer();
-        UUID owner = player == null ? CONSOLE_OWNER : player.getUUID();
+        NativeProtocolPlayer player = source.player();
+        UUID owner = player == null ? CONSOLE_OWNER : player.id();
         String dimensionId = player == null ? studioConsoleDimensionId() : studioDimensionId(player);
-        MinecraftServer server = source.getServer();
+        NativeModdedServer server = source.server();
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_STUDIO_SEED, MessageArgument.untrusted("pack", pack), MessageArgument.untrusted("seed", seed)));
         CompletableFuture<Void> transition = TRANSITIONS.submit(
                 owner,
@@ -415,8 +418,8 @@ public final class ModdedStudioCommands {
     }
 
     private static CompletableFuture<Void> openTransition(
-            CommandSourceStack source,
-            MinecraftServer server,
+            NativeCommandSource source,
+            NativeModdedServer server,
             UUID owner,
             String dimensionId,
             String pack,
@@ -443,8 +446,8 @@ public final class ModdedStudioCommands {
     }
 
     private static void prepareStudioOpen(
-            CommandSourceStack source,
-            MinecraftServer server,
+            NativeCommandSource source,
+            NativeModdedServer server,
             UUID owner,
             String dimensionId,
             String pack,
@@ -478,8 +481,8 @@ public final class ModdedStudioCommands {
     }
 
     private static void executeStudioOpen(
-            CommandSourceStack source,
-            MinecraftServer server,
+            NativeCommandSource source,
+            NativeModdedServer server,
             UUID owner,
             String dimensionId,
             String pack,
@@ -496,23 +499,18 @@ public final class ModdedStudioCommands {
                 transition.complete(null);
                 return;
             }
-            ServerPlayer player = server.getPlayerList().getPlayer(owner);
+            NativeProtocolPlayer player = server.player(owner);
             if (player == null) {
                 throw new IllegalStateException("Studio owner disconnected before teleport.");
             }
-            ServerLevel studio = handle.level();
+            NativeWorld studio = handle.level();
             Engine engine = IrisModdedCommands.engineFor(studio);
             if (engine == null) {
                 throw new IllegalStateException("Studio engine is unavailable for " + dimensionId + ".");
             }
             int surfaceY = engine.getMinHeight() + engine.getHeight(8, 8, false) + 2;
-            CompletableFuture<Boolean> teleport = ModdedDimensionManager.teleportAsync(
-                    player,
-                    server,
-                    studio,
-                    8.5D,
-                    surfaceY,
-                    8.5D);
+            CompletableFuture<Boolean> teleport = NativeWorldTeleport.teleport(player,
+                    new NativeWorldTeleport.Destination(server, studio, 8.5D, surfaceY, 8.5D, 0L));
             teleport.whenComplete((success, failure) -> server.execute(() -> {
                 if (transition.isDone()) {
                     return;
@@ -541,7 +539,7 @@ public final class ModdedStudioCommands {
         }
     }
 
-    private static void replaceExistingStudio(MinecraftServer server, UUID owner, String dimensionId) {
+    private static void replaceExistingStudio(NativeModdedServer server, UUID owner, String dimensionId) {
         if (ModdedDimensionManager.level(server, dimensionId) != null
                 || ModdedDimensionManager.handle(dimensionId) != null) {
             ModdedDimensionManager.remove(server, dimensionId, true);
@@ -550,7 +548,7 @@ public final class ModdedStudioCommands {
     }
 
     private static void cleanupFailedOpen(
-            MinecraftServer server,
+            NativeModdedServer server,
             UUID owner,
             String dimensionId,
             Throwable failure
@@ -566,18 +564,18 @@ public final class ModdedStudioCommands {
     }
 
     private static void completeConsoleOpen(
-            CommandSourceStack source,
+            NativeCommandSource source,
             String dimensionId,
             String pack,
             long seed,
             ModdedDimensionManager.Handle handle
     ) {
-        ServerLevel studio = handle.level();
+        NativeWorld studio = handle.level();
         Engine engine = IrisModdedCommands.engineFor(studio);
         int surface = engine == null
-                ? studio.getMinY() + 1
+                ? studio.minHeight() + 1
                 : engine.getMinHeight() + engine.getHeight(8, 8, false) + 2;
-        surface = Math.max(studio.getMinY() + 1, Math.min(studio.getMaxY() - 2, surface));
+        surface = Math.max(studio.minHeight() + 1, Math.min(studio.maxHeight() - 2, surface));
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_CONSOLE_STUDIO_OPEN_NOW_RUNS_SEED_TRANSIENT_NOT_WRITTEN_IRIS, MessageArgument.untrusted("dimensionId", dimensionId), MessageArgument.untrusted("pack", pack), MessageArgument.untrusted("seed", seed)));
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_ENTER_IT_WITH_EXECUTE_RUN_TP_S_8_5_8, MessageArgument.untrusted("dimensionId", dimensionId), MessageArgument.untrusted("surface", surface)));
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_PREGEN_IT_WITH_IRIS_PREGEN_START_RADIUS, MessageArgument.untrusted("dimensionId", dimensionId)));
@@ -585,8 +583,8 @@ public final class ModdedStudioCommands {
     }
 
     private static void reportOpenFailure(
-            CommandSourceStack source,
-            MinecraftServer server,
+            NativeCommandSource source,
+            NativeModdedServer server,
             String dimensionId,
             String pack,
             CompletableFuture<Void> transition
@@ -604,17 +602,17 @@ public final class ModdedStudioCommands {
         });
     }
 
-    private static int close(CommandSourceStack source) {
-        ServerPlayer player = source.getPlayer();
-        MinecraftServer server = source.getServer();
-        UUID owner = player == null ? CONSOLE_OWNER : player.getUUID();
+    private static int close(NativeCommandSource source) {
+        NativeProtocolPlayer player = source.player();
+        NativeModdedServer server = source.server();
+        UUID owner = player == null ? CONSOLE_OWNER : player.id();
         TRANSITIONS.submit(owner, () -> closeTransition(source, server, owner));
         return 1;
     }
 
     private static CompletableFuture<Void> closeTransition(
-            CommandSourceStack source,
-            MinecraftServer server,
+            NativeCommandSource source,
+            NativeModdedServer server,
             UUID owner
     ) {
         CompletableFuture<Void> transition = new CompletableFuture<>();
@@ -645,8 +643,8 @@ public final class ModdedStudioCommands {
         return transition;
     }
 
-    private static int status(CommandSourceStack source) {
-        MinecraftServer server = source.getServer();
+    private static int status(NativeCommandSource source) {
+        NativeModdedServer server = source.server();
         List<ModdedDimensionManager.Handle> handles = ModdedDimensionManager.handles();
         List<ModdedDimensionManager.Handle> studios = new ArrayList<>();
         for (ModdedDimensionManager.Handle handle : handles) {
@@ -676,22 +674,22 @@ public final class ModdedStudioCommands {
         return null;
     }
 
-    private static String ownerName(MinecraftServer server, UUID owner) {
+    private static String ownerName(NativeModdedServer server, UUID owner) {
         if (owner.equals(CONSOLE_OWNER)) {
             return "console";
         }
-        ServerPlayer player = server.getPlayerList().getPlayer(owner);
-        return player == null ? owner.toString() : player.getScoreboardName();
+        NativeProtocolPlayer player = server.player(owner);
+        return player == null ? owner.toString() : player.name();
     }
 
-    private static int tpStudio(CommandSourceStack source) {
-        ServerPlayer player = source.getPlayer();
+    private static int tpStudio(NativeCommandSource source) {
+        NativeProtocolPlayer player = source.player();
         if (player == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS));
             return 0;
         }
-        MinecraftServer server = source.getServer();
-        UUID owner = player.getUUID();
+        NativeModdedServer server = source.server();
+        UUID owner = player.id();
         CompletableFuture<Void> transition = TRANSITIONS.submit(
                 owner,
                 () -> teleportToStudio(source, server, owner));
@@ -700,8 +698,8 @@ public final class ModdedStudioCommands {
     }
 
     private static CompletableFuture<Void> teleportToStudio(
-            CommandSourceStack source,
-            MinecraftServer server,
+            NativeCommandSource source,
+            NativeModdedServer server,
             UUID owner
     ) {
         CompletableFuture<Void> transition = new CompletableFuture<>();
@@ -716,7 +714,7 @@ public final class ModdedStudioCommands {
                 transition.complete(null);
                 return;
             }
-            ServerLevel studio = ModdedDimensionManager.level(server, dimensionId);
+            NativeWorld studio = ModdedDimensionManager.level(server, dimensionId);
             if (studio == null) {
                 STUDIOS.remove(owner, dimensionId);
                 IrisModdedCommands.fail(source, IrisLanguage.plain(
@@ -724,7 +722,7 @@ public final class ModdedStudioCommands {
                 transition.complete(null);
                 return;
             }
-            ServerPlayer activePlayer = server.getPlayerList().getPlayer(owner);
+            NativeProtocolPlayer activePlayer = server.player(owner);
             Engine engine = IrisModdedCommands.engineFor(studio);
             if (activePlayer == null || engine == null) {
                 transition.completeExceptionally(new IllegalStateException(
@@ -732,13 +730,8 @@ public final class ModdedStudioCommands {
                 return;
             }
             int surfaceY = engine.getMinHeight() + engine.getHeight(8, 8, false) + 2;
-            CompletableFuture<Boolean> teleport = ModdedDimensionManager.teleportAsync(
-                    activePlayer,
-                    server,
-                    studio,
-                    8.5D,
-                    surfaceY,
-                    8.5D);
+            CompletableFuture<Boolean> teleport = NativeWorldTeleport.teleport(activePlayer,
+                    new NativeWorldTeleport.Destination(server, studio, 8.5D, surfaceY, 8.5D, 0L));
             teleport.whenComplete((success, failure) -> server.execute(() -> {
                 if (transition.isDone()) {
                     return;
@@ -762,8 +755,8 @@ public final class ModdedStudioCommands {
     }
 
     private static void reportTeleportFailure(
-            CommandSourceStack source,
-            MinecraftServer server,
+            NativeCommandSource source,
+            NativeModdedServer server,
             CompletableFuture<Void> transition
     ) {
         transition.whenComplete((ignored, failure) -> {
@@ -787,7 +780,7 @@ public final class ModdedStudioCommands {
         return cause;
     }
 
-    private static int version(CommandSourceStack source, String pack) {
+    private static int version(NativeCommandSource source, String pack) {
         File folder = resolvePack(source, pack);
         if (folder == null) {
             return 0;
@@ -802,7 +795,7 @@ public final class ModdedStudioCommands {
         return 1;
     }
 
-    private static int create(CommandSourceStack source, String nameRaw, String template) {
+    private static int create(NativeCommandSource source, String nameRaw, String template) {
         String name = nameRaw.toLowerCase(Locale.ROOT);
         if (!PROJECT_NAME.matcher(name).matches()) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_INVALID_PROJECT_NAME_ALLOWED_Z_0_9, MessageArgument.untrusted("nameRaw", nameRaw)));
@@ -814,7 +807,7 @@ public final class ModdedStudioCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_PACK_ALREADY_EXISTS_AT, MessageArgument.untrusted("name", name), MessageArgument.untrusted("value", target.getAbsolutePath())));
             return 0;
         }
-        MinecraftServer server = source.getServer();
+        NativeModdedServer server = source.server();
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_CREATING_PROJECT_FROM_TEMPLATE, MessageArgument.untrusted("name", name), MessageArgument.untrusted("template", template)));
         Thread thread = new Thread(() -> {
             try {
@@ -845,12 +838,12 @@ public final class ModdedStudioCommands {
         return 1;
     }
 
-    private static int pkg(CommandSourceStack source, String pack) {
+    private static int pkg(NativeCommandSource source, String pack) {
         File folder = resolvePack(source, pack);
         if (folder == null) {
             return 0;
         }
-        MinecraftServer server = source.getServer();
+        NativeModdedServer server = source.server();
         String dimKey = folder.getName();
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_PACKAGING_DIMENSION, MessageArgument.untrusted("dimKey", dimKey)));
         Thread thread = new Thread(() -> {
@@ -1058,20 +1051,20 @@ public final class ModdedStudioCommands {
         }
     }
 
-    private static int regions(CommandSourceStack source, int radius) {
-        ServerPlayer player = source.getPlayer();
+    private static int regions(NativeCommandSource source, int radius) {
+        NativeProtocolPlayer player = source.player();
         if (player == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_SAMPLING_IS));
             return 0;
         }
-        Engine engine = IrisModdedCommands.engineFor(source.getLevel());
+        Engine engine = IrisModdedCommands.engineFor(source.world());
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS));
             return 0;
         }
-        MinecraftServer server = source.getServer();
-        int blockX = player.blockPosition().getX();
-        int blockZ = player.blockPosition().getZ();
+        NativeModdedServer server = source.server();
+        int blockX = player.blockX();
+        int blockZ = player.blockZ();
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_SAMPLING_REGION_DISTRIBUTION_X_CHUNKS_AROUND_YOU, MessageArgument.untrusted("value", (radius * 2)), MessageArgument.untrusted("value2", (radius * 2))));
         Thread thread = new Thread(() -> {
             try {
@@ -1106,4 +1099,8 @@ public final class ModdedStudioCommands {
         thread.start();
         return 1;
     }
+    private static WorldView worldView(NativeModdedServer server, NativeWorld level) {
+        return new NativeWorldView(server, level);
+    }
+
 }

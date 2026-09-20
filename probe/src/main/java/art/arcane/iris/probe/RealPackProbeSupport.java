@@ -20,8 +20,8 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 
 import java.io.File;
@@ -147,8 +147,8 @@ final class RealPackProbeSupport {
 
     static GeneratedChunk generateChunk(Engine engine, int chunkX, int chunkZ) {
         int height = engine.getTarget().getHeight();
-        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, height, 16);
-        Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(16, height, 16);
+        Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(16, height, 16);
+        Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, height, 16);
         try {
             engine.generate(chunkX << 4, chunkZ << 4, blocks, biomes, false);
         } catch (Exception failure) {
@@ -161,8 +161,8 @@ final class RealPackProbeSupport {
             int chunkX,
             int chunkZ,
             int height,
-            Hunk<PlatformBlockState> blocks,
-            Hunk<PlatformBiome> biomes
+            Hunk<NativeBlockState> blocks,
+            Hunk<NativeBiome> biomes
     ) {
         GeneratedChunk {
             if (height < 1 || blocks == null || biomes == null) {
@@ -170,12 +170,12 @@ final class RealPackProbeSupport {
             }
         }
 
-        PlatformBlockState blockAt(int blockX, int y, int blockZ) {
+        NativeBlockState blockAt(int blockX, int y, int blockZ) {
             validatePosition(blockX, y, blockZ);
             return blocks.get(Math.floorMod(blockX, 16), y, Math.floorMod(blockZ, 16));
         }
 
-        PlatformBiome biomeAt(int blockX, int y, int blockZ) {
+        NativeBiome biomeAt(int blockX, int y, int blockZ) {
             validatePosition(blockX, y, blockZ);
             return biomes.get(Math.floorMod(blockX, 16), y, Math.floorMod(blockZ, 16));
         }

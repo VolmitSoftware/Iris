@@ -18,6 +18,17 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockProperties;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockBreakContext;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeItemStack;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockDropHooks;
+
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.placement.LootResolver;
@@ -28,21 +39,11 @@ import art.arcane.iris.world.loot.IrisBlockDrops;
 import art.arcane.iris.world.loot.IrisLoot;
 import art.arcane.iris.world.entity.IrisMarker;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.modded.service.ModdedTreeFellerService;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterMarker;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkGenerator;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,12 +54,11 @@ public final class ModdedBlockBreakHandler {
     private ModdedBlockBreakHandler() {
     }
 
-    public static void prepare(
-            ServerLevel level,
-            ServerPlayer player,
-            BlockPos position,
-            BlockState brokenState
-    ) {
+    public static void prepare(NativeBlockBreakContext context) {
+        NativeWorld level = context.world();
+        NativeProtocolPlayer player = context.player();
+        NativeBlockPoint position = context.position();
+        NativeBlockState brokenState = context.state();
         if (ModdedTreeFellerService.isBreakProbe()) {
             return;
         }
@@ -70,10 +70,10 @@ public final class ModdedBlockBreakHandler {
             // finishPending is the only thing that evicts an unconsumed entry. With no scheduler there is no
             // sweep, so an entry inserted here would leak for the rest of the server uptime.
             ModdedIrisLog.debug("Iris skipped block-break provenance at {},{},{}: scheduler unavailable",
-                    position.getX(), position.getY(), position.getZ());
+                    position.x(), position.y(), position.z());
             return;
         }
-        BreakKey key = new BreakKey(level, position.asLong());
+        BreakKey key = new BreakKey(level, position);
         ModdedTreeFellerService treeFeller = treeFellerService();
         ModdedTreeFellerService.PreparedOrigin preparedOrigin = treeFeller == null
                 ? null
@@ -87,73 +87,51 @@ public final class ModdedBlockBreakHandler {
         PENDING.clear();
     }
 
-    public static void cancel(ServerLevel level, BlockPos position) {
-        PENDING.remove(new BreakKey(level, position.asLong()));
+    public static void cancel(NativeWorld level, NativeBlockPoint position) {
+        PENDING.remove(new BreakKey(level, position));
     }
 
-    public static Result complete(ServerLevel level, BlockPos position, BlockState fallbackState) {
-        BreakKey key = new BreakKey(level, position.asLong());
+    public static Result complete(NativeWorld level, NativeBlockPoint position, NativeBlockState fallbackState) {
+        BreakKey key = new BreakKey(level, position);
         PendingBreak pending = PENDING.remove(key);
         PendingBreak resolved = pending == null ? new PendingBreak(fallbackState, null) : pending;
         return evaluateSafely(level, position, resolved);
     }
 
-    public static Result completePrepared(ServerLevel level, BlockPos position) {
-        BreakKey key = new BreakKey(level, position.asLong());
+    public static Result completePrepared(NativeWorld level, NativeBlockPoint position) {
+        BreakKey key = new BreakKey(level, position);
         PendingBreak pending = PENDING.get(key);
-        if (pending == null || level.getBlockState(position).equals(pending.brokenState())) {
+        if (pending == null || level.getBlock(position.x(), position.y(), position.z()).equals(pending.brokenState())) {
             return null;
         }
         return PENDING.remove(key, pending) ? evaluateSafely(level, position, pending) : null;
     }
 
-    public static void spawn(ServerLevel level, BlockPos position, KList<ItemStack> drops) {
-        for (ItemStack stack : drops) {
-            ItemEntity item = createDrop(level, position, stack);
-            if (item != null) {
-                level.addFreshEntity(item);
-            }
-        }
-    }
-
-    public static ItemEntity createDrop(ServerLevel level, BlockPos position, ItemStack stack) {
-        if (stack == null || stack.isEmpty()) {
-            return null;
-        }
-        RandomSource random = level.getRandom();
-        double x = position.getX() + 0.5D + Mth.nextDouble(random, -0.25D, 0.25D);
-        double y = position.getY() + 0.5D + Mth.nextDouble(random, -0.25D, 0.25D) - EntityTypes.ITEM.getHeight() / 2D;
-        double z = position.getZ() + 0.5D + Mth.nextDouble(random, -0.25D, 0.25D);
-        ItemEntity item = new ItemEntity(level, x, y, z, stack);
-        item.setDefaultPickUpDelay();
-        return item;
-    }
-
-    private static void finishPending(BreakKey key, PendingBreak pending, BlockPos position) {
+    private static void finishPending(BreakKey key, PendingBreak pending, NativeBlockPoint position) {
         if (!PENDING.remove(key, pending)) {
             return;
         }
-        ServerLevel level = key.level();
-        if (level.getBlockState(position).equals(pending.brokenState())) {
+        NativeWorld level = key.level();
+        if (level.getBlock(position.x(), position.y(), position.z()).equals(pending.brokenState())) {
             return;
         }
         Result result = evaluateSafely(level, position, pending);
         if (!result.routeCombinedDrops(List.of())) {
-            spawn(level, position, result.drops());
+            NativeBlockDropHooks.spawn(level, position, result.drops());
         }
     }
 
-    private static Result evaluateSafely(ServerLevel level, BlockPos position, PendingBreak pending) {
+    private static Result evaluateSafely(NativeWorld level, NativeBlockPoint position, PendingBreak pending) {
         try {
             return evaluate(level, position, pending);
         } catch (Throwable error) {
-            ModdedIrisLog.error("Iris block-break processing failed at {},{},{} in {}", position.getX(), position.getY(), position.getZ(),
-                    level.dimension().identifier(), error);
+            ModdedIrisLog.error("Iris block-break processing failed at {},{},{} in {}", position.x(), position.y(), position.z(),
+                    level.name(), error);
             return Result.empty();
         }
     }
 
-    private static Result evaluate(ServerLevel level, BlockPos position, PendingBreak pending) {
+    private static Result evaluate(NativeWorld level, NativeBlockPoint position, PendingBreak pending) {
         Engine engine = engineFor(level);
         if (engine == null || engine.isClosed()) {
             return Result.empty();
@@ -171,7 +149,7 @@ public final class ModdedBlockBreakHandler {
         return drops.withRoute(route);
     }
 
-    public static Result evaluateManagedDrops(ServerLevel level, BlockPos position, BlockState brokenState) {
+    public static Result evaluateManagedDrops(NativeWorld level, NativeBlockPoint position, NativeBlockState brokenState) {
         Engine engine = engineFor(level);
         if (engine == null || engine.isClosed()) {
             return Result.empty();
@@ -179,13 +157,13 @@ public final class ModdedBlockBreakHandler {
         try {
             return evaluateDrops(level, position, brokenState, engine);
         } catch (Throwable error) {
-            ModdedIrisLog.error("Iris managed block-drop processing failed at {},{},{} in {}", position.getX(), position.getY(), position.getZ(),
-                    level.dimension().identifier(), error);
+            ModdedIrisLog.error("Iris managed block-drop processing failed at {},{},{} in {}", position.x(), position.y(), position.z(),
+                    level.name(), error);
             return Result.empty();
         }
     }
 
-    public static void completeManagedBreak(ServerLevel level, BlockPos position) {
+    public static void completeManagedBreak(NativeWorld level, NativeBlockPoint position) {
         Engine engine = engineFor(level);
         if (engine != null && !engine.isClosed()) {
             removeMarker(engine, position);
@@ -193,14 +171,14 @@ public final class ModdedBlockBreakHandler {
         }
     }
 
-    public static void clearPlacedProvenance(ServerLevel level, BlockPos position) {
+    public static void clearPlacedProvenance(NativeWorld level, NativeBlockPoint position) {
         completeManagedBreak(level, position);
     }
 
     private static Result evaluateDrops(
-            ServerLevel level,
-            BlockPos position,
-            BlockState brokenState,
+            NativeWorld level,
+            NativeBlockPoint position,
+            NativeBlockState brokenState,
             Engine engine
     ) {
         KList<IrisBlockDrops> providers = providers(engine, position, brokenState);
@@ -208,7 +186,7 @@ public final class ModdedBlockBreakHandler {
             return Result.empty();
         }
 
-        KList<ItemStack> drops = new KList<>();
+        KList<NativeItemStack> drops = new KList<>();
         boolean replaceVanillaDrops = false;
         for (IrisBlockDrops provider : providers) {
             replaceVanillaDrops |= provider.isReplaceVanillaDrops();
@@ -216,7 +194,7 @@ public final class ModdedBlockBreakHandler {
                 if (!LootResolver.oneIn(RNG.r, loot.getRarity())) {
                     continue;
                 }
-                ItemStack stack = ModdedItemTranslator.stack(loot, RNG.r, level);
+                NativeItemStack stack = ModdedItemTranslator.stack(loot, RNG.r, ModdedItemTranslator.context(level));
                 if (stack != null && !stack.isEmpty()) {
                     drops.add(stack);
                 }
@@ -225,9 +203,9 @@ public final class ModdedBlockBreakHandler {
         return new Result(drops, replaceVanillaDrops, null);
     }
 
-    private static void removeMarker(Engine engine, BlockPos position) {
-        int mantleY = position.getY() - engine.getMinHeight();
-        MatterMarker marker = engine.getMantle().getMantle().get(position.getX(), mantleY, position.getZ(), MatterMarker.class);
+    private static void removeMarker(Engine engine, NativeBlockPoint position) {
+        int mantleY = position.y() - engine.getMinHeight();
+        MatterMarker marker = engine.getMantle().getMantle().get(position.x(), mantleY, position.z(), MatterMarker.class);
         if (marker == null) {
             return;
         }
@@ -237,28 +215,28 @@ public final class ModdedBlockBreakHandler {
         }
         IrisMarker configured = engine.getData().getMarkerLoader().load(tag);
         if (configured == null || configured.isRemoveOnChange()) {
-            engine.getMantle().getMantle().remove(position.getX(), mantleY, position.getZ(), MatterMarker.class);
+            engine.getMantle().getMantle().remove(position.x(), mantleY, position.z(), MatterMarker.class);
         }
     }
 
-    private static void clearTreeProvenance(Engine engine, BlockPos position) {
-        int mantleY = position.getY() - engine.getMinHeight();
-        engine.getMantle().getMantle().remove(position.getX(), mantleY, position.getZ(), String.class);
-        engine.getMantle().getMantle().remove(position.getX(), mantleY, position.getZ(), TreeBlockMaterial.class);
+    private static void clearTreeProvenance(Engine engine, NativeBlockPoint position) {
+        int mantleY = position.y() - engine.getMinHeight();
+        engine.getMantle().getMantle().remove(position.x(), mantleY, position.z(), String.class);
+        engine.getMantle().getMantle().remove(position.x(), mantleY, position.z(), TreeBlockMaterial.class);
     }
 
-    private static KList<IrisBlockDrops> providers(Engine engine, BlockPos position, BlockState brokenState) {
+    private static KList<IrisBlockDrops> providers(Engine engine, NativeBlockPoint position, NativeBlockState brokenState) {
         KList<IrisBlockDrops> providers = new KList<>();
         IrisData data = engine.getData();
-        int relativeY = position.getY() - engine.getMinHeight();
-        IrisBiome biome = engine.getBiome(position.getX(), relativeY, position.getZ());
+        int relativeY = position.y() - engine.getMinHeight();
+        IrisBiome biome = engine.getBiome(position.x(), relativeY, position.z());
         if (biome != null) {
             addMatching(providers, biome.getBlockDrops(), brokenState, data);
         }
         if (skipsParents(providers)) {
             return providers;
         }
-        IrisRegion region = engine.getRegion(position.getX(), relativeY, position.getZ());
+        IrisRegion region = engine.getRegion(position.x(), relativeY, position.z());
         if (region != null) {
             addMatching(providers, region.getBlockDrops(), brokenState, data);
         }
@@ -266,7 +244,7 @@ public final class ModdedBlockBreakHandler {
         return providers;
     }
 
-    private static void addMatching(KList<IrisBlockDrops> matches, KList<IrisBlockDrops> candidates, BlockState brokenState, IrisData data) {
+    private static void addMatching(KList<IrisBlockDrops> matches, KList<IrisBlockDrops> candidates, NativeBlockState brokenState, IrisData data) {
         for (IrisBlockDrops candidate : candidates) {
             if (matches(candidate, brokenState, data)) {
                 matches.add(candidate);
@@ -283,26 +261,26 @@ public final class ModdedBlockBreakHandler {
         return false;
     }
 
-    private static boolean matches(IrisBlockDrops provider, BlockState brokenState, IrisData data) {
+    private static boolean matches(IrisBlockDrops provider, NativeBlockState brokenState, IrisData data) {
         for (IrisBlockData configuredBlock : provider.getBlocks()) {
-            PlatformBlockState resolved = configuredBlock.getBlockData(data);
-            if (resolved == null || !(resolved.nativeHandle() instanceof BlockState configuredState)) {
+            NativeBlockState resolved = configuredBlock.getBlockData(data);
+            if (resolved == null) {
                 continue;
             }
-            if (matchesState(configuredState, brokenState, provider.isExactBlocks())) {
+            if (matchesState(resolved, brokenState, provider.isExactBlocks())) {
                 return true;
             }
         }
         return false;
     }
 
-    static boolean matchesState(BlockState configuredState, BlockState brokenState, boolean exact) {
-        return exact ? configuredState.equals(brokenState) : configuredState.getBlock() == brokenState.getBlock();
+    static boolean matchesState(NativeBlockState configuredState, NativeBlockState brokenState, boolean exact) {
+        return NativeBlockProperties.matches(configuredState, brokenState, exact);
     }
 
-    public static Engine engineFor(ServerLevel level) {
-        ChunkGenerator generator = level.getChunkSource().getGenerator();
-        if (!(generator instanceof IrisModdedChunkGenerator irisGenerator)) {
+    public static Engine engineFor(NativeWorld level) {
+        IrisModdedChunkGenerator irisGenerator = NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class);
+        if (irisGenerator == null) {
             return null;
         }
         Engine engine = irisGenerator.engineIfBound();
@@ -312,7 +290,7 @@ public final class ModdedBlockBreakHandler {
         try {
             return irisGenerator.commandEngine();
         } catch (Throwable error) {
-            ModdedIrisLog.error("Iris could not resolve the engine for a block break in {}", level.dimension().identifier(), error);
+            ModdedIrisLog.error("Iris could not resolve the engine for a block break in {}", level.name(), error);
             return null;
         }
     }
@@ -321,13 +299,13 @@ public final class ModdedBlockBreakHandler {
         return ModdedEngineBootstrap.services().service(ModdedTreeFellerService.class);
     }
 
-    public static final class Result {
-        private final KList<ItemStack> drops;
+    public static final class Result implements NativeBlockDropHooks.PolicyResult {
+        private final KList<NativeItemStack> drops;
         private final boolean replaceVanillaDrops;
         private final ModdedTreeFellerService.OriginDropRoute route;
 
         private Result(
-                KList<ItemStack> drops,
+                KList<NativeItemStack> drops,
                 boolean replaceVanillaDrops,
                 ModdedTreeFellerService.OriginDropRoute route
         ) {
@@ -336,7 +314,7 @@ public final class ModdedBlockBreakHandler {
             this.route = route;
         }
 
-        public KList<ItemStack> drops() {
+        public KList<NativeItemStack> drops() {
             return drops;
         }
 
@@ -344,23 +322,27 @@ public final class ModdedBlockBreakHandler {
             return replaceVanillaDrops;
         }
 
-        public boolean routeCombinedDrops(Iterable<ItemStack> vanillaDrops) {
+        public boolean hasRoute() {
+            return route != null;
+        }
+
+        public boolean routeCombinedDrops(Iterable<NativeItemStack> vanillaDrops) {
             if (route == null) {
                 return false;
             }
             return route.route(combinedDrops(vanillaDrops));
         }
 
-        public KList<ItemStack> combinedDrops(Iterable<ItemStack> vanillaDrops) {
-            KList<ItemStack> combined = new KList<>();
+        public KList<NativeItemStack> combinedDrops(Iterable<NativeItemStack> vanillaDrops) {
+            KList<NativeItemStack> combined = new KList<>();
             if (!replaceVanillaDrops) {
-                for (ItemStack stack : vanillaDrops) {
+                for (NativeItemStack stack : vanillaDrops) {
                     if (stack != null && !stack.isEmpty()) {
                         combined.add(stack.copy());
                     }
                 }
             }
-            for (ItemStack stack : drops) {
+            for (NativeItemStack stack : drops) {
                 if (stack != null && !stack.isEmpty()) {
                     combined.add(stack.copy());
                 }
@@ -377,11 +359,11 @@ public final class ModdedBlockBreakHandler {
         }
     }
 
-    private record BreakKey(ServerLevel level, long position) {
+    private record BreakKey(NativeWorld level, NativeBlockPoint position) {
     }
 
     private record PendingBreak(
-            BlockState brokenState,
+            NativeBlockState brokenState,
             ModdedTreeFellerService.PreparedOrigin preparedOrigin
     ) {
     }

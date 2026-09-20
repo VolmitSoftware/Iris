@@ -26,7 +26,7 @@ import art.arcane.iris.generation.context.ChunkedDataCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
@@ -53,9 +53,9 @@ public class IrisPostModifierWallShoreTest {
     private static final int PLANE_WIDTH = 3;
     private static final int SURFACE = 64;
     private static final int HUNK_HEIGHT = 80;
-    private static final PlatformBlockState GROUND = state("minecraft:sand");
-    private static final PlatformBlockState WALL = state("minecraft:stone");
-    private static final PlatformBlockState AIR = state("minecraft:air");
+    private static final NativeBlockState GROUND = state("minecraft:sand");
+    private static final NativeBlockState WALL = state("minecraft:stone");
+    private static final NativeBlockState AIR = state("minecraft:air");
 
     @Test
     public void shoreColumnsKeepTheirSurfaceBlockBesideASeawardDrop() throws ReflectiveOperationException {
@@ -78,8 +78,8 @@ public class IrisPostModifierWallShoreTest {
      * whether the wall patcher fires, and building it through onModify would need a live mantle.
      */
     @SuppressWarnings("unchecked")
-    private PlatformBlockState surfaceAfterPost(boolean shore, boolean walls, boolean river) throws ReflectiveOperationException {
-        Hunk<PlatformBlockState> data = Hunk.newHunk(1, HUNK_HEIGHT, 1);
+    private NativeBlockState surfaceAfterPost(boolean shore, boolean walls, boolean river) throws ReflectiveOperationException {
+        Hunk<NativeBlockState> data = Hunk.newHunk(1, HUNK_HEIGHT, 1);
 
         for (int y = 0; y < HUNK_HEIGHT; y++) {
             data.set(0, y, 0, y <= SURFACE ? GROUND : AIR);
@@ -129,8 +129,8 @@ public class IrisPostModifierWallShoreTest {
         return data.get(0, SURFACE, 0);
     }
 
-    private static PlatformBlockState state(String key) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private static NativeBlockState state(String key) {
+        NativeBlockState state = mock(NativeBlockState.class);
         doReturn(key).when(state).key();
         doReturn(key).when(state).materialKey();
         return state;

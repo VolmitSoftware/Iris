@@ -9,11 +9,11 @@ import art.arcane.iris.world.history.SavedTerrainChunk;
 import art.arcane.iris.world.history.TerrainBoundarySignature;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformRegistries;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
@@ -65,7 +65,7 @@ public final class ResolvedTerrainProviderTest {
     public void cachedTransitionTerrainRetainsDeferredBlocksWhenCopied() {
         Fixture fixture = new Fixture();
         String key = "itemsadder:rocks/ruby_ore";
-        PlatformBlockState custom = Fixture.block(key, false);
+        NativeBlockState custom = Fixture.block(key, false);
         when(custom.isCustom()).thenReturn(true);
         when(custom.placementBaseState()).thenReturn(fixture.stone);
         when(custom.deferredPlacementKey()).thenReturn(key);
@@ -95,7 +95,7 @@ public final class ResolvedTerrainProviderTest {
         when(registries.biome("minecraft:plains")).thenReturn(fixture.biome);
         ChunkContext context = new ChunkContext(0, 0, fixture.complex, false, ChunkContext.PrefillPlan.NONE, null);
         AtomicInteger customWrites = new AtomicInteger();
-        Hunk<PlatformBlockState> blocks = Hunk.<PlatformBlockState>newArrayHunk(16, 16, 16).listen((x, y, z, state) -> {
+        Hunk<NativeBlockState> blocks = Hunk.<NativeBlockState>newArrayHunk(16, 16, 16).listen((x, y, z, state) -> {
             if (state.isCustom()) {
                 customWrites.incrementAndGet();
             }
@@ -325,8 +325,8 @@ public final class ResolvedTerrainProviderTest {
         };
         when(fixture.mode.getStages()).thenReturn(new KList<>(content));
         doCallRealMethod().when(fixture.mode).generate(anyInt(), anyInt(), any(), any(), anyBoolean(), anyLong());
-        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, 16, 16);
-        Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(16, 16, 16);
+        Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(16, 16, 16);
+        Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, 16, 16);
 
         fixture.mode.generate(0, 0, blocks, biomes, false, 41L);
 
@@ -406,7 +406,7 @@ public final class ResolvedTerrainProviderTest {
         when(plan.isHistoricalBlock(anyInt(), anyInt())).thenAnswer(invocation -> (int) invocation.getArgument(0) < 16);
         when(plan.newEpochWeightAt(anyInt(), anyInt())).thenReturn(0.5D);
         when(fixture.complex.getTransitionGenerationPlan()).thenReturn(plan);
-        PlatformBlockState water = Fixture.block("minecraft:water[level=0]", false);
+        NativeBlockState water = Fixture.block("minecraft:water[level=0]", false);
         when(water.isFluid()).thenReturn(true);
         fixture.terrainOverride = (x, z, blocks, biomes, multicore, context) -> {
             for (int localX = 0; localX < 16; localX++) {
@@ -433,9 +433,9 @@ public final class ResolvedTerrainProviderTest {
         private final IrisComplex complex = mock(IrisComplex.class);
         private final EngineMode mode = mock(EngineMode.class);
         private final GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
-        private final PlatformBlockState air = block("minecraft:air", true);
-        private final PlatformBlockState stone = block("minecraft:stone", false);
-        private final PlatformBiome biome = mock(PlatformBiome.class);
+        private final NativeBlockState air = block("minecraft:air", true);
+        private final NativeBlockState stone = block("minecraft:stone", false);
+        private final NativeBiome biome = mock(NativeBiome.class);
         private final Map<String, Integer> computations = new HashMap<>();
         private final List<String> events = new ArrayList<>();
         private final ResolvedTerrainProvider provider;
@@ -459,7 +459,7 @@ public final class ResolvedTerrainProviderTest {
             when(height.getDouble(anyDouble(), anyDouble())).thenReturn(3D);
             ProceduralStream<IrisBiome> biomes = mock(ProceduralStream.class);
             ProceduralStream<IrisRegion> regions = mock(ProceduralStream.class);
-            ProceduralStream<PlatformBlockState> materials = mock(ProceduralStream.class);
+            ProceduralStream<NativeBlockState> materials = mock(ProceduralStream.class);
             when(materials.get(anyDouble(), anyDouble())).thenReturn(stone);
             when(complex.getRawHeightStream()).thenReturn(height);
             when(complex.getTrueBiomeStream()).thenReturn(biomes);
@@ -472,16 +472,16 @@ public final class ResolvedTerrainProviderTest {
             doAnswer(invocation -> {
                 int x = invocation.getArgument(0);
                 int z = invocation.getArgument(1);
-                Hunk<PlatformBlockState> blocks = invocation.getArgument(2);
-                Hunk<PlatformBiome> physicalBiomes = invocation.getArgument(3);
+                Hunk<NativeBlockState> blocks = invocation.getArgument(2);
+                Hunk<NativeBiome> physicalBiomes = invocation.getArgument(3);
                 ChunkContext context = invocation.getArgument(5);
                 fill(x, z, blocks, physicalBiomes, context);
                 return null;
             }).when(mode).generateTerrain(anyInt(), anyInt(), any(), any(), anyBoolean(), any());
         }
 
-        private void fill(int x, int z, Hunk<PlatformBlockState> blocks,
-                          Hunk<PlatformBiome> biomes, ChunkContext context) {
+        private void fill(int x, int z, Hunk<NativeBlockState> blocks,
+                          Hunk<NativeBiome> biomes, ChunkContext context) {
             assertTrue(context.isNaturalTerrain());
             assertSame(context, IrisContext.require().getChunkContext());
             lastSessionId = IrisContext.require().getGenerationSessionId();
@@ -507,8 +507,8 @@ public final class ResolvedTerrainProviderTest {
             }
         }
 
-        private static PlatformBlockState block(String key, boolean air) {
-            PlatformBlockState state = mock(PlatformBlockState.class);
+        private static NativeBlockState block(String key, boolean air) {
+            NativeBlockState state = mock(NativeBlockState.class);
             when(state.key()).thenReturn(key);
             when(state.isAir()).thenReturn(air);
             return state;

@@ -3,7 +3,7 @@ package art.arcane.iris.pack;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformStructureHooks;
-import art.arcane.iris.spi.PlatformStructureHooks.JigsawSourceMetadata;
+import art.arcane.volmlib.nativelib.terrain.JigsawSourceMetadata;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import org.junit.ClassRule;
 import org.junit.Rule;

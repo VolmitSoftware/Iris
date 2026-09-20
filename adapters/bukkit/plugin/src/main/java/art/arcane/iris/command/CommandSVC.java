@@ -20,7 +20,7 @@ package art.arcane.iris.command;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.configuration.IrisSettings;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.localization.C;
 import art.arcane.iris.platform.bukkit.plugin.IrisService;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;

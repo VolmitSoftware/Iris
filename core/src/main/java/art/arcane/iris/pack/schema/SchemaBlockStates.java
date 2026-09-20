@@ -19,8 +19,8 @@
 package art.arcane.iris.pack.schema;
 
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockProperty;
-import art.arcane.iris.spi.PlatformNumericRange;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
+import art.arcane.volmlib.nativelib.terrain.NativeNumericRange;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 
@@ -75,7 +75,7 @@ final class SchemaBlockStates {
 
             if (!builder.definitions.containsKey(propertiesKey)) {
                 JSONObject props = new JSONObject();
-                for (PlatformBlockProperty property : group.properties()) {
+                for (NativeBlockProperty property : group.properties()) {
                     props.put(property.name(), buildBlockPropertyJson(property));
                 }
 
@@ -90,7 +90,7 @@ final class SchemaBlockStates {
         return "#/definitions/" + key.replace("~", "~0").replace("/", "~1");
     }
 
-    private static JSONObject buildBlockPropertyJson(PlatformBlockProperty property) {
+    private static JSONObject buildBlockPropertyJson(NativeBlockProperty property) {
         JSONObject json = new JSONObject();
         json.put("type", property.jsonType());
         json.put("default", property.defaultValue());
@@ -99,7 +99,7 @@ final class SchemaBlockStates {
             json.put("enum", new JSONArray(allowed));
         }
         if (property.hasNumericRange()) {
-            PlatformNumericRange range = property.numericRange();
+            NativeNumericRange range = property.numericRange();
             if ("integer".equals(property.jsonType())) {
                 json.put("minimum", (long) range.minimum());
                 json.put("maximum", (long) range.maximum());
@@ -115,10 +115,10 @@ final class SchemaBlockStates {
 
     private static List<BlockStateGroup> reconstructBlockStateGroups() {
         List<BlockStateGroup> groups = new ArrayList<>();
-        List<PlatformBlockProperty> currentProperties = null;
+        List<NativeBlockProperty> currentProperties = null;
         List<String> currentBlocks = null;
-        for (Map.Entry<String, List<PlatformBlockProperty>> entry : IrisPlatforms.get().registries().blockStateProperties().entrySet()) {
-            List<PlatformBlockProperty> value = entry.getValue();
+        for (Map.Entry<String, List<NativeBlockProperty>> entry : IrisPlatforms.get().registries().blockStateProperties().entrySet()) {
+            List<NativeBlockProperty> value = entry.getValue();
             if (currentProperties != null && value == currentProperties) {
                 currentBlocks.add(entry.getKey());
             } else {
@@ -131,6 +131,6 @@ final class SchemaBlockStates {
         return groups;
     }
 
-    private record BlockStateGroup(List<String> blocks, List<PlatformBlockProperty> properties) {
+    private record BlockStateGroup(List<String> blocks, List<NativeBlockProperty> properties) {
     }
 }

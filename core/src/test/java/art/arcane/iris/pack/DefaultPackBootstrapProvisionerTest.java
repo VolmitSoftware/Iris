@@ -1,6 +1,6 @@
 package art.arcane.iris.pack;
 
-import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
+import art.arcane.iris.pack.datapack.DataVersion;
 
 import art.arcane.iris.world.lifecycle.BukkitStartupPaths;
 import art.arcane.iris.world.history.GenerationRegistryContractFactory;

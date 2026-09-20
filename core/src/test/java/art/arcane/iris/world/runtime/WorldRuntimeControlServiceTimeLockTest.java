@@ -1,6 +1,8 @@
 package art.arcane.iris.world.runtime;
 
 import art.arcane.iris.world.lifecycle.CapabilitySnapshot;
+import art.arcane.volmlib.nativelib.terrain.NativeWorldRuntime;
+import art.arcane.volmlib.nativelib.terrain.NativeWorldClock;
 import art.arcane.iris.world.lifecycle.ServerFamily;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -12,7 +14,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Proxy;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -23,8 +24,10 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class WorldRuntimeControlServiceTimeLockTest {
+    private NativeWorldClock clock;
     @Before
     public void ensureBukkitServer() {
         BukkitTestServer.install();
@@ -95,166 +98,35 @@ public class WorldRuntimeControlServiceTimeLockTest {
 
     private WorldRuntimeControlService createService() throws Exception {
         Constructor<CapabilitySnapshot> snapshotConstructor = CapabilitySnapshot.class.getDeclaredConstructor(
-                ServerFamily.class,
-                boolean.class,
-                Object.class,
-                Class.class,
-                Class.class,
-                String.class,
-                Object.class,
-                Object.class,
-                java.lang.reflect.Method.class,
-                CapabilitySnapshot.PaperLikeFlavor.class,
-                Class.class,
-                java.lang.reflect.Method.class,
-                java.lang.reflect.Constructor.class,
-                java.lang.reflect.Constructor.class,
-                java.lang.reflect.Method.class,
-                java.lang.reflect.Method.class,
-                java.lang.reflect.Field.class,
-                java.lang.reflect.Method.class,
-                java.lang.reflect.Field.class,
-                java.lang.reflect.Field.class,
-                java.lang.reflect.Method.class,
-                java.lang.reflect.Method.class,
-                java.lang.reflect.Method.class,
-                java.lang.reflect.Method.class,
-                String.class
-        );
+                ServerFamily.class, boolean.class, Object.class, Class.class, Class.class, String.class,
+                NativeWorldRuntime.class, java.lang.reflect.Method.class);
         snapshotConstructor.setAccessible(true);
+        NativeWorldRuntime runtime = mock(NativeWorldRuntime.class);
+        when(runtime.clock()).thenReturn(clock);
         CapabilitySnapshot snapshot = snapshotConstructor.newInstance(
-                ServerFamily.PAPER,
-                false,
-                null,
-                null,
-                null,
-                "test",
-                Bukkit.getServer(),
-                null,
-                null,
-                CapabilitySnapshot.PaperLikeFlavor.UNSUPPORTED,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                "test"
-        );
+                ServerFamily.PAPER, false, null, null, null, "test", runtime, null);
 
         Constructor<WorldRuntimeControlService> serviceConstructor = WorldRuntimeControlService.class.getDeclaredConstructor(CapabilitySnapshot.class);
         serviceConstructor.setAccessible(true);
         return serviceConstructor.newInstance(snapshot);
     }
 
-    private World createWorldProxy(String name, boolean fixedTime, AtomicBoolean setTimeCalled, AtomicLong dayTime, boolean throwOnSetTime) {
-        Object dimensionType = Proxy.newProxyInstance(
-                World.class.getClassLoader(),
-                new Class[]{DimensionTypeProbe.class},
-                (proxy, method, args) -> {
-                    if ("hasFixedTime".equals(method.getName())) {
-                        return fixedTime;
-                    }
-                    if ("fixedTime".equals(method.getName())) {
-                        return fixedTime ? OptionalLong.of(6000L) : OptionalLong.empty();
-                    }
-                    return null;
-                }
-        );
-        Object holder = Proxy.newProxyInstance(
-                World.class.getClassLoader(),
-                new Class[]{HolderProbe.class},
-                (proxy, method, args) -> {
-                    if ("value".equals(method.getName())) {
-                        return dimensionType;
-                    }
-                    return null;
-                }
-        );
-        Object handle = Proxy.newProxyInstance(
-                World.class.getClassLoader(),
-                new Class[]{HandleProbe.class},
-                (proxy, method, args) -> {
-                    if ("dimensionTypeRegistration".equals(method.getName())) {
-                        return holder;
-                    }
-                    if ("getDayTime".equals(method.getName())) {
-                        return dayTime.get();
-                    }
-                    if ("setDayTime".equals(method.getName())) {
-                        setTimeCalled.set(true);
-                        if (throwOnSetTime) {
-                            throw new IllegalArgumentException("Cannot set time in world without world clock");
-                        }
-                        dayTime.set(((Long) args[0]).longValue());
-                        return null;
-                    }
-                    return null;
-                }
-        );
-        return (World) Proxy.newProxyInstance(
-                World.class.getClassLoader(),
-                new Class[]{World.class, WorldHandleProbe.class},
-                (proxy, method, args) -> {
-                    if ("getName".equals(method.getName())) {
-                        return name;
-                    }
-                    if ("getHandle".equals(method.getName())) {
-                        return handle;
-                    }
-                    if ("getFullTime".equals(method.getName())) {
-                        return dayTime.get();
-                    }
-
-                    Class<?> returnType = method.getReturnType();
-                    if (boolean.class.equals(returnType)) {
-                        return false;
-                    }
-                    if (int.class.equals(returnType)) {
-                        return 0;
-                    }
-                    if (long.class.equals(returnType)) {
-                        return 0L;
-                    }
-                    if (float.class.equals(returnType)) {
-                        return 0F;
-                    }
-                    if (double.class.equals(returnType)) {
-                        return 0D;
-                    }
-
-                    return null;
-                }
-        );
-    }
-
-    private interface WorldHandleProbe {
-        Object getHandle();
-    }
-
-    private interface HandleProbe {
-        Object dimensionTypeRegistration();
-
-        long getDayTime();
-
-        void setDayTime(long time);
-    }
-
-    private interface HolderProbe {
-        Object value();
-    }
-
-    private interface DimensionTypeProbe {
-        boolean hasFixedTime();
-
-        OptionalLong fixedTime();
+    private World createWorldProxy(String name, boolean fixedTime, AtomicBoolean setTimeCalled,
+                                   AtomicLong dayTime, boolean throwOnSetTime) throws Exception {
+        World world = mock(World.class);
+        when(world.getName()).thenReturn(name);
+        when(world.getFullTime()).thenAnswer(invocation -> dayTime.get());
+        clock = mock(NativeWorldClock.class);
+        when(clock.hasMutableClock(world)).thenReturn(!fixedTime);
+        when(clock.readDayTime(world)).thenAnswer(invocation -> OptionalLong.of(dayTime.get()));
+        when(clock.writeDayTime(world, 6000L)).thenAnswer(invocation -> {
+            setTimeCalled.set(true);
+            if (throwOnSetTime) {
+                throw new IllegalArgumentException("Cannot set time in world without world clock");
+            }
+            dayTime.set(6000L);
+            return true;
+        });
+        return world;
     }
 }

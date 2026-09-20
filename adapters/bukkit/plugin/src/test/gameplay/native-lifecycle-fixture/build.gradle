@@ -1,0 +1,34 @@
+plugins {
+    id 'java'
+}
+
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://repo.papermc.io/repository/maven-public/' }
+}
+
+dependencies {
+    compileOnly files(providers.gradleProperty('irisJar').get())
+    compileOnly 'io.papermc.paper:paper-api:26.1.2.build.74-stable'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
+}
+
+sourceSets {
+    main {
+        java.srcDirs = ['src']
+        resources.srcDirs = ['resources']
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += '-parameters'
+}
+
+tasks.named('jar') {
+    archiveBaseName = 'IrisNativeLifecycleFixture'
+}

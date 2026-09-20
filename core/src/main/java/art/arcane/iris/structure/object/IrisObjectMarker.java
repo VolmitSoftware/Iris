@@ -22,7 +22,7 @@ import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.world.entity.IrisMarker;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
@@ -34,7 +34,7 @@ import art.arcane.volmlib.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import lombok.experimental.Accessors;
 
 @Snippet("object-marker")
@@ -44,7 +44,7 @@ import lombok.experimental.Accessors;
 @Description("Find blocks to mark")
 @Data
 public class IrisObjectMarker {
-    private final transient AtomicCache<KList<PlatformBlockState>> findData = new AtomicCache<>();
+    private final transient AtomicCache<KList<NativeBlockState>> findData = new AtomicCache<>();
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Required
     @Description("Find block types to mark")
@@ -60,13 +60,13 @@ public class IrisObjectMarker {
     @Description("The marker to add")
     private String marker;
 
-    public KList<PlatformBlockState> getMark(IrisData rdata) {
+    public KList<NativeBlockState> getMark(IrisData rdata) {
         return findData.aquire(() ->
         {
-            KList<PlatformBlockState> b = new KList<>();
+            KList<NativeBlockState> b = new KList<>();
 
             for (IrisBlockData i : mark) {
-                PlatformBlockState bx = i.getBlockDataOrPlaceholder(rdata);
+                NativeBlockState bx = i.getBlockDataOrPlaceholder(rdata);
 
                 if (bx != null) {
                     b.add(bx);

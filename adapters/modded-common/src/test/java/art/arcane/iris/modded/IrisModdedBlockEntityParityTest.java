@@ -1,5 +1,9 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedChunkGenerator;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeContainerLoot;
+
 import art.arcane.volmlib.util.math.RNG;
 import com.mojang.serialization.Codec;
 import net.minecraft.SharedConstants;
@@ -66,13 +70,13 @@ public class IrisModdedBlockEntityParityTest {
         BlockPos position = new BlockPos(3, 70, 5);
         chunk.setBlockState(position, Blocks.CHEST.defaultBlockState(), 0);
 
-        IrisModdedChunkGenerator.createDefaultBlockEntity(chunk, position, Blocks.CHEST.defaultBlockState());
+        NativeModdedChunkGenerator.createDefaultBlockEntity(chunk, position, Blocks.CHEST.defaultBlockState());
 
         BlockEntity blockEntity = chunk.getBlockEntity(position);
         assertNotNull(blockEntity);
         assertTrue(blockEntity instanceof Container);
         Container container = (Container) blockEntity;
-        ModdedLootApplier.fillContainer(container, List.of(new ItemStack(Items.DIAMOND)), new RNG(17L));
+        NativeContainerLoot.fillContainer(container, List.of(new ItemStack(Items.DIAMOND)), new RNG(17L), message -> {});
         assertEquals(1, countItem(container, Items.DIAMOND));
         CompoundTag saved = blockEntity.saveWithoutMetadata(registries);
         ChestBlockEntity restored = new ChestBlockEntity(position, Blocks.CHEST.defaultBlockState());
@@ -94,9 +98,9 @@ public class IrisModdedBlockEntityParityTest {
         chunk.setBlockState(signPosition, signState, 0);
         chunk.setBlockState(spawnerPosition, spawnerState, 0);
         chunk.setBlockState(bannerPosition, bannerState, 0);
-        IrisModdedChunkGenerator.createDefaultBlockEntity(chunk, signPosition, signState);
-        IrisModdedChunkGenerator.createDefaultBlockEntity(chunk, spawnerPosition, spawnerState);
-        IrisModdedChunkGenerator.createDefaultBlockEntity(chunk, bannerPosition, bannerState);
+        NativeModdedChunkGenerator.createDefaultBlockEntity(chunk, signPosition, signState);
+        NativeModdedChunkGenerator.createDefaultBlockEntity(chunk, spawnerPosition, spawnerState);
+        NativeModdedChunkGenerator.createDefaultBlockEntity(chunk, bannerPosition, bannerState);
 
         assertTrue(chunk.getBlockEntity(signPosition) instanceof SignBlockEntity);
         assertTrue(chunk.getBlockEntity(spawnerPosition) instanceof SpawnerBlockEntity);

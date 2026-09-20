@@ -31,10 +31,8 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.VoxelShape;
 
-import java.lang.reflect.Method;
 import java.util.LinkedHashSet;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -437,19 +435,8 @@ public final class WorldRuntimeControlService {
 
     public boolean hasMutableClock(World world) {
         try {
-            Object handle = invokeNoArg(world, "getHandle");
-            if (handle == null) {
-                return false;
-            }
-
-            Object dimensionTypeHolder = invokeNoArg(handle, "dimensionTypeRegistration");
-            Object dimensionType = unwrapDimensionType(dimensionTypeHolder);
-            if (dimensionType == null) {
-                return false;
-            }
-
-            return !dimensionTypeHasFixedTime(dimensionType);
-        } catch (Throwable e) {
+            return capabilities.nativeRuntime() != null && capabilities.nativeRuntime().clock().hasMutableClock(world);
+        } catch (ReflectiveOperationException | RuntimeException failure) {
             return false;
         }
     }
@@ -750,43 +737,6 @@ public final class WorldRuntimeControlService {
             }
         }
         return builder.toString();
-    }
-
-    private static boolean dimensionTypeHasFixedTime(Object dimensionType) throws ReflectiveOperationException {
-        Object fixedTimeFlag;
-        try {
-            fixedTimeFlag = invokeNoArg(dimensionType, "hasFixedTime");
-        } catch (NoSuchMethodException ignored) {
-            Object fixedTime = invokeNoArg(dimensionType, "fixedTime");
-            if (fixedTime instanceof OptionalLong optionalLong) {
-                return optionalLong.isPresent();
-            }
-            if (fixedTime instanceof Optional<?> optional) {
-                return optional.isPresent();
-            }
-            return false;
-        }
-
-        return fixedTimeFlag instanceof Boolean && (Boolean) fixedTimeFlag;
-    }
-
-    private static Object unwrapDimensionType(Object dimensionTypeHolder) throws ReflectiveOperationException {
-        if (dimensionTypeHolder == null) {
-            return null;
-        }
-
-        Class<?> holderClass = dimensionTypeHolder.getClass();
-        if (holderClass.getName().startsWith("net.minecraft.world.level.dimension.")) {
-            return dimensionTypeHolder;
-        }
-
-        Method valueMethod = holderClass.getMethod("value");
-        return valueMethod.invoke(dimensionTypeHolder);
-    }
-
-    private static Object invokeNoArg(Object instance, String methodName) throws ReflectiveOperationException {
-        Method method = instance.getClass().getMethod(methodName);
-        return method.invoke(instance);
     }
 
     @FunctionalInterface

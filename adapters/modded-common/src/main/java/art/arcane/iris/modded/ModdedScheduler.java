@@ -18,9 +18,11 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedServerLevels;
+
+
 import art.arcane.iris.spi.PlatformScheduler;
-import art.arcane.iris.spi.PlatformWorld;
-import net.minecraft.server.MinecraftServer;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -90,17 +92,13 @@ public final class ModdedScheduler implements PlatformScheduler {
         };
     }
 
-    public static void tick(MinecraftServer server) {
-        if (server == null) {
+    public static void tick(Thread running) {
+        if (running == null) {
             return;
         }
-        Thread running = server.getRunningThread();
         if (mainThread != running) {
             mainThread = running;
         }
-        // First thing in the Iris tick body: keep the off-thread level snapshot current for levels registered
-        // outside ModdedServerAccess (vanilla boot, other mods) before the rest of the tick reads it.
-        ModdedServerLevels.refreshIfStale(server);
         ModdedScheduler scheduler = ModdedEngineBootstrap.schedulerOrNull();
         if (scheduler == null) {
             return;
@@ -126,7 +124,7 @@ public final class ModdedScheduler implements PlatformScheduler {
     }
 
     @Override
-    public void region(PlatformWorld world, int chunkX, int chunkZ, Runnable task) {
+    public void region(NativeWorld world, int chunkX, int chunkZ, Runnable task) {
         global(task);
     }
 
@@ -171,7 +169,7 @@ public final class ModdedScheduler implements PlatformScheduler {
     }
 
     @Override
-    public void laterRegion(PlatformWorld world, int chunkX, int chunkZ, Runnable task, int ticks) {
+    public void laterRegion(NativeWorld world, int chunkX, int chunkZ, Runnable task, int ticks) {
         laterGlobal(task, ticks);
     }
 

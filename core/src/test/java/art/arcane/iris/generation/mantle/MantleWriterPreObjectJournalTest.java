@@ -5,7 +5,7 @@ import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
@@ -59,7 +59,7 @@ public class MantleWriterPreObjectJournalTest {
     @SuppressWarnings("unchecked")
     public void setUp() {
         IrisPlatforms.unbind();
-        PlatformBlockState air = mock(PlatformBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
         PlatformRegistries registries = mock(PlatformRegistries.class);
         IrisPlatform platform = mock(IrisPlatform.class);
         when(registries.air()).thenReturn(air);
@@ -92,12 +92,12 @@ public class MantleWriterPreObjectJournalTest {
 
     @Test
     public void firstMutationCapturesEachSupportedOriginalIndependently() {
-        PlatformBlockState originalBlock = mock(PlatformBlockState.class);
-        PlatformBlockState firstBlock = mock(PlatformBlockState.class);
-        PlatformBlockState secondBlock = mock(PlatformBlockState.class);
+        NativeBlockState originalBlock = mock(NativeBlockState.class);
+        NativeBlockState firstBlock = mock(NativeBlockState.class);
+        NativeBlockState secondBlock = mock(NativeBlockState.class);
         MatterCavern originalCavern = new MatterCavern(true, "old", (byte) 1);
         MatterCavern replacementCavern = new MatterCavern(true, "new", (byte) 2);
-        matter.<PlatformBlockState>slice(PlatformBlockState.class).set(X, Y, Z, originalBlock);
+        matter.<NativeBlockState>slice(NativeBlockState.class).set(X, Y, Z, originalBlock);
         matter.<MatterCavern>slice(MatterCavern.class).set(X, Y, Z, originalCavern);
 
         writer.withComponentPriority(2, () -> {
@@ -108,10 +108,10 @@ public class MantleWriterPreObjectJournalTest {
             writer.setData(X, Y, Z, "newer-marker");
         });
 
-        assertSame(originalBlock, writer.getPrerequisiteDataIfPresent(X, Y, Z, PlatformBlockState.class));
+        assertSame(originalBlock, writer.getPrerequisiteDataIfPresent(X, Y, Z, NativeBlockState.class));
         assertNull(writer.getPrerequisiteDataIfPresent(X, Y, Z, String.class));
         assertEquals(originalCavern, writer.getPrerequisiteDataIfPresent(X, Y, Z, MatterCavern.class));
-        assertSame(secondBlock, writer.getDataIfPresent(X, Y, Z, PlatformBlockState.class));
+        assertSame(secondBlock, writer.getDataIfPresent(X, Y, Z, NativeBlockState.class));
         assertEquals("newer-marker", writer.getDataIfPresent(X, Y, Z, String.class));
         assertEquals(replacementCavern, writer.getDataIfPresent(X, Y, Z, MatterCavern.class));
 
@@ -186,11 +186,11 @@ public class MantleWriterPreObjectJournalTest {
 
     @Test
     public void restorationWritesCapturedValuesAndNullsWithoutRecapture() {
-        PlatformBlockState originalBlock = mock(PlatformBlockState.class);
-        PlatformBlockState replacementBlock = mock(PlatformBlockState.class);
+        NativeBlockState originalBlock = mock(NativeBlockState.class);
+        NativeBlockState replacementBlock = mock(NativeBlockState.class);
         MatterCavern originalCavern = new MatterCavern(true, "old", (byte) 1);
         MatterCavern replacementCavern = new MatterCavern(true, "new", (byte) 2);
-        matter.<PlatformBlockState>slice(PlatformBlockState.class).set(X, Y, Z, originalBlock);
+        matter.<NativeBlockState>slice(NativeBlockState.class).set(X, Y, Z, originalBlock);
         matter.<MatterCavern>slice(MatterCavern.class).set(X, Y, Z, originalCavern);
         writer.withComponentPriority(2, () -> {
             writer.setData(X, Y, Z, replacementBlock);
@@ -201,7 +201,7 @@ public class MantleWriterPreObjectJournalTest {
         assertTrue(writer.restorePrerequisiteData(X, Y, Z, String.class));
         assertNull(writer.getDataIfPresent(X, Y, Z, String.class));
         assertTrue(writer.restorePrerequisiteCell(X, Y, Z));
-        assertSame(originalBlock, writer.getDataIfPresent(X, Y, Z, PlatformBlockState.class));
+        assertSame(originalBlock, writer.getDataIfPresent(X, Y, Z, NativeBlockState.class));
         assertEquals(originalCavern, writer.getDataIfPresent(X, Y, Z, MatterCavern.class));
         assertFalse(writer.restorePrerequisiteData(X, Y, Z, Integer.class));
         assertFalse(writer.restorePrerequisiteCell(X + 1, Y, Z));

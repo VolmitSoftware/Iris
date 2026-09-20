@@ -26,7 +26,7 @@ import art.arcane.volmlib.util.math.Rarity;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.placement.LootResolver;
 import art.arcane.volmlib.util.documentation.Description;

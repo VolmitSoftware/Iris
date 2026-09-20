@@ -11,7 +11,7 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.Terrain3DColumnFixtures;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
@@ -160,7 +160,7 @@ public class ObjectDestinationTransactionTest {
             assertFalse(transaction.isCarved(0, 6, 0));
             assertTrue(transaction.isCarved(0, 12, 0));
 
-            transaction.setData(0, 5, 0, mock(PlatformBlockState.class));
+            transaction.setData(0, 5, 0, mock(NativeBlockState.class));
 
             assertFalse(transaction.isCarved(0, 5, 0));
             assertEquals(0, transaction.getCarvedColumn(0, 0, 16)[5]);
@@ -232,8 +232,8 @@ public class ObjectDestinationTransactionTest {
     @Test
     public void rejectedWriterMutationsNeverEnterTheOverlay() {
         MantleWriter writer = writer();
-        PlatformBlockState prerequisite = mock(PlatformBlockState.class);
-        PlatformBlockState rejected = mock(PlatformBlockState.class);
+        NativeBlockState prerequisite = mock(NativeBlockState.class);
+        NativeBlockState rejected = mock(NativeBlockState.class);
         MatterCavern cavern = new MatterCavern(true, "", (byte) 0);
         when(writer.getPrerequisiteBlock(0, 0, 0)).thenReturn(prerequisite);
         when(writer.getEngine().getDimension().isBedrock()).thenReturn(true);
@@ -254,8 +254,8 @@ public class ObjectDestinationTransactionTest {
     @Test
     public void acceptedCustomPlacementPublishesBlockAndIdentifierAsOneMutation() {
         MantleWriter writer = writer();
-        PlatformBlockState custom = mock(PlatformBlockState.class);
-        PlatformBlockState base = mock(PlatformBlockState.class);
+        NativeBlockState custom = mock(NativeBlockState.class);
+        NativeBlockState base = mock(NativeBlockState.class);
         Identifier identifier = Identifier.fromString("iris:custom_block");
         when(custom.isCustom()).thenReturn(true);
         when(custom.deferredPlacementKey()).thenReturn(identifier.toString());
@@ -275,8 +275,8 @@ public class ObjectDestinationTransactionTest {
     @Test
     public void rejectedCustomPlacementStagesNeitherBlockNorIdentifier() {
         MantleWriter writer = writer();
-        PlatformBlockState custom = mock(PlatformBlockState.class);
-        PlatformBlockState base = mock(PlatformBlockState.class);
+        NativeBlockState custom = mock(NativeBlockState.class);
+        NativeBlockState base = mock(NativeBlockState.class);
         when(custom.isCustom()).thenReturn(true);
         when(custom.deferredPlacementKey()).thenReturn("iris:custom_block");
         when(custom.placementBaseState()).thenReturn(base);
@@ -293,14 +293,14 @@ public class ObjectDestinationTransactionTest {
         assertNull(transaction.getDataIfPresent(1, 4, 0, Identifier.class));
         assertNull(transaction.getDataIfPresent(2, 64, 0, Identifier.class));
         transaction.commit();
-        verify(writer, never()).set(anyInt(), anyInt(), anyInt(), any(PlatformBlockState.class));
+        verify(writer, never()).set(anyInt(), anyInt(), anyInt(), any(NativeBlockState.class));
         verify(writer, never()).setData(anyInt(), anyInt(), anyInt(), any(Identifier.class));
     }
 
     @Test
     public void blockReplacementClearsOverlayIdentifierAndRestoresItAfterFailure() {
         MantleWriter writer = writer();
-        PlatformBlockState block = mock(PlatformBlockState.class);
+        NativeBlockState block = mock(NativeBlockState.class);
         Marker failure = new Marker("failure");
         Identifier originalIdentifier = Identifier.fromString("iris:deferred");
         when(writer.getPrerequisiteDataIfPresent(0, 4, 0, Identifier.class)).thenReturn(originalIdentifier);
@@ -351,7 +351,7 @@ public class ObjectDestinationTransactionTest {
             BukkitTestServer.install();
             previousPlatform = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
             IrisPlatforms.unbind();
-            PlatformBlockState air = mock(PlatformBlockState.class);
+            NativeBlockState air = mock(NativeBlockState.class);
             PlatformRegistries registries = mock(PlatformRegistries.class);
             IrisPlatform platform = mock(IrisPlatform.class);
             when(air.isAir()).thenReturn(true);

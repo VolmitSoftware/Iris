@@ -1,5 +1,7 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeContainerLoot;
+
 import art.arcane.iris.structure.placement.LootResolver;
 import art.arcane.iris.world.loot.IrisLootMode;
 import art.arcane.volmlib.util.math.RNG;
@@ -112,7 +114,7 @@ public class ModdedLootApplierTest {
 
     @Test
     public void nativeKeyIsReturnedWhenTheLiveRegistryContainsIt() {
-        ResourceKey<LootTable> key = ModdedLootApplier.resolveNativeKey("minecraft:chests/simple_dungeon", candidate -> true);
+        ResourceKey<LootTable> key = NativeContainerLoot.resolveNativeKey("minecraft:chests/simple_dungeon", candidate -> true);
 
         assertNotNull(key);
         assertEquals(Identifier.parse("minecraft:chests/simple_dungeon"), key.identifier());
@@ -120,7 +122,7 @@ public class ModdedLootApplierTest {
 
     @Test
     public void nativeKeyIsRejectedWhenTheLiveRegistryDoesNotContainIt() {
-        ResourceKey<LootTable> key = ModdedLootApplier.resolveNativeKey("minecraft:chests/missing", candidate -> false);
+        ResourceKey<LootTable> key = NativeContainerLoot.resolveNativeKey("minecraft:chests/missing", candidate -> false);
 
         assertNull(key);
     }
@@ -129,7 +131,7 @@ public class ModdedLootApplierTest {
     public void malformedNativeKeyIsRejectedBeforeRegistryLookup() {
         AtomicBoolean registryConsulted = new AtomicBoolean(false);
 
-        ResourceKey<LootTable> key = ModdedLootApplier.resolveNativeKey("not a valid identifier", candidate -> {
+        ResourceKey<LootTable> key = NativeContainerLoot.resolveNativeKey("not a valid identifier", candidate -> {
             registryConsulted.set(true);
             return true;
         });
@@ -142,7 +144,7 @@ public class ModdedLootApplierTest {
     public void nativeOnlyFillMarksTheContainerChanged() {
         TrackingContainer container = new TrackingContainer();
 
-        ModdedLootApplier.fillContainer(container, List.<ItemStack>of(), new RNG(17L));
+        NativeContainerLoot.fillContainer(container, List.<ItemStack>of(), new RNG(17L), message -> {});
 
         assertTrue(container.changed);
     }
@@ -152,8 +154,8 @@ public class ModdedLootApplierTest {
         BlockPos leftPos = new BlockPos(0, 64, 0);
         BlockPos rightPos = new BlockPos(1, 64, 0);
 
-        assertTrue(ModdedLootApplier.isCanonicalPair(leftPos, rightPos));
-        assertFalse(ModdedLootApplier.isCanonicalPair(rightPos, leftPos));
+        assertTrue(NativeContainerLoot.isCanonicalPair(leftPos, rightPos));
+        assertFalse(NativeContainerLoot.isCanonicalPair(rightPos, leftPos));
     }
 
     @Test
@@ -165,8 +167,8 @@ public class ModdedLootApplierTest {
         RandomizableContainer empty = containerWithLootTable(null);
         RandomizableContainer nativeLoot = containerWithLootTable(key);
 
-        assertFalse(ModdedLootApplier.hasNativeLootTable(empty));
-        assertTrue(ModdedLootApplier.hasNativeLootTable(nativeLoot));
+        assertFalse(NativeContainerLoot.hasNativeLootTable(empty));
+        assertTrue(NativeContainerLoot.hasNativeLootTable(nativeLoot));
     }
 
     private RandomizableContainer containerWithLootTable(ResourceKey<LootTable> key) {

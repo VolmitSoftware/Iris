@@ -5,7 +5,7 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.GenerationSessionManager;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.block.B;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.junit.BeforeClass;
 import org.mockito.MockedStatic;
 
@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
 abstract class GenerationHistoryRuntimeRouterSupport extends GenerationHistorySupport {
     @BeforeClass
     public static void initializeMantleBlockState() throws Exception {
-        PlatformBlockState air = mock(PlatformBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
         try (MockedStatic<B> blocks = mockStatic(B.class)) {
             blocks.when(() -> B.getState("AIR")).thenReturn(air);
             Class.forName(EngineMantle.class.getName());

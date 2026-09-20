@@ -18,20 +18,19 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeSpawnedEntity;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeItemStack;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntityLoot;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.world.loot.InventorySlotType;
 import art.arcane.iris.world.loot.IrisLootTable;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.vehicle.ContainerEntity;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.chunk.ChunkGenerator;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,30 +43,32 @@ public final class ModdedDeathLoot {
     private ModdedDeathLoot() {
     }
 
-    public static void bind(Engine engine, Entity entity, KList<String> tableKeys, int spawnX, int spawnY, int spawnZ, RNG rng) {
+    public static void bind(Engine engine, NativeSpawnedEntity spawned, KList<String> tableKeys, int spawnX, int spawnY, int spawnZ, RNG rng) {
+        NativeEntityLoot entity = NativeEntityLoot.of(spawned);
         if (engine == null || entity == null || tableKeys == null || tableKeys.isEmpty()) {
             return;
         }
         LootBinding binding = new LootBinding(rng.getSeed(), spawnX, spawnY, spawnZ, new KList<>(tableKeys));
-        if (entity instanceof Mob) {
-            entity.addTag(encode(binding));
+        if (entity.mob()) {
+            entity.tag(encode(binding));
             return;
         }
-        if (entity instanceof ContainerEntity container && entity.level() instanceof ServerLevel level) {
-            fillContainer(engine, level, container, binding);
+        if (entity.container()) {
+            fillContainer(engine, entity, binding);
             return;
         }
 
-        String type = String.valueOf(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()));
+        String type = entity.type();
         if (WARNED_ENTITY_TYPES.add(type)) {
             IrisLogging.warn("Iris entity loot: entity type '" + type + "' does not expose a vanilla lootable path");
         }
     }
 
-    public static boolean replaceBaseLoot(LivingEntity entity) {
-        if (entity == null || !(entity.level() instanceof ServerLevel level)) {
+    public static boolean replaceBaseLoot(NativeEntityLoot entity) {
+        if (entity == null || entity.world() == null) {
             return false;
         }
+        NativeWorld level = entity.world();
         String encoded = findTag(entity);
         if (encoded == null) {
             return false;
@@ -80,8 +81,8 @@ public final class ModdedDeathLoot {
         if (engine == null) {
             return true;
         }
-        KList<ItemStack> stacks = resolve(engine, level, binding);
-        emit(level, entity, stacks);
+        KList<NativeItemStack> stacks = resolve(engine, level, binding);
+        entity.emit(stacks);
         return true;
     }
 
@@ -94,15 +95,14 @@ public final class ModdedDeathLoot {
         return false;
     }
 
-    private static void fillContainer(Engine engine, ServerLevel level, ContainerEntity container, LootBinding binding) {
-        container.setContainerLootTable(null);
-        container.clearItemStacks();
-        KList<ItemStack> items = resolve(engine, level, binding);
-        ModdedLootApplier.fillContainer(container, items, new RNG(binding.seed()));
+    private static void fillContainer(Engine engine, NativeEntityLoot entity, LootBinding binding) {
+        entity.prepareContainer();
+        KList<NativeItemStack> items = resolve(engine, entity.world(), binding);
+        entity.fill(items, new RNG(binding.seed()), message -> IrisLogging.debug("Iris loot: " + message));
     }
 
-    private static KList<ItemStack> resolve(Engine engine, ServerLevel level, LootBinding binding) {
-        KList<ItemStack> drops = new KList<>();
+    private static KList<NativeItemStack> resolve(Engine engine, NativeWorld level, LootBinding binding) {
+        KList<NativeItemStack> drops = new KList<>();
         for (String key : binding.tableKeys()) {
             IrisLootTable table = engine.getData().getLootLoader().load(key);
             if (table == null) {
@@ -111,19 +111,10 @@ public final class ModdedDeathLoot {
                 }
                 continue;
             }
-            drops.addAll(ModdedItemTranslator.loot(table, engine.getSeedManager().getLoot(), InventorySlotType.STORAGE, level,
+            drops.addAll(ModdedItemTranslator.loot(table, engine.getSeedManager().getLoot(), InventorySlotType.STORAGE, ModdedItemTranslator.context(level),
                     binding.spawnX(), binding.spawnY(), binding.spawnZ()));
         }
         return drops;
-    }
-
-    private static void emit(ServerLevel level, LivingEntity entity, KList<ItemStack> drops) {
-        for (ItemStack stack : drops) {
-            if (stack == null || stack.isEmpty()) {
-                continue;
-            }
-            entity.spawnAtLocation(level, stack);
-        }
     }
 
     private static String encode(LootBinding binding) {
@@ -156,8 +147,8 @@ public final class ModdedDeathLoot {
         }
     }
 
-    private static String findTag(Entity entity) {
-        for (String tag : entity.entityTags()) {
+    private static String findTag(NativeEntityLoot entity) {
+        for (String tag : entity.tags()) {
             if (tag.startsWith(TAG_PREFIX)) {
                 return tag;
             }
@@ -165,12 +156,9 @@ public final class ModdedDeathLoot {
         return null;
     }
 
-    private static Engine engineFor(ServerLevel level) {
-        ChunkGenerator generator = level.getChunkSource().getGenerator();
-        if (generator instanceof IrisModdedChunkGenerator irisGenerator) {
-            return irisGenerator.engineIfBound();
-        }
-        return null;
+    private static Engine engineFor(NativeWorld level) {
+        IrisModdedChunkGenerator generator = NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class);
+        return generator == null ? null : generator.engineIfBound();
     }
 
     private record LootBinding(long seed, int spawnX, int spawnY, int spawnZ, KList<String> tableKeys) {

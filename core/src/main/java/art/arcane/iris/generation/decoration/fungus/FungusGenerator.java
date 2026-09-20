@@ -21,7 +21,7 @@ package art.arcane.iris.generation.decoration.fungus;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -47,10 +47,10 @@ public final class FungusGenerator {
         }
 
         RNG paletteRng = new RNG(fungus.getSeed());
-        Map<Vector3i, PlatformBlockState> resolved = new HashMap<>();
+        Map<Vector3i, NativeBlockState> resolved = new HashMap<>();
         for (Map.Entry<Vector3i, FungusCellRole> entry : roles.entrySet()) {
             Vector3i pos = entry.getKey();
-            PlatformBlockState bd = resolveRole(fungus, entry.getValue(), data, pos, paletteRng);
+            NativeBlockState bd = resolveRole(fungus, entry.getValue(), data, pos, paletteRng);
             if (bd == null) {
                 continue;
             }
@@ -79,7 +79,7 @@ public final class FungusGenerator {
         return rng.i(lo, hi + 1);
     }
 
-    private static PlatformBlockState resolveRole(IrisFungus fungus, FungusCellRole role, IrisData data, Vector3i pos, RNG paletteRng) {
+    private static NativeBlockState resolveRole(IrisFungus fungus, FungusCellRole role, IrisData data, Vector3i pos, RNG paletteRng) {
         int x = pos.getBlockX();
         int y = pos.getBlockY();
         int z = pos.getBlockZ();
@@ -87,11 +87,11 @@ public final class FungusGenerator {
             case STEM -> IrisProceduralBlocks.resolve(fungus.getStem(), fungus.getStemPalette(), data, x, y, z, paletteRng);
             case CAP -> IrisProceduralBlocks.resolve(fungus.getCap(), fungus.getCapPalette(), data, x, y, z, paletteRng);
             case GILL -> {
-                PlatformBlockState gill = IrisProceduralBlocks.resolve(fungus.getGillBlock(), fungus.getGillPalette(), data, x, y, z, paletteRng);
+                NativeBlockState gill = IrisProceduralBlocks.resolve(fungus.getGillBlock(), fungus.getGillPalette(), data, x, y, z, paletteRng);
                 yield gill != null ? gill : IrisProceduralBlocks.resolve(fungus.getCap(), fungus.getCapPalette(), data, x, y, z, paletteRng);
             }
             case SPOT -> {
-                PlatformBlockState spot = IrisProceduralBlocks.resolve(fungus.getSpotBlock(), fungus.getSpotPalette(), data, x, y, z, paletteRng);
+                NativeBlockState spot = IrisProceduralBlocks.resolve(fungus.getSpotBlock(), fungus.getSpotPalette(), data, x, y, z, paletteRng);
                 yield spot != null ? spot : IrisProceduralBlocks.resolve(fungus.getCap(), fungus.getCapPalette(), data, x, y, z, paletteRng);
             }
         };

@@ -2,7 +2,7 @@ package art.arcane.iris.modded.command;
 
 import art.arcane.iris.structure.nativegen.IrisNativeStructureDecision;
 import art.arcane.iris.structure.nativegen.NativeStructureGenerationStatus;
-import art.arcane.iris.nativegen.NativeStructureLocateResults;
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureLocateResults;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
 import org.junit.Test;

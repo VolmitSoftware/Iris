@@ -3,7 +3,7 @@ package art.arcane.iris.probe;
 import art.arcane.iris.generation.runtime.DimensionStackContext;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.IrisRuntimeState;
 import org.junit.AfterClass;
 import org.junit.Test;
@@ -410,7 +410,7 @@ public final class DimensionStackSuperflatProbeTest {
                 expected, blockKey(chunk.blockAt(blockX, y, blockZ)));
     }
 
-    private static String blockKey(PlatformBlockState state) {
+    private static String blockKey(NativeBlockState state) {
         return state == null || state.isAir() ? AIR : state.key();
     }
 

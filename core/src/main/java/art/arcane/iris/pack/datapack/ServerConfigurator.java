@@ -32,8 +32,8 @@ import art.arcane.iris.world.lifecycle.BukkitWorldConfiguration;
 import art.arcane.iris.world.lifecycle.BukkitWorldConfiguration.IrisGeneratorBinding;
 import art.arcane.iris.world.lifecycle.LifecycleOperationCoordinator;
 import art.arcane.iris.platform.bukkit.nms.INMS;
-import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
-import art.arcane.iris.platform.bukkit.nms.datapack.IDataFixer;
+import art.arcane.iris.pack.datapack.DataVersion;
+import art.arcane.iris.pack.datapack.IDataFixer;
 import art.arcane.iris.pack.AtomicDirectoryPublisher;
 import art.arcane.iris.pack.DefaultPackBootstrapProvisioner;
 import art.arcane.iris.pack.PackDirectoryResolver;
@@ -1154,9 +1154,7 @@ public class ServerConfigurator {
         }
 
         for (String i : keys) {
-            Object o = INMS.get().getCustomBiomeBaseFor(i);
-
-            if (o == null) {
+            if (!INMS.get().hasBiome(i)) {
                 if (reportRuntimeFailure) {
                     IrisLogging.warn("The Biome " + i + " is not registered on the server.");
                 }

@@ -10,7 +10,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
@@ -49,7 +49,7 @@ public class IrisStaticObjectLayerTest {
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
 
-    private final Map<String, PlatformBlockState> states = new HashMap<>();
+    private final Map<String, NativeBlockState> states = new HashMap<>();
     private IrisData data;
     private ResourceLoader<IrisObject> loader;
     private IrisObjectRotation.StateRotator previousRotator;
@@ -175,8 +175,8 @@ public class IrisStaticObjectLayerTest {
         when(mantle.getChunk(anyInt(), anyInt())).thenReturn(chunk);
         when(chunk.getOrCreate(anyInt())).thenReturn(section);
         when(section.getSlice(TileWrapper.class)).thenReturn(tiles);
-        Hunk<PlatformBlockState> left = Hunk.newArrayHunk(16, 384, 16);
-        Hunk<PlatformBlockState> right = Hunk.newArrayHunk(16, 384, 16);
+        Hunk<NativeBlockState> left = Hunk.newArrayHunk(16, 384, 16);
+        Hunk<NativeBlockState> right = Hunk.newArrayHunk(16, 384, 16);
 
         layer.apply(engine, 16, -16, right);
         layer.apply(engine, 0, -16, left);
@@ -249,9 +249,9 @@ public class IrisStaticObjectLayerTest {
                 .findFirst().orElseThrow();
     }
 
-    private PlatformBlockState state(String key) {
+    private NativeBlockState state(String key) {
         return states.computeIfAbsent(key.toLowerCase(), value -> {
-            PlatformBlockState block = mock(PlatformBlockState.class);
+            NativeBlockState block = mock(NativeBlockState.class);
             when(block.key()).thenReturn(value);
             when(block.materialKey()).thenReturn(value);
             when(block.isAir()).thenReturn(value.contains("air"));

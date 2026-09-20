@@ -24,12 +24,9 @@ import art.arcane.iris.modded.localization.ModdedHelpMessages;
 import art.arcane.volmlib.util.director.help.DirectorHelpMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.volmlib.util.localization.TextKey;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
-import net.minecraft.network.chat.MutableComponent;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -224,7 +221,7 @@ final class ModdedCommandHelp {
         return false;
     }
 
-    static int send(CommandSourceStack source, String path) {
+    static int send(NativeCommandSource source, String path) {
         Request request = parse(path);
         List<Entry> entries = SECTIONS.get(request.section());
         if (entries == null) {
@@ -237,7 +234,7 @@ final class ModdedCommandHelp {
 
         ModdedCommandFeedback.clear(source);
 
-        if (source.getPlayer() == null) {
+        if (source.playerId() == null) {
             return sendConsole(source, request.section());
         }
 
@@ -247,7 +244,7 @@ final class ModdedCommandHelp {
         int to = Math.min(entries.size(), from + PAGE_SIZE);
 
         sendHeader(source, request.section(), page, totalPages);
-        if (!Commands.hasPermission(Commands.LEVEL_GAMEMASTERS).test(source)) {
+        if (!NativeCommandRegistration.GAMEMASTERS.test(source)) {
             ModdedCommandFeedback.send(source, opNotice());
         }
         if (!request.section().isEmpty()) {
@@ -260,13 +257,13 @@ final class ModdedCommandHelp {
         return 1;
     }
 
-    private static int sendConsole(CommandSourceStack source, String section) {
+    private static int sendConsole(NativeCommandSource source, String section) {
         sendHeader(source, section, 0, 1);
-        if (!Commands.hasPermission(Commands.LEVEL_GAMEMASTERS).test(source)) {
+        if (!NativeCommandRegistration.GAMEMASTERS.test(source)) {
             ModdedCommandFeedback.send(source, opNotice());
         }
         for (String line : consoleLines(section)) {
-            ModdedCommandFeedback.send(source, Component.literal(line));
+            ModdedCommandFeedback.send(source, NativeCommandText.literal(line));
         }
         return 1;
     }
@@ -299,7 +296,7 @@ final class ModdedCommandHelp {
         return line.append(" - ").append(IrisLanguage.plain(entry.description())).toString();
     }
 
-    private static void sendHeader(CommandSourceStack source, String path, int page, int totalPages) {
+    private static void sendHeader(NativeCommandSource source, String path, int page, int totalPages) {
         String title = path.isEmpty() ? "/iris" : "/iris " + path;
         if (totalPages > 1) {
             title += " {" + (page + 1) + "/" + totalPages + "}";
@@ -307,63 +304,60 @@ final class ModdedCommandHelp {
         ModdedCommandFeedback.send(source, ModdedCommandFeedback.banner(title));
     }
 
-    private static MutableComponent backButton(String path) {
+    private static NativeCommandText backButton(String path) {
         String parent = parentPath(path);
         String command = parent.isEmpty() ? "/iris" : "/iris help " + parent;
-        MutableComponent hover = Component.empty()
+        NativeCommandText hover = NativeCommandText.empty()
                 .append(text(IrisLanguage.plain(
                         IrisMessages.MODDED_HELP_BACK_HOVER,
                         MessageArgument.untrusted("parent", parent.isEmpty() ? "Iris" : parent)
                 ), DARK_GREEN));
         return text("〈 " + IrisLanguage.plain(DirectorHelpMessages.BACK), BACK).withStyle((style) -> style
-                .withClickEvent(new ClickEvent.RunCommand(command))
-                .withHoverEvent(new HoverEvent.ShowText(hover)));
+                .runCommand(command)
+                .hover(hover));
     }
 
-    private static MutableComponent line(String path, Entry entry) {
-        MutableComponent row = Component.empty();
+    private static NativeCommandText line(String path, Entry entry) {
+        NativeCommandText row = NativeCommandText.empty();
         row.append(clickableCommand(path, entry));
         row.append(nodes(entry));
         return row;
     }
 
-    private static MutableComponent clickableCommand(String path, Entry entry) {
+    private static NativeCommandText clickableCommand(String path, Entry entry) {
         String parent = path.isEmpty() ? "/iris" : "/iris " + path;
         String command = parent + " " + entry.name();
         String suggestion = entry.usage().isBlank() ? command : command + " " + entry.usage();
-        ClickEvent clickEvent = entry.group() ? new ClickEvent.RunCommand(command) : new ClickEvent.SuggestCommand(suggestion);
-        MutableComponent hover = entryHover(entry, suggestion);
-        MutableComponent display = Component.empty();
+        NativeCommandText hover = entryHover(entry, suggestion);
+        NativeCommandText display = NativeCommandText.empty();
         display.append(text("⇀", DARK_GREEN));
-        display.append(Component.literal(" "));
+        display.append(NativeCommandText.literal(" "));
         display.append(ModdedCommandFeedback.gradientText(entry.name(), PARAMETER, PARAMETER_ALT, false));
-        return display.withStyle((style) -> style
-                .withClickEvent(clickEvent)
-                .withHoverEvent(new HoverEvent.ShowText(hover)));
+        return display.withStyle(style -> (entry.group() ? style.runCommand(command) : style.suggestCommand(suggestion)).hover(hover));
     }
 
-    private static MutableComponent nodes(Entry entry) {
+    private static NativeCommandText nodes(Entry entry) {
         if (entry.group()) {
             return text(" - " + IrisLanguage.plain(DirectorHelpMessages.CATEGORY), CATEGORY);
         }
 
         List<String> tokens = usageTokens(entry.usage());
         if (tokens.isEmpty()) {
-            return Component.empty();
+            return NativeCommandText.empty();
         }
 
-        MutableComponent nodes = Component.empty();
+        NativeCommandText nodes = NativeCommandText.empty();
         for (String token : tokens) {
-            nodes.append(Component.literal(" "));
+            nodes.append(NativeCommandText.literal(" "));
             nodes.append(parameter(token));
         }
         return nodes;
     }
 
-    private static MutableComponent parameter(String token) {
+    private static NativeCommandText parameter(String token) {
         String name = parameterName(token);
         boolean required = token.startsWith("<");
-        MutableComponent title = Component.empty();
+        NativeCommandText title = NativeCommandText.empty();
         if (required) {
             title.append(text("[", REQUIRED, true, false));
             title.append(text(name, PARAMETER, false, false));
@@ -374,12 +368,12 @@ final class ModdedCommandHelp {
             title.append(text("⊱", OPTIONAL));
         }
 
-        MutableComponent hover = Component.empty();
+        NativeCommandText hover = NativeCommandText.empty();
         hover.append(text(name, PARAMETER));
-        hover.append(Component.literal("\n"));
+        hover.append(NativeCommandText.literal("\n"));
         hover.append(text("✎ ", DESCRIPTION_ICON));
         hover.append(text(IrisLanguage.plain(IrisMessages.MODDED_HELP_COMMAND_PARAMETER), DESCRIPTION));
-        hover.append(Component.literal("\n"));
+        hover.append(NativeCommandText.literal("\n"));
         if (required) {
             hover.append(text("⚠ ", REQUIRED));
             hover.append(text(IrisLanguage.plain(DirectorHelpMessages.REQUIRED), REQUIRED_TEXT));
@@ -387,20 +381,20 @@ final class ModdedCommandHelp {
             hover.append(text("✔ ", DESCRIPTION_ICON));
             hover.append(text(IrisLanguage.plain(DirectorHelpMessages.OPTIONAL), USAGE));
         }
-        hover.append(Component.literal("\n"));
+        hover.append(NativeCommandText.literal("\n"));
         hover.append(text("✢ ", DARK_GREEN));
         hover.append(text(IrisLanguage.plain(IrisMessages.MODDED_HELP_BRIGADIER_TEXT), HOVER_TYPE));
 
-        return title.withStyle((style) -> style.withHoverEvent(new HoverEvent.ShowText(hover)));
+        return title.withStyle((style) -> style.hover(hover));
     }
 
-    private static MutableComponent entryHover(Entry entry, String suggestion) {
-        MutableComponent hover = Component.empty();
+    private static NativeCommandText entryHover(Entry entry, String suggestion) {
+        NativeCommandText hover = NativeCommandText.empty();
         hover.append(text(names(entry), PARAMETER));
-        hover.append(Component.literal("\n"));
+        hover.append(NativeCommandText.literal("\n"));
         hover.append(text("✎ ", DESCRIPTION_ICON));
         hover.append(text(IrisLanguage.plain(entry.description()), DESCRIPTION));
-        hover.append(Component.literal("\n"));
+        hover.append(NativeCommandText.literal("\n"));
         hover.append(text("✒ ", USAGE_ICON));
         if (entry.group()) {
             hover.append(text(IrisLanguage.plain(DirectorHelpMessages.COMMAND_GROUP), USAGE));
@@ -408,15 +402,15 @@ final class ModdedCommandHelp {
             hover.append(text(IrisLanguage.plain(DirectorHelpMessages.NO_PARAMETERS), USAGE));
         } else {
             hover.append(text(IrisLanguage.plain(DirectorHelpMessages.PARAMETERS_HOVER), USAGE));
-            hover.append(Component.literal("\n"));
+            hover.append(NativeCommandText.literal("\n"));
             hover.append(text("✦ ", EXAMPLE_ICON));
             hover.append(text(suggestion, PARAMETER));
         }
         return hover;
     }
 
-    private static MutableComponent opNotice() {
-        MutableComponent notice = Component.empty();
+    private static NativeCommandText opNotice() {
+        NativeCommandText notice = NativeCommandText.empty();
         notice.append(text("⚠ ", REQUIRED));
         notice.append(text(IrisLanguage.plain(IrisMessages.MODDED_HELP_OPERATOR_NOTICE) + " ", REQUIRED_TEXT));
         notice.append(text(IrisLanguage.plain(
@@ -426,8 +420,8 @@ final class ModdedCommandHelp {
         return notice;
     }
 
-    private static MutableComponent footer(String section, int page, int totalPages) {
-        MutableComponent footer = Component.empty();
+    private static NativeCommandText footer(String section, int page, int totalPages) {
+        NativeCommandText footer = NativeCommandText.empty();
         int fill = ModdedCommandFeedback.PAGE_LINE_LENGTH;
         boolean hasPrevious = page > 0;
         boolean hasNext = page + 1 < totalPages;
@@ -435,7 +429,7 @@ final class ModdedCommandHelp {
         if (hasPrevious) {
             fill -= PAGE_BUTTON_WIDTH;
             footer.append(pageButton(section, page, false));
-            footer.append(Component.literal(" "));
+            footer.append(NativeCommandText.literal(" "));
         }
         if (hasNext) {
             fill -= PAGE_BUTTON_WIDTH;
@@ -449,29 +443,29 @@ final class ModdedCommandHelp {
         ));
 
         if (hasNext) {
-            footer.append(Component.literal(" "));
+            footer.append(NativeCommandText.literal(" "));
             footer.append(pageButton(section, page + 2, true));
         }
         return footer;
     }
 
-    private static MutableComponent pageButton(String section, int target, boolean next) {
+    private static NativeCommandText pageButton(String section, int target, boolean next) {
         String command = "/iris help " + (section.isEmpty() ? "" : section + " ") + target;
         String pageWord = IrisLanguage.plain(DirectorHelpMessages.PAGE);
         String label = next ? pageWord + " " + target + " ❭" : "〈 " + pageWord + " " + target;
-        MutableComponent hover = text(IrisLanguage.plain(next
+        NativeCommandText hover = text(IrisLanguage.plain(next
                 ? DirectorHelpMessages.NEXT_PAGE
                 : DirectorHelpMessages.PREVIOUS_PAGE), DESCRIPTION);
         return text(label, next ? PARAMETER_ALT : PARAMETER).withStyle((style) -> style
-                .withClickEvent(new ClickEvent.RunCommand(command))
-                .withHoverEvent(new HoverEvent.ShowText(hover)));
+                .runCommand(command)
+                .hover(hover));
     }
 
-    private static MutableComponent text(String value, int color) {
+    private static NativeCommandText text(String value, int color) {
         return ModdedCommandFeedback.text(value, color, false, false);
     }
 
-    private static MutableComponent text(String value, int color, boolean bold, boolean strikethrough) {
+    private static NativeCommandText text(String value, int color, boolean bold, boolean strikethrough) {
         return ModdedCommandFeedback.text(value, color, bold, strikethrough);
     }
 

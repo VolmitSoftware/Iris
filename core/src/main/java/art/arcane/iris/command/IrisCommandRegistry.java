@@ -26,7 +26,7 @@ import art.arcane.iris.pack.schema.annotation.MinNumber;
 import art.arcane.iris.pack.schema.annotation.Required;
 import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.platform.bukkit.BukkitWorld;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import lombok.Data;
@@ -75,7 +75,7 @@ public class IrisCommandRegistry {
 
     public void run(Player p) {
         if (rawCommands.isNotEmpty()) {
-            PlatformWorld world = new BukkitWorld(p.getWorld());
+            NativeWorld world = new BukkitWorld(p.getWorld());
             Location part = p.getLocation().clone().add(
                     commandRandomAltX ? RNG.r.d(-commandOffsetX, commandOffsetX) : commandOffsetX,
                     commandRandomAltY ? RNG.r.d(-commandOffsetY, commandOffsetY) : commandOffsetY,

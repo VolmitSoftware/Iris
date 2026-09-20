@@ -4,7 +4,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.math.RNG;
@@ -153,16 +153,16 @@ public class DecoratorCoreTest {
     public void singleStackTargetsBlockAboveSupport() {
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisData data = mock(IrisData.class);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState air = mock(PlatformBlockState.class);
-        PlatformBlockState decorant = mock(PlatformBlockState.class);
+        NativeBlockState support = sturdyState();
+        NativeBlockState air = mock(NativeBlockState.class);
+        NativeBlockState decorant = mock(NativeBlockState.class);
         when(air.isAir()).thenReturn(true);
         when(decorant.key()).thenReturn("minecraft:stone");
         when(decorant.canPlaceOnto(support)).thenReturn(true);
         when(decorator.getHeight(any(RNG.class), anyDouble(), anyDouble(), eq(data))).thenReturn(1);
         when(decorator.pickBlockDataTop(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(decorant);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 4, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 4, 1);
         output.set(0, 1, 0, support);
         output.set(0, 2, 0, air);
         DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
@@ -177,15 +177,15 @@ public class DecoratorCoreTest {
     public void singleStackDoesNotOverwriteOccupiedTarget() {
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisData data = mock(IrisData.class);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState occupied = mock(PlatformBlockState.class);
-        PlatformBlockState decorant = mock(PlatformBlockState.class);
+        NativeBlockState support = sturdyState();
+        NativeBlockState occupied = mock(NativeBlockState.class);
+        NativeBlockState decorant = mock(NativeBlockState.class);
         when(occupied.isAir()).thenReturn(false);
         when(occupied.isFluid()).thenReturn(false);
         when(decorator.getHeight(any(RNG.class), anyDouble(), anyDouble(), eq(data))).thenReturn(1);
         when(decorator.pickBlockDataTop(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(decorant);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 4, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 4, 1);
         output.set(0, 1, 0, support);
         output.set(0, 2, 0, occupied);
         DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
@@ -200,10 +200,10 @@ public class DecoratorCoreTest {
     public void multiStackStopsBeforeOccupiedTarget() {
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisData data = mock(IrisData.class);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState air = mock(PlatformBlockState.class);
-        PlatformBlockState occupied = mock(PlatformBlockState.class);
-        PlatformBlockState decorant = mock(PlatformBlockState.class);
+        NativeBlockState support = sturdyState();
+        NativeBlockState air = mock(NativeBlockState.class);
+        NativeBlockState occupied = mock(NativeBlockState.class);
+        NativeBlockState decorant = mock(NativeBlockState.class);
         when(air.isAir()).thenReturn(true);
         when(occupied.isAir()).thenReturn(false);
         when(occupied.isFluid()).thenReturn(false);
@@ -214,7 +214,7 @@ public class DecoratorCoreTest {
         when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(decorant);
         when(decorator.pickBlockDataTop(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(decorant);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 5, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 5, 1);
         output.set(0, 1, 0, support);
         output.set(0, 2, 0, air);
         output.set(0, 3, 0, occupied);
@@ -232,14 +232,14 @@ public class DecoratorCoreTest {
     public void descendingStackStopsAtLocalWorldFloor() {
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisData data = mock(IrisData.class);
-        PlatformBlockState decorant = mock(PlatformBlockState.class);
+        NativeBlockState decorant = mock(NativeBlockState.class);
         when(decorant.key()).thenReturn("minecraft:stone");
         when(decorator.getHeight(any(RNG.class), anyDouble(), anyDouble(), eq(data))).thenReturn(2);
         when(decorator.getTopThreshold()).thenReturn(1.0);
         when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(decorant);
         when(decorator.pickBlockDataTop(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(decorant);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 2, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 2, 1);
         DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
 
         DecoratorCore.placeStackDown(
@@ -252,10 +252,10 @@ public class DecoratorCoreTest {
     public void singleDescendingStackPreservesTargetWhenPickIsNull() {
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisData data = mock(IrisData.class);
-        PlatformBlockState existing = mock(PlatformBlockState.class);
+        NativeBlockState existing = mock(NativeBlockState.class);
         when(decorator.getHeight(any(RNG.class), anyDouble(), anyDouble(), eq(data))).thenReturn(1);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 2, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 2, 1);
         output.set(0, 0, 0, existing);
         DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
 
@@ -269,12 +269,12 @@ public class DecoratorCoreTest {
     public void multiDescendingStackStopsWhenPickIsNull() {
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisData data = mock(IrisData.class);
-        PlatformBlockState lowerExisting = mock(PlatformBlockState.class);
-        PlatformBlockState upperExisting = mock(PlatformBlockState.class);
+        NativeBlockState lowerExisting = mock(NativeBlockState.class);
+        NativeBlockState upperExisting = mock(NativeBlockState.class);
         when(decorator.getHeight(any(RNG.class), anyDouble(), anyDouble(), eq(data))).thenReturn(2);
         when(decorator.getTopThreshold()).thenReturn(1.0);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 2, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 2, 1);
         output.set(0, 0, 0, lowerExisting);
         output.set(0, 1, 0, upperExisting);
         DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
@@ -290,14 +290,14 @@ public class DecoratorCoreTest {
     public void floatingStackStopsAtHunkCeiling() {
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisData data = mock(IrisData.class);
-        PlatformBlockState decorant = mock(PlatformBlockState.class);
+        NativeBlockState decorant = mock(NativeBlockState.class);
         when(decorant.key()).thenReturn("minecraft:stone");
         when(decorator.getHeight(any(RNG.class), anyDouble(), anyDouble(), eq(data))).thenReturn(3);
         when(decorator.getTopThreshold()).thenReturn(1.0);
         when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(decorant);
         when(decorator.pickBlockDataTop(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(decorant);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 2, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 2, 1);
         int placed = DecoratorCore.placeFloatingStacked(
                 decorator, 0, 0, 0, 0, 0, 3, output, new RNG(1L), data, null);
 
@@ -309,13 +309,13 @@ public class DecoratorCoreTest {
     public void tallSurfacePlantDoesNotPlaceWhenUpperTargetIsOccupied() {
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisData data = mock(IrisData.class);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState air = airState();
-        PlatformBlockState occupied = mock(PlatformBlockState.class);
-        PlatformBlockState plant = tallPlantState();
+        NativeBlockState support = sturdyState();
+        NativeBlockState air = airState();
+        NativeBlockState occupied = mock(NativeBlockState.class);
+        NativeBlockState plant = tallPlantState();
         when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(plant);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 4, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 4, 1);
         output.set(0, 0, 0, support);
         output.set(0, 1, 0, air);
         output.set(0, 2, 0, occupied);
@@ -331,12 +331,12 @@ public class DecoratorCoreTest {
     public void tallFloatingPlantDoesNotPlaceWhenUpperTargetIsOccupied() {
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisData data = mock(IrisData.class);
-        PlatformBlockState air = airState();
-        PlatformBlockState occupied = mock(PlatformBlockState.class);
-        PlatformBlockState plant = tallPlantState();
+        NativeBlockState air = airState();
+        NativeBlockState occupied = mock(NativeBlockState.class);
+        NativeBlockState plant = tallPlantState();
         when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(plant);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 4, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 4, 1);
         output.set(0, 1, 0, air);
         output.set(0, 2, 0, occupied);
 
@@ -351,16 +351,16 @@ public class DecoratorCoreTest {
     public void tallSurfacePlantPlacesBothHalvesTogether() {
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisData data = mock(IrisData.class);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState lowerAir = airState();
-        PlatformBlockState upperAir = airState();
-        PlatformBlockState lower = mock(PlatformBlockState.class);
-        PlatformBlockState upper = mock(PlatformBlockState.class);
-        PlatformBlockState plant = tallPlantState(lower, upper);
+        NativeBlockState support = sturdyState();
+        NativeBlockState lowerAir = airState();
+        NativeBlockState upperAir = airState();
+        NativeBlockState lower = mock(NativeBlockState.class);
+        NativeBlockState upper = mock(NativeBlockState.class);
+        NativeBlockState plant = tallPlantState(lower, upper);
         when(plant.canPlaceOnto(support)).thenReturn(true);
         when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(plant);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 4, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 4, 1);
         output.set(0, 0, 0, support);
         output.set(0, 1, 0, lowerAir);
         output.set(0, 2, 0, upperAir);
@@ -376,13 +376,13 @@ public class DecoratorCoreTest {
     public void surfaceDecorantRejectsInvalidNativeSupport() {
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisData data = mock(IrisData.class);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState air = airState();
-        PlatformBlockState decorant = mock(PlatformBlockState.class);
+        NativeBlockState support = sturdyState();
+        NativeBlockState air = airState();
+        NativeBlockState decorant = mock(NativeBlockState.class);
         when(decorant.canPlaceOnto(support)).thenReturn(false);
         when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(decorant);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 3, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 3, 1);
         output.set(0, 0, 0, support);
         output.set(0, 1, 0, air);
 
@@ -397,16 +397,16 @@ public class DecoratorCoreTest {
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisBlockData forcedBlock = mock(IrisBlockData.class);
         IrisData data = mock(IrisData.class);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState farmland = sturdyState();
-        PlatformBlockState air = airState();
-        PlatformBlockState wheat = mock(PlatformBlockState.class);
+        NativeBlockState support = sturdyState();
+        NativeBlockState farmland = sturdyState();
+        NativeBlockState air = airState();
+        NativeBlockState wheat = mock(NativeBlockState.class);
         when(wheat.key()).thenReturn("minecraft:wheat[age=7]");
         when(decorator.getForceBlock()).thenReturn(forcedBlock);
         when(forcedBlock.getBlockData(data)).thenReturn(farmland);
         when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(wheat);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 3, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 3, 1);
         output.set(0, 0, 0, support);
         output.set(0, 1, 0, air);
 
@@ -419,7 +419,7 @@ public class DecoratorCoreTest {
 
     @Test
     public void descendingWeepingVinesUsePlantBodiesAndOneFreeEndTip() {
-        PlatformBlockState vine = mock(PlatformBlockState.class);
+        NativeBlockState vine = mock(NativeBlockState.class);
         when(vine.key()).thenReturn("minecraft:weeping_vines");
 
         assertEquals("minecraft:weeping_vines_plant", DecoratorCore.stackedVineKey(vine, 3, 0));
@@ -429,7 +429,7 @@ public class DecoratorCoreTest {
 
     @Test
     public void ascendingTwistingVinesUsePlantBodiesAndOneFreeEndTip() {
-        PlatformBlockState vine = mock(PlatformBlockState.class);
+        NativeBlockState vine = mock(NativeBlockState.class);
         when(vine.key()).thenReturn("minecraft:twisting_vines_plant");
 
         assertEquals("minecraft:twisting_vines_plant", DecoratorCore.stackedVineKey(vine, 3, 0));
@@ -439,7 +439,7 @@ public class DecoratorCoreTest {
 
     @Test
     public void sulfurStalagmiteKeepsSulfurMaterialAndTapersToOneTip() {
-        Hunk<PlatformBlockState> output = placeSpikeColumn("minecraft:sulfur_spike", 5, true, false);
+        Hunk<NativeBlockState> output = placeSpikeColumn("minecraft:sulfur_spike", 5, true, false);
 
         assertSpikeColumn(output, "minecraft:sulfur_spike", true, false,
                 "base", "middle", "middle", "frustum", "tip");
@@ -447,7 +447,7 @@ public class DecoratorCoreTest {
 
     @Test
     public void sulfurStalactiteKeepsWaterloggingAndPointsDown() {
-        Hunk<PlatformBlockState> output = placeSpikeColumn("minecraft:sulfur_spike", 5, false, true);
+        Hunk<NativeBlockState> output = placeSpikeColumn("minecraft:sulfur_spike", 5, false, true);
 
         assertSpikeColumn(output, "minecraft:sulfur_spike", false, true,
                 "base", "middle", "middle", "frustum", "tip");
@@ -456,8 +456,8 @@ public class DecoratorCoreTest {
     @Test
     public void shortSulfurSpikesHaveCorrectTipsInBothDirections() {
         for (boolean upward : new boolean[]{true, false}) {
-            Hunk<PlatformBlockState> single = placeSpikeColumn("minecraft:sulfur_spike", 1, upward, false);
-            Hunk<PlatformBlockState> pair = placeSpikeColumn("minecraft:sulfur_spike", 2, upward, false);
+            Hunk<NativeBlockState> single = placeSpikeColumn("minecraft:sulfur_spike", 1, upward, false);
+            Hunk<NativeBlockState> pair = placeSpikeColumn("minecraft:sulfur_spike", 2, upward, false);
 
             assertSpikeColumn(single, "minecraft:sulfur_spike", upward, false, "tip");
             assertSpikeColumn(pair, "minecraft:sulfur_spike", upward, false, "frustum", "tip");
@@ -466,7 +466,7 @@ public class DecoratorCoreTest {
 
     @Test
     public void pointedDripstoneRetainsWaterloggingWhenStacked() {
-        Hunk<PlatformBlockState> output = placeSpikeColumn("minecraft:pointed_dripstone", 4, true, true);
+        Hunk<NativeBlockState> output = placeSpikeColumn("minecraft:pointed_dripstone", 4, true, true);
 
         assertSpikeColumn(output, "minecraft:pointed_dripstone", true, true,
                 "base", "middle", "frustum", "tip");
@@ -476,7 +476,7 @@ public class DecoratorCoreTest {
     public void clippedSpikesRebuildTheirFreeEndWithoutOverwritingObstructions() {
         for (boolean upward : new boolean[]{true, false}) {
             SpikeFixture fixture = new SpikeFixture(5, upward);
-            PlatformBlockState obstruction = sturdyState();
+            NativeBlockState obstruction = sturdyState();
             fixture.output.set(0, upward ? 4 : 2, 0, obstruction);
             fixture.place();
 
@@ -501,19 +501,19 @@ public class DecoratorCoreTest {
     public void spikeStacksHonorSurfacePalettesInBothDirections() {
         for (boolean upward : new boolean[]{true, false}) {
             SpikeFixture fixture = new SpikeFixture(3, upward);
-            PlatformBlockState allowed = sturdyState();
+            NativeBlockState allowed = sturdyState();
             when(fixture.decorator.getWhitelist()).thenReturn(new KList<>());
-            when(fixture.decorator.getWhitelistArray(fixture.data)).thenReturn(new PlatformBlockState[]{allowed});
+            when(fixture.decorator.getWhitelistArray(fixture.data)).thenReturn(new NativeBlockState[]{allowed});
             fixture.place();
             assertTrue(fixture.output.get(0, upward ? 1 : 3, 0).isAir());
 
-            PlatformBlockState support = fixture.output.get(0, upward ? 0 : 4, 0);
+            NativeBlockState support = fixture.output.get(0, upward ? 0 : 4, 0);
             when(support.matches(allowed)).thenReturn(true);
             fixture.place();
             assertEquals("tip", fixture.property(upward ? 3 : 1, "thickness"));
 
             when(fixture.decorator.getBlacklist()).thenReturn(new KList<>());
-            when(fixture.decorator.getBlacklistArray(fixture.data)).thenReturn(new PlatformBlockState[]{allowed});
+            when(fixture.decorator.getBlacklistArray(fixture.data)).thenReturn(new NativeBlockState[]{allowed});
             fixture.output.set(0, upward ? 1 : 3, 0, airState());
             fixture.place();
             assertTrue(fixture.output.get(0, upward ? 1 : 3, 0).isAir());
@@ -524,8 +524,8 @@ public class DecoratorCoreTest {
     public void submergedSpikesWaterlogAndStopAtLava() {
         for (boolean upward : new boolean[]{true, false}) {
             SpikeFixture fixture = new SpikeFixture(4, upward);
-            PlatformBlockState water = mock(PlatformBlockState.class);
-            PlatformBlockState lava = mock(PlatformBlockState.class);
+            NativeBlockState water = mock(NativeBlockState.class);
+            NativeBlockState lava = mock(NativeBlockState.class);
             when(water.isFluid()).thenReturn(true);
             when(water.isWater()).thenReturn(true);
             when(lava.isFluid()).thenReturn(true);
@@ -548,7 +548,7 @@ public class DecoratorCoreTest {
         for (boolean upward : new boolean[]{true, false}) {
             SpikeFixture fixture = new SpikeFixture(5, upward);
             int oppositeY = 3;
-            PlatformBlockState opposite = spikeState("minecraft:sulfur_spike", Map.of(
+            NativeBlockState opposite = spikeState("minecraft:sulfur_spike", Map.of(
                     "thickness", "tip", "vertical_direction", upward ? "down" : "up", "waterlogged", "false"));
             fixture.output.set(0, oppositeY, 0, opposite);
             fixture.place();
@@ -563,7 +563,7 @@ public class DecoratorCoreTest {
     @Test
     public void sulfurTipsDoNotMergeWithPointedDripstone() {
         SpikeFixture fixture = new SpikeFixture(4, true);
-        PlatformBlockState dripstone = spikeState("minecraft:pointed_dripstone", Map.of(
+        NativeBlockState dripstone = spikeState("minecraft:pointed_dripstone", Map.of(
                 "thickness", "tip", "vertical_direction", "down", "waterlogged", "false"));
         fixture.output.set(0, 3, 0, dripstone);
         fixture.place();
@@ -591,7 +591,7 @@ public class DecoratorCoreTest {
     @Test
     public void extendingSpikeRepairsTheExistingTipBehindIt() {
         SpikeFixture fixture = new SpikeFixture(3, true);
-        PlatformBlockState spike = spikeState("minecraft:sulfur_spike", Map.of(
+        NativeBlockState spike = spikeState("minecraft:sulfur_spike", Map.of(
                 "thickness", "tip", "vertical_direction", "up", "waterlogged", "false"));
         fixture.output.set(0, 0, 0, spike);
         fixture.place();
@@ -605,13 +605,13 @@ public class DecoratorCoreTest {
     @Test
     public void singleSpikeChecksPaletteBeforeReplacingItsSupport() {
         SpikeFixture fixture = new SpikeFixture(1, true);
-        PlatformBlockState original = fixture.output.get(0, 0, 0);
-        PlatformBlockState replacement = sturdyState();
+        NativeBlockState original = fixture.output.get(0, 0, 0);
+        NativeBlockState replacement = sturdyState();
         IrisBlockData forced = mock(IrisBlockData.class);
         when(forced.getBlockData(fixture.data)).thenReturn(replacement);
         when(fixture.decorator.getForceBlock()).thenReturn(forced);
         when(fixture.decorator.getWhitelist()).thenReturn(new KList<>());
-        when(fixture.decorator.getWhitelistArray(fixture.data)).thenReturn(new PlatformBlockState[]{original});
+        when(fixture.decorator.getWhitelistArray(fixture.data)).thenReturn(new NativeBlockState[]{original});
 
         DecoratorCore.placeSurfaceSingle(fixture.decorator, 0, 0, 0, 0, 0,
                 fixture.output, new RNG(1L), fixture.data, false, false, null);
@@ -623,9 +623,9 @@ public class DecoratorCoreTest {
     @Test
     public void clippedCeilingVinesRetainTheirGrowingTip() {
         SpikeFixture fixture = new SpikeFixture(5, false);
-        PlatformBlockState plant = mock(PlatformBlockState.class);
-        PlatformBlockState tip = mock(PlatformBlockState.class);
-        PlatformBlockState obstruction = sturdyState();
+        NativeBlockState plant = mock(NativeBlockState.class);
+        NativeBlockState tip = mock(NativeBlockState.class);
+        NativeBlockState obstruction = sturdyState();
         when(plant.key()).thenReturn("minecraft:weeping_vines_plant");
         when(tip.key()).thenReturn("minecraft:weeping_vines");
         when(fixture.decorator.pickBlockData(any(RNG.class), eq(fixture.data), anyDouble(), anyDouble())).thenReturn(tip);
@@ -644,11 +644,11 @@ public class DecoratorCoreTest {
 
     @Test
     public void boundDecoratorHooksWinWhenBukkitClassesArePresent() {
-        PlatformBlockState vine = mock(PlatformBlockState.class);
-        PlatformBlockState fixed = mock(PlatformBlockState.class);
-        PlatformBlockState decorator = mock(PlatformBlockState.class);
-        PlatformBlockState surface = mock(PlatformBlockState.class);
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 1, 1);
+        NativeBlockState vine = mock(NativeBlockState.class);
+        NativeBlockState fixed = mock(NativeBlockState.class);
+        NativeBlockState decorator = mock(NativeBlockState.class);
+        NativeBlockState surface = mock(NativeBlockState.class);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 1, 1);
         DecoratorPlatformHooks.FaceFixer faceFixer = mock(DecoratorPlatformHooks.FaceFixer.class);
         DecoratorPlatformHooks.SurfaceSturdiness sturdiness = mock(DecoratorPlatformHooks.SurfaceSturdiness.class);
         when(vine.isVineBlock()).thenReturn(true);
@@ -664,16 +664,16 @@ public class DecoratorCoreTest {
         }
     }
 
-    private PlatformBlockState airState() {
-        PlatformBlockState air = mock(PlatformBlockState.class);
+    private NativeBlockState airState() {
+        NativeBlockState air = mock(NativeBlockState.class);
         when(air.isAir()).thenReturn(true);
         return air;
     }
 
-    private Hunk<PlatformBlockState> placeSpikeColumn(String material, int height, boolean upward, boolean waterlogged) {
+    private Hunk<NativeBlockState> placeSpikeColumn(String material, int height, boolean upward, boolean waterlogged) {
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisData data = mock(IrisData.class);
-        PlatformBlockState spike = spikeState(material, Map.of(
+        NativeBlockState spike = spikeState(material, Map.of(
                 "thickness", "tip_merge", "vertical_direction", upward ? "down" : "up",
                 "waterlogged", Boolean.toString(waterlogged)));
         when(decorator.getHeight(any(RNG.class), anyDouble(), anyDouble(), eq(data))).thenReturn(height);
@@ -681,11 +681,11 @@ public class DecoratorCoreTest {
         when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(spike);
         when(decorator.pickBlockDataTop(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(spike);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, height + 2, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, height + 2, 1);
         for (int y = 1; y <= height; y++) {
             output.set(0, y, 0, airState());
         }
-        PlatformBlockState support = sturdyState();
+        NativeBlockState support = sturdyState();
         output.set(0, upward ? 0 : height + 1, 0, support);
         DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
         if (upward) {
@@ -697,7 +697,7 @@ public class DecoratorCoreTest {
         return output;
     }
 
-    private void assertSpikeColumn(Hunk<PlatformBlockState> output, String material,
+    private void assertSpikeColumn(Hunk<NativeBlockState> output, String material,
                                    boolean upward, boolean waterlogged, String... thicknesses) {
         for (int index = 0; index < thicknesses.length; index++) {
             int y = upward ? index + 1 : thicknesses.length - index;
@@ -708,12 +708,12 @@ public class DecoratorCoreTest {
         }
     }
 
-    private PlatformBlockState spikeState(String material, Map<String, String> properties) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private NativeBlockState spikeState(String material, Map<String, String> properties) {
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.key()).thenReturn(material + "[thickness=" + properties.get("thickness")
                 + ",vertical_direction=" + properties.get("vertical_direction")
                 + ",waterlogged=" + properties.get("waterlogged") + "]");
-        when(state.canPlaceOnto(any(PlatformBlockState.class))).thenReturn(true);
+        when(state.canPlaceOnto(any(NativeBlockState.class))).thenReturn(true);
         when(state.withProperty(anyString(), anyString())).thenAnswer(invocation -> {
             Map<String, String> updated = new LinkedHashMap<>(properties);
             updated.put(invocation.getArgument(0), invocation.getArgument(1));
@@ -722,20 +722,20 @@ public class DecoratorCoreTest {
         return state;
     }
 
-    private PlatformBlockState tallPlantState() {
-        return tallPlantState(mock(PlatformBlockState.class), mock(PlatformBlockState.class));
+    private NativeBlockState tallPlantState() {
+        return tallPlantState(mock(NativeBlockState.class), mock(NativeBlockState.class));
     }
 
-    private PlatformBlockState tallPlantState(PlatformBlockState lower, PlatformBlockState upper) {
-        PlatformBlockState plant = mock(PlatformBlockState.class);
+    private NativeBlockState tallPlantState(NativeBlockState lower, NativeBlockState upper) {
+        NativeBlockState plant = mock(NativeBlockState.class);
         when(plant.key()).thenReturn("minecraft:tall_grass[half=lower]");
         when(plant.withProperty("half", "lower")).thenReturn(lower);
         when(plant.withProperty("half", "upper")).thenReturn(upper);
         return plant;
     }
 
-    private PlatformBlockState sturdyState() {
-        PlatformBlockState support = mock(PlatformBlockState.class);
+    private NativeBlockState sturdyState() {
+        NativeBlockState support = mock(NativeBlockState.class);
         BlockData blockData = mock(BlockData.class);
         when(support.nativeHandle()).thenReturn(blockData);
         when(blockData.isFaceSturdy(any(), eq(BlockSupport.FULL))).thenReturn(true);
@@ -745,7 +745,7 @@ public class DecoratorCoreTest {
         private final IrisDecorator decorator = mock(IrisDecorator.class);
         private final IrisData data = mock(IrisData.class);
         private final DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
-        private final Hunk<PlatformBlockState> output;
+        private final Hunk<NativeBlockState> output;
         private final int height;
         private final boolean upward;
 
@@ -757,7 +757,7 @@ public class DecoratorCoreTest {
                 output.set(0, y, 0, airState());
             }
             output.set(0, upward ? 0 : height + 1, 0, sturdyState());
-            PlatformBlockState spike = spikeState("minecraft:sulfur_spike", Map.of(
+            NativeBlockState spike = spikeState("minecraft:sulfur_spike", Map.of(
                     "thickness", "tip_merge", "vertical_direction", upward ? "down" : "up", "waterlogged", "false"));
             when(decorator.getHeight(any(RNG.class), anyDouble(), anyDouble(), eq(data))).thenReturn(height);
             when(decorator.getTopThreshold()).thenReturn(0.75);

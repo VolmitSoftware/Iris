@@ -21,14 +21,14 @@ package art.arcane.iris.generation.chunk;
 import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.IrisCustomData;
 import art.arcane.volmlib.util.hunk.Hunk;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 @SuppressWarnings("ClassCanBeRecord")
-public class ChunkDataHunkView implements Hunk<PlatformBlockState> {
+public class ChunkDataHunkView implements Hunk<NativeBlockState> {
     private final art.arcane.volmlib.util.hunk.view.ChunkDataHunkView view;
 
     public ChunkDataHunkView(ChunkData chunk) {
@@ -51,7 +51,7 @@ public class ChunkDataHunkView implements Hunk<PlatformBlockState> {
     }
 
     @Override
-    public void set(int x1, int y1, int z1, int x2, int y2, int z2, PlatformBlockState t) {
+    public void set(int x1, int y1, int z1, int x2, int y2, int z2, NativeBlockState t) {
         if (t == null) {
             return;
         }
@@ -60,12 +60,12 @@ public class ChunkDataHunkView implements Hunk<PlatformBlockState> {
     }
 
     @Override
-    public PlatformBlockState get(int x, int y, int z) {
+    public NativeBlockState get(int x, int y, int z) {
         return BukkitBlockState.of(view.get(x, y, z));
     }
 
     @Override
-    public void set(int x, int y, int z, PlatformBlockState t) {
+    public void set(int x, int y, int z, NativeBlockState t) {
         if (t == null) {
             return;
         }
@@ -74,7 +74,7 @@ public class ChunkDataHunkView implements Hunk<PlatformBlockState> {
     }
 
     @Override
-    public void setRaw(int x, int y, int z, PlatformBlockState t) {
+    public void setRaw(int x, int y, int z, NativeBlockState t) {
         if (t == null) {
             return;
         }
@@ -83,7 +83,7 @@ public class ChunkDataHunkView implements Hunk<PlatformBlockState> {
     }
 
     @Override
-    public PlatformBlockState getRaw(int x, int y, int z) {
+    public NativeBlockState getRaw(int x, int y, int z) {
         return BukkitBlockState.of(view.getRaw(x, y, z));
     }
 }

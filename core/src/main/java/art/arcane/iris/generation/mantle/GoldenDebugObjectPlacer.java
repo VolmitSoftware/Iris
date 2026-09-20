@@ -23,7 +23,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 final class GoldenDebugObjectPlacer implements IObjectPlacer {
     private static final int[] GOLDEN_DEBUG_TARGET = parseGoldenDebugTarget(resolveGoldenDebugSpec());
@@ -89,12 +89,12 @@ final class GoldenDebugObjectPlacer implements IObjectPlacer {
     }
 
     @Override
-    public void set(int x, int y, int z, PlatformBlockState d) {
+    public void set(int x, int y, int z, NativeBlockState d) {
         delegate.set(x, y, z, d);
     }
 
     @Override
-    public PlatformBlockState get(int x, int y, int z) {
+    public NativeBlockState get(int x, int y, int z) {
         return delegate.get(x, y, z);
     }
 

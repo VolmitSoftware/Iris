@@ -49,7 +49,7 @@ import art.arcane.volmlib.util.matter.MatterMarker;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.slices.UpdateMatter;
 import art.arcane.iris.generation.concurrent.MultiBurst;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.jetbrains.annotations.UnmodifiableView;
 
 import java.util.List;
@@ -128,7 +128,7 @@ public interface EngineMantle extends MatterGenerator {
         if (resolved.isPresent()) {
             PreObjectMatterCell cell = getMantle().get(x, h, z, PreObjectMatterCell.class);
             if (cell != null && cell.blockCaptured()) {
-                PlatformBlockState block = getMantle().get(x, h, z, PlatformBlockState.class);
+                NativeBlockState block = getMantle().get(x, h, z, NativeBlockState.class);
                 if (block != null) {
                     return (block.isAir() || block.isFluid())
                             && resolved.get().geometry().hasSolidAbove(h + getEngine().getMinHeight());
@@ -147,14 +147,14 @@ public interface EngineMantle extends MatterGenerator {
                 || getComplex().isTerrain3DOpening(x, h, z);
     }
 
-    default PlatformBlockState get(int x, int y, int z) {
-        PlatformBlockState block = getMantle().get(x, y, z, PlatformBlockState.class);
+    default NativeBlockState get(int x, int y, int z) {
+        NativeBlockState block = getMantle().get(x, y, z, NativeBlockState.class);
         Optional<TerrainBoundarySignature> resolved = getComplex().resolvedTerrainColumn(x, z);
         if (resolved.isPresent()) {
             PreObjectMatterCell cell = getMantle().get(x, y, z, PreObjectMatterCell.class);
             if (cell == null || !cell.blockCaptured()) {
                 String stateKey = resolved.get().geometry().voxelAt(y + getEngine().getMinHeight()).stateKey();
-                PlatformBlockState natural = IrisPlatforms.get().registries().blockOrNull(stateKey);
+                NativeBlockState natural = IrisPlatforms.get().registries().blockOrNull(stateKey);
                 if (natural == null) {
                     throw new IllegalStateException("Saved terrain state is unavailable: " + stateKey);
                 }
@@ -239,7 +239,7 @@ public interface EngineMantle extends MatterGenerator {
     default void insertMatter(
             int x,
             int z,
-            Hunk<PlatformBlockState> blocks,
+            Hunk<NativeBlockState> blocks,
             boolean multicore,
             ChunkContext context
     ) {
@@ -260,7 +260,7 @@ public interface EngineMantle extends MatterGenerator {
                     int localZ = i & 15;
                     layouts[i] = context.getDimensionStackLayout(localX, localZ);
                 }
-                chunk.iterate(PlatformBlockState.class, (localX, y, localZ, value) -> {
+                chunk.iterate(NativeBlockState.class, (localX, y, localZ, value) -> {
                     DimensionStackLayout layout = layouts[(localX << 4) | (localZ & 15)];
                     if (!layout.isHostFeatureProtectedY(y)) {
                         blocks.set(localX, y, localZ, value);
@@ -277,14 +277,14 @@ public interface EngineMantle extends MatterGenerator {
                     int worldZ = chunkBlockZ + lz;
                     upperYs[i] = upperCtx.getEffectiveSurfaceY(worldX, worldZ);
                 }
-                chunk.iterate(PlatformBlockState.class, (lx, y, lz, value) -> {
+                chunk.iterate(NativeBlockState.class, (lx, y, lz, value) -> {
                     int colIdx = (lx << 4) | (lz & 15);
                     if (y < upperYs[colIdx]) {
                         blocks.set(lx, y, lz, value);
                     }
                 });
             } else {
-                chunk.iterate(PlatformBlockState.class, (lx, y, lz, value) -> blocks.set(lx, y, lz, value));
+                chunk.iterate(NativeBlockState.class, (lx, y, lz, value) -> blocks.set(lx, y, lz, value));
             }
         } finally {
             chunk.release();
@@ -371,7 +371,7 @@ public interface EngineMantle extends MatterGenerator {
     }
 
     private void cleanupSlices(MantleChunk<Matter> chunk, boolean force) {
-        MantleSliceRetention.deleteUnlessRetained(chunk, PlatformBlockState.class);
+        MantleSliceRetention.deleteUnlessRetained(chunk, NativeBlockState.class);
         if (force) {
             MantleSliceRetention.deleteUnlessRetained(chunk, String.class);
         }

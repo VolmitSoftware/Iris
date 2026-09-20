@@ -1,6 +1,6 @@
 package art.arcane.iris.structure.object;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.block.VectorMap;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
@@ -16,10 +16,10 @@ import static org.junit.Assert.assertSame;
 public class IrisObjectTransformsNearestBlockIndexTest {
     @Test
     public void spatialLookupMatchesLinearIterationIncludingDistanceTies() {
-        VectorMap<PlatformBlockState> blocks = new VectorMap<>();
+        VectorMap<NativeBlockState> blocks = new VectorMap<>();
         Random random = new Random(812734L);
         for (int i = 0; i < 120; i++) {
-            PlatformBlockState state = new SolidBlockState(false);
+            NativeBlockState state = new SolidBlockState(false);
             blocks.put(new IrisBlockVector(
                     random.nextInt(25) - 12,
                     random.nextInt(25) - 12,
@@ -27,11 +27,11 @@ public class IrisObjectTransformsNearestBlockIndexTest {
             ), state);
         }
 
-        PlatformBlockState explicitAir = new SolidBlockState(true);
+        NativeBlockState explicitAir = new SolidBlockState(true);
         blocks.put(new IrisBlockVector(0, 0, 0), explicitAir);
         IrisObjectTransforms.NearestBlockIndex index = IrisObjectTransforms.NearestBlockIndex.create(blocks);
-        List<Map.Entry<IrisBlockVector, PlatformBlockState>> candidates = new ArrayList<>();
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : blocks) {
+        List<Map.Entry<IrisBlockVector, NativeBlockState>> candidates = new ArrayList<>();
+        for (Map.Entry<IrisBlockVector, NativeBlockState> entry : blocks) {
             candidates.add(entry);
         }
 
@@ -39,8 +39,8 @@ public class IrisObjectTransformsNearestBlockIndexTest {
             for (int y = -10; y <= 10; y++) {
                 for (int z = -10; z <= 10; z++) {
                     IrisBlockVector query = new IrisBlockVector(x, y, z);
-                    PlatformBlockState direct = blocks.get(query);
-                    PlatformBlockState actual = B.isAir(direct) ? index.nearest(x, y, z, direct) : direct;
+                    NativeBlockState direct = blocks.get(query);
+                    NativeBlockState actual = B.isAir(direct) ? index.nearest(x, y, z, direct) : direct;
                     assertSame("Mismatch at " + x + "," + y + "," + z,
                             nearestByLinearIteration(blocks, candidates, query), actual);
                 }
@@ -50,8 +50,8 @@ public class IrisObjectTransformsNearestBlockIndexTest {
 
     @Test
     public void emptyIndexRetainsMissingAndExplicitAirFallbacks() {
-        VectorMap<PlatformBlockState> blocks = new VectorMap<>();
-        PlatformBlockState explicitAir = new SolidBlockState(true);
+        VectorMap<NativeBlockState> blocks = new VectorMap<>();
+        NativeBlockState explicitAir = new SolidBlockState(true);
         blocks.put(new IrisBlockVector(1, 2, 3), explicitAir);
         IrisObjectTransforms.NearestBlockIndex index = IrisObjectTransforms.NearestBlockIndex.create(blocks);
 
@@ -59,19 +59,19 @@ public class IrisObjectTransformsNearestBlockIndexTest {
         assertSame(null, index.nearest(4, 5, 6, null));
     }
 
-    private static PlatformBlockState nearestByLinearIteration(
-            VectorMap<PlatformBlockState> blocks,
-            List<Map.Entry<IrisBlockVector, PlatformBlockState>> candidates,
+    private static NativeBlockState nearestByLinearIteration(
+            VectorMap<NativeBlockState> blocks,
+            List<Map.Entry<IrisBlockVector, NativeBlockState>> candidates,
             IrisBlockVector query
     ) {
-        PlatformBlockState result = blocks.get(query);
+        NativeBlockState result = blocks.get(query);
         if (!B.isAir(result)) {
             return result;
         }
 
         double nearestDistance = Double.MAX_VALUE;
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : candidates) {
-            PlatformBlockState state = entry.getValue();
+        for (Map.Entry<IrisBlockVector, NativeBlockState> entry : candidates) {
+            NativeBlockState state = entry.getValue();
             if (B.isAir(state)) {
                 continue;
             }
@@ -85,7 +85,7 @@ public class IrisObjectTransformsNearestBlockIndexTest {
         return result;
     }
 
-    private static final class SolidBlockState implements PlatformBlockState {
+    private static final class SolidBlockState implements NativeBlockState {
         private final boolean air;
 
         private SolidBlockState(boolean air) {
@@ -133,7 +133,7 @@ public class IrisObjectTransformsNearestBlockIndexTest {
         }
 
         @Override
-        public PlatformBlockState placementBaseState() {
+        public NativeBlockState placementBaseState() {
             return null;
         }
 
@@ -208,12 +208,12 @@ public class IrisObjectTransformsNearestBlockIndexTest {
         }
 
         @Override
-        public boolean canPlaceOnto(PlatformBlockState onto) {
+        public boolean canPlaceOnto(NativeBlockState onto) {
             return false;
         }
 
         @Override
-        public boolean matches(PlatformBlockState state) {
+        public boolean matches(NativeBlockState state) {
             return false;
         }
 
@@ -228,7 +228,7 @@ public class IrisObjectTransformsNearestBlockIndexTest {
         }
 
         @Override
-        public PlatformBlockState withProperty(String name, String value) {
+        public NativeBlockState withProperty(String name, String value) {
             return null;
         }
 

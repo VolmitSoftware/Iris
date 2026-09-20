@@ -1,7 +1,11 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureTerrainIntegrator;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureSurfaceFitter;
+
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
-import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.HolderSet;
 import net.minecraft.server.Bootstrap;
@@ -42,7 +46,7 @@ public class NativeStructureVacuumParityTest {
         NativeStructureTerrainIntegrator.TerrainTarget target =
                 new NativeStructureTerrainIntegrator.TerrainTarget(
                         "test:vacuum", start,
-                        new IrisStructureTerrain().setMode(IrisStructureTerrainMode.VACUUM));
+                        new IrisStructureTerrain().setMode(StructureTerrainMode.VACUUM));
 
         assertTrue(NativeStructureSurfaceFitter.requiresSurfaceTerrain(target));
         assertFalse(NativeStructureTerrainIntegrator.clearsLegacyTemplateAir(

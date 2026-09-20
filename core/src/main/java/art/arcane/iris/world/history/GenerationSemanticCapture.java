@@ -1,5 +1,7 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPositionPredicate;
+
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
@@ -36,7 +38,7 @@ public final class GenerationSemanticCapture {
     public static ChunkGenerationSemantics capture(
             Engine engine,
             GenerationHistory.GenerationStage stage,
-            CaveSpace caveSpace
+            NativeBlockPositionPredicate caveSpace
     ) {
         Engine requiredEngine = Objects.requireNonNull(engine, "engine");
         GenerationHistory.GenerationStage requiredStage = Objects.requireNonNull(stage, "stage");
@@ -63,7 +65,7 @@ public final class GenerationSemanticCapture {
             int chunkX,
             int chunkZ,
             long activationId,
-            CaveSpace caveSpace
+            NativeBlockPositionPredicate caveSpace
     ) {
         Objects.requireNonNull(caveSpace, "cave space");
         Engine requiredEngine = Objects.requireNonNull(engine, "engine");
@@ -131,14 +133,14 @@ public final class GenerationSemanticCapture {
             int chunkX,
             int chunkZ,
             ChunkGenerationSemantics.Builder semantics,
-            CaveSpace caveSpace
+            NativeBlockPositionPredicate caveSpace
     ) {
         Mantle<Matter> mantle = engine.getMantle().getMantle();
         int minimumX = Math.multiplyExact(chunkX, CHUNK_SIZE);
         int minimumZ = Math.multiplyExact(chunkZ, CHUNK_SIZE);
         BitSet resolvedCaves = new BitSet();
         mantle.iterateChunk(chunkX, chunkZ, MatterCavern.class, (localX, y, localZ, cavern) -> {
-            if (!caveSpace.isOpen(localX, y, localZ)) {
+            if (!caveSpace.test(localX, y, localZ)) {
                 return;
             }
             captureCave(
@@ -152,7 +154,7 @@ public final class GenerationSemanticCapture {
             );
         });
         mantle.iterateChunk(chunkX, chunkZ, HydrologyCaveCell.class, (localX, y, localZ, cell) -> {
-            if (!caveSpace.isOpen(localX, y, localZ)) {
+            if (!caveSpace.test(localX, y, localZ)) {
                 return;
             }
             int blockX = minimumX + localX;
@@ -252,11 +254,6 @@ public final class GenerationSemanticCapture {
                     resolved.originZ()
             );
         }
-    }
-
-    @FunctionalInterface
-    public interface CaveSpace {
-        boolean isOpen(int localX, int internalY, int localZ);
     }
 
 }

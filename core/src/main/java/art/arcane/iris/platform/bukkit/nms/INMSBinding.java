@@ -18,23 +18,34 @@
 
 package art.arcane.iris.platform.bukkit.nms;
 
+import art.arcane.volmlib.nativelib.terrain.ServerShutdownBoundary;
+
+import art.arcane.volmlib.nativelib.terrain.NativeBlockVolume;
+
+import art.arcane.volmlib.nativelib.terrain.BukkitTerrainBuffer;
+
+import org.bukkit.block.data.BlockData;
+
+import art.arcane.volmlib.util.nbt.mca.NBTWorldSupport;
+
 import art.arcane.iris.world.history.SavedTerrainChunk;
+import art.arcane.volmlib.nativelib.terrain.NativeTerrainAccess;
 import java.util.concurrent.CompletableFuture;
 import art.arcane.iris.pack.datapack.DatapackStructureScopeIndex;
 import art.arcane.iris.structure.nativegen.IrisImportedStructureControl;
 import art.arcane.iris.world.lifecycle.WorldLifecycleCaller;
 import art.arcane.iris.world.lifecycle.WorldLifecycleRequest;
 import art.arcane.iris.world.lifecycle.WorldLifecycleService;
-import art.arcane.iris.platform.bukkit.nms.container.BiomeColor;
-import art.arcane.iris.platform.bukkit.nms.container.BlockProperty;
-import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
+import art.arcane.volmlib.nativelib.terrain.BiomeColor;
+import art.arcane.volmlib.nativelib.terrain.BlockProperty;
+import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.generation.chunk.TerrainChunk;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.structure.nativegen.NativeStructureVolume;
+import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 import art.arcane.iris.platform.generation.PlatformChunkGenerator;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformGenerationRegistry;
-import art.arcane.iris.spi.PlatformStructureHooks.JigsawSourceMetadata;
+import art.arcane.volmlib.nativelib.terrain.JigsawSourceMetadata;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -60,7 +71,7 @@ import java.awt.Color;
 import java.util.List;
 import java.util.Set;
 
-public interface INMSBinding {
+public interface INMSBinding extends NativeTerrainAccess {
     default CompletableFuture<Void> flushSavedTerrainCapture(World world) {
         return CompletableFuture.failedFuture(new UnsupportedOperationException(
                 "Native saved terrain checkpoints are unavailable."));
@@ -84,7 +95,9 @@ public interface INMSBinding {
 
     KMap<String, Object> serializeTile(Location location);
 
-    void deserializeTile(KMap<String, Object> s, Location newPosition);
+    default void deserializeTile(KMap<String, Object> data, Location location) {
+        deserializeTile(data, location, BukkitTileWriteScheduler.INSTANCE);
+    }
 
     CompoundTag serializeEntity(Entity location);
 
@@ -92,31 +105,13 @@ public interface INMSBinding {
 
     boolean supportsCustomHeight();
 
-    Object getBiomeBaseFromId(int id);
-
     int getMinHeight(World world);
 
     boolean supportsCustomBiomes();
 
     boolean supportsIrisWorldGeneration();
 
-    int getTrueBiomeBaseId(Object biomeBase);
-
-    Object getTrueBiomeBase(Location location);
-
     String getTrueBiomeBaseKey(Location location);
-
-    Object getCustomBiomeBaseFor(String mckey);
-
-    Object getCustomBiomeBaseHolderFor(String mckey);
-
-    int getBiomeBaseIdForKey(String key);
-
-    String getKeyForBiomeBase(Object biomeBase);
-
-    Object getBiomeBase(World world, Biome biome);
-
-    Object getBiomeBase(Object registry, Biome biome);
 
     KList<Biome> getBiomes();
 
@@ -207,10 +202,6 @@ public interface INMSBinding {
         }
     }
 
-    default Object createRuntimeLevelStem(Object registryAccess, ChunkGenerator raw) {
-        throw new UnsupportedOperationException("Active NMS binding does not support runtime LevelStem creation.");
-    }
-
     default void ensureServerLevelInjection() {
     }
 
@@ -220,13 +211,13 @@ public interface INMSBinding {
         return false;
     }
 
-    MCAPaletteAccess createPalette();
+    MCAPaletteAccess createPalette(NBTWorldSupport.BlockStateCodec<BlockData> codec);
 
-    default boolean applyChunkBlocks(Chunk chunk, TerrainChunk data) {
+    default boolean applyChunkBlocks(Chunk chunk, BukkitTerrainBuffer data) {
         return false;
     }
 
-    default boolean applyChunkDataBlocks(ChunkGenerator.ChunkData chunkData, Hunk<PlatformBlockState> data) {
+    default boolean applyChunkDataBlocks(ChunkGenerator.ChunkData chunkData, NativeBlockVolume data) {
         return false;
     }
 

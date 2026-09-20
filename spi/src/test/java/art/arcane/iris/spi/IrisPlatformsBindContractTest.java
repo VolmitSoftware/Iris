@@ -1,5 +1,7 @@
 package art.arcane.iris.spi;
 
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -153,7 +155,7 @@ public class IrisPlatformsBindContractTest {
         }
 
         @Override
-        public boolean spawnEntity(PlatformWorld world, String entityKey, double x, double y, double z) {
+        public boolean spawnEntity(NativeWorld world, String entityKey, double x, double y, double z) {
             return false;
         }
 

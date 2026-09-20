@@ -23,7 +23,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 public class IrisSeaSurfaceDecorator extends IrisEngineDecorator {
     private final RNG partRNG;
@@ -36,7 +36,7 @@ public class IrisSeaSurfaceDecorator extends IrisEngineDecorator {
     @BlockCoordinates
     @Override
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1,
-                         Hunk<PlatformBlockState> data, IrisBiome biome, int height, int max) {
+                         Hunk<NativeBlockState> data, IrisBiome biome, int height, int max) {
         int maxBaseY = Math.min(max, Math.min(getEngine().getHeight(), data.getHeight()) - 1);
         if (height < 0 || height >= maxBaseY) {
             return;
@@ -51,7 +51,7 @@ public class IrisSeaSurfaceDecorator extends IrisEngineDecorator {
         if (!decorator.isStacking()) {
             int targetY = height + 1;
             if (DecoratorCore.canReplaceStackTarget(data.get(x, targetY, z), false)) {
-                PlatformBlockState block = decorator.getBlockData100(biome, rng, realX, height, realZ, getData());
+                NativeBlockState block = decorator.getBlockData100(biome, rng, realX, height, realZ, getData());
                 if (block != null) {
                     data.set(x, targetY, z, block);
                 }
@@ -68,7 +68,7 @@ public class IrisSeaSurfaceDecorator extends IrisEngineDecorator {
                 break;
             }
             double threshold = stack == 1 ? 1.0 : ((double) i) / (stack - 1);
-            PlatformBlockState block = threshold >= decorator.getTopThreshold()
+            NativeBlockState block = threshold >= decorator.getTopThreshold()
                     ? decorator.getBlockDataForTop(biome, rng, realX, h, realZ, getData())
                     : decorator.getBlockData100(biome, rng, realX, h, realZ, getData());
             if (block == null) {

@@ -1,18 +1,15 @@
 package art.arcane.iris.modded.service;
 
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeItemStack;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeDropEffects;
+
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedScheduler;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.BlockParticleOption;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,9 +22,10 @@ final class ModdedTreeFellerPresentation {
     private static final int TARGET_EROSION_PULSES = 60;
     private static final int MAX_EFFECT_ORIGINS_PER_PULSE = 16;
 
-    private final ServerPlayer player;
-    private final ServerLevel sourceLevel;
-    private final List<ItemStack> pendingDrops = new ArrayList<>();
+    private final NativeProtocolPlayer player;
+    private final NativeWorld sourceLevel;
+    private final NativeDropEffects effects;
+    private final List<NativeItemStack> pendingDrops = new ArrayList<>();
     private final AtomicBoolean effectFailureReported = new AtomicBoolean();
     private final AtomicBoolean deliveryFailureReported = new AtomicBoolean();
     private boolean flushScheduled;
@@ -35,12 +33,13 @@ final class ModdedTreeFellerPresentation {
     private double fallbackY;
     private double fallbackZ;
 
-    ModdedTreeFellerPresentation(ServerPlayer player, ServerLevel sourceLevel) {
+    ModdedTreeFellerPresentation(NativeProtocolPlayer player, NativeWorld sourceLevel) {
         this.player = player;
         this.sourceLevel = sourceLevel;
-        this.fallbackX = player.getX();
-        this.fallbackY = player.getY() + 0.15D;
-        this.fallbackZ = player.getZ();
+        this.effects = new NativeDropEffects(sourceLevel);
+        this.fallbackX = player.x();
+        this.fallbackY = player.y() + 0.15D;
+        this.fallbackZ = player.z();
     }
 
     static int blocksPerPulse(int blockCount) {
@@ -55,67 +54,55 @@ final class ModdedTreeFellerPresentation {
         );
     }
 
-    static List<ItemStack> consolidateDrops(Collection<ItemStack> drops) {
-        List<ItemStack> consolidated = new ArrayList<>();
-        for (ItemStack drop : drops) {
+    static List<NativeItemStack> consolidateDrops(Collection<NativeItemStack> drops) {
+        List<NativeItemStack> consolidated = new ArrayList<>();
+        for (NativeItemStack drop : drops) {
             mergeDrop(consolidated, drop);
         }
         return List.copyOf(consolidated);
     }
 
-    void activate(BlockPos position, BlockState state) {
+    void activate(NativeBlockPoint position, NativeBlockState state) {
         try {
-            double x = position.getX() + 0.5D;
-            double y = position.getY() + 0.5D;
-            double z = position.getZ() + 0.5D;
-            sourceLevel.sendParticles(ParticleTypes.ENCHANT, x, y, z, 24, 0.45D, 0.45D, 0.45D, 0.18D);
-            sourceLevel.sendParticles(ParticleTypes.END_ROD, x, y, z, 8, 0.25D, 0.25D, 0.25D, 0.035D);
-            sourceLevel.sendParticles(
-                    new BlockParticleOption(ParticleTypes.BLOCK, state),
-                    x,
-                    y,
-                    z,
-                    8,
-                    0.25D,
-                    0.25D,
-                    0.25D,
-                    0.04D
-            );
-            sourceLevel.playSound(null, position, SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.55F, 1.35F);
-            sourceLevel.playSound(null, position, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.4F, 0.8F);
+            double x = position.x() + 0.5D;
+            double y = position.y() + 0.5D;
+            double z = position.z() + 0.5D;
+            effects.particle(NativeDropEffects.Particle.ENCHANT,
+                    new NativeDropEffects.Emission(x, y, z, 24, 0.45D, 0.45D, 0.45D, 0.18D), null);
+            effects.particle(NativeDropEffects.Particle.END_ROD,
+                    new NativeDropEffects.Emission(x, y, z, 8, 0.25D, 0.25D, 0.25D, 0.035D), null);
+            effects.particle(NativeDropEffects.Particle.BLOCK,
+                    new NativeDropEffects.Emission(x, y, z, 8, 0.25D, 0.25D, 0.25D, 0.04D), state);
+            effects.sound("minecraft:block.enchantment_table.use",
+                    new NativeDropEffects.SoundEmission(x, y, z, 0.55F, 1.35F));
+            effects.sound("minecraft:block.amethyst_block.chime",
+                    new NativeDropEffects.SoundEmission(x, y, z, 0.4F, 0.8F));
         } catch (Throwable error) {
             reportEffectFailure(error);
         }
     }
 
-    void erode(BlockPos position, BlockState state, int processed, int effectStride, float pitch) {
+    void erode(NativeBlockPoint position, NativeBlockState state, int processed, int effectStride, float pitch) {
         if (processed % effectStride != 0) {
             return;
         }
         try {
-            double x = position.getX() + 0.5D;
-            double y = position.getY() + 0.5D;
-            double z = position.getZ() + 0.5D;
-            sourceLevel.sendParticles(
-                    new BlockParticleOption(ParticleTypes.BLOCK, state),
-                    x,
-                    y,
-                    z,
-                    5,
-                    0.3D,
-                    0.3D,
-                    0.3D,
-                    0.04D
-            );
-            sourceLevel.sendParticles(ParticleTypes.ENCHANT, x, y, z, 3, 0.28D, 0.28D, 0.28D, 0.12D);
-            sourceLevel.playSound(null, position, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.22F, pitch);
+            double x = position.x() + 0.5D;
+            double y = position.y() + 0.5D;
+            double z = position.z() + 0.5D;
+            effects.particle(NativeDropEffects.Particle.BLOCK,
+                    new NativeDropEffects.Emission(x, y, z, 5, 0.3D, 0.3D, 0.3D, 0.04D), state);
+            effects.particle(NativeDropEffects.Particle.ENCHANT,
+                    new NativeDropEffects.Emission(x, y, z, 3, 0.28D, 0.28D, 0.28D, 0.12D), null);
+            effects.sound("minecraft:block.amethyst_block.chime",
+                    new NativeDropEffects.SoundEmission(x, y, z, 0.22F, pitch));
         } catch (Throwable error) {
             reportEffectFailure(error);
         }
     }
 
-    synchronized boolean route(Iterable<ItemStack> drops) {
-        for (ItemStack drop : drops) {
+    synchronized boolean route(Iterable<NativeItemStack> drops) {
+        for (NativeItemStack drop : drops) {
             if (drop != null && !drop.isEmpty()) {
                 pendingDrops.add(drop.copy());
             }
@@ -129,23 +116,21 @@ final class ModdedTreeFellerPresentation {
         if (pendingDrops.isEmpty()) {
             return;
         }
-        List<ItemStack> drops = consolidateDrops(pendingDrops);
+        List<NativeItemStack> drops = consolidateDrops(pendingDrops);
         pendingDrops.clear();
-        boolean atPlayer = !player.isRemoved() && player.level() == sourceLevel;
-        double x = atPlayer ? player.getX() : fallbackX;
-        double y = atPlayer ? player.getY() + 0.15D : fallbackY;
-        double z = atPlayer ? player.getZ() : fallbackZ;
+        boolean atPlayer = !player.removed() && player.inWorld(sourceLevel);
+        double x = atPlayer ? player.x() : fallbackX;
+        double y = atPlayer ? player.y() + 0.15D : fallbackY;
+        double z = atPlayer ? player.z() : fallbackZ;
         if (atPlayer) {
             fallbackX = x;
             fallbackY = y;
             fallbackZ = z;
         }
         int delivered = 0;
-        for (ItemStack drop : drops) {
+        for (NativeItemStack drop : drops) {
             try {
-                ItemEntity item = new ItemEntity(sourceLevel, x, y, z, drop, 0D, 0.08D, 0D);
-                item.setDefaultPickUpDelay();
-                if (sourceLevel.addFreshEntity(item)) {
+                if (effects.drop(drop, new NativeDropEffects.DropPosition(x, y, z, 0D, 0.08D, 0D))) {
                     delivered++;
                 } else {
                     pendingDrops.add(drop.copy());
@@ -157,8 +142,9 @@ final class ModdedTreeFellerPresentation {
         }
         try {
             int particles = Math.min(32, 6 + (delivered * 2));
-            sourceLevel.sendParticles(ParticleTypes.ENCHANT, x, y + 0.35D, z, particles, 0.3D, 0.25D, 0.3D, 0.1D);
-            sourceLevel.playSound(null, x, y, z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.28F, 1.75F);
+            effects.particle(NativeDropEffects.Particle.ENCHANT,
+                    new NativeDropEffects.Emission(x, y + 0.35D, z, particles, 0.3D, 0.25D, 0.3D, 0.1D), null);
+            effects.sound("minecraft:block.amethyst_block.chime", new NativeDropEffects.SoundEmission(x, y, z, 0.28F, 1.75F));
         } catch (Throwable error) {
             reportEffectFailure(error);
         }
@@ -184,20 +170,20 @@ final class ModdedTreeFellerPresentation {
         scheduler.laterGlobal(this::flush, 1);
     }
 
-    private static void mergeDrop(List<ItemStack> consolidated, ItemStack drop) {
+    private static void mergeDrop(List<NativeItemStack> consolidated, NativeItemStack drop) {
         if (drop == null || drop.isEmpty()) {
             return;
         }
-        ItemStack remaining = drop.copy();
-        for (ItemStack existing : consolidated) {
-            if (!ItemStack.isSameItemSameComponents(existing, remaining)) {
+        NativeItemStack remaining = drop.copy();
+        for (NativeItemStack existing : consolidated) {
+            if (!NativeItemStack.sameItemAndComponents(existing, remaining)) {
                 continue;
             }
-            int capacity = existing.getMaxStackSize() - existing.getCount();
+            int capacity = existing.maxStackSize() - existing.count();
             if (capacity <= 0) {
                 continue;
             }
-            int moved = Math.min(capacity, remaining.getCount());
+            int moved = Math.min(capacity, remaining.count());
             existing.grow(moved);
             remaining.shrink(moved);
             if (remaining.isEmpty()) {
@@ -205,7 +191,7 @@ final class ModdedTreeFellerPresentation {
             }
         }
         while (!remaining.isEmpty()) {
-            int amount = Math.min(remaining.getCount(), remaining.getMaxStackSize());
+            int amount = Math.min(remaining.count(), remaining.maxStackSize());
             consolidated.add(remaining.copyWithCount(amount));
             remaining.shrink(amount);
         }

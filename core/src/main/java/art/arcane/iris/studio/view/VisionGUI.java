@@ -18,6 +18,8 @@
 
 package art.arcane.iris.studio.view;
 
+import art.arcane.volmlib.nativelib.view.WorldMarker;
+
 import art.arcane.iris.localization.DesktopUiMessages;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.generation.runtime.Engine;
@@ -129,8 +131,8 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
     private JToggleButton entitiesToggle;
     private JToggleButton followToggle;
     private RenderType currentType;
-    private List<GuiMarker> players;
-    private List<GuiMarker> entities;
+    private List<WorldMarker> players;
+    private List<WorldMarker> entities;
     private HoverInfo hoverInfo;
     private Point cursor;
     private double centerX;
@@ -428,7 +430,7 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
 
     private void renderMarkers(Graphics2D canvas) {
         if (entitiesVisible) {
-            for (GuiMarker marker : entities) {
+            for (WorldMarker marker : entities) {
                 int screenX = (int) Math.round(worldToScreenX(marker.worldX()));
                 int screenY = (int) Math.round(worldToScreenZ(marker.worldZ()));
                 canvas.setColor(MOB_COLOR);
@@ -436,7 +438,7 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
             }
         }
 
-        for (GuiMarker marker : players) {
+        for (WorldMarker marker : players) {
             int screenX = (int) Math.round(worldToScreenX(marker.worldX()));
             int screenY = (int) Math.round(worldToScreenZ(marker.worldZ()));
             canvas.setColor(new Color(81, 201, 128, 48));
@@ -460,9 +462,9 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
         }
         double worldX = screenToWorldX(point.x);
         double worldZ = screenToWorldZ(point.y);
-        GuiMarker nearest = null;
+        WorldMarker nearest = null;
         double nearestDistance = Double.MAX_VALUE;
-        for (GuiMarker marker : entities) {
+        for (WorldMarker marker : entities) {
             double deltaX = marker.worldX() - worldX;
             double deltaZ = marker.worldZ() - worldZ;
             double distance = deltaX * deltaX + deltaZ * deltaZ;
@@ -818,7 +820,7 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
             return;
         }
         try {
-            List<GuiMarker> nextPlayers = overlay.players();
+            List<WorldMarker> nextPlayers = overlay.players();
             players = nextPlayers == null ? List.of() : List.copyOf(nextPlayers);
             if (entitiesVisible) {
                 overlay.requestEntities(next -> EventQueue.invokeLater(() -> {
@@ -831,7 +833,7 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
                 entities = List.of();
             }
             if (follow && !players.isEmpty()) {
-                GuiMarker player = players.get(0);
+                WorldMarker player = players.get(0);
                 if (Math.abs(centerX - player.worldX()) > 0.5D || Math.abs(centerZ - player.worldZ()) > 0.5D) {
                     centerX = player.worldX();
                     centerZ = player.worldZ();
@@ -915,7 +917,7 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
             follow = false;
             notifyUser(IrisLanguage.plain(DesktopUiMessages.VISION_NO_PLAYER));
         } else if (follow) {
-            GuiMarker player = players.get(0);
+            WorldMarker player = players.get(0);
             centerX = player.worldX();
             centerZ = player.worldZ();
             requestRender();

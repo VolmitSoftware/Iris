@@ -1,0 +1,11 @@
+name: IrisNativeLifecycleFixture
+version: 1.0.0
+main: art.arcane.iris.fixture.NativeLifecycleFixture
+api-version: '26.1.2'
+depend: [Iris]
+commands:
+  irislifecycle:
+    permission: irislifecycle.run
+permissions:
+  irislifecycle.run:
+    default: op

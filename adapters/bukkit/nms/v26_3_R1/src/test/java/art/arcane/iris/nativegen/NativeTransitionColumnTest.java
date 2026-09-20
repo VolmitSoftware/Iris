@@ -1,10 +1,14 @@
 package art.arcane.iris.nativegen.v26_3_R1;
 
+import art.arcane.iris.world.history.TerrainNativeBlockKeys;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeTransitionColumn;
+
 import art.arcane.iris.world.history.BoundaryColumnGeometry;
 import art.arcane.iris.world.history.TerrainBoundarySignature;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import net.minecraft.SharedConstants;
@@ -45,8 +49,8 @@ public final class NativeTransitionColumnTest {
     @Test
     public void customKeysUseCarrierForNativeColumnsAndHeightmaps() {
         String key = "itemsadder:rocks/ruby_ore";
-        PlatformBlockState custom = mock(PlatformBlockState.class);
-        PlatformBlockState carrier = mock(PlatformBlockState.class);
+        NativeBlockState custom = mock(NativeBlockState.class);
+        NativeBlockState carrier = mock(NativeBlockState.class);
         when(custom.placementBaseState()).thenReturn(carrier);
         when(carrier.key()).thenReturn("minecraft:oak_log[axis=z]");
         IrisPlatform platform = mock(IrisPlatform.class);
@@ -59,17 +63,17 @@ public final class NativeTransitionColumnTest {
         try (MockedStatic<IrisPlatforms> platforms = mockStatic(IrisPlatforms.class)) {
             platforms.when(IrisPlatforms::isBound).thenReturn(true);
             platforms.when(IrisPlatforms::get).thenReturn(platform);
-            NoiseColumn column = NativeTransitionColumn.column(signature, height);
+            NoiseColumn column = NativeTransitionColumn.column(signature.geometry(), height, TerrainNativeBlockKeys::placementKey);
 
             assertEquals(Direction.Axis.Z, column.getBlock(-15).getValue(RotatedPillarBlock.AXIS));
-            assertEquals(-14, NativeTransitionColumn.height(signature, Heightmap.Types.OCEAN_FLOOR_WG, height));
+            assertEquals(-14, NativeTransitionColumn.height(signature.geometry(), Heightmap.Types.OCEAN_FLOOR_WG, height, TerrainNativeBlockKeys::placementKey));
         }
     }
 
     @Test
     public void preservesNativePropertiesCavesAndFluids() {
-        NoiseColumn column = NativeTransitionColumn.column(signature("minecraft:oak_log[axis=x]"),
-                LevelHeightAccessor.create(-16, 32));
+        NoiseColumn column = NativeTransitionColumn.column(signature("minecraft:oak_log[axis=x]").geometry(),
+                LevelHeightAccessor.create(-16, 32), TerrainNativeBlockKeys::placementKey);
         assertEquals(Direction.Axis.X, column.getBlock(-15).getValue(RotatedPillarBlock.AXIS));
         assertTrue(column.getBlock(-14).is(Blocks.CAVE_AIR));
         assertEquals(Integer.valueOf(3), column.getBlock(-13).getValue(LiquidBlock.LEVEL));
@@ -80,14 +84,13 @@ public final class NativeTransitionColumnTest {
     public void usesNativeHeightmapPredicatesForWaterAndOpenSpace() {
         TerrainBoundarySignature signature = signature("minecraft:oak_log[axis=x]");
         LevelHeightAccessor height = LevelHeightAccessor.create(-16, 32);
-        assertEquals(-12, NativeTransitionColumn.height(signature, Heightmap.Types.WORLD_SURFACE_WG, height));
-        assertEquals(-14, NativeTransitionColumn.height(signature, Heightmap.Types.OCEAN_FLOOR_WG, height));
+        assertEquals(-12, NativeTransitionColumn.height(signature.geometry(), Heightmap.Types.WORLD_SURFACE_WG, height, TerrainNativeBlockKeys::placementKey));
+        assertEquals(-14, NativeTransitionColumn.height(signature.geometry(), Heightmap.Types.OCEAN_FLOOR_WG, height, TerrainNativeBlockKeys::placementKey));
     }
 
     @Test
     public void rejectsUnknownSavedStatesInsteadOfReplacingTerrain() {
-        assertThrows(IllegalArgumentException.class, () -> NativeTransitionColumn.column(
-                signature("missing:removed_block"), LevelHeightAccessor.create(-16, 32)));
+        assertThrows(IllegalArgumentException.class, () -> NativeTransitionColumn.column(signature("missing:removed_block").geometry(), LevelHeightAccessor.create(-16, 32), TerrainNativeBlockKeys::placementKey));
     }
 
     private static TerrainBoundarySignature signature(String solidState) {

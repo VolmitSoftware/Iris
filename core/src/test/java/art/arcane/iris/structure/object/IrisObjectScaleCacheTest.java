@@ -1,7 +1,7 @@
 package art.arcane.iris.structure.object;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.After;
 import org.junit.Before;
@@ -76,7 +76,7 @@ public class IrisObjectScaleCacheTest {
         IrisObjectScale scale = new IrisObjectScale().setSize(2D);
         IrisObject empty = scale.get(new RNG(1L), origin);
 
-        origin.setUnsigned(0, 0, 0, mock(PlatformBlockState.class));
+        origin.setUnsigned(0, 0, 0, mock(NativeBlockState.class));
         IrisObject populated = scale.get(new RNG(1L), origin);
 
         assertEquals(0, empty.getBlocks().size());

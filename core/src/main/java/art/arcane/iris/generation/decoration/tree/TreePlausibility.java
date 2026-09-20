@@ -19,7 +19,7 @@
 package art.arcane.iris.generation.decoration.tree;
 
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -36,11 +36,11 @@ public final class TreePlausibility {
     private TreePlausibility() {
     }
 
-    public static void apply(Map<TreeBlockCanvas.Vec, PlatformBlockState> resolved, Set<TreeBlockCanvas.Vec> trunkPositions,
+    public static void apply(Map<TreeBlockCanvas.Vec, NativeBlockState> resolved, Set<TreeBlockCanvas.Vec> trunkPositions,
                              Set<TreeBlockCanvas.Vec> leafPositions, IrisProceduralTree tree) {
         Set<TreeBlockCanvas.Vec> realLeaves = new HashSet<>();
         for (TreeBlockCanvas.Vec v : leafPositions) {
-            PlatformBlockState state = resolved.get(v);
+            NativeBlockState state = resolved.get(v);
             if (state != null && IrisProceduralBlocks.hasProperty(state, "persistent") && IrisProceduralBlocks.hasProperty(state, "distance")) {
                 realLeaves.add(v);
             }
@@ -54,7 +54,7 @@ public final class TreePlausibility {
                 : Map.of();
 
         for (TreeBlockCanvas.Vec v : realLeaves) {
-            PlatformBlockState leaf = resolved.get(v);
+            NativeBlockState leaf = resolved.get(v);
             Integer d = distance.get(v);
             if (!tree.isPlausible()) {
                 leaf = leaf.withProperty("persistent", "true").withProperty("distance", "1");

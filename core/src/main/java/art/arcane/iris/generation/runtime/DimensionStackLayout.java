@@ -3,7 +3,7 @@ package art.arcane.iris.generation.runtime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -369,9 +369,9 @@ public final class DimensionStackLayout {
             DimensionTerrainContext terrainContext,
             IrisBiome biome,
             IrisRegion region,
-            PlatformBlockState rockBlock,
-            PlatformBlockState fluidBlock,
-            PlatformBlockState surfaceBlock,
+            NativeBlockState rockBlock,
+            NativeBlockState fluidBlock,
+            NativeBlockState surfaceBlock,
             int normalTerrainHeight,
             int fluidHeight,
             Terrain3DColumn terrainColumn
@@ -382,9 +382,9 @@ public final class DimensionStackLayout {
             DimensionTerrainContext terrainContext,
             IrisBiome biome,
             IrisRegion region,
-            PlatformBlockState rockBlock,
-            PlatformBlockState fluidBlock,
-            PlatformBlockState surfaceBlock,
+            NativeBlockState rockBlock,
+            NativeBlockState fluidBlock,
+            NativeBlockState surfaceBlock,
             int localBaseY,
             int normalTerrainHeight,
             int fluidHeight,

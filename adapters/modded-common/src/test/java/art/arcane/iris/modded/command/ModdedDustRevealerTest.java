@@ -1,6 +1,6 @@
 package art.arcane.iris.modded.command;
 
-import net.minecraft.core.BlockPos;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
 import org.junit.Test;
 
 import java.util.List;
@@ -25,29 +25,29 @@ public class ModdedDustRevealerTest {
 
     @Test
     public void revealTraversalUsesDiagonalAdjacencyButNotDisconnectedBlocks() {
-        Set<BlockPos> object = Set.of(
-                new BlockPos(0, 0, 0),
-                new BlockPos(1, 1, 1),
-                new BlockPos(3, 3, 3));
-        List<BlockPos> hits = ModdedDustRevealer.collect(
-                new BlockPos(0, 0, 0),
+        Set<NativeBlockPoint> object = Set.of(
+                new NativeBlockPoint(0, 0, 0),
+                new NativeBlockPoint(1, 1, 1),
+                new NativeBlockPoint(3, 3, 3));
+        List<NativeBlockPoint> hits = ModdedDustRevealer.collect(
+                new NativeBlockPoint(0, 0, 0),
                 "object",
                 -64,
                 -64,
                 320,
                 new AtomicBoolean(),
                 (int x, int relativeY, int z) ->
-                        object.contains(new BlockPos(x, relativeY - 64, z))
+                        object.contains(new NativeBlockPoint(x, relativeY - 64, z))
                                 ? "object"
                                 : null);
 
-        assertEquals(List.of(new BlockPos(0, 0, 0), new BlockPos(1, 1, 1)), hits);
+        assertEquals(List.of(new NativeBlockPoint(0, 0, 0), new NativeBlockPoint(1, 1, 1)), hits);
     }
 
     @Test
     public void cancelledRevealDoesNoTraversal() {
-        List<BlockPos> hits = ModdedDustRevealer.collect(
-                new BlockPos(0, 0, 0),
+        List<NativeBlockPoint> hits = ModdedDustRevealer.collect(
+                new NativeBlockPoint(0, 0, 0),
                 "object",
                 -64,
                 -64,

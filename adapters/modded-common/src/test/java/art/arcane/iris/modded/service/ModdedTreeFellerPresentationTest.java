@@ -5,6 +5,7 @@ import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.item.ItemStack;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeItemStack;
 import net.minecraft.world.item.Items;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -40,15 +41,15 @@ public class ModdedTreeFellerPresentationTest {
 
     @Test
     public void compatibleDropsConsolidateWithoutExceedingStackLimits() {
-        List<ItemStack> drops = ModdedTreeFellerPresentation.consolidateDrops(List.of(
-                new ItemStack(Items.OAK_LOG, 48),
-                new ItemStack(Items.OAK_LOG, 48),
-                new ItemStack(Items.BIRCH_LOG, 3)
+        List<NativeItemStack> drops = ModdedTreeFellerPresentation.consolidateDrops(List.of(
+                NativeItemStack.of(new ItemStack(Items.OAK_LOG, 48)),
+                NativeItemStack.of(new ItemStack(Items.OAK_LOG, 48)),
+                NativeItemStack.of(new ItemStack(Items.BIRCH_LOG, 3))
         ));
 
         assertEquals(3, drops.size());
-        assertEquals(64, drops.get(0).getCount());
-        assertEquals(32, drops.get(1).getCount());
-        assertEquals(3, drops.get(2).getCount());
+        assertEquals(64, drops.get(0).count());
+        assertEquals(32, drops.get(1).count());
+        assertEquals(3, drops.get(2).count());
     }
 }

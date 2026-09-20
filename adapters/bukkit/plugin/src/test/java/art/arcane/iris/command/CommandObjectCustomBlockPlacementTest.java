@@ -4,7 +4,7 @@ import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.integration.ExternalDataSVC;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.IrisCustomData;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -37,7 +37,7 @@ public class CommandObjectCustomBlockPlacementTest {
         BlockData previousCustom = IrisCustomData.of(previous, new Identifier("craftengine", "test/lamp[lit=false]"));
         Identifier id = new Identifier("craftengine", "test/lamp[lit=true]");
         BlockData base = mock(BlockData.class);
-        PlatformBlockState state = mock(PlatformBlockState.class);
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.nativeHandle()).thenReturn(IrisCustomData.of(base, id));
         ExternalDataSVC external = mock(ExternalDataSVC.class);
         when(external.captureBlockData(previous)).thenReturn(previousCustom);
@@ -65,7 +65,7 @@ public class CommandObjectCustomBlockPlacementTest {
         when(target.getType()).thenReturn(Material.STONE);
         BlockData base = mock(BlockData.class);
         Identifier id = new Identifier("craftengine", "test/chair[variant=alpha]");
-        PlatformBlockState state = mock(PlatformBlockState.class);
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.nativeHandle()).thenReturn(IrisCustomData.of(base, id));
         ExternalDataSVC external = mock(ExternalDataSVC.class);
         try (MockedStatic<IrisServices> services = mockStatic(IrisServices.class)) {

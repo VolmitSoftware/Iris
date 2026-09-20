@@ -23,7 +23,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.block.TileData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.collection.KList;
 import org.jetbrains.annotations.Nullable;
@@ -34,7 +34,7 @@ import java.util.Map;
 final class FloatingObjectPlacementTransaction implements IObjectPlacer {
     private final IslandObjectPlacer delegate;
     private final KList<BufferedMutation> mutations;
-    private final Map<PositionKey, PlatformBlockState> bufferedBlocks;
+    private final Map<PositionKey, NativeBlockState> bufferedBlocks;
     private int blockWrites;
 
     FloatingObjectPlacementTransaction(IslandObjectPlacer delegate) {
@@ -85,7 +85,7 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
     }
 
     @Override
-    public void set(int x, int y, int z, PlatformBlockState state) {
+    public void set(int x, int y, int z, NativeBlockState state) {
         if (state == null) {
             return;
         }
@@ -95,8 +95,8 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
     }
 
     @Override
-    public PlatformBlockState get(int x, int y, int z) {
-        PlatformBlockState state = bufferedBlocks.get(new PositionKey(x, y, z));
+    public NativeBlockState get(int x, int y, int z) {
+        NativeBlockState state = bufferedBlocks.get(new PositionKey(x, y, z));
         return state == null ? delegate.get(x, y, z) : state;
     }
 
@@ -117,7 +117,7 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
 
     @Override
     public boolean isSolid(int x, int y, int z) {
-        PlatformBlockState state = bufferedBlocks.get(new PositionKey(x, y, z));
+        NativeBlockState state = bufferedBlocks.get(new PositionKey(x, y, z));
         return state == null ? delegate.isSolid(x, y, z) : B.isSolid(state);
     }
 
@@ -149,7 +149,7 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
             return;
         }
         mutations.add(new DataMutation(x, y, z, data));
-        if (data instanceof PlatformBlockState state) {
+        if (data instanceof NativeBlockState state) {
             bufferedBlocks.put(new PositionKey(x, y, z), state);
             blockWrites++;
         }
@@ -194,7 +194,7 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
         void apply(IObjectPlacer placer);
     }
 
-    private record BlockMutation(int x, int y, int z, PlatformBlockState value) implements BufferedMutation {
+    private record BlockMutation(int x, int y, int z, NativeBlockState value) implements BufferedMutation {
         @Override
         public void apply(IObjectPlacer placer) {
             placer.set(x, y, z, value);

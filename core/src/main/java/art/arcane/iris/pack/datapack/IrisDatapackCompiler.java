@@ -7,8 +7,8 @@ import art.arcane.iris.world.lifecycle.BukkitWorldConfiguration.IrisGeneratorBin
 import art.arcane.iris.pack.validation.ContentGate;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
-import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
-import art.arcane.iris.platform.bukkit.nms.datapack.IDataFixer;
+import art.arcane.iris.pack.datapack.DataVersion;
+import art.arcane.iris.pack.datapack.IDataFixer;
 import art.arcane.iris.pack.AtomicDirectoryPublisher;
 import art.arcane.iris.pack.PackDirectoryResolver;
 import art.arcane.iris.world.history.GenerationEpoch;

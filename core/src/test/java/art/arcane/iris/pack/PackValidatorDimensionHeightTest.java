@@ -2,7 +2,7 @@ package art.arcane.iris.pack;
 
 import art.arcane.iris.generation.terrain.IrisDimensionType;
 import art.arcane.iris.generation.terrain.IrisDimensionTypeOptions;
-import art.arcane.iris.platform.bukkit.nms.datapack.IDataFixer;
+import art.arcane.iris.pack.datapack.IDataFixer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

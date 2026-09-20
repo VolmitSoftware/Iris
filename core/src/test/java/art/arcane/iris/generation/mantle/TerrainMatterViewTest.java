@@ -2,7 +2,7 @@ package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
 import art.arcane.iris.world.storage.matter.PreObjectMatterCell;
 import art.arcane.iris.world.storage.matter.PreObjectMatterTest;
@@ -81,8 +81,8 @@ public class TerrainMatterViewTest {
         assertJournalIteration(HydrologyCaveCell.class,
                 HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR),
                 HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE), PreObjectMatterCell::hydrology);
-        assertJournalIteration(PlatformBlockState.class,
-                mock(PlatformBlockState.class), mock(PlatformBlockState.class), PreObjectMatterCell::block);
+        assertJournalIteration(NativeBlockState.class,
+                mock(NativeBlockState.class), mock(NativeBlockState.class), PreObjectMatterCell::block);
     }
 
     @Test

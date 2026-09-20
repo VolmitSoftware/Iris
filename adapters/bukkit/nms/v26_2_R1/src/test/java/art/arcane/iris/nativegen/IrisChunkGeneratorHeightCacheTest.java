@@ -1,6 +1,9 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.platform.bukkit.nms.v26_2_R1.IrisChunkGenerator;
+import art.arcane.volmlib.nativelib.v26_2_R1.terrain.NativeChunkGenerator;
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeTerrainColumns;
+import art.arcane.iris.platform.bukkit.nms.BukkitTerrainColumnPolicy;
+
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
@@ -100,14 +103,13 @@ public final class IrisChunkGeneratorHeightCacheTest {
         when(engine.getCacheID()).thenReturn(1);
         when(engine.acquireGenerationLease(anyString())).thenReturn(GenerationSessionLease.noop());
         when(complex.resolvedTerrainColumn(anyInt(), anyInt())).thenReturn(Optional.of(signature()));
-        IrisChunkGenerator generator = mock(IrisChunkGenerator.class, CALLS_REAL_METHODS);
-        set(generator, "engine", engine);
-        set(generator, "terrainHeights", new NativeTerrainHeightCache());
+        NativeChunkGenerator<?, ?, ?, ?, ?> generator = mock(NativeChunkGenerator.class, CALLS_REAL_METHODS);
+        set(generator, "terrainColumns", new NativeTerrainColumns(new BukkitTerrainColumnPolicy(engine, null)));
         return new Fixture(generator, engine, complex);
     }
 
-    private static void set(IrisChunkGenerator generator, String name, Object value) throws Exception {
-        Field field = IrisChunkGenerator.class.getDeclaredField(name);
+    private static void set(NativeChunkGenerator<?, ?, ?, ?, ?> generator, String name, Object value) throws Exception {
+        Field field = NativeChunkGenerator.class.getDeclaredField(name);
         field.setAccessible(true);
         field.set(generator, value);
     }
@@ -125,6 +127,6 @@ public final class IrisChunkGeneratorHeightCacheTest {
                         new TerrainBoundarySignature.BiomeEncoding(List.of("minecraft:plains"), new short[]{0})), geometry);
     }
 
-    private record Fixture(IrisChunkGenerator generator, Engine engine, IrisComplex complex) {
+    private record Fixture(NativeChunkGenerator<?, ?, ?, ?, ?> generator, Engine engine, IrisComplex complex) {
     }
 }

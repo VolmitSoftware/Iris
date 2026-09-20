@@ -3,8 +3,8 @@ package art.arcane.iris.generation.validation;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.terrain.IrisDimension;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,10 +30,10 @@ public class GoldenHashEngineTest {
     private IrisSettings previousSettings;
     private File goldenDir;
     private Engine engine;
-    private PlatformBlockState stone;
-    private PlatformBlockState dirt;
-    private PlatformBiome plains;
-    private PlatformBiome forest;
+    private NativeBlockState stone;
+    private NativeBlockState dirt;
+    private NativeBiome plains;
+    private NativeBiome forest;
 
     @Before
     public void setUp() throws Exception {
@@ -44,13 +44,13 @@ public class GoldenHashEngineTest {
         IrisDimension dimension = mock(IrisDimension.class);
         when(dimension.getLoadKey()).thenReturn("testdim");
         when(engine.getDimension()).thenReturn(dimension);
-        stone = mock(PlatformBlockState.class);
+        stone = mock(NativeBlockState.class);
         when(stone.key()).thenReturn("minecraft:stone");
-        dirt = mock(PlatformBlockState.class);
+        dirt = mock(NativeBlockState.class);
         when(dirt.key()).thenReturn("minecraft:dirt");
-        plains = mock(PlatformBiome.class);
+        plains = mock(NativeBiome.class);
         when(plains.key()).thenReturn("minecraft:plains");
-        forest = mock(PlatformBiome.class);
+        forest = mock(NativeBiome.class);
         when(forest.key()).thenReturn("minecraft:forest");
     }
 
@@ -161,11 +161,11 @@ public class GoldenHashEngineTest {
         };
     }
 
-    private GoldenHashEngine.ChunkSource source(PlatformBlockState special, int sx, int sy, int sz) {
+    private GoldenHashEngine.ChunkSource source(NativeBlockState special, int sx, int sy, int sz) {
         return source(special, sx, sy, sz, plains);
     }
 
-    private GoldenHashEngine.ChunkSource source(PlatformBlockState special, int sx, int sy, int sz, PlatformBiome biome) {
+    private GoldenHashEngine.ChunkSource source(NativeBlockState special, int sx, int sy, int sz, NativeBiome biome) {
         return (int chunkX, int chunkZ) -> new GoldenHashEngine.ChunkSnapshot() {
             @Override
             public int minY() {
@@ -178,12 +178,12 @@ public class GoldenHashEngineTest {
             }
 
             @Override
-            public PlatformBlockState block(int x, int y, int z) {
+            public NativeBlockState block(int x, int y, int z) {
                 return x == sx && y == sy && z == sz ? special : stone;
             }
 
             @Override
-            public PlatformBiome biome(int x, int y, int z) {
+            public NativeBiome biome(int x, int y, int z) {
                 return biome;
             }
         };

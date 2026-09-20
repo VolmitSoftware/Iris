@@ -1,0 +1,28 @@
+{
+  "name": "Native Terrain",
+  "version": 1,
+  "mode": {
+    "type": "OVERWORLD"
+  },
+  "regions": [
+    "flat"
+  ],
+  "focusRegion": "flat",
+  "focus": "flat",
+  "landChance": 1,
+  "environment": "NORMAL",
+  "dimensionHeight": {
+    "min": -64,
+    "max": 320
+  },
+  "logicalHeight": 384,
+  "fluidHeight": 0,
+  "bedrock": false,
+  "rockPalette": {
+    "palette": [
+      {
+        "block": "minecraft:green_concrete"
+      }
+    ]
+  }
+}

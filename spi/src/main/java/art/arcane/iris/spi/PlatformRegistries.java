@@ -18,6 +18,16 @@
 
 package art.arcane.iris.spi;
 
+import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
+
+import art.arcane.volmlib.nativelib.entity.NativeEntityType;
+
+import art.arcane.volmlib.nativelib.item.NativeItem;
+
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+
 import java.util.List;
 import java.util.Map;
 
@@ -43,7 +53,7 @@ public interface PlatformRegistries {
      * falls back to air; a key that cannot be parsed at all may come back null. Callers that need to tell
      * absence from air use {@link #blockOrNull(String)}.
      */
-    PlatformBlockState block(String key);
+    NativeBlockState block(String key);
 
     /**
      * Resolves a block key, returning null instead of an air fallback when it does not resolve. Silent.
@@ -52,40 +62,40 @@ public interface PlatformRegistries {
      * sees keys the underlying lookup could not answer at all, so an unregistered key resolves to air through
      * {@link #block(String)} on every platform - the Bukkit-only legacy rewrite table cannot fork generation output.
      */
-    PlatformBlockState blockOrNull(String key);
+    NativeBlockState blockOrNull(String key);
 
     /**
      * {@link #blockOrNull(String)} with control over whether an unresolved key is logged. Pass
      * {@code warn = false} for speculative lookups.
      */
-    PlatformBlockState blockOrNull(String key, boolean warn);
+    NativeBlockState blockOrNull(String key, boolean warn);
 
     /**
      * The interned air state. Never null; identity-comparable across calls.
      */
-    PlatformBlockState air();
+    NativeBlockState air();
 
     /**
      * The deepslate variant of {@code ore} when {@code block} is deepslate, otherwise {@code ore} unchanged.
      * Lets ore placement follow the host stone without the pack enumerating variants.
      */
-    PlatformBlockState deepSlateOre(PlatformBlockState block, PlatformBlockState ore);
+    NativeBlockState deepSlateOre(NativeBlockState block, NativeBlockState ore);
 
     /**
      * Resolves a biome key against the live biome registry, including datapack and mod biomes. Null when the
      * key does not parse or is not registered.
      */
-    PlatformBiome biome(String key);
+    NativeBiome biome(String key);
 
     /**
      * Resolves an item key. Null when unknown.
      */
-    PlatformItem item(String key);
+    NativeItem item(String key);
 
     /**
      * Resolves an entity type key. Null when unknown.
      */
-    PlatformEntityType entity(String key);
+    NativeEntityType entity(String key);
 
     /**
      * Every registered block state key, properties included. Drives schema completion and command
@@ -147,5 +157,5 @@ public interface PlatformRegistries {
      * Block key to its declared state properties, used to generate pack schema enums and numeric ranges.
      * Keyed by material-level block key. Never null.
      */
-    Map<String, List<PlatformBlockProperty>> blockStateProperties();
+    Map<String, List<NativeBlockProperty>> blockStateProperties();
 }

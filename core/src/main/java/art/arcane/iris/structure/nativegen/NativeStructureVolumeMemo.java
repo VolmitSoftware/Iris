@@ -18,6 +18,8 @@
 
 package art.arcane.iris.structure.nativegen;
 
+import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
+
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EnginePlatformHooks;
 

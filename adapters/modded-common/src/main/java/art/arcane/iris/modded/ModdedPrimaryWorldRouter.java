@@ -18,14 +18,15 @@
 
 package art.arcane.iris.modded;
 
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldTeleport;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeDimensionRuntime;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -55,7 +56,7 @@ public final class ModdedPrimaryWorldRouter {
         }
     }
 
-    public static void tick(MinecraftServer server) {
+    public static void tick(NativeModdedServer server) {
         if (server == null) {
             return;
         }
@@ -74,34 +75,29 @@ public final class ModdedPrimaryWorldRouter {
             return;
         }
 
-        ServerLevel target = ModdedDimensionManager.level(server, primary);
+        NativeWorld target = ModdedDimensionManager.level(server, primary);
         if (target == null) {
             return;
         }
-        ServerLevel overworld = server.overworld();
-        if (target == overworld) {
+        NativeWorld overworld = server.overworld();
+        if (NativeDimensionRuntime.sameWorld(target, overworld)) {
             return;
         }
 
-        List<ServerPlayer> players = new ArrayList<>(server.getPlayerList().getPlayers());
-        for (ServerPlayer player : players) {
-            UUID id = player.getUUID();
+        server.forEachPlayer(player -> {
+            UUID id = player.id();
             if (routed.contains(id) || !inFlight.add(id)) {
-                continue;
+                return;
             }
-            if (player.level() != overworld) {
+            if (!player.isInWorld(overworld)) {
                 inFlight.remove(id);
                 routed.add(id);
-                continue;
+                return;
             }
             try {
-                CompletableFuture<Boolean> teleport = ModdedDimensionManager.teleportAsync(
-                        player,
-                        server,
-                        primary,
-                        player.getX(),
-                        Double.MIN_VALUE,
-                        player.getZ());
+                CompletableFuture<Boolean> teleport = NativeWorldTeleport.teleport(player,
+                        new NativeWorldTeleport.Destination(server, target, player.x(), Double.MIN_VALUE, player.z(),
+                                System.nanoTime() + TimeUnit.SECONDS.toNanos(10)));
                 teleport.whenComplete((success, failure) -> {
                     inFlight.remove(id);
                     if (Boolean.TRUE.equals(success) && failure == null) {
@@ -117,6 +113,6 @@ public final class ModdedPrimaryWorldRouter {
                 inFlight.remove(id);
                 ModdedIrisLog.error("Iris failed to route player {} to primary world '{}'", id, primary, e);
             }
-        }
+        });
     }
 }

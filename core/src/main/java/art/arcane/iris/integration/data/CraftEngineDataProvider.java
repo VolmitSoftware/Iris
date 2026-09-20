@@ -2,8 +2,8 @@ package art.arcane.iris.integration.data;
 
 import art.arcane.iris.integration.ExternalDataProvider;
 import art.arcane.iris.integration.Identifier;
-import art.arcane.iris.platform.bukkit.nms.container.BlockProperty;
-import art.arcane.iris.platform.bukkit.nms.container.Pair;
+import art.arcane.volmlib.nativelib.terrain.BlockProperty;
+import art.arcane.volmlib.util.collection.Pair;
 import art.arcane.iris.integration.ExternalDataSVC;
 import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.generation.runtime.Engine;

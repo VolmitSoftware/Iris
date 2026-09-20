@@ -18,6 +18,8 @@
 
 package art.arcane.iris.world;
 
+import art.arcane.volmlib.nativelib.NativeAdapters;
+import art.arcane.volmlib.nativelib.server.NativeServerDiagnostics;
 import art.arcane.iris.pack.datapack.ServerConfigurator;
 
 import art.arcane.iris.Iris;
@@ -413,19 +415,8 @@ public final class BukkitWorldReconciler {
     }
 
     private static boolean containsCreateWorldUnsupportedOperation(Throwable throwable) {
-        Throwable cursor = throwable;
-        while (cursor != null) {
-            if (cursor instanceof UnsupportedOperationException || cursor instanceof IllegalStateException) {
-                for (StackTraceElement element : cursor.getStackTrace()) {
-                    if ("org.bukkit.craftbukkit.CraftServer".equals(element.getClassName())
-                            && "createWorld".equals(element.getMethodName())) {
-                        return true;
-                    }
-                }
-            }
-            cursor = cursor.getCause();
-        }
-        return false;
+        return NativeAdapters.find(NativeServerDiagnostics.class)
+                .map(diagnostics -> diagnostics.isRejectedWorldCreation(throwable)).orElse(false);
     }
 
     interface Backend {

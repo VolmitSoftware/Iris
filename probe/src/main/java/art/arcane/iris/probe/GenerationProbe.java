@@ -36,8 +36,8 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 
 import java.io.File;
@@ -399,8 +399,8 @@ public final class GenerationProbe {
             ChunkCoordinate coordinate = coordinates.get(index);
             drainReported();
             List<Throwable> failures = new ArrayList<>();
-            Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, height, 16);
-            Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(16, height, 16);
+            Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(16, height, 16);
+            Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, height, 16);
             long started = System.nanoTime();
             try {
                 engine.generate(
@@ -481,7 +481,7 @@ public final class GenerationProbe {
     }
 
     private static void updateSignature(MessageDigest digest, ChunkCoordinate coordinate,
-                                        Hunk<PlatformBlockState> blocks, Hunk<PlatformBiome> biomes, int height) {
+                                        Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes, int height) {
         MessageDigest blockDigest = sha256();
         MessageDigest biomeDigest = sha256();
         updateDigest(digest, coordinate.x() + "," + coordinate.z());
@@ -490,8 +490,8 @@ public final class GenerationProbe {
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 for (int y = 0; y < height; y++) {
-                    PlatformBlockState state = blocks.get(x, y, z);
-                    PlatformBiome biome = biomes.get(x, y, z);
+                    NativeBlockState state = blocks.get(x, y, z);
+                    NativeBiome biome = biomes.get(x, y, z);
                     String stateKey = state == null ? "minecraft:air" : state.key();
                     String biomeKey = biome == null ? "null" : biome.key();
                     updateDigest(digest, stateKey);

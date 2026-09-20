@@ -18,13 +18,15 @@
 
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.volmlib.nativelib.terrain.structure.StructurePalette;
+
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
@@ -32,7 +34,7 @@ import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
 import art.arcane.iris.pack.schema.annotation.Required;
 import art.arcane.iris.pack.schema.annotation.Snippet;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
@@ -53,11 +55,11 @@ import java.util.concurrent.atomic.AtomicReference;
 @AllArgsConstructor
 @Description("A palette of materials")
 @Data
-public class IrisMaterialPalette {
+public class IrisMaterialPalette implements StructurePalette {
     private static final int LAYER_GENERATOR_CACHE_SIZE = 32;
     private static final int LAYER_GENERATOR_SALT = -23_498_896;
 
-    private final transient AtomicCache<KList<PlatformBlockState>> blockData = new AtomicCache<>();
+    private final transient AtomicCache<KList<NativeBlockState>> blockData = new AtomicCache<>();
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private final transient LazyBoundedCache<LayerGeneratorKey, CNG> layerGenerators =
@@ -76,8 +78,8 @@ public class IrisMaterialPalette {
     @Description("The palette of blocks to be used in this layer")
     private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("STONE"));
 
-    public PlatformBlockState get(RNG rng, double x, double y, double z, IrisData rdata) {
-        KList<PlatformBlockState> localBlockData = getBlockData(rdata);
+    public NativeBlockState get(RNG rng, double x, double y, double z, IrisData rdata) {
+        KList<NativeBlockState> localBlockData = getBlockData(rdata);
         int blockDataSize = localBlockData.size();
         if (blockDataSize == 0) {
             return null;
@@ -136,12 +138,12 @@ public class IrisMaterialPalette {
         return this;
     }
 
-    public KList<PlatformBlockState> getBlockData(IrisData rdata) {
+    public KList<NativeBlockState> getBlockData(IrisData rdata) {
         return blockData.aquire(() ->
         {
-            KList<PlatformBlockState> blockData = new KList<>();
+            KList<NativeBlockState> blockData = new KList<>();
             for (IrisBlockData ix : palette) {
-                PlatformBlockState bx = ix.getBlockData(rdata);
+                NativeBlockState bx = ix.getBlockData(rdata);
                 if (bx != null) {
                     for (int i = 0; i < ix.getWeight(); i++) {
                         blockData.add(bx);

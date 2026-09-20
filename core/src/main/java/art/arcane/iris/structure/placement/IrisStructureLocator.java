@@ -18,6 +18,14 @@
 
 package art.arcane.iris.structure.placement;
 
+import art.arcane.volmlib.nativelib.terrain.structure.StructureLocateCandidate;
+
+import art.arcane.volmlib.nativelib.terrain.StructureLocateLimitException;
+
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
+
+import art.arcane.volmlib.util.structure.StructureCarveShape;
+
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.iris.structure.nativegen.NativeStructurePlacementPlanner;
@@ -200,7 +208,7 @@ public final class IrisStructureLocator {
                                       int maxRadiusChunks, CandidateFilter candidateFilter) {
         try {
             return locateFiltered(engine, key, fromBlockX, fromBlockZ, maxRadiusChunks, candidateFilter);
-        } catch (CandidateSearchLimitException ignored) {
+        } catch (StructureLocateLimitException ignored) {
             return SEARCH_LIMIT_RESULT;
         }
     }
@@ -211,7 +219,7 @@ public final class IrisStructureLocator {
         try {
             return locateInPlacementRingsFiltered(
                     engine, key, fromBlockX, fromBlockZ, maxSearchRadius, candidateFilter);
-        } catch (CandidateSearchLimitException ignored) {
+        } catch (StructureLocateLimitException ignored) {
             return SEARCH_LIMIT_RESULT;
         }
     }
@@ -723,11 +731,11 @@ public final class IrisStructureLocator {
         }
 
         IrisStructureTerrain terrain = placement.resolvedTerrain();
-        IrisStructureTerrainMode terrainMode = terrain.resolvedMode();
-        boolean forceCarve = terrainMode == IrisStructureTerrainMode.FORCE_CARVE;
-        boolean bore = terrainMode == IrisStructureTerrainMode.BORE;
+        StructureTerrainMode terrainMode = terrain.resolvedMode();
+        boolean forceCarve = terrainMode == StructureTerrainMode.FORCE_CARVE;
+        boolean bore = terrainMode == StructureTerrainMode.BORE;
         int sideExtension = forceCarve || bore ? Math.max(0, terrain.getHorizontalPadding()) : 0;
-        IrisStructureCarveShape carveShape = terrain.resolvedShape();
+        StructureCarveShape carveShape = terrain.resolvedShape();
         int topExtension = forceCarve
                 ? carveShape.maximumCeilingExtension(
                         terrain.getCeilingPadding(), terrain.resolvedErosionStrength())
@@ -743,7 +751,7 @@ public final class IrisStructureLocator {
 
         Long2IntOpenHashMap surfaceHeights = new Long2IntOpenHashMap();
         surfaceHeights.defaultReturnValue(Integer.MIN_VALUE);
-        if (bore || forceCarve && carveShape == IrisStructureCarveShape.BOX) {
+        if (bore || forceCarve && carveShape == StructureCarveShape.BOX) {
             maximumShift = resolveBurialEnvelopeShift(
                     engine,
                     bounds[0] - sideExtension,
@@ -908,9 +916,9 @@ public final class IrisStructureLocator {
             return false;
         }
         IrisStructureTerrain terrain = placement.resolvedTerrain();
-        IrisStructureTerrainMode mode = terrain.resolvedMode();
-        int padding = mode == IrisStructureTerrainMode.FORCE_CARVE
-                || mode == IrisStructureTerrainMode.BORE
+        StructureTerrainMode mode = terrain.resolvedMode();
+        int padding = mode == StructureTerrainMode.FORCE_CARVE
+                || mode == StructureTerrainMode.BORE
                 ? Math.max(0, terrain.getHorizontalPadding())
                 : 0;
         return engine.getComplex().allowsNewGenerationFootprint(
@@ -1306,7 +1314,11 @@ public final class IrisStructureLocator {
         SEARCH_LIMIT_REACHED
     }
 
-    public record LocateResult(LocateStatus status, int originX, int baseY, int originZ) {
+    public record LocateResult(LocateStatus status, int originX, int baseY, int originZ) implements StructureLocateCandidate {
+        public boolean limitReached() {
+            return status == LocateStatus.SEARCH_LIMIT_REACHED;
+        }
+
         public boolean found() {
             return status == LocateStatus.FOUND;
         }
@@ -1315,12 +1327,6 @@ public final class IrisStructureLocator {
     @FunctionalInterface
     public interface CandidateFilter {
         boolean accept(int chunkX, int chunkZ);
-    }
-
-    public static final class CandidateSearchLimitException extends RuntimeException {
-        public CandidateSearchLimitException() {
-            super(null, null, false, false);
-        }
     }
 
     private record RandomSpreadParameters(int spacing, int separation, int salt) {
@@ -1346,7 +1352,7 @@ public final class IrisStructureLocator {
 
         private void claim() {
             if (checked >= CANDIDATE_BUDGET) {
-                throw new CandidateSearchLimitException();
+                throw new StructureLocateLimitException();
             }
             checked++;
         }

@@ -3,7 +3,7 @@ package art.arcane.iris.generation.decoration.coral;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.structure.object.IrisObject;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
@@ -22,8 +22,8 @@ import static org.mockito.Mockito.when;
 public class CoralGeneratorTest {
     @Test
     public void fanTipsFollowTheTopOfEachOccupiedColumn() {
-        PlatformBlockState structure = mock(PlatformBlockState.class);
-        PlatformBlockState tip = mock(PlatformBlockState.class);
+        NativeBlockState structure = mock(NativeBlockState.class);
+        NativeBlockState tip = mock(NativeBlockState.class);
         for (int height : new int[]{2, 7, 14}) {
             for (int width : new int[]{1, 3, 11}) {
                 IrisCoral coral = new IrisCoral().setForm(IrisCoralForm.FAN)
@@ -61,7 +61,7 @@ public class CoralGeneratorTest {
         }
     }
 
-    private static IrisMaterialPalette palette(PlatformBlockState state) {
+    private static IrisMaterialPalette palette(NativeBlockState state) {
         IrisBlockData block = mock(IrisBlockData.class);
         when(block.getWeight()).thenReturn(1);
         when(block.getBlockData(null)).thenReturn(state);

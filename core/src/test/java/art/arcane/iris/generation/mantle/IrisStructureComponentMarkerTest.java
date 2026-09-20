@@ -5,7 +5,7 @@ import art.arcane.iris.structure.placement.PlacedStructurePiece;
 import art.arcane.iris.structure.placement.IrisStructure;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.iris.structure.nativegen.NativeStructureSuppression;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
@@ -21,8 +21,8 @@ import static org.mockito.Mockito.when;
 public class IrisStructureComponentMarkerTest {
     @Test
     public void markerFilterAcceptsOnlyStorageContainers() {
-        PlatformBlockState storage = mock(PlatformBlockState.class);
-        PlatformBlockState solid = mock(PlatformBlockState.class);
+        NativeBlockState storage = mock(NativeBlockState.class);
+        NativeBlockState solid = mock(NativeBlockState.class);
         when(storage.isStorageChest()).thenReturn(true);
         when(solid.isStorageChest()).thenReturn(false);
 
@@ -43,8 +43,8 @@ public class IrisStructureComponentMarkerTest {
 
     @Test
     public void treeCollisionUsesOnlyNonAirStructureBlocks() {
-        PlatformBlockState solid = mock(PlatformBlockState.class);
-        PlatformBlockState air = mock(PlatformBlockState.class);
+        NativeBlockState solid = mock(NativeBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
         when(solid.isAir()).thenReturn(false);
         when(air.isAir()).thenReturn(true);
 

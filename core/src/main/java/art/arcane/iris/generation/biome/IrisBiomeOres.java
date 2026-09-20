@@ -23,8 +23,8 @@ import art.arcane.iris.generation.decoration.IrisOreGeneratorBounds;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.AtomicCache;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.util.cache.AtomicCache;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
@@ -39,16 +39,16 @@ final class IrisBiomeOres {
     private IrisBiomeOres() {
     }
 
-    static PlatformBlockState generateOres(IrisBiome biome, int x, int y, int z, RNG rng, IrisData data, boolean surface) {
+    static NativeBlockState generateOres(IrisBiome biome, int x, int y, int z, RNG rng, IrisData data, boolean surface) {
         KList<IrisOreGenerator> localOres = surface ? getSurfaceOres(biome) : getUndergroundOres(biome);
         return generateOres(localOres, x, y, z, rng, data);
     }
 
-    static PlatformBlockState generateSurfaceOres(IrisBiome biome, int x, int y, int z, RNG rng, IrisData data) {
+    static NativeBlockState generateSurfaceOres(IrisBiome biome, int x, int y, int z, RNG rng, IrisData data) {
         return generateOres(getSurfaceOres(biome), x, y, z, rng, data);
     }
 
-    static PlatformBlockState generateUndergroundOres(IrisBiome biome, int x, int y, int z, RNG rng, IrisData data) {
+    static NativeBlockState generateUndergroundOres(IrisBiome biome, int x, int y, int z, RNG rng, IrisData data) {
         return generateOres(getUndergroundOres(biome), x, y, z, rng, data);
     }
 
@@ -64,7 +64,7 @@ final class IrisBiomeOres {
         return biome.getSurfaceOreReplaceableBlocks() != null;
     }
 
-    static boolean canReplaceSurfaceOre(IrisBiome biome, PlatformBlockState state) {
+    static boolean canReplaceSurfaceOre(IrisBiome biome, NativeBlockState state) {
         if (!hasSurfaceOreReplaceableBlocks(biome)) {
             return true;
         }
@@ -130,7 +130,7 @@ final class IrisBiomeOres {
         });
     }
 
-    private static PlatformBlockState generateOres(KList<IrisOreGenerator> localOres, int x, int y, int z, RNG rng, IrisData data) {
+    private static NativeBlockState generateOres(KList<IrisOreGenerator> localOres, int x, int y, int z, RNG rng, IrisData data) {
         if (localOres.isEmpty()) {
             return null;
         }
@@ -138,7 +138,7 @@ final class IrisBiomeOres {
         int oreCount = localOres.size();
         for (int oreIndex = 0; oreIndex < oreCount; oreIndex++) {
             IrisOreGenerator oreGenerator = localOres.get(oreIndex);
-            PlatformBlockState ore = oreGenerator.generate(x, y, z, rng, data);
+            NativeBlockState ore = oreGenerator.generate(x, y, z, rng, data);
             if (ore != null) {
                 return ore;
             }
@@ -149,7 +149,7 @@ final class IrisBiomeOres {
     private static KSet<String> resolveSurfaceOreReplaceableBlocks(IrisBiome biome) {
         KSet<String> resolved = new KSet<>();
         for (String key : biome.getSurfaceOreReplaceableBlocks()) {
-            PlatformBlockState state = B.getStateOrNull(key, false);
+            NativeBlockState state = B.getStateOrNull(key, false);
             if (state != null) {
                 resolved.add(IrisProceduralBlocks.materialKey(state));
             }

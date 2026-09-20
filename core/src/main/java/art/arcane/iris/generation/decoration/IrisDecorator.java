@@ -25,7 +25,7 @@ import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.iris.pack.schema.annotation.DependsOn;
 import art.arcane.volmlib.util.documentation.Description;
@@ -40,7 +40,7 @@ import art.arcane.volmlib.util.noise.CNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import lombok.experimental.Accessors;
 
 @Snippet("decorator")
@@ -53,12 +53,12 @@ public class IrisDecorator {
     private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
     private final transient AtomicCache<CNG> varianceGenerator = new AtomicCache<>();
     private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
-    private final transient AtomicCache<KList<PlatformBlockState>> blockData = new AtomicCache<>();
-    private final transient AtomicCache<KList<PlatformBlockState>> blockDataTops = new AtomicCache<>();
-    private final transient AtomicCache<PlatformBlockState[]> blockDataArray = new AtomicCache<>();
-    private final transient AtomicCache<PlatformBlockState[]> blockDataTopsArray = new AtomicCache<>();
-    private final transient AtomicCache<PlatformBlockState[]> whitelistArray = new AtomicCache<>();
-    private final transient AtomicCache<PlatformBlockState[]> blacklistArray = new AtomicCache<>();
+    private final transient AtomicCache<KList<NativeBlockState>> blockData = new AtomicCache<>();
+    private final transient AtomicCache<KList<NativeBlockState>> blockDataTops = new AtomicCache<>();
+    private final transient AtomicCache<NativeBlockState[]> blockDataArray = new AtomicCache<>();
+    private final transient AtomicCache<NativeBlockState[]> blockDataTopsArray = new AtomicCache<>();
+    private final transient AtomicCache<NativeBlockState[]> whitelistArray = new AtomicCache<>();
+    private final transient AtomicCache<NativeBlockState[]> blacklistArray = new AtomicCache<>();
     @Description("The varience dispersion is used when multiple blocks are put in the palette. Scatter scrambles them, Wispy shows streak-looking varience")
     private IrisGeneratorStyle variance = NoiseStyle.STATIC.style();
     @Description("Forcefully place this decorant anywhere it is supposed to go even if it should not go on a specific surface block. For example, you could force tallgrass to place on top of stone by using this.")
@@ -176,7 +176,7 @@ public class IrisDecorator {
         return getGenerator(rng, data).fitDouble(0D, 1D, xx, zz) <= chance;
     }
 
-    public PlatformBlockState getBlockData(IrisBiome b, RNG rng, double x, double z, IrisData data) {
+    public NativeBlockState getBlockData(IrisBiome b, RNG rng, double x, double z, IrisData data) {
         if (!passesChanceGate(rng, x, z, data)) {
             return null;
         }
@@ -186,7 +186,7 @@ public class IrisDecorator {
         return getVarianceGenerator(rng, data).fit(getBlockData(data), z, x);
     }
 
-    public PlatformBlockState getBlockData100(IrisBiome b, RNG rng, double x, double y, double z, IrisData data) {
+    public NativeBlockState getBlockData100(IrisBiome b, RNG rng, double x, double y, double z, IrisData data) {
         if (getBlockData(data).isEmpty()) {
             IrisLogging.warnOnce("decorator-empty:" + b.getName(), "Empty Block Data for " + b.getName());
             return null;
@@ -199,7 +199,7 @@ public class IrisDecorator {
         return getVarianceGenerator(rng, data).fit(getBlockData(data), z, y, x); //X and Z must be switched
     }
 
-    public PlatformBlockState getBlockDataForTop(IrisBiome b, RNG rng, double x, double y, double z, IrisData data) {
+    public NativeBlockState getBlockDataForTop(IrisBiome b, RNG rng, double x, double y, double z, IrisData data) {
         if (getBlockDataTops(data).isEmpty()) {
             return getBlockData100(b, rng, x, y, z, data);
         }
@@ -218,8 +218,8 @@ public class IrisDecorator {
         return null;
     }
 
-    public KList<PlatformBlockState> getBlockData(IrisData data) {
-        KList<PlatformBlockState> cached = blockData.getIfPresent();
+    public KList<NativeBlockState> getBlockData(IrisData data) {
+        KList<NativeBlockState> cached = blockData.getIfPresent();
 
         if (cached != null) {
             return cached;
@@ -227,9 +227,9 @@ public class IrisDecorator {
 
         return blockData.aquire(() ->
         {
-            KList<PlatformBlockState> blockData = new KList<>();
+            KList<NativeBlockState> blockData = new KList<>();
             for (IrisBlockData i : palette) {
-                PlatformBlockState bx = i.getBlockData(data);
+                NativeBlockState bx = i.getBlockData(data);
                 if (bx != null) {
                     for (int n = 0; n < i.getWeight(); n++) {
                         blockData.add(bx);
@@ -241,8 +241,8 @@ public class IrisDecorator {
         });
     }
 
-    public KList<PlatformBlockState> getBlockDataTops(IrisData data) {
-        KList<PlatformBlockState> cached = blockDataTops.getIfPresent();
+    public KList<NativeBlockState> getBlockDataTops(IrisData data) {
+        KList<NativeBlockState> cached = blockDataTops.getIfPresent();
 
         if (cached != null) {
             return cached;
@@ -250,9 +250,9 @@ public class IrisDecorator {
 
         return blockDataTops.aquire(() ->
         {
-            KList<PlatformBlockState> blockDataTops = new KList<>();
+            KList<NativeBlockState> blockDataTops = new KList<>();
             for (IrisBlockData i : topPalette) {
-                PlatformBlockState bx = i.getBlockData(data);
+                NativeBlockState bx = i.getBlockData(data);
                 if (bx != null) {
                     for (int n = 0; n < i.getWeight(); n++) {
                         blockDataTops.add(bx);
@@ -264,29 +264,29 @@ public class IrisDecorator {
         });
     }
 
-    public PlatformBlockState[] getBlockDataArray(IrisData data) {
-        PlatformBlockState[] cached = blockDataArray.getIfPresent();
+    public NativeBlockState[] getBlockDataArray(IrisData data) {
+        NativeBlockState[] cached = blockDataArray.getIfPresent();
 
         if (cached != null) {
             return cached;
         }
 
         return blockDataArray.aquire(() -> {
-            KList<PlatformBlockState> list = getBlockData(data);
-            return list.toArray(new PlatformBlockState[0]);
+            KList<NativeBlockState> list = getBlockData(data);
+            return list.toArray(new NativeBlockState[0]);
         });
     }
 
-    public PlatformBlockState[] getBlockDataTopsArray(IrisData data) {
-        PlatformBlockState[] cached = blockDataTopsArray.getIfPresent();
+    public NativeBlockState[] getBlockDataTopsArray(IrisData data) {
+        NativeBlockState[] cached = blockDataTopsArray.getIfPresent();
 
         if (cached != null) {
             return cached;
         }
 
         return blockDataTopsArray.aquire(() -> {
-            KList<PlatformBlockState> list = getBlockDataTops(data);
-            return list.toArray(new PlatformBlockState[0]);
+            KList<NativeBlockState> list = getBlockDataTops(data);
+            return list.toArray(new NativeBlockState[0]);
         });
     }
 
@@ -294,8 +294,8 @@ public class IrisDecorator {
      * The resolved whitelist palette. Empty when no whitelist is configured; callers must still gate on
      * {@link #getWhitelist()} being non null, because an explicitly empty whitelist blocks all placement.
      */
-    public PlatformBlockState[] getWhitelistArray(IrisData data) {
-        PlatformBlockState[] cached = whitelistArray.getIfPresent();
+    public NativeBlockState[] getWhitelistArray(IrisData data) {
+        NativeBlockState[] cached = whitelistArray.getIfPresent();
 
         if (cached != null) {
             return cached;
@@ -304,8 +304,8 @@ public class IrisDecorator {
         return whitelistArray.aquire(() -> resolvePalette(whitelist, data));
     }
 
-    public PlatformBlockState[] getBlacklistArray(IrisData data) {
-        PlatformBlockState[] cached = blacklistArray.getIfPresent();
+    public NativeBlockState[] getBlacklistArray(IrisData data) {
+        NativeBlockState[] cached = blacklistArray.getIfPresent();
 
         if (cached != null) {
             return cached;
@@ -314,12 +314,12 @@ public class IrisDecorator {
         return blacklistArray.aquire(() -> resolvePalette(blacklist, data));
     }
 
-    private static PlatformBlockState[] resolvePalette(KList<IrisBlockData> list, IrisData data) {
+    private static NativeBlockState[] resolvePalette(KList<IrisBlockData> list, IrisData data) {
         if (list == null) {
-            return new PlatformBlockState[0];
+            return new NativeBlockState[0];
         }
 
-        PlatformBlockState[] resolved = new PlatformBlockState[list.size()];
+        NativeBlockState[] resolved = new NativeBlockState[list.size()];
 
         for (int i = 0; i < resolved.length; i++) {
             resolved[i] = list.get(i).getBlockData(data);
@@ -328,8 +328,8 @@ public class IrisDecorator {
         return resolved;
     }
 
-    public PlatformBlockState pickBlockData(RNG rng, IrisData data, double x, double z) {
-        PlatformBlockState[] arr = getBlockDataArray(data);
+    public NativeBlockState pickBlockData(RNG rng, IrisData data, double x, double z) {
+        NativeBlockState[] arr = getBlockDataArray(data);
         if (arr.length == 0) {
             return null;
         }
@@ -339,8 +339,8 @@ public class IrisDecorator {
         return arr[Math.abs((int) getVarianceGenerator(rng, data).fit(0, arr.length - 1, z, x))];
     }
 
-    public PlatformBlockState pickBlockDataTop(RNG rng, IrisData data, double x, double z) {
-        PlatformBlockState[] arr = getBlockDataTopsArray(data);
+    public NativeBlockState pickBlockDataTop(RNG rng, IrisData data, double x, double z) {
+        NativeBlockState[] arr = getBlockDataTopsArray(data);
         if (arr.length == 0) {
             return pickBlockData(rng, data, x, z);
         }

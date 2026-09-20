@@ -24,7 +24,7 @@ import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -42,7 +42,7 @@ public class CaveObjectPlacementTransactionTest {
     @Test
     public void validPlacementCommitsBlocksTilesAndMetadataTogether() {
         IObjectPlacer delegate = createPlacer(128, 80, 20, 60);
-        PlatformBlockState state = mock(PlatformBlockState.class);
+        NativeBlockState state = mock(NativeBlockState.class);
         TileData tile = mock(TileData.class);
         CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(delegate, 20, 10);
 
@@ -74,7 +74,7 @@ public class CaveObjectPlacementTransactionTest {
         when(delegate.isCarved(anyInt(), anyInt(), anyInt())).thenReturn(true);
         CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(delegate, 20, 10);
 
-        transaction.set(4, 30, 7, mock(PlatformBlockState.class));
+        transaction.set(4, 30, 7, mock(NativeBlockState.class));
         transaction.setData(5, 26, 7, "ghost");
 
         assertEquals(CaveObjectPlacementTransaction.CommitResult.REJECTED_BOUNDS, transaction.commit());
@@ -93,7 +93,7 @@ public class CaveObjectPlacementTransactionTest {
         when(delegate.isCarved(eq(5), anyInt(), eq(7))).thenAnswer(invocation -> invocation.<Integer>getArgument(1) <= 24);
         CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(delegate, 20, 10);
 
-        transaction.set(4, 30, 7, mock(PlatformBlockState.class));
+        transaction.set(4, 30, 7, mock(NativeBlockState.class));
         transaction.setData(5, 25, 7, "outside-cave");
 
         assertEquals(CaveObjectPlacementTransaction.CommitResult.REJECTED_BOUNDS, transaction.commit());
@@ -105,7 +105,7 @@ public class CaveObjectPlacementTransactionTest {
     public void exactBurialBoundaryIsAllowedAndShallowerAnchorsAreExcluded() {
         IObjectPlacer delegate = createPlacer(128, 80, 20, 90);
         CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(delegate, 20, 10);
-        transaction.set(4, 70, 7, mock(PlatformBlockState.class));
+        transaction.set(4, 70, 7, mock(NativeBlockState.class));
 
         assertEquals(CaveObjectPlacementTransaction.CommitResult.COMMITTED, transaction.commit());
         assertEquals(71, MantleObjectComponent.caveAnchorScanUpperBound(128, 80, 10));
@@ -119,7 +119,7 @@ public class CaveObjectPlacementTransactionTest {
                 .thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR));
         CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(delegate, 20, 10);
 
-        transaction.set(4, 30, 7, mock(PlatformBlockState.class));
+        transaction.set(4, 30, 7, mock(NativeBlockState.class));
         transaction.setData(5, 30, 7, "object@1");
 
         assertEquals(CaveObjectPlacementTransaction.CommitResult.REJECTED_HYDROLOGY, transaction.commit());
@@ -138,7 +138,7 @@ public class CaveObjectPlacementTransactionTest {
         when(delegate.getEngine()).thenReturn(engine);
         CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(delegate, 20, 10);
 
-        transaction.set(4, 30, 7, mock(PlatformBlockState.class));
+        transaction.set(4, 30, 7, mock(NativeBlockState.class));
         transaction.setData(4, 30, 7, "object@1");
 
         assertEquals(CaveObjectPlacementTransaction.CommitResult.REJECTED_TRANSITION, transaction.commit());

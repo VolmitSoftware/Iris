@@ -25,7 +25,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 public class IrisSurfaceDecorator extends IrisEngineDecorator {
     private final RNG partRNG;
@@ -53,13 +53,13 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
     @BlockCoordinates
     @Override
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1,
-                         Hunk<PlatformBlockState> data, IrisBiome biome, int height, int max) {
+                         Hunk<NativeBlockState> data, IrisBiome biome, int height, int max) {
         decorate(x, z, realX, realX1, realX_1, realZ, realZ1, realZ_1, data, biome, biome.getInferredType(), height, max);
     }
 
     @BlockCoordinates
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1,
-                         Hunk<PlatformBlockState> data, IrisBiome biome, InferredType inferredType, int height, int max) {
+                         Hunk<NativeBlockState> data, IrisBiome biome, InferredType inferredType, int height, int max) {
         int fluidHeight = getEngine().getMantle().getFluidHeight(realX, realZ);
         if (inferredType == InferredType.SHORE && height < fluidHeight) {
             return;
@@ -104,11 +104,11 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
         return inferredType == InferredType.CAVE;
     }
 
-    static boolean hasFluidAbove(Hunk<PlatformBlockState> data, int x, int height, int z) {
+    static boolean hasFluidAbove(Hunk<NativeBlockState> data, int x, int height, int z) {
         return height + 1 < data.getHeight() && data.get(x, height + 1, z).isFluid();
     }
 
-    public static boolean isAquaticPlacement(PlatformBlockState state) {
+    public static boolean isAquaticPlacement(NativeBlockState state) {
         if (state == null) {
             return false;
         }
@@ -129,7 +129,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                 && !material.contains(":dead_");
     }
 
-    public static boolean hasConnectedWater(Hunk<PlatformBlockState> data, int x, int y, int z) {
+    public static boolean hasConnectedWater(Hunk<NativeBlockState> data, int x, int y, int z) {
         if (y < 0 || y >= data.getHeight() || !isWater(data.get(x, y, z))) {
             return false;
         }
@@ -142,7 +142,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
     static AquaticPlacementSnapshot captureAquaticPlacement(
             IrisDecorator decorator,
             IrisData irisData,
-            Hunk<PlatformBlockState> data,
+            Hunk<NativeBlockState> data,
             int x,
             int z,
             int height,
@@ -161,7 +161,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
             return AquaticPlacementSnapshot.EMPTY;
         }
 
-        PlatformBlockState[] originals = new PlatformBlockState[upperY - lowerY + 1];
+        NativeBlockState[] originals = new NativeBlockState[upperY - lowerY + 1];
         boolean[] connectedWater = new boolean[originals.length];
         for (int i = 0; i < originals.length; i++) {
             int y = lowerY + i;
@@ -172,17 +172,17 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
     }
 
     private static boolean mayPlaceAquatic(IrisDecorator decorator, IrisData irisData) {
-        PlatformBlockState[] palette = decorator.getBlockDataArray(irisData);
+        NativeBlockState[] palette = decorator.getBlockDataArray(irisData);
         if (palette != null) {
-            for (PlatformBlockState state : palette) {
+            for (NativeBlockState state : palette) {
                 if (isAquaticPlacement(state)) {
                     return true;
                 }
             }
         }
-        PlatformBlockState[] topPalette = decorator.getBlockDataTopsArray(irisData);
+        NativeBlockState[] topPalette = decorator.getBlockDataTopsArray(irisData);
         if (topPalette != null) {
-            for (PlatformBlockState state : topPalette) {
+            for (NativeBlockState state : topPalette) {
                 if (isAquaticPlacement(state)) {
                     return true;
                 }
@@ -199,28 +199,28 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
         return Math.max(1, Math.min(Math.max(1, max), decorator.getStackMax()));
     }
 
-    private static boolean isWaterNeighbor(Hunk<PlatformBlockState> data, int x, int y, int z) {
+    private static boolean isWaterNeighbor(Hunk<NativeBlockState> data, int x, int y, int z) {
         if (x < 0 || x >= data.getWidth() || z < 0 || z >= data.getDepth()) {
             return false;
         }
         return isWater(data.get(x, y, z));
     }
 
-    private static boolean isWater(PlatformBlockState state) {
+    private static boolean isWater(NativeBlockState state) {
         return state != null && state.isWater();
     }
 
     static final class AquaticPlacementSnapshot {
         private static final AquaticPlacementSnapshot EMPTY = new AquaticPlacementSnapshot(
-                0, new PlatformBlockState[0], new boolean[0]);
+                0, new NativeBlockState[0], new boolean[0]);
 
         private final int lowerY;
-        private final PlatformBlockState[] originals;
+        private final NativeBlockState[] originals;
         private final boolean[] connectedWater;
 
         private AquaticPlacementSnapshot(
                 int lowerY,
-                PlatformBlockState[] originals,
+                NativeBlockState[] originals,
                 boolean[] connectedWater
         ) {
             this.lowerY = lowerY;
@@ -228,7 +228,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
             this.connectedWater = connectedWater;
         }
 
-        void restoreIfUnsupported(Hunk<PlatformBlockState> data, int x, int z) {
+        void restoreIfUnsupported(Hunk<NativeBlockState> data, int x, int z) {
             if (!containsUnsupportedAquatic(data, x, z)) {
                 return;
             }
@@ -237,9 +237,9 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
             }
         }
 
-        private boolean containsUnsupportedAquatic(Hunk<PlatformBlockState> data, int x, int z) {
+        private boolean containsUnsupportedAquatic(Hunk<NativeBlockState> data, int x, int z) {
             for (int i = 0; i < originals.length; i++) {
-                PlatformBlockState placed = data.get(x, lowerY + i, z);
+                NativeBlockState placed = data.get(x, lowerY + i, z);
                 if (placed != originals[i] && isAquaticPlacement(placed) && !connectedWater[i]) {
                     return true;
                 }

@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.cache;
 
+import art.arcane.volmlib.util.cache.AtomicCache;
+
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;

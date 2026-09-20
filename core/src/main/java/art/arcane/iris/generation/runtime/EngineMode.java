@@ -27,8 +27,8 @@ import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.iris.generation.concurrent.BurstExecutor;
 import art.arcane.iris.generation.concurrent.MultiBurst;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 public interface EngineMode extends Staged {
     KList<EngineStage> getTerrainStages();
@@ -37,7 +37,7 @@ public interface EngineMode extends Staged {
 
     EngineStage getTransitionStage();
 
-    default void generateTerrain(int x, int z, Hunk<PlatformBlockState> blocks, Hunk<PlatformBiome> biomes,
+    default void generateTerrain(int x, int z, Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes,
                                  boolean multicore, ChunkContext context) {
         context.setTerrainBiomeOutput(biomes);
         for (EngineStage stage : getTerrainStages()) {
@@ -183,7 +183,7 @@ public interface EngineMode extends Staged {
     }
 
     @BlockCoordinates
-    default void generate(int x, int z, Hunk<PlatformBlockState> blocks, Hunk<PlatformBiome> biomes, boolean multicore, long generationSessionId) {
+    default void generate(int x, int z, Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes, boolean multicore, long generationSessionId) {
         boolean cacheContext = !getEngine().getPlatformHooks().shouldDisableChunkContextCache(getEngine());
         ChunkContext.PrefillPlan prefillPlan = cacheContext ? ChunkContext.PrefillPlan.NO_CAVE : ChunkContext.PrefillPlan.NONE;
         ChunkContext ctx = new ChunkContext(

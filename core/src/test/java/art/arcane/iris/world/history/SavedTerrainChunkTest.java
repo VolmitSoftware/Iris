@@ -1,5 +1,7 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.volmlib.nativelib.terrain.NativeTerrainReceiptStorage;
+
 import art.arcane.volmlib.util.nbt.io.NBTUtil;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
 import art.arcane.volmlib.util.nbt.tag.ListTag;
@@ -7,7 +9,7 @@ import art.arcane.volmlib.util.nbt.tag.StringTag;
 import net.jpountz.lz4.LZ4BlockOutputStream;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import org.junit.Before;
 import org.junit.After;
@@ -43,7 +45,7 @@ public final class SavedTerrainChunkTest {
         when(platform.registries()).thenReturn(registries);
         for (String state : new String[]{"minecraft:stone", "minecraft:water[level=0]",
                 "minecraft:sea_pickle[pickles=1,waterlogged=true]"}) {
-            PlatformBlockState block = mock(PlatformBlockState.class);
+            NativeBlockState block = mock(NativeBlockState.class);
             when(block.key()).thenReturn(state);
             when(registries.blockOrNull(state.split("\\[")[0])).thenReturn(block);
         }
@@ -142,7 +144,7 @@ public final class SavedTerrainChunkTest {
                 metadata = new CompoundTag();
                 saved.put("ChunkBukkitValues", metadata);
             }
-            metadata.putLong(NativeTerrainReceipt.STRUCTURE_ACTIVATION_KEY, 7);
+            metadata.putLong(NativeTerrainReceiptStorage.STRUCTURE_ACTIVATION_KEY, 7);
             writeChunk(world, saved, 2, false);
             SavedTerrainChunk.verifyCheckpoint(world, -1, -2, "minecraft:structure_starts", null, 7);
             assertThrows(IOException.class, () -> SavedTerrainChunk.verifyCheckpoint(
@@ -163,7 +165,7 @@ public final class SavedTerrainChunkTest {
         assertEquals("test-epoch", decoded.epochId());
         assertFalse(decoded.terrain().hasColumn(3, 3));
         CompoundTag bukkitValues = new CompoundTag();
-        bukkitValues.putByteArray(NativeTerrainReceipt.NBT_KEY, receipt);
+        bukkitValues.putByteArray(NativeTerrainReceiptStorage.NBT_KEY, receipt);
         initial.put("ChunkBukkitValues", bukkitValues);
         initial.remove("sections");
         writeChunk(world, initial, 2, false);

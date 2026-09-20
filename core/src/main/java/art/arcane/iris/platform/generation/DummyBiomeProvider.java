@@ -1,7 +1,7 @@
 package art.arcane.iris.platform.generation;
 
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.WorldInfo;
@@ -14,9 +14,9 @@ public class DummyBiomeProvider extends BiomeProvider {
     private final List<Biome> ALL = resolveAll();
 
     private static List<Biome> resolveAll() {
-        List<PlatformBiome> platformBiomes = IrisPlatforms.get().biomeWriter().allBiomes();
+        List<NativeBiome> platformBiomes = IrisPlatforms.get().biomeWriter().allBiomes();
         List<Biome> biomes = new ArrayList<>(platformBiomes.size());
-        for (PlatformBiome biome : platformBiomes) {
+        for (NativeBiome biome : platformBiomes) {
             biomes.add((Biome) biome.nativeHandle());
         }
         return biomes;

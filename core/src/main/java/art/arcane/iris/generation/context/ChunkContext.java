@@ -10,8 +10,8 @@ import art.arcane.iris.generation.biome.FloatingIslandBoundarySampler;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.world.history.FloatingBiomeOverlay;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 
@@ -22,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 public class ChunkContext {
     private boolean naturalTerrain = true;
     private boolean speculativeTerrain;
-    private Hunk<PlatformBiome> terrainBiomes;
+    private Hunk<NativeBiome> terrainBiomes;
     private FloatingBiomeOverlay floatingBiomes;
     private final int x;
     private final int z;
@@ -32,8 +32,8 @@ public class ChunkContext {
     private final int[] roundedHeight;
     private final ChunkedDataCache<IrisBiome> biome;
     private final ChunkedDataCache<IrisBiome> cave;
-    private final ChunkedDataCache<PlatformBlockState> rock;
-    private final ChunkedDataCache<PlatformBlockState> fluid;
+    private final ChunkedDataCache<NativeBlockState> rock;
+    private final ChunkedDataCache<NativeBlockState> fluid;
     private final ChunkedDataCache<IrisRegion> region;
     private final FloatingIslandBoundarySampler floatingIslandBoundarySampler;
     private final DimensionStackContext dimensionStackContext;
@@ -139,7 +139,7 @@ public class ChunkContext {
         return !MultiBurst.burst.ownsCurrentThread();
     }
 
-    public void setTerrainBiomeOutput(Hunk<PlatformBiome> terrainBiomes) {
+    public void setTerrainBiomeOutput(Hunk<NativeBiome> terrainBiomes) {
         this.terrainBiomes = terrainBiomes;
     }
 
@@ -158,7 +158,7 @@ public class ChunkContext {
         return floatingBiomes;
     }
 
-    public void setNaturalBiome(int localX, int y, int localZ, PlatformBiome biome) {
+    public void setNaturalBiome(int localX, int y, int localZ, NativeBiome biome) {
         if (terrainBiomes != null) {
             terrainBiomes.setRaw(localX, y, localZ, biome);
         }
@@ -227,11 +227,11 @@ public class ChunkContext {
         return cave;
     }
 
-    public ChunkedDataCache<PlatformBlockState> getRock() {
+    public ChunkedDataCache<NativeBlockState> getRock() {
         return rock;
     }
 
-    public ChunkedDataCache<PlatformBlockState> getFluid() {
+    public ChunkedDataCache<NativeBlockState> getFluid() {
         return fluid;
     }
 

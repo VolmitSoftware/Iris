@@ -18,7 +18,7 @@
 
 package art.arcane.iris.platform.bukkit;
 
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.bukkit.NamespacedKey;
@@ -27,7 +27,7 @@ import org.bukkit.block.Biome;
 /**
  * Interned Bukkit adapter for a neutral biome handle.
  */
-public final class BukkitBiome implements PlatformBiome {
+public final class BukkitBiome implements NativeBiome {
     private static final Cache<Biome, BukkitBiome> CACHE = Caffeine.newBuilder()
             .weakKeys()
             .maximumSize(4_096)

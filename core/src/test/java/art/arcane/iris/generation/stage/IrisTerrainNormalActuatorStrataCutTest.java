@@ -16,7 +16,7 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -45,7 +45,7 @@ public class IrisTerrainNormalActuatorStrataCutTest {
     public void exposedBankCutDeeperThanThePaletteShowsTheDeepestAuthoredLayer() {
         Fixture fixture = new Fixture();
 
-        Hunk<PlatformBlockState> output = fixture.actuate();
+        Hunk<NativeBlockState> output = fixture.actuate();
 
         assertBlock(fixture.dirt, output.get(0, 40, 0));
         assertBlock(fixture.dirt, output.get(0, 39, 0));
@@ -55,7 +55,7 @@ public class IrisTerrainNormalActuatorStrataCutTest {
     public void exposedBankBelowTheAuthoredSoilStillFallsThroughToRock() {
         Fixture fixture = new Fixture();
 
-        Hunk<PlatformBlockState> output = fixture.actuate();
+        Hunk<NativeBlockState> output = fixture.actuate();
 
         assertBlock(fixture.rock, output.get(0, 38, 0));
     }
@@ -64,7 +64,7 @@ public class IrisTerrainNormalActuatorStrataCutTest {
     public void uncutColumnsKeepTheirExactPaletteDepths() {
         Fixture fixture = new Fixture();
 
-        Hunk<PlatformBlockState> output = fixture.actuate();
+        Hunk<NativeBlockState> output = fixture.actuate();
 
         assertBlock(fixture.grass, output.get(0, 60, 0));
         assertBlock(fixture.dirt, output.get(0, 59, 0));
@@ -98,7 +98,7 @@ public class IrisTerrainNormalActuatorStrataCutTest {
         }
     }
 
-    private static void assertBlock(PlatformBlockState expected, PlatformBlockState actual) {
+    private static void assertBlock(NativeBlockState expected, NativeBlockState actual) {
         assertEquals(expected.key(), actual == null ? null : actual.key());
         assertSame(expected, actual);
     }
@@ -108,9 +108,9 @@ public class IrisTerrainNormalActuatorStrataCutTest {
      * erosion, over a two block soil palette.
      */
     private static final class Fixture {
-        private final PlatformBlockState rock = mock(PlatformBlockState.class);
-        private final PlatformBlockState grass = mock(PlatformBlockState.class);
-        private final PlatformBlockState dirt = mock(PlatformBlockState.class);
+        private final NativeBlockState rock = mock(NativeBlockState.class);
+        private final NativeBlockState grass = mock(NativeBlockState.class);
+        private final NativeBlockState dirt = mock(NativeBlockState.class);
         private final Engine engine = mock(Engine.class);
         private final ChunkContext context = mock(ChunkContext.class);
 
@@ -161,8 +161,8 @@ public class IrisTerrainNormalActuatorStrataCutTest {
                     anyInt(), anyInt(), eq(data), eq(complex))).thenReturn(new KList<>());
         }
 
-        private Hunk<PlatformBlockState> actuate() {
-            Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 64, 1);
+        private Hunk<NativeBlockState> actuate() {
+            Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 64, 1);
             new IrisTerrainNormalActuator(engine).terrainSliver(11, -4, 0, output, context);
             return output;
         }

@@ -1,6 +1,6 @@
 package art.arcane.iris.studio.wand;
 
-import art.arcane.iris.platform.bukkit.registry.RegistryUtil;
+import art.arcane.iris.platform.registry.RegistryUtil;
 import art.arcane.volmlib.util.data.Cuboid;
 import art.arcane.volmlib.util.math.M;
 import org.bukkit.Location;

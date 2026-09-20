@@ -9,7 +9,7 @@ import art.arcane.iris.world.lifecycle.WorldReplacementBootstrap;
 import art.arcane.iris.world.lifecycle.WorldReplacementBootstrapMarker;
 import art.arcane.iris.pack.DefaultPackBootstrapProvisioner;
 import art.arcane.iris.pack.DefaultPackBootstrapProvisioner.BootstrapRequest;
-import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
+import art.arcane.iris.pack.datapack.DataVersion;
 import io.papermc.paper.ServerBuildInfo;
 import art.arcane.iris.pack.DefaultPackBootstrapProvisioner.ProvisionResult;
 import art.arcane.iris.platform.bootstrap.SlimJar;
@@ -46,6 +46,7 @@ public final class IrisBootstrap implements PluginBootstrap {
     private static void loadRuntimeLibraries(BootstrapContext context) {
         SlimJar.loadBootstrap(
                 context.getDataDirectory().resolve("cache").resolve("libraries"),
+                ServerBuildInfo.buildInfo().minecraftVersionId(),
                 new SlimJar.BootstrapLogger() {
                     @Override
                     public void info(String message) {

@@ -30,10 +30,14 @@ import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.modded.ModdedBlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldInspection;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEditPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEditWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedScheduler;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.volmlib.util.localization.TextKey;
@@ -43,31 +47,9 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
-import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.RandomizableContainer;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,13 +59,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 public final class ModdedWhatCommands {
-    private static final Predicate<CommandSourceStack> GATE =
-            Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
-    private static final SuggestionProvider<CommandSourceStack> MARKER_TYPES =
-            (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) ->
-                    SharedSuggestionProvider.suggest(
+    private static final Predicate<NativeCommandSource> GATE =
+            NativeCommandRegistration.GAMEMASTERS;
+    private static final SuggestionProvider<NativeCommandSource> MARKER_TYPES =
+            (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) ->
+                    NativeCommandRegistration.suggest(
                             List.of("cave_floor", "cave_ceiling", "object"), builder);
-    private static final DustParticleOptions MARKER_DUST = new DustParticleOptions(0x5A8CFF, 1.2F);
+    private static final NativeEditPlayer.Dust MARKER_DUST = new NativeEditPlayer.Dust(0x5A8CFF, 1.2F);
+    private static final NativeEditPlayer.ParticleSpread MARKER_SPREAD = new NativeEditPlayer.ParticleSpread(3, 0.2D, 0.2D, 0.2D, 0.0D);
     private static final int MAX_MARKERS = 8_192;
     private static final int MARKER_BATCH_SIZE = 128;
     private static final ConcurrentHashMap<UUID, MarkerRun> ACTIVE_MARKER_RUNS = new ConcurrentHashMap<>();
@@ -91,29 +74,29 @@ public final class ModdedWhatCommands {
     private ModdedWhatCommands() {
     }
 
-    public static LiteralArgumentBuilder<CommandSourceStack> tree() {
-        return Commands.literal("what").requires(GATE)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) ->
+    public static LiteralArgumentBuilder<NativeCommandSource> tree() {
+        return NativeCommandRegistration.literal("what").requires(GATE)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) ->
                         inspectHere(context.getSource())))
-                .then(Commands.literal("here")
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) ->
+                .then(NativeCommandRegistration.literal("here")
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) ->
                                 inspectHere(context.getSource()))))
-                .then(Commands.literal("biome")
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) ->
+                .then(NativeCommandRegistration.literal("biome")
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) ->
                                 inspectBiome(context.getSource()))))
-                .then(Commands.literal("region")
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) ->
+                .then(NativeCommandRegistration.literal("region")
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) ->
                                 inspectRegion(context.getSource()))))
-                .then(Commands.literal("block")
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) ->
+                .then(NativeCommandRegistration.literal("block")
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) ->
                                 inspectBlock(context.getSource()))))
-                .then(Commands.literal("hand")
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) ->
+                .then(NativeCommandRegistration.literal("hand")
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) ->
                                 inspectHand(context.getSource()))))
-                .then(Commands.literal("markers")
-                        .then(Commands.argument("marker", StringArgumentType.greedyString())
+                .then(NativeCommandRegistration.literal("markers")
+                        .then(NativeCommandRegistration.argument("marker", StringArgumentType.greedyString())
                                 .suggests(MARKER_TYPES)
-                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) ->
+                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) ->
                                         inspectMarkers(
                                                 context.getSource(),
                                                 StringArgumentType.getString(context, "marker"))))));
@@ -126,24 +109,24 @@ public final class ModdedWhatCommands {
         ACTIVE_MARKER_RUNS.clear();
     }
 
-    private static int inspectHere(CommandSourceStack source) {
-        ServerPlayer player = source.getPlayer();
+    private static int inspectHere(NativeCommandSource source) {
+        NativeEditPlayer player = source.editingPlayer();
         if (player == null) {
             return playerRequired(source, ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_2);
         }
-        ServerLevel level = source.getLevel();
+        NativeWorld level = source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(
                     ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_6));
             return 0;
         }
-        BlockPos pos = player.blockPosition();
+        NativeBlockPoint pos = player.blockPosition();
         int result = inspectBiome(source);
         result &= inspectRegion(source);
-        int relativeY = pos.getY() - engine.getMinHeight();
+        int relativeY = pos.y() - engine.getMinHeight();
         try {
-            IrisBiome cave = engine.getCaveOrMantleBiome(pos.getX(), relativeY, pos.getZ());
+            IrisBiome cave = engine.getCaveOrMantleBiome(pos.x(), relativeY, pos.z());
             IrisModdedCommands.ok(source, IrisLanguage.plain(
                     ModdedCommandMessages.IRIS_MODDED_COMMANDS_CAVE_BIOME,
                     MessageArgument.untrusted("value", cave == null
@@ -154,23 +137,23 @@ public final class ModdedWhatCommands {
                     ModdedCommandMessages.IRIS_MODDED_COMMANDS_CAVE_BIOME_LOOKUP_FAILED);
             result = 0;
         }
-        int surfaceY = level.getHeight(Heightmap.Types.WORLD_SURFACE, pos.getX(), pos.getZ()) - 1;
-        BlockState surface = level.getBlockState(new BlockPos(pos.getX(), surfaceY, pos.getZ()));
+        int surfaceY = new NativeWorldInspection(level).surfaceY(pos.x(), pos.z());
+        NativeBlockState surface = level.getBlock(pos.x(), surfaceY, pos.z());
         IrisModdedCommands.ok(source, IrisLanguage.plain(
                 ModdedCommandMessages.IRIS_MODDED_COMMANDS_SURFACE_BLOCK_Y,
-                MessageArgument.untrusted("value", BuiltInRegistries.BLOCK.getKey(surface.getBlock())),
+                MessageArgument.untrusted("value", surface.materialKey()),
                 MessageArgument.trusted("value2", surfaceY)));
         sendPosition(source, pos);
         return result;
     }
 
-    private static int inspectBiome(CommandSourceStack source) {
-        ServerPlayer player = source.getPlayer();
+    private static int inspectBiome(NativeCommandSource source) {
+        NativeEditPlayer player = source.editingPlayer();
         if (player == null) {
             return playerRequired(source, ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_2);
         }
-        ServerLevel level = source.getLevel();
-        BlockPos pos = player.blockPosition();
+        NativeWorld level = source.world();
+        NativeBlockPoint pos = player.blockPosition();
         NativeBiome nativeBiome = nativeBiome(level, pos);
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
@@ -182,7 +165,7 @@ public final class ModdedWhatCommands {
         }
         try {
             IrisBiome biome = engine.getBiome(
-                    pos.getX(), pos.getY() - engine.getMinHeight(), pos.getZ());
+                    pos.x(), pos.y() - engine.getMinHeight(), pos.z());
             IrisModdedCommands.ok(source, IrisLanguage.plain(
                     RuntimeUiMessages.WHAT_IRIS_BIOME,
                     MessageArgument.untrusted("biome", biome.getLoadKey()),
@@ -198,7 +181,7 @@ public final class ModdedWhatCommands {
         } catch (SavedBiomeUnavailableException error) {
             if (error.getCause() != null) {
                 ModdedIrisLog.error("Iris saved biome lookup failed in {}",
-                        source.getLevel().dimension().identifier(), error);
+                        source.world().name(), error);
             }
             IrisModdedCommands.fail(source, error.getMessage());
             return 0;
@@ -209,23 +192,23 @@ public final class ModdedWhatCommands {
         }
     }
 
-    private static int inspectRegion(CommandSourceStack source) {
-        ServerPlayer player = source.getPlayer();
+    private static int inspectRegion(NativeCommandSource source) {
+        NativeEditPlayer player = source.editingPlayer();
         if (player == null) {
             return playerRequired(source, ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_2);
         }
-        Engine engine = IrisModdedCommands.engineFor(source.getLevel());
+        Engine engine = IrisModdedCommands.engineFor(source.world());
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(
                     ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_6));
             return 0;
         }
-        BlockPos pos = player.blockPosition();
-        int centerX = (pos.getX() & ~15) + 8;
-        int centerZ = (pos.getZ() & ~15) + 8;
+        NativeBlockPoint pos = player.blockPosition();
+        int centerX = (pos.x() & ~15) + 8;
+        int centerZ = (pos.z() & ~15) + 8;
         try {
             IrisRegion region = engine.getRegion(
-                    centerX, pos.getY() - engine.getMinHeight(), centerZ);
+                    centerX, pos.y() - engine.getMinHeight(), centerZ);
             IrisModdedCommands.ok(source, IrisLanguage.plain(
                     RuntimeUiMessages.WHAT_IRIS_REGION,
                     MessageArgument.untrusted("region", region.getLoadKey()),
@@ -234,7 +217,7 @@ public final class ModdedWhatCommands {
         } catch (SavedBiomeUnavailableException error) {
             if (error.getCause() != null) {
                 ModdedIrisLog.error("Iris saved biome lookup failed in {}",
-                        source.getLevel().dimension().identifier(), error);
+                        source.world().name(), error);
             }
             IrisModdedCommands.fail(source, error.getMessage());
             return 0;
@@ -245,53 +228,51 @@ public final class ModdedWhatCommands {
         }
     }
 
-    private static int inspectHand(CommandSourceStack source) {
-        ServerPlayer player = source.getPlayer();
+    private static int inspectHand(NativeCommandSource source) {
+        NativeEditPlayer player = source.editingPlayer();
         if (player == null) {
             return playerRequired(source, ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_IT_INSPECTS);
         }
-        ItemStack stack = player.getMainHandItem();
-        if (stack.isEmpty()) {
+        NativeWorldInspection.HeldItem stack = NativeWorldInspection.heldItem(source.player());
+        if (stack == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(
                     ModdedCommandMessages.IRIS_MODDED_COMMANDS_YOUR_MAIN_HAND_IS_EMPTY));
             return 0;
         }
         IrisModdedCommands.ok(source, IrisLanguage.plain(
                 RuntimeUiMessages.WHAT_MATERIAL,
-                MessageArgument.untrusted("material", BuiltInRegistries.ITEM.getKey(stack.getItem()))));
-        if (stack.getItem() instanceof BlockItem blockItem) {
+                MessageArgument.untrusted("material", stack.key())));
+        if (stack.blockState() != null) {
             IrisModdedCommands.ok(source, IrisLanguage.plain(
                     RuntimeUiMessages.WHAT_FULL_STATE,
                     MessageArgument.untrusted(
-                            "state", ModdedBlockState.serialize(blockItem.getBlock().defaultBlockState()))));
+                            "state", stack.blockState())));
         }
         IrisModdedCommands.ok(source, IrisLanguage.plain(
                 RuntimeUiMessages.WHAT_ITEM_COUNT,
-                MessageArgument.trusted("count", stack.getCount())));
+                MessageArgument.trusted("count", stack.count())));
         return 1;
     }
 
-    private static int inspectBlock(CommandSourceStack source) {
-        ServerPlayer player = source.getPlayer();
+    private static int inspectBlock(NativeCommandSource source) {
+        NativeEditPlayer player = source.editingPlayer();
         if (player == null) {
             return playerRequired(source, ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_IT_INSPECTS_2);
         }
-        HitResult hit = player.pick(128.0D, 1.0F, false);
-        if (!(hit instanceof BlockHitResult blockHit) || hit.getType() != HitResult.Type.BLOCK) {
+        NativeBlockPoint pos = player.pickBlock(128.0D);
+        if (pos == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(
                     ModdedCommandMessages.IRIS_MODDED_COMMANDS_LOOK_AT_BLOCK_NOT_SKY));
             return 0;
         }
-        ServerLevel level = source.getLevel();
-        BlockPos pos = blockHit.getBlockPos();
-        BlockState state = level.getBlockState(pos);
-        PlatformBlockState platform = ModdedBlockState.of(state, null);
+        NativeWorld level = source.world();
+        NativeBlockState platform = level.getBlock(pos.x(), pos.y(), pos.z());
         IrisModdedCommands.ok(source, IrisLanguage.plain(
                 RuntimeUiMessages.WHAT_MATERIAL,
-                MessageArgument.untrusted("material", BuiltInRegistries.BLOCK.getKey(state.getBlock()))));
+                MessageArgument.untrusted("material", platform.materialKey())));
         IrisModdedCommands.ok(source, IrisLanguage.plain(
                 RuntimeUiMessages.WHAT_FULL_STATE,
-                MessageArgument.untrusted("state", ModdedBlockState.serialize(state))));
+                MessageArgument.untrusted("state", platform.key())));
         sendPosition(source, pos);
         sendProperties(source, platform);
         sendObject(source, level, pos);
@@ -299,17 +280,17 @@ public final class ModdedWhatCommands {
         return 1;
     }
 
-    private static void sendPosition(CommandSourceStack source, BlockPos pos) {
+    private static void sendPosition(NativeCommandSource source, NativeBlockPoint pos) {
         IrisModdedCommands.ok(source, IrisLanguage.plain(
                 RuntimeUiMessages.WHAT_POSITION,
-                MessageArgument.trusted("x", pos.getX()),
-                MessageArgument.trusted("y", pos.getY()),
-                MessageArgument.trusted("z", pos.getZ()),
-                MessageArgument.trusted("chunkX", pos.getX() >> 4),
-                MessageArgument.trusted("chunkZ", pos.getZ() >> 4)));
+                MessageArgument.trusted("x", pos.x()),
+                MessageArgument.trusted("y", pos.y()),
+                MessageArgument.trusted("z", pos.z()),
+                MessageArgument.trusted("chunkX", pos.x() >> 4),
+                MessageArgument.trusted("chunkZ", pos.z() >> 4)));
     }
 
-    private static void sendProperties(CommandSourceStack source, PlatformBlockState platform) {
+    private static void sendProperties(NativeCommandSource source, NativeBlockState platform) {
         List<String> flags = propertyNames(platform);
         if (flags.isEmpty()) {
             IrisModdedCommands.ok(source, IrisLanguage.plain(IrisMessages.MODDED_PROPERTIES_NONE));
@@ -320,7 +301,7 @@ public final class ModdedWhatCommands {
                 MessageArgument.untrusted("properties", String.join(", ", flags))));
     }
 
-    static List<String> propertyNames(PlatformBlockState platform) {
+    static List<String> propertyNames(NativeBlockState platform) {
         List<String> flags = new ArrayList<>();
         addFlag(flags, platform.isSolid(), RuntimeUiMessages.WHAT_FLAG_SOLID);
         addFlag(flags, platform.isFluid(), RuntimeUiMessages.WHAT_FLAG_FLUID);
@@ -343,14 +324,14 @@ public final class ModdedWhatCommands {
         }
     }
 
-    private static void sendObject(CommandSourceStack source, ServerLevel level, BlockPos pos) {
+    private static void sendObject(NativeCommandSource source, NativeWorld level, NativeBlockPoint pos) {
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
             return;
         }
         try {
             String object = engine.getObjectPlacementKey(
-                    pos.getX(), pos.getY() - engine.getMinHeight(), pos.getZ());
+                    pos.x(), pos.y() - engine.getMinHeight(), pos.z());
             if (object != null) {
                 IrisModdedCommands.ok(source, IrisLanguage.plain(
                         RuntimeUiMessages.WHAT_OBJECT,
@@ -358,47 +339,34 @@ public final class ModdedWhatCommands {
             }
         } catch (Throwable error) {
             ModdedIrisLog.error("Iris object lookup failed for /iris what block at {}, {}, {}",
-                    pos.getX(), pos.getY(), pos.getZ(), error);
+                    pos.x(), pos.y(), pos.z(), error);
         }
     }
 
-    private static void sendBlockEntity(CommandSourceStack source,
-                                        ServerLevel level, BlockPos pos) {
-        BlockEntity blockEntity = level.getBlockEntity(pos);
-        if (blockEntity == null) {
+    private static void sendBlockEntity(NativeCommandSource source,
+                                        NativeWorld level, NativeBlockPoint pos) {
+        NativeWorldInspection.BlockEntityDetails details = new NativeWorldInspection(level).blockEntity(pos);
+        if (details == null) {
             return;
         }
         IrisModdedCommands.ok(source, IrisLanguage.plain(
-                RuntimeUiMessages.WHAT_BLOCK_ENTITY,
-                MessageArgument.untrusted(
-                        "type", BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntity.getType()))));
-        if (blockEntity instanceof RandomizableContainer container) {
-            ResourceKey<LootTable> lootTable = container.getLootTable();
-            if (lootTable != null) {
-                IrisModdedCommands.ok(source, IrisLanguage.plain(
-                        RuntimeUiMessages.WHAT_LOOT_TABLE,
-                        MessageArgument.untrusted("loot", lootTable.identifier())));
-            }
+                RuntimeUiMessages.WHAT_BLOCK_ENTITY, MessageArgument.untrusted("type", details.type())));
+        if (details.lootTable() != null) {
+            IrisModdedCommands.ok(source, IrisLanguage.plain(
+                    RuntimeUiMessages.WHAT_LOOT_TABLE, MessageArgument.untrusted("loot", details.lootTable())));
         }
-        if (blockEntity instanceof SpawnerBlockEntity) {
-            CompoundTag tag = blockEntity.saveWithoutMetadata(level.registryAccess());
-            CompoundTag spawnData = tag.getCompound("SpawnData").orElse(null);
-            CompoundTag entity = spawnData == null ? null : spawnData.getCompound("entity").orElse(null);
-            String entityId = entity == null ? "" : entity.getStringOr("id", "");
-            if (!entityId.isBlank()) {
-                IrisModdedCommands.ok(source, IrisLanguage.plain(
-                        RuntimeUiMessages.WHAT_SPAWNER_ENTITY,
-                        MessageArgument.untrusted("entity", entityId)));
-            }
+        if (details.spawnedEntity() != null) {
+            IrisModdedCommands.ok(source, IrisLanguage.plain(
+                    RuntimeUiMessages.WHAT_SPAWNER_ENTITY, MessageArgument.untrusted("entity", details.spawnedEntity())));
         }
     }
 
-    private static int inspectMarkers(CommandSourceStack source, String markerRaw) {
-        ServerPlayer player = source.getPlayer();
+    private static int inspectMarkers(NativeCommandSource source, String markerRaw) {
+        NativeEditPlayer player = source.editingPlayer();
         if (player == null) {
             return playerRequired(source, ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_MARKERS_RENDER);
         }
-        ServerLevel level = source.getLevel();
+        NativeWorld level = source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(
@@ -413,11 +381,11 @@ public final class ModdedWhatCommands {
             return 0;
         }
         String marker = markerRaw.trim();
-        BlockPos origin = player.blockPosition();
+        NativeBlockPoint origin = player.blockPosition();
         MarkerRun run = new MarkerRun(
-                player.getUUID(), player, level, engine, marker,
-                origin.getX() >> 4, origin.getZ() >> 4, new AtomicBoolean());
-        MarkerRun previous = ACTIVE_MARKER_RUNS.put(player.getUUID(), run);
+                player.id(), player, level, engine, marker,
+                origin.x() >> 4, origin.z() >> 4, new AtomicBoolean());
+        MarkerRun previous = ACTIVE_MARKER_RUNS.put(player.id(), run);
         if (previous != null) {
             previous.cancelled().set(true);
         }
@@ -428,9 +396,9 @@ public final class ModdedWhatCommands {
         return 1;
     }
 
-    private static void scanMarkers(CommandSourceStack source,
+    private static void scanMarkers(NativeCommandSource source,
                                     ModdedScheduler scheduler, MarkerRun run) {
-        List<BlockPos> hits = new ArrayList<>();
+        List<NativeBlockPoint> hits = new ArrayList<>();
         MatterMarker marker = new MatterMarker(run.marker());
         try (GenerationSessionLease lease = run.engine().acquireGenerationLease("modded_what_markers");
              IrisContext.Scope ignored = IrisContext.open(run.engine(), lease.sessionId(), null)) {
@@ -440,7 +408,7 @@ public final class ModdedWhatCommands {
                         return;
                     }
                     for (IrisPosition position : run.engine().getMantle().findMarkers(chunkX, chunkZ, marker)) {
-                        hits.add(new BlockPos(position.getX(), position.getY(), position.getZ()));
+                        hits.add(new NativeBlockPoint(position.getX(), position.getY(), position.getZ()));
                         if (hits.size() >= MAX_MARKERS) {
                             break;
                         }
@@ -461,9 +429,9 @@ public final class ModdedWhatCommands {
         }
     }
 
-    private static void renderMarkerBatch(CommandSourceStack source,
+    private static void renderMarkerBatch(NativeCommandSource source,
                                           ModdedScheduler scheduler, MarkerRun run,
-                                          List<BlockPos> hits, int from) {
+                                          List<NativeBlockPoint> hits, int from) {
         if (!active(run)) {
             // Drop the registry entry on abort too, or the run record pins the player, level
             // and engine until server stop. No-op if a newer run already replaced it.
@@ -472,10 +440,8 @@ public final class ModdedWhatCommands {
         }
         int to = Math.min(hits.size(), from + MARKER_BATCH_SIZE);
         for (int index = from; index < to; index++) {
-            BlockPos hit = hits.get(index);
-            run.level().sendParticles(run.player(), MARKER_DUST, true, true,
-                    hit.getX() + 0.5D, hit.getY() + 1.0D, hit.getZ() + 0.5D,
-                    3, 0.2D, 0.2D, 0.2D, 0.0D);
+            NativeBlockPoint hit = hits.get(index);
+            run.player().dust(MARKER_DUST, hit.x() + 0.5D, hit.y() + 1.0D, hit.z() + 0.5D, MARKER_SPREAD);
         }
         if (to < hits.size()) {
             scheduler.laterGlobal(() -> renderMarkerBatch(source, scheduler, run, hits, to), 1);
@@ -491,14 +457,12 @@ public final class ModdedWhatCommands {
     private static boolean active(MarkerRun run) {
         return !run.cancelled().get()
                 && ACTIVE_MARKER_RUNS.get(run.playerId()) == run
-                && !run.player().hasDisconnected()
-                && !run.player().isRemoved()
-                && run.player().level() == run.level()
+                && run.player().activeIn(new NativeEditWorld(run.level()))
                 && !run.engine().isClosing()
                 && !run.engine().isClosed();
     }
 
-    private static void markerFailure(CommandSourceStack source,
+    private static void markerFailure(NativeCommandSource source,
                                       ModdedScheduler scheduler, MarkerRun run, Throwable error) {
         ModdedIrisLog.error("Iris marker scan failed for {}", run.marker(), error);
         scheduler.global(() -> {
@@ -510,26 +474,23 @@ public final class ModdedWhatCommands {
         });
     }
 
-    private static NativeBiome nativeBiome(ServerLevel level, BlockPos pos) {
-        Holder<Biome> holder = level.getBiome(pos);
-        String key = holder.unwrapKey()
-                .map((ResourceKey<Biome> resourceKey) -> resourceKey.identifier().toString())
-                .orElse(IrisLanguage.plain(RuntimeUiMessages.STATUS_UNREGISTERED));
-        Registry<Biome> registry = level.registryAccess().lookupOrThrow(Registries.BIOME);
-        return new NativeBiome(key, registry.getId(holder.value()));
+    private static NativeBiome nativeBiome(NativeWorld level, NativeBlockPoint pos) {
+        NativeEditWorld.BiomeIdentity identity = new NativeEditWorld(level).biome(pos);
+        String key = identity.key() == null ? IrisLanguage.plain(RuntimeUiMessages.STATUS_UNREGISTERED) : identity.key();
+        return new NativeBiome(key, identity.id());
     }
 
-    private static int playerRequired(CommandSourceStack source,
+    private static int playerRequired(NativeCommandSource source,
                                       TextKey message) {
         IrisModdedCommands.fail(source, IrisLanguage.plain(message));
         return 0;
     }
 
-    private static void logLookupFailure(CommandSourceStack source,
+    private static void logLookupFailure(NativeCommandSource source,
                                          String operation, Throwable error,
                                          TextKey message) {
         ModdedIrisLog.error("Iris /what {} lookup failed in {}", operation,
-                source.getLevel().dimension().identifier(), error);
+                source.world().name(), error);
         IrisModdedCommands.fail(source, IrisLanguage.plain(
                 message,
                 MessageArgument.untrusted("value", error.getClass().getSimpleName())));
@@ -540,8 +501,8 @@ public final class ModdedWhatCommands {
 
     private record MarkerRun(
             UUID playerId,
-            ServerPlayer player,
-            ServerLevel level,
+            NativeEditPlayer player,
+            NativeWorld level,
             Engine engine,
             String marker,
             int chunkX,

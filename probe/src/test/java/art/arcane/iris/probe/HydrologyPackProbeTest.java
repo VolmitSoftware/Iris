@@ -19,8 +19,8 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.world.history.GenerationRegistryContractFactory;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import org.junit.Rule;
 import org.junit.Test;
@@ -182,10 +182,10 @@ public final class HydrologyPackProbeTest {
     @Test
     public void generatedChunkMapsNegativeWorldCoordinatesToLocalBuffers() {
         StubPlatform platform = new StubPlatform(new File("/tmp/iris-hydrology-pack-probe-test"));
-        PlatformBlockState water = StubPlatform.blockStateForTest("minecraft:water[level=8]");
-        PlatformBiome biome = platform.registries().biome("minecraft:river");
-        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, 2, 16);
-        Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(16, 2, 16);
+        NativeBlockState water = StubPlatform.blockStateForTest("minecraft:water[level=8]");
+        NativeBiome biome = platform.registries().biome("minecraft:river");
+        Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(16, 2, 16);
+        Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, 2, 16);
         blocks.set(15, 1, 15, water);
         biomes.set(15, 1, 15, biome);
         RealPackProbeSupport.GeneratedChunk chunk = new RealPackProbeSupport.GeneratedChunk(
@@ -199,12 +199,12 @@ public final class HydrologyPackProbeTest {
 
     @Test
     public void generatedSurfaceFluidAcceptsOnlyWaterBearingDecorantsForWaterProfiles() {
-        PlatformBlockState water = StubPlatform.blockStateForTest("minecraft:water[level=0]");
-        PlatformBlockState lava = StubPlatform.blockStateForTest("minecraft:lava[level=0]");
-        PlatformBlockState kelp = StubPlatform.blockStateForTest("minecraft:kelp_plant");
-        PlatformBlockState coral = StubPlatform.blockStateForTest(
+        NativeBlockState water = StubPlatform.blockStateForTest("minecraft:water[level=0]");
+        NativeBlockState lava = StubPlatform.blockStateForTest("minecraft:lava[level=0]");
+        NativeBlockState kelp = StubPlatform.blockStateForTest("minecraft:kelp_plant");
+        NativeBlockState coral = StubPlatform.blockStateForTest(
                 "minecraft:brain_coral_fan[waterlogged=true]");
-        PlatformBlockState stone = StubPlatform.blockStateForTest("minecraft:stone");
+        NativeBlockState stone = StubPlatform.blockStateForTest("minecraft:stone");
 
         assertTrue(HydrologyPackProbe.matchesConfiguredFluid(water, water, false));
         assertTrue(HydrologyPackProbe.matchesConfiguredFluid(kelp, water, true));

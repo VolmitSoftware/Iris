@@ -24,7 +24,7 @@ import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 public class IrisShoreLineDecorator extends IrisEngineDecorator {
     private final RNG partRNG;
@@ -37,7 +37,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
     @BlockCoordinates
     @Override
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1,
-                         Hunk<PlatformBlockState> data, IrisBiome biome, int height, int max) {
+                         Hunk<NativeBlockState> data, IrisBiome biome, int height, int max) {
         double localFluidHeight = getEngine().getMantle().getFluidHeight(realX, realZ);
         if (height != Math.round(localFluidHeight)) {
             return;
@@ -59,7 +59,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
             int z,
             int realX,
             int realZ,
-            Hunk<PlatformBlockState> data,
+            Hunk<NativeBlockState> data,
             IrisBiome biome,
             int height,
             int max
@@ -72,7 +72,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
             int z,
             int realX,
             int realZ,
-            Hunk<PlatformBlockState> data,
+            Hunk<NativeBlockState> data,
             IrisBiome biome,
             int height,
             int max
@@ -89,7 +89,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
             return;
         }
 
-        PlatformBlockState support = data.get(x, height, z);
+        NativeBlockState support = data.get(x, height, z);
         if (support == null || !support.isSolid()) {
             return;
         }
@@ -102,7 +102,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
                     || !DecoratorCore.canReplaceStackTarget(data.get(x, targetY, z), false)) {
                 return;
             }
-            PlatformBlockState block = decorator.getBlockData100(biome, rng, realX, height, realZ, getData());
+            NativeBlockState block = decorator.getBlockData100(biome, rng, realX, height, realZ, getData());
             if (block != null && DecoratorCore.isValidShorelineSupport(decorator, block, support)
                     && IrisSugarCane.canPlace(block, data, x, targetY, z, realX, realZ, getEngine())) {
                 data.set(x, targetY, z, block);
@@ -124,7 +124,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
                 return;
             }
 
-            PlatformBlockState block = decorator.getBlockDataForTop(biome, rng, realX, height, realZ, getData());
+            NativeBlockState block = decorator.getBlockDataForTop(biome, rng, realX, height, realZ, getData());
             if (block != null && DecoratorCore.isValidShorelineSupport(decorator, block, support)
                     && IrisSugarCane.canPlace(block, data, x, targetY, z, realX, realZ, getEngine())) {
                 data.set(x, targetY, z, block);
@@ -141,7 +141,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
                 break;
             }
             double threshold = ((double) i) / (stack - 1);
-            PlatformBlockState block = threshold >= decorator.getTopThreshold()
+            NativeBlockState block = threshold >= decorator.getTopThreshold()
                     ? decorator.getBlockDataForTop(biome, rng, realX, h, realZ, getData())
                     : decorator.getBlockData100(biome, rng, realX, h, realZ, getData());
             if (block == null) {

@@ -24,36 +24,19 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedBlockBuffer;
-import art.arcane.iris.modded.ModdedEngineBootstrap;
-import art.arcane.iris.modded.service.ModdedChunkUpdateService;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.ChunkSpiral;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.math.M;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.SectionPos;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.level.ThreadedLevelLightEngine;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.minecraft.world.level.chunk.status.ChunkStatus;
-import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.phys.AABB;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeChunkRegeneration;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
@@ -69,19 +52,17 @@ public final class ModdedRegen {
     private static final long FINAL_APPLY_TIMEOUT_MILLIS = 300000L;
     private static final AtomicBoolean ACTIVE = new AtomicBoolean(false);
 
-    private final CommandSourceStack source;
-    private final MinecraftServer server;
-    private final ServerLevel level;
+    private final NativeCommandSource source;
+    private final NativeChunkRegeneration regeneration;
     private final IrisModdedChunkGenerator generator;
     private final Engine engine;
     private final int centerX;
     private final int centerZ;
     private final int radius;
 
-    private ModdedRegen(CommandSourceStack source, ServerLevel level, IrisModdedChunkGenerator generator, Engine engine, int centerX, int centerZ, int radius) {
+    private ModdedRegen(NativeCommandSource source, NativeWorld level, IrisModdedChunkGenerator generator, Engine engine, int centerX, int centerZ, int radius) {
         this.source = source;
-        this.server = source.getServer();
-        this.level = level;
+        this.regeneration = new NativeChunkRegeneration(level);
         this.generator = generator;
         this.engine = engine;
         this.centerX = centerX;
@@ -89,18 +70,18 @@ public final class ModdedRegen {
         this.radius = Math.max(0, radius);
     }
 
-    public static void start(CommandSourceStack source, ServerLevel level, IrisModdedChunkGenerator generator, Engine engine, ServerPlayer player, int radius) {
+    public static void start(NativeCommandSource source, NativeWorld level, IrisModdedChunkGenerator generator, Engine engine, NativeProtocolPlayer player, int radius) {
         if (!ACTIVE.compareAndSet(false, true)) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_REGEN_REGEN_IS_ALREADY_RUNNING));
             return;
         }
-        int centerX = player.blockPosition().getX() >> 4;
-        int centerZ = player.blockPosition().getZ() >> 4;
+        int centerX = player.blockX() >> 4;
+        int centerZ = player.blockZ() >> 4;
         ModdedRegen job = new ModdedRegen(source, level, generator, engine, centerX, centerZ, radius);
         int chunks = (job.radius * 2 + 1) * (job.radius * 2 + 1);
         job.ok("Regen started: " + chunks + " chunk(s) around " + centerX + "," + centerZ + ". Deleting and regenerating in place.");
         ModdedIrisLog.info("Iris regen start: dim={} center={},{} radius={} chunks={}",
-                level.dimension().identifier(), centerX, centerZ, job.radius, chunks);
+                level.name(), centerX, centerZ, job.radius, chunks);
         Thread thread = new Thread(job::run, "Iris Regenerate");
         thread.setDaemon(true);
         thread.start();
@@ -146,7 +127,7 @@ public final class ModdedRegen {
         int total = targets.size();
         int stride = total <= 64 ? 1 : 32;
         int height = engine.getMaxHeight() - engine.getMinHeight();
-        PlatformBlockState air = IrisPlatforms.get().registries().air();
+        NativeBlockState air = IrisPlatforms.get().registries().air();
 
         for (int[] target : targets) {
             int chunkX = target[0];
@@ -167,7 +148,7 @@ public final class ModdedRegen {
                     return;
                 }
                 ModdedBlockBuffer blocks = new ModdedBlockBuffer(height, air);
-                Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(16, height, 16);
+                Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, height, 16);
                 try {
                     engine.generate(chunkX << 4, chunkZ << 4, blocks, biomes, false);
                 } catch (Throwable e) {
@@ -178,7 +159,7 @@ public final class ModdedRegen {
                     allApplied.countDown();
                     return;
                 }
-                server.execute(() -> {
+                source.execute(() -> {
                     boolean success = false;
                     try {
                         if (aborted.get()) {
@@ -217,90 +198,18 @@ public final class ModdedRegen {
         return applied.get();
     }
 
-    private void apply(int chunkX, int chunkZ, ModdedBlockBuffer blocks, Hunk<PlatformBiome> biomes) {
-        LevelChunk chunk = level.getChunk(chunkX, chunkZ);
-        ChunkPos pos = chunk.getPos();
-        discardEntities(pos);
-        for (BlockPos blockEntityPos : new ArrayList<>(chunk.getBlockEntities().keySet())) {
-            chunk.removeBlockEntity(blockEntityPos);
-        }
-
-        int dimMinY = engine.getMinHeight();
-        int height = engine.getMaxHeight() - dimMinY;
-        int baseX = pos.getMinBlockX();
-        int baseZ = pos.getMinBlockZ();
-        BlockState airState = Blocks.AIR.defaultBlockState();
-        ThreadedLevelLightEngine lightEngine = (ThreadedLevelLightEngine) level.getChunkSource().getLightEngine();
-        List<BlockPos> lightChecks = new ArrayList<>();
-
-        for (int i = 0; i < chunk.getSectionsCount(); i++) {
-            LevelChunkSection section = chunk.getSection(i);
-            int sectionBaseY = chunk.getSectionYFromSectionIndex(i) << 4;
-            section.acquire();
-            try {
-                for (int y = 0; y < 16; y++) {
-                    int worldY = sectionBaseY + y;
-                    int bufferY = worldY - dimMinY;
-                    boolean inRange = bufferY >= 0 && bufferY < height;
-                    for (int x = 0; x < 16; x++) {
-                        for (int z = 0; z < 16; z++) {
-                            BlockState target = airState;
-                            if (inRange && !blocks.isAir(x, bufferY, z)) {
-                                target = (BlockState) blocks.getRaw(x, bufferY, z).nativeHandle();
-                            }
-                            BlockState previous = section.setBlockState(x, y, z, target, false);
-                            if (previous != target && (previous.getLightEmission() != target.getLightEmission()
-                                    || previous.getLightDampening() != target.getLightDampening()
-                                    || previous.propagatesSkylightDown() != target.propagatesSkylightDown())) {
-                                lightChecks.add(new BlockPos(baseX + x, worldY, baseZ + z));
-                            }
-                            if (target.hasBlockEntity() && target.getBlock() instanceof EntityBlock entityBlock) {
-                                BlockEntity entity = entityBlock.newBlockEntity(new BlockPos(baseX + x, worldY, baseZ + z), target);
-                                if (entity != null) {
-                                    chunk.setBlockEntity(entity);
-                                }
-                            }
-                        }
-                    }
-                }
-            } finally {
-                section.release();
-            }
-            lightEngine.updateSectionStatus(SectionPos.of(pos, chunk.getSectionYFromSectionIndex(i)), section.hasOnlyAir());
-        }
-
-        ModdedChunkUpdateService updateService = ModdedEngineBootstrap.services().service(ModdedChunkUpdateService.class);
-        if (updateService == null) {
-            throw new IllegalStateException("Iris chunk update service is unavailable during regeneration");
-        }
-        updateService.updateRegeneratedChunk(engine, level, chunkX, chunkZ);
-        Heightmap.primeHeightmaps(chunk, ChunkStatus.FULL.heightmapsAfter());
-        chunk.fillBiomesFromNoise(generator.regenBiomeResolver(), level.getChunkSource().randomState().sampler());
-        chunk.markUnsaved();
-
-        for (BlockPos check : lightChecks) {
-            lightEngine.checkBlock(check);
-        }
-
-        for (ServerPlayer tracking : level.getChunkSource().chunkMap.getPlayers(pos, false)) {
-            tracking.connection.chunkSender.dropChunk(tracking, pos);
-            tracking.connection.chunkSender.markChunkPendingToSend(chunk);
-        }
-    }
-
-    private void discardEntities(ChunkPos pos) {
-        AABB box = new AABB(pos.getMinBlockX(), level.getMinY(), pos.getMinBlockZ(),
-                pos.getMaxBlockX() + 1, level.getMaxY() + 1, pos.getMaxBlockZ() + 1);
-        for (Entity entity : level.getEntities((Entity) null, box, (Entity e) -> !(e instanceof ServerPlayer))) {
-            entity.discard();
-        }
+    private void apply(int chunkX, int chunkZ, ModdedBlockBuffer blocks, Hunk<NativeBiome> biomes) {
+        regeneration.apply(new NativeChunkRegeneration.Replacement(chunkX, chunkZ,
+                        engine.getMinHeight(), engine.getMaxHeight() - engine.getMinHeight(),
+                        blocks::rawOrNull, generator.regenBiomeResolver()),
+                () -> generator.updateRegeneratedChunk(chunkX, chunkZ));
     }
 
     private void ok(String message) {
-        server.execute(() -> IrisModdedCommands.ok(source, message));
+        source.execute(() -> IrisModdedCommands.ok(source, message));
     }
 
     private void fail(String message) {
-        server.execute(() -> IrisModdedCommands.fail(source, message));
+        source.execute(() -> IrisModdedCommands.fail(source, message));
     }
 }

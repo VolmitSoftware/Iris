@@ -18,7 +18,7 @@ import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.generation.block.B;
@@ -157,7 +157,7 @@ public class JigsawStudioServiceCaptureTest {
         World world = mock(World.class);
         Block target = mock(Block.class);
         BlockData blockData = mock(BlockData.class);
-        PlatformBlockState state = mock(PlatformBlockState.class);
+        NativeBlockState state = mock(NativeBlockState.class);
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(15, 15, 15);
         JigsawStudioBay workcell = new JigsawStudioBay(
                 "spatial",
@@ -808,10 +808,10 @@ public class JigsawStudioServiceCaptureTest {
                 0,
                 new JigsawStudioCellDimensions(3, 1, 3));
         List<JigsawStudioCapture.ChunkCaptureArea> areas = JigsawStudioCapture.chunkIntersections(bounds);
-        PlatformBlockState sourceState = BukkitBlockState.of(directionalBlockData(BlockFace.NORTH));
+        NativeBlockState sourceState = BukkitBlockState.of(directionalBlockData(BlockFace.NORTH));
         for (int quarterTurns = 1; quarterTurns <= 3; quarterTurns++) {
             IrisObjectRotation displayRotation = IrisObjectRotation.of(0, -90.0D * quarterTurns, 0);
-            PlatformBlockState displayedState = displayRotation.rotate(sourceState, 0, 0, 0);
+            NativeBlockState displayedState = displayRotation.rotate(sourceState, 0, 0, 0);
             IrisDirection displayedDirection = displayRotation.rotate(IrisDirection.NORTH_NEGATIVE_Z);
             JigsawStudioCapture.CapturedConnector connector = new JigsawStudioCapture.CapturedConnector(
                     1,
@@ -861,7 +861,7 @@ public class JigsawStudioServiceCaptureTest {
         IrisJigsawPiece piece = new IrisJigsawPiece().setConnectors(new KList<>());
         piece.getConnectors().add(connector);
         BlockData chestData = directionalBlockData(Material.CHEST, BlockFace.EAST);
-        PlatformBlockState chestState = BukkitBlockState.of(chestData);
+        NativeBlockState chestState = BukkitBlockState.of(chestData);
         IrisObject sourceObject = new IrisObject(1, 1, 1);
         sourceObject.setUnsigned(0, 0, 0, chestState);
         KMap<String, Object> properties = new KMap<>();
@@ -1047,12 +1047,12 @@ public class JigsawStudioServiceCaptureTest {
         IrisJigsawPiece source = new IrisJigsawPiece().setConnectors(new KList<>());
         source.getConnectors().add(sourceFirst);
         source.getConnectors().add(sourceSecond);
-        PlatformBlockState sourceState = BukkitBlockState.of(
+        NativeBlockState sourceState = BukkitBlockState.of(
                 directionalBlockData(Material.OBSERVER, BlockFace.NORTH));
 
         for (int quarterTurns = 1; quarterTurns <= 3; quarterTurns++) {
             IrisObjectRotation displayRotation = IrisObjectRotation.of(0, -90.0D * quarterTurns, 0);
-            PlatformBlockState displayedState = displayRotation.rotate(sourceState, 0, 0, 0);
+            NativeBlockState displayedState = displayRotation.rotate(sourceState, 0, 0, 0);
             JigsawStudioCapture.CapturedConnector displayedFirst = displayedConnector(
                     sourceFirst,
                     bounds.dimensions(),
@@ -1107,7 +1107,7 @@ public class JigsawStudioServiceCaptureTest {
         };
         for (int quarterTurns = 1; quarterTurns <= 3; quarterTurns++) {
             BlockData displayedData = directionalBlockData(Material.CHEST, BlockFace.EAST);
-            PlatformBlockState displayedState = BukkitBlockState.of(displayedData);
+            NativeBlockState displayedState = BukkitBlockState.of(displayedData);
             JigsawStudioCapture.CapturedBlock capturedBlock = new JigsawStudioCapture.CapturedBlock(
                     1,
                     1,
@@ -1140,7 +1140,7 @@ public class JigsawStudioServiceCaptureTest {
         KMap<String, Object> properties = new KMap<>();
         properties.put("CustomName", "QA Chest");
         TileData tileData = new TileData("minecraft:chest", properties);
-        PlatformBlockState state = BukkitBlockState.of(
+        NativeBlockState state = BukkitBlockState.of(
                 directionalBlockData(Material.CHEST, BlockFace.NORTH));
         JigsawStudioGenerator.RenderedBay rendered = JigsawStudioGenerator.RenderedBay.valid(
                 new JigsawStudioCellDimensions(3, 2, 5),
@@ -1173,12 +1173,12 @@ public class JigsawStudioServiceCaptureTest {
         IrisObject source = new IrisObject(2, 2, 2);
         BlockData air = blockData(Material.AIR, "minecraft:air");
         BlockData structureVoid = blockData(Material.STRUCTURE_VOID, "minecraft:structure_void");
-        PlatformBlockState sourceAir = mock(PlatformBlockState.class);
+        NativeBlockState sourceAir = mock(NativeBlockState.class);
         when(sourceAir.isAir()).thenReturn(true);
         when(sourceAir.key()).thenReturn("minecraft:air");
         source.setUnsigned(0, 0, 0, sourceAir);
 
-        PlatformBlockState retained = JigsawStudioCapture.retainedSourceAir(source, 0, 0, 0, air);
+        NativeBlockState retained = JigsawStudioCapture.retainedSourceAir(source, 0, 0, 0, air);
         assertNotNull(retained);
         assertNull(JigsawStudioCapture.retainedSourceAir(source, 1, 0, 0, air));
         assertNull(JigsawStudioCapture.retainedSourceAir(source, 0, 0, 0, structureVoid));
@@ -1191,7 +1191,7 @@ public class JigsawStudioServiceCaptureTest {
     private static void assertAirRoundTrip(IrisObject object) throws Throwable {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         object.write(output);
-        PlatformBlockState restoredAir = mock(PlatformBlockState.class);
+        NativeBlockState restoredAir = mock(NativeBlockState.class);
         when(restoredAir.key()).thenReturn("minecraft:air");
         PlatformRegistries registries = mock(PlatformRegistries.class);
         when(registries.block(anyString())).thenReturn(restoredAir);
@@ -1384,7 +1384,7 @@ public class JigsawStudioServiceCaptureTest {
                 0,
                 new JigsawStudioCellDimensions(20, 2, 1));
         List<JigsawStudioCapture.ChunkCaptureArea> areas = JigsawStudioCapture.chunkIntersections(bounds);
-        PlatformBlockState stone = mock(PlatformBlockState.class);
+        NativeBlockState stone = mock(NativeBlockState.class);
         when(stone.key()).thenReturn("minecraft:stone");
         JigsawStudioCapture.ChunkSnapshot first = new JigsawStudioCapture.ChunkSnapshot(
                 areas.getFirst(),
@@ -1586,7 +1586,7 @@ public class JigsawStudioServiceCaptureTest {
 
     private static IrisObject readCapturedObject(
             byte[] content,
-            PlatformBlockState restoredState
+            NativeBlockState restoredState
     ) throws Throwable {
         PlatformRegistries registries = mock(PlatformRegistries.class);
         when(registries.block(anyString())).thenReturn(restoredState);

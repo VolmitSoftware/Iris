@@ -23,8 +23,8 @@ import art.arcane.iris.localization.RuntimeProgressMessages;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.ChunkSpiral;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.volmlib.util.localization.MessageArgument;
@@ -62,9 +62,9 @@ public final class GoldenHashEngine {
 
         int maxY();
 
-        PlatformBlockState block(int x, int y, int z);
+        NativeBlockState block(int x, int y, int z);
 
-        PlatformBiome biome(int x, int y, int z);
+        NativeBiome biome(int x, int y, int z);
     }
 
     public interface ChunkSource {
@@ -249,15 +249,15 @@ public final class GoldenHashEngine {
         MessageDigest biomeDigest = sha256();
         int minY = snapshot.minY();
         int maxY = snapshot.maxY();
-        IdentityHashMap<PlatformBlockState, byte[]> blockCache = new IdentityHashMap<>();
-        Map<PlatformBiome, byte[]> biomeCache = new HashMap<>();
+        IdentityHashMap<NativeBlockState, byte[]> blockCache = new IdentityHashMap<>();
+        Map<NativeBiome, byte[]> biomeCache = new HashMap<>();
         byte[] nullBiome = (request.nullBiomeKey() + "\n").getBytes(StandardCharsets.UTF_8);
 
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 for (int y = minY; y < maxY; y++) {
-                    PlatformBlockState data = snapshot.block(x, y, z);
-                    byte[] bytes = blockCache.computeIfAbsent(data, (PlatformBlockState d) -> (d.key() + "\n").getBytes(StandardCharsets.UTF_8));
+                    NativeBlockState data = snapshot.block(x, y, z);
+                    byte[] bytes = blockCache.computeIfAbsent(data, (NativeBlockState d) -> (d.key() + "\n").getBytes(StandardCharsets.UTF_8));
                     blockDigest.update(bytes);
                 }
             }
@@ -266,10 +266,10 @@ public final class GoldenHashEngine {
         for (int x = 0; x < 16; x += BIOME_STEP) {
             for (int z = 0; z < 16; z += BIOME_STEP) {
                 for (int y = minY; y < maxY; y += BIOME_STEP) {
-                    PlatformBiome biome = snapshot.biome(x, y, z);
+                    NativeBiome biome = snapshot.biome(x, y, z);
                     byte[] bytes = biome == null
                             ? nullBiome
-                            : biomeCache.computeIfAbsent(biome, (PlatformBiome b) -> (b.key() + "\n").getBytes(StandardCharsets.UTF_8));
+                            : biomeCache.computeIfAbsent(biome, (NativeBiome b) -> (b.key() + "\n").getBytes(StandardCharsets.UTF_8));
                     biomeDigest.update(bytes);
                 }
             }

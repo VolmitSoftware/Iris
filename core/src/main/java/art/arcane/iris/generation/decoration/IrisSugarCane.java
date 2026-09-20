@@ -6,7 +6,7 @@ import art.arcane.iris.world.history.TerrainBoundarySignature;
 import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
 import art.arcane.iris.generation.biome.IrisBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.collection.KList;
@@ -20,7 +20,7 @@ final class IrisSugarCane {
     private IrisSugarCane() {
     }
 
-    static boolean isSugarCane(PlatformBlockState state) {
+    static boolean isSugarCane(NativeBlockState state) {
         if (state == null) {
             return false;
         }
@@ -28,7 +28,7 @@ final class IrisSugarCane {
         return key != null && (key.equals("minecraft:sugar_cane") || key.startsWith("minecraft:sugar_cane["));
     }
 
-    static boolean canPlace(PlatformBlockState block, Hunk<PlatformBlockState> data,
+    static boolean canPlace(NativeBlockState block, Hunk<NativeBlockState> data,
                             int x, int y, int z, int worldX, int worldZ, Engine engine) {
         if (!isSugarCane(block)) {
             return true;
@@ -37,8 +37,8 @@ final class IrisSugarCane {
             return false;
         }
         int baseY = y - 1;
-        PlatformBlockState support = data.get(x, baseY, z);
-        PlatformBlockState target = data.get(x, y, z);
+        NativeBlockState support = data.get(x, baseY, z);
+        NativeBlockState target = data.get(x, y, z);
         if (support == null || !block.canPlaceOnto(support) || target != null && !target.isAir()) {
             return false;
         }
@@ -63,7 +63,7 @@ final class IrisSugarCane {
         return false;
     }
 
-    static boolean supportsAdjacent(PlatformBlockState state) {
+    static boolean supportsAdjacent(NativeBlockState state) {
         if (state == null) {
             return false;
         }
@@ -91,7 +91,7 @@ final class IrisSugarCane {
             return false;
         }
         IrisBiome biome = complex.getTrueBiomeStream().get(x, z);
-        KList<PlatformBlockState> layers = biome.generateSeaLayers(x, z,
+        KList<NativeBlockState> layers = biome.generateSeaLayers(x, z,
                 new RNG(engine.getSeedManager().getTerrain()), fluidHeight - terrainHeight, engine.getData());
         int depth = fluidHeight - y;
         return supportsAdjacent(layers.hasIndex(depth) ? layers.get(depth) : complex.resolveSurfaceFluid(x, z));

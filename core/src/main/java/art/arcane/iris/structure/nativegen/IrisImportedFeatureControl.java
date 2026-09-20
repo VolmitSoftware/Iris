@@ -19,6 +19,7 @@
 package art.arcane.iris.structure.nativegen;
 
 import art.arcane.iris.generation.decoration.IrisDecorationStep;
+import art.arcane.volmlib.nativelib.terrain.feature.NativeImportedFeatureControl;
 
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
@@ -35,7 +36,7 @@ import java.util.Objects;
 @AllArgsConstructor
 @Description("Controls native vanilla, mod, and ingested datapack PLACED FEATURE generation for this dimension (set as the dimension's 'importedFeatures' field). Placed features are ores, trees, plants, springs, geodes and every other decoration entry a biome declares. This is OFF by default: with 'enabled' false Iris generates exactly the terrain it always has and no native feature runs. With it true, every placed feature the biome's vanilla derivative declares runs over Iris terrain, in vanilla step order, on the same worldgen thread vanilla uses. Carvers are never imported - Iris has no NoiseGeneratorSettings, so there is nothing for a carver to carve against. Family matching on 'disabled' uses namespace, slash, or underscore boundaries, so 'minecraft:ore' covers every vanilla ore feature without matching unrelated names.")
 @Data
-public class IrisImportedFeatureControl {
+public class IrisImportedFeatureControl implements NativeImportedFeatureControl {
     @Description("Master switch. False (the default) means no native placed feature generates and chunk output is identical to a pack without this block at all. True runs the vanilla decoration feature pass over Iris terrain.")
     private boolean enabled = false;
 
@@ -105,4 +106,14 @@ public class IrisImportedFeatureControl {
         }
         return NativeFeatureGenerationStatus.GENERATE_NATIVE;
     }
+    @Override
+    public boolean shouldGenerateStepOrdinal(int step) {
+        return shouldGenerateStep(IrisDecorationStep.byOrdinal(step));
+    }
+
+    @Override
+    public boolean hasFeatureFilter() {
+        return disabled != null && !disabled.isEmpty();
+    }
+
 }

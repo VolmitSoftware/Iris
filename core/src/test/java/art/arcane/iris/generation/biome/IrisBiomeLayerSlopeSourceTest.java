@@ -5,7 +5,7 @@ import art.arcane.iris.generation.terrain.IrisSlopeClip;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisComplex;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
@@ -56,7 +56,7 @@ public final class IrisBiomeLayerSlopeSourceTest {
         IrisComplex complex = mock(IrisComplex.class);
         IrisBiomePaletteLayer grass = mock(IrisBiomePaletteLayer.class);
         CNG heightGenerator = mock(CNG.class);
-        PlatformBlockState block = mock(PlatformBlockState.class);
+        NativeBlockState block = mock(NativeBlockState.class);
         RNG rng = new RNG(19L);
         IrisBiome biome = new IrisBiome().setLockLayers(lockLayers).setLayers(new KList<>(grass));
         when(complex.hasTerrain3D()).thenReturn(true);
@@ -70,9 +70,9 @@ public final class IrisBiomeLayerSlopeSourceTest {
         when(heightGenerator.fit(1, 1, 12D, -8D)).thenReturn(1);
         when(grass.get(rng, 0, 12D, 0D, -8D, data)).thenReturn(block);
 
-        KList<PlatformBlockState> ledge = biome.generateLayers(
+        KList<NativeBlockState> ledge = biome.generateLayers(
                 rockFallbackDimension(), 12D, -8D, rng, 1, 32, data, complex);
-        KList<PlatformBlockState> cap = biome.generateLayers(
+        KList<NativeBlockState> cap = biome.generateLayers(
                 rockFallbackDimension(), 12D, -8D, rng, 1, 96, data, complex);
 
         assertEquals(1, ledge.size());
@@ -90,7 +90,7 @@ public final class IrisBiomeLayerSlopeSourceTest {
         ProceduralStream<Double> sourceSlope = mock(ProceduralStream.class);
         IrisBiomePaletteLayer paletteLayer = mock(IrisBiomePaletteLayer.class);
         CNG heightGenerator = mock(CNG.class);
-        PlatformBlockState surfaceBlock = mock(PlatformBlockState.class);
+        NativeBlockState surfaceBlock = mock(NativeBlockState.class);
         RNG rng = new RNG(19L);
 
         IrisBiome biome = new IrisBiome();
@@ -110,9 +110,9 @@ public final class IrisBiomeLayerSlopeSourceTest {
         when(heightGenerator.fit(1, 1, 12D, -8D)).thenReturn(1);
         when(paletteLayer.get(rng, 0, 12D, 0D, -8D, data)).thenReturn(surfaceBlock);
 
-        KList<PlatformBlockState> hostLayers = biome.generateLayers(
+        KList<NativeBlockState> hostLayers = biome.generateLayers(
                 rockFallbackDimension(), 12D, -8D, rng, 1, 32, data, hostComplex);
-        KList<PlatformBlockState> sourceLayers = biome.generateLayersWithSlope(
+        KList<NativeBlockState> sourceLayers = biome.generateLayersWithSlope(
                 rockFallbackDimension(), 12D, -8D, rng, 1, 32, data, sourceSlope);
 
         assertTrue(hostLayers.isEmpty());

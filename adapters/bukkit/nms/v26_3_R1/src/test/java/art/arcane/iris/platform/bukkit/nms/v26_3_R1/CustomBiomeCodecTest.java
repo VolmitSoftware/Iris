@@ -3,7 +3,7 @@ package art.arcane.iris.platform.bukkit.nms.v26_3_R1;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
 import art.arcane.iris.generation.biome.IrisBiomeCustomSpawn;
 import art.arcane.iris.generation.biome.IrisBiomeCustomSpawnType;
-import art.arcane.iris.platform.bukkit.nms.datapack.v263.DataFixerV263;
+import art.arcane.iris.pack.datapack.v263.DataFixerV263;
 import art.arcane.volmlib.util.collection.KList;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;

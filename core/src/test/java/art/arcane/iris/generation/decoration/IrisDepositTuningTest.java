@@ -5,7 +5,7 @@ import art.arcane.iris.generation.block.IrisBlockData;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.util.documentation.Description;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
@@ -70,15 +70,15 @@ public class IrisDepositTuningTest {
         IrisDepositGenerator generator = new IrisDepositGenerator();
 
         assertTrue(generator.getSurfaceReplaceableBlocks().isEmpty());
-        assertTrue(generator.canReplaceSurface(mock(PlatformBlockState.class)));
+        assertTrue(generator.canReplaceSurface(mock(NativeBlockState.class)));
     }
 
     @Test
     public void surfaceHostFilterAllowsOnlyConfiguredMaterials() {
         IrisDepositGenerator generator = new IrisDepositGenerator();
         generator.setSurfaceReplaceableBlocks(new KList<String>().qadd("minecraft:stone"));
-        PlatformBlockState stone = mock(PlatformBlockState.class);
-        PlatformBlockState dirt = mock(PlatformBlockState.class);
+        NativeBlockState stone = mock(NativeBlockState.class);
+        NativeBlockState dirt = mock(NativeBlockState.class);
         when(stone.key()).thenReturn("minecraft:stone");
         when(dirt.key()).thenReturn("minecraft:dirt");
 
@@ -105,8 +105,8 @@ public class IrisDepositTuningTest {
                 new KList<String>().qadd("minecraft:stone").qadd("minecraft:sand"));
         IrisBiome disabled = new IrisBiome();
         disabled.setSurfaceOreReplaceableBlocks(new KList<>());
-        PlatformBlockState stone = mock(PlatformBlockState.class);
-        PlatformBlockState sand = mock(PlatformBlockState.class);
+        NativeBlockState stone = mock(NativeBlockState.class);
+        NativeBlockState sand = mock(NativeBlockState.class);
         when(stone.key()).thenReturn("minecraft:stone");
         when(sand.key()).thenReturn("minecraft:sand");
 
@@ -139,8 +139,8 @@ public class IrisDepositTuningTest {
     @Test
     public void biomeSurfaceHostPolicySetterInvalidatesResolvedHosts() {
         IrisBiome biome = new IrisBiome();
-        PlatformBlockState stone = mock(PlatformBlockState.class);
-        PlatformBlockState sand = mock(PlatformBlockState.class);
+        NativeBlockState stone = mock(NativeBlockState.class);
+        NativeBlockState sand = mock(NativeBlockState.class);
         when(stone.key()).thenReturn("minecraft:stone");
         when(sand.key()).thenReturn("minecraft:sand");
 
@@ -273,7 +273,7 @@ public class IrisDepositTuningTest {
 
     private IrisDepositGenerator generatorWithState(IrisData data, boolean ore, String key) {
         IrisBlockData block = mock(IrisBlockData.class);
-        PlatformBlockState state = mock(PlatformBlockState.class);
+        NativeBlockState state = mock(NativeBlockState.class);
         when(block.getBlockData(data)).thenReturn(state);
         when(state.isOre()).thenReturn(ore);
         when(state.key()).thenReturn(key);

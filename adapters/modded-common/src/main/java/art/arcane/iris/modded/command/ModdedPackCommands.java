@@ -30,9 +30,8 @@ import art.arcane.iris.modded.ModdedEngineBootstrap;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.server.MinecraftServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -44,64 +43,64 @@ import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 public final class ModdedPackCommands {
-    private static final Predicate<CommandSourceStack> GATE = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
+    private static final Predicate<NativeCommandSource> GATE = NativeCommandRegistration.GAMEMASTERS;
 
     private ModdedPackCommands() {
     }
 
-    public static LiteralArgumentBuilder<CommandSourceStack> tree(String name) {
-        LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal(name).requires(GATE);
+    public static LiteralArgumentBuilder<NativeCommandSource> tree(String name) {
+        LiteralArgumentBuilder<NativeCommandSource> root = NativeCommandRegistration.literal(name).requires(GATE);
 
-        root.executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> ModdedCommandHelp.send(context.getSource(), name)));
+        root.executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> ModdedCommandHelp.send(context.getSource(), name)));
 
-        root.then(Commands.literal("validate")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> validate(context.getSource(), null)))
-                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> validate(context.getSource(), StringArgumentType.getString(context, "pack"))))));
-        root.then(Commands.literal("v")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> validate(context.getSource(), null)))
-                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> validate(context.getSource(), StringArgumentType.getString(context, "pack"))))));
+        root.then(NativeCommandRegistration.literal("validate")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> validate(context.getSource(), null)))
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> validate(context.getSource(), StringArgumentType.getString(context, "pack"))))));
+        root.then(NativeCommandRegistration.literal("v")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> validate(context.getSource(), null)))
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> validate(context.getSource(), StringArgumentType.getString(context, "pack"))))));
 
-        root.then(Commands.literal("cleanup")
-                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> cleanup(context.getSource(), StringArgumentType.getString(context, "pack"), false)))
-                        .then(Commands.literal("apply")
-                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> cleanup(context.getSource(), StringArgumentType.getString(context, "pack"), true))))));
-        root.then(Commands.literal("c")
-                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> cleanup(context.getSource(), StringArgumentType.getString(context, "pack"), false)))
-                        .then(Commands.literal("apply")
-                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> cleanup(context.getSource(), StringArgumentType.getString(context, "pack"), true))))));
+        root.then(NativeCommandRegistration.literal("cleanup")
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> cleanup(context.getSource(), StringArgumentType.getString(context, "pack"), false)))
+                        .then(NativeCommandRegistration.literal("apply")
+                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> cleanup(context.getSource(), StringArgumentType.getString(context, "pack"), true))))));
+        root.then(NativeCommandRegistration.literal("c")
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> cleanup(context.getSource(), StringArgumentType.getString(context, "pack"), false)))
+                        .then(NativeCommandRegistration.literal("apply")
+                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> cleanup(context.getSource(), StringArgumentType.getString(context, "pack"), true))))));
 
-        root.then(Commands.literal("restore")
-                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> restore(context.getSource(), StringArgumentType.getString(context, "pack"), false)))
-                        .then(Commands.literal("apply")
-                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> restore(context.getSource(), StringArgumentType.getString(context, "pack"), true))))));
-        root.then(Commands.literal("r")
-                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> restore(context.getSource(), StringArgumentType.getString(context, "pack"), false)))
-                        .then(Commands.literal("apply")
-                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> restore(context.getSource(), StringArgumentType.getString(context, "pack"), true))))));
+        root.then(NativeCommandRegistration.literal("restore")
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> restore(context.getSource(), StringArgumentType.getString(context, "pack"), false)))
+                        .then(NativeCommandRegistration.literal("apply")
+                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> restore(context.getSource(), StringArgumentType.getString(context, "pack"), true))))));
+        root.then(NativeCommandRegistration.literal("r")
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> restore(context.getSource(), StringArgumentType.getString(context, "pack"), false)))
+                        .then(NativeCommandRegistration.literal("apply")
+                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> restore(context.getSource(), StringArgumentType.getString(context, "pack"), true))))));
 
-        root.then(Commands.literal("status")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> status(context.getSource(), null)))
-                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> status(context.getSource(), StringArgumentType.getString(context, "pack"))))));
-        root.then(Commands.literal("s")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> status(context.getSource(), null)))
-                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> status(context.getSource(), StringArgumentType.getString(context, "pack"))))));
+        root.then(NativeCommandRegistration.literal("status")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> status(context.getSource(), null)))
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> status(context.getSource(), StringArgumentType.getString(context, "pack"))))));
+        root.then(NativeCommandRegistration.literal("s")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> status(context.getSource(), null)))
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> status(context.getSource(), StringArgumentType.getString(context, "pack"))))));
 
-        root.then(Commands.literal("compat")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> compat(context.getSource(), null)))
-                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> compat(context.getSource(), StringArgumentType.getString(context, "pack"))))));
-        root.then(Commands.literal("cp")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> compat(context.getSource(), null)))
-                .then(Commands.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> compat(context.getSource(), StringArgumentType.getString(context, "pack"))))));
+        root.then(NativeCommandRegistration.literal("compat")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> compat(context.getSource(), null)))
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> compat(context.getSource(), StringArgumentType.getString(context, "pack"))))));
+        root.then(NativeCommandRegistration.literal("cp")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> compat(context.getSource(), null)))
+                .then(NativeCommandRegistration.argument("pack", StringArgumentType.word()).suggests(IrisModdedCommands.PACK_NAMES)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> compat(context.getSource(), StringArgumentType.getString(context, "pack"))))));
 
         return root;
     }
@@ -110,7 +109,7 @@ public final class ModdedPackCommands {
         return IrisPlatforms.get().packsFolderNoCreate();
     }
 
-    private static int validate(CommandSourceStack source, String pack) {
+    private static int validate(NativeCommandSource source, String pack) {
         File packsRoot = packsRoot();
         if (!packsRoot.isDirectory()) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_PACK_COMMANDS_PACKS_FOLDER_NOT_FOUND, MessageArgument.untrusted("value", packsRoot.getAbsolutePath())));
@@ -134,7 +133,6 @@ public final class ModdedPackCommands {
             targets.add(target);
         }
 
-        MinecraftServer server = source.getServer();
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_PACK_COMMANDS_VALIDATING_PACK_S, MessageArgument.untrusted("value", targets.size())));
         Thread thread = new Thread(() -> {
             int broken = 0;
@@ -145,35 +143,34 @@ public final class ModdedPackCommands {
                     if (!result.isLoadable()) {
                         broken++;
                     }
-                    server.execute(() -> report(source, result));
+                    source.execute(() -> report(source, result));
                 } catch (Throwable e) {
                     ModdedIrisLog.error("Iris pack validation failed for {}", target.getName(), e);
-                    server.execute(() -> IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_PACK_COMMANDS_VALIDATION_FAILED, MessageArgument.untrusted("value", target.getName()), MessageArgument.untrusted("value2", String.valueOf(e.getMessage())))));
+                    source.execute(() -> IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_PACK_COMMANDS_VALIDATION_FAILED, MessageArgument.untrusted("value", target.getName()), MessageArgument.untrusted("value2", String.valueOf(e.getMessage())))));
                     broken++;
                 }
             }
             int brokenTotal = broken;
-            server.execute(() -> IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_PACK_COMMANDS_VALIDATION_COMPLETE_BROKEN_PACKS, MessageArgument.untrusted("brokenTotal", brokenTotal), MessageArgument.untrusted("value", targets.size()))));
+            source.execute(() -> IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_PACK_COMMANDS_VALIDATION_COMPLETE_BROKEN_PACKS, MessageArgument.untrusted("brokenTotal", brokenTotal), MessageArgument.untrusted("value", targets.size()))));
         }, "Iris Pack Validator");
         thread.setDaemon(true);
         thread.start();
         return 1;
     }
 
-    private static int cleanup(CommandSourceStack source, String pack, boolean apply) {
+    private static int cleanup(NativeCommandSource source, String pack, boolean apply) {
         File packFolder = PackDirectoryResolver.resolveExisting(packsRoot(), pack);
         if (packFolder == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_PACK_COMMANDS_PACK_NOT_FOUND_UNDER_2, MessageArgument.untrusted("pack", pack), MessageArgument.untrusted("value", packsRoot().getAbsolutePath())));
             return 0;
         }
-        MinecraftServer server = source.getServer();
         Thread thread = new Thread(() -> {
             if (apply) {
                 PackResourceCleanup.ApplyResult result = PackResourceCleanup.apply(packFolder);
-                server.execute(() -> reportCleanupApply(source, pack, result));
+                source.execute(() -> reportCleanupApply(source, pack, result));
             } else {
                 PackResourceCleanup.Preview result = PackResourceCleanup.preview(packFolder);
-                server.execute(() -> reportCleanupPreview(source, pack, result));
+                source.execute(() -> reportCleanupPreview(source, pack, result));
             }
         }, "Iris Pack Cleanup");
         thread.setDaemon(true);
@@ -181,20 +178,19 @@ public final class ModdedPackCommands {
         return 1;
     }
 
-    private static int restore(CommandSourceStack source, String pack, boolean apply) {
+    private static int restore(NativeCommandSource source, String pack, boolean apply) {
         File packFolder = PackDirectoryResolver.resolveExisting(packsRoot(), pack);
         if (packFolder == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_PACK_COMMANDS_PACK_NOT_FOUND_UNDER_3, MessageArgument.untrusted("pack", pack), MessageArgument.untrusted("value", packsRoot().getAbsolutePath())));
             return 0;
         }
-        MinecraftServer server = source.getServer();
         Thread thread = new Thread(() -> {
             if (apply) {
                 PackResourceCleanup.RestoreResult result = PackResourceCleanup.restoreLatest(packFolder);
-                server.execute(() -> reportRestoreApply(source, pack, result));
+                source.execute(() -> reportRestoreApply(source, pack, result));
             } else {
                 PackResourceCleanup.RestorePreview result = PackResourceCleanup.previewRestore(packFolder);
-                server.execute(() -> reportRestorePreview(source, pack, result));
+                source.execute(() -> reportRestorePreview(source, pack, result));
             }
         }, "Iris Pack Restore");
         thread.setDaemon(true);
@@ -202,7 +198,7 @@ public final class ModdedPackCommands {
         return 1;
     }
 
-    private static int status(CommandSourceStack source, String pack) {
+    private static int status(NativeCommandSource source, String pack) {
         if (pack == null || pack.isBlank()) {
             Map<String, PackValidationResult> snapshot = PackValidationRegistry.snapshot();
             if (snapshot.isEmpty()) {
@@ -225,7 +221,7 @@ public final class ModdedPackCommands {
         return 1;
     }
 
-    private static int compat(CommandSourceStack source, String pack) {
+    private static int compat(NativeCommandSource source, String pack) {
         if (pack == null || pack.isBlank()) {
             Map<String, PackValidationResult> snapshot = PackValidationRegistry.snapshot();
             if (snapshot.isEmpty()) {
@@ -296,7 +292,7 @@ public final class ModdedPackCommands {
         return persisted == null || persisted.isBlank() ? "unknown" : persisted;
     }
 
-    private static void report(CommandSourceStack source, PackValidationResult result) {
+    private static void report(NativeCommandSource source, PackValidationResult result) {
         if (result.isLoadable()) {
             IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_PACK_COMMANDS_PACK_IS_LOADABLE_WARNINGS, MessageArgument.untrusted("value", result.getPackName()), MessageArgument.untrusted("value2", result.getWarnings().size())));
         } else {
@@ -314,7 +310,7 @@ public final class ModdedPackCommands {
         }
     }
 
-    private static void reportCleanupPreview(CommandSourceStack source, String pack, PackResourceCleanup.Preview result) {
+    private static void reportCleanupPreview(NativeCommandSource source, String pack, PackResourceCleanup.Preview result) {
         if (!result.success()) {
             IrisModdedCommands.fail(source, result.error());
             return;
@@ -328,7 +324,7 @@ public final class ModdedPackCommands {
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_PACK_COMMANDS_RUN_IRIS_PACK_CLEANUP_APPLY_QUARANTINE_AFTER_FRESH_SCAN, MessageArgument.untrusted("pack", pack)));
     }
 
-    private static void reportCleanupApply(CommandSourceStack source, String pack, PackResourceCleanup.ApplyResult result) {
+    private static void reportCleanupApply(NativeCommandSource source, String pack, PackResourceCleanup.ApplyResult result) {
         if (!result.success()) {
             IrisModdedCommands.fail(source, result.error());
             reportPaths(source, result.quarantinedPaths(), "still quarantined");
@@ -342,7 +338,7 @@ public final class ModdedPackCommands {
         reportPaths(source, result.quarantinedPaths(), "quarantined");
     }
 
-    private static void reportRestorePreview(CommandSourceStack source, String pack, PackResourceCleanup.RestorePreview result) {
+    private static void reportRestorePreview(NativeCommandSource source, String pack, PackResourceCleanup.RestorePreview result) {
         if (!result.success()) {
             IrisModdedCommands.fail(source, result.error());
             return;
@@ -361,7 +357,7 @@ public final class ModdedPackCommands {
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_PACK_COMMANDS_RUN_IRIS_PACK_RESTORE_APPLY_RESTORE_AFTER_FRESH_CONFLICT_CHECK, MessageArgument.untrusted("pack", pack)));
     }
 
-    private static void reportRestoreApply(CommandSourceStack source, String pack, PackResourceCleanup.RestoreResult result) {
+    private static void reportRestoreApply(NativeCommandSource source, String pack, PackResourceCleanup.RestoreResult result) {
         if (!result.conflicts().isEmpty()) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_PACK_COMMANDS_RESTORE_REFUSED_BECAUSE_DESTINATION_S_ALREADY_EXIST, MessageArgument.untrusted("value", result.conflicts().size())));
             reportPaths(source, result.conflicts(), "conflict");
@@ -379,7 +375,7 @@ public final class ModdedPackCommands {
         reportPaths(source, result.restoredPaths(), "restored");
     }
 
-    private static void reportPaths(CommandSourceStack source, List<String> paths, String label) {
+    private static void reportPaths(NativeCommandSource source, List<String> paths, String label) {
         int max = Math.min(10, paths.size());
         for (int i = 0; i < max; i++) {
             IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_PACK_COMMANDS_MESSAGE_3, MessageArgument.untrusted("label", label), MessageArgument.untrusted("value", paths.get(i))));

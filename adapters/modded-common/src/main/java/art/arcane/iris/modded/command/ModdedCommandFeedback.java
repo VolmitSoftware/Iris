@@ -18,18 +18,9 @@
 
 package art.arcane.iris.modded.command;
 
-import net.minecraft.ChatFormatting;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.TextColor;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText.Format;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText;
 
 import java.util.Map;
 import java.util.UUID;
@@ -63,52 +54,52 @@ final class ModdedCommandFeedback {
     private ModdedCommandFeedback() {
     }
 
-    static void ok(CommandSourceStack source, String message) {
-        source.sendSuccess(() -> Component.literal(message).withStyle(ChatFormatting.GREEN), false);
+    static void ok(NativeCommandSource source, String message) {
+        source.sendSuccess(() -> NativeCommandText.literal(message).withStyle(Format.GREEN), false);
         playSuccess(source);
     }
 
-    static void ok(CommandSourceStack source, Component component) {
+    static void ok(NativeCommandSource source, NativeCommandText component) {
         source.sendSuccess(() -> component, false);
         playSuccess(source);
     }
 
-    static void fail(CommandSourceStack source, String message) {
-        source.sendFailure(Component.literal(message).withStyle(ChatFormatting.RED));
+    static void fail(NativeCommandSource source, String message) {
+        source.sendFailure(NativeCommandText.literal(message).withStyle(Format.RED));
         playFailure(source);
     }
 
-    static void send(CommandSourceStack source, Component component) {
+    static void send(NativeCommandSource source, NativeCommandText component) {
         source.sendSuccess(() -> component, false);
     }
 
-    static void clear(CommandSourceStack source) {
-        if (source.getPlayer() != null) {
-            send(source, Component.literal("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"));
+    static void clear(NativeCommandSource source) {
+        if (source.playerId() != null) {
+            send(source, NativeCommandText.literal("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"));
         }
     }
 
-    static MutableComponent header(String title) {
-        MutableComponent header = Component.empty();
+    static NativeCommandText header(String title) {
+        NativeCommandText header = NativeCommandText.empty();
         header.append(text(" ".repeat(18), HEADER_A, false, true));
         header.append(text(" " + title + " ", IRIS, true, false));
         header.append(text(" ".repeat(18), HEADER_B, false, true));
         return header;
     }
 
-    static MutableComponent banner(String title) {
+    static NativeCommandText banner(String title) {
         int pad = Math.max(1, 44 - (title.length() + 2) - 4);
-        MutableComponent banner = Component.empty();
+        NativeCommandText banner = NativeCommandText.empty();
         banner.append(gradientText("[" + " ".repeat(pad) + "(((", HEADER_A, HEADER_B, true));
-        banner.append(Component.literal(" "));
+        banner.append(NativeCommandText.literal(" "));
         banner.append(gradientText(title, PARAMETER, PARAMETER_ALT, false));
-        banner.append(Component.literal(" "));
+        banner.append(NativeCommandText.literal(" "));
         banner.append(gradientText(")))" + " ".repeat(pad) + "]", HEADER_B, HEADER_A, true));
         return banner;
     }
 
-    static MutableComponent gradientText(String value, int from, int to, boolean strikethrough) {
-        MutableComponent out = Component.empty();
+    static NativeCommandText gradientText(String value, int from, int to, boolean strikethrough) {
+        NativeCommandText out = NativeCommandText.empty();
         int steps = Math.max(1, value.length() - 1);
         for (int index = 0; index < value.length(); index++) {
             double t = index / (double) steps;
@@ -120,17 +111,17 @@ final class ModdedCommandFeedback {
         return out;
     }
 
-    static MutableComponent footer() {
+    static NativeCommandText footer() {
         return text(" ".repeat(PAGE_LINE_LENGTH), HEADER_B, false, true);
     }
 
-    static MutableComponent text(String value, int color) {
+    static NativeCommandText text(String value, int color) {
         return text(value, color, false, false);
     }
 
-    static MutableComponent text(String value, int color, boolean bold, boolean strikethrough) {
-        return Component.literal(value).withStyle((Style style) -> {
-            Style next = style.withColor(TextColor.fromRgb(color));
+    static NativeCommandText text(String value, int color, boolean bold, boolean strikethrough) {
+        return NativeCommandText.literal(value).withStyle((NativeCommandText.TextStyle style) -> {
+            NativeCommandText.TextStyle next = style.withColor(color);
             if (bold) {
                 next = next.withBold(true);
             }
@@ -141,18 +132,17 @@ final class ModdedCommandFeedback {
         });
     }
 
-    static MutableComponent button(String label, String command, String hover, boolean runCommand) {
-        ClickEvent clickEvent = runCommand ? new ClickEvent.RunCommand(command) : new ClickEvent.SuggestCommand(command);
-        MutableComponent hoverText = text(hover, DESCRIPTION);
-        return text(label, PARAMETER_ALT, true, false).withStyle((Style style) -> style
-                .withClickEvent(clickEvent)
-                .withHoverEvent(new HoverEvent.ShowText(hoverText)));
+    static NativeCommandText button(String label, String command, String hover, boolean runCommand) {
+        NativeCommandText hoverText = text(hover, DESCRIPTION);
+        return text(label, PARAMETER_ALT, true, false).withStyle((NativeCommandText.TextStyle style) -> style
+                .hover(hoverText))
+                .withStyle(style -> runCommand ? style.runCommand(command) : style.suggestCommand(command));
     }
 
-    static MutableComponent progressBar(double percent, int width) {
+    static NativeCommandText progressBar(double percent, int width) {
         double clamped = Math.max(0D, Math.min(100D, percent));
         int filled = (int) Math.round((clamped / 100D) * width);
-        MutableComponent bar = Component.empty();
+        NativeCommandText bar = NativeCommandText.empty();
         bar.append(text("[", DARK_GREEN));
         for (int i = 0; i < width; i++) {
             bar.append(text(i < filled ? "|" : "·", i < filled ? PARAMETER : OPTIONAL));
@@ -161,35 +151,33 @@ final class ModdedCommandFeedback {
         return bar;
     }
 
-    static void tab(CommandSourceStack source) {
-        ServerPlayer player = source.getPlayer();
-        if (player == null || !claim(TAB_SOUNDS, player.getUUID(), TAB_SOUND_COOLDOWN_MS)) {
+    static void tab(NativeCommandSource source) {
+        UUID player = source.playerId();
+        if (player == null || !claim(TAB_SOUNDS, player, TAB_SOUND_COOLDOWN_MS)) {
             return;
         }
 
-        player.level().playSound(null, player.blockPosition(), SoundEvents.ITEM_FRAME_ROTATE_ITEM, SoundSource.PLAYERS, 0.25F, 1.7F);
+        source.playSound("minecraft:entity.item_frame.rotate_item", 0.25F, 1.7F);
     }
 
-    private static void playSuccess(CommandSourceStack source) {
-        ServerPlayer player = source.getPlayer();
-        if (player == null || !claim(MESSAGE_SOUNDS, player.getUUID(), MESSAGE_SOUND_COOLDOWN_MS)) {
+    private static void playSuccess(NativeCommandSource source) {
+        UUID player = source.playerId();
+        if (player == null || !claim(MESSAGE_SOUNDS, player, MESSAGE_SOUND_COOLDOWN_MS)) {
             return;
         }
 
-        ServerLevel level = player.level();
-        level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 0.77F, 1.65F);
-        level.playSound(null, player.blockPosition(), SoundEvents.RESPAWN_ANCHOR_CHARGE, SoundSource.PLAYERS, 0.125F, 2.99F);
+        source.playSound("minecraft:block.amethyst_cluster.break", 0.77F, 1.65F);
+        source.playSound("minecraft:block.respawn_anchor.charge", 0.125F, 2.99F);
     }
 
-    private static void playFailure(CommandSourceStack source) {
-        ServerPlayer player = source.getPlayer();
-        if (player == null || !claim(MESSAGE_SOUNDS, player.getUUID(), MESSAGE_SOUND_COOLDOWN_MS)) {
+    private static void playFailure(NativeCommandSource source) {
+        UUID player = source.playerId();
+        if (player == null || !claim(MESSAGE_SOUNDS, player, MESSAGE_SOUND_COOLDOWN_MS)) {
             return;
         }
 
-        ServerLevel level = player.level();
-        level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 0.77F, 0.25F);
-        level.playSound(null, player.blockPosition(), SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 0.2F, 0.45F);
+        source.playSound("minecraft:block.amethyst_cluster.break", 0.77F, 0.25F);
+        source.playSound("minecraft:block.beacon.deactivate", 0.2F, 0.45F);
     }
 
     private static boolean claim(Map<UUID, Long> sounds, UUID uuid, long cooldownMs) {

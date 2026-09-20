@@ -1,6 +1,6 @@
 package art.arcane.iris.generation.terrain;
 
-import art.arcane.iris.platform.bukkit.nms.datapack.IDataFixer;
+import art.arcane.iris.pack.datapack.IDataFixer;
 import art.arcane.volmlib.util.data.Varint;
 import art.arcane.volmlib.util.io.IO;
 import lombok.EqualsAndHashCode;

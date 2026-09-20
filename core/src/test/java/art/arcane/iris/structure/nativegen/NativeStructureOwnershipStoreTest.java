@@ -6,7 +6,7 @@ import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
@@ -48,7 +48,7 @@ public class NativeStructureOwnershipStoreTest {
 
     @BeforeClass
     public static void initializeMantleBlockState() throws Exception {
-        PlatformBlockState air = mock(PlatformBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
         try (MockedStatic<B> blocks = mockStatic(B.class)) {
             blocks.when(() -> B.getState("AIR")).thenReturn(air);
             Class.forName(EngineMantle.class.getName());

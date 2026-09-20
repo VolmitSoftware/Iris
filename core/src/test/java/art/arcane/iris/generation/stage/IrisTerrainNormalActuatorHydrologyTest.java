@@ -17,7 +17,7 @@ import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.hydrology.IrisRiverMaterialConfig;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.ChunkedDataCache;
@@ -54,9 +54,9 @@ public class IrisTerrainNormalActuatorHydrologyTest {
 
     @Test
     public void hydrologyOwnedFluidBypassesBiomeSeaLayers() {
-        PlatformBlockState water = mock(PlatformBlockState.class);
-        PlatformBlockState ice = mock(PlatformBlockState.class);
-        KList<PlatformBlockState> seaLayers = new KList<>();
+        NativeBlockState water = mock(NativeBlockState.class);
+        NativeBlockState ice = mock(NativeBlockState.class);
+        KList<NativeBlockState> seaLayers = new KList<>();
         seaLayers.add(ice);
 
         assertSame(water, HydrologyFluidLayerSelector.select(seaLayers, 0, water, true));
@@ -66,12 +66,12 @@ public class IrisTerrainNormalActuatorHydrologyTest {
 
     @Test
     public void frozenTerrainPublishesSourceWaterBeforeStandardTopLayerFreezing() {
-        PlatformBlockState water = mock(PlatformBlockState.class);
-        PlatformBlockState ice = mock(PlatformBlockState.class);
+        NativeBlockState water = mock(NativeBlockState.class);
+        NativeBlockState ice = mock(NativeBlockState.class);
         when(water.key()).thenReturn("minecraft:water");
         when(water.isWater()).thenReturn(true);
         when(ice.key()).thenReturn("minecraft:ice");
-        KList<PlatformBlockState> frozenSeaLayers = new KList<>();
+        KList<NativeBlockState> frozenSeaLayers = new KList<>();
         frozenSeaLayers.add(ice);
         HydrologyFeatureRef feature = new HydrologyFeatureRef(
                 11L,
@@ -118,7 +118,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
         boolean hydrologyOwned = acceptedColumn.primarySurfaceFluidLayer().isPresent();
         ArrayList<String> stages = new ArrayList<>();
 
-        PlatformBlockState state = HydrologyFluidLayerSelector.select(
+        NativeBlockState state = HydrologyFluidLayerSelector.select(
                 frozenSeaLayers,
                 0,
                 water,
@@ -232,9 +232,9 @@ public class IrisTerrainNormalActuatorHydrologyTest {
             IrisBiome biome = mock(IrisBiome.class);
             IrisRegion region = new IrisRegion();
             ChunkContext context = mock(ChunkContext.class);
-            PlatformBlockState rock = mock(PlatformBlockState.class);
-            PlatformBlockState grass = mock(PlatformBlockState.class);
-            PlatformBlockState painted = mock(PlatformBlockState.class);
+            NativeBlockState rock = mock(NativeBlockState.class);
+            NativeBlockState grass = mock(NativeBlockState.class);
+            NativeBlockState painted = mock(NativeBlockState.class);
             when(rock.key()).thenReturn("minecraft:stone");
             when(grass.key()).thenReturn("minecraft:grass_block");
             when(painted.key()).thenReturn("minecraft:dirt");
@@ -261,7 +261,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
                     ProceduralStream.of((x, z) -> rock, Interpolated.of(value -> 0D, value -> rock)), 11, -4, false));
             when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
                     anyInt(), anyInt(), eq(data), eq(complex))).thenReturn(new KList<>(List.of(grass)));
-            Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 64, 1);
+            Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 64, 1);
 
             new IrisTerrainNormalActuator(engine).terrainSliver(11, -4, 0, output, context);
 
@@ -361,8 +361,8 @@ public class IrisTerrainNormalActuatorHydrologyTest {
     }
 
     private static final class Fixture {
-        private final PlatformBlockState biomeLayer = mock(PlatformBlockState.class);
-        private final PlatformBlockState painted = mock(PlatformBlockState.class);
+        private final NativeBlockState biomeLayer = mock(NativeBlockState.class);
+        private final NativeBlockState painted = mock(NativeBlockState.class);
         private final IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
         private final IrisData data = mock(IrisData.class);
         private final RNG rng = new RNG(7L);
@@ -379,7 +379,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
             return new IrisRiverMaterialConfig().setPalette(palette).setDepth(4);
         }
 
-        private PlatformBlockState paint(IrisRiverMaterialConfig material, int depth) {
+        private NativeBlockState paint(IrisRiverMaterialConfig material, int depth) {
             return IrisTerrainNormalActuator.paintHydrologyMaterial(
                     biomeLayer, material, depth, rng, 11, 63, -4, data);
         }

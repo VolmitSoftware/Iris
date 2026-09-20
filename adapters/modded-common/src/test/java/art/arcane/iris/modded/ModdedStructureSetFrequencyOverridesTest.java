@@ -1,5 +1,7 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeStructureSetFrequencyOverrides;
+
 import art.arcane.iris.structure.nativegen.IrisImportedStructureControl;
 import art.arcane.iris.structure.placement.IrisStructureSetFrequencyOverride;
 import art.arcane.volmlib.util.collection.KList;
@@ -55,7 +57,7 @@ public class ModdedStructureSetFrequencyOverridesTest {
                 .setFrequencyOverrides(overrides);
 
         ChunkGeneratorStructureState returned =
-                ModdedStructureSetFrequencyOverrides.apply(state, control);
+                NativeStructureSetFrequencyOverrides.apply(state, control);
 
         assertSame(state, returned);
         List<Holder<StructureSet>> scaledSets = state.possibleStructureSets();
@@ -80,7 +82,7 @@ public class ModdedStructureSetFrequencyOverridesTest {
                 .setFrequencyOverrides(overrides);
 
         List<Holder<StructureSet>> scaled =
-                ModdedStructureSetFrequencyOverrides.scaleSets(List.of(custom), control);
+                NativeStructureSetFrequencyOverrides.scaleSets(List.of(custom), control);
 
         assertSame(custom, scaled.getFirst());
     }
@@ -98,7 +100,7 @@ public class ModdedStructureSetFrequencyOverridesTest {
         IrisImportedStructureControl control = new IrisImportedStructureControl()
                 .setFrequencyOverrides(overrides);
 
-        List<Holder<StructureSet>> scaled = ModdedStructureSetFrequencyOverrides.scaleSets(
+        List<Holder<StructureSet>> scaled = NativeStructureSetFrequencyOverrides.scaleSets(
                 List.of(first, second), control);
 
         assertSame(first, scaled.get(0));
@@ -118,7 +120,7 @@ public class ModdedStructureSetFrequencyOverridesTest {
         IrisImportedStructureControl control = new IrisImportedStructureControl()
                 .setFrequencyOverrides(overrides);
 
-        List<Holder<StructureSet>> scaled = ModdedStructureSetFrequencyOverrides.scaleSets(
+        List<Holder<StructureSet>> scaled = NativeStructureSetFrequencyOverrides.scaleSets(
                 List.of(first, second), control);
 
         assertEquals(31, ((RandomSpreadStructurePlacement)
@@ -140,7 +142,7 @@ public class ModdedStructureSetFrequencyOverridesTest {
                 .setFrequencyOverrides(overrides);
 
         assertThrows(IllegalStateException.class, () ->
-                ModdedStructureSetFrequencyOverrides.scaleSets(List.of(custom), control));
+                NativeStructureSetFrequencyOverrides.scaleSets(List.of(custom), control));
     }
 
     private static Holder<StructureSet> structureSet(

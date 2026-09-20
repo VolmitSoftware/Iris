@@ -10,7 +10,7 @@ import art.arcane.iris.structure.jigsaw.JigsawJoint;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.collection.KMap;
 import org.bukkit.Bukkit;
@@ -189,7 +189,7 @@ final class JigsawStudioCapture {
                                 sourceWidth,
                                 sourceDepth,
                                 quarterTurns);
-                        PlatformBlockState retainedAir = retainedSourceAir(
+                        NativeBlockState retainedAir = retainedSourceAir(
                                 captureSource,
                                 sourcePosition.x(),
                                 sourcePosition.y(),
@@ -254,7 +254,7 @@ final class JigsawStudioCapture {
         return Map.copyOf(displayed);
     }
 
-    static PlatformBlockState retainedSourceAir(
+    static NativeBlockState retainedSourceAir(
             IrisObject sourceObject,
             int x,
             int y,
@@ -272,7 +272,7 @@ final class JigsawStudioCapture {
                 || z >= source.getD()) {
             return null;
         }
-        PlatformBlockState original = source.getBlocks().get(source.getSigned(x, y, z));
+        NativeBlockState original = source.getBlocks().get(source.getSigned(x, y, z));
         return original != null && original.isAir() ? original : null;
     }
 
@@ -359,7 +359,7 @@ final class JigsawStudioCapture {
                     throw new IOException("Duplicate captured block at "
                             + block.x() + "," + block.y() + "," + block.z());
                 }
-                PlatformBlockState sourceState = quarterTurns == 0
+                NativeBlockState sourceState = quarterTurns == 0
                         ? block.state()
                         : inverseRotation.rotate(block.state(), 0, 0, 0);
                 if (sourceState == null) {
@@ -397,13 +397,13 @@ final class JigsawStudioCapture {
                     connector.setPosition(new IrisPosition(position.x(), position.y(), position.z()));
                     connector.setDirection(inverseRotation.rotate(connector.getDirection()));
                     connector.setTop(inverseRotation.rotate(connector.getTop()));
-                    PlatformBlockState finalState = B.getStateOrNull(connector.getFinalState(), false);
+                    NativeBlockState finalState = B.getStateOrNull(connector.getFinalState(), false);
                     if (finalState == null) {
                         throw new IOException("Captured connector final state cannot be parsed at "
                                 + capturedConnector.x() + "," + capturedConnector.y() + ","
                                 + capturedConnector.z());
                     }
-                    PlatformBlockState sourceFinalState = inverseRotation.rotate(finalState, 0, 0, 0);
+                    NativeBlockState sourceFinalState = inverseRotation.rotate(finalState, 0, 0, 0);
                     if (sourceFinalState == null) {
                         throw new IOException("Captured connector final state cannot be inverse-rotated at "
                                 + capturedConnector.x() + "," + capturedConnector.y() + ","
@@ -583,7 +583,7 @@ final class JigsawStudioCapture {
             int x,
             int y,
             int z,
-            PlatformBlockState state,
+            NativeBlockState state,
             TileData tileData
     ) {
         CapturedBlock {

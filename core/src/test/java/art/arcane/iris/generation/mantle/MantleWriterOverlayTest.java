@@ -7,7 +7,7 @@ import art.arcane.iris.world.history.TransitionGenerationPlan;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.terrain.IrisDimension;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
@@ -40,7 +40,7 @@ public class MantleWriterOverlayTest {
     private MantleWriter writer;
     private Matter matter;
     private MantleChunk<Matter> chunk;
-    private MatterSlice<PlatformBlockState> blockSlice;
+    private MatterSlice<NativeBlockState> blockSlice;
     private MatterSlice<Identifier> identifierSlice;
     private MatterSlice<MatterCavern> cavernSlice;
     private MatterSlice<HydrologyCaveCell> hydrologySlice;
@@ -71,13 +71,13 @@ public class MantleWriterOverlayTest {
         when(chunk.getOrCreate(0)).thenReturn(matter);
         when(chunk.exists(0)).thenReturn(true);
         when(chunk.get(0)).thenReturn(matter);
-        when(matter.hasSlice(PlatformBlockState.class)).thenReturn(true);
+        when(matter.hasSlice(NativeBlockState.class)).thenReturn(true);
         when(matter.hasSlice(Identifier.class)).thenReturn(true);
         when(matter.hasSlice(MatterCavern.class)).thenReturn(true);
-        when(matter.getSlice(PlatformBlockState.class)).thenReturn(blockSlice);
+        when(matter.getSlice(NativeBlockState.class)).thenReturn(blockSlice);
         when(matter.getSlice(Identifier.class)).thenReturn(identifierSlice);
         when(matter.getSlice(MatterCavern.class)).thenReturn(cavernSlice);
-        doReturn(blockSlice).when(matter).slice(PlatformBlockState.class);
+        doReturn(blockSlice).when(matter).slice(NativeBlockState.class);
         doReturn(identifierSlice).when(matter).slice(Identifier.class);
         doReturn(cavernSlice).when(matter).slice(MatterCavern.class);
         doReturn(hydrologySlice).when(matter).getSlice(HydrologyCaveCell.class);
@@ -111,7 +111,7 @@ public class MantleWriterOverlayTest {
 
     @Test
     public void normalBlockReplacementClearsDeferredPlacement() {
-        PlatformBlockState replacement = mock(PlatformBlockState.class);
+        NativeBlockState replacement = mock(NativeBlockState.class);
 
         writer.setData(X, Y, Z, replacement);
 
@@ -121,8 +121,8 @@ public class MantleWriterOverlayTest {
 
     @Test
     public void customBlockWritesBaseAndIdentifierTogether() {
-        PlatformBlockState base = mock(PlatformBlockState.class);
-        PlatformBlockState custom = customState(base);
+        NativeBlockState base = mock(NativeBlockState.class);
+        NativeBlockState custom = customState(base);
         Identifier identifier = Identifier.fromString("iris:custom_block");
 
         writer.set(X, Y, Z, custom);
@@ -133,8 +133,8 @@ public class MantleWriterOverlayTest {
 
     @Test
     public void protectedHydrologyRejectsBothPartsOfCustomBlock() {
-        PlatformBlockState base = mock(PlatformBlockState.class);
-        PlatformBlockState custom = customState(base);
+        NativeBlockState base = mock(NativeBlockState.class);
+        NativeBlockState custom = customState(base);
         when(matter.hasSlice(HydrologyCaveCell.class)).thenReturn(true);
         when(hydrologySlice.get(X, Y, Z))
                 .thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
@@ -147,20 +147,20 @@ public class MantleWriterOverlayTest {
 
     @Test
     public void bedrockAndWorldBoundsRejectBothPartsOfCustomBlock() {
-        PlatformBlockState base = mock(PlatformBlockState.class);
-        PlatformBlockState custom = customState(base);
+        NativeBlockState base = mock(NativeBlockState.class);
+        NativeBlockState custom = customState(base);
         when(dimension.isBedrock()).thenReturn(true);
 
         writer.set(X, 0, Z, custom);
         writer.set(X, 64, Z, custom);
 
-        verify(blockSlice, never()).set(anyInt(), anyInt(), anyInt(), any(PlatformBlockState.class));
+        verify(blockSlice, never()).set(anyInt(), anyInt(), anyInt(), any(NativeBlockState.class));
         verify(identifierSlice, never()).set(anyInt(), anyInt(), anyInt(), any(Identifier.class));
     }
 
     @Test
     public void protectedHydrologyRejectsLaterBlockAndCavernWrites() {
-        PlatformBlockState replacement = mock(PlatformBlockState.class);
+        NativeBlockState replacement = mock(NativeBlockState.class);
         MatterCavern cavern = new MatterCavern(true, "", (byte) 3);
         when(matter.hasSlice(HydrologyCaveCell.class)).thenReturn(true);
         when(hydrologySlice.get(X, Y, Z))
@@ -185,7 +185,7 @@ public class MantleWriterOverlayTest {
         when(complex.getTransitionGenerationPlan()).thenReturn(transition);
         when(transition.isHistoricalBlock(X, Z)).thenReturn(true);
         writer = new MantleWriter(engineMantle, mantle, 0, 0, 0, false);
-        PlatformBlockState replacement = mock(PlatformBlockState.class);
+        NativeBlockState replacement = mock(NativeBlockState.class);
         MatterCavern cavern = new MatterCavern(true, "", (byte) 3);
 
         writer.setData(X, Y, Z, replacement);
@@ -193,7 +193,7 @@ public class MantleWriterOverlayTest {
         assertFalse(writer.carveDataIfAbsent(X, Y, Z, cavern));
         writer.setForcedCarve(X, Y, Z, cavern);
         writer.clearBlock(X, Y, Z);
-        writer.clearData(X, Y, Z, PlatformBlockState.class);
+        writer.clearData(X, Y, Z, NativeBlockState.class);
 
         verify(blockSlice, never()).set(anyInt(), anyInt(), anyInt(), any());
         verify(cavernSlice, never()).set(anyInt(), anyInt(), anyInt(), any());
@@ -218,8 +218,8 @@ public class MantleWriterOverlayTest {
         assertEquals(0, baseline.getLiquid());
     }
 
-    private static PlatformBlockState customState(PlatformBlockState base) {
-        PlatformBlockState custom = mock(PlatformBlockState.class);
+    private static NativeBlockState customState(NativeBlockState base) {
+        NativeBlockState custom = mock(NativeBlockState.class);
         when(custom.isCustom()).thenReturn(true);
         when(custom.deferredPlacementKey()).thenReturn("iris:custom_block");
         when(custom.placementBaseState()).thenReturn(base);

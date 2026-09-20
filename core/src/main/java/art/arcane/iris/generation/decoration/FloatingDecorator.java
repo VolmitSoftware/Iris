@@ -22,7 +22,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 /*
  * Floating island decoration path. Bypasses all canGoOn, slope, whitelist, and blacklist
@@ -33,7 +33,7 @@ public class FloatingDecorator {
 
     public static int decorateColumn(Engine engine, IrisBiome target, IrisDecorationPart part,
                                      int xf, int zf, int realX, int realZ,
-                                     int height, int max, Hunk<PlatformBlockState> data, RNG rng,
+                                     int height, int max, Hunk<NativeBlockState> data, RNG rng,
                                      Runnable candidatesNullCallback) {
         RNG gRNG = new RNG(DecoratorCore.partSeed(engine.getSeedManager().getDecorator(), part));
         IrisDecorator decorator = DecoratorCore.pickDecorator(target, part, gRNG, rng, engine.getData(), realX, realZ);

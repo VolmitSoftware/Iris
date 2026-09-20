@@ -19,6 +19,8 @@
 package art.arcane.iris.structure;
 
 import art.arcane.iris.structure.authoring.StructureCapability;
+import art.arcane.volmlib.nativelib.terrain.NativeStructureReader;
+import java.util.function.LongSupplier;
 import art.arcane.iris.structure.authoring.StructureLoss;
 import art.arcane.iris.structure.object.IrisObject;
 import org.junit.Test;
@@ -373,49 +375,33 @@ public class VillageImporterListPoolElementTest {
         assertTrue(imported.emittedCapabilities(omitted).isEmpty());
     }
 
-    private static final class FakeListPoolElement {
-        private final List<Object> elements;
+    private abstract static class TestElement implements NativeStructureReader.Element {
+        @Override
+        public String typeName() { return getClass().getSimpleName(); }
+        @Override
+        public String templateLocation() { return null; }
+        @Override
+        public List<NativeStructureReader.Element> children() { return null; }
+        @Override
+        public NativeStructureReader.ConnectorSet connectors(LongSupplier seed) { throw new UnsupportedOperationException(); }
+    }
 
-        private FakeListPoolElement(List<?> elements) {
+    private static final class FakeListPoolElement extends TestElement {
+        private final List<NativeStructureReader.Element> elements;
+        private FakeListPoolElement(List<? extends NativeStructureReader.Element> elements) {
             this.elements = List.copyOf(elements);
         }
-
-        public List<Object> getElements() {
-            return elements;
-        }
+        @Override
+        public List<NativeStructureReader.Element> children() { return elements; }
     }
 
-    private static final class FakeSinglePoolElement {
-        private final FakeResourceLocation location;
-
-        private FakeSinglePoolElement(String location) {
-            String[] parts = location.split(":", 2);
-            this.location = new FakeResourceLocation(parts[0], parts[1]);
-        }
-
-        public FakeResourceLocation getTemplateLocation() {
-            return location;
-        }
+    private static final class FakeSinglePoolElement extends TestElement {
+        private final String location;
+        private FakeSinglePoolElement(String location) { this.location = location; }
+        @Override
+        public String templateLocation() { return location; }
     }
 
-    private static final class FakeFeaturePoolElement {
-    }
-
-    private static final class FakeResourceLocation {
-        private final String namespace;
-        private final String path;
-
-        private FakeResourceLocation(String namespace, String path) {
-            this.namespace = namespace;
-            this.path = path;
-        }
-
-        public String getNamespace() {
-            return namespace;
-        }
-
-        public String getPath() {
-            return path;
-        }
+    private static final class FakeFeaturePoolElement extends TestElement {
     }
 }

@@ -76,7 +76,11 @@ java {
     }
 }
 
+ext.nativeSourceLoader = 'neoforge'
+apply from: file('../../gradle/native-minecraft-sources.gradle')
+
 sourceSets {
+    modLibraries
     main {
         java {
             srcDir '../modded-common/src/main/java'
@@ -93,6 +97,8 @@ sourceSets {
         }
     }
 }
+
+
 
 repositories {
     mavenCentral()
@@ -176,10 +182,26 @@ dependencies {
     }
 }
 
+def developmentModLibraries = configurations.devBundle.incoming.artifactView {
+    componentFilter { identifier ->
+        identifier instanceof org.gradle.api.artifacts.component.ProjectComponentIdentifier
+                || (identifier instanceof org.gradle.api.artifacts.component.ModuleComponentIdentifier
+                && (identifier.group == 'art.arcane' || identifier.group.startsWith('com.github.VolmitSoftware')))
+    }
+}.files
+def stageDevelopmentModLibraries = tasks.register('stageDevelopmentModLibraries', Sync) {
+    dependsOn(developmentModLibraries)
+    from({ developmentModLibraries.collect { File artifact -> zipTree(artifact) } })
+    into(layout.buildDirectory.dir('mod-libraries'))
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    exclude('META-INF/MANIFEST.MF', 'module-info.class', 'META-INF/versions/**')
+}
+sourceSets.modLibraries.output.classesDirs.setFrom(stageDevelopmentModLibraries)
+
 neoForge {
     version = neoForgeVersion
 
-    accessTransformers.from('src/main/resources/META-INF/accesstransformer.cfg')
+    accessTransformers.from(art.arcane.volmit.packaging.NativeAccessRules.prepare(nativeSourceImplementation, "neoforge", layout.buildDirectory.dir("native-access").get().asFile))
 
     runs {
         client {
@@ -212,6 +234,7 @@ neoForge {
     mods {
         irisworldgen {
             sourceSet(sourceSets.main)
+            sourceSet(sourceSets.modLibraries)
         }
     }
 
@@ -228,6 +251,7 @@ tasks.named('compileJava', JavaCompile).configure {
 
 tasks.named('test').configure {
     useJUnitPlatform()
+    classpath = classpath.minus(developmentModLibraries).plus(sourceSets.modLibraries.output)
 }
 
 processResources {

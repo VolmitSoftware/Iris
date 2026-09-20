@@ -18,6 +18,8 @@
 
 package art.arcane.iris.structure.nativegen;
 
+import art.arcane.volmlib.nativelib.terrain.structure.StructurePlacementDecision;
+
 import art.arcane.iris.structure.placement.IrisStructureStiltSettings;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
 import art.arcane.iris.structure.placement.IrisStructureYBand;
@@ -29,7 +31,7 @@ public record IrisNativeStructureDecision(
         boolean preserveSourceY,
         IrisStructureStiltSettings stilt,
         IrisStructureTerrain terrain
-) {
+) implements StructurePlacementDecision {
     public boolean generate() {
         return status == NativeStructureGenerationStatus.GENERATE_NATIVE;
     }

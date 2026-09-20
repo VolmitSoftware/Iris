@@ -1,5 +1,6 @@
 package art.arcane.iris.platform.bukkit.nms.v26_3_R1;
 
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeTerrainAccessImpl;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -41,7 +42,7 @@ public class NmsEntitySpawnDifficultyTest {
     public void peacefulRejectsEveryNativeForbiddenTypeBeforeBukkitCreatesIt() {
         CraftWorld world = mock(CraftWorld.class);
         when(world.getDifficulty()).thenReturn(Difficulty.PEACEFUL);
-        NMSBinding binding = mock(NMSBinding.class, CALLS_REAL_METHODS);
+        NativeTerrainAccessImpl binding = mock(NativeTerrainAccessImpl.class, CALLS_REAL_METHODS);
         Location location = new Location(world, 0.5, 80, 0.5);
         int rejected = 0;
 
@@ -64,7 +65,7 @@ public class NmsEntitySpawnDifficultyTest {
     public void peacefulPreservesPassiveAndNativeMonsterCategoryExceptions() {
         CraftWorld world = mock(CraftWorld.class);
         when(world.getDifficulty()).thenReturn(Difficulty.PEACEFUL);
-        NMSBinding binding = mock(NMSBinding.class, CALLS_REAL_METHODS);
+        NativeTerrainAccessImpl binding = mock(NativeTerrainAccessImpl.class, CALLS_REAL_METHODS);
         Location location = new Location(world, 0.5, 80, 0.5);
         Entity created = mock(Entity.class);
         doReturn(created).when(world).spawn(eq(location), any(Class.class), isNull(), eq(CreatureSpawnEvent.SpawnReason.NATURAL));
@@ -77,7 +78,7 @@ public class NmsEntitySpawnDifficultyTest {
     @Test
     public void nonPeacefulDifficultiesPreserveHostileSpawns() {
         CraftWorld world = mock(CraftWorld.class);
-        NMSBinding binding = mock(NMSBinding.class, CALLS_REAL_METHODS);
+        NativeTerrainAccessImpl binding = mock(NativeTerrainAccessImpl.class, CALLS_REAL_METHODS);
         Location location = new Location(world, 0.5, 80, 0.5);
         Entity created = mock(Entity.class);
         doReturn(created).when(world).spawn(eq(location), any(Class.class), isNull(), eq(CreatureSpawnEvent.SpawnReason.NATURAL));
@@ -92,7 +93,7 @@ public class NmsEntitySpawnDifficultyTest {
     public void unrelatedBukkitSpawnFailuresStillPropagate() {
         CraftWorld world = mock(CraftWorld.class);
         when(world.getDifficulty()).thenReturn(Difficulty.PEACEFUL);
-        NMSBinding binding = mock(NMSBinding.class, CALLS_REAL_METHODS);
+        NativeTerrainAccessImpl binding = mock(NativeTerrainAccessImpl.class, CALLS_REAL_METHODS);
         Location location = new Location(world, 0.5, 80, 0.5);
         IllegalStateException failure = new IllegalStateException("Spawn rejected by platform");
         doThrow(failure).when(world).spawn(eq(location), any(Class.class), isNull(), eq(CreatureSpawnEvent.SpawnReason.NATURAL));

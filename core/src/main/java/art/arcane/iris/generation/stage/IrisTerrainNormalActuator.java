@@ -44,10 +44,10 @@ import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import lombok.Getter;
 
-public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBlockState> {
+public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBlockState> {
     private static final BoundBlockState BEDROCK = BoundBlockState.of("BEDROCK");
     private static final BoundBlockState AIR = BoundBlockState.of("AIR");
     @Getter
@@ -62,7 +62,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
 
     @BlockCoordinates
     @Override
-    public void onActuate(int x, int z, Hunk<PlatformBlockState> h, boolean multicore, ChunkContext context) {
+    public void onActuate(int x, int z, Hunk<NativeBlockState> h, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
 
         for (int xf = 0; xf < h.getWidth(); xf++) {
@@ -81,7 +81,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
      * @param h  the blockdata
      */
     @BlockCoordinates
-    public void terrainSliver(int x, int z, int xf, Hunk<PlatformBlockState> h, ChunkContext context) {
+    public void terrainSliver(int x, int z, int xf, Hunk<NativeBlockState> h, ChunkContext context) {
         int chunkHeight = h.getHeight();
         int chunkDepth = h.getDepth();
         IrisDimension dimension = getDimension();
@@ -93,7 +93,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
         boolean hideOres = dimension.isHideOresForHiddenOre();
         ChunkedDataCache<IrisBiome> biomeCache = context.getBiome();
         ChunkedDataCache<IrisRegion> regionCache = context.getRegion();
-        ChunkedDataCache<PlatformBlockState> rockCache = context.getRock();
+        ChunkedDataCache<NativeBlockState> rockCache = context.getRock();
         int realX = xf + x;
         UpperDimensionContext upperContext = getEngine().getUpperContext();
         // Dimension-level ore lookups are chunk-invariant; resolving them per column paid
@@ -149,11 +149,11 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
             boolean riverOwned = padRiverBed && hydrologyTerrain != null && hydrologyTerrain.terrainOwned();
             IrisRiverMaterialConfig roleMaterial = hydrologyRoleMaterial(
                     hydrologyTerrain, bedMaterial, shoreMaterial, bankMaterial);
-            PlatformBlockState fluid = hydrologyFluid == null
+            NativeBlockState fluid = hydrologyFluid == null
                     ? complex.resolveSurfaceFluid(realX, realZ)
                     : complex.resolveHydrologyFluid(hydrologyFluid.profileKey(), realX, realZ);
-            PlatformBlockState rock = rockCache.get(xf, zf);
-            PlatformBlockState mappedSurfaceBlock = complex.getImageMapRuntime().sampleSurfaceBlock(realX, realZ);
+            NativeBlockState rock = rockCache.get(xf, zf);
+            NativeBlockState mappedSurfaceBlock = complex.getImageMapRuntime().sampleSurfaceBlock(realX, realZ);
             KList<IrisOreGenerator> biomeSurfaceOres = hideOres ? null : biome.getSurfaceOreGenerators();
             KList<IrisOreGenerator> regionSurfaceOres = hideOres ? null : region.getSurfaceOreGenerators();
             KList<IrisOreGenerator> biomeUndergroundOres = hideOres ? null : biome.getUndergroundOreGenerators();
@@ -164,9 +164,9 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
             IrisOreGeneratorBounds regionUndergroundOreBounds = hideOres ? IrisOreGeneratorBounds.EMPTY : region.getUndergroundOreGeneratorBounds();
             boolean hasSurfaceOres = biomeSurfaceOreBounds.hasOres() || regionSurfaceOreBounds.hasOres() || dimensionSurfaceOreBounds.hasOres();
             boolean hasUndergroundOres = biomeUndergroundOreBounds.hasOres() || regionUndergroundOreBounds.hasOres() || dimensionUndergroundOreBounds.hasOres();
-            KList<PlatformBlockState> blocks = null;
-            KList<PlatformBlockState> ceilingBlocks = null;
-            KList<PlatformBlockState> fblocks = null;
+            KList<NativeBlockState> blocks = null;
+            KList<NativeBlockState> ceilingBlocks = null;
+            KList<NativeBlockState> fblocks = null;
 
             for (int i = topY; i >= 0; i--) {
                 if (i == 0 && bedrockEnabled) {
@@ -189,7 +189,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
                     layerCeilingY = terrainColumn.ceiling(terrainSpan);
                 }
 
-                PlatformBlockState ore = null;
+                NativeBlockState ore = null;
                 if (hasSurfaceOres) {
                     if (biomeSurfaceOreBounds.contains(i)) {
                         ore = generateOres(biomeSurfaceOres, realX, i, realZ, localRng, data);
@@ -247,7 +247,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
                     }
 
                     int strataIndex = strataIndex(depth, cut, blocks.size());
-                    PlatformBlockState layerBlock = paintHydrologyMaterial(
+                    NativeBlockState layerBlock = paintHydrologyMaterial(
                             blocks.hasIndex(strataIndex) ? blocks.get(strataIndex) : null,
                             roleMaterial, depth, localRng, realX, i, realZ, data);
                     if (layerBlock != null) {
@@ -284,9 +284,9 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
 
                 if (upperSurfaceY < chunkHeight - 1) {
                     IrisBiome upperBiome = upperContext.getUpperBiome(realX, realZ);
-                    PlatformBlockState upperRock = upperContext.getRockBlock(realX, realZ);
-                    PlatformBlockState upperMappedSurface = upperContext.getSurfaceBlock(realX, realZ);
-                    KList<PlatformBlockState> upperBlocks = null;
+                    NativeBlockState upperRock = upperContext.getRockBlock(realX, realZ);
+                    NativeBlockState upperMappedSurface = upperContext.getSurfaceBlock(realX, realZ);
+                    KList<NativeBlockState> upperBlocks = null;
                     int paletteSourceY = -1;
 
                     for (int y = chunkHeight - 1; y >= upperSurfaceY; y--) {
@@ -367,8 +367,8 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
      * Replaces a biome layer with the river material for the top {@code depth} blocks. A painted
      * gravity block still goes through the bed padding swap after this.
      */
-    static PlatformBlockState paintHydrologyMaterial(
-            PlatformBlockState layerBlock,
+    static NativeBlockState paintHydrologyMaterial(
+            NativeBlockState layerBlock,
             IrisRiverMaterialConfig material,
             int depth,
             RNG rng,
@@ -381,11 +381,11 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
             return layerBlock;
         }
 
-        PlatformBlockState painted = material.getPalette().get(rng, x, y, z, data);
+        NativeBlockState painted = material.getPalette().get(rng, x, y, z, data);
         return painted == null ? layerBlock : painted;
     }
 
-    private PlatformBlockState generateOres(KList<IrisOreGenerator> oreGenerators, int x, int y, int z, RNG rng, IrisData data) {
+    private NativeBlockState generateOres(KList<IrisOreGenerator> oreGenerators, int x, int y, int z, RNG rng, IrisData data) {
         if (oreGenerators == null || oreGenerators.isEmpty()) {
             return null;
         }
@@ -393,7 +393,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<PlatformBl
         int oreCount = oreGenerators.size();
         for (int oreIndex = 0; oreIndex < oreCount; oreIndex++) {
             IrisOreGenerator oreGenerator = oreGenerators.get(oreIndex);
-            PlatformBlockState ore = oreGenerator.generate(x, y, z, rng, data);
+            NativeBlockState ore = oreGenerator.generate(x, y, z, rng, data);
             if (ore != null) {
                 return ore;
             }

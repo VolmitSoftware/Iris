@@ -20,7 +20,7 @@ package art.arcane.iris.world.entity;
 
 import art.arcane.iris.command.IrisCommandRegistry;
 
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.schema.annotation.DependsOn;
 import art.arcane.volmlib.util.documentation.Description;
@@ -32,7 +32,7 @@ import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
-import art.arcane.iris.platform.bukkit.registry.RegistryUtil;
+import art.arcane.iris.platform.registry.RegistryUtil;
 import art.arcane.iris.world.task.J;
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -9,7 +9,7 @@ import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.structure.object.IrisObjectReplace;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.iris.generation.block.TileData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.AfterClass;
@@ -52,11 +52,11 @@ public class ContentGatePlaceholderTest {
     @Test
     public void placeholderOnlyForMissingKeysAndOnlyWhenReady() {
         ContentGate gate = gate();
-        PlatformBlockState present = gate.resolveBlockOrPlaceholder("STONE");
+        NativeBlockState present = gate.resolveBlockOrPlaceholder("STONE");
         assertFalse(MissingBlockState.isPlaceholder(present));
         assertEquals("minecraft:stone", present.key());
 
-        PlatformBlockState missing = gate.resolveBlockOrPlaceholder("minecraft:sulfur[lit=true]");
+        NativeBlockState missing = gate.resolveBlockOrPlaceholder("minecraft:sulfur[lit=true]");
         assertTrue(MissingBlockState.isPlaceholder(missing));
         assertEquals("minecraft:sulfur[lit=true]", missing.key());
         assertEquals("minecraft:sulfur", missing.materialKey());
@@ -70,7 +70,7 @@ public class ContentGatePlaceholderTest {
 
     @Test
     public void placeholderBehavesAsAirButKeepsItsKey() {
-        PlatformBlockState air = registries.air();
+        NativeBlockState air = registries.air();
         MissingBlockState placeholder = MissingBlockState.of("minecraft:sulfur[lit=true,axis=y]", air);
         assertTrue(placeholder.isAir());
         assertFalse(placeholder.isSolid());
@@ -94,17 +94,17 @@ public class ContentGatePlaceholderTest {
     @Test
     public void blockDataPlaceholderFollowsTheChainBeforeGivingUp() throws Exception {
         IrisData data = IrisData.get(Files.createTempDirectory("iris-compat-placeholder").toFile());
-        PlatformBlockState present = new IrisBlockData("minecraft:stone").getBlockDataOrPlaceholder(data);
+        NativeBlockState present = new IrisBlockData("minecraft:stone").getBlockDataOrPlaceholder(data);
         assertFalse(MissingBlockState.isPlaceholder(present));
         assertEquals("minecraft:stone", present.key());
 
-        PlatformBlockState revived = new IrisBlockData("minecraft:sulfur").setBackup(new IrisBlockData("minecraft:sand")).getBlockDataOrPlaceholder(data);
+        NativeBlockState revived = new IrisBlockData("minecraft:sulfur").setBackup(new IrisBlockData("minecraft:sand")).getBlockDataOrPlaceholder(data);
         assertEquals("minecraft:sand", revived.key());
         assertFalse(MissingBlockState.isPlaceholder(revived));
 
         IrisBlockData missing = new IrisBlockData("minecraft:sulfur");
         missing.getData().put("lit", true);
-        PlatformBlockState placeholder = missing.getBlockDataOrPlaceholder(data);
+        NativeBlockState placeholder = missing.getBlockDataOrPlaceholder(data);
         assertTrue(MissingBlockState.isPlaceholder(placeholder));
         assertEquals("minecraft:sulfur[lit=true]", placeholder.key());
         assertTrue(missing.getBlockData(data).isAir());
@@ -118,7 +118,7 @@ public class ContentGatePlaceholderTest {
         IrisData data = IrisData.get(pack);
         IrisObject object = data.getObjectLoader().load("rescue");
         assertNotNull(object);
-        PlatformBlockState loaded = object.getBlocks().values().iterator().next();
+        NativeBlockState loaded = object.getBlocks().values().iterator().next();
         assertTrue(loaded.toString(), MissingBlockState.isPlaceholder(loaded));
 
         IrisObjectPlacement placement = placement();
@@ -138,7 +138,7 @@ public class ContentGatePlaceholderTest {
         mismatch.getEdit().add(replace(1F, true, "minecraft:sulfur[lit=false]", "minecraft:sand"));
         RecordingPlacer mismatchPlacer = new RecordingPlacer();
         object.place(0, 64, 0, mismatchPlacer, mismatch, new RNG(7L), data);
-        PlatformBlockState untouched = mismatchPlacer.writes.getFirst();
+        NativeBlockState untouched = mismatchPlacer.writes.getFirst();
         assertTrue(MissingBlockState.isPlaceholder(untouched));
         assertTrue(untouched.isAir());
         assertEquals(registries.air().nativeHandle(), untouched.nativeHandle());
@@ -183,7 +183,7 @@ public class ContentGatePlaceholderTest {
     }
 
     private static final class RecordingPlacer implements IObjectPlacer {
-        private final List<PlatformBlockState> writes = new ArrayList<>();
+        private final List<NativeBlockState> writes = new ArrayList<>();
 
         @Override
         public int getHighest(int x, int z, IrisData data) {
@@ -196,12 +196,12 @@ public class ContentGatePlaceholderTest {
         }
 
         @Override
-        public void set(int x, int y, int z, PlatformBlockState d) {
+        public void set(int x, int y, int z, NativeBlockState d) {
             writes.add(d);
         }
 
         @Override
-        public PlatformBlockState get(int x, int y, int z) {
+        public NativeBlockState get(int x, int y, int z) {
             return null;
         }
 

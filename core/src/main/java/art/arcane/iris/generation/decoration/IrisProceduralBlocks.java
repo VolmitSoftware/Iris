@@ -22,7 +22,7 @@ import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.structure.object.IrisObject;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.math.Vector3i;
@@ -57,7 +57,7 @@ public final class IrisProceduralBlocks {
         return palette != null && palette.getPalette() != null && !palette.getPalette().isEmpty();
     }
 
-    public static PlatformBlockState resolve(String block, IrisMaterialPalette palette, IrisData data, int x, int y, int z, RNG paletteRng) {
+    public static NativeBlockState resolve(String block, IrisMaterialPalette palette, IrisData data, int x, int y, int z, RNG paletteRng) {
         if (paletteSet(palette)) {
             return palette.get(paletteRng, x, y, z, data);
         }
@@ -67,7 +67,7 @@ public final class IrisProceduralBlocks {
         return null;
     }
 
-    public static boolean hasProperty(PlatformBlockState state, String property) {
+    public static boolean hasProperty(NativeBlockState state, String property) {
         String key = state.key();
         int start = propertyStart(key, property);
         if (start < 0) {
@@ -78,7 +78,7 @@ public final class IrisProceduralBlocks {
     }
 
     /** Blocks that fall when unsupported: sand, gravel and concrete powder. */
-    public static boolean isGravityAffected(PlatformBlockState state) {
+    public static boolean isGravityAffected(NativeBlockState state) {
         if (state == null) {
             return false;
         }
@@ -91,7 +91,7 @@ public final class IrisProceduralBlocks {
                 || key.endsWith("_concrete_powder");
     }
 
-    public static String materialKey(PlatformBlockState state) {
+    public static String materialKey(NativeBlockState state) {
         String memoized = state.materialKey();
         if (memoized != null) {
             return memoized;
@@ -101,7 +101,7 @@ public final class IrisProceduralBlocks {
         return bracket < 0 ? key : key.substring(0, bracket);
     }
 
-    public static String propertyValue(PlatformBlockState state, String property) {
+    public static String propertyValue(NativeBlockState state, String property) {
         String key = state.key();
         int start = propertyStart(key, property);
         if (start < 0) {
@@ -142,7 +142,7 @@ public final class IrisProceduralBlocks {
         return -1;
     }
 
-    public static IrisObject assemble(Map<Vector3i, PlatformBlockState> blocks) {
+    public static IrisObject assemble(Map<Vector3i, NativeBlockState> blocks) {
         if (blocks == null || blocks.isEmpty()) {
             return null;
         }
@@ -170,7 +170,7 @@ public final class IrisProceduralBlocks {
         int cz = d / 2;
 
         IrisObject object = new IrisObject(w, h, d);
-        for (Map.Entry<Vector3i, PlatformBlockState> entry : blocks.entrySet()) {
+        for (Map.Entry<Vector3i, NativeBlockState> entry : blocks.entrySet()) {
             Vector3i v = entry.getKey();
             int nx = v.getBlockX() - minX - cx;
             int ny = v.getBlockY() - cy + 1;

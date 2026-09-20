@@ -10,7 +10,7 @@ import art.arcane.iris.generation.hydrology.cave.CavePosition;
 import art.arcane.iris.generation.hydrology.cave.CaveVoxel;
 import art.arcane.iris.generation.hydrology.cave.CaveVoxelView;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -130,7 +130,7 @@ public final class MantleHydrologyCaveVoxelView implements CaveVoxelView {
             }
             return CaveVoxel.CAVE_AIR;
         }
-        PlatformBlockState block = dataIfPresent(position, PlatformBlockState.class);
+        NativeBlockState block = dataIfPresent(position, NativeBlockState.class);
         if (block != null) {
             if (!block.isFluid()) {
                 return CaveVoxel.SOLID;

@@ -1,5 +1,11 @@
 package art.arcane.iris.structure.placement;
 
+import art.arcane.volmlib.nativelib.terrain.structure.StructureTerrainSettings;
+
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
+
+import art.arcane.volmlib.util.structure.StructureCarveShape;
+
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 
 import art.arcane.volmlib.util.documentation.Description;
@@ -15,7 +21,7 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Data
 @Description("Terrain integration applied after a structure graph is assembled and before its pieces are placed.")
-public class IrisStructureTerrain {
+public class IrisStructureTerrain implements StructureTerrainSettings {
     private static final double AUTO_LOBE_FREQUENCY_RATIO = 0.3D;
     private static final double DEFAULT_EROSION_STRENGTH = 0.8D;
     private static final double DEFAULT_EROSION_FREQUENCY = 0.07D;
@@ -25,7 +31,7 @@ public class IrisStructureTerrain {
     private static final double MAX_LOBE_FREQUENCY = 1D;
 
     @Description("Terrain operation. SOURCE applies the registered native structure's authored terrain adaptation and is a no-op for editable Iris structures. PRESERVE disables terrain integration. FLATTEN cuts and fills exposed native structure terrain within flattenRange, blending across horizontalPadding blocks. VACUUM raises terrain from processed rigid-template foundations with a fixed 12-block falloff without lowering ground. BORE and FORCE_CARVE clear the requested envelope, while ENCASE fills it before placement.")
-    private IrisStructureTerrainMode mode = IrisStructureTerrainMode.SOURCE;
+    private StructureTerrainMode mode = StructureTerrainMode.SOURCE;
 
     @MinNumber(0)
     @MaxNumber(128)
@@ -48,7 +54,7 @@ public class IrisStructureTerrain {
     private int floorPadding = 0;
 
     @Description("Shape used by FORCE_CARVE.")
-    private IrisStructureCarveShape shape = IrisStructureCarveShape.BOX;
+    private StructureCarveShape shape = StructureCarveShape.BOX;
 
     @Description("Block palette used by ENCASE. When unset, the Overworld uses stone or deepslate, the Nether uses netherrack, and the End uses end stone.")
     private IrisMaterialPalette encasePalette = null;
@@ -73,12 +79,12 @@ public class IrisStructureTerrain {
     @Description("Fraction of the horizontal padding the lobes may remove for ERODED force carving. Zero keeps a uniform boundary.")
     private double lobeStrength = DEFAULT_LOBE_STRENGTH;
 
-    public IrisStructureTerrainMode resolvedMode() {
-        return mode == null ? IrisStructureTerrainMode.SOURCE : mode;
+    public StructureTerrainMode resolvedMode() {
+        return mode == null ? StructureTerrainMode.SOURCE : mode;
     }
 
-    public IrisStructureCarveShape resolvedShape() {
-        return shape == null ? IrisStructureCarveShape.BOX : shape;
+    public StructureCarveShape resolvedShape() {
+        return shape == null ? StructureCarveShape.BOX : shape;
     }
 
     public int resolvedFlattenRange() {

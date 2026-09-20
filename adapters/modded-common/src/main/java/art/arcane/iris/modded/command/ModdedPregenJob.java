@@ -19,6 +19,9 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.studio.view.PregeneratorJob;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.terrain.NativePregenRuntime;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedPregenRuntime;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.iris.world.pregen.PregenPerformanceProfile;
@@ -31,12 +34,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.localization.MessageArgument;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.dimension.DimensionType;
-import net.minecraft.world.level.storage.LevelResource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText;
 
 import java.io.File;
 import java.util.Objects;
@@ -51,27 +49,28 @@ public final class ModdedPregenJob {
     private ModdedPregenJob() {
     }
 
-    public static boolean start(MinecraftServer server, ServerLevel level, Engine engine, int radiusBlocks, int centerBlockX, int centerBlockZ, boolean gui, boolean sync, boolean cached) {
+    public static boolean start(NativeWorld world, Engine engine, PregenOptions options) {
         if (PregeneratorJob.getInstance() != null) {
             return false;
         }
 
+        NativePregenRuntime runtime = NativeModdedPregenRuntime.from(world);
         PregenTask task = PregenTask.builder()
-                .gui(gui)
-                .center(new Position2(centerBlockX, centerBlockZ))
-                .radiusX(radiusBlocks)
-                .radiusZ(radiusBlocks)
+                .gui(options.gui())
+                .center(new Position2(options.centerBlockX(), options.centerBlockZ()))
+                .radiusX(options.radiusBlocks())
+                .radiusZ(options.radiusBlocks())
                 .build();
-        ModdedPregenMethod moddedMethod = new ModdedPregenMethod(level, engine, sync);
+        ModdedPregenMethod moddedMethod = new ModdedPregenMethod(new ModdedPregenMethod.Configuration(runtime, engine, options.sync()));
         PregeneratorMethod method = moddedMethod;
-        if (cached) {
+        if (options.cached()) {
             method = new CachedPregenMethod(new CachedPregenMethod.Configuration(method,
-                    PregenCache.create(cacheDirectory(level)).sync(), task,
+                    PregenCache.create(cacheDirectory(runtime)).sync(), task,
                     PregenSavedChunkStatus.fromWorld(engine.getWorld().worldFolder().toPath())));
         }
         ActivePregen active = new ActivePregen(engine, moddedMethod);
         ACTIVE.set(active);
-        dimension = level.dimension().identifier().toString();
+        dimension = runtime.worldIdentity();
         try {
             PregeneratorJob job = new PregeneratorJob(new PregeneratorJob.Configuration(
                     task,
@@ -90,8 +89,8 @@ public final class ModdedPregenJob {
         }
     }
 
-    private static File cacheDirectory(ServerLevel level) {
-        File worldFolder = DimensionType.getStorageFolder(level.dimension(), level.getServer().getWorldPath(LevelResource.ROOT)).toFile();
+    private static File cacheDirectory(NativePregenRuntime runtime) {
+        File worldFolder = runtime.worldFolder();
         return new File(worldFolder, "iris" + File.separator + "pregen");
     }
 
@@ -121,29 +120,29 @@ public final class ModdedPregenJob {
         return PregeneratorJob.isPaused();
     }
 
-    public static Component statusComponent() {
+    public static NativeCommandText statusComponent() {
         PregeneratorJob.PregenProgress progress = PregeneratorJob.progressSnapshot();
         if (progress == null) {
             return null;
         }
 
-        MutableComponent status = Component.empty();
+        NativeCommandText status = NativeCommandText.empty();
         status.append(ModdedCommandFeedback.header(IrisLanguage.plain(RuntimeUiMessages.PREGEN_HEADER)));
-        status.append(Component.literal("\n"));
+        status.append(NativeCommandText.literal("\n"));
         status.append(ModdedCommandFeedback.text(IrisLanguage.plain(
                 RuntimeUiMessages.PREGEN_STATUS_CONTEXT,
                 MessageArgument.untrusted("dimension", dimension),
                 MessageArgument.untrusted("method", progress.method())
         ), ModdedCommandFeedback.DARK_GREEN));
-        status.append(Component.literal("\n"));
+        status.append(NativeCommandText.literal("\n"));
         status.append(ModdedCommandFeedback.progressBar(progress.percent(), 32));
         status.append(ModdedCommandFeedback.text(" " + IrisLanguage.plain(
                 RuntimeUiMessages.PREGEN_STATUS_PROGRESS,
                 MessageArgument.trusted("percent", String.format("%.1f", progress.percent()))
         ), ModdedCommandFeedback.USAGE));
-        status.append(Component.literal("\n"));
+        status.append(NativeCommandText.literal("\n"));
         status.append(ModdedCommandFeedback.text(chunksStatus(progress), ModdedCommandFeedback.DARK_GREEN));
-        status.append(Component.literal("\n"));
+        status.append(NativeCommandText.literal("\n"));
         status.append(ModdedCommandFeedback.text(IrisLanguage.plain(
                 progress.paused()
                         ? RuntimeUiMessages.PREGEN_STATUS_TIME_PAUSED
@@ -151,7 +150,7 @@ public final class ModdedPregenJob {
                 MessageArgument.trusted("eta", Form.duration(progress.eta(), 2)),
                 MessageArgument.trusted("elapsed", Form.duration(progress.elapsed(), 2))
         ), ModdedCommandFeedback.DARK_GREEN));
-        status.append(Component.literal("\n"));
+        status.append(NativeCommandText.literal("\n"));
         status.append(ModdedCommandFeedback.button(
                 IrisLanguage.plain(RuntimeUiMessages.PREGEN_PAUSE_BUTTON),
                 "/iris pregen pause",
@@ -165,7 +164,7 @@ public final class ModdedPregenJob {
                 IrisLanguage.plain(RuntimeUiMessages.PREGEN_STOP_HOVER),
                 true
         ));
-        status.append(Component.literal("\n"));
+        status.append(NativeCommandText.literal("\n"));
         status.append(ModdedCommandFeedback.footer());
         return status;
     }
@@ -244,6 +243,10 @@ public final class ModdedPregenJob {
             throw fatalError;
         }
         return new IllegalStateException("Iris modded pregenerator shutdown failed", failure);
+    }
+
+    public record PregenOptions(int radiusBlocks, int centerBlockX, int centerBlockZ,
+                               boolean gui, boolean sync, boolean cached) {
     }
 
     private record ActivePregen(Engine engine, ModdedPregenMethod method) {

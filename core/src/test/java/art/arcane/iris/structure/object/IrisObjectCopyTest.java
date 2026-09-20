@@ -2,7 +2,7 @@ package art.arcane.iris.structure.object;
 
 import art.arcane.iris.generation.block.TileData;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.collection.KMap;
@@ -26,7 +26,7 @@ public class IrisObjectCopyTest {
     @Test
     public void copyWaitsForVolumeMutationToComplete() throws Exception {
         IrisObject source = new IrisObject(1, 1, 1);
-        PlatformBlockState block = mock(PlatformBlockState.class);
+        NativeBlockState block = mock(NativeBlockState.class);
         CountDownLatch started = new CountDownLatch(1);
         try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
             Future<IrisObject> result;
@@ -55,7 +55,7 @@ public class IrisObjectCopyTest {
     @Test
     public void copyOwnsItsVolumeCoordinatesAndTiles() {
         IrisObject source = new IrisObject(1, 1, 1);
-        PlatformBlockState block = mock(PlatformBlockState.class);
+        NativeBlockState block = mock(NativeBlockState.class);
         TileData tile = new TileData("minecraft:chest", new KMap<>());
         tile.getProperties().put("name", "source");
         source.setUnsigned(0, 0, 0, block);

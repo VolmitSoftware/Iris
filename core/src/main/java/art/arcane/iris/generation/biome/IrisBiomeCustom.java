@@ -20,7 +20,7 @@ package art.arcane.iris.generation.biome;
 
 import art.arcane.iris.pack.validation.ContentGate;
 import art.arcane.iris.pack.validation.KeyStatus;
-import art.arcane.iris.platform.bukkit.nms.datapack.IDataFixer;
+import art.arcane.iris.pack.datapack.IDataFixer;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.iris.pack.schema.annotation.DependsOn;
 import art.arcane.volmlib.util.documentation.Description;

@@ -20,7 +20,7 @@ package art.arcane.iris.modded;
 
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.json.JSONObject;
-import art.arcane.iris.platform.bukkit.nms.datapack.v1217.DataFixerV1217;
+import art.arcane.iris.pack.datapack.v1217.DataFixerV1217;
 import art.arcane.iris.world.history.GenerationEpochContractFactory;
 import art.arcane.iris.world.history.GenerationRegistryContract;
 import art.arcane.iris.world.history.GenerationRegistryContractFactory;

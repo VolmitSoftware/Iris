@@ -26,7 +26,7 @@ import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.Required;
 import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.collection.KList;
 import lombok.Data;
@@ -60,11 +60,11 @@ public class IrisCommand {
     @Description("The weather that is required for the command to execute.")
     private IrisWeather weather = IrisWeather.ANY;
 
-    public boolean isValid(PlatformWorld world) {
+    public boolean isValid(NativeWorld world) {
         return timeBlock.isWithin(world) && weather.is(world);
     }
 
-    public void run(PlatformWorld world, int x, int y, int z) {
+    public void run(NativeWorld world, int x, int y, int z) {
         if (!isValid(world)) {
             return;
         }

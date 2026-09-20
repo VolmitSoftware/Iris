@@ -21,7 +21,7 @@ package art.arcane.iris.command;
 import com.google.gson.JsonObject;
 import art.arcane.iris.Iris;
 import art.arcane.iris.pack.datapack.ServerConfigurator;
-import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
+import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.world.runtime.ChunkClearer;
 import art.arcane.iris.generation.validation.GoldenHashScanner;
 import art.arcane.iris.world.runtime.InPlaceChunkRegenerator;

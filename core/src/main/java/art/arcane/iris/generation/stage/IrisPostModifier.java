@@ -32,9 +32,9 @@ import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
-public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState> {
+public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
     private static final BoundBlockState AIR = BoundBlockState.of("AIR");
 
     private final RNG rng;
@@ -45,11 +45,11 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
+    public void onModify(int x, int z, Hunk<NativeBlockState> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         // The post stage runs sequentially on production (multicore false); an uncontended
         // monitor per probe is still a monitor times ~10k probes per chunk.
-        Hunk<PlatformBlockState> sync = multicore ? output.synchronize() : output;
+        Hunk<NativeBlockState> sync = multicore ? output.synchronize() : output;
         int width = output.getWidth();
         int depth = output.getDepth();
         int planeWidth = width + 2;
@@ -109,7 +109,7 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
         return heights;
     }
 
-    private void post(int currentPostX, int currentPostZ, Hunk<PlatformBlockState> currentData, int x, int z, ChunkContext context, int[] heights, int planeWidth, boolean walls, boolean slabs) {
+    private void post(int currentPostX, int currentPostZ, Hunk<NativeBlockState> currentData, int x, int z, ChunkContext context, int[] heights, int planeWidth, boolean walls, boolean slabs) {
         // x/z are world coordinates, the hunk is indexed relative to this chunk origin.
         int originX = x - currentPostX;
         int originZ = z - currentPostZ;
@@ -157,8 +157,8 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
         }
 
         if (g >= 4) {
-            PlatformBlockState bcState = getPostBlock(x, h, z, originX, originZ, currentData);
-            PlatformBlockState bState = getPostBlock(x, h + 1, z, originX, originZ, currentData);
+            NativeBlockState bcState = getPostBlock(x, h, z, originX, originZ, currentData);
+            NativeBlockState bState = getPostBlock(x, h + 1, z, originX, originZ, currentData);
 
             if (bState.isOccluding() && bState.isSolid()) {
                 if (bcState.isSolid()) {
@@ -175,10 +175,10 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
             g += hd == h + 1 ? 1 : 0;
 
             if (g >= 4) {
-                PlatformBlockState ba = getPostBlock(x, ha, z, originX, originZ, currentData);
-                PlatformBlockState bb = getPostBlock(x, hb, z, originX, originZ, currentData);
-                PlatformBlockState bc = getPostBlock(x, hc, z, originX, originZ, currentData);
-                PlatformBlockState bd = getPostBlock(x, hd, z, originX, originZ, currentData);
+                NativeBlockState ba = getPostBlock(x, ha, z, originX, originZ, currentData);
+                NativeBlockState bb = getPostBlock(x, hb, z, originX, originZ, currentData);
+                NativeBlockState bc = getPostBlock(x, hc, z, originX, originZ, currentData);
+                NativeBlockState bd = getPostBlock(x, hd, z, originX, originZ, currentData);
                 g = 0;
                 g = B.isSolid(ba) ? g + 1 : g;
                 g = B.isSolid(bb) ? g + 1 : g;
@@ -204,7 +204,7 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
                     int max = Math.abs(Math.max(h - ha, Math.max(h - hb, Math.max(h - hc, h - hd))));
 
                     for (int i = h; i > h - max; i--) {
-                        PlatformBlockState d = biome.getWall().get(rng, x + i, i + h, z + i, getData());
+                        NativeBlockState d = biome.getWall().get(rng, x + i, i + h, z + i, getData());
 
                         if (d != null) {
                             if (isAirOrWater(x, i, z, originX, originZ, currentData)) {
@@ -233,7 +233,7 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
             //@done
             {
                 IrisSlopeClip sc = biome.getSlab().getSlopeCondition();
-                PlatformBlockState d = sc.isValid(getComplex().getSlopeStream().get(x, z)) ? biome.getSlab().get(rng, x, h, z, getData()) : null;
+                NativeBlockState d = sc.isValid(getComplex().getSlopeStream().get(x, z)) ? biome.getSlab().get(rng, x, h, z, getData()) : null;
 
                 if (d != null) {
                     boolean cancel = B.isAir(d);
@@ -255,7 +255,7 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
         }
 
         // Waterlogging
-        PlatformBlockState b = getPostBlock(x, h, z, originX, originZ, currentData);
+        NativeBlockState b = getPostBlock(x, h, z, originX, originZ, currentData);
 
         if (IrisProceduralBlocks.hasProperty(b, "waterlogged")) {
             boolean w = false;
@@ -277,7 +277,7 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
         b = getPostBlock(x, h + 1, z, originX, originZ, currentData);
 
         if (B.isVineBlock(b)) {
-            PlatformBlockState result = b;
+            NativeBlockState result = b;
             int finalH = h + 1;
 
             for (String face : IrisProceduralBlocks.FACE_PROPERTIES) {
@@ -285,7 +285,7 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
                     continue;
                 }
                 int[] mod = IrisProceduralBlocks.faceOffset(face);
-                PlatformBlockState d = getPostBlock(x + mod[0], finalH + mod[1], z + mod[2], originX, originZ, currentData);
+                NativeBlockState d = getPostBlock(x + mod[0], finalH + mod[1], z + mod[2], originX, originZ, currentData);
                 result = result.withProperty(face, String.valueOf(!B.isAir(d) && !B.isVineBlock(d)));
             }
             if (!result.equals(b)) {
@@ -294,7 +294,7 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
         }
 
         if (B.isFoliage(b) || IrisProceduralBlocks.materialKey(b).equals("minecraft:dead_bush")) {
-            PlatformBlockState onto = getPostBlock(x, h, z, originX, originZ, currentData);
+            NativeBlockState onto = getPostBlock(x, h, z, originX, originZ, currentData);
 
             if (!B.canPlaceOnto(b, onto) && !B.isDecorant(b)) {
                 setPostBlock(x, h + 1, z, AIR.get(), originX, originZ, currentData);
@@ -302,53 +302,53 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
         }
     }
 
-    public boolean isAir(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
+    public boolean isAir(int x, int y, int z, int originX, int originZ, Hunk<NativeBlockState> currentData) {
         String material = IrisProceduralBlocks.materialKey(getPostBlock(x, y, z, originX, originZ, currentData));
         return material.equals("minecraft:air") || material.equals("minecraft:cave_air");
     }
 
-    public boolean hasGravity(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
+    public boolean hasGravity(int x, int y, int z, int originX, int originZ, Hunk<NativeBlockState> currentData) {
         String material = IrisProceduralBlocks.materialKey(getPostBlock(x, y, z, originX, originZ, currentData));
         return material.equals("minecraft:sand") || material.equals("minecraft:red_sand") || material.endsWith("_concrete_powder");
     }
 
-    public boolean isSolid(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
-        PlatformBlockState d = getPostBlock(x, y, z, originX, originZ, currentData);
+    public boolean isSolid(int x, int y, int z, int originX, int originZ, Hunk<NativeBlockState> currentData) {
+        NativeBlockState d = getPostBlock(x, y, z, originX, originZ, currentData);
         return B.isSolid(d) && !B.isVineBlock(d);
     }
 
-    public boolean isSolidNonSlab(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
-        PlatformBlockState d = getPostBlock(x, y, z, originX, originZ, currentData);
+    public boolean isSolidNonSlab(int x, int y, int z, int originX, int originZ, Hunk<NativeBlockState> currentData) {
+        NativeBlockState d = getPostBlock(x, y, z, originX, originZ, currentData);
         return B.isSolid(d) && !IrisProceduralBlocks.materialKey(d).endsWith("_slab");
     }
 
-    public boolean isAirOrWater(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
+    public boolean isAirOrWater(int x, int y, int z, int originX, int originZ, Hunk<NativeBlockState> currentData) {
         String material = IrisProceduralBlocks.materialKey(getPostBlock(x, y, z, originX, originZ, currentData));
         return material.equals("minecraft:water") || material.equals("minecraft:air") || material.equals("minecraft:cave_air");
     }
 
-    public boolean isSlab(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
+    public boolean isSlab(int x, int y, int z, int originX, int originZ, Hunk<NativeBlockState> currentData) {
         return IrisProceduralBlocks.materialKey(getPostBlock(x, y, z, originX, originZ, currentData)).endsWith("_slab");
     }
 
-    public boolean isSnowLayer(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
+    public boolean isSnowLayer(int x, int y, int z, int originX, int originZ, Hunk<NativeBlockState> currentData) {
         return IrisProceduralBlocks.materialKey(getPostBlock(x, y, z, originX, originZ, currentData)).equals("minecraft:snow");
     }
 
-    public boolean isWater(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
+    public boolean isWater(int x, int y, int z, int originX, int originZ, Hunk<NativeBlockState> currentData) {
         return IrisProceduralBlocks.materialKey(getPostBlock(x, y, z, originX, originZ, currentData)).equals("minecraft:water");
     }
 
-    public boolean isWaterOrWaterlogged(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
-        PlatformBlockState d = getPostBlock(x, y, z, originX, originZ, currentData);
+    public boolean isWaterOrWaterlogged(int x, int y, int z, int originX, int originZ, Hunk<NativeBlockState> currentData) {
+        NativeBlockState d = getPostBlock(x, y, z, originX, originZ, currentData);
         return IrisProceduralBlocks.materialKey(d).equals("minecraft:water") || "true".equals(IrisProceduralBlocks.propertyValue(d, "waterlogged"));
     }
 
-    public boolean isLiquid(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
+    public boolean isLiquid(int x, int y, int z, int originX, int originZ, Hunk<NativeBlockState> currentData) {
         return IrisProceduralBlocks.hasProperty(getPostBlock(x, y, z, originX, originZ, currentData), "level");
     }
 
-    public void setPostBlock(int x, int y, int z, PlatformBlockState d, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
+    public void setPostBlock(int x, int y, int z, NativeBlockState d, int originX, int originZ, Hunk<NativeBlockState> currentData) {
         int lx = x - originX;
         int lz = z - originZ;
 
@@ -364,8 +364,8 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
      * available while generating this one. Resolve the hunk index relative to the chunk origin and let
      * getClosest clamp to the nearest in-chunk column instead of wrapping to the opposite chunk edge.
      */
-    public PlatformBlockState getPostBlock(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> h) {
-        PlatformBlockState b = h.getClosest(x - originX, y, z - originZ);
+    public NativeBlockState getPostBlock(int x, int y, int z, int originX, int originZ, Hunk<NativeBlockState> h) {
+        NativeBlockState b = h.getClosest(x - originX, y, z - originZ);
 
         return b == null ? AIR.get() : b;
     }

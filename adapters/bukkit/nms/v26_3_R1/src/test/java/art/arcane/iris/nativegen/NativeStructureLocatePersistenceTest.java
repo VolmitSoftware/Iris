@@ -1,5 +1,7 @@
 package art.arcane.iris.nativegen.v26_3_R1;
 
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureLocatePersistence;
+
 import net.minecraft.SharedConstants;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.Bootstrap;

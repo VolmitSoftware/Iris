@@ -18,6 +18,9 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEditPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEditWorld;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.RuntimeUiMessages;
@@ -26,27 +29,13 @@ import art.arcane.iris.generation.runtime.GenerationSessionException;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.modded.ModdedBlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedScheduler;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.volmlib.util.localization.MessageArgument;
-import net.minecraft.ChatFormatting;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
-import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.level.biome.Biome;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText.Format;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -63,52 +52,52 @@ import java.util.function.Supplier;
 public final class ModdedDustRevealer {
     private static final int MAX_HITS = 2_048;
     private static final int PARTICLE_BATCH_SIZE = 64;
-    private static final DustParticleOptions REVEAL_DUST = new DustParticleOptions(0xFFD24A, 1.2F);
+    private static final NativeEditPlayer.Dust REVEAL_DUST = new NativeEditPlayer.Dust(0xFFD24A, 1.2F);
+    private static final NativeEditPlayer.ParticleSpread REVEAL_SPREAD = new NativeEditPlayer.ParticleSpread(3, 0.25D, 0.25D, 0.25D, 0.0D);
     private static final ConcurrentHashMap<UUID, RevealRun> ACTIVE_RUNS = new ConcurrentHashMap<>();
 
     private ModdedDustRevealer() {
     }
 
-    public static void reveal(ServerPlayer player, ServerLevel level, BlockPos pos) {
-        Engine engine = IrisModdedCommands.engineFor(level);
+    public static void reveal(NativeEditPlayer player, NativeEditWorld level, NativeBlockPoint pos) {
+        Engine engine = IrisModdedCommands.engineFor(level.world());
         if (engine == null) {
-            player.sendSystemMessage(Component.literal(
+            player.sendSystemMessage(NativeCommandText.literal(
                     IrisLanguage.plain(RuntimeUiMessages.DUST_IRIS_WORLD_REQUIRED)));
             return;
         }
         describe(player, level, engine, pos);
 
-        int relativeY = pos.getY() - engine.getMinHeight();
+        int relativeY = pos.y() - engine.getMinHeight();
         String key = safe(
                 "object lookup at " + coordinates(pos),
-                () -> engine.getObjectPlacementKey(pos.getX(), relativeY, pos.getZ()));
+                () -> engine.getObjectPlacementKey(pos.x(), relativeY, pos.z()));
         if (key == null) {
             return;
         }
         ModdedScheduler scheduler = ModdedEngineBootstrap.schedulerOrNull();
         if (scheduler == null) {
-            player.sendSystemMessage(Component.literal(
+            player.sendSystemMessage(NativeCommandText.literal(
                     IrisLanguage.plain(RuntimeUiMessages.DUST_REVEAL_FAILED)));
             return;
         }
-        level.playSound(null, pos, SoundEvents.LODESTONE_COMPASS_LOCK,
-                SoundSource.PLAYERS, 1.0F, 0.1F);
-        player.sendSystemMessage(Component.literal(IrisLanguage.plain(
+        level.sound(pos, "minecraft:item.lodestone_compass.lock", new NativeEditWorld.SoundOptions(1.0F, 0.1F));
+        player.sendSystemMessage(NativeCommandText.literal(IrisLanguage.plain(
                 RuntimeUiMessages.DUST_FOUND_OBJECT,
                 MessageArgument.untrusted("object", key)
         )));
 
         RevealRun run = new RevealRun(
-                player.getUUID(),
+                player.id(),
                 player,
                 level,
                 engine,
-                pos.immutable(),
+                pos,
                 key,
-                level.getMinY(),
-                level.getMaxY() + 1,
+                level.minY(),
+                level.maxY() + 1,
                 new AtomicBoolean());
-        RevealRun previous = ACTIVE_RUNS.put(player.getUUID(), run);
+        RevealRun previous = ACTIVE_RUNS.put(player.id(), run);
         if (previous != null) {
             previous.cancelled().set(true);
         }
@@ -125,7 +114,7 @@ public final class ModdedDustRevealer {
     private static void discover(ModdedScheduler scheduler, RevealRun run) {
         try (GenerationSessionLease lease = run.engine().acquireGenerationLease("modded_dust_reveal");
              IrisContext.Scope ignored = IrisContext.open(run.engine(), lease.sessionId(), null)) {
-            List<BlockPos> hits = collect(run);
+            List<NativeBlockPoint> hits = collect(run);
             if (!run.cancelled().get()) {
                 scheduler.global(() -> revealBatch(scheduler, run, hits, 0));
             }
@@ -136,7 +125,7 @@ public final class ModdedDustRevealer {
         }
     }
 
-    static List<BlockPos> collect(RevealRun run) {
+    static List<NativeBlockPoint> collect(RevealRun run) {
         return collect(
                 run.origin(),
                 run.key(),
@@ -148,16 +137,16 @@ public final class ModdedDustRevealer {
                         run.engine().getObjectPlacementKey(x, relativeY, z));
     }
 
-    static List<BlockPos> collect(BlockPos origin, String key, int engineMinY,
+    static List<NativeBlockPoint> collect(NativeBlockPoint origin, String key, int engineMinY,
                                   int minY, int maxYExclusive, AtomicBoolean cancelled,
                                   ObjectPlacementLookup lookup) {
-        List<BlockPos> hits = new ArrayList<>();
-        Set<BlockPos> visited = new HashSet<>();
-        Deque<BlockPos> frontier = new ArrayDeque<>();
+        List<NativeBlockPoint> hits = new ArrayList<>();
+        Set<NativeBlockPoint> visited = new HashSet<>();
+        Deque<NativeBlockPoint> frontier = new ArrayDeque<>();
         frontier.add(origin);
         visited.add(origin);
         while (!frontier.isEmpty() && hits.size() < MAX_HITS && !cancelled.get()) {
-            BlockPos current = frontier.poll();
+            NativeBlockPoint current = frontier.poll();
             hits.add(current);
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dy = -1; dy <= 1; dy++) {
@@ -165,14 +154,14 @@ public final class ModdedDustRevealer {
                         if (dx == 0 && dy == 0 && dz == 0) {
                             continue;
                         }
-                        BlockPos next = current.offset(dx, dy, dz);
-                        if (next.getY() < minY
-                                || next.getY() >= maxYExclusive
+                        NativeBlockPoint next = current.offset(dx, dy, dz);
+                        if (next.y() < minY
+                                || next.y() >= maxYExclusive
                                 || !visited.add(next)) {
                             continue;
                         }
                         String nextKey = lookup.at(
-                                next.getX(), next.getY() - engineMinY, next.getZ());
+                                next.x(), next.y() - engineMinY, next.z());
                         if (key.equals(nextKey)) {
                             frontier.add(next);
                         }
@@ -184,7 +173,7 @@ public final class ModdedDustRevealer {
     }
 
     private static void revealBatch(ModdedScheduler scheduler, RevealRun run,
-                                    List<BlockPos> hits, int from) {
+                                    List<NativeBlockPoint> hits, int from) {
         if (!active(run)) {
             // Drop the registry entry on abort too, or the run record pins the player, level
             // and engine until server stop. No-op if a newer run already replaced it.
@@ -193,23 +182,20 @@ public final class ModdedDustRevealer {
         }
         int to = Math.min(hits.size(), from + PARTICLE_BATCH_SIZE);
         for (int index = from; index < to; index++) {
-            BlockPos hit = hits.get(index);
-            run.level().sendParticles(run.player(), REVEAL_DUST, true, true,
-                    hit.getX() + 0.5D, hit.getY() + 0.5D, hit.getZ() + 0.5D,
-                    3, 0.25D, 0.25D, 0.25D, 0.0D);
+            NativeBlockPoint hit = hits.get(index);
+            run.player().dust(REVEAL_DUST, hit.x() + 0.5D, hit.y() + 0.5D, hit.z() + 0.5D, REVEAL_SPREAD);
         }
         if (to > from) {
-            BlockPos soundAt = hits.get(from);
-            run.level().playSound(null, soundAt, SoundEvents.AMETHYST_BLOCK_CHIME,
-                    SoundSource.PLAYERS, 0.5F,
-                    ThreadLocalRandom.current().nextFloat(0.2F, 2.0F));
+            NativeBlockPoint soundAt = hits.get(from);
+            run.level().sound(soundAt, "minecraft:block.amethyst_block.chime",
+                    new NativeEditWorld.SoundOptions(0.5F, ThreadLocalRandom.current().nextFloat(0.2F, 2.0F)));
         }
         if (to < hits.size()) {
             scheduler.laterGlobal(() -> revealBatch(scheduler, run, hits, to), 1);
             return;
         }
         ACTIVE_RUNS.remove(run.playerId(), run);
-        run.player().sendSystemMessage(Component.literal(IrisLanguage.plain(
+        run.player().sendSystemMessage(NativeCommandText.literal(IrisLanguage.plain(
                 hits.size() >= MAX_HITS
                         ? RuntimeUiMessages.DUST_REVEALED_CAPPED
                         : RuntimeUiMessages.DUST_REVEALED,
@@ -221,9 +207,7 @@ public final class ModdedDustRevealer {
     private static boolean active(RevealRun run) {
         return !run.cancelled().get()
                 && ACTIVE_RUNS.get(run.playerId()) == run
-                && !run.player().hasDisconnected()
-                && !run.player().isRemoved()
-                && run.player().level() == run.level()
+                && run.player().activeIn(run.level())
                 && !run.engine().isClosing()
                 && !run.engine().isClosed();
     }
@@ -232,16 +216,16 @@ public final class ModdedDustRevealer {
         ModdedIrisLog.error("Iris dust reveal failed for {} at {}", run.key(), coordinates(run.origin()), error);
         scheduler.global(() -> {
             if (ACTIVE_RUNS.remove(run.playerId(), run)) {
-                run.player().sendSystemMessage(Component.literal(
+                run.player().sendSystemMessage(NativeCommandText.literal(
                         IrisLanguage.plain(RuntimeUiMessages.DUST_REVEAL_FAILED)));
             }
         });
     }
 
-    private static void describe(ServerPlayer player, ServerLevel level, Engine engine, BlockPos pos) {
-        int x = pos.getX();
-        int y = pos.getY();
-        int z = pos.getZ();
+    private static void describe(NativeEditPlayer player, NativeEditWorld level, Engine engine, NativeBlockPoint pos) {
+        int x = pos.x();
+        int y = pos.y();
+        int z = pos.z();
         int minHeight = engine.getMinHeight();
         int relativeY = y - minHeight;
         Integer surfaceRelative = safe(
@@ -275,7 +259,7 @@ public final class ModdedDustRevealer {
         ), false));
         lines.add(new DustLine(IrisLanguage.plain(
                 RuntimeUiMessages.DUST_BLOCK,
-                MessageArgument.untrusted("block", ModdedBlockState.serialize(level.getBlockState(pos)))
+                MessageArgument.untrusted("block", level.block(pos.x(), pos.y(), pos.z()).key())
         ), false));
         if (offset != null && surfaceY != null) {
             lines.add(new DustLine(positionLine(offset, surfaceY), true));
@@ -419,36 +403,32 @@ public final class ModdedDustRevealer {
         return null;
     }
 
-    private static NativeBiome nativeBiome(ServerLevel level, BlockPos pos) {
-        Holder<Biome> holder = level.getBiome(pos);
-        String key = holder.unwrapKey()
-                .map((ResourceKey<Biome> resourceKey) -> resourceKey.identifier().toString())
-                .orElse(IrisLanguage.plain(RuntimeUiMessages.STATUS_UNREGISTERED));
-        Registry<Biome> registry = level.registryAccess().lookupOrThrow(Registries.BIOME);
-        return new NativeBiome(key, registry.getId(holder.value()));
+    private static NativeBiome nativeBiome(NativeEditWorld level, NativeBlockPoint pos) {
+        NativeEditWorld.BiomeIdentity biome = level.biome(pos);
+        return new NativeBiome(biome.key() == null ? IrisLanguage.plain(RuntimeUiMessages.STATUS_UNREGISTERED) : biome.key(), biome.id());
     }
 
-    private static void sendReport(ServerPlayer player, List<DustLine> lines) {
+    private static void sendReport(NativeEditPlayer player, List<DustLine> lines) {
         StringBuilder payload = new StringBuilder();
         for (int index = 0; index < lines.size(); index++) {
             DustLine line = lines.get(index);
-            ChatFormatting color = index == 0
-                    ? ChatFormatting.GOLD
-                    : line.emphasis() ? ChatFormatting.YELLOW : ChatFormatting.WHITE;
-            player.sendSystemMessage(Component.literal(line.text()).withStyle(color));
+            Format color = index == 0
+                    ? Format.GOLD
+                    : line.emphasis() ? Format.YELLOW : Format.WHITE;
+            player.sendSystemMessage(NativeCommandText.literal(line.text()).withStyle(color));
             if (index > 0) {
                 payload.append('\n');
             }
             payload.append(line.text());
         }
-        MutableComponent hover = Component.literal(
+        NativeCommandText hover = NativeCommandText.literal(
                 IrisLanguage.plain(RuntimeUiMessages.DUST_COPY_HOVER));
-        MutableComponent button = Component.literal(
+        NativeCommandText button = NativeCommandText.literal(
                         IrisLanguage.plain(RuntimeUiMessages.DUST_COPY_BUTTON))
-                .withStyle(ChatFormatting.GREEN)
+                .withStyle(Format.GREEN)
                 .withStyle(style -> style
-                        .withClickEvent(new ClickEvent.CopyToClipboard(payload.toString()))
-                        .withHoverEvent(new HoverEvent.ShowText(hover)));
+                        .copyToClipboard(payload.toString())
+                        .hover(hover));
         player.sendSystemMessage(button);
     }
 
@@ -461,8 +441,8 @@ public final class ModdedDustRevealer {
         }
     }
 
-    private static String coordinates(BlockPos pos) {
-        return pos.getX() + ", " + pos.getY() + ", " + pos.getZ();
+    private static String coordinates(NativeBlockPoint pos) {
+        return pos.x() + ", " + pos.y() + ", " + pos.z();
     }
 
     private record DustLine(String text, boolean emphasis) {
@@ -478,10 +458,10 @@ public final class ModdedDustRevealer {
 
     static record RevealRun(
             UUID playerId,
-            ServerPlayer player,
-            ServerLevel level,
+            NativeEditPlayer player,
+            NativeEditWorld level,
             Engine engine,
-            BlockPos origin,
+            NativeBlockPoint origin,
             String key,
             int minY,
             int maxYExclusive,

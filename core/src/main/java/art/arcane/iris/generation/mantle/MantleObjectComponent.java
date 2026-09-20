@@ -63,7 +63,7 @@ import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.noise.NoiseType;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.DataProvider;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 
@@ -115,7 +115,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 || (placement != null && placement.getTrees() != null && placement.getTrees().isNotEmpty());
     }
 
-    private static void writeTreeMaterial(IObjectPlacer placer, int x, int y, int z, PlatformBlockState data) {
+    private static void writeTreeMaterial(IObjectPlacer placer, int x, int y, int z, NativeBlockState data) {
         placer.setData(x, y, z, TreeBlockMaterial.of(data));
     }
 

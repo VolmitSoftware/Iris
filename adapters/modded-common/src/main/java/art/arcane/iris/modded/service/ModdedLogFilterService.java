@@ -26,14 +26,14 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.message.Message;
 
-import java.util.List;
+import java.util.Set;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeServerLogMessages;
 
 public final class ModdedLogFilterService implements ModdedService, Filter {
-    private static final String VANILLA_LOGGER_PREFIX = "net.minecraft";
-    private static final List<String> FILTERS = List.of(
-        "Ignoring heightmap data for chunk",
-        "Could not save data net.minecraft.world.entity.raid.PersistentRaid",
-        "UUID of added entity already exists");
+    private static final Set<NativeServerLogMessages.Kind> FILTERS = Set.of(
+            NativeServerLogMessages.Kind.IGNORED_HEIGHTMAP,
+            NativeServerLogMessages.Kind.RAID_PERSISTENCE,
+            NativeServerLogMessages.Kind.DUPLICATE_ENTITY);
 
     private boolean installed = false;
 
@@ -163,14 +163,7 @@ public final class ModdedLogFilterService implements ModdedService, Filter {
     }
 
     private Result check(String loggerName, String message) {
-        if (loggerName == null || !loggerName.startsWith(VANILLA_LOGGER_PREFIX) || message == null) {
-            return Result.NEUTRAL;
-        }
-        for (String filter : FILTERS) {
-            if (message.contains(filter)) {
-                return Result.DENY;
-            }
-        }
-        return Result.NEUTRAL;
+        return FILTERS.contains(NativeServerLogMessages.classify(loggerName, message))
+                ? Result.DENY : Result.NEUTRAL;
     }
 }

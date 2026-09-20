@@ -44,7 +44,7 @@ import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.data.Cuboid;
 import art.arcane.iris.generation.block.IrisCustomData;
 import art.arcane.iris.command.specialhandlers.NullableDimensionHandler;
@@ -218,7 +218,7 @@ public class CommandObject implements DirectorExecutor {
             }
 
             @Override
-            public void set(int x, int y, int z, PlatformBlockState s) {
+            public void set(int x, int y, int z, NativeBlockState s) {
                 BlockData d = (BlockData) s.nativeHandle();
                 Block block = world.getBlockAt(x, y, z);
 
@@ -242,7 +242,7 @@ public class CommandObject implements DirectorExecutor {
             }
 
             @Override
-            public PlatformBlockState get(int x, int y, int z) {
+            public NativeBlockState get(int x, int y, int z) {
                 return BukkitBlockState.of(world.getBlockAt(x, y, z).getBlockData());
             }
 

@@ -1,8 +1,10 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.volmlib.nativelib.terrain.NativeTerrainReceiptStorage;
+
 import art.arcane.volmlib.util.nbt.io.NBTUtil;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.nbt.mca.MCABlockStateCodecSupport;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
 import art.arcane.volmlib.util.nbt.tag.ByteArrayTag;
@@ -61,9 +63,9 @@ final class SavedTerrainChunkReader {
         if (!SavedTerrainChunk.hasTerrain(status)) {
             throw new IOException("Saved chunk " + chunkX + "," + chunkZ + " has no terrain at native status " + status);
         }
-        Tag<?> receiptTag = root.get(NativeTerrainReceipt.NBT_KEY);
+        Tag<?> receiptTag = root.get(NativeTerrainReceiptStorage.NBT_KEY);
         if (root.get("ChunkBukkitValues") instanceof CompoundTag bukkitValues) {
-            receiptTag = bukkitValues.get(NativeTerrainReceipt.NBT_KEY);
+            receiptTag = bukkitValues.get(NativeTerrainReceiptStorage.NBT_KEY);
         }
         if (receiptTag != null) {
             if (!(receiptTag instanceof ByteArrayTag bytes)) {
@@ -123,9 +125,9 @@ final class SavedTerrainChunkReader {
     }
 
     private static long structureActivation(CompoundTag root) throws IOException {
-        Tag<?> activation = root.get(NativeTerrainReceipt.STRUCTURE_ACTIVATION_KEY);
+        Tag<?> activation = root.get(NativeTerrainReceiptStorage.STRUCTURE_ACTIVATION_KEY);
         if (root.get("ChunkBukkitValues") instanceof CompoundTag values) {
-            activation = values.get(NativeTerrainReceipt.STRUCTURE_ACTIVATION_KEY);
+            activation = values.get(NativeTerrainReceiptStorage.STRUCTURE_ACTIVATION_KEY);
         }
         if (activation == null) {
             return 0;
@@ -137,9 +139,9 @@ final class SavedTerrainChunkReader {
     }
 
     private static byte[] receipt(CompoundTag root) throws IOException {
-        Tag<?> receipt = root.get(NativeTerrainReceipt.NBT_KEY);
+        Tag<?> receipt = root.get(NativeTerrainReceiptStorage.NBT_KEY);
         if (root.get("ChunkBukkitValues") instanceof CompoundTag values) {
-            receipt = values.get(NativeTerrainReceipt.NBT_KEY);
+            receipt = values.get(NativeTerrainReceiptStorage.NBT_KEY);
         }
         if (receipt == null) {
             return null;
@@ -174,7 +176,7 @@ final class SavedTerrainChunkReader {
                 state = wrapped.get("");
             }
             if (format == MCABlockStateCodecSupport.Format.LOWERCASE && state instanceof StringTag name) {
-                PlatformBlockState resolved = IrisPlatforms.get().registries().blockOrNull(name.getValue());
+                NativeBlockState resolved = IrisPlatforms.get().registries().blockOrNull(name.getValue());
                 if (resolved == null) {
                     throw new IOException("Saved block state cannot be resolved: " + name.getValue());
                 }

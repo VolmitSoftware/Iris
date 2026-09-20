@@ -22,7 +22,7 @@ import art.arcane.iris.generation.block.TileData;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.jetbrains.annotations.Nullable;
 
 public class DecayControlPlacer implements IObjectPlacer {
@@ -43,12 +43,12 @@ public class DecayControlPlacer implements IObjectPlacer {
     }
 
     @Override
-    public void set(int x, int y, int z, PlatformBlockState d) {
+    public void set(int x, int y, int z, NativeBlockState d) {
         delegate.set(x, y, z, d);
     }
 
     @Override
-    public PlatformBlockState get(int x, int y, int z) {
+    public NativeBlockState get(int x, int y, int z) {
         return delegate.get(x, y, z);
     }
 

@@ -1,7 +1,7 @@
 package art.arcane.iris.probe;
 
 import art.arcane.iris.generation.block.TileData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KMap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -48,7 +48,7 @@ public final class StubTileData extends TileData {
         }
     }
 
-    static StubTileData fromProperties(PlatformBlockState state, KMap<String, Object> properties) {
+    static StubTileData fromProperties(NativeBlockState state, KMap<String, Object> properties) {
         if (state == null) {
             throw new IllegalArgumentException("Probe tile data requires a block state");
         }

@@ -18,47 +18,41 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEditWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.modded.ModdedBlockResolution;
-import art.arcane.iris.modded.ModdedBlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
 import art.arcane.iris.modded.ModdedTileData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.matter.Matter;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.levelgen.Heightmap;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.Map;
 
 final class ModdedObjectPlacer implements IObjectPlacer {
     private static final int DEFAULT_FLUID_HEIGHT = 63;
 
-    private final ServerLevel level;
+    private final NativeEditWorld level;
     private final Engine engine;
-    private final Map<BlockPos, BlockState> undo = new HashMap<>();
+    private final NativeEditWorld.EditSession undo;
     private int writes = 0;
     private int nonAirWrites = 0;
     private int skippedTiles = 0;
     private int restoredTiles = 0;
 
-    ModdedObjectPlacer(ServerLevel level, @Nullable Engine engine) {
-        this.level = level;
+    ModdedObjectPlacer(NativeWorld level, @Nullable Engine engine) {
+        this.level = new NativeEditWorld(level);
+        this.undo = this.level.editSession(new NativeEditWorld.EditOptions(level.minHeight() + 1, level.maxHeight(), true));
         this.engine = engine;
     }
 
-    Map<BlockPos, BlockState> undoSnapshot() {
+    NativeEditWorld.EditSession undoSnapshot() {
         return undo;
     }
 
@@ -80,36 +74,29 @@ final class ModdedObjectPlacer implements IObjectPlacer {
 
     @Override
     public int getHighest(int x, int z, IrisData data) {
-        return level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) - 1;
+        return level.highest(x, z, false);
     }
 
     @Override
     public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
-        return level.getHeight(ignoreFluid ? Heightmap.Types.OCEAN_FLOOR : Heightmap.Types.MOTION_BLOCKING, x, z) - 1;
+        return level.highest(x, z, ignoreFluid);
     }
 
     @Override
-    public void set(int x, int y, int z, PlatformBlockState s) {
-        if (y <= level.getMinY() || y >= level.getMinY() + level.getHeight()) {
+    public void set(int x, int y, int z, NativeBlockState s) {
+        NativeEditWorld.WriteResult result = undo.set(x, y, z, s);
+        if (result == NativeEditWorld.WriteResult.SKIPPED) {
             return;
         }
-        BlockPos pos = new BlockPos(x, y, z);
-        BlockState current = level.getBlockState(pos);
-        if (current.is(Blocks.BEDROCK)) {
-            return;
-        }
-        BlockState target = (BlockState) s.nativeHandle();
-        undo.putIfAbsent(pos, current);
-        level.setBlock(pos, target, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
         writes++;
-        if (!target.isAir()) {
+        if (result == NativeEditWorld.WriteResult.BLOCK) {
             nonAirWrites++;
         }
     }
 
     @Override
-    public PlatformBlockState get(int x, int y, int z) {
-        return ModdedBlockState.of(level.getBlockState(new BlockPos(x, y, z)), null);
+    public NativeBlockState get(int x, int y, int z) {
+        return level.block(x, y, z);
     }
 
     @Override
@@ -136,7 +123,7 @@ final class ModdedObjectPlacer implements IObjectPlacer {
 
     @Override
     public boolean isSolid(int x, int y, int z) {
-        return ModdedBlockResolution.isSolid(level.getBlockState(new BlockPos(x, y, z)));
+        return level.solid(x, y, z);
     }
 
     /**
@@ -170,34 +157,10 @@ final class ModdedObjectPlacer implements IObjectPlacer {
             skippedTiles++;
             return;
         }
-        BlockPos pos = new BlockPos(xx, yy, zz);
-        BlockState state = level.getBlockState(pos);
-        BlockState adjusted = moddedTile.adjustBlockState(state);
-        if (adjusted != state) {
-            level.setBlock(pos, adjusted, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
-            state = adjusted;
-        }
-        if (!state.hasBlockEntity()) {
-            skippedTiles++;
-            return;
-        }
-        try {
-            BlockEntity restored = level.getBlockEntity(pos);
-            if (restored == null && state.getBlock() instanceof EntityBlock entityBlock) {
-                restored = entityBlock.newBlockEntity(pos, state);
-            }
-            if (restored == null) {
-                skippedTiles++;
-                return;
-            }
-            level.setBlockEntity(restored);
-            if (!moddedTile.apply(restored, level)) {
-                skippedTiles++;
-                return;
-            }
+        if (level.restoreTile(new NativeBlockPoint(xx, yy, zz), moddedTile.nativeData(),
+                error -> ModdedIrisLog.error("Iris tile restore failed at {} {} {}", xx, yy, zz, error))) {
             restoredTiles++;
-        } catch (Throwable e) {
-            ModdedIrisLog.error("Iris tile restore failed at {} {} {}", xx, yy, zz, e);
+        } else {
             skippedTiles++;
         }
     }

@@ -25,7 +25,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.world.history.TerrainBoundarySignature;
 
 import java.util.Optional;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.jetbrains.annotations.Nullable;
 
 public interface IObjectPlacer {
@@ -33,9 +33,9 @@ public interface IObjectPlacer {
 
     int getHighest(int x, int z, IrisData data, boolean ignoreFluid);
 
-    void set(int x, int y, int z, PlatformBlockState d);
+    void set(int x, int y, int z, NativeBlockState d);
 
-    PlatformBlockState get(int x, int y, int z);
+    NativeBlockState get(int x, int y, int z);
 
     boolean isPreventingDecay();
 

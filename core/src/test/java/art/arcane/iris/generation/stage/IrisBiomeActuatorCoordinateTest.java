@@ -9,8 +9,8 @@ import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.iris.spi.PlatformBiomeWriter;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
@@ -73,7 +73,7 @@ public class IrisBiomeActuatorCoordinateTest {
         when(complex.allowsNewDiscreteContentAt(anyInt(), anyInt())).thenReturn(true);
         Engine engine = engine(complex);
         IrisBiomeActuator actuator = new IrisBiomeActuator(engine);
-        Hunk<PlatformBiome> output = mock(Hunk.class);
+        Hunk<NativeBiome> output = mock(Hunk.class);
         when(output.getWidth()).thenReturn(2);
         when(output.getDepth()).thenReturn(2);
         when(output.getHeight()).thenReturn(1);
@@ -126,7 +126,7 @@ public class IrisBiomeActuatorCoordinateTest {
                 .thenReturn(Optional.of("iris:old-physical"));
         Engine engine = engine(complex);
         IrisBiomeActuator actuator = new IrisBiomeActuator(engine);
-        Hunk<PlatformBiome> output = mock(Hunk.class);
+        Hunk<NativeBiome> output = mock(Hunk.class);
         when(output.getWidth()).thenReturn(1);
         when(output.getDepth()).thenReturn(1);
         when(output.getHeight()).thenReturn(1);
@@ -164,7 +164,7 @@ public class IrisBiomeActuatorCoordinateTest {
         Engine engine = engine(complex);
         when(engine.getMinHeight()).thenReturn(-64);
         IrisBiomeActuator actuator = new IrisBiomeActuator(engine);
-        Hunk<PlatformBiome> output = mock(Hunk.class);
+        Hunk<NativeBiome> output = mock(Hunk.class);
         when(output.getWidth()).thenReturn(1);
         when(output.getDepth()).thenReturn(1);
         when(output.getHeight()).thenReturn(8);
@@ -178,8 +178,8 @@ public class IrisBiomeActuatorCoordinateTest {
         verify(transitionPlan, times(1)).terrainSampleAt(100, -200);
         verify(transitionPlan, never()).newEpochWeightAt(anyInt(), anyInt());
         verify(transitionPlan, never()).historicalPhysicalBiomeKeyAt(anyInt(), anyInt(), anyInt());
-        verify(output).set(eq(0), eq(0), eq(0), eq(0), eq(3), eq(0), any(PlatformBiome.class));
-        verify(output).set(eq(0), eq(4), eq(0), eq(0), eq(7), eq(0), any(PlatformBiome.class));
+        verify(output).set(eq(0), eq(0), eq(0), eq(0), eq(3), eq(0), any(NativeBiome.class));
+        verify(output).set(eq(0), eq(4), eq(0), eq(0), eq(7), eq(0), any(NativeBiome.class));
         Mantle<Matter> mantle = engine.getMantle().getMantle();
         verify(mantle).set(eq(100), eq(0), eq(-200), argThat(value -> {
             MatterBiomeInject injection = (MatterBiomeInject) value;
@@ -219,8 +219,8 @@ public class IrisBiomeActuatorCoordinateTest {
 
     private void bindPlatform() {
         IrisPlatforms.unbind();
-        PlatformBiome biome = mock(PlatformBiome.class);
-        PlatformBlockState block = mock(PlatformBlockState.class);
+        NativeBiome biome = mock(NativeBiome.class);
+        NativeBlockState block = mock(NativeBlockState.class);
         PlatformRegistries registries = mock(PlatformRegistries.class);
         when(registries.biome(anyString())).thenReturn(biome);
         when(registries.block(anyString())).thenReturn(block);

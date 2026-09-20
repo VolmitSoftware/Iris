@@ -37,13 +37,13 @@ import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import lombok.Getter;
 
 import java.util.function.Predicate;
 
-public class IrisDecorantActuator extends EngineAssignedActuator<PlatformBlockState> {
-    private static final Predicate<PlatformBlockState> PREDICATE_SOLID = (s) -> s != null && !B.isAirOrFluid(s);
+public class IrisDecorantActuator extends EngineAssignedActuator<NativeBlockState> {
+    private static final Predicate<NativeBlockState> PREDICATE_SOLID = (s) -> s != null && !B.isAirOrFluid(s);
     private final RNG rng;
     @Getter
     private final IrisSurfaceDecorator surfaceDecorator;
@@ -87,7 +87,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<PlatformBlockSt
     }
 
     static boolean hasConnectedSurfaceWater(
-            Hunk<PlatformBlockState> output,
+            Hunk<NativeBlockState> output,
             int x,
             int z,
             int height,
@@ -99,7 +99,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<PlatformBlockSt
     }
 
     static boolean hasConnectedWaterColumn(
-            Hunk<PlatformBlockState> output,
+            Hunk<NativeBlockState> output,
             int x,
             int z,
             int lowerY,
@@ -119,13 +119,13 @@ public class IrisDecorantActuator extends EngineAssignedActuator<PlatformBlockSt
     }
 
     static void restoreUnsupportedAquaticPlacement(
-            Hunk<PlatformBlockState> output,
+            Hunk<NativeBlockState> output,
             int x,
             int y,
             int z,
-            PlatformBlockState original
+            NativeBlockState original
     ) {
-        PlatformBlockState placed = output.get(x, y, z);
+        NativeBlockState placed = output.get(x, y, z);
         if (placed != original && IrisSurfaceDecorator.isAquaticPlacement(placed)) {
             output.set(x, y, z, original);
         }
@@ -148,7 +148,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<PlatformBlockSt
 
     @BlockCoordinates
     @Override
-    public void onActuate(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
+    public void onActuate(int x, int z, Hunk<NativeBlockState> output, boolean multicore, ChunkContext context) {
         if (!getEngine().getDimension().isDecorate()) {
             return;
         }
@@ -184,7 +184,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<PlatformBlockSt
                 if (PREDICATE_SOLID.test(output.get(i, height, j))
                         && hasConnectedSurfaceWater(output, i, j, height, surfaceFluidHeight)) {
                     int seaSurfaceY = surfaceFluidHeight + 1;
-                    PlatformBlockState seaSurfaceOriginal = seaSurfaceY < output.getHeight()
+                    NativeBlockState seaSurfaceOriginal = seaSurfaceY < output.getHeight()
                             ? output.get(i, seaSurfaceY, j)
                             : null;
                     getSeaSurfaceDecorator().decorate(i, j,
@@ -262,7 +262,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<PlatformBlockSt
         return false; // TODO CAVES
     }
 
-    private void decorateTerrainLedges(Hunk<PlatformBlockState> output, Terrain3DColumn column,
+    private void decorateTerrainLedges(Hunk<NativeBlockState> output, Terrain3DColumn column,
                                        IrisBiome biome, int localX, int localZ, int worldX, int worldZ) {
         for (int span = 0; span + 1 < column.spanCount(); span++) {
             int floorY = column.floor(span);

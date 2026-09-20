@@ -3,7 +3,7 @@ package art.arcane.iris.structure.object;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.integration.ExternalDataSVC;
 import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.IrisCustomData;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -64,7 +64,7 @@ public class IrisObjectDirectPlacementTest {
 
     private static IrisObject object(BlockData data) {
         IrisObject object = new IrisObject(1, 1, 1);
-        PlatformBlockState state = mock(PlatformBlockState.class);
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.nativeHandle()).thenReturn(data);
         object.setUnsigned(0, 0, 0, state);
         return object;

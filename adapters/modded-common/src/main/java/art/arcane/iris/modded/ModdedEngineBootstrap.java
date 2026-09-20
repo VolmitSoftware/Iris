@@ -18,6 +18,34 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeServerSpawn;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
+
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
+
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntityLoot;
+
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeDimensionRuntime;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedServerLevels;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedLoader;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockDropHooks;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeTileReader;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolServer;
+import art.arcane.volmlib.nativelib.modded.EntityBehaviorTags;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntityBehavior;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeStateMerger;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedServerAccess;
+
 import art.arcane.iris.studio.view.GuiHost;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.generation.decoration.DecoratorPlatformHooks;
@@ -49,12 +77,6 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.generation.concurrent.MultiBurst;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.storage.LevelData;
 
 import java.util.ArrayDeque;
 
@@ -66,10 +88,10 @@ public final class ModdedEngineBootstrap {
     };
     private static final Object LOCK = new Object();
     private static final ModdedServiceManager UNBOUND_SERVICE_MANAGER = new ModdedServiceManager();
-    private static volatile ModdedLoader loader;
+    private static volatile NativeModdedLoader loader;
     private static volatile BoundRuntime runtime;
-    private static volatile MinecraftServer currentServer;
-    private static volatile MinecraftServer spawnCaptureServer;
+    private static volatile NativeModdedServer currentServer;
+    private static volatile NativeModdedServer spawnCaptureServer;
     private static volatile boolean initialSpawnWasDefault;
 
     private ModdedEngineBootstrap() {
@@ -85,16 +107,18 @@ public final class ModdedEngineBootstrap {
         return bound == null ? null : bound.platform().moddedScheduler();
     }
 
-    public static void tick(MinecraftServer server) {
-        ModdedScheduler.tick(server);
+    public static void tick(NativeModdedServer server) {
+        // First thing in the Iris tick body: keep the off-thread level snapshot current for levels registered
+        // outside ModdedServerAccess (vanilla boot, other mods) before the rest of the tick reads it.
+        ModdedScheduler.tick(server.refreshWorlds());
         ModdedStartup.runOnce(server);
         ModdedPrimaryWorldRouter.tick(server);
         services().tick(server);
-        ModdedPregenBossBar.tick(server);
-        ModdedProtocolHandler.tickDimensionSync(server);
+        ModdedPregenBossBar.tick();
+        ModdedProtocolHandler.tickDimensionSync();
     }
 
-    public static void start(MinecraftServer server) {
+    public static void start(NativeModdedServer server) {
         captureInitialSpawn(server);
         currentServer = server;
         bind();
@@ -113,47 +137,50 @@ public final class ModdedEngineBootstrap {
         IrisModdedChunkGenerator.startGenPool();
         bindWorldGenerators(server);
         services().enableAll();
-        ModdedProtocolHandler.start(server);
+        ModdedProtocolHandler.start(NativeProtocolServer.fromServer(server));
     }
 
-    private static void bindWorldGenerators(MinecraftServer server) {
-        for (ServerLevel level : server.getAllLevels()) {
-            if (level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator generator) {
-                generator.bindLevel(level);
+    private static void bindWorldGenerators(NativeModdedServer server) {
+        server.forEachLiveWorld((NativeWorld world) -> {
+            IrisModdedChunkGenerator generator = NativeWorldGenerators.find(world, IrisModdedChunkGenerator.class);
+            if (generator != null) {
+                generator.bindLevel(world);
             }
-        }
+        });
     }
 
-    public static void serverAboutToStart(MinecraftServer server) {
+    public static void serverAboutToStart(NativeModdedServer server) {
         captureInitialSpawn(server);
         ModdedStartup.prepareForStartup();
     }
 
-    public static void serverStarted(MinecraftServer server) {
+    public static void serverStarted(NativeModdedServer server) {
         // Prime the off-thread level snapshot before anything can read it; the per-tick refresh in
         // ModdedScheduler.tick has not run yet at this point.
-        ModdedServerLevels.refreshIfStale(server);
+        server.refreshWorlds();
         bindWorldGenerators(server);
         ModdedStartup.runOnce(server);
         reconcileSpawn(server);
         ModdedWorldCheck.serverStarted(server);
     }
 
-    public static void levelLoaded(ServerLevel level) {
-        if (level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator generator) {
-            generator.bindLevel(level);
+    public static void levelLoaded(NativeWorld world) {
+        IrisModdedChunkGenerator generator = NativeWorldGenerators.find(world, IrisModdedChunkGenerator.class);
+        if (generator != null) {
+            generator.bindLevel(world);
         }
     }
 
-    public static void levelUnloaded(ServerLevel level) {
-        if (!(level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator generator)) {
+    public static void levelUnloaded(NativeWorld world) {
+        IrisModdedChunkGenerator generator = NativeWorldGenerators.find(world, IrisModdedChunkGenerator.class);
+        if (generator == null) {
             return;
         }
 
         try {
-            generator.unbindEngine(level);
+            generator.unbindEngine(world);
         } catch (Throwable exception) {
-            ModdedIrisLog.error("Iris engine unload failed for {}", level.dimension().identifier(), exception);
+            ModdedIrisLog.error("Iris engine unload failed for {}", world.name(), exception);
             if (exception instanceof RuntimeException runtimeException) {
                 throw runtimeException;
             }
@@ -161,12 +188,12 @@ public final class ModdedEngineBootstrap {
                 throw fatalError;
             }
             throw new IllegalStateException("Iris engine unload failed for "
-                    + level.dimension().identifier(), exception);
+                    + world.name(), exception);
         }
     }
 
     public static void stop() {
-        MinecraftServer stoppingServer = currentServer;
+        NativeModdedServer stoppingServer = currentServer;
         Throwable failure = null;
         failure = runStopStage(failure, "pack downloads", IrisModdedCommands::shutdownDownloads);
         failure = runStopStage(failure, "world check", () -> ModdedWorldCheck.serverStopped(stoppingServer));
@@ -222,48 +249,52 @@ public final class ModdedEngineBootstrap {
         }
     }
 
-    private static void captureInitialSpawn(MinecraftServer server) {
-        if (spawnCaptureServer == server) {
+    private static void captureInitialSpawn(NativeModdedServer server) {
+        if (spawnCaptureServer != null && spawnCaptureServer.sameServer(server)) {
             return;
         }
-        LevelData.RespawnData respawnData = server.getRespawnData();
-        initialSpawnWasDefault = respawnData == null || LevelData.RespawnData.DEFAULT.equals(respawnData);
+        NativeServerSpawn.Respawn respawn = new NativeServerSpawn(server).current();
+        initialSpawnWasDefault = respawn == null || respawn.initialDefault();
         spawnCaptureServer = server;
     }
 
-    private static void reconcileSpawn(MinecraftServer server) {
-        LevelData.RespawnData current = server.getRespawnData();
-        if (current == null) {
+    private static void reconcileSpawn(NativeModdedServer server) {
+        NativeServerSpawn spawn = new NativeServerSpawn(server);
+        NativeServerSpawn.Respawn current = spawn.current();
+        if (current == null || current.world() == null) {
             return;
         }
-        ServerLevel level = server.getLevel(current.dimension());
-        if (level == null || !(level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator)) {
+        NativeWorld level = current.world();
+        if (NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class) == null) {
             return;
         }
-        String dimensionId = level.dimension().identifier().toString();
+        String dimensionId = level.name();
         boolean studio = dimensionId.startsWith("irisworldgen:studio_");
-        if (!shouldReconcileSpawn(initialSpawnWasDefault, studio, current.pos().getX(), current.pos().getZ())) {
+        if (!shouldReconcileSpawn(initialSpawnWasDefault, studio, current.position().x(), current.position().z())) {
             return;
         }
-        LevelChunk originChunk = level.getChunk(0, 0);
-        int surfaceY = originChunk.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0) + 1;
-        BlockPos position = reconciledSpawnPosition(surfaceY, level.getMinY(), level.getHeight());
-        server.setRespawnData(LevelData.RespawnData.of(
-                level.dimension(), position, current.yaw(), current.pitch()));
+        int surfaceY = spawn.surfaceAtOrigin(level);
+        NativeBlockPoint position = reconciledSpawnPosition(surfaceY, level.minHeight(), level.maxHeight() - level.minHeight());
+        spawn.update(new NativeServerSpawn.Respawn(level, position, current.yaw(), current.pitch(), false));
         ModdedIrisLog.info("Iris spawn reconciled for {} at {},{},{}", dimensionId,
-                position.getX(), position.getY(), position.getZ());
+                position.x(), position.y(), position.z());
     }
 
     static boolean shouldReconcileSpawn(boolean initialDefault, boolean studio, int currentX, int currentZ) {
         return initialDefault || studio || currentX == 0 && currentZ == 0;
     }
 
-    static BlockPos reconciledSpawnPosition(int surfaceY, int minY, int height) {
+    static NativeBlockPoint reconciledSpawnPosition(int surfaceY, int minY, int height) {
         int y = Math.max(minY + 1, Math.min(minY + height - 2, surfaceY));
-        return new BlockPos(0, y, 0);
+        return new NativeBlockPoint(0, y, 0);
     }
 
-    public static void bootCommon(ModdedLoader moddedLoader, String loaderDescription, Runnable chunkGeneratorRegistration) {
+    public static void bootCommon(NativeModdedLoader moddedLoader, String loaderDescription, Runnable chunkGeneratorRegistration) {
+        NativeEntityLoot.bind(ModdedDeathLoot::replaceBaseLoot);
+        NativeEntityBehavior.bind(new EntityBehaviorTags("iris_non_persistent", "iris_unaware"));
+        NativeBlockDropHooks.bind(new NativeBlockDropHooks.Hooks(
+                ModdedBlockBreakHandler::clearPlacedProvenance, ModdedBlockBreakHandler::completePrepared,
+                ModdedBlockBreakHandler::complete));
         loader = moddedLoader;
         ModdedIrisLog.info("Iris " + moddedLoader.modVersion() + " bootstrapping on Minecraft " + moddedLoader.minecraftVersion() + " (" + loaderDescription + ")");
         selfTest(moddedLoader.getClass().getClassLoader());
@@ -296,16 +327,16 @@ public final class ModdedEngineBootstrap {
         ModdedWorldCheck.schedule();
     }
 
-    public static ModdedLoader loader() {
-        ModdedLoader bound = loader;
+    public static NativeModdedLoader loader() {
+        NativeModdedLoader bound = loader;
         if (bound == null) {
             throw new IllegalStateException("Iris modded loader is not initialized; the loader bootstrap must call ModdedEngineBootstrap.bootCommon first");
         }
         return bound;
     }
 
-    public static MinecraftServer currentServer() {
-        MinecraftServer tracked = currentServer;
+    public static NativeModdedServer currentServer() {
+        NativeModdedServer tracked = currentServer;
         return tracked != null ? tracked : loader().currentServer();
     }
 
@@ -337,7 +368,7 @@ public final class ModdedEngineBootstrap {
             if (synchronizedBound != null) {
                 return synchronizedBound.platform();
             }
-            ModdedLoader boundLoader = loader();
+            NativeModdedLoader boundLoader = loader();
             ModdedPlatform created = new ModdedPlatform(boundLoader);
             ModdedServiceManager createdServices = new ModdedServiceManager();
             BindRollback rollback = new BindRollback();
@@ -350,17 +381,18 @@ public final class ModdedEngineBootstrap {
                 IrisPlatforms.bind(created);
                 rollback.add(() -> restorePlatform(previousPlatform));
 
-                ModdedServerAccess previousServerAccess = ModdedDimensionManager.bindAccess(
-                        new ModdedServerLevels(boundLoader::invalidateLevelCache));
+                NativeDimensionRuntime previousServerAccess = ModdedDimensionManager.bindAccess(
+                        boundLoader.serverAccess());
                 rollback.add(() -> ModdedDimensionManager.restoreAccess(previousServerAccess));
 
                 IrisObjectRotation.StateRotator previousRotator = IrisObjectRotation.bindPlatformRotator(new ModdedStateRotator());
                 rollback.add(() -> IrisObjectRotation.restorePlatformRotator(previousRotator));
 
-                BlockDataMergeSupport.StateMerger previousMerger = BlockDataMergeSupport.bindPlatformMerger(new ModdedStateMerger());
+                BlockDataMergeSupport.StateMerger previousMerger = BlockDataMergeSupport.bindPlatformMerger(new NativeStateMerger(ModdedBlockResolution.BLOCKS)::merge);
                 rollback.add(() -> BlockDataMergeSupport.restorePlatformMerger(previousMerger));
 
-                TileData.TileReader previousTileReader = TileData.bindPlatformReader(new ModdedTileReader(boundLoader::currentServer));
+                NativeTileReader nativeTileReader = new NativeTileReader(boundLoader::currentServer);
+                TileData.TileReader previousTileReader = TileData.bindPlatformReader(in -> ModdedTileData.wrap(nativeTileReader.read(in)));
                 rollback.add(() -> TileData.restorePlatformReader(previousTileReader));
 
                 TileData.TileFactory previousTileFactory = TileData.bindPlatformFactory(ModdedTileData::fromProperties);

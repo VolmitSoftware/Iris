@@ -7,11 +7,12 @@ import art.arcane.iris.generation.biome.IrisBiomeCustom;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.runtime.Engine;
 
+import art.arcane.volmlib.nativelib.terrain.NativeSpawnSelection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public record NativeBiomeSpawnSelection(Mode mode, String derivativeKey) {
+public record NativeBiomeSpawnSelection(Mode mode, String derivativeKey) implements NativeSpawnSelection {
     private static final NativeBiomeSpawnSelection CURRENT = new NativeBiomeSpawnSelection(Mode.CURRENT, "");
     private static final NativeBiomeSpawnSelection NONE = new NativeBiomeSpawnSelection(Mode.NONE, "");
     private static final NativeBiomeSpawnSelection LOADING = new NativeBiomeSpawnSelection(Mode.LOADING, "");
@@ -60,10 +61,4 @@ public record NativeBiomeSpawnSelection(Mode mode, String derivativeKey) {
         return Map.copyOf(derivatives);
     }
 
-    public enum Mode {
-        CURRENT,
-        RETAINED,
-        NONE,
-        LOADING
-    }
 }

@@ -1,9 +1,11 @@
 package art.arcane.iris.platform.bukkit.nms.v26_2_R1;
 
+import art.arcane.volmlib.nativelib.v26_2_R1.terrain.NativeStructureWorldgenAccess;
+
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
-import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
-import art.arcane.iris.nativegen.NativeStructurePostProcessor;
-import art.arcane.iris.nativegen.NativeStructureTerrainIntegrator;
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructurePostProcessor;
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureTerrainIntegrator;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -84,7 +86,7 @@ public class NativeStructureWorldgenAccessTest {
         StructureStart start = new StructureStart(structure, generationCenter(), 0, new PiecesContainer(List.of(piece)));
         List<NativeStructureTerrainIntegrator.TerrainTarget> targets = List.of(
                 new NativeStructureTerrainIntegrator.TerrainTarget("minecraft:village_plains", start,
-                        new IrisStructureTerrain().setMode(IrisStructureTerrainMode.FLATTEN)));
+                        new IrisStructureTerrain().setMode(StructureTerrainMode.FLATTEN)));
         BoundingBox area = new BoundingBox(generationCenter().getMinBlockX(), -64, generationCenter().getMinBlockZ(),
                 generationCenter().getMaxBlockX(), 319, generationCenter().getMaxBlockZ());
         RecordingDelegate unbounded = new RecordingDelegate();

@@ -31,10 +31,10 @@ import art.arcane.iris.world.entity.IrisMarker;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.structure.nativegen.NativeStructureVolume;
+import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 import art.arcane.iris.structure.placement.PlacedObject;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.block.VectorMap;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
@@ -71,7 +71,7 @@ final class IrisObjectPlacementRunner {
         this.self = self;
     }
 
-    int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, BiConsumer<BlockPosition, PlatformBlockState> listener, CarveResult c, IrisData rdata) {
+    int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, BiConsumer<BlockPosition, NativeBlockState> listener, CarveResult c, IrisData rdata) {
         Objects.requireNonNull(oplacer, "Object placer is required.");
         Objects.requireNonNull(config, "Object placement config is required.");
         Objects.requireNonNull(rng, "Object placement RNG is required.");
@@ -453,7 +453,7 @@ final class IrisObjectPlacementRunner {
         KMap<IrisBlockVector, String> markers = null;
 
         try {
-            VectorMap<PlatformBlockState> blocks = self.blocks;
+            VectorMap<NativeBlockState> blocks = self.blocks;
             VectorMap<TileData> states = self.states;
             // Zero-tile objects are the common case: skip the two Key allocations VectorMap#get needs to prove null.
             boolean hasStates = !states.isEmpty();
@@ -483,12 +483,12 @@ final class IrisObjectPlacementRunner {
                             break;
                         }
 
-                        PlatformBlockState data = blocks.get(i);
+                        NativeBlockState data = blocks.get(i);
                         if (data == null) {
                             continue;
                         }
 
-                        for (PlatformBlockState k : j.getMark(rdata)) {
+                        for (NativeBlockState k : j.getMark(rdata)) {
                             if (max <= 0) {
                                 break;
                             }
@@ -507,10 +507,10 @@ final class IrisObjectPlacementRunner {
                 }
             }
 
-            VectorMap<PlatformBlockState>.Cursor cursor = blocks.cursor();
+            VectorMap<NativeBlockState>.Cursor cursor = blocks.cursor();
             while (cursor.next()) {
                 IrisBlockVector g = cursor.key();
-                PlatformBlockState d;
+                NativeBlockState d;
                 TileData tile = null;
 
                 try {
@@ -533,7 +533,7 @@ final class IrisObjectPlacementRunner {
                     d = IrisObject.States.vairDebug();
                 }
 
-                PlatformBlockState data = d;
+                NativeBlockState data = d;
                 IrisBlockVector i = g.clone();
                 spin.rotate(i);
                 if (ceilingHang) {
@@ -559,9 +559,9 @@ final class IrisObjectPlacementRunner {
                 if (hasEdits) {
                     for (IrisObjectReplace j : config.getEdit()) {
                         if (rng.chance(j.getChance())) {
-                            for (PlatformBlockState k : j.getFind(rdata)) {
+                            for (NativeBlockState k : j.getFind(rdata)) {
                                 if (j.isExact() ? k.matches(data) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(data))) {
-                                    PlatformBlockState newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata);
+                                    NativeBlockState newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata);
 
                                     boolean sameMaterial = IrisObjectShaping.materialKey(newData).equals(IrisObjectShaping.materialKey(data));
                                     if (sameMaterial && !(newData.isCustom() || data.isCustom()))
@@ -657,7 +657,7 @@ final class IrisObjectPlacementRunner {
         if (stilting) {
             self.readLock.lock();
             try {
-                VectorMap<PlatformBlockState> blocks = self.blocks;
+                VectorMap<NativeBlockState> blocks = self.blocks;
                 IrisStiltSettings settings = stiltSettings;
 
                 double erodeCentroidX = 0;
@@ -665,7 +665,7 @@ final class IrisObjectPlacementRunner {
                 double erodeMaxDist = 1;
                 if (eroding) {
                     int centroidCount = 0;
-                    VectorMap<PlatformBlockState>.Cursor centroidCursor = blocks.cursor();
+                    VectorMap<NativeBlockState>.Cursor centroidCursor = blocks.cursor();
                     while (centroidCursor.next()) {
                         IrisBlockVector rot = centroidCursor.key().clone();
                         spin.rotate(rot);
@@ -673,7 +673,7 @@ final class IrisObjectPlacementRunner {
                             rot.add(translateOffset);
                         }
                         if (rot.getBlockY() == lowest) {
-                            PlatformBlockState bd = centroidCursor.value();
+                            NativeBlockState bd = centroidCursor.value();
                             if (bd != null && IrisObjectShaping.shouldStilt(bd, excludedStiltMaterials)) {
                                 erodeCentroidX += rot.getX();
                                 erodeCentroidZ += rot.getZ();
@@ -685,7 +685,7 @@ final class IrisObjectPlacementRunner {
                         erodeCentroidX /= centroidCount;
                         erodeCentroidZ /= centroidCount;
                     }
-                    VectorMap<PlatformBlockState>.Cursor spreadCursor = blocks.cursor();
+                    VectorMap<NativeBlockState>.Cursor spreadCursor = blocks.cursor();
                     while (spreadCursor.next()) {
                         IrisBlockVector rot = spreadCursor.key().clone();
                         spin.rotate(rot);
@@ -693,7 +693,7 @@ final class IrisObjectPlacementRunner {
                             rot.add(translateOffset);
                         }
                         if (rot.getBlockY() == lowest) {
-                            PlatformBlockState bd = spreadCursor.value();
+                            NativeBlockState bd = spreadCursor.value();
                             if (bd != null && IrisObjectShaping.shouldStilt(bd, excludedStiltMaterials)) {
                                 double dx = rot.getX() - erodeCentroidX;
                                 double dz = rot.getZ() - erodeCentroidZ;
@@ -706,10 +706,10 @@ final class IrisObjectPlacementRunner {
                     }
                 }
 
-                VectorMap<PlatformBlockState>.Cursor stiltCursor = blocks.cursor();
+                VectorMap<NativeBlockState>.Cursor stiltCursor = blocks.cursor();
                 while (stiltCursor.next()) {
                     IrisBlockVector g = stiltCursor.key();
-                    PlatformBlockState sourceData;
+                    NativeBlockState sourceData;
                     try {
                         sourceData = stiltCursor.value();
                     } catch (Throwable e) {
@@ -727,7 +727,7 @@ final class IrisObjectPlacementRunner {
                         continue;
                     }
 
-                    PlatformBlockState d = sourceData;
+                    NativeBlockState d = sourceData;
                     if (settings != null && settings.getPalette() != null) {
                         d = config.getStiltSettings().getPalette().get(rng, x, y, z, rdata);
                     } else {
@@ -754,12 +754,12 @@ final class IrisObjectPlacementRunner {
                     if (hasEdits) {
                         for (IrisObjectReplace j : config.getEdit()) {
                             if (rng.chance(j.getChance())) {
-                                for (PlatformBlockState k : j.getFind(rdata)) {
+                                for (NativeBlockState k : j.getFind(rdata)) {
                                     if (d == null) {
                                         continue;
                                     }
                                     if (j.isExact() ? k.matches(d) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(d))) {
-                                        PlatformBlockState newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata);
+                                        NativeBlockState newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata);
 
                                         if (IrisObjectShaping.materialKey(newData).equals(IrisObjectShaping.materialKey(d))) {
                                             d = BlockDataMergeSupport.merge(d, newData);
@@ -863,7 +863,7 @@ final class IrisObjectPlacementRunner {
                     }
 
                     for (int j = lowest + y; j > lowerBound; j--) {
-                        PlatformBlockState fluidState = placer.get(xx, j, zz);
+                        NativeBlockState fluidState = placer.get(xx, j, zz);
                         if (B.isFluid(fluidState)) {
                             break;
                         }
@@ -1071,9 +1071,9 @@ final class IrisObjectPlacementRunner {
 
         self.readLock.lock();
         try {
-            VectorMap<PlatformBlockState>.Cursor cursor = self.blocks.cursor();
+            VectorMap<NativeBlockState>.Cursor cursor = self.blocks.cursor();
             while (cursor.next()) {
-                PlatformBlockState state = cursor.value();
+                NativeBlockState state = cursor.value();
                 if (state == null || isAirBlock(state)) {
                     continue;
                 }
@@ -1118,7 +1118,7 @@ final class IrisObjectPlacementRunner {
         return false;
     }
 
-    private static boolean isAirBlock(PlatformBlockState state) {
+    private static boolean isAirBlock(NativeBlockState state) {
         String material = IrisObjectShaping.materialKey(state);
         return material.equals("minecraft:air") || material.equals("minecraft:cave_air");
     }
@@ -1183,7 +1183,7 @@ final class IrisObjectPlacementRunner {
                 }
                 targetY = Math.max(worldMin + 1, Math.min(worldMax, targetY));
                 if (targetY > origY) {
-                    PlatformBlockState fill = complex != null ? complex.getRockStream().get(cx, cz) : null;
+                    NativeBlockState fill = complex != null ? complex.getRockStream().get(cx, cz) : null;
                     if (B.isAir(fill)) {
                         fill = IrisObject.States.stone();
                     }
@@ -1226,7 +1226,7 @@ final class IrisObjectPlacementRunner {
             return false;
         }
 
-        PlatformBlockState existing = placer.get(x, y, z);
+        NativeBlockState existing = placer.get(x, y, z);
         if (existing == null) {
             return false;
         }
@@ -1234,14 +1234,14 @@ final class IrisObjectPlacementRunner {
         return B.isWater(existing) || B.isWaterLogged(existing);
     }
 
-    private static PlatformBlockState attachVineFaces(IObjectPlacer placer, PlatformBlockState data, int x, int y, int z) {
-        PlatformBlockState result = data;
+    private static NativeBlockState attachVineFaces(IObjectPlacer placer, NativeBlockState data, int x, int y, int z) {
+        NativeBlockState result = data;
         for (String face : IrisProceduralBlocks.FACE_PROPERTIES) {
             if (!IrisProceduralBlocks.hasProperty(data, face)) {
                 continue;
             }
             int[] mod = IrisProceduralBlocks.faceOffset(face);
-            PlatformBlockState facing = placer.get(x + mod[0], y + mod[1], z + mod[2]);
+            NativeBlockState facing = placer.get(x + mod[0], y + mod[1], z + mod[2]);
             if (B.isSolid(facing) && !B.isVineBlock(facing)) {
                 result = result.withProperty(face, "true");
             }

@@ -18,6 +18,8 @@
 
 package art.arcane.iris.world;
 
+import art.arcane.volmlib.nativelib.NativeAdapters;
+import art.arcane.volmlib.nativelib.server.NativeServerDiagnostics;
 import art.arcane.iris.world.runtime.TransientWorldCleanupSupport;
 import art.arcane.iris.world.runtime.WorldRuntimeControlService;
 import art.arcane.iris.world.history.GenerationHistory;
@@ -718,19 +720,8 @@ public class IrisCreator {
     }
 
     private static boolean containsCreateWorldUnsupportedOperation(Throwable throwable) {
-        Throwable cursor = throwable;
-        while (cursor != null) {
-            if (cursor instanceof UnsupportedOperationException) {
-                for (StackTraceElement element : cursor.getStackTrace()) {
-                    if ("org.bukkit.craftbukkit.CraftServer".equals(element.getClassName())
-                            && "createWorld".equals(element.getMethodName())) {
-                        return true;
-                    }
-                }
-            }
-            cursor = cursor.getCause();
-        }
-        return false;
+        return NativeAdapters.find(NativeServerDiagnostics.class)
+                .map(diagnostics -> diagnostics.isUnsupportedWorldCreation(throwable)).orElse(false);
     }
 
     private static boolean containsMissingDimensionTypes(Throwable throwable) {

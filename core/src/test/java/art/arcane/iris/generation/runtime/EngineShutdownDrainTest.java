@@ -15,7 +15,7 @@ import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.DurabilityMode;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
@@ -85,7 +85,7 @@ public class EngineShutdownDrainTest {
         when(platform.dataFile("iris.json")).thenReturn(PLATFORM_FILES.getRoot().toPath().resolve("iris.json").toFile());
         PlatformRegistries registries = mock(PlatformRegistries.class);
         when(platform.registries()).thenReturn(registries);
-        when(registries.block(anyString())).thenReturn(mock(PlatformBlockState.class));
+        when(registries.block(anyString())).thenReturn(mock(NativeBlockState.class));
         IrisPlatforms.bind(platform);
     }
 

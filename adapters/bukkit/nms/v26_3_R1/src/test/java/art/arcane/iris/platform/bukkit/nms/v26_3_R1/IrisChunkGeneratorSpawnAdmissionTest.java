@@ -1,5 +1,10 @@
 package art.arcane.iris.platform.bukkit.nms.v26_3_R1;
 
+import art.arcane.iris.platform.bukkit.nms.BukkitGeneratorContext;
+import org.bukkit.World;
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeChunkGenerator;
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeBiomeSourceImpl;
+
 import net.minecraft.server.level.ServerLevel;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.GenerationSessionManager;
@@ -90,8 +95,8 @@ public class IrisChunkGeneratorSpawnAdmissionTest {
         }
     }
 
-    private static void setField(IrisChunkGenerator generator, String name, Object value) throws Exception {
-        Field field = IrisChunkGenerator.class.getDeclaredField(name);
+    private static void setField(NativeChunkGenerator<?, ?, ?, ?, ?> generator, String name, Object value) throws Exception {
+        Field field = NativeChunkGenerator.class.getDeclaredField(name);
         field.setAccessible(true);
         field.set(generator, value);
     }
@@ -99,7 +104,7 @@ public class IrisChunkGeneratorSpawnAdmissionTest {
     private static final class Fixture {
         private final GenerationSessionManager sessions = new GenerationSessionManager(true);
         private final IrisEngine engine = mock(IrisEngine.class);
-        private final IrisChunkGenerator generator = mock(IrisChunkGenerator.class, CALLS_REAL_METHODS);
+        private final NativeChunkGenerator<?, ?, ?, ?, ?> generator = mock(NativeChunkGenerator.class, CALLS_REAL_METHODS);
         private final Holder<Biome> biome = Holder.direct(mock(Biome.class));
         private final StructureManager structures = mock(StructureManager.class);
         private final WeightedList<MobSpawnSettings.SpawnerData> expected = mock(WeightedList.class);
@@ -112,7 +117,7 @@ public class IrisChunkGeneratorSpawnAdmissionTest {
             GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
             SavedBiomeRuntime saved = mock(SavedBiomeRuntime.class);
             ChunkGenerator delegate = mock(ChunkGenerator.class);
-            CustomBiomeSource source = mock(CustomBiomeSource.class);
+            NativeBiomeSourceImpl source = mock(NativeBiomeSourceImpl.class);
             when(level.getBiome(new BlockPos(0, 64, 0))).thenReturn(biome);
             setField(generator, "runtimeLevel", level);
             when(engine.getGenerationSessions()).thenReturn(sessions);
@@ -130,7 +135,7 @@ public class IrisChunkGeneratorSpawnAdmissionTest {
             });
             when(delegate.getMobsAt(level, structures, MobCategory.MONSTER, new BlockPos(0, 64, 0)))
                     .thenReturn(expected);
-            setField(generator, "engine", engine);
+            setField(generator, "context", new BukkitGeneratorContext(new BukkitGeneratorContext.Options(1L, engine, mock(World.class))));
             setField(generator, "delegate", delegate);
             setField(generator, "customBiomeSource", source);
         }

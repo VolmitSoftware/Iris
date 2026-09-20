@@ -20,7 +20,7 @@ package art.arcane.iris.world.storage.region;
 
 import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 import art.arcane.volmlib.util.nbt.mca.MCABlockStateCodecSupport;
-import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
+import art.arcane.iris.pack.datapack.DataVersion;
 
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.platform.bukkit.nms.INMS;
@@ -131,6 +131,10 @@ public class NBTWorld {
                     }
                 }
         );
+    }
+
+    public static NBTWorldSupport.BlockStateCodec<BlockData> blockStateCodec() {
+        return Holder.BLOCK_STATE_CODEC;
     }
 
     public static BlockData getBlockData(Tag<?> tag) {

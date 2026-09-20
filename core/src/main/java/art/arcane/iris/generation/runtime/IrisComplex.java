@@ -66,8 +66,8 @@ import art.arcane.iris.generation.terrain.Terrain3DRuntime;
 import art.arcane.iris.generation.terrain.HydrologyBankTerrainRuntime;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.generation.block.DataProvider;
 import art.arcane.volmlib.util.math.M;
@@ -174,7 +174,7 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<IrisBiome> naturalTrueBiomeStream;
     private ProceduralStream<IrisBiome> unblendedNaturalTrueBiomeStream;
     private ProceduralStream<IrisBiome> trueBiomeStream;
-    private ProceduralStream<PlatformBiome> trueBiomeDerivativeStream;
+    private ProceduralStream<NativeBiome> trueBiomeDerivativeStream;
     private ProceduralStream<Double> naturalHeightStream;
     private ProceduralStream<Double> baseTerrainHeightStream;
     @Getter(AccessLevel.NONE)
@@ -208,9 +208,9 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<IrisDecorator> seaSurfaceDecoration;
     private ProceduralStream<IrisDecorator> seaFloorDecoration;
     private ProceduralStream<IrisDecorator> shoreSurfaceDecoration;
-    private ProceduralStream<PlatformBlockState> rockStream;
-    private ProceduralStream<PlatformBlockState> fluidStream;
-    private Map<String, ProceduralStream<PlatformBlockState>> hydrologyFluidStreams;
+    private ProceduralStream<NativeBlockState> rockStream;
+    private ProceduralStream<NativeBlockState> fluidStream;
+    private Map<String, ProceduralStream<NativeBlockState>> hydrologyFluidStreams;
     private final BiomeBuffetLayout biomeBuffet;
     @Getter(AccessLevel.NONE)
     private final Map<IrisBiome, GeneratorGroup[]> biomeBuffetGenerators;
@@ -858,11 +858,11 @@ public class IrisComplex implements DataProvider {
         return false;
     }
 
-    private Map<String, ProceduralStream<PlatformBlockState>> createHydrologyFluidStreams(IrisHydrology hydrology) {
+    private Map<String, ProceduralStream<NativeBlockState>> createHydrologyFluidStreams(IrisHydrology hydrology) {
         if (hydrology == null) {
             return Map.of();
         }
-        LinkedHashMap<String, ProceduralStream<PlatformBlockState>> streams = new LinkedHashMap<>();
+        LinkedHashMap<String, ProceduralStream<NativeBlockState>> streams = new LinkedHashMap<>();
         IrisRiverHydrology rivers = Objects.requireNonNull(hydrology.getRivers(), "hydrology.rivers");
         int streamIndex = 0;
         for (IrisRiverProfile profile : rivers.getProfiles()) {
@@ -870,7 +870,7 @@ public class IrisComplex implements DataProvider {
                 throw new IllegalArgumentException("hydrology.rivers.profiles cannot contain null entries");
             }
             String profileKey = requireHydrologyKey(profile.getId(), "hydrology.rivers.profiles[].id");
-            ProceduralStream<PlatformBlockState> stream = configuredFluidStream(
+            ProceduralStream<NativeBlockState> stream = configuredFluidStream(
                     profile.getFluidPalette(),
                     rng.nextParallelRNG(7900 + streamIndex++),
                     "hydrology river profile " + profileKey
@@ -884,7 +884,7 @@ public class IrisComplex implements DataProvider {
                 throw new IllegalArgumentException("hydrology.deepFluids cannot contain null entries");
             }
             String profileKey = requireHydrologyKey(deepFluid.getId(), "hydrology.deepFluids[].id");
-            ProceduralStream<PlatformBlockState> stream = configuredFluidStream(
+            ProceduralStream<NativeBlockState> stream = configuredFluidStream(
                     deepFluid.getFluidPalette(),
                     rng.nextParallelRNG(8900 + streamIndex++),
                     "hydrology deep-fluid profile " + profileKey
@@ -898,7 +898,7 @@ public class IrisComplex implements DataProvider {
                 throw new IllegalArgumentException("hydrology.surfacePools cannot contain null entries");
             }
             String profileKey = requireHydrologyKey(pool.getId(), "hydrology.surfacePools[].id");
-            ProceduralStream<PlatformBlockState> stream = configuredFluidStream(
+            ProceduralStream<NativeBlockState> stream = configuredFluidStream(
                     pool.getFluidPalette(),
                     rng.nextParallelRNG(9900 + streamIndex++),
                     "hydrology surface pool " + profileKey
@@ -917,18 +917,18 @@ public class IrisComplex implements DataProvider {
         return key.trim();
     }
 
-    private ProceduralStream<PlatformBlockState> configuredFluidStream(
+    private ProceduralStream<NativeBlockState> configuredFluidStream(
             IrisMaterialPalette palette,
             RNG fluidRng,
             String configurationName
     ) {
         Objects.requireNonNull(palette, configurationName + " fluidPalette must be configured");
-        KList<PlatformBlockState> blocks = palette.getBlockData(data);
+        KList<NativeBlockState> blocks = palette.getBlockData(data);
         if (blocks.isEmpty()) {
             throw new IllegalArgumentException(
                     configurationName + " fluidPalette must resolve at least one fluid block");
         }
-        for (PlatformBlockState block : blocks) {
+        for (NativeBlockState block : blocks) {
             if (block == null || !block.isFluid()) {
                 throw new IllegalArgumentException(
                         configurationName + " fluidPalette may contain only fluid blocks");
@@ -937,16 +937,16 @@ public class IrisComplex implements DataProvider {
         return palette.getLayerGenerator(fluidRng, data).stream().select(blocks);
     }
 
-    public PlatformBlockState resolveHydrologyFluid(String profileKey, double x, double z) {
+    public NativeBlockState resolveHydrologyFluid(String profileKey, double x, double z) {
         String key = Objects.requireNonNull(profileKey, "profileKey").trim();
-        ProceduralStream<PlatformBlockState> stream = hydrologyFluidStreams.get(key);
+        ProceduralStream<NativeBlockState> stream = hydrologyFluidStreams.get(key);
         if (stream == null) {
             throw new IllegalArgumentException("Unknown hydrology fluid profile: " + key);
         }
         return stream.get(x, z);
     }
 
-    public PlatformBlockState resolveSurfaceFluid(double x, double z) {
+    public NativeBlockState resolveSurfaceFluid(double x, double z) {
         HydrologyColumnLayer layer = surfaceFluidLayer(x, z);
         if (layer != null) {
             return resolveHydrologyFluid(layer.profileKey(), x, z);
@@ -1294,7 +1294,7 @@ public class IrisComplex implements DataProvider {
                 continue;
             }
 
-            PlatformBlockState block = i.getBlockData(b, rngc, x, z, data);
+            NativeBlockState block = i.getBlockData(b, rngc, x, z, data);
 
             if (block != null) {
                 return i;

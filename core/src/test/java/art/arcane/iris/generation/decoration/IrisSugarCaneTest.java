@@ -8,7 +8,7 @@ import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
 import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
 import art.arcane.iris.generation.biome.IrisBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.stream.interpolation.Interpolated;
@@ -53,7 +53,7 @@ public class IrisSugarCaneTest {
         }
         fixture.output.set(0, 3, 1, state("minecraft:frosted_ice[age=0]"));
         assertTrue(fixture.place(1, 1));
-        PlatformBlockState waterlogged = state("minecraft:oak_stairs[waterlogged=true]");
+        NativeBlockState waterlogged = state("minecraft:oak_stairs[waterlogged=true]");
         when(waterlogged.isWaterLogged()).thenReturn(true);
         fixture.output.set(0, 3, 1, waterlogged);
         assertTrue(fixture.place(1, 1));
@@ -83,7 +83,7 @@ public class IrisSugarCaneTest {
         when(fixture.complex.resolveHydrologyFluid("water", -17, -16)).thenReturn(fixture.water);
 
         assertTrue(fixture.place(0, 0));
-        PlatformBlockState lava = state("minecraft:lava");
+        NativeBlockState lava = state("minecraft:lava");
         when(fixture.complex.resolveHydrologyFluid("water", -17, -16)).thenReturn(lava);
         assertFalse(fixture.place(0, 0));
         when(fixture.complex.sampleHydrologyColumn(-17, -16)).thenReturn(new HydrologyColumnSample(
@@ -104,8 +104,8 @@ public class IrisSugarCaneTest {
     public void forcedSurfaceDecorationStillRejectsCaneOnStone() {
         Fixture fixture = new Fixture(3);
         IrisDecorator decorator = mock(IrisDecorator.class);
-        PlatformBlockState stone = state("minecraft:stone");
-        PlatformBlockState air = state("minecraft:air");
+        NativeBlockState stone = state("minecraft:stone");
+        NativeBlockState air = state("minecraft:air");
         when(air.isAir()).thenReturn(true);
         when(decorator.isForcePlace()).thenReturn(true);
         when(decorator.pickBlockData(any(), any(), anyDouble(), anyDouble())).thenReturn(fixture.cane);
@@ -130,7 +130,7 @@ public class IrisSugarCaneTest {
         when(fixture.complex.getTrueBiomeStream()).thenReturn(
                 ProceduralStream.of((x, z) -> biome, Interpolated.of(value -> 0D, value -> biome)));
         when(fixture.engine.getSeedManager()).thenReturn(mock(SeedManager.class));
-        PlatformBlockState ice = state("minecraft:ice");
+        NativeBlockState ice = state("minecraft:ice");
         when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(), anyInt(), any()))
                 .thenReturn(new KList<>(List.of(ice)));
         assertFalse(fixture.place(0, 0));
@@ -147,8 +147,8 @@ public class IrisSugarCaneTest {
                 "water", "river", "mouth", "shore", "bank", "cave");
     }
 
-    private static PlatformBlockState state(String key) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private static NativeBlockState state(String key) {
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.key()).thenReturn(key);
         return state;
     }
@@ -156,10 +156,10 @@ public class IrisSugarCaneTest {
     private static final class Fixture {
         private final Engine engine = mock(Engine.class);
         private final IrisComplex complex = mock(IrisComplex.class);
-        private final PlatformBlockState cane = state("minecraft:sugar_cane[age=0]");
-        private final PlatformBlockState soil = state("minecraft:dirt");
-        private final PlatformBlockState water = state("minecraft:water");
-        private final Hunk<PlatformBlockState> output;
+        private final NativeBlockState cane = state("minecraft:sugar_cane[age=0]");
+        private final NativeBlockState soil = state("minecraft:dirt");
+        private final NativeBlockState water = state("minecraft:water");
+        private final Hunk<NativeBlockState> output;
 
         private Fixture(int size) {
             output = Hunk.newArrayHunk(size, 6, size);

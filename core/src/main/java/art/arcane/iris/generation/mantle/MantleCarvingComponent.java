@@ -27,7 +27,7 @@ import art.arcane.iris.generation.terrain.IrisDimensionCarvingEntry;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.pack.value.IrisRange;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.volmlib.util.stream.ProceduralStream;

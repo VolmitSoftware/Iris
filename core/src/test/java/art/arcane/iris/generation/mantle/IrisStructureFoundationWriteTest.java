@@ -2,7 +2,7 @@ package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
@@ -21,7 +21,7 @@ public class IrisStructureFoundationWriteTest {
         IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
         RNG rng = new RNG(1337L);
         IrisData data = mock(IrisData.class);
-        PlatformBlockState deepslateBricks = mock(PlatformBlockState.class);
+        NativeBlockState deepslateBricks = mock(NativeBlockState.class);
         when(palette.get(rng, 12, -247, -18, data)).thenReturn(deepslateBricks);
 
         IrisStructureComponent.writeFoundationSupport(

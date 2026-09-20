@@ -22,8 +22,7 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.studio.view.GuiHost;
 import art.arcane.iris.studio.view.GuiOverlay;
 import art.arcane.iris.generation.runtime.Engine;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
+import art.arcane.volmlib.nativelib.view.WorldView;
 
 import java.util.Map;
 import java.util.UUID;
@@ -32,10 +31,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class ModdedGuiHost implements GuiHost.Provider {
     private static final ModdedGuiHost INSTANCE = new ModdedGuiHost();
 
-    private final Map<Engine, ServerLevel> levels = new ConcurrentHashMap<>();
+    private final Map<Engine, WorldView> levels = new ConcurrentHashMap<>();
     private final Map<Engine, UUID> openers = new ConcurrentHashMap<>();
     private volatile Engine active;
-    private volatile MinecraftServer server;
 
     private ModdedGuiHost() {
     }
@@ -44,8 +42,7 @@ public final class ModdedGuiHost implements GuiHost.Provider {
         GuiHost.set(INSTANCE);
     }
 
-    public static void bindContext(MinecraftServer server, ServerLevel level, Engine engine, UUID opener) {
-        INSTANCE.server = server;
+    public static void bindContext(WorldView level, Engine engine, UUID opener) {
         INSTANCE.active = engine;
         INSTANCE.levels.put(engine, level);
         if (opener == null) {
@@ -57,7 +54,7 @@ public final class ModdedGuiHost implements GuiHost.Provider {
 
     /**
      * Drops the GUI binding for an evicted engine. Without this the host pinned every
-     * GUI-bound Engine, its ServerLevel and transitively the MinecraftServer for the process
+     * GUI-bound Engine, its WorldView and transitively the MinecraftServer for the process
      * lifetime — there was no remove path at all.
      */
     public static void unbind(Engine engine) {
@@ -75,7 +72,6 @@ public final class ModdedGuiHost implements GuiHost.Provider {
         INSTANCE.levels.clear();
         INSTANCE.openers.clear();
         INSTANCE.active = null;
-        INSTANCE.server = null;
     }
 
     public static boolean isGuiLaunchable() {
@@ -98,7 +94,7 @@ public final class ModdedGuiHost implements GuiHost.Provider {
         if (current != null && !current.isClosed()) {
             return current;
         }
-        for (Map.Entry<Engine, ServerLevel> entry : levels.entrySet()) {
+        for (Map.Entry<Engine, WorldView> entry : levels.entrySet()) {
             if (!entry.getKey().isClosed()) {
                 return entry.getKey();
             }
@@ -111,11 +107,11 @@ public final class ModdedGuiHost implements GuiHost.Provider {
         if (engine == null) {
             return null;
         }
-        ServerLevel level = levels.get(engine);
-        if (level == null || server == null) {
+        WorldView level = levels.get(engine);
+        if (level == null) {
             return null;
         }
         UUID resolvedOpenerId = openerId == null ? openers.get(engine) : openerId;
-        return new ModdedVisionOverlay(server, level, engine, resolvedOpenerId);
+        return new ModdedVisionOverlay(new ModdedVisionOverlay.Context(level, engine, resolvedOpenerId));
     }
 }

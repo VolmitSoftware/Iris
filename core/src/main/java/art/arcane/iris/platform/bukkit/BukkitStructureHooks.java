@@ -18,9 +18,11 @@
 
 package art.arcane.iris.platform.bukkit;
 
+import art.arcane.volmlib.nativelib.terrain.JigsawSourceMetadata;
+
 import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.iris.spi.PlatformStructureHooks;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -76,22 +78,22 @@ public final class BukkitStructureHooks implements PlatformStructureHooks {
     }
 
     @Override
-    public List<String> reachableStructureKeys(PlatformWorld world) {
+    public List<String> reachableStructureKeys(NativeWorld world) {
         return new ArrayList<>(INMS.get().getReachableStructureKeys(BukkitPlatform.unwrapWorld(world)));
     }
 
     @Override
-    public List<String> possibleBiomeKeys(PlatformWorld world) {
+    public List<String> possibleBiomeKeys(NativeWorld world) {
         return new ArrayList<>(INMS.get().getPossibleBiomeKeys(BukkitPlatform.unwrapWorld(world)));
     }
 
     @Override
-    public boolean placeFeature(PlatformWorld world, int x, int y, int z, String featureKey, long seed) {
+    public boolean placeFeature(NativeWorld world, int x, int y, int z, String featureKey, long seed) {
         return INMS.get().placeFeature(BukkitPlatform.unwrapWorld(world), x, y, z, featureKey, seed);
     }
 
     @Override
-    public int[] placeStructure(PlatformWorld world, int chunkX, int chunkZ, String structureKey, long seed, int maxSpan) {
+    public int[] placeStructure(NativeWorld world, int chunkX, int chunkZ, String structureKey, long seed, int maxSpan) {
         return INMS.get().placeStructure(BukkitPlatform.unwrapWorld(world), chunkX, chunkZ, structureKey, seed, maxSpan);
     }
 

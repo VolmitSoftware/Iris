@@ -42,9 +42,9 @@ import art.arcane.iris.pack.validation.CompatStatus;
 import art.arcane.iris.pack.validation.ContentGate;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.pack.loading.IrisRegistrant;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
@@ -176,16 +176,16 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
     @ArrayType(type = IrisOreGenerator.class, min = 1)
     private KList<IrisOreGenerator> ores = new KList<>();
 
-    public PlatformBlockState generateOres(int x, int y, int z, RNG rng, IrisData data, boolean surface) {
+    public NativeBlockState generateOres(int x, int y, int z, RNG rng, IrisData data, boolean surface) {
         KList<IrisOreGenerator> localOres = surface ? getSurfaceOres() : getUndergroundOres();
         return generateOres(localOres, x, y, z, rng, data);
     }
 
-    public PlatformBlockState generateSurfaceOres(int x, int y, int z, RNG rng, IrisData data) {
+    public NativeBlockState generateSurfaceOres(int x, int y, int z, RNG rng, IrisData data) {
         return generateOres(getSurfaceOres(), x, y, z, rng, data);
     }
 
-    public PlatformBlockState generateUndergroundOres(int x, int y, int z, RNG rng, IrisData data) {
+    public NativeBlockState generateUndergroundOres(int x, int y, int z, RNG rng, IrisData data) {
         return generateOres(getUndergroundOres(), x, y, z, rng, data);
     }
 
@@ -197,7 +197,7 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
         return !getUndergroundOres().isEmpty();
     }
 
-    private PlatformBlockState generateOres(KList<IrisOreGenerator> localOres, int x, int y, int z, RNG rng, IrisData data) {
+    private NativeBlockState generateOres(KList<IrisOreGenerator> localOres, int x, int y, int z, RNG rng, IrisData data) {
         if (localOres.isEmpty()) {
             return null;
         }
@@ -205,7 +205,7 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
         int oreCount = localOres.size();
         for (int oreIndex = 0; oreIndex < oreCount; oreIndex++) {
             IrisOreGenerator oreGenerator = localOres.get(oreIndex);
-            PlatformBlockState ore = oreGenerator.generate(x, y, z, rng, data);
+            NativeBlockState ore = oreGenerator.generate(x, y, z, rng, data);
             if (ore != null) {
                 return ore;
             }

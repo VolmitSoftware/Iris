@@ -2,7 +2,7 @@ package art.arcane.iris.structure.object;
 
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
@@ -32,9 +32,9 @@ public class IrisObjectShapingTest {
     public void bindPlatform() {
         IrisPlatforms.unbind();
         PlatformRegistries registries = mock(PlatformRegistries.class);
-        Map<String, PlatformBlockState> states = new HashMap<>();
+        Map<String, NativeBlockState> states = new HashMap<>();
         when(registries.block(anyString())).thenAnswer(invocation -> states.computeIfAbsent(
-                invocation.getArgument(0), key -> mock(PlatformBlockState.class)));
+                invocation.getArgument(0), key -> mock(NativeBlockState.class)));
         IrisPlatform platform = mock(IrisPlatform.class);
         when(platform.registries()).thenReturn(registries);
         IrisPlatforms.bind(platform);
@@ -48,7 +48,7 @@ public class IrisObjectShapingTest {
     @Test
     public void smartBoreMatchesOrderedAxisClosureAndPreservesOriginalBlocks() {
         Random random = new Random(617431L);
-        PlatformBlockState stone = mock(PlatformBlockState.class);
+        NativeBlockState stone = mock(NativeBlockState.class);
         for (int fixture = 0; fixture < 24; fixture++) {
             int offset = switch (fixture % 3) {
                 case 0 -> -1050;
@@ -56,10 +56,10 @@ public class IrisObjectShapingTest {
                 default -> -3;
             };
             IrisObject object = new IrisObject(6, 6, 6);
-            Map<Cell, PlatformBlockState> expected = new HashMap<>();
+            Map<Cell, NativeBlockState> expected = new HashMap<>();
             for (int index = 0; index < 36; index++) {
                 Cell cell = new Cell(offset + random.nextInt(6), offset + random.nextInt(6), offset + random.nextInt(6));
-                PlatformBlockState state = switch (index % 3) {
+                NativeBlockState state = switch (index % 3) {
                     case 0 -> IrisObject.States.air();
                     case 1 -> IrisObject.States.vair();
                     default -> stone;
@@ -75,7 +75,7 @@ public class IrisObjectShapingTest {
 
             assertTrue(object.isSmartBored());
             assertEquals("fixture " + fixture, expected.size(), object.getBlocks().size());
-            for (Map.Entry<Cell, PlatformBlockState> entry : expected.entrySet()) {
+            for (Map.Entry<Cell, NativeBlockState> entry : expected.entrySet()) {
                 assertSame(entry.getValue(), object.getBlocks().get(entry.getKey().vector()));
             }
             long revision = object.getBlocks().modificationRevision();
@@ -94,7 +94,7 @@ public class IrisObjectShapingTest {
         assertTrue(object.getBlocks().isEmpty());
     }
 
-    private static void closeAxis(Map<Cell, PlatformBlockState> blocks, int axis) {
+    private static void closeAxis(Map<Cell, NativeBlockState> blocks, int axis) {
         List<Cell> occupied = new ArrayList<>(blocks.keySet());
         for (Cell start : occupied) {
             for (Cell end : occupied) {

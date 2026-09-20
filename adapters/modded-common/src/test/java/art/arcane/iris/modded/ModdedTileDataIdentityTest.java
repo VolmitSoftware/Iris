@@ -1,5 +1,6 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeTileData;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.volmlib.util.collection.KMap;
 import com.google.gson.Gson;
@@ -53,15 +54,15 @@ public class ModdedTileDataIdentityTest {
 
         ModdedTileData captured = ModdedTileData.capture("minecraft:player_head", snbt);
 
-        assertEquals(snbt, captured.snbt());
-        assertEquals(snbt, captured.getProperties().get(ModdedTileData.NBT_PROPERTY));
+        assertEquals(snbt, captured.nativeData().snbt());
+        assertEquals(snbt, captured.getProperties().get(NativeTileData.NBT_PROPERTY));
 
         // The Bukkit-readable map form is still written, and is still array-lossy - which is why the SNBT has to stay.
         assertTrue(captured.getProperties().get("profile") instanceof KMap);
         KMap<?, ?> profile = (KMap<?, ?>) captured.getProperties().get("profile");
         assertTrue(profile.get("id") instanceof List);
 
-        CompoundTag payload = captured.payload();
+        CompoundTag payload = captured.nativeData().payload();
         assertNotNull(payload);
         Tag profileTag = payload.get("profile");
         assertTrue(profileTag instanceof CompoundTag);
@@ -101,7 +102,7 @@ public class ModdedTileDataIdentityTest {
 
     @Test
     public void legacyRecordHasNoBlockKey() {
-        ModdedTileData legacy = new ModdedTileData(new byte[]{0, 1}, new KMap<>(), null, 0);
+        ModdedTileData legacy = ModdedTileData.wrap(new NativeTileData(new byte[]{0, 1}, new KMap<>(), null, 0));
         assertNull(legacy.getMaterialKey());
     }
 
@@ -131,7 +132,7 @@ public class ModdedTileDataIdentityTest {
                 out.writeUTF(blockKey);
                 out.writeUTF(GSON.toJson(properties));
             }
-            return new ModdedTileData(bytes.toByteArray(), properties, blockKey, -1);
+            return ModdedTileData.wrap(new NativeTileData(bytes.toByteArray(), properties, blockKey, -1));
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }

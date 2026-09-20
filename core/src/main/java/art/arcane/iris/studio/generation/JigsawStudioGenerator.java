@@ -24,7 +24,7 @@ import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.structure.jigsaw.JigsawJoint;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.block.VectorMap;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
@@ -48,18 +48,18 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
 
     private final JigsawStudioActivation.Request request;
     private final JigsawStudioSession session;
-    private final PlatformBlockState lightFloor;
-    private final PlatformBlockState darkFloor;
-    private final PlatformBlockState frame;
-    private final PlatformBlockState topologyBase;
-    private final PlatformBlockState topologyPath;
-    private final PlatformBlockState connectorCap;
-    private final PlatformBlockState invalidMarker;
-    private final PlatformBlockState controlChest;
+    private final NativeBlockState lightFloor;
+    private final NativeBlockState darkFloor;
+    private final NativeBlockState frame;
+    private final NativeBlockState topologyBase;
+    private final NativeBlockState topologyPath;
+    private final NativeBlockState connectorCap;
+    private final NativeBlockState invalidMarker;
+    private final NativeBlockState controlChest;
     private final FinalStateRenderer finalStateRenderer;
     private final AtomicBoolean serviceRegistered = new AtomicBoolean(false);
     private final ConcurrentMap<RenderKey, RenderedBay> renderedBays = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, PlatformBlockState> jigsawStates = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, NativeBlockState> jigsawStates = new ConcurrentHashMap<>();
 
     public static boolean isLightFloor(int blockX, int blockZ) {
         int tileX = Math.floorDiv(blockX, CHECKER_SIZE);
@@ -92,14 +92,14 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
             Engine engine,
             JigsawStudioActivation.Request request,
             JigsawStudioSession session,
-            PlatformBlockState lightFloor,
-            PlatformBlockState darkFloor,
-            PlatformBlockState frame,
-            PlatformBlockState topologyBase,
-            PlatformBlockState topologyPath,
-            PlatformBlockState connectorCap,
-            PlatformBlockState invalidMarker,
-            PlatformBlockState controlChest,
+            NativeBlockState lightFloor,
+            NativeBlockState darkFloor,
+            NativeBlockState frame,
+            NativeBlockState topologyBase,
+            NativeBlockState topologyPath,
+            NativeBlockState connectorCap,
+            NativeBlockState invalidMarker,
+            NativeBlockState controlChest,
             FinalStateRenderer finalStateRenderer
     ) {
         super(engine);
@@ -267,7 +267,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
             for (int localZ = 0; localZ < 16; localZ++) {
                 int worldX = chunkWorldX + localX;
                 int worldZ = chunkWorldZ + localZ;
-                PlatformBlockState block = isLightFloor(worldX, worldZ) ? lightFloor : darkFloor;
+                NativeBlockState block = isLightFloor(worldX, worldZ) ? lightFloor : darkFloor;
                 terrainChunk.setBlock(localX, floorY, localZ, block);
             }
         }
@@ -367,14 +367,14 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
             int localX = worldX - bounds.originX();
             for (int worldZ = minimumZ; worldZ <= maximumZ; worldZ++) {
                 int localZ = worldZ - bounds.originZ();
-                PlatformBlockState state = topologyGlyphState(topology, bounds.dimensions(), localX, localZ,
+                NativeBlockState state = topologyGlyphState(topology, bounds.dimensions(), localX, localZ,
                         centerX, centerZ);
                 setWorldBlock(terrainChunk, worldX, glyphY, worldZ, state, chunkWorldX, chunkWorldZ);
             }
         }
     }
 
-    private PlatformBlockState topologyGlyphState(
+    private NativeBlockState topologyGlyphState(
             JigsawPlanarTopology topology,
             JigsawStudioCellDimensions dimensions,
             int localX,
@@ -485,11 +485,11 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
             int quarterTurns,
             IrisObjectRotation rotation
     ) {
-        VectorMap<PlatformBlockState> sourceBlocks = object.getBlocks();
+        VectorMap<NativeBlockState> sourceBlocks = object.getBlocks();
         VectorMap<TileData> sourceTiles = object.getStates();
         Vector3i center = object.getCenter();
         List<RenderedBlock> blocks = new ArrayList<>(sourceBlocks.size());
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : sourceBlocks) {
+        for (Map.Entry<IrisBlockVector, NativeBlockState> entry : sourceBlocks) {
             IrisBlockVector signed = entry.getKey();
             int sourceX = signed.getBlockX() + center.getBlockX();
             int sourceY = signed.getBlockY() + center.getBlockY();
@@ -513,7 +513,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
                     dimensions.depth())) {
                 return null;
             }
-            PlatformBlockState blockState = quarterTurns == 0
+            NativeBlockState blockState = quarterTurns == 0
                     ? entry.getValue()
                     : rotation.rotate(entry.getValue(), 0, 0, 0);
             if (blockState == null) {
@@ -607,14 +607,14 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
             IrisObjectRotation rotation,
             int quarterTurns
     ) {
-        PlatformBlockState state = B.getStateOrNull(finalState, false);
+        NativeBlockState state = B.getStateOrNull(finalState, false);
         if (state == null) {
             return null;
         }
         if (quarterTurns == 0) {
             return state.key();
         }
-        PlatformBlockState rotated = rotation.rotate(state, 0, 0, 0);
+        NativeBlockState rotated = rotation.rotate(state, 0, 0, 0);
         return rotated == null ? null : rotated.key();
     }
 
@@ -647,7 +647,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
     ) {
         JigsawStudioBounds bounds = workcell.bounds();
         for (RenderedConnector connector : renderedBay.connectors()) {
-            PlatformBlockState state = jigsawStates.computeIfAbsent(
+            NativeBlockState state = jigsawStates.computeIfAbsent(
                     connector.orientation(),
                     key -> B.getState("minecraft:jigsaw[orientation=" + key + "]"));
             setWorldBlock(
@@ -677,7 +677,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
             if (occupied.contains(new RenderedPosition(connector.x(), connector.y(), connector.z()))) {
                 continue;
             }
-            PlatformBlockState finalState = B.getStateOrNull(connector.connector().getFinalState(), false);
+            NativeBlockState finalState = B.getStateOrNull(connector.connector().getFinalState(), false);
             setWorldBlock(
                     terrainChunk,
                     bounds.originX() + connector.x(),
@@ -835,7 +835,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
             int worldX,
             int worldY,
             int worldZ,
-            PlatformBlockState block,
+            NativeBlockState block,
             int chunkWorldX,
             int chunkWorldZ
     ) {
@@ -884,7 +884,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         }
     }
 
-    public record RenderedBlock(int x, int y, int z, PlatformBlockState state, TileData tileData) {
+    public record RenderedBlock(int x, int y, int z, NativeBlockState state, TileData tileData) {
         public RenderedBlock {
             state = Objects.requireNonNull(state, "Jigsaw Studio rendered block state");
         }

@@ -25,10 +25,10 @@ import art.arcane.iris.generation.runtime.EngineTarget;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
-import net.minecraft.server.MinecraftServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -63,9 +63,9 @@ public final class ModdedParityProbe {
 
     private static void waitAndRun(String config) {
         long start = System.currentTimeMillis();
-        MinecraftServer server = null;
+        NativeModdedServer server = null;
         while (System.currentTimeMillis() - start < 600000L) {
-            MinecraftServer candidate = ModdedEngineBootstrap.currentServer();
+            NativeModdedServer candidate = ModdedEngineBootstrap.currentServer();
             if (candidate != null && candidate.isReady()) {
                 server = candidate;
                 break;
@@ -94,7 +94,7 @@ public final class ModdedParityProbe {
         server.halt(false);
     }
 
-    private static boolean run(MinecraftServer server, String config) throws Exception {
+    private static boolean run(NativeModdedServer server, String config) throws Exception {
         String packPath = config;
         int radius = 8;
         int lastColon = config.lastIndexOf(':');
@@ -173,7 +173,7 @@ public final class ModdedParityProbe {
             ModdedIrisLog.info("[parity] golden: {} ({} chunks, combined={})", goldenPath, goldenChunks.size(), goldenCombined);
         }
 
-        PlatformBlockState airState = IrisPlatforms.get().registries().air();
+        NativeBlockState airState = IrisPlatforms.get().registries().air();
         List<int[]> targets = orderedTargets(0, 0, radius);
         Map<Long, String> lines = new TreeMap<>();
         List<String> mismatches = new ArrayList<>();
@@ -184,7 +184,7 @@ public final class ModdedParityProbe {
             int cz = at[1];
             drainReported();
             ModdedBlockBuffer blocks = new ModdedBlockBuffer(height, airState);
-            Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(16, height, 16);
+            Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, height, 16);
             List<Throwable> failures = new ArrayList<>();
             try {
                 engine.generate(cx << 4, cz << 4, blocks, biomes, false);
@@ -291,18 +291,18 @@ public final class ModdedParityProbe {
         return targets;
     }
 
-    private static String hashChunk(int chunkX, int chunkZ, ModdedBlockBuffer blocks, Hunk<PlatformBiome> biomes, int height) {
+    private static String hashChunk(int chunkX, int chunkZ, ModdedBlockBuffer blocks, Hunk<NativeBiome> biomes, int height) {
         MessageDigest blockDigest = sha256();
         MessageDigest biomeDigest = sha256();
-        Map<PlatformBlockState, byte[]> blockCache = new HashMap<>();
-        Map<PlatformBiome, byte[]> biomeCache = new HashMap<>();
+        Map<NativeBlockState, byte[]> blockCache = new HashMap<>();
+        Map<NativeBiome, byte[]> biomeCache = new HashMap<>();
         byte[] plains = "minecraft:plains\n".getBytes(StandardCharsets.UTF_8);
 
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 for (int y = 0; y < height; y++) {
-                    PlatformBlockState state = blocks.get(x, y, z);
-                    byte[] bytes = blockCache.computeIfAbsent(state, (PlatformBlockState s) -> (s.key() + "\n").getBytes(StandardCharsets.UTF_8));
+                    NativeBlockState state = blocks.get(x, y, z);
+                    byte[] bytes = blockCache.computeIfAbsent(state, (NativeBlockState s) -> (s.key() + "\n").getBytes(StandardCharsets.UTF_8));
                     blockDigest.update(bytes);
                 }
             }
@@ -311,10 +311,10 @@ public final class ModdedParityProbe {
         for (int x = 0; x < 16; x += BIOME_STEP) {
             for (int z = 0; z < 16; z += BIOME_STEP) {
                 for (int y = 0; y < height; y += BIOME_STEP) {
-                    PlatformBiome biome = biomes.get(x, y, z);
+                    NativeBiome biome = biomes.get(x, y, z);
                     byte[] bytes = biome == null
                             ? plains
-                            : biomeCache.computeIfAbsent(biome, (PlatformBiome b) -> (b.key() + "\n").getBytes(StandardCharsets.UTF_8));
+                            : biomeCache.computeIfAbsent(biome, (NativeBiome b) -> (b.key() + "\n").getBytes(StandardCharsets.UTF_8));
                     biomeDigest.update(bytes);
                 }
             }

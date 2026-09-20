@@ -18,7 +18,6 @@
 
 package art.arcane.iris.modded;
 
-import net.minecraft.world.level.ChunkPos;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.LogEvent;
@@ -101,7 +100,7 @@ final class WorldCheckFeaturePlacement {
         }
     }
 
-    static void recordPlacementFailure(ChunkPos chunkPos, Throwable error) {
+    static void recordPlacementFailure(int chunkX, int chunkZ, Throwable error) {
         if (!ENABLED) {
             return;
         }
@@ -110,7 +109,7 @@ final class WorldCheckFeaturePlacement {
         String detail = message.contains(UNAVAILABLE_CHUNK_MARKER)
                 ? "unavailableChunk"
                 : "placementFailure";
-        report(detail + ",chunk=" + chunkPos.x() + "," + chunkPos.z() + ",error="
+        report(detail + ",chunk=" + chunkX + "," + chunkZ + ",error="
                 + error.getClass().getSimpleName());
     }
 

@@ -20,14 +20,14 @@ package art.arcane.iris.structure.object;
 
 import art.arcane.iris.generation.cave.CaveResult;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 public interface IPostBlockAccess {
-    PlatformBlockState getPostBlock(int x, int y, int z, int currentPostX, int currentPostZ, ChunkData currentData);
+    NativeBlockState getPostBlock(int x, int y, int z, int currentPostX, int currentPostZ, ChunkData currentData);
 
-    void setPostBlock(int x, int y, int z, PlatformBlockState d, int currentPostX, int currentPostZ, ChunkData currentData);
+    void setPostBlock(int x, int y, int z, NativeBlockState d, int currentPostX, int currentPostZ, ChunkData currentData);
 
     int highestTerrainOrFluidBlock(int x, int z);
 

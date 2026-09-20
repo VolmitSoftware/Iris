@@ -27,9 +27,9 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.volmlib.util.localization.MessageArgument;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEditPlayer;
 
 import java.awt.Desktop;
 import java.io.File;
@@ -39,22 +39,22 @@ final class ModdedEditCommands {
     private ModdedEditCommands() {
     }
 
-    static int editBiome(CommandSourceStack source, String key) {
-        Engine engine = IrisModdedCommands.engineFor(source.getLevel());
+    static int editBiome(NativeCommandSource source, String key) {
+        Engine engine = IrisModdedCommands.engineFor(source.world());
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS));
             return 0;
         }
         IrisBiome biome;
         if (key == null || key.isBlank()) {
-            ServerPlayer player = source.getPlayer();
+            NativeEditPlayer player = source.editingPlayer();
             if (player == null) {
                 IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_CONSOLE_MUST_NAME_BIOME_IRIS_EDIT_BIOME_KEY));
                 return 0;
             }
-            BlockPos pos = player.blockPosition();
+            NativeBlockPoint pos = player.blockPosition();
             try {
-                biome = engine.getBiome(pos.getX(), pos.getY() - engine.getMinHeight(), pos.getZ());
+                biome = engine.getBiome(pos.x(), pos.y() - engine.getMinHeight(), pos.z());
             } catch (Throwable e) {
                 IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_BIOME_LOOKUP_FAILED, MessageArgument.untrusted("value", e.getClass().getSimpleName())));
                 return 0;
@@ -69,23 +69,23 @@ final class ModdedEditCommands {
         return openJson(source, biome);
     }
 
-    static int editRegion(CommandSourceStack source, String key) {
-        Engine engine = IrisModdedCommands.engineFor(source.getLevel());
+    static int editRegion(NativeCommandSource source, String key) {
+        Engine engine = IrisModdedCommands.engineFor(source.world());
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_2));
             return 0;
         }
         IrisRegion region;
         if (key == null || key.isBlank()) {
-            ServerPlayer player = source.getPlayer();
+            NativeEditPlayer player = source.editingPlayer();
             if (player == null) {
                 IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_CONSOLE_MUST_NAME_REGION_IRIS_EDIT_REGION_KEY));
                 return 0;
             }
-            BlockPos pos = player.blockPosition();
+            NativeBlockPoint pos = player.blockPosition();
             try {
                 region = engine.getRegion(
-                        pos.getX(), pos.getY() - engine.getMinHeight(), pos.getZ());
+                        pos.x(), pos.y() - engine.getMinHeight(), pos.z());
             } catch (Throwable e) {
                 IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_REGION_LOOKUP_FAILED, MessageArgument.untrusted("value", e.getClass().getSimpleName())));
                 return 0;
@@ -100,8 +100,8 @@ final class ModdedEditCommands {
         return openJson(source, region);
     }
 
-    static int editDimension(CommandSourceStack source) {
-        Engine engine = IrisModdedCommands.engineFor(source.getLevel());
+    static int editDimension(NativeCommandSource source) {
+        Engine engine = IrisModdedCommands.engineFor(source.world());
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_3));
             return 0;
@@ -109,7 +109,7 @@ final class ModdedEditCommands {
         return openJson(source, engine.getDimension());
     }
 
-    private static int openJson(CommandSourceStack source, IrisRegistrant registrant) {
+    private static int openJson(NativeCommandSource source, IrisRegistrant registrant) {
         if (!GuiHost.isAvailable() || !Desktop.isDesktopSupported()) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_CANNOT_OPEN_FILES_HERE, MessageArgument.untrusted("value", ModdedGuiHost.guiUnavailableReason())));
             return 0;

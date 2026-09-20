@@ -18,6 +18,8 @@
 
 package art.arcane.iris.spi;
 
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+
 /**
  * Platform task dispatch; region scheduling targets the owning region thread on regionized platforms and the global thread elsewhere.
  * <p>
@@ -42,7 +44,7 @@ public interface PlatformScheduler {
      * touches blocks or entities in a known chunk. Adapters that cannot resolve a region owner fall back to
      * {@link #global(Runnable)}.
      */
-    void region(PlatformWorld world, int chunkX, int chunkZ, Runnable task);
+    void region(NativeWorld world, int chunkX, int chunkZ, Runnable task);
 
     /**
      * Runs {@code task} on a pooled thread off the server thread. Must not touch world state.
@@ -56,9 +58,9 @@ public interface PlatformScheduler {
     void laterGlobal(Runnable task, int ticks);
 
     /**
-     * {@link #region(PlatformWorld, int, int, Runnable)} delayed by {@code ticks}, with the same non-positive-delay
+     * {@link #region(NativeWorld, int, int, Runnable)} delayed by {@code ticks}, with the same non-positive-delay
      * degradation as {@link #laterGlobal(Runnable, int)}. Adapters without regions fall back to the delayed global
      * queue.
      */
-    void laterRegion(PlatformWorld world, int chunkX, int chunkZ, Runnable task, int ticks);
+    void laterRegion(NativeWorld world, int chunkX, int chunkZ, Runnable task, int ticks);
 }

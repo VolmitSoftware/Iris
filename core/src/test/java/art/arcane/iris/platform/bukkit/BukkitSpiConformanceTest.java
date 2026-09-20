@@ -21,8 +21,8 @@ package art.arcane.iris.platform.bukkit;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockProperty;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.generation.block.IrisCustomData;
@@ -130,7 +130,7 @@ public class BukkitSpiConformanceTest {
     public void customStateKeepsProviderIdentityAndProperties() throws Exception {
         BlockData base = blockData("minecraft:note_block[instrument=harp,note=5,powered=false]");
         Identifier identifier = Identifier.fromString("craftengine:forest/amber_log[axis=x]");
-        PlatformBlockState state = BukkitBlockState.of(IrisCustomData.of(base, identifier));
+        NativeBlockState state = BukkitBlockState.of(IrisCustomData.of(base, identifier));
 
         assertEquals(identifier.toString(), state.key());
         assertEquals(identifier.toString(), state.deferredPlacementKey());
@@ -148,9 +148,9 @@ public class BukkitSpiConformanceTest {
     public void customCarrierPropertyChangeKeepsProviderPropertiesSeparate() {
         BlockData base = blockData("minecraft:oak_slab[type=bottom,waterlogged=false]");
         Identifier identifier = Identifier.fromString("itemsadder:forest/amber_slab");
-        PlatformBlockState state = BukkitBlockState.of(IrisCustomData.of(base, identifier));
+        NativeBlockState state = BukkitBlockState.of(IrisCustomData.of(base, identifier));
 
-        PlatformBlockState merged = state.withProperty("waterlogged", "true");
+        NativeBlockState merged = state.withProperty("waterlogged", "true");
 
         assertEquals(identifier.toString(), merged.key());
         assertEquals(identifier.toString(), merged.deferredPlacementKey());
@@ -170,21 +170,21 @@ public class BukkitSpiConformanceTest {
     @Test
     public void withPropertyReplacesExistingProperty() {
         BlockData data = blockData("iristest:merge_block[axis=y,waterlogged=false]");
-        PlatformBlockState merged = BukkitBlockState.of(data).withProperty("axis", "x");
+        NativeBlockState merged = BukkitBlockState.of(data).withProperty("axis", "x");
         assertEquals("iristest:merge_block[axis=x,waterlogged=false]", merged.key());
     }
 
     @Test
     public void withPropertyAppendsToExistingProperties() {
         BlockData data = blockData("iristest:append_block[axis=y]");
-        PlatformBlockState merged = BukkitBlockState.of(data).withProperty("lit", "true");
+        NativeBlockState merged = BukkitBlockState.of(data).withProperty("lit", "true");
         assertEquals("iristest:append_block[axis=y,lit=true]", merged.key());
     }
 
     @Test
     public void withPropertyAddsBracketSectionWhenAbsent() {
         BlockData data = blockData("iristest:bare_block");
-        PlatformBlockState merged = BukkitBlockState.of(data).withProperty("lit", "true");
+        NativeBlockState merged = BukkitBlockState.of(data).withProperty("lit", "true");
         assertEquals("iristest:bare_block[lit=true]", merged.key());
     }
 
@@ -256,7 +256,7 @@ public class BukkitSpiConformanceTest {
         // Pre-flight before touching the registry: org.bukkit.Registry fail-initialises without a live
         // RegistryAccess, and that is permanent and JVM-wide, so the catch below is already too late.
         Assume.assumeTrue("live Bukkit registry unavailable in this environment", liveRegistriesAvailable());
-        Map<String, List<PlatformBlockProperty>> states;
+        Map<String, List<NativeBlockProperty>> states;
         try {
             states = registries().blockStateProperties();
         } catch (Throwable unavailable) {
@@ -264,9 +264,9 @@ public class BukkitSpiConformanceTest {
             return;
         }
         assertFalse(states.isEmpty());
-        for (Map.Entry<String, List<PlatformBlockProperty>> entry : states.entrySet()) {
+        for (Map.Entry<String, List<NativeBlockProperty>> entry : states.entrySet()) {
             assertTrue("expected namespaced block key but was '" + entry.getKey() + "'", entry.getKey().contains(":"));
-            for (PlatformBlockProperty property : entry.getValue()) {
+            for (NativeBlockProperty property : entry.getValue()) {
                 assertFalse(property.name().isEmpty());
                 assertFalse(property.jsonType().isEmpty());
             }

@@ -1,6 +1,6 @@
 package art.arcane.iris.generation.mantle;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.world.storage.matter.PreObjectMatterCell;
 import art.arcane.volmlib.util.function.Consumer4;
@@ -103,7 +103,7 @@ public final class TerrainMatterView {
     }
 
     private static boolean hasJournal(Class<?> type) {
-        return type == MatterCavern.class || type == PlatformBlockState.class || type == String.class
+        return type == MatterCavern.class || type == NativeBlockState.class || type == String.class
                 || type == HydrologyCaveCell.class;
     }
 

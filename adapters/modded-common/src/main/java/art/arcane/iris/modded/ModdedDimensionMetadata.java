@@ -26,7 +26,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import net.minecraft.resources.Identifier;
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeResourceKeys;
 
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -93,9 +93,9 @@ final class ModdedDimensionMetadata {
             if (irisBiome == null) {
                 continue;
             }
-            Identifier derivative = Identifier.tryParse(irisBiome.getStructureDerivativeKey());
+            String derivative = NativeResourceKeys.normalize(irisBiome.getStructureDerivativeKey());
             if (derivative != null) {
-                keys.add(derivative.toString().toLowerCase(Locale.ROOT));
+                keys.add(derivative);
             }
             if (!irisBiome.isCustom()) {
                 continue;

@@ -1,5 +1,11 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedPlatformWorld;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntityRuntime;
+
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.BiomeEnvironment;
@@ -19,7 +25,7 @@ import net.minecraft.server.Bootstrap;
 import net.minecraft.server.level.ServerPlayer;
 import org.junit.Test;
 import org.junit.BeforeClass;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import org.mockito.MockedStatic;
 
@@ -45,7 +51,7 @@ public class ModdedSavedBiomeConsumersTest {
     public static void initializeRuntimeTypes() throws Exception {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
-        PlatformBlockState air = mock(PlatformBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
         try (MockedStatic<B> blocks = mockStatic(B.class)) {
             blocks.when(() -> B.getState("AIR")).thenReturn(air);
             Class.forName(EngineMantle.class.getName());
@@ -78,10 +84,10 @@ public class ModdedSavedBiomeConsumersTest {
         try (MockedStatic<IrisSettings> configured = mockStatic(IrisSettings.class);
              MockedStatic<ModdedEntitySpawner> spawns = mockStatic(ModdedEntitySpawner.class)) {
             configured.when(IrisSettings::get).thenReturn(settings);
-            spawns.when(() -> ModdedEntitySpawner.chunksSafe(level, 2, -1)).thenReturn(true);
-            assertThrows(SavedBiomeUnavailableException.class, () -> manager.initialSpawnChunk(level, 2, -1));
+            spawns.when(() -> ModdedEntitySpawner.chunksSafe(any(NativeEntityRuntime.class), eq(2), eq(-1))).thenReturn(true);
+            assertThrows(SavedBiomeUnavailableException.class, () -> manager.initialSpawnChunk(new ModdedPlatformWorld(level), 2, -1));
             verify(chunk, never()).raiseFlagUnchecked(eq(ModdedWorldManager.INITIAL_SPAWN_COMPLETION_FLAG), any());
-            assertTrue(manager.initialSpawnChunk(level, 2, -1));
+            assertTrue(manager.initialSpawnChunk(new ModdedPlatformWorld(level), 2, -1));
             verify(chunk).raiseFlagUnchecked(eq(ModdedWorldManager.INITIAL_SPAWN_COMPLETION_FLAG), any());
         } finally {
             manager.close();
@@ -105,10 +111,10 @@ public class ModdedSavedBiomeConsumersTest {
         IrisSettings settings = new IrisSettings();
         settings.getWorld().setEffectSystem(false);
         Class<?> stateType = Class.forName(ModdedEngineEffects.class.getName() + "$PlayerState");
-        Constructor<?> constructor = stateType.getDeclaredConstructor(ServerPlayer.class);
+        Constructor<?> constructor = stateType.getDeclaredConstructor(NativeProtocolPlayer.class);
         constructor.setAccessible(true);
-        Object state = constructor.newInstance(player);
-        Method tick = ModdedEngineEffects.class.getDeclaredMethod("tickPlayer", ServerLevel.class, stateType);
+        Object state = constructor.newInstance(NativeProtocolPlayer.fromHandle(player));
+        Method tick = ModdedEngineEffects.class.getDeclaredMethod("tickPlayer", NativeWorld.class, stateType);
         tick.setAccessible(true);
         Field selected = stateType.getDeclaredField("environment");
         selected.setAccessible(true);
@@ -116,9 +122,9 @@ public class ModdedSavedBiomeConsumersTest {
         try (MockedStatic<IrisSettings> configured = mockStatic(IrisSettings.class)) {
             configured.when(IrisSettings::get).thenReturn(settings);
             ModdedEngineEffects effects = new ModdedEngineEffects(engine);
-            tick.invoke(effects, level, state);
+            tick.invoke(effects, new ModdedPlatformWorld(level), state);
             assertNull(selected.get(state));
-            tick.invoke(effects, level, state);
+            tick.invoke(effects, new ModdedPlatformWorld(level), state);
             assertSame(environment, selected.get(state));
             verify(engine, times(2)).getBiomeEnvironment(0, 64, 0);
         }

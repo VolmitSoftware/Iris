@@ -22,8 +22,8 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.structure.object.IrisObjectIO;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockProperty;
-import art.arcane.iris.spi.PlatformNumericRange;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
+import art.arcane.volmlib.nativelib.terrain.NativeNumericRange;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
@@ -122,7 +122,7 @@ public final class ContentKeyValidator {
         if (registries == null || referencedBlockStates == null || referencedBlockStates.isEmpty()) {
             return List.of();
         }
-        Map<String, List<PlatformBlockProperty>> declared = registries.blockStateProperties();
+        Map<String, List<NativeBlockProperty>> declared = registries.blockStateProperties();
         if (declared == null || declared.isEmpty()) {
             return List.of();
         }
@@ -138,7 +138,7 @@ public final class ContentKeyValidator {
             if (base == null) {
                 continue;
             }
-            List<PlatformBlockProperty> known = declared.get(base);
+            List<NativeBlockProperty> known = declared.get(base);
             if (known == null || known.isEmpty()) {
                 continue;
             }
@@ -161,10 +161,10 @@ public final class ContentKeyValidator {
         return List.copyOf(messages);
     }
 
-    private static String describeProperty(String base, String name, String value, List<PlatformBlockProperty> known) {
-        PlatformBlockProperty match = null;
+    private static String describeProperty(String base, String name, String value, List<NativeBlockProperty> known) {
+        NativeBlockProperty match = null;
         List<String> names = new ArrayList<>(known.size());
-        for (PlatformBlockProperty property : known) {
+        for (NativeBlockProperty property : known) {
             names.add(property.name());
             if (property.name().equalsIgnoreCase(name)) {
                 match = property;
@@ -206,11 +206,11 @@ public final class ContentKeyValidator {
      * Range check for a property that declares bounds but cannot enumerate its values. A value that is not a number
      * at all is reported too - a numeric property never accepts one.
      */
-    private static String describeNumericRange(String base, PlatformBlockProperty match, String value) {
+    private static String describeNumericRange(String base, NativeBlockProperty match, String value) {
         if (!match.hasNumericRange()) {
             return null;
         }
-        PlatformNumericRange range = match.numericRange();
+        NativeNumericRange range = match.numericRange();
         String bounds = "expected "
                 + (range.exclusiveMinimum() ? "greater than " : "at least ") + describeBound(range.minimum())
                 + " and " + (range.exclusiveMaximum() ? "less than " : "at most ") + describeBound(range.maximum());

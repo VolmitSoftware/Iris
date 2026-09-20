@@ -4,7 +4,7 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.runtime.PreservationRegistry;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.block.B;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.pack.validation.ContentGate;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
@@ -121,7 +121,7 @@ public class IrisDataAuthoringCacheTest {
             Files.writeString(resource, "{}");
             source = IrisData.openRuntime(root.toFile());
             try (MockedStatic<B> blocks = mockStatic(B.class)) {
-                PlatformBlockState state = mock(PlatformBlockState.class);
+                NativeBlockState state = mock(NativeBlockState.class);
                 when(state.placementBaseState()).thenReturn(state);
                 when(state.materialKey()).thenReturn("minecraft:stone");
                 blocks.when(() -> B.getStateOrNull("minecraft:stone", false)).thenReturn(state);
@@ -152,8 +152,8 @@ public class IrisDataAuthoringCacheTest {
                 """);
         source = IrisData.openRuntime(root.toFile());
         source.setContentGate(mock(ContentGate.class));
-        PlatformBlockState custom = mock(PlatformBlockState.class);
-        PlatformBlockState carrier = mock(PlatformBlockState.class);
+        NativeBlockState custom = mock(NativeBlockState.class);
+        NativeBlockState carrier = mock(NativeBlockState.class);
         when(custom.materialKey()).thenReturn("rocks:ruby_ore");
         when(custom.placementBaseState()).thenReturn(carrier);
         when(carrier.materialKey()).thenReturn("minecraft:note_block");

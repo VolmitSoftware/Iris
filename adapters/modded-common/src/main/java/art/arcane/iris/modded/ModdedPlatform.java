@@ -18,21 +18,25 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeRegistryAccess;
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeRegistryDefinitions;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntitySpawns;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedLoader;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBiomeRegistry;
 import art.arcane.iris.BuildConstants;
+import art.arcane.iris.spi.IrisLogging;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandExecutor;
+import art.arcane.iris.spi.PlatformGenerationRegistry;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.LogLevel;
 import art.arcane.iris.spi.PlatformBiomeWriter;
-import art.arcane.iris.spi.PlatformEntityType;
+import art.arcane.volmlib.nativelib.entity.NativeEntityType;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
-import art.arcane.iris.spi.PlatformWorld;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
 import java.io.File;
 import java.util.Map;
@@ -48,26 +52,24 @@ public final class ModdedPlatform implements IrisPlatform {
 
     private static volatile Consumer<Throwable> ERROR_SINK = null;
 
-    private final ModdedLoader loader;
+    private final NativeModdedLoader loader;
     private final ModdedRegistries registries;
     private final ModdedScheduler scheduler;
     private final ModdedStructureHooks structureHooks;
     private final ModdedBiomeWriter biomeWriter;
 
-    public ModdedPlatform(ModdedLoader loader) {
+    public ModdedPlatform(NativeModdedLoader loader) {
         this.loader = loader;
-        this.registries = new ModdedRegistries(ModdedEngineBootstrap::currentServer);
+        this.registries = new ModdedRegistries(
+                new NativeRegistryAccess(ModdedEngineBootstrap::currentServer, ModdedRegistries::warnNotReady),
+                ModdedPlatform::generationRegistry);
         this.scheduler = new ModdedScheduler();
         this.structureHooks = new ModdedStructureHooks(ModdedEngineBootstrap::currentServer);
-        this.biomeWriter = new ModdedBiomeWriter(ModdedEngineBootstrap::currentServer);
+        this.biomeWriter = new ModdedBiomeWriter(new NativeBiomeRegistry(ModdedEngineBootstrap::currentServer, "minecraft:plains"));
     }
 
     public static void errorSink(Consumer<Throwable> sink) {
         ERROR_SINK = sink;
-    }
-
-    public MinecraftServer server() {
-        return ModdedEngineBootstrap.currentServer();
     }
 
     public ModdedScheduler moddedScheduler() {
@@ -196,22 +198,19 @@ public final class ModdedPlatform implements IrisPlatform {
 
     @Override
     public void dispatchConsoleCommand(String command) {
-        ModdedServerCommands.dispatch(ModdedEngineBootstrap.currentServer(), command);
+        NativeCommandExecutor.dispatch(ModdedEngineBootstrap.currentServer(), command, IrisLogging::reportError);
     }
 
     @Override
-    public boolean spawnEntity(PlatformWorld world, String entityKey, double x, double y, double z) {
-        if (world == null || entityKey == null || !(world.nativeHandle() instanceof ServerLevel level)) {
+    public boolean spawnEntity(NativeWorld world, String entityKey, double x, double y, double z) {
+        if (world == null || entityKey == null) {
             return false;
         }
-        PlatformEntityType resolved = registries.entity(entityKey);
+        NativeEntityType resolved = registries.entity(entityKey);
         if (resolved == null) {
             return false;
         }
-        EntityType<?> type = (EntityType<?>) resolved.nativeHandle();
-        BlockPos pos = BlockPos.containing(x, y, z);
-        Entity entity = ModdedEntitySpawner.spawnNative(type, level, pos, EntitySpawnReason.COMMAND);
-        return entity != null;
+        return NativeEntitySpawns.command(world, resolved, x, y, z);
     }
 
     @Override
@@ -353,4 +352,14 @@ public final class ModdedPlatform implements IrisPlatform {
             return -1;
         }
     }
+
+    private static PlatformGenerationRegistry generationRegistry() {
+        if (ModdedEngineBootstrap.currentServer() == null) {
+            throw new IllegalStateException("Minecraft server is not ready for generation registry capture.");
+        }
+        return new ModdedGenerationRegistry(NativeModdedServer.registryDefinitions(ModdedEngineBootstrap::currentServer),
+                new ModdedGenerationRegistry.Identity("modded-generation-registry-v1",
+                        "modded-generated-registry-json-v1|minecraft:" + BuildConstants.MINECRAFT_VERSION));
+    }
+
 }

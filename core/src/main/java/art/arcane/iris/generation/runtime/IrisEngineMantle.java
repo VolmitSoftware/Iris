@@ -21,7 +21,7 @@ package art.arcane.iris.generation.runtime;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.world.WorldMaintenance;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.mantle.MantleComponent;
 import art.arcane.iris.generation.mantle.MantlePass;
@@ -33,7 +33,7 @@ import art.arcane.iris.generation.mantle.IrisStructureComponent;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.world.storage.matter.IrisMatterContext;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
 import art.arcane.volmlib.util.collection.KList;
@@ -337,8 +337,8 @@ public class IrisEngineMantle implements EngineMantle {
 
             @Override
             public Class<?> classifyValue(Object value) {
-                if (value instanceof PlatformBlockState) {
-                    return PlatformBlockState.class;
+                if (value instanceof NativeBlockState) {
+                    return NativeBlockState.class;
                 }
                 return IrisPlatforms.get().classifyMantleValue(value);
             }

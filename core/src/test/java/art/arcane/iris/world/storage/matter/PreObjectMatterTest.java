@@ -1,6 +1,6 @@
 package art.arcane.iris.world.storage.matter;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.testsupport.BukkitTestServer;
@@ -110,7 +110,7 @@ public class PreObjectMatterTest {
 
     @Test
     public void blockKeyHasAnExplicitPresenceFlag() throws IOException {
-        PlatformBlockState block = mock(PlatformBlockState.class);
+        NativeBlockState block = mock(NativeBlockState.class);
         when(block.key()).thenReturn("minecraft:stone");
         PreObjectMatter matter = new PreObjectMatter();
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -134,7 +134,7 @@ public class PreObjectMatterTest {
     @Test
     public void capturesRemainIndependentAndFirstWriteWins() {
         MatterCavern cavern = new MatterCavern(true, "", (byte) 0);
-        PlatformBlockState block = mock(PlatformBlockState.class);
+        NativeBlockState block = mock(NativeBlockState.class);
         PreObjectMatterCell cell = PreObjectMatterCell.string(null)
                 .captureBlock(block)
                 .captureCavern(cavern)
@@ -143,7 +143,7 @@ public class PreObjectMatterTest {
         assertTrue(cell.blockCaptured());
         assertTrue(cell.stringCaptured());
         assertTrue(cell.cavernCaptured());
-        assertEquals(block, cell.original(PlatformBlockState.class));
+        assertEquals(block, cell.original(NativeBlockState.class));
         assertNull(cell.original(String.class));
         assertEquals(cavern, cell.original(MatterCavern.class));
         assertFalse(cell.captures(Integer.class));

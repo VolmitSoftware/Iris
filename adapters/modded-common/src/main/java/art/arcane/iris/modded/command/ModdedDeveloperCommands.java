@@ -21,8 +21,8 @@ package art.arcane.iris.modded.command;
 import art.arcane.iris.modded.ModdedIrisLog;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -35,21 +35,21 @@ import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 final class ModdedDeveloperCommands {
-    private static final Predicate<CommandSourceStack> GATE = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
+    private static final Predicate<NativeCommandSource> GATE = NativeCommandRegistration.GAMEMASTERS;
 
     private ModdedDeveloperCommands() {
     }
 
-    static LiteralArgumentBuilder<CommandSourceStack> tree(String name) {
-        return Commands.literal(name).requires(GATE)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> ModdedCommandHelp.send(context.getSource(), "developer")))
-                .then(Commands.literal("network")
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> network(context.getSource()))))
-                .then(Commands.literal("ip")
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> network(context.getSource()))));
+    static LiteralArgumentBuilder<NativeCommandSource> tree(String name) {
+        return NativeCommandRegistration.literal(name).requires(GATE)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> ModdedCommandHelp.send(context.getSource(), "developer")))
+                .then(NativeCommandRegistration.literal("network")
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> network(context.getSource()))))
+                .then(NativeCommandRegistration.literal("ip")
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> network(context.getSource()))));
     }
 
-    private static int network(CommandSourceStack source) {
+    private static int network(NativeCommandSource source) {
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             for (NetworkInterface networkInterface : Collections.list(interfaces)) {

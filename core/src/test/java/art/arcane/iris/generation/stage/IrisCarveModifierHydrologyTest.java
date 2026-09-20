@@ -2,7 +2,7 @@ package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import org.junit.Test;
 
@@ -19,7 +19,7 @@ import static org.mockito.Mockito.when;
 public class IrisCarveModifierHydrologyTest {
     @Test
     public void explicitHydrologyCanMaterializeIntoAnUninitializedCell() {
-        PlatformBlockState air = mock(PlatformBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
         when(air.isAir()).thenReturn(true);
 
         assertFalse(IrisCarveModifier.shouldSkipEmptyCarve(null, true));
@@ -54,10 +54,10 @@ public class IrisCarveModifierHydrologyTest {
 
     @Test
     public void hydrologyActionsResolveDistinctFluidStates() {
-        PlatformBlockState current = mock(PlatformBlockState.class);
-        PlatformBlockState source = mock(PlatformBlockState.class);
-        PlatformBlockState falling = mock(PlatformBlockState.class);
-        PlatformBlockState air = mock(PlatformBlockState.class);
+        NativeBlockState current = mock(NativeBlockState.class);
+        NativeBlockState source = mock(NativeBlockState.class);
+        NativeBlockState falling = mock(NativeBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
         when(source.key()).thenReturn("minecraft:water[level=0]");
         when(source.withProperty("level", "8")).thenReturn(falling);
 
@@ -71,10 +71,10 @@ public class IrisCarveModifierHydrologyTest {
 
     @Test
     public void waterloggingFollowsOnlyExplicitResultingWater() {
-        PlatformBlockState waterlogged = mock(PlatformBlockState.class);
-        PlatformBlockState dry = mock(PlatformBlockState.class);
-        PlatformBlockState water = mock(PlatformBlockState.class);
-        PlatformBlockState lava = mock(PlatformBlockState.class);
+        NativeBlockState waterlogged = mock(NativeBlockState.class);
+        NativeBlockState dry = mock(NativeBlockState.class);
+        NativeBlockState water = mock(NativeBlockState.class);
+        NativeBlockState lava = mock(NativeBlockState.class);
         when(waterlogged.key()).thenReturn("minecraft:seagrass[waterlogged=true]");
         when(waterlogged.withProperty("waterlogged", "false")).thenReturn(dry);
         when(water.isWater()).thenReturn(true);
@@ -88,8 +88,8 @@ public class IrisCarveModifierHydrologyTest {
 
     @Test
     public void noOverlayLeavesBaselineWaterloggingUntouched() {
-        PlatformBlockState waterlogged = mock(PlatformBlockState.class);
-        PlatformBlockState water = mock(PlatformBlockState.class);
+        NativeBlockState waterlogged = mock(NativeBlockState.class);
+        NativeBlockState water = mock(NativeBlockState.class);
         MatterCavern flooded = new MatterCavern(true, "", (byte) 1);
 
         assertSame(waterlogged, IrisCarveModifier.normalizeHydrologyWaterlogging(
@@ -103,9 +103,9 @@ public class IrisCarveModifierHydrologyTest {
 
     @Test
     public void explicitOverlayUsesComposedFluidIntentForWaterlogging() {
-        PlatformBlockState waterlogged = mock(PlatformBlockState.class);
-        PlatformBlockState dry = mock(PlatformBlockState.class);
-        PlatformBlockState water = mock(PlatformBlockState.class);
+        NativeBlockState waterlogged = mock(NativeBlockState.class);
+        NativeBlockState dry = mock(NativeBlockState.class);
+        NativeBlockState water = mock(NativeBlockState.class);
         MatterCavern flooded = new MatterCavern(true, "", (byte) 1);
         when(waterlogged.key()).thenReturn("minecraft:seagrass[waterlogged=true]");
         when(waterlogged.withProperty("waterlogged", "false")).thenReturn(dry);

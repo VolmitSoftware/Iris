@@ -18,24 +18,23 @@
 
 package art.arcane.iris.modded;
 
-import net.minecraft.resources.Identifier;
 
 final class WorldCheckMaterials {
     private WorldCheckMaterials() {
     }
 
-    static boolean isCharacteristicMaterial(String structureLabel, Identifier structureKey, Identifier blockKey) {
-        if (structureKey == null || blockKey == null || !blockKey.getNamespace().equals("minecraft")) {
+    static boolean isCharacteristicMaterial(String structureLabel, String structureKey, String blockKey) {
+        if (structureKey == null || blockKey == null || !blockKey.startsWith("minecraft:")) {
             return false;
         }
-        String block = blockKey.getPath();
+        String block = blockKey.substring(blockKey.indexOf(':') + 1);
         return switch (structureLabel) {
             case "stronghold" -> isStrongholdMaterial(block);
             case "trial_chambers" -> isTrialChamberMaterial(block);
             case "mansion" -> isWoodConstructionMaterial(block, "dark_oak")
                     || isWoodConstructionMaterial(block, "birch")
                     || isCobblestoneConstructionMaterial(block);
-            case "village" -> isVillageMaterial(structureKey.getPath(), block);
+            case "village" -> isVillageMaterial(structureKey.substring(structureKey.indexOf(':') + 1), block);
             case "monument" -> isMonumentMaterial(block);
             default -> false;
         };

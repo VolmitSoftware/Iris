@@ -24,7 +24,7 @@ import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
@@ -42,7 +42,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
@@ -57,7 +57,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class IrisBiomePaletteLayer {
     private static final int LAYER_GENERATOR_CACHE_SIZE = 32;
 
-    private final transient AtomicCache<KList<PlatformBlockState>> blockData = new AtomicCache<>();
+    private final transient AtomicCache<KList<NativeBlockState>> blockData = new AtomicCache<>();
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private final transient LazyBoundedCache<LayerGeneratorKey, CNG> layerGenerators =
@@ -100,7 +100,7 @@ public class IrisBiomePaletteLayer {
         return heightGenerator.aquire(() -> CNG.signature(rng.nextParallelRNG(minHeight * maxHeight + getBlockData(data).size())));
     }
 
-    public PlatformBlockState get(RNG rng, double x, double y, double z, IrisData data) {
+    public NativeBlockState get(RNG rng, double x, double y, double z, IrisData data) {
         return get(rng, 0, x, y, z, data);
     }
 
@@ -109,8 +109,8 @@ public class IrisBiomePaletteLayer {
      * only built inside the lazy layer generator initializer, using the exact same seed derivation
      * as {@code parent.nextParallelRNG(signature)} followed by the generator signature.
      */
-    public PlatformBlockState get(RNG parent, int signature, double x, double y, double z, IrisData data) {
-        KList<PlatformBlockState> localBlockData = getBlockData(data);
+    public NativeBlockState get(RNG parent, int signature, double x, double y, double z, IrisData data) {
+        KList<NativeBlockState> localBlockData = getBlockData(data);
 
         if (localBlockData.isEmpty()) {
             return null;
@@ -154,8 +154,8 @@ public class IrisBiomePaletteLayer {
         return palette;
     }
 
-    public KList<PlatformBlockState> getBlockData(IrisData data) {
-        KList<PlatformBlockState> cached = blockData.getIfPresent();
+    public KList<NativeBlockState> getBlockData(IrisData data) {
+        KList<NativeBlockState> cached = blockData.getIfPresent();
 
         if (cached != null) {
             return cached;
@@ -163,9 +163,9 @@ public class IrisBiomePaletteLayer {
 
         return blockData.aquire(() ->
         {
-            KList<PlatformBlockState> blockData = new KList<>();
+            KList<NativeBlockState> blockData = new KList<>();
             for (IrisBlockData ix : palette) {
-                PlatformBlockState bx = ix.getBlockData(data);
+                NativeBlockState bx = ix.getBlockData(data);
                 if (bx != null) {
                     for (int i = 0; i < ix.getWeight(); i++) {
                         blockData.add(bx);

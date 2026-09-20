@@ -36,11 +36,10 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEditPlayer;
 
 import java.io.File;
 import java.util.List;
@@ -52,34 +51,34 @@ import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 public final class ModdedStructureCommands {
-    private static final Predicate<CommandSourceStack> GATE = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
+    private static final Predicate<NativeCommandSource> GATE = NativeCommandRegistration.GAMEMASTERS;
 
-    private static final SuggestionProvider<CommandSourceStack> IRIS_STRUCTURE_KEYS = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) -> suggestIrisStructureKeys(context, builder);
-    private static final SuggestionProvider<CommandSourceStack> ALL_STRUCTURE_KEYS = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) -> IrisModdedCommands.suggestStructureKeys(context, builder);
+    private static final SuggestionProvider<NativeCommandSource> IRIS_STRUCTURE_KEYS = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> suggestIrisStructureKeys(context, builder);
+    private static final SuggestionProvider<NativeCommandSource> ALL_STRUCTURE_KEYS = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> IrisModdedCommands.suggestStructureKeys(context, builder);
 
     private ModdedStructureCommands() {
     }
 
-    public static LiteralArgumentBuilder<CommandSourceStack> tree(String name) {
-        LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal(name).requires(GATE);
+    public static LiteralArgumentBuilder<NativeCommandSource> tree(String name) {
+        LiteralArgumentBuilder<NativeCommandSource> root = NativeCommandRegistration.literal(name).requires(GATE);
 
-        root.executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> ModdedCommandHelp.send(context.getSource(), name)));
+        root.executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> ModdedCommandHelp.send(context.getSource(), name)));
 
-        root.then(Commands.literal("list")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> list(context.getSource()))));
-        root.then(Commands.literal("ls")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> list(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("list")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> list(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("ls")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> list(context.getSource()))));
 
-        root.then(Commands.literal("info")
-                .then(Commands.argument("key", StringArgumentType.greedyString()).suggests(IRIS_STRUCTURE_KEYS)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> info(context.getSource(), StringArgumentType.getString(context, "key"))))));
+        root.then(NativeCommandRegistration.literal("info")
+                .then(NativeCommandRegistration.argument("key", StringArgumentType.greedyString()).suggests(IRIS_STRUCTURE_KEYS)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> info(context.getSource(), StringArgumentType.getString(context, "key"))))));
 
-        root.then(Commands.literal("place")
-                .then(Commands.argument("key", StringArgumentType.greedyString()).suggests(IRIS_STRUCTURE_KEYS)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> place(context.getSource(), StringArgumentType.getString(context, "key"))))));
-        root.then(Commands.literal("p")
-                .then(Commands.argument("key", StringArgumentType.greedyString()).suggests(IRIS_STRUCTURE_KEYS)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> place(context.getSource(), StringArgumentType.getString(context, "key"))))));
+        root.then(NativeCommandRegistration.literal("place")
+                .then(NativeCommandRegistration.argument("key", StringArgumentType.greedyString()).suggests(IRIS_STRUCTURE_KEYS)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> place(context.getSource(), StringArgumentType.getString(context, "key"))))));
+        root.then(NativeCommandRegistration.literal("p")
+                .then(NativeCommandRegistration.argument("key", StringArgumentType.greedyString()).suggests(IRIS_STRUCTURE_KEYS)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> place(context.getSource(), StringArgumentType.getString(context, "key"))))));
 
         root.then(message("import", "Structure import rebuilds vanilla & datapack structures as editable Iris resources through Bukkit/NMS template managers; run /iris structure import on a Bukkit server against this pack, then copy the pack folder over."));
         root.then(message("import-all", "Structure import rebuilds vanilla & datapack structures as editable Iris resources through Bukkit/NMS template managers; run /iris structure import on a Bukkit server against this pack, then copy the pack folder over."));
@@ -94,29 +93,29 @@ public final class ModdedStructureCommands {
         return root;
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> verifyTree(String name) {
-        return Commands.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> IrisModdedCommands.verifyStructures(context.getSource(), null)))
-                .then(Commands.argument("key", StringArgumentType.greedyString()).suggests(ALL_STRUCTURE_KEYS)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> IrisModdedCommands.verifyStructures(
+    private static LiteralArgumentBuilder<NativeCommandSource> verifyTree(String name) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> IrisModdedCommands.verifyStructures(context.getSource(), null)))
+                .then(NativeCommandRegistration.argument("key", StringArgumentType.greedyString()).suggests(ALL_STRUCTURE_KEYS)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> IrisModdedCommands.verifyStructures(
                                 context.getSource(), StringArgumentType.getString(context, "key")))));
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> message(String name, String text) {
-        return Commands.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> {
+    private static LiteralArgumentBuilder<NativeCommandSource> message(String name, String text) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> {
                     IrisModdedCommands.fail(context.getSource(), text);
                     return 0;
                 }))
-                .then(Commands.argument("args", StringArgumentType.greedyString())
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> {
+                .then(NativeCommandRegistration.argument("args", StringArgumentType.greedyString())
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> {
                             IrisModdedCommands.fail(context.getSource(), text);
                             return 0;
                         })));
     }
 
-    private static IrisData dataFor(CommandSourceStack source) {
-        Engine engine = IrisModdedCommands.engineFor(source.getLevel());
+    private static IrisData dataFor(NativeCommandSource source) {
+        Engine engine = IrisModdedCommands.engineFor(source.world());
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STRUCTURE_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_RUN_THIS_FROM));
             return null;
@@ -124,7 +123,7 @@ public final class ModdedStructureCommands {
         return engine.getData();
     }
 
-    private static int list(CommandSourceStack source) {
+    private static int list(NativeCommandSource source) {
         IrisData data = dataFor(source);
         if (data == null) {
             return 0;
@@ -134,7 +133,7 @@ public final class ModdedStructureCommands {
         return 1;
     }
 
-    private static int info(CommandSourceStack source, String keyRaw) {
+    private static int info(NativeCommandSource source, String keyRaw) {
         IrisData data = dataFor(source);
         if (data == null) {
             return 0;
@@ -167,13 +166,13 @@ public final class ModdedStructureCommands {
         return 1;
     }
 
-    private static int place(CommandSourceStack source, String keyRaw) {
-        ServerPlayer player = source.getPlayer();
+    private static int place(NativeCommandSource source, String keyRaw) {
+        NativeEditPlayer player = source.editingPlayer();
         if (player == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STRUCTURE_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_STRUCTURE_IS));
             return 0;
         }
-        ServerLevel level = source.getLevel();
+        NativeWorld level = source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         IrisData data = dataFor(source);
         if (data == null) {
@@ -185,9 +184,9 @@ public final class ModdedStructureCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STRUCTURE_COMMANDS_NO_IRIS_STRUCTURE_THIS_PACK_2, MessageArgument.untrusted("key", key)));
             return 0;
         }
-        int originX = player.blockPosition().getX();
-        int originY = player.blockPosition().getY();
-        int originZ = player.blockPosition().getZ();
+        int originX = player.blockPosition().x();
+        int originY = player.blockPosition().y();
+        int originZ = player.blockPosition().z();
         StructureAssembler assembler = StructureAssembler.forData(
                 data, structure, new IrisPosition(originX, originY, originZ));
         RNG rng = new RNG((long) originX * 341873128712L + originZ);
@@ -198,7 +197,7 @@ public final class ModdedStructureCommands {
             return 0;
         }
         ModdedObjectPlacer placer = new ModdedObjectPlacer(level, engine);
-        UUID owner = player.getUUID();
+        UUID owner = player.id();
         try {
             for (PlacedStructurePiece piece : pieces) {
                 IrisObjectPlacement config = new IrisObjectPlacement();
@@ -212,22 +211,22 @@ public final class ModdedStructureCommands {
             }
         } catch (Throwable e) {
             ModdedIrisLog.error("Iris structure place failed for {}", key, e);
-            ModdedObjectUndo.record(owner, level, placer.undoSnapshot());
+            ModdedObjectUndo.record(owner, placer.undoSnapshot());
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STRUCTURE_COMMANDS_PLACE_FAILED_PARTIAL_CHANGES_RECORDED_UNDO, MessageArgument.untrusted("value", e.getClass().getSimpleName())));
             return 0;
         }
-        ModdedObjectUndo.record(owner, level, placer.undoSnapshot());
+        ModdedObjectUndo.record(owner, placer.undoSnapshot());
         String tileNote = ModdedObjectCommands.tileNote(placer);
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STRUCTURE_COMMANDS_PLACED_PIECES_WRITE_S_AT_YOUR_LOCATION_IRIS_OBJECT_UNDO, MessageArgument.untrusted("key", key), MessageArgument.untrusted("value", pieces.size()), MessageArgument.untrusted("value2", placer.writes()), MessageArgument.untrusted("tileNote", tileNote)));
         return 1;
     }
 
-    private static CompletableFuture<Suggestions> suggestIrisStructureKeys(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+    private static CompletableFuture<Suggestions> suggestIrisStructureKeys(CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) {
         ModdedCommandFeedback.tab(context.getSource());
         try {
-            Engine engine = IrisModdedCommands.engineFor(context.getSource().getLevel());
+            Engine engine = IrisModdedCommands.engineFor(context.getSource().world());
             if (engine != null && engine.getData().getStructureLoader() != null) {
-                return SharedSuggestionProvider.suggest(engine.getData().getStructureLoader().getPossibleKeys(), builder);
+                return NativeCommandRegistration.suggest(engine.getData().getStructureLoader().getPossibleKeys(), builder);
             }
         } catch (Throwable ignored) {
         }

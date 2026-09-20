@@ -9,7 +9,7 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.structure.placement.IrisStructureAnchorMode;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
-import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import art.arcane.iris.structure.placement.StructureDistribution;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
@@ -76,7 +76,7 @@ public class NativeStructurePlacementPlannerTest {
     @Test
     public void configuredDecisionOverridesSuppressedSourceWithoutLosingTerrain() {
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
+                .setMode(StructureTerrainMode.FORCE_CARVE)
                 .setHorizontalPadding(24);
         IrisStructurePlacement placement = nativePlacement()
                 .setUnderground(true)

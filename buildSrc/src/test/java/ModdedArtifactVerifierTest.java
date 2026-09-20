@@ -25,8 +25,8 @@ public class ModdedArtifactVerifierTest {
     private static final String METADATA = "fabric.mod.json";
     private static final String CODEC_CLASS = "art/arcane/volmlib/util/mantle/io/Lz4IOWorkerCodecSupport.class";
     private static final String HARDWARE_CLASS = "art/arcane/iris/platform/bootstrap/getHardware.class";
-    private static final String MIXIN_CONFIG = "irisworldgen.entity.mixins.json";
-    private static final String CLIENT_MIXIN_CONFIG = "irisworldgen.client.mixins.json";
+    private static final String MIXIN_CONFIG = "volmlib.entity.mixins.json";
+    private static final String CLIENT_MIXIN_CONFIG = "volmlib.client.mixins.json";
     private static final String NEOFORGE_METADATA = "META-INF/neoforge.mods.toml";
     private static final List<String> REQUIRED_ENTRIES = List.of(METADATA, CODEC_CLASS, HARDWARE_CLASS);
     private static final byte[] INTERNAL_CODEC = (

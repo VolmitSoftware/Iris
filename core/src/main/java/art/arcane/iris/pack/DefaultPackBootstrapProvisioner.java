@@ -4,8 +4,8 @@ import art.arcane.iris.pack.datapack.IrisDatapackCompiler;
 import art.arcane.iris.world.lifecycle.BukkitStartupPaths;
 import art.arcane.iris.world.lifecycle.BukkitWorldConfiguration;
 import art.arcane.iris.world.lifecycle.BukkitWorldConfiguration.IrisGeneratorBinding;
-import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
-import art.arcane.iris.platform.bukkit.nms.datapack.IDataFixer;
+import art.arcane.iris.pack.datapack.DataVersion;
+import art.arcane.iris.pack.datapack.IDataFixer;
 import art.arcane.volmlib.util.collection.KList;
 
 import java.io.File;

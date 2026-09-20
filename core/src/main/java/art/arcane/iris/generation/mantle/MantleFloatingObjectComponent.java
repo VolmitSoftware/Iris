@@ -33,7 +33,7 @@ import art.arcane.iris.structure.object.IrisObjectTranslate;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.iris.generation.context.ChunkContext;
@@ -484,11 +484,11 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
         return rotation.rotate(new IrisBlockVector(fp.getTallestKx(), fp.getLowestSolidKeyY(), fp.getTallestKz()), 0, 0, 0);
     }
 
-    private static boolean shouldWritePlacementMarker(IObjectPlacer placer, PlatformBlockState state, int x, int y, int z) {
+    private static boolean shouldWritePlacementMarker(IObjectPlacer placer, NativeBlockState state, int x, int y, int z) {
         if (state == null) {
             return false;
         }
-        PlatformBlockState existingState = placer.get(x, y, z);
+        NativeBlockState existingState = placer.get(x, y, z);
         boolean wouldReplace = B.isSolid(existingState) && B.isVineBlock(state);
         String material = IrisProceduralBlocks.materialKey(state);
         boolean placesBlock = !material.equals("minecraft:air") && !material.equals("minecraft:cave_air") && !wouldReplace;

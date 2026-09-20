@@ -8,7 +8,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
@@ -106,11 +106,11 @@ public class IrisCarveModifierBoundarySupportTest {
     @Test
     @SuppressWarnings("unchecked")
     public void gravityFloorLayerRequiresSolidSupportBelowItsTarget() {
-        Hunk<PlatformBlockState> output = mock(Hunk.class);
-        PlatformBlockState air = state("minecraft:cave_air", false);
-        PlatformBlockState solid = state("minecraft:stone", true);
-        PlatformBlockState sand = state("minecraft:sand", true);
-        PlatformBlockState stone = state("minecraft:stone", true);
+        Hunk<NativeBlockState> output = mock(Hunk.class);
+        NativeBlockState air = state("minecraft:cave_air", false);
+        NativeBlockState solid = state("minecraft:stone", true);
+        NativeBlockState sand = state("minecraft:sand", true);
+        NativeBlockState stone = state("minecraft:stone", true);
 
         doReturn(air).when(output).getRaw(0, 4, 0);
         assertFalse(IrisCarveModifier.canReplaceCaveFloorLayer(output, 0, 5, 0, sand));
@@ -123,10 +123,10 @@ public class IrisCarveModifierBoundarySupportTest {
     @Test
     @SuppressWarnings("unchecked")
     public void gravityFloorDoesNotReceiveDecoratorsOverLowerCaveAir() {
-        Hunk<PlatformBlockState> output = mock(Hunk.class);
-        PlatformBlockState air = state("minecraft:cave_air", false);
-        PlatformBlockState sand = state("minecraft:sand", true);
-        PlatformBlockState stone = state("minecraft:stone", true);
+        Hunk<NativeBlockState> output = mock(Hunk.class);
+        NativeBlockState air = state("minecraft:cave_air", false);
+        NativeBlockState sand = state("minecraft:sand", true);
+        NativeBlockState stone = state("minecraft:stone", true);
 
         doReturn(sand).when(output).getRaw(0, 5, 0);
         doReturn(air).when(output).getRaw(0, 4, 0);
@@ -139,9 +139,9 @@ public class IrisCarveModifierBoundarySupportTest {
     @Test
     public void hydrologyGuardOnlyAcceptsStableSolidBoundaryLayers() {
         HydrologyCaveCell guard = HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD);
-        PlatformBlockState stone = state("minecraft:stone", true);
-        PlatformBlockState sand = state("minecraft:sand", true);
-        PlatformBlockState water = state("minecraft:water", false, true);
+        NativeBlockState stone = state("minecraft:stone", true);
+        NativeBlockState sand = state("minecraft:sand", true);
+        NativeBlockState water = state("minecraft:water", false, true);
 
         assertTrue(IrisCarveModifier.canReplaceHydrologyGuard(guard, stone, false));
         assertTrue(IrisCarveModifier.canReplaceHydrologyGuard(guard, stone, true));
@@ -153,10 +153,10 @@ public class IrisCarveModifierBoundarySupportTest {
     @Test
     @SuppressWarnings("unchecked")
     public void submergedCaveFloorUsesBuriedSubstrateInsteadOfVegetatedSurface() {
-        Hunk<PlatformBlockState> output = mock(Hunk.class);
-        PlatformBlockState grass = state("minecraft:grass_block", true);
-        PlatformBlockState dirt = state("minecraft:dirt", true);
-        PlatformBlockState moss = state("minecraft:moss_block", true);
+        Hunk<NativeBlockState> output = mock(Hunk.class);
+        NativeBlockState grass = state("minecraft:grass_block", true);
+        NativeBlockState dirt = state("minecraft:dirt", true);
+        NativeBlockState moss = state("minecraft:moss_block", true);
         HydrologyCaveCell wet = HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE);
 
         doReturn(dirt).when(output).getRaw(0, 4, 0);
@@ -169,12 +169,12 @@ public class IrisCarveModifierBoundarySupportTest {
                 output, 0, 5, 0, grass, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR)));
     }
 
-    private PlatformBlockState state(String key, boolean solid) {
+    private NativeBlockState state(String key, boolean solid) {
         return state(key, solid, false);
     }
 
-    private PlatformBlockState state(String key, boolean solid, boolean fluid) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private NativeBlockState state(String key, boolean solid, boolean fluid) {
+        NativeBlockState state = mock(NativeBlockState.class);
         doReturn(key).when(state).key();
         doReturn(solid).when(state).isSolid();
         doReturn(fluid).when(state).isFluid();

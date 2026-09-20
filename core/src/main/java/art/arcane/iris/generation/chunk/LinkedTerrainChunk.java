@@ -20,8 +20,8 @@ package art.arcane.iris.generation.chunk;
 
 import art.arcane.iris.platform.bukkit.BukkitBiome;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.IrisCustomData;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -50,14 +50,14 @@ public class LinkedTerrainChunk implements TerrainChunk {
     }
 
     @Override
-    public PlatformBiome getBiome(int x, int y, int z) {
+    public NativeBiome getBiome(int x, int y, int z) {
         int index = biomeIndex(x, y, z);
         Biome biome = biomes[index];
         return BukkitBiome.of(biome == null ? Biome.PLAINS : biome);
     }
 
     @Override
-    public void setBiome(int x, int y, int z, PlatformBiome bio) {
+    public void setBiome(int x, int y, int z, NativeBiome bio) {
         biomes[biomeIndex(x, y, z)] = (Biome) bio.nativeHandle();
     }
 
@@ -65,7 +65,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
      * Writes the whole vertical column in one pass, striding the flat biome array directly. Equivalent to
      * calling setBiome for every y in [minHeight, maxHeight).
      */
-    public void fillBiomeColumn(int x, int z, PlatformBiome bio) {
+    public void fillBiomeColumn(int x, int z, NativeBiome bio) {
         Biome handle = (Biome) bio.nativeHandle();
         int stride = CHUNK_SIZE * CHUNK_SIZE;
         int index = (z & (CHUNK_SIZE - 1)) * CHUNK_SIZE + (x & (CHUNK_SIZE - 1));
@@ -87,7 +87,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
     }
 
     @Override
-    public synchronized void setBlock(int x, int y, int z, PlatformBlockState state) {
+    public synchronized void setBlock(int x, int y, int z, NativeBlockState state) {
         BlockData blockData = (BlockData) state.nativeHandle();
         if (blockData instanceof IrisCustomData data) {
             blockData = data.getBase();
@@ -96,7 +96,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
     }
 
     @Override
-    public synchronized void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, PlatformBlockState state) {
+    public synchronized void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, NativeBlockState state) {
         BlockData blockData = (BlockData) state.nativeHandle();
         if (blockData instanceof IrisCustomData data) {
             blockData = data.getBase();
@@ -105,7 +105,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
     }
 
     @Override
-    public PlatformBlockState getBlockData(int x, int y, int z) {
+    public NativeBlockState getBlockData(int x, int y, int z) {
         return BukkitBlockState.of(rawChunkData.getBlockData(x, y, z));
     }
 

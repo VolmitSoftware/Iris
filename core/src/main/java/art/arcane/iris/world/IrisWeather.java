@@ -19,7 +19,7 @@
 package art.arcane.iris.world;
 
 import art.arcane.volmlib.util.documentation.Description;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
 @Description("Represents a weather type")
 public enum IrisWeather {
@@ -35,7 +35,7 @@ public enum IrisWeather {
     @Description("Any weather")
     ANY;
 
-    public boolean is(PlatformWorld world) {
+    public boolean is(NativeWorld world) {
         return switch (this) {
             case NONE -> !world.isStorming() && !world.isThundering();
             case DOWNFALL -> world.isStorming();

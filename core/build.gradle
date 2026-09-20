@@ -93,6 +93,12 @@ tasks.named('processResources').configure {
  */
 dependencies {
     api(project(':spi'))
+    api("com.github.VolmitSoftware.VolmLib:native-api:${volmLibCoordinate.tokenize(':').last()}") {
+        transitive = false
+    }
+    api("com.github.VolmitSoftware.VolmLib:native-terrain-api:${volmLibCoordinate.tokenize(':').last()}") {
+        transitive = false
+    }
 
     // Provided or Classpath
     compileOnly(libs.lombok)

@@ -9,8 +9,8 @@ import art.arcane.iris.world.history.TerrainBoundarySignature;
 import art.arcane.iris.world.history.TransitionGenerationPlan;
 import art.arcane.iris.world.history.TransitionFluidContainment;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
@@ -54,8 +54,8 @@ public final class ResolvedTerrainProvider {
         return ignoreFluid ? column.oceanFloorHeight() : column.surfaceHeight();
     }
 
-    public void generate(EngineMode mode, int x, int z, Hunk<PlatformBlockState> blocks,
-                         Hunk<PlatformBiome> biomes, boolean multicore, ChunkContext context) {
+    public void generate(EngineMode mode, int x, int z, Hunk<NativeBlockState> blocks,
+                         Hunk<NativeBiome> biomes, boolean multicore, ChunkContext context) {
         SavedTerrainChunk terrain;
         if (context.getComplex().getTransitionGenerationPlan() != null
                 && context.getComplex().getTransitionGenerationPlan().hasTransitionAtChunk(x >> 4, z >> 4)) {
@@ -197,8 +197,8 @@ public final class ResolvedTerrainProvider {
             ChunkContext context = new ChunkContext(x, z, engine.getComplex(), sessionId, true,
                 ChunkContext.PrefillPlan.NATURAL_TERRAIN, engine.getMetrics(), engine.getDimensionStackContext());
             context.beginSpeculativeTerrain();
-            Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, engine.getHeight(), 16);
-            Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(16, engine.getHeight(), 16);
+            Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(16, engine.getHeight(), 16);
+            Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, engine.getHeight(), 16);
             try (IrisContext.Scope ignored = IrisContext.open(engine, sessionId, context)) {
                 engine.getMode().generateTerrain(x, z, blocks, biomes, false, context);
                 return new ResolvedTerrain(capture(x, z, blocks, biomes, context, false), context.getFloatingBiomes());
@@ -208,8 +208,8 @@ public final class ResolvedTerrainProvider {
         }
     }
 
-    private SavedTerrainChunk capture(int x, int z, Hunk<PlatformBlockState> blocks,
-                                      Hunk<PlatformBiome> biomes, ChunkContext context, boolean boundaryOnly) {
+    private SavedTerrainChunk capture(int x, int z, Hunk<NativeBlockState> blocks,
+                                      Hunk<NativeBiome> biomes, ChunkContext context, boolean boundaryOnly) {
         FloatingBiomeOverlay floating = context.getFloatingBiomes();
         if (floating != null) {
             floating.retainHighestSurfaces((localX, localZ) -> highestSolid(blocks, localX, localZ));
@@ -221,9 +221,9 @@ public final class ResolvedTerrainProvider {
         }
     }
 
-    private static int highestSolid(Hunk<PlatformBlockState> blocks, int localX, int localZ) {
+    private static int highestSolid(Hunk<NativeBlockState> blocks, int localX, int localZ) {
         for (int y = blocks.getHeight() - 1; y >= 0; y--) {
-            PlatformBlockState state = blocks.getRaw(localX, y, localZ);
+            NativeBlockState state = blocks.getRaw(localX, y, localZ);
             if (state != null && !state.isAir() && !state.isFluid()) {
                 return y;
             }
@@ -231,18 +231,18 @@ public final class ResolvedTerrainProvider {
         return -1;
     }
 
-    private static void copy(SavedTerrainChunk terrain, Hunk<PlatformBlockState> blocks,
-                             Hunk<PlatformBiome> biomes, ChunkContext context) {
+    private static void copy(SavedTerrainChunk terrain, Hunk<NativeBlockState> blocks,
+                             Hunk<NativeBiome> biomes, ChunkContext context) {
         PlatformRegistries registries = IrisPlatforms.get().registries();
-        Map<String, PlatformBlockState> states = new HashMap<>();
-        Map<String, PlatformBiome> physicalBiomes = new HashMap<>();
+        Map<String, NativeBlockState> states = new HashMap<>();
+        Map<String, NativeBiome> physicalBiomes = new HashMap<>();
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 TerrainBoundarySignature column = terrain.column((terrain.chunkX() << 4) + x, (terrain.chunkZ() << 4) + z);
                 BoundaryColumnGeometry geometry = column.geometry();
                 for (int offset = 0; offset < blocks.getHeight(); offset++) {
                     String stateKey = geometry.voxelAt(geometry.minimumY() + offset).stateKey();
-                    PlatformBlockState state = states.computeIfAbsent(stateKey, registries::blockOrNull);
+                    NativeBlockState state = states.computeIfAbsent(stateKey, registries::blockOrNull);
                     if (state == null) {
                         throw new IllegalStateException("Resolved terrain requires unavailable block state " + stateKey);
                     }

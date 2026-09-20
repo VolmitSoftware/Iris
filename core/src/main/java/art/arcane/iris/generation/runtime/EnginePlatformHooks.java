@@ -18,7 +18,7 @@
 
 package art.arcane.iris.generation.runtime;
 
-import art.arcane.iris.structure.nativegen.NativeStructureVolume;
+import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.world.history.SavedTerrainChunk;

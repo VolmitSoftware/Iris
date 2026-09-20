@@ -18,7 +18,7 @@
 
 package art.arcane.iris.modded.api;
 
-import net.minecraft.world.level.block.state.BlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
 
 import java.util.Objects;
 
@@ -26,14 +26,14 @@ import java.util.Objects;
  * A provider's answer to a block lookup: the state to write, and whether the provider wants a second pass once the
  * chunk is loaded.
  * <p>
- * Immutable. Returned from {@link ModdedDataProvider#getBlockData(net.minecraft.resources.Identifier, java.util.Map)};
- * construct with {@link #direct(BlockState)} or {@link #deferred(BlockState)} rather than the canonical constructor.
+ * Immutable. Returned from {@link ModdedDataProvider#getBlockData(String, java.util.Map)};
+ * construct with {@link #direct(ModdedBlockState)} or {@link #deferred(ModdedBlockState)} rather than the canonical constructor.
  *
  * @param state             the block state Iris writes. Never null
  * @param deferredPlacement whether {@link ModdedDataProvider#processBlockPlacement(ModdedBlockPlacementContext)}
  *                          should run for this position after the chunk is loaded
  */
-public record ModdedBlockData(BlockState state, boolean deferredPlacement) {
+public record ModdedBlockData(ModdedBlockState state, boolean deferredPlacement) {
     /**
      * @throws NullPointerException if {@code state} is null
      */
@@ -44,7 +44,7 @@ public record ModdedBlockData(BlockState state, boolean deferredPlacement) {
     /**
      * The state is final - Iris writes it during generation and does nothing further.
      */
-    public static ModdedBlockData direct(BlockState state) {
+    public static ModdedBlockData direct(ModdedBlockState state) {
         return new ModdedBlockData(state, false);
     }
 
@@ -55,7 +55,7 @@ public record ModdedBlockData(BlockState state, boolean deferredPlacement) {
      * generation thread. Pick a placeholder with the same shape and occlusion as the final block so terrain around
      * it generates correctly.
      */
-    public static ModdedBlockData deferred(BlockState state) {
+    public static ModdedBlockData deferred(ModdedBlockState state) {
         return new ModdedBlockData(state, true);
     }
 }

@@ -8,7 +8,7 @@ import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformRegistries;
@@ -37,7 +37,7 @@ public class IrisDecoratorCaveContextTest {
     @BeforeClass
     public static void bindPlatform() {
         IrisPlatforms.unbind();
-        PlatformBlockState air = mock(PlatformBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
         doReturn(true).when(air).isAir();
         doReturn("minecraft:air").when(air).key();
         PlatformRegistries registries = mock(PlatformRegistries.class);
@@ -80,9 +80,9 @@ public class IrisDecoratorCaveContextTest {
         doReturn(new IrisDecorator[]{decorator}).when(biome).getDecoratorBucket(IrisDecorationPart.NONE);
         doReturn(new IrisDecorator[]{decorator}).when(biome).getDecoratorBucket(IrisDecorationPart.CEILING);
 
-        PlatformBlockState fluid = mock(PlatformBlockState.class);
+        NativeBlockState fluid = mock(NativeBlockState.class);
         doReturn(true).when(fluid).isFluid();
-        Hunk<PlatformBlockState> output = mock(Hunk.class);
+        Hunk<NativeBlockState> output = mock(Hunk.class);
         doReturn(128).when(output).getHeight();
         doReturn(fluid).when(output).get(0, 10, 0);
 
@@ -108,9 +108,9 @@ public class IrisDecoratorCaveContextTest {
     @Test
     @SuppressWarnings("unchecked")
     public void underwaterSurfaceDecorationRequiresActualFluidAboveTheTerrain() {
-        Hunk<PlatformBlockState> output = mock(Hunk.class);
-        PlatformBlockState dry = mock(PlatformBlockState.class);
-        PlatformBlockState fluid = mock(PlatformBlockState.class);
+        Hunk<NativeBlockState> output = mock(Hunk.class);
+        NativeBlockState dry = mock(NativeBlockState.class);
+        NativeBlockState fluid = mock(NativeBlockState.class);
         doReturn(128).when(output).getHeight();
         doReturn(dry).when(output).get(0, 11, 0);
         doReturn(false).when(dry).isFluid();
@@ -132,7 +132,7 @@ public class IrisDecoratorCaveContextTest {
         assertTrue(IrisSurfaceDecorator.isAquaticPlacement(state("minecraft:sea_pickle[pickles=2]")));
         assertTrue(IrisSurfaceDecorator.isAquaticPlacement(state("minecraft:fire_coral_fan")));
 
-        PlatformBlockState waterlogged = state("minecraft:oak_fence[waterlogged=true]");
+        NativeBlockState waterlogged = state("minecraft:oak_fence[waterlogged=true]");
         doReturn(true).when(waterlogged).isWaterLogged();
         assertTrue(IrisSurfaceDecorator.isAquaticPlacement(waterlogged));
 
@@ -142,10 +142,10 @@ public class IrisDecoratorCaveContextTest {
 
     @Test
     public void compatibleWaterMustBeHorizontallyConnected() {
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(3, 3, 1);
-        PlatformBlockState centerWater = waterState();
-        PlatformBlockState neighborWater = waterState();
-        PlatformBlockState lava = fluidState();
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(3, 3, 1);
+        NativeBlockState centerWater = waterState();
+        NativeBlockState neighborWater = waterState();
+        NativeBlockState lava = fluidState();
         output.set(1, 1, 0, centerWater);
 
         assertFalse(IrisSurfaceDecorator.hasConnectedWater(output, 1, 1, 0));
@@ -160,10 +160,10 @@ public class IrisDecoratorCaveContextTest {
     @Test
     public void aquaticPlacementAtFluidHeightBoundaryRestoresDryBank() {
         IrisData data = mock(IrisData.class);
-        PlatformBlockState air = state("minecraft:air");
-        PlatformBlockState seagrass = state("minecraft:seagrass");
+        NativeBlockState air = state("minecraft:air");
+        NativeBlockState seagrass = state("minecraft:seagrass");
         IrisDecorator decorator = aquaticDecorator(data, seagrass, false, 1);
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(3, 4, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(3, 4, 1);
         output.set(1, 1, 0, air);
 
         IrisSurfaceDecorator.AquaticPlacementSnapshot snapshot = IrisSurfaceDecorator.captureAquaticPlacement(
@@ -177,11 +177,11 @@ public class IrisDecoratorCaveContextTest {
     @Test
     public void legitimateUnderwaterAquaticPlacementIsPreserved() {
         IrisData data = mock(IrisData.class);
-        PlatformBlockState sourceWater = waterState();
-        PlatformBlockState adjacentWater = waterState();
-        PlatformBlockState kelp = state("minecraft:kelp_plant");
+        NativeBlockState sourceWater = waterState();
+        NativeBlockState adjacentWater = waterState();
+        NativeBlockState kelp = state("minecraft:kelp_plant");
         IrisDecorator decorator = aquaticDecorator(data, kelp, true, 1);
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(3, 4, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(3, 4, 1);
         output.set(1, 1, 0, sourceWater);
         output.set(0, 1, 0, adjacentWater);
 
@@ -196,12 +196,12 @@ public class IrisDecoratorCaveContextTest {
     @Test
     public void unsupportedUpperStackRestoresTheWholeAquaticPlacement() {
         IrisData data = mock(IrisData.class);
-        PlatformBlockState lowerWater = waterState();
-        PlatformBlockState upperWater = waterState();
-        PlatformBlockState adjacentWater = waterState();
-        PlatformBlockState kelp = state("minecraft:kelp_plant");
+        NativeBlockState lowerWater = waterState();
+        NativeBlockState upperWater = waterState();
+        NativeBlockState adjacentWater = waterState();
+        NativeBlockState kelp = state("minecraft:kelp_plant");
         IrisDecorator decorator = aquaticDecorator(data, kelp, true, 2);
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(3, 4, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(3, 4, 1);
         output.set(1, 1, 0, lowerWater);
         output.set(1, 2, 0, upperWater);
         output.set(0, 1, 0, adjacentWater);
@@ -219,12 +219,12 @@ public class IrisDecoratorCaveContextTest {
     @Test
     public void dryWaterloggedAndTwoBlockAquaticPlacementsAreRestoredAtomically() {
         IrisData data = mock(IrisData.class);
-        PlatformBlockState lowerAir = state("minecraft:air");
-        PlatformBlockState upperAir = state("minecraft:air");
-        PlatformBlockState lower = state("minecraft:tall_seagrass[half=lower]");
-        PlatformBlockState upper = state("minecraft:tall_seagrass[half=upper]");
+        NativeBlockState lowerAir = state("minecraft:air");
+        NativeBlockState upperAir = state("minecraft:air");
+        NativeBlockState lower = state("minecraft:tall_seagrass[half=lower]");
+        NativeBlockState upper = state("minecraft:tall_seagrass[half=upper]");
         IrisDecorator decorator = aquaticDecorator(data, lower, false, 1);
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(3, 4, 1);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(3, 4, 1);
         output.set(1, 1, 0, lowerAir);
         output.set(1, 2, 0, upperAir);
 
@@ -237,7 +237,7 @@ public class IrisDecoratorCaveContextTest {
         assertSame(lowerAir, output.get(1, 1, 0));
         assertSame(upperAir, output.get(1, 2, 0));
 
-        PlatformBlockState dryWaterlogged = state("minecraft:mangrove_roots[waterlogged=true]");
+        NativeBlockState dryWaterlogged = state("minecraft:mangrove_roots[waterlogged=true]");
         doReturn(true).when(dryWaterlogged).isWaterLogged();
         IrisDecorator waterloggedDecorator = aquaticDecorator(data, dryWaterlogged, false, 1);
         IrisSurfaceDecorator.AquaticPlacementSnapshot waterloggedSnapshot = IrisSurfaceDecorator.captureAquaticPlacement(
@@ -250,32 +250,32 @@ public class IrisDecoratorCaveContextTest {
 
     private IrisDecorator aquaticDecorator(
             IrisData data,
-            PlatformBlockState aquatic,
+            NativeBlockState aquatic,
             boolean stacking,
             int stackMaximum
     ) {
         IrisDecorator decorator = mock(IrisDecorator.class);
-        doReturn(new PlatformBlockState[]{aquatic}).when(decorator).getBlockDataArray(data);
-        doReturn(new PlatformBlockState[0]).when(decorator).getBlockDataTopsArray(data);
+        doReturn(new NativeBlockState[]{aquatic}).when(decorator).getBlockDataArray(data);
+        doReturn(new NativeBlockState[0]).when(decorator).getBlockDataTopsArray(data);
         doReturn(stacking).when(decorator).isStacking();
         doReturn(stackMaximum).when(decorator).getStackMax();
         return decorator;
     }
 
-    private PlatformBlockState state(String key) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private NativeBlockState state(String key) {
+        NativeBlockState state = mock(NativeBlockState.class);
         doReturn(key).when(state).key();
         return state;
     }
 
-    private PlatformBlockState waterState() {
-        PlatformBlockState water = fluidState();
+    private NativeBlockState waterState() {
+        NativeBlockState water = fluidState();
         doReturn(true).when(water).isWater();
         return water;
     }
 
-    private PlatformBlockState fluidState() {
-        PlatformBlockState fluid = state("minecraft:lava");
+    private NativeBlockState fluidState() {
+        NativeBlockState fluid = state("minecraft:lava");
         doReturn(true).when(fluid).isFluid();
         return fluid;
     }

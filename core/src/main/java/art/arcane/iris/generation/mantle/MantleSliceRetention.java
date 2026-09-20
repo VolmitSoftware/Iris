@@ -19,7 +19,7 @@
 package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 
@@ -42,7 +42,7 @@ public final class MantleSliceRetention {
     }
 
     public static void retain(String className) {
-        if (className == null || PlatformBlockState.class.getCanonicalName().equals(className)) {
+        if (className == null || NativeBlockState.class.getCanonicalName().equals(className)) {
             return;
         }
         if (retained.add(className)) {

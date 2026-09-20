@@ -24,7 +24,7 @@ import art.arcane.iris.generation.biome.FloatingIslandSample;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
 import art.arcane.iris.generation.block.TileData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.jetbrains.annotations.Nullable;
 
 public final class IslandObjectPlacer implements IObjectPlacer {
@@ -110,14 +110,14 @@ public final class IslandObjectPlacer implements IObjectPlacer {
     }
 
     @Override
-    public void set(int x, int y, int z, PlatformBlockState state) {
+    public void set(int x, int y, int z, NativeBlockState state) {
         if (!shouldSkipAirColumn(x, y, z)) {
             wrapped.set(x, y, z, state);
         }
     }
 
     @Override
-    public PlatformBlockState get(int x, int y, int z) {
+    public NativeBlockState get(int x, int y, int z) {
         return wrapped.get(x, y, z);
     }
 

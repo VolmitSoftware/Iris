@@ -19,7 +19,7 @@
 package art.arcane.iris.generation.biome;
 
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.platform.bukkit.registry.RegistryUtil;
+import art.arcane.iris.platform.registry.RegistryUtil;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import org.bukkit.NamespacedKey;

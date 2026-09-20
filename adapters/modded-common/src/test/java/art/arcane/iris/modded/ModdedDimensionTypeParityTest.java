@@ -18,8 +18,10 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.platform.bukkit.nms.datapack.DataVersion;
-import art.arcane.iris.platform.bukkit.nms.datapack.IDataFixer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldInspection.Dimension;
+
+import art.arcane.iris.pack.datapack.DataVersion;
+import art.arcane.iris.pack.datapack.IDataFixer;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionRuntimeContract;
 import art.arcane.iris.generation.terrain.IrisDimensionTypeOptions;
@@ -152,8 +154,8 @@ public class ModdedDimensionTypeParityTest {
                 .ceiling(TRUE);
         IrisDimension dimension = dimension("runtime_contract", IrisEnvironment.CUSTOM,
                 -128, 384, 384, options);
-        WorldCheckDimensionContract.DimensionContract expected = WorldCheckDimensionContract.expectedDimensionContract(dimension);
-        WorldCheckDimensionContract.DimensionContract fallback = new WorldCheckDimensionContract.DimensionContract(
+        Dimension expected = WorldCheckDimensionContract.expectedDimensionContract(dimension);
+        Dimension fallback = new Dimension(
                 -256, 768, 512, 1D, 0F, true, false, false, 0);
 
         assertTrue(WorldCheckDimensionContract.matchesDimensionContract(-128, 512, expected, expected));

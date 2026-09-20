@@ -6,7 +6,7 @@ import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositHeightDistribution;
 import art.arcane.iris.generation.decoration.IrisDepositPlacementScope;
 import art.arcane.iris.structure.object.IrisObject;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.generation.concurrent.BurstExecutor;
 import art.arcane.iris.generation.concurrent.MultiBurst;
@@ -222,7 +222,7 @@ public class IrisDepositModifierContextTest {
         private void generateAndCheckCleanup() throws Exception {
             ChunkContext callerContext = mock(ChunkContext.class);
             try (IrisContext.Scope ignored = IrisContext.open(engine, 19L, callerContext)) {
-                modifier.generateDeposits(Hunk.<PlatformBlockState>newArrayHunk(16, 16, 16),
+                modifier.generateDeposits(Hunk.<NativeBlockState>newArrayHunk(16, 16, 16),
                         2, -3, true, context);
                 assertSame(callerContext, IrisContext.require().getChunkContext());
                 assertEquals(19L, IrisContext.require().getGenerationSessionId());

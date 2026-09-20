@@ -32,6 +32,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class ModdedClientPackageIsolationTest {
     private static final String CLIENT_MINECRAFT = "net/minecraft/client/";
+    private static final String CLIENT_NATIVE = "art/arcane/volmlib/nativelib/minecraft26_2/client/";
     private static final String CLIENT_IRIS = "art/arcane/iris/client/";
     private static final List<String> GUARDED_PACKAGES = List.of(
             "art/arcane/iris/modded",
@@ -56,6 +57,9 @@ public class ModdedClientPackageIsolationTest {
                     if (bytecode.contains(CLIENT_MINECRAFT)) {
                         violations.add(name + " -> " + CLIENT_MINECRAFT);
                     }
+                    if (bytecode.contains(CLIENT_NATIVE)) {
+                        violations.add(name + " -> " + CLIENT_NATIVE);
+                    }
                     if (bytecode.contains(CLIENT_IRIS)) {
                         violations.add(name + " -> " + CLIENT_IRIS);
                     }
@@ -74,8 +78,8 @@ public class ModdedClientPackageIsolationTest {
      */
     @Test
     public void scanDetectsClientReferencesInAKnownClientClass() throws IOException, URISyntaxException {
-        Path visionScreen = classesRoot().resolve("art/arcane/iris/client/IrisVisionScreen.class");
-        assertTrue("IrisVisionScreen.class missing from " + visionScreen, Files.isRegularFile(visionScreen));
+        Path visionScreen = classesRoot().resolve("art/arcane/volmlib/nativelib/minecraft26_2/client/NativeClientScreen.class");
+        assertTrue("NativeClientScreen.class missing from " + visionScreen, Files.isRegularFile(visionScreen));
         assertTrue("scan needle no longer matches a known client class",
                 readAsLatin1(visionScreen).contains(CLIENT_MINECRAFT));
     }
@@ -89,7 +93,7 @@ public class ModdedClientPackageIsolationTest {
     }
 
     private static Path classesRoot() throws URISyntaxException {
-        String anchor = "/art/arcane/iris/modded/ModdedMixinFlags.class";
+        String anchor = "/art/arcane/iris/modded/ModdedMixinAudit.class";
         URL located = ModdedClientPackageIsolationTest.class.getResource(anchor);
         assertNotNull("compiled main classes are not on the test classpath as files", located);
         assertEquals("expected a directory classpath entry, got " + located, "file", located.getProtocol());

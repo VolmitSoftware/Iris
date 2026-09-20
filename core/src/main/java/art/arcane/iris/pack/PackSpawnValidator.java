@@ -21,7 +21,7 @@ package art.arcane.iris.pack;
 import art.arcane.iris.generation.biome.IrisBiomeCustomSpawnType;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformEntityType;
+import art.arcane.volmlib.nativelib.entity.NativeEntityType;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
@@ -325,7 +325,7 @@ final class PackSpawnValidator {
         if (registries == null) {
             return null;
         }
-        PlatformEntityType entityType = registries.entity(typeKey);
+        NativeEntityType entityType = registries.entity(typeKey);
         return entityType == null
                 ? SpawnCategoryResolution.unknown()
                 : SpawnCategoryResolution.known(entityType.spawnCategory());

@@ -19,7 +19,7 @@
 package art.arcane.iris.platform.bukkit;
 
 import art.arcane.iris.spi.PlatformScheduler;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.iris.world.task.J;
 import org.bukkit.World;
 
@@ -33,7 +33,7 @@ public final class BukkitScheduler implements PlatformScheduler {
     }
 
     @Override
-    public void region(PlatformWorld world, int chunkX, int chunkZ, Runnable task) {
+    public void region(NativeWorld world, int chunkX, int chunkZ, Runnable task) {
         World bukkitWorld = (World) world.nativeHandle();
         if (!J.runRegion(bukkitWorld, chunkX, chunkZ, task)) {
             J.s(task);
@@ -51,7 +51,7 @@ public final class BukkitScheduler implements PlatformScheduler {
     }
 
     @Override
-    public void laterRegion(PlatformWorld world, int chunkX, int chunkZ, Runnable task, int ticks) {
+    public void laterRegion(NativeWorld world, int chunkX, int chunkZ, Runnable task, int ticks) {
         World bukkitWorld = (World) world.nativeHandle();
         if (!J.runRegion(bukkitWorld, chunkX, chunkZ, task, ticks)) {
             J.s(task, ticks);

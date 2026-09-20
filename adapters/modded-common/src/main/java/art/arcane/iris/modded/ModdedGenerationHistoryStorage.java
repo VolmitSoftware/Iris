@@ -1,5 +1,8 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.BrokenPackException;
@@ -15,10 +18,6 @@ import art.arcane.iris.world.history.GenerationRegistryContractFactory;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformGenerationRegistry;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,8 +34,8 @@ final class ModdedGenerationHistoryStorage {
     }
 
     static ActivePack createOrStage(
-            MinecraftServer server,
-            ResourceKey<Level> levelKey,
+            NativeModdedServer server,
+            String levelKey,
             String selectedPack,
             String selectedDimensionKey,
             long worldSeed
@@ -60,8 +59,8 @@ final class ModdedGenerationHistoryStorage {
     }
 
     static ActivePack restoreOrAdopt(
-            MinecraftServer server,
-            ResourceKey<Level> levelKey,
+            NativeModdedServer server,
+            String levelKey,
             String selectedPack,
             String selectedDimensionKey,
             long worldSeed
@@ -88,14 +87,14 @@ final class ModdedGenerationHistoryStorage {
     }
 
     static ActivePack openOrAdopt(
-            ServerLevel level,
+            NativeWorld level,
             String selectedPack,
             String selectedDimensionKey,
             long worldSeed
     ) {
         return restoreOrAdopt(
-                level.getServer(),
-                level.dimension(),
+                NativeModdedServer.forWorld(level),
+                level.name(),
                 selectedPack,
                 selectedDimensionKey,
                 worldSeed
@@ -303,7 +302,7 @@ final class ModdedGenerationHistoryStorage {
         return contracts;
     }
 
-    private static Path dimensionRoot(MinecraftServer server, ResourceKey<Level> levelKey) {
+    private static Path dimensionRoot(NativeModdedServer server, String levelKey) {
         return normalize(ModdedDimensionStorage.storageFolder(server, levelKey).toPath());
     }
 
@@ -311,9 +310,9 @@ final class ModdedGenerationHistoryStorage {
         return Objects.requireNonNull(path, "path").toAbsolutePath().normalize();
     }
 
-    private static IllegalStateException historyFailure(ResourceKey<Level> levelKey, IOException failure) {
+    private static IllegalStateException historyFailure(String levelKey, IOException failure) {
         return new IllegalStateException("Iris generation history is unusable for '"
-                + levelKey.identifier() + "'.", failure);
+                + levelKey + "'.", failure);
     }
 
     record ActivePack(

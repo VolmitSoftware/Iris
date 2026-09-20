@@ -8,7 +8,7 @@ import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.iris.world.storage.matter.TileWrapper;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
@@ -94,7 +94,7 @@ public final class IrisStaticObjectLayer {
         return chunks.isEmpty();
     }
 
-    public void apply(Engine engine, int x, int z, Hunk<PlatformBlockState> output) {
+    public void apply(Engine engine, int x, int z, Hunk<NativeBlockState> output) {
         List<Block> blocks = blocks(x >> 4, z >> 4);
         if (blocks.isEmpty()) {
             return;
@@ -110,7 +110,7 @@ public final class IrisStaticObjectLayer {
                         slice.set(block.x(), block.y() & 15, block.z(), null);
                     }
                 }
-                PlatformBlockState state = block.state();
+                NativeBlockState state = block.state();
                 if (state.isCustom()) {
                     section.slice(Identifier.class).set(block.x(), block.y() & 15, block.z(),
                             Identifier.fromString(state.deferredPlacementKey()));
@@ -131,7 +131,7 @@ public final class IrisStaticObjectLayer {
         return ((long) x << 32) | (z & 0xffffffffL);
     }
 
-    public record Block(int x, int y, int z, PlatformBlockState state, TileData tile) {
+    public record Block(int x, int y, int z, NativeBlockState state, TileData tile) {
     }
 
     private record Chunk(Map<Integer, Block> blocks, List<Block> ordered) {
@@ -155,7 +155,7 @@ public final class IrisStaticObjectLayer {
         }
 
         @Override
-        public void set(int x, int y, int z, PlatformBlockState state) {
+        public void set(int x, int y, int z, NativeBlockState state) {
             if (y < 0 || y >= height) {
                 throw new IllegalArgumentException("Transformed object extends outside the dimension height");
             }
@@ -171,7 +171,7 @@ public final class IrisStaticObjectLayer {
         }
 
         @Override
-        public PlatformBlockState get(int x, int y, int z) {
+        public NativeBlockState get(int x, int y, int z) {
             Block block = block(x, y, z);
             return block == null ? IrisObject.States.air() : block.state();
         }

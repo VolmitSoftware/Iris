@@ -1,6 +1,6 @@
 package art.arcane.iris.generation.decoration.tree;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.junit.Test;
 
 import java.util.HashSet;
@@ -273,13 +273,13 @@ public class ProceduralTreeGeneratorTest {
         IrisProceduralTree tree = new IrisProceduralTree();
         tree.setPlausible(false);
         TreeBlockCanvas.Vec position = new TreeBlockCanvas.Vec(40, 20, -10);
-        PlatformBlockState leaf = mock(PlatformBlockState.class);
-        PlatformBlockState persistent = mock(PlatformBlockState.class);
-        PlatformBlockState supported = mock(PlatformBlockState.class);
+        NativeBlockState leaf = mock(NativeBlockState.class);
+        NativeBlockState persistent = mock(NativeBlockState.class);
+        NativeBlockState supported = mock(NativeBlockState.class);
         when(leaf.key()).thenReturn("minecraft:oak_leaves[persistent=false,distance=7]");
         when(leaf.withProperty("persistent", "true")).thenReturn(persistent);
         when(persistent.withProperty("distance", "1")).thenReturn(supported);
-        Map<TreeBlockCanvas.Vec, PlatformBlockState> resolved = new HashMap<>();
+        Map<TreeBlockCanvas.Vec, NativeBlockState> resolved = new HashMap<>();
         resolved.put(position, leaf);
 
         TreePlausibility.apply(resolved, Set.of(new TreeBlockCanvas.Vec(0, 0, 0)), Set.of(position), tree);

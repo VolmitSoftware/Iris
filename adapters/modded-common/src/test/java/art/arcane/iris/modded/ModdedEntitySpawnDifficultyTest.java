@@ -1,5 +1,12 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntityRuntime;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedPlatformWorld;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedLoader;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntitySpawns;
+
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.world.entity.IrisEntity;
 import art.arcane.volmlib.util.math.RNG;
@@ -46,7 +53,7 @@ public class ModdedEntitySpawnDifficultyTest {
     public void sharedPlatformSpawnReturnsFalseForPeacefulHostiles() {
         ServerLevel level = mock(ServerLevel.class);
         when(level.getDifficulty()).thenReturn(Difficulty.PEACEFUL);
-        ModdedPlatform platform = new ModdedPlatform(mock(ModdedLoader.class));
+        ModdedPlatform platform = new ModdedPlatform(mock(NativeModdedLoader.class));
 
         assertFalse(platform.spawnEntity(new ModdedPlatformWorld(level), "minecraft:zombie", 0.5, 80, 0.5));
 
@@ -63,7 +70,7 @@ public class ModdedEntitySpawnDifficultyTest {
         when(chunks.getChunkNow(anyInt(), anyInt())).thenReturn(mock(LevelChunk.class));
         IrisEntity configured = new IrisEntity().setType("zombie").setSpawnEffectRiseOutOfGround(false);
 
-        assertNull(ModdedEntitySpawner.spawn(mock(Engine.class), configured, level, 0, 80, 0, new RNG(1L)));
+        assertNull(ModdedEntitySpawner.spawn(mock(Engine.class), configured, new NativeEntityRuntime(level), 0, 80, 0, new RNG(1L)));
 
         verify(level, never()).addFreshEntity(any(Entity.class));
         verify(level, never()).enabledFeatures();
@@ -80,7 +87,7 @@ public class ModdedEntitySpawnDifficultyTest {
                 continue;
             }
             EntityType<?> type = spy(registered);
-            assertNull(ModdedEntitySpawner.spawnNative(type, level, BlockPos.ZERO, EntitySpawnReason.NATURAL));
+            assertNull(NativeEntitySpawns.spawn(type, level, BlockPos.ZERO, EntitySpawnReason.NATURAL));
             verify(type, never()).spawn(level, BlockPos.ZERO, EntitySpawnReason.NATURAL);
             rejected++;
         }
@@ -98,7 +105,7 @@ public class ModdedEntitySpawnDifficultyTest {
             EntityType<?> type = spy(BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.parse("minecraft:" + key)));
             doReturn(created).when(type).spawn(level, BlockPos.ZERO, EntitySpawnReason.NATURAL);
 
-            assertSame(key, created, ModdedEntitySpawner.spawnNative(type, level, BlockPos.ZERO, EntitySpawnReason.NATURAL));
+            assertSame(key, created, NativeEntitySpawns.spawn(type, level, BlockPos.ZERO, EntitySpawnReason.NATURAL));
             verify(type).spawn(level, BlockPos.ZERO, EntitySpawnReason.NATURAL);
         }
     }
@@ -113,7 +120,7 @@ public class ModdedEntitySpawnDifficultyTest {
             when(level.getDifficulty()).thenReturn(difficulty);
             doReturn(created).when(type).spawn(level, BlockPos.ZERO, EntitySpawnReason.NATURAL);
 
-            assertSame(created, ModdedEntitySpawner.spawnNative(type, level, BlockPos.ZERO, EntitySpawnReason.NATURAL));
+            assertSame(created, NativeEntitySpawns.spawn(type, level, BlockPos.ZERO, EntitySpawnReason.NATURAL));
             verify(type).spawn(level, BlockPos.ZERO, EntitySpawnReason.NATURAL);
         }
     }
@@ -127,6 +134,6 @@ public class ModdedEntitySpawnDifficultyTest {
         doThrow(failure).when(type).spawn(level, BlockPos.ZERO, EntitySpawnReason.NATURAL);
 
         assertSame(failure, assertThrows(IllegalStateException.class,
-                () -> ModdedEntitySpawner.spawnNative(type, level, BlockPos.ZERO, EntitySpawnReason.NATURAL)));
+                () -> NativeEntitySpawns.spawn(type, level, BlockPos.ZERO, EntitySpawnReason.NATURAL)));
     }
 }

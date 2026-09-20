@@ -20,100 +20,38 @@ package art.arcane.iris.modded;
 
 import art.arcane.iris.generation.decoration.DecoratorPlatformHooks;
 import art.arcane.iris.generation.mantle.EngineMantle;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockFaces;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.world.level.EmptyBlockGetter;
-import net.minecraft.world.level.block.SupportType;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.level.block.state.properties.Property;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 public final class ModdedDecoratorHooks implements DecoratorPlatformHooks.FaceFixer, DecoratorPlatformHooks.SurfaceSturdiness {
-    private static final Direction[] CARTESIAN = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST, Direction.UP, Direction.DOWN};
-    private static final String[] FACE_NAMES = {"north", "east", "south", "west", "up", "down"};
-
     @Override
-    public PlatformBlockState fixFaces(PlatformBlockState state, Hunk<PlatformBlockState> hunk, int rX, int rZ, int x, int y, int z, EngineMantle mantle) {
-        if (!(state instanceof ModdedBlockState fabric)) {
-            return state;
-        }
-        BlockState cloned = fabric.handle();
-        Map<String, BooleanProperty> allowed = faceProperties(cloned);
-
-        for (Map.Entry<String, BooleanProperty> entry : allowed.entrySet()) {
-            if (cloned.getValue(entry.getValue())) {
-                cloned = cloned.setValue(entry.getValue(), Boolean.FALSE);
-            }
-        }
-
-        boolean found = false;
-        for (Direction f : CARTESIAN) {
-            int yy = y + f.getStepY();
-
-            PlatformBlockState rs = null;
-            if (mantle != null) {
-                rs = mantle.getMantle().get(x + f.getStepX(), yy, z + f.getStepZ(), PlatformBlockState.class);
-            }
-            BlockState r = rs == null ? (BlockState) EngineMantle.AIR.get().nativeHandle() : (BlockState) rs.nativeHandle();
-            if (isFaceSturdy(r, f.getOpposite())) {
-                BooleanProperty property = allowed.get(f.getSerializedName());
-                if (property != null) {
-                    found = true;
-                    cloned = cloned.setValue(property, Boolean.TRUE);
-                }
-                continue;
-            }
-
-            int xx = rX + f.getStepX();
-            int zz = rZ + f.getStepZ();
-            if (xx < 0 || xx > 15 || zz < 0 || zz > 15 || yy < 0 || yy > hunk.getHeight()) {
-                continue;
-            }
-
-            r = (BlockState) hunk.get(xx, yy, zz).nativeHandle();
-            if (isFaceSturdy(r, f.getOpposite())) {
-                BooleanProperty property = allowed.get(f.getSerializedName());
-                if (property != null) {
-                    found = true;
-                    cloned = cloned.setValue(property, Boolean.TRUE);
-                }
-            }
-        }
-
-        if (!found) {
-            String fallback = allowed.containsKey("down") ? "down" : "up";
-            BooleanProperty property = allowed.get(fallback);
-            if (property != null) {
-                cloned = cloned.setValue(property, Boolean.TRUE);
-            }
-        }
-
-        return fabric.withHandle(cloned, fabric.parsedProperties());
+    public NativeBlockState fixFaces(NativeBlockState state, Hunk<NativeBlockState> hunk, int rX, int rZ,
+                                     int x, int y, int z, EngineMantle mantle) {
+        return NativeBlockFaces.fixFaces(state, new Neighbors(hunk, rX, rZ, x, y, z, mantle));
     }
 
     @Override
-    public boolean canGoOn(PlatformBlockState surface, boolean upward) {
-        return isFaceSturdy((BlockState) surface.nativeHandle(), upward ? Direction.UP : Direction.DOWN);
+    public boolean canGoOn(NativeBlockState surface, boolean upward) {
+        return NativeBlockFaces.canGoOn(surface, upward);
     }
 
-    private static boolean isFaceSturdy(BlockState state, Direction face) {
-        return state.isFaceSturdy(EmptyBlockGetter.INSTANCE, BlockPos.ZERO, face, SupportType.FULL);
-    }
-
-    private static Map<String, BooleanProperty> faceProperties(BlockState state) {
-        Map<String, BooleanProperty> properties = new LinkedHashMap<>();
-        for (String name : FACE_NAMES) {
-            for (Property<?> property : state.getProperties()) {
-                if (property.getName().equals(name) && property instanceof BooleanProperty bool) {
-                    properties.put(name, bool);
-                }
-            }
+    private record Neighbors(Hunk<NativeBlockState> hunk, int rX, int rZ, int x, int y, int z,
+                             EngineMantle mantle) implements NativeBlockFaces.Neighbors {
+        @Override
+        public NativeBlockState primary(int dx, int dy, int dz) {
+            NativeBlockState state = mantle == null ? null
+                    : mantle.getMantle().get(x + dx, y + dy, z + dz, NativeBlockState.class);
+            return state == null ? EngineMantle.AIR.get() : state;
         }
-        return properties;
+
+        @Override
+        public NativeBlockState secondary(int dx, int dy, int dz) {
+            int xx = rX + dx;
+            int yy = y + dy;
+            int zz = rZ + dz;
+            return xx < 0 || xx > 15 || zz < 0 || zz > 15 || yy < 0 || yy > hunk.getHeight()
+                    ? null : hunk.get(xx, yy, zz);
+        }
     }
 }

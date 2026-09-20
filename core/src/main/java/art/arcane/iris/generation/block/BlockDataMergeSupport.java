@@ -1,7 +1,7 @@
 package art.arcane.iris.generation.block;
 
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 import org.bukkit.block.data.BlockData;
 
@@ -15,7 +15,7 @@ public final class BlockDataMergeSupport {
     }
 
     public interface StateMerger {
-        PlatformBlockState merge(PlatformBlockState base, PlatformBlockState update);
+        NativeBlockState merge(NativeBlockState base, NativeBlockState update);
     }
 
     public static synchronized StateMerger bindPlatformMerger(StateMerger merger) {
@@ -28,7 +28,7 @@ public final class BlockDataMergeSupport {
         PLATFORM_MERGER = merger;
     }
 
-    public static PlatformBlockState merge(PlatformBlockState base, PlatformBlockState update) {
+    public static NativeBlockState merge(NativeBlockState base, NativeBlockState update) {
         StateMerger merger = PLATFORM_MERGER;
         if (merger != null) {
             return merger.merge(base, update);

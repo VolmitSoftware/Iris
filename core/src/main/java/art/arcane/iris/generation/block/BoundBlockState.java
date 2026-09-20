@@ -20,7 +20,7 @@ package art.arcane.iris.generation.block;
 
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 public final class BoundBlockState {
     private final String key;
@@ -34,7 +34,7 @@ public final class BoundBlockState {
         return new BoundBlockState(key);
     }
 
-    public PlatformBlockState get() {
+    public NativeBlockState get() {
         Bound current = bound;
         IrisPlatform platform = IrisPlatforms.getOrNull();
 
@@ -48,6 +48,6 @@ public final class BoundBlockState {
         return resolved.state();
     }
 
-    private record Bound(IrisPlatform platform, PlatformBlockState state) {
+    private record Bound(IrisPlatform platform, NativeBlockState state) {
     }
 }

@@ -21,7 +21,7 @@ package art.arcane.iris.structure.nativegen;
 import art.arcane.iris.structure.placement.IrisStructureSetFrequencyOverride;
 import art.arcane.iris.structure.placement.IrisStructureStiltSettings;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
-import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import art.arcane.iris.structure.placement.IrisStructureYBand;
 
 import art.arcane.volmlib.util.collection.KList;
@@ -224,9 +224,9 @@ public class IrisImportedStructureControlTest {
     @Test
     public void multipleMatchesUseTheLastConfiguredTerrainAndBand() {
         IrisStructureTerrain broadTerrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.SOURCE);
+                .setMode(StructureTerrainMode.SOURCE);
         IrisStructureTerrain exactTerrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.ENCASE)
+                .setMode(StructureTerrainMode.ENCASE)
                 .setHorizontalPadding(4);
         IrisStructureYBand band = new IrisStructureYBand().setMin(-120).setMax(-20);
         IrisVanillaStructureAdjustment broad = new IrisVanillaStructureAdjustment()
@@ -253,27 +253,27 @@ public class IrisImportedStructureControlTest {
     public void namespaceVacuumCanPreserveSpecificStructuresLater() {
         IrisVanillaStructureAdjustment namespace = new IrisVanillaStructureAdjustment()
                 .setMatch(keys("towns_and_towers:"))
-                .setTerrain(new IrisStructureTerrain().setMode(IrisStructureTerrainMode.VACUUM));
+                .setTerrain(new IrisStructureTerrain().setMode(StructureTerrainMode.VACUUM));
         IrisVanillaStructureAdjustment preserveShips = new IrisVanillaStructureAdjustment()
                 .setMatch(keys(
                         "towns_and_towers:mimic_desert",
                         "towns_and_towers:pillager_outpost_ocean",
                         "towns_and_towers:village_ocean",
                         "towns_and_towers:wreckage_ocean"))
-                .setTerrain(new IrisStructureTerrain().setMode(IrisStructureTerrainMode.PRESERVE));
+                .setTerrain(new IrisStructureTerrain().setMode(StructureTerrainMode.PRESERVE));
         KList<IrisVanillaStructureAdjustment> adjustments = new KList<>();
         adjustments.add(namespace);
         adjustments.add(preserveShips);
         IrisImportedStructureControl control = new IrisImportedStructureControl()
                 .setAdjustments(adjustments);
 
-        assertEquals(IrisStructureTerrainMode.VACUUM,
+        assertEquals(StructureTerrainMode.VACUUM,
                 control.resolve("towns_and_towers:village_forest", false)
                         .terrain().resolvedMode());
-        assertEquals(IrisStructureTerrainMode.PRESERVE,
+        assertEquals(StructureTerrainMode.PRESERVE,
                 control.resolve("towns_and_towers:village_ocean", false)
                         .terrain().resolvedMode());
-        assertEquals(IrisStructureTerrainMode.PRESERVE,
+        assertEquals(StructureTerrainMode.PRESERVE,
                 control.resolve("towns_and_towers:mimic_desert", true)
                         .terrain().resolvedMode());
     }

@@ -28,7 +28,7 @@ import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.BoundBlockState;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -48,7 +48,7 @@ import art.arcane.volmlib.util.matter.MatterUpdate;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class IrisDimensionStackActuator extends EngineAssignedActuator<PlatformBlockState> {
+public final class IrisDimensionStackActuator extends EngineAssignedActuator<NativeBlockState> {
     private static final BoundBlockState AIR = BoundBlockState.of("AIR");
     private static final BoundBlockState BEDROCK = BoundBlockState.of("BEDROCK");
     private static final List<Class<?>> REPLACED_METADATA = List.of(
@@ -75,7 +75,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Pla
     public void onActuate(
             int x,
             int z,
-            Hunk<PlatformBlockState> blocks,
+            Hunk<NativeBlockState> blocks,
             boolean multicore,
             ChunkContext context
     ) {
@@ -129,7 +129,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Pla
             int localZ,
             int worldX,
             int worldZ,
-            Hunk<PlatformBlockState> blocks,
+            Hunk<NativeBlockState> blocks,
             DimensionStackLayout layout,
             MetadataCleaner metadata
     ) {
@@ -149,7 +149,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Pla
     private void clearGap(
             int localX,
             int localZ,
-            Hunk<PlatformBlockState> output,
+            Hunk<NativeBlockState> output,
             DimensionStackLayout.Layer lower,
             DimensionStackLayout.Layer upper,
             MetadataCleaner metadata
@@ -170,7 +170,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Pla
             int localZ,
             int worldX,
             int worldZ,
-            Hunk<PlatformBlockState> output,
+            Hunk<NativeBlockState> output,
             DimensionStackLayout.Layer layer,
             MetadataCleaner metadata
     ) {
@@ -180,7 +180,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Pla
         IrisBiome biome = layer.biome();
         int surfaceDepth = Math.max(0, layer.normalTerrainHeight());
         int fluidDepth = Math.max(0, layer.fluidHeight() - layer.normalTerrainHeight());
-        KList<PlatformBlockState> surfaceBlocks = biome == null || layer.terrainColumn() != null
+        KList<NativeBlockState> surfaceBlocks = biome == null || layer.terrainColumn() != null
                 ? null
                 : biome.generateLayersWithSlope(
                         dimension,
@@ -193,7 +193,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Pla
                         terrainContext.getSlopeStream()
                 );
         int paletteSurfaceY = layer.normalTerrainHeight();
-        KList<PlatformBlockState> seaBlocks = biome == null || fluidDepth == 0
+        KList<NativeBlockState> seaBlocks = biome == null || fluidDepth == 0
                 ? null
                 : biome.generateSeaLayers(worldX, worldZ, rng, fluidDepth, data);
 
@@ -241,12 +241,12 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Pla
     }
 
     private void writeBlock(
-            Hunk<PlatformBlockState> output,
+            Hunk<NativeBlockState> output,
             MetadataCleaner metadata,
             int x,
             int y,
             int z,
-            PlatformBlockState block
+            NativeBlockState block
     ) {
         metadata.clear(x, y, z);
         output.setRaw(x, y, z, block);

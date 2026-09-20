@@ -15,8 +15,6 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public final class NativeTerrainReceipt {
-    public static final String STRUCTURE_ACTIVATION_KEY = "iris:structure_activation";
-    public static final String NBT_KEY = "iris:natural_terrain";
     private static final int MAGIC = 0x4952544E;
     private static final int VERSION = 1;
     private static final int MAXIMUM_BYTES = 64 * 1024 * 1024;

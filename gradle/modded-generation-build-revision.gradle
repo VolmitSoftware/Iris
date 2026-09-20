@@ -32,7 +32,7 @@ TaskProvider<JavaExec> resolvedRevisionVerification = tasks.register('verifyReso
                 continue
             }
             boolean volmLib = (group == 'com.github.VolmitSoftware' && name == 'VolmLib')
-                || group == 'com.github.VolmitSoftware.VolmLib'
+                || (group == 'com.github.VolmitSoftware.VolmLib' && name in ['shared', 'volmlib-shared'])
                 || (group == 'art.arcane' && name == 'shared')
             String key = volmLib ? 'volmlib' : "${group}:${name}".toString()
             if (artifact.classifier != null) {

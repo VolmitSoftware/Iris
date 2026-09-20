@@ -3,7 +3,7 @@ package art.arcane.iris.probe;
 import art.arcane.iris.generation.decoration.IrisSpeleothems;
 import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.hunk.Hunk;
 import org.junit.AfterClass;
@@ -46,20 +46,20 @@ public final class StubPlatformStateTest {
 
     @Test
     public void propertyUpdatesAndMergesPreserveCanonicalState() {
-        PlatformBlockState base = state("minecraft:oak_leaves[distance=7,persistent=false]");
-        PlatformBlockState updated = base.withProperty("distance", "2").withProperty("persistent", "true");
+        NativeBlockState base = state("minecraft:oak_leaves[distance=7,persistent=false]");
+        NativeBlockState updated = base.withProperty("distance", "2").withProperty("persistent", "true");
 
         assertEquals("minecraft:oak_leaves[distance=2,persistent=true]", updated.key());
 
-        PlatformBlockState merged = StubPlatform.mergeForTest(
+        NativeBlockState merged = StubPlatform.mergeForTest(
                 base, state("minecraft:oak_leaves[persistent=true]"));
         assertEquals("minecraft:oak_leaves[distance=7,persistent=true]", merged.key());
     }
 
     @Test
     public void noOpStateTransformsReuseTheCanonicalInstance() {
-        PlatformBlockState stone = state("minecraft:stone");
-        PlatformBlockState leaves = state("minecraft:oak_leaves[distance=7,persistent=false]");
+        NativeBlockState stone = state("minecraft:stone");
+        NativeBlockState leaves = state("minecraft:oak_leaves[distance=7,persistent=false]");
 
         assertSame(stone, StubPlatform.rotateForTest(IrisObjectRotation.of(0, 90, 0), stone));
         assertSame(leaves, leaves.withProperty("distance", "7"));
@@ -71,9 +71,9 @@ public final class StubPlatformStateTest {
 
     @Test
     public void classifiesVanillaFluidStates() {
-        PlatformBlockState water = state("minecraft:water[level=0]");
-        PlatformBlockState lava = state("minecraft:lava[level=0]");
-        PlatformBlockState stone = state("minecraft:stone");
+        NativeBlockState water = state("minecraft:water[level=0]");
+        NativeBlockState lava = state("minecraft:lava[level=0]");
+        NativeBlockState stone = state("minecraft:stone");
 
         assertTrue(water.isFluid());
         assertTrue(water.isWater());
@@ -94,8 +94,8 @@ public final class StubPlatformStateTest {
 
     @Test
     public void resolvesSpikeSupportWithoutServerClasses() {
-        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(1, 3, 1);
-        PlatformBlockState spike = state("minecraft:pointed_dripstone[vertical_direction=up,thickness=tip]");
+        Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(1, 3, 1);
+        NativeBlockState spike = state("minecraft:pointed_dripstone[vertical_direction=up,thickness=tip]");
         blocks.set(0, 0, 0, state("minecraft:stone"));
         assertTrue(IrisSpeleothems.isSupported(spike, blocks, 0, 0, 1));
         blocks.set(0, 0, 0, state("minecraft:water[level=0]"));
@@ -106,7 +106,7 @@ public final class StubPlatformStateTest {
 
     @Test
     public void sugarCaneUsesNativeSubstratesInGeneratedChunkProbes() {
-        PlatformBlockState cane = state("minecraft:sugar_cane[age=0]");
+        NativeBlockState cane = state("minecraft:sugar_cane[age=0]");
         for (String substrate : new String[]{"sugar_cane", "grass_block", "dirt", "coarse_dirt", "podzol",
                 "mycelium", "rooted_dirt", "moss_block", "pale_moss_block", "mud", "muddy_mangrove_roots",
                 "sand", "red_sand", "suspicious_sand"}) {
@@ -117,7 +117,7 @@ public final class StubPlatformStateTest {
         }
     }
 
-    private PlatformBlockState state(String key) {
+    private NativeBlockState state(String key) {
         return IrisPlatforms.get().registries().block(key);
     }
 

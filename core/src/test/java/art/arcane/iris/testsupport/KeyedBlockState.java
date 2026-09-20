@@ -1,8 +1,8 @@
 package art.arcane.iris.testsupport;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
-public final class KeyedBlockState implements PlatformBlockState {
+public final class KeyedBlockState implements NativeBlockState {
     private final String key;
 
     public KeyedBlockState(String key) {
@@ -50,7 +50,7 @@ public final class KeyedBlockState implements PlatformBlockState {
     }
 
     @Override
-    public PlatformBlockState placementBaseState() {
+    public NativeBlockState placementBaseState() {
         return null;
     }
 
@@ -125,12 +125,12 @@ public final class KeyedBlockState implements PlatformBlockState {
     }
 
     @Override
-    public boolean canPlaceOnto(PlatformBlockState onto) {
+    public boolean canPlaceOnto(NativeBlockState onto) {
         return false;
     }
 
     @Override
-    public boolean matches(PlatformBlockState state) {
+    public boolean matches(NativeBlockState state) {
         return false;
     }
 
@@ -145,7 +145,7 @@ public final class KeyedBlockState implements PlatformBlockState {
     }
 
     @Override
-    public PlatformBlockState withProperty(String name, String value) {
+    public NativeBlockState withProperty(String name, String value) {
         return null;
     }
 

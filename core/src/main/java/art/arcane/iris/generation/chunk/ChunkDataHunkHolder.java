@@ -19,7 +19,8 @@
 package art.arcane.iris.generation.chunk;
 
 import art.arcane.iris.platform.bukkit.nms.INMS;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockVolume;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.BoundBlockState;
 import art.arcane.iris.generation.block.IrisCustomData;
 import art.arcane.volmlib.util.hunk.storage.AtomicHunk;
@@ -27,7 +28,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 @SuppressWarnings("ClassCanBeRecord")
-public class ChunkDataHunkHolder extends AtomicHunk<PlatformBlockState> {
+public class ChunkDataHunkHolder extends AtomicHunk<NativeBlockState> implements NativeBlockVolume {
     private static final BoundBlockState AIR = BoundBlockState.of("AIR");
 
     private final ChunkData chunk;
@@ -48,7 +49,7 @@ public class ChunkDataHunkHolder extends AtomicHunk<PlatformBlockState> {
     }
 
     @Override
-    public void setRaw(int x, int y, int z, PlatformBlockState t) {
+    public void setRaw(int x, int y, int z, NativeBlockState t) {
         // Block-hunk contract: null means "no write", never "erase" — ChunkDataHunkView and
         // the modded ModdedBlockBuffer already discard nulls, and storing one here made the
         // Bukkit output diverge from the modded loaders for the same engine emission.
@@ -59,17 +60,17 @@ public class ChunkDataHunkHolder extends AtomicHunk<PlatformBlockState> {
     }
 
     @Override
-    public PlatformBlockState getRaw(int x, int y, int z) {
+    public NativeBlockState getRaw(int x, int y, int z) {
         if (y < 0 || y >= getHeight()) {
             return AIR.get();
         }
 
-        PlatformBlockState b = super.getRaw(x, y, z);
+        NativeBlockState b = super.getRaw(x, y, z);
 
         return b != null ? b : AIR.get();
     }
 
-    public PlatformBlockState getStoredRaw(int x, int y, int z) {
+    public NativeBlockState getStoredRaw(int x, int y, int z) {
         return super.getRaw(x, y, z);
     }
 
@@ -89,7 +90,7 @@ public class ChunkDataHunkHolder extends AtomicHunk<PlatformBlockState> {
                 int runStart = -1;
 
                 for (int y = 0; y < height; y++) {
-                    PlatformBlockState state = super.getRaw(x, y, z);
+                    NativeBlockState state = super.getRaw(x, y, z);
                     BlockData block = state == null ? null : (BlockData) state.nativeHandle();
                     // Custom wrappers are not real Bukkit data; write the vanilla base like the
                     // NMS fast path (NMSBinding.applyChunkDataBlocks) does.

@@ -56,7 +56,7 @@ import art.arcane.volmlib.util.director.help.DirectorMiniMenu;
 import art.arcane.volmlib.util.localization.BukkitLanguageSwitcher;
 import art.arcane.iris.integration.MultiverseCoreLink;
 import art.arcane.iris.platform.bukkit.nms.INMS;
-import art.arcane.iris.platform.bukkit.nms.ServerShutdownBoundary;
+import art.arcane.volmlib.nativelib.terrain.ServerShutdownBoundary;
 import art.arcane.iris.studio.view.BukkitGuiHost;
 import art.arcane.iris.studio.view.PregeneratorJob;
 import art.arcane.iris.platform.bukkit.BoardSVC;
@@ -782,7 +782,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 reconcileStartupWorlds();
             }
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
-            // The mantle stores block values as PlatformBlockState, so a BlockData retention can never
+            // The mantle stores block values as NativeBlockState, so a BlockData retention can never
             // match a slice type; the block-state slice is deliberately never retainable (regenerable, huge).
             IrisToolbelt.retainMantleDataForSlice(TreeBlockMaterial.class.getCanonicalName());
         });
@@ -1270,6 +1270,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             } else {
                 try {
                     INMS.get().releasePluginClassLoaderClose();
+                    SlimJar.closeNativeProviders();
                 } catch (Throwable failure) {
                     SHUTDOWN_ERRORS.println("[Iris] Failed to release the plugin class loader after runtime cleanup.");
                     failure.printStackTrace(SHUTDOWN_ERRORS);

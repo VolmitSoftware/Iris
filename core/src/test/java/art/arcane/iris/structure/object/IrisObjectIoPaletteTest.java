@@ -2,7 +2,7 @@ package art.arcane.iris.structure.object;
 
 import art.arcane.iris.testsupport.KeyedBlockState;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import org.junit.Test;
 
@@ -41,7 +41,7 @@ public class IrisObjectIoPaletteTest {
         List<String> firstSeen = new ArrayList<>();
         Set<String> seen = new HashSet<>();
 
-        for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : object.blocks) {
+        for (Map.Entry<IrisBlockVector, NativeBlockState> entry : object.blocks) {
             if (seen.add(entry.getValue().key())) {
                 firstSeen.add(entry.getValue().key());
             }

@@ -1,9 +1,29 @@
 package art.arcane.iris.nativegen.v26_3_R1;
 
-import art.arcane.iris.generation.mantle.StructureCarvingFootprint;
-import art.arcane.iris.structure.placement.IrisStructureCarveShape;
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureVerticalPlacer;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureReferenceEnvelope;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureTerrainIntegrator;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureFoundationBuilder;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureSurfaceSupportBuilder;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureSurfaceFitter;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureVegetationClearer;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureTemplateOccupancy;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureReflection;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.WorldgenTerrainHeightmaps;
+
+import art.arcane.volmlib.util.structure.StructureCarvingFootprint;
+import art.arcane.volmlib.util.structure.StructureCarveShape;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
-import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import net.minecraft.SharedConstants;
@@ -214,10 +234,10 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
             put(blocks, x, sourceY, 0, Blocks.GRASS_BLOCK.defaultBlockState());
         }
         assertTrue(NativeStructureSurfaceFitter.requiresFlattenTerrain(
-                surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)));
+                surfaceTarget(start, StructureTerrainMode.FLATTEN)));
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)),
+                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)),
                 (x, z) -> x < 2 ? groundY - 32 : groundY + 32);
 
         for (int x = 0; x <= 3; x++) {
@@ -240,7 +260,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         put(blocks, 0, groundY - 19, 0, Blocks.DIRT.defaultBlockState());
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)), (x, z) -> groundY);
+                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)), (x, z) -> groundY);
 
         for (int y = groundY - 19; y <= groundY; y++) {
             assertEquals(Blocks.DIRT.defaultBlockState(), state(blocks, 0, y, 0));
@@ -260,9 +280,9 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         Map<BlockPos, BlockState> originalSubmerged = new HashMap<>(submerged);
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(world(buried), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)), (x, z) -> 100);
+                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)), (x, z) -> 100);
         NativeStructureSurfaceFitter.prepareSurfaceStructures(world(submerged), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)), (x, z) -> groundY - 8);
+                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)), (x, z) -> groundY - 8);
 
         assertEquals(originalBuried, buried);
         assertEquals(originalSubmerged, submerged);
@@ -280,12 +300,12 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
             StructureStart start = new StructureStart(structure, new ChunkPos(0, 0), 0,
                     new PiecesContainer(desertStart().getPieces()));
             assertFalse(NativeStructureSurfaceFitter.requiresFlattenTerrain(
-                    surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)));
+                    surfaceTarget(start, StructureTerrainMode.FLATTEN)));
         }
         assertFalse(NativeStructureSurfaceFitter.requiresFlattenTerrain(
-                surfaceTarget(desertStart(TerrainAdjustment.BURY), IrisStructureTerrainMode.FLATTEN)));
+                surfaceTarget(desertStart(TerrainAdjustment.BURY), StructureTerrainMode.FLATTEN)));
         assertFalse(NativeStructureSurfaceFitter.requiresFlattenTerrain(
-                surfaceTarget(desertStart(TerrainAdjustment.ENCAPSULATE), IrisStructureTerrainMode.FLATTEN)));
+                surfaceTarget(desertStart(TerrainAdjustment.ENCAPSULATE), StructureTerrainMode.FLATTEN)));
     }
 
     @Test
@@ -294,8 +314,8 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                         block(0, 0, 0, Blocks.COBBLESTONE.defaultBlockState())))),
                 new BoundingBox(0, 128, 0, 0, 136, 0), 0, Rotation.NONE);
         StructureStart start = rigidSurfaceStart(List.of(piece));
-        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, IrisStructureTerrainMode.FLATTEN);
-        target.terrain().setFlattenRange(32);
+        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, StructureTerrainMode.FLATTEN);
+        ((IrisStructureTerrain) target.terrain()).setFlattenRange(32);
         BoundingBox area = new BoundingBox(0, 0, 0, 0, 255, 0);
         Map<BlockPos, BlockState> blocks = new HashMap<>();
         put(blocks, 0, 94, 0, Blocks.GOLD_BLOCK.defaultBlockState());
@@ -323,7 +343,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                         block(0, 0, 0, Blocks.COBBLESTONE.defaultBlockState())))),
                 new BoundingBox(0, 64, 0, 0, 70, 0), 0, Rotation.NONE);
         StructureStart start = rigidSurfaceStart(List.of(piece));
-        IrisStructureTerrain terrain = new IrisStructureTerrain().setMode(IrisStructureTerrainMode.FLATTEN)
+        IrisStructureTerrain terrain = new IrisStructureTerrain().setMode(StructureTerrainMode.FLATTEN)
                 .setHorizontalPadding(128).setFlattenRange(128);
 
         BoundingBox references = NativeStructureReferenceEnvelope.referenceBounds(start, start.getStructure(), terrain);
@@ -351,7 +371,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         Map<BlockPos, BlockState> blocks = supportTerrain(0, 0);
 
         Set<Long> written = NativeStructureSurfaceSupportBuilder.bridgeRigidPieceSupport(world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)),
+                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)),
                 NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager);
 
         assertEquals(Set.of(BlockPos.asLong(0, 63, 0)), written);
@@ -372,7 +392,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         put(blocks, 0, 80, 0, Blocks.STONE.defaultBlockState());
 
         Set<Long> written = NativeStructureSurfaceSupportBuilder.bridgeRigidPieceSupport(world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)),
+                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)),
                 NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager);
 
         assertTrue(written.isEmpty());
@@ -399,7 +419,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         }
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.FLATTEN)),
+                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)),
                 (x, z) -> x == footprint.minX() ? 80 : 112);
 
         assertEquals(81, piece.getBoundingBox().minY());
@@ -421,8 +441,8 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                         List.of(), StructureTemplatePool.Projection.TERRAIN_MATCHING),
                 new BoundingBox(4, 65, 0, 4, 75, 0), 0, Rotation.NONE);
         StructureStart start = rigidSurfaceStart(List.of(left, path, right));
-        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, IrisStructureTerrainMode.FLATTEN);
-        target.terrain().setHorizontalPadding(24);
+        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, StructureTerrainMode.FLATTEN);
+        ((IrisStructureTerrain) target.terrain()).setHorizontalPadding(24);
         BoundingBox area = new BoundingBox(0, 0, 0, 8, 128, 0);
         Map<BlockPos, BlockState> blocks = flatTerrain(area, 96);
         for (int x : List.of(0, 8)) {
@@ -472,8 +492,8 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                         List.of(), StructureTemplatePool.Projection.TERRAIN_MATCHING),
                 new BoundingBox(0, 65, 0, 8, 75, 0), 0, Rotation.NONE);
         StructureStart start = rigidSurfaceStart(List.of(left, path, right));
-        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, IrisStructureTerrainMode.FLATTEN);
-        target.terrain().setHorizontalPadding(24);
+        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, StructureTerrainMode.FLATTEN);
+        ((IrisStructureTerrain) target.terrain()).setHorizontalPadding(24);
         BoundingBox area = new BoundingBox(0, 0, 0, 8, 127, 0);
         WorldGenLevel world = world(chunk);
 
@@ -532,8 +552,8 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                         List.of(), StructureTemplatePool.Projection.TERRAIN_MATCHING),
                 new BoundingBox(4, 65, 0, 6, 75, 0), 0, Rotation.NONE);
         StructureStart start = rigidSurfaceStart(List.of(left, path, right));
-        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, IrisStructureTerrainMode.FLATTEN);
-        target.terrain().setHorizontalPadding(24).setFlattenRange(32);
+        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, StructureTerrainMode.FLATTEN);
+        ((IrisStructureTerrain) target.terrain()).setHorizontalPadding(24).setFlattenRange(32);
         BoundingBox area = new BoundingBox(0, 0, 0, 8, 127, 0);
         WorldGenLevel world = world(chunk);
 
@@ -579,8 +599,8 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
             }
         }
         StructureStart start = rigidSurfaceStart(pieces);
-        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, IrisStructureTerrainMode.FLATTEN);
-        target.terrain().setHorizontalPadding(24).setFlattenRange(64);
+        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, StructureTerrainMode.FLATTEN);
+        ((IrisStructureTerrain) target.terrain()).setHorizontalPadding(24).setFlattenRange(64);
         BoundingBox area = new BoundingBox(0, 0, 0, 8, 127, 8);
         Map<BlockPos, BlockState> blocks = new HashMap<>();
         for (int x = 0; x <= 8; x++) {
@@ -667,11 +687,11 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         assertTrue(NativeStructureSurfaceFitter.requiresSurfaceTerrain(
                 new NativeStructureTerrainIntegrator.TerrainTarget(
                         "test:beard_box", start,
-                        new IrisStructureTerrain().setMode(IrisStructureTerrainMode.SOURCE))));
+                        new IrisStructureTerrain().setMode(StructureTerrainMode.SOURCE))));
         assertFalse(NativeStructureSurfaceFitter.requiresSurfaceTerrain(
                 new NativeStructureTerrainIntegrator.TerrainTarget(
                         "test:beard_box", start,
-                        new IrisStructureTerrain().setMode(IrisStructureTerrainMode.PRESERVE))));
+                        new IrisStructureTerrain().setMode(StructureTerrainMode.PRESERVE))));
     }
 
     @Test
@@ -681,15 +701,15 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureTerrainIntegrator.TerrainTarget sourceNone =
                 new NativeStructureTerrainIntegrator.TerrainTarget(
                         "test:none", none,
-                        new IrisStructureTerrain().setMode(IrisStructureTerrainMode.SOURCE));
+                        new IrisStructureTerrain().setMode(StructureTerrainMode.SOURCE));
         NativeStructureTerrainIntegrator.TerrainTarget vacuumNone =
                 new NativeStructureTerrainIntegrator.TerrainTarget(
                         "test:none", none,
-                        new IrisStructureTerrain().setMode(IrisStructureTerrainMode.VACUUM));
+                        new IrisStructureTerrain().setMode(StructureTerrainMode.VACUUM));
         NativeStructureTerrainIntegrator.TerrainTarget vacuumBox =
                 new NativeStructureTerrainIntegrator.TerrainTarget(
                         "test:box", box,
-                        new IrisStructureTerrain().setMode(IrisStructureTerrainMode.VACUUM));
+                        new IrisStructureTerrain().setMode(StructureTerrainMode.VACUUM));
 
         assertFalse(NativeStructureSurfaceFitter.requiresSurfaceTerrain(sourceNone));
         assertTrue(NativeStructureSurfaceFitter.requiresSurfaceTerrain(vacuumNone));
@@ -778,7 +798,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         List<NativeStructureTerrainIntegrator.TerrainTarget> targets = List.of(
                 new NativeStructureTerrainIntegrator.TerrainTarget(
                         "nova_structures:tavern_oak", start,
-                        new IrisStructureTerrain().setMode(IrisStructureTerrainMode.SOURCE)));
+                        new IrisStructureTerrain().setMode(StructureTerrainMode.SOURCE)));
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area, targets,
                 (x, z) -> 65);
@@ -886,7 +906,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 (x, z) -> 60);
 
         assertEquals(Blocks.AIR.defaultBlockState(), state(blocks, 0, 64, 0));
@@ -911,7 +931,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 (x, z) -> 60);
 
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 0, 65, 0));
@@ -932,7 +952,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 (x, z) -> 80);
 
         for (int y = 61; y <= 74; y++) {
@@ -957,7 +977,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 (x, z) -> 79);
 
         for (int y = 61; y <= 74; y++) {
@@ -989,7 +1009,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.SurfaceTerrainPlan plan =
                 NativeStructureSurfaceFitter.prepareSurfaceStructures(
                         world(blocks), area,
-                        List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                        List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                         (x, z) -> 60);
         for (int y = 61; y <= 64; y++) {
             put(blocks, 0, y, 0, Blocks.CAVE_AIR.defaultBlockState());
@@ -1029,7 +1049,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.SurfaceTerrainPlan plan =
                 NativeStructureSurfaceFitter.prepareSurfaceStructures(
                         world(blocks), area,
-                        List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                        List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                         (x, z) -> 60);
         put(blocks, 0, 65, 0, Blocks.COBBLESTONE.defaultBlockState());
 
@@ -1051,7 +1071,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                 new BoundingBox(15, 65, 0, 16, 70, 0), 1, Rotation.NONE);
         StructureStart start = rigidSurfaceStart(List.of(piece), TerrainAdjustment.NONE);
         NativeStructureTerrainIntegrator.TerrainTarget target =
-                surfaceTarget(start, IrisStructureTerrainMode.VACUUM);
+                surfaceTarget(start, StructureTerrainMode.VACUUM);
         BoundingBox wideArea = new BoundingBox(0, 54, 0, 31, 72, 15);
         BoundingBox westArea = new BoundingBox(0, 54, 0, 15, 72, 15);
         BoundingBox eastArea = new BoundingBox(16, 54, 0, 31, 72, 15);
@@ -1100,7 +1120,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 (x, z) -> 60);
 
         assertEquals(originalBlocks, blocks);
@@ -1121,7 +1141,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 (x, z) -> 60);
 
         assertEquals(originalBlocks, blocks);
@@ -1145,7 +1165,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 (x, z) -> 60);
 
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 1, 66, 0));
@@ -1170,7 +1190,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 (x, z) -> 60);
 
         assertEquals(originalBlocks, blocks);
@@ -1190,7 +1210,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 (x, z) -> 60);
 
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 0, 65, 0));
@@ -1215,7 +1235,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 (x, z) -> 60);
 
         assertEquals(originalBlocks, blocks);
@@ -1236,7 +1256,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 (x, z) -> 60);
 
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 4, 61, 4));
@@ -1254,7 +1274,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 (x, z) -> 50);
 
         assertEquals(originalBlocks, blocks);
@@ -1273,7 +1293,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 (x, z) -> 60, 1);
 
         assertEquals(originalBlocks, blocks);
@@ -1297,7 +1317,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
-                List.of(surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 (x, z) -> 60);
 
         for (int y = 61; y <= 65; y++) {
@@ -1317,7 +1337,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                 new BoundingBox(15, 66, 0, 16, 72, 0), 1, Rotation.NONE);
         StructureStart start = rigidSurfaceStart(List.of(piece), TerrainAdjustment.NONE);
         NativeStructureTerrainIntegrator.TerrainTarget target =
-                surfaceTarget(start, IrisStructureTerrainMode.VACUUM);
+                surfaceTarget(start, StructureTerrainMode.VACUUM);
         BoundingBox wideArea = new BoundingBox(0, 54, 0, 31, 74, 15);
         BoundingBox westArea = new BoundingBox(0, 54, 0, 15, 74, 15);
         BoundingBox eastArea = new BoundingBox(16, 54, 0, 31, 74, 15);
@@ -1573,13 +1593,13 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         Set<Long> vacuumWritten = NativeStructureSurfaceSupportBuilder.bridgeRigidPieceSupport(
                 world(vacuumBlocks), area,
-                List.of(surfaceTarget(vacuumStart, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(vacuumStart, StructureTerrainMode.VACUUM)),
                 NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager);
 
         assertEquals(Set.of(BlockPos.asLong(0, 63, 0)), vacuumWritten);
         assertTrue(NativeStructureSurfaceSupportBuilder.bridgeRigidPieceSupport(
                 world(supportTerrain(0, 0)), area,
-                List.of(surfaceTarget(vacuumStart, IrisStructureTerrainMode.SOURCE)),
+                List.of(surfaceTarget(vacuumStart, StructureTerrainMode.SOURCE)),
                 NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager).isEmpty());
 
         PoolElementStructurePiece distantUpper = rigidTemplatePiece(
@@ -1589,7 +1609,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                 List.of(lower, distantUpper), TerrainAdjustment.NONE);
         assertTrue(NativeStructureSurfaceSupportBuilder.bridgeRigidPieceSupport(
                 world(supportTerrain(0, 0)), area,
-                List.of(surfaceTarget(distantStart, IrisStructureTerrainMode.VACUUM)),
+                List.of(surfaceTarget(distantStart, StructureTerrainMode.VACUUM)),
                 NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager).isEmpty());
     }
 
@@ -1676,8 +1696,8 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         Set<Long> written = NativeStructureSurfaceSupportBuilder.bridgeRigidPieceSupport(
                 world(blocks), area, List.of(
-                        surfaceTarget(start, IrisStructureTerrainMode.PRESERVE),
-                        surfaceTarget(start, IrisStructureTerrainMode.VACUUM)),
+                        surfaceTarget(start, StructureTerrainMode.PRESERVE),
+                        surfaceTarget(start, StructureTerrainMode.VACUUM)),
                 NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager);
 
         assertEquals(Set.of(BlockPos.asLong(0, 63, 0)), written);
@@ -2033,7 +2053,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureTerrainIntegrator.integrateTerrain(
                 world(blocks), bounds, "minecraft:desert_pyramid", start,
-                new IrisStructureTerrain().setMode(IrisStructureTerrainMode.VACUUM), null);
+                new IrisStructureTerrain().setMode(StructureTerrainMode.VACUUM), null);
 
         assertEquals(Blocks.STONE.defaultBlockState(),
                 state(blocks, bounds.minX(), bounds.minY(), bounds.minZ()));
@@ -2055,7 +2075,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureTerrainIntegrator.integrateTerrain(
                 world(blocks), area, "minecraft:desert_pyramid", start,
                 new IrisStructureTerrain()
-                        .setMode(IrisStructureTerrainMode.FORCE_CARVE)
+                        .setMode(StructureTerrainMode.FORCE_CARVE)
                         .setHorizontalPadding(1)
                         .setCeilingPadding(1), null);
 
@@ -2089,7 +2109,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureTerrainIntegrator.integrateTerrain(
                 world(blocks), area, "minecraft:ancient_city", start,
-                new IrisStructureTerrain().setMode(IrisStructureTerrainMode.FORCE_CARVE), null);
+                new IrisStructureTerrain().setMode(StructureTerrainMode.FORCE_CARVE), null);
 
         assertEquals(Blocks.AIR.defaultBlockState(),
                 state(blocks, firstBounds.minX(), y, z));
@@ -2338,8 +2358,8 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureTerrainIntegrator.integrateTerrain(
                 world(blocks), area, "minecraft:ancient_city", start,
                 new IrisStructureTerrain()
-                        .setMode(IrisStructureTerrainMode.FORCE_CARVE)
-                        .setShape(IrisStructureCarveShape.ERODED)
+                        .setMode(StructureTerrainMode.FORCE_CARVE)
+                        .setShape(StructureCarveShape.ERODED)
                         .setHorizontalPadding(6)
                         .setCeilingPadding(8)
                         .setFloorPadding(0)
@@ -2378,7 +2398,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         StructureStart generated = desertStart();
         BoundingBox content = generated.getBoundingBox();
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
+                .setMode(StructureTerrainMode.FORCE_CARVE)
                 .setHorizontalPadding(24);
 
         StructureStart wrapped = NativeStructureReferenceEnvelope.wrap(
@@ -2403,7 +2423,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         StructureStart generated = desertStart(TerrainAdjustment.NONE);
         BoundingBox content = NativeStructureReferenceEnvelope.contentBounds(generated);
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.VACUUM)
+                .setMode(StructureTerrainMode.VACUUM)
                 .setHorizontalPadding(64);
 
         BoundingBox references = NativeStructureReferenceEnvelope.referenceBounds(
@@ -2425,7 +2445,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         ChunkPos origin = generated.getChunkPos();
         BoundingBox content = NativeStructureReferenceEnvelope.contentBounds(generated);
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
+                .setMode(StructureTerrainMode.FORCE_CARVE)
                 .setHorizontalPadding(124);
 
         BoundingBox references = NativeStructureReferenceEnvelope.referenceBounds(
@@ -2575,11 +2595,11 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
     private static NativeStructureTerrainIntegrator.TerrainTarget surfaceTarget(
             StructureStart start) {
-        return surfaceTarget(start, IrisStructureTerrainMode.SOURCE);
+        return surfaceTarget(start, StructureTerrainMode.SOURCE);
     }
 
     private static NativeStructureTerrainIntegrator.TerrainTarget surfaceTarget(
-            StructureStart start, IrisStructureTerrainMode mode) {
+            StructureStart start, StructureTerrainMode mode) {
         return new NativeStructureTerrainIntegrator.TerrainTarget(
                 "nova_structures:tavern_oak", start,
                 new IrisStructureTerrain().setMode(mode));
@@ -2619,8 +2639,8 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
     private static NativeStructureTerrainIntegrator.OrganicCarve organicCarve(
             StructureStart start, int horizontalPadding, double lobeStrength) {
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
-                .setShape(IrisStructureCarveShape.ERODED)
+                .setMode(StructureTerrainMode.FORCE_CARVE)
+                .setShape(StructureCarveShape.ERODED)
                 .setHorizontalPadding(horizontalPadding)
                 .setCeilingPadding(8)
                 .setFloorPadding(0)
@@ -2630,7 +2650,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         return NativeStructureTerrainIntegrator.organicCarve(
                 NativeStructureTerrainIntegrator.carveFootprint(start, horizontalPadding,
                         NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager),
-                terrain, IrisStructureCarveShape.ERODED, TEST_SEED);
+                terrain, StructureCarveShape.ERODED, TEST_SEED);
     }
 
     /**
@@ -2648,8 +2668,8 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
             return true;
         }, SLAB_PADDING, 1_000_000);
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
-                .setShape(IrisStructureCarveShape.ERODED)
+                .setMode(StructureTerrainMode.FORCE_CARVE)
+                .setShape(StructureCarveShape.ERODED)
                 .setHorizontalPadding(SLAB_PADDING)
                 .setCeilingPadding(8)
                 .setFloorPadding(0)
@@ -2664,7 +2684,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureTerrainIntegrator.carveOrganicColumns(world(blocks), area,
                 NativeStructureTerrainIntegrator.organicCarve(
-                        footprint, terrain, IrisStructureCarveShape.ERODED, TEST_SEED));
+                        footprint, terrain, StructureCarveShape.ERODED, TEST_SEED));
 
         int[] depths = new int[SLAB_DEPTH];
         for (int z = 0; z < SLAB_DEPTH; z++) {

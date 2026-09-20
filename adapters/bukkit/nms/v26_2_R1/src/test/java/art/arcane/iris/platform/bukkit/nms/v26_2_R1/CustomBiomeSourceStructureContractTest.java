@@ -1,5 +1,7 @@
 package art.arcane.iris.platform.bukkit.nms.v26_2_R1;
 
+import art.arcane.iris.platform.bukkit.nms.BukkitBiomePolicy;
+
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import net.minecraft.SharedConstants;
@@ -28,10 +30,10 @@ public class CustomBiomeSourceStructureContractTest {
         IrisDimension upper = new IrisDimension();
         upper.setLoadKey("Layers/Upper");
 
-        assertEquals("layers:upper/aurora", CustomBiomeSource.customBiomeKey(upper, "Aurora"));
+        assertEquals("layers:upper/aurora", BukkitBiomePolicy.customBiomeKey(upper, "Aurora"));
         assertNotEquals(
-                CustomBiomeSource.customBiomeKey(host, "Aurora"),
-                CustomBiomeSource.customBiomeKey(upper, "Aurora")
+                BukkitBiomePolicy.customBiomeKey(host, "Aurora"),
+                BukkitBiomePolicy.customBiomeKey(upper, "Aurora")
         );
     }
 
@@ -39,8 +41,8 @@ public class CustomBiomeSourceStructureContractTest {
     public void temporaryNaturalBiomeAnswersAreNotMemoized() {
         Engine temporary = engineAnsweringNaturalFallback(true, 12, -8);
         Engine stable = engineAnsweringNaturalFallback(false, 12, -8);
-        assertFalse(CustomBiomeSource.isBiomeCacheable(temporary, 12, -8));
-        assertTrue(CustomBiomeSource.isBiomeCacheable(stable, 12, -8));
+        assertFalse(BukkitBiomePolicy.isBiomeCacheable(temporary, 12, -8));
+        assertTrue(BukkitBiomePolicy.isBiomeCacheable(stable, 12, -8));
     }
 
     private static Engine engineAnsweringNaturalFallback(

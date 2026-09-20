@@ -1,5 +1,7 @@
 package art.arcane.iris.platform.bukkit.nms.v26_3_R1;
 
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureSetFilter;
+
 import net.minecraft.world.level.levelgen.structure.placement.AbstractSpreadingStructurePlacement;
 import art.arcane.iris.pack.datapack.DatapackIngestService;
 import art.arcane.iris.pack.datapack.DatapackStructureScopeIndex;
@@ -60,9 +62,9 @@ public class NMSBindingDatapackStructureScopeTest {
                 List.of(),
                 List.of("managed:illager_barracks"));
 
-        DatapackStructureStateFilter.Selection vanilla = DatapackStructureStateFilter.filter(
+        NativeStructureSetFilter.Selection vanilla = NativeStructureSetFilter.filter(
                 List.of(managedSet), index, Set.of());
-        DatapackStructureStateFilter.Selection declaring = DatapackStructureStateFilter.filter(
+        NativeStructureSetFilter.Selection declaring = NativeStructureSetFilter.filter(
                 List.of(managedSet), index, index.declaredSources(List.of(SOURCE)));
 
         assertEquals(0, vanilla.structureSets().size());
@@ -81,9 +83,9 @@ public class NMSBindingDatapackStructureScopeTest {
                 List.of("managed:tavern"),
                 List.of());
 
-        DatapackStructureStateFilter.Selection vanilla = DatapackStructureStateFilter.filter(
+        NativeStructureSetFilter.Selection vanilla = NativeStructureSetFilter.filter(
                 List.of(vanillaSet), index, Set.of());
-        DatapackStructureStateFilter.Selection declaring = DatapackStructureStateFilter.filter(
+        NativeStructureSetFilter.Selection declaring = NativeStructureSetFilter.filter(
                 List.of(vanillaSet), index, index.declaredSources(List.of(SOURCE)));
 
         assertEquals(1, vanilla.structureSets().size());
@@ -101,7 +103,7 @@ public class NMSBindingDatapackStructureScopeTest {
                 "minecraft:custom", structureHolder("managed:only"));
         DatapackStructureScopeIndex index = index(List.of("managed:only"), List.of());
 
-        DatapackStructureStateFilter.Selection selection = DatapackStructureStateFilter.filter(
+        NativeStructureSetFilter.Selection selection = NativeStructureSetFilter.filter(
                 List.of(unmanagedSet), index, Set.of());
 
         assertEquals(0, selection.structureSets().size());
@@ -125,18 +127,18 @@ public class NMSBindingDatapackStructureScopeTest {
                         34, 8, RandomSpreadType.LINEAR, 14357620)));
         DatapackStructureScopeIndex scopeIndex = index(
                 List.of(), List.of("managed:illager_barracks"));
-        DatapackStructureStateFilter.StructureSetKeyIndex keyIndex =
-                DatapackStructureStateFilter.keyIndex(List.of(registered));
+        NativeStructureSetFilter.StructureSetKeyIndex keyIndex =
+                NativeStructureSetFilter.keyIndex(List.of(registered));
 
-        DatapackStructureStateFilter.Selection excluded =
-                DatapackStructureStateFilter.filter(
+        NativeStructureSetFilter.Selection excluded =
+                NativeStructureSetFilter.filter(
                         List.of(spigotDirect),
                         scopeIndex,
                         Set.of(),
                         new IrisImportedStructureControl(),
                         keyIndex);
-        DatapackStructureStateFilter.Selection retained =
-                DatapackStructureStateFilter.filter(
+        NativeStructureSetFilter.Selection retained =
+                NativeStructureSetFilter.filter(
                         List.of(spigotDirect),
                         scopeIndex,
                         scopeIndex.declaredSources(List.of(SOURCE)),
@@ -151,8 +153,8 @@ public class NMSBindingDatapackStructureScopeTest {
 
     @Test
     public void structureScopeDoesNotLinkPaperOnlyPlacementClasses() throws IOException {
-        InputStream classResource = NMSBindingDatapackStructureScopeTest.class
-                .getResourceAsStream("DatapackStructureStateFilter.class");
+        InputStream classResource = NativeStructureSetFilter.class
+                .getResourceAsStream("NativeStructureSetFilter.class");
         assertNotNull(classResource);
         try (InputStream input = classResource) {
             String classFile = new String(input.readAllBytes(), StandardCharsets.ISO_8859_1);
@@ -177,7 +179,7 @@ public class NMSBindingDatapackStructureScopeTest {
         IrisImportedStructureControl control = new IrisImportedStructureControl()
                 .setFrequencyOverrides(overrides);
 
-        DatapackStructureStateFilter.Selection selection = DatapackStructureStateFilter.filter(
+        NativeStructureSetFilter.Selection selection = NativeStructureSetFilter.filter(
                 List.of(complexes, fossils), index(List.of(), List.of()), Set.of(), control);
 
         RandomSpreadStructurePlacement scaledComplexes =
@@ -207,7 +209,7 @@ public class NMSBindingDatapackStructureScopeTest {
         IrisImportedStructureControl control = new IrisImportedStructureControl()
                 .setFrequencyOverrides(overrides);
 
-        DatapackStructureStateFilter.Selection selection = DatapackStructureStateFilter.filter(
+        NativeStructureSetFilter.Selection selection = NativeStructureSetFilter.filter(
                 List.of(custom), index(List.of(), List.of()), Set.of(), control);
 
         assertSame(custom, selection.structureSets().getFirst());
@@ -239,14 +241,14 @@ public class NMSBindingDatapackStructureScopeTest {
         IrisImportedStructureControl control = new IrisImportedStructureControl()
                 .setFrequencyOverrides(overrides);
 
-        DatapackStructureStateFilter.Selection selection = DatapackStructureStateFilter.filter(
+        NativeStructureSetFilter.Selection selection = NativeStructureSetFilter.filter(
                 List.of(dependent, target), index(List.of(), List.of()), Set.of(), control);
 
         Holder<StructureSet> scaledDependent = selection.structureSets().get(0);
         Holder<StructureSet> scaledTarget = selection.structureSets().get(1);
         assertNotSame(dependent, scaledDependent);
         assertNotSame(target, scaledTarget);
-        assertSame(scaledTarget, DatapackStructureStateFilter.exclusionZone(
+        assertSame(scaledTarget, NativeStructureSetFilter.exclusionZone(
                 scaledDependent.value().placement()).orElseThrow().otherSet());
         assertEquals(26, ((RandomSpreadStructurePlacement)
                 scaledTarget.value().placement()).spacing());
@@ -285,14 +287,14 @@ public class NMSBindingDatapackStructureScopeTest {
         IrisImportedStructureControl control = new IrisImportedStructureControl()
                 .setFrequencyOverrides(overrides);
 
-        DatapackStructureStateFilter.Selection selection = DatapackStructureStateFilter.filter(
+        NativeStructureSetFilter.Selection selection = NativeStructureSetFilter.filter(
                 List.of(first, second), index(List.of(), List.of()), Set.of(), control);
 
         Holder<StructureSet> scaledFirst = selection.structureSets().get(0);
         Holder<StructureSet> scaledSecond = selection.structureSets().get(1);
-        assertSame(scaledSecond, DatapackStructureStateFilter.exclusionZone(
+        assertSame(scaledSecond, NativeStructureSetFilter.exclusionZone(
                 scaledFirst.value().placement()).orElseThrow().otherSet());
-        assertSame(scaledFirst, DatapackStructureStateFilter.exclusionZone(
+        assertSame(scaledFirst, NativeStructureSetFilter.exclusionZone(
                 scaledSecond.value().placement()).orElseThrow().otherSet());
         assertEquals(26, ((RandomSpreadStructurePlacement)
                 scaledSecond.value().placement()).spacing());
@@ -311,7 +313,7 @@ public class NMSBindingDatapackStructureScopeTest {
         IrisImportedStructureControl control = new IrisImportedStructureControl()
                 .setFrequencyOverrides(overrides);
 
-        DatapackStructureStateFilter.Selection selection = DatapackStructureStateFilter.filter(
+        NativeStructureSetFilter.Selection selection = NativeStructureSetFilter.filter(
                 List.of(custom), index(List.of(), List.of()), Set.of(), control);
         StructurePlacement placement = selection.structureSets().getFirst().value().placement();
 
@@ -341,12 +343,12 @@ public class NMSBindingDatapackStructureScopeTest {
                 List.of("managed:blocked"),
                 List.of("managed:blocked"));
 
-        DatapackStructureStateFilter.Selection selection = DatapackStructureStateFilter.filter(
+        NativeStructureSetFilter.Selection selection = NativeStructureSetFilter.filter(
                 List.of(vanillaSet, managedSet), index, Set.of());
 
         assertEquals(1, selection.structureSets().size());
         StructurePlacement scopedPlacement = selection.structureSets().getFirst().value().placement();
-        assertEquals(0, DatapackStructureStateFilter.exclusionZone(scopedPlacement).stream().count());
+        assertEquals(0, NativeStructureSetFilter.exclusionZone(scopedPlacement).stream().count());
     }
 
     private static DatapackStructureScopeIndex index(

@@ -1,12 +1,12 @@
 package art.arcane.iris.world.storage.matter;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.volmlib.util.matter.MatterCavern;
 
 public record PreObjectMatterCell(
         boolean blockCaptured,
-        PlatformBlockState block,
+        NativeBlockState block,
         boolean stringCaptured,
         String string,
         boolean cavernCaptured,
@@ -32,7 +32,7 @@ public record PreObjectMatterCell(
         }
     }
 
-    public static PreObjectMatterCell block(PlatformBlockState value) {
+    public static PreObjectMatterCell block(NativeBlockState value) {
         return new PreObjectMatterCell(true, value, false, null, false, null, false, null);
     }
 
@@ -44,7 +44,7 @@ public record PreObjectMatterCell(
         return new PreObjectMatterCell(false, null, false, null, true, value, false, null);
     }
 
-    public PreObjectMatterCell captureBlock(PlatformBlockState value) {
+    public PreObjectMatterCell captureBlock(NativeBlockState value) {
         if (blockCaptured) {
             return this;
         }
@@ -78,7 +78,7 @@ public record PreObjectMatterCell(
         if (type == HydrologyCaveCell.class) {
             return hydrologyCaptured;
         }
-        if (type == PlatformBlockState.class) {
+        if (type == NativeBlockState.class) {
             return blockCaptured;
         }
         if (type == String.class) {
@@ -95,7 +95,7 @@ public record PreObjectMatterCell(
         if (!captures(type)) {
             throw new IllegalArgumentException("Unsupported or uncaptured pre-object type " + type.getCanonicalName());
         }
-        if (type == PlatformBlockState.class) {
+        if (type == NativeBlockState.class) {
             return (T) block;
         }
         if (type == String.class) {

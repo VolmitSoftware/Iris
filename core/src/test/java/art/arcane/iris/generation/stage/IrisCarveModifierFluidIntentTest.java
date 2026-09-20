@@ -1,6 +1,6 @@
 package art.arcane.iris.generation.stage;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import org.junit.Test;
 
@@ -18,10 +18,10 @@ public class IrisCarveModifierFluidIntentTest {
         MatterCavern fluidIntent = new MatterCavern(true, "", (byte) 1);
         MatterCavern lavaIntent = new MatterCavern(true, "", (byte) 2);
         MatterCavern forcedAirIntent = new MatterCavern(true, "", (byte) 3);
-        PlatformBlockState existingFluid = mock(PlatformBlockState.class);
-        PlatformBlockState fluid = mock(PlatformBlockState.class);
-        PlatformBlockState lava = mock(PlatformBlockState.class);
-        PlatformBlockState air = mock(PlatformBlockState.class);
+        NativeBlockState existingFluid = mock(NativeBlockState.class);
+        NativeBlockState fluid = mock(NativeBlockState.class);
+        NativeBlockState lava = mock(NativeBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
         when(existingFluid.isFluid()).thenReturn(true);
 
         assertFalse(IrisCarveModifier.hasExplicitCarveIntent(null));
@@ -46,10 +46,10 @@ public class IrisCarveModifierFluidIntentTest {
 
     @Test
     public void unsupportedSurfaceOreIsRemovedOnlyOverCarvedAir() {
-        PlatformBlockState ore = mock(PlatformBlockState.class);
-        PlatformBlockState ordinarySurface = mock(PlatformBlockState.class);
-        PlatformBlockState air = mock(PlatformBlockState.class);
-        PlatformBlockState solid = mock(PlatformBlockState.class);
+        NativeBlockState ore = mock(NativeBlockState.class);
+        NativeBlockState ordinarySurface = mock(NativeBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
+        NativeBlockState solid = mock(NativeBlockState.class);
         when(ore.isOre()).thenReturn(true);
         when(ordinarySurface.isOre()).thenReturn(false);
         when(air.isSolid()).thenReturn(false);

@@ -1,7 +1,7 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import org.junit.Test;
 
@@ -117,19 +117,19 @@ public final class GenerationOrderProbeTest {
     @Test
     public void completeChunkHashSeparatesBlockAndBiomeChanges() {
         StubPlatform platform = new StubPlatform(new File("/tmp/iris-order-probe-test"));
-        PlatformBlockState stone = StubPlatform.blockStateForTest("minecraft:stone");
-        PlatformBlockState water = StubPlatform.blockStateForTest("minecraft:water[level=0]");
-        PlatformBiome plains = platform.registries().biome("minecraft:plains");
-        PlatformBiome forest = platform.registries().biome("minecraft:forest");
-        Hunk<PlatformBlockState> baselineBlocks = Hunk.newArrayHunk(16, 2, 16);
-        Hunk<PlatformBiome> baselineBiomes = Hunk.newArrayHunk(16, 2, 16);
+        NativeBlockState stone = StubPlatform.blockStateForTest("minecraft:stone");
+        NativeBlockState water = StubPlatform.blockStateForTest("minecraft:water[level=0]");
+        NativeBiome plains = platform.registries().biome("minecraft:plains");
+        NativeBiome forest = platform.registries().biome("minecraft:forest");
+        Hunk<NativeBlockState> baselineBlocks = Hunk.newArrayHunk(16, 2, 16);
+        Hunk<NativeBiome> baselineBiomes = Hunk.newArrayHunk(16, 2, 16);
         baselineBlocks.set(0, 0, 0, stone);
         baselineBiomes.set(0, 0, 0, plains);
         GenerationOrderProbe.ChunkCoordinate coordinate = new GenerationOrderProbe.ChunkCoordinate(0, 0);
         GenerationOrderProbe.ChunkHash baseline = GenerationOrderProbe.hashChunk(
                 coordinate, baselineBlocks, baselineBiomes, 2);
 
-        Hunk<PlatformBiome> changedBiomes = Hunk.newArrayHunk(16, 2, 16);
+        Hunk<NativeBiome> changedBiomes = Hunk.newArrayHunk(16, 2, 16);
         changedBiomes.set(0, 0, 0, forest);
         GenerationOrderProbe.ChunkHash biomeChange = GenerationOrderProbe.hashChunk(
                 coordinate, baselineBlocks, changedBiomes, 2);
@@ -137,7 +137,7 @@ public final class GenerationOrderProbeTest {
         assertNotEquals(baseline.biomes(), biomeChange.biomes());
         assertNotEquals(baseline.combined(), biomeChange.combined());
 
-        Hunk<PlatformBlockState> changedBlocks = Hunk.newArrayHunk(16, 2, 16);
+        Hunk<NativeBlockState> changedBlocks = Hunk.newArrayHunk(16, 2, 16);
         changedBlocks.set(0, 0, 0, water);
         GenerationOrderProbe.ChunkHash blockChange = GenerationOrderProbe.hashChunk(
                 coordinate, changedBlocks, baselineBiomes, 2);

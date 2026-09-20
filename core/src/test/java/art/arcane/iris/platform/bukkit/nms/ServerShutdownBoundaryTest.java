@@ -1,5 +1,7 @@
 package art.arcane.iris.platform.bukkit.nms;
 
+import art.arcane.volmlib.nativelib.terrain.ServerShutdownBoundary;
+
 import org.junit.Test;
 
 import java.net.URL;

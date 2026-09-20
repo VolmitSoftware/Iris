@@ -42,7 +42,7 @@ import art.arcane.iris.pack.validation.CompatStatus;
 import art.arcane.iris.pack.validation.ContentGate;
 import art.arcane.iris.pack.validation.PackCompatReport;
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.placement.LootResolver;
@@ -54,7 +54,7 @@ import art.arcane.iris.pack.schema.annotation.RegistryListResource;
 import art.arcane.iris.pack.schema.annotation.Required;
 import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.iris.generation.block.DataProvider;
@@ -446,7 +446,7 @@ public class IrisObjectPlacement {
                 tc.global.put(table, loot.getWeight());
             } else if (!loot.isExact()) //Table is meant to be by type
             {
-                for (PlatformBlockState filterState : loot.getFilter(manager)) {
+                for (NativeBlockState filterState : loot.getFilter(manager)) {
                     BlockData filterData = (BlockData) filterState.nativeHandle();
                     if (!tc.basic.containsKey(filterData.getMaterial())) {
                         tc.basic.put(filterData.getMaterial(), new WeightedTables());
@@ -456,7 +456,7 @@ public class IrisObjectPlacement {
                 }
             } else //Filter is exact
             {
-                for (PlatformBlockState filterState : loot.getFilter(manager)) {
+                for (NativeBlockState filterState : loot.getFilter(manager)) {
                     BlockData filterData = (BlockData) filterState.nativeHandle();
                     if (!tc.exact.containsKey(filterData.getMaterial())) {
                         tc.exact.put(filterData.getMaterial(), new KMap<>());
@@ -489,7 +489,7 @@ public class IrisObjectPlacement {
      * @param dataManager Iris Data Manager
      * @return The loot table it should use.
      */
-    public IrisLootTable getTable(PlatformBlockState state, IrisData dataManager, RNG rng) {
+    public IrisLootTable getTable(NativeBlockState state, IrisData dataManager, RNG rng) {
         TableCache cache = getCache(dataManager);
         BlockData data = (BlockData) state.nativeHandle();
         if (BukkitBlockResolution.isStorageChest(data)) {

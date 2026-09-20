@@ -2,12 +2,12 @@ package art.arcane.iris.pack;
 
 import art.arcane.iris.pack.ContentKeyValidator.ContentKeyError;
 import art.arcane.iris.pack.ContentKeyValidator.ContentRegistry;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockProperty;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformEntityType;
-import art.arcane.iris.spi.PlatformItem;
-import art.arcane.iris.spi.PlatformNumericRange;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.entity.NativeEntityType;
+import art.arcane.volmlib.nativelib.item.NativeItem;
+import art.arcane.volmlib.nativelib.terrain.NativeNumericRange;
 import art.arcane.iris.spi.PlatformRegistries;
 import org.junit.Test;
 
@@ -37,14 +37,14 @@ public class ContentKeyValidatorTest {
                 List.of(),
                 Map.of(
                         "minecraft:oak_log", List.of(
-                                new PlatformBlockProperty("axis", "string", "y", List.of("x", "y", "z"), null),
-                                new PlatformBlockProperty("waterlogged", "boolean", false, List.of(true, false), null)),
+                                new NativeBlockProperty("axis", "string", "y", List.of("x", "y", "z"), null),
+                                new NativeBlockProperty("waterlogged", "boolean", false, List.of(true, false), null)),
                         // The Bukkit shape for a numeric property: no enumerable values, bounds instead. Modded
                         // enumerates 0..15 into allowedValues, so both must be validated the same way.
                         "minecraft:water", List.of(
-                                new PlatformBlockProperty("level", "integer", 0, List.of(),
-                                        new PlatformNumericRange(0, 15, false, false)),
-                                new PlatformBlockProperty("custom", "string", "a", List.of(), null)),
+                                new NativeBlockProperty("level", "integer", 0, List.of(),
+                                        new NativeNumericRange(0, 15, false, false)),
+                                new NativeBlockProperty("custom", "string", "a", List.of(), null)),
                         "create:cogwheel", List.of()));
     }
 
@@ -240,44 +240,44 @@ public class ContentKeyValidatorTest {
     }
 
     private record FakeRegistries(List<String> blocks, List<String> items, List<String> entities,
-                                  Map<String, List<PlatformBlockProperty>> properties) implements PlatformRegistries {
+                                  Map<String, List<NativeBlockProperty>> properties) implements PlatformRegistries {
         @Override
-        public PlatformBlockState block(String key) {
+        public NativeBlockState block(String key) {
             return null;
         }
 
         @Override
-        public PlatformBlockState blockOrNull(String key) {
+        public NativeBlockState blockOrNull(String key) {
             return null;
         }
 
         @Override
-        public PlatformBlockState blockOrNull(String key, boolean warn) {
+        public NativeBlockState blockOrNull(String key, boolean warn) {
             return null;
         }
 
         @Override
-        public PlatformBlockState air() {
+        public NativeBlockState air() {
             return null;
         }
 
         @Override
-        public PlatformBlockState deepSlateOre(PlatformBlockState block, PlatformBlockState ore) {
+        public NativeBlockState deepSlateOre(NativeBlockState block, NativeBlockState ore) {
             return null;
         }
 
         @Override
-        public PlatformBiome biome(String key) {
+        public NativeBiome biome(String key) {
             return null;
         }
 
         @Override
-        public PlatformItem item(String key) {
+        public NativeItem item(String key) {
             return null;
         }
 
         @Override
-        public PlatformEntityType entity(String key) {
+        public NativeEntityType entity(String key) {
             return null;
         }
 
@@ -327,7 +327,7 @@ public class ContentKeyValidatorTest {
         }
 
         @Override
-        public Map<String, List<PlatformBlockProperty>> blockStateProperties() {
+        public Map<String, List<NativeBlockProperty>> blockStateProperties() {
             return properties;
         }
     }

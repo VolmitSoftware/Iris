@@ -1,11 +1,19 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureReferenceRepair;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureOwnershipFingerprint;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureVerticalPlacer;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureReferenceEnvelope;
+
 import art.arcane.iris.structure.nativegen.NativeStructureOwnershipRecord;
 import art.arcane.iris.structure.nativegen.NativeStructureStartPlan;
 import art.arcane.iris.structure.nativegen.IrisNativeStructure;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
-import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import art.arcane.volmlib.util.collection.KList;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
@@ -65,7 +73,7 @@ public class NativeStructureOwnershipFingerprintTest {
                 generated, 0, 80, -64, 320);
         int alignedLocatorY = NativeStructureOwnershipFingerprint.locatorY(generated);
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
+                .setMode(StructureTerrainMode.FORCE_CARVE)
                 .setHorizontalPadding(24);
         StructureStart wrapped = NativeStructureReferenceEnvelope.wrap(
                 generated,
@@ -85,11 +93,9 @@ public class NativeStructureOwnershipFingerprintTest {
         StructureStart reloaded = new StructureStart(structure, origin, 0, regeneratedPieces);
         String afterReload = NativeStructureOwnershipFingerprint.fingerprint(
                 "minecraft:monument", reloaded);
-        NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(
-                "minecraft:monument",
-                wrapped,
-                plan(origin, NativeStructureReferenceEnvelope.contentBounds(wrapped).minY()),
-                NativeStructureReferenceEnvelope.referenceBounds(wrapped, structure, terrain));
+        NativeStructureOwnershipRecord ownership = NativeStructureOwnershipRecord.capture(
+                NativeStructureOwnershipFingerprint.capture(
+                        "minecraft:monument", wrapped, NativeStructureReferenceEnvelope.referenceBounds(wrapped, structure, terrain)), plan(origin, NativeStructureReferenceEnvelope.contentBounds(wrapped).minY()));
 
         assertEquals(beforeReload, afterReload);
         assertTrue(NativeStructureOwnershipFingerprint.matches(ownership, reloaded));
@@ -110,11 +116,9 @@ public class NativeStructureOwnershipFingerprintTest {
         for (StructurePiece piece : moved.getPieces()) {
             piece.move(1, 0, 0);
         }
-        NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(
-                "minecraft:monument",
-                expected,
-                plan(origin, NativeStructureReferenceEnvelope.contentBounds(expected).minY()),
-                expected.getBoundingBox());
+        NativeStructureOwnershipRecord ownership = NativeStructureOwnershipRecord.capture(
+                NativeStructureOwnershipFingerprint.capture(
+                        "minecraft:monument", expected, expected.getBoundingBox()), plan(origin, NativeStructureReferenceEnvelope.contentBounds(expected).minY()));
 
         assertFalse(NativeStructureOwnershipFingerprint.matches(ownership, moved));
     }
@@ -129,18 +133,16 @@ public class NativeStructureOwnershipFingerprintTest {
         NativeStructureVerticalPlacer.alignOceanMonumentToSeaLevel(
                 generated, 0, 80, -64, 320);
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
+                .setMode(StructureTerrainMode.FORCE_CARVE)
                 .setHorizontalPadding(24);
         StructureStart wrapped = NativeStructureReferenceEnvelope.wrap(
                 generated,
                 structure,
                 0,
                 terrain);
-        NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(
-                "minecraft:monument",
-                wrapped,
-                plan(origin, NativeStructureReferenceEnvelope.contentBounds(wrapped).minY()),
-                NativeStructureReferenceEnvelope.referenceBounds(wrapped, structure, terrain));
+        NativeStructureOwnershipRecord ownership = NativeStructureOwnershipRecord.capture(
+                NativeStructureOwnershipFingerprint.capture(
+                        "minecraft:monument", wrapped, NativeStructureReferenceEnvelope.referenceBounds(wrapped, structure, terrain)), plan(origin, NativeStructureReferenceEnvelope.contentBounds(wrapped).minY()));
         PiecesContainer regeneratedPieces = OceanMonumentStructure.regeneratePiecesAfterLoad(
                 origin, seed, new PiecesContainer(wrapped.getPieces()));
         StructureStart reloaded = new StructureStart(structure, origin, 0, regeneratedPieces);
@@ -263,13 +265,10 @@ public class NativeStructureOwnershipFingerprintTest {
 
     private static NativeStructureOwnershipRecord ownership(
             ChunkPos origin, StructureStart start, OceanMonumentStructure structure) {
-        return NativeStructureOwnershipFingerprint.capture(
-                "minecraft:monument",
-                start,
-                plan(origin, NativeStructureReferenceEnvelope.contentBounds(start).minY()),
-                NativeStructureReferenceEnvelope.referenceBounds(
-                        start, structure, new IrisStructureTerrain())
-        );
+        return NativeStructureOwnershipRecord.capture(
+                NativeStructureOwnershipFingerprint.capture(
+                        "minecraft:monument", start, NativeStructureReferenceEnvelope.referenceBounds(
+                        start, structure, new IrisStructureTerrain())), plan(origin, NativeStructureReferenceEnvelope.contentBounds(start).minY()));
     }
 
     private static StructureStart poolStart(

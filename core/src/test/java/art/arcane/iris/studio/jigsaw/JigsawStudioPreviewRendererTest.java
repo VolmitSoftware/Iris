@@ -4,7 +4,7 @@ import art.arcane.iris.structure.placement.PlacedStructurePiece;
 import art.arcane.iris.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectRotation;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.bukkit.World;
 import org.junit.Test;
 
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 public class JigsawStudioPreviewRendererTest {
     @Test
     public void planUsesPlacedPieceCenterAndExactBlockState() throws Exception {
-        PlatformBlockState stone = mock(PlatformBlockState.class);
+        NativeBlockState stone = mock(NativeBlockState.class);
         when(stone.key()).thenReturn("minecraft:stone");
         IrisObject object = new IrisObject(3, 3, 3);
         object.setUnsigned(2, 1, 0, stone);
@@ -45,9 +45,9 @@ public class JigsawStudioPreviewRendererTest {
 
     @Test
     public void structureVoidRemovesAPreviouslyAuthoredPreviewCell() throws Exception {
-        PlatformBlockState stone = mock(PlatformBlockState.class);
+        NativeBlockState stone = mock(NativeBlockState.class);
         when(stone.key()).thenReturn("minecraft:stone");
-        PlatformBlockState structureVoid = mock(PlatformBlockState.class);
+        NativeBlockState structureVoid = mock(NativeBlockState.class);
         when(structureVoid.key()).thenReturn("minecraft:structure_void");
         IrisObject object = new IrisObject(1, 1, 1);
         object.setUnsigned(0, 0, 0, stone);

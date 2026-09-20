@@ -35,7 +35,7 @@ import art.arcane.iris.generation.hydrology.cave.HydrologyCaveRejection;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveSource;
 import art.arcane.iris.generation.hydrology.IrisDeepFluidConfig;
 import art.arcane.iris.generation.terrain.IrisDimension;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.matter.slices.UpdateMatter;
@@ -71,8 +71,8 @@ public class MantleHydrologyComponentTest {
     @Test
     public void fallingPublicationWritesLevelEightFluidAndUpdateMarker() {
         CavePosition position = new CavePosition(4, 20, 6);
-        PlatformBlockState source = mock(PlatformBlockState.class);
-        PlatformBlockState falling = mock(PlatformBlockState.class);
+        NativeBlockState source = mock(NativeBlockState.class);
+        NativeBlockState falling = mock(NativeBlockState.class);
         when(source.key()).thenReturn("minecraft:water[level=0]");
         when(source.withProperty("level", "8")).thenReturn(falling);
         IrisComplex complex = mock(IrisComplex.class);

@@ -20,7 +20,7 @@ import static org.junit.Assert.assertTrue;
 
 public class GenerationRevisionScopeTest {
     private static final String ENGINE_ROOT = "core/src/main/java/art/arcane/iris/generation/runtime/";
-    private static final String NMS_ROOT = "adapters/bukkit/nms/v26_2_R1/src/main/java/art/arcane/iris/platform/bukkit/nms/v26_2_R1/";
+    private static final String BUKKIT_POLICY_ROOT = "core/src/main/java/art/arcane/iris/platform/bukkit/nms/";
     private static final String COMMAND_ROOT = "adapters/bukkit/plugin/src/main/java/art/arcane/iris/command/";
 
     @Rule
@@ -70,7 +70,7 @@ public class GenerationRevisionScopeTest {
             assertNewSourceChangesRevision(fixture, root + "/NewSource.java");
         }
         assertNewSourceChangesRevision(fixture, ENGINE_ROOT + "NewDiagnostics.java");
-        assertNewSourceChangesRevision(fixture, NMS_ROOT + "NmsWorldLifecycleHelper.java");
+        assertNewSourceChangesRevision(fixture, BUKKIT_POLICY_ROOT + "NewGenerationPolicy.java");
         assertNewSourceChangesRevision(fixture, COMMAND_ROOT + "NewCommand.java");
         assertNewSourceChangesRevision(fixture, "core/src/main/java/art/arcane/iris/world/safeguard/NewTask.java");
     }
@@ -87,8 +87,29 @@ public class GenerationRevisionScopeTest {
             assertTrue(relative, manifest.sources().containsKey(relative));
         }
         assertFalse(manifest.sources().containsKey(ENGINE_ROOT + "EngineDiagnostics.java"));
-        assertFalse(manifest.sources().containsKey(NMS_ROOT + "NmsWorldLifecycle.java"));
         assertFalse(manifest.sources().containsKey(COMMAND_ROOT + "CommandIris.java"));
+    }
+
+    @Test
+    public void publishedNativeSourcesChangeTheGenerationFingerprint() throws Exception {
+        Fixture fixture = fixture();
+        Path nativeSources = fixture.root().resolve("native-sources.jar");
+        writeNativeSources(nativeSources, "class NativeGenerator { int height = 1; }");
+        Map<String, Path> dependencies = Map.of("volmlib", fixture.dependencies().get("volmlib"),
+                "com.github.VolmitSoftware.VolmLib:native-minecraft26_2-sources", nativeSources);
+        String original = GenerationBuildRevision.fingerprint(
+                GenerationBuildRevision.capture(fixture.options(), dependencies));
+        writeNativeSources(nativeSources, "class NativeGenerator { int height = 2; }");
+        assertNotEquals(original, GenerationBuildRevision.fingerprint(
+                GenerationBuildRevision.capture(fixture.options(), dependencies)));
+    }
+
+    private static void writeNativeSources(Path archive, String content) throws IOException {
+        try (ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(archive))) {
+            output.putNextEntry(new ZipEntry("modded/art/arcane/volmlib/nativelib/NativeGenerator.java"));
+            output.write(content.getBytes(StandardCharsets.UTF_8));
+            output.closeEntry();
+        }
     }
 
     private static void assertNewSourceChangesRevision(Fixture fixture, String relative) throws IOException {
@@ -144,9 +165,9 @@ public class GenerationRevisionScopeTest {
                 "core/src/main/java/art/arcane/iris/pack/loading/IrisData.java",
                 "core/src/main/java/art/arcane/iris/configuration/IrisSettings.java",
                 "core/agent/src/main/java/GenerationTransformer.java",
-                NMS_ROOT + "NmsGenerationHooks.java",
-                NMS_ROOT + "NmsGenerationRegistry.java",
-                NMS_ROOT + "NMSBinding.java",
+                BUKKIT_POLICY_ROOT + "BukkitGeneratorContext.java",
+                BUKKIT_POLICY_ROOT + "BukkitBiomePolicy.java",
+                BUKKIT_POLICY_ROOT + "BukkitBinding.java",
                 "spi/src/main/java/art/arcane/iris/spi/PlatformGenerationRegistry.java",
                 "adapters/modded-common/src/main/java/art/arcane/iris/modded/IrisModdedChunkGenerator.java"
         );

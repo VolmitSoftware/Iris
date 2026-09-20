@@ -111,7 +111,7 @@ public class CommandWhat implements DirectorExecutor {
 
             if (key == null || key.getKey().equals("custom")) {
                 try {
-                    commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_WHAT_DATA_PACK_BIOME_ID, MessageArgument.untrusted("value", INMS.get().getTrueBiomeBaseKey(location)), MessageArgument.untrusted("value2", INMS.get().getTrueBiomeBaseId(INMS.get().getTrueBiomeBase(location)))));
+                    commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_WHAT_DATA_PACK_BIOME_ID, MessageArgument.untrusted("value", INMS.get().getTrueBiomeBaseKey(location)), MessageArgument.untrusted("value2", INMS.get().getBiomeId(location))));
                 } catch (Throwable ee) {
                     Iris.reportError(ee);
                 }

@@ -13,6 +13,17 @@ Configuration kernelDependencies = configurations.create('generationKernelDepend
     extendsFrom(configurations.implementation, configurations.slim, configurations.annotationProcessor)
 }
 dependencies.add(kernelDependencies.name, libs.guava)
+String nativeLibraryVersion = providers.gradleProperty('volmLibCoordinate').get().tokenize(':').last()
+List<String> nativeRevisionModules = ['native-common', 'native-minecraft26_2-sources']
+for (String adapter : rootProject.extensions.extraProperties.get('nativeDevelopmentAdapters')) {
+    nativeRevisionModules.add('native-' + adapter)
+}
+for (String module : nativeRevisionModules) {
+    dependencies.add(kernelDependencies.name, "com.github.VolmitSoftware.VolmLib:${module}:${nativeLibraryVersion}") {
+        transitive = false
+    }
+}
+
 
 GenerationBuildRevision.CaptureOptions revisionScope = GenerationRevisionScope.current(rootProject.projectDir.toPath())
 File catalogFile = file('generation-kernels/catalog.tsv')
@@ -30,9 +41,11 @@ Closure<Map<String, Path>> resolvedKernelDependencies = {
             continue
         }
         boolean volmLib = (group == 'com.github.VolmitSoftware' && name == 'VolmLib')
-            || group == 'com.github.VolmitSoftware.VolmLib'
+            || (group == 'com.github.VolmitSoftware.VolmLib' && name in ['shared', 'volmlib-shared'])
             || (group == 'art.arcane' && name == 'shared')
-        String key = volmLib ? 'volmlib' : "${group}:${name}".toString()
+        String artifactName = group == 'com.github.VolmitSoftware.VolmLib' && name ==~ /v[0-9_]+R[0-9]+/
+            ? 'native-' + name : name
+        String key = volmLib ? 'volmlib' : "${group}:${artifactName}".toString()
         if (artifact.classifier != null) {
             key += ':' + artifact.classifier
         }
@@ -50,7 +63,7 @@ Closure<Map<String, Path>> resolvedKernelDependencies = {
 TaskProvider<Task> revisionResources = tasks.register('generateGenerationBuildRevision') {
     group = 'build'
     description = 'Captures generation sources and resolved dependencies as build revision provenance.'
-    dependsOn(kernelDependencies, kernelAgentJar, ":adapters:bukkit:nms:v26_2_R1:convert", ":adapters:bukkit:nms:v26_3_R1:convert")
+    dependsOn(kernelDependencies, kernelAgentJar)
     inputs.files(revisionScope.roots().collect { String source -> rootProject.file(source) })
     inputs.property('revisionScope', revisionScope.toString())
     inputs.files(catalogFile, kernelDependencies, kernelAgentJar.flatMap { Jar jar -> jar.archiveFile })

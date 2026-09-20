@@ -26,8 +26,8 @@ import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.structure.jigsaw.JigsawJoint;
 import art.arcane.iris.generation.block.TileData;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -88,7 +88,7 @@ public class JigsawStudioGeneratorTest {
                 .setObject("test/room")
                 .setConnectors(new KList<>());
         piece.getConnectors().add(connector);
-        PlatformBlockState stone = mock(PlatformBlockState.class);
+        NativeBlockState stone = mock(NativeBlockState.class);
         IrisObject object = new IrisObject(3, 3, 3);
         object.setUnsigned(1, 1, 1, stone);
         when(pieceLoader.load("test/room", false)).thenReturn(piece);
@@ -119,7 +119,7 @@ public class JigsawStudioGeneratorTest {
                 workcell.stableId()).connectorsVisible());
         assertSame(stone, stateAt(fixture.generator(), worldX, worldY, worldZ));
 
-        PlatformBlockState marker = mock(PlatformBlockState.class);
+        NativeBlockState marker = mock(NativeBlockState.class);
         fixture.generator().getSession().setConnectorsVisible(workcell.stableId(), true);
         try (MockedStatic<B> blocks = mockStatic(B.class)) {
             blocks.when(() -> B.getState("minecraft:jigsaw[orientation=north_up]")).thenReturn(marker);
@@ -359,7 +359,7 @@ public class JigsawStudioGeneratorTest {
                 .setConnectors(new KList<>());
         piece.getConnectors().add(connector);
         IrisObject object = new IrisObject(3, 3, 3);
-        PlatformBlockState sourceBlock = mock(PlatformBlockState.class);
+        NativeBlockState sourceBlock = mock(NativeBlockState.class);
         when(sourceBlock.nativeHandle()).thenReturn(mock(BlockData.class));
         KMap<String, Object> tileProperties = new KMap<>();
         tileProperties.put("CustomName", "QA Chest");
@@ -477,7 +477,7 @@ public class JigsawStudioGeneratorTest {
                 IrisDirection.DOWN_NEGATIVE_Y, IrisDirection.WEST_NEGATIVE_X));
     }
 
-    private static PlatformBlockState stateAt(
+    private static NativeBlockState stateAt(
             JigsawStudioGenerator generator,
             int worldX,
             int worldY,
@@ -532,14 +532,14 @@ public class JigsawStudioGeneratorTest {
                 "overworld",
                 "test/structure",
                 layout);
-        PlatformBlockState lightFloor = mock(PlatformBlockState.class);
-        PlatformBlockState darkFloor = mock(PlatformBlockState.class);
-        PlatformBlockState frame = mock(PlatformBlockState.class);
-        PlatformBlockState topologyBase = mock(PlatformBlockState.class);
-        PlatformBlockState topologyPath = mock(PlatformBlockState.class);
-        PlatformBlockState connectorCap = mock(PlatformBlockState.class);
-        PlatformBlockState invalidMarker = mock(PlatformBlockState.class);
-        PlatformBlockState controlChest = mock(PlatformBlockState.class);
+        NativeBlockState lightFloor = mock(NativeBlockState.class);
+        NativeBlockState darkFloor = mock(NativeBlockState.class);
+        NativeBlockState frame = mock(NativeBlockState.class);
+        NativeBlockState topologyBase = mock(NativeBlockState.class);
+        NativeBlockState topologyPath = mock(NativeBlockState.class);
+        NativeBlockState connectorCap = mock(NativeBlockState.class);
+        NativeBlockState invalidMarker = mock(NativeBlockState.class);
+        NativeBlockState controlChest = mock(NativeBlockState.class);
         JigsawStudioGenerator generator = new JigsawStudioGenerator(
                 engine,
                 request,
@@ -595,18 +595,18 @@ public class JigsawStudioGeneratorTest {
     private record GeneratorFixture(
             JigsawStudioGenerator generator,
             JigsawStudioLayout layout,
-            PlatformBlockState frame,
-            PlatformBlockState topologyBase,
-            PlatformBlockState topologyPath,
-            PlatformBlockState connectorCap,
-            PlatformBlockState controlChest
+            NativeBlockState frame,
+            NativeBlockState topologyBase,
+            NativeBlockState topologyPath,
+            NativeBlockState connectorCap,
+            NativeBlockState controlChest
     ) {
     }
 
     private static final class RecordingTerrainChunk implements TerrainChunk {
         private final int minHeight;
         private final int maxHeight;
-        private final Map<String, PlatformBlockState> blocks = new HashMap<>();
+        private final Map<String, NativeBlockState> blocks = new HashMap<>();
 
         private RecordingTerrainChunk(int minHeight, int maxHeight) {
             this.minHeight = minHeight;
@@ -614,12 +614,12 @@ public class JigsawStudioGeneratorTest {
         }
 
         @Override
-        public PlatformBiome getBiome(int x, int y, int z) {
+        public NativeBiome getBiome(int x, int y, int z) {
             return null;
         }
 
         @Override
-        public void setBiome(int x, int y, int z, PlatformBiome biome) {
+        public void setBiome(int x, int y, int z, NativeBiome biome) {
         }
 
         @Override
@@ -633,7 +633,7 @@ public class JigsawStudioGeneratorTest {
         }
 
         @Override
-        public void setBlock(int x, int y, int z, PlatformBlockState blockData) {
+        public void setBlock(int x, int y, int z, NativeBlockState blockData) {
             blocks.put(key(x, y, z), blockData);
         }
 
@@ -645,7 +645,7 @@ public class JigsawStudioGeneratorTest {
                 int xMax,
                 int yMax,
                 int zMax,
-                PlatformBlockState blockData
+                NativeBlockState blockData
         ) {
             for (int x = xMin; x < xMax; x++) {
                 for (int y = yMin; y < yMax; y++) {
@@ -657,7 +657,7 @@ public class JigsawStudioGeneratorTest {
         }
 
         @Override
-        public PlatformBlockState getBlockData(int x, int y, int z) {
+        public NativeBlockState getBlockData(int x, int y, int z) {
             return blocks.get(key(x, y, z));
         }
 
@@ -666,9 +666,9 @@ public class JigsawStudioGeneratorTest {
             return null;
         }
 
-        private int countState(PlatformBlockState state) {
+        private int countState(NativeBlockState state) {
             int count = 0;
-            for (PlatformBlockState block : blocks.values()) {
+            for (NativeBlockState block : blocks.values()) {
                 if (block == state) {
                     count++;
                 }

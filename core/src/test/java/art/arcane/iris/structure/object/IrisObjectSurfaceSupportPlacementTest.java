@@ -8,7 +8,7 @@ import art.arcane.iris.generation.terrain.IrisSlopeClip;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.math.RNG;
@@ -249,7 +249,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
     }
 
     private IrisObject object() {
-        PlatformBlockState solid = mock(PlatformBlockState.class);
+        NativeBlockState solid = mock(NativeBlockState.class);
         when(solid.isSolid()).thenReturn(true);
         when(solid.key()).thenReturn("minecraft:stone");
         when(solid.materialKey()).thenReturn("minecraft:stone");
@@ -261,7 +261,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
 
     private static final class SurfacePlacer implements IObjectPlacer {
         private final Set<String> carved = new HashSet<>();
-        private final Map<String, PlatformBlockState> written = new HashMap<>();
+        private final Map<String, NativeBlockState> written = new HashMap<>();
         private final Engine engine;
 
         private SurfacePlacer() {
@@ -276,7 +276,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
             carved.add(blockKey(x, y, z));
         }
 
-        private Map<String, PlatformBlockState> written() {
+        private Map<String, NativeBlockState> written() {
             return written;
         }
 
@@ -291,12 +291,12 @@ public class IrisObjectSurfaceSupportPlacementTest {
         }
 
         @Override
-        public void set(int x, int y, int z, PlatformBlockState state) {
+        public void set(int x, int y, int z, NativeBlockState state) {
             written.put(blockKey(x, y, z), state);
         }
 
         @Override
-        public PlatformBlockState get(int x, int y, int z) {
+        public NativeBlockState get(int x, int y, int z) {
             return null;
         }
 

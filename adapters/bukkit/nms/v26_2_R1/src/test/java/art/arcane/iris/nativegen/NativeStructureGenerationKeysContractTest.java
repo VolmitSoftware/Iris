@@ -1,5 +1,7 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureGenerationKeys;
+
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Vec3i;
 import net.minecraft.server.Bootstrap;

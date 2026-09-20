@@ -22,7 +22,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 import art.arcane.iris.generation.decoration.tree.TreeFunctions;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -50,7 +50,7 @@ public final class CoralGenerator {
             case TENDRIL -> buildTendril(canvas, coral, height, shapeSeed, rng);
         }
 
-        Map<Vector3i, PlatformBlockState> resolved = resolve(canvas, coral, data);
+        Map<Vector3i, NativeBlockState> resolved = resolve(canvas, coral, data);
         return IrisProceduralBlocks.assemble(resolved);
     }
 
@@ -233,15 +233,15 @@ public final class CoralGenerator {
         };
     }
 
-    private static Map<Vector3i, PlatformBlockState> resolve(CoralCanvas canvas, IrisCoral coral, IrisData data) {
-        Map<Vector3i, PlatformBlockState> out = new HashMap<>();
+    private static Map<Vector3i, NativeBlockState> resolve(CoralCanvas canvas, IrisCoral coral, IrisData data) {
+        Map<Vector3i, NativeBlockState> out = new HashMap<>();
         RNG paletteRng = new RNG(coral.getSeed());
         for (Map.Entry<Long, CoralCanvas.Role> entry : canvas.getCells().entrySet()) {
             int[] xyz = CoralCanvas.decode(entry.getKey());
             int x = xyz[0];
             int y = xyz[1];
             int z = xyz[2];
-            PlatformBlockState state;
+            NativeBlockState state;
             if (entry.getValue() == CoralCanvas.Role.TIP) {
                 state = IrisProceduralBlocks.resolve(coral.getTipBlock(), coral.getTipPalette(), data, x, y, z, paletteRng);
                 if (state == null) {

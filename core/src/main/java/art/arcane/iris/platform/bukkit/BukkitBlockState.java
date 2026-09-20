@@ -20,11 +20,11 @@ package art.arcane.iris.platform.bukkit;
 
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.platform.bukkit.nms.INMS;
-import art.arcane.iris.platform.bukkit.nms.container.Pair;
+import art.arcane.volmlib.util.collection.Pair;
 import art.arcane.iris.integration.ExternalDataSVC;
 import art.arcane.iris.structure.object.IrisObjectRotation;
-import art.arcane.iris.platform.BlockStateKey;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.BlockStateKey;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.IrisCustomData;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.collection.KMap;
@@ -42,7 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Interned Bukkit adapter for a neutral block state backed by BlockData.
  */
-public final class BukkitBlockState implements PlatformBlockState {
+public final class BukkitBlockState implements NativeBlockState {
     private static final Map<String, BlockFace> CUSTOM_NAMED_FACES = Map.of(
             "north", BlockFace.NORTH, "south", BlockFace.SOUTH,
             "east", BlockFace.EAST, "west", BlockFace.WEST,
@@ -237,7 +237,12 @@ public final class BukkitBlockState implements PlatformBlockState {
     }
 
     @Override
-    public PlatformBlockState placementBaseState() {
+    public Object placementHandle() {
+        return data instanceof IrisCustomData custom ? custom.getBase() : data;
+    }
+
+    @Override
+    public NativeBlockState placementBaseState() {
         return data instanceof IrisCustomData custom ? of(custom.getBase()) : this;
     }
 
@@ -382,12 +387,12 @@ public final class BukkitBlockState implements PlatformBlockState {
     }
 
     @Override
-    public boolean canPlaceOnto(PlatformBlockState onto) {
+    public boolean canPlaceOnto(NativeBlockState onto) {
         return BukkitBlockResolution.canPlaceOnto(data.getMaterial(), ((BlockData) onto.nativeHandle()).getMaterial());
     }
 
     @Override
-    public boolean matches(PlatformBlockState state) {
+    public boolean matches(NativeBlockState state) {
         return data.matches((BlockData) state.nativeHandle());
     }
 
@@ -407,7 +412,7 @@ public final class BukkitBlockState implements PlatformBlockState {
     }
 
     @Override
-    public PlatformBlockState withProperty(String name, String value) {
+    public NativeBlockState withProperty(String name, String value) {
         if (data instanceof IrisCustomData custom) {
             if (ExternalDataSVC.parseState(custom.getCustom()).getB().containsKey(name)) {
                 String merged = BlockStateKey.withProperty(key, name, value);

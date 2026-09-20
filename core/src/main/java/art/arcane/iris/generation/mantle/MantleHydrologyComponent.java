@@ -17,7 +17,7 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.hydrology.IrisHydrology;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 import art.arcane.iris.generation.hydrology.IrisRiverHydrology;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
@@ -731,16 +731,16 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
             ChunkContext context,
             Publication publication
     ) {
-        LinkedHashMap<CavePosition, PlatformBlockState> resolvedSurfaceWrites = new LinkedHashMap<>();
+        LinkedHashMap<CavePosition, NativeBlockState> resolvedSurfaceWrites = new LinkedHashMap<>();
         for (Map.Entry<CavePosition, SurfaceFluidWrite> entry : sortedEntries(publication.surfaceWrites())) {
             CavePosition position = entry.getKey();
             SurfaceFluidWrite write = entry.getValue();
-            PlatformBlockState fluid = Objects.requireNonNull(context.getComplex().resolveHydrologyFluid(
+            NativeBlockState fluid = Objects.requireNonNull(context.getComplex().resolveHydrologyFluid(
                     write.profileKey(),
                     position.x(),
                     position.z()
             ));
-            PlatformBlockState state = write.action() == HydrologyCaveAction.FALLING_FLUID
+            NativeBlockState state = write.action() == HydrologyCaveAction.FALLING_FLUID
                     ? fallingFluidState(fluid)
                     : fluid;
             resolvedSurfaceWrites.put(position, state);
@@ -762,7 +762,7 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
                 ));
             }
         }
-        for (Map.Entry<CavePosition, PlatformBlockState> entry : resolvedSurfaceWrites.entrySet()) {
+        for (Map.Entry<CavePosition, NativeBlockState> entry : resolvedSurfaceWrites.entrySet()) {
             CavePosition position = entry.getKey();
             writer.setData(position.x(), position.y(), position.z(), entry.getValue());
         }
@@ -825,7 +825,7 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
         };
     }
 
-    private static PlatformBlockState fallingFluidState(PlatformBlockState fluid) {
+    private static NativeBlockState fallingFluidState(NativeBlockState fluid) {
         if (!IrisProceduralBlocks.hasProperty(fluid, "level")
                 || "8".equals(IrisProceduralBlocks.propertyValue(fluid, "level"))) {
             return fluid;

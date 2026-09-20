@@ -3,7 +3,7 @@ package art.arcane.iris.structure.object;
 import art.arcane.iris.generation.terrain.IrisDimension;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.Gson;
@@ -78,7 +78,7 @@ public class IrisObjectGlobalScaleTest {
     @Test
     public void globalAndExplicitFactorsScaleOccupiedCubeBoundsExactly() {
         IrisObject origin = new IrisObject(4, 4, 4);
-        PlatformBlockState stone = mock(PlatformBlockState.class);
+        NativeBlockState stone = mock(NativeBlockState.class);
         for (int x = 0; x < 4; x++) {
             for (int y = 0; y < 4; y++) {
                 for (int z = 0; z < 4; z++) {

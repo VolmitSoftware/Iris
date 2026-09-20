@@ -20,7 +20,7 @@ package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.block.TileData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -38,8 +38,8 @@ public class FloatingObjectPlacementTransactionTest {
     public void unsupportedFinalTerrainRejectsBlocksTilesAndMarkersTogether() {
         IslandObjectPlacer delegate = createPlacer(false);
         FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate);
-        PlatformBlockState first = mock(PlatformBlockState.class);
-        PlatformBlockState second = mock(PlatformBlockState.class);
+        NativeBlockState first = mock(NativeBlockState.class);
+        NativeBlockState second = mock(NativeBlockState.class);
         TileData tile = mock(TileData.class);
 
         transaction.set(15, 101, 8, first);
@@ -64,8 +64,8 @@ public class FloatingObjectPlacementTransactionTest {
     public void supportedNeighborChunkCommitsBlocksTilesAndMarkers() {
         IslandObjectPlacer delegate = createPlacer(true);
         FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate);
-        PlatformBlockState first = mock(PlatformBlockState.class);
-        PlatformBlockState second = mock(PlatformBlockState.class);
+        NativeBlockState first = mock(NativeBlockState.class);
+        NativeBlockState second = mock(NativeBlockState.class);
         TileData tile = mock(TileData.class);
 
         transaction.set(15, 101, 8, first);

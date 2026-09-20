@@ -18,6 +18,7 @@
 
 package art.arcane.iris.structure;
 
+import art.arcane.volmlib.nativelib.common.structure.StructureReaderFixture;
 import art.arcane.iris.structure.authoring.StructureCapability;
 import art.arcane.iris.structure.authoring.StructureLoss;
 import net.minecraft.SharedConstants;
@@ -33,7 +34,6 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class VillageImporterListPoolElementRuntimeContractTest {
@@ -54,7 +54,7 @@ public class VillageImporterListPoolElementRuntimeContractTest {
                 StructureTemplatePool.Projection.RIGID
         );
 
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(towers);
+        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(StructureReaderFixture.element(towers));
         Map<String, Object> entry = VillageImporter.piecePoolEntry(
                 "qa/pillager_outpost/piece/minecraft/pillager_outpost/watchtower",
                 1
@@ -85,7 +85,7 @@ public class VillageImporterListPoolElementRuntimeContractTest {
                 0,
                 List.of(Map.of("name", "minecraft:bottom")));
 
-        assertSame(tower, resolution.physicalElement());
+        assertEquals(tower.getClass().getSimpleName(), resolution.physicalElement().typeName());
         assertEquals("minecraft:pillager_outpost/watchtower", resolution.templateLocation());
         assertEquals(1, resolution.omittedElements());
         assertEquals("qa/pillager_outpost/piece/minecraft/pillager_outpost/watchtower", entry.get("piece"));
@@ -103,7 +103,7 @@ public class VillageImporterListPoolElementRuntimeContractTest {
         StructurePoolElement waystone = StructurePoolElement
                 .legacy("dungeons_and_taverns:waystones/waystone_scaffold")
                 .apply(StructureTemplatePool.Projection.RIGID);
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(waystone);
+        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(StructureReaderFixture.element(waystone));
         VillageImporter.PoolMemberNormalization normalization = VillageImporter.normalizePoolMember(
                 "dungeons_and_taverns:waystones",
                 "qa/pool/dungeons_and_taverns/waystones",
@@ -116,7 +116,7 @@ public class VillageImporterListPoolElementRuntimeContractTest {
                 0,
                 List.of());
 
-        assertSame(waystone, resolution.physicalElement());
+        assertEquals(waystone.getClass().getSimpleName(), resolution.physicalElement().typeName());
         assertEquals("dungeons_and_taverns:waystones/waystone_scaffold", resolution.templateLocation());
         assertEquals(VillageImporter.PoolMemberDisposition.EMPTY, normalization.disposition());
         assertEquals(true, normalization.poolEntry().get("empty"));
@@ -130,7 +130,7 @@ public class VillageImporterListPoolElementRuntimeContractTest {
         StructurePoolElement orphan = StructurePoolElement
                 .legacy("test:orphan_house")
                 .apply(StructureTemplatePool.Projection.RIGID);
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(orphan);
+        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(StructureReaderFixture.element(orphan));
         VillageImporter.PoolMemberNormalization normalization = VillageImporter.normalizePoolMember(
                 "test:orphan_pool",
                 "qa/pool/test/orphan_pool",
@@ -143,7 +143,7 @@ public class VillageImporterListPoolElementRuntimeContractTest {
                 37,
                 List.of());
 
-        assertSame(orphan, resolution.physicalElement());
+        assertEquals(orphan.getClass().getSimpleName(), resolution.physicalElement().typeName());
         assertEquals("test:orphan_house", resolution.templateLocation());
         assertEquals(VillageImporter.PoolMemberDisposition.OMITTED, normalization.disposition());
         assertTrue(normalization.poolEntry().isEmpty());
@@ -160,7 +160,7 @@ public class VillageImporterListPoolElementRuntimeContractTest {
         StructurePoolElement start = StructurePoolElement
                 .legacy("test:air_start")
                 .apply(StructureTemplatePool.Projection.RIGID);
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(start);
+        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(StructureReaderFixture.element(start));
         VillageImporter.PoolMemberNormalization normalization = VillageImporter.normalizePoolMember(
                 "test:start",
                 "qa/pool/test/start",
@@ -173,7 +173,7 @@ public class VillageImporterListPoolElementRuntimeContractTest {
                 0,
                 List.of());
 
-        assertSame(start, resolution.physicalElement());
+        assertEquals(start.getClass().getSimpleName(), resolution.physicalElement().typeName());
         assertEquals(VillageImporter.PoolMemberDisposition.PHYSICAL, normalization.disposition());
         assertEquals("qa/piece/test/air_start", normalization.poolEntry().get("piece"));
         assertTrue(normalization.losses().isEmpty());
@@ -184,7 +184,7 @@ public class VillageImporterListPoolElementRuntimeContractTest {
         StructurePoolElement inert = StructurePoolElement
                 .legacy("test:mixed_air_inert")
                 .apply(StructureTemplatePool.Projection.RIGID);
-        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(inert);
+        VillageImporter.PoolElementResolution resolution = VillageImporter.resolvePoolElement(StructureReaderFixture.element(inert));
         VillageImporter.PoolMemberNormalization normalization = VillageImporter.normalizePoolMember(
                 "test:mixed",
                 "qa/pool/test/mixed",
@@ -197,7 +197,7 @@ public class VillageImporterListPoolElementRuntimeContractTest {
                 0,
                 List.of());
 
-        assertSame(inert, resolution.physicalElement());
+        assertEquals(inert.getClass().getSimpleName(), resolution.physicalElement().typeName());
         assertEquals(VillageImporter.PoolMemberDisposition.OMITTED, normalization.disposition());
         assertTrue(normalization.poolEntry().isEmpty());
         assertEquals("connectorless_all_air_mixed_member_omitted",
@@ -214,8 +214,8 @@ public class VillageImporterListPoolElementRuntimeContractTest {
         StructurePoolElement nonAirElement = StructurePoolElement
                 .legacy("test:mixed_non_air_primary")
                 .apply(StructureTemplatePool.Projection.RIGID);
-        VillageImporter.PoolElementResolution allAirResolution = VillageImporter.resolvePoolElement(allAirElement);
-        VillageImporter.PoolElementResolution nonAirResolution = VillageImporter.resolvePoolElement(nonAirElement);
+        VillageImporter.PoolElementResolution allAirResolution = VillageImporter.resolvePoolElement(StructureReaderFixture.element(allAirElement));
+        VillageImporter.PoolElementResolution nonAirResolution = VillageImporter.resolvePoolElement(StructureReaderFixture.element(nonAirElement));
         VillageImporter.PoolMemberNormalization allAir = VillageImporter.normalizePoolMember(
                 "test:mixed",
                 "qa/pool/test/mixed",
@@ -239,8 +239,8 @@ public class VillageImporterListPoolElementRuntimeContractTest {
                 41,
                 List.of());
 
-        assertSame(allAirElement, allAirResolution.physicalElement());
-        assertSame(nonAirElement, nonAirResolution.physicalElement());
+        assertEquals(allAirElement.getClass().getSimpleName(), allAirResolution.physicalElement().typeName());
+        assertEquals(nonAirElement.getClass().getSimpleName(), nonAirResolution.physicalElement().typeName());
         assertEquals(VillageImporter.PoolMemberDisposition.PHYSICAL, allAir.disposition());
         assertEquals(VillageImporter.PoolMemberDisposition.PHYSICAL, nonAir.disposition());
         assertEquals("qa/piece/test/mixed_all_air_primary", allAir.poolEntry().get("piece"));
@@ -257,8 +257,8 @@ public class VillageImporterListPoolElementRuntimeContractTest {
         StructurePoolElement nonAirElement = StructurePoolElement
                 .legacy("test:non_air_primary")
                 .apply(StructureTemplatePool.Projection.RIGID);
-        VillageImporter.PoolElementResolution allAirResolution = VillageImporter.resolvePoolElement(allAirElement);
-        VillageImporter.PoolElementResolution nonAirResolution = VillageImporter.resolvePoolElement(nonAirElement);
+        VillageImporter.PoolElementResolution allAirResolution = VillageImporter.resolvePoolElement(StructureReaderFixture.element(allAirElement));
+        VillageImporter.PoolElementResolution nonAirResolution = VillageImporter.resolvePoolElement(StructureReaderFixture.element(nonAirElement));
         VillageImporter.PoolMemberNormalization allAir = VillageImporter.normalizePoolMember(
                 "test:primary",
                 "qa/pool/test/primary",
@@ -282,8 +282,8 @@ public class VillageImporterListPoolElementRuntimeContractTest {
                 29,
                 List.of());
 
-        assertSame(allAirElement, allAirResolution.physicalElement());
-        assertSame(nonAirElement, nonAirResolution.physicalElement());
+        assertEquals(allAirElement.getClass().getSimpleName(), allAirResolution.physicalElement().typeName());
+        assertEquals(nonAirElement.getClass().getSimpleName(), nonAirResolution.physicalElement().typeName());
         assertEquals(VillageImporter.PoolMemberDisposition.PHYSICAL, allAir.disposition());
         assertEquals(VillageImporter.PoolMemberDisposition.PHYSICAL, nonAir.disposition());
         assertEquals("qa/piece/test/all_air_primary", allAir.poolEntry().get("piece"));

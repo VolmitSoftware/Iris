@@ -2,7 +2,7 @@ package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.biome.IrisBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import org.junit.Test;
 
@@ -65,7 +65,7 @@ public class IrisSeaDecoratorBoundsTest {
     public void unresolvedFloorPalettePreservesExistingWater() {
         Fixture fixture = new Fixture(8, false);
         fixture.stacking(100, 30);
-        PlatformBlockState water = mock(PlatformBlockState.class);
+        NativeBlockState water = mock(NativeBlockState.class);
         fixture.output.set(0, 3, 0, water);
         when(fixture.decorator.getBlockData100(any(), any(), anyDouble(), anyDouble(), anyDouble(), any())).thenReturn(null);
 
@@ -113,10 +113,10 @@ public class IrisSeaDecoratorBoundsTest {
     private static final class Fixture {
         private final IrisDecorator decorator = mock(IrisDecorator.class);
         private final IrisBiome biome = mock(IrisBiome.class);
-        private final PlatformBlockState body = mock(PlatformBlockState.class);
-        private final PlatformBlockState top = mock(PlatformBlockState.class);
+        private final NativeBlockState body = mock(NativeBlockState.class);
+        private final NativeBlockState top = mock(NativeBlockState.class);
         private final Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
-        private final Hunk<PlatformBlockState> output;
+        private final Hunk<NativeBlockState> output;
         private final IrisEngineDecorator placement;
 
         private Fixture(int height, boolean surface) {

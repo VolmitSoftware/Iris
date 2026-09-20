@@ -6,7 +6,7 @@ import art.arcane.iris.world.history.BoundaryColumnGeometry;
 import art.arcane.iris.world.history.TerrainBoundarySignature;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
@@ -46,8 +46,8 @@ public class ResolvedTerrainPlacementTest {
 
     private EngineMantle engineMantle;
     private Mantle<Matter> mantle;
-    private PlatformBlockState stone;
-    private PlatformBlockState air;
+    private NativeBlockState stone;
+    private NativeBlockState air;
     private Matter matter;
 
     @Before
@@ -57,8 +57,8 @@ public class ResolvedTerrainPlacementTest {
         IrisPlatforms.unbind();
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformRegistries registries = mock(PlatformRegistries.class);
-        stone = mock(PlatformBlockState.class);
-        air = mock(PlatformBlockState.class);
+        stone = mock(NativeBlockState.class);
+        air = mock(NativeBlockState.class);
         when(air.isAir()).thenReturn(true);
         when(registries.block(anyString())).thenReturn(air);
         when(registries.blockOrNull("minecraft:stone")).thenReturn(stone);
@@ -130,7 +130,7 @@ public class ResolvedTerrainPlacementTest {
 
     @Test
     public void writerPrerequisitesIgnoreContentWhileLiveOccupancyIncludesBlockOnlyFills() {
-        matter.<PlatformBlockState>slice(PlatformBlockState.class).set(0, 1, 0, stone);
+        matter.<NativeBlockState>slice(NativeBlockState.class).set(0, 1, 0, stone);
         matter.<PreObjectMatterCell>slice(PreObjectMatterCell.class).set(0, 1, 0, PreObjectMatterCell.block(null));
         try (MantleWriter writer = new MantleWriter(engineMantle, mantle, 0, 0, 0, false)) {
             assertSame(air, writer.getPrerequisiteBlock(0, 1, 0));

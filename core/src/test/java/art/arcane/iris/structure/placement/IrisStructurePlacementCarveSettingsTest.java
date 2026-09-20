@@ -1,5 +1,9 @@
 package art.arcane.iris.structure.placement;
 
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
+
+import art.arcane.volmlib.util.structure.StructureCarveShape;
+
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
@@ -18,9 +22,9 @@ public class IrisStructurePlacementCarveSettingsTest {
     public void defaultsToSourceTerrainWithBoxCarving() {
         IrisStructureTerrain terrain = new IrisStructureTerrain();
 
-        assertEquals(IrisStructureTerrainMode.SOURCE, terrain.resolvedMode());
-        assertEquals(IrisStructureCarveShape.BOX, terrain.getShape());
-        assertEquals(IrisStructureCarveShape.BOX, terrain.resolvedShape());
+        assertEquals(StructureTerrainMode.SOURCE, terrain.resolvedMode());
+        assertEquals(StructureCarveShape.BOX, terrain.getShape());
+        assertEquals(StructureCarveShape.BOX, terrain.resolvedShape());
         assertEquals(0.8D, terrain.getErosionStrength(), 0D);
         assertEquals(0.8D, terrain.resolvedErosionStrength(), 0D);
         assertEquals(0.07D, terrain.getErosionFrequency(), 0D);
@@ -68,15 +72,15 @@ public class IrisStructurePlacementCarveSettingsTest {
 
     @Test
     public void carveShapesExposeTheirMaximumCeilingScale() {
-        assertEquals(1D, IrisStructureCarveShape.BOX.maximumCeilingScale(), 0D);
-        assertEquals(1D, IrisStructureCarveShape.ROUNDED.maximumCeilingScale(), 0D);
-        assertEquals(1.8D, IrisStructureCarveShape.ERODED.maximumCeilingScale(), 0D);
-        assertEquals(10, IrisStructureCarveShape.BOX.maximumCeilingExtension(10));
-        assertEquals(10, IrisStructureCarveShape.ROUNDED.maximumCeilingExtension(10));
-        assertEquals(18, IrisStructureCarveShape.ERODED.maximumCeilingExtension(10));
-        assertEquals(10, IrisStructureCarveShape.ERODED.maximumCeilingExtension(10, 0D));
-        assertEquals(14, IrisStructureCarveShape.ERODED.maximumCeilingExtension(10, 0.5D));
-        assertEquals(0, IrisStructureCarveShape.ERODED.maximumCeilingExtension(0));
+        assertEquals(1D, StructureCarveShape.BOX.maximumCeilingScale(), 0D);
+        assertEquals(1D, StructureCarveShape.ROUNDED.maximumCeilingScale(), 0D);
+        assertEquals(1.8D, StructureCarveShape.ERODED.maximumCeilingScale(), 0D);
+        assertEquals(10, StructureCarveShape.BOX.maximumCeilingExtension(10));
+        assertEquals(10, StructureCarveShape.ROUNDED.maximumCeilingExtension(10));
+        assertEquals(18, StructureCarveShape.ERODED.maximumCeilingExtension(10));
+        assertEquals(10, StructureCarveShape.ERODED.maximumCeilingExtension(10, 0D));
+        assertEquals(14, StructureCarveShape.ERODED.maximumCeilingExtension(10, 0.5D));
+        assertEquals(0, StructureCarveShape.ERODED.maximumCeilingExtension(0));
     }
 
     @Test
@@ -86,7 +90,7 @@ public class IrisStructurePlacementCarveSettingsTest {
                 .setErosionStrength(Double.NaN)
                 .setErosionFrequency(Double.POSITIVE_INFINITY);
 
-        assertEquals(IrisStructureCarveShape.BOX, terrain.resolvedShape());
+        assertEquals(StructureCarveShape.BOX, terrain.resolvedShape());
         assertEquals(0.8D, terrain.resolvedErosionStrength(), 0D);
         assertEquals(0.07D, terrain.resolvedErosionFrequency(), 0D);
 
@@ -116,9 +120,9 @@ public class IrisStructurePlacementCarveSettingsTest {
     @Test
     public void encaseModeCarriesAnOptionalPaletteOverride() {
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.ENCASE);
+                .setMode(StructureTerrainMode.ENCASE);
 
-        assertEquals(IrisStructureTerrainMode.ENCASE, terrain.resolvedMode());
+        assertEquals(StructureTerrainMode.ENCASE, terrain.resolvedMode());
         assertNull(terrain.getEncasePalette());
 
         IrisMaterialPalette palette = new IrisMaterialPalette().qclear().qadd("minecraft:tuff");

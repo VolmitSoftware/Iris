@@ -2,7 +2,7 @@ package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.generation.decoration.IrisSpeleothems;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import org.bukkit.block.BlockSupport;
 import org.bukkit.block.data.BlockData;
@@ -34,7 +34,7 @@ public class IrisPerfectionModifierSpeleothemTest {
                     }
 
                     int supportY = upward ? 1 : 5;
-                    PlatformBlockState pool = fluid.equals("minecraft:water") ? fixture.water : fluid(fluid);
+                    NativeBlockState pool = fluid.equals("minecraft:water") ? fixture.water : fluid(fluid);
                     fixture.output.set(0, supportY, 0, pool);
                     fixture.normalize();
 
@@ -101,15 +101,15 @@ public class IrisPerfectionModifierSpeleothemTest {
         }
     }
 
-    private static PlatformBlockState spike(String material, boolean upward, String thickness, boolean waterlogged) {
+    private static NativeBlockState spike(String material, boolean upward, String thickness, boolean waterlogged) {
         return spike(material, Map.of(
                 "vertical_direction", upward ? "up" : "down",
                 "thickness", thickness,
                 "waterlogged", Boolean.toString(waterlogged)));
     }
 
-    private static PlatformBlockState spike(String material, Map<String, String> properties) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private static NativeBlockState spike(String material, Map<String, String> properties) {
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.key()).thenReturn(material + "[thickness=" + properties.get("thickness")
                 + ",vertical_direction=" + properties.get("vertical_direction")
                 + ",waterlogged=" + properties.get("waterlogged") + "]");
@@ -122,8 +122,8 @@ public class IrisPerfectionModifierSpeleothemTest {
         return state;
     }
 
-    private static PlatformBlockState sturdyState() {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private static NativeBlockState sturdyState() {
+        NativeBlockState state = mock(NativeBlockState.class);
         BlockData nativeState = mock(BlockData.class);
         when(state.key()).thenReturn("minecraft:sulfur");
         when(state.nativeHandle()).thenReturn(nativeState);
@@ -131,8 +131,8 @@ public class IrisPerfectionModifierSpeleothemTest {
         return state;
     }
 
-    private static PlatformBlockState fluid(String material) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private static NativeBlockState fluid(String material) {
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.key()).thenReturn(material);
         when(state.isFluid()).thenReturn(true);
         when(state.isWater()).thenReturn(material.equals("minecraft:water"));
@@ -140,9 +140,9 @@ public class IrisPerfectionModifierSpeleothemTest {
     }
 
     private static class Fixture {
-        private final PlatformBlockState air = mock(PlatformBlockState.class);
-        private final PlatformBlockState water = fluid("minecraft:water");
-        private final Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 9, 1);
+        private final NativeBlockState air = mock(NativeBlockState.class);
+        private final NativeBlockState water = fluid("minecraft:water");
+        private final Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 9, 1);
 
         private Fixture() {
             when(air.key()).thenReturn("minecraft:air");
@@ -161,7 +161,7 @@ public class IrisPerfectionModifierSpeleothemTest {
 
         private void normalize() {
             for (int y = output.getHeight() - 1; y >= 0; y--) {
-                PlatformBlockState state = output.get(0, y, 0);
+                NativeBlockState state = output.get(0, y, 0);
                 if (IrisSpeleothems.isSpike(state)) {
                     IrisPerfectionModifier.normalizeSpike(state, output, 0, 0, y, air, water);
                 }

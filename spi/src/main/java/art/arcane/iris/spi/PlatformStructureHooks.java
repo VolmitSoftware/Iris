@@ -18,7 +18,10 @@
 
 package art.arcane.iris.spi;
 
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+
 import java.util.List;
+import art.arcane.volmlib.nativelib.terrain.JigsawSourceMetadata;
 
 /**
  * Neutral access to the host platform's structure, structure-set and configured-feature registries plus placement entry points.
@@ -84,18 +87,18 @@ public interface PlatformStructureHooks {
      * Structure keys actually reachable in {@code world}, after its dimension's structure sets and biome filter
      * are applied. Narrower than {@link #structureKeys()}. Never null.
      */
-    List<String> reachableStructureKeys(PlatformWorld world);
+    List<String> reachableStructureKeys(NativeWorld world);
 
     /**
      * Biome keys the world's biome source can emit. Never null.
      */
-    List<String> possibleBiomeKeys(PlatformWorld world);
+    List<String> possibleBiomeKeys(NativeWorld world);
 
     /**
      * Places a configured feature at world coordinates with the given seed. Returns false when the key is
      * unknown or the feature declines to place. Mutates the world; see the threading note on this interface.
      */
-    boolean placeFeature(PlatformWorld world, int x, int y, int z, String featureKey, long seed);
+    boolean placeFeature(NativeWorld world, int x, int y, int z, String featureKey, long seed);
 
     /**
      * Generates and places a structure anchored at the given chunk.
@@ -104,30 +107,13 @@ public interface PlatformStructureHooks {
      * @return the placed bounding box as {@code {minX, minY, minZ, maxX, maxY, maxZ}}, or null when the key is
      *         unknown, the structure produced no valid start, or the box exceeded {@code maxSpan}
      */
-    int[] placeStructure(PlatformWorld world, int chunkX, int chunkZ, String structureKey, long seed, int maxSpan);
+    int[] placeStructure(NativeWorld world, int chunkX, int chunkZ, String structureKey, long seed, int maxSpan);
 
     /**
-     * Whether this adapter implements {@link #placeStructure(PlatformWorld, int, int, String, long, int)}.
+     * Whether this adapter implements {@link #placeStructure(NativeWorld, int, int, String, long, int)}.
      * Check before offering structure capture; adapters without the required host access return false.
      */
     boolean supportsStructurePlacement();
 
-    record JigsawSourceMetadata(int maxDistanceHorizontal, int referenceExpansion,
-                                int maxStartElementHorizontalSpan) {
-        public JigsawSourceMetadata(int maxDistanceHorizontal, int referenceExpansion) {
-            this(maxDistanceHorizontal, referenceExpansion, 0);
-        }
 
-        public JigsawSourceMetadata {
-            if (maxDistanceHorizontal < 1 || maxDistanceHorizontal > 128) {
-                throw new IllegalArgumentException("Jigsaw horizontal distance must be between 1 and 128");
-            }
-            if (referenceExpansion < 0) {
-                throw new IllegalArgumentException("Jigsaw reference expansion must not be negative");
-            }
-            if (maxStartElementHorizontalSpan < 0) {
-                throw new IllegalArgumentException("Jigsaw start element horizontal span must not be negative");
-            }
-        }
-    }
 }

@@ -22,7 +22,7 @@ import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.VectorMap;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.math.Vector3i;
@@ -59,11 +59,11 @@ final class IrisObjectShaping {
 
     private static void ensureSmartBoredLocked(IrisObject self) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        PlatformBlockState vair = IrisObject.States.vair();
+        NativeBlockState vair = IrisObject.States.vair();
         int applied = 0;
         IrisBlockVector max = new IrisBlockVector(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
         IrisBlockVector min = new IrisBlockVector(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
-        VectorMap<PlatformBlockState> source = self.blocks;
+        VectorMap<NativeBlockState> source = self.blocks;
         if (source.isEmpty()) {
             IrisLogging.warn("Cannot Smart Bore " + self.getLoadKey() + " because it has 0 blocks in it.");
             self.smartBored = true;
@@ -79,7 +79,7 @@ final class IrisObjectShaping {
             min.setZ(Math.min(i.getZ(), min.getZ()));
         }
 
-        VectorMap<PlatformBlockState> bore = new VectorMap<>();
+        VectorMap<NativeBlockState> bore = new VectorMap<>();
         // Inline on purpose: the three axis passes read AND write the shared bore map, so the
         // bored volume must come from a fixed X->Y->Z order on the calling (lock-owning)
         // thread, not from pool scheduling. This matches what burst-worker callers (studio,
@@ -154,12 +154,12 @@ final class IrisObjectShaping {
         IrisLogging.debug("Smart Bore: " + self.getLoadKey() + " in " + Form.duration(p.getMilliseconds(), 2) + " (" + Form.f(applied) + ")");
     }
 
-    private static boolean boreContains(VectorMap<PlatformBlockState> source, VectorMap<PlatformBlockState> bore, IrisBlockVector v) {
+    private static boolean boreContains(VectorMap<NativeBlockState> source, VectorMap<NativeBlockState> bore, IrisBlockVector v) {
         return source.containsKey(v) || bore.containsKey(v);
     }
 
-    private static int boreCell(VectorMap<PlatformBlockState> source, VectorMap<PlatformBlockState> bore, IrisBlockVector v, PlatformBlockState vair) {
-        PlatformBlockState existing = source.get(v);
+    private static int boreCell(VectorMap<NativeBlockState> source, VectorMap<NativeBlockState> bore, IrisBlockVector v, NativeBlockState vair) {
+        NativeBlockState existing = source.get(v);
 
         if (existing == null) {
             if (vair.equals(bore.get(v))) {
@@ -208,7 +208,7 @@ final class IrisObjectShaping {
             return;
         }
 
-        VectorMap<PlatformBlockState> b = new VectorMap<>();
+        VectorMap<NativeBlockState> b = new VectorMap<>();
         VectorMap<TileData> s = new VectorMap<>();
         IrisBlockVector shift = new IrisBlockVector(offset.getX(), offset.getY(), offset.getZ());
 
@@ -234,7 +234,7 @@ final class IrisObjectShaping {
     }
 
     static void clean(IrisObject self) {
-        VectorMap<PlatformBlockState> d = new VectorMap<>();
+        VectorMap<NativeBlockState> d = new VectorMap<>();
         d.putAll(self.blocks);
 
         VectorMap<TileData> dx = new VectorMap<>();
@@ -246,7 +246,7 @@ final class IrisObjectShaping {
         self.floatingFootprint.reset();
     }
 
-    static boolean isStiltLayerBlock(PlatformBlockState state) {
+    static boolean isStiltLayerBlock(NativeBlockState state) {
         String material = materialKey(state);
         if (!state.isOccluding() && !material.equals("minecraft:ice") && !material.equals("minecraft:glass")
                 && !material.equals("minecraft:tinted_glass") && !material.endsWith("_stained_glass")) {
@@ -258,12 +258,12 @@ final class IrisObjectShaping {
         return !material.equals("minecraft:dirt_path");
     }
 
-    static boolean shouldStilt(PlatformBlockState state, Set<String> excludedMaterials) {
+    static boolean shouldStilt(NativeBlockState state, Set<String> excludedMaterials) {
         return isStiltLayerBlock(state) && !state.isStorage() && !state.hasTileEntity()
                 && !excludedMaterials.contains(materialKey(state));
     }
 
-    static String materialKey(PlatformBlockState state) {
+    static String materialKey(NativeBlockState state) {
         return IrisProceduralBlocks.materialKey(state);
     }
 }

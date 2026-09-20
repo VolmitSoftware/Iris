@@ -55,7 +55,7 @@ public class ModdedStructureTemplateCacheTest {
     @Test
     public void requiredCommonMixinConfigRegistersPaletteConcurrencyFix() throws Exception {
         InputStream resource = ModdedStructureTemplateCacheTest.class.getClassLoader()
-                .getResourceAsStream("irisworldgen.entity.mixins.json");
+                .getResourceAsStream("volmlib.entity.mixins.json");
         assertNotNull(resource);
         String config;
         try (InputStream input = resource) {
@@ -63,7 +63,7 @@ public class ModdedStructureTemplateCacheTest {
         }
         assertTrue(config.contains("\"StructureTemplatePaletteConcurrencyMixin\""));
         assertNotNull(Class.forName(
-                "art.arcane.iris.modded.mixin.StructureTemplatePaletteConcurrencyMixin",
+                "art.arcane.volmlib.nativelib.minecraft26_2.modded.mixin.StructureTemplatePaletteConcurrencyMixin",
                 false,
                 ModdedStructureTemplateCacheTest.class.getClassLoader()));
     }

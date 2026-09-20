@@ -18,6 +18,11 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeStructureQueries;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
@@ -37,26 +42,11 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.structure.nativegen.IrisNativeStructureDecision;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.structure.nativegen.NativeStructureGenerationStatus;
-import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.volmlib.util.math.Position2;
-import com.mojang.datafixers.util.Pair;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.core.HolderSet;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Relative;
-import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.levelgen.structure.Structure;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
 
 import java.util.Optional;
 import java.util.Set;
@@ -75,13 +65,13 @@ final class ModdedLocateCommands {
     private ModdedLocateCommands() {
     }
 
-    static int gotoBiome(CommandSourceStack source, String key) {
-        ServerPlayer player = source.getPlayer();
+    static int gotoBiome(NativeCommandSource source, String key) {
+        NativeProtocolPlayer player = source.player();
         if (player == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_3));
             return 0;
         }
-        ServerLevel level = source.getLevel();
+        NativeWorld level = source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_8));
@@ -96,13 +86,13 @@ final class ModdedLocateCommands {
         return 1;
     }
 
-    static int gotoRegion(CommandSourceStack source, String key) {
-        ServerPlayer player = source.getPlayer();
+    static int gotoRegion(NativeCommandSource source, String key) {
+        NativeProtocolPlayer player = source.player();
         if (player == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_4));
             return 0;
         }
-        ServerLevel level = source.getLevel();
+        NativeWorld level = source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_9));
@@ -117,8 +107,8 @@ final class ModdedLocateCommands {
         return 1;
     }
 
-    static int gotoObject(CommandSourceStack source, String keyRaw) {
-        ServerLevel level = source.getLevel();
+    static int gotoObject(NativeCommandSource source, String keyRaw) {
+        NativeWorld level = source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_10));
@@ -129,7 +119,7 @@ final class ModdedLocateCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_IS_NOT_CONFIGURED_ANY_REGION_BIOME_OBJECT_PLACEMENTS_OBJECT_KEYS, MessageArgument.untrusted("key", key), MessageArgument.untrusted("value", engine.getData().getObjectLoader().getPossibleKeys().length)));
             return 0;
         }
-        ServerPlayer player = source.getPlayer();
+        NativeProtocolPlayer player = source.player();
         if (player == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_OBJECT_KEY, MessageArgument.untrusted("key", key), MessageArgument.untrusted("value", engine.getData().getObjectLoader().getPossibleKeys().length)));
             return 0;
@@ -138,13 +128,13 @@ final class ModdedLocateCommands {
         return 1;
     }
 
-    static int gotoRiver(CommandSourceStack source, String type) {
-        ServerPlayer player = source.getPlayer();
+    static int gotoRiver(NativeCommandSource source, String type) {
+        NativeProtocolPlayer player = source.player();
         if (player == null) {
             IrisModdedCommands.fail(source, "This command can only be used by a player.");
             return 0;
         }
-        ServerLevel level = source.getLevel();
+        NativeWorld level = source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
             IrisModdedCommands.fail(source, "This dimension is not generated by Iris.");
@@ -158,15 +148,15 @@ final class ModdedLocateCommands {
             IrisModdedCommands.fail(source, error.getMessage());
             return 0;
         }
-        int originX = player.blockPosition().getX();
-        int originZ = player.blockPosition().getZ();
+        int originX = player.blockX();
+        int originZ = player.blockZ();
         int requestedDistance = runtime == null
                 ? 8192
                 : Math.min(8192, runtime.settings().routing().tileSize() * 15);
         int maximumDistance = runtime == null
                 ? requestedDistance
                 : runtime.maximumFeatureSearchDistance(originX, originZ, requestedDistance);
-        MinecraftServer server = source.getServer();
+        NativeModdedServer server = source.server();
         IrisModdedCommands.ok(source, "Searching accepted hydrology plans for " + type + "...");
         MultiBurst.burst.completeValueAsync(() -> GenerationSemanticQueries.nearestRiver(
                         engine, query, originX, originZ, maximumDistance,
@@ -198,8 +188,8 @@ final class ModdedLocateCommands {
         return 1;
     }
 
-    static int gotoStructure(CommandSourceStack source, String keyRaw) {
-        ServerLevel level = source.getLevel();
+    static int gotoStructure(NativeCommandSource source, String keyRaw) {
+        NativeWorld level = source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_11));
@@ -210,7 +200,7 @@ final class ModdedLocateCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_NAME_IRIS_NATIVE_STRUCTURE_LOCATE));
             return 0;
         }
-        ServerPlayer player = source.getPlayer();
+        NativeProtocolPlayer player = source.player();
         if (player == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_5));
             return 0;
@@ -229,7 +219,7 @@ final class ModdedLocateCommands {
         NativeStructureTarget target = resolved.get();
         IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(engine, target.key(), false);
         boolean nativeGenerationEnabled =
-                source.getServer().getWorldGenSettings().options().generateStructures();
+                source.server().generateStructures();
         boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, target.key());
         boolean locatableNativePlacement = nativePlacement
                 && IrisStructureLocator.hasLocatableNativePlacement(engine, target.key());
@@ -300,11 +290,11 @@ final class ModdedLocateCommands {
                 + "density or a Y band outside this world's height range.";
     }
 
-    private static void locateIrisStructure(CommandSourceStack source, ServerLevel level, Engine engine,
-                                            ServerPlayer player, String key) {
-        MinecraftServer server = source.getServer();
-        int blockX = player.blockPosition().getX();
-        int blockZ = player.blockPosition().getZ();
+    private static void locateIrisStructure(NativeCommandSource source, NativeWorld level, Engine engine,
+                                            NativeProtocolPlayer player, String key) {
+        NativeModdedServer server = source.server();
+        int blockX = player.blockX();
+        int blockZ = player.blockZ();
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_SEARCHING_IRIS_PLACED_STRUCTURE, MessageArgument.untrusted("key", key)));
         Thread thread = new Thread(() -> {
             try {
@@ -332,37 +322,31 @@ final class ModdedLocateCommands {
         thread.start();
     }
 
-    private static void runNativeStructureLocate(CommandSourceStack source, ServerLevel level,
-                                                 ServerPlayer player, NativeStructureTarget target) {
-        MinecraftServer server = source.getServer();
+    private static void runNativeStructureLocate(NativeCommandSource source, NativeWorld level,
+                                                 NativeProtocolPlayer player, NativeStructureTarget target) {
+        NativeModdedServer server = source.server();
         Runnable locateTask = () -> locateNativeStructure(source, level, player, target);
-        if (Thread.currentThread() == server.getRunningThread()) {
+        if (server.isServerThread()) {
             locateTask.run();
             return;
         }
         server.execute(locateTask);
     }
 
-    private static void locateNativeStructure(CommandSourceStack source, ServerLevel level,
-                                              ServerPlayer player, NativeStructureTarget target) {
+    private static void locateNativeStructure(NativeCommandSource source, NativeWorld level,
+                                              NativeProtocolPlayer player, NativeStructureTarget target) {
         try {
-            ChunkGenerator generator = level.getChunkSource().getGenerator();
-            Pair<BlockPos, Holder<Structure>> found = generator.findNearestMapStructure(
-                    level,
-                    HolderSet.direct(target.holder()),
-                    player.blockPosition(),
-                    NATIVE_STRUCTURE_LOCATE_RADIUS,
-                    false);
+            NativeStructureQueries queries = new NativeStructureQueries(level);
+            NativeBlockPoint found = queries.locate(target.holder(),
+                    new NativeBlockPoint(player.blockX(), player.blockY(), player.blockZ()), NATIVE_STRUCTURE_LOCATE_RADIUS);
             if (found == null) {
                 IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_COULD_NOT_FIND_NATIVE_STRUCTURE_WITHIN_CHUNKS, MessageArgument.untrusted("value", target.key()), MessageArgument.untrusted("NATIVESTRUCTURELOCATERADIUS", NATIVE_STRUCTURE_LOCATE_RADIUS)));
                 return;
             }
-            BlockPos position = found.getFirst();
-            int targetX = position.getX();
-            int targetZ = position.getZ();
-            level.getChunk(targetX >> 4, targetZ >> 4);
-            int surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, targetX, targetZ) + 1;
-            int targetY = Math.max(level.getMinY() + 1, Math.min(level.getMaxY() - 1, surfaceY));
+            int targetX = found.x();
+            int targetZ = found.z();
+            int surfaceY = queries.surfaceY(targetX, targetZ) + 1;
+            int targetY = Math.max(level.minHeight() + 1, Math.min(level.maxHeight() - 1, surfaceY));
             teleportToStructure(source, level, player, targetX, targetY, targetZ,
                     "native structure " + target.key());
         } catch (Throwable e) {
@@ -371,20 +355,19 @@ final class ModdedLocateCommands {
         }
     }
 
-    private static void teleportToStructure(CommandSourceStack source, ServerLevel level, ServerPlayer player,
+    private static void teleportToStructure(NativeCommandSource source, NativeWorld level, NativeProtocolPlayer player,
                                             int targetX, int targetY, int targetZ, String label) {
-        if (player.hasDisconnected() || player.isRemoved()) {
+        if (!player.connected()) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_PLAYER_DISCONNECTED_BEFORE_STRUCTURE_SEARCH_COMPLETED));
             return;
         }
-        if (player.level() != level) {
+        if (!player.inWorld(level)) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_YOU_CHANGED_DIMENSIONS_BEFORE_STRUCTURE_SEARCH_COMPLETED_RUN_COMMAND_AGAIN));
             return;
         }
-        level.getChunk(targetX >> 4, targetZ >> 4);
-        int clampedY = Math.max(level.getMinY() + 1, Math.min(level.getMaxY() - 1, targetY));
-        boolean teleported = player.teleportTo(level, targetX + 0.5D, clampedY, targetZ + 0.5D,
-                Set.<Relative>of(), player.getYRot(), player.getXRot(), false);
+        new NativeStructureQueries(level).loadChunk(targetX >> 4, targetZ >> 4);
+        int clampedY = Math.max(level.minHeight() + 1, Math.min(level.maxHeight() - 1, targetY));
+        boolean teleported = player.teleport(level, targetX + 0.5D, clampedY, targetZ + 0.5D);
         if (!teleported) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_FOUND_AT_BUT_TELEPORTATION_FAILED, MessageArgument.untrusted("label", label), MessageArgument.untrusted("targetX", targetX), MessageArgument.untrusted("clampedY", clampedY), MessageArgument.untrusted("targetZ", targetZ)));
             return;
@@ -392,8 +375,8 @@ final class ModdedLocateCommands {
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORTED_AT, MessageArgument.untrusted("label", label), MessageArgument.untrusted("targetX", targetX), MessageArgument.untrusted("clampedY", clampedY), MessageArgument.untrusted("targetZ", targetZ)));
     }
 
-    static int verifyStructures(CommandSourceStack source, String keyRaw) {
-        ServerLevel level = source.getLevel();
+    static int verifyStructures(NativeCommandSource source, String keyRaw) {
+        NativeWorld level = source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_12));
@@ -403,19 +386,19 @@ final class ModdedLocateCommands {
         if (!key.isEmpty()) {
             return verifyStructure(source, level, engine, key);
         }
-        Registry<Structure> registry = source.getServer().registryAccess().lookupOrThrow(Registries.STRUCTURE);
+        NativeStructureQueries registry = new NativeStructureQueries(level);
         int available = 0;
         int disabled = 0;
         int suppressed = 0;
         int unreachableBiomes = 0;
         int unsupported = 0;
-        for (Identifier identifier : registry.keySet()) {
-            Optional<Holder.Reference<Structure>> holder = registry.get(identifier);
+        for (String identifier : registry.keys()) {
+            Optional<NativeStructureQueries.Reference> holder = registry.resolve(identifier);
             if (holder.isEmpty()) {
                 continue;
             }
             NativeStructureAvailability availability = nativeAvailability(source, level, engine,
-                    identifier.toString(), holder.get());
+                    identifier, holder.get());
             switch (availability) {
                 case AVAILABLE -> available++;
                 case WORLD_DISABLED, FILTERED -> disabled++;
@@ -429,7 +412,7 @@ final class ModdedLocateCommands {
         return 1;
     }
 
-    private static int verifyStructure(CommandSourceStack source, ServerLevel level, Engine engine, String key) {
+    private static int verifyStructure(NativeCommandSource source, NativeWorld level, Engine engine, String key) {
         Optional<NativeStructureTarget> target = resolveNativeStructure(source, level, engine, key);
         if (target.isEmpty()) {
             if (IrisStructureLocator.isPlaced(engine, key)) {
@@ -452,38 +435,33 @@ final class ModdedLocateCommands {
         return 1;
     }
 
-    private static Optional<NativeStructureTarget> resolveNativeStructure(CommandSourceStack source,
-                                                                           ServerLevel level,
+    private static Optional<NativeStructureTarget> resolveNativeStructure(NativeCommandSource source,
+                                                                           NativeWorld level,
                                                                            Engine engine,
                                                                            String keyRaw) {
-        Identifier identifier = Identifier.tryParse(keyRaw);
-        if (identifier == null) {
-            return Optional.empty();
-        }
-        Registry<Structure> registry = source.getServer().registryAccess().lookupOrThrow(Registries.STRUCTURE);
-        Optional<Holder.Reference<Structure>> holder = registry.get(identifier);
+        NativeStructureQueries registry = new NativeStructureQueries(level);
+        Optional<NativeStructureQueries.Reference> holder = registry.resolve(keyRaw);
         if (holder.isEmpty()) {
             return Optional.empty();
         }
-        String key = identifier.toString();
+        String key = holder.get().key();
         NativeStructureAvailability availability = nativeAvailability(source, level, engine, key, holder.get());
         return Optional.of(new NativeStructureTarget(key, holder.get(), availability));
     }
 
-    static NativeStructureAvailability nativeAvailability(CommandSourceStack source, ServerLevel level,
+    static NativeStructureAvailability nativeAvailability(NativeCommandSource source, NativeWorld level,
                                                            Engine engine, String key,
-                                                           Holder.Reference<Structure> holder) {
-        boolean worldEnabled = source.getServer().getWorldGenSettings().options().generateStructures();
+                                                           NativeStructureQueries.Reference holder) {
+        boolean worldEnabled = source.server().generateStructures();
         IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(engine, key, false);
         boolean selected = decision.status() != NativeStructureGenerationStatus.DISABLED_BY_PACK;
         boolean suppressed = decision.status() == NativeStructureGenerationStatus.REPLACED_BY_IRIS;
-        boolean biomeFilterEmpty = holder.value().biomes().stream().findAny().isEmpty();
-        ChunkGenerator chunkGenerator = level.getChunkSource().getGenerator();
-        boolean biomeReachable = chunkGenerator instanceof IrisModdedChunkGenerator irisGenerator
-                && irisGenerator.isNativeStructureReachable(holder);
+        boolean biomeFilterEmpty = holder.emptyBiomeFilter();
+        NativeStructureQueries queries = new NativeStructureQueries(level);
+        boolean biomeReachable = queries.biomeReachable(holder);
         boolean hasPlacement = false;
         if (worldEnabled && selected && !suppressed && !biomeFilterEmpty && biomeReachable) {
-            hasPlacement = !level.getChunkSource().getGeneratorState().getPlacementsForStructure(holder).isEmpty();
+            hasPlacement = queries.hasPlacement(holder);
         }
         return classifyNativeAvailability(
                 worldEnabled, selected, suppressed, biomeFilterEmpty, biomeReachable, hasPlacement);
@@ -531,15 +509,15 @@ final class ModdedLocateCommands {
         };
     }
 
-    static int gotoPoi(CommandSourceStack source, String typeRaw) {
-        ServerLevel level = source.getLevel();
+    static int gotoPoi(NativeCommandSource source, String typeRaw) {
+        NativeWorld level = source.world();
         Engine engine = IrisModdedCommands.engineFor(level);
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_13));
             return 0;
         }
         String type = typeRaw.trim();
-        ServerPlayer player = source.getPlayer();
+        NativeProtocolPlayer player = source.player();
         if (player == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_POI_TYPE, MessageArgument.untrusted("type", type)));
             return 0;
@@ -548,10 +526,10 @@ final class ModdedLocateCommands {
         return 1;
     }
 
-    private static void locate(CommandSourceStack source, ServerLevel level, Engine engine, ServerPlayer player, Locator<?> locator, String label) {
-        MinecraftServer server = source.getServer();
-        int chunkX = player.blockPosition().getX() >> 4;
-        int chunkZ = player.blockPosition().getZ() >> 4;
+    private static void locate(NativeCommandSource source, NativeWorld level, Engine engine, NativeProtocolPlayer player, Locator<?> locator, String label) {
+        NativeModdedServer server = source.server();
+        int chunkX = player.blockX() >> 4;
+        int chunkZ = player.blockZ() >> 4;
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_SEARCHING, MessageArgument.untrusted("label", label)));
         CompletableFuture<Position2> search;
         try {
@@ -561,7 +539,7 @@ final class ModdedLocateCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_ENGINE_THIS_WORLD_HAS_BEEN_CLOSED_REJOIN_DIMENSION_TRY_AGAIN));
             return;
         }
-        UUID playerId = player.getUUID();
+        UUID playerId = player.id();
         CompletableFuture<Position2> previous = ACTIVE_LOCATE_REQUESTS.put(playerId, search);
         if (previous != null && previous != search) {
             previous.cancel(true);
@@ -570,8 +548,8 @@ final class ModdedLocateCommands {
                 source, level, engine, player, label, server, playerId, search, at, error));
     }
 
-    private static void completeLocate(CommandSourceStack source, ServerLevel level, Engine engine,
-                                       ServerPlayer player, String label, MinecraftServer server, UUID playerId,
+    private static void completeLocate(NativeCommandSource source, NativeWorld level, Engine engine,
+                                       NativeProtocolPlayer player, String label, NativeModdedServer server, UUID playerId,
                                        CompletableFuture<Position2> search, Position2 at, Throwable error) {
         if (ACTIVE_LOCATE_REQUESTS.get(playerId) != search) {
             return;
@@ -605,15 +583,15 @@ final class ModdedLocateCommands {
         });
     }
 
-    private static void teleportToLocateResult(CommandSourceStack source, ServerLevel level, Engine engine,
-                                                ServerPlayer player, String label, Position2 at) {
+    private static void teleportToLocateResult(NativeCommandSource source, NativeWorld level, Engine engine,
+                                                NativeProtocolPlayer player, String label, Position2 at) {
         // Same liveness guards the structure completion path has: the search can take up to
-        // two minutes, and the captured ServerPlayer may be gone or elsewhere by then.
-        if (player.hasDisconnected() || player.isRemoved()) {
+        // two minutes, and the captured NativeProtocolPlayer may be gone or elsewhere by then.
+        if (!player.connected()) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_PLAYER_DISCONNECTED_BEFORE_STRUCTURE_SEARCH_COMPLETED));
             return;
         }
-        if (player.level() != level) {
+        if (!player.inWorld(level)) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_YOU_CHANGED_DIMENSIONS_BEFORE_STRUCTURE_SEARCH_COMPLETED_RUN_COMMAND_AGAIN));
             return;
         }
@@ -622,15 +600,7 @@ final class ModdedLocateCommands {
         try (GenerationSessionLease lease = engine.acquireGenerationLease("modded_locator_teleport");
             IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
             int blockY = engine.getMinHeight() + engine.getHeight(blockX, blockZ, false) + 2;
-            boolean teleported = player.teleportTo(
-                    level,
-                    blockX + 0.5D,
-                    blockY,
-                    blockZ + 0.5D,
-                    Set.<Relative>of(),
-                    player.getYRot(),
-                    player.getXRot(),
-                    false);
+            boolean teleported = player.teleport(level, blockX + 0.5D, blockY, blockZ + 0.5D);
             if (!teleported) {
                 IrisModdedCommands.fail(source, IrisLanguage.plain(
                         ModdedCommandMessages.IRIS_MODDED_COMMANDS_FOUND_AT_BUT_TELEPORTATION_FAILED,
@@ -665,7 +635,7 @@ final class ModdedLocateCommands {
         NO_PLACEMENT
     }
 
-    private record NativeStructureTarget(String key, Holder.Reference<Structure> holder,
+    private record NativeStructureTarget(String key, NativeStructureQueries.Reference holder,
                                          NativeStructureAvailability availability) {
     }
 }

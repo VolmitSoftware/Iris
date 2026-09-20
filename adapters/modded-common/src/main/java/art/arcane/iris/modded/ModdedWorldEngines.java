@@ -18,6 +18,12 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldDimensions;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
+
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.PackValidationRegistry;
@@ -37,9 +43,6 @@ import art.arcane.iris.generation.terrain.IrisDimensionRuntimeContract;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.modded.command.ModdedGuiHost;
 import art.arcane.iris.spi.IrisPlatforms;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.dimension.DimensionType;
-import net.minecraft.world.level.storage.LevelResource;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,13 +53,13 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class ModdedWorldEngines {
-    private static final ConcurrentHashMap<ServerLevel, Engine> ENGINES = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<NativeWorld, Engine> ENGINES = new ConcurrentHashMap<>();
 
     private ModdedWorldEngines() {
     }
 
     public static Engine get(
-            ServerLevel level,
+            NativeWorld level,
             String pack,
             String dimensionKey,
             long seedOverride,
@@ -67,7 +70,7 @@ public final class ModdedWorldEngines {
             return existing;
         }
         return ENGINES.computeIfAbsent(level,
-                (ServerLevel l) -> createAndApplyWorldBoundary(
+                (NativeWorld l) -> createAndApplyWorldBoundary(
                         l,
                         pack,
                         dimensionKey,
@@ -80,17 +83,17 @@ public final class ModdedWorldEngines {
         return new ArrayList<>(ENGINES.values());
     }
 
-    public static void evict(ServerLevel level) {
+    public static void evict(NativeWorld level) {
         try {
             evictOrThrow(level);
         } catch (Throwable e) {
-            ModdedIrisLog.error("Iris engine evict close failed for {}", level.dimension().identifier(), e);
+            ModdedIrisLog.error("Iris engine evict close failed for {}", level.name(), e);
         }
     }
 
-    static void evictOrThrow(ServerLevel level) {
+    static void evictOrThrow(NativeWorld level) {
         Engine[] removed = new Engine[1];
-        ENGINES.computeIfPresent(level, (ServerLevel ignored, Engine current) -> {
+        ENGINES.computeIfPresent(level, (NativeWorld ignored, Engine current) -> {
             close(current);
             removed[0] = current;
             return null;
@@ -98,13 +101,13 @@ public final class ModdedWorldEngines {
         if (removed[0] == null) {
             return;
         }
-        // The GUI host holds strong Engine/ServerLevel references with no other remove path.
+        // The GUI host holds strong Engine/NativeWorld references with no other remove path.
         ModdedGuiHost.unbind(removed[0]);
-        ModdedIrisLog.info("Iris engine evicted for {}", level.dimension().identifier());
+        ModdedIrisLog.info("Iris engine evicted for {}", level.name());
     }
 
     static Engine prepareReplacement(
-            ServerLevel level,
+            NativeWorld level,
             String pack,
             String dimensionKey,
             long seedOverride,
@@ -113,10 +116,10 @@ public final class ModdedWorldEngines {
         return create(level, pack, dimensionKey, seedOverride, generationMode);
     }
 
-    static void installReplacement(ServerLevel level, Engine replacement) {
-        ServerLevel activeLevel = Objects.requireNonNull(level);
+    static void installReplacement(NativeWorld level, Engine replacement) {
+        NativeWorld activeLevel = Objects.requireNonNull(level);
         Engine activeReplacement = Objects.requireNonNull(replacement);
-        ENGINES.compute(activeLevel, (ServerLevel ignored, Engine current) -> {
+        ENGINES.compute(activeLevel, (NativeWorld ignored, Engine current) -> {
             if (current != null && current != activeReplacement) {
                 close(current);
                 ModdedGuiHost.unbind(current);
@@ -127,12 +130,12 @@ public final class ModdedWorldEngines {
 
     static void closeUnregistered(Engine engine) {
         close(engine);
-        ENGINES.entrySet().removeIf((Map.Entry<ServerLevel, Engine> entry) -> entry.getValue() == engine);
+        ENGINES.entrySet().removeIf((Map.Entry<NativeWorld, Engine> entry) -> entry.getValue() == engine);
         ModdedGuiHost.unbind(engine);
     }
 
     private static Engine createAndApplyWorldBoundary(
-            ServerLevel level,
+            NativeWorld level,
             String pack,
             String dimensionKey,
             long seedOverride,
@@ -155,19 +158,19 @@ public final class ModdedWorldEngines {
                 throw runtimeException;
             }
             throw new IllegalStateException("Failed to apply Iris world boundary for '"
-                    + level.dimension().identifier() + "'.", failure);
+                    + level.name() + "'.", failure);
         }
     }
 
     private static Engine create(
-            ServerLevel level,
+            NativeWorld level,
             String pack,
             String dimensionKey,
             long seedOverride,
             ModdedGenerationMode generationMode
     ) {
         ModdedEngineBootstrap.bind();
-        long seed = seedOverride == Long.MIN_VALUE ? level.getSeed() : seedOverride;
+        long seed = seedOverride == Long.MIN_VALUE ? level.seed() : seedOverride;
         ModdedGenerationMode requiredMode = Objects.requireNonNull(generationMode, "generationMode");
         if (requiredMode == ModdedGenerationMode.TRANSIENT_STUDIO) {
             return createTransientStudioEngine(level, pack, dimensionKey, seed);
@@ -182,12 +185,12 @@ public final class ModdedWorldEngines {
             return createHistoryEngine(level, seed, active);
         } catch (IOException failure) {
             throw new IllegalStateException("Iris generation history could not initialize runtime routing for '"
-                    + level.dimension().identifier() + "'.", failure);
+                    + level.name() + "'.", failure);
         }
     }
 
     private static Engine createHistoryEngine(
-            ServerLevel level,
+            NativeWorld level,
             long seed,
             ModdedGenerationHistoryStorage.ActivePack opened
     ) throws IOException {
@@ -220,7 +223,7 @@ public final class ModdedWorldEngines {
                 requireReady(candidate, level, ModdedGenerationMode.PERSISTENT_RESTORE);
                 ready = true;
                 ModdedIrisLog.info("Iris engine up for {}: pack={} dim={} seed={} height={}..{} activation={}",
-                        level.dimension().identifier(),
+                        level.name(),
                         candidate.getData().getDataFolder().getAbsolutePath(),
                         candidate.getDimension().getLoadKey(),
                         seed,
@@ -237,7 +240,7 @@ public final class ModdedWorldEngines {
     }
 
     private static IrisEngine buildEngine(
-            ServerLevel level,
+            NativeWorld level,
             long seed,
             ModdedGenerationHistoryStorage.ActivePack active
     ) throws IOException {
@@ -255,10 +258,7 @@ public final class ModdedWorldEngines {
             }
 
             validateDimensionContract(active.dimensionContract(), dimension, level);
-            File worldFolder = DimensionType.getStorageFolder(
-                    level.dimension(),
-                    level.getServer().getWorldPath(LevelResource.ROOT)
-            ).toFile();
+            File worldFolder = NativeModdedServer.forWorld(level).dimensionFolder(level.name()).toFile();
             IrisWorld world = buildWorld(level, seed, dimension, worldFolder);
             GenerationHistory history = active.history();
             GenerationActivation activation = history.activeActivation();
@@ -282,7 +282,7 @@ public final class ModdedWorldEngines {
     }
 
     private static IrisEngine createTransientStudioEngine(
-            ServerLevel level,
+            NativeWorld level,
             String pack,
             String dimensionKey,
             long seed
@@ -299,10 +299,7 @@ public final class ModdedWorldEngines {
                 throw new IllegalStateException("Transient Iris Studio pack does not contain dimension '"
                         + dimensionKey + "'.");
             }
-            File worldFolder = DimensionType.getStorageFolder(
-                    level.dimension(),
-                    level.getServer().getWorldPath(LevelResource.ROOT)
-            ).toFile();
+            File worldFolder = NativeModdedServer.forWorld(level).dimensionFolder(level.name()).toFile();
             IrisWorld world = buildWorld(level, seed, dimension, worldFolder);
             engine = new IrisEngine(
                     new EngineTarget(world, dimension, data),
@@ -312,7 +309,7 @@ public final class ModdedWorldEngines {
             requireReady(engine, level, ModdedGenerationMode.TRANSIENT_STUDIO);
             ready = true;
             ModdedIrisLog.info("Iris transient Studio engine up for {}: pack={} dim={} seed={} height={}..{}",
-                    level.dimension().identifier(),
+                    level.name(),
                     packDir.getAbsolutePath(),
                     dimension.getLoadKey(),
                     seed,
@@ -329,47 +326,47 @@ public final class ModdedWorldEngines {
     }
 
     private static IrisWorld buildWorld(
-            ServerLevel level,
+            NativeWorld level,
             long seed,
             IrisDimension dimension,
             File worldFolder
     ) {
         return IrisWorld.builder()
-                .platformIdentity(level.dimension().identifier().toString())
-                .name(level.dimension().identifier().toString().replace(':', '_'))
+                .platformIdentity(level.name())
+                .name(level.name().replace(':', '_'))
                 .seed(seed)
                 .worldFolder(worldFolder)
                 .minHeight(dimension.getMinHeight())
                 .maxHeight(dimension.getMaxHeight())
-                .platformWorld(new ModdedPlatformWorld(level))
+                .platformWorld(level)
                 .build();
     }
 
     private static void requireReady(
             IrisEngine engine,
-            ServerLevel level,
+            NativeWorld level,
             ModdedGenerationMode generationMode
     ) {
         if (engine.isClosed() || engine.getComplex() == null) {
-            throw new IllegalStateException("Iris engine for " + level.dimension().identifier()
+            throw new IllegalStateException("Iris engine for " + level.name()
                     + " did not initialize a ready runtime");
         }
         if (generationMode.historyRequired()
                 && engine.getGenerationHistoryRuntimeRouter().isEmpty()) {
-            throw new IllegalStateException("Persistent Iris engine for " + level.dimension().identifier()
+            throw new IllegalStateException("Persistent Iris engine for " + level.name()
                     + " did not initialize a generation-history runtime router");
         }
         if (!generationMode.historyRequired()
                 && (!engine.isStudio() || engine.getGenerationHistoryRuntimeRouter().isPresent())) {
             throw new IllegalStateException("Transient Iris Studio engine for "
-                    + level.dimension().identifier() + " has an invalid history mode");
+                    + level.name() + " has an invalid history mode");
         }
     }
 
     private static void validateDimensionContract(
             GenerationEpoch.DimensionContract recorded,
             IrisDimension dimension,
-            ServerLevel level
+            NativeWorld level
     ) {
         GenerationEpoch.DimensionContract loaded = GenerationEpochContractFactory.create(
                 dimension,
@@ -378,12 +375,10 @@ public final class ModdedWorldEngines {
         );
         if (!recorded.equals(loaded)) {
             throw new IllegalStateException("Immutable Iris dimension contract changed for '"
-                    + level.dimension().identifier() + "'.");
+                    + level.name() + "'.");
         }
-        DimensionType actualType = level.dimensionType();
-        String actualTypeKey = level.dimensionTypeRegistration().unwrapKey()
-                .map(key -> key.identifier().toString())
-                .orElse("<unregistered>");
+        NativeWorldDimensions.Settings actualType = NativeWorldDimensions.settings(level);
+        String actualTypeKey = "inline".equals(actualType.key()) ? "<unregistered>" : actualType.key();
         IrisDimensionRuntimeContract expected = new IrisDimensionRuntimeContract(
                 recorded.dimensionTypeKey(),
                 recorded.minHeight(),
@@ -391,12 +386,12 @@ public final class ModdedWorldEngines {
                 recorded.logicalHeight());
         IrisDimensionRuntimeContract actual = new IrisDimensionRuntimeContract(
                 actualTypeKey,
-                actualType.minY(),
-                actualType.height(),
+                actualType.minimumHeight(),
+                (actualType.maximumHeight() - actualType.minimumHeight()),
                 actualType.logicalHeight());
-        String runtimeName = "Modded level '" + level.dimension().identifier() + "'";
+        String runtimeName = "Modded level '" + level.name() + "'";
         expected.requireExact(runtimeName, actual);
-        expected.requireHeight(runtimeName, level.getMinY(), level.getHeight());
+        expected.requireHeight(runtimeName, level.minHeight(), (level.maxHeight() - level.minHeight()));
     }
 
     public static File packFolder(String pack) {
@@ -425,26 +420,27 @@ public final class ModdedWorldEngines {
 
     public static void shutdown() {
         Throwable failure = null;
-        for (Map.Entry<ServerLevel, Engine> entry : new ArrayList<>(ENGINES.entrySet())) {
-            ServerLevel level = entry.getKey();
+        for (Map.Entry<NativeWorld, Engine> entry : new ArrayList<>(ENGINES.entrySet())) {
+            NativeWorld level = entry.getKey();
             Engine engine = entry.getValue();
             try {
                 // Latch the generator's unloading flag BEFORE closing (unbindEngine sets it,
                 // then evicts): chunk-system drain work running after this stage would
                 // otherwise see a closed engine and silently rebuild a fresh engine + Mantle
                 // that no teardown stage ever closes, writing plates after the final save.
-                if (level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator generator) {
+                IrisModdedChunkGenerator generator = NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class);
+                if (generator != null) {
                     generator.unbindEngine(level);
                 } else {
                     close(engine);
                     if (!ENGINES.remove(level, engine) && ENGINES.containsKey(level)) {
                         throw new IllegalStateException("Iris engine mapping changed during shutdown for "
-                                + level.dimension().identifier());
+                                + level.name());
                     }
                 }
-                ModdedIrisLog.info("Iris engine closed for {}", level.dimension().identifier());
+                ModdedIrisLog.info("Iris engine closed for {}", level.name());
             } catch (Throwable e) {
-                ModdedIrisLog.error("Iris engine close failed for {}", level.dimension().identifier(), e);
+                ModdedIrisLog.error("Iris engine close failed for {}", level.name(), e);
                 if (failure == null) {
                     failure = e;
                 } else if (e != failure) {

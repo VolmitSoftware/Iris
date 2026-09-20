@@ -18,6 +18,11 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEditPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEditWorld;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeTileData;
+import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.tree.TreePlausibilizeBatch;
@@ -27,9 +32,9 @@ import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.generation.block.TileData;
-import art.arcane.iris.modded.ModdedBlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
 import art.arcane.iris.modded.ModdedTileData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.math.RNG;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -38,23 +43,8 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtUtils;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
 
 import java.io.File;
 import java.io.IOException;
@@ -73,17 +63,17 @@ import art.arcane.iris.modded.localization.ModdedCommandMessages;
 import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 public final class ModdedObjectCommands {
-    private static final Predicate<CommandSourceStack> GATE = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
+    private static final Predicate<NativeCommandSource> GATE = NativeCommandRegistration.GAMEMASTERS;
     private static final long MAX_SAVE_VOLUME = 500000L;
     private static final long MAX_AUTOSELECT_VOLUME = 100000L;
     private static final double TARGET_RANGE = 256.0D;
 
-    private static final SuggestionProvider<CommandSourceStack> OBJECT_KEYS = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) -> {
+    private static final SuggestionProvider<NativeCommandSource> OBJECT_KEYS = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> {
         ModdedCommandFeedback.tab(context.getSource());
         try {
-            Engine engine = IrisModdedCommands.engineFor(context.getSource().getLevel());
+            Engine engine = IrisModdedCommands.engineFor(context.getSource().world());
             if (engine != null) {
-                return SharedSuggestionProvider.suggest(engine.getData().getObjectLoader().getPossibleKeys(), builder);
+                return NativeCommandRegistration.suggest(engine.getData().getObjectLoader().getPossibleKeys(), builder);
             }
         } catch (Throwable e) {
             IrisModdedCommands.warnTabFailure("object keys", context.getSource(), e);
@@ -91,8 +81,8 @@ public final class ModdedObjectCommands {
         return builder.buildFuture();
     };
 
-    private static final SuggestionProvider<CommandSourceStack> ROTATIONS = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) ->
-            SharedSuggestionProvider.suggest(List.of("0", "90", "180", "270"), builder);
+    private static final SuggestionProvider<NativeCommandSource> ROTATIONS = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) ->
+            NativeCommandRegistration.suggest(List.of("0", "90", "180", "270"), builder);
 
     private ModdedObjectCommands() {
     }
@@ -103,25 +93,25 @@ public final class ModdedObjectCommands {
         SHIFT
     }
 
-    public static LiteralArgumentBuilder<CommandSourceStack> tree(String name) {
+    public static LiteralArgumentBuilder<NativeCommandSource> tree(String name) {
         ModdedObjectUndo.init();
-        LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal(name).requires(GATE);
+        LiteralArgumentBuilder<NativeCommandSource> root = NativeCommandRegistration.literal(name).requires(GATE);
 
-        root.executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> ModdedCommandHelp.send(context.getSource(), name)));
+        root.executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> ModdedCommandHelp.send(context.getSource(), name)));
 
-        root.then(Commands.literal("wand")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> giveWand(context.getSource()))));
-        root.then(Commands.literal("dust")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> giveDust(context.getSource()))));
-        root.then(Commands.literal("d")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> giveDust(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("wand")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> giveWand(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("dust")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> giveDust(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("d")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> giveDust(context.getSource()))));
 
-        root.then(Commands.literal("save")
-                .then(Commands.literal("overwrite")
-                        .then(Commands.argument("name", StringArgumentType.greedyString())
-                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> save(context.getSource(), StringArgumentType.getString(context, "name"), true)))))
-                .then(Commands.argument("name", StringArgumentType.greedyString())
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> save(context.getSource(), StringArgumentType.getString(context, "name"), false)))));
+        root.then(NativeCommandRegistration.literal("save")
+                .then(NativeCommandRegistration.literal("overwrite")
+                        .then(NativeCommandRegistration.argument("name", StringArgumentType.greedyString())
+                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> save(context.getSource(), StringArgumentType.getString(context, "name"), true)))))
+                .then(NativeCommandRegistration.argument("name", StringArgumentType.greedyString())
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> save(context.getSource(), StringArgumentType.getString(context, "name"), false)))));
 
         root.then(pasteTree());
 
@@ -130,101 +120,101 @@ public final class ModdedObjectCommands {
         root.then(resizeTree("-", ResizeOp.CONTRACT));
         root.then(resizeTree("shift", ResizeOp.SHIFT));
 
-        root.then(Commands.literal("xpy")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> autoSelect(context.getSource(), false))));
-        root.then(Commands.literal("x+y")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> autoSelect(context.getSource(), false))));
-        root.then(Commands.literal("xay")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> autoSelect(context.getSource(), true))));
-        root.then(Commands.literal("x&y")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> autoSelect(context.getSource(), true))));
+        root.then(NativeCommandRegistration.literal("xpy")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> autoSelect(context.getSource(), false))));
+        root.then(NativeCommandRegistration.literal("x+y")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> autoSelect(context.getSource(), false))));
+        root.then(NativeCommandRegistration.literal("xay")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> autoSelect(context.getSource(), true))));
+        root.then(NativeCommandRegistration.literal("x&y")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> autoSelect(context.getSource(), true))));
 
         root.then(positionTree("position1", true));
         root.then(positionTree("p1", true));
         root.then(positionTree("position2", false));
         root.then(positionTree("p2", false));
 
-        root.then(Commands.literal("analyze")
-                .then(Commands.argument("key", StringArgumentType.greedyString()).suggests(OBJECT_KEYS)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> analyze(context.getSource(), StringArgumentType.getString(context, "key"))))));
+        root.then(NativeCommandRegistration.literal("analyze")
+                .then(NativeCommandRegistration.argument("key", StringArgumentType.greedyString()).suggests(OBJECT_KEYS)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> analyze(context.getSource(), StringArgumentType.getString(context, "key"))))));
 
-        root.then(Commands.literal("shrink")
-                .then(Commands.argument("key", StringArgumentType.greedyString()).suggests(OBJECT_KEYS)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> shrink(context.getSource(), StringArgumentType.getString(context, "key"))))));
+        root.then(NativeCommandRegistration.literal("shrink")
+                .then(NativeCommandRegistration.argument("key", StringArgumentType.greedyString()).suggests(OBJECT_KEYS)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> shrink(context.getSource(), StringArgumentType.getString(context, "key"))))));
 
-        root.then(Commands.literal("undo")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> undo(context.getSource(), 1)))
-                .then(Commands.argument("amount", IntegerArgumentType.integer(1, 32))
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> undo(context.getSource(), IntegerArgumentType.getInteger(context, "amount"))))));
-        root.then(Commands.literal("u")
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> undo(context.getSource(), 1)))
-                .then(Commands.argument("amount", IntegerArgumentType.integer(1, 32))
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> undo(context.getSource(), IntegerArgumentType.getInteger(context, "amount"))))));
+        root.then(NativeCommandRegistration.literal("undo")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> undo(context.getSource(), 1)))
+                .then(NativeCommandRegistration.argument("amount", IntegerArgumentType.integer(1, 32))
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> undo(context.getSource(), IntegerArgumentType.getInteger(context, "amount"))))));
+        root.then(NativeCommandRegistration.literal("u")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> undo(context.getSource(), 1)))
+                .then(NativeCommandRegistration.argument("amount", IntegerArgumentType.integer(1, 32))
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> undo(context.getSource(), IntegerArgumentType.getInteger(context, "amount"))))));
 
         root.then(bukkitOnly("we", "WorldEdit selection import requires the Bukkit plugin with WorldEdit installed."));
         root.then(bukkitOnly("studio", "The object studio world requires the Bukkit studio toolchain; it is not available on modded servers."));
         root.then(bukkitOnly("convert", "Schematic conversion (.schem -> .iob) requires the Bukkit plugin."));
-        root.then(Commands.literal("plausibilize")
-                .then(Commands.argument("args", StringArgumentType.greedyString()).suggests(OBJECT_KEYS)
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> plausibilize(context.getSource(), StringArgumentType.getString(context, "args"))))));
+        root.then(NativeCommandRegistration.literal("plausibilize")
+                .then(NativeCommandRegistration.argument("args", StringArgumentType.greedyString()).suggests(OBJECT_KEYS)
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> plausibilize(context.getSource(), StringArgumentType.getString(context, "args"))))));
 
         return root;
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> pasteTree() {
-        LiteralArgumentBuilder<CommandSourceStack> paste = Commands.literal("paste");
-        paste.then(Commands.argument("key", StringArgumentType.greedyString()).suggests(OBJECT_KEYS)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> paste(context.getSource(), StringArgumentType.getString(context, "key"), 0, null))));
-        paste.then(Commands.literal("rotate")
-                .then(Commands.argument("degrees", IntegerArgumentType.integer(-270, 270)).suggests(ROTATIONS)
-                        .then(Commands.argument("key", StringArgumentType.greedyString()).suggests(OBJECT_KEYS)
-                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> paste(context.getSource(), StringArgumentType.getString(context, "key"),
+    private static LiteralArgumentBuilder<NativeCommandSource> pasteTree() {
+        LiteralArgumentBuilder<NativeCommandSource> paste = NativeCommandRegistration.literal("paste");
+        paste.then(NativeCommandRegistration.argument("key", StringArgumentType.greedyString()).suggests(OBJECT_KEYS)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> paste(context.getSource(), StringArgumentType.getString(context, "key"), 0, null))));
+        paste.then(NativeCommandRegistration.literal("rotate")
+                .then(NativeCommandRegistration.argument("degrees", IntegerArgumentType.integer(-270, 270)).suggests(ROTATIONS)
+                        .then(NativeCommandRegistration.argument("key", StringArgumentType.greedyString()).suggests(OBJECT_KEYS)
+                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> paste(context.getSource(), StringArgumentType.getString(context, "key"),
                                         IntegerArgumentType.getInteger(context, "degrees"), null))))));
-        paste.then(Commands.literal("at")
-                .then(Commands.argument("x", IntegerArgumentType.integer())
-                        .then(Commands.argument("y", IntegerArgumentType.integer())
-                                .then(Commands.argument("z", IntegerArgumentType.integer())
-                                        .then(Commands.literal("rotate")
-                                                .then(Commands.argument("degrees", IntegerArgumentType.integer(-270, 270)).suggests(ROTATIONS)
-                                                        .then(Commands.argument("key", StringArgumentType.greedyString()).suggests(OBJECT_KEYS)
-                                                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> paste(context.getSource(), StringArgumentType.getString(context, "key"),
+        paste.then(NativeCommandRegistration.literal("at")
+                .then(NativeCommandRegistration.argument("x", IntegerArgumentType.integer())
+                        .then(NativeCommandRegistration.argument("y", IntegerArgumentType.integer())
+                                .then(NativeCommandRegistration.argument("z", IntegerArgumentType.integer())
+                                        .then(NativeCommandRegistration.literal("rotate")
+                                                .then(NativeCommandRegistration.argument("degrees", IntegerArgumentType.integer(-270, 270)).suggests(ROTATIONS)
+                                                        .then(NativeCommandRegistration.argument("key", StringArgumentType.greedyString()).suggests(OBJECT_KEYS)
+                                                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> paste(context.getSource(), StringArgumentType.getString(context, "key"),
                                                                         IntegerArgumentType.getInteger(context, "degrees"),
-                                                                        new BlockPos(IntegerArgumentType.getInteger(context, "x"), IntegerArgumentType.getInteger(context, "y"), IntegerArgumentType.getInteger(context, "z"))))))))
-                                        .then(Commands.argument("key", StringArgumentType.greedyString()).suggests(OBJECT_KEYS)
-                                                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> paste(context.getSource(), StringArgumentType.getString(context, "key"), 0,
-                                                        new BlockPos(IntegerArgumentType.getInteger(context, "x"), IntegerArgumentType.getInteger(context, "y"), IntegerArgumentType.getInteger(context, "z"))))))))));
+                                                                        new NativeBlockPoint(IntegerArgumentType.getInteger(context, "x"), IntegerArgumentType.getInteger(context, "y"), IntegerArgumentType.getInteger(context, "z"))))))))
+                                        .then(NativeCommandRegistration.argument("key", StringArgumentType.greedyString()).suggests(OBJECT_KEYS)
+                                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> paste(context.getSource(), StringArgumentType.getString(context, "key"), 0,
+                                                        new NativeBlockPoint(IntegerArgumentType.getInteger(context, "x"), IntegerArgumentType.getInteger(context, "y"), IntegerArgumentType.getInteger(context, "z"))))))))));
         return paste;
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> resizeTree(String name, ResizeOp op) {
-        return Commands.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> resize(context.getSource(), 1, op)))
-                .then(Commands.argument("amount", IntegerArgumentType.integer(1, 256))
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> resize(context.getSource(), IntegerArgumentType.getInteger(context, "amount"), op))));
+    private static LiteralArgumentBuilder<NativeCommandSource> resizeTree(String name, ResizeOp op) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> resize(context.getSource(), 1, op)))
+                .then(NativeCommandRegistration.argument("amount", IntegerArgumentType.integer(1, 256))
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> resize(context.getSource(), IntegerArgumentType.getInteger(context, "amount"), op))));
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> positionTree(String name, boolean first) {
-        return Commands.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> position(context.getSource(), first, false)))
-                .then(Commands.literal("look")
-                        .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> position(context.getSource(), first, true))));
+    private static LiteralArgumentBuilder<NativeCommandSource> positionTree(String name, boolean first) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> position(context.getSource(), first, false)))
+                .then(NativeCommandRegistration.literal("look")
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> position(context.getSource(), first, true))));
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> bukkitOnly(String name, String message) {
-        return Commands.literal(name)
-                .executes(ModdedCommandTree.localized((CommandContext<CommandSourceStack> context) -> {
+    private static LiteralArgumentBuilder<NativeCommandSource> bukkitOnly(String name, String message) {
+        return NativeCommandRegistration.literal(name)
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> {
                     IrisModdedCommands.fail(context.getSource(), message);
                     return 0;
                 }));
     }
 
-    public static int giveWand(CommandSourceStack source) {
-        ServerPlayer player = source.getPlayer();
+    public static int giveWand(NativeCommandSource source) {
+        NativeEditPlayer player = source.editingPlayer();
         if (player == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_WAND_IS));
             return 0;
         }
-        if (!player.getInventory().add(ModdedWandService.createWand())) {
+        if (!player.give(ModdedWandService.createWand())) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_YOUR_INVENTORY_IS_FULL));
             return 0;
         }
@@ -232,13 +222,13 @@ public final class ModdedObjectCommands {
         return 1;
     }
 
-    static int giveDust(CommandSourceStack source) {
-        ServerPlayer player = source.getPlayer();
+    static int giveDust(NativeCommandSource source) {
+        NativeEditPlayer player = source.editingPlayer();
         if (player == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_DUST_IS));
             return 0;
         }
-        if (!player.getInventory().add(ModdedWandService.createDust())) {
+        if (!player.give(ModdedWandService.createDust())) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_YOUR_INVENTORY_IS_FULL_2));
             return 0;
         }
@@ -246,14 +236,14 @@ public final class ModdedObjectCommands {
         return 1;
     }
 
-    private static int save(CommandSourceStack source, String nameRaw, boolean overwrite) {
-        ServerPlayer player = source.getPlayer();
+    private static int save(NativeCommandSource source, String nameRaw, boolean overwrite) {
+        NativeEditPlayer player = source.editingPlayer();
         if (player == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_SAVING_CAPTURES));
             return 0;
         }
-        ServerLevel level = player.level();
-        Engine engine = IrisModdedCommands.engineFor(level);
+        NativeEditWorld level = player.world();
+        Engine engine = IrisModdedCommands.engineFor(level.world());
         if (engine == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_OBJECTS_SAVE_INTO));
             return 0;
@@ -272,11 +262,11 @@ public final class ModdedObjectCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_INVALID_OBJECT_NAME, MessageArgument.untrusted("nameRaw", nameRaw)));
             return 0;
         }
-        BlockPos min = selection.min();
-        BlockPos max = selection.max();
-        int w = max.getX() - min.getX() + 1;
-        int h = max.getY() - min.getY() + 1;
-        int d = max.getZ() - min.getZ() + 1;
+        NativeBlockPoint min = selection.min();
+        NativeBlockPoint max = selection.max();
+        int w = max.x() - min.x() + 1;
+        int h = max.y() - min.y() + 1;
+        int d = max.z() - min.z() + 1;
         long volume = (long) w * h * d;
         if (volume > MAX_SAVE_VOLUME) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_SELECTION_TOO_LARGE_BLOCKS_MAX, MessageArgument.untrusted("volume", volume), MessageArgument.untrusted("MAXSAVEVOLUME", MAX_SAVE_VOLUME)));
@@ -305,7 +295,6 @@ public final class ModdedObjectCommands {
         // capture() must stay on the server thread (getBlockState/getBlockEntity are not
         // async-safe), but the disk write of a local, unshared object is not tick work.
         IrisObject object = capture(level, min, max, w, h, d, tilesSkipped, tilesSaved);
-        MinecraftServer server = source.getServer();
         boolean finalClaimed = claimed;
         J.a(() -> {
             try {
@@ -316,7 +305,7 @@ public final class ModdedObjectCommands {
                     // Never leave a 0-byte claim file permanently blocking non-overwrite saves.
                     file.delete();
                 }
-                server.execute(() -> IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_FAILED_SAVE_OBJECT, MessageArgument.untrusted("value", String.valueOf(e.getMessage())))));
+                source.execute(() -> IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_FAILED_SAVE_OBJECT, MessageArgument.untrusted("value", String.valueOf(e.getMessage())))));
                 return;
             }
             StringBuilder tileNote = new StringBuilder();
@@ -329,61 +318,21 @@ public final class ModdedObjectCommands {
             } else if (tilesSkipped[0] > 0) {
                 tileNote.append(" (").append(tilesSkipped[0]).append(" tile state(s) could not be captured)");
             }
-            server.execute(() -> IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_SAVED_OBJECTS_IOB_X_X_BLOCK_S, MessageArgument.untrusted("value", engine.getData().getDataFolder().getName()), MessageArgument.untrusted("name", name), MessageArgument.untrusted("w", w), MessageArgument.untrusted("h", h), MessageArgument.untrusted("d", d), MessageArgument.untrusted("value2", object.getBlocks().size()), MessageArgument.untrusted("tileNote", tileNote))));
+            source.execute(() -> IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_SAVED_OBJECTS_IOB_X_X_BLOCK_S, MessageArgument.untrusted("value", engine.getData().getDataFolder().getName()), MessageArgument.untrusted("name", name), MessageArgument.untrusted("w", w), MessageArgument.untrusted("h", h), MessageArgument.untrusted("d", d), MessageArgument.untrusted("value2", object.getBlocks().size()), MessageArgument.untrusted("tileNote", tileNote))));
             ModdedIrisLog.info("Iris object save: {} {}x{}x{} blocks={} tilesSaved={} tilesSkipped={} -> {}", name, w, h, d, object.getBlocks().size(), tilesSaved[0], tilesSkipped[0], file.getAbsolutePath());
         });
         return 1;
     }
 
-    private static IrisObject capture(ServerLevel level, BlockPos min, BlockPos max, int w, int h, int d, int[] tilesSkipped, int[] tilesSaved) {
+    private static IrisObject capture(NativeEditWorld level, NativeBlockPoint min, NativeBlockPoint max, int w, int h, int d, int[] tilesSkipped, int[] tilesSaved) {
         IrisObject object = new IrisObject(w, h, d);
-        HolderLookup.Provider provider = level.registryAccess();
-        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
-        for (int x = min.getX(); x <= max.getX(); x++) {
-            for (int y = min.getY(); y <= max.getY(); y++) {
-                for (int z = min.getZ(); z <= max.getZ(); z++) {
-                    BlockState state = level.getBlockState(cursor.set(x, y, z));
-                    if (state.is(Blocks.AIR)) {
-                        continue;
-                    }
-                    int ox = x - min.getX();
-                    int oy = y - min.getY();
-                    int oz = z - min.getZ();
-                    object.setUnsigned(ox, oy, oz, ModdedBlockState.of(state, null));
-                    if (state.hasBlockEntity()) {
-                        TileData tile = captureTile(level, provider, cursor.immutable(), state);
-                        if (tile != null) {
-                            object.setUnsignedTile(ox, oy, oz, tile);
-                            tilesSaved[0]++;
-                        } else {
-                            tilesSkipped[0]++;
-                        }
-                    }
-                }
-            }
-        }
+        level.capture(new NativeEditWorld.Bounds(min, max), new ObjectCapture(object, tilesSkipped, tilesSaved));
         return object;
     }
 
-    private static TileData captureTile(ServerLevel level, HolderLookup.Provider provider, BlockPos pos, BlockState state) {
-        BlockEntity blockEntity = level.getBlockEntity(pos);
-        if (blockEntity == null) {
-            return null;
-        }
-        try {
-            CompoundTag tag = blockEntity.saveWithFullMetadata(provider);
-            String snbt = NbtUtils.structureToSnbt(tag);
-            String blockKey = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
-            return ModdedTileData.capture(blockKey, snbt);
-        } catch (Throwable e) {
-            ModdedIrisLog.error("Iris tile capture failed at {} {} {}", pos.getX(), pos.getY(), pos.getZ(), e);
-            return null;
-        }
-    }
-
-    private static int paste(CommandSourceStack source, String keyRaw, int rotation, BlockPos at) {
-        ServerLevel level = source.getLevel();
-        Engine engine = IrisModdedCommands.engineFor(level);
+    private static int paste(NativeCommandSource source, String keyRaw, int rotation, NativeBlockPoint at) {
+        NativeEditWorld level = new NativeEditWorld(source.world());
+        Engine engine = IrisModdedCommands.engineFor(level.world());
         String key = keyRaw.trim();
         IrisObject object = null;
         try {
@@ -396,44 +345,44 @@ public final class ModdedObjectCommands {
             return 0;
         }
 
-        ServerPlayer player = source.getPlayer();
-        BlockPos target = at;
+        NativeEditPlayer player = source.editingPlayer();
+        NativeBlockPoint target = at;
         if (target == null) {
             if (player == null) {
                 IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_CONSOLE_MUST_SPECIFY_COORDINATES_IRIS_OBJECT_PASTE_AT_X_Y, MessageArgument.untrusted("key", key)));
                 return 0;
             }
-            HitResult hit = player.pick(TARGET_RANGE, 1.0F, false);
-            if (hit.getType() != HitResult.Type.BLOCK || !(hit instanceof BlockHitResult blockHit)) {
+            NativeBlockPoint hit = player.pickBlock(TARGET_RANGE);
+            if (hit == null) {
                 IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_YOU_ARE_NOT_LOOKING_AT_BLOCK_WITHIN_BLOCKS, MessageArgument.untrusted("value", (int) TARGET_RANGE)));
                 return 0;
             }
-            target = blockHit.getBlockPos().above();
+            target = hit.above();
         }
 
         IrisObjectPlacement placement = new IrisObjectPlacement();
         placement.setRotation(IrisObjectRotation.of(0, rotation, 0));
-        ModdedObjectPlacer placer = new ModdedObjectPlacer(level, engine);
+        ModdedObjectPlacer placer = new ModdedObjectPlacer(level.world(), engine);
         try {
             object = placement.scaleObject(new RNG(), object, engine == null ? null : engine.getDimension());
-            object.place(target.getX(), target.getY() + object.getCenter().getY(), target.getZ(), placer, placement, new RNG(), object.getLoader());
+            object.place(target.x(), target.y() + object.getCenter().getY(), target.z(), placer, placement, new RNG(), object.getLoader());
         } catch (Throwable e) {
             ModdedIrisLog.error("Iris paste failed for {}", key, e);
-            ModdedObjectUndo.record(player == null ? ModdedObjectUndo.CONSOLE : player.getUUID(), level, placer.undoSnapshot());
+            ModdedObjectUndo.record(player == null ? ModdedObjectUndo.CONSOLE : player.id(), placer.undoSnapshot());
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_PASTE_FAILED_PARTIAL_CHANGES_RECORDED_UNDO, MessageArgument.untrusted("value", e.getClass().getSimpleName())));
             return 0;
         }
-        UUID owner = player == null ? ModdedObjectUndo.CONSOLE : player.getUUID();
-        ModdedObjectUndo.record(owner, level, placer.undoSnapshot());
+        UUID owner = player == null ? ModdedObjectUndo.CONSOLE : player.id();
+        ModdedObjectUndo.record(owner, placer.undoSnapshot());
         String tileNote = tileNote(placer);
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_PLACED_AT_ROT_WRITE_S_NON_AIR, MessageArgument.untrusted("key", key), MessageArgument.untrusted("value", target.getX()), MessageArgument.untrusted("value2", target.getY()), MessageArgument.untrusted("value3", target.getZ()), MessageArgument.untrusted("rotation", rotation), MessageArgument.untrusted("value4", placer.writes()), MessageArgument.untrusted("value5", placer.nonAirWrites()), MessageArgument.untrusted("tileNote", tileNote)));
+        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_PLACED_AT_ROT_WRITE_S_NON_AIR, MessageArgument.untrusted("key", key), MessageArgument.untrusted("value", target.x()), MessageArgument.untrusted("value2", target.y()), MessageArgument.untrusted("value3", target.z()), MessageArgument.untrusted("rotation", rotation), MessageArgument.untrusted("value4", placer.writes()), MessageArgument.untrusted("value5", placer.nonAirWrites()), MessageArgument.untrusted("tileNote", tileNote)));
         ModdedIrisLog.info("Iris paste: {} at {},{},{} rot={} writes={} nonAir={} tilesRestored={} tilesSkipped={}",
-                key, target.getX(), target.getY(), target.getZ(), rotation, placer.writes(), placer.nonAirWrites(), placer.restoredTiles(), placer.skippedTiles());
+                key, target.x(), target.y(), target.z(), rotation, placer.writes(), placer.nonAirWrites(), placer.restoredTiles(), placer.skippedTiles());
         return placer.writes() > 0 ? 1 : 0;
     }
 
-    private static int resize(CommandSourceStack source, int amount, ResizeOp op) {
-        ServerPlayer player = source.getPlayer();
+    private static int resize(NativeCommandSource source, int amount, ResizeOp op) {
+        NativeEditPlayer player = source.editingPlayer();
         if (player == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS));
             return 0;
@@ -447,15 +396,11 @@ public final class ModdedObjectCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_NO_AREA_SELECTED));
             return 0;
         }
-        Direction direction = Direction.getApproximateNearest(player.getLookAngle());
-        int[] mins = {selection.min().getX(), selection.min().getY(), selection.min().getZ()};
-        int[] maxs = {selection.max().getX(), selection.max().getY(), selection.max().getZ()};
-        int axis = switch (direction.getAxis()) {
-            case X -> 0;
-            case Y -> 1;
-            case Z -> 2;
-        };
-        int step = direction.getAxisDirection().getStep();
+        NativeEditPlayer.LookDirection direction = player.lookDirection();
+        int[] mins = {selection.min().x(), selection.min().y(), selection.min().z()};
+        int[] maxs = {selection.max().x(), selection.max().y(), selection.max().z()};
+        int axis = direction.axis();
+        int step = direction.step();
         switch (op) {
             case EXPAND -> {
                 if (step > 0) {
@@ -476,15 +421,15 @@ public final class ModdedObjectCommands {
                 maxs[axis] += step * amount;
             }
         }
-        BlockPos first = new BlockPos(mins[0], mins[1], mins[2]);
-        BlockPos second = new BlockPos(maxs[0], maxs[1], maxs[2]);
+        NativeBlockPoint first = new NativeBlockPoint(mins[0], mins[1], mins[2]);
+        NativeBlockPoint second = new NativeBlockPoint(maxs[0], maxs[1], maxs[2]);
         ModdedWandService.setSelection(player, first, second);
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_MESSAGE, MessageArgument.untrusted("value", op.name().toLowerCase(Locale.ROOT)), MessageArgument.untrusted("amount", amount), MessageArgument.untrusted("value2", direction.getName()), MessageArgument.untrusted("value3", describe(first, second))));
+        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_MESSAGE, MessageArgument.untrusted("value", op.name().toLowerCase(Locale.ROOT)), MessageArgument.untrusted("amount", amount), MessageArgument.untrusted("value2", direction.name()), MessageArgument.untrusted("value3", describe(first, second))));
         return 1;
     }
 
-    private static int position(CommandSourceStack source, boolean first, boolean look) {
-        ServerPlayer player = source.getPlayer();
+    private static int position(NativeCommandSource source, boolean first, boolean look) {
+        NativeEditPlayer player = source.editingPlayer();
         if (player == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_2));
             return 0;
@@ -493,31 +438,31 @@ public final class ModdedObjectCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_READY_YOUR_WAND_IRIS_WAND));
             return 0;
         }
-        BlockPos pos;
+        NativeBlockPoint pos;
         if (look) {
-            HitResult hit = player.pick(TARGET_RANGE, 1.0F, false);
-            if (hit.getType() != HitResult.Type.BLOCK || !(hit instanceof BlockHitResult blockHit)) {
+            NativeBlockPoint hit = player.pickBlock(TARGET_RANGE);
+            if (hit == null) {
                 IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_YOU_ARE_NOT_LOOKING_AT_BLOCK));
                 return 0;
             }
-            pos = blockHit.getBlockPos();
+            pos = hit;
         } else {
             pos = player.blockPosition().below();
         }
         ModdedWandService.Selection selection = ModdedWandService.selection(player);
-        BlockPos other = selection == null ? null : (first ? selection.second() : selection.first());
-        BlockPos fallback = other == null ? pos : other;
+        NativeBlockPoint other = selection == null ? null : (first ? selection.second() : selection.first());
+        NativeBlockPoint fallback = other == null ? pos : other;
         if (first) {
             ModdedWandService.setSelection(player, pos, fallback);
         } else {
             ModdedWandService.setSelection(player, fallback, pos);
         }
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_POSITION_SET, MessageArgument.untrusted("value", (first ? 1 : 2)), MessageArgument.untrusted("value2", pos.getX()), MessageArgument.untrusted("value3", pos.getY()), MessageArgument.untrusted("value4", pos.getZ())));
+        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_POSITION_SET, MessageArgument.untrusted("value", (first ? 1 : 2)), MessageArgument.untrusted("value2", pos.x()), MessageArgument.untrusted("value3", pos.y()), MessageArgument.untrusted("value4", pos.z())));
         return 1;
     }
 
-    private static int autoSelect(CommandSourceStack source, boolean down) {
-        ServerPlayer player = source.getPlayer();
+    private static int autoSelect(NativeCommandSource source, boolean down) {
+        NativeEditPlayer player = source.editingPlayer();
         if (player == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_3));
             return 0;
@@ -531,40 +476,40 @@ public final class ModdedObjectCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_NO_AREA_SELECTED_2));
             return 0;
         }
-        ServerLevel level = player.level();
-        BlockPos min = selection.min();
-        BlockPos max = selection.max();
-        long volume = (long) (max.getX() - min.getX() + 1) * (max.getY() - min.getY() + 1) * (max.getZ() - min.getZ() + 1);
+        NativeEditWorld level = player.world();
+        NativeBlockPoint min = selection.min();
+        NativeBlockPoint max = selection.max();
+        long volume = (long) (max.x() - min.x() + 1) * (max.y() - min.y() + 1) * (max.z() - min.z() + 1);
         if (volume > MAX_AUTOSELECT_VOLUME) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_SELECTION_TOO_LARGE_AUTO_SELECT_BLOCKS_MAX, MessageArgument.untrusted("volume", volume), MessageArgument.untrusted("MAXAUTOSELECTVOLUME", MAX_AUTOSELECT_VOLUME)));
             return 0;
         }
-        int levelMinY = level.getMinY();
-        int levelMaxY = levelMinY + level.getHeight() - 1;
+        int levelMinY = level.minY();
+        int levelMaxY = levelMinY + level.height() - 1;
 
-        int topMinY = min.getY();
-        int topMaxY = max.getY();
-        while (topMaxY < levelMaxY && !boxOnlyAir(level, min.getX(), topMinY, min.getZ(), max.getX(), topMaxY, max.getZ())) {
+        int topMinY = min.y();
+        int topMaxY = max.y();
+        while (topMaxY < levelMaxY && !boxOnlyAir(level, min.x(), topMinY, min.z(), max.x(), topMaxY, max.z())) {
             topMinY++;
             topMaxY++;
         }
         topMaxY--;
 
-        int bottomY = min.getY();
+        int bottomY = min.y();
         if (down) {
-            int lowMinY = min.getY();
-            int lowMaxY = max.getY();
-            while (lowMinY > levelMinY && !boxOnlyAir(level, min.getX(), lowMinY, min.getZ(), max.getX(), lowMaxY, max.getZ())) {
+            int lowMinY = min.y();
+            int lowMaxY = max.y();
+            while (lowMinY > levelMinY && !boxOnlyAir(level, min.x(), lowMinY, min.z(), max.x(), lowMaxY, max.z())) {
                 lowMinY--;
                 lowMaxY--;
             }
             bottomY = lowMinY + 1;
         }
 
-        int minX = min.getX();
-        int maxX = max.getX();
-        int minZ = min.getZ();
-        int maxZ = max.getZ();
+        int minX = min.x();
+        int maxX = max.x();
+        int minZ = min.z();
+        int maxZ = max.z();
         while (minX < maxX && boxOnlyAir(level, minX, bottomY, minZ, minX, topMaxY, maxZ)) {
             minX++;
         }
@@ -578,30 +523,20 @@ public final class ModdedObjectCommands {
             maxZ--;
         }
 
-        BlockPos first = new BlockPos(minX, bottomY, minZ);
-        BlockPos second = new BlockPos(maxX, topMaxY, maxZ);
+        NativeBlockPoint first = new NativeBlockPoint(minX, bottomY, minZ);
+        NativeBlockPoint second = new NativeBlockPoint(maxX, topMaxY, maxZ);
         ModdedWandService.setSelection(player, first, second);
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_AUTO_SELECT_COMPLETE, MessageArgument.untrusted("value", describe(first, second))));
         return 1;
     }
 
-    private static boolean boxOnlyAir(ServerLevel level, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
-        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
-        for (int x = minX; x <= maxX; x++) {
-            for (int y = minY; y <= maxY; y++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    if (!level.getBlockState(cursor.set(x, y, z)).isAir()) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
+    private static boolean boxOnlyAir(NativeEditWorld level, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
+        return level.boxOnlyAir(new NativeEditWorld.Bounds(new NativeBlockPoint(minX, minY, minZ), new NativeBlockPoint(maxX, maxY, maxZ)));
     }
 
-    private static int analyze(CommandSourceStack source, String keyRaw) {
-        ServerLevel level = source.getLevel();
-        Engine engine = IrisModdedCommands.engineFor(level);
+    private static int analyze(NativeCommandSource source, String keyRaw) {
+        NativeEditWorld level = new NativeEditWorld(source.world());
+        Engine engine = IrisModdedCommands.engineFor(level.world());
         String key = keyRaw.trim();
         IrisObject object = null;
         try {
@@ -616,9 +551,9 @@ public final class ModdedObjectCommands {
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_OBJECT_SIZE, MessageArgument.untrusted("value", object.getW()), MessageArgument.untrusted("value2", object.getH()), MessageArgument.untrusted("value3", object.getD())));
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_BLOCKS_USED, MessageArgument.untrusted("value", object.getBlocks().size())));
         Map<String, Integer> counts = new HashMap<>();
-        Iterator<PlatformBlockState> values = object.getBlocks().values();
+        Iterator<NativeBlockState> values = object.getBlocks().values();
         while (values.hasNext()) {
-            PlatformBlockState state = values.next();
+            NativeBlockState state = values.next();
             counts.merge(state.key(), 1, Integer::sum);
         }
         List<Map.Entry<String, Integer>> sorted = new ArrayList<>(counts.entrySet());
@@ -639,9 +574,9 @@ public final class ModdedObjectCommands {
         return 1;
     }
 
-    private static int shrink(CommandSourceStack source, String keyRaw) {
-        ServerLevel level = source.getLevel();
-        Engine engine = IrisModdedCommands.engineFor(level);
+    private static int shrink(NativeCommandSource source, String keyRaw) {
+        NativeEditWorld level = new NativeEditWorld(source.world());
+        Engine engine = IrisModdedCommands.engineFor(level.world());
         String key = keyRaw.trim();
         IrisObject object = null;
         try {
@@ -671,8 +606,8 @@ public final class ModdedObjectCommands {
         return 1;
     }
 
-    private static int plausibilize(CommandSourceStack source, String raw) {
-        Engine engine = IrisModdedCommands.engineFor(source.getLevel());
+    private static int plausibilize(NativeCommandSource source, String raw) {
+        Engine engine = IrisModdedCommands.engineFor(source.world());
         IrisData data = engine == null ? null : engine.getData();
         boolean dryRun = false;
         int reach = TreePlausibilizer.DEFAULT_REACH;
@@ -711,15 +646,14 @@ public final class ModdedObjectCommands {
         ));
         boolean dry = dryRun;
         int reachFinal = reach;
-        MinecraftServer server = source.getServer();
         J.a(() -> TreePlausibilizeBatch.run(targets, dry, reachFinal, data, (TreePlausibilizeBatch.Output output) ->
-                server.execute(() -> IrisModdedCommands.ok(source, output.text()))));
+                source.execute(() -> IrisModdedCommands.ok(source, output.text()))));
         return 1;
     }
 
-    private static int undo(CommandSourceStack source, int amount) {
-        ServerPlayer player = source.getPlayer();
-        UUID owner = player == null ? ModdedObjectUndo.CONSOLE : player.getUUID();
+    private static int undo(NativeCommandSource source, int amount) {
+        NativeEditPlayer player = source.editingPlayer();
+        UUID owner = player == null ? ModdedObjectUndo.CONSOLE : player.id();
         int available = ModdedObjectUndo.size(owner);
         if (available == 0) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_NOTHING_UNDO));
@@ -730,9 +664,9 @@ public final class ModdedObjectCommands {
         return 1;
     }
 
-    private static String describe(BlockPos first, BlockPos second) {
-        return "(" + first.getX() + "," + first.getY() + "," + first.getZ() + ") -> ("
-                + second.getX() + "," + second.getY() + "," + second.getZ() + ")";
+    private static String describe(NativeBlockPoint first, NativeBlockPoint second) {
+        return "(" + first.x() + "," + first.y() + "," + first.z() + ") -> ("
+                + second.x() + "," + second.y() + "," + second.z() + ")";
     }
 
     static String tileNote(ModdedObjectPlacer placer) {
@@ -744,5 +678,33 @@ public final class ModdedObjectCommands {
             note.append(", ").append(placer.skippedTiles()).append(" tile state(s) skipped");
         }
         return note.toString();
+    }
+
+    private record ObjectCapture(IrisObject object, int[] skipped, int[] saved) implements NativeEditWorld.CaptureTarget {
+        @Override
+        public void block(int x, int y, int z, NativeBlockState state) {
+            object.setUnsigned(x, y, z, state);
+        }
+
+        @Override
+        public void tile(int x, int y, int z, NativeTileData tile) {
+            if (tile == null) {
+                skipped[0]++;
+            } else {
+                object.setUnsignedTile(x, y, z, ModdedTileData.wrap(tile));
+                saved[0]++;
+            }
+        }
+
+        @Override
+        public void warning(String message) {
+            IrisLogging.warn(message);
+        }
+
+        @Override
+        public void failure(NativeEditWorld.BlockFailure failure) {
+            NativeBlockPoint pos = failure.position();
+            ModdedIrisLog.error("Iris tile capture failed at {} {} {}", pos.x(), pos.y(), pos.z(), failure.error());
+        }
     }
 }

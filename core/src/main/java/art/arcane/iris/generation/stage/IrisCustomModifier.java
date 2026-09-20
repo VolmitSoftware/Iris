@@ -3,7 +3,7 @@ package art.arcane.iris.generation.stage;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineAssignedModifier;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.concurrent.BurstExecutor;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.context.ChunkContext;
@@ -12,13 +12,13 @@ import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 
-public class IrisCustomModifier extends EngineAssignedModifier<PlatformBlockState> {
+public class IrisCustomModifier extends EngineAssignedModifier<NativeBlockState> {
     public IrisCustomModifier(Engine engine) {
         super(engine, "Custom");
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
+    public void onModify(int x, int z, Hunk<NativeBlockState> output, boolean multicore, ChunkContext context) {
         MantleChunk<Matter> mc = getEngine().getMantle().getMantle().getChunk(x >> 4, z >> 4);
         if (!mc.isFlagged(MantleFlag.CUSTOM_ACTIVE)) {
             return;
@@ -35,12 +35,12 @@ public class IrisCustomModifier extends EngineAssignedModifier<PlatformBlockStat
                 burst.queue(() -> {
                     for (int rX = 0; rX < output.getWidth(); rX++) {
                         for (int rZ = 0; rZ < output.getDepth(); rZ++) {
-                            PlatformBlockState b = output.get(rX, finalY, rZ);
+                            NativeBlockState b = output.get(rX, finalY, rZ);
                             if (b == null || !b.isCustom()) {
                                 continue;
                             }
                             String placementKey = b.deferredPlacementKey();
-                            PlatformBlockState baseState = b.placementBaseState();
+                            NativeBlockState baseState = b.placementBaseState();
                             if (placementKey == null || baseState == null) {
                                 continue;
                             }

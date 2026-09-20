@@ -1,5 +1,7 @@
 package art.arcane.iris.structure.placement;
 
+import art.arcane.volmlib.util.structure.StructureVerticalBounds;
+
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

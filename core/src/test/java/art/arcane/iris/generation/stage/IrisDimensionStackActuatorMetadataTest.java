@@ -3,7 +3,7 @@ package art.arcane.iris.generation.stage;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.mantle.TerrainMatterView;
@@ -40,12 +40,12 @@ public class IrisDimensionStackActuatorMetadataTest {
     @Before
     public void bindPlatform() {
         IrisPlatforms.unbind();
-        Map<String, PlatformBlockState> states = new HashMap<>();
+        Map<String, NativeBlockState> states = new HashMap<>();
         PlatformRegistries registries = mock(PlatformRegistries.class);
         when(registries.block(anyString())).thenAnswer(invocation -> states.computeIfAbsent(
                 invocation.getArgument(0),
                 key -> {
-                    PlatformBlockState state = mock(PlatformBlockState.class);
+                    NativeBlockState state = mock(NativeBlockState.class);
                     when(state.key()).thenReturn(key);
                     return state;
                 }));

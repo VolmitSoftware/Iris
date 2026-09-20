@@ -18,6 +18,8 @@
 
 package art.arcane.iris.studio.view;
 
+import art.arcane.volmlib.nativelib.view.WorldMarker;
+
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.studio.render.RenderType;
@@ -45,7 +47,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import static art.arcane.iris.platform.bukkit.registry.Attributes.MAX_HEALTH;
+import static art.arcane.iris.platform.registry.Attributes.MAX_HEALTH;
 
 public final class BukkitVisionOverlay implements GuiOverlay {
     private final Engine engine;
@@ -54,7 +56,7 @@ public final class BukkitVisionOverlay implements GuiOverlay {
     private final AtomicBoolean playerRefreshQueued = new AtomicBoolean();
     private final AtomicLong teleportSequence = new AtomicLong();
     private final AtomicReference<VisionTeleportRequest> latestTeleport = new AtomicReference<>();
-    private volatile List<GuiMarker> playerMarkers = List.of();
+    private volatile List<WorldMarker> playerMarkers = List.of();
 
     public BukkitVisionOverlay(Engine engine, UUID openerId) {
         this.engine = engine;
@@ -66,7 +68,7 @@ public final class BukkitVisionOverlay implements GuiOverlay {
      * built by a server thread.
      */
     @Override
-    public List<GuiMarker> players() {
+    public List<WorldMarker> players() {
         queuePlayerRefresh();
         return playerMarkers;
     }
@@ -78,10 +80,10 @@ public final class BukkitVisionOverlay implements GuiOverlay {
 
         boolean scheduled = J.runGlobal(() -> {
             try {
-                List<GuiMarker> markers = new ArrayList<>();
+                List<WorldMarker> markers = new ArrayList<>();
                 for (Player player : BukkitWorldBinding.players(engine.getWorld())) {
                     Location at = player.getLocation();
-                    markers.add(GuiMarker.player(player.getName(), at.getX(), at.getZ()));
+                    markers.add(WorldMarker.player(player.getName(), at.getX(), at.getZ()));
                 }
                 playerMarkers = List.copyOf(markers);
             } finally {
@@ -95,7 +97,7 @@ public final class BukkitVisionOverlay implements GuiOverlay {
     }
 
     @Override
-    public void requestEntities(Consumer<List<GuiMarker>> sink) {
+    public void requestEntities(Consumer<List<WorldMarker>> sink) {
         J.runGlobal(() -> {
             IrisWorld target = engine.getWorld();
             World world = BukkitWorldBinding.world(target);
@@ -116,7 +118,7 @@ public final class BukkitVisionOverlay implements GuiOverlay {
                 return;
             }
 
-            List<GuiMarker> collected = Collections.synchronizedList(new ArrayList<>(living.size()));
+            List<WorldMarker> collected = Collections.synchronizedList(new ArrayList<>(living.size()));
             AtomicInteger pending = new AtomicInteger(living.size());
             Runnable complete = () -> {
                 if (pending.decrementAndGet() == 0) {
@@ -142,14 +144,14 @@ public final class BukkitVisionOverlay implements GuiOverlay {
         });
     }
 
-    private GuiMarker marker(LivingEntity entity, Location at) {
+    private WorldMarker marker(LivingEntity entity, Location at) {
         String label = Form.capitalizeWords(entity.getType().name().toLowerCase(Locale.ROOT).replaceAll("\\Q_\\E", " "));
         double maxHealth = 0;
         try {
             maxHealth = entity.getAttribute(MAX_HEALTH).getValue();
         } catch (Throwable ignored) {
         }
-        return GuiMarker.entity(label, at.getX(), at.getY(), at.getZ(), entity.getHealth(), maxHealth);
+        return WorldMarker.entity(label, at.getX(), at.getY(), at.getZ(), entity.getHealth(), maxHealth);
     }
 
     @Override

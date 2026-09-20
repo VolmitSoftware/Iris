@@ -24,7 +24,7 @@ import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.pack.value.IrisRange;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
@@ -33,7 +33,7 @@ import art.arcane.volmlib.util.noise.CNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
@@ -62,7 +62,7 @@ public class IrisOreGenerator {
         palette.getLayerGenerator(rng, data);
     }
 
-    public PlatformBlockState generate(int x, int y, int z, RNG rng, IrisData data) {
+    public NativeBlockState generate(int x, int y, int z, RNG rng, IrisData data) {
         if (threshold <= 0 || !range.contains(y)) {
             return null;
         }

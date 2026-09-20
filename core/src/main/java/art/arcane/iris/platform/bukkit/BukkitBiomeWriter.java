@@ -19,7 +19,7 @@
 package art.arcane.iris.platform.bukkit;
 
 import art.arcane.iris.platform.bukkit.nms.INMS;
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.iris.spi.PlatformBiomeWriter;
 
 import java.util.ArrayList;
@@ -31,13 +31,13 @@ import java.util.List;
 public final class BukkitBiomeWriter implements PlatformBiomeWriter {
     @Override
     public int biomeIdFor(String key) {
-        return INMS.get().getBiomeBaseIdForKey(key);
+        return INMS.get().getBiomeId(key);
     }
 
     @Override
-    public List<PlatformBiome> allBiomes() {
+    public List<NativeBiome> allBiomes() {
         List<?> natives = INMS.get().getBiomes();
-        List<PlatformBiome> biomes = new ArrayList<>(natives.size());
+        List<NativeBiome> biomes = new ArrayList<>(natives.size());
         for (Object biome : natives) {
             biomes.add(BukkitPlatform.wrapBiome(biome));
         }

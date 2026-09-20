@@ -1,6 +1,6 @@
 package art.arcane.iris.generation.mantle;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import org.junit.Test;
 
@@ -16,13 +16,13 @@ import static org.mockito.Mockito.when;
 public class StructureFoundationPlannerTest {
     @Test
     public void recordsLowestPlacedOccludingCellByDefault() {
-        PlatformBlockState solid = mock(PlatformBlockState.class);
+        NativeBlockState solid = mock(NativeBlockState.class);
         when(solid.isOccluding()).thenReturn(true);
         when(solid.isSolid()).thenReturn(true);
-        PlatformBlockState nonOccludingSolid = mock(PlatformBlockState.class);
+        NativeBlockState nonOccludingSolid = mock(NativeBlockState.class);
         when(nonOccludingSolid.isSolid()).thenReturn(true);
         when(nonOccludingSolid.isOccluding()).thenReturn(false);
-        PlatformBlockState decoration = mock(PlatformBlockState.class);
+        NativeBlockState decoration = mock(NativeBlockState.class);
         when(decoration.isOccluding()).thenReturn(false);
 
         Long2IntOpenHashMap columns = new Long2IntOpenHashMap();
@@ -44,10 +44,10 @@ public class StructureFoundationPlannerTest {
 
     @Test
     public void recordsSolidNonOccludingBaseWhenEnabled() {
-        PlatformBlockState partialStructureBlock = mock(PlatformBlockState.class);
+        NativeBlockState partialStructureBlock = mock(NativeBlockState.class);
         when(partialStructureBlock.isSolid()).thenReturn(true);
         when(partialStructureBlock.isOccluding()).thenReturn(false);
-        PlatformBlockState fullStructureBlock = mock(PlatformBlockState.class);
+        NativeBlockState fullStructureBlock = mock(NativeBlockState.class);
         when(fullStructureBlock.isSolid()).thenReturn(true);
         when(fullStructureBlock.isOccluding()).thenReturn(true);
 
@@ -72,9 +72,9 @@ public class StructureFoundationPlannerTest {
 
     @Test
     public void compositeGroundUsesOverlayThenCarvingThenTerrain() {
-        PlatformBlockState solid = mock(PlatformBlockState.class);
+        NativeBlockState solid = mock(NativeBlockState.class);
         when(solid.isSolid()).thenReturn(true);
-        PlatformBlockState fluid = mock(PlatformBlockState.class);
+        NativeBlockState fluid = mock(NativeBlockState.class);
         when(fluid.isSolid()).thenReturn(false);
 
         assertTrue(StructureFoundationPlanner.isGroundSolid(solid, true, 12, 20));
@@ -87,9 +87,9 @@ public class StructureFoundationPlannerTest {
 
     @Test
     public void surfaceSupportStopsAtCarvedCaveBoundary() {
-        PlatformBlockState solid = mock(PlatformBlockState.class);
+        NativeBlockState solid = mock(NativeBlockState.class);
         when(solid.isSolid()).thenReturn(true);
-        PlatformBlockState air = mock(PlatformBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
         when(air.isSolid()).thenReturn(false);
 
         assertTrue(StructureFoundationPlanner.isSurfaceSupportBoundary(null, true, 18, 24));

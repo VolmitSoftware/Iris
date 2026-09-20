@@ -21,7 +21,7 @@ package art.arcane.iris.pack;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformStructureHooks;
-import art.arcane.iris.spi.PlatformStructureHooks.JigsawSourceMetadata;
+import art.arcane.volmlib.nativelib.terrain.JigsawSourceMetadata;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 

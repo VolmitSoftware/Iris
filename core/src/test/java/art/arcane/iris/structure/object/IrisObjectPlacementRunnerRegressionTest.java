@@ -12,11 +12,11 @@ import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.structure.nativegen.NativeStructureVolume;
+import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 import art.arcane.iris.structure.placement.PlacedObject;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.noise.CNG;
@@ -63,14 +63,14 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
     private IrisData data;
     private Engine engine;
-    private PlatformBlockState solid;
-    private PlatformBlockState schematicAir;
+    private NativeBlockState solid;
+    private NativeBlockState schematicAir;
 
     @Before
     public void bindPlatform() {
         IrisPlatforms.unbind();
         PlatformRegistries registries = mock(PlatformRegistries.class);
-        Map<String, PlatformBlockState> registryStates = new HashMap<>();
+        Map<String, NativeBlockState> registryStates = new HashMap<>();
         when(registries.block(anyString())).thenAnswer(invocation -> {
             String key = invocation.getArgument(0);
             return registryStates.computeIfAbsent(key, value -> state(value.toLowerCase(), !value.toLowerCase().contains("air")));
@@ -94,7 +94,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
     @Test
     public void unsupportedRotatedOrientationOmitsBlockTileAndListener() {
-        PlatformBlockState torch = state("minecraft:wall_torch", false);
+        NativeBlockState torch = state("minecraft:wall_torch", false);
         Directional directional = mock(Directional.class);
         Material material = mock(Material.class);
         when(torch.nativeHandle()).thenReturn(directional);
@@ -109,7 +109,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         object.setUnsigned(1, 0, 0, torch);
         object.setUnsignedTile(1, 0, 0, new TileData("minecraft:wall_torch", new KMap<>()));
         RecordingPlacer placer = new RecordingPlacer(null);
-        List<PlatformBlockState> placed = new ArrayList<>();
+        List<NativeBlockState> placed = new ArrayList<>();
 
         int result = object.place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L),
                 (position, state) -> placed.add(state), null, data);
@@ -232,7 +232,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         object.place(0, ANCHOR_Y, 0, debug, placement, new RNG(2L), data);
         object.place(0, ANCHOR_Y, 0, normal, placement, new RNG(2L), data);
 
-        PlatformBlockState cachedState = object.getBlocks().get(object.getSigned(0, 0, 0));
+        NativeBlockState cachedState = object.getBlocks().get(object.getSigned(0, 0, 0));
         assertSame(IrisObject.States.vair(), cachedState);
         if (IrisObject.States.vair() != IrisObject.States.vairDebug()) {
             assertTrue(cachedState != IrisObject.States.vairDebug());
@@ -252,7 +252,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         RecordingPlacer placer = new RecordingPlacer(null);
         placer.set(0, ANCHOR_Y, 0, solid);
         placer.set(1, ANCHOR_Y, 0, solid);
-        PlatformBlockState vine = state("minecraft:vine[east=false,north=true]", false);
+        NativeBlockState vine = state("minecraft:vine[east=false,north=true]", false);
         when(vine.isVineBlock()).thenReturn(true);
         IrisObject object = new IrisObject(1, 1, 1);
         object.setUnsigned(0, 0, 0, vine);
@@ -269,7 +269,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
     @Test
     public void changingMaterialWithAnEditClearsOriginalTileData() {
         RecordingPlacer placer = new RecordingPlacer(null);
-        PlatformBlockState chest = state("minecraft:chest", true);
+        NativeBlockState chest = state("minecraft:chest", true);
         IrisObject object = new IrisObject(1, 1, 1);
         object.setUnsigned(0, 0, 0, chest);
         object.setUnsignedTile(0, 0, 0, new TileData("minecraft:chest", new KMap<>()));
@@ -422,7 +422,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
     @Test
     public void everyStiltModePreservesTheBarrelAndItsTileWithoutRepeatingIt() {
-        PlatformBlockState barrel = state("minecraft:barrel[facing=up,open=false]", true);
+        NativeBlockState barrel = state("minecraft:barrel[facing=up,open=false]", true);
         when(barrel.materialKey()).thenReturn("minecraft:barrel");
         when(barrel.isStorage()).thenReturn(true);
         when(barrel.hasTileEntity()).thenReturn(true);
@@ -457,8 +457,8 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
     @Test
     public void excludedSourceMaterialKeepsItsBlockAndDoesNotUseTheStiltPalette() {
-        PlatformBlockState calcite = state("minecraft:calcite", true);
-        PlatformBlockState cobblestone = state("minecraft:cobblestone", true);
+        NativeBlockState calcite = state("minecraft:calcite", true);
+        NativeBlockState cobblestone = state("minecraft:cobblestone", true);
         IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
         when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
                 .thenReturn(cobblestone);
@@ -479,9 +479,9 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
     @Test
     public void translucentFullBlocksGrowFoundationsWhileCrystalModelsRemainUnextended() {
-        PlatformBlockState ice = state("minecraft:ice", true);
+        NativeBlockState ice = state("minecraft:ice", true);
         when(ice.isOccluding()).thenReturn(false);
-        PlatformBlockState cluster = state("minecraft:amethyst_cluster", true);
+        NativeBlockState cluster = state("minecraft:amethyst_cluster", true);
         when(cluster.isOccluding()).thenReturn(false);
         IrisObject object = new IrisObject(3, 1, 1);
         object.setUnsigned(0, 0, 0, ice);
@@ -503,9 +503,9 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
     @Test
     public void generatedGlacialOverhangGrowsPackedIceRootsToTerrain() {
-        PlatformBlockState ice = state("minecraft:ice", true);
+        NativeBlockState ice = state("minecraft:ice", true);
         when(ice.isOccluding()).thenReturn(false);
-        PlatformBlockState packedIce = state("minecraft:packed_ice", true);
+        NativeBlockState packedIce = state("minecraft:packed_ice", true);
         IrisMaterialPalette body = mock(IrisMaterialPalette.class);
         when(body.getPalette()).thenReturn(new KList<>(new IrisBlockData("minecraft:ice")));
         when(body.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
@@ -546,7 +546,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
     @Test
     public void excludedLowestBlockDoesNotMoveTheFoundationUpIntoTheOriginalObject() {
-        PlatformBlockState machine = state("test:machine", true);
+        NativeBlockState machine = state("test:machine", true);
         when(machine.hasTileEntity()).thenReturn(true);
         IrisObject object = new IrisObject(1, 3, 1);
         object.setUnsigned(0, 0, 0, machine);
@@ -562,10 +562,10 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
     @Test
     public void stiltPaletteCannotIntroduceExcludedMaterialsOrContainers() {
-        PlatformBlockState calcite = state("minecraft:calcite", true);
-        PlatformBlockState barrel = state("minecraft:barrel", true);
+        NativeBlockState calcite = state("minecraft:calcite", true);
+        NativeBlockState barrel = state("minecraft:barrel", true);
         when(barrel.isStorage()).thenReturn(true);
-        for (PlatformBlockState replacement : List.of(calcite, barrel)) {
+        for (NativeBlockState replacement : List.of(calcite, barrel)) {
             IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
             when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
                     .thenReturn(replacement);
@@ -583,10 +583,10 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
     @Test
     public void objectEditsCannotIntroduceExcludedMaterialsOrTileEntitiesIntoStilts() {
-        PlatformBlockState calcite = state("minecraft:calcite", true);
-        PlatformBlockState machine = state("test:machine", true);
+        NativeBlockState calcite = state("minecraft:calcite", true);
+        NativeBlockState machine = state("test:machine", true);
         when(machine.hasTileEntity()).thenReturn(true);
-        for (PlatformBlockState replacement : List.of(calcite, machine)) {
+        for (NativeBlockState replacement : List.of(calcite, machine)) {
             IrisObjectReplace edit = mock(IrisObjectReplace.class);
             IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
             when(edit.getChance()).thenReturn(1F);
@@ -641,8 +641,8 @@ public class IrisObjectPlacementRunnerRegressionTest {
         return object;
     }
 
-    private static PlatformBlockState state(String key, boolean solid) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private static NativeBlockState state(String key, boolean solid) {
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.key()).thenReturn(key);
         when(state.materialKey()).thenReturn(key);
         when(state.isSolid()).thenReturn(solid);
@@ -652,7 +652,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
     private static final class RecordingPlacer implements IObjectPlacer {
         private final List<BlockWrite> writes = new ArrayList<>();
-        private final Map<String, PlatformBlockState> world = new HashMap<>();
+        private final Map<String, NativeBlockState> world = new HashMap<>();
         private final Map<String, Object> data = new HashMap<>();
         private final List<String> sampledColumns = new ArrayList<>();
         private final Map<String, int[]> terrain = new HashMap<>();
@@ -687,7 +687,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
             return writes;
         }
 
-        private List<BlockWrite> writesOf(PlatformBlockState state) {
+        private List<BlockWrite> writesOf(NativeBlockState state) {
             return writes.stream().filter(write -> write.state() == state).toList();
         }
 
@@ -708,7 +708,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         }
 
         @Override
-        public void set(int x, int y, int z, PlatformBlockState state) {
+        public void set(int x, int y, int z, NativeBlockState state) {
             if (writes.size() >= failAfterWrites) {
                 throw new IllegalStateException("write failed");
             }
@@ -717,7 +717,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         }
 
         @Override
-        public PlatformBlockState get(int x, int y, int z) {
+        public NativeBlockState get(int x, int y, int z) {
             return world.get(x + ":" + y + ":" + z);
         }
 
@@ -747,7 +747,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         @Override
         public boolean isSolid(int x, int y, int z) {
-            PlatformBlockState state = get(x, y, z);
+            NativeBlockState state = get(x, y, z);
             return state != null && state.isSolid();
         }
 
@@ -787,6 +787,6 @@ public class IrisObjectPlacementRunnerRegressionTest {
         }
     }
 
-    private record BlockWrite(int x, int y, int z, PlatformBlockState state) {
+    private record BlockWrite(int x, int y, int z, NativeBlockState state) {
     }
 }

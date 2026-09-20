@@ -6,6 +6,7 @@ import art.arcane.iris.world.lifecycle.LifecycleOperationCoordinator;
 import art.arcane.iris.pack.PackDownloader;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.tree.CommandNode;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
 import net.minecraft.SharedConstants;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.Bootstrap;
@@ -27,7 +28,7 @@ public class IrisModdedCommandParityTest {
         Bootstrap.bootStrap();
         CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
 
-        IrisModdedCommands.register(dispatcher);
+        IrisModdedCommands.register(new NativeCommandRegistration(dispatcher));
 
         CommandNode<CommandSourceStack> iris = child(dispatcher.getRoot(), "iris");
         CommandNode<CommandSourceStack> language = child(iris, "language");
@@ -183,7 +184,7 @@ public class IrisModdedCommandParityTest {
         Bootstrap.bootStrap();
         CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
 
-        IrisModdedCommands.register(dispatcher);
+        IrisModdedCommands.register(new NativeCommandRegistration(dispatcher));
 
         CommandNode<CommandSourceStack> iris = child(dispatcher.getRoot(), "iris");
         assertNotNull("iris", iris.getCommand());

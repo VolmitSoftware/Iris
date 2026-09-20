@@ -1,6 +1,6 @@
 package art.arcane.iris.platform.bukkit.nms.v26_3_R1;
 
-import art.arcane.iris.nativegen.v26_3_R1.NativeStructureLocateResults;
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureLocateResults;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;

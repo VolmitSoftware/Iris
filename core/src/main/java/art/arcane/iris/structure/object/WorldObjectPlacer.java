@@ -15,7 +15,7 @@ import art.arcane.iris.world.loot.IrisLootTable;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.generation.block.IrisCustomData;
@@ -55,7 +55,7 @@ public class WorldObjectPlacer implements IObjectPlacer {
     }
 
     @Override
-    public void set(int x, int y, int z, PlatformBlockState state) {
+    public void set(int x, int y, int z, NativeBlockState state) {
         BlockData d = (BlockData) state.nativeHandle();
         int worldY = y + world.getMinHeight();
         if (worldY < world.getMinHeight() || worldY >= world.getMaxHeight()) return;
@@ -99,7 +99,7 @@ public class WorldObjectPlacer implements IObjectPlacer {
     }
 
     @Override
-    public PlatformBlockState get(int x, int y, int z) {
+    public NativeBlockState get(int x, int y, int z) {
         return BukkitBlockState.of(world.getBlockAt(x, y + world.getMinHeight(), z).getBlockData());
     }
 

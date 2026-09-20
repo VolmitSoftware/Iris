@@ -1,6 +1,8 @@
 package art.arcane.iris.generation.runtime;
 
-public final class GenerationSessionLease implements AutoCloseable {
+import art.arcane.volmlib.nativelib.terrain.NativeGenerationLease;
+
+public final class GenerationSessionLease implements NativeGenerationLease {
     private static final GenerationSessionLease NOOP = new GenerationSessionLease(null, null, 0L, null);
 
     private final GenerationSessionManager manager;

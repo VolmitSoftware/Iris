@@ -3,7 +3,7 @@ package art.arcane.iris.generation.biome;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
@@ -29,18 +29,18 @@ import static org.mockito.Mockito.verify;
 public class IrisBiomeLockedLayerTest {
     @Test
     public void repeatsLockedLayersAcrossTheReferenceHeight() {
-        PlatformBlockState first = mock(PlatformBlockState.class);
-        PlatformBlockState second = mock(PlatformBlockState.class);
-        PlatformBlockState third = mock(PlatformBlockState.class);
+        NativeBlockState first = mock(NativeBlockState.class);
+        NativeBlockState second = mock(NativeBlockState.class);
+        NativeBlockState third = mock(NativeBlockState.class);
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLockLayersMax(8).setLayers(new KList<>(
                 IrisBiomeCeilingLayerTest.layer(first, 1),
                 IrisBiomeCeilingLayerTest.layer(second, 1),
                 IrisBiomeCeilingLayerTest.layer(third, 1)));
-        List<PlatformBlockState> cycle = List.of(first, second, third);
+        List<NativeBlockState> cycle = List.of(first, second, third);
         int[] heights = {1, 509, 512, 513, 1000, Integer.MAX_VALUE};
         int[][] expectedCycles = {{1, 0, 2}, {0, 2, 1}, {0, 2, 1}, {2, 1, 0}, {1, 0, 2}, {1, 0, 2}};
         for (int index = 0; index < heights.length; index++) {
-            KList<PlatformBlockState> blocks = biome.generateLockedLayers(
+            KList<NativeBlockState> blocks = biome.generateLockedLayers(
                     13, -27, new RNG(37), 8, heights[index], null, null);
             assertEquals(8, blocks.size());
             for (int depth = 0; depth < blocks.size(); depth++) {
@@ -51,9 +51,9 @@ public class IrisBiomeLockedLayerTest {
 
     @Test
     public void sampledBandsMatchExpandedVariableMixedPalettes() {
-        PlatformBlockState first = mock(PlatformBlockState.class);
-        PlatformBlockState second = mock(PlatformBlockState.class);
-        PlatformBlockState third = mock(PlatformBlockState.class);
+        NativeBlockState first = mock(NativeBlockState.class);
+        NativeBlockState second = mock(NativeBlockState.class);
+        NativeBlockState third = mock(NativeBlockState.class);
         long[] seeds = {1L, 37L, -291L, Long.MAX_VALUE};
         int[] heights = {Integer.MIN_VALUE, -1000, -1, 0, 509, 512, 513, 1000, Integer.MAX_VALUE};
         int[] depths = {0, 1, 7, 39};
@@ -80,9 +80,9 @@ public class IrisBiomeLockedLayerTest {
 
     @Test
     public void nullEntriesAndRepeatedCyclesMatchExpandedBands() {
-        PlatformBlockState block = mock(PlatformBlockState.class);
+        NativeBlockState block = mock(NativeBlockState.class);
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLockLayersMax(30).setLayers(new KList<>(
-                palette(1, 1, 1D, block), palette(2, 2, 1D, (PlatformBlockState) null)));
+                palette(1, 1, 1D, block), palette(2, 2, 1D, (NativeBlockState) null)));
         RNG rng = new RNG(37L);
         assertEquals(expandedBands(biome, 3D, -11D, rng, 30, 1000, 0D),
                 biome.generateLockedLayers(3D, -11D, rng, 30, 1000, null, null));
@@ -93,7 +93,7 @@ public class IrisBiomeLockedLayerTest {
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLayers(new KList<>());
         RNG rng = new RNG(37L);
         assertTrue(biome.generateLockedLayers(0D, 0D, rng, 7, 64, null, null).isEmpty());
-        biome.setLayers(new KList<>(palette(0, 0, 1D, mock(PlatformBlockState.class))));
+        biome.setLayers(new KList<>(palette(0, 0, 1D, mock(NativeBlockState.class))));
         assertTrue(biome.generateLockedLayers(0D, 0D, rng, 7, 64, null, null).isEmpty());
         assertTrue(biome.generateLockedLayers(0D, 0D, rng, -1, 64, null, null).isEmpty());
     }
@@ -101,7 +101,7 @@ public class IrisBiomeLockedLayerTest {
     @Test
     public void resolvesOnlyRequestedPositionsOfLongBands() {
         IrisBiomePaletteLayer layer = spy(palette(1000, 1000, 0.6D,
-                mock(PlatformBlockState.class), mock(PlatformBlockState.class)));
+                mock(NativeBlockState.class), mock(NativeBlockState.class)));
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLayers(new KList<>(layer));
         RNG rng = new RNG(37L);
         assertEquals(7, biome.generateLockedLayers(13D, -27D, rng, 7, 64, null, null).size());
@@ -111,7 +111,7 @@ public class IrisBiomeLockedLayerTest {
     @Test
     public void repeatedCyclesResolveEachPositionOnce() {
         IrisBiomePaletteLayer layer = spy(palette(3, 3, 0.6D,
-                mock(PlatformBlockState.class), mock(PlatformBlockState.class)));
+                mock(NativeBlockState.class), mock(NativeBlockState.class)));
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLockLayersMax(100).setLayers(new KList<>(layer));
         RNG rng = new RNG(37L);
         assertEquals(100, biome.generateLockedLayers(13D, -27D, rng, 100, 64, null, null).size());
@@ -121,9 +121,9 @@ public class IrisBiomeLockedLayerTest {
     @Test
     public void slopeFilteredBandsMatchExpandedCycle() {
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLockLayersMax(30).setLayers(new KList<>(
-                palette(2, 4, 0.6D, mock(PlatformBlockState.class)),
-                palette(3, 8, 1D, mock(PlatformBlockState.class)).setSlopeCondition(new IrisSlopeClip(3D, 255D)),
-                palette(1, 5, 2D, mock(PlatformBlockState.class)).setSlopeCondition(new IrisSlopeClip(0D, 3D))));
+                palette(2, 4, 0.6D, mock(NativeBlockState.class)),
+                palette(3, 8, 1D, mock(NativeBlockState.class)).setSlopeCondition(new IrisSlopeClip(3D, 255D)),
+                palette(1, 5, 2D, mock(NativeBlockState.class)).setSlopeCondition(new IrisSlopeClip(0D, 3D))));
         RNG rng = new RNG(37L);
         double[] slopes = {0D, 3D, 8D};
         for (double slope : slopes) {
@@ -135,7 +135,7 @@ public class IrisBiomeLockedLayerTest {
 
     @Test
     public void sampledPaletteFailuresAreReported() {
-        IrisBiomePaletteLayer layer = spy(palette(1, 1, 1D, mock(PlatformBlockState.class)));
+        IrisBiomePaletteLayer layer = spy(palette(1, 1, 1D, mock(NativeBlockState.class)));
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLayers(new KList<>(layer));
         RNG rng = new RNG(37L);
         IllegalStateException failure = new IllegalStateException("Palette unavailable");
@@ -146,17 +146,17 @@ public class IrisBiomeLockedLayerTest {
         }
     }
 
-    private static IrisBiomePaletteLayer palette(int minimum, int maximum, double zoom, PlatformBlockState... blocks) {
+    private static IrisBiomePaletteLayer palette(int minimum, int maximum, double zoom, NativeBlockState... blocks) {
         IrisBiomePaletteLayer layer = new IrisBiomePaletteLayer().setMinHeight(minimum).setMaxHeight(maximum)
                 .setZoom(zoom).setStyle(NoiseStyle.NOWHERE.style());
         layer.getBlockData().aquire(() -> new KList<>(blocks));
         return layer;
     }
 
-    private static KList<PlatformBlockState> expandedBands(IrisBiome biome, double x, double z, RNG rng,
+    private static KList<NativeBlockState> expandedBands(IrisBiome biome, double x, double z, RNG rng,
                                                           int maxDepth, int height, double slope) {
-        KList<PlatformBlockState> expanded = new KList<>();
-        KList<PlatformBlockState> result = new KList<>();
+        KList<NativeBlockState> expanded = new KList<>();
+        KList<NativeBlockState> result = new KList<>();
         KList<CNG> heights = biome.getLayerHeightGenerators(rng, null);
         for (int index = 0; index < biome.getLayers().size(); index++) {
             IrisBiomePaletteLayer layer = biome.getLayers().get(index);

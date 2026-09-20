@@ -21,7 +21,7 @@ package art.arcane.iris.generation.chunk;
 import art.arcane.iris.generation.runtime.BlockEditAccess;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.platform.bukkit.BukkitBiome;
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.util.hunk.Hunk;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -29,7 +29,7 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 @SuppressWarnings("ClassCanBeRecord")
-public class ChunkBiomeHunkView extends art.arcane.volmlib.util.hunk.view.ChunkWorldHunkView<PlatformBiome> implements Hunk<PlatformBiome> {
+public class ChunkBiomeHunkView extends art.arcane.volmlib.util.hunk.view.ChunkWorldHunkView<NativeBiome> implements Hunk<NativeBiome> {
     public ChunkBiomeHunkView(Chunk chunk) {
         super(chunk,
                 chunk.getWorld().getMaxHeight(),

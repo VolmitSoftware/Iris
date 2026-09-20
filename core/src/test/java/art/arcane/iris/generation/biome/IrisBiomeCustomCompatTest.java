@@ -4,7 +4,7 @@ import art.arcane.iris.generation.terrain.IrisDimensionTypeOptions;
 
 import art.arcane.iris.pack.validation.ContentGate;
 import art.arcane.iris.pack.validation.PackCompatReport;
-import art.arcane.iris.platform.bukkit.nms.datapack.IDataFixer;
+import art.arcane.iris.pack.datapack.IDataFixer;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.json.JSONArray;

@@ -6,7 +6,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.structure.object.IObjectPlacer;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.world.storage.matter.TileWrapper;
 import art.arcane.volmlib.util.matter.MatterCavern;
@@ -66,7 +66,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
                     continue;
                 }
                 captureOriginal(originals, mutation.key());
-                if (mutation.key().type() == PlatformBlockState.class) {
+                if (mutation.key().type() == NativeBlockState.class) {
                     captureOriginal(originals, new DataKey(
                             mutation.key().x(),
                             mutation.key().y(),
@@ -99,17 +99,17 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     }
 
     @Override
-    public void set(int x, int y, int z, PlatformBlockState state) {
+    public void set(int x, int y, int z, NativeBlockState state) {
         if (state == null) {
             return;
         }
         String placementKey = state.deferredPlacementKey();
-        PlatformBlockState baseState = state.placementBaseState();
+        NativeBlockState baseState = state.placementBaseState();
         if (state.isCustom() && placementKey != null && baseState != null) {
             if (!canSetBlock(x, y, z)) {
                 return;
             }
-            DataKey blockKey = new DataKey(x, y, z, PlatformBlockState.class);
+            DataKey blockKey = new DataKey(x, y, z, NativeBlockState.class);
             Identifier identifier = Identifier.fromString(placementKey);
             overlay.put(blockKey, baseState);
             overlay.put(new DataKey(x, y, z, Identifier.class), identifier);
@@ -120,13 +120,13 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     }
 
     @Override
-    public PlatformBlockState get(int x, int y, int z) {
-        DataKey key = new DataKey(x, y, z, PlatformBlockState.class);
+    public NativeBlockState get(int x, int y, int z) {
+        DataKey key = new DataKey(x, y, z, NativeBlockState.class);
         Object value = overlay.get(key);
         if (value == CLEARED) {
             return EngineMantle.AIR.get();
         }
-        return value instanceof PlatformBlockState state
+        return value instanceof NativeBlockState state
                 ? state
                 : writer.getPrerequisiteBlock(x, y, z);
     }
@@ -138,8 +138,8 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     @Override
     public boolean isCarved(int x, int y, int z) {
-        Object block = overlay.get(new DataKey(x, y, z, PlatformBlockState.class));
-        if (block instanceof PlatformBlockState state && !state.isAir() && !state.isFluid()) {
+        Object block = overlay.get(new DataKey(x, y, z, NativeBlockState.class));
+        if (block instanceof NativeBlockState state && !state.isAir() && !state.isFluid()) {
             return false;
         }
         Object hydrologyValue = overlay.get(new DataKey(x, y, z, HydrologyCaveCell.class));
@@ -187,14 +187,14 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         if (data == null || y < 0 || y >= worldHeight) {
             return;
         }
-        if (data instanceof PlatformBlockState && !canSetBlock(x, y, z)) {
+        if (data instanceof NativeBlockState && !canSetBlock(x, y, z)) {
             return;
         }
         if (data instanceof MatterCavern && hasProtectedHydrology(x, y, z)) {
             return;
         }
-        Class<?> type = data instanceof PlatformBlockState ? PlatformBlockState.class : data.getClass();
-        if (data instanceof PlatformBlockState) {
+        Class<?> type = data instanceof NativeBlockState ? NativeBlockState.class : data.getClass();
+        if (data instanceof NativeBlockState) {
             overlay.put(new DataKey(x, y, z, Identifier.class), CLEARED);
         }
         DataKey key = new DataKey(x, y, z, type);
@@ -227,8 +227,8 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             carved = carved.clone();
         }
         for (int y = 0; y < cappedHeight; y++) {
-            Object block = overlay.get(new DataKey(x, y, z, PlatformBlockState.class));
-            if (block instanceof PlatformBlockState state && !state.isAir() && !state.isFluid()) {
+            Object block = overlay.get(new DataKey(x, y, z, NativeBlockState.class));
+            if (block instanceof NativeBlockState state && !state.isAir() && !state.isFluid()) {
                 carved[y] = 0;
                 continue;
             }
@@ -291,13 +291,13 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     private void rollback(LinkedHashMap<DataKey, Object> originals, Throwable failure) {
         ArrayList<Map.Entry<DataKey, Object>> entries = new ArrayList<>(originals.entrySet());
         entries.sort((first, second) -> Boolean.compare(
-                second.getKey().type() == PlatformBlockState.class,
-                first.getKey().type() == PlatformBlockState.class
+                second.getKey().type() == NativeBlockState.class,
+                first.getKey().type() == NativeBlockState.class
         ));
         for (Map.Entry<DataKey, Object> entry : entries) {
             DataKey key = entry.getKey();
             try {
-                if (key.type() == PlatformBlockState.class
+                if (key.type() == NativeBlockState.class
                         && writer.restorePrerequisiteCell(key.x(), key.y(), key.z())) {
                     continue;
                 }
@@ -349,7 +349,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         }
     }
 
-    record CustomBlockMutation(DataKey key, PlatformBlockState state) implements Mutation {
+    record CustomBlockMutation(DataKey key, NativeBlockState state) implements Mutation {
         @Override
         public int x() {
             return key.x();

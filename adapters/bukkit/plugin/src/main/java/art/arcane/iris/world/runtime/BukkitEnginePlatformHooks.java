@@ -36,7 +36,7 @@ import art.arcane.iris.world.history.SavedTerrainChunk;
 import java.util.concurrent.CompletableFuture;
 import art.arcane.iris.generation.runtime.EngineMode;
 import art.arcane.iris.generation.runtime.EnginePlatformHooks;
-import art.arcane.iris.structure.nativegen.NativeStructureVolume;
+import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionRuntimeContract;
 import art.arcane.iris.world.IrisWorld;

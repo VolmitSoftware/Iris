@@ -8,7 +8,7 @@ import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.world.IrisWorld;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -62,7 +62,7 @@ public class MantleCarvingComponentScratchTest {
         when(complex.getNaturalHeightStream()).thenReturn(heights);
         ProceduralStream<IrisRegion> regions = mock(ProceduralStream.class);
         ProceduralStream<IrisBiome> biomes = mock(ProceduralStream.class);
-        ProceduralStream<PlatformBlockState> fluids = mock(ProceduralStream.class);
+        ProceduralStream<NativeBlockState> fluids = mock(ProceduralStream.class);
         when(regions.get(anyDouble(), anyDouble())).thenReturn(new IrisRegion());
         when(biomes.get(anyDouble(), anyDouble())).thenReturn(new IrisBiome());
         when(complex.getRegionStream()).thenReturn(regions);

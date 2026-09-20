@@ -1,5 +1,7 @@
 package art.arcane.iris.structure.placement;
 
+import art.arcane.volmlib.nativelib.terrain.structure.StructureStiltSettings;
+
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 
 import art.arcane.volmlib.util.documentation.Description;
@@ -15,7 +17,7 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Description("Defines foundation columns placed beneath a structure.")
 @Data
-public class IrisStructureStiltSettings {
+public class IrisStructureStiltSettings implements StructureStiltSettings {
     @MinNumber(1)
     @MaxNumber(4064)
     @Description("Maximum number of blocks each foundation column may descend while searching for solid ground.")

@@ -196,7 +196,7 @@ public final class WorldLifecycleService {
     }
 
     public boolean unload(World world, boolean save) {
-        if (J.isPrimaryThread() || (J.isFolia() && WorldLifecycleSupport.isGlobalTickThread())) {
+        if (J.isPrimaryThread() || (J.isFolia() && WorldLifecycleSupport.isGlobalTickThread(capabilities))) {
             throw new IllegalStateException("WorldLifecycle unload cannot block the primary/global tick thread; use unloadAsync instead.");
         }
 

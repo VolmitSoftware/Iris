@@ -18,6 +18,8 @@
 
 package art.arcane.iris.spi;
 
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+
 import java.io.File;
 
 /**
@@ -27,7 +29,7 @@ import java.io.File;
  * ({@link #registries()}, {@link #scheduler()}, {@link #structureHooks()}, {@link #biomeWriter()}, the
  * version and path methods) are called from generation threads and must not block on the server thread.
  * The mutating methods ({@link #callEvent(Object)}, {@link #dispatchConsoleCommand(String)},
- * {@link #spawnEntity(PlatformWorld, String, double, double, double)}) touch live server state and are
+ * {@link #spawnEntity(NativeWorld, String, double, double, double)}) touch live server state and are
  * expected to be invoked on the thread that owns it - the global/server thread, or the region thread
  * owning the target chunk on regionized platforms. Use {@link #scheduler()} to get there.
  * <p>
@@ -179,14 +181,14 @@ public interface IrisPlatform {
     /**
      * Spawns a vanilla entity by namespaced key at the given block-space position.
      * <p>
-     * Adapters unwrap {@link PlatformWorld#nativeHandle()} to reach the host world, so {@code world} must
-     * be a {@link PlatformWorld} produced by the active adapter. Returns false - never throws - when
+     * Adapters unwrap {@link NativeWorld#nativeHandle()} to reach the host world, so {@code world} must
+     * be a {@link NativeWorld} produced by the active adapter. Returns false - never throws - when
      * {@code world} or {@code entityKey} is null, the world belongs to a different adapter, the key does
      * not parse, the entity type is unknown, or the platform refuses the spawn.
      * <p>
      * Invoke on the thread owning the target chunk.
      */
-    boolean spawnEntity(PlatformWorld world, String entityKey, double x, double y, double z);
+    boolean spawnEntity(NativeWorld world, String entityKey, double x, double y, double z);
 
     /**
      * Routes a log line to the host logger at {@code level}. Safe from any thread. Prefer

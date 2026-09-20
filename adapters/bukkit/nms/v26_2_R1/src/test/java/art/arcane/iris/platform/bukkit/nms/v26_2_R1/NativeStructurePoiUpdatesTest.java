@@ -1,5 +1,7 @@
 package art.arcane.iris.platform.bukkit.nms.v26_2_R1;
 
+import art.arcane.volmlib.nativelib.v26_2_R1.terrain.NativeStructurePoiUpdates;
+
 import ca.spottedleaf.moonrise.common.util.TickThread;
 import com.mojang.serialization.Codec;
 import net.minecraft.SharedConstants;

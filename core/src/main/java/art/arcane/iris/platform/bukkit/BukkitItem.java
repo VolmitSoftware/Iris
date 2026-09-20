@@ -18,7 +18,7 @@
 
 package art.arcane.iris.platform.bukkit;
 
-import art.arcane.iris.spi.PlatformItem;
+import art.arcane.volmlib.nativelib.item.NativeItem;
 import org.bukkit.Material;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Interned Bukkit adapter for a neutral item handle backed by Material.
  */
-public final class BukkitItem implements PlatformItem {
+public final class BukkitItem implements NativeItem {
     private static final ConcurrentHashMap<String, BukkitItem> CACHE = new ConcurrentHashMap<>();
 
     private final Material material;

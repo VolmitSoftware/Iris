@@ -18,15 +18,17 @@
 
 package art.arcane.iris.studio.view;
 
+import art.arcane.volmlib.nativelib.view.WorldMarker;
+
 import art.arcane.iris.studio.render.RenderType;
 
 import java.util.List;
 import java.util.function.Consumer;
 
 public interface GuiOverlay {
-    List<GuiMarker> players();
+    List<WorldMarker> players();
 
-    void requestEntities(Consumer<List<GuiMarker>> sink);
+    void requestEntities(Consumer<List<WorldMarker>> sink);
 
     void teleport(double worldX, double worldZ);
 

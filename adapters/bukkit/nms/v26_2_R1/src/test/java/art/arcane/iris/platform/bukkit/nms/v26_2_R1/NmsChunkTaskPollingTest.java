@@ -1,5 +1,6 @@
 package art.arcane.iris.platform.bukkit.nms.v26_2_R1;
 
+import art.arcane.volmlib.nativelib.v26_2_R1.terrain.NativeTerrainAccessImpl;
 import art.arcane.volmlib.util.scheduling.FoliaScheduler;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
@@ -41,7 +42,7 @@ public class NmsChunkTaskPollingTest {
         ServerLevel level = mock(ServerLevel.class);
         MinecraftServer server = mock(MinecraftServer.class);
         ServerChunkCache chunks = mock(ServerChunkCache.class);
-        NMSBinding binding = mock(NMSBinding.class, CALLS_REAL_METHODS);
+        NativeTerrainAccessImpl binding = mock(NativeTerrainAccessImpl.class, CALLS_REAL_METHODS);
         CompletableFuture<Void> completed = new CompletableFuture<>();
         when(world.getHandle()).thenReturn(level);
         when(level.getServer()).thenReturn(server);
@@ -66,7 +67,7 @@ public class NmsChunkTaskPollingTest {
         CraftWorld world = mock(CraftWorld.class);
         ServerLevel level = mock(ServerLevel.class);
         MinecraftServer server = mock(MinecraftServer.class);
-        NMSBinding binding = mock(NMSBinding.class, CALLS_REAL_METHODS);
+        NativeTerrainAccessImpl binding = mock(NativeTerrainAccessImpl.class, CALLS_REAL_METHODS);
         when(world.getHandle()).thenReturn(level);
         when(level.getServer()).thenReturn(server);
         when(server.getRunningThread()).thenReturn(new Thread("Other server owner"));
@@ -83,7 +84,7 @@ public class NmsChunkTaskPollingTest {
     public void foliaNeverUsesTheWorldWideTaskPump() {
         Server bukkitServer = mock(Server.class);
         CraftWorld world = mock(CraftWorld.class);
-        NMSBinding binding = mock(NMSBinding.class, CALLS_REAL_METHODS);
+        NativeTerrainAccessImpl binding = mock(NativeTerrainAccessImpl.class, CALLS_REAL_METHODS);
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<FoliaScheduler> folia = mockStatic(FoliaScheduler.class)) {
             bukkit.when(Bukkit::getServer).thenReturn(bukkitServer);

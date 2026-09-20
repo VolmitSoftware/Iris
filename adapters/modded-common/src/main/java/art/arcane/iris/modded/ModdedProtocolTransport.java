@@ -19,19 +19,16 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.platform.protocol.IrisServerTransport;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolDelivery;
 
 import java.util.Objects;
 import java.util.UUID;
 
 public final class ModdedProtocolTransport implements IrisServerTransport {
-    private final MinecraftServer server;
-    private final ModdedProtocolChannel channel;
+    private final NativeProtocolDelivery delivery;
 
-    public ModdedProtocolTransport(MinecraftServer server, ModdedProtocolChannel channel) {
-        this.server = Objects.requireNonNull(server, "server");
-        this.channel = Objects.requireNonNull(channel, "protocol channel");
+    public ModdedProtocolTransport(NativeProtocolDelivery delivery) {
+        this.delivery = Objects.requireNonNull(delivery, "delivery");
     }
 
     @Override
@@ -47,16 +44,7 @@ public final class ModdedProtocolTransport implements IrisServerTransport {
         if (scheduler == null) {
             return;
         }
-        ModdedIrisPayload payload = new ModdedIrisPayload(frame);
-        scheduler.global(() -> deliver(playerId, payload));
-    }
-
-    private void deliver(UUID playerId, ModdedIrisPayload payload) {
-        ServerPlayer player = server.getPlayerList().getPlayer(playerId);
-        if (player == null || !channel.canReceive(player)) {
-            return;
-        }
-        channel.send(player, payload);
+        scheduler.global(() -> delivery.send(playerId, frame));
     }
 
     private static UUID parseUuid(String sessionId) {

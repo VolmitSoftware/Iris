@@ -20,7 +20,7 @@ package art.arcane.iris.modded;
 
 import art.arcane.iris.modded.service.ModdedService;
 import art.arcane.iris.modded.service.ModdedTickableService;
-import net.minecraft.server.MinecraftServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -72,7 +72,7 @@ public final class ModdedServiceManager {
         }
     }
 
-    public synchronized void tick(MinecraftServer server) {
+    public synchronized void tick(NativeModdedServer server) {
         if (!enabled) {
             return;
         }
@@ -125,7 +125,7 @@ public final class ModdedServiceManager {
         services.clear();
     }
 
-    private void tickService(ModdedTickableService service, MinecraftServer server) {
+    private void tickService(ModdedTickableService service, NativeModdedServer server) {
         try {
             service.onServerTick(server);
         } catch (Throwable error) {

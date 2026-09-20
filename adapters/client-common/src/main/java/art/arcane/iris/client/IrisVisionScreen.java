@@ -1,20 +1,15 @@
 package art.arcane.iris.client;
 
+import art.arcane.volmlib.nativelib.client.ClientGraphics;
+import art.arcane.volmlib.nativelib.client.ClientScreen;
+import art.arcane.volmlib.nativelib.client.ClientTexture;
+import art.arcane.volmlib.nativelib.client.ClientTextureData;
+import art.arcane.volmlib.nativelib.minecraft26_2.client.NativeClientAccess;
+
 import art.arcane.iris.modded.localization.ClientUiMessages;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.spi.protocol.IrisMessage;
 import art.arcane.volmlib.util.localization.MessageArgument;
-import com.mojang.blaze3d.platform.NativeImage;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -26,7 +21,7 @@ import java.util.Map;
  * CLIENT DIST ONLY. See {@link IrisClientHud} for why the dist marker is a javadoc contract plus a bytecode
  * test rather than an @Environment annotation.
  */
-public final class IrisVisionScreen extends Screen {
+public final class IrisVisionScreen implements ClientScreen {
     private static final int TILE_PIXELS = 128;
     private static final int MIN_ZOOM = 0;
     private static final int MAX_ZOOM = 8;
@@ -50,6 +45,8 @@ public final class IrisVisionScreen extends Screen {
     private static final int MARKER_LABEL_BG = 0xE0101010;
 
     private final Map<IrisTileKey, TileTexture> textures;
+    private int width;
+    private int height;
     private double centerBlockX;
     private double centerBlockZ;
     private int zoom;
@@ -57,7 +54,6 @@ public final class IrisVisionScreen extends Screen {
     private IrisMessage.DimensionStatus renderedDimension;
 
     public IrisVisionScreen() {
-        super(Component.literal(IrisLanguage.plain(ClientUiMessages.VISION_TITLE)));
         this.textures = new LinkedHashMap<>(64, 0.75f, true);
         this.centerBlockX = 0.0D;
         this.centerBlockZ = 0.0D;
@@ -67,7 +63,9 @@ public final class IrisVisionScreen extends Screen {
     }
 
     @Override
-    protected void init() {
+    public void init(int width, int height) {
+        this.width = width;
+        this.height = height;
         if (!initialized) {
             centerOnPlayer();
             initialized = true;
@@ -75,12 +73,12 @@ public final class IrisVisionScreen extends Screen {
     }
 
     @Override
-    public boolean isPauseScreen() {
-        return false;
+    public String title() {
+        return IrisLanguage.plain(ClientUiMessages.VISION_TITLE);
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+    public void render(ClientGraphics graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, width, height, BACKGROUND_COLOR);
         IrisClientSession session = IrisClient.session();
         if (!session.isReady()) {
@@ -99,14 +97,7 @@ public final class IrisVisionScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        // The map itself has nothing clickable, but swallowing every click also swallows the ones widgets and
-        // the parent screen need. Let Screen route it; drag and scroll are handled below.
-        return super.mouseClicked(event, doubleClick);
-    }
-
-    @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+    public boolean mouseDragged(double dragX, double dragY) {
         int blocksPerPixel = 1 << zoom;
         centerBlockX -= dragX * blocksPerPixel;
         centerBlockZ -= dragY * blocksPerPixel;
@@ -137,10 +128,9 @@ public final class IrisVisionScreen extends Screen {
     @Override
     public void removed() {
         releaseTextures();
-        super.removed();
     }
 
-    private void renderTiles(GuiGraphicsExtractor graphics, int mouseX, int mouseY, IrisMessage.DimensionStatus status) {
+    private void renderTiles(ClientGraphics graphics, int mouseX, int mouseY, IrisMessage.DimensionStatus status) {
         int blocksPerPixel = 1 << zoom;
         int tileSpanBlocks = TILE_PIXELS * blocksPerPixel;
         int originX = (int) Math.floor(width / 2.0D - centerBlockX / blocksPerPixel);
@@ -173,8 +163,8 @@ public final class IrisVisionScreen extends Screen {
                     missing.add(key);
                     continue;
                 }
-                Identifier texture = ensureTexture(key, image);
-                graphics.blit(RenderPipelines.GUI_TEXTURED, texture, screenX, screenY, 0.0F, 0.0F, TILE_PIXELS, TILE_PIXELS, TILE_PIXELS, TILE_PIXELS);
+                ClientTexture texture = ensureTexture(key, image);
+                graphics.blit(texture, screenX, screenY, TILE_PIXELS, TILE_PIXELS);
             }
         }
 
@@ -204,7 +194,7 @@ public final class IrisVisionScreen extends Screen {
         }
     }
 
-    private void drawMarkers(GuiGraphicsExtractor graphics, int mouseX, int mouseY, int minTileX, int maxTileX, int minTileZ, int maxTileZ, int originX, int originY, int blocksPerPixel) {
+    private void drawMarkers(ClientGraphics graphics, int mouseX, int mouseY, int minTileX, int maxTileX, int minTileZ, int maxTileZ, int originX, int originY, int blocksPerPixel) {
         IrisClientMarkers markers = IrisClient.markers();
         String hoverLabel = null;
         int hoverX = 0;
@@ -228,43 +218,42 @@ public final class IrisVisionScreen extends Screen {
             }
         }
         if (hoverLabel != null) {
-            int labelWidth = font.width(hoverLabel);
-            graphics.fill(hoverX + 6, hoverY - 6, hoverX + 12 + labelWidth, hoverY + font.lineHeight, MARKER_LABEL_BG);
-            graphics.text(font, hoverLabel, hoverX + 9, hoverY - 4, TEXT_COLOR);
+            int labelWidth = graphics.textWidth(hoverLabel);
+            graphics.fill(hoverX + 6, hoverY - 6, hoverX + 12 + labelWidth, hoverY + graphics.lineHeight(), MARKER_LABEL_BG);
+            graphics.text(hoverLabel, hoverX + 9, hoverY - 4, TEXT_COLOR);
         }
     }
 
-    private void drawPlayer(GuiGraphicsExtractor graphics, int blocksPerPixel) {
-        LocalPlayer player = Minecraft.getInstance().player;
-        if (player == null) {
+    private void drawPlayer(ClientGraphics graphics, int blocksPerPixel) {
+        if (!NativeClientAccess.playerPresent()) {
             return;
         }
-        int screenX = (int) Math.round(width / 2.0D + (player.getBlockX() - centerBlockX) / blocksPerPixel);
-        int screenY = (int) Math.round(height / 2.0D + (player.getBlockZ() - centerBlockZ) / blocksPerPixel);
+        int screenX = (int) Math.round(width / 2.0D + (NativeClientAccess.playerBlockX() - centerBlockX) / blocksPerPixel);
+        int screenY = (int) Math.round(height / 2.0D + (NativeClientAccess.playerBlockZ() - centerBlockZ) / blocksPerPixel);
         graphics.fill(screenX - 4, screenY - 4, screenX + 4, screenY + 4, PLAYER_BORDER_COLOR);
         graphics.fill(screenX - 3, screenY - 3, screenX + 3, screenY + 3, PLAYER_FILL_COLOR);
     }
 
-    private void drawHeader(GuiGraphicsExtractor graphics, String title, String detail) {
-        int lineHeight = font.lineHeight;
+    private void drawHeader(ClientGraphics graphics, String title, String detail) {
+        int lineHeight = graphics.lineHeight();
         int headerHeight = lineHeight + 8;
         graphics.fill(0, 0, width, headerHeight, HEADER_COLOR);
-        graphics.text(font, title, 8, 4, TITLE_COLOR);
-        graphics.text(font, detail, 12 + font.width(title), 4, MUTED_COLOR);
+        graphics.text(title, 8, 4, TITLE_COLOR);
+        graphics.text(detail, 12 + graphics.textWidth(title), 4, MUTED_COLOR);
     }
 
-    private void drawFooter(GuiGraphicsExtractor graphics, String hint) {
-        int lineHeight = font.lineHeight;
+    private void drawFooter(ClientGraphics graphics, String hint) {
+        int lineHeight = graphics.lineHeight();
         int footerTop = height - lineHeight - 8;
         graphics.fill(0, footerTop, width, height, HEADER_COLOR);
-        graphics.text(font, hint, 8, footerTop + 4, MUTED_COLOR);
+        graphics.text(hint, 8, footerTop + 4, MUTED_COLOR);
     }
 
-    private void drawCentered(GuiGraphicsExtractor graphics, String text, int color) {
-        graphics.text(font, text, (width - font.width(text)) / 2, height / 2 - font.lineHeight / 2, color);
+    private void drawCentered(ClientGraphics graphics, String text, int color) {
+        graphics.text(text, (width - graphics.textWidth(text)) / 2, height / 2 - graphics.lineHeight() / 2, color);
     }
 
-    private Identifier ensureTexture(IrisTileKey key, IrisTileImage image) {
+    private ClientTexture ensureTexture(IrisTileKey key, IrisTileImage image) {
         TileTexture existing = textures.get(key);
         if (existing != null) {
             if (existing.image() == image) {
@@ -273,22 +262,11 @@ public final class IrisVisionScreen extends Screen {
             // IrisClientTileCache replaced the tile with a freshly decoded image (new sequence from the
             // server). Identity is the generation counter: a re-decode is always a new record instance, so an
             // upload keyed only on the tile coordinates would show the stale render forever.
-            Minecraft.getInstance().getTextureManager().release(existing.id());
+            existing.id().close();
             textures.remove(key);
         }
-        int tileWidth = image.width();
-        int tileHeight = image.height();
-        int[] argb = image.argb();
-        NativeImage nativeImage = new NativeImage(NativeImage.Format.RGBA, tileWidth, tileHeight, false);
-        for (int y = 0; y < tileHeight; y++) {
-            int row = y * tileWidth;
-            for (int x = 0; x < tileWidth; x++) {
-                nativeImage.setPixelABGR(x, y, toAbgr(argb[row + x]));
-            }
-        }
-        DynamicTexture texture = new DynamicTexture(() -> "iris_vision_tile", nativeImage);
-        Identifier id = Identifier.fromNamespaceAndPath("irisworldgen", texturePath(key));
-        Minecraft.getInstance().getTextureManager().register(id, texture);
+        ClientTexture id = NativeClientAccess.upload(new ClientTextureData(
+                "irisworldgen", texturePath(key), "iris_vision_tile", image.width(), image.height(), image.argb()));
         textures.put(key, new TileTexture(id, image));
         return id;
     }
@@ -306,22 +284,17 @@ public final class IrisVisionScreen extends Screen {
         if (textures.size() <= capacity) {
             return;
         }
-        TextureManager manager = Minecraft.getInstance().getTextureManager();
         Iterator<Map.Entry<IrisTileKey, TileTexture>> iterator = textures.entrySet().iterator();
         while (textures.size() > capacity && iterator.hasNext()) {
             Map.Entry<IrisTileKey, TileTexture> entry = iterator.next();
-            manager.release(entry.getValue().id());
+            entry.getValue().id().close();
             iterator.remove();
         }
     }
 
     private void releaseTextures() {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft != null) {
-            TextureManager manager = minecraft.getTextureManager();
-            for (TileTexture texture : textures.values()) {
-                manager.release(texture.id());
-            }
+        for (TileTexture texture : textures.values()) {
+            texture.id().close();
         }
         textures.clear();
     }
@@ -339,10 +312,9 @@ public final class IrisVisionScreen extends Screen {
     }
 
     private void centerOnPlayer() {
-        LocalPlayer player = Minecraft.getInstance().player;
-        if (player != null) {
-            centerBlockX = player.getBlockX();
-            centerBlockZ = player.getBlockZ();
+        if (NativeClientAccess.playerPresent()) {
+            centerBlockX = NativeClientAccess.playerBlockX();
+            centerBlockZ = NativeClientAccess.playerBlockZ();
         }
     }
 
@@ -363,14 +335,6 @@ public final class IrisVisionScreen extends Screen {
         long deltaX = (long) key.tileX() - centerTileX;
         long deltaZ = (long) key.tileZ() - centerTileZ;
         return deltaX * deltaX + deltaZ * deltaZ;
-    }
-
-    private static int toAbgr(int argb) {
-        int alpha = argb >>> 24 & 0xFF;
-        int red = argb >> 16 & 0xFF;
-        int green = argb >> 8 & 0xFF;
-        int blue = argb & 0xFF;
-        return alpha << 24 | blue << 16 | green << 8 | red;
     }
 
     private static String texturePath(IrisTileKey key) {
@@ -397,6 +361,6 @@ public final class IrisVisionScreen extends Screen {
      * not retained: TextureManager owns it after register, and release(id) is the only handle needed. Holding
      * the source image is what lets {@link #ensureTexture(IrisTileKey, IrisTileImage)} notice a re-decode.
      */
-    private record TileTexture(Identifier id, IrisTileImage image) {
+    private record TileTexture(ClientTexture id, IrisTileImage image) {
     }
 }

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.generation.decoration.ruin;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.Vector3i;
 
 import java.util.HashMap;
@@ -33,7 +33,7 @@ final class RuinBlockCanvas {
     static final class Cell {
         private Role role;
         private boolean structural;
-        private PlatformBlockState accentData;
+        private NativeBlockState accentData;
 
         Cell(Role role, boolean structural) {
             this.role = role;
@@ -48,7 +48,7 @@ final class RuinBlockCanvas {
             return structural;
         }
 
-        PlatformBlockState accentData() {
+        NativeBlockState accentData() {
             return accentData;
         }
 
@@ -57,7 +57,7 @@ final class RuinBlockCanvas {
             this.structural = this.structural || structuralNext;
         }
 
-        void makeAccent(PlatformBlockState data) {
+        void makeAccent(NativeBlockState data) {
             this.role = Role.ACCENT;
             this.structural = false;
             this.accentData = data;
@@ -80,14 +80,14 @@ final class RuinBlockCanvas {
         }
     }
 
-    void accent(int x, int y, int z, PlatformBlockState data) {
+    void accent(int x, int y, int z, NativeBlockState data) {
         if (data == null) {
             return;
         }
         cells.put(new Vector3i(x, y, z), accentCell(data));
     }
 
-    private static Cell accentCell(PlatformBlockState data) {
+    private static Cell accentCell(NativeBlockState data) {
         Cell cell = new Cell(Role.ACCENT, false);
         cell.makeAccent(data);
         return cell;

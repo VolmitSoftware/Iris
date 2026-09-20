@@ -23,7 +23,7 @@ import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONObject;
@@ -224,7 +224,7 @@ public final class ContentGate {
      * object palettes and {@code edit} find lists keep the key an edit rule can still rewrite. Null only when the
      * registry is not ready (callers keep their plain lookup) or the state is blank.
      */
-    public PlatformBlockState resolveBlockOrPlaceholder(String state) {
+    public NativeBlockState resolveBlockOrPlaceholder(String state) {
         String normalized = normalizeState(state);
         if (normalized == null || !ready()) {
             return null;
@@ -235,7 +235,7 @@ public final class ContentGate {
         }
         MissingBlockState placeholder = placeholders.get(normalized);
         if (placeholder == null) {
-            PlatformBlockState air;
+            NativeBlockState air;
             try {
                 air = registries.air();
             } catch (Throwable e) {
@@ -254,7 +254,7 @@ public final class ContentGate {
     }
 
     private BlockResolution resolveUncached(String normalized) {
-        PlatformBlockState direct = lookup(normalized);
+        NativeBlockState direct = lookup(normalized);
         if (direct != null) {
             return new BlockResolution(direct, normalized, false, null, BlockResolution.Source.REGISTRY);
         }
@@ -265,7 +265,7 @@ public final class ContentGate {
         String fallback = fallbacks().get(baseKey(normalized));
         if (fallback != null) {
             String normalizedFallback = normalizeState(fallback);
-            PlatformBlockState substitute = normalizedFallback == null ? null : lookup(normalizedFallback);
+            NativeBlockState substitute = normalizedFallback == null ? null : lookup(normalizedFallback);
             if (substitute != null) {
                 return new BlockResolution(substitute, normalizedFallback, true, normalized, BlockResolution.Source.FALLBACK);
             }
@@ -280,7 +280,7 @@ public final class ContentGate {
             if (supplement == null) {
                 return null;
             }
-            PlatformBlockState state = lookup(supplement);
+            NativeBlockState state = lookup(supplement);
             if (state != null) {
                 return new BlockResolution(state, supplement, false, null, BlockResolution.Source.RENAME);
             }
@@ -417,7 +417,7 @@ public final class ContentGate {
         return namespace < 0 ? baseKey : baseKey.substring(namespace + 1);
     }
 
-    private PlatformBlockState lookup(String normalized) {
+    private NativeBlockState lookup(String normalized) {
         try {
             return registries.blockOrNull(normalized, false);
         } catch (Throwable e) {
@@ -483,7 +483,7 @@ public final class ContentGate {
      * @param substitutedFrom the missing key the fallback replaced, or null
      * @param source          which step of the chain answered
      */
-    public record BlockResolution(PlatformBlockState state, String resolvedKey, boolean substituted, String substitutedFrom,
+    public record BlockResolution(NativeBlockState state, String resolvedKey, boolean substituted, String substitutedFrom,
                                   Source source) {
         public enum Source {
             REGISTRY,
@@ -496,7 +496,7 @@ public final class ContentGate {
             Objects.requireNonNull(source, "source");
         }
 
-        public BlockResolution(PlatformBlockState state, String resolvedKey, boolean substituted, String substitutedFrom) {
+        public BlockResolution(NativeBlockState state, String resolvedKey, boolean substituted, String substitutedFrom) {
             this(state, resolvedKey, substituted, substitutedFrom, substituted ? Source.FALLBACK : Source.REGISTRY);
         }
     }

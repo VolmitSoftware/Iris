@@ -28,7 +28,7 @@ import art.arcane.iris.modded.ModdedSavedTerrainCapture;
 
 import java.util.concurrent.CompletableFuture;
 import art.arcane.iris.generation.runtime.EnginePlatformHooks;
-import art.arcane.iris.structure.nativegen.NativeStructureVolume;
+import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionRuntimeContract;
 import art.arcane.iris.world.IrisWorld;
@@ -38,14 +38,15 @@ import art.arcane.iris.modded.ModdedDimensionManager;
 import art.arcane.iris.modded.ModdedForcedDatapack;
 import art.arcane.iris.modded.ModdedScheduler;
 import art.arcane.iris.modded.ModdedWorkspaceGenerator;
-import art.arcane.iris.nativegen.NativeStructureVolumeIndex;
+import art.arcane.iris.structure.nativegen.NativeStructureVolumeIndex;
 import art.arcane.iris.modded.command.ModdedPregenJob;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.io.ReactiveFolder;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.border.WorldBorder;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldBoundary;
 
 import java.io.File;
 import java.util.HashSet;
@@ -148,13 +149,13 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
     @Override
     public void prepareRuntimeHotload(Engine engine) {
         IrisWorld world = engine.getWorld();
-        if (world == null || !world.hasPlatformWorld()
-                || !(world.platformWorld().nativeHandle() instanceof ServerLevel level)
-                || !(level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator generator)) {
+        IrisModdedChunkGenerator generator = world == null || !world.hasPlatformWorld() ? null
+                : NativeWorldGenerators.find(world.platformWorld(), IrisModdedChunkGenerator.class);
+        if (generator == null) {
             NativeStructureVolumeIndex.invalidate(engine);
             return;
         }
-        generator.prepareRuntimeHotload(level, engine);
+        generator.prepareRuntimeHotload(world.platformWorld(), engine);
     }
 
     @Override
@@ -165,21 +166,21 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
             return;
         }
         IrisWorld expectedIrisWorld = engine.getWorld();
-        if (expectedIrisWorld == null || !expectedIrisWorld.hasPlatformWorld()
-                || !(expectedIrisWorld.platformWorld().nativeHandle() instanceof ServerLevel expectedLevel)) {
+        if (expectedIrisWorld == null || !expectedIrisWorld.hasPlatformWorld()) {
             return;
         }
+        NativeWorld expectedLevel = expectedIrisWorld.platformWorld();
         IrisWorldBoundary boundary;
         try {
             boundary = IrisWorldBoundary.snapshot(configuredBoundary);
         } catch (Throwable error) {
             ModdedIrisLog.error("Invalid Iris world boundary for "
-                    + expectedLevel.dimension().identifier() + ".", error);
+                    + expectedLevel.name() + ".", error);
             throw propagateBoundaryFailure("Invalid Iris world boundary for '"
-                    + expectedLevel.dimension().identifier() + "'.", error);
+                    + expectedLevel.name() + "'.", error);
         }
-        MinecraftServer server = expectedLevel.getServer();
-        if (server.isSameThread()) {
+        NativeModdedServer server = NativeModdedServer.forWorld(expectedLevel);
+        if (server.isServerThread()) {
             applyWorldBoundary(engine, expectedDimension, expectedIrisWorld, expectedLevel, boundary);
             return;
         }
@@ -187,14 +188,14 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
             server.execute(() -> applyWorldBoundary(engine, expectedDimension, expectedIrisWorld, expectedLevel, boundary));
         } catch (Throwable error) {
             ModdedIrisLog.error("Failed to schedule Iris world-boundary application for "
-                    + expectedLevel.dimension().identifier() + ".", error);
+                    + expectedLevel.name() + ".", error);
             throw propagateBoundaryFailure("Failed to schedule Iris world-boundary application for '"
-                    + expectedLevel.dimension().identifier() + "'.", error);
+                    + expectedLevel.name() + "'.", error);
         }
     }
 
     @Override
-    public void onServerTick(MinecraftServer server) {
+    public void onServerTick(NativeModdedServer server) {
         ExecutorService active = executor;
         if (active == null) {
             return;
@@ -340,32 +341,30 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
         return false;
     }
 
-    static void applyWorldBoundary(WorldBorder worldBorder, IrisWorldBoundary boundary) {
+    static void applyWorldBoundary(NativeWorld world, IrisWorldBoundary boundary) {
         if (boundary == null) {
             return;
         }
-        worldBorder.setCenter(boundary.getCenter().getX(), boundary.getCenter().getZ());
-        worldBorder.setSize(boundary.getSize());
-        worldBorder.setWarningBlocks(boundary.getWarningDistance());
-        worldBorder.setSafeZone(boundary.getDamageBuffer());
-        worldBorder.setDamagePerBlock(boundary.getDamageAmount());
+        NativeWorldBoundary.apply(world, new NativeWorldBoundary.Settings(
+                boundary.getCenter().getX(), boundary.getCenter().getZ(), boundary.getSize(),
+                boundary.getWarningDistance(), boundary.getDamageBuffer(), boundary.getDamageAmount()));
     }
 
     private static void applyWorldBoundary(Engine engine, IrisDimension expectedDimension,
-                                           IrisWorld expectedIrisWorld, ServerLevel expectedLevel,
+                                           IrisWorld expectedIrisWorld, NativeWorld expectedLevel,
                                            IrisWorldBoundary boundary) {
         if (engine.isClosed() || engine.isClosing() || engine.getDimension() != expectedDimension
                 || engine.getWorld() != expectedIrisWorld
-                || expectedIrisWorld.platformWorld().nativeHandle() != expectedLevel) {
+                || !expectedIrisWorld.platformWorld().equals(expectedLevel)) {
             return;
         }
         try {
-            applyWorldBoundary(expectedLevel.getWorldBorder(), boundary);
+            applyWorldBoundary(expectedLevel, boundary);
         } catch (Throwable error) {
             ModdedIrisLog.error("Failed to apply Iris world boundary to "
-                    + expectedLevel.dimension().identifier() + ".", error);
+                    + expectedLevel.name() + ".", error);
             throw propagateBoundaryFailure("Failed to apply Iris world boundary to '"
-                    + expectedLevel.dimension().identifier() + "'.", error);
+                    + expectedLevel.name() + "'.", error);
         }
     }
 

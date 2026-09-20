@@ -10,11 +10,10 @@ import art.arcane.iris.spi.protocol.IrisProtocol;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.volmlib.util.localization.TextKey;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerBossEvent;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.BossEvent;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandBossBar;
 
 import java.util.UUID;
 
@@ -22,35 +21,25 @@ public final class ModdedPregenBossBar {
     private static final UUID BAR_ID = UUID.fromString("14150000-1e15-4a2b-9c3d-1115e9a1cafe");
     private static final int UPDATE_INTERVAL_TICKS = 10;
 
-    private static volatile ServerBossEvent bar;
-    private static volatile UUID viewer;
+    private static volatile NativeCommandBossBar bar;
     private static int sinceUpdate;
 
     private ModdedPregenBossBar() {
     }
 
-    public static synchronized void begin(ServerPlayer player) {
+    public static synchronized void begin(NativeCommandSource source) {
         clear();
-        if (player == null) {
+        UUID player = source.playerId();
+        if (player == null || hasClientPregenHud(player)) {
             return;
         }
-        if (hasClientPregenHud(player)) {
-            return;
-        }
-        viewer = player.getUUID();
-        bar = new ServerBossEvent(
-                BAR_ID,
-                Component.literal(IrisLanguage.plain(RuntimeUiMessages.PREGEN_STARTING)),
-                BossEvent.BossBarColor.GREEN,
-                BossEvent.BossBarOverlay.PROGRESS
-        );
-        bar.setProgress(0.0F);
-        bar.addPlayer(player);
+        bar = new NativeCommandBossBar(source, new NativeCommandBossBar.Options(
+                BAR_ID, NativeCommandText.literal(IrisLanguage.plain(RuntimeUiMessages.PREGEN_STARTING))));
         sinceUpdate = UPDATE_INTERVAL_TICKS;
     }
 
-    public static void tick(MinecraftServer server) {
-        ServerBossEvent active = bar;
+    public static void tick() {
+        NativeCommandBossBar active = bar;
         if (active == null) {
             return;
         }
@@ -63,24 +52,10 @@ public final class ModdedPregenBossBar {
             return;
         }
         sinceUpdate = 0;
-        reattach(server, active);
-        active.setProgress((float) clamp01(progress.percent() / 100.0D));
-        active.setColor(progress.paused() ? BossEvent.BossBarColor.YELLOW : BossEvent.BossBarColor.GREEN);
-        active.setName(nameFor(progress));
+        active.update(nameFor(progress), (float) clamp01(progress.percent() / 100.0D), progress.paused());
     }
 
-    private static void reattach(MinecraftServer server, ServerBossEvent active) {
-        UUID id = viewer;
-        if (id == null || server == null) {
-            return;
-        }
-        ServerPlayer player = server.getPlayerList().getPlayer(id);
-        if (player != null && !active.getPlayers().contains(player)) {
-            active.addPlayer(player);
-        }
-    }
-
-    private static Component nameFor(PregeneratorJob.PregenProgress progress) {
+    private static NativeCommandText nameFor(PregeneratorJob.PregenProgress progress) {
         TextKey message = progress.paused()
                 ? RuntimeUiMessages.PREGEN_BOSSBAR_PAUSED
                 : RuntimeUiMessages.PREGEN_BOSSBAR_RUNNING;
@@ -115,12 +90,12 @@ public final class ModdedPregenBossBar {
         ), ModdedCommandFeedback.DARK_GREEN);
     }
 
-    private static boolean hasClientPregenHud(ServerPlayer player) {
+    private static boolean hasClientPregenHud(UUID player) {
         IrisProtocolServer protocol = IrisServices.getOrNull(IrisProtocolServer.class);
         if (protocol == null) {
             return false;
         }
-        IrisSession session = protocol.registry().get(player.getUUID().toString());
+        IrisSession session = protocol.registry().get(player.toString());
         return session != null && session.isReady() && session.hasCapability(IrisProtocol.CAPABILITY_PREGEN);
     }
 
@@ -135,13 +110,11 @@ public final class ModdedPregenBossBar {
     }
 
     public static synchronized void clear() {
-        ServerBossEvent existing = bar;
+        NativeCommandBossBar existing = bar;
         if (existing != null) {
-            existing.removeAllPlayers();
-            existing.setVisible(false);
+            existing.close();
         }
         bar = null;
-        viewer = null;
         sinceUpdate = 0;
     }
 }

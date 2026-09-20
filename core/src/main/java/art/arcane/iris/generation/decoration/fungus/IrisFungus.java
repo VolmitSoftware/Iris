@@ -31,7 +31,7 @@ import art.arcane.iris.structure.object.IrisObjectTranslate;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;

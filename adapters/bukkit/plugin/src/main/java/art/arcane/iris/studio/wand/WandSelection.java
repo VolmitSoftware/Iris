@@ -26,7 +26,7 @@ import org.bukkit.entity.Player;
 
 import java.awt.Color;
 
-import static art.arcane.iris.platform.bukkit.registry.Particles.REDSTONE;
+import static art.arcane.iris.platform.registry.Particles.REDSTONE;
 
 public class WandSelection {
     private static final double STEP = 0.10;

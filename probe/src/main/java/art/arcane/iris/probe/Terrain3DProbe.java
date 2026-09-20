@@ -5,7 +5,7 @@ import art.arcane.iris.generation.stage.IrisTerrainNormalActuator;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.volmlib.util.hunk.Hunk;
 import com.google.gson.GsonBuilder;
@@ -377,7 +377,7 @@ public final class Terrain3DProbe {
         failReported("before chunk " + chunkX + "," + chunkZ, RealPackProbeSupport.drainReported());
         RealPackProbeSupport.GeneratedChunk generated = RealPackProbeSupport.generateChunk(engine, chunkX, chunkZ);
         int height = generated.height();
-        Hunk<PlatformBlockState> terrain = Hunk.newArrayHunk(16, height, 16);
+        Hunk<NativeBlockState> terrain = Hunk.newArrayHunk(16, height, 16);
         IrisComplex complex = engine.getComplex();
         int blockX = chunkX << 4;
         int blockZ = chunkZ << 4;
@@ -400,8 +400,8 @@ public final class Terrain3DProbe {
                 for (int y = 0; y < height; y++) {
                     boolean owned = additionalTerrain && engine.isAdditionalTerrainOwned(worldX, y, worldZ);
                     excluded.set(y, owned);
-                    PlatformBlockState rawBlock = terrain.get(x, y, z);
-                    PlatformBlockState finalBlock = generated.blocks().get(x, y, z);
+                    NativeBlockState rawBlock = terrain.get(x, y, z);
+                    NativeBlockState finalBlock = generated.blocks().get(x, y, z);
                     raw[y] = y <= rootTop && !owned && solid(rawBlock);
                     retained[y] = raw[y] && finalBlock != null && rawBlock.matches(finalBlock);
                 }
@@ -422,16 +422,16 @@ public final class Terrain3DProbe {
         }
     }
 
-    private static ColumnEvidence inspectShapedColumn(Terrain3DColumn column, Hunk<PlatformBlockState> terrain,
-                                                      Hunk<PlatformBlockState> generated, int x, int z) {
+    private static ColumnEvidence inspectShapedColumn(Terrain3DColumn column, Hunk<NativeBlockState> terrain,
+                                                      Hunk<NativeBlockState> generated, int x, int z) {
         int height = terrain.getHeight();
         boolean[] predicted = new boolean[height];
         boolean[] raw = new boolean[height];
         boolean[] complete = new boolean[height];
         boolean[] retained = new boolean[height];
         for (int y = 0; y < height; y++) {
-            PlatformBlockState rawBlock = terrain.get(x, y, z);
-            PlatformBlockState finalBlock = generated.get(x, y, z);
+            NativeBlockState rawBlock = terrain.get(x, y, z);
+            NativeBlockState finalBlock = generated.get(x, y, z);
             predicted[y] = column.isSolid(y);
             raw[y] = solid(rawBlock);
             complete[y] = finalBlock != null && !finalBlock.isAir();
@@ -440,7 +440,7 @@ public final class Terrain3DProbe {
         return inspectColumn((int) Math.round(column.baseHeight()), predicted, raw, complete, retained);
     }
 
-    private static boolean solid(PlatformBlockState block) {
+    private static boolean solid(NativeBlockState block) {
         return block != null && !block.isAir() && !block.isFluid();
     }
 
@@ -680,7 +680,7 @@ public final class Terrain3DProbe {
             }
         }
 
-        private void column(int worldX, int localZ, Hunk<PlatformBlockState> terrain, Hunk<PlatformBlockState> generated,
+        private void column(int worldX, int localZ, Hunk<NativeBlockState> terrain, Hunk<NativeBlockState> generated,
                             int localX, Terrain3DColumn shape, int baseHeight, ColumnEvidence observation) {
             BufferedImage image = images[localZ];
             int pixelX = LEFT + worldX - (configuration.minimumChunkX() << 4);
@@ -696,7 +696,7 @@ public final class Terrain3DProbe {
             }
         }
 
-        private int color(PlatformBlockState block, Terrain3DColumn shape, int baseHeight, int y) {
+        private int color(NativeBlockState block, Terrain3DColumn shape, int baseHeight, int y) {
             if (block == null || block.isAir()) {
                 return shape != null && y <= shape.topY() && !shape.isSolid(y) ? 0xd8b8ce : 0xeaf1f7;
             }

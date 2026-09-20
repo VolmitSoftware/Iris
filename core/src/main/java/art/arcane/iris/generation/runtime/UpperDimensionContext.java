@@ -24,7 +24,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.DataProvider;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 
@@ -77,9 +77,9 @@ public class UpperDimensionContext implements DataProvider {
                 imageMapRuntime, proceduralBiome, worldX, worldZ);
     }
 
-    static PlatformBlockState mappedSurfaceBlock(
+    static NativeBlockState mappedSurfaceBlock(
             IrisImageMapRuntime imageMapRuntime,
-            PlatformBlockState proceduralBlock,
+            NativeBlockState proceduralBlock,
             double worldX,
             double worldZ
     ) {
@@ -139,11 +139,11 @@ public class UpperDimensionContext implements DataProvider {
         return terrainContext.getRegion(x, z);
     }
 
-    public PlatformBlockState getRockBlock(int x, int z) {
+    public NativeBlockState getRockBlock(int x, int z) {
         return terrainContext.getRockBlock(x, z);
     }
 
-    public PlatformBlockState getSurfaceBlock(int x, int z) {
+    public NativeBlockState getSurfaceBlock(int x, int z) {
         return terrainContext.getSurfaceBlock(x, z);
     }
 

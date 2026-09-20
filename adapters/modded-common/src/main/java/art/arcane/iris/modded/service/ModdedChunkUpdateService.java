@@ -18,6 +18,13 @@
 
 package art.arcane.iris.modded.service;
 
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldMaintenance;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockProperties;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.studio.view.PregeneratorJob;
 import art.arcane.iris.integration.Identifier;
@@ -27,9 +34,9 @@ import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedBlockResolution;
 import art.arcane.iris.modded.ModdedLootApplier;
-import art.arcane.iris.modded.ModdedServerLevels;
 import art.arcane.iris.modded.ModdedTileData;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockPlacement;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.storage.matter.TileWrapper;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
@@ -39,16 +46,7 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterUpdate;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -60,7 +58,6 @@ import java.util.concurrent.TimeUnit;
 public final class ModdedChunkUpdateService implements ModdedTickableService {
     private static final long PASS_PERIOD_MILLIS = 3_000L;
     private static final int PLAYER_CHUNK_RADIUS = 1;
-    private static final int SILENT_FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_SKIP_ON_PLACE;
 
     private final Set<Long> warmupQueue = ConcurrentHashMap.newKeySet();
     private volatile ExecutorService warmupExecutor;
@@ -104,7 +101,7 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
     }
 
     @Override
-    public void onServerTick(MinecraftServer server) {
+    public void onServerTick(NativeModdedServer server) {
         long now = System.currentTimeMillis();
         if (now - lastPassAt < PASS_PERIOD_MILLIS) {
             return;
@@ -115,15 +112,17 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
             return;
         }
 
-        for (ServerLevel level : ModdedServerLevels.levels(server)) {
-            if (!(level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator generator)) {
+        for (NativeWorld level : server.worlds()) {
+            IrisModdedChunkGenerator generator = NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class);
+            if (generator == null) {
                 continue;
             }
             Engine engine = generator.engineIfBound();
             if (engine == null || engine.isClosed() || engine.getMantle().getMantle().isClosed()) {
                 continue;
             }
-            if (!hasUpdateTargets(!level.players().isEmpty(), !level.getForceLoadedChunks().isEmpty()) || isPregenActive(engine)) {
+            NativeWorldMaintenance nativeWorld = new NativeWorldMaintenance(level);
+            if (!hasUpdateTargets(nativeWorld.hasPlayers(), nativeWorld.hasForcedChunks()) || isPregenActive(engine)) {
                 continue;
             }
             try {
@@ -144,37 +143,36 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
         return job != null && job.targetsWorldIdentity(engine.getWorld().identity());
     }
 
-    private void updateNearPlayers(Engine engine, ServerLevel level) {
-        for (ServerPlayer player : level.players()) {
-            int centerX = player.blockPosition().getX() >> 4;
-            int centerZ = player.blockPosition().getZ() >> 4;
+    private void updateNearPlayers(Engine engine, NativeWorld level) {
+        new NativeWorldMaintenance(level).forEachPlayerPosition(player -> {
+            int centerX = player.x() >> 4;
+            int centerZ = player.z() >> 4;
             for (int dx = -PLAYER_CHUNK_RADIUS; dx <= PLAYER_CHUNK_RADIUS; dx++) {
                 for (int dz = -PLAYER_CHUNK_RADIUS; dz <= PLAYER_CHUNK_RADIUS; dz++) {
                     updateChunk(engine, level, centerX + dx, centerZ + dz);
                 }
             }
-        }
+        });
     }
 
-    private void updateForcedChunks(Engine engine, ServerLevel level) {
-        for (long chunkKey : level.getForceLoadedChunks()) {
-            updateChunk(engine, level, ChunkPos.getX(chunkKey), ChunkPos.getZ(chunkKey));
-        }
+    private void updateForcedChunks(Engine engine, NativeWorld level) {
+        new NativeWorldMaintenance(level).forEachForcedChunk(chunkKey ->
+                updateChunk(engine, level, (int) chunkKey, (int) (chunkKey >> 32)));
     }
 
-    public void updateRegeneratedChunk(Engine engine, ServerLevel level, int chunkX, int chunkZ) {
+    public void updateRegeneratedChunk(Engine engine, NativeWorld level, int chunkX, int chunkZ) {
         updateChunk(engine, level, chunkX, chunkZ, false);
     }
 
-    private void updateChunk(Engine engine, ServerLevel level, int chunkX, int chunkZ) {
+    private void updateChunk(Engine engine, NativeWorld level, int chunkX, int chunkZ) {
         updateChunk(engine, level, chunkX, chunkZ, true);
     }
 
-    private void updateChunk(Engine engine, ServerLevel level, int chunkX, int chunkZ, boolean requireNeighbors) {
+    private void updateChunk(Engine engine, NativeWorld level, int chunkX, int chunkZ, boolean requireNeighbors) {
         if (requireNeighbors) {
             for (int x = -1; x <= 1; x++) {
                 for (int z = -1; z <= 1; z++) {
-                    if (level.getChunkSource().getChunkNow(chunkX + x, chunkZ + z) == null) {
+                    if (!level.isChunkLoaded(chunkX + x, chunkZ + z)) {
                         return;
                     }
                 }
@@ -202,32 +200,33 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
         }
     }
 
-    private void runTilePass(Engine engine, ServerLevel level, int chunkX, int chunkZ, MantleChunk<Matter> chunk) {
+    private void runTilePass(Engine engine, NativeWorld level, int chunkX, int chunkZ, MantleChunk<Matter> chunk) {
         int baseX = chunkX << 4;
         int baseZ = chunkZ << 4;
         int minHeight = engine.getWorld().minHeight();
         materializeDeferredSlice(chunk, TileWrapper.class, () ->
                 chunk.iterate(TileWrapper.class, (Integer x, Integer yf, Integer z, TileWrapper v) -> {
                     int y = yf + minHeight;
-                    if (y < level.getMinY() || y >= level.getMaxY()) {
+                    if (y < level.minHeight() || y >= level.maxHeight() - 1) {
                         return;
                     }
                     applyTile(level, baseX + (x & 15), y, baseZ + (z & 15), v.getData());
                 }));
     }
 
-    private void runCustomPass(Engine engine, ServerLevel level, int chunkX, int chunkZ, MantleChunk<Matter> chunk) {
+    private void runCustomPass(Engine engine, NativeWorld level, int chunkX, int chunkZ, MantleChunk<Matter> chunk) {
         int baseX = chunkX << 4;
         int baseZ = chunkZ << 4;
         int minHeight = engine.getWorld().minHeight();
         materializeDeferredSlice(chunk, Identifier.class, () ->
                 chunk.iterate(Identifier.class, (Integer x, Integer yf, Integer z, Identifier identifier) -> {
                     int y = yf + minHeight;
-                    if (y < level.getMinY() || y >= level.getMaxY()) {
+                    if (y < level.minHeight() || y >= level.maxHeight() - 1) {
                         return;
                     }
-                    BlockPos position = new BlockPos(baseX + (x & 15), y, baseZ + (z & 15));
-                    ModdedCustomContentRegistry.processBlockPlacement(engine, level, position, identifier.toString());
+                    NativeBlockPoint position = new NativeBlockPoint(baseX + (x & 15), y, baseZ + (z & 15));
+                    ModdedCustomContentRegistry.processBlockPlacement(engine, identifier.toString(),
+                            () -> NativeWorldMaintenance.placement(level, position));
                 }));
     }
 
@@ -236,35 +235,17 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
         chunk.deleteSlices(sliceType);
     }
 
-    private void applyTile(ServerLevel level, int x, int y, int z, TileData tile) {
+    private void applyTile(NativeWorld level, int x, int y, int z, TileData tile) {
         if (!(tile instanceof ModdedTileData moddedTile)) {
             return;
         }
-        BlockPos pos = new BlockPos(x, y, z);
-        BlockState state = level.getBlockState(pos);
-        BlockState adjusted = moddedTile.adjustBlockState(state);
-        if (adjusted != state) {
-            level.setBlock(pos, adjusted, SILENT_FLAGS);
-            state = adjusted;
-        }
-        if (!state.hasBlockEntity() || !(state.getBlock() instanceof EntityBlock entityBlock)) {
-            return;
-        }
+        NativeBlockPoint position = new NativeBlockPoint(x, y, z);
         try {
-            BlockEntity blockEntity = level.getBlockEntity(pos);
-            if (blockEntity == null) {
-                blockEntity = entityBlock.newBlockEntity(pos, state);
-            }
-            if (blockEntity == null) {
-                IrisLogging.warn("Iris could not create block entity at " + pos + " for " + state);
-                return;
-            }
-            if (!moddedTile.isApplicable(state, blockEntity)) {
-                return;
-            }
-            level.setBlockEntity(blockEntity);
-            if (!moddedTile.apply(blockEntity, level)) {
-                IrisLogging.warn("Iris tile payload was empty at " + pos + " for " + state);
+            NativeWorldMaintenance.TileResult result = NativeWorldMaintenance.applyTile(level, position, moddedTile.nativeData());
+            if (result == NativeWorldMaintenance.TileResult.MISSING_ENTITY) {
+                IrisLogging.warn("Iris could not create block entity at " + position + " for " + level.getBlock(x, y, z));
+            } else if (result == NativeWorldMaintenance.TileResult.EMPTY_PAYLOAD) {
+                IrisLogging.warn("Iris tile payload was empty at " + position + " for " + level.getBlock(x, y, z));
             }
         } catch (Throwable e) {
             IrisLogging.reportError(e);
@@ -301,7 +282,7 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
         }
     }
 
-    void runUpdatePass(Engine engine, ServerLevel level, int chunkX, int chunkZ, MantleChunk<Matter> chunk) {
+    void runUpdatePass(Engine engine, NativeWorld level, int chunkX, int chunkZ, MantleChunk<Matter> chunk) {
         PrecisionStopwatch stopwatch = PrecisionStopwatch.start();
         int minHeight = engine.getWorld().minHeight();
         int baseX = chunkX << 4;
@@ -315,22 +296,12 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
 
         chunk.iterate(MatterCavern.class, (Integer x, Integer yf, Integer z, MatterCavern v) -> {
             int y = yf + minHeight;
-            if (y < level.getMinY() || y >= level.getMaxY()) {
+            if (y < level.minHeight() || y >= level.maxHeight() - 1) {
                 return;
             }
             int lx = x & 15;
             int lz = z & 15;
-            BlockPos pos = new BlockPos(baseX + lx, y, baseZ + lz);
-            if (!ModdedBlockResolution.isFluid(level.getBlockState(pos))) {
-                return;
-            }
-            boolean exposed = ModdedBlockResolution.isAir(level.getBlockState(pos.below()))
-                    || ModdedBlockResolution.isAir(level.getBlockState(pos.west()))
-                    || ModdedBlockResolution.isAir(level.getBlockState(pos.east()))
-                    || ModdedBlockResolution.isAir(level.getBlockState(pos.south()))
-                    || ModdedBlockResolution.isAir(level.getBlockState(pos.north()));
-
-            if (exposed) {
+            if (NativeWorldMaintenance.exposedFluid(level, baseX + lx, y, baseZ + lz)) {
                 grid[lx][lz] = Math.max(grid[lx][lz], y);
             }
         });
@@ -353,15 +324,15 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
         engine.getMetrics().getUpdates().put(stopwatch.getMilliseconds());
     }
 
-    private void update(Engine engine, ServerLevel level, int x, int y, int z, int baseX, int baseZ, MantleChunk<Matter> chunk) {
-        if (y < level.getMinY() || y >= level.getMaxY()) {
+    private void update(Engine engine, NativeWorld level, int x, int y, int z, int baseX, int baseZ, MantleChunk<Matter> chunk) {
+        if (y < level.minHeight() || y >= level.maxHeight() - 1) {
             return;
         }
-        BlockPos pos = new BlockPos(baseX + (x & 15), y, baseZ + (z & 15));
-        BlockState state = level.getBlockState(pos);
+        NativeBlockPoint pos = new NativeBlockPoint(baseX + (x & 15), y, baseZ + (z & 15));
+        NativeBlockState state = level.getBlock(pos.x(), pos.y(), pos.z());
         engine.blockUpdatedMetric();
-        if (ModdedBlockResolution.isStorage(state)) {
-            if (!ModdedBlockResolution.isStorageChest(state)) {
+        if (state.isStorage()) {
+            if (!state.isStorageChest()) {
                 return;
             }
             try {
@@ -370,8 +341,7 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
                 IrisLogging.reportError(e);
             }
         } else {
-            level.setBlock(pos, Blocks.AIR.defaultBlockState(), SILENT_FLAGS);
-            level.setBlock(pos, state, Block.UPDATE_ALL);
+            NativeWorldMaintenance.refresh(level, pos);
         }
     }
 }

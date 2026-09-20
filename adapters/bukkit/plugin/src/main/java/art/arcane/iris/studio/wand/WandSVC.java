@@ -67,8 +67,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static art.arcane.iris.platform.bukkit.registry.Particles.CRIT_MAGIC;
-import static art.arcane.iris.platform.bukkit.registry.Particles.REDSTONE;
+import static art.arcane.iris.platform.registry.Particles.CRIT_MAGIC;
+import static art.arcane.iris.platform.registry.Particles.REDSTONE;
 
 public class WandSVC implements IrisService {
     private static final int MS_PER_TICK = Integer.parseInt(System.getProperty("iris.ms_per_tick", "30"));

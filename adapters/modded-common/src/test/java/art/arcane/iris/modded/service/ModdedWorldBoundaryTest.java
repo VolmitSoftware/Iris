@@ -3,6 +3,10 @@ package art.arcane.iris.modded.service;
 import art.arcane.iris.world.IrisWorldBoundary;
 import art.arcane.iris.world.IrisWorldBoundaryCenter;
 import net.minecraft.world.level.border.WorldBorder;
+import net.minecraft.server.level.ServerLevel;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedPlatformWorld;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -17,7 +21,7 @@ public class ModdedWorldBoundaryTest {
         worldBorder.setSafeZone(2.5D);
         worldBorder.setDamagePerBlock(0.75D);
 
-        ModdedStudioHotloadService.applyWorldBoundary(worldBorder, null);
+        ModdedStudioHotloadService.applyWorldBoundary(world(worldBorder), null);
 
         assertEquals(3.5D, worldBorder.getCenterX(), 0D);
         assertEquals(-4.5D, worldBorder.getCenterZ(), 0D);
@@ -37,7 +41,7 @@ public class ModdedWorldBoundaryTest {
                 .setDamageBuffer(6.5D)
                 .setDamageAmount(0.4D);
 
-        ModdedStudioHotloadService.applyWorldBoundary(worldBorder, boundary);
+        ModdedStudioHotloadService.applyWorldBoundary(world(worldBorder), boundary);
 
         assertEquals(12.5D, worldBorder.getCenterX(), 0D);
         assertEquals(-7.25D, worldBorder.getCenterZ(), 0D);
@@ -45,5 +49,10 @@ public class ModdedWorldBoundaryTest {
         assertEquals(24, worldBorder.getWarningBlocks());
         assertEquals(6.5D, worldBorder.getSafeZone(), 0D);
         assertEquals(0.4D, worldBorder.getDamagePerBlock(), 0D);
+    }
+    private static ModdedPlatformWorld world(WorldBorder border) {
+        ServerLevel level = mock(ServerLevel.class);
+        when(level.getWorldBorder()).thenReturn(border);
+        return new ModdedPlatformWorld(level);
     }
 }

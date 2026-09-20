@@ -18,6 +18,9 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeServerWorldLayout;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeServerWorldLayout.MissingWorldRootException;
+
 import art.arcane.iris.generation.runtime.IrisEngineMantle;
 
 import java.io.IOException;
@@ -27,28 +30,15 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 public final class MainWorldService {
     private static final String MARKER_NAME = "mainworld.pending";
-    private static final String PROPERTIES_NAME = "server.properties";
     /**
      * Distinct exit status for the staged main-world restart, so a wrapper can tell it apart from a clean
      * operator stop (0) and from a crash. 64 is the conventional first application-defined status.
      */
     private static final int AUTO_RESTART_EXIT_STATUS = 64;
-    private static final String[] VANILLA_DIMENSION_FOLDERS = {
-            "region",
-            "entities",
-            "poi",
-            IrisEngineMantle.STORAGE_FOLDER_NAME,
-            "dimensions/minecraft/overworld",
-            "dimensions/minecraft/the_nether",
-            "dimensions/minecraft/the_end",
-            "DIM-1",
-            "DIM1"
-    };
 
     private MainWorldService() {
     }
@@ -72,9 +62,9 @@ public final class MainWorldService {
             if (instanceRoot == null) {
                 return;
             }
-            Path properties = instanceRoot.resolve(PROPERTIES_NAME);
+            Path properties = instanceRoot.resolve(NativeServerWorldLayout.SERVER_PROPERTIES);
             String target = presetIdFor(pack);
-            String currentType = readProperty(properties, "level-type");
+            String currentType = readProperty(properties, NativeServerWorldLayout.LEVEL_TYPE);
             if (!target.equals(currentType)) {
                 writeLevelProperties(properties, target, config.mainWorldSeed());
                 markPending();
@@ -125,7 +115,7 @@ public final class MainWorldService {
             return false;
         }
         try {
-            writeLevelProperties(instanceRoot.resolve(PROPERTIES_NAME), presetIdFor(packRef), seed);
+            writeLevelProperties(instanceRoot.resolve(NativeServerWorldLayout.SERVER_PROPERTIES), presetIdFor(packRef), seed);
             markPending();
             return true;
         } catch (IOException e) {
@@ -143,8 +133,8 @@ public final class MainWorldService {
     }
 
     static Path configuredWorldRootIfPresent() throws IOException {
-        Path instanceRoot = Path.of("").toAbsolutePath().normalize();
-        Path properties = instanceRoot.resolve(PROPERTIES_NAME);
+        Path instanceRoot = NativeServerWorldLayout.instanceRoot();
+        Path properties = instanceRoot.resolve(NativeServerWorldLayout.SERVER_PROPERTIES);
         if (!Files.isRegularFile(properties)) {
             return null;
         }
@@ -156,19 +146,19 @@ public final class MainWorldService {
     }
 
     /**
-     * net.minecraft.server.Main reads server.properties as Paths.get("server.properties"), so the authoritative
+     * The dedicated server reads its properties from the working directory, so the authoritative
      * instance root is the JVM working directory - not configDir().getParent(), which points somewhere else
      * entirely whenever the loader config tree is relocated (-Dfabric.configDir, a shared config mount, a
      * launcher that starts the server from another directory). Refuse loudly rather than write or move files
      * against a guessed root: every caller treats null as "not a dedicated instance we may touch".
      */
     private static Path verifiedInstanceRoot(String operation) {
-        Path workingDirectory = Path.of("").toAbsolutePath().normalize();
-        if (Files.isRegularFile(workingDirectory.resolve(PROPERTIES_NAME))) {
+        Path workingDirectory = NativeServerWorldLayout.instanceRoot();
+        if (Files.isRegularFile(workingDirectory.resolve(NativeServerWorldLayout.SERVER_PROPERTIES))) {
             return workingDirectory;
         }
-        ModdedIrisLog.error("Iris refuses to {}: no {} in the server working directory {}", operation, PROPERTIES_NAME, workingDirectory);
-        ModdedIrisLog.error("Iris only edits main-world properties in the directory the dedicated server reads {} from, and it moves no world data outside it. Start the server from its instance directory, or clear mainWorldPack in irisworldgen/modded.json.", PROPERTIES_NAME);
+        ModdedIrisLog.error("Iris refuses to {}: no {} in the server working directory {}", operation, NativeServerWorldLayout.SERVER_PROPERTIES, workingDirectory);
+        ModdedIrisLog.error("Iris only edits main-world properties in the directory the dedicated server reads {} from, and it moves no world data outside it. Start the server from its instance directory, or clear mainWorldPack in irisworldgen/modded.json.", NativeServerWorldLayout.SERVER_PROPERTIES);
         return null;
     }
 
@@ -213,12 +203,12 @@ public final class MainWorldService {
         List<String> lines = Files.isRegularFile(properties)
                 ? new ArrayList<>(Files.readAllLines(properties, StandardCharsets.UTF_8))
                 : new ArrayList<>();
-        setProperty(lines, "level-type", escape(target));
+        setProperty(lines, NativeServerWorldLayout.LEVEL_TYPE, escape(target));
         if (seed != 0L) {
-            setProperty(lines, "level-seed", Long.toString(seed));
+            setProperty(lines, NativeServerWorldLayout.LEVEL_SEED, Long.toString(seed));
         }
 
-        Path temp = properties.resolveSibling(PROPERTIES_NAME + ".iris-tmp-" + UUID.randomUUID());
+        Path temp = properties.resolveSibling(NativeServerWorldLayout.SERVER_PROPERTIES + ".iris-tmp-" + UUID.randomUUID());
         Files.write(temp, lines, StandardCharsets.UTF_8);
         try {
             Files.move(temp, properties, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
@@ -239,102 +229,25 @@ public final class MainWorldService {
     }
 
     /**
-     * Mirrors net.minecraft.server.Main world resolution: the universe root is --universe (default the working
-     * directory) and the world folder name is --world, falling back to the level-name property.
+     * Resolves the configured world using the dedicated server launch options and level-name property.
      */
     private static Path resolveWorldRoot(Path instanceRoot, Path properties) throws IOException {
-        List<String> arguments = processArguments();
-        Path universe = universeRoot(instanceRoot, commandLineOption(arguments, "universe"));
-        String levelName = firstNonBlank(commandLineOption(arguments, "world"),
-                firstNonBlank(readProperty(properties, "level-name"), "world"));
-        return resolveWorldRoot(universe, levelName);
-    }
-
-    static Path universeRoot(Path instanceRoot, String universeOption) {
-        return (universeOption == null || universeOption.isBlank()
-                ? instanceRoot
-                : instanceRoot.resolve(universeOption)).toAbsolutePath().normalize();
-    }
-
-    static Path resolveWorldRoot(Path universe, String levelName) throws IOException {
-        if (!Files.isDirectory(universe)) {
-            throw new MissingWorldRootException("Server universe directory does not exist: " + universe, universe);
-        }
-        Path worldRoot = universe.resolve(levelName).toAbsolutePath().normalize();
-        if (worldRoot.equals(universe) || !worldRoot.startsWith(universe)) {
-            throw new IOException("Unsafe world name outside the server universe " + universe + ": " + levelName);
-        }
-        if (!Files.isDirectory(worldRoot)) {
-            throw new MissingWorldRootException("Server world directory does not exist: " + worldRoot, worldRoot);
-        }
-        return worldRoot;
-    }
-
-    /**
-     * A universe or world directory that is simply absent. Separated from every other IO failure so
-     * reconciliation can treat it as nothing-to-quarantine instead of refusing startup; an unsafe world name
-     * stays a plain IOException and still refuses.
-     */
-    static final class MissingWorldRootException extends IOException {
-        private static final long serialVersionUID = 1L;
-
-        private final Path path;
-
-        MissingWorldRootException(String message, Path path) {
-            super(message);
-            this.path = path;
-        }
-
-        Path path() {
-            return path;
-        }
-    }
-
-    /**
-     * Best effort read of a dedicated-server launch option. The parsed OptionSet is not reachable from mod
-     * bootstrap, so read the process arguments; when they are unavailable we fall back to the vanilla defaults,
-     * which is what the unpatched code assumed unconditionally.
-     */
-    static String commandLineOption(List<String> arguments, String name) {
-        String flag = "--" + name;
-        for (int index = 0; index < arguments.size(); index++) {
-            String argument = arguments.get(index);
-            if (argument.equals(flag)) {
-                return index + 1 < arguments.size() ? arguments.get(index + 1) : null;
-            }
-            if (argument.startsWith(flag + "=")) {
-                return argument.substring(flag.length() + 1);
-            }
-        }
-        return null;
-    }
-
-    private static List<String> processArguments() {
-        try {
-            Optional<String[]> arguments = ProcessHandle.current().info().arguments();
-            if (arguments.isPresent() && arguments.get().length > 0) {
-                return List.of(arguments.get());
-            }
-        } catch (RuntimeException unavailable) {
-            ModdedIrisLog.debug("Iris could not read the process arguments", unavailable);
-        }
-        // Whitespace split only: sun.java.command is a flattened string with no quoting information, so a
-        // --universe or --world value containing spaces cannot be recovered from it. Deliberately not parsed
-        // further - a half-correct quote parser would hand world resolution a wrong directory, and the missing
-        // world root path already degrades to the vanilla defaults instead of failing the boot.
-        String command = System.getProperty("sun.java.command");
-        if (command == null || command.isBlank()) {
-            return List.of();
-        }
-        return List.of(command.trim().split("\\s+"));
+        return NativeServerWorldLayout.configuredWorldRoot(instanceRoot,
+                readProperty(properties, NativeServerWorldLayout.LEVEL_NAME),
+                NativeServerWorldLayout.processArguments(failure -> ModdedIrisLog.debug("Iris could not read the process arguments", failure)));
     }
 
     private static Path quarantineVanillaDimensions(Path worldRoot) throws IOException {
         Path recovery = markerFile().getParent().resolve("mainworld-recovery-" + UUID.randomUUID());
         List<Path> moved = new ArrayList<>();
-        moveToRecovery(worldRoot, worldRoot.resolve("level.dat"), recovery, moved);
-        moveToRecovery(worldRoot, worldRoot.resolve("level.dat_old"), recovery, moved);
-        for (String folder : VANILLA_DIMENSION_FOLDERS) {
+        for (String file : NativeServerWorldLayout.metadataFiles()) {
+            moveToRecovery(worldRoot, worldRoot.resolve(file), recovery, moved);
+        }
+        for (String folder : NativeServerWorldLayout.primaryFolders()) {
+            moveToRecovery(worldRoot, worldRoot.resolve(folder), recovery, moved);
+        }
+        moveToRecovery(worldRoot, worldRoot.resolve(IrisEngineMantle.STORAGE_FOLDER_NAME), recovery, moved);
+        for (String folder : NativeServerWorldLayout.dimensionFolders()) {
             moveToRecovery(worldRoot, worldRoot.resolve(folder), recovery, moved);
         }
         if (moved.isEmpty()) {
@@ -378,7 +291,4 @@ public final class MainWorldService {
         return value.replace("\\:", ":").replace("\\=", "=");
     }
 
-    private static String firstNonBlank(String value, String fallback) {
-        return value == null || value.isBlank() ? fallback : value;
-    }
 }

@@ -18,12 +18,13 @@
 
 package art.arcane.iris.generation.chunk;
 
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.bukkit.World;
+import art.arcane.volmlib.nativelib.terrain.BukkitTerrainBuffer;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
-public interface TerrainChunk {
+public interface TerrainChunk extends BukkitTerrainBuffer {
     static TerrainChunk create(World world) {
         return new LinkedTerrainChunk(world);
     }
@@ -32,13 +33,4 @@ public interface TerrainChunk {
         return new LinkedTerrainChunk(raw);
     }
 
-    PlatformBiome getBiome(int x, int y, int z);
-
-    void setBiome(int x, int y, int z, PlatformBiome bio);
-    int getMinHeight();
-    int getMaxHeight();
-    void setBlock(int x, int y, int z, PlatformBlockState blockData);
-    void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, PlatformBlockState blockData);
-    PlatformBlockState getBlockData(int x, int y, int z);
-    ChunkData getChunkData();
 }

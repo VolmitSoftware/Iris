@@ -36,8 +36,8 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.hydrology.IrisRiverBlendStyle;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.matter.MatterUpdate;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -3653,7 +3653,7 @@ public final class HydrologyPackProbe {
             throw new IllegalStateException("Generated witness differs from the accepted composed hydrology layer.");
         }
         HydrologyColumnLayer layer = witness.layer();
-        PlatformBlockState expectedFluid = engine.getComplex().resolveHydrologyFluid(
+        NativeBlockState expectedFluid = engine.getComplex().resolveHydrologyFluid(
                 layer.profileKey(),
                 position.x(),
                 position.z()
@@ -3668,7 +3668,7 @@ public final class HydrologyPackProbe {
             requireNoUpdateMarker(engine, position);
         }
         String blockStateKey = stateKey(generated.blockAt(position.x(), position.y(), position.z()));
-        PlatformBiome biome = generated.biomeAt(
+        NativeBiome biome = generated.biomeAt(
                 position.x(),
                 Math.min(position.y(), generated.height() - 1),
                 position.z()
@@ -3698,7 +3698,7 @@ public final class HydrologyPackProbe {
             HydrologyColumnSample sample,
             HydrologyColumnLayer layer,
             CavePosition position,
-            PlatformBlockState expectedFluid
+            NativeBlockState expectedFluid
     ) {
         if (sample.terrainHeight() != layer.bedY()) {
             throw new IllegalStateException("Accepted surface witness does not own the composed terrain height.");
@@ -3706,7 +3706,7 @@ public final class HydrologyPackProbe {
         if (layer.fluidHeadY() >= sample.naturalHeight()) {
             throw new IllegalStateException("Generated surface witness is not recessed below natural terrain.");
         }
-        PlatformBlockState bed = generated.blockAt(position.x(), layer.bedY(), position.z());
+        NativeBlockState bed = generated.blockAt(position.x(), layer.bedY(), position.z());
         if (bed == null || bed.isAirOrFluid() || matchesConfiguredFluid(bed, expectedFluid, true)) {
             throw new IllegalStateException("Generated surface witness has no non-fluid channel bed: state="
                     + stateKey(bed)
@@ -3715,7 +3715,7 @@ public final class HydrologyPackProbe {
                     + ", sampleLayers=" + sample.layers());
         }
         requireNonVegetatedBed(bed, "surface");
-        PlatformBlockState fluid = generated.blockAt(position.x(), position.y(), position.z());
+        NativeBlockState fluid = generated.blockAt(position.x(), position.y(), position.z());
         requireMatchingFluid(
                 fluid,
                 expectedFluid,
@@ -3724,7 +3724,7 @@ public final class HydrologyPackProbe {
         );
         int composedFluidHead = composedSurfaceFluidHead(sample);
         if (composedFluidHead + 1 < generated.height()) {
-            PlatformBlockState above = generated.blockAt(position.x(), composedFluidHead + 1, position.z());
+            NativeBlockState above = generated.blockAt(position.x(), composedFluidHead + 1, position.z());
             if (above != null && matchesConfiguredFluid(above, expectedFluid, true)) {
                 throw new IllegalStateException("Generated surface witness contains " + stateKey(above)
                         + " above its accepted head at "
@@ -3732,7 +3732,7 @@ public final class HydrologyPackProbe {
                         + ": layer=" + layer + ", sampleLayers=" + sample.layers() + ".");
             }
         }
-        PlatformBiome biome = generated.biomeAt(position.x(), layer.fluidHeadY(), position.z());
+        NativeBiome biome = generated.biomeAt(position.x(), layer.fluidHeadY(), position.z());
         IrisBiome surfaceBiome = engine.getComplex().getTrueBiomeStream().get(position.x(), position.z());
         String expectedBiomeKey = generatedSurfaceBiomeKey(
                 surfaceBiome,
@@ -3784,7 +3784,7 @@ public final class HydrologyPackProbe {
             IrisHydrologyRuntime runtime,
             RealPackProbeSupport.GeneratedChunk generated,
             GeneratedWitness witness,
-            PlatformBlockState expectedFluid,
+            NativeBlockState expectedFluid,
             VerificationFamily family
     ) {
         CavePosition position = witness.position();
@@ -3828,10 +3828,10 @@ public final class HydrologyPackProbe {
                     + ", sampleLayers=" + (debugSample == null ? "null" : debugSample.layers())
                     + ", layer=" + witness.layer() + ".");
         }
-        PlatformBlockState state = generated.blockAt(position.x(), position.y(), position.z());
+        NativeBlockState state = generated.blockAt(position.x(), position.y(), position.z());
         if (cell.isWet()) {
             requireMatchingFluid(state, expectedFluid, "cave", false);
-            PlatformBlockState bed = generated.blockAt(
+            NativeBlockState bed = generated.blockAt(
                     position.x(),
                     witness.layer().bedY(),
                     position.z()
@@ -3960,7 +3960,7 @@ public final class HydrologyPackProbe {
         }
     }
 
-    private static void requireNonVegetatedBed(PlatformBlockState bed, String label) {
+    private static void requireNonVegetatedBed(NativeBlockState bed, String label) {
         String key = stateKey(bed).toLowerCase(Locale.ROOT);
         if (key.endsWith(":grass_block") || key.endsWith(":moss_block")) {
             throw new IllegalStateException("Generated " + label + " hydrology rests on " + key + ".");
@@ -3984,8 +3984,8 @@ public final class HydrologyPackProbe {
     }
 
     private static void requireMatchingFluid(
-            PlatformBlockState actual,
-            PlatformBlockState expected,
+            NativeBlockState actual,
+            NativeBlockState expected,
             String label,
             boolean allowWaterColumnReplacement
     ) {
@@ -3999,8 +3999,8 @@ public final class HydrologyPackProbe {
     }
 
     static boolean matchesConfiguredFluid(
-            PlatformBlockState actual,
-            PlatformBlockState expected,
+            NativeBlockState actual,
+            NativeBlockState expected,
             boolean allowWaterColumnReplacement
     ) {
         if (actual == null || expected == null) {
@@ -4014,7 +4014,7 @@ public final class HydrologyPackProbe {
                 && (actual.isWaterLogged() || WATER_COLUMN_REPLACEMENTS.contains(materialKey(actual)));
     }
 
-    private static String materialKey(PlatformBlockState state) {
+    private static String materialKey(NativeBlockState state) {
         String cached = state.materialKey();
         if (cached != null) {
             return cached;
@@ -4024,7 +4024,7 @@ public final class HydrologyPackProbe {
         return bracket < 0 ? key : key.substring(0, bracket);
     }
 
-    private static String stateKey(PlatformBlockState state) {
+    private static String stateKey(NativeBlockState state) {
         return state == null ? "minecraft:air" : state.key();
     }
 

@@ -1,16 +1,12 @@
 package art.arcane.iris.client;
 
+import art.arcane.volmlib.nativelib.client.ClientGraphics;
+import art.arcane.volmlib.nativelib.minecraft26_2.client.NativeClientAccess;
+
 import art.arcane.iris.modded.localization.ClientUiMessages;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.spi.protocol.IrisMessage;
 import art.arcane.volmlib.util.localization.MessageArgument;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,23 +27,15 @@ public final class IrisWhatOverlay {
     private IrisWhatOverlay() {
     }
 
-    public static void render(GuiGraphicsExtractor graphics) {
+    public static void render(ClientGraphics graphics) {
         if (!IrisClient.whatVisible() || !IrisClient.cursorAvailable()) {
             return;
         }
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft == null || minecraft.player == null) {
+        if (!NativeClientAccess.playerPresent()) {
             return;
         }
-        LocalPlayer player = minecraft.player;
-        int blockX = player.getBlockX();
-        int blockZ = player.getBlockZ();
-        HitResult hit = minecraft.hitResult;
-        if (hit != null && hit.getType() == HitResult.Type.BLOCK && hit instanceof BlockHitResult blockHit) {
-            BlockPos pos = blockHit.getBlockPos();
-            blockX = pos.getX();
-            blockZ = pos.getZ();
-        }
+        int blockX = NativeClientAccess.targetBlockX();
+        int blockZ = NativeClientAccess.targetBlockZ();
         IrisClient.cursor().requestFor(blockX, blockZ);
 
         IrisMessage.CursorInfo info = IrisClient.cursor().latest();
@@ -67,15 +55,15 @@ public final class IrisWhatOverlay {
                     MessageArgument.trusted("z", info.blockZ())
             ), true));
         }
-        draw(graphics, minecraft.font, lines);
+        draw(graphics, lines);
     }
 
-    private static void draw(GuiGraphicsExtractor graphics, Font font, List<OverlayLine> lines) {
-        int lineHeight = font.lineHeight;
+    private static void draw(ClientGraphics graphics, List<OverlayLine> lines) {
+        int lineHeight = graphics.lineHeight();
         String title = IrisLanguage.plain(ClientUiMessages.WHAT_TITLE);
-        int contentWidth = font.width(title);
+        int contentWidth = graphics.textWidth(title);
         for (OverlayLine line : lines) {
-            contentWidth = Math.max(contentWidth, font.width(line.text()));
+            contentWidth = Math.max(contentWidth, graphics.textWidth(line.text()));
         }
         int originX = graphics.guiWidth() / 2 + CURSOR_OFFSET;
         int originY = graphics.guiHeight() / 2 + CURSOR_OFFSET;
@@ -84,10 +72,10 @@ public final class IrisWhatOverlay {
         graphics.fill(originX - PADDING, originY - PADDING, originX + contentWidth + PADDING, originY + contentHeight + PADDING, PANEL_COLOR);
 
         int cursorY = originY;
-        graphics.text(font, title, originX, cursorY, TITLE_COLOR);
+        graphics.text(title, originX, cursorY, TITLE_COLOR);
         cursorY += lineHeight + ROW_GAP;
         for (OverlayLine line : lines) {
-            graphics.text(font, line.text(), originX, cursorY, line.muted() ? MUTED_COLOR : TEXT_COLOR);
+            graphics.text(line.text(), originX, cursorY, line.muted() ? MUTED_COLOR : TEXT_COLOR);
             cursorY += lineHeight + ROW_GAP;
         }
     }

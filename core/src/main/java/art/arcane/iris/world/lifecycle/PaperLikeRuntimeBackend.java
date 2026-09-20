@@ -3,8 +3,11 @@ package art.arcane.iris.world.lifecycle;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.bukkit.WorldIdentity;
 import org.bukkit.World;
+import org.bukkit.NamespacedKey;
+import art.arcane.iris.platform.generation.PlatformChunkGenerator;
+import art.arcane.iris.world.IrisWorldStorage;
+import art.arcane.volmlib.nativelib.terrain.WorldRuntimeOptions;
 
-import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 final class PaperLikeRuntimeBackend implements WorldLifecycleBackend {
@@ -29,7 +32,6 @@ final class PaperLikeRuntimeBackend implements WorldLifecycleBackend {
 
     @Override
     public CompletableFuture<World> create(WorldLifecycleRequest request) {
-        Object legacyStorageAccess = null;
         try {
             World existing = WorldIdentity.resolve(request.worldKey()).orElse(null);
             if (existing != null) {
@@ -41,42 +43,21 @@ final class PaperLikeRuntimeBackend implements WorldLifecycleBackend {
             }
 
             WorldLifecycleStaging.stageGenerator(request.worldName(), request.generator(), request.biomeProvider());
-            WorldLifecycleSupport.stageRuntimeConfiguration(request.worldName());
-
+            NamespacedKey dimensionTypeKey = request.generator() instanceof PlatformChunkGenerator generator
+                    ? new NamespacedKey("iris", generator.getTarget().getDimension().getDimensionTypeKey()) : null;
             IrisLogging.debug("WorldLifecycle runtime LevelStem: world=" + request.worldName()
-                    + ", backend=paper_like_runtime, flavor=" + capabilities.paperLikeFlavor().name().toLowerCase(Locale.ROOT)
-                    + ", registrySource=" + WorldLifecycleSupport.runtimeLevelStemRegistrySource(request));
-            Object levelStem = WorldLifecycleSupport.resolveRuntimeLevelStem(capabilities, request);
-            Object stemKey = WorldLifecycleSupport.createRuntimeLevelStemKey(request.worldKey());
-
-            if (capabilities.paperLikeFlavor() == CapabilitySnapshot.PaperLikeFlavor.CURRENT_INFO_AND_DATA) {
-                Object dimensionKey = WorldLifecycleSupport.createDimensionKey(stemKey);
-                Object loadedWorldData = capabilities.paperWorldDataMethod().invoke(null, capabilities.minecraftServer(), dimensionKey, request.worldName());
-                Object worldLoadingInfo = capabilities.worldLoadingInfoConstructor().newInstance(request.environment(), stemKey, dimensionKey, !request.studio());
-                Object worldLoadingInfoAndData = capabilities.worldLoadingInfoAndDataConstructor().newInstance(worldLoadingInfo, loadedWorldData);
-                Object worldDataAndGenSettings = WorldLifecycleSupport.createCurrentWorldDataAndSettings(capabilities, request.worldName());
-                if (!WorldLifecycleSupport.hasExistingWorldData(request.worldKey())) {
-                    worldDataAndGenSettings = WorldLifecycleSupport.applySeedToWorldDataAndGenSettings(worldDataAndGenSettings, request.seed());
-                }
-                capabilities.createLevelMethod().invoke(capabilities.minecraftServer(), levelStem, worldLoadingInfoAndData, worldDataAndGenSettings);
-            } else {
-                legacyStorageAccess = WorldLifecycleSupport.createLegacyStorageAccess(capabilities);
-                Object primaryLevelData = WorldLifecycleSupport.createLegacyPrimaryLevelData(capabilities, legacyStorageAccess, request.worldName());
-                Object worldLoadingInfo = capabilities.worldLoadingInfoConstructor().newInstance(0, request.worldName(), request.environment().name().toLowerCase(Locale.ROOT), stemKey, !request.studio());
-                capabilities.createLevelMethod().invoke(capabilities.minecraftServer(), levelStem, worldLoadingInfo, legacyStorageAccess, primaryLevelData);
-            }
-
-            World loadedWorld = WorldIdentity.resolve(request.worldKey()).orElse(null);
-            if (loadedWorld == null) {
-                return CompletableFuture.failedFuture(new IllegalStateException("Paper-like runtime backend did not load world \"" + request.worldName() + "\"."));
-            }
+                    + ", backend=paper_like_runtime, flavor=" + capabilities.nativeRuntime().flavor()
+                    + ", registrySource=" + (dimensionTypeKey == null ? "datapack_level_stem_registry" : "full_server_registry"));
+            WorldRuntimeOptions options = new WorldRuntimeOptions(request.worldName(), request.worldKey(),
+                    request.environment(), dimensionTypeKey, "Iris:runtime", !request.studio(), request.seed(),
+                    WorldLifecycleSupport.hasExistingWorldData(request.worldKey()), IrisWorldStorage.levelRoot());
+            World loadedWorld = capabilities.nativeRuntime().create(options, WorldLifecycleSupport.EXECUTION);
 
             return CompletableFuture.completedFuture(loadedWorld);
         } catch (Throwable e) {
             return CompletableFuture.failedFuture(WorldLifecycleSupport.unwrap(e));
         } finally {
             WorldLifecycleStaging.clearGenerator(request.worldName());
-            WorldLifecycleSupport.closeLevelStorageAccess(legacyStorageAccess);
         }
     }
 

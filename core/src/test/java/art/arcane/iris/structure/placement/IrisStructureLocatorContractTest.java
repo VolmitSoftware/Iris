@@ -18,6 +18,10 @@
 
 package art.arcane.iris.structure.placement;
 
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
+
+import art.arcane.volmlib.util.structure.StructureCarveShape;
+
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
 
@@ -657,10 +661,10 @@ public class IrisStructureLocatorContractTest {
         placement.setMinHeight(-64);
         placement.setMaxHeight(100);
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
+                .setMode(StructureTerrainMode.FORCE_CARVE)
                 .setHorizontalPadding(2)
                 .setCeilingPadding(20)
-                .setShape(IrisStructureCarveShape.ERODED);
+                .setShape(StructureCarveShape.ERODED);
         placement.setTerrain(terrain);
         KList<PlacedStructurePiece> pieces = new KList<>();
         pieces.add(piece(0, 60, 0, 1, 80, 1));
@@ -672,7 +676,7 @@ public class IrisStructureLocatorContractTest {
         assertEquals(Integer.valueOf(-1), IrisStructureLocator.resolveUndergroundBurialShift(
                 engine, pieces, placement, 60, -63, 319));
 
-        terrain.setShape(IrisStructureCarveShape.ROUNDED);
+        terrain.setShape(StructureCarveShape.ROUNDED);
         assertEquals(Integer.valueOf(-1), IrisStructureLocator.resolveUndergroundBurialShift(
                 engine, pieces, placement, 60, -63, 319));
 
@@ -691,8 +695,8 @@ public class IrisStructureLocatorContractTest {
                 .setMinHeight(-64)
                 .setMaxHeight(100)
                 .setTerrain(new IrisStructureTerrain()
-                        .setMode(IrisStructureTerrainMode.FORCE_CARVE)
-                        .setShape(IrisStructureCarveShape.ROUNDED)
+                        .setMode(StructureTerrainMode.FORCE_CARVE)
+                        .setShape(StructureCarveShape.ROUNDED)
                         .setHorizontalPadding(0)
                         .setCeilingPadding(0));
         KList<PlacedStructurePiece> pieces = new KList<>();

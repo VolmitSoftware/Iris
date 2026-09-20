@@ -23,7 +23,7 @@ import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 
 import art.arcane.iris.pack.validation.ContentGate;
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
@@ -36,7 +36,7 @@ import art.arcane.volmlib.util.noise.CNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import lombok.experimental.Accessors;
 
 import java.util.LinkedHashMap;
@@ -50,8 +50,8 @@ import java.util.Map;
 @Data
 public class IrisObjectReplace {
     private final transient AtomicCache<CNG> replaceGen = new AtomicCache<>();
-    private final transient AtomicCache<KList<PlatformBlockState>> findData = new AtomicCache<>();
-    private final transient AtomicCache<KList<PlatformBlockState>> replaceData = new AtomicCache<>();
+    private final transient AtomicCache<KList<NativeBlockState>> findData = new AtomicCache<>();
+    private final transient AtomicCache<KList<NativeBlockState>> replaceData = new AtomicCache<>();
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Required
     @Description("Find this block")
@@ -66,13 +66,13 @@ public class IrisObjectReplace {
     @Description("Modifies the chance the block is replaced")
     private float chance = 1;
 
-    public KList<PlatformBlockState> getFind(IrisData rdata) {
+    public KList<NativeBlockState> getFind(IrisData rdata) {
         return findData.aquire(() ->
         {
-            KList<PlatformBlockState> b = new KList<>();
+            KList<NativeBlockState> b = new KList<>();
 
             for (IrisBlockData i : find) {
-                PlatformBlockState bx = i.getBlockDataOrPlaceholder(rdata);
+                NativeBlockState bx = i.getBlockDataOrPlaceholder(rdata);
 
                 if (bx != null) {
                     b.add(bx);
@@ -83,7 +83,7 @@ public class IrisObjectReplace {
         });
     }
 
-    public PlatformBlockState getReplace(RNG seed, double x, double y, double z, IrisData rdata) {
+    public NativeBlockState getReplace(RNG seed, double x, double y, double z, IrisData rdata) {
         return getReplace().get(seed, x, y, z, rdata);
     }
 
@@ -91,7 +91,7 @@ public class IrisObjectReplace {
      * Key-level mirror of the runtime find match, for the version-content gate: it has to decide whether a palette
      * key the server does not have is rewritten by this rule, and a missing key has no resolved state to compare.
      * Non-exact compares the base block; exact requires every property named by the find entry to match, the same
-     * partial-match contract {@code PlatformBlockState.matches} uses at runtime.
+     * partial-match contract {@code NativeBlockState.matches} uses at runtime.
      */
     public boolean matchesState(String stateKey) {
         String state = ContentGate.normalizeState(stateKey);

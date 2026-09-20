@@ -19,36 +19,17 @@
 package art.arcane.iris.fabric;
 
 import art.arcane.iris.client.IrisClient;
+import art.arcane.volmlib.nativelib.minecraft26_2.fabric.NativeFabricClientHooks;
 import art.arcane.iris.client.IrisClientHud;
-import art.arcane.iris.client.IrisClientKeybinds;
-import art.arcane.iris.modded.ModdedIrisPayload;
+import art.arcane.iris.modded.ModdedProtocolDefinition;
+import art.arcane.volmlib.nativelib.minecraft26_2.fabric.NativeFabricProtocolNetworking;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 
 public final class IrisFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
-        ClientPlayNetworking.registerGlobalReceiver(ModdedIrisPayload.TYPE,
-                (payload, context) -> IrisClient.onInbound(payload.data()));
-        IrisClient.bindSender(frame -> {
-            if (ClientPlayNetworking.canSend(ModdedIrisPayload.TYPE)) {
-                ClientPlayNetworking.send(new ModdedIrisPayload(frame));
-            }
-        });
-        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> IrisClient.onWorldJoin());
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> IrisClient.onDisconnect());
-        KeyMappingHelper.registerKeyMapping(IrisClientKeybinds.TOGGLE_HUD);
-        KeyMappingHelper.registerKeyMapping(IrisClientKeybinds.OPEN_MAP);
-        KeyMappingHelper.registerKeyMapping(IrisClientKeybinds.TOGGLE_WHAT);
-        HudElementRegistry.addLast(IrisClient.HUD_ELEMENT_ID, (graphics, delta) -> IrisClientHud.render(graphics));
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            IrisClient.tick();
-            IrisClientHud.tick();
-            IrisClientKeybinds.pollToggle();
-        });
+        NativeFabricProtocolNetworking.installClient(ModdedProtocolDefinition.PROTOCOL, IrisClient::onInbound);
+        IrisClient.bindSender(frame -> NativeFabricProtocolNetworking.sendClient(ModdedProtocolDefinition.PROTOCOL, frame));
+        NativeFabricClientHooks.install(IrisClientHud.binding(), IrisClient::onWorldJoin, IrisClient::onDisconnect);
     }
 }

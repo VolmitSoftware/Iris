@@ -18,8 +18,10 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.modded.NativeMixinFlags;
 
-import java.lang.reflect.Method;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeMixinTarget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,26 +44,26 @@ public final class ModdedMixinAudit {
 
     private static final List<ExpectedMixin> EXPECTED = List.of(
             new ExpectedMixin("EntityPersistenceMixin", "entity",
-                    "net.minecraft.world.entity.Entity", "iris$applyGeneratedPersistence",
-                    false, ModdedMixinFlags::entityPersistenceRan),
+                    NativeMixinTarget.ENTITY, "iris$applyGeneratedPersistence",
+                    false, NativeMixinFlags::entityPersistenceRan),
             new ExpectedMixin("LivingEntityLootMixin", "entity",
-                    "net.minecraft.world.entity.LivingEntity", "iris$replaceBaseLoot",
-                    false, ModdedMixinFlags::livingEntityLootRan),
+                    NativeMixinTarget.LIVING_ENTITY, "iris$replaceBaseLoot",
+                    false, NativeMixinFlags::livingEntityLootRan),
             new ExpectedMixin("MobAwarenessMixin", "entity",
-                    "net.minecraft.world.entity.Mob", "iris$tickUnawareMob",
-                    false, ModdedMixinFlags::mobAwarenessRan),
+                    NativeMixinTarget.MOB, "iris$tickUnawareMob",
+                    false, NativeMixinFlags::mobAwarenessRan),
             new ExpectedMixin("StructureTemplatePaletteConcurrencyMixin", "common",
-                    "net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate$Palette",
+                    NativeMixinTarget.STRUCTURE_PALETTE,
                     "iris$installConcurrentBlockCache",
-                    false, ModdedMixinFlags::structureTemplatePaletteRan),
-            new ExpectedMixin("IrisWorldOpenFlowsMixin", "client",
-                    "net.minecraft.client.gui.screens.worldselection.WorldOpenFlows",
+                    false, NativeMixinFlags::structureTemplatePaletteRan),
+            new ExpectedMixin("NativeWorldOpenFlowsMixin", "client",
+                    NativeMixinTarget.WORLD_OPEN_FLOWS,
                     "iris$openWorldCheckWorldStemCompatibility",
-                    true, ModdedMixinFlags::worldOpenFlowsRan),
-            new ExpectedMixin("IrisWorldTypeEntryMixin", "client",
-                    "net.minecraft.client.gui.screens.worldselection.WorldCreationUiState$WorldTypeEntry",
+                    true, NativeMixinFlags::worldOpenFlowsRan),
+            new ExpectedMixin("NativeWorldTypeEntryMixin", "client",
+                    NativeMixinTarget.WORLD_TYPE_ENTRY,
                     "iris$describePreset",
-                    true, ModdedMixinFlags::worldTypeEntryRan));
+                    true, NativeMixinFlags::worldTypeEntryRan));
 
     private ModdedMixinAudit() {
     }
@@ -110,25 +112,14 @@ public final class ModdedMixinAudit {
 
     private static boolean isApplied(ExpectedMixin expected) {
         try {
-            Class<?> target = Class.forName(expected.targetClass(), false,
-                    ModdedMixinAudit.class.getClassLoader());
-            for (Method method : target.getDeclaredMethods()) {
-                // Mixin 0.8.7 renames applied @Inject handlers to handler$<ids>$<originalName>, so an exact
-                // name match alone reports every applied mixin as missing.
-                String name = method.getName();
-                if (name.equals(expected.handlerMethod())
-                        || name.endsWith('$' + expected.handlerMethod())) {
-                    return true;
-                }
-            }
-            return false;
+            return expected.targetClass().hasInjectedHandler(expected.handlerMethod());
         } catch (ClassNotFoundException | LinkageError unavailable) {
             ModdedIrisLog.warn("Iris mixin audit could not inspect {}", expected.targetClass(), unavailable);
             return true;
         }
     }
 
-    private record ExpectedMixin(String mixinName, String config, String targetClass, String handlerMethod,
+    private record ExpectedMixin(String mixinName, String config, NativeMixinTarget targetClass, String handlerMethod,
                                  boolean clientOnly, BooleanSupplier ran) {
     }
 }

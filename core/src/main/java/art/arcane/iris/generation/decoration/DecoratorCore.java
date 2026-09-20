@@ -23,7 +23,7 @@ import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
@@ -40,10 +40,10 @@ final class DecoratorCore {
     private static final String WEEPING_VINES_PLANT = "minecraft:weeping_vines_plant";
     private static final String TWISTING_VINES = "minecraft:twisting_vines";
     private static final String TWISTING_VINES_PLANT = "minecraft:twisting_vines_plant";
-    private static volatile PlatformBlockState weepingVines;
-    private static volatile PlatformBlockState weepingVinesPlant;
-    private static volatile PlatformBlockState twistingVines;
-    private static volatile PlatformBlockState twistingVinesPlant;
+    private static volatile NativeBlockState weepingVines;
+    private static volatile NativeBlockState weepingVinesPlant;
+    private static volatile NativeBlockState twistingVines;
+    private static volatile NativeBlockState twistingVinesPlant;
 
     static final ThreadLocal<PlaceOpts> SCRATCH_OPTS = ThreadLocal.withInitial(PlaceOpts::new);
 
@@ -106,14 +106,14 @@ final class DecoratorCore {
 
     static void placeSurfaceSingle(IrisDecorator decorator,
                                    int x, int z, int realX, int height, int realZ,
-                                   Hunk<PlatformBlockState> data, RNG rng, IrisData irisData,
+                                   Hunk<NativeBlockState> data, RNG rng, IrisData irisData,
                                    boolean underwater, boolean caveSkipFluid, EngineMantle mantle) {
         if (height < 0 || height >= data.getHeight()) {
             return;
         }
 
-        PlatformBlockState bdx = data.get(x, height, z);
-        PlatformBlockState bd = decorator.pickBlockData(rng, irisData, realX, realZ);
+        NativeBlockState bdx = data.get(x, height, z);
+        NativeBlockState bd = decorator.pickBlockData(rng, irisData, realX, realZ);
 
         if (!IrisSpeleothems.isSpike(bd) && !underwater && !canGoOn(bd, bdx)
                 && !decorator.isForcePlace() && decorator.getForceBlock() == null) {
@@ -156,8 +156,8 @@ final class DecoratorCore {
             }
 
             try {
-                PlatformBlockState upper = bd.withProperty("half", topHalfValue(half));
-                PlatformBlockState lower = fixFacesForHunk(
+                NativeBlockState upper = bd.withProperty("half", topHalfValue(half));
+                NativeBlockState lower = fixFacesForHunk(
                         bd.withProperty("half", bottomHalfValue(half)),
                         data, x, z, realX, lowerY, realZ, mantle);
                 data.set(x, lowerY, z, lower);
@@ -174,7 +174,7 @@ final class DecoratorCore {
         }
     }
 
-    private static boolean matchesPalette(PlatformBlockState[] palette, PlatformBlockState surface) {
+    private static boolean matchesPalette(NativeBlockState[] palette, NativeBlockState surface) {
         if (surface == null) {
             return false;
         }
@@ -188,9 +188,9 @@ final class DecoratorCore {
     }
 
     static void placeSingleAt(IrisDecorator decorator, int x, int z,
-                              int realX, int height, int realZ, Hunk<PlatformBlockState> data,
+                              int realX, int height, int realZ, Hunk<NativeBlockState> data,
                               RNG rng, IrisData irisData, boolean applyFixFaces, EngineMantle mantle) {
-        PlatformBlockState bd = decorator.pickBlockData(rng, irisData, realX, realZ);
+        NativeBlockState bd = decorator.pickBlockData(rng, irisData, realX, realZ);
         if (bd == null) {
             return;
         }
@@ -211,13 +211,13 @@ final class DecoratorCore {
     }
 
     static void placeStackUp(IrisDecorator decorator, int x, int z, int realX, int realZ,
-                             int height, int max, Hunk<PlatformBlockState> data,
+                             int height, int max, Hunk<NativeBlockState> data,
                              RNG rng, IrisData irisData, PlaceOpts opts) {
         if (height < 0 || height >= data.getHeight()) {
             return;
         }
 
-        PlatformBlockState support = data.get(x, height, z);
+        NativeBlockState support = data.get(x, height, z);
         if (!allowsSurface(decorator, support, irisData)) {
             return;
         }
@@ -230,13 +230,13 @@ final class DecoratorCore {
             if (y >= data.getHeight()) {
                 break;
             }
-            PlatformBlockState existing = data.get(x, y, z);
+            NativeBlockState existing = data.get(x, y, z);
             if (!canReplaceStackTarget(existing, opts.underwater)
                     || (opts.caveSkipFluid && B.isFluid(existing))) {
                 break;
             }
             double threshold = stack == 1 ? 1.0 : ((double) i) / (stack - 1);
-            PlatformBlockState block = threshold >= decorator.getTopThreshold()
+            NativeBlockState block = threshold >= decorator.getTopThreshold()
                     ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
                     : decorator.pickBlockData(rng, irisData, realX, realZ);
             if (block == null) {
@@ -267,12 +267,12 @@ final class DecoratorCore {
     }
 
     static void placeStackDown(IrisDecorator decorator, int x, int z, int realX, int realZ,
-                               int height, int minHeight, Hunk<PlatformBlockState> data,
+                               int height, int minHeight, Hunk<NativeBlockState> data,
                                RNG rng, IrisData irisData, int max, PlaceOpts opts, EngineMantle mantle) {
         if (height < 0 || height >= data.getHeight()) {
             return;
         }
-        PlatformBlockState support = height + 1 < data.getHeight() ? data.get(x, height + 1, z) : null;
+        NativeBlockState support = height + 1 < data.getHeight() ? data.get(x, height + 1, z) : null;
         if (!allowsSurface(decorator, support, irisData)) {
             return;
         }
@@ -284,13 +284,13 @@ final class DecoratorCore {
             if (y < 0 || y < minHeight) {
                 break;
             }
-            PlatformBlockState existing = data.get(x, y, z);
+            NativeBlockState existing = data.get(x, y, z);
             if (!canReplaceStackTarget(existing, opts.underwater)
                     || (opts.caveSkipFluid && B.isFluid(existing))) {
                 break;
             }
             double threshold = stack == 1 ? 1.0 : ((double) i) / (stack - 1);
-            PlatformBlockState block = threshold >= decorator.getTopThreshold()
+            NativeBlockState block = threshold >= decorator.getTopThreshold()
                     ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
                     : decorator.pickBlockData(rng, irisData, realX, realZ);
             if (block == null) {
@@ -321,9 +321,9 @@ final class DecoratorCore {
 
     static void placeFloatingSimple(IrisDecorator decorator,
                                     int xf, int zf, int realX, int realZ,
-                                    int height, int max, Hunk<PlatformBlockState> data,
+                                    int height, int max, Hunk<NativeBlockState> data,
                                     RNG rng, IrisData irisData, EngineMantle mantle) {
-        PlatformBlockState bd = decorator.pickBlockData(rng, irisData, realX, realZ);
+        NativeBlockState bd = decorator.pickBlockData(rng, irisData, realX, realZ);
         if (bd == null) {
             return;
         }
@@ -348,8 +348,8 @@ final class DecoratorCore {
             }
 
             try {
-                PlatformBlockState upper = bd.withProperty("half", topHalfValue(half));
-                PlatformBlockState lower = bd.withProperty("half", bottomHalfValue(half));
+                NativeBlockState upper = bd.withProperty("half", topHalfValue(half));
+                NativeBlockState lower = bd.withProperty("half", bottomHalfValue(half));
                 data.set(xf, lowerY, zf, lower);
                 data.set(xf, upperY, zf, upper);
             } catch (Throwable e) {
@@ -365,7 +365,7 @@ final class DecoratorCore {
 
     static int placeFloatingStacked(IrisDecorator decorator,
                                     int xf, int zf, int realX, int realZ,
-                                    int height, int max, Hunk<PlatformBlockState> data,
+                                    int height, int max, Hunk<NativeBlockState> data,
                                     RNG rng, IrisData irisData, EngineMantle mantle) {
         int stack = decorator.getHeight(rng, realX, realZ, irisData);
         if (decorator.isScaleStack()) {
@@ -382,7 +382,7 @@ final class DecoratorCore {
                 break;
             }
             double threshold = stack == 1 ? 0.0 : ((double) i) / (stack - 1);
-            PlatformBlockState bd = threshold >= decorator.getTopThreshold()
+            NativeBlockState bd = threshold >= decorator.getTopThreshold()
                     ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
                     : decorator.pickBlockData(rng, irisData, realX, realZ);
             if (bd == null) {
@@ -413,7 +413,7 @@ final class DecoratorCore {
         return placed;
     }
 
-    static PlatformBlockState fixFacesForHunk(PlatformBlockState b, Hunk<PlatformBlockState> hunk, int rX, int rZ,
+    static NativeBlockState fixFacesForHunk(NativeBlockState b, Hunk<NativeBlockState> hunk, int rX, int rZ,
                                               int x, int y, int z, EngineMantle mantle) {
         if (!B.isVineBlock(b)) {
             return b;
@@ -434,9 +434,9 @@ final class DecoratorCore {
             }
             int yy = y + f.getModY();
 
-            PlatformBlockState rs = null;
+            NativeBlockState rs = null;
             if (mantle != null) {
-                rs = mantle.getMantle().get(x + f.getModX(), yy, z + f.getModZ(), PlatformBlockState.class);
+                rs = mantle.getMantle().get(x + f.getModX(), yy, z + f.getModZ(), NativeBlockState.class);
             }
             BlockData r = rs == null ? (BlockData) EngineMantle.AIR.get().nativeHandle() : (BlockData) rs.nativeHandle();
             if (r.isFaceSturdy(f.getOppositeFace(), BlockSupport.FULL)) {
@@ -470,31 +470,31 @@ final class DecoratorCore {
         return BukkitBlockState.of(cloned);
     }
 
-    static boolean canGoOn(PlatformBlockState decorator, PlatformBlockState surface) {
+    static boolean canGoOn(NativeBlockState decorator, NativeBlockState surface) {
         if (!B.canPlaceOnto(decorator, surface)) {
             return false;
         }
         return IrisSugarCane.isSugarCane(decorator) || IrisSpeleothems.isSturdy(surface, true);
     }
 
-    static boolean isValidShorelineSupport(IrisDecorator decorator, PlatformBlockState decorant, PlatformBlockState surface) {
+    static boolean isValidShorelineSupport(IrisDecorator decorator, NativeBlockState decorant, NativeBlockState surface) {
         return surface != null
                 && B.isSolid(surface)
                 && (decorator.isForcePlace() || canGoOn(decorant, surface));
     }
 
-    static boolean canReplaceStackTarget(PlatformBlockState state, boolean allowFluid) {
+    static boolean canReplaceStackTarget(NativeBlockState state, boolean allowFluid) {
         return B.isAir(state) || allowFluid && B.isFluid(state);
     }
 
-    private static boolean canPlaceTwoBlockPlant(Hunk<PlatformBlockState> data, int x, int z,
+    private static boolean canPlaceTwoBlockPlant(Hunk<NativeBlockState> data, int x, int z,
                                                  int lowerY, int upperY, boolean caveSkipFluid) {
         if (lowerY < 0 || upperY >= data.getHeight()) {
             return false;
         }
 
-        PlatformBlockState lower = data.get(x, lowerY, z);
-        PlatformBlockState upper = data.get(x, upperY, z);
+        NativeBlockState lower = data.get(x, lowerY, z);
+        NativeBlockState upper = data.get(x, upperY, z);
         return B.isAir(lower) && B.isAir(upper)
                 && (!caveSkipFluid || !B.isFluid(lower) && !B.isFluid(upper));
     }
@@ -510,13 +510,13 @@ final class DecoratorCore {
         return stack;
     }
 
-    private static boolean allowsSurface(IrisDecorator decorator, PlatformBlockState surface, IrisData data) {
+    private static boolean allowsSurface(IrisDecorator decorator, NativeBlockState surface, IrisData data) {
         return decorator.isForcePlace()
                 || (decorator.getWhitelist() == null || matchesPalette(decorator.getWhitelistArray(data), surface))
                 && (decorator.getBlacklist() == null || !matchesPalette(decorator.getBlacklistArray(data), surface));
     }
 
-    private static void placeSingleSpike(PlatformBlockState spike, Hunk<PlatformBlockState> data,
+    private static void placeSingleSpike(NativeBlockState spike, Hunk<NativeBlockState> data,
                                           int x, int z, int y, boolean upward, boolean allowWater) {
         if (!IrisSpeleothems.canPlace(spike, data, x, z, y, upward, allowWater)) {
             return;
@@ -525,15 +525,15 @@ final class DecoratorCore {
         IrisSpeleothems.finishColumn(data, x, z, y, 1, upward);
     }
 
-    private static void finishVineTip(Hunk<PlatformBlockState> data, int x, int z, int y) {
-        PlatformBlockState state = data.get(x, y, z);
-        PlatformBlockState tip = stackedVineBlock(state, 1, 0);
+    private static void finishVineTip(Hunk<NativeBlockState> data, int x, int z, int y) {
+        NativeBlockState state = data.get(x, y, z);
+        NativeBlockState tip = stackedVineBlock(state, 1, 0);
         if (tip != state) {
             data.set(x, y, z, tip);
         }
     }
 
-    static String stackedVineKey(PlatformBlockState state, int stack, int index) {
+    static String stackedVineKey(NativeBlockState state, int stack, int index) {
         String material = IrisProceduralBlocks.materialKey(state);
         boolean tip = index == stack - 1;
         return switch (material) {
@@ -543,7 +543,7 @@ final class DecoratorCore {
         };
     }
 
-    private static PlatformBlockState stackedVineBlock(PlatformBlockState state, int stack, int index) {
+    private static NativeBlockState stackedVineBlock(NativeBlockState state, int stack, int index) {
         String key = stackedVineKey(state, stack, index);
         if (key == null) {
             return state;

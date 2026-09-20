@@ -19,23 +19,33 @@
 package art.arcane.iris.modded;
 
 import net.minecraft.core.Direction;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import org.junit.Test;
+import org.junit.BeforeClass;
+import net.minecraft.SharedConstants;
+import net.minecraft.server.Bootstrap;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class ModdedBlockBreakHandlerTest {
+    @BeforeClass
+    public static void bootstrapMinecraftRegistries() {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+    }
+
     @Test
     public void exactMatchingIncludesPropertiesWhileTypeMatchingDoesNot() {
-        BlockState north = Blocks.OAK_STAIRS.defaultBlockState().setValue(StairBlock.FACING, Direction.NORTH);
-        BlockState east = Blocks.OAK_STAIRS.defaultBlockState().setValue(StairBlock.FACING, Direction.EAST);
+        ModdedBlockState north = ModdedBlockState.of(Blocks.OAK_STAIRS.defaultBlockState().setValue(StairBlock.FACING, Direction.NORTH), null);
+        ModdedBlockState east = ModdedBlockState.of(Blocks.OAK_STAIRS.defaultBlockState().setValue(StairBlock.FACING, Direction.EAST), null);
 
         assertTrue(ModdedBlockBreakHandler.matchesState(north, north, true));
         assertFalse(ModdedBlockBreakHandler.matchesState(north, east, true));
         assertTrue(ModdedBlockBreakHandler.matchesState(north, east, false));
-        assertFalse(ModdedBlockBreakHandler.matchesState(north, Blocks.COBBLESTONE.defaultBlockState(), false));
+        assertFalse(ModdedBlockBreakHandler.matchesState(north, ModdedBlockState.of(Blocks.COBBLESTONE.defaultBlockState(), null), false));
     }
 }

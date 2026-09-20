@@ -1,8 +1,18 @@
 package art.arcane.iris.nativegen.v26_3_R1;
 
+import art.arcane.volmlib.nativelib.terrain.structure.StructurePalette;
+
+import art.arcane.volmlib.nativelib.terrain.structure.StructureTerrainSettings;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureVerticalPlacer;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureReferenceEnvelope;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureTerrainIntegrator;
+
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
-import art.arcane.iris.structure.placement.IrisStructureTerrainMode;
+import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import art.arcane.iris.structure.placement.IrisStructureYBand;
 import art.arcane.volmlib.util.math.RNG;
 import net.minecraft.SharedConstants;
@@ -76,7 +86,7 @@ public class NativeStructurePostProcessorEncaseTest {
         NativeStructureTerrainIntegrator.integrateTerrain(
                 world(blocks), area, "minecraft:stronghold", start,
                 new IrisStructureTerrain()
-                        .setMode(IrisStructureTerrainMode.ENCASE)
+                        .setMode(StructureTerrainMode.ENCASE)
                         .setHorizontalPadding(1)
                         .setCeilingPadding(1)
                         .setFloorPadding(1),
@@ -100,7 +110,7 @@ public class NativeStructurePostProcessorEncaseTest {
 
         NativeStructureTerrainIntegrator.integrateTerrain(
                 world(blocks), bounds, "minecraft:stronghold", start,
-                new IrisStructureTerrain().setMode(IrisStructureTerrainMode.ENCASE),
+                new IrisStructureTerrain().setMode(StructureTerrainMode.ENCASE),
                 null);
 
         assertEquals(-1, bounds.minY());
@@ -181,7 +191,7 @@ public class NativeStructurePostProcessorEncaseTest {
                         world(new HashMap<>()), area,
                         List.of(new NativeStructureTerrainIntegrator.TerrainTarget(
                                 "test:bounded-snapshot", start,
-                                new IrisStructureTerrain().setMode(IrisStructureTerrainMode.SOURCE))));
+                                new IrisStructureTerrain().setMode(StructureTerrainMode.SOURCE))));
 
         assertNotNull(sourceTerrain);
         assertEquals(23 * 16 * 16, sourceTerrain.sampledCells());
@@ -210,7 +220,7 @@ public class NativeStructurePostProcessorEncaseTest {
         NativeStructureTerrainIntegrator.integrateTerrain(
                 world(blocks), bounds, "minecraft:stronghold", start,
                 new IrisStructureTerrain()
-                        .setMode(IrisStructureTerrainMode.ENCASE)
+                        .setMode(StructureTerrainMode.ENCASE)
                         .setEncasePalette(palette),
                 NativeStructurePostProcessorEncaseTest::tuffBlock);
 
@@ -221,10 +231,10 @@ public class NativeStructurePostProcessorEncaseTest {
     @Test
     public void omittedTerrainConfigurationRetainsSourceSemantics() {
         for (TerrainAdjustment adjustment : TerrainAdjustment.values()) {
-            IrisStructureTerrain resolved = NativeStructureTerrainIntegrator.resolveNativeTerrain(
+            StructureTerrainSettings resolved = NativeStructureTerrainIntegrator.resolveNativeTerrain(
                     start(adjustment, 64), null);
 
-            assertEquals(IrisStructureTerrainMode.SOURCE, resolved.resolvedMode());
+            assertEquals(StructureTerrainMode.SOURCE, resolved.resolvedMode());
         }
     }
 
@@ -240,7 +250,7 @@ public class NativeStructurePostProcessorEncaseTest {
 
         NativeStructureTerrainIntegrator.integrateTerrain(
                 world(blocks), area, "test:bury", start,
-                new IrisStructureTerrain().setMode(IrisStructureTerrainMode.SOURCE), null);
+                new IrisStructureTerrain().setMode(StructureTerrainMode.SOURCE), null);
 
         assertEquals(Blocks.STONE.defaultBlockState(),
                 state(blocks, bounds.minX() - 5, groundY, bounds.minZ()));
@@ -267,7 +277,7 @@ public class NativeStructurePostProcessorEncaseTest {
 
         NativeStructureTerrainIntegrator.integrateTerrain(
                 world(blocks), area, "test:encapsulate", start,
-                new IrisStructureTerrain().setMode(IrisStructureTerrainMode.SOURCE), null);
+                new IrisStructureTerrain().setMode(StructureTerrainMode.SOURCE), null);
 
         assertEquals(Blocks.STONE.defaultBlockState(),
                 state(blocks, bounds.minX() - 11, bounds.minY(), bounds.minZ()));
@@ -304,7 +314,7 @@ public class NativeStructurePostProcessorEncaseTest {
     @Test
     public void explicitTerrainConfigurationWinsOverAutoEncase() {
         IrisStructureTerrain configured = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.PRESERVE);
+                .setMode(StructureTerrainMode.PRESERVE);
 
         assertSame(configured, NativeStructureTerrainIntegrator.resolveNativeTerrain(
                 start(TerrainAdjustment.BURY, 64), configured));
@@ -313,11 +323,11 @@ public class NativeStructurePostProcessorEncaseTest {
     @Test
     public void legacyTemplateAirIsClearedAfterEveryTerrainFillPath() {
         IrisStructureTerrain source = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.SOURCE);
+                .setMode(StructureTerrainMode.SOURCE);
         IrisStructureTerrain preserve = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.PRESERVE);
+                .setMode(StructureTerrainMode.PRESERVE);
         IrisStructureTerrain encase = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.ENCASE);
+                .setMode(StructureTerrainMode.ENCASE);
 
         assertTrue(NativeStructureTerrainIntegrator.clearsLegacyTemplateAir(
                 start(TerrainAdjustment.BURY, 64), source));
@@ -337,7 +347,7 @@ public class NativeStructurePostProcessorEncaseTest {
         BoundingBox sourceBounds = generated.getBoundingBox();
         BoundingBox content = NativeStructureReferenceEnvelope.contentBounds(generated);
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.ENCASE)
+                .setMode(StructureTerrainMode.ENCASE)
                 .setHorizontalPadding(4);
 
         StructureStart wrapped = NativeStructureReferenceEnvelope.wrap(
@@ -373,7 +383,7 @@ public class NativeStructurePostProcessorEncaseTest {
         StructureStart generated = start(TerrainAdjustment.BURY, 64);
         BoundingBox content = NativeStructureReferenceEnvelope.contentBounds(generated);
         IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.ENCASE)
+                .setMode(StructureTerrainMode.ENCASE)
                 .setHorizontalPadding(112);
 
         StructureStart wrapped = NativeStructureReferenceEnvelope.wrap(
@@ -446,7 +456,7 @@ public class NativeStructurePostProcessorEncaseTest {
         assertEquals(minY, start.getBoundingBox().minY());
     }
 
-    private static BlockState tuffBlock(IrisMaterialPalette palette, RNG rng, int x, int y, int z) {
+    private static BlockState tuffBlock(StructurePalette palette, RNG rng, int x, int y, int z) {
         assertNotNull(palette);
         assertNotNull(rng);
         return Blocks.TUFF.defaultBlockState();

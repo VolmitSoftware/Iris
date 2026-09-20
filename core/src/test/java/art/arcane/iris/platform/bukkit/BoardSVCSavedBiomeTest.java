@@ -21,7 +21,7 @@ import art.arcane.iris.platform.generation.PlatformChunkGenerator;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.world.task.J;
@@ -80,7 +80,7 @@ public class BoardSVCSavedBiomeTest {
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformRegistries registries = mock(PlatformRegistries.class);
         when(platform.registries()).thenReturn(registries);
-        when(registries.block(anyString())).thenReturn(mock(PlatformBlockState.class));
+        when(registries.block(anyString())).thenReturn(mock(NativeBlockState.class));
         IrisPlatforms.bind(platform);
     }
 

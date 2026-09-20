@@ -1,13 +1,13 @@
 package art.arcane.iris.client;
 
+import art.arcane.volmlib.nativelib.client.ClientGraphics;
+import art.arcane.volmlib.nativelib.minecraft26_2.client.NativeClientAccess;
+
 import art.arcane.iris.modded.localization.ClientUiMessages;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.iris.spi.protocol.IrisMessage;
 import art.arcane.volmlib.util.localization.MessageArgument;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * CLIENT DIST ONLY. See {@link IrisClientHud} for why the dist marker is a javadoc contract plus a bytecode
@@ -39,7 +39,7 @@ public final class IrisPregenHud {
     private IrisPregenHud() {
     }
 
-    public static void render(GuiGraphicsExtractor graphics) {
+    public static void render(ClientGraphics graphics) {
         if (!IrisClient.hudVisible()) {
             return;
         }
@@ -48,11 +48,9 @@ public final class IrisPregenHud {
         if (progress == null || pregen.activeExpired()) {
             return;
         }
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft == null || minecraft.player == null) {
+        if (!NativeClientAccess.playerPresent()) {
             return;
         }
-        Font font = minecraft.font;
         boolean stale = pregen.activeStale();
         boolean paused = progress.state() == IrisMessage.PregenProgress.STATE_PAUSED;
         double percent = progress.chunksTotal() > 0L
@@ -68,8 +66,8 @@ public final class IrisPregenHud {
         String tail = tail(progress, pregen, stale, paused);
         int accent = stale ? STALE_COLOR : paused ? PAUSED_COLOR : BAR_RUNNING_COLOR;
 
-        int lineHeight = font.lineHeight;
-        int contentWidth = Math.max(MIN_WIDTH, Math.max(font.width(title), Math.max(font.width(stats), font.width(tail))));
+        int lineHeight = graphics.lineHeight();
+        int contentWidth = Math.max(MIN_WIDTH, Math.max(graphics.textWidth(title), Math.max(graphics.textWidth(stats), graphics.textWidth(tail))));
         int contentHeight = lineHeight * 3 + ROW_GAP * 3 + BAR_HEIGHT;
 
         IrisClientRegionMap regionMap = IrisClient.regions();
@@ -91,9 +89,9 @@ public final class IrisPregenHud {
         graphics.fill(ORIGIN_X - PADDING, ORIGIN_Y - PADDING, ORIGIN_X + panelWidth + PADDING, ORIGIN_Y + panelHeight + PADDING, PANEL_COLOR);
 
         int cursorY = ORIGIN_Y;
-        graphics.text(font, title, ORIGIN_X, cursorY, stale ? STALE_COLOR : TITLE_COLOR);
+        graphics.text(title, ORIGIN_X, cursorY, stale ? STALE_COLOR : TITLE_COLOR);
         cursorY += lineHeight + ROW_GAP;
-        graphics.text(font, stats, ORIGIN_X, cursorY, stale ? STALE_COLOR : TEXT_COLOR);
+        graphics.text(stats, ORIGIN_X, cursorY, stale ? STALE_COLOR : TEXT_COLOR);
         cursorY += lineHeight + ROW_GAP;
 
         int fillWidth = (int) Math.round(contentWidth * (percent / 100.0D));
@@ -103,14 +101,14 @@ public final class IrisPregenHud {
         }
         cursorY += BAR_HEIGHT + ROW_GAP;
 
-        graphics.text(font, tail, ORIGIN_X, cursorY, stale ? STALE_COLOR : paused ? PAUSED_COLOR : MUTED_COLOR);
+        graphics.text(tail, ORIGIN_X, cursorY, stale ? STALE_COLOR : paused ? PAUSED_COLOR : MUTED_COLOR);
 
         if (showMap) {
             renderMinimap(graphics, regionMap, bounds, cellPx, gridWidth, gridHeight, ORIGIN_Y + contentHeight + MINIMAP_GAP);
         }
     }
 
-    private static void renderMinimap(GuiGraphicsExtractor graphics, IrisClientRegionMap regionMap, IrisClientRegionMap.Bounds bounds, int cellPx, int gridWidth, int gridHeight, int gridTop) {
+    private static void renderMinimap(ClientGraphics graphics, IrisClientRegionMap regionMap, IrisClientRegionMap.Bounds bounds, int cellPx, int gridWidth, int gridHeight, int gridTop) {
         int mapLeft = ORIGIN_X;
         int mapRight = mapLeft + gridWidth;
         int mapBottom = gridTop + gridHeight;

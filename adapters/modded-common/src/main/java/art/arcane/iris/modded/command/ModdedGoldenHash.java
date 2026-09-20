@@ -24,12 +24,10 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.modded.ModdedBlockBuffer;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,16 +46,14 @@ public final class ModdedGoldenHash {
 
     private static final AtomicBoolean ACTIVE = new AtomicBoolean(false);
 
-    private final CommandSourceStack source;
-    private final MinecraftServer server;
+    private final NativeCommandSource source;
     private final Engine engine;
     private final GoldenHashEngine hashEngine;
 
-    private ModdedGoldenHash(CommandSourceStack source, ServerLevel level, Engine engine, int radius, int threads, Mode mode) {
+    private ModdedGoldenHash(NativeCommandSource source, Engine engine, ScanOptions options) {
         this.source = source;
-        this.server = source.getServer();
         this.engine = engine;
-        GoldenHashEngine.Mode engineMode = switch (mode) {
+        GoldenHashEngine.Mode engineMode = switch (options.mode()) {
             case AUTO -> GoldenHashEngine.Mode.AUTO;
             case CAPTURE -> GoldenHashEngine.Mode.CAPTURE;
             case VERIFY -> GoldenHashEngine.Mode.VERIFY;
@@ -71,8 +67,8 @@ public final class ModdedGoldenHash {
                 engine.getMaxHeight(),
                 0,
                 0,
-                radius,
-                threads,
+                options.radius(),
+                options.threads(),
                 engineMode,
                 true,
                 false,
@@ -80,22 +76,22 @@ public final class ModdedGoldenHash {
         this.hashEngine = new GoldenHashEngine(engine, request, goldenDir, this::snapshot, feedback(), progress());
     }
 
-    public static void start(CommandSourceStack source, ServerLevel level, Engine engine, int radius, int threads, Mode mode) {
+    public static void start(NativeCommandSource source, Engine engine, ScanOptions options) {
         if (!ACTIVE.compareAndSet(false, true)) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_GOLDEN_HASH_GOLDENHASH_SCAN_IS_ALREADY_RUNNING));
             return;
         }
-        ModdedGoldenHash scan = new ModdedGoldenHash(source, level, engine, radius, threads, mode);
-        int boundedRadius = Math.max(0, radius);
+        ModdedGoldenHash scan = new ModdedGoldenHash(source, engine, options);
+        int boundedRadius = Math.max(0, options.radius());
         int chunks = (boundedRadius * 2 + 1) * (boundedRadius * 2 + 1);
         scan.ok(IrisLanguage.plain(
                 RuntimeProgressMessages.GOLDEN_STARTED,
                 MessageArgument.trusted("chunks", chunks),
-                MessageArgument.trusted("threads", Math.max(1, threads)),
-                MessageArgument.untrusted("mode", mode)
+                MessageArgument.trusted("threads", Math.max(1, options.threads())),
+                MessageArgument.untrusted("mode", options.mode())
         ));
         ModdedIrisLog.info("goldenhash start: dim={} seed={} radius={} threads={} mode={} file={}",
-                engine.getDimension().getLoadKey(), engine.getSeedManager().getSeed(), boundedRadius, Math.max(1, threads), mode, scan.hashEngine.getGoldenFile().getName());
+                engine.getDimension().getLoadKey(), engine.getSeedManager().getSeed(), boundedRadius, Math.max(1, options.threads()), options.mode(), scan.hashEngine.getGoldenFile().getName());
         Thread thread = new Thread(() -> {
             try {
                 scan.hashEngine.run();
@@ -110,9 +106,9 @@ public final class ModdedGoldenHash {
     private GoldenHashEngine.ChunkSnapshot snapshot(int chunkX, int chunkZ) throws Exception {
         int minY = engine.getMinHeight();
         int height = engine.getMaxHeight() - minY;
-        PlatformBlockState air = IrisPlatforms.get().registries().air();
+        NativeBlockState air = IrisPlatforms.get().registries().air();
         ModdedBlockBuffer blocks = new ModdedBlockBuffer(height, air);
-        Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(16, height, 16);
+        Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, height, 16);
         engine.generate(chunkX << 4, chunkZ << 4, blocks, biomes, false);
         return new GoldenHashEngine.ChunkSnapshot() {
             @Override
@@ -126,12 +122,12 @@ public final class ModdedGoldenHash {
             }
 
             @Override
-            public PlatformBlockState block(int x, int y, int z) {
+            public NativeBlockState block(int x, int y, int z) {
                 return blocks.get(x, y - minY, z);
             }
 
             @Override
-            public PlatformBiome biome(int x, int y, int z) {
+            public NativeBiome biome(int x, int y, int z) {
                 return biomes.get(x, y - minY, z);
             }
         };
@@ -191,11 +187,14 @@ public final class ModdedGoldenHash {
         };
     }
 
+    public record ScanOptions(int radius, int threads, Mode mode) {
+    }
+
     private void ok(String message) {
-        server.execute(() -> IrisModdedCommands.ok(source, message));
+        source.execute(() -> IrisModdedCommands.ok(source, message));
     }
 
     private void fail(String message) {
-        server.execute(() -> IrisModdedCommands.fail(source, message));
+        source.execute(() -> IrisModdedCommands.fail(source, message));
     }
 }

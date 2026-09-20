@@ -4,7 +4,7 @@ import art.arcane.iris.generation.block.BlockDataMergeSupport;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.structure.object.IrisObjectRotation;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KMap;
 import org.junit.Test;
 
@@ -19,8 +19,8 @@ import static org.mockito.Mockito.when;
 public class PlatformStateHookContractTest {
     @Test
     public void boundRotatorWinsWhenBukkitClassesArePresent() {
-        PlatformBlockState source = mock(PlatformBlockState.class);
-        PlatformBlockState rotated = mock(PlatformBlockState.class);
+        NativeBlockState source = mock(NativeBlockState.class);
+        NativeBlockState rotated = mock(NativeBlockState.class);
         IrisObjectRotation.StateRotator hook = mock(IrisObjectRotation.StateRotator.class);
         IrisObjectRotation rotation = new IrisObjectRotation();
         when(hook.rotate(rotation, source, 1, 2, 3)).thenReturn(rotated);
@@ -34,9 +34,9 @@ public class PlatformStateHookContractTest {
 
     @Test
     public void boundMergerWinsWhenBukkitClassesArePresent() {
-        PlatformBlockState base = mock(PlatformBlockState.class);
-        PlatformBlockState update = mock(PlatformBlockState.class);
-        PlatformBlockState merged = mock(PlatformBlockState.class);
+        NativeBlockState base = mock(NativeBlockState.class);
+        NativeBlockState update = mock(NativeBlockState.class);
+        NativeBlockState merged = mock(NativeBlockState.class);
         BlockDataMergeSupport.StateMerger hook = mock(BlockDataMergeSupport.StateMerger.class);
         when(hook.merge(base, update)).thenReturn(merged);
         BlockDataMergeSupport.StateMerger previous = BlockDataMergeSupport.bindPlatformMerger(hook);
@@ -49,7 +49,7 @@ public class PlatformStateHookContractTest {
 
     @Test
     public void boundTileFactoryWinsWhenBukkitClassesArePresent() {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+        NativeBlockState state = mock(NativeBlockState.class);
         KMap<String, Object> properties = new KMap<>();
         TileData expected = mock(TileData.class);
         TileData.TileFactory hook = mock(TileData.TileFactory.class);

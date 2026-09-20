@@ -1,8 +1,10 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockProperties;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
 import art.arcane.iris.generation.decoration.DecoratorPlatformHooks;
 import art.arcane.iris.generation.decoration.IrisSpeleothems;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 
 import net.minecraft.SharedConstants;
@@ -35,38 +37,38 @@ public class ModdedBlockResolutionContractTest {
 
     @Test
     public void getOrNullReturnsNullForUnknownKey() {
-        assertNull(ModdedBlockResolution.getOrNull(UNKNOWN));
-        assertNull(ModdedBlockResolution.getOrNull(UNKNOWN, true));
+        assertNull(ModdedBlockResolution.BLOCKS.getOrNull(UNKNOWN));
+        assertNull(ModdedBlockResolution.BLOCKS.getOrNull(UNKNOWN, true));
     }
 
     @Test
     public void getFallsBackToAirForUnknownKey() {
-        ModdedBlockState state = ModdedBlockResolution.get(UNKNOWN);
+        ModdedBlockState state = ModdedBlockResolution.BLOCKS.get(UNKNOWN);
         assertNotNull(state);
         assertEquals(Blocks.AIR, state.handle().getBlock());
     }
 
     @Test
     public void getOrNullResolvesKnownKeyWithProperties() {
-        ModdedBlockState state = ModdedBlockResolution.getOrNull("minecraft:oak_log[axis=x]", true);
+        ModdedBlockState state = ModdedBlockResolution.BLOCKS.getOrNull("minecraft:oak_log[axis=x]", true);
         assertNotNull(state);
         assertEquals(Blocks.OAK_LOG, state.handle().getBlock());
     }
 
     @Test
     public void unknownPropertyFallsBackToDefaultState() {
-        ModdedBlockState state = ModdedBlockResolution.getOrNull("minecraft:oak_log[not_a_property=x]", true);
+        ModdedBlockState state = ModdedBlockResolution.BLOCKS.getOrNull("minecraft:oak_log[not_a_property=x]", true);
         assertNotNull(state);
         assertEquals(Blocks.OAK_LOG, state.handle().getBlock());
     }
 
     @Test
     public void cactusPlacementRequiresNativeCactusSupport() {
-        assertTrue(ModdedBlockResolution.canPlaceOnto(Blocks.CACTUS, Blocks.CACTUS));
-        assertTrue(ModdedBlockResolution.canPlaceOnto(Blocks.CACTUS, Blocks.SAND));
-        assertTrue(ModdedBlockResolution.canPlaceOnto(Blocks.CACTUS, Blocks.RED_SAND));
-        assertFalse(ModdedBlockResolution.canPlaceOnto(Blocks.CACTUS, Blocks.STONE));
-        assertTrue(ModdedBlockResolution.isDecorant(Blocks.CACTUS.defaultBlockState()));
+        assertTrue(NativeBlockProperties.canPlaceOnto(Blocks.CACTUS, Blocks.CACTUS));
+        assertTrue(NativeBlockProperties.canPlaceOnto(Blocks.CACTUS, Blocks.SAND));
+        assertTrue(NativeBlockProperties.canPlaceOnto(Blocks.CACTUS, Blocks.RED_SAND));
+        assertFalse(NativeBlockProperties.canPlaceOnto(Blocks.CACTUS, Blocks.STONE));
+        assertTrue(NativeBlockProperties.isDecorant(Blocks.CACTUS.defaultBlockState()));
     }
 
     @Test
@@ -74,11 +76,11 @@ public class ModdedBlockResolutionContractTest {
         for (Block block : new Block[]{Blocks.SUGAR_CANE, Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.COARSE_DIRT,
                 Blocks.PODZOL, Blocks.MYCELIUM, Blocks.ROOTED_DIRT, Blocks.MOSS_BLOCK, Blocks.PALE_MOSS_BLOCK,
                 Blocks.MUD, Blocks.MUDDY_MANGROVE_ROOTS, Blocks.SAND, Blocks.RED_SAND, Blocks.SUSPICIOUS_SAND}) {
-            assertTrue(block.toString(), ModdedBlockResolution.canPlaceOnto(Blocks.SUGAR_CANE, block));
+            assertTrue(block.toString(), NativeBlockProperties.canPlaceOnto(Blocks.SUGAR_CANE, block));
         }
         for (Block block : new Block[]{Blocks.STONE, Blocks.GRAVEL, Blocks.CLAY, Blocks.DIRT_PATH,
                 Blocks.FARMLAND, Blocks.AIR, Blocks.WATER}) {
-            assertFalse(block.toString(), ModdedBlockResolution.canPlaceOnto(Blocks.SUGAR_CANE, block));
+            assertFalse(block.toString(), NativeBlockProperties.canPlaceOnto(Blocks.SUGAR_CANE, block));
         }
     }
 
@@ -87,11 +89,11 @@ public class ModdedBlockResolutionContractTest {
         for (Block block : new Block[]{Blocks.SULFUR_SPIKE, Blocks.POINTED_DRIPSTONE}) {
             for (SpeleothemThickness thickness : SpeleothemThickness.values()) {
                 assertEquals(thickness == SpeleothemThickness.TIP,
-                        ModdedBlockResolution.isUpdatable(block.defaultBlockState()
+                        NativeBlockProperties.isUpdatable(block.defaultBlockState()
                                 .setValue(SpeleothemBlock.THICKNESS, thickness)));
             }
         }
-        assertFalse(ModdedBlockResolution.isUpdatable(Blocks.STONE.defaultBlockState()));
+        assertFalse(NativeBlockProperties.isUpdatable(Blocks.STONE.defaultBlockState()));
     }
     @Test
     public void nativeSpikesUseModdedSupportFaces() {
@@ -100,14 +102,14 @@ public class ModdedBlockResolutionContractTest {
         try {
             for (String material : new String[]{"minecraft:sulfur_spike", "minecraft:pointed_dripstone"}) {
                 for (boolean upward : new boolean[]{true, false}) {
-                    Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 3, 1);
-                    PlatformBlockState spike = ModdedBlockResolution.get(material
+                    Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 3, 1);
+                    NativeBlockState spike = ModdedBlockResolution.BLOCKS.get(material
                             + "[vertical_direction=" + (upward ? "up" : "down") + ",thickness=tip]");
                     int supportY = upward ? 0 : 2;
                     output.set(0, 1, 0, spike);
-                    output.set(0, supportY, 0, ModdedBlockResolution.get("minecraft:stone_slab[type=top]"));
+                    output.set(0, supportY, 0, ModdedBlockResolution.BLOCKS.get("minecraft:stone_slab[type=top]"));
                     assertEquals(upward, IrisSpeleothems.isSupported(spike, output, 0, 0, 1));
-                    output.set(0, supportY, 0, ModdedBlockResolution.get("minecraft:stone_slab[type=bottom]"));
+                    output.set(0, supportY, 0, ModdedBlockResolution.BLOCKS.get("minecraft:stone_slab[type=bottom]"));
                     assertEquals(!upward, IrisSpeleothems.isSupported(spike, output, 0, 0, 1));
                 }
             }

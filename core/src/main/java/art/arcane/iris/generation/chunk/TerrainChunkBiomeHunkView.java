@@ -18,12 +18,12 @@
 
 package art.arcane.iris.generation.chunk;
 
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.hunk.storage.StorageHunk;
 import art.arcane.volmlib.util.hunk.HunkMutationSupport;
 
-public class TerrainChunkBiomeHunkView extends StorageHunk<PlatformBiome> implements Hunk<PlatformBiome> {
+public class TerrainChunkBiomeHunkView extends StorageHunk<NativeBiome> implements Hunk<NativeBiome> {
     private final TerrainChunk chunk;
 
     public TerrainChunkBiomeHunkView(TerrainChunk chunk) {
@@ -37,7 +37,7 @@ public class TerrainChunkBiomeHunkView extends StorageHunk<PlatformBiome> implem
      * through to the generic element wise write.
      */
     @Override
-    public void set(int x1, int y1, int z1, int x2, int y2, int z2, PlatformBiome biome) {
+    public void set(int x1, int y1, int z1, int x2, int y2, int z2, NativeBiome biome) {
         if (x1 == x2 && z1 == z2 && y1 == 0 && y2 == getHeight() - 1 && chunk instanceof LinkedTerrainChunk linked) {
             linked.fillBiomeColumn(x1, z1, biome);
             return;
@@ -47,12 +47,12 @@ public class TerrainChunkBiomeHunkView extends StorageHunk<PlatformBiome> implem
     }
 
     @Override
-    public void setRaw(int x, int y, int z, PlatformBiome biome) {
+    public void setRaw(int x, int y, int z, NativeBiome biome) {
         chunk.setBiome(x, y + chunk.getMinHeight(), z, biome);
     }
 
     @Override
-    public PlatformBiome getRaw(int x, int y, int z) {
+    public NativeBiome getRaw(int x, int y, int z) {
         return chunk.getBiome(x, y + chunk.getMinHeight(), z);
     }
 }

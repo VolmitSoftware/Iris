@@ -46,7 +46,7 @@ import art.arcane.iris.studio.render.RenderType;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.IrisRegistrant;
 import art.arcane.iris.generation.runtime.IrisComplex;
-import art.arcane.iris.generation.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
@@ -72,7 +72,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.bukkit.block.Biome;
 
 import java.awt.Color;
@@ -265,19 +265,19 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         return IrisBiomeOres.hasSurfaceOreReplaceableBlocks(this);
     }
 
-    public boolean canReplaceSurfaceOre(PlatformBlockState state) {
+    public boolean canReplaceSurfaceOre(NativeBlockState state) {
         return IrisBiomeOres.canReplaceSurfaceOre(this, state);
     }
 
-    public PlatformBlockState generateOres(int x, int y, int z, RNG rng, IrisData data, boolean surface) {
+    public NativeBlockState generateOres(int x, int y, int z, RNG rng, IrisData data, boolean surface) {
         return IrisBiomeOres.generateOres(this, x, y, z, rng, data, surface);
     }
 
-    public PlatformBlockState generateSurfaceOres(int x, int y, int z, RNG rng, IrisData data) {
+    public NativeBlockState generateSurfaceOres(int x, int y, int z, RNG rng, IrisData data) {
         return IrisBiomeOres.generateSurfaceOres(this, x, y, z, rng, data);
     }
 
-    public PlatformBlockState generateUndergroundOres(int x, int y, int z, RNG rng, IrisData data) {
+    public NativeBlockState generateUndergroundOres(int x, int y, int z, RNG rng, IrisData data) {
         return IrisBiomeOres.generateUndergroundOres(this, x, y, z, rng, data);
     }
 
@@ -522,23 +522,23 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         return childrenCell.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137), getLoader()).bake().scale(scale).bake());
     }
 
-    public KList<PlatformBlockState> generateLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
+    public KList<NativeBlockState> generateLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
         return IrisBiomeLayerGenerator.generateLayers(this, dim, wx, wz, random, maxDepth, height, rdata, complex);
     }
 
-    public KList<PlatformBlockState> generateLayersWithSlope(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, ProceduralStream<Double> slopeStream) {
+    public KList<NativeBlockState> generateLayersWithSlope(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, ProceduralStream<Double> slopeStream) {
         return IrisBiomeLayerGenerator.generateLayers(this, dim, wx, wz, random, maxDepth, height, rdata, slopeStream);
     }
 
-    public KList<PlatformBlockState> generateCeilingLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
+    public KList<NativeBlockState> generateCeilingLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
         return IrisBiomeLayerGenerator.generateCeilingLayers(this, dim, wx, wz, random, maxDepth, height, rdata, complex);
     }
 
-    public KList<PlatformBlockState> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height, IrisData rdata, IrisComplex complex) {
+    public KList<NativeBlockState> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height, IrisData rdata, IrisComplex complex) {
         return IrisBiomeLayerGenerator.generateLockedLayers(this, wx, wz, random, maxDepthf, height, rdata, complex);
     }
 
-    public KList<PlatformBlockState> generateSeaLayers(double wx, double wz, RNG random, int maxDepth, IrisData rdata) {
+    public KList<NativeBlockState> generateSeaLayers(double wx, double wz, RNG random, int maxDepth, IrisData rdata) {
         return IrisBiomeLayerGenerator.generateSeaLayers(this, wx, wz, random, maxDepth, rdata);
     }
 
@@ -562,7 +562,7 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         return IrisBiomeLayerGenerator.getLayerSeaHeightGenerators(this, rng, data);
     }
 
-    public PlatformBlockState getSurfaceBlock(int x, int z, RNG rng, IrisData idm) {
+    public NativeBlockState getSurfaceBlock(int x, int z, RNG rng, IrisData idm) {
         return IrisBiomeLayerGenerator.getSurfaceBlock(this, x, z, rng, idm);
     }
 

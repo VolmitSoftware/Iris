@@ -20,7 +20,7 @@ package art.arcane.iris.generation.decoration.ruin;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -47,7 +47,7 @@ final class RuinDecoratorApplier {
             if (!rng.chance(decorator.getChance())) {
                 continue;
             }
-            PlatformBlockState bd = IrisProceduralBlocks.resolve(decorator.getBlock(), decorator.getPalette(), data, v.getBlockX(), v.getBlockY(), v.getBlockZ(), paletteRng);
+            NativeBlockState bd = IrisProceduralBlocks.resolve(decorator.getBlock(), decorator.getPalette(), data, v.getBlockX(), v.getBlockY(), v.getBlockZ(), paletteRng);
             if (bd != null) {
                 canvas.accent(v.getBlockX(), v.getBlockY(), v.getBlockZ(), bd);
             }

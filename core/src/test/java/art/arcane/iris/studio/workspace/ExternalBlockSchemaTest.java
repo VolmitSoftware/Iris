@@ -7,7 +7,7 @@ import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockProperty;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.json.JSONObject;
@@ -38,7 +38,7 @@ public class ExternalBlockSchemaTest {
         PlatformRegistries registries = mock(PlatformRegistries.class);
         when(registries.blockTypeKeys()).thenReturn(List.of(QUALIFIED_BLOCK));
         when(registries.blockStateProperties()).thenReturn(Map.of(QUALIFIED_BLOCK,
-                List.of(new PlatformBlockProperty("axis", "string", "y", List.of("x", "y", "z"), null))));
+                List.of(new NativeBlockProperty("axis", "string", "y", List.of("x", "y", "z"), null))));
         IrisPlatform platform = mock(IrisPlatform.class);
         when(platform.registries()).thenReturn(registries);
         IrisPlatforms.bind(platform);

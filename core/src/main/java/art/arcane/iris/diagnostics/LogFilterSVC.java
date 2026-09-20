@@ -1,5 +1,7 @@
 package art.arcane.iris.diagnostics;
 
+import art.arcane.volmlib.nativelib.NativeAdapters;
+import art.arcane.volmlib.nativelib.server.NativeServerDiagnostics;
 import art.arcane.iris.platform.bukkit.plugin.IrisService;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -15,19 +17,20 @@ import java.util.List;
 public class LogFilterSVC implements IrisService, Filter {
 
     private static final String HEIGHTMAP_MISMATCH = "Ignoring heightmap data for chunk";
-    private static final String RAID_PERSISTENCE = "Could not save data net.minecraft.world.entity.raid.PersistentRaid";
     private static final String DUPLICATE_ENTITY_UUID = "UUID of added entity already exists";
 
     // Immutable: check() runs on arbitrary logger threads, and the root logger is JVM-global,
     // so a mutable static here was both a CME hazard and grew by three entries per enable.
-    private static final List<String> FILTERS = List.of(HEIGHTMAP_MISMATCH, RAID_PERSISTENCE, DUPLICATE_ENTITY_UUID);
+    private static final List<String> FILTERS = List.of(HEIGHTMAP_MISMATCH, DUPLICATE_ENTITY_UUID);
 
+    private volatile NativeServerDiagnostics diagnostics;
     private LoggerConfig installedLogger;
 
     public void onEnable() {
         if (installedLogger != null) {
             return;
         }
+        diagnostics = NativeAdapters.find(NativeServerDiagnostics.class).orElse(null);
         LoggerConfig logger = ((Logger) LogManager.getRootLogger()).get();
         logger.addFilter(this);
         installedLogger = logger;
@@ -134,6 +137,9 @@ public class LogFilterSVC implements IrisService, Filter {
     private Result check(String string) {
         if (string == null) {
             return Result.NEUTRAL;
+        }
+        if (diagnostics != null && diagnostics.isRaidPersistenceMessage(string)) {
+            return Result.DENY;
         }
         for (String filter : FILTERS) {
             if (string.contains(filter)) {

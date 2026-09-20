@@ -2,7 +2,7 @@ package art.arcane.iris.generation.biome;
 
 import art.arcane.iris.generation.terrain.IrisDimension;
 
-import art.arcane.iris.platform.bukkit.nms.datapack.IDataFixer;
+import art.arcane.iris.pack.datapack.IDataFixer;
 
 import java.io.IOException;
 import java.util.Collection;

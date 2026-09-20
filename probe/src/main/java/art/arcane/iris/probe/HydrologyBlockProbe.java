@@ -7,7 +7,7 @@ import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
 import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.RiverFootprint;
 import art.arcane.iris.generation.terrain.InferredType;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import com.google.gson.GsonBuilder;
 
 import javax.imageio.ImageIO;
@@ -73,7 +73,7 @@ public final class HydrologyBlockProbe {
         }
     }
 
-    record PlannedColumn(int naturalY, boolean ocean, HydrologyColumnLayer surface, PlatformBlockState fluid) {
+    record PlannedColumn(int naturalY, boolean ocean, HydrologyColumnLayer surface, NativeBlockState fluid) {
         boolean mouthAt(int seaLevel) {
             return surface != null && fluid != null && fluid.isWater()
                     && surface.feature().type() == HydrologyFeatureType.MOUTH
@@ -150,7 +150,7 @@ public final class HydrologyBlockProbe {
             return chunks.containsKey(RiverFootprint.pack(Math.floorDiv(x, 16), Math.floorDiv(z, 16)));
         }
 
-        PlatformBlockState block(int x, int y, int z) {
+        NativeBlockState block(int x, int y, int z) {
             RealPackProbeSupport.GeneratedChunk chunk = chunks.get(
                     RiverFootprint.pack(Math.floorDiv(x, 16), Math.floorDiv(z, 16)));
             return chunk == null || y < 0 || y >= height ? null : chunk.blockAt(x, y, z);
@@ -203,7 +203,7 @@ public final class HydrologyBlockProbe {
                     int natural = sample == null ? (int) Math.round(complex.getNaturalHeightStream().getDouble(x, z))
                             : sample.naturalHeight();
                     HydrologyColumnLayer layer = surfaceForInspection(sample);
-                    PlatformBlockState fluid = layer == null ? null : complex.resolveHydrologyFluid(
+                    NativeBlockState fluid = layer == null ? null : complex.resolveHydrologyFluid(
                             layer.profileKey(), x, z);
                     planned.put(RiverFootprint.pack(x, z), new PlannedColumn(natural, sample == null
                             ? complex.getBridgeStream().get(x, z) == InferredType.SEA : sample.ocean(), layer, fluid));
@@ -274,7 +274,7 @@ public final class HydrologyBlockProbe {
                     continue;
                 }
                 for (int y = 0; y < volume.height; y++) {
-                    PlatformBlockState block = volume.block(x, y, z);
+                    NativeBlockState block = volume.block(x, y, z);
                     if (key(block).equals("minecraft:sugar_cane")
                             && !key(volume.block(x, y - 1, z)).equals("minecraft:sugar_cane")) {
                         inspectCane(volume, block, x, y, z, evidence);
@@ -305,7 +305,7 @@ public final class HydrologyBlockProbe {
                 }
                 for (int y = Math.max(0, surface.bedY() + 1); y <= surface.fluidHeadY() && y < volume.height; y++) {
                     evidence.plannedWetVoxels++;
-                    PlatformBlockState actual = volume.block(x, y, z);
+                    NativeBlockState actual = volume.block(x, y, z);
                     boolean matches = column.fluid().isWater() ? water(actual)
                             : key(column.fluid()).equals(key(actual));
                     if (!matches) {
@@ -319,9 +319,9 @@ public final class HydrologyBlockProbe {
         return evidence;
     }
 
-    private static void inspectCane(Volume volume, PlatformBlockState cane, int x, int y, int z, Evidence evidence) {
+    private static void inspectCane(Volume volume, NativeBlockState cane, int x, int y, int z, Evidence evidence) {
         evidence.caneRoots++;
-        PlatformBlockState substrate = volume.block(x, y - 1, z);
+        NativeBlockState substrate = volume.block(x, y - 1, z);
         if (substrate == null || !cane.canPlaceOnto(substrate)) {
             evidence.invalidCaneSubstrates++;
             evidence.example("unsupported cane " + x + "," + y + "," + z + " on " + key(substrate));
@@ -335,7 +335,7 @@ public final class HydrologyBlockProbe {
                 censored = true;
                 continue;
             }
-            PlatformBlockState adjacent = volume.block(nx, y - 1, nz);
+            NativeBlockState adjacent = volume.block(nx, y - 1, nz);
             if (water(adjacent) || key(adjacent).equals("minecraft:frosted_ice")) {
                 evidence.validCaneRoots++;
                 return;
@@ -447,7 +447,7 @@ public final class HydrologyBlockProbe {
         for (int z = volume.minimumZ; z <= volume.maximumZ; z++) {
             for (int x = volume.minimumX; x <= volume.maximumX; x++) {
                 for (int y = volume.height - 1; y >= 0; y--) {
-                    PlatformBlockState block = volume.block(x, y, z);
+                    NativeBlockState block = volume.block(x, y, z);
                     if (block != null && !block.isAir()) {
                         overhead.setRGB(x - volume.minimumX, z - volume.minimumZ, color(block));
                         break;
@@ -482,7 +482,7 @@ public final class HydrologyBlockProbe {
         return List.copyOf(artifacts);
     }
 
-    private static int color(PlatformBlockState block) {
+    private static int color(NativeBlockState block) {
         if (block == null || block.isAir()) {
             return 0xC9E3F0;
         }
@@ -508,11 +508,11 @@ public final class HydrologyBlockProbe {
         return 0x888C90;
     }
 
-    private static boolean water(PlatformBlockState block) {
+    private static boolean water(NativeBlockState block) {
         return block != null && (block.isWater() || block.isWaterLogged());
     }
 
-    private static String key(PlatformBlockState block) {
+    private static String key(NativeBlockState block) {
         if (block == null) {
             return "minecraft:air";
         }

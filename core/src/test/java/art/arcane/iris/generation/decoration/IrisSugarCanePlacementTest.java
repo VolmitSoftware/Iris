@@ -7,7 +7,7 @@ import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
 import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
 import art.arcane.iris.generation.mantle.EngineMantle;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
@@ -80,8 +80,8 @@ public class IrisSugarCanePlacementTest {
         assertSame(fixture.cane, fixture.output.get(1, 4, 1));
     }
 
-    private static PlatformBlockState state(String key) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
+    private static NativeBlockState state(String key) {
+        NativeBlockState state = mock(NativeBlockState.class);
         when(state.key()).thenReturn(key);
         return state;
     }
@@ -94,15 +94,15 @@ public class IrisSugarCanePlacementTest {
     }
 
     private static final class Fixture {
-        private final PlatformBlockState air = state("minecraft:air");
-        private final PlatformBlockState stone = state("minecraft:stone");
-        private final PlatformBlockState soil = state("minecraft:dirt");
-        private final PlatformBlockState water = state("minecraft:water");
-        private final PlatformBlockState cane = state("minecraft:sugar_cane[age=0]");
+        private final NativeBlockState air = state("minecraft:air");
+        private final NativeBlockState stone = state("minecraft:stone");
+        private final NativeBlockState soil = state("minecraft:dirt");
+        private final NativeBlockState water = state("minecraft:water");
+        private final NativeBlockState cane = state("minecraft:sugar_cane[age=0]");
         private final IrisDecorator decorator = mock(IrisDecorator.class);
         private final Engine engine = mock(Engine.class);
         private final EngineMantle mantle = mock(EngineMantle.class);
-        private final Hunk<PlatformBlockState> output;
+        private final Hunk<NativeBlockState> output;
         private final int local;
 
         private Fixture(int size) {

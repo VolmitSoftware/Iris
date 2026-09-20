@@ -18,9 +18,9 @@
 
 package art.arcane.iris.generation.runtime;
 
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 public interface BlockUpdater {
 
-    void catchBlockUpdates(int x, int y, int z, PlatformBlockState data);
+    void catchBlockUpdates(int x, int y, int z, NativeBlockState data);
 }

@@ -1,8 +1,8 @@
 package art.arcane.iris.probe;
 
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 
 import java.io.File;
@@ -284,8 +284,8 @@ public final class GenerationOrderProbe {
 
     static ChunkHash hashChunk(
             ChunkCoordinate coordinate,
-            Hunk<PlatformBlockState> blocks,
-            Hunk<PlatformBiome> biomes,
+            Hunk<NativeBlockState> blocks,
+            Hunk<NativeBiome> biomes,
             int height
     ) {
         MessageDigest blockDigest = sha256();
@@ -300,8 +300,8 @@ public final class GenerationOrderProbe {
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 for (int y = 0; y < height; y++) {
-                    PlatformBlockState state = blocks.get(x, y, z);
-                    PlatformBiome biome = biomes.get(x, y, z);
+                    NativeBlockState state = blocks.get(x, y, z);
+                    NativeBiome biome = biomes.get(x, y, z);
                     String blockKey = state == null ? "minecraft:air" : state.key();
                     String biomeKey = biome == null ? "<null>" : biome.key();
                     blockCounts.merge(blockKey, 1, Integer::sum);
@@ -492,8 +492,8 @@ public final class GenerationOrderProbe {
             boolean multicore
     ) throws Exception {
         int height = engine.getTarget().getHeight();
-        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, height, 16);
-        Hunk<PlatformBiome> biomes = Hunk.newArrayHunk(16, height, 16);
+        Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(16, height, 16);
+        Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, height, 16);
         engine.generate(coordinate.x() << 4, coordinate.z() << 4, blocks, biomes, multicore);
         return new ChunkOutput(coordinate, hashChunk(coordinate, blocks, biomes, height));
     }

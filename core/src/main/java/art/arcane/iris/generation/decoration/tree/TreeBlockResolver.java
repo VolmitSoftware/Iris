@@ -21,7 +21,7 @@ package art.arcane.iris.generation.decoration.tree;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -29,11 +29,11 @@ public final class TreeBlockResolver {
     private TreeBlockResolver() {
     }
 
-    public static PlatformBlockState resolve(IrisProceduralTree tree, IrisData data, TreeBlockCanvas.Cell cell, TreeBlockCanvas.Vec pos, RNG paletteRng) {
+    public static NativeBlockState resolve(IrisProceduralTree tree, IrisData data, TreeBlockCanvas.Cell cell, TreeBlockCanvas.Vec pos, RNG paletteRng) {
         return switch (cell.role()) {
             case TRUNK -> finishTrunk(resolveBlock(tree.getTrunk(), tree.getTrunkPalette(), data, pos, paletteRng), cell);
             case SECONDARY_TRUNK -> {
-                PlatformBlockState state = resolveBlock(tree.getSecondaryTrunk(), tree.getSecondaryTrunkPalette(), data, pos, paletteRng);
+                NativeBlockState state = resolveBlock(tree.getSecondaryTrunk(), tree.getSecondaryTrunkPalette(), data, pos, paletteRng);
                 if (state == null) {
                     state = resolveBlock(tree.getTrunk(), tree.getTrunkPalette(), data, pos, paletteRng);
                 }
@@ -41,7 +41,7 @@ public final class TreeBlockResolver {
             }
             case LEAF -> resolveBlock(tree.getLeaves(), tree.getLeavesPalette(), data, pos, paletteRng);
             case SECONDARY_LEAF -> {
-                PlatformBlockState state = resolveSecondaryLeaf(tree, data, pos, paletteRng);
+                NativeBlockState state = resolveSecondaryLeaf(tree, data, pos, paletteRng);
                 if (state == null) {
                     state = resolveBlock(tree.getLeaves(), tree.getLeavesPalette(), data, pos, paletteRng);
                 }
@@ -53,7 +53,7 @@ public final class TreeBlockResolver {
                     yield null;
                 }
                 IrisTreeDecorator dec = tree.getDecorators().get(index);
-                PlatformBlockState state = resolveBlock(dec.getBlock(), dec.getPalette(), data, pos, paletteRng);
+                NativeBlockState state = resolveBlock(dec.getBlock(), dec.getPalette(), data, pos, paletteRng);
                 if (state != null && cell.facing() != null && IrisProceduralBlocks.hasProperty(state, "facing")) {
                     try {
                         state = state.withProperty("facing", cell.facing().toLowerCase());
@@ -66,7 +66,7 @@ public final class TreeBlockResolver {
         };
     }
 
-    private static PlatformBlockState finishTrunk(PlatformBlockState state, TreeBlockCanvas.Cell cell) {
+    private static NativeBlockState finishTrunk(NativeBlockState state, TreeBlockCanvas.Cell cell) {
         if (state == null) {
             return null;
         }
@@ -82,7 +82,7 @@ public final class TreeBlockResolver {
         return state;
     }
 
-    private static PlatformBlockState resolveSecondaryLeaf(IrisProceduralTree tree, IrisData data, TreeBlockCanvas.Vec pos, RNG paletteRng) {
+    private static NativeBlockState resolveSecondaryLeaf(IrisProceduralTree tree, IrisData data, TreeBlockCanvas.Vec pos, RNG paletteRng) {
         if (IrisProceduralBlocks.paletteSet(tree.getSecondaryLeavesPalette())) {
             return tree.getSecondaryLeavesPalette().get(paletteRng, pos.x(), pos.y(), pos.z(), data);
         }
@@ -115,7 +115,7 @@ public final class TreeBlockResolver {
         return tree.getWeightedSecondaryLeaves().get(tree.getWeightedSecondaryLeaves().size() - 1).getBlock();
     }
 
-    private static PlatformBlockState resolveBlock(String block, IrisMaterialPalette palette, IrisData data, TreeBlockCanvas.Vec pos, RNG paletteRng) {
+    private static NativeBlockState resolveBlock(String block, IrisMaterialPalette palette, IrisData data, TreeBlockCanvas.Vec pos, RNG paletteRng) {
         if (IrisProceduralBlocks.paletteSet(palette)) {
             return palette.get(paletteRng, pos.x(), pos.y(), pos.z(), data);
         }
@@ -125,7 +125,7 @@ public final class TreeBlockResolver {
         return null;
     }
 
-    private static PlatformBlockState woodCap(PlatformBlockState state) {
+    private static NativeBlockState woodCap(NativeBlockState state) {
         String key = state.key();
         int bracket = key.indexOf('[');
         String base = bracket < 0 ? key : key.substring(0, bracket);
@@ -138,7 +138,7 @@ public final class TreeBlockResolver {
         if (woodKey == null) {
             return state;
         }
-        PlatformBlockState wood = B.getStateOrNull(woodKey, false);
+        NativeBlockState wood = B.getStateOrNull(woodKey, false);
         if (wood == null) {
             return state;
         }

@@ -1,10 +1,9 @@
 package art.arcane.iris.client;
 
+import art.arcane.volmlib.nativelib.client.ClientToastKind;
+import art.arcane.volmlib.nativelib.minecraft26_2.client.NativeClientAccess;
+
 import art.arcane.iris.spi.protocol.IrisMessage;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.toasts.SystemToast;
-import net.minecraft.client.gui.components.toasts.ToastManager;
-import net.minecraft.network.chat.Component;
 
 /**
  * CLIENT DIST ONLY. See {@link IrisClientHud} for why the dist marker is a javadoc contract plus a bytecode
@@ -15,25 +14,23 @@ public final class IrisToastPresenter {
     }
 
     public static void pump() {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft == null || minecraft.gui == null) {
+        if (!NativeClientAccess.guiPresent()) {
             return;
         }
-        ToastManager manager = minecraft.gui.toastManager();
         IrisClientToasts toasts = IrisClient.toasts();
         IrisClientToasts.Pending next = toasts.poll();
         while (next != null) {
-            SystemToast.addOrUpdate(manager, tokenFor(next.kind()), Component.literal(next.title()), Component.literal(next.body()));
+            NativeClientAccess.toast(tokenFor(next.kind()), next.title(), next.body());
             next = toasts.poll();
         }
     }
 
-    private static SystemToast.SystemToastId tokenFor(int kind) {
+    private static ClientToastKind tokenFor(int kind) {
         return switch (kind) {
-            case IrisMessage.Toast.KIND_SUCCESS -> SystemToast.SystemToastId.WORLD_BACKUP;
-            case IrisMessage.Toast.KIND_WARNING -> SystemToast.SystemToastId.UNSECURE_SERVER_WARNING;
-            case IrisMessage.Toast.KIND_ERROR -> SystemToast.SystemToastId.PACK_LOAD_FAILURE;
-            default -> SystemToast.SystemToastId.PERIODIC_NOTIFICATION;
+            case IrisMessage.Toast.KIND_SUCCESS -> ClientToastKind.SUCCESS;
+            case IrisMessage.Toast.KIND_WARNING -> ClientToastKind.WARNING;
+            case IrisMessage.Toast.KIND_ERROR -> ClientToastKind.ERROR;
+            default -> ClientToastKind.INFORMATION;
         };
     }
 }

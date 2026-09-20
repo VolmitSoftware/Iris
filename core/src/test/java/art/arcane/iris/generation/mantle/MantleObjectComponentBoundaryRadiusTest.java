@@ -21,7 +21,7 @@ import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
@@ -68,7 +68,7 @@ public class MantleObjectComponentBoundaryRadiusTest {
         PlatformRegistries registries = mock(PlatformRegistries.class);
         when(registries.block(anyString())).thenAnswer(invocation -> {
             String key = invocation.getArgument(0);
-            PlatformBlockState block = mock(PlatformBlockState.class);
+            NativeBlockState block = mock(NativeBlockState.class);
             when(block.key()).thenReturn(key);
             when(block.materialKey()).thenReturn(key);
             when(block.isSolid()).thenReturn(!key.toLowerCase().contains("air"));

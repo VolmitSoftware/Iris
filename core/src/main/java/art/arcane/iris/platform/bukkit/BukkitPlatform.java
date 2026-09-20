@@ -24,12 +24,12 @@ import art.arcane.iris.platform.bukkit.nms.MinecraftVersion;
 import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.LogLevel;
-import art.arcane.iris.spi.PlatformBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.iris.spi.PlatformBiomeWriter;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
-import art.arcane.iris.spi.PlatformWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.iris.platform.bukkit.plugin.VolmitPlugin;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.volmlib.util.collection.KMap;
@@ -175,11 +175,11 @@ public final class BukkitPlatform implements IrisPlatform {
         return supplier.get();
     }
 
-    public static World unwrapWorld(PlatformWorld world) {
+    public static World unwrapWorld(NativeWorld world) {
         return (World) world.nativeHandle();
     }
 
-    public static PlatformBiome wrapBiome(Object biome) {
+    public static NativeBiome wrapBiome(Object biome) {
         return BukkitBiome.of((Biome) biome);
     }
 
@@ -335,7 +335,7 @@ public final class BukkitPlatform implements IrisPlatform {
     }
 
     @Override
-    public boolean spawnEntity(PlatformWorld world, String entityKey, double x, double y, double z) {
+    public boolean spawnEntity(NativeWorld world, String entityKey, double x, double y, double z) {
         if (world == null || entityKey == null || !(world.nativeHandle() instanceof World bukkitWorld)) {
             return false;
         }

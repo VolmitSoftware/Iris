@@ -21,11 +21,12 @@ package art.arcane.iris.modded.service;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineWorldManager;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
-import art.arcane.iris.modded.ModdedServerLevels;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedServerLevels;
 import art.arcane.iris.modded.ModdedWorldManager;
 import art.arcane.iris.spi.IrisLogging;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
 
 public final class ModdedEntitySpawnService implements ModdedTickableService {
     @Override
@@ -37,9 +38,10 @@ public final class ModdedEntitySpawnService implements ModdedTickableService {
     }
 
     @Override
-    public void onServerTick(MinecraftServer server) {
-        for (ServerLevel level : ModdedServerLevels.levels(server)) {
-            if (!(level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator generator)) {
+    public void onServerTick(NativeModdedServer server) {
+        for (NativeWorld level : server.worlds()) {
+            IrisModdedChunkGenerator generator = NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class);
+            if (generator == null) {
                 continue;
             }
             Engine engine = generator.engineIfBound();

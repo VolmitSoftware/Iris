@@ -1,5 +1,19 @@
 package art.arcane.iris.nativegen.v26_3_R1;
 
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureStartInjector;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureFactory;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureVerticalPlacer;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureReferenceEnvelope;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeJigsawMetadata;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.ForcedStructureChunkGenerator;
+
+import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureTemplatePoolBounds;
+
 import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
 import java.util.Set;
 import art.arcane.iris.structure.jigsaw.IrisJigsawConfiguration;
@@ -110,10 +124,10 @@ public class NativeStructureFactoryTest {
         distance.putInt("vertical", 64);
         axisSpecific.put("max_distance_from_center", distance);
 
-        assertEquals(80, NativeStructureFactory.sourceDistance(scalar, "horizontal"));
-        assertEquals(80, NativeStructureFactory.sourceDistance(scalar, "vertical"));
-        assertEquals(96, NativeStructureFactory.sourceDistance(axisSpecific, "horizontal"));
-        assertEquals(64, NativeStructureFactory.sourceDistance(axisSpecific, "vertical"));
+        assertEquals(80, NativeJigsawMetadata.sourceDistance(scalar, "horizontal"));
+        assertEquals(80, NativeJigsawMetadata.sourceDistance(scalar, "vertical"));
+        assertEquals(96, NativeJigsawMetadata.sourceDistance(axisSpecific, "horizontal"));
+        assertEquals(64, NativeJigsawMetadata.sourceDistance(axisSpecific, "vertical"));
     }
 
     @Test
@@ -123,8 +137,8 @@ public class NativeStructureFactoryTest {
                 .terrainAdapation(TerrainAdjustment.BEARD_BOX)
                 .build());
 
-        assertEquals(0, NativeStructureFactory.horizontalReferenceExpansion(none));
-        assertEquals(12, NativeStructureFactory.horizontalReferenceExpansion(beardBox));
+        assertEquals(0, NativeJigsawMetadata.horizontalReferenceExpansion(none));
+        assertEquals(12, NativeJigsawMetadata.horizontalReferenceExpansion(beardBox));
     }
 
     @Test

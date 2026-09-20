@@ -1,5 +1,13 @@
 package art.arcane.iris.spi;
 
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+
+import art.arcane.volmlib.nativelib.terrain.NativeNumericRange;
+
+import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
+
+import art.arcane.volmlib.nativelib.terrain.JigsawSourceMetadata;
+
 import org.junit.Test;
 
 import java.util.List;
@@ -14,10 +22,10 @@ public class PlatformValueContractTest {
 
     @Test
     public void jigsawMetadataAcceptsTheWholeDocumentedRange() {
-        PlatformStructureHooks.JigsawSourceMetadata smallest =
-                new PlatformStructureHooks.JigsawSourceMetadata(1, 0, 0);
-        PlatformStructureHooks.JigsawSourceMetadata largest =
-                new PlatformStructureHooks.JigsawSourceMetadata(128, 7, 96);
+        JigsawSourceMetadata smallest =
+                new JigsawSourceMetadata(1, 0, 0);
+        JigsawSourceMetadata largest =
+                new JigsawSourceMetadata(128, 7, 96);
 
         assertEquals(1, smallest.maxDistanceHorizontal());
         assertEquals(128, largest.maxDistanceHorizontal());
@@ -27,8 +35,8 @@ public class PlatformValueContractTest {
 
     @Test
     public void jigsawMetadataDefaultsTheStartElementSpanToZero() {
-        PlatformStructureHooks.JigsawSourceMetadata metadata =
-                new PlatformStructureHooks.JigsawSourceMetadata(64, 3);
+        JigsawSourceMetadata metadata =
+                new JigsawSourceMetadata(64, 3);
 
         assertEquals(0, metadata.maxStartElementHorizontalSpan());
     }
@@ -36,13 +44,13 @@ public class PlatformValueContractTest {
     @Test
     public void jigsawMetadataRejectsOutOfRangeGeometry() {
         assertThrows(IllegalArgumentException.class,
-                () -> new PlatformStructureHooks.JigsawSourceMetadata(0, 0, 0));
+                () -> new JigsawSourceMetadata(0, 0, 0));
         assertThrows(IllegalArgumentException.class,
-                () -> new PlatformStructureHooks.JigsawSourceMetadata(129, 0, 0));
+                () -> new JigsawSourceMetadata(129, 0, 0));
         assertThrows(IllegalArgumentException.class,
-                () -> new PlatformStructureHooks.JigsawSourceMetadata(64, -1, 0));
+                () -> new JigsawSourceMetadata(64, -1, 0));
         assertThrows(IllegalArgumentException.class,
-                () -> new PlatformStructureHooks.JigsawSourceMetadata(64, 0, -1));
+                () -> new JigsawSourceMetadata(64, 0, -1));
     }
 
     @Test
@@ -112,11 +120,11 @@ public class PlatformValueContractTest {
 
     @Test
     public void blockPropertiesReportWhetherTheyCarryANumericRange() {
-        PlatformNumericRange range = new PlatformNumericRange(0D, 15D, false, true);
-        PlatformBlockProperty numeric =
-                new PlatformBlockProperty("level", "integer", 0, List.of(0, 15), range);
-        PlatformBlockProperty enumerated =
-                new PlatformBlockProperty("axis", "string", "y", List.of("x", "y", "z"), null);
+        NativeNumericRange range = new NativeNumericRange(0D, 15D, false, true);
+        NativeBlockProperty numeric =
+                new NativeBlockProperty("level", "integer", 0, List.of(0, 15), range);
+        NativeBlockProperty enumerated =
+                new NativeBlockProperty("axis", "string", "y", List.of("x", "y", "z"), null);
 
         assertTrue(numeric.hasNumericRange());
         assertEquals(range, numeric.numericRange());
@@ -150,22 +158,22 @@ public class PlatformValueContractTest {
         }
 
         @Override
-        public List<String> reachableStructureKeys(PlatformWorld world) {
+        public List<String> reachableStructureKeys(NativeWorld world) {
             return List.of();
         }
 
         @Override
-        public List<String> possibleBiomeKeys(PlatformWorld world) {
+        public List<String> possibleBiomeKeys(NativeWorld world) {
             return List.of();
         }
 
         @Override
-        public boolean placeFeature(PlatformWorld world, int x, int y, int z, String featureKey, long seed) {
+        public boolean placeFeature(NativeWorld world, int x, int y, int z, String featureKey, long seed) {
             return false;
         }
 
         @Override
-        public int[] placeStructure(PlatformWorld world, int chunkX, int chunkZ, String structureKey, long seed, int maxSpan) {
+        public int[] placeStructure(NativeWorld world, int chunkX, int chunkZ, String structureKey, long seed, int maxSpan) {
             return new int[0];
         }
 

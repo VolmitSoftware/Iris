@@ -19,6 +19,9 @@
 package art.arcane.iris.world.pregen;
 
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.world.lifecycle.WorldLifecycleService;
+import art.arcane.volmlib.nativelib.terrain.NativeWorkerPool;
+import java.util.Objects;
 import art.arcane.iris.world.IrisPaperLikeBackendMode;
 import art.arcane.iris.world.IrisRuntimeSchedulerMode;
 import art.arcane.iris.configuration.IrisSettings;
@@ -36,7 +39,6 @@ import io.papermc.lib.PaperLib;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -213,15 +215,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     private int resolveWorkerPoolThreads() {
         try {
-            Class<?> moonriseCommonClass = Class.forName("ca.spottedleaf.moonrise.common.util.MoonriseCommon");
-            java.lang.reflect.Field workerPoolField = moonriseCommonClass.getDeclaredField("WORKER_POOL");
-            Object workerPool = workerPoolField.get(null);
-            Object coreThreads = workerPool.getClass().getDeclaredMethod("getCoreThreads").invoke(workerPool);
-            if (coreThreads instanceof Thread[] threadsArray) {
-                return threadsArray.length;
-            }
+            return workerPool().threadCount();
         } catch (Throwable e) {
-            PregenDiagnostics.probeFailed("moonrise worker pool size", e);
+            PregenDiagnostics.probeFailed("native worker pool size", e);
         }
 
         return -1;
@@ -1014,14 +1010,13 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
             int adjusted = IrisSettings.get().getConcurrency().getWorldGenThreads();
             try {
-                Field field = Class.forName("ca.spottedleaf.moonrise.common.util.MoonriseCommon").getDeclaredField("WORKER_POOL");
-                Object pool = field.get(null);
-                int threads = ((Thread[]) pool.getClass().getDeclaredMethod("getCoreThreads").invoke(pool)).length;
+                NativeWorkerPool pool = workerPool();
+                int threads = pool.threadCount();
                 if (threads >= adjusted) {
                     return 0;
                 }
 
-                pool.getClass().getDeclaredMethod("adjustThreadCount", int.class).invoke(pool, adjusted);
+                pool.adjustThreadCount(adjusted);
                 return threads;
             } catch (Throwable e) {
                 IrisLogging.warn("Failed to increase worker threads, if you are on paper or a fork of it please increase it manually to " + adjusted);
@@ -1041,10 +1036,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             }
 
             try {
-                Field field = Class.forName("ca.spottedleaf.moonrise.common.util.MoonriseCommon").getDeclaredField("WORKER_POOL");
-                Object pool = field.get(null);
-                Method method = pool.getClass().getDeclaredMethod("adjustThreadCount", int.class);
-                method.invoke(pool, i);
+                workerPool().adjustThreadCount(i);
                 return 0;
             } catch (Throwable e) {
                 IrisLogging.reportError(e);
@@ -1052,6 +1044,11 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             }
             return i;
         });
+    }
+
+    private static NativeWorkerPool workerPool() {
+        return Objects.requireNonNull(WorldLifecycleService.get().capabilities().nativeRuntime(),
+                "Native world runtime is unavailable").workers();
     }
 
     private interface ChunkRequestExecutor {

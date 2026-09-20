@@ -18,20 +18,15 @@
 
 package art.arcane.iris.modded;
 
+
 import art.arcane.iris.modded.WorldCheckStructureAudit.NativeStructureGate;
 import art.arcane.iris.modded.WorldCheckStructureAudit.PendingVillagePoi;
-import art.arcane.iris.modded.WorldCheckStructureAudit.PoiAudit;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.minecraft.world.level.levelgen.Heightmap;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeStructureInspection.PoiAudit;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldInspection;
+import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -51,10 +46,10 @@ public final class ModdedWorldCheck {
     private static final long SERVER_WAIT_TIMEOUT_MILLIS = 600000L;
     private static final long SERVER_WAIT_INTERVAL_MILLIS = 250L;
     private static final long SERVER_TASK_TIMEOUT_MILLIS = 900000L;
-    // halt, not exit: awaitStopAndExit already waited for MinecraftServer.halt(true), and exit() would run the
+    // halt, not exit: awaitStopAndExit already waited for NativeModdedServer.halt(true), and exit() would run the
     // shutdown hooks and block behind the server thread it just stopped, so a finished check could hang forever.
     private static final ProcessExit PROCESS_EXIT = Runtime.getRuntime()::halt;
-    private static volatile MinecraftServer startedServer;
+    private static volatile NativeModdedServer startedServer;
 
     private ModdedWorldCheck() {
     }
@@ -63,12 +58,12 @@ public final class ModdedWorldCheck {
         coordinatorThread(() -> waitAndRun(PROCESS_EXIT)).start();
     }
 
-    public static void serverStarted(MinecraftServer server) {
+    public static void serverStarted(NativeModdedServer server) {
         startedServer = server;
     }
 
-    public static void serverStopped(MinecraftServer server) {
-        if (startedServer == server) {
+    public static void serverStopped(NativeModdedServer server) {
+        if (startedServer != null && startedServer.sameServer(server)) {
             startedServer = null;
         }
     }
@@ -83,12 +78,12 @@ public final class ModdedWorldCheck {
 
     private static void waitAndRun(ProcessExit processExit) {
         long start = System.currentTimeMillis();
-        MinecraftServer server = null;
+        NativeModdedServer server = null;
         int exitCode = EXIT_FAILURE;
         AtomicBoolean stopRequested = new AtomicBoolean(false);
         try {
             while (System.currentTimeMillis() - start < SERVER_WAIT_TIMEOUT_MILLIS) {
-                MinecraftServer candidate = startedServer;
+                NativeModdedServer candidate = startedServer;
                 if (candidate != null) {
                     server = candidate;
                     break;
@@ -101,7 +96,7 @@ public final class ModdedWorldCheck {
                 return;
             }
 
-            MinecraftServer serverRef = server;
+            NativeModdedServer serverRef = server;
             WorldCheckPreparation preparation = serverRef.submit(() -> run(serverRef))
                     .get(SERVER_TASK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
             exitCode = serverRef.submit(() -> runAndRequestStop(
@@ -121,7 +116,7 @@ public final class ModdedWorldCheck {
         } finally {
             int resultCode = exitCode;
             ModdedIrisLog.info("[worldcheck] shutting down dev server (result={})", resultCode == EXIT_PASS ? "PASS" : "FAIL");
-            MinecraftServer serverRef = server;
+            NativeModdedServer serverRef = server;
             if (serverRef != null && stopRequested.get()) {
                 awaitStopAndExit(() -> serverRef.halt(true), resultCode, processExit);
             } else {
@@ -165,19 +160,19 @@ public final class ModdedWorldCheck {
         processExit.exit(exitCode);
     }
 
-    private static WorldCheckPreparation run(MinecraftServer server) {
-        ServerLevel level = targetLevel(server);
+    private static WorldCheckPreparation run(NativeModdedServer server) {
+        NativeWorld level = targetLevel(server);
         if (level == null) {
             ModdedIrisLog.error("[worldcheck] no Iris dimension is loaded");
             return new WorldCheckPreparation(false, false, false, false,
                     new NativeStructureGate(false, 0, false, null));
         }
 
-        String levelId = level.dimension().identifier().toString();
-        String generatorClass = level.getChunkSource().getGenerator().getClass().getName();
+        String levelId = level.name();
+        NativeWorldInspection inspection = new NativeWorldInspection(level);
+        String generatorClass = inspection.generatorClass();
         ModdedIrisLog.info("[worldcheck] {} generator: {}", levelId, generatorClass);
-        IrisModdedChunkGenerator generator = level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator iris
-                ? iris : null;
+        IrisModdedChunkGenerator generator = NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class);
         boolean irisGenerator = generator != null;
         if (!irisGenerator) {
             ModdedIrisLog.error("[worldcheck] {} is NOT using IrisModdedChunkGenerator", levelId);
@@ -185,21 +180,19 @@ public final class ModdedWorldCheck {
         boolean dimensionTypeOk = generator != null
                 && WorldCheckDimensionContract.checkDimensionType(level, generator);
 
-        BlockPos spawn = level.getRespawnData().pos();
-        ModdedIrisLog.info("[worldcheck] spawn: {} {} {} (minY={} height={})", spawn.getX(), spawn.getY(), spawn.getZ(), level.getMinY(), level.getHeight());
+        NativeBlockPoint spawn = inspection.spawn();
+        ModdedIrisLog.info("[worldcheck] spawn: {} {} {} (minY={} height={})", spawn.x(), spawn.y(), spawn.z(), level.minHeight(), (level.maxHeight() - level.minHeight()));
 
         MessageDigest digest = WorldCheckPredicates.sha256();
         List<String> samples = new ArrayList<>();
         Set<String> surfaceKeys = new LinkedHashSet<>();
         for (int dx = 0; dx < 4; dx++) {
             for (int dz = 0; dz < 4; dz++) {
-                int x = spawn.getX() + (dx - 2) * 16 + 8;
-                int z = spawn.getZ() + (dz - 2) * 16 + 8;
-                level.getChunk(x >> 4, z >> 4);
-                int y = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z);
-                BlockState surface = level.getBlockState(new BlockPos(x, y - 1, z));
-                String key = BuiltInRegistries.BLOCK.getKey(surface.getBlock()).toString();
-                String line = x + " " + (y - 1) + " " + z + " " + key;
+                int x = spawn.x() + (dx - 2) * 16 + 8;
+                int z = spawn.z() + (dz - 2) * 16 + 8;
+                NativeWorldInspection.Surface surface = inspection.surface(x, z);
+                String key = surface.block();
+                String line = x + " " + surface.y() + " " + z + " " + key;
                 samples.add(line);
                 surfaceKeys.add(key);
                 digest.update((line + "\n").getBytes(StandardCharsets.UTF_8));
@@ -212,23 +205,11 @@ public final class ModdedWorldCheck {
         ModdedIrisLog.info("[worldcheck] surface digest: {} ({} columns, {} distinct surface blocks: {})",
                 HexFormat.of().formatHex(digest.digest()).substring(0, 12), samples.size(), surfaceKeys.size(), surfaceKeys);
 
-        ChunkAccess zeroChunk = level.getChunk(0, 0);
-        int nonEmptySections = 0;
-        for (LevelChunkSection section : zeroChunk.getSections()) {
-            if (!section.hasOnlyAir()) {
-                nonEmptySections++;
-            }
-        }
-        Set<String> columnKeys = new LinkedHashSet<>();
-        int surfaceY = level.getHeight(Heightmap.Types.WORLD_SURFACE, 8, 8);
-        for (int y = level.getMinY(); y < surfaceY; y += 16) {
-            BlockState state = zeroChunk.getBlockState(new BlockPos(8, y, 8));
-            if (!state.isAir()) {
-                columnKeys.add(BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
-            }
-        }
+        NativeWorldInspection.Column column = inspection.column(8, 8, 16);
+        int nonEmptySections = column.nonEmptySections();
+        Set<String> columnKeys = column.blocks();
         ModdedIrisLog.info("[worldcheck] chunk 0,0: {} non-empty sections of {}; column blocks at (8,*,8): {}",
-                nonEmptySections, zeroChunk.getSections().length, columnKeys);
+                nonEmptySections, column.totalSections(), columnKeys);
 
         boolean sectionsOk = nonEmptySections >= 4;
         boolean varietyOk = columnKeys.size() >= 2 || surfaceKeys.size() >= 2;
@@ -282,13 +263,15 @@ public final class ModdedWorldCheck {
         return pass;
     }
 
-    private static ServerLevel targetLevel(MinecraftServer server) {
+    private static NativeWorld targetLevel(NativeModdedServer server) {
         String target = System.getProperty("iris.worldcheck.dimension");
         if (target != null && !target.isBlank()) {
-            Identifier identifier = Identifier.tryParse(target.trim());
-            ServerLevel requested = identifier == null
-                    ? null
-                    : ModdedServerLevels.level(server, ResourceKey.create(Registries.DIMENSION, identifier));
+            NativeWorld requested;
+            try {
+                requested = server.world(target.trim());
+            } catch (IllegalArgumentException invalidKey) {
+                requested = null;
+            }
             if (requested != null) {
                 return requested;
             }
@@ -296,8 +279,8 @@ public final class ModdedWorldCheck {
             return null;
         }
 
-        for (ServerLevel level : ModdedServerLevels.levels(server)) {
-            if (level.getChunkSource().getGenerator() instanceof IrisModdedChunkGenerator) {
+        for (NativeWorld level : server.worlds()) {
+            if (NativeWorldGenerators.find(level, IrisModdedChunkGenerator.class) != null) {
                 return level;
             }
         }

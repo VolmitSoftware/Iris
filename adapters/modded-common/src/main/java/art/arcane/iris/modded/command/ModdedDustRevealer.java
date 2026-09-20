@@ -29,6 +29,7 @@ import art.arcane.iris.generation.runtime.GenerationSessionException;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedScheduler;
@@ -66,12 +67,22 @@ public final class ModdedDustRevealer {
                     IrisLanguage.plain(RuntimeUiMessages.DUST_IRIS_WORLD_REQUIRED)));
             return;
         }
-        describe(player, level, engine, pos);
-
         int relativeY = pos.y() - engine.getMinHeight();
-        String key = safe(
-                "object lookup at " + coordinates(pos),
-                () -> engine.getObjectPlacementKey(pos.x(), relativeY, pos.z()));
+        String key;
+        try {
+            describe(player, level, engine, pos);
+            key = safe(
+                    "object lookup at " + coordinates(pos),
+                    () -> engine.getObjectPlacementKey(pos.x(), relativeY, pos.z()));
+        } catch (SavedBiomeUnavailableException unavailable) {
+            if (!unavailable.isLoading()) {
+                ModdedIrisLog.error("Iris dust saved biome lookup failed at {}", coordinates(pos), unavailable);
+            }
+            player.sendSystemMessage(NativeCommandText.literal(IrisLanguage.plain(unavailable.isLoading()
+                    ? RuntimeUiMessages.DUST_BIOME_LOADING
+                    : RuntimeUiMessages.DUST_REVEAL_FAILED)));
+            return;
+        }
         if (key == null) {
             return;
         }
@@ -435,6 +446,8 @@ public final class ModdedDustRevealer {
     private static <T> T safe(String operation, Supplier<T> supplier) {
         try {
             return supplier.get();
+        } catch (SavedBiomeUnavailableException unavailable) {
+            throw unavailable;
         } catch (Throwable error) {
             ModdedIrisLog.error("Iris dust {} failed", operation, error);
             return null;

@@ -92,6 +92,7 @@ public final class RuntimeUiMessages {
     public static final TextKey DUST_COPY_BUTTON = TextKey.of("iris.runtime.dust.copy_button", "[Click to copy these stats]");
     public static final TextKey DUST_COPY_HOVER = TextKey.of("iris.runtime.dust.copy_hover", "Copy block stats to clipboard");
     public static final TextKey DUST_REVEAL_FAILED = TextKey.of("iris.runtime.dust.reveal_failed", "Object reveal failed; see the console for details.");
+    public static final TextKey DUST_BIOME_LOADING = TextKey.of("iris.runtime.dust.biome_loading", "Saved biome information is loading. Try revealing this block again shortly.");
     public static final TextKey WHAT_MATERIAL = TextKey.of("iris.runtime.what.material", "Material: {material}");
     public static final TextKey WHAT_FULL_STATE = TextKey.of("iris.runtime.what.full_state", "Full: {state}");
     public static final TextKey WHAT_ITEM_COUNT = TextKey.of("iris.runtime.what.item_count", "Count: {count}");
@@ -222,6 +223,7 @@ public final class RuntimeUiMessages {
             DUST_COPY_BUTTON,
             DUST_COPY_HOVER,
             DUST_REVEAL_FAILED,
+            DUST_BIOME_LOADING,
             WHAT_MATERIAL,
             WHAT_FULL_STATE,
             WHAT_ITEM_COUNT,

@@ -224,7 +224,7 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
         }
 
         // Slab
-        if (slabs && !river) {
+        if (slabs && !river && isSolid(x, h, z, originX, originZ, currentData)) {
             //@builder
             if ((ha == h + 1 && isSolidNonSlab(x + 1, ha, z, originX, originZ, currentData))
                     || (hb == h + 1 && isSolidNonSlab(x, hb, z + 1, originX, originZ, currentData))

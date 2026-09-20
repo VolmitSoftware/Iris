@@ -1383,6 +1383,7 @@ totals = "Iš viso: +{wood} medienos ({branches} filialai), {converted} Lapai->m
 position_set = "Padėtis {position} nustatyti {x}, {y}, {z}"
 
 [iris.runtime.dust]
+biome_loading = "Įkeliama išsaugota biomo informacija. Netrukus pabandyk dar kartą atskleisti šio bloko informaciją."
 iris_world_required = "Šio matmens nesugeneravo Iris."
 found_object = "Rastas objektas {object}"
 revealed = "Atšaldytas {count} blokas (-iai) {object}"

@@ -1381,6 +1381,7 @@ totals = "합계: 나무 +{wood}개(가지 {branches}개), 잎->나무 {converte
 position_set = "선택 위치 {position}을(를) {x}, {y}, {z}(으)로 설정했습니다"
 
 [iris.runtime.dust]
+biome_loading = "저장된 바이옴 정보를 불러오는 중입니다. 잠시 후 이 블록의 정보를 다시 확인해 주세요."
 iris_world_required = "이 차원은 Iris가 생성하지 않았습니다."
 found_object = "오브젝트 {object} 발견"
 revealed = "{object}의 블록 {count}개를 드러냈습니다"

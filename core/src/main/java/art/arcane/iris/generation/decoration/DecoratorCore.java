@@ -323,6 +323,9 @@ final class DecoratorCore {
                                     int xf, int zf, int realX, int realZ,
                                     int height, int max, Hunk<NativeBlockState> data,
                                     RNG rng, IrisData irisData, EngineMantle mantle) {
+        if (!hasFloatingSurface(data, xf, height, zf)) {
+            return;
+        }
         NativeBlockState bd = decorator.pickBlockData(rng, irisData, realX, realZ);
         if (bd == null) {
             return;
@@ -367,6 +370,9 @@ final class DecoratorCore {
                                     int xf, int zf, int realX, int realZ,
                                     int height, int max, Hunk<NativeBlockState> data,
                                     RNG rng, IrisData irisData, EngineMantle mantle) {
+        if (!hasFloatingSurface(data, xf, height, zf)) {
+            return 0;
+        }
         int stack = decorator.getHeight(rng, realX, realZ, irisData);
         if (decorator.isScaleStack()) {
             stack = Math.min((int) Math.ceil((double) max * ((double) stack / 100)), decorator.getAbsoluteMaxStack());
@@ -411,6 +417,14 @@ final class DecoratorCore {
             IrisSpeleothems.finishColumn(data, xf, zf, height + 1, placed, true);
         }
         return placed;
+    }
+
+    private static boolean hasFloatingSurface(Hunk<NativeBlockState> data, int x, int height, int z) {
+        if (height < 0 || height >= data.getHeight()) {
+            return false;
+        }
+        NativeBlockState surface = data.get(x, height, z);
+        return B.isSolid(surface);
     }
 
     static NativeBlockState fixFacesForHunk(NativeBlockState b, Hunk<NativeBlockState> hunk, int rX, int rZ,

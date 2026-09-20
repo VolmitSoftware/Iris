@@ -1383,6 +1383,7 @@ totals = "Yhteensä: +{wood} puu ({branches} konttorit), {converted} Lehti->puu{
 position_set = "Sijainti {position} asetettu {x}, {y}, {z}"
 
 [iris.runtime.dust]
+biome_loading = "Tallennettuja biomitietoja ladataan. Yritä paljastaa tämän lohkon tiedot uudelleen hetken kuluttua."
 iris_world_required = "Iris ei ole luonut tätä ulottuvuutta."
 found_object = "Löytyi {object}"
 revealed = "{object}:n paljastamat {count}-katkokset"

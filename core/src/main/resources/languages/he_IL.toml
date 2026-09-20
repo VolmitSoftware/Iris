@@ -1383,6 +1383,7 @@ totals = "סיכומים:+{wood} עץ ({branches} סניפים) {converted} הע
 position_set = "מיקום {position} להגדיר {x}, {y}, {z}"
 
 [iris.runtime.dust]
+biome_loading = "נתוני הביומה השמורים נטענים. נסו לחשוף את הבלוק הזה שוב בעוד רגע."
 iris_world_required = "ממד זה לא נוצר על ידי Iris."
 found_object = "אובייקט {object}"
 revealed = "נחשף {count} בלוקים (s) {object}"

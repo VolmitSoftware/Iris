@@ -1381,6 +1381,7 @@ totals = "Tổng: +{wood} gỗ ({branches} chi nhánh), {converted} để lại-
 position_set = "Vị trí {position} đặt {x}, {y}, {z}"
 
 [iris.runtime.dust]
+biome_loading = "Đang tải thông tin quần xã sinh vật đã lưu. Hãy thử khám phá lại khối này sau giây lát."
 iris_world_required = "Chiều không gian này không được Iris tạo ra."
 found_object = "Đối tượng đã tìm {object}"
 revealed = "Đã tiết lộ{count}khối{object}"

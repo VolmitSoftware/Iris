@@ -1896,6 +1896,72 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
     }
 
     @Test
+    public void loweredSnowSurfaceRemovesSolidSlabDecoration() {
+        Map<BlockPos, BlockState> blocks = new HashMap<>();
+        for (int y = 82; y < 99; y++) {
+            put(blocks, 0, y, 0, Blocks.STONE.defaultBlockState());
+        }
+        put(blocks, 0, 99, 0, Blocks.SNOW_BLOCK.defaultBlockState());
+        put(blocks, 0, 100, 0, Blocks.COBBLESTONE_SLAB.defaultBlockState());
+
+        NativeStructureSurfaceFitter.applySurfaceColumn(
+                world(blocks), new BlockPos.MutableBlockPos(),
+                0, 0, 99, 83, -64, 319);
+
+        assertEquals(Blocks.STONE.defaultBlockState(), state(blocks, 0, 82, 0));
+        assertEquals(Blocks.SNOW_BLOCK.defaultBlockState(), state(blocks, 0, 83, 0));
+        for (int y = 84; y <= 100; y++) {
+            assertEquals(Blocks.AIR.defaultBlockState(), state(blocks, 0, y, 0));
+        }
+    }
+
+    @Test
+    public void loweredSurfaceRemovesStackedSolidDecorationUntilAir() {
+        Map<BlockPos, BlockState> blocks = new HashMap<>();
+        put(blocks, 0, 62, 0, Blocks.DIRT.defaultBlockState());
+        put(blocks, 0, 63, 0, Blocks.DIRT.defaultBlockState());
+        put(blocks, 0, 64, 0, Blocks.GRASS_BLOCK.defaultBlockState());
+        put(blocks, 0, 65, 0, Blocks.COBBLESTONE.defaultBlockState());
+        put(blocks, 0, 66, 0, Blocks.COBBLESTONE_STAIRS.defaultBlockState());
+        put(blocks, 0, 67, 0, Blocks.COBBLESTONE_WALL.defaultBlockState());
+        put(blocks, 0, 69, 0, Blocks.STONE.defaultBlockState());
+
+        NativeStructureSurfaceFitter.applySurfaceColumn(
+                world(blocks), new BlockPos.MutableBlockPos(),
+                0, 0, 64, 62, -64, 319);
+
+        assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 0, 62, 0));
+        for (int y = 63; y <= 68; y++) {
+            assertEquals(Blocks.AIR.defaultBlockState(), state(blocks, 0, y, 0));
+        }
+        assertEquals(Blocks.STONE.defaultBlockState(), state(blocks, 0, 69, 0));
+    }
+
+    @Test
+    public void loweredSurfacePreservesTreeDecorationBoundary() {
+        for (BlockState tree : List.of(Blocks.OAK_LOG.defaultBlockState(), Blocks.OAK_LEAVES.defaultBlockState())) {
+            Map<BlockPos, BlockState> blocks = new HashMap<>();
+            put(blocks, 0, 62, 0, Blocks.DIRT.defaultBlockState());
+            put(blocks, 0, 63, 0, Blocks.DIRT.defaultBlockState());
+            put(blocks, 0, 64, 0, Blocks.GRASS_BLOCK.defaultBlockState());
+            put(blocks, 0, 65, 0, Blocks.COBBLESTONE_SLAB.defaultBlockState());
+            put(blocks, 0, 66, 0, tree);
+            put(blocks, 0, 67, 0, Blocks.STONE.defaultBlockState());
+
+            NativeStructureSurfaceFitter.applySurfaceColumn(
+                    world(blocks), new BlockPos.MutableBlockPos(),
+                    0, 0, 64, 62, -64, 319);
+
+            assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 0, 62, 0));
+            for (int y = 63; y <= 65; y++) {
+                assertEquals(Blocks.AIR.defaultBlockState(), state(blocks, 0, y, 0));
+            }
+            assertEquals(tree, state(blocks, 0, 66, 0));
+            assertEquals(Blocks.STONE.defaultBlockState(), state(blocks, 0, 67, 0));
+        }
+    }
+
+    @Test
     public void rigidSurfaceBaseClosesAOneBlockSubsurfaceGap() {
         Map<BlockPos, BlockState> blocks = new HashMap<>();
         put(blocks, 0, 62, 0, Blocks.STONE.defaultBlockState());

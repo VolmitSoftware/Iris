@@ -298,11 +298,78 @@ public class DecoratorCoreTest {
         when(decorator.pickBlockDataTop(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(decorant);
 
         Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 2, 1);
+        output.set(0, 0, 0, sturdyState());
         int placed = DecoratorCore.placeFloatingStacked(
                 decorator, 0, 0, 0, 0, 0, 3, output, new RNG(1L), data, null);
 
         assertEquals(1, placed);
         assertSame(decorant, output.get(0, 1, 0));
+    }
+
+    @Test
+    public void floatingDecoratorsRejectUnsupportedSurface() {
+        IrisDecorator decorator = mock(IrisDecorator.class);
+        IrisData data = mock(IrisData.class);
+        NativeBlockState decorant = mock(NativeBlockState.class);
+        NativeBlockState air = airState();
+        NativeBlockState fluid = mock(NativeBlockState.class);
+        NativeBlockState plant = mock(NativeBlockState.class);
+        when(plant.key()).thenReturn("minecraft:short_grass");
+        when(fluid.isFluid()).thenReturn(true);
+        when(decorant.key()).thenReturn("minecraft:cobblestone_slab");
+        when(decorator.getHeight(any(RNG.class), anyDouble(), anyDouble(), eq(data))).thenReturn(2);
+        when(decorator.getTopThreshold()).thenReturn(1.0);
+        when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(decorant);
+        when(decorator.pickBlockDataTop(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(decorant);
+
+        for (NativeBlockState surface : new NativeBlockState[]{null, air, fluid, plant}) {
+            Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 5, 1);
+            output.set(0, 0, 0, sturdyState());
+            output.set(0, 2, 0, surface);
+            output.set(0, 3, 0, air);
+            output.set(0, 4, 0, air);
+
+            DecoratorCore.placeFloatingSimple(
+                    decorator, 0, 0, 0, 0, 2, 3, output, new RNG(1L), data, null);
+            assertSame(air, output.get(0, 3, 0));
+
+            int placed = DecoratorCore.placeFloatingStacked(
+                    decorator, 0, 0, 0, 0, 2, 3, output, new RNG(1L), data, null);
+            assertEquals(0, placed);
+            assertSame(surface, output.get(0, 2, 0));
+            assertSame(air, output.get(0, 3, 0));
+            assertSame(air, output.get(0, 4, 0));
+        }
+    }
+
+    @Test
+    public void floatingDecoratorsPreserveSupportedPlacementWithoutMaterialGating() {
+        IrisDecorator decorator = mock(IrisDecorator.class);
+        IrisData data = mock(IrisData.class);
+        NativeBlockState surface = mock(NativeBlockState.class);
+        NativeBlockState decorant = mock(NativeBlockState.class);
+        when(surface.isSolid()).thenReturn(true);
+        when(decorant.key()).thenReturn("minecraft:cobblestone_slab");
+        when(decorator.getHeight(any(RNG.class), anyDouble(), anyDouble(), eq(data))).thenReturn(2);
+        when(decorator.getTopThreshold()).thenReturn(1.0);
+        when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(decorant);
+        when(decorator.pickBlockDataTop(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(decorant);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 4, 1);
+        output.set(0, 1, 0, surface);
+        output.set(0, 2, 0, airState());
+        output.set(0, 3, 0, airState());
+
+        DecoratorCore.placeFloatingSimple(
+                decorator, 0, 0, 0, 0, 1, 3, output, new RNG(1L), data, null);
+        assertSame(decorant, output.get(0, 2, 0));
+        output.set(0, 2, 0, airState());
+
+        int placed = DecoratorCore.placeFloatingStacked(
+                decorator, 0, 0, 0, 0, 1, 3, output, new RNG(1L), data, null);
+        assertEquals(2, placed);
+        assertSame(surface, output.get(0, 1, 0));
+        assertSame(decorant, output.get(0, 2, 0));
+        assertSame(decorant, output.get(0, 3, 0));
     }
 
     @Test
@@ -337,6 +404,7 @@ public class DecoratorCoreTest {
         when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(plant);
 
         Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 4, 1);
+        output.set(0, 0, 0, sturdyState());
         output.set(0, 1, 0, air);
         output.set(0, 2, 0, occupied);
 
@@ -737,6 +805,7 @@ public class DecoratorCoreTest {
     private NativeBlockState sturdyState() {
         NativeBlockState support = mock(NativeBlockState.class);
         BlockData blockData = mock(BlockData.class);
+        when(support.isSolid()).thenReturn(true);
         when(support.nativeHandle()).thenReturn(blockData);
         when(blockData.isFaceSturdy(any(), eq(BlockSupport.FULL))).thenReturn(true);
         return support;

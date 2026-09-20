@@ -239,8 +239,8 @@ public class NativeStructurePostProcessorVegetationTest {
     }
 
     @Test
-    public void loweringSurfaceKeepsTreeAndSolidObjectBoundaries() {
-        for (BlockState boundary : List.of(Blocks.OAK_LOG.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState())) {
+    public void loweringSurfaceKeepsTreeBoundaries() {
+        for (BlockState boundary : List.of(Blocks.OAK_LOG.defaultBlockState(), Blocks.OAK_LEAVES.defaultBlockState())) {
             ProtoChunk chunk = chunk();
             write(chunk, 4, 63, 4, Blocks.SAND.defaultBlockState());
             write(chunk, 4, 64, 4, Blocks.SAND.defaultBlockState());
@@ -255,6 +255,34 @@ public class NativeStructurePostProcessorVegetationTest {
             assertEquals(Blocks.CACTUS.defaultBlockState(), chunk.getBlockState(new BlockPos(4, 66, 4)));
             assertEquals(Blocks.CACTUS_FLOWER.defaultBlockState(), chunk.getBlockState(new BlockPos(4, 67, 4)));
         }
+    }
+
+    @Test
+    public void loweringSurfaceRemovesUnsupportedPlankDecoration() {
+        ProtoChunk chunk = chunk();
+        for (int x : List.of(4, 5)) {
+            for (int y = 60; y <= 64; y++) {
+                write(chunk, x, y, 4, Blocks.SAND.defaultBlockState());
+            }
+            write(chunk, x, 65, 4, Blocks.OAK_PLANKS.defaultBlockState());
+            write(chunk, x, 66, 4, Blocks.CACTUS.defaultBlockState());
+            write(chunk, x, 67, 4, Blocks.CACTUS_FLOWER.defaultBlockState());
+        }
+        WorldGenLevel world = world(chunk);
+
+        NativeStructureSurfaceFitter.applySurfaceColumn(
+                world, new BlockPos.MutableBlockPos(), 4, 4, 64, 60, MIN_Y, MAX_Y);
+        NativeStructureSurfaceFitter.applySurfaceColumn(
+                world, new BlockPos.MutableBlockPos(), 5, 4, 64, 64, MIN_Y, MAX_Y);
+
+        assertEquals(Blocks.SAND.defaultBlockState(), chunk.getBlockState(new BlockPos(4, 60, 4)));
+        for (int y = 61; y <= 67; y++) {
+            assertTrue(chunk.getBlockState(new BlockPos(4, y, 4)).isAir());
+        }
+        assertEquals(Blocks.SAND.defaultBlockState(), chunk.getBlockState(new BlockPos(5, 64, 4)));
+        assertEquals(Blocks.OAK_PLANKS.defaultBlockState(), chunk.getBlockState(new BlockPos(5, 65, 4)));
+        assertEquals(Blocks.CACTUS.defaultBlockState(), chunk.getBlockState(new BlockPos(5, 66, 4)));
+        assertEquals(Blocks.CACTUS_FLOWER.defaultBlockState(), chunk.getBlockState(new BlockPos(5, 67, 4)));
     }
 
     private static void clearVegetation(ProtoChunk chunk, StructureStart start) {

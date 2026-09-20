@@ -1383,6 +1383,7 @@ totals = "Toplamlar: +{wood} wood ({branches} şubeler) {converted} Yapraklar->A
 position_set = "Pozisyon pozisyonu {position} set toplan {x}, {y}, {z}"
 
 [iris.runtime.dust]
+biome_loading = "Kaydedilmiş biyom bilgileri yükleniyor. Bu bloğu açığa çıkarmayı kısa bir süre sonra tekrar deneyin."
 iris_world_required = "Bu boyut Iris tarafından oluşturulmadı."
 found_object = "bulundu object bulunamadı {object}"
 revealed = "Ortaya çıktı {count} blok (s) {object}"

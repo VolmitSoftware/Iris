@@ -27,6 +27,7 @@ public final class TreeProfiles {
         return switch (profile) {
             case OAK, DARK_OAK, CHERRY -> 1.0;
             case BIRCH -> 0.7;
+            case POPLAR -> 0.8;
             case SPRUCE -> 0.55;
             case JUNGLE -> 0.45;
             case ACACIA -> 0.6;
@@ -44,6 +45,7 @@ public final class TreeProfiles {
         return switch (profile) {
             case OAK -> new double[][]{{0.55, 0.6}, {0.65, 0.9}, {0.75, 1.0}, {0.85, 0.9}, {0.92, 0.65}, {0.98, 0.35}};
             case BIRCH -> new double[][]{{0.6, 0.45}, {0.7, 0.75}, {0.8, 0.85}, {0.88, 0.75}, {0.94, 0.45}, {0.99, 0.2}};
+            case POPLAR -> new double[][]{{0.5, 0.35}, {0.62, 0.7}, {0.74, 1.0}, {0.84, 0.95}, {0.93, 0.65}, {1.0, 0.3}};
             case SPRUCE, MEGA_SPRUCE -> new double[][]{{0.3, 1.0}, {0.42, 0.85}, {0.54, 0.7}, {0.65, 0.55}, {0.75, 0.4}, {0.84, 0.25}, {0.91, 0.15}, {0.97, 0.05}};
             case JUNGLE -> new double[][]{{0.82, 0.4}, {0.88, 0.8}, {0.93, 1.0}, {0.97, 0.7}, {1.0, 0.3}};
             case ACACIA -> new double[][]{{0.9, 0.5}, {0.95, 0.8}, {0.99, 0.4}};

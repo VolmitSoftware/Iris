@@ -1383,6 +1383,7 @@ totals = "Итоги: +{wood}древесина{branches}ветви,{converted}�
 position_set = "Позиция {position} устанавливать {x}, {y}, {z}"
 
 [iris.runtime.dust]
+biome_loading = "Сохранённые сведения о биоме загружаются. Попробуйте снова раскрыть информацию об этом блоке через несколько секунд."
 iris_world_required = "Это измерение не было создано Iris."
 found_object = "Найден объект {object}"
 revealed = "раскрытый {count} блок(ы) {object}"

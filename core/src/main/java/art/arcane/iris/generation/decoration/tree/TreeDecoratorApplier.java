@@ -89,7 +89,7 @@ public final class TreeDecoratorApplier {
 
     private static void trunkSurface(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
         int[][] sides = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-        String[] facings = {"west", "east", "north", "south"};
+        String[] facings = {"east", "west", "south", "north"};
         for (TreeBlockCanvas.Vec v : new KList<>(canvas.getTrunk())) {
             for (int i = 0; i < sides.length; i++) {
                 int nx = v.x() + sides[i][0];
@@ -104,7 +104,7 @@ public final class TreeDecoratorApplier {
 
     private static void leafSurface(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
         int[][] sides = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-        String[] facings = {"west", "east", "north", "south"};
+        String[] facings = {"east", "west", "south", "north"};
         for (TreeBlockCanvas.Vec v : new KList<>(canvas.getLeaf())) {
             for (int i = 0; i < sides.length; i++) {
                 int nx = v.x() + sides[i][0];

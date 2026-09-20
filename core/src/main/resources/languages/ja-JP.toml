@@ -1381,6 +1381,7 @@ totals = "合計: 木材 +{wood}（枝 {branches}）、葉 -> 木材 {converted}
 position_set = "選択位置 {position} を {x}, {y}, {z} に設定しました"
 
 [iris.runtime.dust]
+biome_loading = "保存されたバイオーム情報を読み込んでいます。少し待ってから、このブロックの情報を再度確認してください。"
 iris_world_required = "このディメンションは Iris によって生成されていません。"
 found_object = "オブジェクト {object} が見つかりました"
 revealed = "{object} のブロックを {count} 個表示しました"

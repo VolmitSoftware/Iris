@@ -1378,6 +1378,7 @@ totals = "Totale: +{wood} legno ({branches} rami), {converted} foglie->legno, ~{
 position_set = "Posizione {position} impostata a {x}, {y}, {z}"
 
 [iris.runtime.dust]
+biome_loading = "Caricamento delle informazioni salvate sul bioma in corso. Riprova a rivelare questo blocco tra qualche istante."
 iris_world_required = "Questa dimensione non è stata generata da Iris."
 found_object = "Oggetto trovato {object}"
 revealed = "Rivelato {count} blocco(i) di {object}"

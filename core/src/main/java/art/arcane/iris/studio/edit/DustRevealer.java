@@ -36,6 +36,7 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.iris.world.task.J;
+import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -135,7 +136,16 @@ public class DustRevealer {
         Engine access = generator.getEngine();
 
         if (access != null) {
-            describe(access, world, block, sender);
+            try {
+                describe(access, world, block, sender);
+            } catch (SavedBiomeUnavailableException unavailable) {
+                if (!unavailable.isLoading()) {
+                    IrisLogging.reportError(unavailable);
+                }
+                sender.sendMessage(IrisLanguage.text(unavailable.isLoading()
+                        ? RuntimeUiMessages.DUST_BIOME_LOADING : RuntimeUiMessages.DUST_REVEAL_FAILED));
+                return;
+            }
 
             String a = access.getObjectPlacementKey(block.getX(), block.getY() - block.getWorld().getMinHeight(), block.getZ());
             if (a != null) {
@@ -339,6 +349,8 @@ public class DustRevealer {
     private static <T> T safe(Supplier<T> supplier) {
         try {
             return supplier.get();
+        } catch (SavedBiomeUnavailableException unavailable) {
+            throw unavailable;
         } catch (Throwable e) {
             IrisLogging.reportError(e);
             return null;

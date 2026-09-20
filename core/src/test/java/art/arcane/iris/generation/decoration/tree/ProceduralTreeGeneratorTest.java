@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.util.HashSet;
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -86,6 +87,70 @@ public class ProceduralTreeGeneratorTest {
             maxLeafY = Math.max(maxLeafY, v.y());
         }
         assertTrue("leaves should rise above the trunk top", maxLeafY >= height - 1);
+    }
+
+    @Test
+    public void poplarCrownIsBroaderAndHigherThanColumnarCrown() {
+        TreeBlockCanvas poplar = profileCanopy(IrisTreeProfile.POPLAR);
+        TreeBlockCanvas columnar = profileCanopy(IrisTreeProfile.COLUMNAR);
+        int poplarWidth = 0;
+        int columnarWidth = 0;
+        int poplarBottom = Integer.MAX_VALUE;
+        int columnarBottom = Integer.MAX_VALUE;
+        for (TreeBlockCanvas.Vec leaf : poplar.getLeaf()) {
+            poplarWidth = Math.max(poplarWidth, Math.abs(leaf.x()));
+            poplarBottom = Math.min(poplarBottom, leaf.y());
+        }
+        for (TreeBlockCanvas.Vec leaf : columnar.getLeaf()) {
+            columnarWidth = Math.max(columnarWidth, Math.abs(leaf.x()));
+            columnarBottom = Math.min(columnarBottom, leaf.y());
+        }
+
+        assertTrue(poplarWidth > columnarWidth);
+        assertTrue(poplarBottom > columnarBottom);
+    }
+
+    @Test
+    public void branchingPoplarVariantsRetainSupportedLeavesAndOrientedWood() {
+        IrisProceduralTree tree = new IrisProceduralTree()
+                .setProfile(IrisTreeProfile.POPLAR)
+                .setTrunk("minecraft:poplar_log")
+                .setLeaves("minecraft:orange_poplar_leaves")
+                .setLeanAngle(7);
+        IrisTreeBranches branches = new IrisTreeBranches()
+                .setProbabilityFunction(IrisTreeBranchProbability.TOP_HEAVY)
+                .setProbabilityExponent(2)
+                .setLengthFunction(IrisTreeFunction.CONSTANT)
+                .setLengthConstant(3)
+                .setElevation(35)
+                .setClusterRadius(2);
+        tree.getCanopy().setBranches(branches);
+        for (int height = 7; height <= 11; height++) {
+            TreeBlockCanvas canvas = new TreeBlockCanvas();
+            List<int[]> endpoints = new ArrayList<>();
+            double[][] offsets = TreeTrunkBuilder.build(canvas, tree, height).getFirst().offsets();
+            TreeCanopyBuilder.build(canvas, tree, height, offsets, 0, height * 7919L, endpoints);
+            TreeSupport.ensureLeavesSupported(canvas, 24);
+
+            assertFalse(endpoints.isEmpty());
+            assertFalse(canvas.getLeaf().isEmpty());
+            Map<TreeBlockCanvas.Vec, Integer> distances = TreePlausibility.computeDistances(canvas.getTrunk(), canvas.getLeaf());
+            for (TreeBlockCanvas.Vec leaf : canvas.getLeaf()) {
+                assertNotNull(distances.get(leaf));
+                assertTrue(distances.get(leaf) <= 6);
+            }
+            for (TreeBlockCanvas.Vec wood : canvas.getTrunk()) {
+                assertTrue(canvas.get(wood.x(), wood.y(), wood.z()).axis() != TreeBlockCanvas.Axis.NONE);
+            }
+        }
+    }
+
+    private static TreeBlockCanvas profileCanopy(IrisTreeProfile profile) {
+        IrisProceduralTree tree = new IrisProceduralTree().setProfile(profile);
+        TreeBlockCanvas canvas = new TreeBlockCanvas();
+        double[][] offsets = TreeTrunkBuilder.build(canvas, tree, 14).getFirst().offsets();
+        TreeCanopyBuilder.build(canvas, tree, 14, offsets, 0, 1234L, null);
+        return canvas;
     }
 
     @Test

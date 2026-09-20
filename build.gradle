@@ -3,6 +3,7 @@ import art.arcane.volmit.packaging.NativeDevelopmentTargets
 import io.papermc.paperweight.userdev.PaperweightUser
 import io.papermc.paperweight.userdev.PaperweightUserDependenciesExtension
 import io.papermc.paperweight.userdev.PaperweightUserExtension
+import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.jvm.toolchain.JavaToolchainService
 import org.gradle.api.file.CopySpec
@@ -178,30 +179,48 @@ nmsBindings.each { String key ->
 
 def included = configurations.create('included')
 def nativeRuntime = configurations.create('nativeRuntime')
+def publishedNativeRuntime = configurations.create('publishedNativeRuntime') {
+    canBeConsumed = false
+    transitive = false
+    resolutionStrategy.useGlobalDependencySubstitutionRules = false
+}
+repositories.configureEach { repository ->
+    if (repository.name != 'publishedNativeProviders') {
+        repository.content { notForConfigurations('publishedNativeRuntime') }
+    }
+}
+repositories.maven {
+    name = 'publishedNativeProviders'
+    url = uri('https://jitpack.io/')
+    content {
+        onlyForConfigurations('publishedNativeRuntime')
+        includeGroup('com.github.VolmitSoftware.VolmLib')
+    }
+}
 def nativeRuntimeOutput = layout.buildDirectory.dir('generated/native-runtime')
 def nativeRuntimeRules = layout.buildDirectory.file('generated/native-runtime-keep.pro')
+List<String> nativeRuntimeModules = ['native-common'] + nmsBindings.collect { String adapter -> 'native-' + adapter }
 dependencies {
-    (['native-common'] + nmsBindings.collect { String adapter -> 'native-' + adapter }).each { String module ->
+    nativeRuntimeModules.each { String module ->
         add('nativeRuntime', "com.github.VolmitSoftware.VolmLib:${module}:${volmLibCoordinate.tokenize(':').last()}") {
             transitive = false
         }
+        add('publishedNativeRuntime', "com.github.VolmitSoftware.VolmLib:${module}:${volmLibCoordinate.tokenize(':').last()}")
     }
 }
 def generateNativeRuntime = tasks.register('generateNativeRuntime') {
-    inputs.files(nativeRuntime)
+    inputs.files(publishedNativeRuntime)
     inputs.property('version', volmLibCoordinate.tokenize(':').last())
     inputs.property('adapters', nmsBindings)
     outputs.dir(nativeRuntimeOutput)
     outputs.file(nativeRuntimeRules)
     doLast {
-        Map<String, File> artifacts = new TreeMap<>()
-        nativeRuntime.resolvedConfiguration.resolvedArtifacts.each { artifact ->
-            String module = artifact.moduleVersion.id.name
-            if (module.startsWith('v') && module.contains('_R')) {
-                module = 'native-' + module
-            }
-            artifacts.put(module, artifact.file)
+        Map<ComponentIdentifier, File> resolved = new LinkedHashMap<>()
+        publishedNativeRuntime.incoming.artifacts.artifacts.each { artifact ->
+            resolved.put(artifact.id.componentIdentifier, artifact.file)
         }
+        Map<String, File> artifacts = NativeRuntimeArtifacts.publishedArtifacts(resolved,
+            nativeRuntimeModules, volmLibCoordinate.tokenize(':').last())
         NativeRuntimeArtifacts.generate(artifacts, volmLibCoordinate.tokenize(':').last(),
             nativeRuntimeOutput.get().asFile, nativeRuntimeRules.get().asFile)
     }

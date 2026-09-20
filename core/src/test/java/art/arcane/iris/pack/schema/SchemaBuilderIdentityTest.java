@@ -78,7 +78,7 @@ public class SchemaBuilderIdentityTest {
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
 
-    private static final String EXPECTED_SCHEMA_DIGEST = "91c36f3cdb0a10a0700b62fb6a6d2456576bd50f75a4d588103acdd42a7763c1";
+    private static final String EXPECTED_SCHEMA_DIGEST = "7950fa5a3f3abf7fdd2cea1bd4b1fd335745b348ce64e67404cc86e898d18f16";
 
     private static final List<Class<?>> SCHEMA_ROOTS = List.of(
             IrisDimension.class,

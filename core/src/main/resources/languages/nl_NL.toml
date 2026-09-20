@@ -1378,6 +1378,7 @@ totals = "Totaal: +{wood} hout ({branches} takken), {converted} Bladeren->hout, 
 position_set = "Positie {position} ingesteld op {x}, {y}, {z}"
 
 [iris.runtime.dust]
+biome_loading = "De opgeslagen bioominformatie wordt geladen. Probeer dit blok over enkele ogenblikken opnieuw te onthullen."
 iris_world_required = "Deze dimensie is niet door Iris gegenereerd."
 found_object = "Object gevonden {object}"
 revealed = "Onthuld {count} blok(s) van {object}"

@@ -1381,6 +1381,7 @@ totals = "共计:+{wood} 木材({branches} 分部门), {converted} 叶->木头,~
 position_set = "立场 {position} 设置为 {x}, {y}, {z}"
 
 [iris.runtime.dust]
+biome_loading = "正在加载已保存的生物群系信息。请稍后再次尝试揭示此方块的信息。"
 iris_world_required = "此维度不是由 Iris 生成的。"
 found_object = "找到对象 {object}"
 revealed = "被揭露{count}区块{object}"

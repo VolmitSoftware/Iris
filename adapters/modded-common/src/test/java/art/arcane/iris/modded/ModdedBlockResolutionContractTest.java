@@ -85,6 +85,25 @@ public class ModdedBlockResolutionContractTest {
     }
 
     @Test
+    public void netherGroundCoverAcceptsNyliumAndSoulSoilButRejectsBarrenBlocks() {
+        for (Block plant : new Block[]{Blocks.CRIMSON_ROOTS, Blocks.WARPED_ROOTS, Blocks.NETHER_SPROUTS}) {
+            for (Block substrate : new Block[]{Blocks.CRIMSON_NYLIUM, Blocks.WARPED_NYLIUM,
+                    Blocks.SOUL_SOIL, Blocks.GRASS_BLOCK, Blocks.COARSE_DIRT, Blocks.PODZOL}) {
+                assertTrue(plant + " on " + substrate, NativeBlockProperties.canPlaceOnto(plant, substrate));
+            }
+            for (Block substrate : new Block[]{Blocks.NETHERRACK, Blocks.SOUL_SAND,
+                    Blocks.STONE, Blocks.GRAVEL, Blocks.AIR, Blocks.WATER}) {
+                assertFalse(plant + " on " + substrate, NativeBlockProperties.canPlaceOnto(plant, substrate));
+            }
+        }
+        for (Block fungus : new Block[]{Blocks.CRIMSON_FUNGUS, Blocks.WARPED_FUNGUS}) {
+            for (Block substrate : new Block[]{Blocks.CRIMSON_NYLIUM, Blocks.WARPED_NYLIUM, Blocks.SOUL_SOIL}) {
+                assertTrue(fungus + " on " + substrate, NativeBlockProperties.canPlaceOnto(fungus, substrate));
+            }
+        }
+    }
+
+    @Test
     public void sulfurAndDripstoneTipsReceivePostLoadUpdates() {
         for (Block block : new Block[]{Blocks.SULFUR_SPIKE, Blocks.POINTED_DRIPSTONE}) {
             for (SpeleothemThickness thickness : SpeleothemThickness.values()) {

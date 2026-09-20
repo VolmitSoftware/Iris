@@ -1,6 +1,0 @@
-art/arcane/iris/diagnostics/LogFilterSVC.java
-art/arcane/iris/structure/BulkStructureImporter.java
-art/arcane/iris/structure/VillageImporter.java
-art/arcane/iris/world/lifecycle/CapabilitySnapshot.java
-art/arcane/iris/world/lifecycle/WorldLifecycleSupport.java
-art/arcane/iris/world/runtime/WorldRuntimeControlService.java

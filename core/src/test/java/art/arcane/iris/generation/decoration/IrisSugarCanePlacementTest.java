@@ -109,6 +109,8 @@ public class IrisSugarCanePlacementTest {
             local = size / 2;
             output = Hunk.newArrayHunk(size, 8, size);
             when(air.isAir()).thenReturn(true);
+            when(stone.isSolid()).thenReturn(true);
+            when(soil.isSolid()).thenReturn(true);
             when(water.isWater()).thenReturn(true);
             when(cane.canPlaceOnto(soil)).thenReturn(true);
             when(cane.canPlaceOnto(cane)).thenReturn(true);

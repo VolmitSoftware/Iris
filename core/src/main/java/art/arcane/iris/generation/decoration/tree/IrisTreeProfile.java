@@ -26,6 +26,8 @@ public enum IrisTreeProfile {
     OAK,
     @Description("Slim upright broadleaf crown.")
     BIRCH,
+    @Description("Upright broadleaf crown with a rounded upper canopy and a tapered top.")
+    POPLAR,
     @Description("Narrow conifer cone.")
     SPRUCE,
     @Description("Tall thin crown concentrated near the very top.")

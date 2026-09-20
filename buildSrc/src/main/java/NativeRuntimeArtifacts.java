@@ -1,4 +1,6 @@
 import org.gradle.api.GradleException;
+import org.gradle.api.artifacts.component.ComponentIdentifier;
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -25,6 +28,27 @@ public final class NativeRuntimeArtifacts {
     private static final String NATIVE = "art/arcane/volmlib/nativelib/";
 
     private NativeRuntimeArtifacts() {
+    }
+
+    public static Map<String, File> publishedArtifacts(Map<ComponentIdentifier, File> resolved,
+                                                       List<String> modules, String version) {
+        Map<String, File> artifacts = new TreeMap<>();
+        for (Map.Entry<ComponentIdentifier, File> entry : resolved.entrySet()) {
+            if (!(entry.getKey() instanceof ModuleComponentIdentifier component)
+                    || !GROUP.equals(component.getGroup()) || !version.equals(component.getVersion())
+                    || !modules.contains(component.getModule())) {
+                throw new GradleException("Native runtime providers must resolve to published coordinates at "
+                        + version + ": " + entry.getKey().getDisplayName());
+            }
+            if (artifacts.put(component.getModule(), entry.getValue()) != null) {
+                throw new GradleException("Duplicate native runtime provider: " + component.getModule());
+            }
+        }
+        if (!artifacts.keySet().equals(new TreeSet<>(modules))) {
+            throw new GradleException("Published native runtime providers differ: " + artifacts.keySet()
+                    + "; expected " + modules);
+        }
+        return artifacts;
     }
 
     public static void generate(Map<String, File> artifacts, String version, File output, File rules) throws IOException {

@@ -81,6 +81,11 @@ final class CompatFixtures {
         int blockLookups = 0;
 
         @Override
+        public NativeBlockState decodeBlockState(String key) {
+            return blockOrNull(key);
+        }
+
+        @Override
         public NativeBlockState block(String key) {
             NativeBlockState state = blockOrNull(key, false);
             return state == null ? air() : state;

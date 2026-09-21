@@ -345,7 +345,7 @@ public class IrisPregenerator {
         int previousLoaded = loadedBefore;
         int stagnantRounds = 0;
         for (int attempt = 0; attempt < 24 && stagnantRounds < 4; attempt++) {
-            mantle.trim(0, 0);
+            mantle.trim(0L);
             mantle.unloadTectonicPlate(0);
             int loaded = mantle.getLoadedRegionCount();
             if (loaded <= 0) {
@@ -441,8 +441,7 @@ public class IrisPregenerator {
         try {
             Mantle mantle = getMantle();
             if (mantle != null) {
-                mantle.trim(0, 0);
-                mantle.unloadTectonicPlate(0);
+                mantle.saveOldestIdleTectonicPlate();
             }
         } catch (Throwable e) {
             IrisLogging.reportError(e);

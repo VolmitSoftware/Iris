@@ -7,8 +7,52 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class HydrologySurfaceRouteGeometryTest {
+    @Test
+    public void lazyTransitionGeometryIsReusedUntilResolvedHeightsChange() {
+        HydrologyPlanner planner = new HydrologyPlanner(91L, HydrologyPlannerSettings.defaults(),
+                (x, z) -> {
+                    throw new AssertionError("Geometry lookup must not sample terrain.");
+                });
+        RouteCandidate previous = candidate(0D, 0D);
+        RouteCandidate current = spy(candidate(4D, 0D));
+        HydrologyRouteGeometry.CurvatureWorkspace workspace = new HydrologyRouteGeometry.CurvatureWorkspace(
+                List.of(List.of(previous), List.of(current)));
+        double expected = planner.routePaths.routeTransitionGeometryCost(previous, current, 4D);
+        clearInvocations(current);
+
+        for (int iteration = 0; iteration < 8; iteration++) {
+            double actual = planner.routeGeometry.resolvedTransitionCost(
+                    previous, current, 4D, Double.NaN, workspace, 1, 0, 0);
+            assertEquals(Double.doubleToRawLongBits(expected), Double.doubleToRawLongBits(actual));
+        }
+        verify(current, times(1)).offset();
+
+        RouteCandidate raised = spy(new RouteCandidate(new HydrologyPoint(4, 91, 0),
+                current.continuousX(), current.continuousZ(), current.offset(), current.localScore(),
+                current.terrainScore(), current.tangent(), true));
+        double raisedExpected = planner.routePaths.routeTransitionGeometryCost(previous, raised, 4D);
+        assertTrue(raisedExpected > expected);
+        clearInvocations(raised);
+        for (int iteration = 0; iteration < 8; iteration++) {
+            double actual = planner.routeGeometry.resolvedTransitionCost(
+                    previous, raised, 4D, Double.NaN, workspace, 1, 0, 0);
+            assertEquals(Double.doubleToRawLongBits(raisedExpected), Double.doubleToRawLongBits(actual));
+        }
+        verify(raised, times(1)).offset();
+        assertEquals(Double.doubleToRawLongBits(-0D), Double.doubleToRawLongBits(
+                planner.routeGeometry.resolvedTransitionCost(previous, raised, 4D, -0D,
+                        workspace, 1, 0, 0)));
+        assertEquals(Double.POSITIVE_INFINITY,
+                planner.routeGeometry.resolvedTransitionCost(previous, raised, 4D,
+                        Double.POSITIVE_INFINITY, workspace, 1, 0, 0), 0D);
+    }
+
     @Test
     public void surfaceAnchorKeepsTheCoarseValleyWhenSmoothGroundIsMuchHigher() {
         HydrologyTerrainSampler sampler = (x, z) -> HydrologyTerrainSample.openLand(

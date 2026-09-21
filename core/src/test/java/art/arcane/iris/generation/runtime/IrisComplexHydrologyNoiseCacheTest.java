@@ -120,20 +120,19 @@ public class IrisComplexHydrologyNoiseCacheTest {
     }
 
     @Test(timeout = 10_000L)
-    public void concurrentFirstDemandsShareOneReservation() throws Exception {
+    public void concurrentCacheExpansionsShareOneReservation() throws Exception {
         try (Fixture fixture = new Fixture(1_024);
              ExecutorService callers = Executors.newFixedThreadPool(2)) {
             HydrologyNoiseCacheBudget budget = new HydrologyNoiseCacheBudget(Long.MAX_VALUE);
-            HydrologyTileCache cache = fixture.planningCache(budget);
             CountDownLatch entered = new CountDownLatch(2);
             CountDownLatch release = new CountDownLatch(1);
-            cache.setTerrainPreparation(() -> {
+            Runnable prepare = () -> {
                 entered.countDown();
                 await(release);
                 fixture.complex.expandHydrologyNoiseCaches(budget);
-            });
-            Future<?> first = callers.submit(() -> cache.get(new HydrologyTileKey(0, 0)));
-            Future<?> second = callers.submit(() -> cache.get(new HydrologyTileKey(1, 0)));
+            };
+            Future<?> first = callers.submit(prepare);
+            Future<?> second = callers.submit(prepare);
             assertTrue(entered.await(5L, TimeUnit.SECONDS));
             assertEquals(0L, budget.reservedBytes());
             release.countDown();

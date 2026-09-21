@@ -599,7 +599,7 @@ public class IrisComplex implements DataProvider {
     }
 
     private boolean sampleNaturalOcean(int x, int z) {
-        return resolveNaturalInferredType(bridgeStream, focusBiome, x, z) == InferredType.SEA;
+        return resolveNaturalInferredType(bridgeStream, focusedBiomeAt(x, z), x, z) == InferredType.SEA;
     }
 
     /**

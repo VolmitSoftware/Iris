@@ -96,6 +96,26 @@ public class HydrologyPlannerTest {
     }
 
     @Test
+    public void independentOwnersReleaseCompilerWithoutChangingPublication() {
+        HydrologyPlanner rootPlanner = new HydrologyPlanner(77L, EARLY_OWNER_SETTINGS, EARLY_OWNER_TERRAIN);
+        CrossTileResolution root = rootPlanner.resolveCrossTileOwner(EARLY_OWNER_TILE);
+        HydrologyFootprintCompiler rootCompiler = root.draft().footprintCompiler();
+        assertNotNull(rootCompiler);
+        assertFalse(root.draft().result().courses().isEmpty());
+
+        HydrologyPlanner dependencyPlanner = new HydrologyPlanner(77L, EARLY_OWNER_SETTINGS, EARLY_OWNER_TERRAIN);
+        CrossTileResolvedOwner dependency = dependencyPlanner.resolveIndependentOwner(EARLY_OWNER_TILE);
+        assertNull(dependency.draft().footprintCompiler());
+        assertEquals(root.draft().withoutFootprintCompiler(), dependency.draft());
+        assertEquals(root.observedRejections(), dependency.observedRejections());
+
+        int materializations = rootCompiler.fullMaterializationCount();
+        assertTileContentsEqual(EARLY_OWNER_BASELINE, rootPlanner.crossTile.materializeAcceptedTile(root));
+        assertTrue(rootCompiler.fullMaterializationCount() > materializations);
+        assertTileContentsEqual(EARLY_OWNER_BASELINE, dependencyPlanner.plan(EARLY_OWNER_TILE));
+    }
+
+    @Test
     public void collidingRoutingContextKeysCompileIndependently() throws Exception {
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
@@ -252,7 +272,43 @@ public class HydrologyPlannerTest {
     }
 
     @Test
+    public void limitedWorkersSkipUnusedOwnersButResolveDemandedOwners() throws Exception {
+        HydrologyTileKey ownerKey = new HydrologyTileKey(-1, -1);
+        List<HydrologyTileKey> demanded = List.of(new HydrologyTileKey(-2, -2), new HydrologyTileKey(0, 0));
+        int[] poolSizes = Runtime.getRuntime().availableProcessors() <= 2 ? new int[]{1, 2, 16} : new int[]{1, 2};
+        for (int workers : poolSizes) {
+            AtomicInteger grids = new AtomicInteger();
+            HydrologyPlannerSettings settings = withPeriodTwo(standardSettings(4D, 2D, true, false, List.of()));
+            HydrologyTerrainSample blocked = blockedTerrain();
+            HydrologyTerrainSampler terrain = (x, z) -> blocked;
+            HydrologyPlanner planner = new HydrologyPlanner(77L, settings, terrain,
+                    new ContextRoutingSampler(blocked, request -> grids.incrementAndGet()),
+                    HydrologyGeometrySampler.deterministic(terrain), -4096,
+                    footprint -> new HydrologyTerrainCaveVoxelView(terrain, settings.seaLevel(), -4096, 4096));
+            AutoCloseable admission = earlyAdmission(planner, ownerKey);
+            try (ForkJoinPool pool = new ForkJoinPool(workers)) {
+                pool.submit(() -> {
+                    ((CrossTileDraftAdmission) admission).prepare();
+                    admission.close();
+                    return null;
+                }).get(5, TimeUnit.SECONDS);
+                assertTrue(earlyTasks(admission).isEmpty());
+                assertTrue(cachedOwnerKeys(planner).isEmpty());
+                assertEquals("Unused owner terrain must remain unsampled", 0, grids.get());
+
+                List<CrossTileResolvedOwner> resolved = pool.submit(() -> planner.resolveLowerRankOwners(
+                        demanded, new CrossTileResolutionContext(ownerKey, 64L, 4096), Map.of()
+                )).get(30, TimeUnit.SECONDS);
+                assertEquals(demanded, resolved.stream().map(owner -> owner.draft().key()).toList());
+                assertEquals(Set.copyOf(demanded), cachedOwnerKeys(planner));
+                assertEquals(demanded.size(), grids.get());
+            }
+        }
+    }
+
+    @Test
     public void earlyOwnersPrioritizeHigherRanksAndSkipRunningOwners() throws Exception {
+        org.junit.Assume.assumeTrue(Runtime.getRuntime().availableProcessors() > 2);
         HydrologyPlannerSettings settings = withPeriodTwo(standardSettings(4D, 2D, true, false, List.of()));
         HydrologyPlanner planner = new HydrologyPlanner(77L, settings, (x, z) -> blockedTerrain());
         AutoCloseable admission = earlyAdmission(planner, new HydrologyTileKey(-1, -1));
@@ -287,7 +343,7 @@ public class HydrologyPlannerTest {
         private final ArrayList<Runnable> submitted = new ArrayList<>();
 
         private CapturingHydrologyPool() {
-            super(1);
+            super(3);
         }
 
         @Override
@@ -337,7 +393,9 @@ public class HydrologyPlannerTest {
         } finally {
             pool.shutdownNow();
         }
-        assertTrue("Expected selected sources to prepare lower-rank owners", observedParallelOwner);
+        if (HydrologyPlanningAdmission.effectiveParallelism(4) > 2) {
+            assertTrue("Expected selected sources to prepare lower-rank owners", observedParallelOwner);
+        }
     }
 
     @Test

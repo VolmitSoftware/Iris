@@ -391,7 +391,7 @@ final class HydrologyFootprintCompiler {
     }
 
     RiverFootprint build(Long2ObjectLinkedOpenHashMap<FootprintMutableColumn> columns) {
-        LinkedHashMap<Long, HydrologyColumnSample> immutable = new LinkedHashMap<>();
+        Long2ObjectOpenHashMap<HydrologyColumnSample> immutable = new Long2ObjectOpenHashMap<>(columns.size());
         for (Long2ObjectMap.Entry<FootprintMutableColumn> entry : columns.long2ObjectEntrySet()) {
             immutable.put(entry.getLongKey(), entry.getValue().build());
         }

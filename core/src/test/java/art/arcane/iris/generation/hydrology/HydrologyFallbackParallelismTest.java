@@ -35,6 +35,8 @@ public class HydrologyFallbackParallelismTest {
 
     @Test(timeout = 15000)
     public void publicationRejectionConsumesTheNextCompletedOutletWithoutRebuildingIt() throws Exception {
+        int parallelism = HydrologyPlanningAdmission.effectiveParallelism(4);
+        int batchSize = parallelism <= 2 ? 1 : Math.min(parallelism, HydrologyPlanningAdmission.maximumTrials());
         AtomicIntegerArray builds = new AtomicIntegerArray(4);
         Fixture fixture = fixture(outlet -> {
             builds.incrementAndGet(outlet);
@@ -53,23 +55,89 @@ public class HydrologyFallbackParallelismTest {
                 if (result.courses().isEmpty()) {
                     return new CrossTilePublicationAdmission(result, List.of(), false);
                 }
-                for (int outlet = 0; outlet < 4; outlet++) {
-                    assertEquals("Every trial provider must finish before publication", 1, builds.get(outlet));
-                }
                 long course = result.courses().getFirst().id();
+                int completed = Math.min(4, Math.ceilDiv((int) (course - 199L), batchSize) * batchSize);
+                for (int outlet = 0; outlet < 4; outlet++) {
+                    assertEquals("Every admitted trial provider must finish before publication", outlet < completed ? 1 : 0, builds.get(outlet));
+                }
                 submitted.add(course);
                 return course == 200L
                         ? new CrossTilePublicationAdmission(EMPTY, List.of(diagnostic(900L)), true)
                         : new CrossTilePublicationAdmission(result, List.of(), false);
             }
         };
-        HydrologyOwnerDraft draft = run(fixture, admission);
+        HydrologyOwnerDraft draft = run(fixture, admission, 4);
 
         assertEquals(List.of(200L, 201L), submitted);
         assertEquals(List.of(201L), draft.result().courses().stream().map(RiverCourse::id).toList());
         assertEquals(List.of(200L, 900L, 201L), draft.diagnostics().stream().map(HydrologyDiagnosticCandidate::id).toList());
         for (int outlet = 0; outlet < 4; outlet++) {
-            assertEquals(1, builds.get(outlet));
+            int completed = Math.min(4, Math.ceilDiv(2, batchSize) * batchSize);
+            assertEquals(outlet < completed ? 1 : 0, builds.get(outlet));
+        }
+    }
+
+    @Test(timeout = 15000)
+    public void limitedWorkersStopAfterTheFirstAcceptedOutlet() throws Exception {
+        int[] poolSizes = Runtime.getRuntime().availableProcessors() <= 2 ? new int[]{1, 2, 16} : new int[]{1, 2};
+        for (int parallelism : poolSizes) {
+            AtomicIntegerArray builds = new AtomicIntegerArray(4);
+            Fixture fixture = fixture(outlet -> builds.incrementAndGet(outlet));
+
+            HydrologyOwnerDraft draft = run(fixture, null, parallelism);
+
+            assertEquals(List.of(200L), draft.result().courses().stream().map(RiverCourse::id).toList());
+            assertEquals(List.of(200L), draft.diagnostics().stream().map(HydrologyDiagnosticCandidate::id).toList());
+            assertEquals(1, builds.get(0));
+            for (int outlet = 1; outlet < 4; outlet++) {
+                assertEquals("Unused outlets must not be compiled", 0, builds.get(outlet));
+            }
+        }
+    }
+
+    @Test(timeout = 15000)
+    public void rejectedOutletsAdvanceToTheNextWorkerBoundedBatch() throws Exception {
+        int batchSize = 1;
+        AtomicIntegerArray builds = new AtomicIntegerArray(4);
+        Fixture fixture = fixture(outlet -> {
+            builds.incrementAndGet(outlet);
+            if (outlet == 3) {
+                throw new IllegalStateException("Unused fallback provider failed");
+            }
+        });
+        ArrayList<Long> submitted = new ArrayList<>();
+        CrossTileDraftAdmission admission = new CrossTileDraftAdmission() {
+            @Override
+            public void prepare() {
+            }
+
+            @Override
+            public CrossTilePublicationAdmission admit(HydrologyCaveCourseFilter.Result result) {
+                if (result.courses().isEmpty()) {
+                    return new CrossTilePublicationAdmission(result, List.of(), false);
+                }
+                long course = result.courses().getFirst().id();
+                submitted.add(course);
+                for (int outlet = 0; outlet < 4; outlet++) {
+                    int completed = Math.min(4, Math.ceilDiv((int) (course - 199L), batchSize) * batchSize);
+                    int expected = outlet < completed ? 1 : 0;
+                    assertEquals("Only the demanded batch may be compiled", expected, builds.get(outlet));
+                }
+                return course < 202L
+                        ? new CrossTilePublicationAdmission(EMPTY, List.of(diagnostic(course + 700L)), true)
+                        : new CrossTilePublicationAdmission(result, List.of(), false);
+            }
+        };
+
+        HydrologyOwnerDraft draft = run(fixture, admission, 2);
+
+        assertEquals(List.of(200L, 201L, 202L), submitted);
+        assertEquals(List.of(202L), draft.result().courses().stream().map(RiverCourse::id).toList());
+        assertEquals(List.of(200L, 900L, 201L, 901L, 202L),
+                draft.diagnostics().stream().map(HydrologyDiagnosticCandidate::id).toList());
+        for (int outlet = 0; outlet < 4; outlet++) {
+            int completed = Math.min(4, Math.ceilDiv(3, batchSize) * batchSize);
+            assertEquals("Rejected trials must not be rebuilt", outlet < completed ? 1 : 0, builds.get(outlet));
         }
     }
 
@@ -95,8 +163,11 @@ public class HydrologyFallbackParallelismTest {
         try {
             Future<HydrologyOwnerDraft> pending = pool.submit(() -> fixture.resolver().compileOwnerDraft(KEY, null, false));
             assertTrue(failed.await(5, TimeUnit.SECONDS));
-            assertTrue(blocked.await(5, TimeUnit.SECONDS));
-            assertFalse(pending.isDone());
+            if (HydrologyPlanningAdmission.maximumTrials() > 1
+                    && HydrologyPlanningAdmission.effectiveParallelism(4) > 2) {
+                assertTrue(blocked.await(5, TimeUnit.SECONDS));
+                assertFalse(pending.isDone());
+            }
             release.countDown();
             ExecutionException failure = assertThrows(ExecutionException.class, () -> pending.get(5, TimeUnit.SECONDS));
             Throwable cause = failure.getCause();
@@ -104,7 +175,8 @@ public class HydrologyFallbackParallelismTest {
                 cause = cause.getCause();
             }
             assertSame(expected, cause);
-            assertTrue(completed.get());
+            assertEquals(HydrologyPlanningAdmission.maximumTrials() > 1
+                    && HydrologyPlanningAdmission.effectiveParallelism(4) > 2, completed.get());
         } finally {
             release.countDown();
             pool.shutdownNow();
@@ -112,8 +184,8 @@ public class HydrologyFallbackParallelismTest {
         }
     }
 
-    private static HydrologyOwnerDraft run(Fixture fixture, CrossTileDraftAdmission admission) throws Exception {
-        ForkJoinPool pool = new ForkJoinPool(4);
+    private static HydrologyOwnerDraft run(Fixture fixture, CrossTileDraftAdmission admission, int parallelism) throws Exception {
+        ForkJoinPool pool = new ForkJoinPool(parallelism);
         try {
             return pool.submit(() -> fixture.resolver().compileOwnerDraft(KEY, admission, false)).get(10, TimeUnit.SECONDS);
         } finally {

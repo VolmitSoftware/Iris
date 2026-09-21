@@ -143,14 +143,15 @@ public class HydrologyDiagnosticCacheTest {
             }
             return fresh;
         });
-        ExecutorService caller = Executors.newSingleThreadExecutor();
+        ExecutorService caller = Executors.newFixedThreadPool(2);
         HydrologyTileCache cache = new HydrologyTileCache(planner, 4);
         try {
             Future<List<HydrologyDiagnosticCandidate>> first = caller.submit(() -> cache.diagnosticCandidates(key));
             assertTrue(started.await(5L, TimeUnit.SECONDS));
             cache.clear();
-            assertEquals(fresh, cache.diagnosticCandidates(key));
+            Future<List<HydrologyDiagnosticCandidate>> second = caller.submit(() -> cache.diagnosticCandidates(key));
             release.countDown();
+            assertEquals(fresh, second.get(5L, TimeUnit.SECONDS));
             assertEquals(old, first.get(5L, TimeUnit.SECONDS));
             assertEquals(fresh, cache.diagnosticCandidates(key));
             assertEquals(2, attempts.get());

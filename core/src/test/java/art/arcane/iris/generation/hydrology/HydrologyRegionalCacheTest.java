@@ -15,7 +15,7 @@ import static org.junit.Assert.assertTrue;
 
 public class HydrologyRegionalCacheTest {
     @Test
-    public void sharedTerrainRetentionIsIndependentOfEachSearchBudget() {
+    public void searchBudgetDoesNotLimitSubsequentSearchesOrTerrainResults() {
         AtomicInteger reads = new AtomicInteger();
         HydrologyTerrainSampler terrain = (x, z) -> {
             reads.incrementAndGet();
@@ -29,17 +29,17 @@ public class HydrologyRegionalCacheTest {
         }
         assertNull(first.sample(65536, 0));
         HydrologyRegionalTerrainRefiner.Samples second = refiner.new Samples();
-        for (int x = 65536; x < 100000; x++) {
+        for (int x = 65536; x < 70000; x++) {
             assertNotNull(second.sample(x, 0));
         }
-        assertEquals(100000, reads.get());
-        for (int x = 0; x < 100000; x++) {
+        assertEquals(70000, reads.get());
+        for (int x = 0; x < 70000; x++) {
             assertEquals(70, refiner.sample(x, 0).naturalHeight());
         }
-        assertEquals(100000, reads.get());
+        int readsBeforeClear = reads.get();
         refiner.clear();
         assertEquals(70, refiner.sample(0, 0).naturalHeight());
-        assertEquals(100001, reads.get());
+        assertEquals(readsBeforeClear + 1, reads.get());
     }
 
     @Test

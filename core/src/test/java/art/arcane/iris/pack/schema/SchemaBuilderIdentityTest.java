@@ -210,6 +210,11 @@ public class SchemaBuilderIdentityTest {
                 new NativeBlockProperty("axis", "string", "y", List.of("x", "y", "z"), null));
 
         @Override
+        public NativeBlockState decodeBlockState(String key) {
+            return blockOrNull(key);
+        }
+
+        @Override
         public NativeBlockState block(String key) {
             return null;
         }

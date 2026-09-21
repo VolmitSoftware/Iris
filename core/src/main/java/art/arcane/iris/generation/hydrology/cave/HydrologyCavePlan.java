@@ -1,15 +1,16 @@
 package art.arcane.iris.generation.hydrology.cave;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.HashCommon;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+
 import java.util.AbstractCollection;
+import java.util.AbstractList;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
@@ -18,6 +19,8 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
+import java.util.function.IntConsumer;
+import java.util.function.IntPredicate;
 
 public record HydrologyCavePlan(
         HydrologyCaveSource source,
@@ -56,27 +59,36 @@ public record HydrologyCavePlan(
             actions = Map.of();
             baselinePreconditions = Map.of();
         } else {
-            LinkedHashMap<CavePosition, Byte> packed = new LinkedHashMap<>(requestedPreconditions.size());
-            for (Map.Entry<CavePosition, HydrologyCaveAction> entry : requestedActions.entrySet()) {
-                CaveVoxelPrecondition precondition = requestedPreconditions.get(entry.getKey());
-                packed.put(entry.getKey(), encode(entry.getValue(), precondition));
-            }
-            for (Map.Entry<CavePosition, CaveVoxelPrecondition> entry : requestedPreconditions.entrySet()) {
-                packed.putIfAbsent(entry.getKey(), encode(null, entry.getValue()));
-            }
-            Map<CavePosition, Byte> immutablePacked = Collections.unmodifiableMap(packed);
-            PositionSpatialIndex spatialIndex = new PositionSpatialIndex(immutablePacked);
-            actions = new ActionMap(immutablePacked, requestedActions.size(), spatialIndex);
-            baselinePreconditions = new PreconditionMap(
-                    immutablePacked,
-                    List.copyOf(requestedPreconditions.keySet()),
-                    spatialIndex
-            );
+            PackedPositions packed = new PackedPositions(requestedActions, requestedPreconditions);
+            PositionSpatialIndex spatialIndex = new PositionSpatialIndex(packed);
+            actions = new ActionMap(packed, requestedActions.size(), spatialIndex);
+            baselinePreconditions = new PreconditionMap(packed, packed.preconditionOrder(requestedPreconditions), spatialIndex);
         }
     }
 
     public boolean accepted() {
         return rejection == HydrologyCaveRejection.NONE;
+    }
+
+    public long estimatedRetainedBytes() {
+        if (!(baselinePreconditions instanceof PreconditionMap preconditions)) {
+            return 192L;
+        }
+        PackedPositions packed = preconditions.packed;
+        PositionSpatialIndex spatialIndex = preconditions.spatialIndex;
+        long spatialCapacity = (long) HashCommon.arraySize(spatialIndex.positionsByChunk.size(), 0.75F) + 1L;
+        long bytes = 512L + arrayBytes((long) packed.x.length * Integer.BYTES) * 3L
+                + arrayBytes(packed.flags.length) + arrayBytes((long) packed.slots.length * Integer.BYTES)
+                + arrayBytes((long) preconditions.order.rows.length * Integer.BYTES)
+                + arrayBytes(spatialCapacity * Long.BYTES) * 2L;
+        for (int[] rows : spatialIndex.positionsByChunk.values()) {
+            bytes += arrayBytes((long) rows.length * Integer.BYTES);
+        }
+        return bytes;
+    }
+
+    private static long arrayBytes(long elementsBytes) {
+        return (elementsBytes + 23L) & ~7L;
     }
 
     public void forEachAction(BiConsumer<CavePosition, HydrologyCaveAction> consumer) {
@@ -183,12 +195,129 @@ public record HydrologyCavePlan(
         return preconditions;
     }
 
+    private static final class PackedPositions {
+        private final int[] x;
+        private final int[] y;
+        private final int[] z;
+        private final byte[] flags;
+        private final int[] slots;
+        private final int mask;
+        private int count;
+
+        private PackedPositions(Map<CavePosition, HydrologyCaveAction> actions,
+                                Map<CavePosition, CaveVoxelPrecondition> preconditions) {
+            int size = preconditions.size();
+            x = new int[size];
+            y = new int[size];
+            z = new int[size];
+            flags = new byte[size];
+            long required = Math.max(2L, ((long) size * 4L + 2L) / 3L);
+            if (required > 1 << 30) {
+                throw new IllegalArgumentException("Too many cave positions");
+            }
+            int capacity = Integer.highestOneBit((int) required - 1) << 1;
+            slots = new int[capacity];
+            mask = capacity - 1;
+            for (Map.Entry<CavePosition, HydrologyCaveAction> entry : actions.entrySet()) {
+                append(entry.getKey(), encode(entry.getValue(), preconditions.get(entry.getKey())));
+            }
+            for (Map.Entry<CavePosition, CaveVoxelPrecondition> entry : preconditions.entrySet()) {
+                if (row(entry.getKey()) < 0) {
+                    append(entry.getKey(), encode(null, entry.getValue()));
+                }
+            }
+        }
+
+        private void append(CavePosition position, byte value) {
+            int slot = slot(position);
+            x[count] = position.x();
+            y[count] = position.y();
+            z[count] = position.z();
+            flags[count] = value;
+            slots[slot] = ++count;
+        }
+
+        private int slot(CavePosition position) {
+            int hash = 0x811C9DC5;
+            hash = (hash ^ position.x()) * 0x01000193;
+            hash = (hash ^ position.y()) * 0x01000193;
+            hash = (hash ^ position.z()) * 0x01000193;
+            hash ^= hash >>> 16;
+            hash *= 0x7FEB352D;
+            hash ^= hash >>> 15;
+            hash *= 0x846CA68B;
+            hash ^= hash >>> 16;
+            int slot = hash & mask;
+            while (slots[slot] != 0) {
+                int row = slots[slot] - 1;
+                if (x[row] == position.x() && y[row] == position.y() && z[row] == position.z()) {
+                    return slot;
+                }
+                slot = slot + 1 & mask;
+            }
+            return slot;
+        }
+
+        private int row(CavePosition position) {
+            return slots[slot(position)] - 1;
+        }
+
+        private CavePosition position(int row) {
+            return new CavePosition(x[row], y[row], z[row]);
+        }
+
+        private PositionOrder preconditionOrder(Map<CavePosition, CaveVoxelPrecondition> preconditions) {
+            int[] order = new int[count];
+            int index = 0;
+            for (CavePosition position : preconditions.keySet()) {
+                order[index++] = row(position);
+            }
+            return new PositionOrder(this, order);
+        }
+
+        public Byte get(Object key) {
+            if (!(key instanceof CavePosition position)) {
+                return null;
+            }
+            int row = row(position);
+            return row < 0 ? null : flags[row];
+        }
+
+        public boolean containsKey(Object key) {
+            return key instanceof CavePosition position && row(position) >= 0;
+        }
+
+        public int size() {
+            return count;
+        }
+    }
+
+    private static final class PositionOrder extends AbstractList<CavePosition> {
+        private final PackedPositions packed;
+        private final int[] rows;
+
+        private PositionOrder(PackedPositions packed, int[] rows) {
+            this.packed = packed;
+            this.rows = rows;
+        }
+
+        @Override
+        public CavePosition get(int index) {
+            return packed.position(rows[index]);
+        }
+
+        @Override
+        public int size() {
+            return rows.length;
+        }
+    }
+
     private static final class ActionMap extends AbstractMap<CavePosition, HydrologyCaveAction> {
-        private final Map<CavePosition, Byte> packed;
+        private final PackedPositions packed;
         private final int size;
         private final PositionSpatialIndex spatialIndex;
 
-        private ActionMap(Map<CavePosition, Byte> packed, int size, PositionSpatialIndex spatialIndex) {
+        private ActionMap(PackedPositions packed, int size, PositionSpatialIndex spatialIndex) {
             this.packed = packed;
             this.size = size;
             this.spatialIndex = spatialIndex;
@@ -229,16 +358,16 @@ public record HydrologyCavePlan(
         @Override
         public void forEach(BiConsumer<? super CavePosition, ? super HydrologyCaveAction> consumer) {
             Objects.requireNonNull(consumer);
-            for (Map.Entry<CavePosition, Byte> entry : packed.entrySet()) {
-                if (hasAction(entry.getValue())) {
-                    consumer.accept(entry.getKey(), decodeAction(entry.getValue()));
+            for (int row = 0; row < packed.size(); row++) {
+                if (hasAction(packed.flags[row])) {
+                    consumer.accept(packed.position(row), decodeAction(packed.flags[row]));
                 }
             }
         }
 
         private boolean intersects(int minimumX, int minimumZ, int maximumX, int maximumZ) {
             return spatialIndex.anyIn(minimumX, minimumZ, maximumX, maximumZ,
-                    (CavePosition position) -> hasAction(packed.get(position)));
+                    (int row) -> hasAction(packed.flags[row]));
         }
 
         private void forEachIn(
@@ -248,23 +377,23 @@ public record HydrologyCavePlan(
                 int maximumZ,
                 BiConsumer<CavePosition, HydrologyCaveAction> consumer
         ) {
-            spatialIndex.forEachIn(minimumX, minimumZ, maximumX, maximumZ, (CavePosition position) -> {
-                byte value = packed.get(position);
+            spatialIndex.forEachIn(minimumX, minimumZ, maximumX, maximumZ, (int row) -> {
+                byte value = packed.flags[row];
                 if (hasAction(value)) {
-                    consumer.accept(position, decodeAction(value));
+                    consumer.accept(packed.position(row), decodeAction(value));
                 }
             });
         }
     }
 
     private static final class PreconditionMap extends AbstractMap<CavePosition, CaveVoxelPrecondition> {
-        private final Map<CavePosition, Byte> packed;
-        private final List<CavePosition> order;
+        private final PackedPositions packed;
+        private final PositionOrder order;
         private final PositionSpatialIndex spatialIndex;
 
         private PreconditionMap(
-                Map<CavePosition, Byte> packed,
-                List<CavePosition> order,
+                PackedPositions packed,
+                PositionOrder order,
                 PositionSpatialIndex spatialIndex
         ) {
             this.packed = packed;
@@ -306,8 +435,8 @@ public record HydrologyCavePlan(
         @Override
         public void forEach(BiConsumer<? super CavePosition, ? super CaveVoxelPrecondition> consumer) {
             Objects.requireNonNull(consumer);
-            for (CavePosition position : order) {
-                consumer.accept(position, decodePrecondition(packed.get(position)));
+            for (int row : order.rows) {
+                consumer.accept(packed.position(row), decodePrecondition(packed.flags[row]));
             }
         }
 
@@ -319,26 +448,32 @@ public record HydrologyCavePlan(
                 BiPredicate<CavePosition, CaveVoxelPrecondition> predicate
         ) {
             return spatialIndex.allIn(minimumX, minimumZ, maximumX, maximumZ,
-                    (CavePosition position) -> predicate.test(position, decodePrecondition(packed.get(position))));
+                    (int row) -> predicate.test(packed.position(row), decodePrecondition(packed.flags[row])));
         }
     }
 
     private static final class PositionSpatialIndex {
         private static final int CHUNK_SHIFT = 4;
 
-        private final Map<Long, List<CavePosition>> positionsByChunk;
+        private final PackedPositions packed;
+        private final Long2ObjectOpenHashMap<int[]> positionsByChunk;
 
-        private PositionSpatialIndex(Map<CavePosition, Byte> packed) {
-            HashMap<Long, ArrayList<CavePosition>> mutable = new HashMap<>();
-            for (CavePosition position : packed.keySet()) {
-                long chunkKey = packChunk(position.x() >> CHUNK_SHIFT, position.z() >> CHUNK_SHIFT);
-                mutable.computeIfAbsent(chunkKey, ignored -> new ArrayList<>()).add(position);
+        private PositionSpatialIndex(PackedPositions packed) {
+            this.packed = packed;
+            Long2ObjectOpenHashMap<IntArrayList> mutable = new Long2ObjectOpenHashMap<>();
+            for (int row = 0; row < packed.size(); row++) {
+                long chunkKey = packChunk(packed.x[row] >> CHUNK_SHIFT, packed.z[row] >> CHUNK_SHIFT);
+                IntArrayList rows = mutable.get(chunkKey);
+                if (rows == null) {
+                    rows = new IntArrayList();
+                    mutable.put(chunkKey, rows);
+                }
+                rows.add(row);
             }
-            HashMap<Long, List<CavePosition>> immutable = HashMap.newHashMap(mutable.size());
-            for (Map.Entry<Long, ArrayList<CavePosition>> entry : mutable.entrySet()) {
-                immutable.put(entry.getKey(), List.copyOf(entry.getValue()));
+            positionsByChunk = new Long2ObjectOpenHashMap<>(mutable.size());
+            for (Long2ObjectMap.Entry<IntArrayList> entry : mutable.long2ObjectEntrySet()) {
+                positionsByChunk.put(entry.getLongKey(), entry.getValue().toIntArray());
             }
-            positionsByChunk = Map.copyOf(immutable);
         }
 
         private boolean anyIn(
@@ -346,7 +481,7 @@ public record HydrologyCavePlan(
                 int minimumZ,
                 int maximumX,
                 int maximumZ,
-                java.util.function.Predicate<CavePosition> predicate
+                IntPredicate predicate
         ) {
             int minimumChunkX = minimumX >> CHUNK_SHIFT;
             int maximumChunkX = maximumX - 1 >> CHUNK_SHIFT;
@@ -354,13 +489,13 @@ public record HydrologyCavePlan(
             int maximumChunkZ = maximumZ - 1 >> CHUNK_SHIFT;
             for (int chunkZ = minimumChunkZ; chunkZ <= maximumChunkZ; chunkZ++) {
                 for (int chunkX = minimumChunkX; chunkX <= maximumChunkX; chunkX++) {
-                    List<CavePosition> positions = positionsByChunk.get(packChunk(chunkX, chunkZ));
+                    int[] positions = positionsByChunk.get(packChunk(chunkX, chunkZ));
                     if (positions == null) {
                         continue;
                     }
-                    for (CavePosition position : positions) {
-                        if (inside(position, minimumX, minimumZ, maximumX, maximumZ)
-                                && predicate.test(position)) {
+                    for (int row : positions) {
+                        if (inside(row, minimumX, minimumZ, maximumX, maximumZ)
+                                && predicate.test(row)) {
                             return true;
                         }
                     }
@@ -374,7 +509,7 @@ public record HydrologyCavePlan(
                 int minimumZ,
                 int maximumX,
                 int maximumZ,
-                java.util.function.Predicate<CavePosition> predicate
+                IntPredicate predicate
         ) {
             int minimumChunkX = minimumX >> CHUNK_SHIFT;
             int maximumChunkX = maximumX - 1 >> CHUNK_SHIFT;
@@ -382,13 +517,13 @@ public record HydrologyCavePlan(
             int maximumChunkZ = maximumZ - 1 >> CHUNK_SHIFT;
             for (int chunkZ = minimumChunkZ; chunkZ <= maximumChunkZ; chunkZ++) {
                 for (int chunkX = minimumChunkX; chunkX <= maximumChunkX; chunkX++) {
-                    List<CavePosition> positions = positionsByChunk.get(packChunk(chunkX, chunkZ));
+                    int[] positions = positionsByChunk.get(packChunk(chunkX, chunkZ));
                     if (positions == null) {
                         continue;
                     }
-                    for (CavePosition position : positions) {
-                        if (inside(position, minimumX, minimumZ, maximumX, maximumZ)
-                                && !predicate.test(position)) {
+                    for (int row : positions) {
+                        if (inside(row, minimumX, minimumZ, maximumX, maximumZ)
+                                && !predicate.test(row)) {
                             return false;
                         }
                     }
@@ -402,7 +537,7 @@ public record HydrologyCavePlan(
                 int minimumZ,
                 int maximumX,
                 int maximumZ,
-                java.util.function.Consumer<CavePosition> consumer
+                IntConsumer consumer
         ) {
             int minimumChunkX = minimumX >> CHUNK_SHIFT;
             int maximumChunkX = maximumX - 1 >> CHUNK_SHIFT;
@@ -410,28 +545,28 @@ public record HydrologyCavePlan(
             int maximumChunkZ = maximumZ - 1 >> CHUNK_SHIFT;
             for (int chunkZ = minimumChunkZ; chunkZ <= maximumChunkZ; chunkZ++) {
                 for (int chunkX = minimumChunkX; chunkX <= maximumChunkX; chunkX++) {
-                    List<CavePosition> positions = positionsByChunk.get(packChunk(chunkX, chunkZ));
+                    int[] positions = positionsByChunk.get(packChunk(chunkX, chunkZ));
                     if (positions == null) {
                         continue;
                     }
-                    for (CavePosition position : positions) {
-                        if (inside(position, minimumX, minimumZ, maximumX, maximumZ)) {
-                            consumer.accept(position);
+                    for (int row : positions) {
+                        if (inside(row, minimumX, minimumZ, maximumX, maximumZ)) {
+                            consumer.accept(row);
                         }
                     }
                 }
             }
         }
 
-        private static boolean inside(
-                CavePosition position,
+        private boolean inside(
+                int row,
                 int minimumX,
                 int minimumZ,
                 int maximumX,
                 int maximumZ
         ) {
-            return position.x() >= minimumX && position.x() < maximumX
-                    && position.z() >= minimumZ && position.z() < maximumZ;
+            return packed.x[row] >= minimumX && packed.x[row] < maximumX
+                    && packed.z[row] >= minimumZ && packed.z[row] < maximumZ;
         }
 
         private static long packChunk(int chunkX, int chunkZ) {
@@ -440,17 +575,17 @@ public record HydrologyCavePlan(
     }
 
     private static final class ActionKeySet extends AbstractSet<CavePosition> {
-        private final Map<CavePosition, Byte> packed;
+        private final PackedPositions packed;
         private final int size;
 
-        private ActionKeySet(Map<CavePosition, Byte> packed, int size) {
+        private ActionKeySet(PackedPositions packed, int size) {
             this.packed = packed;
             this.size = size;
         }
 
         @Override
         public Iterator<CavePosition> iterator() {
-            return new ActionKeyIterator(packed.entrySet().iterator());
+            return new ActionKeyIterator(packed);
         }
 
         @Override
@@ -466,17 +601,17 @@ public record HydrologyCavePlan(
     }
 
     private static final class ActionEntrySet extends AbstractSet<Entry<CavePosition, HydrologyCaveAction>> {
-        private final Map<CavePosition, Byte> packed;
+        private final PackedPositions packed;
         private final int size;
 
-        private ActionEntrySet(Map<CavePosition, Byte> packed, int size) {
+        private ActionEntrySet(PackedPositions packed, int size) {
             this.packed = packed;
             this.size = size;
         }
 
         @Override
         public Iterator<Entry<CavePosition, HydrologyCaveAction>> iterator() {
-            return new ActionEntryIterator(packed.entrySet().iterator());
+            return new ActionEntryIterator(packed);
         }
 
         @Override
@@ -487,17 +622,17 @@ public record HydrologyCavePlan(
 
     private static final class PreconditionEntrySet
             extends AbstractSet<Entry<CavePosition, CaveVoxelPrecondition>> {
-        private final Map<CavePosition, Byte> packed;
-        private final List<CavePosition> order;
+        private final PackedPositions packed;
+        private final PositionOrder order;
 
-        private PreconditionEntrySet(Map<CavePosition, Byte> packed, List<CavePosition> order) {
+        private PreconditionEntrySet(PackedPositions packed, PositionOrder order) {
             this.packed = packed;
             this.order = order;
         }
 
         @Override
         public Iterator<Entry<CavePosition, CaveVoxelPrecondition>> iterator() {
-            return new PreconditionEntryIterator(packed, order.iterator());
+            return new PreconditionEntryIterator(packed, order.rows);
         }
 
         @Override
@@ -507,10 +642,10 @@ public record HydrologyCavePlan(
     }
 
     private static final class PreconditionKeySet extends AbstractSet<CavePosition> {
-        private final Map<CavePosition, Byte> packed;
-        private final List<CavePosition> order;
+        private final PackedPositions packed;
+        private final PositionOrder order;
 
-        private PreconditionKeySet(Map<CavePosition, Byte> packed, List<CavePosition> order) {
+        private PreconditionKeySet(PackedPositions packed, PositionOrder order) {
             this.packed = packed;
             this.order = order;
         }
@@ -532,17 +667,17 @@ public record HydrologyCavePlan(
     }
 
     private static final class ActionValues extends AbstractCollection<HydrologyCaveAction> {
-        private final Map<CavePosition, Byte> packed;
+        private final PackedPositions packed;
         private final int size;
 
-        private ActionValues(Map<CavePosition, Byte> packed, int size) {
+        private ActionValues(PackedPositions packed, int size) {
             this.packed = packed;
             this.size = size;
         }
 
         @Override
         public Iterator<HydrologyCaveAction> iterator() {
-            return new ActionValueIterator(packed.entrySet().iterator());
+            return new ActionValueIterator(packed);
         }
 
         @Override
@@ -552,17 +687,17 @@ public record HydrologyCavePlan(
     }
 
     private static final class PreconditionValues extends AbstractCollection<CaveVoxelPrecondition> {
-        private final Map<CavePosition, Byte> packed;
-        private final List<CavePosition> order;
+        private final PackedPositions packed;
+        private final PositionOrder order;
 
-        private PreconditionValues(Map<CavePosition, Byte> packed, List<CavePosition> order) {
+        private PreconditionValues(PackedPositions packed, PositionOrder order) {
             this.packed = packed;
             this.order = order;
         }
 
         @Override
         public Iterator<CaveVoxelPrecondition> iterator() {
-            return new PreconditionValueIterator(packed, order.iterator());
+            return new PreconditionValueIterator(packed, order.rows);
         }
 
         @Override
@@ -572,121 +707,123 @@ public record HydrologyCavePlan(
     }
 
     private abstract static class FilteredActionIterator<T> implements Iterator<T> {
-        private final Iterator<Map.Entry<CavePosition, Byte>> entries;
-        private Map.Entry<CavePosition, Byte> next;
+        protected final PackedPositions packed;
+        private int next;
 
-        private FilteredActionIterator(Iterator<Map.Entry<CavePosition, Byte>> entries) {
-            this.entries = entries;
+        private FilteredActionIterator(PackedPositions packed) {
+            this.packed = packed;
         }
 
         @Override
         public boolean hasNext() {
             advance();
-            return next != null;
+            return next < packed.size();
         }
 
         @Override
         public T next() {
-            advance();
-            if (next == null) {
+            if (!hasNext()) {
                 throw new NoSuchElementException();
             }
-            Map.Entry<CavePosition, Byte> selected = next;
-            next = null;
-            return map(selected);
+            return map(next++);
         }
 
-        protected abstract T map(Map.Entry<CavePosition, Byte> entry);
+        protected abstract T map(int row);
 
         private void advance() {
-            while (next == null && entries.hasNext()) {
-                Map.Entry<CavePosition, Byte> candidate = entries.next();
-                if (hasAction(candidate.getValue())) {
-                    next = candidate;
-                }
+            while (next < packed.size() && !hasAction(packed.flags[next])) {
+                next++;
             }
         }
     }
 
     private static final class ActionKeyIterator extends FilteredActionIterator<CavePosition> {
-        private ActionKeyIterator(Iterator<Map.Entry<CavePosition, Byte>> entries) {
-            super(entries);
+        private ActionKeyIterator(PackedPositions packed) {
+            super(packed);
         }
 
         @Override
-        protected CavePosition map(Map.Entry<CavePosition, Byte> entry) {
-            return entry.getKey();
+        protected CavePosition map(int row) {
+            return packed.position(row);
         }
     }
 
     private static final class ActionEntryIterator
             extends FilteredActionIterator<Entry<CavePosition, HydrologyCaveAction>> {
-        private ActionEntryIterator(Iterator<Map.Entry<CavePosition, Byte>> entries) {
-            super(entries);
+        private ActionEntryIterator(PackedPositions packed) {
+            super(packed);
         }
 
         @Override
-        protected Entry<CavePosition, HydrologyCaveAction> map(Map.Entry<CavePosition, Byte> entry) {
-            return Map.entry(entry.getKey(), decodeAction(entry.getValue()));
+        protected Entry<CavePosition, HydrologyCaveAction> map(int row) {
+            return Map.entry(packed.position(row), decodeAction(packed.flags[row]));
         }
     }
 
     private static final class ActionValueIterator extends FilteredActionIterator<HydrologyCaveAction> {
-        private ActionValueIterator(Iterator<Map.Entry<CavePosition, Byte>> entries) {
-            super(entries);
+        private ActionValueIterator(PackedPositions packed) {
+            super(packed);
         }
 
         @Override
-        protected HydrologyCaveAction map(Map.Entry<CavePosition, Byte> entry) {
-            return decodeAction(entry.getValue());
+        protected HydrologyCaveAction map(int row) {
+            return decodeAction(packed.flags[row]);
         }
     }
 
     private static final class PreconditionEntryIterator
             implements Iterator<Entry<CavePosition, CaveVoxelPrecondition>> {
-        private final Map<CavePosition, Byte> packed;
-        private final Iterator<CavePosition> positions;
+        private final PackedPositions packed;
+        private final int[] rows;
+        private int index;
 
         private PreconditionEntryIterator(
-                Map<CavePosition, Byte> packed,
-                Iterator<CavePosition> positions
+                PackedPositions packed,
+                int[] rows
         ) {
             this.packed = packed;
-            this.positions = positions;
+            this.rows = rows;
         }
 
         @Override
         public boolean hasNext() {
-            return positions.hasNext();
+            return index < rows.length;
         }
 
         @Override
         public Entry<CavePosition, CaveVoxelPrecondition> next() {
-            CavePosition position = positions.next();
-            return Map.entry(position, decodePrecondition(packed.get(position)));
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            int row = rows[index++];
+            return Map.entry(packed.position(row), decodePrecondition(packed.flags[row]));
         }
     }
 
     private static final class PreconditionValueIterator implements Iterator<CaveVoxelPrecondition> {
-        private final Map<CavePosition, Byte> packed;
-        private final Iterator<CavePosition> positions;
+        private final PackedPositions packed;
+        private final int[] rows;
+        private int index;
 
         private PreconditionValueIterator(
-                Map<CavePosition, Byte> packed,
-                Iterator<CavePosition> positions
+                PackedPositions packed,
+                int[] rows
         ) {
             this.packed = packed;
-            this.positions = positions;
+            this.rows = rows;
         }
 
         @Override
         public boolean hasNext() {
-            return positions.hasNext();
+            return index < rows.length;
         }
 
         @Override
         public CaveVoxelPrecondition next() {
-            return decodePrecondition(packed.get(positions.next()));
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            return decodePrecondition(packed.flags[rows[index++]]);
         }
     }
 }

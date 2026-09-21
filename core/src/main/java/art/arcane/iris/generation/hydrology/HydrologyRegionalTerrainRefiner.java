@@ -23,16 +23,18 @@ final class HydrologyRegionalTerrainRefiner {
 
     private final HydrologyPlanner planner;
     private final HydrologyRegionalHydraulics hydraulics;
+    private final HydrologyCacheBudget cacheBudget;
     private volatile CacheState caches;
 
     HydrologyRegionalTerrainRefiner(HydrologyPlanner planner) {
         this.planner = planner;
         this.hydraulics = new HydrologyRegionalHydraulics(planner.settings);
-        this.caches = new CacheState();
+        this.cacheBudget = HydrologyCacheBudget.runtime(planner.settings.routing().regional().enabled());
+        this.caches = new CacheState(cacheBudget);
     }
 
     void clear() {
-        caches = new CacheState();
+        caches = new CacheState(cacheBudget);
     }
 
     HydrologyTerrainSample sample(int x, int z) {
@@ -459,10 +461,23 @@ final class HydrologyRegionalTerrainRefiner {
     }
 
     private static final class CacheState {
-        private final Cache<Edge, Reach> edges = Caffeine.newBuilder().maximumSize(128).build();
+        private final Cache<Edge, Reach> edges;
         private final ConcurrentHashMap<Edge, HydrologyForkJoin.Task<Reach>> loading = new ConcurrentHashMap<>();
-        private final Cache<Long, Terrain> terrain = Caffeine.newBuilder().maximumSize(Math.max(MAXIMUM_SAMPLES,
-                Math.min(MAXIMUM_CACHED_SAMPLES, Runtime.getRuntime().maxMemory() / 8192L))).build();
+        private final Cache<Long, Terrain> terrain;
+
+        private CacheState(HydrologyCacheBudget budget) {
+            edges = Caffeine.newBuilder()
+                    .maximumWeight(budget.regionalReachBytes())
+                    .weigher((Edge edge, Reach reach) -> HydrologyCacheWeights.bounded(
+                            HydrologyCacheWeights.points(reach.points()), budget.regionalReachBytes(), 128))
+                    .build();
+            terrain = Caffeine.newBuilder()
+                    .maximumWeight(budget.regionalTerrainBytes())
+                    .weigher((Long key, Terrain terrain) -> HydrologyCacheWeights.bounded(
+                            HydrologyCacheWeights.terrain(terrain.sample()), budget.regionalTerrainBytes(),
+                            (int) Math.max(MAXIMUM_SAMPLES, Math.min(MAXIMUM_CACHED_SAMPLES, Runtime.getRuntime().maxMemory() / 8192L))))
+                    .build();
+        }
     }
 
     private record Offer(HydrologyPoint point, double cost, int availableHead) {

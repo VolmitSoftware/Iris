@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.hydrology;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -160,6 +161,20 @@ final class HydrologyRegionalGraph {
     }
 
     record Tree(Label[] selected, int[] accumulation, List<OutletCandidate> outlets) {
+        int retainedLabelCount() {
+            BitSet retained = new BitSet(accumulation.length);
+            for (Label label : selected) {
+                for (Label current = label; current != null; current = current.downstream) {
+                    int id = current.state.id();
+                    if (retained.get(id)) {
+                        break;
+                    }
+                    retained.set(id);
+                }
+            }
+            return retained.cardinality();
+        }
+
         int root(int source) {
             return selected[source] == null ? -1 : selected[source].state.root();
         }

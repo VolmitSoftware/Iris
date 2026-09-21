@@ -11,6 +11,7 @@ import art.arcane.volmlib.util.noise.SimplexNoise;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -162,15 +163,22 @@ public final class HydrologyPlanner {
         this.geometrySampler = Objects.requireNonNull(geometrySampler, "geometrySampler");
         this.minimumY = minimumY;
         this.caveViewFactory = Objects.requireNonNull(caveViewFactory, "caveViewFactory");
+        HydrologyCacheBudget cacheBudget = HydrologyCacheBudget.runtime(settings.routing().regional().enabled());
         this.routingContexts = Caffeine.newBuilder()
-                .maximumSize(ROUTING_CONTEXT_CACHE_SIZE)
+                .maximumWeight(cacheBudget.routingBytes())
+                .weigher((HydrologyTileKey key, SourceRoutingContext context) -> HydrologyCacheWeights.bounded(
+                        HydrologyCacheWeights.routing(context), cacheBudget.routingBytes(), ROUTING_CONTEXT_CACHE_SIZE))
                 .build();
         this.resolvingRoutingContexts = new ConcurrentHashMap<>();
         this.resolvedOwners = Caffeine.newBuilder()
-                .maximumSize(RESOLVED_OWNER_CACHE_SIZE)
+                .maximumWeight(cacheBudget.ownerBytes())
+                .weigher((HydrologyTileKey key, CrossTileResolvedOwner owner) -> HydrologyCacheWeights.bounded(
+                        HydrologyCacheWeights.owner(owner), cacheBudget.ownerBytes(), RESOLVED_OWNER_CACHE_SIZE))
                 .build();
         this.refinedEdgeCache = Caffeine.newBuilder()
-                .maximumSize(REFINED_EDGE_CACHE_SIZE)
+                .maximumWeight(cacheBudget.edgeBytes())
+                .weigher((RefinedEdgeKey key, List<HydrologyPoint> points) -> HydrologyCacheWeights.bounded(
+                        HydrologyCacheWeights.points(points), cacheBudget.edgeBytes(), REFINED_EDGE_CACHE_SIZE))
                 .build();
         this.resolvingOwners = new ConcurrentHashMap<>();
         this.planningSamples = new ThreadLocal<>();
@@ -304,7 +312,7 @@ public final class HydrologyPlanner {
                 maximumCrossTileDependencyOffset(key),
                 maximumCrossTileDependencyOwners(key)
         );
-        CrossTileResolvedOwner resolved = resolveCrossTileOwner(key, context);
+        CrossTileResolvedOwner resolved = resolveCrossTileOwner(key, context, true);
         return new CrossTileResolution(
                 resolved.draft(),
                 resolved.observedRejections(),
@@ -316,7 +324,8 @@ public final class HydrologyPlanner {
 
     CrossTileResolvedOwner resolveCrossTileOwner(
             HydrologyTileKey key,
-            CrossTileResolutionContext context
+            CrossTileResolutionContext context,
+            boolean retainFootprintCompiler
     ) {
         CrossTileResolvedOwner local = context.resolved(key);
         if (local != null) {
@@ -347,7 +356,7 @@ public final class HydrologyPlanner {
                     draft = crossTile.compileOwnerDraft(
                             key,
                             admission,
-                            key.equals(context.root())
+                            retainFootprintCompiler
                     );
                 } catch (RuntimeException | Error failure) {
                     admission.primaryFailure = failure;
@@ -379,7 +388,7 @@ public final class HydrologyPlanner {
             for (HydrologyTileKey candidateKey : candidateKeys) {
                 HydrologyForkJoin.Task<CrossTileResolvedOwner> prepared = preparedOwners.get(candidateKey);
                 CrossTileResolvedOwner owner = prepared == null
-                        ? resolveCrossTileOwner(candidateKey, context) : prepared.await();
+                        ? resolveCrossTileOwner(candidateKey, context, false) : prepared.await();
                 context.remember(candidateKey, owner);
                 resolved.add(owner);
             }
@@ -408,7 +417,7 @@ public final class HydrologyPlanner {
                 maximumCrossTileDependencyOffset(key),
                 maximumCrossTileDependencyOwners(key)
         );
-        return resolveCrossTileOwner(key, context);
+        return resolveCrossTileOwner(key, context, false);
     }
 
     static CrossTileResolvedOwner awaitResolvedOwner(
@@ -578,6 +587,35 @@ public final class HydrologyPlanner {
         return terrain == null || terrain.ocean() ? null : terrain;
     }
 
+    double sampleLandHeight(int blockX, int blockZ) {
+        if (naturalSampler == null) {
+            HydrologyTerrainSample terrain = sampleLandBasisWithoutSlope(blockX, blockZ);
+            return terrain == null ? Double.NaN : terrain.naturalHeight();
+        }
+        PlanningSamples samples = planningSamples.get();
+        if (samples == null) {
+            return naturalSampler.sampleLandHeight(blockX, blockZ);
+        }
+        long packed = RiverFootprint.pack(blockX, blockZ);
+        HydrologyTerrainSample terrain = samples.basis.get(packed);
+        if (terrain != null || samples.basis.containsKey(packed)) {
+            return terrain == null || terrain.ocean() ? Double.NaN : terrain.naturalHeight();
+        }
+        terrain = samples.basisWithoutSlope.get(packed);
+        if (terrain != null || samples.basisWithoutSlope.containsKey(packed)) {
+            return terrain == null || terrain.ocean() ? Double.NaN : terrain.naturalHeight();
+        }
+        double cached = samples.landHeights.get(packed);
+        if (!Double.isNaN(cached) || samples.landHeights.containsKey(packed)) {
+            return cached;
+        }
+        double sampled = samples.sharedLandHeights == null
+                ? naturalSampler.sampleLandHeight(blockX, blockZ)
+                : samples.sharedLandHeights.sample(blockX, blockZ, naturalSampler);
+        samples.landHeights.put(packed, sampled);
+        return sampled;
+    }
+
     HydrologyTerrainSample sampleDetailed(int blockX, int blockZ) {
         PlanningSamples samples = planningSamples.get();
         if (samples == null) {
@@ -619,6 +657,11 @@ public final class HydrologyPlanner {
         }
 
         @Override
+        public boolean supportsSharedGridSamples() {
+            return true;
+        }
+
+        @Override
         public HydrologyTerrainSample[] sampleGrid(GridRequest request) {
             int minimumX = request.minimumX();
             int minimumZ = request.minimumZ();
@@ -648,6 +691,8 @@ public final class HydrologyPlanner {
     static final class PlanningSamples {
         private final Long2ObjectOpenHashMap<HydrologyTerrainSample> basis;
         private final Long2ObjectOpenHashMap<HydrologyTerrainSample> basisWithoutSlope;
+        private final Long2DoubleOpenHashMap landHeights;
+        private HydrologyLandHeightCache sharedLandHeights;
         final Long2ObjectOpenHashMap<HydrologyTerrainSample> detailed;
         private final Long2ObjectOpenHashMap<HydrologyRoutingTerrainSampler.NaturalClassification> classifications;
         private final HashMap<HydrologyGeometrySampler.Request, Integer> geometry;
@@ -661,8 +706,15 @@ public final class HydrologyPlanner {
         final HydrologyCaveContainmentPlanner.ValidationCache caveValidations;
 
         PlanningSamples() {
+            this(null);
+        }
+
+        PlanningSamples(HydrologyLandHeightCache sharedLandHeights) {
+            this.sharedLandHeights = sharedLandHeights;
             this.basis = new Long2ObjectOpenHashMap<>();
             this.basisWithoutSlope = new Long2ObjectOpenHashMap<>();
+            this.landHeights = new Long2DoubleOpenHashMap();
+            this.landHeights.defaultReturnValue(Double.NaN);
             this.detailed = new Long2ObjectOpenHashMap<>();
             this.classifications = new Long2ObjectOpenHashMap<>();
             this.geometry = new HashMap<>();
@@ -674,6 +726,14 @@ public final class HydrologyPlanner {
             this.surfaceRoutes = new IdentityHashMap<>();
             this.caveCandidates = new HydrologyCaveCourseFilter.CandidateCache();
             this.caveValidations = new HydrologyCaveContainmentPlanner.ValidationCache();
+        }
+
+        HydrologyLandHeightCache fallbackLandHeights() {
+            if (sharedLandHeights == null) {
+                sharedLandHeights = new HydrologyLandHeightCache();
+                sharedLandHeights.seed(landHeights);
+            }
+            return sharedLandHeights;
         }
     }
 
@@ -702,7 +762,8 @@ public final class HydrologyPlanner {
         @Override
         public void prepare() {
             if (ownerRank == 0 || settings.crossTileColorPeriod() != 2 || !sourcePlanner.hasRoutedSourceSearch()
-                    || !(Thread.currentThread() instanceof ForkJoinWorkerThread worker)) {
+                    || !(Thread.currentThread() instanceof ForkJoinWorkerThread worker)
+                    || HydrologyPlanningAdmission.effectiveParallelism(worker.getPool().getParallelism()) <= 2) {
                 return;
             }
             int radius = settings.crossTileColorPeriod() - 1;

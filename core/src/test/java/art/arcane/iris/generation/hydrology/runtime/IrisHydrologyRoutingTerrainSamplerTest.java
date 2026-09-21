@@ -3,8 +3,18 @@ package art.arcane.iris.generation.hydrology.runtime;
 import art.arcane.iris.generation.hydrology.HydrologyRoutingTerrainSampler;
 import art.arcane.iris.generation.hydrology.HydrologyTerrainSample;
 import art.arcane.iris.generation.concurrent.MultiBurst;
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.terrain.InferredType;
+import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.studio.generation.BiomeBuffetLayout;
+import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,8 +30,101 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 public class IrisHydrologyRoutingTerrainSamplerTest {
+    @Test
+    public void bankHeightsAtSeaLevelSkipOceanIntentSampling() {
+        AtomicInteger classifierCalls = new AtomicInteger();
+        IrisHydrologyRoutingTerrainSampler sampler = new IrisHydrologyRoutingTerrainSampler(
+                new IrisHydrologyRoutingTerrainSampler.Sources(
+                        (int x, int z, double naturalHeight) -> {
+                            throw new AssertionError("Scalar bank sampling must not load a terrain basis.");
+                        },
+                        (int x, int z) -> x == 0 ? 62.5D : 62.49D,
+                        (int x, int z) -> {
+                            classifierCalls.incrementAndGet();
+                            return true;
+                        },
+                        63
+                ),
+                IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(16)
+        );
+
+        assertEquals(63D, sampler.sampleLandHeight(0, 0), 0D);
+        assertEquals(0, classifierCalls.get());
+        assertTrue(Double.isNaN(sampler.sampleLandHeight(1, 0)));
+        assertEquals(1, classifierCalls.get());
+    }
+
+    @Test
+    public void buffetBankHeightsMatchFullBasisBeforeAndAfterCacheWarmup() throws Exception {
+        IrisComplex complex = mock(IrisComplex.class, CALLS_REAL_METHODS);
+        IrisBiome biome = new IrisBiome().setInferredType(InferredType.LAND);
+        IrisRegion region = new IrisRegion();
+        BiomeBuffetLayout buffet = mock(BiomeBuffetLayout.class);
+        doReturn(new BiomeBuffetLayout.Cell(biome, region)).when(buffet).terrain(anyDouble(), anyDouble());
+        ProceduralStream<InferredType> bridge = ProceduralStream.of(
+                (x, z) -> InferredType.SEA,
+                Interpolated.of(value -> 0D, value -> InferredType.SEA)
+        );
+        ProceduralStream<IrisRegion> regions = ProceduralStream.of(
+                (x, z) -> region,
+                Interpolated.of(value -> 0D, value -> region)
+        );
+        setComplexField(complex, "biomeBuffet", buffet);
+        setComplexField(complex, "bridgeStream", bridge);
+        setComplexField(complex, "regionStream", regions);
+        Method natural = IrisComplex.class.getDeclaredMethod(
+                "sampleHydrologyNatural", Engine.class, int.class, int.class, double.class
+        );
+        Method ocean = IrisComplex.class.getDeclaredMethod("sampleNaturalOcean", int.class, int.class);
+        natural.setAccessible(true);
+        ocean.setAccessible(true);
+
+        for (boolean warmBasis : new boolean[]{false, true}) {
+            IrisHydrologyRoutingTerrainSampler sampler = new IrisHydrologyRoutingTerrainSampler(
+                    new IrisHydrologyRoutingTerrainSampler.Sources(
+                            (int x, int z, double height) -> {
+                                try {
+                                    IrisHydrologyNaturalSample sample = (IrisHydrologyNaturalSample)
+                                            natural.invoke(complex, null, x, z, height);
+                                    return sample.ocean() ? oceanBasis(x, z, height) : basis(x, z, height);
+                                } catch (ReflectiveOperationException exception) {
+                                    throw new AssertionError(exception);
+                                }
+                            },
+                            (int x, int z) -> 60.25D,
+                            (int x, int z) -> {
+                                try {
+                                    return (boolean) ocean.invoke(complex, x, z);
+                                } catch (ReflectiveOperationException exception) {
+                                    throw new AssertionError(exception);
+                                }
+                            },
+                            63
+                    ),
+                    IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(64)
+            );
+            if (warmBasis) {
+                sampler.sampleBasisWithoutSlope(7, 11);
+            }
+            assertEquals(60D, sampler.sampleLandHeight(7, 11), 0D);
+            HydrologyTerrainSample full = sampler.sampleBasisWithoutSlope(7, 11);
+            assertEquals(false, full.ocean());
+            assertEquals(full.naturalHeight(), sampler.sampleLandHeight(7, 11), 0D);
+        }
+    }
+
+    private static void setComplexField(IrisComplex complex, String name, Object value) throws Exception {
+        Field field = IrisComplex.class.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(complex, value);
+    }
+
     @Test
     public void guardedGridSamplesOneAlignedBasisAtEachCoordinate() {
         int[] spacings = new int[]{64, 128, 256};
@@ -138,6 +241,82 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
     }
 
     @Test
+    public void landHeightProbesMatchFullTerrainWithoutBuildingPolicySamples() {
+        AtomicInteger basisCalls = new AtomicInteger();
+        AtomicInteger heightCalls = new AtomicInteger();
+        int seaLevel = 63;
+        IrisHydrologyRoutingTerrainSampler sampler = new IrisHydrologyRoutingTerrainSampler(
+                new IrisHydrologyRoutingTerrainSampler.Sources(
+                        (int x, int z, double naturalHeight) -> {
+                            basisCalls.incrementAndGet();
+                            boolean ocean = IrisHydrologyRoutingTerrainSampler.physicalOcean(x % 2 == 0, naturalHeight, seaLevel);
+                            return ocean ? oceanBasis(x, z, naturalHeight) : basis(x, z, naturalHeight);
+                        },
+                        (int x, int z) -> {
+                            heightCalls.incrementAndGet();
+                            return seaLevel + x * 0.5D;
+                        },
+                        (int x, int z) -> x % 2 == 0,
+                        seaLevel
+                ), IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(128));
+        for (int x = -20; x <= 20; x++) {
+            double expected = x % 2 == 0 && StrictMath.round(seaLevel + x * 0.5D) < seaLevel
+                    ? Double.NaN : (int) StrictMath.round(seaLevel + x * 0.5D);
+            assertEquals(expected, sampler.sampleLandHeight(x, -17), 0D);
+            assertEquals(expected, sampler.sampleLandHeight(x, -17), 0D);
+        }
+        assertEquals(0, basisCalls.get());
+        assertEquals(41, heightCalls.get());
+        for (int x = -20; x <= 20; x++) {
+            HydrologyTerrainSample terrain = sampler.sampleBasisWithoutSlope(x, -17);
+            assertEquals(terrain.ocean() ? Double.NaN : terrain.naturalHeight(), sampler.sampleLandHeight(x, -17), 0D);
+        }
+        assertEquals(41, basisCalls.get());
+        assertEquals(41, heightCalls.get());
+    }
+
+    @Test
+    public void landHeightProbesPassNonFiniteSamplesThroughTheExistingBasisRecovery() {
+        AtomicInteger heightCalls = new AtomicInteger();
+        AtomicInteger basisCalls = new AtomicInteger();
+        IrisHydrologyRoutingTerrainSampler sampler = new IrisHydrologyRoutingTerrainSampler(
+                new IrisHydrologyRoutingTerrainSampler.Sources(
+                        (int x, int z, double naturalHeight) -> {
+                            assertTrue(Double.isNaN(naturalHeight));
+                            basisCalls.incrementAndGet();
+                            return basis(x, z, 87D);
+                        },
+                        (int x, int z) -> {
+                            heightCalls.incrementAndGet();
+                            return Double.NaN;
+                        },
+                        (int x, int z) -> true,
+                        63
+                ), IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(16));
+
+        assertEquals(87D, sampler.sampleLandHeight(-5, 9), 0D);
+        assertEquals(87D, sampler.sampleLandHeight(-5, 9), 0D);
+        assertEquals(1, heightCalls.get());
+        assertEquals(1, basisCalls.get());
+    }
+
+    @Test
+    public void failedLandHeightProbesDoNotMemoizeANonFiniteHeight() {
+        AtomicInteger heightCalls = new AtomicInteger();
+        IrisHydrologyRoutingTerrainSampler sampler = new IrisHydrologyRoutingTerrainSampler(
+                new IrisHydrologyRoutingTerrainSampler.Sources(
+                        (int x, int z, double naturalHeight) -> basis(x, z, naturalHeight),
+                        (int x, int z) -> heightCalls.incrementAndGet() == 1 ? Double.NaN : 87D,
+                        (int x, int z) -> false,
+                        63
+                ), IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(16));
+
+        assertThrows(IllegalArgumentException.class, () -> sampler.sampleLandHeight(-5, 9));
+        assertEquals(87D, sampler.sampleLandHeight(-5, 9), 0D);
+        assertEquals(2, heightCalls.get());
+    }
+
+    @Test
     public void adjacentGridsShareBasesAndProduceIdenticalOverlap() {
         AtomicInteger calls = new AtomicInteger();
         IrisHydrologyRoutingTerrainSampler sampler = new IrisHydrologyRoutingTerrainSampler(
@@ -164,6 +343,36 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
         assertEquals(24, calls.get());
         for (int gridZ = 0; gridZ < 3; gridZ++) {
             assertEquals(first[gridZ * 3 + 2], second[gridZ * 3]);
+        }
+    }
+
+    @Test
+    public void sharedGridSamplesMatchAtPaddedEdgesAndNegativeOwnershipSeams() {
+        IrisHydrologyRoutingTerrainSampler sampler = sampler(4096);
+        assertTrue(sampler.supportsSharedGridSamples());
+        int spacing = 64;
+        int width = 5;
+        int primaryMinimum = -128;
+        HydrologyTerrainSample[] primary = sampler.sampleGrid(new HydrologyRoutingTerrainSampler.GridRequest(
+                primaryMinimum, primaryMinimum, width, spacing));
+        for (int shiftX : new int[]{-128, 128}) {
+            for (int shiftZ : new int[]{-128, 128}) {
+                int minimumX = primaryMinimum + shiftX;
+                int minimumZ = primaryMinimum + shiftZ;
+                HydrologyTerrainSample[] adjacent = sampler.sampleGrid(new HydrologyRoutingTerrainSampler.GridRequest(
+                        minimumX, minimumZ, width, spacing));
+                int firstX = Math.max(primaryMinimum, minimumX);
+                int firstZ = Math.max(primaryMinimum, minimumZ);
+                int lastX = Math.min(primaryMinimum + (width - 1) * spacing, minimumX + (width - 1) * spacing);
+                int lastZ = Math.min(primaryMinimum + (width - 1) * spacing, minimumZ + (width - 1) * spacing);
+                for (int z = firstZ; z <= lastZ; z += spacing) {
+                    for (int x = firstX; x <= lastX; x += spacing) {
+                        int primaryIndex = (z - primaryMinimum) / spacing * width + (x - primaryMinimum) / spacing;
+                        int adjacentIndex = (z - minimumZ) / spacing * width + (x - minimumX) / spacing;
+                        assertSampleRawBits(primary[primaryIndex], adjacent[adjacentIndex]);
+                    }
+                }
+            }
         }
     }
 

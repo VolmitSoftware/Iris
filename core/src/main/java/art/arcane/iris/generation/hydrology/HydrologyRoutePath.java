@@ -63,13 +63,13 @@ final class HydrologyRoutePath {
         if (offsetX == 0 && offsetZ == 0) {
             return false;
         }
-        HydrologyTerrainSample before = planner.sampleLandBasisWithoutSlope(point.x() - offsetX, point.z() - offsetZ);
-        HydrologyTerrainSample after = planner.sampleLandBasisWithoutSlope(point.x() + offsetX, point.z() + offsetZ);
+        double before = planner.sampleLandHeight(point.x() - offsetX, point.z() - offsetZ);
+        double after = planner.sampleLandHeight(point.x() + offsetX, point.z() + offsetZ);
         int threshold = planner.settings.hydraulics().waterfallMinimumDrop();
-        return before != null
-                && after != null
-                && before.naturalHeight() - point.y() >= threshold
-                && after.naturalHeight() - point.y() >= threshold;
+        return !Double.isNaN(before)
+                && !Double.isNaN(after)
+                && (int) before - point.y() >= threshold
+                && (int) after - point.y() >= threshold;
     }
 
     List<HydrologyPoint> smoothTerrainRoute(List<HydrologyPoint> route) {
@@ -220,12 +220,12 @@ final class HydrologyRoutePath {
 
     boolean traversableTerrainTransition(HydrologyPoint start, HydrologyPoint end) {
         List<HydrologyPoint> crossing = planner.segments.rasterLine(start, end);
-        HydrologyTerrainSample startTerrain = planner.sampleLandBasisWithoutSlope(start.x(), start.z());
-        HydrologyTerrainSample endTerrain = planner.sampleLandBasisWithoutSlope(end.x(), end.z());
-        if (startTerrain == null || endTerrain == null) {
+        double startHeight = planner.sampleLandHeight(start.x(), start.z());
+        double endHeight = planner.sampleLandHeight(end.x(), end.z());
+        if (Double.isNaN(startHeight) || Double.isNaN(endHeight)) {
             return false;
         }
-        int boundaryHeight = Math.min(startTerrain.naturalHeight(), endTerrain.naturalHeight());
+        int boundaryHeight = Math.min((int) startHeight, (int) endHeight);
         int threshold = planner.settings.hydraulics().waterfallMinimumDrop();
         for (int pointIndex = 1; pointIndex < crossing.size() - 1; pointIndex++) {
             HydrologyPoint point = crossing.get(pointIndex);
@@ -244,17 +244,17 @@ final class HydrologyRoutePath {
         if (crossing.size() < 3) {
             return false;
         }
-        HydrologyTerrainSample startTerrain = planner.sampleLandBasisWithoutSlope(start.x(), start.z());
-        HydrologyTerrainSample endTerrain = planner.sampleLandBasisWithoutSlope(end.x(), end.z());
-        if (startTerrain == null || endTerrain == null) {
+        double startHeight = planner.sampleLandHeight(start.x(), start.z());
+        double endHeight = planner.sampleLandHeight(end.x(), end.z());
+        if (Double.isNaN(startHeight) || Double.isNaN(endHeight)) {
             return true;
         }
-        int boundaryHeight = Math.min(startTerrain.naturalHeight(), endTerrain.naturalHeight());
+        int boundaryHeight = Math.min((int) startHeight, (int) endHeight);
         int threshold = planner.settings.hydraulics().waterfallMinimumDrop();
         for (int pointIndex = 1; pointIndex < crossing.size() - 1; pointIndex++) {
             HydrologyPoint point = crossing.get(pointIndex);
-            HydrologyTerrainSample terrain = planner.sampleLandBasisWithoutSlope(point.x(), point.z());
-            if (terrain == null || boundaryHeight - terrain.naturalHeight() >= threshold) {
+            double height = planner.sampleLandHeight(point.x(), point.z());
+            if (Double.isNaN(height) || boundaryHeight - (int) height >= threshold) {
                 return true;
             }
         }

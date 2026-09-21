@@ -278,13 +278,15 @@ public class IrisEngineEntryHydrologyTest {
     }
 
     @Test
-    public void exactOriginChunkDemandsAllFourTilesConcurrently() throws Exception {
+    public void exactOriginChunkDemandsAllFourTilesWithinTheRootBudget() throws Exception {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
         HydrologyPlannerSettings settings = mock(HydrologyPlannerSettings.class);
         when(settings.routing()).thenReturn(HydrologyPlannerSettings.defaults().routing());
         when(settings.publicationRadius()).thenReturn(64);
         when(planner.settings()).thenReturn(settings);
-        CountDownLatch started = new CountDownLatch(4);
+        int admitted = (int) Math.max(1L, Math.min(4L, Math.min(Runtime.getRuntime().availableProcessors(),
+                Runtime.getRuntime().maxMemory() / (2L * 1024L * 1024L * 1024L))));
+        CountDownLatch started = new CountDownLatch(admitted);
         CountDownLatch release = new CountDownLatch(1);
         Set<HydrologyTileKey> keys = ConcurrentHashMap.newKeySet();
         when(planner.plan(any())).thenAnswer(invocation -> {
@@ -302,12 +304,13 @@ public class IrisEngineEntryHydrologyTest {
             Future<?> preparation = caller.submit(() -> cache.prepareChunkColumns(0, 0));
             try {
                 assertTrue(started.await(5, TimeUnit.SECONDS));
-                assertEquals(Set.of(new HydrologyTileKey(-1, -1), new HydrologyTileKey(0, -1),
-                        new HydrologyTileKey(-1, 0), new HydrologyTileKey(0, 0)), keys);
+                assertEquals(admitted, keys.size());
             } finally {
                 release.countDown();
             }
             preparation.get(5, TimeUnit.SECONDS);
+            assertEquals(Set.of(new HydrologyTileKey(-1, -1), new HydrologyTileKey(0, -1),
+                    new HydrologyTileKey(-1, 0), new HydrologyTileKey(0, 0)), keys);
             cache.prepareChunkColumns(0, 0);
             assertEquals(4, keys.size());
             cache.close();

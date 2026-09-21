@@ -79,6 +79,32 @@ public final class ErosionFieldCompiler {
             HydrologyPlannerSettings.Ponds ponds,
             SurfaceRasterContext context
     ) {
+        return compile(courseSeed, centerline, channel, valley, terminal, apronLimit, ponds, context,
+                prepare(centerline, channel, valley, terminal));
+    }
+
+    PreparedField prepare(SurfaceCenterline centerline, ChannelProfile channel, ValleyProfile valley,
+                          SurfaceTerminal terminal) {
+        int count = terminal == SurfaceTerminal.OCEAN_MOUTH ? centerline.size() : valley.exposedStations();
+        boolean[] basin = basins(valley, channel, count);
+        double[] bendOffsets = SurfaceBendProfile.offsets(centerline, channel);
+        double[][] blendWidth = blendWidths(centerline, channel, valley, count);
+        int[] radii = new int[count];
+        for (int station = 0; station < count; station++) {
+            double widest = Math.max(blendWidth[station][0], blendWidth[station][1]);
+            // The shore biome band a policy asks for can be wider than the geometric shore and the
+            // eroded valley; the search radius has to reach it so those columns get a shore role.
+            double stationBand = stationShoreBiomeBand(centerline, station, surface.shoreWidth());
+            double stationShore = stationShoreWidth(centerline, station, surface.shoreWidth());
+            radii[station] = (int) StrictMath.ceil(channel.halfWidth()[station] * (1D + surface.banks().roughness())
+                    + Math.max(stationShore + widest, stationBand)) + 1;
+        }
+        return new PreparedField(count, basin, bendOffsets, blendWidth, radii);
+    }
+
+    ErosionField compile(long courseSeed, SurfaceCenterline centerline, ChannelProfile channel, ValleyProfile valley,
+                         SurfaceTerminal terminal, int apronLimit, HydrologyPlannerSettings.Ponds ponds,
+                         SurfaceRasterContext context, PreparedField prepared) {
         Objects.requireNonNull(context, "context");
         SurfaceBounds bounds = context.bounds();
         SurfaceBounds samplingBounds = bounds == null ? null : bounds.expand(2);
@@ -87,24 +113,19 @@ public final class ErosionFieldCompiler {
         HydrologyPlannerSettings.Erosion erosion = banks.erosion();
         HydrologyPlannerSettings.Channel channelSettings = banks.channel();
         HydrologyPlannerSettings.Flow flow = banks.flow();
-        int count = terminal == SurfaceTerminal.OCEAN_MOUTH ? centerline.size() : valley.exposedStations();
+        int count = prepared.count();
         double roughness = banks.roughness();
         double shoreWidth = surface.shoreWidth();
         double shoreRise = erosion.shoreRise();
         int sink = banks.sink();
-        boolean[] basin = basins(valley, channel, count);
-        double[] bendOffsets = SurfaceBendProfile.offsets(centerline, channel);
-        double[][] blendWidth = blendWidths(centerline, channel, valley, count);
+        boolean[] basin = prepared.basin();
+        double[] bendOffsets = prepared.bendOffsets();
+        double[][] blendWidth = prepared.blendWidth();
         Long2IntOpenHashMap nearest = new Long2IntOpenHashMap();
         nearest.defaultReturnValue(-1);
         Long2DoubleOpenHashMap distance = new Long2DoubleOpenHashMap();
         for (int station = 0; station < count; station++) {
-            double widest = Math.max(blendWidth[station][0], blendWidth[station][1]);
-            // The shore biome band a policy asks for can be wider than the geometric shore and the
-            // eroded valley; the search radius has to reach it so those columns get a shore role.
-            double stationBand = stationShoreBiomeBand(centerline, station, shoreWidth);
-            double stationShore = stationShoreWidth(centerline, station, shoreWidth);
-            int radius = (int) StrictMath.ceil(channel.halfWidth()[station] * (1D + roughness) + Math.max(stationShore + widest, stationBand)) + 1;
+            int radius = prepared.radii()[station];
             int stationX = centerline.x()[station];
             int stationZ = centerline.z()[station];
             if (samplingBounds != null && !samplingBounds.intersects(stationX, stationZ, radius)) {
@@ -742,5 +763,8 @@ public final class ErosionFieldCompiler {
         double deltaX = cellX - centerline.x()[station];
         double deltaZ = cellZ - centerline.z()[station];
         return deltaX * centerline.normalX(station) + deltaZ * centerline.normalZ(station);
+    }
+
+    record PreparedField(int count, boolean[] basin, double[] bendOffsets, double[][] blendWidth, int[] radii) {
     }
 }

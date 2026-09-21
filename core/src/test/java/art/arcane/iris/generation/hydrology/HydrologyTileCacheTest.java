@@ -51,6 +51,181 @@ import static org.mockito.Mockito.when;
 
 public class HydrologyTileCacheTest {
     @Test
+    public void weightedTileCapacityStopsSpeculationWithoutBlockingDemand() {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        RiverFootprint footprint = mock(RiverFootprint.class);
+        when(planner.settings()).thenReturn(emptySettings());
+        when(planner.plan(any(HydrologyTileKey.class))).thenReturn(tile);
+        when(tile.footprint()).thenReturn(footprint);
+        when(footprint.size()).thenReturn((int) (HydrologyCacheBudget.runtime().tileBytes() * 3L / 5L / 64L));
+        when(footprint.columns()).thenReturn(Map.of());
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 64, Runnable::run);
+        int tileSize = emptySettings().routing().tileSize();
+        cache.prefetchArea(0, 0, tileSize * 4 - 1, 0, 0, 0);
+        cache.prefetchArea(tileSize, 0, tileSize * 4 - 1, 0, tileSize, 0);
+        verify(planner, times(1)).plan(any(HydrologyTileKey.class));
+        assertSame(tile, cache.get(new HydrologyTileKey(1, 0)));
+        verify(planner, times(2)).plan(any(HydrologyTileKey.class));
+        assertEquals(1, cache.size());
+        cache.close();
+    }
+
+    @Test(timeout = 10000L)
+    public void nonblockingQueriesComposeOverBudgetTileSnapshotsOnOneWorker() throws Exception {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        RiverFootprint footprint = mock(RiverFootprint.class);
+        HydrologyPlannerSettings settings = stalePrefetchSettings();
+        when(planner.settings()).thenReturn(settings);
+        when(planner.plan(any(HydrologyTileKey.class))).thenReturn(tile);
+        when(tile.columnAt(anyInt(), anyInt())).thenReturn(Optional.empty());
+        when(tile.footprint()).thenReturn(footprint);
+        when(footprint.size()).thenReturn((int) (HydrologyCacheBudget.runtime().tileBytes() * 3L / 5L / 64L));
+        when(footprint.columns()).thenReturn(Map.of());
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 64, worker, () -> true);
+        cache.setNeighbourPrefetchEnabled(false);
+        try {
+            cache.get(new HydrologyTileKey(10, 10));
+            assertEquals(1, cache.size());
+            assertFalse(cache.columnSnapshot(0, 0).available());
+            worker.submit(() -> {}).get(5L, TimeUnit.SECONDS);
+
+            assertEquals(1, cache.size());
+            assertTrue(cache.isPlanned(0, 0));
+            assertTrue(cache.columnSnapshot(0, 0).available());
+            assertTrue(cache.columnAt(0, 0).isEmpty());
+            verify(planner, times(5)).plan(any(HydrologyTileKey.class));
+        } finally {
+            worker.shutdownNow();
+            assertTrue(worker.awaitTermination(5L, TimeUnit.SECONDS));
+            cache.close();
+        }
+    }
+
+    @Test
+    public void nonblockingQueryQueueIsBoundedAndDeduplicatesChunks() {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        when(planner.settings()).thenReturn(emptySettings());
+        when(planner.plan(any(HydrologyTileKey.class))).thenReturn(tile);
+        when(tile.columnAt(anyInt(), anyInt())).thenReturn(Optional.empty());
+        LinkedBlockingQueue<Runnable> queued = new LinkedBlockingQueue<>();
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 2, queued::add, () -> true);
+        cache.setNeighbourPrefetchEnabled(false);
+        for (int query = 0; query < 100; query++) {
+            assertFalse(cache.columnSnapshot(40, 40).available());
+        }
+        for (int query = 1; query < 100; query++) {
+            assertFalse(cache.columnSnapshot(query * 64 + 40, 40).available());
+        }
+        assertEquals(1, queued.size());
+        verify(planner, never()).plan(any(HydrologyTileKey.class));
+        drainPrefetchTasks(queued);
+        verify(planner, times(2)).plan(any(HydrologyTileKey.class));
+        assertTrue(cache.columnSnapshot(40, 40).available());
+        assertTrue(cache.columnSnapshot(104, 40).available());
+        cache.close();
+    }
+
+    @Test(timeout = 10000L)
+    public void owningWorkerClaimsCompositionQueuedBehindIt() throws Exception {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        when(planner.settings()).thenReturn(emptySettings());
+        when(planner.plan(any(HydrologyTileKey.class))).thenReturn(tile);
+        when(tile.columnAt(anyInt(), anyInt())).thenReturn(Optional.empty());
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        ForkJoinPool worker = new ForkJoinPool(1, ForkJoinPool.defaultForkJoinWorkerThreadFactory,
+                null, false, 1, 1, 1, pool -> true, 60L, TimeUnit.SECONDS);
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 64, worker);
+        cache.setNeighbourPrefetchEnabled(false);
+        try {
+            Future<Optional<HydrologyColumnSample>> result = worker.submit(() -> {
+                started.countDown();
+                assertTrue(release.await(5L, TimeUnit.SECONDS));
+                return cache.columnAt(40, 40);
+            });
+            assertTrue(started.await(5L, TimeUnit.SECONDS));
+            assertFalse(cache.isPlanned(40, 40));
+            release.countDown();
+            assertTrue(result.get(5L, TimeUnit.SECONDS).isEmpty());
+            worker.submit(() -> {}).get(5L, TimeUnit.SECONDS);
+            assertTrue(cache.isPlanned(40, 40));
+            verify(planner, times(1)).plan(any(HydrologyTileKey.class));
+        } finally {
+            release.countDown();
+            worker.shutdownNow();
+            assertTrue(worker.awaitTermination(5L, TimeUnit.SECONDS));
+            cache.close();
+        }
+    }
+
+    @Test(timeout = 10000L)
+    public void displacedCompositionTaskDoesNotCancelItsClaimedFuture() throws Exception {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        CountDownLatch planning = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        when(planner.settings()).thenReturn(emptySettings());
+        when(planner.plan(any(HydrologyTileKey.class))).thenAnswer(invocation -> {
+            planning.countDown();
+            assertTrue(release.await(5L, TimeUnit.SECONDS));
+            return tile;
+        });
+        when(tile.columnAt(anyInt(), anyInt())).thenReturn(Optional.empty());
+        LinkedBlockingQueue<Runnable> queued = new LinkedBlockingQueue<>();
+        ExecutorService callers = Executors.newFixedThreadPool(2);
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 64, queued::add);
+        cache.setNeighbourPrefetchEnabled(false);
+        try {
+            assertFalse(cache.isPlanned(40, 40));
+            Runnable displaced = queued.remove();
+            Future<Optional<HydrologyColumnSample>> owner = callers.submit(() -> cache.columnAt(40, 40));
+            assertTrue(planning.await(5L, TimeUnit.SECONDS));
+            Future<Optional<HydrologyColumnSample>> waiter = callers.submit(() -> cache.columnAt(40, 40));
+            assertThrows(TimeoutException.class, () -> waiter.get(100L, TimeUnit.MILLISECONDS));
+            displaced.run();
+            assertThrows(TimeoutException.class, () -> waiter.get(100L, TimeUnit.MILLISECONDS));
+            release.countDown();
+            assertTrue(owner.get(5L, TimeUnit.SECONDS).isEmpty());
+            assertTrue(waiter.get(5L, TimeUnit.SECONDS).isEmpty());
+            verify(planner, times(1)).plan(any(HydrologyTileKey.class));
+        } finally {
+            release.countDown();
+            callers.shutdownNow();
+            assertTrue(callers.awaitTermination(5L, TimeUnit.SECONDS));
+            cache.close();
+        }
+    }
+
+    @Test
+    public void clearingAndClosingCancelQueuedNonblockingComposition() {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        when(planner.settings()).thenReturn(emptySettings());
+        when(planner.plan(any(HydrologyTileKey.class))).thenReturn(tile);
+        when(tile.columnAt(anyInt(), anyInt())).thenReturn(Optional.empty());
+        LinkedBlockingQueue<Runnable> queued = new LinkedBlockingQueue<>();
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 2, queued::add, () -> true);
+        cache.setNeighbourPrefetchEnabled(false);
+        assertFalse(cache.columnSnapshot(40, 40).available());
+        cache.clear();
+        assertFalse(cache.columnSnapshot(104, 40).available());
+        drainPrefetchTasks(queued);
+        verify(planner, never()).plan(new HydrologyTileKey(0, 0));
+        verify(planner, times(1)).plan(new HydrologyTileKey(1, 0));
+        assertTrue(cache.columnSnapshot(104, 40).available());
+        assertFalse(cache.columnSnapshot(168, 40).available());
+        cache.close();
+        drainPrefetchTasks(queued);
+        verify(planner, never()).plan(new HydrologyTileKey(2, 0));
+        assertEquals(0, cache.size());
+    }
+
+    @Test
     public void interruptedWaiterExitsWithoutCancellingTheSharedPlan() throws Exception {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
         HydrologyTile tile = mock(HydrologyTile.class);
@@ -957,17 +1132,18 @@ public class HydrologyTileCacheTest {
         assertTrue(order.subList(0, 4).containsAll(List.of(new HydrologyTileKey(0, 0), new HydrologyTileKey(1, 0), new HydrologyTileKey(0, 1), new HydrologyTileKey(1, 1))));
     }
     @Test
-    public void tileBatchesPlanMissingTilesConcurrentlyOnThePrefetchExecutor() throws Exception {
+    public void tileBatchesUseTheAvailableRootBudgetOnThePrefetchExecutor() throws Exception {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
         HydrologyTile tile = mock(HydrologyTile.class);
         when(planner.settings()).thenReturn(emptySettings());
         AtomicInteger inFlight = new AtomicInteger();
         AtomicInteger peak = new AtomicInteger();
-        CountDownLatch allStarted = new CountDownLatch(4);
+        int admitted = Math.min(4, HydrologyPlanningAdmission.maximumRoots());
+        CountDownLatch allStarted = new CountDownLatch(admitted);
         doAnswer(invocation -> {
             peak.accumulateAndGet(inFlight.incrementAndGet(), Math::max);
             allStarted.countDown();
-            assertTrue("every batch member should plan at the same time", allStarted.await(5, TimeUnit.SECONDS));
+            assertTrue("the admitted batch should plan concurrently", allStarted.await(5, TimeUnit.SECONDS));
             inFlight.decrementAndGet();
             return tile;
         }).when(planner).plan(any(HydrologyTileKey.class));
@@ -984,7 +1160,7 @@ public class HydrologyTileCacheTest {
             List<HydrologyTile> tiles = cache.tiles(keys);
 
             assertEquals(4, tiles.size());
-            assertEquals(4, peak.get());
+            assertEquals(admitted, peak.get());
             verify(planner, times(4)).plan(any(HydrologyTileKey.class));
             assertEquals(4, cache.size());
         } finally {
@@ -1007,7 +1183,7 @@ public class HydrologyTileCacheTest {
     private void assertConcurrentTilePlanning(List<HydrologyTileKey> keys) throws Exception {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
         HydrologyTile tile = mock(HydrologyTile.class);
-        CountDownLatch started = new CountDownLatch(keys.size());
+        CountDownLatch started = new CountDownLatch(Math.min(keys.size(), HydrologyPlanningAdmission.maximumRoots()));
         CountDownLatch release = new CountDownLatch(1);
         doAnswer(invocation -> {
             started.countDown();
@@ -1019,7 +1195,7 @@ public class HydrologyTileCacheTest {
         try {
             HydrologyTileCache cache = new HydrologyTileCache(planner, 64, executor);
             Future<List<HydrologyTile>> result = caller.submit(() -> cache.tiles(keys));
-            assertTrue("colliding keys must start before either plan completes", started.await(5, TimeUnit.SECONDS));
+            assertTrue("colliding keys must use the available root budget", started.await(5, TimeUnit.SECONDS));
             release.countDown();
             assertEquals(keys.size(), result.get(5, TimeUnit.SECONDS).size());
             for (HydrologyTileKey key : keys) {
@@ -1138,8 +1314,9 @@ public class HydrologyTileCacheTest {
             Future<HydrologyTile> oldResult = callers.submit(() -> cache.get(key));
             assertTrue(started.await(5, TimeUnit.SECONDS));
             cache.clear();
-            assertSame(newTile, callers.submit(() -> cache.get(key)).get(5, TimeUnit.SECONDS));
+            Future<HydrologyTile> newResult = callers.submit(() -> cache.get(key));
             release.countDown();
+            assertSame(newTile, newResult.get(5, TimeUnit.SECONDS));
             assertSame(oldTile, oldResult.get(5, TimeUnit.SECONDS));
             assertSame(newTile, cache.get(key));
             assertEquals(2, calls.get());
@@ -1502,17 +1679,27 @@ public class HydrologyTileCacheTest {
             List<HydrologyTileKey> keys = List.of(
                     new HydrologyTileKey(0, 0), new HydrologyTileKey(1, 0), new HydrologyTileKey(2, 0));
             Future<List<HydrologyTile>> result = caller.submit(() -> cache.tiles(keys));
-            Runnable firstDemand = queued.poll(5, TimeUnit.SECONDS);
-            Runnable secondDemand = queued.poll(5, TimeUnit.SECONDS);
-            assertNotNull(firstDemand);
-            assertNotNull(secondDemand);
-
+            Field demandField = HydrologyTileCache.class.getDeclaredField("demandBatches");
+            Field queueField = HydrologyTileCache.class.getDeclaredField("prefetchQueue");
+            demandField.setAccessible(true);
+            queueField.setAccessible(true);
+            Object demandLock = queueField.get(cache);
+            Await.until("the demand batch to register", Duration.ofSeconds(5L), () -> {
+                synchronized (demandLock) {
+                    try {
+                        return demandField.getInt(cache) > 0;
+                    } catch (IllegalAccessException failure) {
+                        throw new IllegalStateException(failure);
+                    }
+                }
+            });
             initialPrefetch.run();
-            assertTrue(queued.isEmpty());
             assertSame(tile, cache.get(new HydrologyTileKey(0, 0)));
-            assertTrue(queued.isEmpty());
+            Runnable firstDemand = queued.poll(5, TimeUnit.SECONDS);
+            assertNotNull(firstDemand);
             firstDemand.run();
-            assertTrue(queued.isEmpty());
+            Runnable secondDemand = queued.poll(5, TimeUnit.SECONDS);
+            assertNotNull(secondDemand);
             secondDemand.run();
             assertEquals(3, result.get(5, TimeUnit.SECONDS).size());
             Runnable resumedPrefetch = queued.poll(5, TimeUnit.SECONDS);
@@ -1788,12 +1975,8 @@ public class HydrologyTileCacheTest {
         HydrologyTile tile = mock(HydrologyTile.class);
         when(planner.settings()).thenReturn(emptySettings());
         when(planner.plan(any(HydrologyTileKey.class))).thenReturn(tile);
-        List<Runnable> queued = new ArrayList<>();
-        HydrologyTileCache cache = new HydrologyTileCache(planner, 64, queued::add, () -> true);
-        assertFalse(cache.columnSnapshot(40, 40).available());
-        for (Runnable task : List.copyOf(queued)) {
-            task.run();
-        }
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 64, null, () -> true);
+        cache.get(new HydrologyTileKey(0, 0));
         AtomicBoolean evicted = new AtomicBoolean();
         when(tile.columnAt(anyInt(), anyInt())).thenAnswer(invocation -> {
             if (evicted.compareAndSet(false, true)) {

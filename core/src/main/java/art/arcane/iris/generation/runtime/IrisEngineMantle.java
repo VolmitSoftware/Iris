@@ -138,11 +138,13 @@ public class IrisEngineMantle implements EngineMantle {
             int candidateX = newRealX + offsetX;
             for (int offsetZ = -radius; offsetZ <= radius; offsetZ++) {
                 int candidateZ = newRealZ + offsetZ;
-                if (getMantle().hasFlag(candidateX, candidateZ, MantleFlag.CLEANED)
+                if (!isCoverageResident(candidateX, candidateZ, radius)
+                        || getMantle().hasLoadedFlag(candidateX, candidateZ, MantleFlag.CLEANED)
                         || !isCovered(candidateX, candidateZ, missingChunk)) {
                     continue;
                 }
-                if (cleanupCoveredChunk(candidateX, candidateZ, force)) {
+                if (getMantle().withLoadedChunk(candidateX, candidateZ,
+                        chunk -> cleanupCoveredChunk(chunk, force))) {
                     callback.onChunkCleaned(candidateX, candidateZ);
                 }
             }
@@ -246,12 +248,23 @@ public class IrisEngineMantle implements EngineMantle {
         return Objects.requireNonNull(storageDirectory, "mantle storage directory").toAbsolutePath().normalize();
     }
 
+    private boolean isCoverageResident(int x, int z, int radius) {
+        for (int regionX = (x - radius) >> 5; regionX <= (x + radius) >> 5; regionX++) {
+            for (int regionZ = (z - radius) >> 5; regionZ <= (z + radius) >> 5; regionZ++) {
+                if (!getMantle().isChunkLoaded(regionX << 5, regionZ << 5)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     private boolean isCovered(int x, int z, MissingRealChunk missingChunk) {
         int radius = Math.max(getRadius(), getRealRadius());
         if (missingChunk != null && missingChunk.known
                 && Math.abs((long) missingChunk.x - x) <= radius
                 && Math.abs((long) missingChunk.z - z) <= radius) {
-            if (!getMantle().hasFlag(missingChunk.x, missingChunk.z, MantleFlag.REAL)) {
+            if (!getMantle().hasLoadedFlag(missingChunk.x, missingChunk.z, MantleFlag.REAL)) {
                 return false;
             }
             missingChunk.known = false;
@@ -260,7 +273,7 @@ public class IrisEngineMantle implements EngineMantle {
             for (int offsetZ = -radius; offsetZ <= radius; offsetZ++) {
                 int chunkX = x + offsetX;
                 int chunkZ = z + offsetZ;
-                if (!getMantle().hasFlag(chunkX, chunkZ, MantleFlag.REAL)) {
+                if (!getMantle().hasLoadedFlag(chunkX, chunkZ, MantleFlag.REAL)) {
                     if (missingChunk != null) {
                         missingChunk.x = chunkX;
                         missingChunk.z = chunkZ;
@@ -352,14 +365,16 @@ public class IrisEngineMantle implements EngineMantle {
 
             @Override
             public <T> void remove(Matter section, int x, int y, int z, Class<T> type) {
-                MatterSlice<T> slice = section.slice(type);
-                slice.set(x, y, z, null);
+                MatterSlice<T> slice = section.getSlice(type);
+                if (slice != null) {
+                    slice.set(x, y, z, null);
+                }
             }
 
             @Override
             public <T> T get(Matter section, int x, int y, int z, Class<T> type) {
-                MatterSlice<T> slice = section.slice(type);
-                return slice.get(x, y, z);
+                MatterSlice<T> slice = section.getSlice(type);
+                return slice == null ? null : slice.get(x, y, z);
             }
 
             @Override

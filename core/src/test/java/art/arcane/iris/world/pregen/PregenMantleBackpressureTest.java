@@ -5,6 +5,9 @@ import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import org.junit.Test;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -51,7 +54,7 @@ public class PregenMantleBackpressureTest {
         backpressure(() -> mantle, 4, 1_000L, () -> {
         }).enforceMantleBudget();
 
-        verify(mantle, never()).trim(0L, 0);
+        verify(mantle, never()).trim(0L);
         verify(mantle, never()).unloadTectonicPlate(0);
     }
 
@@ -63,7 +66,7 @@ public class PregenMantleBackpressureTest {
         backpressure(() -> mantle, 4, 1_000L, () -> {
         }).enforceMantleBudget();
 
-        verify(mantle, times(1)).trim(0L, 0);
+        verify(mantle, times(1)).trim(0L);
         verify(mantle, times(1)).unloadTectonicPlate(0);
     }
 
@@ -71,7 +74,7 @@ public class PregenMantleBackpressureTest {
     public void aTrimFailureEndsTheWaitInsteadOfSpinning() {
         Mantle mantle = mock(Mantle.class);
         when(mantle.getLoadedRegionCount()).thenReturn(20);
-        doThrow(new IllegalStateException("mantle is gone")).when(mantle).trim(0L, 0);
+        doThrow(new IllegalStateException("mantle is gone")).when(mantle).trim(0L);
         AtomicInteger timeouts = new AtomicInteger();
 
         backpressure(() -> mantle, 4, 1_000L, timeouts::incrementAndGet).enforceMantleBudget();
@@ -101,7 +104,7 @@ public class PregenMantleBackpressureTest {
 
         backpressure.enforceMantleBudget();
 
-        verify(mantle, never()).trim(0L, 0);
+        verify(mantle, never()).trim(0L);
         verify(mantle, never()).unloadTectonicPlate(0);
         assertEquals(0, timeouts.get());
     }
@@ -138,6 +141,95 @@ public class PregenMantleBackpressureTest {
         waiter.join(1_000L);
 
         assertFalse(waiter.isAlive());
+    }
+
+    @Test
+    public void heapPressurePersistsIdlePlatesBeforeGcEvenBelowOrWithoutACountCap() {
+        for (int cap : new int[]{0, 9, 16, 96}) {
+            Mantle mantle = mock(Mantle.class);
+            when(mantle.getLoadedRegionCount()).thenReturn(9);
+            List<String> actions = new ArrayList<>();
+            AtomicBoolean pressured = new AtomicBoolean(true);
+            AtomicInteger timeouts = new AtomicInteger();
+            when(mantle.saveOldestIdleTectonicPlate()).thenAnswer(invocation -> {
+                actions.add("persist-and-unload");
+                return true;
+            });
+
+            backpressure(() -> mantle, cap, 1_000L, timeouts::incrementAndGet)
+                    .awaitHeapHeadroom(pressured::get, () -> {
+                        actions.add("gc");
+                        pressured.set(false);
+                    });
+
+            assertEquals(List.of("persist-and-unload", "gc"), actions);
+            assertEquals(0, timeouts.get());
+            verify(mantle, never()).trim(0L, 0);
+            verify(mantle, never()).trim(0L);
+            verify(mantle, never()).unloadTectonicPlate(0);
+        }
+    }
+
+    @Test
+    public void heapHeadroomDoesNotEvictRecentlyUsedPlatesWithoutPressure() {
+        Mantle mantle = mock(Mantle.class);
+        AtomicInteger collections = new AtomicInteger();
+
+        backpressure(() -> mantle, 16, 1_000L, () -> {
+        }).awaitHeapHeadroom(() -> false, collections::incrementAndGet);
+
+        verify(mantle, never()).trim(0L);
+        verify(mantle, never()).unloadTectonicPlate(0);
+        verify(mantle, never()).saveOldestIdleTectonicPlate();
+        assertEquals(0, collections.get());
+    }
+
+    @Test
+    public void pinnedPlatesStillRespectThePressureWaitDeadline() {
+        Mantle mantle = mock(Mantle.class);
+        when(mantle.getLoadedRegionCount()).thenReturn(9);
+        when(mantle.saveOldestIdleTectonicPlate()).thenReturn(false);
+        AtomicInteger collections = new AtomicInteger();
+        AtomicInteger timeouts = new AtomicInteger();
+
+        backpressure(() -> mantle, 16, 0L, timeouts::incrementAndGet)
+                .awaitHeapHeadroom(() -> true, collections::incrementAndGet);
+
+        verify(mantle, times(1)).saveOldestIdleTectonicPlate();
+        verify(mantle, never()).unloadTectonicPlate(0);
+        assertEquals(1, collections.get());
+        assertEquals(1, timeouts.get());
+    }
+
+    @Test
+    public void failedPressureEvictionStillAttemptsGcAndRespectsTheDeadline() {
+        Mantle mantle = mock(Mantle.class);
+        doThrow(new IllegalStateException("plate write failed")).when(mantle).saveOldestIdleTectonicPlate();
+        AtomicInteger collections = new AtomicInteger();
+        AtomicInteger timeouts = new AtomicInteger();
+
+        backpressure(() -> mantle, 16, 0L, timeouts::incrementAndGet)
+                .awaitHeapHeadroom(() -> true, collections::incrementAndGet);
+
+        assertEquals(1, collections.get());
+        assertEquals(1, timeouts.get());
+    }
+
+    @Test
+    public void cancelledHeapPressureDoesNotEvictOrCollect() {
+        Mantle mantle = mock(Mantle.class);
+        AtomicInteger collections = new AtomicInteger();
+        AtomicInteger timeouts = new AtomicInteger();
+        PregenMantleBackpressure backpressure = new PregenMantleBackpressure(
+                () -> mantle, 16, 5, 0L, timeouts::incrementAndGet, () -> "cancelled", () -> true);
+
+        backpressure.awaitHeapHeadroom(() -> true, collections::incrementAndGet);
+
+        verify(mantle, never()).trim(0L);
+        verify(mantle, never()).unloadTectonicPlate(0);
+        verify(mantle, never()).saveOldestIdleTectonicPlate();
+        assertEquals(0, collections.get());
+        assertEquals(0, timeouts.get());
     }
 
     private static PregenMantleBackpressure backpressure(

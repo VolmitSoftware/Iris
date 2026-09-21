@@ -61,6 +61,11 @@ public final class BukkitRegistries implements PlatformRegistries {
     }
 
     @Override
+    public NativeBlockState decodeBlockState(String key) {
+        return BukkitBlockState.of(BukkitBlockResolution.decodeBlockData(key));
+    }
+
+    @Override
     public NativeBlockState block(String key) {
         BlockData data = BukkitBlockResolution.get(key);
         return data == null ? null : BukkitBlockState.of(data);

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.OptionalLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -301,6 +302,57 @@ public class SurfaceFootprintCompilerTest {
                         <= settings.surface().maximumIncision());
             }
         }
+    }
+
+    @Test
+    public void preparedWindowsRetainColumnsAdmissionAndExcavationAcrossFallsAndMouths() {
+        HydrologyTerrainSampler sampler = (int x, int z) -> x >= 190
+                ? HydrologyTerrainSample.ocean(50, "ocean")
+                : HydrologyTerrainSample.openLand((x < 100 ? 100 : 90) + Math.abs(z) / 3, 0D, "land");
+        SurfaceCourseResult built = new SurfaceCourseBuilder(HydrologyPlannerSettings.defaults().surface(), sampler,
+                CONSTANT_GEOMETRY, SEA_LEVEL).build(7L, 1L, "water",
+                List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(180, 0, 0)),
+                SurfaceTerminal.TRIBUTARY, 40, 64);
+        assertNull(built.rejection());
+        RiverCourse falling = course(built.segments());
+        RiverCourse mouth = course(List.of(segment(1L, HydrologyFeatureType.MOUTH, SEA_LEVEL, SEA_LEVEL,
+                points(180, 200, SEA_LEVEL))));
+        RiverCourse curved = course(List.of(segment(1L, HydrologyFeatureType.SURFACE_POOL, 79, 79,
+                List.of(new HydrologyPoint(-100, 79, -50), new HydrologyPoint(0, 79, 30),
+                        new HydrologyPoint(100, 79, -50)))));
+        for (RiverCourse course : List.of(falling, mouth, curved)) {
+            SurfaceFootprintCompiler compiler = compiler(sampler);
+            SurfaceFootprintCompiler.PreparedCourse prepared = compiler.prepare(course);
+            for (int x = -128; x < 256; x += 32) {
+                SurfaceBounds bounds = new SurfaceBounds(x, -80, x + 31, 80);
+                assertEquals(compiler.compile(course, bounds), compiler.compile(prepared, bounds));
+            }
+            assertEquals(compiler.compile(course), compiler.compile(prepared, null));
+        }
+    }
+
+    @Test
+    public void subsequentPreparedWindowsDoNotResampleDistantCourseGeometry() {
+        AtomicInteger distantSamples = new AtomicInteger();
+        HydrologyTerrainSampler sampler = (int x, int z) -> {
+            if (x >= 200) {
+                distantSamples.incrementAndGet();
+            }
+            return HydrologyTerrainSample.openLand(90 + Math.abs(z) / 2, 0D, "land");
+        };
+        RiverCourse course = course(List.of(segment(1L, HydrologyFeatureType.SURFACE_POOL, 79, 79,
+                points(0, 400, 79))));
+        SurfaceFootprintCompiler compiler = compiler(sampler);
+        SurfaceFootprintCompiler.PreparedCourse prepared = compiler.prepare(course);
+        assertEquals(0, distantSamples.get());
+        compiler.compile(prepared, new SurfaceBounds(0, -16, 31, 16));
+        assertTrue(distantSamples.get() > 0);
+        distantSamples.set(0);
+        SurfaceBounds bounds = new SurfaceBounds(32, -16, 63, 16);
+        SurfaceFootprint reused = compiler.compile(prepared, bounds);
+        assertEquals(0, distantSamples.get());
+        assertEquals(compiler.compile(course, bounds), reused);
+        assertTrue(distantSamples.get() > 0);
     }
 
     private static SurfaceLayerColumn column(SurfaceFootprint footprint, int x, int z) {

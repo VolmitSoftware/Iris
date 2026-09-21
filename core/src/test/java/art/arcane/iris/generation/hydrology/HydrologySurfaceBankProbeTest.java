@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.util.NavigableSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -28,6 +29,65 @@ public class HydrologySurfaceBankProbeTest {
             NavigableSet<Integer> band = probedBankOffsets(shoreWidth);
             assertEquals("band " + band + " at shoreWidth " + shoreWidth,
                     innerRing, band.first().intValue());
+        }
+    }
+
+    @Test
+    public void bankHeightQueriesPreserveExactPenaltiesWithoutBankPolicySamples() {
+        HydrologyTerrainSampler terrain = (x, z) -> x + z == 7 ? null
+                : x < -3 ? HydrologyTerrainSample.ocean(60, "ocean")
+                : HydrologyTerrainSample.openLand(80 + Math.floorMod(x * 3 + z * 7, 31), 0D, "land");
+        AtomicInteger basisCalls = new AtomicInteger();
+        AtomicInteger heightCalls = new AtomicInteger();
+        HydrologyNaturalTerrainSampler natural = new HydrologyNaturalTerrainSampler() {
+            @Override
+            public HydrologyTerrainSample sampleBasis(int x, int z) {
+                basisCalls.incrementAndGet();
+                return terrain.sample(x, z);
+            }
+
+            @Override
+            public double sampleLandHeight(int x, int z) {
+                heightCalls.incrementAndGet();
+                HydrologyTerrainSample sampled = terrain.sample(x, z);
+                return sampled == null || sampled.ocean() ? Double.NaN : sampled.naturalHeight();
+            }
+
+            @Override
+            public HydrologyTerrainSample[] sampleGrid(GridRequest request) {
+                throw new AssertionError("Bank probes do not require a routing grid");
+            }
+
+            @Override
+            public NaturalClassification classifyNatural(int x, int z) {
+                throw new AssertionError("Bank probes only require land heights");
+            }
+        };
+        for (double angle : new double[]{0D, 0.37D, 0.7853981633974483D}) {
+            HydrologyPlannerSettings settings = settings(3D);
+            HydrologyPlanner reference = new HydrologyPlanner(91L, settings, terrain);
+            HydrologyPlanner optimized = new HydrologyPlanner(91L, settings, terrain, natural,
+                    HydrologyGeometrySampler.deterministic(terrain), -4096,
+                    footprint -> new HydrologyTerrainCaveVoxelView(terrain, settings.seaLevel(), -4096, 4096));
+            HydrologyPoint point = new HydrologyPoint(0, 80, 0);
+            RouteCandidate candidate = new RouteCandidate(point, 0D, 0D, 0D, 0D, 0D,
+                    new RouteDirection(StrictMath.cos(angle), StrictMath.sin(angle)), true);
+            basisCalls.set(0);
+            heightCalls.set(0);
+            double expected = reference.surfaceCourses.surfaceRouteCandidateBankPenalty(candidate);
+            double actual = optimized.surfaceCourses.surfaceRouteCandidateBankPenalty(candidate);
+            assertEquals(Double.doubleToLongBits(expected), Double.doubleToLongBits(actual));
+            assertEquals(1, basisCalls.get());
+            assertTrue(heightCalls.get() > 0);
+            optimized.planningSamples.set(new HydrologyPlanner.PlanningSamples());
+            try {
+                assertEquals(expected, optimized.surfaceCourses.surfaceRouteCandidateBankPenalty(candidate), 0D);
+                int firstPassHeightCalls = heightCalls.get();
+                assertEquals(expected, optimized.surfaceCourses.surfaceRouteCandidateBankPenalty(candidate), 0D);
+                assertEquals(firstPassHeightCalls, heightCalls.get());
+            } finally {
+                optimized.planningSamples.remove();
+            }
         }
     }
 

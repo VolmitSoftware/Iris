@@ -223,6 +223,10 @@ public final class BukkitBlockResolution {
         return BASE.getNoCompat(bdxf);
     }
 
+    public static BlockData decodeBlockData(String key) {
+        return BASE.decodeBlockData(key);
+    }
+
     public static BlockData get(String bdxf) {
         return BASE.get(bdxf);
     }

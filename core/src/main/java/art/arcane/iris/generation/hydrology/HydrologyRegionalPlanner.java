@@ -51,14 +51,18 @@ final class HydrologyRegionalPlanner {
         this.settings = planner.settings.routing().regional();
         this.graph = new HydrologyRegionalGraph(planner);
         this.routes = new HydrologyRegionalRoute(planner);
-        int minimumWeight = Math.max(1, Math.ceilDiv(settings.maximumCachedStations(), settings.maximumCachedBasins()));
+        HydrologyCacheBudget cacheBudget = HydrologyCacheBudget.runtime(settings.enabled());
         this.drafts = Caffeine.newBuilder()
-                .maximumWeight(settings.maximumCachedStations())
-                .weigher((HydrologyTileKey key, HydrologyRegionalNetwork network) -> Math.max(minimumWeight, network.stations()))
+                .maximumWeight(cacheBudget.regionalDraftBytes())
+                .weigher((HydrologyTileKey key, HydrologyRegionalNetwork network) -> HydrologyCacheWeights.bounded(
+                        HydrologyCacheWeights.regionalNetwork(network), cacheBudget.regionalDraftBytes(),
+                        settings.maximumCachedBasins(), network.stations(), settings.maximumCachedStations()))
                 .build();
         this.coarsePlans = Caffeine.newBuilder()
-                .maximumWeight(settings.maximumCachedStations())
-                .weigher((HydrologyTileKey key, HydrologyRegionalCoarsePlan plan) -> Math.max(minimumWeight, plan.weight()))
+                .maximumWeight(cacheBudget.regionalCoarseBytes())
+                .weigher((HydrologyTileKey key, HydrologyRegionalCoarsePlan plan) -> HydrologyCacheWeights.bounded(
+                        HydrologyCacheWeights.regionalCoarse(plan), cacheBudget.regionalCoarseBytes(),
+                        settings.maximumCachedBasins(), plan.weight(), settings.maximumCachedStations()))
                 .build();
     }
 
@@ -347,8 +351,13 @@ final class HydrologyRegionalPlanner {
             if (tasks.isEmpty()) {
                 break;
             }
-            List<SourceTrial> completed = HydrologyForkJoin.invokeAll(tasks,
-                    IrisPlatforms.isBound() ? MultiBurst.hydrology : null);
+            ArrayList<SourceTrial> completed = new ArrayList<>(tasks.size());
+            int batchSize = HydrologyPlanningAdmission.maximumTrials();
+            for (int start = 0; start < tasks.size(); start += batchSize) {
+                int end = Math.min(tasks.size(), start + batchSize);
+                completed.addAll(HydrologyForkJoin.invokeAll(tasks.subList(start, end),
+                        IrisPlatforms.isBound() ? MultiBurst.hydrology : null));
+            }
             for (SourceTrial trial : completed) {
                 if (accepted.size() >= settings.maximumTrunks()) {
                     break;
@@ -642,8 +651,9 @@ final class HydrologyRegionalPlanner {
         int[] excavation = new int[centerline.size()];
         HydrologyRegionalConnectivity connectivity = new HydrologyRegionalConnectivity();
         HydrologyTerrainSampler receiver = HydrologyOceanReceiver.forCourse(planner.settings, this::sample, course);
+        SurfaceFootprintCompiler.PreparedCourse prepared = compiler.prepare(course);
         for (SurfaceBounds bounds : courseWindows(course)) {
-            SurfaceFootprint footprint = compiler.compile(course, bounds);
+            SurfaceFootprint footprint = compiler.compile(prepared, bounds);
             if (!footprint.accepted()) {
                 diagnostic(diagnostics, course.id(), source, coastal, footprint.rejection(), footprint.rejectionDetail());
                 return false;

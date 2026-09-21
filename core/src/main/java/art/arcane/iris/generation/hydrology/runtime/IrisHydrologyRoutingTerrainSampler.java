@@ -46,6 +46,11 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
     }
 
     @Override
+    public boolean supportsSharedGridSamples() {
+        return true;
+    }
+
+    @Override
     public HydrologyTerrainSample[] sampleGrid(GridRequest request) {
         int minimumX = request.minimumX();
         int minimumZ = request.minimumZ();
@@ -125,6 +130,33 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
         return basis(blockX, blockZ).terrain();
     }
 
+    @Override
+    public double sampleLandHeight(int blockX, int blockZ) {
+        long packed = pack(blockX, blockZ);
+        CacheStripe stripe = stripe(packed);
+        synchronized (stripe) {
+            TerrainBasis cached = stripe.bases.getAndMoveToLast(packed);
+            if (cached != null) {
+                return cached.terrain().ocean() ? Double.NaN : cached.terrain().naturalHeight();
+            }
+        }
+        double naturalHeight = naturalHeight(stripe, packed, blockX, blockZ);
+        if (!Double.isFinite(naturalHeight)) {
+            TerrainBasis basis = loadBasis(blockX, blockZ, stripe, packed, naturalHeight);
+            return basis.terrain().ocean() ? Double.NaN : basis.terrain().naturalHeight();
+        }
+        long roundedHeight = StrictMath.round(naturalHeight);
+        if (roundedHeight >= seaLevel) {
+            return (int) roundedHeight;
+        }
+        NaturalClassification classification = classifyNatural(blockX, blockZ);
+        if (classification == NaturalClassification.UNAVAILABLE) {
+            TerrainBasis basis = loadBasis(blockX, blockZ, stripe, packed, naturalHeight);
+            return basis.terrain().ocean() ? Double.NaN : basis.terrain().naturalHeight();
+        }
+        return classification == NaturalClassification.OCEAN ? Double.NaN : (int) roundedHeight;
+    }
+
     TerrainBasis basis(int blockX, int blockZ) {
         long packed = pack(blockX, blockZ);
         CacheStripe stripe = stripe(packed);
@@ -134,7 +166,10 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
                 return cached;
             }
         }
-        double naturalHeight = naturalHeight(stripe, packed, blockX, blockZ);
+        return loadBasis(blockX, blockZ, stripe, packed, naturalHeight(stripe, packed, blockX, blockZ));
+    }
+
+    private TerrainBasis loadBasis(int blockX, int blockZ, CacheStripe stripe, long packed, double naturalHeight) {
         TerrainBasis sampled = basisProvider.sample(blockX, blockZ, naturalHeight);
         if (sampled == null) {
             throw new NullPointerException(

@@ -19,12 +19,12 @@ public class HydrologyRouteTurnCacheTest {
     @Test
     public void repeatedRefinementMatchesExhaustiveUncachedRoutes() throws Exception {
         Random random = new Random(712319L);
-        Solver solver = new Solver();
         for (int scenario = 0; scenario < 40; scenario++) {
+            Solver solver = new Solver();
             int count = 4 + random.nextInt(4);
             HydrologyPoint[][] points = new HydrologyPoint[count][];
             for (int layer = 0; layer < count; layer++) {
-                points[layer] = new HydrologyPoint[layer == 0 || layer == count - 1 ? 1 : 3];
+                points[layer] = new HydrologyPoint[layer == 0 || layer == count - 1 ? 1 : 1 + random.nextInt(4)];
                 for (int candidate = 0; candidate < points[layer].length; candidate++) {
                     points[layer][candidate] = new HydrologyPoint(layer * 12 + random.nextInt(5), 80,
                             candidate * 9 + random.nextInt(7));
@@ -38,6 +38,21 @@ public class HydrologyRouteTurnCacheTest {
                         exhaustive(fixture, maximumTurn), solver.solve(fixture, maximumTurn, cache));
                 assertCacheGeometry(fixture, maximumTurn, cache);
             }
+        }
+    }
+
+    @Test
+    public void twoLayerRefinementResetsReusedCostsAndKeepsFiniteRoutes() throws Exception {
+        Random random = new Random(173L);
+        HydrologyPoint[][] points = {
+                {new HydrologyPoint(0, 80, 0), new HydrologyPoint(0, 80, 4)},
+                {new HydrologyPoint(12, 80, 0), new HydrologyPoint(12, 80, 4)}
+        };
+        Solver solver = new Solver();
+        double[][][][] cache = new double[2][][][];
+        for (int refinement = 0; refinement < 32; refinement++) {
+            Fixture fixture = fixture(points, random);
+            assertArrayEquals(exhaustive(fixture, 75D), solver.solve(fixture, 75D, cache));
         }
     }
 
@@ -199,6 +214,7 @@ public class HydrologyRouteTurnCacheTest {
         private final Object tangent;
         private final Method solve;
         private final Method indices;
+        private HydrologyRouteGeometry.CurvatureWorkspace workspace;
 
         private Solver() throws Exception {
             Class<?> direction = RouteDirection.class;
@@ -210,7 +226,8 @@ public class HydrologyRouteTurnCacheTest {
                     double.class, double.class, double.class, direction, boolean.class);
             candidateConstructor.setAccessible(true);
             solve = HydrologyRouteGeometry.class.getDeclaredMethod("selectCurvatureAwareTerrainRoute", List.class,
-                    double.class, double.class, double.class, double[][].class, double[][][].class, double[][][][].class);
+                    double.class, double.class, double.class, double[][].class, double[][][].class, double[][][][].class,
+                    HydrologyRouteGeometry.CurvatureWorkspace.class);
             solve.setAccessible(true);
             indices = solve.getReturnType().getDeclaredMethod("indices");
             indices.setAccessible(true);
@@ -227,8 +244,11 @@ public class HydrologyRouteTurnCacheTest {
                 }
                 layers.add(candidates);
             }
+            if (workspace == null) {
+                workspace = new HydrologyRouteGeometry.CurvatureWorkspace(layers);
+            }
             return (int[]) indices.invoke(solve.invoke(geometry, layers, 12D, maximumTurn, 12D,
-                    fixture.penalties(), fixture.transitions(), cache));
+                    fixture.penalties(), fixture.transitions(), cache, workspace));
         }
     }
 }

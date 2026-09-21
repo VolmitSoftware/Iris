@@ -53,6 +53,11 @@ public final class ModdedRegistries implements PlatformRegistries {
     }
 
     @Override
+    public NativeBlockState decodeBlockState(String key) {
+        return ModdedBlockResolution.BLOCKS.decode(key);
+    }
+
+    @Override
     public NativeBlockState block(String key) {
         return ModdedBlockResolution.BLOCKS.get(key);
     }

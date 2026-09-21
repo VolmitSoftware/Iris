@@ -1,6 +1,14 @@
 package art.arcane.iris.generation.hydrology;
 
 import art.arcane.iris.generation.hydrology.policy.SurfaceRiverPolicy;
+import art.arcane.iris.generation.hydrology.cave.CavePosition;
+import art.arcane.iris.generation.hydrology.cave.CaveVoxel;
+import art.arcane.iris.generation.hydrology.cave.CaveVoxelPrecondition;
+import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
+import art.arcane.iris.generation.hydrology.cave.HydrologyCaveMode;
+import art.arcane.iris.generation.hydrology.cave.HydrologyCavePlan;
+import art.arcane.iris.generation.hydrology.cave.HydrologyCaveRejection;
+import art.arcane.iris.generation.hydrology.cave.HydrologyCaveSource;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -17,6 +25,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.Map;
 import java.util.OptionalLong;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -48,6 +59,60 @@ public class StudioHydrologyTileStoreTest {
         assertEquals(original.localDiagnosticCandidates(), restored.localDiagnosticCandidates());
         assertEquals(original.footprint(), restored.footprint());
         assertThrows(UnsupportedOperationException.class, () -> restored.regionalCourseIds().clear());
+    }
+
+    @Test
+    public void roundTripsNonemptyCompactCavePlan() throws Exception {
+        CavePosition wet = new CavePosition(0, 20, 0);
+        CavePosition dry = new CavePosition(0, 21, 0);
+        CavePosition guard = new CavePosition(Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
+        CavePosition boundary = new CavePosition(Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+        LinkedHashMap<CavePosition, HydrologyCaveAction> actions = new LinkedHashMap<>();
+        actions.put(guard, HydrologyCaveAction.SEAL_GUARD);
+        actions.put(dry, HydrologyCaveAction.DRY_AIR);
+        actions.put(wet, HydrologyCaveAction.WET_SOURCE);
+        LinkedHashMap<CavePosition, CaveVoxelPrecondition> preconditions = new LinkedHashMap<>();
+        preconditions.put(wet, new CaveVoxelPrecondition(CaveVoxel.SOLID, false));
+        preconditions.put(boundary, new CaveVoxelPrecondition(CaveVoxel.CAVE_AIR, true));
+        preconditions.put(guard, new CaveVoxelPrecondition(CaveVoxel.LAVA, false));
+        preconditions.put(dry, new CaveVoxelPrecondition(CaveVoxel.CAVE_AIR, false));
+        HydrologyCavePlan plan = new HydrologyCavePlan(
+                new HydrologyCaveSource(4L, wet, dry, 20, HydrologyCaveMode.CLOSED_COMPONENT),
+                HydrologyCaveRejection.NONE, actions, preconditions, OptionalLong.empty());
+        HydraulicSegment segment = new HydraulicSegment(3L, 4L, HydrologyFeatureType.UNDERGROUND_POOL,
+                20, 20, 1, 1, false, false, List.of(new HydrologyPoint(0, 20, 0)),
+                new HydraulicChannelProfile(new double[]{1D}, new double[]{1D}));
+        RiverCourse course = new RiverCourse(4L, RiverCourseType.SEA_CAVE, OptionalLong.empty(),
+                OptionalLong.empty(), "default", 1, List.of(), List.of(segment));
+        HydrologyFeatureRef feature = new HydrologyFeatureRef(5L, HydrologyFeatureType.UNDERGROUND_POOL,
+                4L, 3L, 0, 20, 0, 0, 0, true);
+        HydrologyColumnLayer layer = new HydrologyColumnLayer(feature, 19, 20, 21,
+                true, false, false, true, false, false, true, true, false,
+                "default", "plains", "plains", "plains", "plains", "plains");
+        HydrologyColumnSample column = new HydrologyColumnSample(0, 0, 80, 63, false, "plains", List.of(layer));
+        HydrologyTile original = new HydrologyTile(new HydrologyTileKey(0, 0), 91L, 17L, 64,
+                List.of(), List.of(), List.of(), List.of(course), Set.of(), List.of(plan), List.of(),
+                new RiverFootprint(Map.of(RiverFootprint.pack(0, 0), column)));
+        StudioHydrologyTileStore store = store();
+        store.save(original);
+        HydrologyTile restored = store.load(original.key()).orElseThrow();
+        assertEquals(original, restored);
+        HydrologyCavePlan restoredPlan = restored.cavePlans().getFirst();
+        assertEquals(actions, restoredPlan.actions());
+        assertEquals(preconditions, restoredPlan.baselinePreconditions());
+        Comparator<CavePosition> persistedOrder = Comparator.comparingInt(CavePosition::x)
+                .thenComparingInt(CavePosition::z).thenComparingInt(CavePosition::y);
+        ArrayList<CavePosition> expectedActions = new ArrayList<>(actions.keySet());
+        expectedActions.sort(persistedOrder);
+        ArrayList<CavePosition> expectedPreconditions = new ArrayList<>(preconditions.keySet());
+        expectedPreconditions.sort(persistedOrder);
+        assertEquals(expectedActions, new ArrayList<>(restoredPlan.actions().keySet()));
+        assertEquals(expectedPreconditions, new ArrayList<>(restoredPlan.baselinePreconditions().keySet()));
+        assertThrows(UnsupportedOperationException.class, () -> restoredPlan.actions().clear());
+        assertThrows(UnsupportedOperationException.class, () -> restoredPlan.baselinePreconditions().remove(boundary));
+        ArrayList<CavePosition> published = new ArrayList<>();
+        restoredPlan.forEachActionIn(0, 0, 16, 16, (position, action) -> published.add(position));
+        assertEquals(List.of(wet, dry), published);
     }
 
     @Test

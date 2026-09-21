@@ -22,6 +22,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -33,6 +35,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class EngineMantleCoverageTest {
@@ -122,7 +126,7 @@ public class EngineMantleCoverageTest {
         Chunk neighbor = new Chunk(-2, 0);
         fixture.real().remove(neighbor);
         AtomicInteger reads = new AtomicInteger();
-        when(fixture.mantle().hasFlag(-2, 0, MantleFlag.REAL)).thenAnswer(invocation -> {
+        when(fixture.mantle().hasLoadedFlag(-2, 0, MantleFlag.REAL)).thenAnswer(invocation -> {
             if (reads.incrementAndGet() > 1) {
                 fixture.real().add(neighbor);
                 return true;
@@ -181,6 +185,95 @@ public class EngineMantleCoverageTest {
         }
     }
 
+    @Test
+    public void cleanupDefersUnloadedCoverageWithoutReadingFlags() {
+        CoverageFixture fixture = fixture(1);
+        fill(fixture, 2);
+        when(fixture.mantle().isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
+        List<Chunk> actual = new ArrayList<>();
+
+        fixture.engine().cleanupChunksCoveredBy(0, 0, true,
+                (x, z) -> actual.add(new Chunk(x, z)));
+
+        assertTrue(actual.isEmpty());
+        verify(fixture.mantle(), never()).hasLoadedFlag(anyInt(), anyInt(), any());
+        verify(fixture.mantle(), never()).getChunk(anyInt(), anyInt());
+
+        when(fixture.mantle().isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+        fixture.engine().cleanupChunksCoveredBy(0, 0, true,
+                (x, z) -> actual.add(new Chunk(x, z)));
+        assertEquals(9, actual.size());
+    }
+
+    @Test
+    public void cleanupSkipsTargetEvictedAfterCoverageWithoutLoadingIt() {
+        CoverageFixture fixture = fixture(0);
+        fill(fixture, 0);
+        doReturn(false).when(fixture.mantle()).withLoadedChunk(eq(0), eq(0), any());
+        List<Chunk> actual = new ArrayList<>();
+
+        fixture.engine().cleanupChunksCoveredBy(0, 0, true,
+                (x, z) -> actual.add(new Chunk(x, z)));
+
+        assertTrue(actual.isEmpty());
+        assertTrue(fixture.cleaned().isEmpty());
+        verify(fixture.mantle(), never()).getChunk(anyInt(), anyInt());
+        verify(fixture.mantle(), never()).hasFlag(anyInt(), anyInt(), any());
+    }
+
+    @Test
+    public void cleanupSkipsHaloEvictedAfterResidencyCheck() {
+        CoverageFixture fixture = fixture(1);
+        fill(fixture, 2);
+        when(fixture.mantle().hasLoadedFlag(anyInt(), anyInt(), eq(MantleFlag.REAL))).thenReturn(false);
+        List<Chunk> actual = new ArrayList<>();
+
+        fixture.engine().cleanupChunksCoveredBy(0, 0, true,
+                (x, z) -> actual.add(new Chunk(x, z)));
+
+        assertTrue(actual.isEmpty());
+        verify(fixture.mantle(), never()).withLoadedChunk(anyInt(), anyInt(), any());
+        verify(fixture.mantle(), never()).getChunk(anyInt(), anyInt());
+        verify(fixture.mantle(), never()).hasFlag(anyInt(), anyInt(), any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void busyTargetCanBeCleanedOnRetryAndCallbackRunsOutsideGuard() {
+        CoverageFixture fixture = fixture(0);
+        fill(fixture, 0);
+        AtomicBoolean busy = new AtomicBoolean(true);
+        AtomicBoolean guarded = new AtomicBoolean();
+        MantleChunk<Matter> chunk = mock(MantleChunk.class);
+        when(chunk.use()).thenReturn(chunk);
+        doAnswer(invocation -> {
+            if (busy.getAndSet(false)) {
+                return false;
+            }
+            guarded.set(true);
+            try {
+                Predicate<MantleChunk<Matter>> action = invocation.getArgument(2);
+                boolean cleaned = action.test(chunk);
+                if (cleaned) {
+                    fixture.cleaned().add(new Chunk(0, 0));
+                }
+                return cleaned;
+            } finally {
+                guarded.set(false);
+            }
+        }).when(fixture.mantle()).withLoadedChunk(eq(0), eq(0), any());
+        List<Chunk> actual = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            fixture.engine().cleanupChunksCoveredBy(0, 0, true, (x, z) -> {
+                assertTrue("Callback must run after releasing region guard", !guarded.get());
+                actual.add(new Chunk(x, z));
+            });
+        }
+        assertEquals(List.of(new Chunk(0, 0)), actual);
+        verify(fixture.mantle(), never()).getChunk(anyInt(), anyInt());
+        verify(fixture.mantle(), never()).hasFlag(anyInt(), anyInt(), any());
+    }
+
     private static List<Chunk> fullScan(CoverageFixture fixture, int x, int z, int radius) {
         List<Chunk> result = new ArrayList<>();
         for (int offsetX = -radius; offsetX <= radius; offsetX++) {
@@ -236,7 +329,8 @@ public class EngineMantleCoverageTest {
         doReturn(mantle).when(engine).getMantle();
         doReturn(radius).when(engine).getRadius();
         doReturn(0).when(engine).getRealRadius();
-        when(mantle.hasFlag(anyInt(), anyInt(), any())).thenAnswer(invocation -> {
+        when(mantle.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+        when(mantle.hasLoadedFlag(anyInt(), anyInt(), any())).thenAnswer(invocation -> {
             Chunk position = new Chunk(invocation.getArgument(0), invocation.getArgument(1));
             MantleFlag flag = invocation.getArgument(2);
             if (flag == MantleFlag.REAL) {
@@ -245,9 +339,13 @@ public class EngineMantleCoverageTest {
             }
             return cleaned.contains(position);
         });
-        when(mantle.getChunk(anyInt(), anyInt())).thenAnswer(invocation -> {
-            cleaned.add(new Chunk(invocation.getArgument(0), invocation.getArgument(1)));
-            return chunk;
+        when(mantle.withLoadedChunk(anyInt(), anyInt(), any())).thenAnswer(invocation -> {
+            Predicate<MantleChunk<Matter>> action = invocation.getArgument(2);
+            boolean result = action.test(chunk);
+            if (result) {
+                cleaned.add(new Chunk(invocation.getArgument(0), invocation.getArgument(1)));
+            }
+            return result;
         });
         when(chunk.use()).thenReturn(chunk);
         doAnswer(invocation -> null).when(chunk).raiseFlagUnchecked(eq(MantleFlag.CLEANED), any());

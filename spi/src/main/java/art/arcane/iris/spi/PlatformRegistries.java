@@ -47,6 +47,8 @@ public interface PlatformRegistries {
         );
     }
 
+    NativeBlockState decodeBlockState(String key);
+
     /**
      * Resolves a block key through the platform's compatibility layer, which rewrites keys that moved between
      * Minecraft versions and consults registered custom-content providers. An unresolvable key is reported and

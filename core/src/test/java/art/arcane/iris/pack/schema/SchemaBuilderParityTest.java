@@ -460,6 +460,11 @@ public class SchemaBuilderParityTest {
 
     private static final class FakeRegistries implements PlatformRegistries {
         @Override
+        public NativeBlockState decodeBlockState(String key) {
+            return blockOrNull(key);
+        }
+
+        @Override
         public NativeBlockState block(String key) {
             return null;
         }

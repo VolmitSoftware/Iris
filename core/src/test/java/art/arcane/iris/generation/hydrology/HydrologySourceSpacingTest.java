@@ -87,6 +87,93 @@ public class HydrologySourceSpacingTest {
         }
     }
 
+    @Test
+    public void lowerPriorityHaloSamplesDoNotBuildNeighbourOwnerRouting() {
+        HydrologyPlanner planner = planner();
+        HydrologySampledGrid grid = haloGrid(3D, 1D);
+        HydrologyRoutingPlan routing = routing(grid, Map.of());
+        HashMap<HydrologyTileKey, SourceRoutingContext> contexts = new HashMap<>();
+        contexts.put(TILE, new SourceRoutingContext(grid, routing, routing, List.of()));
+
+        assertTrue(planner.sourcePlanner.globallyAdmittedSource(grid.nodeAt(5, 5),
+                planner.settings.surface().sources(), HydrologySourcePlanner.SURFACE_SOURCE_SALT,
+                true, contexts, new HashMap<>()));
+
+        assertEquals(Set.of(TILE), contexts.keySet());
+        assertEquals(0L, planner.routingContexts.estimatedSize());
+    }
+
+    @Test
+    public void higherPriorityHaloSourcesStillDemandTheirOwnerRouting() {
+        HydrologyPlanner planner = planner();
+        HydrologySampledGrid grid = haloGrid(1D, 3D);
+        HydrologyRoutingPlan routing = routing(grid, Map.of());
+        SourceRoutingContext context = new SourceRoutingContext(grid, routing, routing, List.of());
+        HydrologyTileKey westernOwner = new HydrologyTileKey(-1, 0);
+        planner.routingContexts.put(westernOwner, context);
+        HashMap<HydrologyTileKey, SourceRoutingContext> contexts = new HashMap<>();
+        contexts.put(TILE, context);
+
+        assertFalse(planner.sourcePlanner.globallyAdmittedSource(grid.nodeAt(5, 5),
+                planner.settings.surface().sources(), HydrologySourcePlanner.SURFACE_SOURCE_SALT,
+                true, contexts, new HashMap<>()));
+
+        assertEquals(Set.of(TILE, westernOwner), contexts.keySet());
+    }
+
+    @Test
+    public void requestDependentSamplersAlwaysUseTheOwnerGridForSourcePriority() {
+        HydrologyRoutingTerrainSampler routingSampler = new HydrologyRoutingTerrainSampler() {
+            @Override
+            public HydrologyTerrainSample[] sampleGrid(GridRequest request) {
+                throw new AssertionError("The owner grids are already cached");
+            }
+
+            @Override
+            public NaturalClassification classifyNatural(int x, int z) {
+                throw new AssertionError("Source spacing uses sampled routing grids");
+            }
+        };
+        HydrologyPlannerSettings settings = planner().settings;
+        HydrologyTerrainSampler terrain = (x, z) -> land(HIGH, 0D);
+        HydrologyPlanner planner = new HydrologyPlanner(1337L, settings, terrain, routingSampler,
+                HydrologyGeometrySampler.deterministic(terrain), -4096,
+                footprint -> new HydrologyTerrainCaveVoxelView(terrain, settings.seaLevel(), -4096, 4096));
+        HydrologySampledGrid primaryGrid = haloGrid(1D, 0D);
+        HydrologySampledGrid ownerGrid = haloGrid(1D, 3D);
+        HydrologyRoutingPlan primaryRouting = routing(primaryGrid, Map.of());
+        HydrologyRoutingPlan ownerRouting = routing(ownerGrid, Map.of());
+        SourceRoutingContext primaryContext = new SourceRoutingContext(primaryGrid, primaryRouting, primaryRouting, List.of());
+        SourceRoutingContext ownerContext = new SourceRoutingContext(ownerGrid, ownerRouting, ownerRouting, List.of());
+        for (HydrologyTileKey key : List.of(new HydrologyTileKey(-1, -1), new HydrologyTileKey(-1, 0),
+                new HydrologyTileKey(0, -1))) {
+            planner.routingContexts.put(key, ownerContext);
+        }
+        HashMap<HydrologyTileKey, SourceRoutingContext> contexts = new HashMap<>();
+        contexts.put(TILE, primaryContext);
+
+        assertFalse(routingSampler.supportsSharedGridSamples());
+        assertFalse(planner.sourcePlanner.globallyAdmittedSource(primaryGrid.nodeAt(5, 5),
+                settings.surface().sources(), HydrologySourcePlanner.SURFACE_SOURCE_SALT,
+                true, contexts, new HashMap<>()));
+        assertTrue(contexts.containsKey(new HydrologyTileKey(-1, 0)));
+    }
+
+    private static HydrologySampledGrid haloGrid(double centerWeight, double westernWeight) {
+        ArrayList<HydrologyGridNode> nodes = new ArrayList<>(WIDTH * WIDTH);
+        for (int gridZ = 0; gridZ < WIDTH; gridZ++) {
+            for (int gridX = 0; gridX < WIDTH; gridX++) {
+                int index = gridZ * WIDTH + gridX;
+                int x = (gridX - 5) * SPACING;
+                int z = (gridZ - 5) * SPACING;
+                double weight = z != 0 ? 0D : x == 0 ? centerWeight : x == -SPACING ? westernWeight : 0D;
+                nodes.add(new HydrologyGridNode(index, gridX, gridZ, x, z, index + 1L, land(HIGH, weight)));
+            }
+        }
+        return new HydrologySampledGrid(-5 * SPACING, -5 * SPACING, 0, 0,
+                HydrologyPlannerSettings.defaults().routing().tileSize(), WIDTH, SPACING, List.copyOf(nodes));
+    }
+
     private static Field denseField() {
         HashMap<Long, Double> weights = new HashMap<>();
         for (int gridZ = 1; gridZ < WIDTH - 1; gridZ++) {

@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ForkJoinWorkerThread;
 
 final class HydrologyCrossTileResolver {
     private static final int FALLBACK_TRIAL_PARALLELISM = 16;
@@ -283,11 +284,20 @@ final class HydrologyCrossTileResolver {
             List<OutletCandidate> outlets,
             int start
     ) {
-        int end = Math.min(outlets.size(), start + FALLBACK_TRIAL_PARALLELISM);
+        int parallelism = HydrologyPlanningAdmission.effectiveParallelism(
+                Thread.currentThread() instanceof ForkJoinWorkerThread worker
+                        ? worker.getPool().getParallelism()
+                        : IrisPlatforms.isBound() ? MultiBurst.hydrology.parallelism() : 1);
+        int batchSize = parallelism <= 2 ? 1 : Math.max(1, Math.min(HydrologyPlanningAdmission.maximumTrials(),
+                Math.min(FALLBACK_TRIAL_PARALLELISM, parallelism)));
+        int end = Math.min(outlets.size(), start + batchSize);
         ArrayList<Callable<FallbackTrial>> tasks = new ArrayList<>(end - start);
+        HydrologyPlanner.PlanningSamples ownerSamples = planner.planningSamples.get();
+        HydrologyLandHeightCache sharedLandHeights = planner.naturalSampler == null ? null
+                : ownerSamples == null ? new HydrologyLandHeightCache() : ownerSamples.fallbackLandHeights();
         for (int index = start; index < end; index++) {
             OutletCandidate outlet = outlets.get(index);
-            tasks.add(() -> compileFallbackTrial(context, outlet));
+            tasks.add(() -> compileFallbackTrial(context, outlet, sharedLandHeights));
         }
         List<FallbackTrial> trials = HydrologyForkJoin.invokeAll(tasks,
                 IrisPlatforms.isBound() ? MultiBurst.hydrology : null);
@@ -305,7 +315,11 @@ final class HydrologyCrossTileResolver {
         return trials;
     }
 
-    private FallbackTrial compileFallbackTrial(FallbackContext context, OutletCandidate outlet) {
+    private FallbackTrial compileFallbackTrial(
+            FallbackContext context,
+            OutletCandidate outlet,
+            HydrologyLandHeightCache sharedLandHeights
+    ) {
         HydrologyPlanner.PlanningSamples previousSamples = planner.planningSamples.get();
         DraftProfile previousProfile = planner.draftProfiles.get();
         DraftProfile profile = new DraftProfile();
@@ -314,7 +328,7 @@ final class HydrologyCrossTileResolver {
         HashMap<SourceCompilationKey, SourceCompilation> sourceCompilations = new HashMap<>(context.sourceCompilations());
         HydrologyFootprintCompiler footprints = null;
         try {
-            planner.planningSamples.set(new HydrologyPlanner.PlanningSamples());
+            planner.planningSamples.set(new HydrologyPlanner.PlanningSamples(sharedLandHeights));
             planner.draftProfiles.set(profile);
             footprints = new HydrologyFootprintCompiler(
                     planner.settings,

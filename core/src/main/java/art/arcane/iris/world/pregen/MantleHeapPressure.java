@@ -34,7 +34,7 @@ public final class MantleHeapPressure {
     private static final long MAXIMUM_HYSTERESIS_MS = 60_000L;
     private static final ObjectName DIAGNOSTIC_COMMAND = diagnosticCommandName();
     private static final PanicGcReclaimer PANIC_RECLAIMER = new PanicGcReclaimer(
-            new PanicGcPolicy(10_000L, 60_000L, 60_000L, 15 * 60_000L),
+            new PanicGcPolicy(250L, 5_000L, 10_000L, 60_000L, 60_000L, 15 * 60_000L),
             new PanicGcActions(
                     System::currentTimeMillis,
                     System::gc,
@@ -85,7 +85,8 @@ public final class MantleHeapPressure {
     }
 
     public static void requestPanicReclaim() {
-        PANIC_RECLAIMER.request(usedFraction());
+        double fraction = usedFraction();
+        PANIC_RECLAIMER.request(fraction, PRESSURE_GATE.update(fraction));
     }
 
     static void invokeHotSpotDiagnosticGc(MBeanServer server) throws Exception {
@@ -108,13 +109,17 @@ public final class MantleHeapPressure {
     }
 
     record PanicGcPolicy(
+            long explicitGraceMs,
+            long explicitCooldownMs,
             long diagnosticDelayMs,
             long diagnosticCooldownMs,
             long initialFailureBackoffMs,
             long maximumFailureBackoffMs
     ) {
         PanicGcPolicy {
-            if (diagnosticDelayMs < 0L
+            if (explicitGraceMs < 0L
+                    || explicitCooldownMs < 0L
+                    || diagnosticDelayMs < 0L
                     || diagnosticCooldownMs < 0L
                     || initialFailureBackoffMs < 0L
                     || maximumFailureBackoffMs < initialFailureBackoffMs) {
@@ -138,15 +143,13 @@ public final class MantleHeapPressure {
     }
 
     static final class HeapPressureGate {
-        private static final long NOT_BELOW_HIGH_WATER = Long.MIN_VALUE;
-
         private final double highWater;
         private final double lowWater;
         private final long maximumHysteresisMs;
         private final LongSupplier clock;
         private final Runnable releaseAction;
         private boolean engaged;
-        private long belowHighWaterSince;
+        private long episodeStartedAt;
 
         HeapPressureGate(double highWater, double lowWater, long maximumHysteresisMs, LongSupplier clock, Runnable releaseAction) {
             if (!Double.isFinite(highWater)
@@ -161,7 +164,6 @@ public final class MantleHeapPressure {
             this.maximumHysteresisMs = maximumHysteresisMs;
             this.clock = clock;
             this.releaseAction = releaseAction;
-            this.belowHighWaterSince = NOT_BELOW_HIGH_WATER;
         }
 
         synchronized boolean update(double fraction) {
@@ -171,7 +173,7 @@ public final class MantleHeapPressure {
             if (!engaged) {
                 if (fraction >= highWater) {
                     engaged = true;
-                    belowHighWaterSince = NOT_BELOW_HIGH_WATER;
+                    episodeStartedAt = clock.getAsLong();
                 }
                 return engaged;
             }
@@ -180,16 +182,11 @@ public final class MantleHeapPressure {
                 return false;
             }
             if (fraction >= highWater) {
-                belowHighWaterSince = NOT_BELOW_HIGH_WATER;
                 return true;
             }
 
             long now = clock.getAsLong();
-            if (belowHighWaterSince == NOT_BELOW_HIGH_WATER) {
-                belowHighWaterSince = now;
-                return true;
-            }
-            if (elapsed(now, belowHighWaterSince) < maximumHysteresisMs) {
+            if (elapsed(now, episodeStartedAt) < maximumHysteresisMs) {
                 return true;
             }
 
@@ -199,7 +196,7 @@ public final class MantleHeapPressure {
 
         private void release() {
             engaged = false;
-            belowHighWaterSince = NOT_BELOW_HIGH_WATER;
+            episodeStartedAt = 0L;
             releaseAction.run();
         }
 
@@ -212,7 +209,10 @@ public final class MantleHeapPressure {
         private final PanicGcPolicy policy;
         private final PanicGcActions actions;
         private boolean panicEpisode;
+        private boolean explicitAttempted;
+        private long episodeStartedAt;
         private long explicitAttemptAt;
+        private long nextExplicitAllowedAt = Long.MIN_VALUE;
         private long nextDiagnosticAllowedAt;
         private long failureBackoffMs;
 
@@ -222,17 +222,29 @@ public final class MantleHeapPressure {
             this.failureBackoffMs = policy.initialFailureBackoffMs();
         }
 
-        synchronized void request(double fraction) {
-            if (!Double.isFinite(fraction) || fraction <= LOW_WATER) {
+        synchronized void request(double fraction, boolean pressureEngaged) {
+            if (!Double.isFinite(fraction)) {
+                return;
+            }
+            if (fraction <= LOW_WATER) {
+                resetEpisode();
                 return;
             }
 
             long now = actions.clock().getAsLong();
             if (!panicEpisode) {
-                if (fraction < HIGH_WATER) {
+                if (fraction < HIGH_WATER && !pressureEngaged) {
                     return;
                 }
-                beginEpisode(now);
+                panicEpisode = true;
+                episodeStartedAt = now;
+            }
+            if (!explicitAttempted) {
+                if (elapsed(now, episodeStartedAt) < policy.explicitGraceMs()
+                        || now < nextExplicitAllowedAt) {
+                    return;
+                }
+                attemptExplicitGc(now);
                 return;
             }
             if (elapsed(now, explicitAttemptAt) < policy.diagnosticDelayMs()
@@ -256,12 +268,15 @@ public final class MantleHeapPressure {
 
         synchronized void resetEpisode() {
             panicEpisode = false;
+            explicitAttempted = false;
+            episodeStartedAt = 0L;
             explicitAttemptAt = 0L;
         }
 
-        private void beginEpisode(long now) {
-            panicEpisode = true;
+        private void attemptExplicitGc(long now) {
+            explicitAttempted = true;
             explicitAttemptAt = now;
+            nextExplicitAllowedAt = deadline(now, policy.explicitCooldownMs());
             try {
                 actions.explicitGc().run();
             } catch (RuntimeException failure) {

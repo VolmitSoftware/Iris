@@ -657,11 +657,11 @@ final class HydrologyRouteGeometry {
         int lowest = center.naturalHeight();
         for (double distance = reach / 2D; distance <= reach; distance += reach / 2D) {
             for (double direction = -1D; direction <= 1D; direction += 2D) {
-                HydrologyTerrainSample side = planner.sampleLandBasisWithoutSlope(
+                double side = planner.sampleLandHeight(
                         (int) StrictMath.round(point.x() + normalX * distance * direction),
                         (int) StrictMath.round(point.z() + normalZ * distance * direction));
-                if (side != null) {
-                    lowest = Math.min(lowest, side.naturalHeight());
+                if (!Double.isNaN(side)) {
+                    lowest = Math.min(lowest, (int) side);
                 }
             }
         }
@@ -819,6 +819,7 @@ final class HydrologyRouteGeometry {
                 Arrays.fill(row, Double.NaN);
             }
         }
+        CurvatureWorkspace workspace = new CurvatureWorkspace(layers);
         while (true) {
             CurvatureRouteSelection selection = selectCurvatureAwareTerrainRoute(
                     layers,
@@ -827,7 +828,8 @@ final class HydrologyRouteGeometry {
                     turnCost,
                     localPenalties,
                     transitionCosts,
-                    turnCosts
+                    turnCosts,
+                    workspace
             );
             if (selection.route().length == 0) {
                 return selection.route();
@@ -852,17 +854,17 @@ final class HydrologyRouteGeometry {
             double turnCost,
             double[][] localPenalties,
             double[][][] transitionCosts,
-            double[][][][] turnCosts
+            double[][][][] turnCosts,
+            CurvatureWorkspace workspace
     ) {
         int layerCount = layers.size();
-        double[][][] costs = new double[layerCount][][];
-        int[][][] predecessors = new int[layerCount][][];
+        double[][] previousCosts = workspace.firstCosts;
+        double[][] currentCosts = workspace.secondCosts;
+        int[][][] predecessors = workspace.predecessors;
         List<RouteCandidate> firstLayer = layers.getFirst();
         List<RouteCandidate> secondLayer = layers.get(1);
-        costs[1] = new double[firstLayer.size()][secondLayer.size()];
-        predecessors[1] = new int[firstLayer.size()][secondLayer.size()];
         for (int firstIndex = 0; firstIndex < firstLayer.size(); firstIndex++) {
-            Arrays.fill(costs[1][firstIndex], Double.POSITIVE_INFINITY);
+            Arrays.fill(previousCosts[firstIndex], Double.POSITIVE_INFINITY);
             Arrays.fill(predecessors[1][firstIndex], -1);
             for (int secondIndex = 0; secondIndex < secondLayer.size(); secondIndex++) {
                 RouteCandidate first = firstLayer.get(firstIndex);
@@ -871,10 +873,14 @@ final class HydrologyRouteGeometry {
                         first,
                         second,
                         targetStepLength,
-                        transitionCosts[1][firstIndex][secondIndex]
+                        transitionCosts[1][firstIndex][secondIndex],
+                        workspace,
+                        1,
+                        firstIndex,
+                        secondIndex
                 );
                 if (Double.isFinite(transition)) {
-                    costs[1][firstIndex][secondIndex] = first.localScore()
+                    previousCosts[firstIndex][secondIndex] = first.localScore()
                             + second.localScore()
                             + resolvedLocalPenalty(localPenalties[1][secondIndex])
                             + transition;
@@ -885,13 +891,11 @@ final class HydrologyRouteGeometry {
             List<RouteCandidate> beforeLayer = layers.get(layerIndex - 2);
             List<RouteCandidate> previousLayer = layers.get(layerIndex - 1);
             List<RouteCandidate> currentLayer = layers.get(layerIndex);
-            costs[layerIndex] = new double[previousLayer.size()][currentLayer.size()];
-            predecessors[layerIndex] = new int[previousLayer.size()][currentLayer.size()];
             if (turnCosts[layerIndex] == null) {
                 turnCosts[layerIndex] = new double[previousLayer.size()][currentLayer.size()][];
             }
             for (int previousIndex = 0; previousIndex < previousLayer.size(); previousIndex++) {
-                Arrays.fill(costs[layerIndex][previousIndex], Double.POSITIVE_INFINITY);
+                Arrays.fill(currentCosts[previousIndex], Double.POSITIVE_INFINITY);
                 Arrays.fill(predecessors[layerIndex][previousIndex], -1);
                 RouteCandidate previous = previousLayer.get(previousIndex);
                 for (int currentIndex = 0; currentIndex < currentLayer.size(); currentIndex++) {
@@ -900,14 +904,18 @@ final class HydrologyRouteGeometry {
                             previous,
                             current,
                             targetStepLength,
-                            transitionCosts[layerIndex][previousIndex][currentIndex]
+                            transitionCosts[layerIndex][previousIndex][currentIndex],
+                            workspace,
+                            layerIndex,
+                            previousIndex,
+                            currentIndex
                     );
                     if (!Double.isFinite(transition)) {
                         continue;
                     }
                     double localPenalty = resolvedLocalPenalty(localPenalties[layerIndex][currentIndex]);
                     for (int beforeIndex = 0; beforeIndex < beforeLayer.size(); beforeIndex++) {
-                        double previousCost = costs[layerIndex - 1][beforeIndex][previousIndex];
+                        double previousCost = previousCosts[beforeIndex][previousIndex];
                         if (!Double.isFinite(previousCost)) {
                             continue;
                         }
@@ -937,24 +945,27 @@ final class HydrologyRouteGeometry {
                                 + localPenalty
                                 + transition
                                 + turnPenalty;
-                        if (cost < costs[layerIndex][previousIndex][currentIndex]) {
-                            costs[layerIndex][previousIndex][currentIndex] = cost;
+                        if (cost < currentCosts[previousIndex][currentIndex]) {
+                            currentCosts[previousIndex][currentIndex] = cost;
                             predecessors[layerIndex][previousIndex][currentIndex] = beforeIndex;
                         }
                     }
                 }
             }
+            double[][] completedCosts = currentCosts;
+            currentCosts = previousCosts;
+            previousCosts = completedCosts;
         }
         int lastLayerIndex = layerCount - 1;
         int selectedPreviousIndex = -1;
         int selectedCurrentIndex = -1;
         double selectedCost = Double.POSITIVE_INFINITY;
-        for (int previousIndex = 0; previousIndex < costs[lastLayerIndex].length; previousIndex++) {
+        for (int previousIndex = 0; previousIndex < layers.get(lastLayerIndex - 1).size(); previousIndex++) {
             for (int currentIndex = 0;
-                 currentIndex < costs[lastLayerIndex][previousIndex].length;
+                 currentIndex < layers.get(lastLayerIndex).size();
                  currentIndex++) {
-                if (costs[lastLayerIndex][previousIndex][currentIndex] < selectedCost) {
-                    selectedCost = costs[lastLayerIndex][previousIndex][currentIndex];
+                if (previousCosts[previousIndex][currentIndex] < selectedCost) {
+                    selectedCost = previousCosts[previousIndex][currentIndex];
                     selectedPreviousIndex = previousIndex;
                     selectedCurrentIndex = currentIndex;
                 }
@@ -1048,11 +1059,24 @@ final class HydrologyRouteGeometry {
             RouteCandidate previous,
             RouteCandidate current,
             double targetStepLength,
-            double exactCost
+            double exactCost,
+            CurvatureWorkspace workspace,
+            int layerIndex,
+            int previousIndex,
+            int currentIndex
     ) {
-        return Double.isNaN(exactCost)
-                ? planner.routePaths.routeTransitionGeometryCost(previous, current, targetStepLength)
-                : exactCost;
+        if (!Double.isNaN(exactCost)) {
+            return exactCost;
+        }
+        long heights = ((long) previous.point().y() << 32) | (current.point().y() & 0xffffffffL);
+        if (!workspace.geometryKnown[layerIndex][previousIndex][currentIndex]
+                || workspace.geometryHeights[layerIndex][previousIndex][currentIndex] != heights) {
+            workspace.geometryCosts[layerIndex][previousIndex][currentIndex] =
+                    planner.routePaths.routeTransitionGeometryCost(previous, current, targetStepLength);
+            workspace.geometryHeights[layerIndex][previousIndex][currentIndex] = heights;
+            workspace.geometryKnown[layerIndex][previousIndex][currentIndex] = true;
+        }
+        return workspace.geometryCosts[layerIndex][previousIndex][currentIndex];
     }
 
     double curvatureCost(double turn, double maximumTurn, double turnCost) {
@@ -1137,6 +1161,36 @@ final class HydrologyRouteGeometry {
             }
         }
         return penalty;
+    }
+
+    static final class CurvatureWorkspace {
+        private final double[][] firstCosts;
+        private final double[][] secondCosts;
+        private final int[][][] predecessors;
+        private final double[][][] geometryCosts;
+        private final long[][][] geometryHeights;
+        private final boolean[][][] geometryKnown;
+
+        CurvatureWorkspace(List<? extends List<?>> layers) {
+            int maximumCandidates = 0;
+            for (List<?> layer : layers) {
+                maximumCandidates = Math.max(maximumCandidates, layer.size());
+            }
+            firstCosts = new double[maximumCandidates][maximumCandidates];
+            secondCosts = new double[maximumCandidates][maximumCandidates];
+            predecessors = new int[layers.size()][][];
+            geometryCosts = new double[layers.size()][][];
+            geometryHeights = new long[layers.size()][][];
+            geometryKnown = new boolean[layers.size()][][];
+            for (int layer = 1; layer < layers.size(); layer++) {
+                int previousSize = layers.get(layer - 1).size();
+                int currentSize = layers.get(layer).size();
+                predecessors[layer] = new int[previousSize][currentSize];
+                geometryCosts[layer] = new double[previousSize][currentSize];
+                geometryHeights[layer] = new long[previousSize][currentSize];
+                geometryKnown[layer] = new boolean[previousSize][currentSize];
+            }
+        }
     }
 
     record CurvatureRouteSelection(RouteCandidate[] route, int[] indices) {

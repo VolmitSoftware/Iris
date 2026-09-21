@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
@@ -31,6 +33,34 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class HydrologyRegionalSourceParallelismTest {
+    @Test(timeout = 15000)
+    public void boundedExecutionPreservesTheWholePreselectedSourceWindow() throws Exception {
+        int maximumTrials = HydrologyPlanningAdmission.maximumTrials();
+        int requiredParallelism = Math.min(4, maximumTrials);
+        CountDownLatch firstBatch = new CountDownLatch(requiredParallelism);
+        AtomicInteger active = new AtomicInteger();
+        AtomicInteger peak = new AtomicInteger();
+        Set<Integer> visited = ConcurrentHashMap.newKeySet();
+        Fixture fixture = fixture(4, source -> {
+            peak.accumulateAndGet(active.incrementAndGet(), Math::max);
+            visited.add(source);
+            firstBatch.countDown();
+            try {
+                await(firstBatch);
+                return source == 0 || source == 4 ? accepted(source) : rejected(source);
+            } finally {
+                active.decrementAndGet();
+            }
+        });
+        HydrologyRegionalNetwork network = run(fixture);
+
+        assertEquals(List.of(100L, 104L), network.courses().stream().map(RiverCourse::id).toList());
+        assertEquals(Set.of(0, 1, 2, 3, 4, 5, 6, 7), visited);
+        assertTrue(peak.get() >= requiredParallelism);
+        assertTrue(peak.get() <= maximumTrials);
+        assertEquals(0, active.get());
+    }
+
     @Test(timeout = 15000)
     public void acceptsOutletsInSourceOrderWhenTheMiddleOfAWindowSucceeds() throws Exception {
         Fixture fixture = fixture(4, source -> source == 4 || source == 1 ? accepted(source) : rejected(source));

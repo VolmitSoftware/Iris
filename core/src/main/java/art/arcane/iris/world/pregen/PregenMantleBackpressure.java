@@ -84,7 +84,7 @@ public final class PregenMantleBackpressure {
             int freed;
             int resident;
             try {
-                mantle.trim(0L, 0);
+                mantle.trim(0L);
                 freed = mantle.unloadTectonicPlate(0);
                 resident = mantle.getLoadedRegionCount();
             } catch (Throwable e) {
@@ -120,24 +120,27 @@ public final class PregenMantleBackpressure {
     }
 
     public void awaitHeapHeadroom() {
+        awaitHeapHeadroom(MantleHeapPressure::overHighWater, MantleHeapPressure::requestPanicReclaim);
+    }
+
+    void awaitHeapHeadroom(BooleanSupplier heapPressure, Runnable panicReclaim) {
         Mantle mantle = resolveMantle();
         long waitStart = M.ms();
         long lastLog = 0L;
-        while (MantleHeapPressure.overHighWater()) {
+        while (heapPressure.getAsBoolean()) {
             if (isCancelled()) {
                 return;
             }
 
             try {
-                if (mantle != null && mantle.getLoadedRegionCount() > maxResidentTectonicPlates) {
-                    mantle.trim(0L, 0);
-                    mantle.unloadTectonicPlate(0);
+                if (mantle != null) {
+                    mantle.saveOldestIdleTectonicPlate();
                 }
             } catch (Throwable e) {
                 IrisLogging.reportError(e);
             }
 
-            MantleHeapPressure.requestPanicReclaim();
+            panicReclaim.run();
 
             long elapsed = M.ms() - waitStart;
             if (elapsed >= timeoutMs) {

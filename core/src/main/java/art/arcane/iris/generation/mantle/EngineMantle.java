@@ -356,7 +356,11 @@ public interface EngineMantle extends MatterGenerator {
     }
 
     default boolean cleanupCoveredChunk(int x, int z, boolean force) {
-        MantleChunk<Matter> chunk = getMantle().getChunk(x, z).use();
+        return cleanupCoveredChunk(getMantle().getChunk(x, z), force);
+    }
+
+    default boolean cleanupCoveredChunk(MantleChunk<Matter> chunk, boolean force) {
+        chunk.use();
         try {
             synchronized (chunk) {
                 if (chunk.isFlagged(MantleFlag.CLEANED)) {

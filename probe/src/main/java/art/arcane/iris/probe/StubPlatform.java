@@ -618,6 +618,11 @@ public final class StubPlatform implements IrisPlatform {
 
     private static final class StubRegistries implements PlatformRegistries {
         @Override
+        public NativeBlockState decodeBlockState(String key) {
+            return blockOrNull(key);
+        }
+
+        @Override
         public NativeBlockState block(String key) {
             return StubBlockState.of(key);
         }

@@ -2,6 +2,7 @@ package art.arcane.iris.world.storage.matter;
 
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
+import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.data.palette.Palette;
 import art.arcane.volmlib.util.matter.Sliced;
 import art.arcane.volmlib.util.matter.slices.RawMatter;
@@ -33,7 +34,7 @@ public class PlatformBlockMatter extends RawMatter<NativeBlockState> {
 
     @Override
     public NativeBlockState readNode(DataInputStream din) throws IOException {
-        NativeBlockState state = B.getState(din.readUTF());
+        NativeBlockState state = IrisPlatforms.get().registries().decodeBlockState(din.readUTF());
         return state == null ? B.getAirState() : state;
     }
 }

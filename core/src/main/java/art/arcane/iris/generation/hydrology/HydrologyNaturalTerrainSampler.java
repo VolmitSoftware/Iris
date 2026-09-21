@@ -6,4 +6,9 @@ public interface HydrologyNaturalTerrainSampler extends HydrologyRoutingTerrainS
     default HydrologyTerrainSample sampleBasisWithoutSlope(int blockX, int blockZ) {
         return sampleBasis(blockX, blockZ);
     }
+
+    default double sampleLandHeight(int blockX, int blockZ) {
+        HydrologyTerrainSample terrain = sampleBasisWithoutSlope(blockX, blockZ);
+        return terrain == null || terrain.ocean() ? Double.NaN : terrain.naturalHeight();
+    }
 }

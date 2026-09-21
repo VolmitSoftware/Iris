@@ -705,11 +705,13 @@ final class HydrologySurfaceCoursePlanner {
             int head,
             int maximumBankRise
     ) {
-        HydrologyTerrainSample bank = surfaceBankTerrain(point, tangent, signedDistance);
-        if (bank == null) {
+        int bankX = (int) StrictMath.round(point.x() - tangent.z() * signedDistance);
+        int bankZ = (int) StrictMath.round(point.z() + tangent.x() * signedDistance);
+        double bankHeight = planner.sampleLandHeight(bankX, bankZ);
+        if (Double.isNaN(bankHeight)) {
             return 1.0E12D;
         }
-        int rise = bank.naturalHeight() - head;
+        int rise = (int) bankHeight - head;
         int shortfall = HydrologyRouteGeometry.SURFACE_MINIMUM_NATURAL_BANK_RISE - rise;
         if (shortfall > 0) {
             return (double) shortfall * shortfall * 4096D;
@@ -920,17 +922,6 @@ final class HydrologySurfaceCoursePlanner {
         double pointX = x - nearestX;
         double pointZ = z - nearestZ;
         return pointX * pointX + pointZ * pointZ;
-    }
-
-    HydrologyTerrainSample surfaceBankTerrain(
-            HydrologyPoint point,
-            RouteDirection tangent,
-            int signedDistance
-    ) {
-        HydrologyPoint bankPoint = surfaceBankPoint(point, tangent, signedDistance);
-        int bankX = bankPoint.x();
-        int bankZ = bankPoint.z();
-        return planner.sampleLandBasisWithoutSlope(bankX, bankZ);
     }
 
     HydrologyPoint surfaceBankPoint(HydrologyPoint point, RouteDirection tangent, int signedDistance) {

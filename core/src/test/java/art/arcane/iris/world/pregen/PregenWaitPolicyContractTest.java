@@ -36,7 +36,10 @@ public class PregenWaitPolicyContractTest {
 
         assertTrue(backpressure.contains("progressed.await(waitMs, TimeUnit.MILLISECONDS)"));
         assertTrue(method(backpressure, "public void enforceMantleBudget()").contains("awaitProgress()"));
-        assertTrue(method(backpressure, "public void awaitHeapHeadroom()").contains("awaitProgress()"));
+        assertTrue(method(backpressure, "public void awaitHeapHeadroom()")
+                .contains("awaitHeapHeadroom(MantleHeapPressure::overHighWater, MantleHeapPressure::requestPanicReclaim)"));
+        assertTrue(method(backpressure, "void awaitHeapHeadroom(BooleanSupplier heapPressure, Runnable panicReclaim)")
+                .contains("awaitProgress()"));
     }
 
     @Test

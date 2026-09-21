@@ -242,6 +242,11 @@ public class ContentKeyValidatorTest {
     private record FakeRegistries(List<String> blocks, List<String> items, List<String> entities,
                                   Map<String, List<NativeBlockProperty>> properties) implements PlatformRegistries {
         @Override
+        public NativeBlockState decodeBlockState(String key) {
+            return blockOrNull(key);
+        }
+
+        @Override
         public NativeBlockState block(String key) {
             return null;
         }

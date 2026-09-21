@@ -696,8 +696,15 @@ final class HydrologySourcePlanner {
                 }
                 int x = (int) neighborX;
                 int z = (int) neighborZ;
-                SourceRoutingContext context = sourceContext(x, z, routingContexts);
-                HydrologyGridNode neighbor = context.grid().nodeAtWorld(x, z);
+                HydrologyTileKey owner = HydrologyTileKey.fromBlock(x, z, planner.settings.routing().tileSize());
+                SourceRoutingContext context = routingContexts.get(owner);
+                HydrologyGridNode neighbor = context == null
+                        ? sampledSourceNode(x, z, routingContexts)
+                        : context.grid().nodeAtWorld(x, z);
+                if (neighbor == null) {
+                    context = sourceContext(x, z, routingContexts);
+                    neighbor = context.grid().nodeAtWorld(x, z);
+                }
                 if (neighbor == null) {
                     throw new IllegalStateException("Source coordinate is absent from its owner routing lattice.");
                 }
@@ -711,11 +718,18 @@ final class HydrologySourcePlanner {
                 if (!rawSourceEligible(terrain, sourceSettings, surface)) {
                     continue;
                 }
-                if (!routeViable(neighbor, context, surface)) {
+                SourcePriority neighborPriority = sourcePriority(x, z, terrain, sourceSalt, surface);
+                if (compareSourcePriority(neighborPriority, candidatePriority) <= 0) {
                     continue;
                 }
-                SourcePriority neighborPriority = sourcePriority(x, z, terrain, sourceSalt, surface);
-                if (compareSourcePriority(neighborPriority, candidatePriority) > 0) {
+                if (context == null) {
+                    context = sourceContext(x, z, routingContexts);
+                    neighbor = context.grid().nodeAtWorld(x, z);
+                    if (neighbor == null) {
+                        throw new IllegalStateException("Source coordinate is absent from its owner routing lattice.");
+                    }
+                }
+                if (routeViable(neighbor, context, surface)) {
                     contenders.add(new SourceContender(neighbor, neighborPriority));
                 }
             }
@@ -727,6 +741,23 @@ final class HydrologySourcePlanner {
             ordered.add(contender.node());
         }
         return ordered;
+    }
+
+    private HydrologyGridNode sampledSourceNode(int x, int z,
+                                               Map<HydrologyTileKey, SourceRoutingContext> routingContexts) {
+        if (!planner.routingSampler.supportsSharedGridSamples()) {
+            return null;
+        }
+        for (SourceRoutingContext context : routingContexts.values()) {
+            if (context.grid().spacing() != planner.settings.routing().sampleSpacing()) {
+                continue;
+            }
+            HydrologyGridNode node = context.grid().nodeAtWorld(x, z);
+            if (node != null) {
+                return node;
+            }
+        }
+        return null;
     }
 
     private SourceRoutingContext sourceContext(

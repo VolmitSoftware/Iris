@@ -5,6 +5,10 @@ public interface HydrologyRoutingTerrainSampler {
 
     NaturalClassification classifyNatural(int blockX, int blockZ);
 
+    default boolean supportsSharedGridSamples() {
+        return false;
+    }
+
     enum NaturalClassification {
         LAND,
         OCEAN,

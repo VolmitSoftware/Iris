@@ -1194,8 +1194,12 @@ final class HydrologyCaveCourseFilter {
             HydraulicSegment segment = segments.get(index);
             if (segment.type().isSurface() && segment.fallingFluid()) {
                 int radius = Math.max(1, segment.width() / 2) + 1;
+                HydraulicSegment receiving = index + 1 < segments.size() ? segments.get(index + 1) : null;
+                boolean coastal = receiving != null && receiving.type() == HydrologyFeatureType.MOUTH
+                        && receiving.upstreamHeadY() == segment.downstreamHeadY()
+                        && receiving.start().equals(segment.end());
                 openings.add(CaveSurfaceOpening.create(segment, true, (long) radius * radius,
-                        segment.downstreamHeadY() + 2, true));
+                        segment.downstreamHeadY() + (coastal ? 0 : 2), true));
                 continue;
             }
             if (!segment.type().isUnderground()) {

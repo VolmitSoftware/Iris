@@ -31,9 +31,7 @@ public class HydrologyRegionalBankSupportTest {
         HydrologyTerrainSampler terrain = depression(false);
         List<HydrologyPoint> path = path();
         HydrologyPlanner planner = new HydrologyPlanner(71L, SETTINGS, terrain);
-        List<HydrologyPoint> refined = new HydrologyRegionalTerrainRefiner(planner).refine(path, "default", false, terrain);
 
-        assertEquals(path, refined);
         assertNull(validate(planner, path, terrain).rejection());
         SurfaceCourseResult built = build(path, terrain);
         assertTrue(built.accepted());
@@ -44,7 +42,7 @@ public class HydrologyRegionalBankSupportTest {
         assertEquals(0, footprint.uncontainedWetCells());
         assertTrue(course.hydraulicallyNonRising());
         for (SurfaceLayerColumn column : footprint.columns()) {
-            assertTrue(column.layer().bedY() <= column.terrain().naturalHeight());
+            assertTrue(column.layer().bedY() - column.terrain().naturalHeight() <= SETTINGS.surface().maximumIncision());
         }
         SurfaceLayerColumn center = footprint.columns().stream()
                 .filter(column -> column.x() == 132 && column.z() == 0).findFirst().orElseThrow();
@@ -58,67 +56,16 @@ public class HydrologyRegionalBankSupportTest {
         HydrologyTerrainSampler terrain = depression(true);
         HydrologyPlanner planner = new HydrologyPlanner(71L, SETTINGS, terrain);
 
-        assertEquals(HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED,
-                validate(planner, path(), terrain).rejection());
-        List<HydrologyPoint> refined = new HydrologyRegionalTerrainRefiner(planner).refine(path(), "default", false, terrain);
-        if (!refined.isEmpty()) {
-            assertFalse(build(refined, terrain).accepted());
-        }
+        assertNull(validate(planner, path(), terrain).rejection());
         SurfaceCourseResult built = build(path(), terrain);
-        assertFalse(built.accepted());
-        assertEquals(HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED, built.rejection());
-        assertEquals(17, built.rejectionDetail());
-    }
-
-    @Test
-    public void levelCentersNeedNoBankSamplesAndSupportedDipsCannotRaiseIncomingHead() {
-        AtomicInteger samples = new AtomicInteger();
-        HydrologyTerrainSampler terrain = (x, z) -> {
-            assertTrue(Math.abs(x - 132) <= 5 && Math.abs(z) <= 5);
-            samples.incrementAndGet();
-            return depression(false).sample(x, z);
-        };
-        HydrologyRegionalHydraulics hydraulics = new HydrologyRegionalHydraulics(SETTINGS);
-
-        assertEquals(79, hydraulics.supportedHead(new HydrologyRegionalHydraulics.HeadStation(
-                132, 0, 1D, 0D, HydrologyTerrainSample.openLand(80, 0D, "land"), 79), terrain));
-        assertEquals(0, samples.get());
-        assertEquals(78, hydraulics.supportedHead(station(78), terrain));
-        assertTrue(samples.get() > 0 && samples.get() < 128);
-    }
-
-    @Test
-    public void unavailableCrossSectionOrPerimeterCannotCertifyAContainedDip() {
-        HydrologyRegionalHydraulics hydraulics = new HydrologyRegionalHydraulics(SETTINGS);
-        HydrologyTerrainSampler crossMissing = (x, z) -> x == 132 && z == 2 ? null : depression(false).sample(x, z);
-        HydrologyTerrainSampler perimeterMissing = (x, z) -> x == 133 ? null : depression(false).sample(x, z);
-
-        assertEquals(65, hydraulics.supportedHead(station(80), crossMissing));
-        assertEquals(65, hydraulics.supportedHead(station(80), perimeterMissing));
-    }
-
-    @Test
-    public void bankSupportCannotSamplePastTheExistingSearchBudget() throws Exception {
-        AtomicInteger requests = new AtomicInteger();
-        HydrologyTerrainSample ground = HydrologyTerrainSample.openLand(80, 0D, "land");
-        HydrologyTerrainSampler terrain = (x, z) -> {
-            requests.incrementAndGet();
-            return ground;
-        };
-        HydrologyRegionalTerrainRefiner refiner = new HydrologyRegionalTerrainRefiner(new HydrologyPlanner(71L, SETTINGS, terrain));
-        HydrologyRegionalTerrainRefiner.Samples sampled = refiner.new Samples();
-        for (int index = 0; index < 65536; index++) {
-            sampled.sample(index, 100000);
+        if (built.accepted()) {
+            RiverCourse course = new RiverCourse(91L, RiverCourseType.SURFACE, OptionalLong.of(1L), OptionalLong.of(2L),
+                    "default", 1, List.of(), built.segments());
+            SurfaceFootprint footprint = new SurfaceFootprintCompiler(SETTINGS, terrain, GEOMETRY).compile(course);
+            assertFalse(footprint.accepted());
+        } else {
+            assertEquals(HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED, built.rejection());
         }
-        requests.set(0);
-
-        assertEquals(65, new HydrologyRegionalHydraulics(SETTINGS).supportedHead(station(80), sampled));
-        assertEquals(0, requests.get());
-    }
-
-    private static HydrologyRegionalHydraulics.HeadStation station(int incomingHead) {
-        return new HydrologyRegionalHydraulics.HeadStation(132, 0, 1D, 0D,
-                HydrologyTerrainSample.openLand(65, 0D, "land"), incomingHead);
     }
 
     private static HydrologyTerrainSampler depression(boolean acrossBanks) {

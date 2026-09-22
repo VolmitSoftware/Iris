@@ -41,8 +41,8 @@ import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-final class StudioHydrologyTileStore {
-    private static final int SCHEMA_VERSION = 5;
+final class PreparedHydrologyTileStore {
+    private static final int SCHEMA_VERSION = 6;
     private static final long MAXIMUM_COMPRESSED_BYTES = 128L * 1024L * 1024L;
     private static final long MAXIMUM_DECOMPRESSED_BYTES = 512L * 1024L * 1024L;
     private static final Gson GSON = new GsonBuilder()
@@ -51,19 +51,21 @@ final class StudioHydrologyTileStore {
             .create();
 
     private final Path directory;
+    private final String scopeIdentity;
     private final HydrologyTileCache.SharedCacheScope scope;
     private final int expectedTileSize;
 
-    StudioHydrologyTileStore(Path root, HydrologyTileCache.SharedCacheScope scope, int expectedTileSize) {
+    PreparedHydrologyTileStore(Path root, HydrologyTileCache.SharedCacheScope scope, int expectedTileSize) {
         this.scope = Objects.requireNonNull(scope, "scope");
         if (expectedTileSize < 1) {
             throw new IllegalArgumentException("Hydrology tile size must be positive.");
         }
         this.expectedTileSize = expectedTileSize;
+        this.scopeIdentity = scopeFingerprint(scope);
         this.directory = Objects.requireNonNull(root, "root")
                 .toAbsolutePath()
                 .normalize()
-                .resolve(scopeFingerprint(scope));
+                .resolve(scopeIdentity);
     }
 
     Optional<HydrologyTile> load(HydrologyTileKey key) {
@@ -85,6 +87,7 @@ final class StudioHydrologyTileStore {
             PersistedTile persisted = GSON.fromJson(reader, PersistedTile.class);
             if (persisted == null
                     || persisted.schemaVersion() != SCHEMA_VERSION
+                    || !scopeIdentity.equals(persisted.scopeIdentity())
                     || !key.equals(persisted.key())
                     || persisted.worldSeed() != scope.worldSeed()
                     || persisted.settingsFingerprint() != scope.settingsFingerprint()) {
@@ -99,7 +102,7 @@ final class StudioHydrologyTileStore {
 
     void save(HydrologyTile tile) throws IOException {
         if (!valid(tile, tile.key())) {
-            throw new IOException("Refused to persist a hydrology tile outside the active Studio cache scope.");
+            throw new IOException("Refused to persist a hydrology tile outside the active prepared-plan scope.");
         }
         Files.createDirectories(directory);
         Path target = file(tile.key());
@@ -109,10 +112,10 @@ final class StudioHydrologyTileStore {
                  OutputStream buffered = new BufferedOutputStream(raw);
                  OutputStream compressed = new GZIPOutputStream(buffered);
                  Writer writer = new OutputStreamWriter(compressed, StandardCharsets.UTF_8)) {
-                GSON.toJson(PersistedTile.from(tile), writer);
+                GSON.toJson(PersistedTile.from(tile, scopeIdentity), writer);
             }
             if (Files.size(staged) > MAXIMUM_COMPRESSED_BYTES) {
-                throw new IOException("Studio hydrology tile cache entry exceeds the size limit.");
+                throw new IOException("Prepared hydrology tile cache entry exceeds the size limit.");
             }
             try {
                 Files.move(staged, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
@@ -161,6 +164,7 @@ final class StudioHydrologyTileStore {
 
     private record PersistedTile(
             int schemaVersion,
+            String scopeIdentity,
             HydrologyTileKey key,
             long worldSeed,
             long settingsFingerprint,
@@ -174,7 +178,7 @@ final class StudioHydrologyTileStore {
             List<HydrologyDiagnosticCandidate> localDiagnosticCandidates,
             List<HydrologyColumnSample> columns
     ) {
-        private static PersistedTile from(HydrologyTile tile) {
+        private static PersistedTile from(HydrologyTile tile, String scopeIdentity) {
             ArrayList<PersistedCourse> courses = new ArrayList<>(tile.courses().size());
             for (RiverCourse course : tile.courses()) {
                 courses.add(PersistedCourse.from(course));
@@ -187,6 +191,7 @@ final class StudioHydrologyTileStore {
             }
             return new PersistedTile(
                     SCHEMA_VERSION,
+                    scopeIdentity,
                     tile.key(),
                     tile.worldSeed(),
                     tile.settingsFingerprint(),
@@ -375,7 +380,7 @@ final class StudioHydrologyTileStore {
         private void advance(long amount) throws IOException {
             count += amount;
             if (count > limit) {
-                throw new IOException("Studio hydrology tile cache entry exceeds the decompressed size limit.");
+                throw new IOException("Prepared hydrology tile cache entry exceeds the decompressed size limit.");
             }
         }
     }

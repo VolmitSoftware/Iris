@@ -18,41 +18,32 @@ final class HydrologyRegionalRoute {
     private static final int MAXIMUM_CORRIDOR_WORKERS = 8;
 
     private final HydrologyPlanner planner;
-    private final HydrologyRegionalTerrainRefiner terrainRefiner;
-    private final HydrologyRegionalHydraulics hydraulics;
+    private final HydrologyRegionalTerrain terrain;
     private final SimplexNoise bends;
     private final SimplexNoise details;
 
     HydrologyRegionalRoute(HydrologyPlanner planner) {
         this.planner = planner;
-        this.terrainRefiner = new HydrologyRegionalTerrainRefiner(planner);
-        this.hydraulics = new HydrologyRegionalHydraulics(planner.settings);
+        this.terrain = new HydrologyRegionalTerrain(planner);
         this.bends = new SimplexNoise(HydrologyHash.mix(planner.worldSeed, 0x52454742454e4453L));
         this.details = new SimplexNoise(HydrologyHash.mix(planner.worldSeed, 0x5245474445544149L));
     }
 
     void clear() {
-        terrainRefiner.clear();
+        terrain.clear();
     }
 
     Attempt select(List<HydrologyPoint> guide, String profile, boolean coastal, HydrologyTerrainSampler receiver,
                    CandidateAdmission admission) {
-        HydrologyRegionalMorphology morphology = HydrologyRegionalMorphology.sample(guide, terrainRefiner::sample, planner.settings);
+        HydrologyRegionalMorphology morphology = HydrologyRegionalMorphology.sample(guide, this.terrain::sample, planner.settings);
         Refinement topology = validateCorridor(guide, profile, coastal);
         OceanEntry resolved = topology.rejection() == null ? topology.oceanEntry() : null;
         if (resolved != null) {
             guide = topology.points();
-            receiver = HydrologyOceanReceiver.forConnection(planner.settings, terrainRefiner::sample,
+            receiver = HydrologyOceanReceiver.forConnection(planner.settings, this.terrain::sample,
                     resolved.landward(), resolved.receiving());
         }
         CandidateSelection selection = new CandidateSelection(admission, resolved);
-        List<HydrologyPoint> repaired = terrainRefiner.refine(guide, profile, coastal, receiver);
-        if (!repaired.isEmpty() && !repaired.equals(guide)) {
-            Attempt accepted = selectCurve(repaired, profile, coastal, receiver, selection, morphology);
-            if (accepted != null) {
-                return accepted;
-            }
-        }
         Attempt accepted = selectCurve(guide, profile, coastal, receiver, selection, morphology);
         return accepted == null ? selection.failure : accepted;
     }
@@ -396,7 +387,7 @@ final class HydrologyRegionalRoute {
                             terrain.naturalHeight() - planner.settings.seaLevel() + planner.settings.surface().minimumDepth(), null);
                 }
                 previousTerrain = terrain;
-                previousPoint = failure;
+                previousPoint = new HydrologyPoint(x, (int) StrictMath.round(first.y() + (second.y() - first.y()) * progress), z);
             }
             length += StrictMath.sqrt(first.distanceSquared2D(second));
         }
@@ -419,7 +410,7 @@ final class HydrologyRegionalRoute {
                 if (++samples > MAXIMUM_RECEIVER_SAMPLES) {
                     return new Refinement(List.of(), previousPoint, HydrologyCandidateRejection.ROUTE_LIMIT, samples, null);
                 }
-                HydrologyTerrainSample terrain = terrainRefiner.sample(x, z);
+                HydrologyTerrainSample terrain = this.terrain.sample(x, z);
                 HydrologyPoint point = new HydrologyPoint(x, terrain == null ? first.y() : terrain.naturalHeight(), z);
                 if (terrain == null || terrain.naturalHeight() >= planner.settings.seaLevel()) {
                     return new Refinement(List.of(), point, HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED, 1, null);
@@ -453,7 +444,7 @@ final class HydrologyRegionalRoute {
 
     private boolean wetBridge(int x, int z, HydrologyTerrainSample previous, HydrologyTerrainSample next,
                               String profile, boolean coastal) {
-        HydrologyTerrainSample bridge = terrainRefiner.sample(x, z);
+        HydrologyTerrainSample bridge = this.terrain.sample(x, z);
         return bridge != null && bridge.naturalHeight() < planner.settings.seaLevel()
                 && bridge.preferredProfileKeys().contains(profile) && previous.drainsInto(bridge) && bridge.drainsInto(next)
                 && (!coastal || next.drainsInto(bridge) && bridge.drainsInto(previous));
@@ -465,7 +456,7 @@ final class HydrologyRegionalRoute {
         HydrologyPoint landward = new HydrologyPoint(shore.point().x(), seaLevel, shore.point().z());
         receiving = new HydrologyPoint(receiving.x(), seaLevel, receiving.z());
         HydrologyTerrainSampler proof = HydrologyOceanReceiver.forConnection(planner.settings,
-                terrainRefiner::sample, landward, receiving);
+                this.terrain::sample, landward, receiving);
         if (!shore.terrain().outletAllowed() || !proof.receivingWater(firstWet.x(), firstWet.z(), seaLevel)
                 || !receivingChordAllowed(shore, receiving, profile, coastal)) {
             return new Refinement(List.of(), firstWet, HydrologyCandidateRejection.SURFACE_MOUTH_DISCONNECTED, 0, null);
@@ -489,7 +480,7 @@ final class HydrologyRegionalRoute {
             double progress = step / (double) steps;
             int x = (int) StrictMath.round(start.x() + (end.x() - start.x()) * progress);
             int z = (int) StrictMath.round(start.z() + (end.z() - start.z()) * progress);
-            HydrologyTerrainSample terrain = terrainRefiner.sample(x, z);
+            HydrologyTerrainSample terrain = this.terrain.sample(x, z);
             if (terrain == null || terrain.naturalHeight() >= planner.settings.seaLevel()
                     || !terrain.preferredProfileKeys().contains(profile) || !previous.drainsInto(terrain)
                     || coastal && !terrain.drainsInto(previous)) {
@@ -517,30 +508,32 @@ final class HydrologyRegionalRoute {
                     Math.abs(points.get(index).z() - points.get(index - 1).z()));
         }
         HydrologyPlannerSettings.Inlet inlet = planner.settings.surface().banks().inlet();
-        boolean oceanMouth = corridor.oceanEntry() != null || terrainRefiner.receivingTerminal(points.getLast(), profile, false, receiver);
-        int reach = oceanMouth ? Math.min(inlet.length(), (int) StrictMath.floor(count * inlet.courseFraction())) : 0;
+        boolean ocean = corridor.oceanEntry() != null || terrain.receivingTerminal(points.getLast(), profile, false, receiver);
+        int reach = ocean ? Math.min(inlet.length(), (int) StrictMath.floor(count * inlet.courseFraction())) : 0;
         int rampStart = count - reach - reach / 2;
-        int availableHead = Integer.MAX_VALUE;
         int station = 0;
-        HydrologyTerrainSampler bankSampler = terrainRefiner::sample;
         for (int index = 0; index + 1 < points.size(); index++) {
             HydrologyPoint first = points.get(index);
             HydrologyPoint second = points.get(index + 1);
-            int steps = Math.max(Math.abs(second.x() - first.x()), Math.abs(second.z() - first.z()));
-            double distance = StrictMath.sqrt(first.distanceSquared2D(second));
-            double tangentX = distance == 0D ? 1D : (second.x() - first.x()) / distance;
-            double tangentZ = distance == 0D ? 0D : (second.z() - first.z()) / distance;
-            for (int step = index == 0 ? 0 : 1; step <= steps; step++) {
-                double progress = steps == 0 ? 0D : step / (double) steps;
-                int x = (int) StrictMath.round(first.x() + (second.x() - first.x()) * progress);
-                int z = (int) StrictMath.round(first.z() + (second.z() - first.z()) * progress);
-                HydrologyTerrainSample terrain = terrainRefiner.sample(x, z);
-                availableHead = hydraulics.supportedHead(new HydrologyRegionalHydraulics.HeadStation(
-                        x, z, tangentX, tangentZ, terrain, availableHead), bankSampler);
-                int requiredHead = station >= rampStart ? hydraulics.inletMinimumHead(terrain) : hydraulics.minimumHead(terrain);
-                if (requiredHead > availableHead) {
-                    return new Refinement(List.of(), new HydrologyPoint(x, terrain.naturalHeight(), z),
-                            HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED, requiredHead - availableHead, null);
+            if (first.y() < second.y()) {
+                return new Refinement(List.of(), second, HydrologyCandidateRejection.SURFACE_HEAD_RANGE,
+                        second.y() - first.y(), null);
+            }
+            List<HydrologyPoint> raster = planner.segments.rasterLine(first, second);
+            for (int step = index == 0 ? 0 : 1; step < raster.size(); step++) {
+                HydrologyPoint sampled = raster.get(step);
+                double progress = raster.size() < 2 ? 0D : step / (double) (raster.size() - 1);
+                HydrologyPoint point = new HydrologyPoint(sampled.x(),
+                        (int) StrictMath.round(first.y() + (second.y() - first.y()) * progress), sampled.z());
+                HydrologyTerrainSample terrain = this.terrain.sample(point.x(), point.z());
+                int incision = terrain.surfacePolicy().maximumIncision(planner.settings.surface().maximumIncision());
+                if (station >= rampStart) {
+                    incision = Math.max(incision, inlet.maximumIncision());
+                }
+                int permitted = HydrologySourcePlanner.permittedSurfaceIncision(incision, terrain.incisionMultiplier());
+                int cut = terrain.naturalHeight() - point.y() + planner.settings.surface().minimumDepth();
+                if (cut > permitted) {
+                    return new Refinement(List.of(), point, HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED, cut, null);
                 }
                 station++;
             }
@@ -596,7 +589,7 @@ final class HydrologyRegionalRoute {
 
         private HydrologyTerrainSample next(int segment, int step, int x, int z) {
             if (workers == 1) {
-                return terrainRefiner.sample(x, z);
+                return HydrologyRegionalRoute.this.terrain.sample(x, z);
             }
             if (cursor == count) {
                 fill(segment, step);
@@ -643,7 +636,7 @@ final class HydrologyRegionalRoute {
         private void sampleRange(int start, int end) {
             for (int index = start; index < end; index++) {
                 try {
-                    terrain[index] = terrainRefiner.sample(xs[index], zs[index]);
+                    terrain[index] = HydrologyRegionalRoute.this.terrain.sample(xs[index], zs[index]);
                 } catch (RuntimeException failure) {
                     failures[index] = failure;
                 }

@@ -28,6 +28,17 @@ public final class IrisDimensionCarvingResolver {
 
     }
 
+    public static IrisBiome resolveBiome(Engine engine, int worldX, int worldY, int worldZ, State state) {
+        State resolvedState = state == null ? threadState() : state;
+        IrisData data = resolvedState.bind(engine);
+        IrisDimensionCarvingEntry root = resolveBoundRootEntry(engine, worldY, data, resolvedState);
+        if (root == null) {
+            return null;
+        }
+        IrisDimensionCarvingEntry resolved = resolveBoundFromRoot(engine, root, worldX, worldZ, data, resolvedState);
+        return resolved == null ? null : resolveBoundEntryBiome(data, resolved, resolvedState);
+    }
+
     public static IrisDimensionCarvingEntry resolveRootEntry(Engine engine, int worldY) {
         return resolveRootEntry(engine, worldY, threadState());
     }
@@ -35,6 +46,36 @@ public final class IrisDimensionCarvingResolver {
     public static IrisDimensionCarvingEntry resolveRootEntry(Engine engine, int worldY, State state) {
         State resolvedState = state == null ? threadState() : state;
         IrisData data = resolvedState.bind(engine);
+        return resolveBoundRootEntry(engine, worldY, data, resolvedState);
+    }
+
+    public static IrisDimensionCarvingEntry resolveFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldZ) {
+        return resolveFromRoot(engine, rootEntry, worldX, worldZ, threadState());
+    }
+
+    public static IrisDimensionCarvingEntry resolveFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldZ, State state) {
+        State resolvedState = state == null ? threadState() : state;
+        IrisData data = resolvedState.bind(engine);
+        return resolveBoundFromRoot(engine, rootEntry, worldX, worldZ, data, resolvedState);
+    }
+
+    public static IrisBiome resolveEntryBiome(Engine engine, IrisDimensionCarvingEntry entry) {
+        return resolveEntryBiome(engine, entry, null);
+    }
+
+    public static IrisBiome resolveEntryBiome(Engine engine, IrisDimensionCarvingEntry entry, State state) {
+        if (entry == null) {
+            return null;
+        }
+
+        if (state == null) {
+            return entry.getRealBiome(engine.getData());
+        }
+
+        return resolveBoundEntryBiome(state.bind(engine), entry, state);
+    }
+
+    private static IrisDimensionCarvingEntry resolveBoundRootEntry(Engine engine, int worldY, IrisData data, State resolvedState) {
         if (resolvedState.rootEntriesByWorldY.containsKey(worldY)) {
             return resolvedState.rootEntriesByWorldY.get(worldY);
         }
@@ -59,13 +100,7 @@ public final class IrisDimensionCarvingResolver {
         return resolved;
     }
 
-    public static IrisDimensionCarvingEntry resolveFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldZ) {
-        return resolveFromRoot(engine, rootEntry, worldX, worldZ, threadState());
-    }
-
-    public static IrisDimensionCarvingEntry resolveFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldZ, State state) {
-        State resolvedState = state == null ? threadState() : state;
-        IrisData data = resolvedState.bind(engine);
+    private static IrisDimensionCarvingEntry resolveBoundFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldZ, IrisData data, State resolvedState) {
         if (rootEntry == null) {
             return null;
         }
@@ -98,22 +133,6 @@ public final class IrisDimensionCarvingResolver {
         }
 
         return current;
-    }
-
-    public static IrisBiome resolveEntryBiome(Engine engine, IrisDimensionCarvingEntry entry) {
-        return resolveEntryBiome(engine, entry, null);
-    }
-
-    public static IrisBiome resolveEntryBiome(Engine engine, IrisDimensionCarvingEntry entry, State state) {
-        if (entry == null) {
-            return null;
-        }
-
-        if (state == null) {
-            return entry.getRealBiome(engine.getData());
-        }
-
-        return resolveBoundEntryBiome(state.bind(engine), entry, state);
     }
 
     private static IrisBiome resolveBoundEntryBiome(IrisData data, IrisDimensionCarvingEntry entry, State state) {

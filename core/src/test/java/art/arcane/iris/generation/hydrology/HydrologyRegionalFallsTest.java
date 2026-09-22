@@ -51,7 +51,7 @@ public final class HydrologyRegionalFallsTest {
         HydrologyTile original = new HydrologyTile(new HydrologyTileKey(0, 0), 1L, SETTINGS.fingerprint(),
                 SETTINGS.routing().tileSize(), network.nodes(), network.edges(), network.outlets(),
                 List.of(regional, local), Set.of(regional.id()), clipped.cavePlans(), List.of(), materialized.footprint());
-        StudioHydrologyTileStore store = new StudioHydrologyTileStore(temporaryFolder.newFolder().toPath(),
+        PreparedHydrologyTileStore store = new PreparedHydrologyTileStore(temporaryFolder.newFolder().toPath(),
                 new HydrologyTileCache.SharedCacheScope("regional-ownership", 1L, 128, "overworld", SETTINGS.fingerprint()),
                 SETTINGS.routing().tileSize());
         store.save(original);

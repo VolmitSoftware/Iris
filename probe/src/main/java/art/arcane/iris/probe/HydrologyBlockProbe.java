@@ -30,6 +30,9 @@ public final class HydrologyBlockProbe {
     private static final long MAXIMUM_VOXELS = 16_777_216L;
     private static final int MAXIMUM_EXAMPLES = 16;
     private static final int[][] CARDINALS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+    private static final Set<String> IMPLICIT_WATER_BLOCKS = Set.of(
+            "minecraft:seagrass", "minecraft:tall_seagrass", "minecraft:kelp", "minecraft:kelp_plant",
+            "minecraft:bubble_column");
 
     private HydrologyBlockProbe() {
     }
@@ -99,6 +102,7 @@ public final class HydrologyBlockProbe {
         int connectedMouthComponents;
         int disconnectedMouthComponents;
         int censoredMouthComponents;
+        final Map<String, Long> plannedWetBlockCounts = new TreeMap<>();
         final List<String> examples = new ArrayList<>();
 
         void example(String value) {
@@ -306,11 +310,13 @@ public final class HydrologyBlockProbe {
                 for (int y = Math.max(0, surface.bedY() + 1); y <= surface.fluidHeadY() && y < volume.height; y++) {
                     evidence.plannedWetVoxels++;
                     NativeBlockState actual = volume.block(x, y, z);
+                    String actualKey = key(actual);
+                    evidence.plannedWetBlockCounts.merge(actualKey, 1L, Long::sum);
                     boolean matches = column.fluid().isWater() ? water(actual)
-                            : key(column.fluid()).equals(key(actual));
+                            : key(column.fluid()).equals(actualKey);
                     if (!matches) {
                         evidence.missingWetVoxels++;
-                        evidence.example("missing wet voxel " + x + "," + y + "," + z + "=" + key(actual));
+                        evidence.example("missing wet voxel " + x + "," + y + "," + z + "=" + actualKey);
                     }
                 }
             }
@@ -509,7 +515,7 @@ public final class HydrologyBlockProbe {
     }
 
     private static boolean water(NativeBlockState block) {
-        return block != null && (block.isWater() || block.isWaterLogged());
+        return block != null && (block.isWater() || block.isWaterLogged() || IMPLICIT_WATER_BLOCKS.contains(key(block)));
     }
 
     private static String key(NativeBlockState block) {

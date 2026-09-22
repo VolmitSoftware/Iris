@@ -35,14 +35,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-public class StudioHydrologyTileStoreTest {
+public class PreparedHydrologyTileStoreTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
     public void roundTripsValidatedEntryTile() throws Exception {
         HydrologyTile original = tile();
-        StudioHydrologyTileStore store = store();
+        PreparedHydrologyTileStore store = store();
 
         store.save(original);
         HydrologyTile restored = store.load(original.key()).orElseThrow();
@@ -93,7 +93,7 @@ public class StudioHydrologyTileStoreTest {
         HydrologyTile original = new HydrologyTile(new HydrologyTileKey(0, 0), 91L, 17L, 64,
                 List.of(), List.of(), List.of(), List.of(course), Set.of(), List.of(plan), List.of(),
                 new RiverFootprint(Map.of(RiverFootprint.pack(0, 0), column)));
-        StudioHydrologyTileStore store = store();
+        PreparedHydrologyTileStore store = store();
         store.save(original);
         HydrologyTile restored = store.load(original.key()).orElseThrow();
         assertEquals(original, restored);
@@ -118,7 +118,7 @@ public class StudioHydrologyTileStoreTest {
     @Test
     public void entryRequiresRegionalOwnershipMetadata() throws Exception {
         HydrologyTile original = tile();
-        StudioHydrologyTileStore store = store();
+        PreparedHydrologyTileStore store = store();
         store.save(original);
         Path file = store.file(original.key());
         JsonObject persisted;
@@ -136,7 +136,7 @@ public class StudioHydrologyTileStoreTest {
     @Test
     public void corruptEntryFallsBackToCacheMiss() throws Exception {
         HydrologyTile original = tile();
-        StudioHydrologyTileStore store = store();
+        PreparedHydrologyTileStore store = store();
         store.save(original);
         Path file = store.file(original.key());
         Files.writeString(file, "invalid", StandardCharsets.UTF_8);
@@ -149,15 +149,28 @@ public class StudioHydrologyTileStoreTest {
         Path root = temporaryFolder.newFolder().toPath();
         HydrologyTileCache.SharedCacheScope scope = scope();
         HydrologyTile original = tile();
-        StudioHydrologyTileStore matching = new StudioHydrologyTileStore(root, scope, 64);
+        PreparedHydrologyTileStore matching = new PreparedHydrologyTileStore(root, scope, 64);
         matching.save(original);
-        StudioHydrologyTileStore mismatched = new StudioHydrologyTileStore(root, scope, 128);
+        PreparedHydrologyTileStore mismatched = new PreparedHydrologyTileStore(root, scope, 128);
 
         assertTrue(mismatched.load(original.key()).isEmpty());
     }
 
-    private StudioHydrologyTileStore store() throws Exception {
-        return new StudioHydrologyTileStore(
+    @Test
+    public void copiedTileCannotCrossRuntimeIdentityScopes() throws Exception {
+        Path root = temporaryFolder.newFolder().toPath();
+        PreparedHydrologyTileStore source = new PreparedHydrologyTileStore(root, scope(), 64);
+        PreparedHydrologyTileStore target = new PreparedHydrologyTileStore(root,
+                new HydrologyTileCache.SharedCacheScope("another-kernel", 91L, 384, "overworld", 17L), 64);
+        HydrologyTile tile = tile();
+        source.save(tile);
+        Files.createDirectories(target.file(tile.key()).getParent());
+        Files.copy(source.file(tile.key()), target.file(tile.key()));
+        assertTrue(target.load(tile.key()).isEmpty());
+    }
+
+    private PreparedHydrologyTileStore store() throws Exception {
+        return new PreparedHydrologyTileStore(
                 temporaryFolder.newFolder().toPath(),
                 scope(),
                 64

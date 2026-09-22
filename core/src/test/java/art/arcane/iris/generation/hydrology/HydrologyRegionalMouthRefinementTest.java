@@ -28,8 +28,8 @@ public class HydrologyRegionalMouthRefinementTest {
         HydrologyTerrainSampler receiver = HydrologyOceanReceiver.forOutlet(settings, terrain, outlet);
         HydrologyPlanner planner = new HydrologyPlanner(1L, settings, terrain);
         HydrologyRegionalRoute route = new HydrologyRegionalRoute(planner);
-        List<HydrologyPoint> path = List.of(new HydrologyPoint(0, 65, 0), new HydrologyPoint(767, 65, 0),
-                new HydrologyPoint(768, 80, 0), landward);
+        List<HydrologyPoint> path = List.of(new HydrologyPoint(0, 63, 0), new HydrologyPoint(767, 63, 0),
+                new HydrologyPoint(768, 63, 0), landward);
         Method validate = HydrologyRegionalRoute.class.getDeclaredMethod("validate", List.class, String.class,
                 boolean.class, HydrologyTerrainSampler.class);
         validate.setAccessible(true);
@@ -40,7 +40,7 @@ public class HydrologyRegionalMouthRefinementTest {
 
         assertNull(accepted.toString(), accepted.rejection());
         assertEquals(HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED, unproved.rejection());
-        assertTrue(new HydrologyRegionalTerrainRefiner(planner).receivingTerminal(landward, "default", false, receiver));
+        assertTrue(new HydrologyRegionalTerrain(planner).receivingTerminal(landward, "default", false, receiver));
         assertFalse(terrain.sample(800, 0).ocean());
         assertTrue(receiver.receivingWater(800, 0, 63));
     }
@@ -171,8 +171,8 @@ public class HydrologyRegionalMouthRefinementTest {
         HydrologyPlannerSettings settings = HydrologyRegionalPlannerTest.settings(false, 1);
         HydrologyTerrainSampler terrain = (x, z) -> x >= 800 ? HydrologyTerrainSample.ocean(60, "ocean")
                 : HydrologyTerrainSample.openLand(x >= 768 ? 80 : 65, 0D, "land");
-        List<HydrologyPoint> path = List.of(new HydrologyPoint(0, 65, 0), new HydrologyPoint(767, 65, 0),
-                new HydrologyPoint(768, 80, 0), new HydrologyPoint(799, 80, 0), new HydrologyPoint(800, 63, 0));
+        List<HydrologyPoint> path = List.of(new HydrologyPoint(0, 63, 0), new HydrologyPoint(767, 63, 0),
+                new HydrologyPoint(768, 63, 0), new HydrologyPoint(799, 63, 0), new HydrologyPoint(800, 63, 0));
         HydrologyGeometrySampler geometry = request -> switch (request.field()) {
             case SURFACE_WIDTH -> 6;
             case SURFACE_DEPTH -> 2;

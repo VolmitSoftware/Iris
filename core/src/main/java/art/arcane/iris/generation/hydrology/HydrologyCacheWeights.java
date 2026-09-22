@@ -69,7 +69,7 @@ final class HydrologyCacheWeights {
     static int regionalCoarse(HydrologyRegionalCoarsePlan plan) {
         HydrologyRegionalGraph.Tree tree = plan.tree();
         long treeBytes = tree == null ? 0L : 96L + (long) tree.selected().length * 8L
-                + (long) tree.accumulation().length * 4L + tree.retainedLabelCount() * 96L;
+                + ((long) tree.accumulation().length + tree.heads().length) * 4L + tree.retainedLabelCount() * 96L;
         return saturated(ENTRY_BYTES + grid(plan.grid()) + treeBytes + (long) plan.outlets().size() * 224L
                 + (long) plan.sources().size() * 32L + (long) plan.envelopes().size() * 64L);
     }
@@ -79,7 +79,7 @@ final class HydrologyCacheWeights {
     }
 
     private static long grid(HydrologySampledGrid grid) {
-        return grid == null ? 0L : 96L + (long) grid.nodes().size() * (64L + TERRAIN_BYTES);
+        return grid == null ? 0L : 96L + (long) grid.nodes().size() * (64L + TERRAIN_BYTES + 104L);
     }
 
     private static long routingPlan(HydrologyRoutingPlan plan) {
@@ -88,7 +88,8 @@ final class HydrologyCacheWeights {
         }
         return 128L + (long) plan.potential().length * 8L
                 + ((long) plan.parent().length + plan.outletIndex().length + plan.routeLengths().length) * 4L
-                + (long) plan.outlets().size() * 224L;
+                + (long) plan.outlets().size() * 224L
+                + (plan.surfaceDrainage() == null ? 0L : plan.surfaceDrainage().maximumRetainedBytes());
     }
 
     private static long network(List<DrainageNode> nodes, List<DrainageEdge> edges, List<RiverOutlet> outlets,

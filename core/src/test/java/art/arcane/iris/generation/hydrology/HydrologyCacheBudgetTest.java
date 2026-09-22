@@ -24,7 +24,7 @@ public class HydrologyCacheBudgetTest {
                 HydrologyCacheBudget budget = HydrologyCacheBudget.forHeap(heap, regionalEnabled);
                 long total = budget.tileBytes() + budget.columnBytes() + budget.diagnosticBytes()
                         + budget.routingBytes() + budget.ownerBytes() + budget.edgeBytes() + budget.regionalDraftBytes()
-                        + budget.regionalCoarseBytes() + budget.regionalTerrainBytes() + budget.regionalReachBytes();
+                        + budget.regionalCoarseBytes() + budget.regionalTerrainBytes();
                 assertTrue(total <= Math.clamp(heap / 8L, 8L * MEBIBYTE, 256L * MEBIBYTE));
                 assertTrue(total >= 8L * MEBIBYTE);
                 assertEquals(budget.tileBytes() / 6L, budget.columnBytes());
@@ -40,7 +40,7 @@ public class HydrologyCacheBudgetTest {
         assertEquals(24L * MEBIBYTE, localOnly.routingBytes());
         assertEquals(8L * MEBIBYTE, localOnly.edgeBytes());
         assertEquals(0L, localOnly.regionalDraftBytes() + localOnly.regionalCoarseBytes()
-                + localOnly.regionalTerrainBytes() + localOnly.regionalReachBytes());
+                + localOnly.regionalTerrainBytes());
         assertThrows(IllegalArgumentException.class, () -> HydrologyCacheBudget.forHeap(0L, false));
     }
 
@@ -112,7 +112,7 @@ public class HydrologyCacheBudgetTest {
         HydrologyRegionalGraph.Label second = new HydrologyRegionalGraph.Label(
                 new HydrologyRegionalGraph.LabelState(3, 2, 63, 1D, 1D, 0), downstream);
         HydrologyRegionalGraph.Tree tree = new HydrologyRegionalGraph.Tree(
-                new HydrologyRegionalGraph.Label[]{first, second, null}, new int[4], List.of());
+                new HydrologyRegionalGraph.Label[]{first, second, null}, new int[4], List.of(), new int[4]);
         assertEquals(3, tree.retainedLabelCount());
     }
 }

@@ -259,7 +259,7 @@ public class HydrologySourceSpacingTest {
             candidates.add(new OutletCandidate(node.index(), -1, new RiverOutlet(node.index() + 1000L,
                     HydrologyFeatureType.MOUTH, node.id(), point, point, 63, true)));
         }
-        return new HydrologyRoutingPlan(potential, parent, outlets, lengths, List.copyOf(candidates), false);
+        return new HydrologyRoutingPlan(potential, parent, outlets, lengths, List.copyOf(candidates), false, null);
     }
 
     private static HydrologyTerrainSample land(int naturalHeight, double weight) {

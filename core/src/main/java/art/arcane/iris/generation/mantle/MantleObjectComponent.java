@@ -121,12 +121,12 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     @Override
     public int getOutputRadius() {
-        return hasCollisionRules() ? 0 : getRadius();
+        return 0;
     }
 
     @Override
     public int getInputRadius() {
-        return hasCollisionRules() ? calculateInputRadius(getRadius(), true) : 0;
+        return calculateInputRadius(getRadius(), hasCollisionRules());
     }
 
     @Override
@@ -140,10 +140,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     @Override
     public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
-        if (!hasCollisionRules()) {
-            generateOrigin(writer, x, z, context);
-            return;
-        }
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, x, z);
         replaySourceChunks(
                 x,
@@ -169,12 +165,14 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 sourceChunkX,
                 sourceChunkZ
         );
-        replaySourcePredecessors(
-                sourceChunkX,
-                sourceChunkZ,
-                getRadius(),
-                (predecessorX, predecessorZ) -> generateOrigin(scratch, predecessorX, predecessorZ, context)
-        );
+        if (hasCollisionRules()) {
+            replaySourcePredecessors(
+                    sourceChunkX,
+                    sourceChunkZ,
+                    getRadius(),
+                    (predecessorX, predecessorZ) -> generateOrigin(scratch, predecessorX, predecessorZ, context)
+            );
+        }
         int checkpoint = scratch.mutationCheckpoint();
         generateOrigin(scratch, sourceChunkX, sourceChunkZ, context);
         return scratch.sourcePlanSince(checkpoint);

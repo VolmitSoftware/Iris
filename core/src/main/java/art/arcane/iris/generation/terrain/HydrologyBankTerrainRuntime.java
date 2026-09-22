@@ -151,7 +151,8 @@ public final class HydrologyBankTerrainRuntime {
             return new BankColumn(flat, flat);
         }
         if (base >= natural.topY()) {
-            return new BankColumn(natural, natural);
+            Terrain3DColumn filled = Terrain3DColumn.unshaped(base, options.height());
+            return new BankColumn(filled, filled);
         }
         double rise = Math.min(amplitude, natural.topY() - base);
         IntArrayList boundaries = new IntArrayList(natural.spanCount() * 2 + 8);

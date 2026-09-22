@@ -154,7 +154,7 @@ public class HydrologyFallbackDiagnosticsTest {
     }
 
     private static HydrologyRoutingPlan routing(List<OutletCandidate> outlets) {
-        return new HydrologyRoutingPlan(new double[]{0D}, new int[]{-1}, new int[]{0}, new int[]{0}, outlets, true);
+        return new HydrologyRoutingPlan(new double[]{0D}, new int[]{-1}, new int[]{0}, new int[]{0}, outlets, true, null);
     }
 
     private static OutletCandidate outlet(int index) {

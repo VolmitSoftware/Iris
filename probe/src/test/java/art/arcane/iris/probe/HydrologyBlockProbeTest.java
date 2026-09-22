@@ -91,6 +91,54 @@ public final class HydrologyBlockProbeTest {
     }
 
     @Test
+    public void implicitAquaticWaterCountsWhileDryPlantsAndOtherFluidsStillFail() {
+        Map<Long, RealPackProbeSupport.GeneratedChunk> chunks = chunks(0, 0);
+        HydrologyColumnLayer layer = layer(HydrologyFeatureType.RIFFLE, 2, 3, true);
+        Map<Long, HydrologyBlockProbe.PlannedColumn> planned = Map.of(
+                RiverFootprint.pack(8, 8), new HydrologyBlockProbe.PlannedColumn(8, false, layer, state("water")));
+        for (String block : List.of("seagrass", "tall_seagrass[half=lower]", "tall_seagrass[half=upper]",
+                "kelp[age=3]", "kelp_plant", "bubble_column[drag=false]")) {
+            set(chunks, 8, 3, 8, block);
+            HydrologyBlockProbe.Evidence evidence = inspect(chunks, planned);
+            assertEquals(block, 1, evidence.plannedWetVoxels);
+            assertEquals(block, 0, evidence.missingWetVoxels);
+            assertTrue(block, HydrologyBlockProbe.failures(evidence, 8, Set.of("channel")).isEmpty());
+        }
+        for (String block : List.of("short_grass", "tall_grass[half=lower]", "fern", "lily_pad",
+                "sugar_cane", "dead_bush", "brain_coral[waterlogged=false]")) {
+            set(chunks, 8, 3, 8, block);
+            HydrologyBlockProbe.Evidence evidence = inspect(chunks, planned);
+            assertEquals(block, 1, evidence.missingWetVoxels);
+            assertFalse(block, HydrologyBlockProbe.failures(evidence, 8, Set.of("channel")).isEmpty());
+        }
+        set(chunks, 8, 3, 8, "kelp_plant");
+        Map<Long, HydrologyBlockProbe.PlannedColumn> lava = Map.of(
+                RiverFootprint.pack(8, 8), new HydrologyBlockProbe.PlannedColumn(8, false, layer, state("lava")));
+        HydrologyBlockProbe.Evidence rejected = inspect(chunks, lava);
+        assertEquals(1, rejected.missingWetVoxels);
+        assertEquals(Map.of("minecraft:kelp_plant", 1L), rejected.plannedWetBlockCounts);
+    }
+
+    @Test
+    public void wetBlockCountsCoverEveryVoxelBeyondTheExampleLimit() {
+        Map<Long, RealPackProbeSupport.GeneratedChunk> chunks = chunks(0, 0);
+        Map<Long, HydrologyBlockProbe.PlannedColumn> planned = new HashMap<>();
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 4; z++) {
+                HydrologyColumnLayer layer = layer(HydrologyFeatureType.RIFFLE, 2, 3, true);
+                planned.put(RiverFootprint.pack(x, z), new HydrologyBlockProbe.PlannedColumn(8, false, layer, state("water")));
+                set(chunks, x, 3, z, x < 8 ? "seagrass" : "short_grass");
+            }
+        }
+        HydrologyBlockProbe.Evidence evidence = inspect(chunks, planned);
+
+        assertEquals(64, evidence.plannedWetVoxels);
+        assertEquals(32, evidence.missingWetVoxels);
+        assertEquals(16, evidence.examples.size());
+        assertEquals(Map.of("minecraft:seagrass", 32L, "minecraft:short_grass", 32L), evidence.plannedWetBlockCounts);
+    }
+
+    @Test
     public void mouthRequiresActualCardinalWaterToAnOceanColumn() {
         Map<Long, RealPackProbeSupport.GeneratedChunk> chunks = chunks(0, 0);
         HydrologyColumnLayer mouth = layer(HydrologyFeatureType.MOUTH, 5, 6, true);

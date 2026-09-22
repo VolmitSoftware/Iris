@@ -23,19 +23,6 @@ final class HydrologyRoutePath {
         return false;
     }
 
-    double bilinear(
-            double northwest,
-            double northeast,
-            double southwest,
-            double southeast,
-            double progressX,
-            double progressZ
-    ) {
-        double north = northwest + (northeast - northwest) * progressX;
-        double south = southwest + (southeast - southwest) * progressX;
-        return north + (south - north) * progressZ;
-    }
-
     int removeTerrainPits(List<List<RouteCandidate>> layers, RouteCandidate[] route) {
         int removed = 0;
         for (int routeIndex = 1; routeIndex < route.length - 1; routeIndex++) {

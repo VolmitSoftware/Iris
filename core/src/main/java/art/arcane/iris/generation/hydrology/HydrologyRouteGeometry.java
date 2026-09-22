@@ -15,7 +15,6 @@ final class HydrologyRouteGeometry {
         this.planner = planner;
     }
 
-    static final double CROSS_DROP_WEIGHT = 3D;
     static final long ROUTE_ANCHOR_X_SALT = 0x52414e434858L;
     static final long ROUTE_ANCHOR_Z_SALT = 0x52414e43485aL;
     static final long ROUTE_WORM_PRIMARY_SALT = 0x52575052494dL;
@@ -24,22 +23,17 @@ final class HydrologyRouteGeometry {
     static final double ROUTE_TANGENT_SCALE = 0.68D;
     static final int ROUTE_TRANSVERSE_CANDIDATES = 2;
     static final int ROUTE_FALLBACK_TRANSVERSE_CANDIDATES = 4;
-    static final int SURFACE_COURSE_TRANSVERSE_CANDIDATES = 2;
-    static final double SURFACE_COURSE_MAXIMUM_TURN_DEGREES = 50D;
-    static final double SURFACE_COURSE_TURN_COST = 2.5D;
-    static final int SURFACE_MINIMUM_NATURAL_BANK_RISE = 1;
     static final int MAXIMUM_SURFACE_BORE_STEP = 4;
 
     HydrologyPoint edgeContinuation(
             HydrologySampledGrid grid,
             HydrologyRoutingPlan routing,
             HydrologyGridNode downstream,
-            RiverOutlet outlet,
-            boolean surface
+            RiverOutlet outlet
     ) {
         int continuationIndex = routing.parent()[downstream.index()];
         if (continuationIndex >= 0) {
-            return routeAnchor(grid.node(continuationIndex), surface);
+            return routeAnchor(grid.node(continuationIndex), false);
         }
         HydrologyPoint landward = outlet.landwardPoint();
         if (landward.x() != downstream.x() || landward.z() != downstream.z()) {
@@ -177,17 +171,15 @@ final class HydrologyRouteGeometry {
         return score + HydrologyHash.unit(tie) * 1.0E-6D;
     }
 
-    List<HydrologyPoint> refineEdge(
+    List<HydrologyPoint> refineUndergroundEdge(
             long upstreamId,
             long downstreamId,
             HydrologyPoint upstream,
             HydrologyPoint downstream,
             HydrologyPoint continuation,
-            int transverseCandidates,
-            boolean surface
+            int transverseCandidates
     ) {
         int refinement = planner.settings.routing().refinementSpacing();
-        int effectiveTransverseCandidates = transverseCandidates;
         double deltaX = downstream.x() - upstream.x();
         double deltaZ = downstream.z() - upstream.z();
         double distance = StrictMath.hypot(deltaX, deltaZ);
@@ -240,7 +232,7 @@ final class HydrologyRouteGeometry {
                     nominal,
                     progress,
                     refinement,
-                    elevationTransition && !surface ? 0 : effectiveTransverseCandidates,
+                    elevationTransition ? 0 : transverseCandidates,
                     upstreamTerrain == null ? null : upstreamTerrain.confinesKey()
             );
             if (candidates.isEmpty()) {
@@ -531,144 +523,6 @@ final class HydrologyRouteGeometry {
         return List.copyOf(candidates.values());
     }
 
-    List<RouteCandidate> unresolvedSurfaceRouteCandidates(
-            HydrologySampledGrid grid,
-            long upstreamId,
-            long downstreamId,
-            RoutePosition nominal,
-            double progress,
-            int refinement,
-            int transverseCandidates
-    ) {
-        double searchEnvelope = StrictMath.sin(StrictMath.PI * progress);
-        LinkedHashMap<Long, RouteCandidate> candidates = new LinkedHashMap<>();
-        for (int offsetIndex = -transverseCandidates;
-             offsetIndex <= transverseCandidates;
-             offsetIndex++) {
-            double offset = offsetIndex * refinement * searchEnvelope;
-            int x = (int) StrictMath.round(nominal.x() - nominal.tangent().z() * offset);
-            int z = (int) StrictMath.round(nominal.z() + nominal.tangent().x() * offset);
-            long packed = RiverFootprint.pack(x, z);
-            RouteTerrainEstimate estimate = routeTerrainEstimate(grid, x, z);
-            double localScore = estimate.terrainScore()
-                    + StrictMath.abs(offset) * 0.18D
-                    + HydrologyHash.unit(HydrologyHash.mix(
-                    planner.worldSeed,
-                    upstreamId,
-                    downstreamId,
-                    x,
-                    z
-            )) * 1.0E-6D;
-            RouteCandidate candidate = new RouteCandidate(
-                    new HydrologyPoint(x, estimate.height(), z),
-                    nominal.x() - nominal.tangent().z() * offset,
-                    nominal.z() + nominal.tangent().x() * offset,
-                    offset,
-                    localScore,
-                    estimate.terrainScore(),
-                    nominal.tangent(),
-                    false
-            );
-            RouteCandidate current = candidates.get(packed);
-            if (current == null || candidate.localScore() < current.localScore()) {
-                candidates.put(packed, candidate);
-            }
-        }
-        return List.copyOf(candidates.values());
-    }
-
-    RouteTerrainEstimate routeTerrainEstimate(HydrologySampledGrid grid, int x, int z) {
-        double gridX = (x - grid.minimumX()) / (double) grid.spacing();
-        double gridZ = (z - grid.minimumZ()) / (double) grid.spacing();
-        int minimumGridX = Math.max(0, Math.min(grid.width() - 1, (int) StrictMath.floor(gridX)));
-        int minimumGridZ = Math.max(0, Math.min(grid.width() - 1, (int) StrictMath.floor(gridZ)));
-        int maximumGridX = Math.min(grid.width() - 1, minimumGridX + 1);
-        int maximumGridZ = Math.min(grid.width() - 1, minimumGridZ + 1);
-        double progressX = Math.max(0D, Math.min(1D, gridX - minimumGridX));
-        double progressZ = Math.max(0D, Math.min(1D, gridZ - minimumGridZ));
-        HydrologyTerrainSample northwest = grid.nodeAt(minimumGridX, minimumGridZ).terrain();
-        HydrologyTerrainSample northeast = grid.nodeAt(maximumGridX, minimumGridZ).terrain();
-        HydrologyTerrainSample southwest = grid.nodeAt(minimumGridX, maximumGridZ).terrain();
-        HydrologyTerrainSample southeast = grid.nodeAt(maximumGridX, maximumGridZ).terrain();
-        double height = planner.routePaths.bilinear(
-                northwest.naturalHeight(),
-                northeast.naturalHeight(),
-                southwest.naturalHeight(),
-                southeast.naturalHeight(),
-                progressX,
-                progressZ
-        );
-        double terrainScore = planner.routePaths.bilinear(
-                routeTerrainScore(northwest),
-                routeTerrainScore(northeast),
-                routeTerrainScore(southwest),
-                routeTerrainScore(southeast),
-                progressX,
-                progressZ
-        );
-        return new RouteTerrainEstimate((int) StrictMath.round(height), terrainScore);
-    }
-
-    RouteCandidate resolveRouteCandidate(RouteCandidate candidate) {
-        if (candidate.terrainResolved()) {
-            return candidate;
-        }
-        HydrologyPoint point = candidate.point();
-        HydrologyTerrainSample terrain = planner.sampleLandBasis(point.x(), point.z());
-        if (terrain == null || !terrain.transitAllowed()) {
-            return new RouteCandidate(
-                    point,
-                    candidate.continuousX(),
-                    candidate.continuousZ(),
-                    candidate.offset(),
-                    Double.POSITIVE_INFINITY,
-                    Double.POSITIVE_INFINITY,
-                    candidate.tangent(),
-                    true
-            );
-        }
-        double terrainScore = routeTerrainScore(terrain) + crossDropPenalty(point, candidate.tangent(), terrain);
-        double exactLocalScore = candidate.localScore() - candidate.terrainScore() + terrainScore;
-        return new RouteCandidate(
-                new HydrologyPoint(point.x(), terrain.naturalHeight(), point.z()),
-                candidate.continuousX(),
-                candidate.continuousZ(),
-                candidate.offset(),
-                exactLocalScore,
-                terrainScore,
-                candidate.tangent(),
-                true
-        );
-    }
-
-    /**
-     * Ground that falls away beside a candidate forces the valley solver to cut the channel down to the
-     * lower bank; costing that drop keeps refined routes on valley floors and contour lines instead of
-     * traversing hillsides that the incision cap would later reject.
-     */
-    double crossDropPenalty(HydrologyPoint point, RouteDirection tangent, HydrologyTerrainSample center) {
-        double length = StrictMath.hypot(tangent.x(), tangent.z());
-        if (length <= 0D) {
-            return 0D;
-        }
-        double normalX = -tangent.z() / length;
-        double normalZ = tangent.x() / length;
-        double reach = planner.settings.surface().maximumWidth() / 2D + planner.settings.surface().shoreWidth() + 2D;
-        int lowest = center.naturalHeight();
-        for (double distance = reach / 2D; distance <= reach; distance += reach / 2D) {
-            for (double direction = -1D; direction <= 1D; direction += 2D) {
-                double side = planner.sampleLandHeight(
-                        (int) StrictMath.round(point.x() + normalX * distance * direction),
-                        (int) StrictMath.round(point.z() + normalZ * distance * direction));
-                if (!Double.isNaN(side)) {
-                    lowest = Math.min(lowest, (int) side);
-                }
-            }
-        }
-        double drop = center.naturalHeight() - lowest;
-        return drop * planner.settings.routing().valleyPreference() * CROSS_DROP_WEIGHT;
-    }
-
     double routeTerrainScore(HydrologyTerrainSample terrain) {
         return terrain.naturalHeight() * planner.settings.routing().valleyPreference()
                 + terrain.slope() * planner.settings.routing().slopePenalty()
@@ -789,414 +643,6 @@ final class HydrologyRouteGeometry {
             }
         }
         return null;
-    }
-
-    RouteCandidate[] selectCurvatureAwareTerrainRoute(
-            List<List<RouteCandidate>> layers,
-            double targetStepLength,
-            double maximumTurn,
-            double turnCost
-    ) {
-        int layerCount = layers.size();
-        if (layerCount < 2) {
-            return new RouteCandidate[0];
-        }
-        double[][] localPenalties = new double[layerCount][];
-        double[][][] transitionCosts = new double[layerCount][][];
-        double[][][][] turnCosts = new double[layerCount][][][];
-        for (int layerIndex = 0; layerIndex < layerCount; layerIndex++) {
-            int layerSize = layers.get(layerIndex).size();
-            localPenalties[layerIndex] = new double[layerSize];
-            if (layerIndex > 0 && layerIndex < layerCount - 1) {
-                Arrays.fill(localPenalties[layerIndex], Double.NaN);
-            }
-            if (layerIndex == 0) {
-                continue;
-            }
-            int previousSize = layers.get(layerIndex - 1).size();
-            transitionCosts[layerIndex] = new double[previousSize][layerSize];
-            for (double[] row : transitionCosts[layerIndex]) {
-                Arrays.fill(row, Double.NaN);
-            }
-        }
-        CurvatureWorkspace workspace = new CurvatureWorkspace(layers);
-        while (true) {
-            CurvatureRouteSelection selection = selectCurvatureAwareTerrainRoute(
-                    layers,
-                    targetStepLength,
-                    maximumTurn,
-                    turnCost,
-                    localPenalties,
-                    transitionCosts,
-                    turnCosts,
-                    workspace
-            );
-            if (selection.route().length == 0) {
-                return selection.route();
-            }
-            boolean evaluated = evaluateSelectedSurfaceCosts(
-                    selection,
-                    layers,
-                    localPenalties,
-                    transitionCosts,
-                    targetStepLength
-            );
-            if (!evaluated) {
-                return selection.route();
-            }
-        }
-    }
-
-    CurvatureRouteSelection selectCurvatureAwareTerrainRoute(
-            List<List<RouteCandidate>> layers,
-            double targetStepLength,
-            double maximumTurn,
-            double turnCost,
-            double[][] localPenalties,
-            double[][][] transitionCosts,
-            double[][][][] turnCosts,
-            CurvatureWorkspace workspace
-    ) {
-        int layerCount = layers.size();
-        double[][] previousCosts = workspace.firstCosts;
-        double[][] currentCosts = workspace.secondCosts;
-        int[][][] predecessors = workspace.predecessors;
-        List<RouteCandidate> firstLayer = layers.getFirst();
-        List<RouteCandidate> secondLayer = layers.get(1);
-        for (int firstIndex = 0; firstIndex < firstLayer.size(); firstIndex++) {
-            Arrays.fill(previousCosts[firstIndex], Double.POSITIVE_INFINITY);
-            Arrays.fill(predecessors[1][firstIndex], -1);
-            for (int secondIndex = 0; secondIndex < secondLayer.size(); secondIndex++) {
-                RouteCandidate first = firstLayer.get(firstIndex);
-                RouteCandidate second = secondLayer.get(secondIndex);
-                double transition = resolvedTransitionCost(
-                        first,
-                        second,
-                        targetStepLength,
-                        transitionCosts[1][firstIndex][secondIndex],
-                        workspace,
-                        1,
-                        firstIndex,
-                        secondIndex
-                );
-                if (Double.isFinite(transition)) {
-                    previousCosts[firstIndex][secondIndex] = first.localScore()
-                            + second.localScore()
-                            + resolvedLocalPenalty(localPenalties[1][secondIndex])
-                            + transition;
-                }
-            }
-        }
-        for (int layerIndex = 2; layerIndex < layerCount; layerIndex++) {
-            List<RouteCandidate> beforeLayer = layers.get(layerIndex - 2);
-            List<RouteCandidate> previousLayer = layers.get(layerIndex - 1);
-            List<RouteCandidate> currentLayer = layers.get(layerIndex);
-            if (turnCosts[layerIndex] == null) {
-                turnCosts[layerIndex] = new double[previousLayer.size()][currentLayer.size()][];
-            }
-            for (int previousIndex = 0; previousIndex < previousLayer.size(); previousIndex++) {
-                Arrays.fill(currentCosts[previousIndex], Double.POSITIVE_INFINITY);
-                Arrays.fill(predecessors[layerIndex][previousIndex], -1);
-                RouteCandidate previous = previousLayer.get(previousIndex);
-                for (int currentIndex = 0; currentIndex < currentLayer.size(); currentIndex++) {
-                    RouteCandidate current = currentLayer.get(currentIndex);
-                    double transition = resolvedTransitionCost(
-                            previous,
-                            current,
-                            targetStepLength,
-                            transitionCosts[layerIndex][previousIndex][currentIndex],
-                            workspace,
-                            layerIndex,
-                            previousIndex,
-                            currentIndex
-                    );
-                    if (!Double.isFinite(transition)) {
-                        continue;
-                    }
-                    double localPenalty = resolvedLocalPenalty(localPenalties[layerIndex][currentIndex]);
-                    for (int beforeIndex = 0; beforeIndex < beforeLayer.size(); beforeIndex++) {
-                        double previousCost = previousCosts[beforeIndex][previousIndex];
-                        if (!Double.isFinite(previousCost)) {
-                            continue;
-                        }
-                        double[] candidateTurns = turnCosts[layerIndex][previousIndex][currentIndex];
-                        if (candidateTurns == null) {
-                            candidateTurns = new double[beforeLayer.size()];
-                            Arrays.fill(candidateTurns, Double.NaN);
-                            turnCosts[layerIndex][previousIndex][currentIndex] = candidateTurns;
-                        }
-                        double turnPenalty = candidateTurns[beforeIndex];
-                        if (Double.isNaN(turnPenalty)) {
-                            double turn = continuousTurnDegrees(
-                                    beforeLayer.get(beforeIndex),
-                                    previous,
-                                    current
-                            );
-                            turnPenalty = turn > maximumTurn
-                                    ? Double.POSITIVE_INFINITY
-                                    : curvatureCost(turn, maximumTurn, turnCost);
-                            candidateTurns[beforeIndex] = turnPenalty;
-                        }
-                        if (turnPenalty == Double.POSITIVE_INFINITY) {
-                            continue;
-                        }
-                        double cost = previousCost
-                                + current.localScore()
-                                + localPenalty
-                                + transition
-                                + turnPenalty;
-                        if (cost < currentCosts[previousIndex][currentIndex]) {
-                            currentCosts[previousIndex][currentIndex] = cost;
-                            predecessors[layerIndex][previousIndex][currentIndex] = beforeIndex;
-                        }
-                    }
-                }
-            }
-            double[][] completedCosts = currentCosts;
-            currentCosts = previousCosts;
-            previousCosts = completedCosts;
-        }
-        int lastLayerIndex = layerCount - 1;
-        int selectedPreviousIndex = -1;
-        int selectedCurrentIndex = -1;
-        double selectedCost = Double.POSITIVE_INFINITY;
-        for (int previousIndex = 0; previousIndex < layers.get(lastLayerIndex - 1).size(); previousIndex++) {
-            for (int currentIndex = 0;
-                 currentIndex < layers.get(lastLayerIndex).size();
-                 currentIndex++) {
-                if (previousCosts[previousIndex][currentIndex] < selectedCost) {
-                    selectedCost = previousCosts[previousIndex][currentIndex];
-                    selectedPreviousIndex = previousIndex;
-                    selectedCurrentIndex = currentIndex;
-                }
-            }
-        }
-        if (!Double.isFinite(selectedCost)) {
-            return CurvatureRouteSelection.empty();
-        }
-        RouteCandidate[] route = new RouteCandidate[layerCount];
-        int[] indices = new int[layerCount];
-        route[lastLayerIndex] = layers.get(lastLayerIndex).get(selectedCurrentIndex);
-        route[lastLayerIndex - 1] = layers.get(lastLayerIndex - 1).get(selectedPreviousIndex);
-        indices[lastLayerIndex] = selectedCurrentIndex;
-        indices[lastLayerIndex - 1] = selectedPreviousIndex;
-        for (int layerIndex = lastLayerIndex; layerIndex >= 2; layerIndex--) {
-            int beforeIndex = predecessors[layerIndex][selectedPreviousIndex][selectedCurrentIndex];
-            if (beforeIndex < 0) {
-                return CurvatureRouteSelection.empty();
-            }
-            route[layerIndex - 2] = layers.get(layerIndex - 2).get(beforeIndex);
-            indices[layerIndex - 2] = beforeIndex;
-            selectedCurrentIndex = selectedPreviousIndex;
-            selectedPreviousIndex = beforeIndex;
-        }
-        return new CurvatureRouteSelection(route, indices);
-    }
-
-    boolean evaluateSelectedSurfaceCosts(
-            CurvatureRouteSelection selection,
-            List<List<RouteCandidate>> layers,
-            double[][] localPenalties,
-            double[][][] transitionCosts,
-            double targetStepLength
-    ) {
-        boolean evaluated = false;
-        RouteCandidate[] route = selection.route();
-        int[] indices = selection.indices();
-        for (int layerIndex = 1; layerIndex < route.length - 1; layerIndex++) {
-            RouteCandidate candidate = route[layerIndex];
-            if (candidate.terrainResolved()) {
-                continue;
-            }
-            RouteCandidate resolved = resolveRouteCandidate(candidate);
-            ArrayList<RouteCandidate> updatedLayer = new ArrayList<>(layers.get(layerIndex));
-            updatedLayer.set(indices[layerIndex], resolved);
-            layers.set(layerIndex, List.copyOf(updatedLayer));
-            route[layerIndex] = resolved;
-            evaluated = true;
-        }
-        for (int layerIndex = 1; layerIndex < route.length - 1; layerIndex++) {
-            int candidateIndex = indices[layerIndex];
-            if (!Double.isNaN(localPenalties[layerIndex][candidateIndex])) {
-                continue;
-            }
-            if (!Double.isFinite(route[layerIndex].localScore())) {
-                localPenalties[layerIndex][candidateIndex] = 0D;
-                continue;
-            }
-            localPenalties[layerIndex][candidateIndex] = planner.surfaceCourses.surfaceRouteCandidateBankPenalty(
-                    route[layerIndex]
-            );
-            evaluated = true;
-        }
-        for (int layerIndex = 1; layerIndex < route.length; layerIndex++) {
-            int previousIndex = indices[layerIndex - 1];
-            int currentIndex = indices[layerIndex];
-            if (!Double.isNaN(transitionCosts[layerIndex][previousIndex][currentIndex])) {
-                continue;
-            }
-            RouteCandidate previous = route[layerIndex - 1];
-            RouteCandidate current = route[layerIndex];
-            if (!Double.isFinite(previous.localScore()) || !Double.isFinite(current.localScore())) {
-                transitionCosts[layerIndex][previousIndex][currentIndex] = Double.POSITIVE_INFINITY;
-                continue;
-            }
-            double transition = planner.routePaths.routeTransitionCost(previous, current, targetStepLength);
-            if (Double.isFinite(transition)) {
-                transition += surfaceRouteTransitionPenalty(previous, current);
-            }
-            transitionCosts[layerIndex][previousIndex][currentIndex] = transition;
-            evaluated = true;
-        }
-        return evaluated;
-    }
-
-    double resolvedLocalPenalty(double penalty) {
-        return Double.isNaN(penalty) ? 0D : penalty;
-    }
-
-    double resolvedTransitionCost(
-            RouteCandidate previous,
-            RouteCandidate current,
-            double targetStepLength,
-            double exactCost,
-            CurvatureWorkspace workspace,
-            int layerIndex,
-            int previousIndex,
-            int currentIndex
-    ) {
-        if (!Double.isNaN(exactCost)) {
-            return exactCost;
-        }
-        long heights = ((long) previous.point().y() << 32) | (current.point().y() & 0xffffffffL);
-        if (!workspace.geometryKnown[layerIndex][previousIndex][currentIndex]
-                || workspace.geometryHeights[layerIndex][previousIndex][currentIndex] != heights) {
-            workspace.geometryCosts[layerIndex][previousIndex][currentIndex] =
-                    planner.routePaths.routeTransitionGeometryCost(previous, current, targetStepLength);
-            workspace.geometryHeights[layerIndex][previousIndex][currentIndex] = heights;
-            workspace.geometryKnown[layerIndex][previousIndex][currentIndex] = true;
-        }
-        return workspace.geometryCosts[layerIndex][previousIndex][currentIndex];
-    }
-
-    double curvatureCost(double turn, double maximumTurn, double turnCost) {
-        double excess = Math.max(0D, turn - 8D);
-        return excess * excess * turnCost / maximumTurn;
-    }
-
-    double continuousTurnDegrees(RouteCandidate before, RouteCandidate center, RouteCandidate after) {
-        double incomingX = center.continuousX() - before.continuousX();
-        double incomingZ = center.continuousZ() - before.continuousZ();
-        double outgoingX = after.continuousX() - center.continuousX();
-        double outgoingZ = after.continuousZ() - center.continuousZ();
-        double length = StrictMath.hypot(incomingX, incomingZ) * StrictMath.hypot(outgoingX, outgoingZ);
-        if (length <= 0D) {
-            return 0D;
-        }
-        double cosine = (incomingX * outgoingX + incomingZ * outgoingZ) / length;
-        return StrictMath.toDegrees(StrictMath.acos(Math.max(-1D, Math.min(1D, cosine))));
-    }
-
-    double surfaceRouteTransitionPenalty(
-            RouteCandidate start,
-            RouteCandidate end
-    ) {
-        int maximumBankDistance = planner.surfaceCourses.surfaceBankDistance(planner.settings.surface().maximumWidth());
-        RouteDirection tangent = planner.routePaths.direction(start.point().x(), start.point().z(), end.point().x(), end.point().z());
-        int endpointCeiling = Math.max(start.point().y(), end.point().y());
-        double penalty = 0D;
-        List<HydrologyPoint> raster = planner.segments.rasterLine(start.point(), end.point());
-        int sampleStride = Math.max(1, planner.settings.routing().refinementSpacing() / 4);
-        for (int pointIndex = 0; pointIndex < raster.size(); pointIndex += sampleStride) {
-            HydrologyPoint point = raster.get(pointIndex);
-            HydrologyTerrainSample terrain = planner.sampleLandBasis(point.x(), point.z());
-            if (terrain == null) {
-                return 1.0E12D;
-            }
-            int permittedIncision = planner.sourcePlanner.permittedSurfaceIncision(terrain);
-            int ridgeExcess = Math.max(
-                    0,
-                    terrain.naturalHeight() - endpointCeiling - permittedIncision
-            );
-            penalty += (double) ridgeExcess * ridgeExcess * 65536D;
-            if (terrain.slope() >= planner.settings.hydraulics().waterfallMinimumDrop()) {
-                continue;
-            }
-            int head = Math.subtractExact(
-                    terrain.naturalHeight(),
-                    planner.settings.surface().banks().sink()
-            );
-            penalty += planner.surfaceCourses.surfaceRouteBankBandPenalty(
-                    point,
-                    tangent,
-                    maximumBankDistance,
-                    head,
-                    planner.surfaceCourses.maximumSurfaceBankRise(terrain)
-            );
-        }
-        if ((raster.size() - 1) % sampleStride != 0) {
-            HydrologyPoint point = raster.getLast();
-            HydrologyTerrainSample terrain = planner.sampleLandBasis(point.x(), point.z());
-            if (terrain == null) {
-                return 1.0E12D;
-            }
-            int permittedIncision = planner.sourcePlanner.permittedSurfaceIncision(terrain);
-            int ridgeExcess = Math.max(
-                    0,
-                    terrain.naturalHeight() - endpointCeiling - permittedIncision
-            );
-            penalty += (double) ridgeExcess * ridgeExcess * 65536D;
-            if (terrain.slope() < planner.settings.hydraulics().waterfallMinimumDrop()) {
-                int head = Math.subtractExact(
-                        terrain.naturalHeight(),
-                        planner.settings.surface().banks().sink()
-                );
-                penalty += planner.surfaceCourses.surfaceRouteBankBandPenalty(
-                        point,
-                        tangent,
-                        maximumBankDistance,
-                        head,
-                        planner.surfaceCourses.maximumSurfaceBankRise(terrain)
-                );
-            }
-        }
-        return penalty;
-    }
-
-    static final class CurvatureWorkspace {
-        private final double[][] firstCosts;
-        private final double[][] secondCosts;
-        private final int[][][] predecessors;
-        private final double[][][] geometryCosts;
-        private final long[][][] geometryHeights;
-        private final boolean[][][] geometryKnown;
-
-        CurvatureWorkspace(List<? extends List<?>> layers) {
-            int maximumCandidates = 0;
-            for (List<?> layer : layers) {
-                maximumCandidates = Math.max(maximumCandidates, layer.size());
-            }
-            firstCosts = new double[maximumCandidates][maximumCandidates];
-            secondCosts = new double[maximumCandidates][maximumCandidates];
-            predecessors = new int[layers.size()][][];
-            geometryCosts = new double[layers.size()][][];
-            geometryHeights = new long[layers.size()][][];
-            geometryKnown = new boolean[layers.size()][][];
-            for (int layer = 1; layer < layers.size(); layer++) {
-                int previousSize = layers.get(layer - 1).size();
-                int currentSize = layers.get(layer).size();
-                predecessors[layer] = new int[previousSize][currentSize];
-                geometryCosts[layer] = new double[previousSize][currentSize];
-                geometryHeights[layer] = new long[previousSize][currentSize];
-                geometryKnown[layer] = new boolean[previousSize][currentSize];
-            }
-        }
-    }
-
-    record CurvatureRouteSelection(RouteCandidate[] route, int[] indices) {
-        private static CurvatureRouteSelection empty() {
-            return new CurvatureRouteSelection(new RouteCandidate[0], new int[0]);
-        }
     }
 
     record TerrainTransitionKey(HydrologyPoint start, HydrologyPoint end) {

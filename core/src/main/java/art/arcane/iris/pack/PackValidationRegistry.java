@@ -49,14 +49,25 @@ public final class PackValidationRegistry {
         if (packRoot == null || result == null) {
             return;
         }
-        publish(normalize(packRoot), new RootValidation(result, ""));
+        publish(normalize(packRoot), new RootValidation(result, "", ""));
     }
 
-    public static void publish(Path packRoot, PackValidationResult result, String contentFingerprint) {
+    public static void publish(
+            Path packRoot,
+            PackValidationResult result,
+            String contentFingerprint,
+            String validatedContextFingerprint
+    ) {
         if (packRoot == null || result == null || contentFingerprint == null || contentFingerprint.isBlank()) {
             return;
         }
-        publish(normalize(packRoot), new RootValidation(result, contentFingerprint));
+        if (validatedContextFingerprint == null
+                || !validatedContextFingerprint.equals(PackValidationCache.contextFingerprint())) {
+            publish(packRoot, result);
+            return;
+        }
+        publish(normalize(packRoot), new RootValidation(
+                result, contentFingerprint, validatedContextFingerprint));
     }
 
     public static PackValidationResult publishMatchingCopy(
@@ -118,7 +129,7 @@ public final class PackValidationRegistry {
             return new RootState(
                     current.generation(),
                     false,
-                    new RootValidation(result, ""));
+                    new RootValidation(result, "", ""));
         });
         return published.get();
     }
@@ -138,6 +149,14 @@ public final class PackValidationRegistry {
         return state == null || state.mutating() || state.validation() == null
                 ? null
                 : state.validation().result();
+    }
+
+    public static PackValidationResult getMatching(Path packRoot, String contentFingerprint) {
+        if (packRoot == null || contentFingerprint == null || contentFingerprint.isBlank()) {
+            return null;
+        }
+        RootValidation validation = matchingValidation(packRoot, contentFingerprint);
+        return validation == null ? null : validation.result();
     }
 
     public static PackValidationResult requireLoadable(String packName) {
@@ -250,10 +269,11 @@ public final class PackValidationRegistry {
         if (sourceState == null
                 || sourceState.mutating()
                 || sourceState.validation() == null
-                || !copiedContentFingerprint.equals(sourceState.validation().contentFingerprint())) {
+                || !copiedContentFingerprint.equals(sourceState.validation().contentFingerprint())
+                || !sourceState.validation().contextFingerprint().equals(PackValidationCache.contextFingerprint())) {
             return null;
         }
-        return sourceState.validation();
+        return ROOT_STATES.get(normalizedSource) == sourceState ? sourceState.validation() : null;
     }
 
     private static long nextGeneration(RootState current) {
@@ -297,6 +317,7 @@ public final class PackValidationRegistry {
             requireOpen();
             pendingValidation = new RootValidation(
                     Objects.requireNonNull(result, "Pack validation result"),
+                    "",
                     "");
         }
 
@@ -345,7 +366,11 @@ public final class PackValidationRegistry {
         }
     }
 
-    private record RootValidation(PackValidationResult result, String contentFingerprint) {
+    private record RootValidation(
+            PackValidationResult result,
+            String contentFingerprint,
+            String contextFingerprint
+    ) {
     }
 
     private record RootState(long generation, boolean mutating, RootValidation validation) {

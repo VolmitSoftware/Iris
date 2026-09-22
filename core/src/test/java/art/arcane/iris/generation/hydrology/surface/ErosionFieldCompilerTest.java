@@ -13,9 +13,11 @@ import art.arcane.iris.generation.hydrology.IrisRiverBedProfile;
 import art.arcane.iris.generation.hydrology.IrisRiverBlendStyle;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntBinaryOperator;
 
 import static org.junit.Assert.assertEquals;
@@ -30,6 +32,89 @@ public class ErosionFieldCompilerTest {
         case SURFACE_DEPTH -> 3;
         default -> request.minimum();
     };
+
+    @Test
+    public void geometricExclusionAvoidsTerrainSamplesWithoutChangingAsymmetricBanks() {
+        HydrologyPlannerSettings.Surface surface = zeroRoughnessSurface();
+        AtomicInteger referenceSamples = new AtomicInteger();
+        AtomicInteger boundedSamples = new AtomicInteger();
+        HydrologyTerrainSampler terrain = (x, z) -> HydrologyTerrainSample.openLand(z > 4 ? 100 : 80, 0D, "land");
+        ErosionField reference = rasterWithShoreBound(surface, (x, z) -> {
+            referenceSamples.incrementAndGet();
+            return terrain.sample(x, z);
+        }, 128D, null);
+        ErosionField bounded = rasterWithShoreBound(surface, (x, z) -> {
+            boundedSamples.incrementAndGet();
+            return terrain.sample(x, z);
+        }, surface.shoreWidth(), null);
+
+        assertEqualFields(reference, bounded);
+        assertNull(bounded.rejection());
+        assertTrue("sample counts " + boundedSamples.get() + "/" + referenceSamples.get(),
+                boundedSamples.get() < referenceSamples.get() * 0.8D);
+        assertNotNull(bounded.column(0, 18));
+        assertNull(bounded.column(0, -18));
+    }
+
+    @Test
+    public void geometricExclusionRetainsPolicyBandsAtExactAndAdjacentThresholds() {
+        HydrologyPlannerSettings.Surface surface = zeroRoughnessSurface();
+        for (double width : new double[]{Math.nextDown(1.75D), 1.75D, Math.nextUp(1.75D), 12D}) {
+            HydrologyTerrainSampler terrain = (x, z) -> land(80, z >= 0 ? width : 0D)
+                    .withShoreWidth(z < 0 ? width : surface.shoreWidth());
+            double bound = Math.max(surface.shoreWidth(), width);
+            ErosionField reference = rasterWithShoreBound(surface, terrain, 128D, null);
+            ErosionField complete = rasterWithShoreBound(surface, terrain, bound, null);
+            assertEqualFields(reference, complete);
+            for (SurfaceBounds bounds : List.of(new SurfaceBounds(-16, -16, -1, 15),
+                    new SurfaceBounds(0, -16, 15, 15))) {
+                ErosionField bounded = rasterWithShoreBound(surface, terrain, bound, bounds);
+                for (int z = bounds.minimumZ(); z <= bounds.maximumZ(); z++) {
+                    for (int x = bounds.minimumX(); x <= bounds.maximumX(); x++) {
+                        assertEquals("policy width " + width + " at " + x + "," + z,
+                                complete.column(x, z), bounded.column(x, z));
+                    }
+                }
+            }
+            if (width >= 1.75D) {
+                assertEquals(SurfaceRole.SHORE, complete.column(0, 5).role());
+            }
+            if (width == 12D) {
+                assertEquals(SurfaceRole.SHORE, complete.column(0, 15).role());
+                assertEquals(SurfaceRole.BANK, complete.column(0, -15).role());
+            }
+        }
+    }
+
+    private static ErosionField rasterWithShoreBound(HydrologyPlannerSettings.Surface surface,
+                                                    HydrologyTerrainSampler terrain, double bound,
+                                                    SurfaceBounds bounds) {
+        HydrologyPlannerSettings defaults = HydrologyPlannerSettings.defaults();
+        HydrologyPlannerSettings settings = new HydrologyPlannerSettings(SEA_LEVEL, defaults.routing(), surface,
+                defaults.hydraulics(), defaults.underground(), defaults.outlets(), defaults.geometry(),
+                defaults.deepFluids(), defaults.surfacePools(), bound, defaults.seaCaves(), defaults.surfacePolicyBounds());
+        SurfaceCenterline centerline = SurfaceCenterline.densify(List.of(
+                new HydrologyPoint(-48, 80, 0), new HydrologyPoint(48, 80, 0)));
+        double[] widths = new double[centerline.size()];
+        double[] depths = new double[centerline.size()];
+        double[] multipliers = new double[centerline.size()];
+        int[] heads = new int[centerline.size()];
+        Arrays.fill(widths, 3D);
+        Arrays.fill(depths, 2D);
+        Arrays.fill(multipliers, 1D);
+        Arrays.fill(heads, 80);
+        return new ErosionFieldCompiler(settings, terrain).compile(42L, centerline,
+                new ChannelProfile(widths, depths, multipliers), ValleyProfile.fromHeads(heads, heads.length),
+                SurfaceTerminal.SINKHOLE, 0, noPonds(), SurfaceRasterContext.bounded(bounds));
+    }
+
+    private static void assertEqualFields(ErosionField expected, ErosionField actual) {
+        assertEquals(expected.columns(), actual.columns());
+        assertEquals(expected.rejection(), actual.rejection());
+        assertEquals(expected.rejectionDetail(), actual.rejectionDetail());
+        assertEquals(expected.uncontainedWetCells(), actual.uncontainedWetCells());
+        assertEquals(expected.bankExcavation(), actual.bankExcavation());
+    }
 
     @Test
     public void mouthCutsDrySeaLevelSillBeforeReachingOceanWater() {
@@ -81,7 +166,7 @@ public class ErosionFieldCompilerTest {
         SurfaceCenterline centerline = SurfaceCenterline.densify(List.of(new HydrologyPoint(-150, 0, 0), new HydrologyPoint(150, 0, 0)));
         ChannelProfile channel = new ChannelProfileBuilder(surface, hillside, CONSTANT_GEOMETRY).build(centerline, "water", false);
         ValleyProfile valley = new ValleyProfileSolver(surface, hillside, SEA_LEVEL, 64).solve(centerline, channel, SurfaceTerminal.SINKHOLE, 40);
-        ErosionFieldCompiler compiler = new ErosionFieldCompiler(surface, hillside, SEA_LEVEL);
+        ErosionFieldCompiler compiler = new ErosionFieldCompiler(rasterSettings(surface), hillside);
         ErosionField complete = compiler.compile(42L, centerline, channel, valley, SurfaceTerminal.SINKHOLE, 8);
         SurfaceBounds bounds = new SurfaceBounds(-16, -16, 15, 15);
         ErosionField bounded = compiler.compile(42L, centerline, channel, valley, SurfaceTerminal.SINKHOLE, 8, surface.banks().ponds(), SurfaceRasterContext.bounded(bounds));
@@ -89,6 +174,44 @@ public class ErosionFieldCompilerTest {
         for (int z = bounds.minimumZ(); z <= bounds.maximumZ(); z++) {
             for (int x = bounds.minimumX(); x <= bounds.maximumX(); x++) {
                 assertEquals("bounded column " + x + "," + z, complete.column(x, z), bounded.column(x, z));
+            }
+        }
+    }
+
+    @Test
+    public void boundedRasterRaisesBanksFromHigherWaterAcrossTheChunkEdge() {
+        HydrologyPlannerSettings.Surface surface = zeroRoughnessSurface();
+        HydrologyTerrainSampler lowGround = (x, z) -> HydrologyTerrainSample.openLand(77, 0D, "land");
+        SurfaceCenterline centerline = SurfaceCenterline.densify(
+                List.of(new HydrologyPoint(-48, 80, 0), new HydrologyPoint(48, 78, 0)));
+        int count = centerline.size();
+        double[] widths = new double[count];
+        double[] depths = new double[count];
+        double[] multipliers = new double[count];
+        int[] heads = new int[count];
+        Arrays.fill(widths, 3D);
+        Arrays.fill(depths, 2D);
+        Arrays.fill(multipliers, 1D);
+        for (int station = 0; station < count; station++) {
+            heads[station] = centerline.x()[station] < 0 ? 80 : 78;
+        }
+        ChannelProfile channel = new ChannelProfile(widths, depths, multipliers);
+        ValleyProfile valley = ValleyProfile.fromHeads(heads, count);
+        ErosionFieldCompiler compiler = new ErosionFieldCompiler(rasterSettings(surface), lowGround);
+        ErosionField complete = compiler.compile(42L, centerline, channel, valley, SurfaceTerminal.SINKHOLE, 0);
+
+        assertNull(complete.rejection());
+        assertEquals(80, complete.column(0, 4).height());
+        for (SurfaceBounds bounds : List.of(new SurfaceBounds(-16, -16, -1, 15),
+                new SurfaceBounds(0, -16, 15, 15), new SurfaceBounds(0, 4, 15, 19))) {
+            ErosionField bounded = compiler.compile(42L, centerline, channel, valley,
+                    SurfaceTerminal.SINKHOLE, 0, noPonds(), SurfaceRasterContext.bounded(bounds));
+            assertNull(bounded.rejection());
+            assertEquals(0, bounded.uncontainedWetCells());
+            for (int z = bounds.minimumZ(); z <= bounds.maximumZ(); z++) {
+                for (int x = bounds.minimumX(); x <= bounds.maximumX(); x++) {
+                    assertEquals("bounded column " + x + "," + z, complete.column(x, z), bounded.column(x, z));
+                }
             }
         }
     }
@@ -320,6 +443,12 @@ public class ErosionFieldCompilerTest {
                 surface.minimumDepth(), surface.maximumDepth(), surface.maximumIncision(), surface.shoreWidth(), banks);
     }
 
+    private static HydrologyPlannerSettings.Surface withMaximumIncision(HydrologyPlannerSettings.Surface surface, int maximumIncision) {
+        return new HydrologyPlannerSettings.Surface(
+                surface.enabled(), surface.sources(), surface.minimumWidth(), surface.maximumWidth(),
+                surface.minimumDepth(), surface.maximumDepth(), maximumIncision, surface.shoreWidth(), surface.banks());
+    }
+
     @Test
     public void bankColumnsBeyondTheBlendAreNotWritten() {
         Compiled compiled = compile(300, (x, z) -> 80, SurfaceTerminal.SINKHOLE, 40);
@@ -330,6 +459,14 @@ public class ErosionFieldCompilerTest {
     private static void assertNoWriteAboveNatural(Compiled compiled) {
         for (SurfaceColumn column : compiled.field().columns().values()) {
             assertTrue(column.height() <= column.terrain().naturalHeight());
+        }
+    }
+
+    private static void assertBoundedBankFill(Compiled compiled, int maximumFill) {
+        for (SurfaceColumn column : compiled.field().columns().values()) {
+            int fill = column.height() - column.terrain().naturalHeight();
+            assertTrue(column.x() + "," + column.z() + " fill " + fill,
+                    fill <= (column.role() == SurfaceRole.CHANNEL ? 0 : maximumFill));
         }
     }
 
@@ -376,7 +513,7 @@ public class ErosionFieldCompilerTest {
         ValleyProfile valley = new ValleyProfileSolver(surface, sampler, SEA_LEVEL, 64)
                 .solve(centerline, channel, terminal, terminalHead);
         assertNull(valley.rejection());
-        ErosionField field = new ErosionFieldCompiler(surface, sampler, SEA_LEVEL)
+        ErosionField field = new ErosionFieldCompiler(rasterSettings(surface), sampler)
                 .compile(1234L, centerline, channel, valley, terminal, 8);
         return new Compiled(field, valley);
     }
@@ -624,7 +761,7 @@ public class ErosionFieldCompilerTest {
                 .solve(centerline, channel, SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL);
         assertNull(valley.rejection());
 
-        ErosionField field = new ErosionFieldCompiler(surface, sampler, SEA_LEVEL)
+        ErosionField field = new ErosionFieldCompiler(rasterSettings(surface), sampler)
                 .compile(99L, centerline, channel, valley, SurfaceTerminal.OCEAN_MOUTH, 3);
 
         int firstApron = Integer.MAX_VALUE;
@@ -754,10 +891,12 @@ public class ErosionFieldCompilerTest {
 
         assertEquals(0, compiled.field().uncontainedWetCells());
         assertChannelContained(compiled);
-        assertNoWriteAboveNatural(compiled);
+        assertBoundedBankFill(compiled, 8);
         assertEquals(80, compiled.field().column(0, 0).headY());
         SurfaceColumn nearRim = compiled.field().column(0, 4);
         assertEquals(SurfaceRole.CHANNEL, nearRim.role());
+        assertTrue(compiled.field().columns().values().stream()
+                .anyMatch(column -> column.height() > column.terrain().naturalHeight()));
         for (SurfaceColumn column : compiled.field().columns().values()) {
             if (column.role() == SurfaceRole.CHANNEL) {
                 assertTrue(Math.abs(column.z()) <= 7);
@@ -805,19 +944,21 @@ public class ErosionFieldCompilerTest {
         HydrologyTerrainSampler shelf = (int x, int z) ->
                 HydrologyTerrainSample.openLand(80 + Math.min(16, Math.max(0, Math.abs(z) - 4) * 4), 0D, "land");
         Compiled terraced = compile(
-                zeroRoughnessSurface(0, new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D,
+                withMaximumIncision(zeroRoughnessSurface(0, new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D,
                         IrisRiverBlendStyle.TERRACED, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D,
-                        new HydrologyPlannerSettings.Excavation(64, 64, 8192))),
+                        new HydrologyPlannerSettings.Excavation(64, 64, 8192))), 32),
                 shelf, 300, SurfaceTerminal.SINKHOLE, 40);
+        assertNull(terraced.field().rejection());
         Set<Integer> steps = bankHeights(terraced, 150, 9, 40);
         assertTrue(steps.toString(), steps.size() >= 2 && steps.size() <= 4);
         assertHolds(terraced);
 
         Compiled cliff = compile(
-                zeroRoughnessSurface(0, new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D,
+                withMaximumIncision(zeroRoughnessSurface(0, new HydrologyPlannerSettings.Erosion(true, 12, 0.45D, 1D, 0.5D,
                         IrisRiverBlendStyle.CLIFF, 4, 0.5D, IrisRiverBedProfile.BOWL, 0D, 0D,
-                        new HydrologyPlannerSettings.Excavation(64, 64, 8192))),
+                        new HydrologyPlannerSettings.Excavation(64, 64, 8192))), 32),
                 shelf, 300, SurfaceTerminal.SINKHOLE, 40);
+        assertNull(cliff.field().rejection());
         Set<Integer> bench = bankHeights(cliff, 150, 9, 40);
         assertEquals(bench.toString(), 2, bench.size());
         assertTrue(bench.contains(80));
@@ -873,7 +1014,43 @@ public class ErosionFieldCompilerTest {
             assertTrue(column.height() <= hillside.sample(150, z).naturalHeight());
             previous = column.height();
         }
-        assertHolds(rising);
+        assertEquals(0, rising.field().uncontainedWetCells());
+        assertChannelContained(rising);
+        assertBoundedBankFill(rising, 8);
+        assertEquals(92, rising.field().column(150, -7).height());
+        assertEquals(90, rising.field().column(150, -7).terrain().naturalHeight());
+    }
+
+    @Test
+    public void zeroBankDepthBudgetLeavesLowBanksUnfilledAndUncontained() {
+        HydrologyPlannerSettings.Erosion erosion = new HydrologyPlannerSettings.Erosion(
+                true, 12, 0.45D, 1D, 0.5D, IrisRiverBlendStyle.SMOOTH, 4, 0.5D,
+                IrisRiverBedProfile.BOWL, 0D, 0D, new HydrologyPlannerSettings.Excavation(0, 16, 256));
+        HydrologyPlannerSettings.Surface surface = zeroRoughnessSurface(0, erosion);
+        HydrologyTerrainSampler lowGround = (x, z) -> HydrologyTerrainSample.openLand(77, 0D, "land");
+        SurfaceCenterline centerline = SurfaceCenterline.densify(
+                List.of(new HydrologyPoint(0, 80, 0), new HydrologyPoint(16, 80, 0)));
+        int count = centerline.size();
+        double[] widths = new double[count];
+        double[] depths = new double[count];
+        double[] multipliers = new double[count];
+        int[] heads = new int[count];
+        Arrays.fill(widths, 3D);
+        Arrays.fill(depths, 2D);
+        Arrays.fill(multipliers, 1D);
+        Arrays.fill(heads, 80);
+        ErosionField field = new ErosionFieldCompiler(rasterSettings(surface), lowGround).compile(42L,
+                centerline, new ChannelProfile(widths, depths, multipliers), ValleyProfile.fromHeads(heads, count),
+                SurfaceTerminal.SINKHOLE, 0);
+
+        assertEquals(HydrologyCandidateRejection.SURFACE_WATER_CONTAINMENT, field.rejection());
+        assertTrue(field.uncontainedWetCells() > 0);
+        assertEquals(77, field.column(8, 4).height());
+        for (SurfaceColumn column : field.columns().values()) {
+            if (column.role() != SurfaceRole.CHANNEL) {
+                assertEquals(column.terrain().naturalHeight(), column.height());
+            }
+        }
     }
 
     @Test
@@ -987,4 +1164,11 @@ public class ErosionFieldCompilerTest {
         assertEquals(SurfaceRole.SHORE, bare.field().column(150, 4).role());
         assertHolds(bare);
     }
+    private static HydrologyPlannerSettings rasterSettings(HydrologyPlannerSettings.Surface surface) {
+        HydrologyPlannerSettings defaults = HydrologyPlannerSettings.defaults();
+        return new HydrologyPlannerSettings(60, defaults.routing(), surface, defaults.hydraulics(),
+                defaults.underground(), defaults.outlets(), defaults.geometry(), defaults.deepFluids(),
+                defaults.surfacePools(), 12D, defaults.seaCaves(), defaults.surfacePolicyBounds());
+    }
+
 }

@@ -395,6 +395,30 @@ public class HydrologyModelTest {
     }
 
     @Test
+    public void overlappingRaisedBanksRetainOwnershipWithoutAccumulatingFill() {
+        for (boolean sameFeature : List.of(true, false)) {
+            for (boolean reverse : List.of(true, false)) {
+                FootprintMutableColumn column = new FootprintMutableColumn(0, 0,
+                        HydrologyTerrainSample.openLand(77, 0D, "parent"), 63);
+                int[] beds = reverse ? new int[]{81, 80, 77, 75} : new int[]{75, 77, 80, 81};
+                for (int index = 0; index < beds.length; index++) {
+                    HydrologyFeatureRef feature = feature(HydrologyFeatureType.SURFACE_POOL,
+                            sameFeature ? 30L : 30L + index, 80);
+                    column.add(surfaceLayer(feature, beds[index], beds[index],
+                            false, false, true, beds[index] != 77, false));
+                }
+                HydrologyColumnSample merged = column.build();
+
+                assertEquals(77, merged.naturalHeight());
+                assertEquals(81, merged.terrainHeight());
+                assertEquals(4, merged.terrainHeight() - merged.naturalHeight());
+                assertTrue(merged.primarySurfaceLayerOrNull().terrainOwned());
+                assertEquals(sameFeature ? 1 : 4, merged.layers().size());
+            }
+        }
+    }
+
+    @Test
     public void uncutShoreRetainsItsBiomeWithoutOverridingAnOwnedBank() {
         HydrologyColumnLayer shore = surfaceLayer(feature(HydrologyFeatureType.SURFACE_POOL, 30L, 75),
                 75, 75, false, true, true, false, false);

@@ -1,9 +1,12 @@
 package art.arcane.iris.generation.hydrology;
 
 import art.arcane.iris.generation.hydrology.surface.SurfaceNoise;
+import art.arcane.iris.generation.hydrology.surface.SurfaceInletRange;
 
 final class HydrologyChannelGeometry {
     private final HydrologyFootprintCompiler compiler;
+    private RiverCourse inletCourse;
+    private SurfaceInletRange inletRange;
 
     HydrologyChannelGeometry(HydrologyFootprintCompiler compiler) {
         this.compiler = compiler;
@@ -141,8 +144,22 @@ final class HydrologyChannelGeometry {
                 archedChannel,
                 roundedSurfaceBed,
                 organicBoundary,
-                falling
+                falling,
+                inletStation(course, segment, point)
         );
+    }
+
+    private boolean inletStation(RiverCourse course, HydraulicSegment segment, HydrologyPoint point) {
+        if (course.type() != RiverCourseType.SURFACE || !segment.type().isSurface() || !segment.fallingFluid()) {
+            return false;
+        }
+        if (inletCourse != course) {
+            HydrologyTerrainSampler receiving = HydrologyOceanReceiver.forCourse(
+                    compiler.settings, compiler::sampleTerrainBasis, course);
+            inletRange = SurfaceInletRange.forCourse(compiler.settings, course, receiving);
+            inletCourse = course;
+        }
+        return inletRange.allowsFallingStation(segment.id(), point.x(), point.z());
     }
 
     int organicVerticalVariation(

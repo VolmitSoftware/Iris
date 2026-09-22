@@ -15,34 +15,6 @@ import static org.junit.Assert.assertTrue;
 
 public class HydrologyRegionalCacheTest {
     @Test
-    public void searchBudgetDoesNotLimitSubsequentSearchesOrTerrainResults() {
-        AtomicInteger reads = new AtomicInteger();
-        HydrologyTerrainSampler terrain = (x, z) -> {
-            reads.incrementAndGet();
-            return HydrologyTerrainSample.openLand(70, 0D, "land");
-        };
-        HydrologyPlanner planner = new HydrologyPlanner(15L, HydrologyRegionalPlannerTest.settings(false, 1), terrain);
-        HydrologyRegionalTerrainRefiner refiner = new HydrologyRegionalTerrainRefiner(planner);
-        HydrologyRegionalTerrainRefiner.Samples first = refiner.new Samples();
-        for (int x = 0; x < 65536; x++) {
-            assertNotNull(first.sample(x, 0));
-        }
-        assertNull(first.sample(65536, 0));
-        HydrologyRegionalTerrainRefiner.Samples second = refiner.new Samples();
-        for (int x = 65536; x < 70000; x++) {
-            assertNotNull(second.sample(x, 0));
-        }
-        assertEquals(70000, reads.get());
-        for (int x = 0; x < 70000; x++) {
-            assertEquals(70, refiner.sample(x, 0).naturalHeight());
-        }
-        int readsBeforeClear = reads.get();
-        refiner.clear();
-        assertEquals(70, refiner.sample(0, 0).naturalHeight());
-        assertEquals(readsBeforeClear + 1, reads.get());
-    }
-
-    @Test
     public void clearingTilesRefreshesChangedRegionalTerrain() throws Exception {
         AtomicInteger height = new AtomicInteger(70);
         AtomicInteger reads = new AtomicInteger();
@@ -51,7 +23,7 @@ public class HydrologyRegionalCacheTest {
             return HydrologyTerrainSample.openLand(height.get(), 0D, "land");
         };
         HydrologyPlanner planner = new HydrologyPlanner(15L, HydrologyRegionalPlannerTest.settings(false, 1), terrain);
-        HydrologyRegionalTerrainRefiner refiner = refiner(planner);
+        HydrologyRegionalTerrain refiner = refiner(planner);
         try (HydrologyTileCache cache = new HydrologyTileCache(planner)) {
             assertEquals(70, refiner.sample(0, 0).naturalHeight());
             height.set(85);
@@ -71,7 +43,7 @@ public class HydrologyRegionalCacheTest {
             return available.get() ? HydrologyTerrainSample.openLand(70, 0D, "land") : null;
         };
         HydrologyPlanner planner = new HydrologyPlanner(15L, HydrologyRegionalPlannerTest.settings(false, 1), terrain);
-        HydrologyRegionalTerrainRefiner refiner = refiner(planner);
+        HydrologyRegionalTerrain refiner = refiner(planner);
         try (HydrologyTileCache cache = new HydrologyTileCache(planner)) {
             assertNull(refiner.sample(0, 0));
             available.set(true);
@@ -82,32 +54,11 @@ public class HydrologyRegionalCacheTest {
         }
     }
 
-    @Test
-    public void clearingTilesReplansRegionalReachesAgainstCurrentTerrain() throws Exception {
-        AtomicBoolean flooded = new AtomicBoolean();
-        HydrologyTerrainSampler terrain = (x, z) -> flooded.get() && x >= 96 && x <= 160 && Math.abs(z) < 32
-                ? HydrologyTerrainSample.ocean(60, "ocean") : HydrologyTerrainSample.openLand(70, 0D, "land");
-        HydrologyPlanner planner = new HydrologyPlanner(15L, HydrologyRegionalPlannerTest.settings(false, 1), terrain);
-        HydrologyRegionalTerrainRefiner refiner = refiner(planner);
-        List<HydrologyPoint> guide = List.of(new HydrologyPoint(0, 70, 0), new HydrologyPoint(256, 70, 0));
-        try (HydrologyTileCache cache = new HydrologyTileCache(planner)) {
-            assertEquals(guide, refiner.refine(guide, "default", false, terrain));
-            flooded.set(true);
-            cache.clear();
-            List<HydrologyPoint> actual = refiner.refine(guide, "default", false, terrain);
-            List<HydrologyPoint> fresh = new HydrologyRegionalTerrainRefiner(planner).refine(guide, "default", false, terrain);
-
-            assertFalse(fresh.isEmpty());
-            assertTrue(fresh.stream().anyMatch(point -> Math.abs(point.z()) >= 32));
-            assertEquals(fresh, actual);
-        }
-    }
-
-    private static HydrologyRegionalTerrainRefiner refiner(HydrologyPlanner planner) throws Exception {
+    private static HydrologyRegionalTerrain refiner(HydrologyPlanner planner) throws Exception {
         Field routes = HydrologyRegionalPlanner.class.getDeclaredField("routes");
         routes.setAccessible(true);
-        Field refiner = HydrologyRegionalRoute.class.getDeclaredField("terrainRefiner");
+        Field refiner = HydrologyRegionalRoute.class.getDeclaredField("terrain");
         refiner.setAccessible(true);
-        return (HydrologyRegionalTerrainRefiner) refiner.get(routes.get(planner.regional));
+        return (HydrologyRegionalTerrain) refiner.get(routes.get(planner.regional));
     }
 }

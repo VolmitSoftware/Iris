@@ -209,7 +209,7 @@ public class HydrologyRegionalSourceParallelismTest {
                 sources.put(RiverFootprint.pack(node.x(), node.z()), ordinal++);
             }
             assertEquals(secondCatchmentSize + 4, ordinal);
-            return new HydrologyRegionalGraph.Tree(labels, contributions, outlets);
+            return new HydrologyRegionalGraph.Tree(labels, contributions, outlets, new int[contributions.length]);
         });
         when(graph.path(any(), anyInt())).thenAnswer(invocation -> List.of(invocation.<Integer>getArgument(1), 0));
         replace(planner.regional, "graph", graph);

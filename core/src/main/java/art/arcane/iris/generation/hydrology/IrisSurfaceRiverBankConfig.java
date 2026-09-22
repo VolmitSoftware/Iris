@@ -20,7 +20,7 @@ public class IrisSurfaceRiverBankConfig {
 
     @MinNumber(0.5)
     @MaxNumber(12)
-    @Description("Horizontal run in blocks of eroded bank per block of cut depth.")
+    @Description("Horizontal bank blend in blocks per block of terrain cut or fill.")
     private double blendSlope = 3D;
 
     @MinNumber(1)
@@ -33,7 +33,7 @@ public class IrisSurfaceRiverBankConfig {
     @Description("Widest eroded band outside the shore, in blocks.")
     private int maximumBlendWidth = 32;
 
-    @Description("Limits dry bank cut depth, width, and excavated volume independently of the wet channel.")
+    @Description("Limits dry bank cut depth, fill height, width, and excavated volume independently of the wet channel. Fill also respects channel.maximumIncision and local river policy.")
     private IrisRiverExcavationConfig excavation = new IrisRiverExcavationConfig();
 
     @Description("Show the biome's deeper layers on eroded banks instead of the surface layer.")

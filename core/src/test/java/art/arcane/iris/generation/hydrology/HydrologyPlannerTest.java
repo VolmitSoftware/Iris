@@ -17,7 +17,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +34,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
@@ -669,25 +667,18 @@ public class HydrologyPlannerTest {
     }
 
     @Test
-    public void surfaceRouteMemoPreservesCompleteOwnerOutputAcrossPublicationPasses() throws Exception {
+    public void sharedDrainagePreservesCompleteOwnerOutputAcrossPublicationPasses() {
         for (boolean organic : new boolean[]{false, true}) {
             HydrologyPlannerSettings settings = organic ? organicShapeSettings()
                     : standardSettings(4D, 2D, true, false, List.of());
             HydrologyTerrainSampler terrain = organic ? organicShapeTerrain() : rollingCoast(112);
-            SurfaceRouteMemos uncached = new SurfaceRouteMemos(false);
-            SurfaceRouteMemos cached = new SurfaceRouteMemos(true);
-            HydrologyTile expected = planWithSurfaceRouteMemos(new HydrologyPlanner(642L, settings, terrain), uncached);
-            HydrologyTile actual = planWithSurfaceRouteMemos(new HydrologyPlanner(642L, settings, terrain), cached);
-
+            HydrologyPlanner planner = new HydrologyPlanner(642L, settings, terrain);
+            HydrologyTile expected = planner.plan(TILE);
+            planner.clearOwnerDrafts();
+            HydrologyTile actual = planner.plan(TILE);
             assertEquals(expected, actual);
             assertEquals(expected.courses(), actual.courses());
             assertEquals(expected.localDiagnosticCandidates(), actual.localDiagnosticCandidates());
-            assertTrue(cached.computations <= uncached.computations);
-            if (organic) {
-                assertTrue("hits=" + cached.hits, cached.hits > 0);
-                assertTrue("uncached=" + uncached.computations + " cached=" + cached.computations,
-                        cached.computations < uncached.computations);
-            }
         }
     }
 
@@ -717,7 +708,10 @@ public class HydrologyPlannerTest {
             for (HydraulicSegment segment : course.segments()) {
                 if (segment.drop() > 0) {
                     assertTrue(segment.type().isDrop());
-                    assertFalse(segment.fallingFluid());
+                    if (segment.fallingFluid()) {
+                        assertEquals(HydrologyFeatureType.WATERFALL, segment.type());
+                        assertTrue(tile.cavePlan(course.id()).orElseThrow().accepted());
+                    }
                 }
             }
         }
@@ -1124,7 +1118,9 @@ public class HydrologyPlannerTest {
         );
         for (HydraulicSegment segment : segments(cliff, HydrologyFeatureType.WATERFALL)) {
             assertTrue(segment.drop() > 0);
-            assertFalse(segment.fallingFluid());
+            assertTrue(segment.fallingFluid());
+            assertTrue(segment.receivingPool());
+            assertTrue(cliff.cavePlan(segment.courseId()).orElseThrow().accepted());
             assertTrue(segment.centerline().size() >= 2);
             assertTrue(segment.width() >= 1);
         }
@@ -1139,7 +1135,8 @@ public class HydrologyPlannerTest {
                 HydraulicSegment receiver = course.segments().get(index + 1);
                 assertTrue(approach.type().isSurface());
                 assertTrue(receiver.type().isSurface());
-                assertEquals(approach.end(), waterfall.start());
+                assertEquals(approach.downstreamHeadY(), waterfall.upstreamHeadY());
+                assertTrue(approach.end().distanceSquared2D(waterfall.start()) <= 2L);
                 assertEquals(waterfall.end(), receiver.start());
                 sawBlendedWaterfall = true;
             }
@@ -1206,6 +1203,13 @@ public class HydrologyPlannerTest {
             }
         }
         assertTrue("courses=" + surfaceCourses(tile), aggregateTransition);
+        for (HydrologyColumnSample column : tile.footprint().columns().values()) {
+            for (HydrologyColumnLayer layer : column.layers()) {
+                if (layer.feature().type().isSurface() && layer.channel() && layer.terrainOwned()) {
+                    assertTrue(column.naturalHeight() - layer.bedY() <= settings.surface().maximumIncision());
+                }
+            }
+        }
     }
 
     @Test
@@ -1879,7 +1883,10 @@ public class HydrologyPlannerTest {
             }
             assertTrue(bed);
             assertEquals(drop.fallingFluid(), falling);
-            assertFalse(drop.fallingFluid());
+            if (drop.fallingFluid()) {
+                assertEquals(HydrologyFeatureType.WATERFALL, drop.type());
+                assertTrue(tile.cavePlan(drop.courseId()).orElseThrow().accepted());
+            }
             if (!receiving) {
                 HydrologyColumnSample endColumn = tile.columnAt(drop.end().x(), drop.end().z()).orElseThrow();
                 receiving = endColumn.layers().stream().anyMatch((HydrologyColumnLayer layer) ->
@@ -2210,6 +2217,15 @@ public class HydrologyPlannerTest {
         ).orElseThrow();
         assertEquals(course.id(), located.courseId());
         assertEquals(sinkhole.id(), located.segmentId());
+        for (HydrologyColumnSample column : first.footprint().columns().values()) {
+            for (HydrologyColumnLayer layer : column.layers()) {
+                if (layer.feature().courseId() == course.id() && layer.feature().type().isSurface()
+                        && layer.channel()) {
+                    assertTrue("Surface pond exceeded the channel incision limit at " + column.x() + "," + column.z(),
+                            column.naturalHeight() - layer.bedY() <= settings.surface().maximumIncision());
+                }
+            }
+        }
     }
 
     @Test
@@ -3446,57 +3462,6 @@ public class HydrologyPlannerTest {
         }
         return false;
     }
-    @SuppressWarnings("unchecked")
-    private HydrologyTile planWithSurfaceRouteMemos(HydrologyPlanner planner, SurfaceRouteMemos memos) throws Exception {
-        Class<?> samplesClass = Class.forName(HydrologyPlanner.class.getName() + "$PlanningSamples");
-        Constructor<?> constructor = samplesClass.getDeclaredConstructor();
-        constructor.setAccessible(true);
-        Object samples = constructor.newInstance();
-        Field routes = samplesClass.getDeclaredField("surfaceRoutes");
-        routes.setAccessible(true);
-        routes.set(samples, memos);
-        Field scope = HydrologyPlanner.class.getDeclaredField("planningSamples");
-        scope.setAccessible(true);
-        ThreadLocal<Object> local = (ThreadLocal<Object>) scope.get(planner);
-        local.set(samples);
-        try {
-            return planner.plan(TILE);
-        } finally {
-            local.remove();
-        }
-    }
-
-    private static final class SurfaceRouteMemos extends IdentityHashMap<Object, HashMap<Object, List<HydrologyPoint>>> {
-        private final boolean retain;
-        private int hits;
-        private int computations;
-
-        private SurfaceRouteMemos(boolean retain) {
-            this.retain = retain;
-        }
-
-        @Override
-        public HashMap<Object, List<HydrologyPoint>> computeIfAbsent(Object key,
-                Function<? super Object, ? extends HashMap<Object, List<HydrologyPoint>>> ignored) {
-            return super.computeIfAbsent(key, unused -> new HashMap<>() {
-                @Override
-                public List<HydrologyPoint> computeIfAbsent(Object route,
-                        Function<? super Object, ? extends List<HydrologyPoint>> computation) {
-                    if (!retain) {
-                        clear();
-                    }
-                    if (containsKey(route)) {
-                        hits++;
-                    }
-                    return super.computeIfAbsent(route, missing -> {
-                        computations++;
-                        return computation.apply(missing);
-                    });
-                }
-            });
-        }
-    }
-
     private HydrologyPlanner countedPlanner(CountingNaturalSampler sampler) {
         return new HydrologyPlanner(91L, standardSettings(4D, 0D, true, false, List.of()),
                 sampler.delegate, sampler, HydrologyGeometrySampler.deterministic(sampler.delegate),

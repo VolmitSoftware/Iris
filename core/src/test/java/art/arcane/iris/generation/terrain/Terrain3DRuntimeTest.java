@@ -5,6 +5,8 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -19,6 +21,34 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class Terrain3DRuntimeTest {
+    @Test
+    public void alignedColumnsOnlySampleContributingAnchors() {
+        for (int x = -8; x <= -7; x++) {
+            for (int z = -8; z <= -7; z++) {
+                Set<List<Double>> samples = new HashSet<>();
+                Terrain3DRuntime runtime = runtime(profile(), (sampleX, sampleY, sampleZ) -> {
+                    samples.add(List.of(sampleX, sampleZ));
+                    return 0D;
+                });
+                Terrain3DColumn column = runtime.column(x, z);
+                assertEquals(96, column.topY());
+                assertEquals(1, column.spanCount());
+                Set<List<Double>> expected = new HashSet<>();
+                expected.add(List.of(-8D, -8D));
+                if (x != -8) {
+                    expected.add(List.of(-4D, -8D));
+                }
+                if (z != -8) {
+                    expected.add(List.of(-8D, -4D));
+                }
+                if (x != -8 && z != -8) {
+                    expected.add(List.of(-4D, -4D));
+                }
+                assertEquals(expected, samples);
+            }
+        }
+    }
+
     @Test
     public void omittedProfilesPreserveExactHeightsWithoutCreatingNoise() {
         AtomicInteger compilations = new AtomicInteger();

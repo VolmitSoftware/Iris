@@ -11,7 +11,8 @@ record FootprintLayerShape(
         boolean archedChannel,
         boolean roundedSurfaceBed,
         boolean organicBoundary,
-        boolean fallingThroat
+        boolean fallingThroat,
+        boolean inlet
 ) {
     double totalRadius() {
         return channelRadius + shoreWidth + gradingWidth;

@@ -3,11 +3,15 @@ package art.arcane.iris.generation.runtime;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.IrisInterpolator;
+import art.arcane.iris.generation.stream.CachedStream2D;
+import art.arcane.iris.spi.IrisServices;
+import art.arcane.volmlib.util.interpolation.InterpolationMethod;
 import art.arcane.volmlib.util.interpolation.NoiseBounds;
 import art.arcane.volmlib.util.interpolation.NoiseBoundsProvider;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -15,6 +19,8 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
@@ -23,8 +29,69 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Answers.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.mockingDetails;
 
 public class IrisComplexBoundsBiomeCacheTest {
+    @Test
+    public void cachedBiomeColumnsReuseFractionalSamplesWithSignedParity() throws Exception {
+        IrisBiome first = new IrisBiome();
+        IrisBiome second = new IrisBiome();
+        ProceduralStream<IrisBiome> source = ProceduralStream.of(
+                (x, z) -> x.intValue() < 0 || z.intValue() < 0 ? first : second,
+                Interpolated.of(value -> 0D, value -> first));
+        try (MockedStatic<IrisServices> services = mockStatic(IrisServices.class)) {
+            services.when(() -> IrisServices.get(PreservationRegistry.class))
+                    .thenReturn(mock(PreservationRegistry.class));
+            CachedStream2D<IrisBiome> stream = spy(new CachedStream2D<>("bounds", mock(Engine.class), source, 16));
+            Fixture fixture = new Fixture(stream);
+            IrisInterpolator interpolator = new IrisInterpolator()
+                    .setFunction(InterpolationMethod.STARCAST_12).setHorizontalScale(1.25D);
+            fixture.setBounds(interpolator, first, -15.25D, 63.5D);
+            fixture.setBounds(interpolator, second, 7.75D, 127.25D);
+            AtomicInteger requestedSamples = new AtomicInteger();
+            Set<Long> columns = new HashSet<>();
+            for (int z = -2; z <= 2; z++) {
+                for (int x = -2; x <= 2; x++) {
+                    NoiseBounds expected = interpolator.interpolateBounds(x, z, (xx, zz) -> {
+                        requestedSamples.incrementAndGet();
+                        columns.add(((long) (int) xx << 32) | ((int) zz & 0xffffffffL));
+                        return (int) xx < 0 || (int) zz < 0
+                                ? new NoiseBounds(-15.25D, 63.5D) : new NoiseBounds(7.75D, 127.25D);
+                    });
+                    assertBits(expected, fixture.sample(interpolator, x, z));
+                }
+            }
+            long reads = mockingDetails(stream).getInvocations().stream()
+                    .filter(invocation -> invocation.getMethod().getName().equals("get"))
+                    .count();
+            assertTrue(reads <= columns.size() * 2L);
+            assertTrue(reads < requestedSamples.get() / 4L);
+        }
+    }
+
+    @Test
+    public void uncachedBiomeStreamsPreserveFractionalSamplesWithinOneColumn() throws Exception {
+        IrisBiome first = new IrisBiome();
+        IrisBiome second = new IrisBiome();
+        ProceduralStream<IrisBiome> source = ProceduralStream.of(
+                (x, z) -> x < -0.5D || z > 0.5D ? first : second,
+                Interpolated.of(value -> 0D, value -> first));
+        Fixture fixture = new Fixture(source);
+        IrisInterpolator sampling = new IrisInterpolator() {
+            @Override
+            public NoiseBounds interpolateBounds(double x, double z, NoiseBoundsProvider provider) {
+                return provider.noise(x, z);
+            }
+        };
+        fixture.setBounds(sampling, first, -10D, 20D);
+        fixture.setBounds(sampling, second, 50D, 80D);
+        assertBits(new NoiseBounds(-10D, 20D), fixture.sample(sampling, -0.75D, 0.25D));
+        assertBits(new NoiseBounds(50D, 80D), fixture.sample(sampling, -0.25D, 0.25D));
+        assertBits(new NoiseBounds(-10D, 20D), fixture.sample(sampling, -0.25D, 0.75D));
+    }
+
     @Test
     public void adjacentPassesReuseSamplesWithoutChangingInterpolationBits() throws Exception {
         IrisBiome first = new IrisBiome();

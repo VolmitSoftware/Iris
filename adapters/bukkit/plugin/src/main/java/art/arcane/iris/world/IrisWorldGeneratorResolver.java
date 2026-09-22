@@ -210,7 +210,7 @@ public final class IrisWorldGeneratorResolver {
             packDirs = validation.packDirs();
             contentSnapshot = validation.contentSnapshot();
             results = validation.results();
-            if (validation.stable()) {
+            if (validation.stable() && contextFingerprint.equals(PackValidationCache.contextFingerprint())) {
                 try {
                     PackValidationCache.save(
                             cacheFile,
@@ -229,7 +229,7 @@ public final class IrisWorldGeneratorResolver {
             String packFingerprint = packFingerprints.get(result.getPackName());
             File packDirectory = PackDirectoryResolver.resolveExisting(packsRoot, result.getPackName());
             if (packDirectory != null && packFingerprint != null && !packFingerprint.isBlank()) {
-                PackValidationRegistry.publish(packDirectory.toPath(), result, packFingerprint);
+                PackValidationRegistry.publish(packDirectory.toPath(), result, packFingerprint, contextFingerprint);
             }
             String minecraftVersion = IrisPlatforms.isBound() ? IrisPlatforms.get().minecraftVersion() : null;
             String compatSummary = PackValidator.compatSummary(result, minecraftVersion);

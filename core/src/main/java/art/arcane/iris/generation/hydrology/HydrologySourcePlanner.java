@@ -21,6 +21,10 @@ final class HydrologySourcePlanner {
         this.planner = planner;
     }
 
+    HydrologyPlannerSettings settings() {
+        return planner.settings;
+    }
+
     static final long EDGE_SALT = 0x45444745L;
     static final long SURFACE_SOURCE_SALT = 0x53555246414345L;
     static final long UNDERGROUND_SOURCE_SALT = 0x554e444552L;
@@ -70,10 +74,7 @@ final class HydrologySourcePlanner {
         double[] potential = new double[nodeCount];
         int[] parent = new int[nodeCount];
         int[] outletIndex = new int[nodeCount];
-        int[] minimumNeighborHeights = new int[nodeCount];
-        for (HydrologyGridNode node : grid.nodes()) {
-            minimumNeighborHeights[node.index()] = minimumNeighborHeight(grid, node);
-        }
+        HydrologyDrainageGraph drainage = grid.drainage(this);
         Arrays.fill(potential, Double.POSITIVE_INFINITY);
         Arrays.fill(parent, -1);
         Arrays.fill(outletIndex, -1);
@@ -91,25 +92,13 @@ final class HydrologySourcePlanner {
                 continue;
             }
             HydrologyGridNode downstream = grid.node(currentEntry.nodeIndex());
-            for (HydrologyGridOffset offset : ROUTING_OFFSETS) {
-                HydrologyGridNode upstream = grid.nodeAt(downstream.gridX() + offset.x(), downstream.gridZ() + offset.z());
-                if (upstream == null || upstream.terrain().ocean() || !upstream.terrain().transitAllowed()
-                        || !upstream.terrain().drainsInto(downstream.terrain())
-                        || surface && !HydrologySurfaceProfiles.sharesProfile(upstream.terrain(), downstream.terrain())) {
-                    // Confined ground only drains into its own area, so every course that starts or
-                    // arrives there keeps to that area up to and including its outlet.
+            for (int direction = 0; direction < ROUTING_OFFSETS.size(); direction++) {
+                int upstreamIndex = drainage.upstream(downstream.index(), direction, surface);
+                if (upstreamIndex < 0) {
                     continue;
                 }
-                if (surface && downstream.terrain().naturalHeight() - upstream.terrain().naturalHeight()
-                        > maximumSurfaceEdgeRise(downstream.terrain())) {
-                    continue;
-                }
-                double edgeCost = routeCost(
-                        upstream,
-                        downstream,
-                        offset,
-                        minimumNeighborHeights[downstream.index()]
-                );
+                HydrologyGridNode upstream = grid.node(upstreamIndex);
+                double edgeCost = drainage.cost(downstream.index(), direction);
                 double candidatePotential = currentEntry.potential() + edgeCost;
                 int existingParent = parent[upstream.index()];
                 boolean replace = candidatePotential < potential[upstream.index()] - 1.0E-9D;
@@ -135,7 +124,9 @@ final class HydrologySourcePlanner {
                 outletIndex,
                 routeLengths(parent, grid.width(), planner.settings.routing()),
                 List.copyOf(outlets),
-                false
+                false,
+                surface ? new HydrologyDrainageGeometry(planner,
+                        new HydrologyDrainageGeometry.Basin(grid, parent, outletIndex, List.copyOf(outlets))) : null
         );
     }
 
@@ -160,7 +151,8 @@ final class HydrologySourcePlanner {
                 routing.outletIndex(),
                 routing.routeLengths(),
                 routing.outlets(),
-                true
+                true,
+                routing.surfaceDrainage()
         );
     }
 
@@ -985,75 +977,75 @@ final class HydrologySourcePlanner {
             HydrologyGridNode downstream = grid.node(downstreamIndex);
             RiverOutlet outlet = routing.outlets().get(routing.outletIndex()[upstream.index()]).outlet();
             long edgeId = HydrologyHash.mix(planner.worldSeed, EDGE_SALT, upstream.id(), downstream.id(), outlet.id());
-            long refinementId = surface ? HydrologyHash.mix(edgeId, SURFACE_SOURCE_SALT) : edgeId;
-            List<HydrologyPoint> centerline = refinedEdges.get(refinementId);
-            int transverseCandidates = HydrologyRouteGeometry.ROUTE_TRANSVERSE_CANDIDATES;
-            if (centerline == null) {
-                HydrologyPoint upstreamAnchor = planner.routeGeometry.routeAnchor(upstream, surface);
-                HydrologyPoint downstreamAnchor = planner.routeGeometry.routeAnchor(downstream, surface);
-                HydrologyPoint continuation = planner.routeGeometry.edgeContinuation(grid, routing, downstream, outlet, surface);
-                RefinedEdgeKey refinedEdgeKey = new RefinedEdgeKey(
-                        upstream.id(),
-                        downstream.id(),
-                        upstreamAnchor.x(),
-                        upstreamAnchor.z(),
-                        downstreamAnchor.x(),
-                        downstreamAnchor.z(),
-                        continuation.x(),
-                        continuation.z(),
-                        transverseCandidates,
-                        surface
-                );
-                centerline = planner.refinedEdgeCache.get(
-                        refinedEdgeKey,
-                        ignored -> planner.routeGeometry.refineEdge(
-                                upstream.id(),
-                                downstream.id(),
-                                upstreamAnchor,
-                                downstreamAnchor,
-                                continuation,
-                                transverseCandidates,
-                                surface
-                        )
-                );
-                refinedEdges.put(refinementId, centerline);
-            }
-            if (centerline.isEmpty()) {
-                HydrologyPoint upstreamAnchor = planner.routeGeometry.routeAnchor(upstream, surface);
-                HydrologyPoint downstreamAnchor = planner.routeGeometry.routeAnchor(downstream, surface);
-                HydrologyPoint continuation = planner.routeGeometry.edgeContinuation(grid, routing, downstream, outlet, surface);
-                RefinedEdgeKey refinedEdgeKey = new RefinedEdgeKey(
-                        upstream.id(),
-                        downstream.id(),
-                        upstreamAnchor.x(),
-                        upstreamAnchor.z(),
-                        downstreamAnchor.x(),
-                        downstreamAnchor.z(),
-                        continuation.x(),
-                        continuation.z(),
-                        HydrologyRouteGeometry.ROUTE_FALLBACK_TRANSVERSE_CANDIDATES,
-                        surface
-                );
-                centerline = planner.refinedEdgeCache.get(
-                        refinedEdgeKey,
-                        ignored -> planner.routeGeometry.refineEdge(
-                                upstream.id(),
-                                downstream.id(),
-                                upstreamAnchor,
-                                downstreamAnchor,
-                                continuation,
-                                HydrologyRouteGeometry.ROUTE_FALLBACK_TRANSVERSE_CANDIDATES,
-                                surface
-                        )
-                );
-                refinedEdges.put(refinementId, centerline);
-            }
-            if (centerline.isEmpty()) {
-                centerline = planner.routeGeometry.constrainedTerrainFallbackEdge(
-                        planner.routeGeometry.routeAnchor(upstream, surface),
-                        planner.routeGeometry.routeAnchor(downstream, surface)
-                );
-                refinedEdges.put(refinementId, centerline);
+            List<HydrologyPoint> centerline;
+            if (surface) {
+                centerline = routing.surfaceDrainage().edge(upstream.index());
+            } else {
+                centerline = refinedEdges.get(edgeId);
+                int transverseCandidates = HydrologyRouteGeometry.ROUTE_TRANSVERSE_CANDIDATES;
+                if (centerline == null) {
+                    HydrologyPoint upstreamAnchor = planner.routeGeometry.routeAnchor(upstream, false);
+                    HydrologyPoint downstreamAnchor = planner.routeGeometry.routeAnchor(downstream, false);
+                    HydrologyPoint continuation = planner.routeGeometry.edgeContinuation(grid, routing, downstream, outlet);
+                    RefinedEdgeKey refinedEdgeKey = new RefinedEdgeKey(
+                            upstream.id(),
+                            downstream.id(),
+                            upstreamAnchor.x(),
+                            upstreamAnchor.z(),
+                            downstreamAnchor.x(),
+                            downstreamAnchor.z(),
+                            continuation.x(),
+                            continuation.z(),
+                            transverseCandidates
+                    );
+                    centerline = planner.refinedEdgeCache.get(
+                            refinedEdgeKey,
+                            ignored -> planner.routeGeometry.refineUndergroundEdge(
+                                    upstream.id(),
+                                    downstream.id(),
+                                    upstreamAnchor,
+                                    downstreamAnchor,
+                                    continuation,
+                                    transverseCandidates
+                            )
+                    );
+                    refinedEdges.put(edgeId, centerline);
+                }
+                if (centerline.isEmpty()) {
+                    HydrologyPoint upstreamAnchor = planner.routeGeometry.routeAnchor(upstream, false);
+                    HydrologyPoint downstreamAnchor = planner.routeGeometry.routeAnchor(downstream, false);
+                    HydrologyPoint continuation = planner.routeGeometry.edgeContinuation(grid, routing, downstream, outlet);
+                    RefinedEdgeKey refinedEdgeKey = new RefinedEdgeKey(
+                            upstream.id(),
+                            downstream.id(),
+                            upstreamAnchor.x(),
+                            upstreamAnchor.z(),
+                            downstreamAnchor.x(),
+                            downstreamAnchor.z(),
+                            continuation.x(),
+                            continuation.z(),
+                            HydrologyRouteGeometry.ROUTE_FALLBACK_TRANSVERSE_CANDIDATES
+                    );
+                    centerline = planner.refinedEdgeCache.get(
+                            refinedEdgeKey,
+                            ignored -> planner.routeGeometry.refineUndergroundEdge(
+                                    upstream.id(),
+                                    downstream.id(),
+                                    upstreamAnchor,
+                                    downstreamAnchor,
+                                    continuation,
+                                    HydrologyRouteGeometry.ROUTE_FALLBACK_TRANSVERSE_CANDIDATES
+                            )
+                    );
+                    refinedEdges.put(edgeId, centerline);
+                }
+                if (centerline.isEmpty()) {
+                    centerline = planner.routeGeometry.constrainedTerrainFallbackEdge(
+                            planner.routeGeometry.routeAnchor(upstream, false),
+                            planner.routeGeometry.routeAnchor(downstream, false)
+                    );
+                    refinedEdges.put(edgeId, centerline);
+                }
             }
             if (centerline.isEmpty()) {
                 continue;
@@ -1081,7 +1073,8 @@ final class HydrologySourcePlanner {
             }
             int outletIndex = routing.outletIndex()[node.index()];
             RiverOutlet outlet = routing.outlets().get(outletIndex).outlet();
-            HydrologyPoint anchor = planner.routeGeometry.routeAnchor(node, surface);
+            HydrologyPoint anchor = surface ? routing.surfaceDrainage().anchor(node.index())
+                    : planner.routeGeometry.routeAnchor(node, false);
             HydrologyTerrainSample terrain = Objects.requireNonNull(
                     planner.sampleLandBasis(anchor.x(), anchor.z()),
                     "Hydrology route anchor left natural land"

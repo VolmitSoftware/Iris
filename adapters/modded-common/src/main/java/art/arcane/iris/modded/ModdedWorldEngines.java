@@ -266,6 +266,7 @@ public final class ModdedWorldEngines {
             TransitionGenerationPlan transitionPlan = activation.isInitial()
                     ? null
                     : history.transitionPlan(activation.activationId());
+            data.bindGenerationRegistryContract(epoch.registryContract());
             IrisEngine engine = new IrisEngine(
                     new EngineTarget(world, dimension, data),
                     IrisEngine.InitializationMode.RUNTIME,

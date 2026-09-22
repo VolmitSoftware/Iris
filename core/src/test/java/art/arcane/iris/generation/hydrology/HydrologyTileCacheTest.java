@@ -6,6 +6,9 @@ import art.arcane.iris.testsupport.Await;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.volmlib.util.cache.CacheKey;
 import org.junit.Test;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
+import java.nio.file.Path;
 
 import java.lang.reflect.Field;
 import java.time.Duration;
@@ -50,6 +53,55 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 public class HydrologyTileCacheTest {
+    @Rule
+    public TemporaryFolder preparedFolder = new TemporaryFolder();
+
+    @Test
+    public void preparedPlansRestoreFarFromOriginWithoutTerrainPlanning() throws Exception {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(emptySettings());
+        HydrologyTileCache.SharedCacheScope scope = sharedScope();
+        HydrologyTileKey key = new HydrologyTileKey(501, -703);
+        HydrologyTile tile = preparedTile(key, scope);
+        Path root = preparedFolder.newFolder().toPath();
+        new PreparedHydrologyTileStore(root, scope, 64).save(tile);
+        try (HydrologyTileCache cache = new HydrologyTileCache(planner, 4)) {
+            cache.enableSharedCache(scope, root);
+            cache.setTerrainPreparation(() -> { throw new AssertionError("Restoration must not sample terrain"); });
+            HydrologyTile restored = cache.get(key);
+            assertEquals(tile.key(), restored.key());
+            assertEquals(tile.footprint(), restored.footprint());
+            verify(planner, never()).plan(any(HydrologyTileKey.class));
+            verify(planner).reuseResolvedTile(restored);
+        }
+    }
+
+    @Test
+    public void tileDemandAutomaticallyPersistsTheCompletedPlan() throws Exception {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(emptySettings());
+        HydrologyTileCache.SharedCacheScope scope = sharedScope();
+        HydrologyTileKey key = new HydrologyTileKey(125, -141);
+        HydrologyTile tile = preparedTile(key, scope);
+        when(planner.plan(key)).thenReturn(tile);
+        Path root = preparedFolder.newFolder().toPath();
+        try (HydrologyTileCache cache = new HydrologyTileCache(planner, 64)) {
+            cache.enableSharedCache(scope, root);
+            assertSame(tile, cache.get(key));
+            verify(planner).plan(key);
+        }
+        HydrologyTile persisted = new PreparedHydrologyTileStore(root, scope, 64).load(key).orElseThrow();
+        assertEquals(tile.key(), persisted.key());
+        assertEquals(tile.worldSeed(), persisted.worldSeed());
+        assertEquals(tile.settingsFingerprint(), persisted.settingsFingerprint());
+        assertEquals(tile.footprint(), persisted.footprint());
+    }
+
+    private static HydrologyTile preparedTile(HydrologyTileKey key, HydrologyTileCache.SharedCacheScope scope) {
+        return new HydrologyTile(key, scope.worldSeed(), scope.settingsFingerprint(), 64,
+                List.of(), List.of(), List.of(), List.of(), Set.of(), List.of(), List.of(), RiverFootprint.empty());
+    }
+
     @Test
     public void weightedTileCapacityStopsSpeculationWithoutBlockingDemand() {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
@@ -400,7 +452,7 @@ public class HydrologyTileCacheTest {
             monitor.set(queue.get(cache));
 
             if (pregeneration) {
-                cache.preparePregeneration(262144, 262144);
+                cache.preparePregeneration(pregenArea(262144, 262144));
             } else {
                 cache.prefetchArea(261120, 261120, 263168, 263168, 262144, 262144);
             }
@@ -409,8 +461,12 @@ public class HydrologyTileCacheTest {
             assertEquals(prefetchRectangle(254, 257, 254, 257), new HashSet<>(planned.subList(0, 16)));
             assertEquals(List.of(new HydrologyTileKey(255, 255), new HydrologyTileKey(256, 255),
                     new HydrologyTileKey(257, 255)), planned.subList(1, 4));
-            assertEquals(prefetchRectangle(-1, 1, -1, 0), new HashSet<>(planned.subList(16, planned.size())));
-            assertEquals(22, planned.size());
+            if (pregeneration) {
+                assertEquals(16, planned.size());
+            } else {
+                assertEquals(prefetchRectangle(-1, 1, -1, 0), new HashSet<>(planned.subList(16, planned.size())));
+                assertEquals(22, planned.size());
+            }
         }
     }
 
@@ -447,7 +503,7 @@ public class HydrologyTileCacheTest {
             Runnable demand = queued.poll(5, TimeUnit.SECONDS);
             assertNotNull(demand);
 
-            cache.preparePregeneration(262144, 262144);
+            cache.preparePregeneration(pregenArea(262144, 262144));
 
             assertFalse(active.isDone());
             assertFalse(demanded.isDone());
@@ -485,9 +541,9 @@ public class HydrologyTileCacheTest {
         LinkedBlockingQueue<Runnable> queued = new LinkedBlockingQueue<>();
         HydrologyTileCache cache = new HydrologyTileCache(planner, 128, queued::add);
         cache.prefetchArea(0, 0, 1023, 0, 0, 0);
-        cache.preparePregeneration(262144, 262144);
-        cache.preparePregeneration(263168, 262144);
-        cache.preparePregeneration(263168, 262144);
+        cache.preparePregeneration(pregenArea(262144, 262144));
+        cache.preparePregeneration(pregenArea(263168, 262144));
+        cache.preparePregeneration(pregenArea(263168, 262144));
         drainPrefetchTasks(queued);
 
         Set<HydrologyTileKey> expected = new HashSet<>(prefetchRectangle(255, 258, 254, 257));
@@ -496,7 +552,7 @@ public class HydrologyTileCacheTest {
         assertEquals(17, planned.size());
         cache.clear();
         planned.clear();
-        cache.preparePregeneration(263168, 262144);
+        cache.preparePregeneration(pregenArea(263168, 262144));
         drainPrefetchTasks(queued);
         assertEquals(prefetchRectangle(255, 258, 254, 257), new HashSet<>(planned));
         assertEquals(16, planned.size());
@@ -516,11 +572,111 @@ public class HydrologyTileCacheTest {
         LinkedBlockingQueue<Runnable> queued = new LinkedBlockingQueue<>();
         HydrologyTileCache cache = new HydrologyTileCache(planner, 128, queued::add);
         cache.prefetchArea(0, 0, 1023, 0, 0, 0);
-        assertThrows(ArithmeticException.class, () -> cache.preparePregeneration(Integer.MAX_VALUE, 0));
-        assertThrows(ArithmeticException.class, () -> cache.preparePregeneration(0, Integer.MIN_VALUE));
+        assertThrows(IllegalArgumentException.class, () -> cache.preparePregeneration(
+                new HydrologyTileCache.PregenerationArea(0, 0, 1, -1, 2, 1)));
+        assertThrows(ArithmeticException.class, () -> cache.preparePregeneration(
+                new HydrologyTileCache.PregenerationArea(0, 0, Long.MIN_VALUE, -1, 1, 1)));
         drainPrefetchTasks(queued);
         assertEquals(prefetchRectangle(-1, 1, -1, 0), new HashSet<>(planned));
         assertEquals(6, planned.size());
+    }
+
+    @Test
+    public void pregenBoundsLimitSpeculationWithoutLimitingRequestedChunks() {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        HydrologyPlannerSettings settings = stalePrefetchSettings();
+        when(planner.settings()).thenReturn(settings);
+        when(planner.plan(any(HydrologyTileKey.class))).thenReturn(tile);
+        ArrayList<HydrologyTileKey> planned = new ArrayList<>();
+        doAnswer(invocation -> {
+            planned.add(invocation.getArgument(0));
+            return tile;
+        }).when(planner).plan(any(HydrologyTileKey.class));
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 128, Runnable::run);
+        try (HydrologyTileCache.PregenerationScope ignored = cache.preparePregeneration(
+                new HydrologyTileCache.PregenerationArea(0, 0, -1536, -1536, 2047, 2047))) {
+            cache.prefetchArea(-4096, -4096, 4095, 4095, 0, 0);
+            assertEquals(prefetchRectangle(-2, 2, -2, 2), new HashSet<>(planned));
+            planned.clear();
+            HydrologyTileKey demanded = new HydrologyTileKey(8, 8);
+            assertSame(tile, cache.get(demanded));
+            assertEquals(List.of(demanded), planned);
+            planned.clear();
+            assertFalse(cache.isPlanned(10_240, 10_240));
+            assertTrue(cache.isPlanned(10_240, 10_240));
+            assertEquals(prefetchRectangle(9, 10, 9, 10), new HashSet<>(planned));
+            planned.clear();
+            cache.prepareChunkColumns(-10_240, -10_240);
+            assertEquals(prefetchRectangle(-11, -10, -11, -10), new HashSet<>(planned));
+        }
+        planned.clear();
+        cache.prepareChunkColumns(20_480, 20_480);
+        assertEquals(prefetchRectangle(18, 21, 18, 21), new HashSet<>(planned));
+        cache.close();
+    }
+
+    @Test
+    public void pregenScopesRestoreStudioPrefetchAndIgnoreSupersededClose() {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        HydrologyPlannerSettings settings = stalePrefetchSettings();
+        when(planner.settings()).thenReturn(settings);
+        when(planner.plan(any(HydrologyTileKey.class))).thenReturn(tile);
+        ArrayList<HydrologyTileKey> planned = new ArrayList<>();
+        doAnswer(invocation -> {
+            planned.add(invocation.getArgument(0));
+            return tile;
+        }).when(planner).plan(any(HydrologyTileKey.class));
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 128, Runnable::run);
+        cache.setNeighbourPrefetchEnabled(false);
+        HydrologyTileCache.PregenerationScope first = cache.preparePregeneration(pregenArea(0, 0));
+        HydrologyTileCache.PregenerationScope second = cache.preparePregeneration(pregenArea(262144, 262144));
+        first.close();
+        planned.clear();
+        cache.prefetchArea(16384, 16384, 16384, 16384, 16384, 16384);
+        assertTrue(planned.isEmpty());
+        second.close();
+        cache.prepareChunkColumns(16384, 16384);
+        assertEquals(prefetchRectangle(15, 16, 15, 16), new HashSet<>(planned));
+        HydrologyTileCache.PregenerationScope cleared = cache.preparePregeneration(pregenArea(0, 0));
+        cache.clear();
+        cleared.close();
+        planned.clear();
+        cache.prepareChunkColumns(32768, 32768);
+        assertEquals(prefetchRectangle(31, 32, 31, 32), new HashSet<>(planned));
+        HydrologyTileCache.PregenerationScope closed = cache.preparePregeneration(pregenArea(0, 0));
+        cache.close();
+        closed.close();
+        cache.prefetchArea(0, 0, 0, 0, 0, 0);
+        assertThrows(CancellationException.class, () -> cache.preparePregeneration(pregenArea(0, 0)));
+    }
+
+    @Test
+    public void largePregenBoundsKeepInitialWarmupLocal() {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        HydrologyPlannerSettings settings = stalePrefetchSettings();
+        when(planner.settings()).thenReturn(settings);
+        when(planner.plan(any(HydrologyTileKey.class))).thenReturn(tile);
+        ArrayList<HydrologyTileKey> planned = new ArrayList<>();
+        doAnswer(invocation -> {
+            planned.add(invocation.getArgument(0));
+            return tile;
+        }).when(planner).plan(any(HydrologyTileKey.class));
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 128, Runnable::run);
+        try (HydrologyTileCache.PregenerationScope ignored = cache.preparePregeneration(
+                new HydrologyTileCache.PregenerationArea(0, 0,
+                        Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE))) {
+            assertEquals(prefetchRectangle(-2, 1, -2, 1), new HashSet<>(planned));
+            assertEquals(16, planned.size());
+        }
+        cache.close();
+    }
+
+    private static HydrologyTileCache.PregenerationArea pregenArea(int x, int z) {
+        return new HydrologyTileCache.PregenerationArea(x, z, (long) x - 1024, (long) z - 1024,
+                (long) x + 1024, (long) z + 1024);
     }
 
     private static HydrologyPlannerSettings stalePrefetchSettings() {
@@ -1100,7 +1256,7 @@ public class HydrologyTileCacheTest {
         order.clear();
         cache.setNeighbourPrefetchEnabled(false);
 
-        cache.preparePregeneration(0, 0);
+        cache.preparePregeneration(pregenArea(0, 0));
 
         assertEquals(new HydrologyTileKey(1, -1), order.getFirst());
         assertTrue(order.contains(new HydrologyTileKey(1, 0)));

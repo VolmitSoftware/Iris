@@ -196,9 +196,15 @@ public class PregenTask {
 
     public void iterateRegions(Spiraled s) {
         Bound bound = bounds.region();
-        new Spiraler(bound.sizeX, bound.sizeZ, ((x, z) -> {
-            if (bound.check(x, z)) s.on(x, z);
-        })).setOffset(PowerOfTwoCoordinates.blockToRegionFloor(center.getX()), PowerOfTwoCoordinates.blockToRegionFloor(center.getZ())).drain();
+        int centerRegionX = PowerOfTwoCoordinates.blockToRegionFloor(center.getX());
+        int centerRegionZ = PowerOfTwoCoordinates.blockToRegionFloor(center.getZ());
+        int width = Math.max(centerRegionX - bound.minX(), bound.maxX() - centerRegionX) * 2 + 1;
+        int depth = Math.max(centerRegionZ - bound.minZ(), bound.maxZ() - centerRegionZ) * 2 + 1;
+        new Spiraler(width, depth, ((x, z) -> {
+            if (bound.check(x, z)) {
+                s.on(x, z);
+            }
+        })).setOffset(centerRegionX, centerRegionZ).drain();
     }
 
     public void iterateChunks(int rX, int rZ, Spiraled s) {
@@ -291,10 +297,10 @@ public class PregenTask {
                     PowerOfTwoCoordinates.ceilDivPow2(maxZ, PowerOfTwoCoordinates.CHUNK_BITS)
             );
             region = new Bound(
-                    PowerOfTwoCoordinates.blockToRegionFloor(minX),
-                    PowerOfTwoCoordinates.blockToRegionFloor(minZ),
-                    PowerOfTwoCoordinates.ceilDivPow2(maxX, PowerOfTwoCoordinates.REGION_BITS),
-                    PowerOfTwoCoordinates.ceilDivPow2(maxZ, PowerOfTwoCoordinates.REGION_BITS)
+                    PowerOfTwoCoordinates.chunkToRegion(chunk.minX()),
+                    PowerOfTwoCoordinates.chunkToRegion(chunk.minZ()),
+                    PowerOfTwoCoordinates.chunkToRegion(chunk.maxX()),
+                    PowerOfTwoCoordinates.chunkToRegion(chunk.maxZ())
             );
             requireSaneSpan(region);
         }

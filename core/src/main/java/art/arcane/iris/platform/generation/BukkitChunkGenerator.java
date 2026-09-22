@@ -716,6 +716,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         } catch (IOException failure) {
             throw new IllegalStateException("Unable to load the active Iris generation transition.", failure);
         }
+        engineTarget.getData().bindGenerationRegistryContract(epoch.registryContract());
         IrisEngine createdEngine = new IrisEngine(
                 engineTarget,
                 mode,
@@ -1319,7 +1320,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                              openGenerationHistoryCoordinateScope(engine, x << 4, z << 4);
                      GenerationSessionLease lease = engine.acquireGenerationLease("bukkit_terrain_stage");
                     IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
-                    engine.generate(x << 4, z << 4, blocks, biomes, engine.shouldGenerateMulticore());
+                    engine.generate(x << 4, z << 4, blocks, biomes,
+                            initialEntryPending || studioEntryBootstrapActive.get() || engine.shouldGenerateMulticore());
                     blocks.apply();
                     if (historyScope != null) {
                         historyScope.claimGeneratedSemantics();

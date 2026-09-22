@@ -52,6 +52,75 @@ public final class HydrologySurfaceDropRasterTest {
     }
 
     @Test
+    public void diagonalDropCoordinatesResolveExactlyInBothDirectionsFromTheOrigin() {
+        for (int origin : new int[]{-128, 128}) {
+            HydraulicSegment fall = new HydraulicSegment(2L, 1L, HydrologyFeatureType.WATERFALL,
+                    90, 80, 4, 3, true, true,
+                    List.of(new HydrologyPoint(origin, 90, origin), new HydrologyPoint(origin + 12, 80, origin + 12)),
+                    HydraulicChannelProfile.uniform(4, 3));
+            RiverCourse course = new RiverCourse(1L, RiverCourseType.SURFACE, OptionalLong.of(3L), OptionalLong.of(4L),
+                    "water", 1, List.of(), List.of(fall));
+            HydrologySurfaceDropRaster raster = HydrologySurfaceDropRaster.compile(SETTINGS, TERRAIN, GEOMETRY, course);
+
+            assertFalse(raster.columns().isEmpty());
+            for (HydrologyColumnSample column : raster.columns()) {
+                assertSame(column, raster.sample(column.x(), column.z()).orElseThrow());
+            }
+            assertTrue(raster.connects(origin, origin, 90));
+            assertTrue(raster.connects(origin + 12, origin + 12, 80));
+            assertTrue(raster.sample(origin + 512, origin + 512).isEmpty());
+            assertFalse(raster.connects(origin + 512, origin + 512, 80));
+        }
+    }
+
+    @Test
+    public void receivingDropBedsUseInletIncisionOnlyAtAuthorizedCourseStations() {
+        HydrologyTerrainSampler terrain = (x, z) -> x >= 200
+                ? HydrologyTerrainSample.ocean(50, "ocean")
+                : HydrologyTerrainSample.openLand(107, 0D, "parent");
+        for (int start : new int[]{50, 100, 150}) {
+            int end = start == 100 ? 110 : start + 1;
+            HydraulicSegment approach = new HydraulicSegment(1L, 1L, HydrologyFeatureType.SURFACE_POOL,
+                    122, 122, 4, 3, false, false,
+                    List.of(new HydrologyPoint(0, 122, 0), new HydrologyPoint(start, 122, 0)),
+                    HydraulicChannelProfile.uniform(4, 3));
+            HydraulicSegment fall = new HydraulicSegment(2L, 1L, HydrologyFeatureType.WATERFALL,
+                    122, 78, 4, 3, true, true,
+                    List.of(new HydrologyPoint(start, 122, 0), new HydrologyPoint(end, 78, 0)),
+                    HydraulicChannelProfile.uniform(4, 3));
+            HydraulicSegment downstream = new HydraulicSegment(3L, 1L, HydrologyFeatureType.CASCADE,
+                    78, SETTINGS.seaLevel(), 4, 3, false, false,
+                    List.of(new HydrologyPoint(end, 78, 0), new HydrologyPoint(199, SETTINGS.seaLevel(), 0)),
+                    HydraulicChannelProfile.uniform(4, 3));
+            HydraulicSegment mouth = new HydraulicSegment(4L, 1L, HydrologyFeatureType.MOUTH,
+                    SETTINGS.seaLevel(), SETTINGS.seaLevel(), 4, 3, false, false,
+                    List.of(new HydrologyPoint(199, SETTINGS.seaLevel(), 0), new HydrologyPoint(200, SETTINGS.seaLevel(), 0)),
+                    HydraulicChannelProfile.uniform(4, 3));
+            RiverCourse course = new RiverCourse(1L, RiverCourseType.SURFACE, OptionalLong.of(3L), OptionalLong.of(4L),
+                    "water", 1, List.of(), List.of(approach, fall, downstream, mouth));
+            HydrologySurfaceDropRaster raster = HydrologySurfaceDropRaster.compile(SETTINGS, terrain, GEOMETRY, course);
+
+            assertEquals(start != 50, raster.connects(end, 0, 78));
+            if (start != 50) {
+                HydrologyColumnSample receiver = raster.sample(end, 0).orElseThrow();
+                HydrologyColumnLayer water = receiver.layers().stream()
+                        .filter(layer -> layer.channel() && layer.fluidOwned()).findFirst().orElseThrow();
+                int cut = receiver.naturalHeight() - water.bedY();
+                assertTrue(cut > SETTINGS.surface().maximumIncision());
+                assertTrue(cut <= SETTINGS.surface().banks().inlet().maximumIncision());
+            }
+            if (start == 100) {
+                assertFalse(raster.connects(102, 0, 78));
+                assertTrue(raster.connects(108, 0, 78));
+            }
+            SurfaceBounds bounds = new SurfaceBounds(start - 2, -8, end + 2, 8);
+            HydrologySurfaceDropRaster bounded = HydrologySurfaceDropRaster.compile(SETTINGS, terrain, GEOMETRY, course, bounds);
+            assertEquals(raster.columns().stream().filter(column -> bounds.contains(column.x(), column.z())).toList(),
+                    bounded.columns());
+        }
+    }
+
+    @Test
     public void surfaceDropsDoNotOwnSubmergedGroundOrRaiseWaterOnSeaLevelLand() {
         RiverCourse course = course(true);
         for (int naturalHeight : new int[] {SETTINGS.seaLevel() - 1, SETTINGS.seaLevel()}) {
@@ -97,7 +166,7 @@ public final class HydrologySurfaceDropRasterTest {
         HydrologyFootprintCompiler compiler = new HydrologyFootprintCompiler(SETTINGS, TERRAIN, GEOMETRY);
         HydrologyPlannerSettings.Excavation limits = SETTINGS.surface().banks().erosion().excavation();
         FootprintLayerShape shape = new FootprintLayerShape(2, 2D, 40D, 79, 90, 90,
-                false, false, false, false, true);
+                false, false, false, false, true, false);
         HydrologyFeatureRef feature = new HydrologyFeatureRef(5L, segment.type(), course.id(), segment.id(),
                 0, 90, 0, 1, 0, false);
         HydrologyTerrainSample highTerrain = HydrologyTerrainSample.openLand(160, 0D, "parent");

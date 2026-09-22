@@ -3,8 +3,8 @@ package art.arcane.iris.generation.hydrology;
 import art.arcane.iris.generation.hydrology.surface.SurfaceBounds;
 import art.arcane.iris.generation.hydrology.surface.SurfaceCenterline;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -14,16 +14,15 @@ public final class HydrologySurfaceDropRaster {
     private static final HydrologySurfaceDropRaster EMPTY = new HydrologySurfaceDropRaster(List.of(), Map.of());
 
     private final List<HydrologyColumnSample> columns;
-    private final Map<Long, HydrologyColumnSample> indexed;
+    private final Long2ObjectOpenHashMap<HydrologyColumnSample> indexed;
     private final Map<Long, OceanReceiver> oceanReceivers;
 
     private HydrologySurfaceDropRaster(List<HydrologyColumnSample> columns, Map<Long, OceanReceiver> oceanReceivers) {
         this.columns = List.copyOf(columns);
-        Map<Long, HydrologyColumnSample> indexed = new HashMap<>(columns.size());
+        this.indexed = new Long2ObjectOpenHashMap<>(columns.size());
         for (HydrologyColumnSample sample : columns) {
             indexed.put(RiverFootprint.pack(sample.x(), sample.z()), sample);
         }
-        this.indexed = Map.copyOf(indexed);
         this.oceanReceivers = Map.copyOf(oceanReceivers);
     }
 

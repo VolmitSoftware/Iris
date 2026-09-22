@@ -362,7 +362,7 @@ public class StudioSVC implements IrisService {
                 packRoot,
                 GenerationPackFingerprint.CURRENT_VERSION
         );
-        validatePublishedPack(packRoot);
+        validateGenerationCandidate(packRoot, fingerprint);
         IrisData data = IrisData.openDatapackCompiler(packRoot.toFile());
         try {
             IrisDimension dimension = data.getDimensionLoader().load(dimensionKey, false);
@@ -564,6 +564,17 @@ public class StudioSVC implements IrisService {
             mutation.commit();
             return PackValidationRegistry.requireLoadable(packRoot);
         }
+    }
+
+    static PackValidationResult validateGenerationCandidate(Path packRoot, String contentFingerprint) {
+        PackValidationResult validation = PackValidationRegistry.getMatching(packRoot, contentFingerprint);
+        if (validation == null) {
+            return validatePublishedPack(packRoot);
+        }
+        if (!validation.isLoadable()) {
+            throw new BrokenPackException(packRoot.toString(), validation.getBlockingErrors());
+        }
+        return validation;
     }
 
     static PackValidationResult validatePublishedPack(

@@ -54,7 +54,9 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     void apply(ObjectSourcePlan plan) {
         for (Mutation mutation : plan.mutations()) {
-            mutation.apply(this);
+            if (isDestination(mutation.x(), mutation.z())) {
+                mutation.apply(this);
+            }
         }
     }
 

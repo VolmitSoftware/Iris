@@ -32,6 +32,50 @@ import static org.junit.Assert.assertTrue;
 
 public class HydrologyBankTerrainRuntimeTest {
     @Test
+    public void raisedOwnedBanksFillThroughTheirContainmentHeightWithoutDensityOrNeighbourQueries() {
+        AtomicInteger sampled = new AtomicInteger();
+        Terrain3DColumn natural = Terrain3DColumnFixtures.spans(70, 0, 70, 76, 80);
+        HydrologyBankTerrainRuntime runtime = HydrologyBankTerrainRuntime.withNoise(
+                new HydrologyBankTerrainRuntime.Sources((x, z) -> natural, (x, z) -> {
+                    assertEquals(-1, x);
+                    assertEquals(-17, z);
+                    sampled.incrementAndGet();
+                    return HydrologyColumnSnapshot.ready(bank(84, false, true));
+                }), options(16), (x, y, z) -> {
+                    throw new AssertionError("A filled bank must not sample erosion density");
+                });
+
+        Terrain3DColumn column = runtime.column(-1, -17);
+
+        assertEquals(84, column.topY());
+        assertEquals(1, column.spanCount());
+        for (int y = 0; y <= 84; y++) {
+            assertTrue("Required containment at " + y, column.isSolid(y));
+        }
+        assertFalse(column.isSolid(85));
+        assertSame(column, runtime.column(-1, -17));
+        assertEquals(1, sampled.get());
+    }
+
+    @Test
+    public void raisedBankFillIsClampedToTheWorldHeightAndDoesNotAffectUnownedBands() {
+        Terrain3DColumn natural = Terrain3DColumn.unshaped(250, 256);
+        HydrologyBankTerrainRuntime runtime = HydrologyBankTerrainRuntime.withNoise(
+                new HydrologyBankTerrainRuntime.Sources((x, z) -> natural,
+                        (x, z) -> HydrologyColumnSnapshot.ready(bank(270, false, x == 0))),
+                options(16), (x, y, z) -> {
+                    throw new AssertionError("Raised bank fill must not sample density");
+                });
+
+        Terrain3DColumn filled = runtime.column(0, 0);
+
+        assertEquals(255, filled.topY());
+        assertTrue(filled.isSolid(255));
+        assertFalse(filled.isSolid(256));
+        assertSame(natural, runtime.column(1, 0));
+    }
+
+    @Test
     public void unavailableSupportColumnsDoNotPoisonLaterAcceptedBankGeometry() {
         AtomicBoolean ready = new AtomicBoolean();
         Terrain3DColumn natural = Terrain3DColumn.unshaped(80, 256);

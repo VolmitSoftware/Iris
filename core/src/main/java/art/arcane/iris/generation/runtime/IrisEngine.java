@@ -35,7 +35,6 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.pack.PackValidationCache;
 import art.arcane.iris.spi.IrisLogging;
 import com.google.common.util.concurrent.AtomicDouble;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -303,7 +302,8 @@ public class IrisEngine implements Engine {
             getData().registerEngine(this);
             _t0 = M.ms();
             long phaseStartedAt = System.nanoTime();
-            String studioCacheIdentity = currentStudioCacheIdentity();
+            PreparedHydrologyCacheIdentity cacheIdentity = PreparedHydrologyCacheIdentity.capture(
+                    getTarget(), EngineRuntimeBuilder.selectRuntimeKernel(initialKernelVersion), initialTransitionPlan, studio);
             getData().loadPrefetch(this);
             IrisLogging.debug("[IrisEngine timing] loadPrefetch=" + (M.ms() - _t0) + "ms");
             diagnostics.logStudioInitializationPhase("load_prefetch", phaseStartedAt, false);
@@ -315,8 +315,7 @@ public class IrisEngine implements Engine {
             IrisLogging.notice("Engine init: " + requiredTarget.getWorld().name() + "/" + requiredTarget.getDimension().getLoadKey() + " seed=" + getSeedManager().getSeed());
             _t0 = M.ms();
             phaseStartedAt = System.nanoTime();
-            EngineRuntime initialRuntime = runtimeBuilder.buildRuntime();
-            enableStableStudioCache(initialRuntime, studioCacheIdentity);
+            EngineRuntime initialRuntime = runtimeBuilder.buildRuntime(cacheIdentity);
             runtimeBuilder.publishRuntime(initialRuntime, null);
             IrisLogging.debug("[IrisEngine timing] setupEngine total=" + (M.ms() - _t0) + "ms");
             diagnostics.logPackCompatSummary();
@@ -357,47 +356,6 @@ public class IrisEngine implements Engine {
         } else {
             startGenerationCacheWarm(phaseStartedAt);
         }
-    }
-
-    private String currentStudioCacheIdentity() {
-        if (initializationMode != InitializationMode.STUDIO || !IrisPlatforms.isBound()) {
-            return "";
-        }
-        try {
-            String contentFingerprint = PackValidationCache.contentFingerprint(
-                    IrisPlatforms.get().packsFolderNoCreate());
-            String contextFingerprint = PackValidationCache.contextFingerprint();
-            if (contentFingerprint.isBlank() || contextFingerprint.isBlank()) {
-                return "";
-            }
-            return contentFingerprint + contextFingerprint;
-        } catch (RuntimeException failure) {
-            IrisLogging.warn("Studio runtime cache fingerprint failed: " + failure.getMessage());
-            return "";
-        }
-    }
-
-    private void enableStableStudioCache(EngineRuntime runtime, String initialIdentity) {
-        if (initialIdentity.isBlank()) {
-            return;
-        }
-        String finalIdentity = currentStudioCacheIdentity();
-        if (!initialIdentity.equals(finalIdentity)) {
-            IrisLogging.warn("Studio packs changed during runtime compilation; shared generation caches are disabled.");
-            return;
-        }
-        runtime.generation().complex().enableStudioHydrologyCache(initialIdentity, studioHydrologyCacheRoot());
-        IrisLogging.debug("Enabled shared Studio hydrology cache identity="
-                + initialIdentity.substring(0, Math.min(12, initialIdentity.length())));
-    }
-
-    private Path studioHydrologyCacheRoot() {
-        Path packsRoot = IrisPlatforms.get().packsFolderNoCreate().toPath().toAbsolutePath().normalize();
-        Path packRoot = packsRoot.resolve(getDimension().getLoadKey()).normalize();
-        if (!packRoot.startsWith(packsRoot)) {
-            throw new IllegalStateException("Studio dimension key resolves outside the Iris packs folder.");
-        }
-        return packRoot.resolve(".iris").resolve("studio-hydrology");
     }
 
     public void startEntryHydrology(int blockX, int blockZ) {

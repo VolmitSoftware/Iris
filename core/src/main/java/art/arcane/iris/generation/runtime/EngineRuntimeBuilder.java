@@ -57,13 +57,14 @@ final class EngineRuntimeBuilder {
         this.engine = engine;
     }
 
-    EngineRuntime buildRuntime() {
+    EngineRuntime buildRuntime(PreparedHydrologyCacheIdentity cacheIdentity) {
         return buildRuntime(
                 engine.getTarget(),
                 engine.getInitialMantleStorageDirectory(),
                 engine.getInitialKernelVersion(),
                 engine.getInitialTransitionPlan(),
-                null);
+                null,
+                cacheIdentity);
     }
 
     EngineRuntime buildRuntime(EngineTarget runtimeTarget) {
@@ -73,7 +74,9 @@ final class EngineRuntimeBuilder {
                 active.mantleStorageDirectory(),
                 active.kernelVersion(),
                 active.transitionPlan(),
-                active.mantle());
+                active.mantle(),
+                PreparedHydrologyCacheIdentity.capture(runtimeTarget, selectRuntimeKernel(active.kernelVersion()),
+                        active.transitionPlan(), engine.isStudio()));
     }
 
     private EngineRuntime buildRuntime(
@@ -81,7 +84,8 @@ final class EngineRuntimeBuilder {
             Path mantleStorageDirectory,
             GenerationKernelRegistry.Version kernelVersion,
             TransitionGenerationPlan transitionPlan,
-            EngineMantle transferredMantle
+            EngineMantle transferredMantle,
+            PreparedHydrologyCacheIdentity cacheIdentity
     ) {
         RuntimeAssembly assembly = new RuntimeAssembly(
                 RuntimeAssembly.nextRuntimeId(),
@@ -135,6 +139,7 @@ final class EngineRuntimeBuilder {
             }
             IrisLogging.debug("[IrisEngine timing] IrisWorldManager=" + (M.ms() - started) + "ms");
             BiomeMaxes biomeMaxes = computeBiomeMaxes();
+            enablePreparedCache(assembly, cacheIdentity, engine.isStudio());
             return assembly.freezeRuntime(biomeMaxes);
         } catch (Throwable e) {
             Throwable cleanupFailure = engine.shutdownSequence.closeAssembly(assembly, e);
@@ -167,6 +172,8 @@ final class EngineRuntimeBuilder {
                 mantleStorageDirectory,
                 selectRuntimeKernel(kernelVersion),
                 transitionPlan);
+        PreparedHydrologyCacheIdentity cacheIdentity = PreparedHydrologyCacheIdentity.capture(
+                runtimeTarget, assembly.runtimeKernel, transitionPlan, engine.isStudio());
         engine.runtimeAssembly.set(assembly);
         try (IrisContext.Scope ignored = IrisContext.open(engine, engine.getGenerationSessions().currentSessionId(), null)) {
             IrisLogging.debug("Setup Detached Generation Runtime " + assembly.cacheId);
@@ -184,7 +191,9 @@ final class EngineRuntimeBuilder {
                     assembly.mode,
                     assembly.dimensionStackContext
             );
-            return assembly.freezeGeneration(computeBiomeMaxes());
+            BiomeMaxes biomeMaxes = computeBiomeMaxes();
+            enablePreparedCache(assembly, cacheIdentity, engine.isStudio());
+            return assembly.freezeGeneration(biomeMaxes);
         } catch (Throwable e) {
             Throwable cleanupFailure = engine.shutdownSequence.closeAssembly(assembly, e);
             if (cleanupFailure != e) {
@@ -193,6 +202,12 @@ final class EngineRuntimeBuilder {
             throw new IllegalStateException("Failed to build a detached Iris generation runtime.", e);
         } finally {
             engine.runtimeAssembly.remove();
+        }
+    }
+
+    static void enablePreparedCache(RuntimeAssembly assembly, PreparedHydrologyCacheIdentity identity, boolean studio) {
+        if (identity != null) {
+            identity.enableIfUnchanged(assembly.target, assembly.runtimeKernel, assembly.transitionPlan, assembly.complex, studio);
         }
     }
 

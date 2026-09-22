@@ -492,14 +492,6 @@ final class HydrologyTributaryPlanner {
             }
         }
         ArrayList<HydraulicSegment> segments = new ArrayList<>(result.segments());
-        // Where the two channels touch, the tributary must sit at the lowest stem water it reaches.
-        double touch = stemWidths.get(stemIndex) + lastWidth(result) + 1D;
-        for (int index = 0; index < stemStations.size(); index++) {
-            HydrologyPoint station = stemStations.get(index);
-            if (station.distanceSquared2D(joinStation) <= touch * touch) {
-                stemHead = Math.min(stemHead, station.y());
-            }
-        }
         if (segments.getLast().downstreamHeadY() < stemHead) {
             int shortfall = stemHead - segments.getLast().downstreamHeadY();
             if (shortfall > TRIBUTARY_BACKWATER_LIMIT) {

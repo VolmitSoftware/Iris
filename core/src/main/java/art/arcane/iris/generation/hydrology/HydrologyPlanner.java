@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -701,7 +700,6 @@ public final class HydrologyPlanner {
         final HashMap<UndergroundSegmentCapKey, Integer> undergroundSegmentCaps;
         final HashMap<Long, HydrologyPoint> routeAnchors;
         final HashMap<Long, HydrologyPoint> surfaceRouteAnchors;
-        final IdentityHashMap<HydrologySampledGrid, HashMap<SurfaceRouteKey, List<HydrologyPoint>>> surfaceRoutes;
         final HydrologyCaveCourseFilter.CandidateCache caveCandidates;
         final HydrologyCaveContainmentPlanner.ValidationCache caveValidations;
 
@@ -723,7 +721,6 @@ public final class HydrologyPlanner {
             this.undergroundSegmentCaps = new HashMap<>();
             this.routeAnchors = new HashMap<>();
             this.surfaceRouteAnchors = new HashMap<>();
-            this.surfaceRoutes = new IdentityHashMap<>();
             this.caveCandidates = new HydrologyCaveCourseFilter.CandidateCache();
             this.caveValidations = new HydrologyCaveContainmentPlanner.ValidationCache();
         }

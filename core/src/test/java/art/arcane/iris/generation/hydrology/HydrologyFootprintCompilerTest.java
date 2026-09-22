@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.hydrology;
 
+import art.arcane.iris.generation.hydrology.policy.SurfaceRiverPolicy;
 import org.junit.Test;
 
 import java.util.ArrayDeque;
@@ -1508,7 +1509,7 @@ public class HydrologyFootprintCompilerTest {
     }
 
     @Test
-    public void lowBanksKeepTheirNaturalHeightAndReportUncontainedWater() {
+    public void lowBanksFillWithinTheirPolicyAndReportRemainingUncontainedWater() {
         HydraulicSegment channel = new HydraulicSegment(
                 529L,
                 528L,
@@ -1539,25 +1540,25 @@ public class HydrologyFootprintCompilerTest {
         HydrologyFootprintCompiler lowBankCompiler = compiler(lowBankTerrain);
         RiverFootprint lowBankFootprint = lowBankCompiler.compile(List.of(course));
         HydrologyColumnSample lowBank = lowBankFootprint.sample(12, lowBankZ).orElseThrow();
-        HydrologyTerrainSampler deepBankTerrain = (int x, int z) -> HydrologyTerrainSample.openLand(
-                x == 12 && z == lowBankZ ? 68 : 82,
-                0D,
-                "parent"
-        );
+        SurfaceRiverPolicy oneBlockFill = new SurfaceRiverPolicy("restricted-bank",
+                null, null, null, null, null, null, 1);
+        HydrologyTerrainSampler deepBankTerrain = (int x, int z) -> x == 12 && z == lowBankZ
+                ? HydrologyTerrainSample.openLand(68, 0D, "parent").withSurfacePolicy(oneBlockFill)
+                : HydrologyTerrainSample.openLand(82, 0D, "parent");
         RiverFootprint deepBankFootprint = compiler(deepBankTerrain).compile(List.of(course));
         HydrologyColumnSample deepBank = deepBankFootprint.sample(12, lowBankZ).orElseThrow();
 
         assertEquals(0, unsupportedBankCells(highFootprint, 528L));
-        // A low bank remains below the water and is reported without raising terrain.
         assertEquals(69, lowBank.naturalHeight());
-        assertEquals(69, lowBank.terrainHeight());
-        assertTrue(unsupportedBankCells(lowBankFootprint, 528L) > 0);
+        assertEquals(70, lowBank.terrainHeight());
+        assertEquals(0, unsupportedBankCells(lowBankFootprint, 528L));
         for (HydrologyColumnSample sample : lowBankFootprint.columns().values()) {
-            assertTrue(sample.terrainHeight() <= sample.naturalHeight());
+            HydrologyColumnLayer layer = sample.primarySurfaceLayerOrNull();
+            int fillLimit = layer != null && layer.channel() ? 0 : 8;
+            assertTrue(sample.terrainHeight() - sample.naturalHeight() <= fillLimit);
         }
-        // Two blocks short: the bank keeps its natural height and the edge is reported.
         assertEquals(68, deepBank.naturalHeight());
-        assertEquals(68, deepBank.terrainHeight());
+        assertEquals(69, deepBank.terrainHeight());
         assertTrue(unsupportedBankCells(deepBankFootprint, 528L) > 0);
     }
 

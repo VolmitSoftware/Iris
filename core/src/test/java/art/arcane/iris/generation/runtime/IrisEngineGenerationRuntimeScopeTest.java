@@ -841,7 +841,9 @@ public class IrisEngineGenerationRuntimeScopeTest {
     private static IrisBiome carvingBiome(IrisEngine engine, IrisDimensionCarvingResolver.State state) {
         IrisDimensionCarvingEntry root = IrisDimensionCarvingResolver.resolveRootEntry(engine, 80, state);
         IrisDimensionCarvingEntry child = IrisDimensionCarvingResolver.resolveFromRoot(engine, root, 19, -3, state);
-        return IrisDimensionCarvingResolver.resolveEntryBiome(engine, child, state);
+        IrisBiome expected = IrisDimensionCarvingResolver.resolveEntryBiome(engine, child, state);
+        assertSame(expected, IrisDimensionCarvingResolver.resolveBiome(engine, 19, 80, -3, state));
+        return expected;
     }
 
     private static GenerationHistoryRuntimeRouter historyRouter(IrisEngine engine) {

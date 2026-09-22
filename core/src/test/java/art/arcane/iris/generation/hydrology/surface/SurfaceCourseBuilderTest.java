@@ -13,6 +13,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -34,7 +35,8 @@ public class SurfaceCourseBuilderTest {
                 7L,
                 COURSE_ID,
                 "water",
-                List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(140, 0, 0), new HydrologyPoint(280, 0, 0)),
+                List.of(new HydrologyPoint(0, 110, 0), new HydrologyPoint(140, 87, 0),
+                        new HydrologyPoint(260, 67, 0), new HydrologyPoint(280, SEA_LEVEL, 0)),
                 SurfaceTerminal.OCEAN_MOUTH,
                 SEA_LEVEL,
                 64
@@ -72,7 +74,7 @@ public class SurfaceCourseBuilderTest {
                 7L,
                 COURSE_ID,
                 "water",
-                List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)),
+                List.of(new HydrologyPoint(0, 80, 0), new HydrologyPoint(200, 80, 0)),
                 SurfaceTerminal.SINKHOLE,
                 40,
                 64
@@ -86,13 +88,49 @@ public class SurfaceCourseBuilderTest {
     }
 
     @Test
+    public void coastalDropKeepsTheUpstreamGradedReachExposed() {
+        HydrologyPlannerSettings.Surface defaults = HydrologyPlannerSettings.defaults().surface();
+        HydrologyPlannerSettings.Surface surface = new HydrologyPlannerSettings.Surface(
+                defaults.enabled(), defaults.sources(), defaults.minimumWidth(), defaults.maximumWidth(),
+                defaults.minimumDepth(), defaults.maximumDepth(), defaults.maximumIncision(), defaults.shoreWidth(),
+                defaults.banks().withInlet(HydrologyPlannerSettings.Inlet.none()));
+        HydrologyTerrainSampler sampler = (x, z) -> x >= 40
+                ? HydrologyTerrainSample.ocean(50, "ocean")
+                : HydrologyTerrainSample.openLand(100 - x, 0D, "land");
+        SurfaceCourseBuilder builder = new SurfaceCourseBuilder(surface, sampler, CONSTANT_GEOMETRY, SEA_LEVEL);
+        List<HydrologyPoint> path = List.of(new HydrologyPoint(0, 100, 0), new HydrologyPoint(40, SEA_LEVEL, 0));
+        SurfaceCourseResult result = builder.build(7L, COURSE_ID, "water", path,
+                SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL, 16);
+
+        assertNull(result.rejection());
+        assertEquals(2, result.segments().size());
+        HydraulicSegment approach = result.segments().getFirst();
+        HydraulicSegment drop = result.segments().getLast();
+        assertEquals(HydrologyFeatureType.CASCADE, approach.type());
+        assertFalse(approach.fallingFluid());
+        assertEquals(100, approach.upstreamHeadY());
+        assertEquals(61, approach.downstreamHeadY());
+        assertEquals(new HydrologyPoint(20, 80, 0), approach.centerline().get(20));
+        assertEquals(HydrologyFeatureType.RIFFLE, drop.type());
+        assertTrue(drop.fallingFluid());
+        assertTrue(drop.receivingPool());
+        assertEquals(List.of(new HydrologyPoint(39, 61, 0), new HydrologyPoint(40, 60, 0)), drop.centerline());
+        assertEquals(approach.channelProfile().widthAt(39), drop.channelProfile().widthAt(0), 0D);
+        assertEquals(approach.channelProfile().depthAt(39), drop.channelProfile().depthAt(0), 0D);
+        assertTrue(approach.id() != drop.id());
+        assertEquals(result, builder.build(7L, COURSE_ID, "water", path,
+                SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL, 16));
+    }
+
+    @Test
     public void cliffProducesAWaterfallSegment() {
         HydrologyTerrainSampler sampler = (int x, int z) -> HydrologyTerrainSample.openLand(x < 100 ? 100 : 90, 0D, "land");
         SurfaceCourseResult result = builder(sampler).build(
                 7L,
                 COURSE_ID,
                 "water",
-                List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)),
+                List.of(new HydrologyPoint(0, 100, 0), new HydrologyPoint(99, 100, 0),
+                        new HydrologyPoint(100, 90, 0), new HydrologyPoint(200, 90, 0)),
                 SurfaceTerminal.SINKHOLE,
                 40,
                 64
@@ -107,13 +145,31 @@ public class SurfaceCourseBuilderTest {
     }
 
     @Test
+    public void cliffIntoTheOceanUsesFallingFluidInsteadOfAnInlandSeaLevelChannel() {
+        HydrologyTerrainSampler sampler = (x, z) -> x >= 100
+                ? HydrologyTerrainSample.ocean(50, "ocean")
+                : HydrologyTerrainSample.openLand(100, 0D, "land");
+        SurfaceCourseResult result = builder(sampler).build(7L, COURSE_ID, "water",
+                List.of(new HydrologyPoint(0, 97, 0), new HydrologyPoint(99, 97, 0),
+                        new HydrologyPoint(100, SEA_LEVEL, 0)), SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL, 64);
+
+        assertNull(result.rejection());
+        HydraulicSegment fall = result.segments().getLast();
+        assertEquals(HydrologyFeatureType.WATERFALL, fall.type());
+        assertTrue(fall.fallingFluid());
+        assertTrue(fall.receivingPool());
+        assertEquals(SEA_LEVEL, fall.downstreamHeadY());
+        assertEquals(100, fall.end().x());
+    }
+
+    @Test
     public void gentleSlopeProducesRifflesAndSteepSlopeProducesCascades() {
         HydrologyTerrainSampler gentle = (int x, int z) -> HydrologyTerrainSample.openLand(120 - x / 10, 0D, "land");
         SurfaceCourseResult gentleResult = builder(gentle).build(7L, COURSE_ID, "water",
-                List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)), SurfaceTerminal.SINKHOLE, 40, 64);
+                List.of(new HydrologyPoint(0, 120, 0), new HydrologyPoint(200, 100, 0)), SurfaceTerminal.SINKHOLE, 40, 64);
         HydrologyTerrainSampler steep = (int x, int z) -> HydrologyTerrainSample.openLand(300 - x, 0D, "land");
         SurfaceCourseResult steepResult = builder(steep).build(7L, COURSE_ID, "water",
-                List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)), SurfaceTerminal.SINKHOLE, 40, 64);
+                List.of(new HydrologyPoint(0, 300, 0), new HydrologyPoint(200, 100, 0)), SurfaceTerminal.SINKHOLE, 40, 64);
 
         assertNull(gentleResult.rejection());
         assertNull("detail=" + steepResult.rejectionDetail(), steepResult.rejection());
@@ -138,7 +194,7 @@ public class SurfaceCourseBuilderTest {
                 7L,
                 COURSE_ID,
                 "water",
-                List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)),
+                List.of(new HydrologyPoint(0, 50, 0), new HydrologyPoint(200, 50, 0)),
                 SurfaceTerminal.OCEAN_MOUTH,
                 SEA_LEVEL,
                 64
@@ -153,7 +209,8 @@ public class SurfaceCourseBuilderTest {
         HydrologyTerrainSampler sampler = (int x, int z) -> x >= 240
                 ? HydrologyTerrainSample.ocean(50, "ocean")
                 : HydrologyTerrainSample.openLand(100 - x / 6, 0D, "land");
-        List<HydrologyPoint> path = List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(241, 0, 0));
+        List<HydrologyPoint> path = List.of(new HydrologyPoint(0, 100, 0), new HydrologyPoint(239, 61, 0),
+                new HydrologyPoint(240, SEA_LEVEL, 0), new HydrologyPoint(241, SEA_LEVEL, 0));
         HydrologyPlannerSettings.Surface defaults = HydrologyPlannerSettings.defaults().surface();
         HydrologyPlannerSettings.Inlet inlet = defaults.banks().inlet();
         SurfaceCourseResult result = builder(sampler).build(7L, COURSE_ID, "water", path, SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL, 64);

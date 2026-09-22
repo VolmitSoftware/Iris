@@ -79,6 +79,8 @@ final class EngineHotloader {
                         previousGeneration.mantleStorageDirectory(),
                         previousGeneration.runtimeKernel(),
                         previousGeneration.transitionPlan());
+                PreparedHydrologyCacheIdentity cacheIdentity = PreparedHydrologyCacheIdentity.capture(
+                        assembly.target, assembly.runtimeKernel, assembly.transitionPlan, engine.isStudio());
                 engine.runtimeAssembly.set(assembly);
                 EngineRuntime next;
                 try (IrisContext.Scope ignored = IrisContext.open(engine, engine.getGenerationSessions().currentSessionId(), null)) {
@@ -86,6 +88,7 @@ final class EngineHotloader {
                     assembly.dimensionStackContext = assembly.runtimeKernel.createDimensionStackContext(engine);
                     assembly.upperContext = assembly.runtimeKernel.createUpperContext(engine);
                     BiomeMaxes biomeMaxes = engine.runtimeBuilder.computeBiomeMaxes();
+                    EngineRuntimeBuilder.enablePreparedCache(assembly, cacheIdentity, engine.isStudio());
                     GenerationRuntime nextGeneration = previousGeneration.withComplex(
                             assembly.cacheId,
                             assembly.complex,

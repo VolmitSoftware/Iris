@@ -2,6 +2,7 @@ package art.arcane.iris.generation.hydrology.surface;
 
 import art.arcane.iris.generation.hydrology.HydraulicChannelProfile;
 import art.arcane.iris.generation.hydrology.HydraulicSegment;
+import art.arcane.iris.generation.hydrology.HydrologyCandidateRejection;
 import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
 import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
@@ -132,6 +133,33 @@ public class SurfaceFootprintCompilerTest {
     }
 
     @Test
+    public void plannedCoastalWaterfallRetainsAConnectedOceanReceiverWithoutCuttingTheCliffToSeaLevel() {
+        int seaLevel = HydrologyPlannerSettings.defaults().seaLevel();
+        HydrologyTerrainSampler sampler = (x, z) -> x >= 100
+                ? HydrologyTerrainSample.ocean(50, "ocean")
+                : HydrologyTerrainSample.openLand(100, 0D, "land");
+        SurfaceCourseResult result = new SurfaceCourseBuilder(HydrologyPlannerSettings.defaults().surface(),
+                sampler, CONSTANT_GEOMETRY, seaLevel).build(7L, 1L, "water",
+                List.of(new HydrologyPoint(0, 97, 0), new HydrologyPoint(99, 97, 0),
+                        new HydrologyPoint(100, seaLevel, 0)), SurfaceTerminal.OCEAN_MOUTH, seaLevel, 64);
+        assertNull(result.rejection());
+        ArrayList<HydraulicSegment> segments = new ArrayList<>(result.segments());
+        segments.add(segment(77L, HydrologyFeatureType.MOUTH, seaLevel, seaLevel,
+                List.of(result.pathEnd())));
+        SurfaceFootprint footprint = compiler(sampler).compile(course(segments));
+
+        assertNull(footprint.rejection());
+        assertEquals(0, footprint.uncontainedWetCells());
+        assertTrue(footprint.columns().stream().anyMatch(column -> column.layer().channel()
+                && column.layer().fluidOwned() && column.layer().fluidHeadY() == 97));
+        for (SurfaceLayerColumn column : footprint.columns()) {
+            if (!column.apron() && column.role() == SurfaceRole.CHANNEL) {
+                assertTrue(column.layer().bedY() >= 90);
+            }
+        }
+    }
+
+    @Test
     public void mouthOverTheOceanPublishesOnlyANonOwningApron() {
         HydrologyTerrainSampler sampler = (int x, int z) -> x >= 100
                 ? HydrologyTerrainSample.ocean(50, "ocean")
@@ -213,12 +241,100 @@ public class SurfaceFootprintCompilerTest {
     }
 
     @Test
+    public void inletAllowanceSurvivesAFallWithoutReachingOrdinaryUpstreamTerrain() {
+        HydrologyPlannerSettings defaults = HydrologyPlannerSettings.defaults();
+        HydrologyPlannerSettings.Banks banks = defaults.surface().banks();
+        HydrologyPlannerSettings.Erosion erosion = banks.erosion();
+        HydrologyPlannerSettings.Erosion expandedVolume = new HydrologyPlannerSettings.Erosion(
+                erosion.enabled(), erosion.smoothingRadius(), erosion.thalwegFraction(), erosion.blendCurve(),
+                erosion.bedNoise(), erosion.style(), erosion.terraceSteps(), erosion.cliffFraction(), erosion.bedProfile(),
+                erosion.shoreRise(), erosion.blendBaseWidth(), new HydrologyPlannerSettings.Excavation(8, 16, 512));
+        HydrologyPlannerSettings.Banks expandedBanks = new HydrologyPlannerSettings.Banks(
+                banks.sink(), banks.blendSlope(), banks.minimumBlendWidth(), banks.maximumBlendWidth(), banks.roughness(),
+                banks.roughnessWavelength(), banks.cascadeRun(), banks.waterfallMinimumDrop(), banks.mouthFlareRatio(),
+                banks.inlet(), banks.springWidthRatio(), banks.springLength(), banks.exposeCutStrata(), expandedVolume,
+                banks.ponds(), banks.channel(), banks.flow());
+        HydrologyPlannerSettings.Surface originalSurface = defaults.surface();
+        HydrologyPlannerSettings.Surface surface = new HydrologyPlannerSettings.Surface(
+                originalSurface.enabled(), originalSurface.sources(), originalSurface.minimumWidth(), originalSurface.maximumWidth(),
+                originalSurface.minimumDepth(), originalSurface.maximumDepth(), originalSurface.maximumIncision(),
+                originalSurface.shoreWidth(), expandedBanks);
+        HydrologyPlannerSettings settings = new HydrologyPlannerSettings(defaults.seaLevel(), defaults.routing(), surface,
+                defaults.hydraulics(), defaults.underground(), defaults.outlets(), defaults.geometry(), defaults.deepFluids(),
+                defaults.surfacePools(), defaults.widestShoreBiomeWidth(), defaults.seaCaves(), defaults.surfacePolicyBounds());
+        int seaLevel = settings.seaLevel();
+        int upstreamHead = seaLevel + 22;
+        int downstreamHead = seaLevel + 12;
+        HydrologyTerrainSampler sampler = (x, z) -> x >= 200
+                ? HydrologyTerrainSample.ocean(50, "ocean")
+                : HydrologyTerrainSample.openLand(x >= 120 && x <= 135 ? 100 : x < 151 ? 90 : 80, 0D, "land");
+        HydraulicSegment fall = new HydraulicSegment(2L, 1L, HydrologyFeatureType.WATERFALL,
+                upstreamHead, downstreamHead, 6, 3, true, true,
+                List.of(new HydrologyPoint(150, upstreamHead, 0), new HydrologyPoint(151, downstreamHead, 0)),
+                HydraulicChannelProfile.uniform(6, 3));
+        ArrayList<HydrologyPoint> ramp = new ArrayList<>();
+        for (int x = 180; x <= 192; x++) {
+            ramp.add(new HydrologyPoint(x, downstreamHead - (x - 180), 0));
+        }
+        RiverCourse course = course(List.of(
+                segment(1L, HydrologyFeatureType.SURFACE_POOL, upstreamHead, upstreamHead, points(0, 149, upstreamHead)),
+                fall,
+                segment(3L, HydrologyFeatureType.SURFACE_POOL, downstreamHead, downstreamHead, points(151, 180, downstreamHead)),
+                segment(4L, HydrologyFeatureType.CASCADE, downstreamHead, seaLevel, ramp),
+                segment(5L, HydrologyFeatureType.SURFACE_POOL, seaLevel, seaLevel, points(192, 199, seaLevel)),
+                segment(6L, HydrologyFeatureType.MOUTH, seaLevel, seaLevel, points(199, 201, seaLevel))));
+        SurfaceFootprintCompiler compiler = new SurfaceFootprintCompiler(settings, sampler, CONSTANT_GEOMETRY);
+        SurfaceFootprint full = compiler.compile(course);
+
+        assertNull("detail=" + full.rejectionDetail(), full.rejection());
+        assertEquals(0, full.uncontainedWetCells());
+        for (int x : new int[]{130, 195}) {
+            SurfaceLayerColumn channel = column(full, x, 0);
+            assertNotNull(channel);
+            assertTrue(channel.layer().channel());
+            assertEquals(x == 130 ? upstreamHead : seaLevel, channel.layer().fluidHeadY());
+            int cut = channel.terrain().naturalHeight() - channel.layer().bedY();
+            assertTrue(cut > settings.surface().maximumIncision());
+            assertTrue(cut <= settings.surface().banks().inlet().maximumIncision());
+        }
+        for (SurfaceBounds bounds : List.of(new SurfaceBounds(112, -8, 159, 8), new SurfaceBounds(144, -8, 199, 8))) {
+            SurfaceFootprint bounded = compiler.compile(course, bounds);
+            assertNull(bounded.rejection());
+            assertEquals(full.columns().stream().filter(value -> bounds.contains(value.x(), value.z())).toList(),
+                    bounded.columns());
+        }
+        HydrologyTerrainSampler upstreamRidge = (x, z) -> x == 60
+                ? HydrologyTerrainSample.openLand(100, 0D, "land") : sampler.sample(x, z);
+        SurfaceFootprint rejected = new SurfaceFootprintCompiler(settings, upstreamRidge, CONSTANT_GEOMETRY).compile(course);
+        assertEquals(HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED, rejected.rejection());
+    }
+
+    @Test
+    public void standaloneMouthKeepsItsInletBudgetWithinTheDryCourseFraction() {
+        int seaLevel = HydrologyPlannerSettings.defaults().seaLevel();
+        for (int coast : new int[]{8, 100}) {
+            int ridgeX = Math.max(1, coast / 10);
+            HydrologyTerrainSampler sampler = (x, z) -> x >= coast
+                    ? HydrologyTerrainSample.ocean(50, "ocean")
+                    : HydrologyTerrainSample.openLand(x == ridgeX ? 85 : 70, 0D, "land");
+            RiverCourse mouth = course(List.of(segment(1L, HydrologyFeatureType.MOUTH,
+                    seaLevel, seaLevel, points(0, coast + 1, seaLevel))));
+
+            SurfaceFootprint rejected = compiler(sampler).compile(mouth);
+
+            assertEquals("coast=" + coast, HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED,
+                    rejected.rejection());
+        }
+    }
+
+    @Test
     public void aContainedFallRetainsBothExposedRunsAndWholeCourseStationIndices() {
         HydrologyTerrainSampler sampler = (int x, int z) -> HydrologyTerrainSample.openLand(x < 100 ? 100 : 90, 0D, "land");
         HydrologyPlannerSettings settings = HydrologyPlannerSettings.defaults();
         SurfaceCourseResult built = new SurfaceCourseBuilder(settings.surface(), sampler, CONSTANT_GEOMETRY, SEA_LEVEL)
-                .build(7L, 1L, "water", List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)),
-                        SurfaceTerminal.TRIBUTARY, 40, 64);
+                .build(7L, 1L, "water", List.of(new HydrologyPoint(0, 100, 0), new HydrologyPoint(99, 100, 0),
+                                new HydrologyPoint(100, 90, 0), new HydrologyPoint(200, 90, 0)),
+                        SurfaceTerminal.TRIBUTARY, 90, 64);
         assertNull(built.rejection());
         RiverCourse course = course(built.segments());
         HydraulicSegment fall = course.segments().stream().filter(HydraulicSegment::fallingFluid).findFirst().orElseThrow();
@@ -246,7 +362,13 @@ public class SurfaceFootprintCompilerTest {
         assertEquals(full.columns().stream().filter(value -> bounds.contains(value.x(), value.z())).toList(), bounded.columns());
         for (SurfaceLayerColumn value : full.columns()) {
             if (value.layer().terrainOwned()) {
-                assertTrue(value.layer().bedY() <= value.terrain().naturalHeight());
+                int fill = value.layer().bedY() - value.terrain().naturalHeight();
+                if (value.layer().channel()) {
+                    assertTrue(fill <= 0);
+                } else {
+                    assertTrue(fill <= settings.surface().maximumIncision());
+                    assertTrue(fill <= settings.surface().banks().erosion().excavation().maximumDepth());
+                }
             }
         }
     }
@@ -256,8 +378,8 @@ public class SurfaceFootprintCompilerTest {
         HydrologyTerrainSampler sampler = (int x, int z) -> HydrologyTerrainSample.openLand(300 - x, 0D, "land");
         HydrologyPlannerSettings settings = HydrologyPlannerSettings.defaults();
         SurfaceCourseResult built = new SurfaceCourseBuilder(settings.surface(), sampler, CONSTANT_GEOMETRY, SEA_LEVEL)
-                .build(7L, 1L, "water", List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 0)),
-                        SurfaceTerminal.TRIBUTARY, 40, 64);
+                .build(7L, 1L, "water", List.of(new HydrologyPoint(0, 300, 0), new HydrologyPoint(200, 100, 0)),
+                        SurfaceTerminal.TRIBUTARY, 100, 64);
         assertNull("detail=" + built.rejectionDetail(), built.rejection());
         SurfaceFootprint footprint = compiler(sampler).compile(course(built.segments()));
         assertNull("detail=" + footprint.rejectionDetail(), footprint.rejection());
@@ -276,8 +398,9 @@ public class SurfaceFootprintCompilerTest {
                 x + z < 200 ? 100 : 86, 0D, "land");
         HydrologyPlannerSettings settings = HydrologyPlannerSettings.defaults();
         SurfaceCourseResult built = new SurfaceCourseBuilder(settings.surface(), sampler, CONSTANT_GEOMETRY, SEA_LEVEL)
-                .build(7L, 1L, "water", List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(200, 0, 200)),
-                        SurfaceTerminal.TRIBUTARY, 40, 64);
+                .build(7L, 1L, "water", List.of(new HydrologyPoint(0, 100, 0), new HydrologyPoint(99, 100, 99),
+                                new HydrologyPoint(100, 86, 100), new HydrologyPoint(200, 86, 200)),
+                        SurfaceTerminal.TRIBUTARY, 86, 64);
         assertNull(built.rejection());
         RiverCourse course = course(built.segments());
         assertTrue(course.segments().stream().anyMatch(segment -> segment.fallingFluid() && segment.drop() == 14));
@@ -311,8 +434,9 @@ public class SurfaceFootprintCompilerTest {
                 : HydrologyTerrainSample.openLand((x < 100 ? 100 : 90) + Math.abs(z) / 3, 0D, "land");
         SurfaceCourseResult built = new SurfaceCourseBuilder(HydrologyPlannerSettings.defaults().surface(), sampler,
                 CONSTANT_GEOMETRY, SEA_LEVEL).build(7L, 1L, "water",
-                List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(180, 0, 0)),
-                SurfaceTerminal.TRIBUTARY, 40, 64);
+                List.of(new HydrologyPoint(0, 100, 0), new HydrologyPoint(99, 100, 0),
+                        new HydrologyPoint(100, 90, 0), new HydrologyPoint(180, 90, 0)),
+                SurfaceTerminal.TRIBUTARY, 90, 64);
         assertNull(built.rejection());
         RiverCourse falling = course(built.segments());
         RiverCourse mouth = course(List.of(segment(1L, HydrologyFeatureType.MOUTH, SEA_LEVEL, SEA_LEVEL,

@@ -3,6 +3,9 @@ package art.arcane.iris.world.pregen;
 import art.arcane.volmlib.util.math.Position2;
 import org.junit.Test;
 
+import java.util.LinkedHashSet;
+import java.util.concurrent.atomic.AtomicLong;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -55,7 +58,7 @@ public class PregenTaskBoundsOverflowTest {
         int[] bounds = task.regionBounds();
 
         assertEquals(-58594, bounds[0]);
-        assertEquals(58594, bounds[2]);
+        assertEquals(58593, bounds[2]);
     }
 
     @Test
@@ -94,11 +97,65 @@ public class PregenTaskBoundsOverflowTest {
     }
 
     @Test
+    public void thousandBlockRadiusVisitsOnlyTheSixteenOccupiedRegions() {
+        PregenTask task = PregenTask.builder().radiusX(1000).radiusZ(1000).build();
+
+        assertArrayEqualsMessage(new int[]{-63, -63, 63, 63}, task.chunkBounds());
+        assertArrayEqualsMessage(new int[]{-2, -2, 1, 1}, task.regionBounds());
+        assertEquals(16_129L, task.chunkCount());
+        assertRegionTraversal(task);
+    }
+
+    @Test
+    public void asymmetricRegionTraversalRetainsEveryChunkAndStartsAtTheCenter() {
+        int[][] areas = {
+                {0, 0, 1, 1},
+                {497, -497, 1, 17},
+                {-513, 511, 32, 17},
+                {511, -513, 1000, 32},
+                {512, -512, 512, 256},
+                {0, 0, 1024, 512},
+                {PregenTask.MAX_WORLD_BLOCK - 32, 0, 32, 1},
+                {0, -PregenTask.MAX_WORLD_BLOCK + 32, 1, 32}
+        };
+        for (int[] area : areas) {
+            PregenTask task = PregenTask.builder()
+                    .center(new Position2(area[0], area[1]))
+                    .radiusX(area[2])
+                    .radiusZ(area[3])
+                    .build();
+            assertRegionTraversal(task);
+        }
+    }
+
+    @Test
     public void clampSaturatesInsteadOfWrapping() {
         assertEquals(Integer.MAX_VALUE, PregenTask.clampBlock((long) Integer.MAX_VALUE + 1L));
         assertEquals(Integer.MIN_VALUE, PregenTask.clampBlock((long) Integer.MIN_VALUE - 1L));
         assertEquals(0, PregenTask.clampBlock(0L));
         assertEquals(-7, PregenTask.clampBlock(-7L));
+    }
+
+    private static void assertRegionTraversal(PregenTask task) {
+        int[] chunks = task.chunkBounds();
+        LinkedHashSet<Position2> expected = new LinkedHashSet<>();
+        for (int regionX = chunks[0] >> 5; regionX <= chunks[2] >> 5; regionX++) {
+            for (int regionZ = chunks[1] >> 5; regionZ <= chunks[3] >> 5; regionZ++) {
+                expected.add(new Position2(regionX, regionZ));
+            }
+        }
+        LinkedHashSet<Position2> actual = new LinkedHashSet<>();
+        AtomicLong visitedChunks = new AtomicLong();
+        task.iterateRegions((regionX, regionZ) -> {
+            assertTrue(actual.add(new Position2(regionX, regionZ)));
+            long before = visitedChunks.get();
+            task.iterateChunks(regionX, regionZ, (chunkX, chunkZ) -> visitedChunks.incrementAndGet());
+            assertTrue(visitedChunks.get() > before);
+        });
+
+        assertEquals(expected, actual);
+        assertEquals(new Position2(task.getCenter().getX() >> 9, task.getCenter().getZ() >> 9), actual.getFirst());
+        assertEquals(task.chunkCount(), visitedChunks.get());
     }
 
     private static void assertArrayEqualsMessage(int[] expected, int[] actual) {

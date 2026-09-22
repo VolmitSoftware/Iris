@@ -2,6 +2,15 @@ package art.arcane.iris.platform.generation;
 
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.world.history.GenerationActivation;
+import art.arcane.iris.world.history.GenerationEpoch;
+import art.arcane.iris.world.history.GenerationHistoryPaths;
+import art.arcane.iris.world.history.GenerationKernelRegistry;
+import art.arcane.iris.world.history.GenerationRegistryContract;
+import org.mockito.MockedConstruction;
+import java.lang.reflect.Method;
+import static org.mockito.Mockito.mockConstruction;
 import art.arcane.iris.generation.runtime.EngineTarget;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.world.history.GenerationHistory;
@@ -23,6 +32,30 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class BukkitChunkGeneratorHistoryTargetTest {
+    @Test
+    public void selectedFrozenRegistryIsBoundBeforeRuntimeConstruction() throws Exception {
+        Fixture fixture = new Fixture();
+        GenerationActivation activation = mock(GenerationActivation.class);
+        GenerationEpoch epoch = mock(GenerationEpoch.class);
+        GenerationRegistryContract registry = mock(GenerationRegistryContract.class);
+        GenerationHistoryPaths paths = mock(GenerationHistoryPaths.class);
+        when(fixture.history.activeActivation()).thenReturn(activation);
+        when(fixture.history.activeEpoch()).thenReturn(epoch);
+        when(fixture.history.paths()).thenReturn(paths);
+        when(activation.isInitial()).thenReturn(true);
+        when(activation.activationId()).thenReturn(1L);
+        when(epoch.registryContract()).thenReturn(registry);
+        when(epoch.kernelVersion()).thenReturn(new GenerationKernelRegistry.Version(1, 1, 1));
+        when(paths.activationMantleRoot(1L)).thenReturn(Path.of("generation", "mantle", "1"));
+        try (MockedConstruction<IrisEngine> engines = mockConstruction(IrisEngine.class,
+                (engine, context) -> verify(fixture.data).bindGenerationRegistryContract(registry))) {
+            Method create = BukkitChunkGenerator.class.getDeclaredMethod("createEngine", EngineTarget.class);
+            create.setAccessible(true);
+            Object created = create.invoke(fixture.generator, fixture.target);
+            assertSame(engines.constructed().getFirst(), created);
+        }
+    }
+
     @Test
     public void unchangedVerifiedPackRetainsThePreviouslyLoadedTarget() throws Exception {
         Fixture fixture = new Fixture();

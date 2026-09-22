@@ -24,6 +24,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.MockedStatic;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -43,6 +44,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 public class PackValidationRegistryTest {
     @Rule
@@ -137,7 +139,7 @@ public class PackValidationRegistryTest {
         Path mismatchedTarget = temporaryFolder.newFolder("copy-mismatched-target").toPath();
         PackValidationResult result = new PackValidationResult(
                 "source", List.of(), List.of("source warning"), 7L);
-        PackValidationRegistry.publish(sourceRoot, result, "fingerprint-a");
+        PackValidationRegistry.publish(sourceRoot, result, "fingerprint-a", PackValidationCache.contextFingerprint());
 
         assertSame(result, PackValidationRegistry.publishMatchingCopy(
                 sourceRoot,
@@ -152,12 +154,93 @@ public class PackValidationRegistryTest {
     }
 
     @Test
+    public void matchingLookupRetainsRootGenerationAndRejectsMutation() throws Exception {
+        Path packRoot = temporaryFolder.newFolder("matching-source").toPath();
+        PackValidationResult validation = new PackValidationResult("source", List.of(), List.of(), 11L);
+        PackValidationRegistry.publish(packRoot, validation, "fingerprint-a", PackValidationCache.contextFingerprint());
+        PackValidationRegistry.ValidationTicket ticket = PackValidationRegistry.tryBeginValidation(packRoot);
+
+        assertSame(validation, PackValidationRegistry.getMatching(packRoot, "fingerprint-a"));
+        assertNull(PackValidationRegistry.getMatching(packRoot, "fingerprint-b"));
+        assertTrue(PackValidationRegistry.publishIfCurrent(ticket, validation));
+        assertNull(PackValidationRegistry.getMatching(packRoot, "fingerprint-a"));
+
+        PackValidationRegistry.publish(packRoot, validation, "fingerprint-a", PackValidationCache.contextFingerprint());
+        try (PackValidationRegistry.RootMutation mutation = PackValidationRegistry.beginRootMutation(packRoot)) {
+            assertNull(PackValidationRegistry.getMatching(packRoot, "fingerprint-a"));
+            mutation.stage(validation);
+            mutation.commit();
+        }
+        assertNull(PackValidationRegistry.getMatching(packRoot, "fingerprint-a"));
+    }
+
+    @Test
+    public void changedValidationContextRejectsSourceAndCopiedReuse() throws Exception {
+        Path source = temporaryFolder.newFolder("context-source").toPath();
+        Path target = temporaryFolder.newFolder("context-copy").toPath();
+        PackValidationResult validation = new PackValidationResult("source", List.of(), List.of(), 13L);
+        try (MockedStatic<PackValidationCache> context = mockStatic(PackValidationCache.class)) {
+            context.when(PackValidationCache::contextFingerprint).thenReturn("original-context");
+            PackValidationRegistry.publish(source, validation, "fingerprint-a", PackValidationCache.contextFingerprint());
+            assertSame(validation, PackValidationRegistry.getMatching(source, "fingerprint-a"));
+
+            context.when(PackValidationCache::contextFingerprint).thenReturn("changed-context");
+            assertNull(PackValidationRegistry.getMatching(source, "fingerprint-a"));
+            assertNull(PackValidationRegistry.publishMatchingCopy(source, target, "fingerprint-a"));
+            assertNull(PackValidationRegistry.get(target));
+        }
+    }
+
+    @Test
+    public void changedContextBeforePublicationCannotAuthorizeFingerprintReuse() throws Exception {
+        Path source = temporaryFolder.newFolder("changed-context-publication").toPath();
+        Path target = temporaryFolder.newFolder("changed-context-publication-copy").toPath();
+        PackValidationResult validation = new PackValidationResult("source", List.of(), List.of(), 19L);
+        try (MockedStatic<PackValidationCache> context = mockStatic(PackValidationCache.class)) {
+            context.when(PackValidationCache::contextFingerprint).thenReturn("original-context");
+            String validatedContext = PackValidationCache.contextFingerprint();
+            context.when(PackValidationCache::contextFingerprint).thenReturn("changed-context");
+
+            PackValidationRegistry.publish(source, validation, "fingerprint-a", validatedContext);
+
+            assertSame(validation, PackValidationRegistry.get(source));
+            assertNull(PackValidationRegistry.getMatching(source, "fingerprint-a"));
+            assertNull(PackValidationRegistry.publishMatchingCopy(source, target, "fingerprint-a"));
+            context.when(PackValidationCache::contextFingerprint).thenReturn("original-context");
+            assertNull(PackValidationRegistry.getMatching(source, "fingerprint-a"));
+        }
+    }
+
+    @Test
+    public void mutationDuringContextCheckRejectsMatchingValidation() throws Exception {
+        Path source = temporaryFolder.newFolder("interleaved-context-mutation").toPath();
+        PackValidationResult validation = new PackValidationResult("source", List.of(), List.of(), 17L);
+        AtomicReference<PackValidationRegistry.RootMutation> mutation = new AtomicReference<>();
+        try (MockedStatic<PackValidationCache> context = mockStatic(PackValidationCache.class)) {
+            context.when(PackValidationCache::contextFingerprint).thenReturn("context");
+            PackValidationRegistry.publish(source, validation, "fingerprint-a", PackValidationCache.contextFingerprint());
+            context.when(PackValidationCache::contextFingerprint).thenAnswer(invocation -> {
+                mutation.set(PackValidationRegistry.beginRootMutation(source));
+                return "context";
+            });
+
+            assertNull(PackValidationRegistry.getMatching(source, "fingerprint-a"));
+            assertNotNull(mutation.get());
+            assertNull(PackValidationRegistry.get(source));
+        } finally {
+            if (mutation.get() != null) {
+                mutation.get().close();
+            }
+        }
+    }
+
+    @Test
     public void unfingerprintedRepublishRevokesCopiedValidationReuse() throws Exception {
         Path sourceRoot = temporaryFolder.newFolder("republished-source").toPath();
         Path targetRoot = temporaryFolder.newFolder("republished-target").toPath();
         PackValidationResult initial = new PackValidationResult("source", List.of(), List.of(), 3L);
         PackValidationResult replacement = new PackValidationResult("source", List.of(), List.of(), 5L);
-        PackValidationRegistry.publish(sourceRoot, initial, "old-fingerprint");
+        PackValidationRegistry.publish(sourceRoot, initial, "old-fingerprint", PackValidationCache.contextFingerprint());
 
         PackValidationRegistry.publish(sourceRoot, replacement);
 

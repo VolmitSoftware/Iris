@@ -261,7 +261,7 @@ public class MantleObjectComponentBoundaryRadiusTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void translatedTreeSchedulesDistantOwnerChunks() throws Exception {
+    public void translatedTreeCachesDistantSourcesAndSchedulesOnlyItsDestination() throws Exception {
         File objectFile = temporaryFolder.newFile("tree.iob");
         try (DataOutputStream output = new DataOutputStream(new FileOutputStream(objectFile))) {
             output.writeInt(1);
@@ -293,8 +293,8 @@ public class MantleObjectComponentBoundaryRadiusTest {
 
         MantleObjectComponent component = spy(new MantleObjectComponent(engineMantle));
         assertEquals(33, component.getRadius());
-        assertEquals(33, component.getOutputRadius());
-        assertEquals(0, component.getInputRadius());
+        assertEquals(0, component.getOutputRadius());
+        assertEquals(82, component.getInputRadius());
 
         Mantle<Matter> mantle = mock(Mantle.class);
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
@@ -322,9 +322,9 @@ public class MantleObjectComponentBoundaryRadiusTest {
 
         component.generateLayer(directWriter, 0, 0, mock(ChunkContext.class));
 
-        assertEquals(1, directOrigins.get());
+        assertEquals(49, directOrigins.get());
         component.generateLayer(directWriter, 0, 0, mock(ChunkContext.class));
-        assertEquals(2, directOrigins.get());
+        assertEquals(49, directOrigins.get());
 
         List<String> generatedChunks = new ArrayList<>();
         doAnswer(invocation -> {
@@ -342,7 +342,7 @@ public class MantleObjectComponentBoundaryRadiusTest {
         ));
         generator.generateMatter(0, 0, false, mock(ChunkContext.class));
 
-        assertEquals(49, generatedChunks.size());
+        assertEquals(List.of("0,0"), generatedChunks);
 
         List<String> replayedSources = new ArrayList<>();
         MantleObjectComponent.replaySourceChunks(

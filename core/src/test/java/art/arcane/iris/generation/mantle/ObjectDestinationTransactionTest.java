@@ -94,6 +94,35 @@ public class ObjectDestinationTransactionTest {
     }
 
     @Test
+    public void applyingSourcePlanSkipsForeignChunksBeforeOverlayingAndPreservesLocalOrder() {
+        MantleWriter writer = writer();
+        Marker foreign = new Marker("foreign");
+        Marker prerequisite = new Marker("prerequisite");
+        Marker first = new Marker("first");
+        Marker second = new Marker("second");
+        when(writer.getPrerequisiteDataIfPresent(0, 4, 0, Marker.class)).thenReturn(prerequisite);
+        ObjectDestinationTransaction source = new ObjectDestinationTransaction(writer, 0, 0);
+        source.setData(-1, 4, 0, first);
+        source.setData(0, 4, 0, foreign);
+        source.setData(-1, 4, 0, second);
+        source.setData(-1, 4, 16, foreign);
+        ObjectDestinationTransaction destination = new ObjectDestinationTransaction(writer, -1, 0);
+
+        destination.apply(source.sourcePlanSince(0));
+
+        assertEquals(2, destination.mutationCheckpoint());
+        assertSame(second, destination.getDataIfPresent(-1, 4, 0, Marker.class));
+        assertSame(prerequisite, destination.getDataIfPresent(0, 4, 0, Marker.class));
+        assertNull(destination.getDataIfPresent(-1, 4, 16, Marker.class));
+        destination.commit();
+        InOrder order = inOrder(writer);
+        order.verify(writer).setData(-1, 4, 0, first);
+        order.verify(writer).setData(-1, 4, 0, second);
+        verify(writer, never()).setData(0, 4, 0, foreign);
+        verify(writer, never()).setData(-1, 4, 16, foreign);
+    }
+
+    @Test
     public void sourcePlanRejectsAnInvalidCheckpoint() {
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer(), 0, 0);
 

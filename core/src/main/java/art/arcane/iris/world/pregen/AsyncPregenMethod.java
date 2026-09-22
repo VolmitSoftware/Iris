@@ -29,6 +29,7 @@ import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.iris.platform.bukkit.nms.INMSBinding;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.hydrology.HydrologyTileCache;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -69,6 +70,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private static final long MANTLE_CLEANUP_DRAIN_SECONDS = 60L;
     private static final long CHUNK_FLUSH_DRAIN_SECONDS = 30L;
     private static final long ADMISSION_WAIT_BOUND_MS = 500L;
+    private static final int HYDROLOGY_PREFETCH_HALO_BLOCKS = 512;
     private final World world;
     private final IrisRuntimeSchedulerMode runtimeSchedulerMode;
     private final IrisPaperLikeBackendMode paperLikeBackendMode;
@@ -117,6 +119,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final AtomicBoolean holdsWorkerBoost = new AtomicBoolean();
     private volatile Engine metricsEngine;
     private volatile Mantle cachedMantle;
+    private volatile HydrologyTileCache.PregenerationScope hydrologyPrefetchScope;
     private final PregenMantleBackpressure backpressure;
 
     public AsyncPregenMethod(World world, int unusedThreads) {
@@ -298,7 +301,18 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         if (engine == null || engine.getComplex() == null || engine.getComplex().getHydrologyRuntime() == null) {
             return;
         }
-        engine.getComplex().getHydrologyRuntime().preparePregeneration(centerBlockX, centerBlockZ);
+        HydrologyTileCache.PregenerationArea area = new HydrologyTileCache.PregenerationArea(
+                centerBlockX, centerBlockZ,
+                (long) boundsMinRegionX * 512L - HYDROLOGY_PREFETCH_HALO_BLOCKS,
+                (long) boundsMinRegionZ * 512L - HYDROLOGY_PREFETCH_HALO_BLOCKS,
+                ((long) boundsMaxRegionX + 1L) * 512L - 1L + HYDROLOGY_PREFETCH_HALO_BLOCKS,
+                ((long) boundsMaxRegionZ + 1L) * 512L - 1L + HYDROLOGY_PREFETCH_HALO_BLOCKS);
+        HydrologyTileCache.PregenerationScope scope = engine.getComplex().getHydrologyRuntime().preparePregeneration(area);
+        hydrologyPrefetchScope = scope;
+        if (closing.get()) {
+            scope.close();
+            hydrologyPrefetchScope = null;
+        }
     }
 
     private boolean inBounds(int rx, int rz) {
@@ -827,6 +841,11 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 releaseWorkerThreadBoost();
             }
         } finally {
+            HydrologyTileCache.PregenerationScope scope = hydrologyPrefetchScope;
+            if (scope != null) {
+                scope.close();
+                hydrologyPrefetchScope = null;
+            }
             if (interrupted) {
                 Thread.currentThread().interrupt();
             }

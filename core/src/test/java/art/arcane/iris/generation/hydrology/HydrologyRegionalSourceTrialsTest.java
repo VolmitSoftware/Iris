@@ -92,7 +92,7 @@ public class HydrologyRegionalSourceTrialsTest {
                     new RiverOutlet(100L + root, HydrologyFeatureType.MOUTH, root, point, point, 63, true)));
         }
         HydrologySampledGrid grid = new HydrologySampledGrid(0, 0, 0, 0, 16384, sources.size(), 1, nodes);
-        HydrologyRegionalGraph.Tree tree = new HydrologyRegionalGraph.Tree(selected, new int[sources.size()], outlets);
+        HydrologyRegionalGraph.Tree tree = new HydrologyRegionalGraph.Tree(selected, new int[sources.size()], outlets, new int[sources.size()]);
         return new Fixture(grid, tree, indices);
     }
 

@@ -38,7 +38,6 @@ import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.pack.value.IrisColor;
 import art.arcane.iris.generation.terrain.IrisDimension;
-import art.arcane.iris.generation.terrain.IrisDimensionCarvingEntry;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
@@ -424,15 +423,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             IrisDimensionCarvingResolver.State state
     ) {
         int worldY = y + getWorld().minHeight();
-        IrisDimensionCarvingEntry rootCarvingEntry = IrisDimensionCarvingResolver.resolveRootEntry(this, worldY, state);
-        if (rootCarvingEntry != null) {
-            IrisDimensionCarvingEntry resolvedCarvingEntry = IrisDimensionCarvingResolver.resolveFromRoot(this, rootCarvingEntry, x, z, state);
-            IrisBiome resolvedCarvingBiome = IrisDimensionCarvingResolver.resolveEntryBiome(this, resolvedCarvingEntry, state);
-            if (resolvedCarvingBiome != null) {
-                return resolvedCarvingBiome;
-            }
-        }
-        return null;
+        return IrisDimensionCarvingResolver.resolveBiome(this, x, worldY, z, state);
     }
 
     private IrisBiome resolveDepthCaveBiome(

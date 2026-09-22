@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.hydrology;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Comparator;
 import java.util.List;
@@ -94,7 +95,42 @@ final class HydrologyRegionalGraph {
                 accumulation[label.downstream.state.id()] += accumulation[label.state.id()];
             }
         }
-        return new Tree(selected, accumulation, List.copyOf(outlets));
+        int[] heads = new int[labels.size()];
+        int[] required = new int[labels.size()];
+        int[] nominal = new int[labels.size()];
+        int[] ceiling = new int[labels.size()];
+        Arrays.fill(ceiling, Integer.MAX_VALUE);
+        for (Label label : labels) {
+            HydrologyTerrainSample terrain = grid.node(label.state.index()).terrain();
+            if (label.downstream == null) {
+                HydrologyPoint landward = outlets.get(label.state.root()).outlet().landwardPoint();
+                terrain = planner.sampleLandBasisWithoutSlope(landward.x(), landward.z());
+            }
+            int index = label.state.id();
+            int depth = (planner.settings.surface().minimumDepth() + planner.settings.surface().maximumDepth()) / 2;
+            nominal[index] = terrain.naturalHeight() - planner.settings.surface().banks().sink() - depth;
+            int minimum = terrain.naturalHeight() - planner.sourcePlanner.permittedSurfaceIncision(terrain) + depth;
+            required[index] = coastal ? planner.settings.seaLevel() : Math.max(planner.settings.seaLevel(),
+                    Math.max(minimum, label.downstream == null ? Integer.MIN_VALUE : required[label.downstream.state.id()]));
+            if (selected[label.state.index()] == label && planner.sourcePlanner.rawSourceEligible(
+                    grid.node(label.state.index()).terrain(), planner.settings.surface().sources(), true)) {
+                ceiling[index] = Math.max(nominal[index], required[index]);
+            }
+        }
+        for (int index = labels.size() - 1; index >= 0; index--) {
+            Label label = labels.get(index);
+            if (label.downstream != null) {
+                int parent = label.downstream.state.id();
+                ceiling[parent] = Math.min(ceiling[parent], ceiling[index]);
+            }
+        }
+        for (Label label : labels) {
+            int index = label.state.id();
+            int downstream = label.downstream == null ? Integer.MIN_VALUE : heads[label.downstream.state.id()];
+            heads[index] = coastal ? planner.settings.seaLevel()
+                    : Math.max(Math.max(required[index], downstream), Math.min(nominal[index], ceiling[index]));
+        }
+        return new Tree(selected, accumulation, List.copyOf(outlets), heads);
     }
 
     List<Integer> path(Tree tree, int source) {
@@ -160,7 +196,7 @@ final class HydrologyRegionalGraph {
                 + first.routingCost() + second.routingCost()) * policy);
     }
 
-    record Tree(Label[] selected, int[] accumulation, List<OutletCandidate> outlets) {
+    record Tree(Label[] selected, int[] accumulation, List<OutletCandidate> outlets, int[] heads) {
         int retainedLabelCount() {
             BitSet retained = new BitSet(accumulation.length);
             for (Label label : selected) {
@@ -185,6 +221,15 @@ final class HydrologyRegionalGraph {
 
         double length(int source) {
             return selected[source] == null ? 0D : selected[source].state.length();
+        }
+
+        List<HydrologyPoint> centerline(HydrologySampledGrid grid, int source) {
+            ArrayList<HydrologyPoint> points = new ArrayList<>();
+            for (Label label = selected[source]; label != null; label = label.downstream) {
+                HydrologyGridNode node = grid.node(label.state.index());
+                points.add(new HydrologyPoint(node.x(), heads[label.state.id()], node.z()));
+            }
+            return List.copyOf(points);
         }
 
         int[] contributions(int source) {

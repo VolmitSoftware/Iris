@@ -565,6 +565,9 @@ final class HydrologyFootprintCompiler {
         boolean surfaceDrop = segment.type().isSurface() && segment.fallingFluid();
         if (surfaceDrop && channel && !falling) {
             int maximumIncision = terrain.surfacePolicy().maximumIncision(settings.surface().maximumIncision());
+            if (shape.inlet()) {
+                maximumIncision = Math.max(maximumIncision, settings.surface().banks().inlet().maximumIncision());
+            }
             int allowedIncision = Math.min(maximumIncision,
                     (int) StrictMath.floor(maximumIncision * terrain.incisionMultiplier()));
             bed = Math.max(bed, Math.min(shape.fluidHead(), terrain.naturalHeight() - allowedIncision));

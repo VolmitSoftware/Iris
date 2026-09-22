@@ -170,8 +170,8 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
         cache.prefetchArea(minimumBlockX, minimumBlockZ, maximumBlockX, maximumBlockZ, centreBlockX, centreBlockZ);
     }
 
-    public void preparePregeneration(int centerBlockX, int centerBlockZ) {
-        cache.preparePregeneration(centerBlockX, centerBlockZ);
+    public HydrologyTileCache.PregenerationScope preparePregeneration(HydrologyTileCache.PregenerationArea area) {
+        return cache.preparePregeneration(area);
     }
 
     public void setNeighbourPrefetchEnabled(boolean enabled) {

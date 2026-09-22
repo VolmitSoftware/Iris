@@ -560,7 +560,7 @@ public class IrisComplex implements DataProvider {
         hydrologyNoiseCaches = List.of();
     }
 
-    void enableStudioHydrologyCache(String runtimeIdentity, Path persistentRoot) {
+    void enablePreparedHydrologyCache(String runtimeIdentity, Path persistentRoot) {
         if (hydrologyRuntime != null) {
             hydrologyRuntime.enableSharedCache(runtimeIdentity, persistentRoot);
         }
@@ -1934,6 +1934,7 @@ public class IrisComplex implements DataProvider {
         private Engine engine;
         private IrisGenerator[] generators;
         private IdentityHashMap<IrisBiome, GeneratorBounds> cachedBounds;
+        private boolean integerCoordinates;
         private boolean inUse;
 
         private boolean isInUse() {
@@ -1945,6 +1946,7 @@ public class IrisComplex implements DataProvider {
             this.engine = engine;
             this.generators = generators;
             this.cachedBounds = cachedBounds;
+            this.integerCoordinates = complex.baseBiomeStream instanceof CachedStream2D<?>;
             this.inUse = true;
             if (sampleSource.get() != complex.baseBiomeStream) {
                 sampleCache.clear();
@@ -1967,10 +1969,12 @@ public class IrisComplex implements DataProvider {
         @Override
         public NoiseBounds noise(double xx, double zz) {
             try {
-                IrisBiome bx = sampleCache.get(xx, zz);
+                double sampleX = integerCoordinates ? (int) xx : xx;
+                double sampleZ = integerCoordinates ? (int) zz : zz;
+                IrisBiome bx = sampleCache.get(sampleX, sampleZ);
                 if (bx == null) {
                     bx = complex.baseBiomeStream.get(xx, zz);
-                    sampleCache.put(xx, zz, bx);
+                    sampleCache.put(sampleX, sampleZ, bx);
                 }
 
                 GeneratorBounds bounds = complex.resolveGeneratorBounds(engine, generators, bx, cachedBounds, localBounds);

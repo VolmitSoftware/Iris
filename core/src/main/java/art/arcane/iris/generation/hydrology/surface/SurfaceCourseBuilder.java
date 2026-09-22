@@ -5,6 +5,7 @@ import art.arcane.iris.generation.hydrology.HydraulicSegment;
 import art.arcane.iris.generation.hydrology.HydrologyCandidateRejection;
 import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.HydrologyGeometrySampler;
+import art.arcane.iris.generation.hydrology.HydrologyHash;
 import art.arcane.iris.generation.hydrology.HydrologyPlannerSettings;
 import art.arcane.iris.generation.hydrology.HydrologyPoint;
 import art.arcane.iris.generation.hydrology.HydrologyTerrainSample;
@@ -15,6 +16,8 @@ import java.util.List;
 import java.util.Objects;
 
 public final class SurfaceCourseBuilder {
+    private static final long COASTAL_DROP_SALT = 0x434f41535446414cL;
+
     private final HydrologyPlannerSettings.Surface surface;
     private final HydrologyTerrainSampler sampler;
     private final HydrologyGeometrySampler geometry;
@@ -45,14 +48,14 @@ public final class SurfaceCourseBuilder {
         boolean directOcean = terminal == SurfaceTerminal.OCEAN_MOUTH;
         ChannelProfile channel = new ChannelProfileBuilder(surface, sampler, geometry)
                 .build(centerline, profileKey, directOcean);
-        ValleyProfile valley = new ValleyProfileSolver(surface, sampler, seaLevel, minimumCourseLength)
-                .solve(centerline, channel, terminal, terminalHead);
+        ValleyProfile valley = new RiverProfileSolver(new RiverProfileSolver.Options(surface, seaLevel), sampler)
+                .solve(path, centerline, channel, terminal, terminalHead, minimumCourseLength);
         if (!valley.accepted()) {
             return SurfaceCourseResult.rejected(valley.rejection(), valley.rejectionDetail());
         }
         int exposed = valley.exposedStations();
         boolean coastalDrop = directOcean && valley.head()[exposed - 1] > seaLevel;
-        int stations = coastalDrop ? exposed + 1 : exposed;
+        int stations = exposed;
         int[] x = new int[stations];
         int[] z = new int[stations];
         int[] head = new int[stations];
@@ -65,40 +68,52 @@ public final class SurfaceCourseBuilder {
             width[station] = channel.halfWidth()[station] * 2D;
             depth[station] = channel.depth()[station];
         }
-        if (coastalDrop) {
-            int last = exposed - 1;
-            if (exposed < centerline.size()) {
-                x[exposed] = centerline.x()[exposed];
-                z[exposed] = centerline.z()[exposed];
-            } else {
-                x[exposed] = x[last] + (int) StrictMath.round(centerline.tangentX()[last]);
-                z[exposed] = z[last] + (int) StrictMath.round(centerline.tangentZ()[last]);
-                if (x[exposed] == x[last] && z[exposed] == z[last]) {
-                    x[exposed] = x[last] + 1;
-                }
-            }
-            head[exposed] = seaLevel;
-            width[exposed] = width[last];
-            depth[exposed] = depth[last];
-        }
-        List<HydraulicSegment> segments = fallingTransitions(SurfaceSegmentLabeler.label(
-                worldSeed, courseId, x, z, head, width, depth, surface.banks()));
+        ArrayList<HydraulicSegment> segments = fallingTransitions(SurfaceSegmentLabeler.label(
+                worldSeed, courseId, x, z, head, width, depth, surface.banks()), directOcean);
         if (segments.isEmpty()) {
             return SurfaceCourseResult.rejected(HydrologyCandidateRejection.COURSE_TOO_SHORT, stations);
         }
+        if (coastalDrop) {
+            int last = exposed - 1;
+            int receiverX;
+            int receiverZ;
+            if (exposed < centerline.size()) {
+                receiverX = centerline.x()[exposed];
+                receiverZ = centerline.z()[exposed];
+            } else {
+                receiverX = x[last] + (int) StrictMath.round(centerline.tangentX()[last]);
+                receiverZ = z[last] + (int) StrictMath.round(centerline.tangentZ()[last]);
+                if (receiverX == x[last] && receiverZ == z[last]) {
+                    receiverX = x[last] + 1;
+                }
+            }
+            int drop = head[last] - seaLevel;
+            HydrologyFeatureType type = drop == 1 ? HydrologyFeatureType.RIFFLE
+                    : drop >= surface.banks().waterfallMinimumDrop()
+                    ? HydrologyFeatureType.WATERFALL : HydrologyFeatureType.CASCADE;
+            boolean receiving = sampler.receivingWater(receiverX, receiverZ, seaLevel);
+            segments.add(new HydraulicSegment(HydrologyHash.mix(worldSeed, COASTAL_DROP_SALT, courseId),
+                    courseId, type, head[last], seaLevel,
+                    Math.max(1, (int) StrictMath.ceil(width[last])),
+                    Math.max(1, (int) StrictMath.ceil(depth[last])), receiving, receiving,
+                    List.of(new HydrologyPoint(x[last], head[last], z[last]),
+                            new HydrologyPoint(receiverX, seaLevel, receiverZ)),
+                    new HydraulicChannelProfile(new double[]{width[last], width[last]},
+                            new double[]{depth[last], depth[last]})));
+        }
         HydraulicSegment last = segments.getLast();
-        int lastStation = stations - 1;
         return new SurfaceCourseResult(
                 segments,
-                head[lastStation],
+                last.downstreamHeadY(),
                 Math.max(1, (int) StrictMath.ceil(last.channelProfile().widthAt(last.centerline().size() - 1))),
                 Math.max(1, (int) StrictMath.ceil(last.channelProfile().depthAt(last.centerline().size() - 1))),
-                new HydrologyPoint(x[lastStation], head[lastStation], z[lastStation]),
+                last.end(),
                 null,
                 0
         );
     }
-    private List<HydraulicSegment> fallingTransitions(List<HydraulicSegment> labelled) {
+
+    private ArrayList<HydraulicSegment> fallingTransitions(List<HydraulicSegment> labelled, boolean directOcean) {
         ArrayList<HydraulicSegment> segments = new ArrayList<>(labelled);
         for (int index = 0; index + 1 < segments.size(); index++) {
             HydraulicSegment fall = segments.get(index);
@@ -112,6 +127,9 @@ public final class SurfaceCourseBuilder {
                 continue;
             }
             int incision = terrain.surfacePolicy().maximumIncision(surface.maximumIncision());
+            if (directOcean && fall.downstreamHeadY() == seaLevel) {
+                incision = Math.max(incision, surface.banks().inlet().maximumIncision());
+            }
             incision = Math.min(incision, (int) StrictMath.floor(incision * terrain.incisionMultiplier()));
             if (terrain.naturalHeight() - fall.downstreamHeadY() + fall.depth() > incision) {
                 continue;
@@ -142,7 +160,7 @@ public final class SurfaceCourseBuilder {
                     receiver.fallingFluid(), receiver.receivingPool(),
                     receiver.centerline().subList(1, receiver.centerline().size()), receiverProfile));
         }
-        return List.copyOf(segments);
+        return segments;
     }
 
 }

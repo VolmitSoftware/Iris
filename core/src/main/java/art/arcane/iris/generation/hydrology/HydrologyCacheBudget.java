@@ -46,7 +46,7 @@ final class HydrologyCacheBudget {
     }
 
     long routingBytes() {
-        return regionalEnabled ? plannerBytes / 8L : plannerBytes * 3L / 16L;
+        return plannerBytes * 3L / 16L;
     }
 
     long ownerBytes() {
@@ -69,7 +69,4 @@ final class HydrologyCacheBudget {
         return regionalEnabled ? plannerBytes / 4L : 0L;
     }
 
-    long regionalReachBytes() {
-        return regionalEnabled ? plannerBytes / 16L : 0L;
-    }
 }

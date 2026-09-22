@@ -19,7 +19,7 @@ import static org.junit.Assert.assertTrue;
 
 public class HydrologyRegionalCandidateSelectionTest {
     @Test
-    public void lowerMeanderCandidatePassesTheFullPlannerAfterTheFirstBankCutFails() throws Exception {
+    public void plannedHeadCrossesAChannelDepressionWithoutLoweringTheWholeCourse() throws Exception {
         HydrologyTerrainSampler terrain = coast(true);
         HydrologyPlanner planner = planner(terrain, 16, 2);
         List<HydrologyPoint> guide = guide(terrain);
@@ -33,9 +33,8 @@ public class HydrologyRegionalCandidateSelectionTest {
                 });
 
         assertTrue(selected.toString(), selected.accepted());
-        assertEquals(2, attempted.size());
-        assertEquals(HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED, attempted.getFirst().rejection().rejection());
-        assertEquals(18, attempted.getFirst().rejection().detail());
+        assertEquals(1, attempted.size());
+        assertNull(attempted.getFirst().rejection());
         assertEquals(1, selected.network().courses().size());
         assertEquals(selected, attempted.getLast());
         RiverCourse course = selected.network().courses().getFirst();
@@ -124,8 +123,10 @@ public class HydrologyRegionalCandidateSelectionTest {
         }
         int[] contributions = new int[9];
         Arrays.fill(contributions, 1);
+        int[] heads = new int[9];
+        Arrays.fill(heads, 80);
         HydrologyRegionalGraph.Tree tree = new HydrologyRegionalGraph.Tree(selected, contributions,
-                List.of(new OutletCandidate(8, 8, outlet())));
+                List.of(new OutletCandidate(8, 8, outlet())), heads);
         ArrayList<HydrologyDiagnosticCandidate> diagnostics = new ArrayList<>();
         Method build = HydrologyRegionalPlanner.class.getDeclaredMethod("build", HydrologySampledGrid.class,
                 HydrologyRegionalGraph.Tree.class, int.class, OutletCandidate.class, long.class, List.class);

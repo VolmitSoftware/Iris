@@ -475,24 +475,25 @@ final class HydrologyRegionalPlanner {
         List<Integer> indices = graph.path(tree, source);
         OutletCandidate destination = tree.outlets().get(tree.root(source));
         RiverOutlet outlet = destination.outlet();
-        ArrayList<HydrologyPoint> guide = new ArrayList<>(indices.size() + 1);
+        ArrayList<HydrologyPoint> guide = new ArrayList<>(tree.centerline(grid, source));
         ArrayList<String> profiles = new ArrayList<>(grid.node(source).terrain().preferredProfileKeys());
         for (int index : indices) {
             HydrologyGridNode node = grid.node(index);
-            guide.add(node.naturalPoint());
             profiles.retainAll(node.terrain().preferredProfileKeys());
         }
         profiles.retainAll(sample(outlet.connectionPoint().x(), outlet.connectionPoint().z()).preferredProfileKeys());
         if (origin != null) {
             profiles.retainAll(sample(origin.outlet().connectionPoint().x(), origin.outlet().connectionPoint().z()).preferredProfileKeys());
-            guide.set(0, origin.outlet().landwardPoint());
+            HydrologyPoint start = origin.outlet().landwardPoint();
+            guide.set(0, new HydrologyPoint(start.x(), planner.settings.seaLevel(), start.z()));
         }
         if (profiles.isEmpty() || guide.size() < 2) {
             diagnostic(diagnostics, grid.node(source).id(), grid.node(source).naturalPoint(), origin != null,
                     HydrologyCandidateRejection.POLICY_EXCLUDED, guide.size());
             return HydrologyRegionalNetwork.EMPTY;
         }
-        guide.set(guide.size() - 1, outlet.landwardPoint());
+        HydrologyPoint end = outlet.landwardPoint();
+        guide.set(guide.size() - 1, new HydrologyPoint(end.x(), guide.getLast().y(), end.z()));
         String profile = profiles.get(HydrologyHash.between(HydrologyHash.mix(basinSeed, source), 0, profiles.size() - 1));
         BuildContext context = new BuildContext(grid.node(source), origin, basinSeed, outlet, profile,
                 new HydrologyRegionalFlow(guide, tree.contributions(source)),

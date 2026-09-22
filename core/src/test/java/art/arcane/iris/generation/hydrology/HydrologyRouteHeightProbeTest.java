@@ -11,28 +11,6 @@ import static org.mockito.Mockito.spy;
 
 public class HydrologyRouteHeightProbeTest {
     @Test
-    public void crossDropUsesScalarHeightsIncludingMissingAndExtremeValues() {
-        HydrologyTerrainSample center = land(87);
-        HydrologyTerrainSample[] sides = {null, HydrologyTerrainSample.ocean(20, "ocean"),
-                land(20), land(100), land(Integer.MIN_VALUE), land(Integer.MAX_VALUE)};
-        for (HydrologyTerrainSample side : sides) {
-            Fixture fixture = fixture((x, z) -> side);
-            int lowest = side == null || side.ocean() ? 87 : Math.min(87, side.naturalHeight());
-            double expected = (double) (87 - lowest) * fixture.planner().settings.routing().valleyPreference()
-                    * HydrologyRouteGeometry.CROSS_DROP_WEIGHT;
-            double actual = fixture.planner().routeGeometry.crossDropPenalty(
-                    new HydrologyPoint(21, 87, -37), new RouteDirection(3D, 4D), center);
-            assertEquals(Double.doubleToRawLongBits(expected), Double.doubleToRawLongBits(actual));
-            assertEquals(4, fixture.scalarCalls().get());
-            assertEquals(0, fixture.basisCalls().get());
-        }
-        Fixture untouched = fixture((x, z) -> land(20));
-        assertEquals(0D, untouched.planner().routeGeometry.crossDropPenalty(
-                new HydrologyPoint(0, 87, 0), new RouteDirection(0D, 0D), center), 0D);
-        assertEquals(0, untouched.scalarCalls().get());
-    }
-
-    @Test
     public void pitChecksRetainMissingAndIntegerDifferenceSemantics() {
         int threshold = HydrologyPlannerSettings.defaults().hydraulics().waterfallMinimumDrop();
         HydrologyTerrainSample blocked = spy(land(threshold));

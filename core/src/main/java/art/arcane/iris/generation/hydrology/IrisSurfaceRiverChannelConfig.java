@@ -24,12 +24,12 @@ public class IrisSurfaceRiverChannelConfig {
 
     @MinNumber(0)
     @MaxNumber(3)
-    @Description("Blocks the water surface sinks below the lowest natural ground beside the channel; 0 keeps the water flush with the bank, and the bank always meets the water at its own height.")
+    @Description("Blocks the water surface sinks below the shaped bank top; 0 keeps the water flush with its banks.")
     private int sink = 0;
 
     @MinNumber(1)
     @MaxNumber(32)
-    @Description("Maximum cut below natural terrain at the channel center before a course is rejected.")
+    @Description("Maximum channel cut below natural terrain. Also caps bank fill, together with banks.excavation.maximumDepth; courses exceeding containment or terrain limits are rejected.")
     private int maximumIncision = 10;
 
     @MinNumber(0)

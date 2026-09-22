@@ -9,7 +9,6 @@ record RefinedEdgeKey(
         int downstreamZ,
         int continuationX,
         int continuationZ,
-        int transverseCandidates,
-        boolean surface
+        int transverseCandidates
 ) {
 }

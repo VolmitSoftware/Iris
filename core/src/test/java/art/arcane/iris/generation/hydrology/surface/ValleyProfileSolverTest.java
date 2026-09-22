@@ -186,7 +186,7 @@ public class ValleyProfileSolverTest {
         assertNull(valley.rejection());
         assertEquals(100, valley.head()[130]);
         assertEquals(98, valley.head()[149]);
-        ErosionField field = new ErosionFieldCompiler(HydrologyPlannerSettings.defaults().surface(), terrain, SEA_LEVEL)
+        ErosionField field = new ErosionFieldCompiler(rasterSettings(HydrologyPlannerSettings.defaults().surface()), terrain)
                 .compile(77L, centerline, channel, valley, SurfaceTerminal.TRIBUTARY, 0,
                         HydrologyPlannerSettings.Ponds.none());
         assertEquals(0, field.uncontainedWetCells());
@@ -214,7 +214,7 @@ public class ValleyProfileSolverTest {
         assertEquals(120, valley.head()[110]);
         assertEquals(118, valley.head()[128]);
         assertContained(valley);
-        ErosionField field = new ErosionFieldCompiler(surface, terrain, SEA_LEVEL)
+        ErosionField field = new ErosionFieldCompiler(rasterSettings(surface), terrain)
                 .compile(77L, centerline, channel, valley, SurfaceTerminal.TRIBUTARY, 0,
                         HydrologyPlannerSettings.Ponds.none());
         assertEquals(0, field.uncontainedWetCells());
@@ -231,7 +231,7 @@ public class ValleyProfileSolverTest {
         assertNull(valley.rejection());
         assertTrue(valley.exposedStations() < 240);
         assertEquals(92, valley.head()[valley.exposedStations() - 1]);
-        ErosionField field = new ErosionFieldCompiler(HydrologyPlannerSettings.defaults().surface(), terrain, SEA_LEVEL)
+        ErosionField field = new ErosionFieldCompiler(rasterSettings(HydrologyPlannerSettings.defaults().surface()), terrain)
                 .compile(77L, centerline, channel, valley, SurfaceTerminal.COASTAL_GROTTO, 0,
                         HydrologyPlannerSettings.Ponds.none());
         assertEquals(0, field.uncontainedWetCells());
@@ -492,4 +492,11 @@ public class ValleyProfileSolverTest {
     private static List<HydrologyPoint> path(int stations) {
         return List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(stations - 1, 0, 0));
     }
+    private static HydrologyPlannerSettings rasterSettings(HydrologyPlannerSettings.Surface surface) {
+        HydrologyPlannerSettings defaults = HydrologyPlannerSettings.defaults();
+        return new HydrologyPlannerSettings(60, defaults.routing(), surface, defaults.hydraulics(),
+                defaults.underground(), defaults.outlets(), defaults.geometry(), defaults.deepFluids(),
+                defaults.surfacePools(), surface.shoreWidth(), defaults.seaCaves(), defaults.surfacePolicyBounds());
+    }
+
 }

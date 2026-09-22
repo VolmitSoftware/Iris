@@ -300,6 +300,10 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         }
     }
 
+    public boolean hasGenerationRegistryContract() {
+        return generationRegistryContract != null;
+    }
+
     public synchronized void bindGenerationRegistryContract(GenerationRegistryContract contract) {
         GenerationRegistryContract required = Objects.requireNonNull(contract, "contract");
         if (generationRegistryContract != null && !generationRegistryContract.equals(required)) {

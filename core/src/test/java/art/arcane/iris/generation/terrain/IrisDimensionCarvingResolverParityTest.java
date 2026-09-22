@@ -99,6 +99,8 @@ public class IrisDimensionCarvingResolverParityTest {
                     IrisDimensionCarvingEntry legacyResolved = legacyResolveFromRoot(fixture.engine, legacyRoot, worldX, worldZ);
                     IrisDimensionCarvingEntry statefulResolved = IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, statefulRoot, worldX, worldZ, state);
                     assertSame("entry mismatch at worldY=" + worldY + " worldX=" + worldX + " worldZ=" + worldZ, legacyResolved, statefulResolved);
+                    assertSame(legacyResolveEntryBiome(fixture.engine, legacyResolved),
+                            IrisDimensionCarvingResolver.resolveBiome(fixture.engine, worldX, worldY, worldZ, state));
                 }
             }
             fixture.clearRecordedCalls();
@@ -120,6 +122,8 @@ public class IrisDimensionCarvingResolverParityTest {
                     IrisDimensionCarvingEntry legacyResolved = legacyResolveFromRoot(fixture.engine, legacyRoot, worldX, worldZ);
                     IrisDimensionCarvingEntry statefulResolved = IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, statefulRoot, worldX, worldZ, state);
                     assertSame("mixed entry mismatch at worldY=" + worldY + " worldX=" + worldX + " worldZ=" + worldZ, legacyResolved, statefulResolved);
+                    assertSame(legacyResolveEntryBiome(fixture.engine, legacyResolved),
+                            IrisDimensionCarvingResolver.resolveBiome(fixture.engine, worldX, worldY, worldZ, state));
                 }
             }
             fixture.clearRecordedCalls();
@@ -230,6 +234,54 @@ public class IrisDimensionCarvingResolverParityTest {
         assertSame(replacementBiome, IrisDimensionCarvingResolver.resolveEntryBiome(engine, entry, state));
         doReturn(firstData).when(engine).getData();
         assertSame(firstBiome, IrisDimensionCarvingResolver.resolveEntryBiome(engine, entry, state));
+    }
+
+    @Test
+    public void biomeResolutionReadsRuntimeBindingOnce() {
+        Fixture fixture = createFixture();
+        IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
+        IrisBiome expected = IrisDimensionCarvingResolver.resolveBiome(fixture.engine, -17, 83, 23, state);
+        assertNotNull(expected);
+        fixture.clearRecordedCalls();
+
+        assertSame(expected, IrisDimensionCarvingResolver.resolveBiome(fixture.engine, -17, 83, 23, state));
+        verify(fixture.engine).getDimension();
+        verify(fixture.engine).getData();
+    }
+
+    @Test
+    public void biomeResolutionInvalidatesAcrossDataDimensionsAndEngines() {
+        for (boolean explicitState : new boolean[]{false, true}) {
+            IrisDimensionCarvingResolver.State state = explicitState ? new IrisDimensionCarvingResolver.State() : null;
+            Fixture fixture = createFixture();
+            IrisData firstData = fixture.engine.getData();
+            IrisDimension dimension = fixture.engine.getDimension();
+            IrisData replacementData = mock(IrisData.class);
+            IrisDimensionCarvingEntry entry = mock(IrisDimensionCarvingEntry.class);
+            IrisBiome firstBiome = new IrisBiome();
+            IrisBiome replacementBiome = new IrisBiome();
+            doReturn(true).when(entry).isEnabled();
+            doReturn(firstBiome).when(entry).getRealBiome(firstData);
+            doReturn(replacementBiome).when(entry).getRealBiome(replacementData);
+            doReturn(new KList<>(entry)).when(dimension).getCarving();
+
+            assertSame(firstBiome, IrisDimensionCarvingResolver.resolveBiome(fixture.engine, -17, 83, 23, state));
+            doReturn(replacementData).when(fixture.engine).getData();
+            assertSame(replacementBiome, IrisDimensionCarvingResolver.resolveBiome(fixture.engine, -17, 83, 23, state));
+            doReturn(firstData).when(fixture.engine).getData();
+            assertSame(firstBiome, IrisDimensionCarvingResolver.resolveBiome(fixture.engine, -17, 83, 23, state));
+
+            IrisDimension emptyDimension = new IrisDimension();
+            doReturn(emptyDimension).when(fixture.engine).getDimension();
+            assertSame(null, IrisDimensionCarvingResolver.resolveBiome(fixture.engine, -17, 83, 23, state));
+
+            Fixture replacement = createMixedDepthFixture();
+            IrisDimensionCarvingEntry expectedEntry = legacyResolveFromRoot(replacement.engine,
+                    legacyResolveRootEntry(replacement.engine, 83), -17, 23);
+            IrisBiome expected = legacyResolveEntryBiome(replacement.engine, expectedEntry);
+            assertSame(expected, IrisDimensionCarvingResolver.resolveBiome(replacement.engine, -17, 83, 23, state));
+            assertSame(null, IrisDimensionCarvingResolver.resolveBiome(fixture.engine, -17, 83, 23, state));
+        }
     }
 
     @Test

@@ -92,9 +92,10 @@ public final class Terrain3DRuntime {
         int gridX = Math.floorDiv(x, STEP) * STEP;
         int gridZ = Math.floorDiv(z, STEP) * STEP;
         Anchor northWest = anchor(gridX, gridZ);
-        Anchor northEast = anchor(gridX + STEP, gridZ);
-        Anchor southWest = anchor(gridX, gridZ + STEP);
-        Anchor southEast = anchor(gridX + STEP, gridZ + STEP);
+        Anchor northEast = x == gridX ? northWest : anchor(gridX + STEP, gridZ);
+        Anchor southWest = z == gridZ ? northWest : anchor(gridX, gridZ + STEP);
+        Anchor southEast = x == gridX ? southWest
+                : z == gridZ ? northEast : anchor(gridX + STEP, gridZ + STEP);
         double dx = (x - gridX) / (double) STEP;
         double dz = (z - gridZ) / (double) STEP;
         double amplitude = interpolate(northWest.amplitude(), northEast.amplitude(),

@@ -180,7 +180,7 @@ public class SurfaceBendProfileTest {
         ValleyProfile valley = new ValleyProfileSolver(surface, FLAT, 60, 32)
                 .solve(centerline, channel, SurfaceTerminal.SINKHOLE, 40);
         assertTrue(valley.accepted());
-        return new ErosionFieldCompiler(surface, FLAT, 60).compile(42L, centerline, channel, valley,
+        return new ErosionFieldCompiler(rasterSettings(surface), FLAT).compile(42L, centerline, channel, valley,
                 SurfaceTerminal.SINKHOLE, 8, HydrologyPlannerSettings.Ponds.none(), context);
     }
 
@@ -191,4 +191,11 @@ public class SurfaceBendProfileTest {
                         HydrologyPlannerSettings.Inlet.none(), 2.5D, 24, true,
                         HydrologyPlannerSettings.Erosion.defaults(), HydrologyPlannerSettings.Ponds.none()));
     }
+    private static HydrologyPlannerSettings rasterSettings(HydrologyPlannerSettings.Surface surface) {
+        HydrologyPlannerSettings defaults = HydrologyPlannerSettings.defaults();
+        return new HydrologyPlannerSettings(60, defaults.routing(), surface, defaults.hydraulics(),
+                defaults.underground(), defaults.outlets(), defaults.geometry(), defaults.deepFluids(),
+                defaults.surfacePools(), surface.shoreWidth(), defaults.seaCaves(), defaults.surfacePolicyBounds());
+    }
+
 }

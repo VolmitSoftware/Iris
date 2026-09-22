@@ -64,6 +64,7 @@ public class HydrologyStyledGeometryTest {
                 Set.of(
                         HydrologyGeometrySampler.Field.SURFACE_WIDTH,
                         HydrologyGeometrySampler.Field.SURFACE_DEPTH,
+                        HydrologyGeometrySampler.Field.SURFACE_BLEND_WIDTH,
                         HydrologyGeometrySampler.Field.UNDERGROUND_FLUID_LEVEL,
                         HydrologyGeometrySampler.Field.UNDERGROUND_WIDTH,
                         HydrologyGeometrySampler.Field.UNDERGROUND_DEPTH,

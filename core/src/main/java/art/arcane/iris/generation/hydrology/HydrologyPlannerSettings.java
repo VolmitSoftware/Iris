@@ -18,7 +18,7 @@ public record HydrologyPlannerSettings(
         SeaCaves seaCaves,
         SurfacePolicyBounds surfacePolicyBounds
 ) {
-    private static final long PLAN_FORMAT_REVISION = 8L;
+    private static final long PLAN_FORMAT_REVISION = 9L;
     private static final int MAXIMUM_CROSS_TILE_COLOR_PERIOD = 4;
 
     public HydrologyPlannerSettings {
@@ -345,8 +345,8 @@ public record HydrologyPlannerSettings(
     }
 
     /**
-     * {@code sink} is how many blocks the water surface sits below the lowest natural ground beside
-     * the channel; zero keeps the water flush with the bank and the bank top always meets the water.
+     * {@code sink} is how many blocks the water surface sits below the shaped bank top;
+     * zero keeps the water flush with the bank.
      * {@code channel} shapes the wet outline and {@code flow} the waterfalls and plunge basins.
      */
     public record Banks(

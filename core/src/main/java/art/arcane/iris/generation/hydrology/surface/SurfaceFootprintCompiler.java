@@ -69,12 +69,11 @@ public final class SurfaceFootprintCompiler {
         }
         if (prepared.receivingSampler == null) {
             prepared.receivingSampler = HydrologyOceanReceiver.forCourse(settings, sampler, course);
-            prepared.offsets = stationOffsets(course.segments());
+            prepared.inlet = SurfaceInletRange.forCourse(settings, course, prepared.receivingSampler);
         }
         HydrologyTerrainSampler receivingSampler = prepared.receivingSampler;
         HydrologySurfaceDropRaster drops = HydrologySurfaceDropRaster.compile(settings, receivingSampler, geometry, course,
                 bounds == null ? null : bounds.expand(2));
-        int[] offsets = prepared.offsets;
         ArrayList<SurfaceLayerColumn> columns = new ArrayList<>();
         int uncontained = 0;
         long excavation = 0L;
@@ -90,7 +89,7 @@ public final class SurfaceFootprintCompiler {
             while (after < course.segments().size() && exposedSegment(course.segments().get(after))) {
                 after++;
             }
-            SurfaceFootprint run = compileRun(prepared, first, after, offsets[first], bounds, drops, pool, receivingSampler);
+            SurfaceFootprint run = compileRun(prepared, first, after, prepared.inlet.offset(first), bounds, drops, pool, receivingSampler);
             columns.addAll(run.columns());
             uncontained += run.uncontainedWetCells();
             excavation += run.bankExcavation();
@@ -123,7 +122,7 @@ public final class SurfaceFootprintCompiler {
     }
 
     private PreparedRun prepareRun(RiverCourse course, int first, int after, boolean pool,
-                                   HydrologyTerrainSampler receivingSampler) {
+                                   HydrologyTerrainSampler receivingSampler, SurfaceInletRange inlet) {
         List<HydraulicSegment> exposed = course.segments().subList(first, after);
         Stations stations = stations(exposed);
         boolean fallingEnd = after < course.segments().size() && course.segments().get(after).fallingFluid();
@@ -141,9 +140,9 @@ public final class SurfaceFootprintCompiler {
                 : new HydrologyPlannerSettings.Ponds(first == 0 ? settings.surface().banks().ponds().source() : disabled.source(),
                 fallingEnd ? disabled.terminal() : settings.surface().banks().ponds().terminal());
         SurfaceRunBoundary boundary = runBoundary(course, first, after, centerline, channel);
-        ErosionFieldCompiler erosion = new ErosionFieldCompiler(settings.surface(), receivingSampler, settings.seaLevel());
+        ErosionFieldCompiler erosion = new ErosionFieldCompiler(settings, receivingSampler);
         return new PreparedRun(exposed, stations, coastalChannel, centerline, channel, poolBiome, valley,
-                terminal, ponds, boundary, erosion, erosion.prepare(centerline, channel, valley, terminal));
+                terminal, ponds, boundary, erosion, erosion.prepare(centerline, channel, valley, terminal, inlet.firstStation(first)));
     }
 
     private SurfaceFootprint compileRun(PreparedCourse prepared, int first, int after, int stationOffset,
@@ -152,7 +151,7 @@ public final class SurfaceFootprintCompiler {
         RiverCourse course = prepared.course;
         PreparedRun run = prepared.runs[first];
         if (run == null) {
-            run = prepareRun(course, first, after, pool, receivingSampler);
+            run = prepareRun(course, first, after, pool, receivingSampler, prepared.inlet);
             prepared.runs[first] = run;
         }
         List<HydraulicSegment> exposed = run.exposed();
@@ -208,26 +207,6 @@ public final class SurfaceFootprintCompiler {
     private double boundaryRadius(ChannelProfile channel, int station) {
         return channel.halfWidth()[station] * (1D + settings.surface().banks().roughness())
                 + settings.surface().banks().maximumBlendWidth() + settings.surface().shoreWidth() + 2D;
-    }
-
-    private static int[] stationOffsets(List<HydraulicSegment> segments) {
-        int[] offsets = new int[segments.size()];
-        int station = 0;
-        HydrologyPoint previous = null;
-        for (int segmentIndex = 0; segmentIndex < segments.size(); segmentIndex++) {
-            List<HydrologyPoint> points = segments.get(segmentIndex).centerline();
-            for (int pointIndex = 0; pointIndex < points.size(); pointIndex++) {
-                HydrologyPoint point = points.get(pointIndex);
-                if (previous != null) {
-                    station += Math.max(Math.abs(point.x() - previous.x()), Math.abs(point.z() - previous.z()));
-                }
-                if (pointIndex == 0) {
-                    offsets[segmentIndex] = station;
-                }
-                previous = point;
-            }
-        }
-        return offsets;
     }
 
     private ChannelProfile acceptedProfile(Stations stations, SurfaceCenterline centerline) {
@@ -406,7 +385,7 @@ public final class SurfaceFootprintCompiler {
         private final RiverCourse course;
         private final PreparedRun[] runs;
         private HydrologyTerrainSampler receivingSampler;
-        private int[] offsets;
+        private SurfaceInletRange inlet;
 
         private PreparedCourse(SurfaceFootprintCompiler compiler, RiverCourse course) {
             this.compiler = compiler;

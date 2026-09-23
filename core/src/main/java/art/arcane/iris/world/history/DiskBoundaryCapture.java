@@ -9,13 +9,13 @@ import java.util.Objects;
 public final class DiskBoundaryCapture implements TerrainBoundarySignatureStore.SignatureSampler {
     private static final int MAXIMUM_CACHED_CHUNKS = 32;
 
-    private final Path dimensionRoot;
+    private final SavedTerrainChunkReader.StatusReader reader;
     private final int minimumY;
     private final int height;
     private final LinkedHashMap<Long, SavedTerrainChunk> chunks = new LinkedHashMap<>(32, 0.75F, true);
 
     public DiskBoundaryCapture(Path dimensionRoot, int minimumY, int height) {
-        this.dimensionRoot = Objects.requireNonNull(dimensionRoot, "dimension root");
+        this.reader = new SavedTerrainChunkReader.StatusReader(Objects.requireNonNull(dimensionRoot, "dimension root"));
         this.minimumY = minimumY;
         this.height = height;
     }
@@ -27,7 +27,7 @@ public final class DiskBoundaryCapture implements TerrainBoundarySignatureStore.
         long key = ChunkGenerationOwnership.packChunk(chunkX, chunkZ);
         SavedTerrainChunk chunk = chunks.get(key);
         if (chunk == null) {
-            chunk = SavedTerrainChunk.read(dimensionRoot, chunkX, chunkZ, minimumY, height);
+            chunk = reader.readChunk(chunkX, chunkZ, minimumY, height);
             chunks.put(key, chunk);
             if (chunks.size() > MAXIMUM_CACHED_CHUNKS) {
                 Map.Entry<Long, SavedTerrainChunk> oldest = chunks.firstEntry();
@@ -38,7 +38,8 @@ public final class DiskBoundaryCapture implements TerrainBoundarySignatureStore.
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         chunks.clear();
+        reader.close();
     }
 }

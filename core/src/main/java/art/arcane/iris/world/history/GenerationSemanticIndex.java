@@ -1013,13 +1013,13 @@ public final class GenerationSemanticIndex {
         }
         RegionShard cachedRegion = regions.get(regionKey);
         if (cachedRegion != null) {
-            RegionSummary summary = RegionSummary.from(cachedRegion);
+            RegionSummary summary = cachedRegion.summary();
             cacheSummary(regionKey, summary);
             return summary;
         }
         if (journalEntries.containsKey(regionKey)) {
             RegionShard region = loadRegionLocked(regionKey, regionX(regionKey), regionZ(regionKey));
-            return RegionSummary.from(region);
+            return region.summary();
         }
         String shardHash = shardHashes.get(regionKey);
         if (shardHash == null) {
@@ -1051,7 +1051,7 @@ public final class GenerationSemanticIndex {
 
     private void cacheRegion(long regionKey, RegionShard region) {
         regions.put(regionKey, region);
-        cacheSummary(regionKey, RegionSummary.from(region));
+        cacheSummary(regionKey, region.summary());
         while (regions.size() > MAXIMUM_CACHED_REGIONS) {
             Iterator<Map.Entry<Long, RegionShard>> entries = regions.entrySet().iterator();
             entries.next();
@@ -1663,7 +1663,10 @@ public final class GenerationSemanticIndex {
             EnumSet<HydrologyFeatureType> riverTypes = EnumSet.noneOf(HydrologyFeatureType.class);
             LongOpenHashSet activations = new LongOpenHashSet();
             LongOpenHashSet sealedActivations = new LongOpenHashSet();
-            for (ChunkGenerationSemantics semantics : region.records()) {
+            for (ChunkGenerationSemantics semantics : region.records) {
+                if (semantics == null) {
+                    continue;
+                }
                 activations.add(semantics.activationId());
                 mutableKeys(keys, SemanticKind.SURFACE_BIOME).addAll(semantics.surfaceBiomeKeys());
                 mutableKeys(keys, SemanticKind.CAVE_BIOME).addAll(semantics.caveBiomeKeys());
@@ -2298,6 +2301,7 @@ public final class GenerationSemanticIndex {
         private final int regionZ;
         private final ChunkGenerationSemantics[] records;
         private int recordCount;
+        private RegionSummary summary;
 
         private RegionShard(int regionX, int regionZ) {
             this.regionX = regionX;
@@ -2496,7 +2500,7 @@ public final class GenerationSemanticIndex {
                 if (input.available() != 0) {
                     throw invalid(source, "unexpected trailing data");
                 }
-                if (!RegionSummary.from(region).equals(storedSummary)) {
+                if (!region.summary().equals(storedSummary)) {
                     throw invalid(source, "summary does not match semantic records");
                 }
                 return region;
@@ -2517,6 +2521,13 @@ public final class GenerationSemanticIndex {
 
         private int recordCount() {
             return recordCount;
+        }
+
+        private RegionSummary summary() {
+            if (summary == null) {
+                summary = RegionSummary.from(this);
+            }
+            return summary;
         }
 
         private ChunkGenerationSemantics get(int chunkX, int chunkZ) {
@@ -2560,6 +2571,7 @@ public final class GenerationSemanticIndex {
             }
             records[index] = semantics;
             recordCount++;
+            summary = null;
         }
 
         private List<ChunkGenerationSemantics> records() {
@@ -2632,7 +2644,7 @@ public final class GenerationSemanticIndex {
             }
 
             ByteArrayOutputStream bodyBytes = new ByteArrayOutputStream(8_192);
-            byte[] summary = RegionSummary.from(this).encode();
+            byte[] summary = summary().encode();
             try (DataOutputStream output = new DataOutputStream(bodyBytes)) {
                 output.writeInt(MAGIC);
                 output.writeShort(FORMAT_VERSION);

@@ -174,6 +174,7 @@ public final class TerrainBoundarySignatureStore {
     }
 
     private Snapshot publishCatalog(long activationId, PublishedCatalog catalog) throws IOException {
+        forceDirectory(directory);
         Path target = snapshotPath(activationId);
         if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
             Snapshot existing = load(activationId);
@@ -186,6 +187,7 @@ public final class TerrainBoundarySignatureStore {
             return existing;
         }
         publishAtomic(target, catalog.encoded(), "terrain signature catalog");
+        forceDirectory(directory);
         return load(activationId);
     }
 
@@ -533,7 +535,6 @@ public final class TerrainBoundarySignatureStore {
             } catch (AtomicMoveNotSupportedException error) {
                 throw new IOException("Terrain boundary " + kind + " publication requires an atomic move", error);
             }
-            forceDirectory(directory);
         } finally {
             Files.deleteIfExists(temporary);
         }

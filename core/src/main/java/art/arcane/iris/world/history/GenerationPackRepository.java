@@ -118,17 +118,22 @@ public final class GenerationPackRepository {
             String packFingerprint,
             int packFingerprintVersion
     ) throws IOException {
+        Path pack = requireSafePackRoot(epochId);
+        requireFingerprint(
+                pack,
+                requireDigest(packFingerprint, "packFingerprint"),
+                packFingerprintVersion
+        );
+        return pack;
+    }
+
+    Path requireSafePackRoot(String epochId) throws IOException {
         String requiredEpochId = requireDigest(epochId, "epochId");
         validateExistingAncestors(requiredEpochId);
         Path epoch = epochRoot(requiredEpochId);
         requireSafeDirectory(epoch, "Generation epoch path is not a safe directory");
         Path pack = epoch.resolve("pack");
         requireSafeDirectory(pack, "Generation epoch pack is missing or unsafe");
-        requireFingerprint(
-                pack,
-                requireDigest(packFingerprint, "packFingerprint"),
-                packFingerprintVersion
-        );
         return pack;
     }
 
@@ -198,7 +203,7 @@ public final class GenerationPackRepository {
 
     public static void copyPackTree(Path source, Path target) throws IOException {
         Executor executor = IrisPlatforms.isBound() ? MultiBurst.ioBurst : ForkJoinPool.commonPool();
-        int workers = Math.max(1, Math.min(MAXIMUM_COPY_WORKERS, Runtime.getRuntime().availableProcessors() / 2));
+        int workers = Math.max(1, Math.min(MAXIMUM_COPY_WORKERS, Runtime.getRuntime().availableProcessors()));
         copyPackTree(source, target, executor, workers);
     }
 
@@ -272,7 +277,7 @@ public final class GenerationPackRepository {
 
     static void forceDirectoryTree(Path root, FileAction force) throws IOException {
         Executor executor = IrisPlatforms.isBound() ? MultiBurst.ioBurst : ForkJoinPool.commonPool();
-        int workers = Math.max(1, Math.min(MAXIMUM_COPY_WORKERS, Runtime.getRuntime().availableProcessors() / 2));
+        int workers = Math.max(1, Math.min(MAXIMUM_COPY_WORKERS, Runtime.getRuntime().availableProcessors()));
         forceDirectoryTree(root, executor, workers, force);
     }
 

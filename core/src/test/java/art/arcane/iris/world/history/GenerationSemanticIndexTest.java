@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import java.util.zip.CRC32;
 
@@ -176,6 +177,33 @@ public final class GenerationSemanticIndexTest {
         assertEquals(Optional.of(expected), index.get(4, 5));
         assertEquals(1, index.recordCount());
         assertEquals(Optional.of(expected), GenerationSemanticIndex.load(dimensionRoot).get(4, 5));
+    }
+
+    @Test
+    public void summariesFollowLoadedShardUpdatesAndOrphanRemoval() throws Exception {
+        Path root = temporaryFolder.newFolder("summary-updates").toPath();
+        GenerationSemanticIndex initial = GenerationSemanticIndex.initialize(root);
+        initial.recordAndPersist(ChunkGenerationSemantics.builder(-33, -1, 1L).addObject("iris:old").build());
+        GenerationSemanticIndex loaded = GenerationSemanticIndex.load(root);
+        assertEquals("iris:old", requiredMatch(loaded, GenerationSemanticIndex.SemanticKind.OBJECT, "iris:old").key());
+
+        loaded.claimAndPersist(ChunkGenerationSemantics.builder(-33, -1, 1L).addObject("iris:new").seal().build());
+        loaded.claimAndPersist(ChunkGenerationSemantics.builder(-34, -1, 1L).addObject("iris:orphan").seal().build());
+        assertEquals("iris:new", requiredMatch(loaded, GenerationSemanticIndex.SemanticKind.OBJECT, "iris:new").key());
+        assertEquals(2, sealedClaims(loaded, 1L).size());
+        loaded.compactJournals();
+
+        GenerationSemanticIndex reopened = GenerationSemanticIndex.load(root);
+        assertEquals("iris:new", requiredMatch(reopened, GenerationSemanticIndex.SemanticKind.OBJECT, "iris:new").key());
+        assertEquals(1, reopened.discardUnstoredClaims(
+                WorldChunkInventory.ofPackedChunks(ChunkGenerationOwnership.packChunk(-33, -1)), Set.of(1L)));
+        GenerationSemanticIndex recovered = GenerationSemanticIndex.load(root);
+        assertEquals(1, sealedClaims(recovered, 1L).size());
+        assertEquals("iris:old", requiredMatch(recovered, GenerationSemanticIndex.SemanticKind.OBJECT, "iris:old").key());
+        assertEquals("iris:new", requiredMatch(recovered, GenerationSemanticIndex.SemanticKind.OBJECT, "iris:new").key());
+        assertTrue(recovered.findNearest(GenerationSemanticIndex.Query.acrossActivations(
+                GenerationSemanticIndex.SemanticKind.OBJECT, "iris:orphan",
+                new ChunkGenerationSemantics.BlockPosition(-520, 80, -8), 4)).isEmpty());
     }
 
     @Test
@@ -625,6 +653,22 @@ public final class GenerationSemanticIndexTest {
         IllegalStateException error = assertThrows(IllegalStateException.class, () -> loaded.get(0, 0));
 
         assertTrue(error.getCause().getMessage().contains("unsupported semantic record flags 2"));
+    }
+
+    @Test
+    public void rejectsSummaryMismatchEvenWhenTheRecordAndChecksumAreValid() throws Exception {
+        Path root = temporaryFolder.newFolder("summary-mismatch").toPath();
+        GenerationSemanticIndex index = GenerationSemanticIndex.initialize(root);
+        index.recordAndPersist(ChunkGenerationSemantics.builder(0, 0, 1L).seal().build());
+        Path shard = onlyShard(index.storageDirectory());
+        byte[] encoded = Files.readAllBytes(shard);
+        encoded[firstRecordFlagsOffset(encoded)] = 0;
+        rewriteChecksum(encoded);
+        replaceReferencedShard(root, shard, encoded);
+
+        GenerationSemanticIndex loaded = GenerationSemanticIndex.load(root);
+        IllegalStateException error = assertThrows(IllegalStateException.class, () -> loaded.get(0, 0));
+        assertTrue(error.getCause().getMessage().contains("summary does not match semantic records"));
     }
 
     @Test

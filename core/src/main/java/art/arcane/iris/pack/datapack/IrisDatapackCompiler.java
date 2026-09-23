@@ -198,12 +198,13 @@ public final class IrisDatapackCompiler {
         Objects.requireNonNull(fixer, "fixer");
         LinkedHashMap<String, String> requirements = new LinkedHashMap<>();
         Map<String, Set<String>> biomeTags = new TreeMap<>();
+        Map<Path, GenerationHistory.PackInspection> histories = new LinkedHashMap<>();
         for (File packRoot : packRoots) {
             PackDirectoryResolver.requireSafePackTree(packRoot);
             if (!hasDimensions(packRoot.toPath())) {
                 continue;
             }
-            BiomeAliasContext aliasContext = biomeAliasContext(packRoot.toPath());
+            BiomeAliasContext aliasContext = biomeAliasContext(packRoot.toPath(), histories);
             IrisData data = IrisData.openDatapackCompiler(packRoot);
             try {
                 if (aliasContext.retainedContract() != null) {
@@ -230,7 +231,7 @@ public final class IrisDatapackCompiler {
                 data.close();
             }
         }
-        for (GenerationRegistryContract contract : retainedRegistryContracts(packRoots)) {
+        for (GenerationRegistryContract contract : retainedRegistryContracts(packRoots, histories)) {
             for (PhysicalResourceKey key : contract.generatedSources().keySet()) {
                 putRegistryRequirement(requirements, registryPath(key) + "/" + key.resourceKey(),
                         fingerprintContent(GenerationRegistryContractFactory.renderGeneratedSource(contract, key, fixer)));
@@ -453,6 +454,7 @@ public final class IrisDatapackCompiler {
         DimensionHeight height = new DimensionHeight(fixer);
         Map<String, KSet<String>> biomes = new LinkedHashMap<>();
         Map<String, List<DimensionCandidate>> dimensions = new LinkedHashMap<>();
+        Map<Path, GenerationHistory.PackInspection> histories = new LinkedHashMap<>();
         int packCount = 0;
         int dimensionCount = 0;
         for (File packRoot : packRoots) {
@@ -460,7 +462,7 @@ public final class IrisDatapackCompiler {
             if (!hasDimensions(packRoot.toPath())) {
                 continue;
             }
-            BiomeAliasContext aliasContext = biomeAliasContext(packRoot.toPath());
+            BiomeAliasContext aliasContext = biomeAliasContext(packRoot.toPath(), histories);
             IrisData data = IrisData.openDatapackCompiler(packRoot);
             try {
                 if (aliasContext.retainedContract() != null) {
@@ -512,7 +514,7 @@ public final class IrisDatapackCompiler {
         }
 
         IrisDimension.writeShared(datapackRoots, height, adjustVanillaHeight);
-        installRetainedRegistrySources(packRoots, datapackRoots, fixer);
+        installRetainedRegistrySources(packRoots, datapackRoots, fixer, histories);
         installLevelStemBindings(normalizedBindings, dimensions, datapackRoots);
         validateOutputs(datapackRoots, dimensionCount, normalizedBindings.size());
         return new CompilationResult(packCount, dimensionCount, countBiomes(biomes));
@@ -520,9 +522,15 @@ public final class IrisDatapackCompiler {
 
     public static void installRetainedRegistrySources(List<File> packRoots, Collection<File> datapackRoots,
                                                      IDataFixer fixer) throws IOException {
+        installRetainedRegistrySources(packRoots, datapackRoots, fixer, new LinkedHashMap<>());
+    }
+
+    private static void installRetainedRegistrySources(List<File> packRoots, Collection<File> datapackRoots,
+                                                      IDataFixer fixer,
+                                                      Map<Path, GenerationHistory.PackInspection> histories) throws IOException {
         Map<PhysicalResourceKey, String> sources = new TreeMap<>();
         Map<String, Set<String>> tags = new TreeMap<>();
-        for (GenerationRegistryContract contract : retainedRegistryContracts(packRoots)) {
+        for (GenerationRegistryContract contract : retainedRegistryContracts(packRoots, histories)) {
             for (PhysicalResourceKey key : contract.generatedSources().keySet()) {
                 String source = GenerationRegistryContractFactory.renderGeneratedSource(contract, key, fixer);
                 String previous = sources.putIfAbsent(key, source);
@@ -588,6 +596,11 @@ public final class IrisDatapackCompiler {
     }
 
     private static List<GenerationRegistryContract> retainedRegistryContracts(List<File> packRoots) throws IOException {
+        return retainedRegistryContracts(packRoots, new LinkedHashMap<>());
+    }
+
+    private static List<GenerationRegistryContract> retainedRegistryContracts(
+            List<File> packRoots, Map<Path, GenerationHistory.PackInspection> histories) throws IOException {
         Map<String, GenerationRegistryContract> contracts = new TreeMap<>();
         Set<Path> loadedWorlds = new LinkedHashSet<>();
         for (File pack : packRoots) {
@@ -595,7 +608,7 @@ public final class IrisDatapackCompiler {
             if (dimensionRoot == null || !loadedWorlds.add(dimensionRoot)) {
                 continue;
             }
-            for (GenerationEpoch epoch : GenerationHistory.open(dimensionRoot).manifest().epochs()) {
+            for (GenerationEpoch epoch : inspectHistory(dimensionRoot, histories).manifest().epochs()) {
                 contracts.putIfAbsent(epoch.registryContract().fingerprint(), epoch.registryContract());
             }
         }
@@ -765,11 +778,9 @@ public final class IrisDatapackCompiler {
         if (!Files.isSymbolicLink(irisRoot)
                 && (Files.exists(generationRoot, LinkOption.NOFOLLOW_LINKS)
                 || Files.isSymbolicLink(generationRoot))) {
-            GenerationHistory history = GenerationHistory.open(worldRoot);
+            GenerationHistory.PackInspection history = GenerationHistory.inspectPacks(worldRoot);
             candidates.add(history.activePackRoot());
-            if (history.pendingActivation().isPresent()) {
-                candidates.add(history.packRoot(history.pendingActivation().orElseThrow().activationId()));
-            }
+            history.pendingPackRoot().ifPresent(candidates::add);
             return true;
         }
         Path legacyPack = irisRoot.resolve("pack");
@@ -816,7 +827,8 @@ public final class IrisDatapackCompiler {
         roots.putIfAbsent(identity, normalized.toFile());
     }
 
-    private static BiomeAliasContext biomeAliasContext(Path packRoot) throws IOException {
+    private static BiomeAliasContext biomeAliasContext(
+            Path packRoot, Map<Path, GenerationHistory.PackInspection> histories) throws IOException {
         Path normalizedRoot = packRoot.toAbsolutePath().normalize();
         Path rootParent = normalizedRoot.getParent();
         if (rootParent == null || !"pack".equals(normalizedRoot.getFileName().toString())) {
@@ -841,7 +853,7 @@ public final class IrisDatapackCompiler {
         }
 
         String epochId = rootParent.getFileName().toString();
-        GenerationHistory history = GenerationHistory.open(dimensionRoot);
+        GenerationHistory.PackInspection history = inspectHistory(dimensionRoot, histories);
         GenerationEpoch epoch = history.manifest().epoch(epochId).orElseThrow(
                 () -> new IOException("Retained Iris pack is not referenced by its generation history: "
                         + normalizedRoot)
@@ -851,6 +863,17 @@ public final class IrisDatapackCompiler {
             throw new IOException("Retained Iris pack does not match its generation history: " + normalizedRoot);
         }
         return BiomeAliasContext.retained(epoch.registryContract());
+    }
+
+    private static GenerationHistory.PackInspection inspectHistory(
+            Path dimensionRoot, Map<Path, GenerationHistory.PackInspection> histories) throws IOException {
+        Path root = dimensionRoot.toAbsolutePath().normalize();
+        GenerationHistory.PackInspection history = histories.get(root);
+        if (history == null) {
+            history = GenerationHistory.inspectPacks(root);
+            histories.put(root, history);
+        }
+        return history;
     }
 
     private static boolean hasDimensions(Path root) {

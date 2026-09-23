@@ -249,23 +249,23 @@ public final class ChunkGenerationSemantics {
                 throw new IllegalArgumentException("Generation semantic resource key contains an invalid character");
             }
         }
-        if (requiredKey.getBytes(StandardCharsets.UTF_8).length > MAX_KEY_BYTES) {
+        if (requiredKey.length() > MAX_KEY_BYTES / 3
+                && requiredKey.getBytes(StandardCharsets.UTF_8).length > MAX_KEY_BYTES) {
             throw new IllegalArgumentException("Generation semantic resource key is too long");
         }
         return requiredKey;
     }
 
     private static Set<String> immutableKeys(Collection<String> keys, String kind) {
+        if (keys.isEmpty()) {
+            return Set.of();
+        }
         if (keys.size() > MAX_KEYS_PER_KIND) {
             throw new IllegalArgumentException(
                     "A chunk cannot contain more than " + MAX_KEYS_PER_KIND + " " + kind + " keys"
             );
         }
-        TreeSet<String> validated = new TreeSet<>();
-        for (String key : keys) {
-            validated.add(requireResourceKey(key));
-        }
-        return Collections.unmodifiableSet(validated);
+        return Collections.unmodifiableSet(new TreeSet<>(keys));
     }
 
     private static Set<StructureOccurrence> immutableStructures(Collection<StructureOccurrence> structures) {

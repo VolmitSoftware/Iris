@@ -150,6 +150,7 @@ dependencies {
     slim(libs.commons.lang3)
     slim(libs.oshi)
     slim(libs.lz4)
+    slim('com.fulcrumgenomics:jlibdeflate:0.2.0')
     slim(libs.fastutil)
     slim(libs.zip) {
         exclude(group: 'org.slf4j', module: 'slf4j-api')

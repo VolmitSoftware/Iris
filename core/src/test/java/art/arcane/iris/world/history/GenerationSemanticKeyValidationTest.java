@@ -2,6 +2,7 @@ package art.arcane.iris.world.history;
 
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -9,8 +10,44 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 public final class GenerationSemanticKeyValidationTest {
+    @Test
+    public void resourceKeyLimitCountsUtf8BytesAcrossCharacterWidths() {
+        for (String unit : List.of("a", "é", "漢", "\ud801\udc00", "\ud801")) {
+            int unitBytes = unit.getBytes(StandardCharsets.UTF_8).length;
+            int repetitions = ChunkGenerationSemantics.MAX_KEY_BYTES / unitBytes;
+            int remainder = ChunkGenerationSemantics.MAX_KEY_BYTES % unitBytes;
+            String accepted = unit.repeat(repetitions) + "a".repeat(remainder);
+            assertEquals(ChunkGenerationSemantics.MAX_KEY_BYTES, accepted.getBytes(StandardCharsets.UTF_8).length);
+            assertEquals(accepted, ChunkGenerationSemantics.requireResourceKey(accepted));
+            assertThrows(IllegalArgumentException.class,
+                    () -> ChunkGenerationSemantics.requireResourceKey(accepted + "a"));
+        }
+        for (int length : new int[]{ChunkGenerationSemantics.MAX_KEY_BYTES / 3,
+                ChunkGenerationSemantics.MAX_KEY_BYTES / 3 + 1}) {
+            String accepted = "a".repeat(length);
+            assertEquals(accepted, ChunkGenerationSemantics.requireResourceKey(accepted));
+        }
+    }
+
+    @Test
+    public void emptyAndPopulatedRecordsRemainImmutableWhenTheirBuilderChanges() {
+        ChunkGenerationSemantics.Builder builder = ChunkGenerationSemantics.builder(0, 0, 1L);
+        ChunkGenerationSemantics empty = builder.build();
+        builder.addObject("iris:b").addObject("iris:a");
+        ChunkGenerationSemantics populated = builder.build();
+        builder.addObject("iris:c");
+
+        assertTrue(empty.objectKeys().isEmpty());
+        assertEquals(List.of("iris:a", "iris:b"), List.copyOf(populated.objectKeys()));
+        assertThrows(UnsupportedOperationException.class, () -> empty.objectKeys().add("iris:a"));
+        assertThrows(UnsupportedOperationException.class, () -> populated.objectKeys().add("iris:c"));
+        assertThrows(IllegalArgumentException.class, () -> builder.addObject(" iris:d"));
+        assertEquals(List.of("iris:a", "iris:b", "iris:c"), List.copyOf(builder.build().objectKeys()));
+    }
+
     @Test
     public void duplicateKeysRetainValidationAndCanonicalOrdering() {
         ChunkGenerationSemantics.Builder builder = ChunkGenerationSemantics.builder(-2, 3, 5L);

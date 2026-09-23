@@ -25,7 +25,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -63,7 +62,7 @@ public class BukkitChunkGeneratorHistoryTargetTest {
         fixture.generator.prepareGenerationHistoryTarget(128);
 
         assertSame(fixture.target, fixture.generator.getTarget());
-        verify(fixture.history).prepareCurrentGenerator(128);
+        verify(fixture.history).prepareStartup(128);
         verify(fixture.history).activePackRoot();
         verify(fixture.data, never()).close();
         verify(fixture.data, never()).dump();
@@ -102,7 +101,8 @@ public class BukkitChunkGeneratorHistoryTargetTest {
         assertSame(failure, assertThrows(IOException.class,
                 () -> fixture.generator.prepareGenerationHistoryTarget(128)));
 
-        verify(fixture.history).prepareCurrentGenerator(128);
+        verify(fixture.history).prepareStartup(128);
+        verify(fixture.preparation).close();
         verify(fixture.data, never()).close();
     }
 
@@ -110,7 +110,7 @@ public class BukkitChunkGeneratorHistoryTargetTest {
     public void preparationFailureCannotBeHiddenByAnExistingTarget() throws Exception {
         Fixture fixture = new Fixture();
         IOException failure = new IOException("Pending activation is invalid");
-        doThrow(failure).when(fixture.history).prepareCurrentGenerator(128);
+        when(fixture.history.prepareStartup(128)).thenThrow(failure);
 
         assertSame(failure, assertThrows(IOException.class,
                 () -> fixture.generator.prepareGenerationHistoryTarget(128)));
@@ -167,12 +167,14 @@ public class BukkitChunkGeneratorHistoryTargetTest {
     private static final class Fixture {
         private final BukkitChunkGenerator generator = mock(BukkitChunkGenerator.class, CALLS_REAL_METHODS);
         private final GenerationHistory history = mock(GenerationHistory.class);
+        private final GenerationHistory.StartupPreparation preparation = mock(GenerationHistory.StartupPreparation.class);
         private final AtomicCache<EngineTarget> targets = new AtomicCache<>();
         private final EngineTarget target = mock(EngineTarget.class);
         private final IrisData data = mock(IrisData.class);
 
         private Fixture() throws Exception {
             Path packRoot = Path.of("generation", "packs", "current");
+            when(history.prepareStartup(128)).thenReturn(preparation);
             when(history.activePackRoot()).thenReturn(packRoot);
             when(target.getData()).thenReturn(data);
             when(data.getDataFolder()).thenReturn(packRoot.toFile());

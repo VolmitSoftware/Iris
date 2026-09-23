@@ -581,16 +581,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private void setupEngine() {
-        try (GenerationAdmission.RuntimeLease startupAdmission = generationHistory == null ? null : generationHistory.retainRuntime()) {
+        try (GenerationAdmission.RuntimeLease startupAdmission = generationHistory == null ? null : generationHistory.retainRuntime();
+             GenerationHistory.StartupPreparation preparation = generationHistory == null ? null
+                     : prepareGenerationHistoryTarget(IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks())) {
             lastMode = StudioMode.NORMAL;
             lastJigsawStudioRequestId = null;
-            if (generationHistory != null) {
-                try {
-                    prepareGenerationHistoryTarget(IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks());
-                } catch (IOException failure) {
-                    throw new IllegalStateException("Unable to prepare saved Iris terrain for the current generator.", failure);
-                }
-            }
             EngineTarget engineTarget = getTarget();
             String packKey = engineTarget.getDimension().getLoadKey();
             JigsawStudioActivation.Request request = studio
@@ -605,24 +600,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             objectStudioActive = studio && ObjectStudioActivation.isActive(packKey);
             IrisEngine createdEngine = createEngine(engineTarget);
             if (generationHistory != null) {
-                long initialActivationId = generationHistory.activeActivation().activationId();
-                int transitionWidthBlocks = IrisSettings.get()
-                        .getGenerator()
-                        .getGenerationTransitionWidthBlocks();
                 try {
-                    createdEngine.attachGenerationHistory(
-                            generationHistory,
-                            IrisBoundarySignatureSampler.INSTANCE,
-                            transitionWidthBlocks);
-                    if (generationHistory.activeActivation().activationId() != initialActivationId) {
-                        createdEngine.close();
-                        targetCache.reset();
-                        createdEngine = createEngine(loadActiveGenerationHistoryTarget());
-                        createdEngine.attachGenerationHistory(
-                                generationHistory,
-                                IrisBoundarySignatureSampler.INSTANCE,
-                                transitionWidthBlocks);
-                    }
+                    GenerationHistoryRuntimeRouter.attachPrepared(
+                            createdEngine, preparation, IrisBoundarySignatureSampler.INSTANCE);
                 } catch (Throwable failure) {
                     try {
                         createdEngine.close();
@@ -641,6 +621,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             publishInitializedEngine(createdEngine);
             populators.clear();
             targetCache.reset();
+        } catch (IOException failure) {
+            throw new IllegalStateException("Unable to prepare saved Iris terrain for the current generator.", failure);
         }
     }
 
@@ -651,25 +633,31 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         engine = initializedEngine;
     }
 
-    void prepareGenerationHistoryTarget(int transitionWidthBlocks) throws IOException {
-        generationHistory.prepareCurrentGenerator(transitionWidthBlocks);
-        EngineTarget cachedTarget = targetCache.getIfPresent();
-        if (cachedTarget == null) {
-            return;
-        }
-        Path activePackRoot = generationHistory.activePackRoot();
-        IrisData cachedData = cachedTarget.getData();
-        if (!cachedData.isClosed() && cachedData.getDataFolder().toPath().equals(activePackRoot)) {
-            return;
-        }
-        targetCache.reset();
-        EngineTarget pendingTarget = startupTarget;
-        Engine activeEngine = engine;
-        if (!cachedData.isClosed()
-                && cachedData.getEngines().isEmpty()
-                && (pendingTarget == null || pendingTarget.getData() != cachedData)
-                && (activeEngine == null || activeEngine.getData() != cachedData)) {
-            cachedData.close();
+    GenerationHistory.StartupPreparation prepareGenerationHistoryTarget(int transitionWidthBlocks) throws IOException {
+        GenerationHistory.StartupPreparation preparation = generationHistory.prepareStartup(transitionWidthBlocks);
+        try {
+            EngineTarget cachedTarget = targetCache.getIfPresent();
+            if (cachedTarget == null) {
+                return preparation;
+            }
+            Path activePackRoot = generationHistory.activePackRoot();
+            IrisData cachedData = cachedTarget.getData();
+            if (!cachedData.isClosed() && cachedData.getDataFolder().toPath().equals(activePackRoot)) {
+                return preparation;
+            }
+            targetCache.reset();
+            EngineTarget pendingTarget = startupTarget;
+            Engine activeEngine = engine;
+            if (!cachedData.isClosed()
+                    && cachedData.getEngines().isEmpty()
+                    && (pendingTarget == null || pendingTarget.getData() != cachedData)
+                    && (activeEngine == null || activeEngine.getData() != cachedData)) {
+                cachedData.close();
+            }
+            return preparation;
+        } catch (IOException | RuntimeException | Error failure) {
+            preparation.close();
+            throw failure;
         }
     }
 

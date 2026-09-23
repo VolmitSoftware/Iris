@@ -124,6 +124,49 @@ public final class SavedTerrainChunkTest {
     }
 
     @Test
+    public void reusesFullChunkReaderAcrossCodecsAndPreservesValidationAfterFailures() throws Exception {
+        Path world = temporaryFolder.newFolder("reused-full-reader").toPath();
+        try (SavedTerrainChunkReader.StatusReader reader = new SavedTerrainChunkReader.StatusReader(world)) {
+            for (int compression = 1; compression <= 4; compression++) {
+                for (boolean external : new boolean[]{false, true}) {
+                    CompoundTag saved = root("minecraft:noise");
+                    saved.putByteArray("padding", new byte[196_608]);
+                    writeChunk(world, saved, compression, external);
+                    SavedTerrainChunk captured = reader.readChunk(-1, -2, -16, 16);
+                    assertEquals("minecraft:noise", captured.nativeStatus());
+                    assertEquals("minecraft:stone", captured.column(-16, -32).geometry().voxelAt(-16).stateKey());
+                    assertEquals("minecraft:water[level=0]", captured.column(-16, -32).geometry().voxelAt(-15).stateKey());
+                    assertEquals("example:saved_biome", captured.column(-16, -32).biomeAtSample(0));
+                    saved.putInt("xPos", 0);
+                    writeChunk(world, saved, compression, external);
+                    assertThrows(IOException.class, () -> reader.readChunk(-1, -2, -16, 16));
+                    writeChunk(world, root("minecraft:empty"), compression, external);
+                    assertThrows(IOException.class, () -> reader.readChunk(-1, -2, -16, 16));
+                    saved = root("minecraft:full");
+                    saved.remove("sections");
+                    writeChunk(world, saved, compression, external);
+                    assertThrows(IOException.class, () -> reader.readChunk(-1, -2, -16, 16));
+                    writeChunk(world, root("minecraft:full"), compression, external);
+                    assertEquals("minecraft:full", reader.readChunk(-1, -2, -16, 16).nativeStatus());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void diskBoundaryCaptureClosesItsReaderAndClearsCachedChunks() throws Exception {
+        Path world = temporaryFolder.newFolder("closed-disk-boundary").toPath();
+        writeChunk(world, root("minecraft:full"), 2, false);
+        DiskBoundaryCapture capture = new DiskBoundaryCapture(world, -16, 16);
+        try (capture) {
+            assertEquals("minecraft:stone", capture.sample(-16, -32).geometry().voxelAt(-16).stateKey());
+            assertEquals("minecraft:water[level=0]", capture.sample(-16, -31).geometry().voxelAt(-15).stateKey());
+        }
+        capture.close();
+        assertThrows(IOException.class, () -> capture.sample(-16, -32));
+    }
+
+    @Test
     public void externalChunkAndPartialNativeStagePreserveAvailableTerrain() throws Exception {
         Path world = temporaryFolder.newFolder("external").toPath();
         writeChunk(world, root("minecraft:noise"), 2, true);

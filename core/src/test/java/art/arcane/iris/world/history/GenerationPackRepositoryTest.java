@@ -297,6 +297,9 @@ public class GenerationPackRepositoryTest {
         String fingerprint = fingerprint(source);
         GenerationPackRepository repository = new GenerationPackRepository(dimensionRoot);
 
+        assertThrows(IOException.class, () -> repository.requireSafePackRoot(epochId));
+        assertThrows(IOException.class, () -> repository.requireExactPack(
+                epochId, fingerprint, GenerationPackFingerprint.CURRENT_VERSION));
         assertThrows(IOException.class, () -> repository.publish(
                 epochId,
                 fingerprint,

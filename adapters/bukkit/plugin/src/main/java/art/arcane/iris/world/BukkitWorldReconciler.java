@@ -27,6 +27,11 @@ import art.arcane.iris.world.lifecycle.BukkitWorldConfiguration;
 import art.arcane.iris.world.lifecycle.LifecycleOperationCoordinator;
 import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.platform.generation.BukkitChunkGenerator;
+import art.arcane.iris.world.history.GenerationEpoch;
+import art.arcane.iris.world.history.GenerationHistory;
+import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.platform.bukkit.BukkitEnvironment;
 import art.arcane.iris.localization.C;
 import art.arcane.iris.platform.bootstrap.ServerProperties;
@@ -182,7 +187,7 @@ public final class BukkitWorldReconciler {
         });
     }
 
-    private CompletableFuture<LoadResult> loadConfiguredWorld(
+    CompletableFuture<LoadResult> loadConfiguredWorld(
             File configurationFile,
             String configuredWorldName,
             NamespacedKey worldKey,
@@ -196,6 +201,28 @@ public final class BukkitWorldReconciler {
             return CompletableFuture.completedFuture(LoadResult.busy(worldKey, failure));
         }
 
+        try {
+            IrisStartupValidation.requireWorldCreationReady();
+            Optional<World> loaded = backend.loadedWorld(worldKey);
+            if (loaded.isPresent() && backend.validateLoadedRuntime(
+                    loaded.get(), worldKey, dimension, seed) == LoadedRuntimeStatus.READY) {
+                ReconciliationResult result = verifyLoadedWorld(worldKey, loaded.get(), true);
+                BukkitWorldConfiguration.Registration registration = BukkitWorldConfiguration.Registration.UNCHANGED;
+                if (result.succeeded()) {
+                    try {
+                        registration = BukkitWorldConfiguration.register(configurationFile, configuredWorldName, dimension, seed);
+                    } catch (Throwable failure) {
+                        lease.close();
+                        return CompletableFuture.completedFuture(LoadResult.configurationFailure(worldKey, failure));
+                    }
+                }
+                lease.close();
+                return CompletableFuture.completedFuture(new LoadResult(result, registration, false, true, null));
+            }
+        } catch (Throwable failure) {
+            lease.close();
+            return CompletableFuture.completedFuture(LoadResult.dimensionFailure(worldKey, failure));
+        }
         return loadWithLease(configurationFile, configuredWorldName, worldKey, dimension, seed, lease);
     }
 
@@ -434,9 +461,17 @@ public final class BukkitWorldReconciler {
 
         boolean isIrisWorld(World world);
 
+        LoadedRuntimeStatus validateLoadedRuntime(World world, NamespacedKey worldKey, String dimension, Long seed)
+                throws IOException;
+
         DimensionResolution resolveDimension(NamespacedKey worldKey);
 
         void requireDimensionLoadable(NamespacedKey worldKey, String dimension);
+    }
+
+    enum LoadedRuntimeStatus {
+        READY,
+        UNAVAILABLE
     }
 
     public enum ReconciliationStatus {
@@ -715,6 +750,55 @@ public final class BukkitWorldReconciler {
         @Override
         public boolean isIrisWorld(World world) {
             return IrisToolbelt.isIrisWorld(world);
+        }
+
+        @Override
+        public LoadedRuntimeStatus validateLoadedRuntime(
+                World world, NamespacedKey worldKey, String dimension, Long seed) throws IOException {
+            if (!(world.getGenerator() instanceof BukkitChunkGenerator generator)
+                    || generator.isStudio()
+                    || generator.isClosing()
+                    || generator.getInitializationFailure() != null
+                    || !generator.getStartupReady().isDone()
+                    || generator.getStartupReady().isCompletedExceptionally()
+                    || !(generator.getEngine() instanceof IrisEngine engine)
+                    || engine.isClosed() || engine.isClosing()) {
+                return LoadedRuntimeStatus.UNAVAILABLE;
+            }
+            GenerationHistory history = generator.getGenerationHistory();
+            GenerationHistoryRuntimeRouter router = engine.getGenerationHistoryRuntimeRouter().orElse(null);
+            if (history == null || router == null || router.history() != history) {
+                return LoadedRuntimeStatus.UNAVAILABLE;
+            }
+            GenerationEpoch active = history.activeEpoch();
+            if (!worldKey.equals(WorldIdentity.key(world))
+                    || !worldKey.toString().equals(engine.getWorld().identity())
+                    || !dimension.equals(generator.getDimensionKey())
+                    || !dimension.equals(active.dimensionContract().dimensionKey())
+                    || !dimension.equals(engine.getDimension().getLoadKey())
+                    || seed != null && seed.longValue() != active.worldSeed()) {
+                throw new IOException("Loaded Iris runtime does not match configured world " + worldKey + ".");
+            }
+            Path expectedRoot = WorldCreatorCompat.persistentDimensionRoot(worldKey).toPath().toAbsolutePath().normalize();
+            File levelRoot = IrisWorldStorage.levelRoot();
+            Path storedRoot = IrisWorldStorage.requireFrozenDimensionRoot(
+                    Bukkit.getWorldContainer(), levelRoot, configuredWorldName(worldKey), worldKey)
+                    .toPath().toAbsolutePath().normalize();
+            if (!expectedRoot.equals(storedRoot) || !storedRoot.equals(history.paths().dimensionRoot())
+                    || !storedRoot.equals(engine.getWorld().worldFolder().toPath().toAbsolutePath().normalize())
+                    || engine.getData().isClosed()) {
+                throw new IOException("Loaded Iris runtime storage does not match world " + worldKey + ".");
+            }
+            GenerationHistory.PackInspection inspection = GenerationHistory.inspectPacks(storedRoot);
+            if (!active.equals(inspection.manifest().activeEpoch())
+                    || !history.activeActivation().equals(inspection.manifest().activeActivation())
+                    || !history.pendingActivation().equals(inspection.manifest().pendingActivation())
+                    || !inspection.activePackRoot().equals(engine.getData().getDataFolder().toPath().toAbsolutePath().normalize())
+                    || !Files.isDirectory(storedRoot.resolve("iris/generation/semantics"), LinkOption.NOFOLLOW_LINKS)
+                    || !Files.isRegularFile(storedRoot.resolve("iris/generation/semantics/index.isix"), LinkOption.NOFOLLOW_LINKS)) {
+                throw new IOException("Loaded Iris runtime history does not match saved world " + worldKey + ".");
+            }
+            return LoadedRuntimeStatus.READY;
         }
 
         @Override

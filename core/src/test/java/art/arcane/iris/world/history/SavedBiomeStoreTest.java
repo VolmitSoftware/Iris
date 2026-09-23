@@ -195,6 +195,28 @@ public class SavedBiomeStoreTest {
     }
 
     @Test
+    public void indexesLargeRegionsAndTruncatesOnlyIncompleteRecordLength() throws Exception {
+        Path root = temporaryFolder.newFolder().toPath();
+        SavedBiomeStore writer = SavedBiomeStore.open(root);
+        for (int index = 0; index < 512; index++) {
+            writer.claimAndPersist(chunk(index & 31, index >>> 5, 3L));
+        }
+        Path path = regionPath(root, 0, 0);
+        long completeLength = Files.size(path);
+        assertTrue(completeLength > 65536);
+        Files.write(path, new byte[]{0, 1}, StandardOpenOption.APPEND);
+
+        SavedBiomeStore reader = SavedBiomeStore.open(root);
+        assertEquals(Optional.of(chunk(31, 15, 3L)), reader.get(31, 15));
+        assertEquals(completeLength, Files.size(path));
+        assertEquals(Optional.of(chunk(0, 0, 3L)), reader.get(0, 0));
+        assertEquals(Optional.of(chunk(0, 8, 3L)), reader.get(0, 8));
+        SavedBiomeChunk appended = chunk(0, 16, 3L);
+        assertTrue(reader.claimAndPersist(appended));
+        assertEquals(Optional.of(appended), SavedBiomeStore.open(root).get(0, 16));
+    }
+
+    @Test
     public void rejectsUnknownFormatEvenWithValidHeaderChecksum() throws Exception {
         Path root = temporaryFolder.newFolder().toPath();
         SavedBiomeStore.open(root).claimAndPersist(chunk(0, 0, 3L));

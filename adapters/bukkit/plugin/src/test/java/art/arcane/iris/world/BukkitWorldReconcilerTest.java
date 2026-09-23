@@ -72,6 +72,98 @@ public class BukkitWorldReconcilerTest {
     }
 
     @Test
+    public void startupBatchReusesValidatedLoadedRuntime() throws Exception {
+        File configuration = temporaryFolder.newFile("loaded.yml");
+        BukkitWorldConfiguration.register(configuration, "probe", "overworld", 1337L);
+        FakeBackend backend = new FakeBackend();
+        backend.loaded = Optional.of(world(backend.worldKey));
+        backend.runtimeStatus = BukkitWorldReconciler.LoadedRuntimeStatus.READY;
+        backend.validationFailure = new IllegalStateException("unexpected disk reopen");
+        LifecycleOperationCoordinator coordinator = coordinator();
+        BukkitWorldReconciler reconciler = new BukkitWorldReconciler(backend, coordinator);
+
+        BukkitWorldReconciler.LoadResult result = reconciler.loadConfiguredWorld(
+                configuration, "probe", backend.worldKey, "overworld", 1337L).join();
+
+        assertEquals(BukkitWorldReconciler.ReconciliationStatus.ALREADY_LOADED, result.status());
+        assertEquals(BukkitWorldConfiguration.Registration.UNCHANGED, result.registration());
+        assertEquals(1, backend.runtimeValidationCount);
+        assertEquals(0, backend.validationCount);
+        assertEquals(0, backend.createCount.get());
+        assertTrue(coordinator.isIdle());
+    }
+
+    @Test
+    public void startupBatchFallsBackWhenLoadedRuntimeIsUnavailable() throws Exception {
+        File configuration = temporaryFolder.newFile("unavailable.yml");
+        FakeBackend backend = new FakeBackend();
+        backend.loaded = Optional.of(world(backend.worldKey));
+        LifecycleOperationCoordinator coordinator = coordinator();
+        BukkitWorldReconciler reconciler = new BukkitWorldReconciler(backend, coordinator);
+
+        BukkitWorldReconciler.LoadResult result = reconciler.loadConfiguredWorld(
+                configuration, "probe", backend.worldKey, "overworld", null).join();
+
+        assertEquals(BukkitWorldReconciler.ReconciliationStatus.ALREADY_LOADED, result.status());
+        assertEquals(1, backend.runtimeValidationCount);
+        assertEquals(1, backend.validationCount);
+        assertTrue(coordinator.isIdle());
+    }
+
+    @Test
+    public void startupBatchRejectsChangedRuntimeStorage() throws Exception {
+        File configuration = temporaryFolder.newFile("changed-storage.yml");
+        FakeBackend backend = new FakeBackend();
+        backend.loaded = Optional.of(world(backend.worldKey));
+        backend.runtimeFailure = new IllegalStateException("saved storage changed");
+        LifecycleOperationCoordinator coordinator = coordinator();
+        BukkitWorldReconciler reconciler = new BukkitWorldReconciler(backend, coordinator);
+
+        BukkitWorldReconciler.LoadResult result = reconciler.loadConfiguredWorld(
+                configuration, "probe", backend.worldKey, "overworld", null).join();
+
+        assertEquals(BukkitWorldReconciler.ReconciliationStatus.DIMENSION_UNRESOLVED, result.status());
+        assertEquals(0, backend.validationCount);
+        assertEquals(0, backend.createCount.get());
+        assertEquals(0L, configuration.length());
+        assertTrue(coordinator.isIdle());
+    }
+
+    @Test
+    public void startupBatchKeepsConfigurationConflictChecks() throws Exception {
+        File configuration = temporaryFolder.newFile("changed-config.yml");
+        BukkitWorldConfiguration.register(configuration, "probe", "other", 7L);
+        FakeBackend backend = new FakeBackend();
+        backend.loaded = Optional.of(world(backend.worldKey));
+        backend.runtimeStatus = BukkitWorldReconciler.LoadedRuntimeStatus.READY;
+        LifecycleOperationCoordinator coordinator = coordinator();
+        BukkitWorldReconciler reconciler = new BukkitWorldReconciler(backend, coordinator);
+
+        BukkitWorldReconciler.LoadResult result = reconciler.loadConfiguredWorld(
+                configuration, "probe", backend.worldKey, "overworld", 1337L).join();
+
+        assertEquals(BukkitWorldReconciler.ReconciliationStatus.CONFIGURATION_FAILED, result.status());
+        assertEquals("Iris:other", YamlConfiguration.loadConfiguration(configuration).getString("worlds.probe.generator"));
+        assertTrue(coordinator.isIdle());
+    }
+
+    @Test
+    public void explicitLoadStillPerformsFullValidationForLoadedWorlds() throws Exception {
+        File configuration = temporaryFolder.newFile("explicit-loaded.yml");
+        FakeBackend backend = new FakeBackend();
+        backend.loaded = Optional.of(world(backend.worldKey));
+        backend.runtimeStatus = BukkitWorldReconciler.LoadedRuntimeStatus.READY;
+        backend.validationFailure = new IllegalStateException("pack changed");
+        BukkitWorldReconciler reconciler = new BukkitWorldReconciler(backend, coordinator());
+
+        BukkitWorldReconciler.LoadResult result = reconciler.loadWorld(configuration, backend.worldKey.toString()).join();
+
+        assertEquals(BukkitWorldReconciler.ReconciliationStatus.DIMENSION_UNRESOLVED, result.status());
+        assertEquals(0, backend.runtimeValidationCount);
+        assertEquals(1, backend.validationCount);
+    }
+
+    @Test
     public void failedCreationRollsBackOnlyNewRegistration() throws Exception {
         File configuration = temporaryFolder.newFile("bukkit.yml");
         FakeBackend backend = new FakeBackend();
@@ -356,6 +448,10 @@ public class BukkitWorldReconcilerTest {
         private Long configuredSeed;
         private BukkitWorldReconciler.DimensionResolution dimensionResolution;
         private RuntimeException validationFailure;
+        private BukkitWorldReconciler.LoadedRuntimeStatus runtimeStatus = BukkitWorldReconciler.LoadedRuntimeStatus.UNAVAILABLE;
+        private RuntimeException runtimeFailure;
+        private int validationCount;
+        private int runtimeValidationCount;
 
         private FakeBackend() {
             worldKey = new NamespacedKey("iris", "probe");
@@ -405,12 +501,23 @@ public class BukkitWorldReconcilerTest {
         }
 
         @Override
+        public BukkitWorldReconciler.LoadedRuntimeStatus validateLoadedRuntime(
+                World world, NamespacedKey requestedWorldKey, String dimension, Long seed) {
+            runtimeValidationCount++;
+            if (runtimeFailure != null) {
+                throw runtimeFailure;
+            }
+            return runtimeStatus;
+        }
+
+        @Override
         public BukkitWorldReconciler.DimensionResolution resolveDimension(NamespacedKey requestedWorldKey) {
             return dimensionResolution;
         }
 
         @Override
         public void requireDimensionLoadable(NamespacedKey requestedWorldKey, String dimension) {
+            validationCount++;
             if (validationFailure != null) {
                 throw validationFailure;
             }

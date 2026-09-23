@@ -87,6 +87,30 @@ public final class WorldChunkInventory {
         boolean test(int chunkX, int chunkZ) throws IOException;
     }
 
+    WorldChunkInventory filterRegions(RegionPredicate predicate) throws IOException {
+        Objects.requireNonNull(predicate, "region predicate");
+        Long2ObjectOpenHashMap<BitSet> selected = new Long2ObjectOpenHashMap<>(regionMasks.size());
+        for (long regionKey : regionKeys) {
+            BitSet source = regionMasks.get(regionKey);
+            BitSet accepted = predicate.test(ChunkGenerationOwnership.chunkX(regionKey),
+                    ChunkGenerationOwnership.chunkZ(regionKey), (BitSet) source.clone());
+            BitSet unexpected = (BitSet) accepted.clone();
+            unexpected.andNot(source);
+            if (!unexpected.isEmpty()) {
+                throw new IOException("Filtered world region contains unallocated chunks");
+            }
+            if (!accepted.isEmpty()) {
+                selected.put(regionKey, accepted);
+            }
+        }
+        return new WorldChunkInventory(selected);
+    }
+
+    @FunctionalInterface
+    interface RegionPredicate {
+        BitSet test(int regionX, int regionZ, BitSet allocated) throws IOException;
+    }
+
     public static boolean isDurablyAllocated(Path worldDirectory, int chunkX, int chunkZ) throws IOException {
         Path regionDirectory = Objects.requireNonNull(worldDirectory, "worldDirectory")
                 .toAbsolutePath()

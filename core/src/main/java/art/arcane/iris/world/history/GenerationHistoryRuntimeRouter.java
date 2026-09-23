@@ -117,6 +117,27 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         );
     }
 
+    public static GenerationHistoryRuntimeRouter attachPrepared(
+            IrisEngine engine,
+            GenerationHistory.StartupPreparation preparation,
+            GenerationBoundarySignatureSampler signatureSampler
+    ) throws IOException {
+        return attachPrepared(engine, preparation, signatureSampler, new DefaultActivationRuntimeFactory());
+    }
+
+    static GenerationHistoryRuntimeRouter attachPrepared(
+            IrisEngine engine,
+            GenerationHistory.StartupPreparation preparation,
+            GenerationBoundarySignatureSampler signatureSampler,
+            ActivationRuntimeFactory runtimeFactory
+    ) throws IOException {
+        GenerationHistory history = Objects.requireNonNull(preparation, "startup preparation").history();
+        synchronized (history) {
+            preparation.consume();
+            return attach(engine, history, signatureSampler, runtimeFactory);
+        }
+    }
+
     public static GenerationHistoryRuntimeRouter attachAndPromotePending(
             IrisEngine engine,
             GenerationHistory history,

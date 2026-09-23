@@ -383,8 +383,9 @@ public final class IrisWorldGeneratorResolver {
         IrisDimension dimension = null;
         if (dimensionRoot != null) {
             long worldSeed = requireStoredWorldSeed(configuredWorldName, dimensionRoot);
-            GenerationHistory history = requireGenerationHistory(dimensionRoot, id, worldSeed);
-            File pack = requireActivePack(history);
+            LoadedHistory loaded = requireGenerationHistory(dimensionRoot, id, worldSeed);
+            GenerationHistory history = loaded.history();
+            File pack = loaded.activePack();
             requireSnapshotLoadable(pack);
             dimension = requireHistoricalDimension(history, pack, id);
         }
@@ -615,8 +616,9 @@ public final class IrisWorldGeneratorResolver {
                     + worldKey + ".");
         }
         long worldSeed = requireStoredWorldSeed(worldName, dimensionRoot);
-        GenerationHistory history = requireGenerationHistory(dimensionRoot, id, worldSeed);
-        File snapshotRoot = requireActivePack(history);
+        LoadedHistory loaded = requireGenerationHistory(dimensionRoot, id, worldSeed);
+        GenerationHistory history = loaded.history();
+        File snapshotRoot = loaded.activePack();
         PackValidationResult validation = validateSnapshot(snapshotRoot);
         if (hasPendingExternalContent(validation, IrisServices.getOrNull(ExternalDataSVC.class))) {
             return deferFrozenWorldGenerator(worldName, worldKey, dimensionRoot, snapshotRoot, id, history);
@@ -705,7 +707,7 @@ public final class IrisWorldGeneratorResolver {
         }
     }
 
-    private static GenerationHistory requireGenerationHistory(
+    private static LoadedHistory requireGenerationHistory(
             File dimensionRoot,
             String dimensionKey,
             long worldSeed
@@ -724,7 +726,7 @@ public final class IrisWorldGeneratorResolver {
             history.requireRegistryDefinitions(
                     GenerationRegistryContractFactory.captureRequiredDefinitions(retainedContracts)
             );
-            return history;
+            return new LoadedHistory(history, history.paths().packRoot(history.activeEpoch().epochId()).toFile());
         } catch (IOException failure) {
             throw new IllegalStateException("Iris generation history is unusable at " + root + ".", failure);
         }
@@ -825,12 +827,7 @@ public final class IrisWorldGeneratorResolver {
                 );
     }
 
-    private static File requireActivePack(GenerationHistory history) {
-        try {
-            return history.activePackRoot().toFile();
-        } catch (IOException failure) {
-            throw new IllegalStateException("Active Iris generation pack is unusable.", failure);
-        }
+    private record LoadedHistory(GenerationHistory history, File activePack) {
     }
 
     private static long requireStoredWorldSeed(String worldName, File dimensionRoot) {

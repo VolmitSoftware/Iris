@@ -1,5 +1,6 @@
 package art.arcane.iris.world.history;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -8,6 +9,7 @@ import java.io.IOException;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -356,8 +358,10 @@ public final class SavedBiomeStore {
         if (!Files.isRegularFile(region.path, LinkOption.NOFOLLOW_LINKS)) {
             throw new IOException("Saved biome region is not a regular file: " + region.path);
         }
-        try (RandomAccessFile input = new RandomAccessFile(region.path.toFile(), "rw")) {
-            long fileLength = input.length();
+        try (RandomAccessFile file = new RandomAccessFile(region.path.toFile(), "rw");
+             DataInputStream input = new DataInputStream(new BufferedInputStream(
+                     Channels.newInputStream(file.getChannel()), 65536))) {
+            long fileLength = file.length();
             if (fileLength < HEADER_BYTES || fileLength > MAXIMUM_REGION_BYTES) {
                 throw new IOException("Invalid saved biome region size: " + region.path);
             }
@@ -371,21 +375,22 @@ public final class SavedBiomeStore {
             }
             byte[] buffer = new byte[8192];
             int records = 0;
-            while (input.getFilePointer() < fileLength) {
-                long offset = input.getFilePointer();
+            long offset = HEADER_BYTES;
+            CRC32 crc = new CRC32();
+            while (offset < fileLength) {
                 if (fileLength - offset < Integer.BYTES) {
-                    truncateTail(input, offset);
+                    truncateTail(file, offset);
                     break;
                 }
                 int length = input.readInt();
                 if (length < 12 || length > MAXIMUM_RECORD_BYTES) {
                     throw new IOException("Invalid saved biome record size: " + region.path);
                 }
-                if (fileLength - input.getFilePointer() < length + 4L) {
-                    truncateTail(input, offset);
+                if (fileLength - offset - Integer.BYTES < length + 4L) {
+                    truncateTail(file, offset);
                     break;
                 }
-                CRC32 crc = new CRC32();
+                crc.reset();
                 input.readFully(buffer, 0, 8);
                 crc.update(buffer, 0, 8);
                 ByteBuffer coordinates = ByteBuffer.wrap(buffer, 0, 8);
@@ -406,6 +411,7 @@ public final class SavedBiomeStore {
                 }
                 region.offsets[slot] = offset;
                 region.lengths[slot] = length;
+                offset += length + 2L * Integer.BYTES;
             }
         }
     }

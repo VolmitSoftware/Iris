@@ -67,7 +67,7 @@ public final class GenerationHistory {
         this.admission = new GenerationAdmission(paths.dimensionRoot());
         this.boundaryCache = boundedCache(MAXIMUM_CACHED_BOUNDARIES);
         this.terrainSignatureCache = boundedCache(MAXIMUM_CACHED_TERRAIN_SIGNATURES);
-        validateReferencedState(publication);
+        validateReferencedState(publication, true);
     }
 
     public GenerationAdmission.RuntimeLease retainRuntime() {
@@ -146,6 +146,26 @@ public final class GenerationHistory {
 
     public static GenerationHistory open(Path dimensionRoot) throws IOException {
         return open(dimensionRoot, GenerationKernelRegistry.standard());
+    }
+
+    public static PackInspection inspectPacks(Path dimensionRoot) throws IOException {
+        GenerationHistoryPaths paths = GenerationHistoryPaths.forDimension(dimensionRoot);
+        requireSafeStatePaths(paths);
+        GenerationManifest manifest = GenerationHistoryStore.open(paths.generationRoot()).manifest();
+        for (GenerationEpoch epoch : manifest.epochs()) {
+            GenerationPackFingerprint.requireSupported(epoch.packFingerprintVersion());
+        }
+        GenerationPackRepository packs = new GenerationPackRepository(paths.dimensionRoot());
+        GenerationEpoch active = manifest.activeEpoch();
+        Path activePack = packs.requireExactPack(
+                active.epochId(), active.packFingerprint(), active.packFingerprintVersion());
+        Optional<Path> pendingPack = Optional.empty();
+        if (manifest.pendingEpoch().isPresent()) {
+            GenerationEpoch pending = manifest.pendingEpoch().orElseThrow();
+            pendingPack = Optional.of(pending.epochId().equals(active.epochId()) ? activePack
+                    : packs.requireExactPack(pending.epochId(), pending.packFingerprint(), pending.packFingerprintVersion()));
+        }
+        return new PackInspection(paths, manifest, activePack, pendingPack);
     }
 
     public static GenerationHistory open(Path dimensionRoot, long expectedWorldSeed) throws IOException {
@@ -393,7 +413,7 @@ public final class GenerationHistory {
         );
         try (GenerationAdmission.CutoverLease ignored = admission.beginStartupCutover()) {
             synchronized (this) {
-                return promotePendingLocked(requiredCapture);
+                return promotePendingLocked(requiredCapture, true, true);
             }
         }
     }
@@ -414,7 +434,7 @@ public final class GenerationHistory {
         GenerationActivation promote(BoundarySignatureCapture signatureCapture) throws IOException {
             requireOpen();
             synchronized (GenerationHistory.this) {
-                return promotePendingLocked(Objects.requireNonNull(signatureCapture, "signature capture"));
+                return promotePendingLocked(Objects.requireNonNull(signatureCapture, "signature capture"), false, true);
             }
         }
 
@@ -433,10 +453,10 @@ public final class GenerationHistory {
     }
 
     private GenerationActivation promotePendingLocked(
-            BoundarySignatureCapture signatureCapture
+            BoundarySignatureCapture signatureCapture, boolean startupRecovery, boolean validateSemantics
     ) throws IOException {
-        WorldChunkInventory inventory = recoverUnstoredClaims();
-        validateReferencedState(Optional.empty());
+        WorldChunkInventory inventory = recoverUnstoredClaims(startupRecovery);
+        validateReferencedState(Optional.empty(), validateSemantics);
         Optional<GenerationActivation> pending = store.pendingActivation();
         if (pending.isEmpty()) {
             return store.activeActivation();
@@ -498,7 +518,7 @@ public final class GenerationHistory {
     ) throws IOException {
         GenerationEpoch active = store.activeEpoch();
         return stageUpdate(
-                activePackRoot(),
+                store.pendingActivation().isPresent() ? activePackRoot() : packs.requireSafePackRoot(active.epochId()),
                 active.packFingerprint(),
                 active.packFingerprintVersion(),
                 active.dimensionContract(),
@@ -509,11 +529,17 @@ public final class GenerationHistory {
     }
 
     public void prepareCurrentGenerator(int transitionWidthBlocks) throws IOException {
-        try (GenerationAdmission.CutoverLease ignored = admission.beginStartupCutover()) {
+        try (StartupPreparation ignored = prepareStartup(transitionWidthBlocks)) {
+        }
+    }
+
+    public StartupPreparation prepareStartup(int transitionWidthBlocks) throws IOException {
+        GenerationAdmission.CutoverLease lease = admission.beginStartupCutover();
+        try {
             synchronized (this) {
                 if (store.pendingActivation().isEmpty() && usesCurrentGenerator()) {
-                    recoverUnstoredClaims();
-                    validateReferencedState(Optional.empty());
+                    recoverUnstoredClaims(true);
+                    validateReferencedState(Optional.empty(), false);
                 } else {
                     if (store.pendingActivation().isEmpty()) {
                         stageCurrentKernel(transitionWidthBlocks);
@@ -524,27 +550,80 @@ public final class GenerationHistory {
                         promoteSavedBoundary();
                     }
                 }
+                return new StartupPreparation(lease, store.manifest());
+            }
+        } catch (IOException | RuntimeException | Error failure) {
+            lease.close();
+            throw failure;
+        }
+    }
+
+    public final class StartupPreparation implements AutoCloseable {
+        private final GenerationAdmission.CutoverLease lease;
+        private final GenerationManifest preparedManifest;
+        private final Thread owner = Thread.currentThread();
+        private boolean consumed;
+        private boolean closed;
+
+        private StartupPreparation(GenerationAdmission.CutoverLease lease, GenerationManifest preparedManifest) {
+            this.lease = lease;
+            this.preparedManifest = preparedManifest;
+        }
+
+        GenerationHistory history() {
+            return GenerationHistory.this;
+        }
+
+        void consume() {
+            requireOwner();
+            if (closed || consumed) {
+                throw new IllegalStateException("Generation startup preparation is closed or already attached.");
+            }
+            if (store.manifest() != preparedManifest) {
+                throw new IllegalStateException("Generation history changed after startup preparation.");
+            }
+            consumed = true;
+        }
+
+        @Override
+        public void close() {
+            requireOwner();
+            if (!closed) {
+                closed = true;
+                lease.close();
+            }
+        }
+
+        private void requireOwner() {
+            if (Thread.currentThread() != owner) {
+                throw new IllegalStateException("Generation startup preparation belongs to another thread.");
             }
         }
     }
 
     private void promoteSavedBoundary() throws IOException {
         GenerationEpoch.DimensionContract contract = activeEpoch().dimensionContract();
-        promotePendingLocked(boundary -> new DiskBoundaryCapture(paths.dimensionRoot(), contract.minHeight(), contract.height()));
+        promotePendingLocked(boundary -> new DiskBoundaryCapture(paths.dimensionRoot(), contract.minHeight(), contract.height()), true, false);
     }
 
-    private WorldChunkInventory recoverUnstoredClaims() throws IOException {
+    private WorldChunkInventory recoverUnstoredClaims(boolean startupRecovery) throws IOException {
         long outgoing = store.activeActivation().activationId();
         Set<Long> selected = store.pendingActivation()
                 .map(pending -> Set.of(outgoing, pending.activationId()))
                 .orElseGet(() -> Set.of(outgoing));
-        WorldChunkInventory inventory = WorldChunkInventory.scan(paths.dimensionRoot()).filter((chunkX, chunkZ) -> {
-            if (ownership.isExplicitlyAssigned(chunkX, chunkZ)
-                    && !selected.contains(ownership.resolve(chunkX, chunkZ, outgoing))) {
-                return true;
+        WorldChunkInventory allocated = WorldChunkInventory.scan(paths.dimensionRoot());
+        WorldChunkInventory.ChunkPredicate retained = (chunkX, chunkZ) ->
+                ownership.isExplicitlyAssigned(chunkX, chunkZ)
+                        && !selected.contains(ownership.resolve(chunkX, chunkZ, outgoing));
+        WorldChunkInventory inventory;
+        if (startupRecovery) {
+            inventory = SavedTerrainRecoveryScan.scan(paths.dimensionRoot(), allocated, retained);
+        } else {
+            try (SavedTerrainChunkReader.StatusReader reader = new SavedTerrainChunkReader.StatusReader(paths.dimensionRoot())) {
+                inventory = allocated.filter((chunkX, chunkZ) -> retained.test(chunkX, chunkZ)
+                        || SavedTerrainChunk.hasTerrain(reader.readStatus(chunkX, chunkZ)));
             }
-            return SavedTerrainChunk.hasTerrain(SavedTerrainChunk.readStatus(paths.dimensionRoot(), chunkX, chunkZ));
-        });
+        }
         semantics.discardUnstoredClaims(inventory, selected);
         savedBiomes.discardUnstoredClaims(inventory, selected);
         ownership.discardUnstoredClaims(inventory, selected);
@@ -808,7 +887,7 @@ public final class GenerationHistory {
         return ownership.explicitChunkCount();
     }
 
-    private void validateReferencedState(Optional<FreshPublication> publication) throws IOException {
+    private void validateReferencedState(Optional<FreshPublication> publication, boolean validateSemantics) throws IOException {
         validateRuntimeVersions();
         GenerationEpoch active = store.activeEpoch();
         if (publication.isEmpty()
@@ -833,7 +912,9 @@ public final class GenerationHistory {
             }
         }
         validateOwnershipReferences();
-        validateSemanticReferences();
+        if (validateSemantics) {
+            validateSemanticReferences();
+        }
     }
 
     private static void requireTransitionSnapshotIdentities(
@@ -1173,6 +1254,10 @@ public final class GenerationHistory {
                 return size() > maximumSize;
             }
         };
+    }
+
+    public record PackInspection(GenerationHistoryPaths paths, GenerationManifest manifest,
+                                 Path activePackRoot, Optional<Path> pendingPackRoot) {
     }
 
     private record FreshPublication(Path pack, GenerationEpoch epoch) {

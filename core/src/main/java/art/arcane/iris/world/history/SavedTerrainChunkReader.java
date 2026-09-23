@@ -15,6 +15,8 @@ import art.arcane.volmlib.util.nbt.tag.NumberTag;
 import art.arcane.volmlib.util.nbt.tag.StringTag;
 import art.arcane.volmlib.util.nbt.tag.Tag;
 import net.jpountz.lz4.LZ4BlockInputStream;
+import com.fulcrumgenomics.jlibdeflate.LibdeflateDecompressor;
+import com.fulcrumgenomics.jlibdeflate.LibdeflateException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -23,6 +25,7 @@ import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,7 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
-import java.util.zip.InflaterInputStream;
+import java.util.zip.Inflater;
+import java.util.zip.DataFormatException;
 
 final class SavedTerrainChunkReader {
     private static final int SECTOR_BYTES = 4096;
@@ -153,7 +157,9 @@ final class SavedTerrainChunkReader {
     }
 
     static String readStatus(Path dimensionRoot, int chunkX, int chunkZ) throws IOException {
-        return string(readRoot(dimensionRoot, chunkX, chunkZ), "Status");
+        try (StatusReader reader = new StatusReader(dimensionRoot)) {
+            return reader.readStatus(chunkX, chunkZ);
+        }
     }
 
     private static Section requireSection(Map<Integer, Section> sections, int y) throws IOException {
@@ -245,77 +251,9 @@ final class SavedTerrainChunkReader {
     }
 
     private static CompoundTag readRoot(Path dimensionRoot, int chunkX, int chunkZ) throws IOException {
-        Path regionDirectory = dimensionRoot.toAbsolutePath().normalize().resolve("region");
-        Path region = regionDirectory.resolve("r." + Math.floorDiv(chunkX, 32) + "."
-                + Math.floorDiv(chunkZ, 32) + ".mca");
-        if (!Files.isRegularFile(region, LinkOption.NOFOLLOW_LINKS)) {
-            throw new IOException("Saved chunk region is unavailable: " + region);
+        try (StatusReader reader = new StatusReader(dimensionRoot)) {
+            return reader.readRoot(chunkX, chunkZ);
         }
-        byte[] compressed;
-        int compression;
-        try (RandomAccessFile input = new RandomAccessFile(region.toFile(), "r")) {
-            int slot = Math.floorMod(chunkZ, 32) * 32 + Math.floorMod(chunkX, 32);
-            input.seek((long) slot * 4);
-            int allocation = input.readInt();
-            long offset = (long) (allocation >>> 8) * SECTOR_BYTES;
-            int sectors = allocation & 255;
-            if (offset < 2L * SECTOR_BYTES || sectors == 0 || offset + 5 > input.length()) {
-                throw new IOException("Saved chunk allocation is unavailable: " + chunkX + "," + chunkZ);
-            }
-            input.seek(offset);
-            int length = input.readInt();
-            compression = input.readUnsignedByte();
-            if ((compression & 128) != 0) {
-                if (length != 1) {
-                    throw new IOException("External saved chunk has an invalid allocation length");
-                }
-                Path external = regionDirectory.resolve("c." + chunkX + "." + chunkZ + ".mcc");
-                if (!Files.isRegularFile(external, LinkOption.NOFOLLOW_LINKS)
-                        || Files.size(external) > MAX_CHUNK_BYTES) {
-                    throw new IOException("External saved chunk is unavailable or too large: " + external);
-                }
-                compressed = Files.readAllBytes(external);
-                compression &= 127;
-            } else {
-                if (length < 1 || length > MAX_CHUNK_BYTES || (long) length + 4 > (long) sectors * SECTOR_BYTES
-                        || offset + 4L + length > input.length()) {
-                    throw new IOException("Saved chunk payload is truncated or too large: " + chunkX + "," + chunkZ);
-                }
-                compressed = new byte[length - 1];
-                input.readFully(compressed);
-            }
-            input.seek((long) slot * 4);
-            if (input.readInt() != allocation) {
-                throw new IOException("Saved chunk allocation changed during boundary capture: " + chunkX + "," + chunkZ);
-            }
-        }
-        try (InputStream decoded = decompress(compressed, compression)) {
-            byte[] bytes = decoded.readNBytes(MAX_CHUNK_BYTES + 1);
-            if (bytes.length > MAX_CHUNK_BYTES) {
-                throw new IOException("Saved chunk decompressed payload exceeds the size limit");
-            }
-            Tag<?> tag = NBTUtil.read(new ByteArrayInputStream(bytes), false).getTag();
-            if (!(tag instanceof CompoundTag root)) {
-                throw new IOException("Saved chunk root is not a compound");
-            }
-            if (number(root, "xPos") != chunkX || number(root, "zPos") != chunkZ) {
-                throw new IOException("Saved chunk coordinates do not match its region allocation");
-            }
-            return root;
-        } catch (IllegalArgumentException | ClassCastException exception) {
-            throw new IOException("Invalid saved chunk data at " + chunkX + "," + chunkZ, exception);
-        }
-    }
-
-    private static InputStream decompress(byte[] encoded, int compression) throws IOException {
-        InputStream input = new ByteArrayInputStream(encoded);
-        return switch (compression) {
-            case 1 -> new GZIPInputStream(input);
-            case 2 -> new InflaterInputStream(input);
-            case 3 -> input;
-            case 4 -> new LZ4BlockInputStream(input);
-            default -> throw new IOException("Unsupported saved chunk compression " + compression);
-        };
     }
 
     private static long[] packedData(CompoundTag tag) throws IOException {
@@ -355,6 +293,268 @@ final class SavedTerrainChunkReader {
             throw new IOException("Saved chunk field " + key + " is not a number");
         }
         return value.asInt();
+    }
+
+    static final class StatusReader implements AutoCloseable {
+        private static final boolean NATIVE_AVAILABLE = nativeAvailable();
+
+        private final Path regionDirectory;
+        private final Inflater inflater = new Inflater();
+        private final LibdeflateDecompressor nativeInflater = NATIVE_AVAILABLE ? new LibdeflateDecompressor() : null;
+        private byte[] compressed = new byte[65536];
+        private byte[] decoded = new byte[65536];
+        private Path region;
+        private RandomAccessFile input;
+        private Object regionFileKey;
+        private int regionX;
+        private int regionZ;
+        private boolean closed;
+
+        StatusReader(Path dimensionRoot) {
+            regionDirectory = dimensionRoot.toAbsolutePath().normalize().resolve("region");
+        }
+
+        SavedTerrainChunk readChunk(int chunkX, int chunkZ, int minimumY, int height) throws IOException {
+            return SavedTerrainChunkReader.readRoot(readRoot(chunkX, chunkZ), chunkX, chunkZ, minimumY, height);
+        }
+
+        String readStatus(int chunkX, int chunkZ) throws IOException {
+            try {
+                Payload payload = readPayload(chunkX, chunkZ);
+                return SavedTerrainStatusNbt.read(payload.bytes(), payload.offset(), payload.length(), chunkX, chunkZ);
+            } catch (IOException exception) {
+                throw new IOException("Cannot read saved chunk status at " + chunkX + "," + chunkZ
+                        + " in " + regionDirectory, exception);
+            }
+        }
+
+        String readStatus(byte[] bytes, SavedTerrainRegionSnapshot.Payload stored, int chunkX, int chunkZ)
+                throws IOException {
+            if (closed) {
+                throw new IOException("Saved chunk status reader is closed");
+            }
+            if (stored.external()) {
+                return readStatus(chunkX, chunkZ);
+            }
+            try {
+                Payload payload = decode(stored.compression(), bytes, stored.offset(), stored.length());
+                return SavedTerrainStatusNbt.read(payload.bytes(), payload.offset(), payload.length(), chunkX, chunkZ);
+            } catch (IOException exception) {
+                throw new IOException("Cannot read saved chunk status at " + chunkX + "," + chunkZ
+                        + " in " + regionDirectory, exception);
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (closed) {
+                return;
+            }
+            closed = true;
+            try {
+                if (input != null) {
+                    input.close();
+                }
+            } finally {
+                inflater.end();
+                if (nativeInflater != null) {
+                    nativeInflater.close();
+                }
+            }
+        }
+
+        private CompoundTag readRoot(int chunkX, int chunkZ) throws IOException {
+            try {
+                Payload payload = readPayload(chunkX, chunkZ);
+                Tag<?> tag = NBTUtil.read(
+                        new ByteArrayInputStream(payload.bytes(), payload.offset(), payload.length()), false).getTag();
+                if (!(tag instanceof CompoundTag root)) {
+                    throw new IOException("Saved chunk root is not a compound");
+                }
+                if (number(root, "xPos") != chunkX || number(root, "zPos") != chunkZ) {
+                    throw new IOException("Saved chunk coordinates do not match its region allocation");
+                }
+                return root;
+            } catch (IllegalArgumentException | ClassCastException exception) {
+                throw new IOException("Invalid saved chunk data at " + chunkX + "," + chunkZ, exception);
+            }
+        }
+
+        private Payload readPayload(int chunkX, int chunkZ) throws IOException {
+            openRegion(chunkX, chunkZ);
+            int slot = Math.floorMod(chunkZ, 32) * 32 + Math.floorMod(chunkX, 32);
+            input.seek((long) slot * 4);
+            int allocation = input.readInt();
+            long offset = (long) (allocation >>> 8) * SECTOR_BYTES;
+            int sectors = allocation & 255;
+            if (offset < 2L * SECTOR_BYTES || sectors == 0 || offset + 5 > input.length()) {
+                throw new IOException("Saved chunk allocation is unavailable: " + chunkX + "," + chunkZ);
+            }
+            input.seek(offset);
+            int length = input.readInt();
+            int compression = input.readUnsignedByte();
+            int compressedLength;
+            if ((compression & 128) != 0) {
+                if (length != 1) {
+                    throw new IOException("External saved chunk has an invalid allocation length");
+                }
+                compressedLength = readExternal(chunkX, chunkZ);
+                compression &= 127;
+            } else {
+                if (length < 1 || length > MAX_CHUNK_BYTES || (long) length + 4 > (long) sectors * SECTOR_BYTES
+                        || offset + 4L + length > input.length()) {
+                    throw new IOException("Saved chunk payload is truncated or too large: " + chunkX + "," + chunkZ);
+                }
+                compressedLength = length - 1;
+                ensureCompressedCapacity(compressedLength);
+                input.readFully(compressed, 0, compressedLength);
+            }
+            input.seek((long) slot * 4);
+            if (input.readInt() != allocation) {
+                throw new IOException("Saved chunk allocation changed during boundary capture: " + chunkX + "," + chunkZ);
+            }
+            return decode(compression, compressed, 0, compressedLength);
+        }
+
+        private void openRegion(int chunkX, int chunkZ) throws IOException {
+            if (closed) {
+                throw new IOException("Saved chunk status reader is closed");
+            }
+            int nextRegionX = Math.floorDiv(chunkX, 32);
+            int nextRegionZ = Math.floorDiv(chunkZ, 32);
+            boolean sameRegion = input != null && regionX == nextRegionX && regionZ == nextRegionZ;
+            Path nextRegion = sameRegion ? region
+                    : regionDirectory.resolve("r." + nextRegionX + "." + nextRegionZ + ".mca");
+            BasicFileAttributes attributes = Files.readAttributes(nextRegion, BasicFileAttributes.class,
+                    LinkOption.NOFOLLOW_LINKS);
+            if (!attributes.isRegularFile()) {
+                throw new IOException("Saved chunk region is unavailable: " + nextRegion);
+            }
+            Object nextFileKey = attributes.fileKey();
+            if (sameRegion && nextFileKey != null && nextFileKey.equals(regionFileKey)) {
+                return;
+            }
+            if (input != null) {
+                input.close();
+                input = null;
+            }
+            input = new RandomAccessFile(nextRegion.toFile(), "r");
+            region = nextRegion;
+            regionFileKey = nextFileKey;
+            regionX = nextRegionX;
+            regionZ = nextRegionZ;
+        }
+
+        private int readExternal(int chunkX, int chunkZ) throws IOException {
+            Path external = regionDirectory.resolve("c." + chunkX + "." + chunkZ + ".mcc");
+            if (!Files.isRegularFile(external, LinkOption.NOFOLLOW_LINKS)) {
+                throw new IOException("External saved chunk is unavailable: " + external);
+            }
+            long length = Files.size(external);
+            if (length > MAX_CHUNK_BYTES) {
+                throw new IOException("External saved chunk is too large: " + external);
+            }
+            int size = (int) length;
+            ensureCompressedCapacity(size);
+            try (InputStream externalInput = Files.newInputStream(external)) {
+                if (externalInput.readNBytes(compressed, 0, size) != size || externalInput.read() != -1) {
+                    throw new IOException("External saved chunk length changed during capture: " + external);
+                }
+            }
+            return size;
+        }
+
+        private void ensureCompressedCapacity(int size) {
+            if (size > compressed.length) {
+                compressed = new byte[Math.max(size, Math.min(MAX_CHUNK_BYTES, compressed.length * 2))];
+            }
+        }
+
+        private Payload decode(int compression, byte[] bytes, int offset, int length) throws IOException {
+            if (compression == 2) {
+                int size = inflate(bytes, offset, length);
+                return new Payload(decoded, 0, size);
+            }
+            if (compression == 3) {
+                return new Payload(bytes, offset, length);
+            }
+            InputStream encoded = new ByteArrayInputStream(bytes, offset, length);
+            try (InputStream stream = switch (compression) {
+                case 1 -> new GZIPInputStream(encoded);
+                case 4 -> new LZ4BlockInputStream(encoded);
+                default -> throw new IOException("Unsupported saved chunk compression " + compression);
+            }) {
+                int size = 0;
+                int count;
+                do {
+                    ensureDecodedCapacity(size);
+                    count = stream.read(decoded, size, decoded.length - size);
+                    if (count > 0) {
+                        size += count;
+                        checkDecodedSize(size);
+                    }
+                } while (count != -1);
+                return new Payload(decoded, 0, size);
+            }
+        }
+
+        private int inflate(byte[] bytes, int offset, int length) throws IOException {
+            if (nativeInflater != null) {
+                try {
+                    int size = nativeInflater.zlibDecompressEx(bytes, offset, length, decoded, 0, decoded.length)
+                            .outputBytesProduced();
+                    checkDecodedSize(size);
+                    return size;
+                } catch (LibdeflateException exception) {
+                    return inflateJava(bytes, offset, length);
+                }
+            }
+            return inflateJava(bytes, offset, length);
+        }
+
+        private static boolean nativeAvailable() {
+            try (LibdeflateDecompressor ignored = new LibdeflateDecompressor()) {
+                return true;
+            } catch (LinkageError | SecurityException exception) {
+                return false;
+            }
+        }
+
+        private int inflateJava(byte[] bytes, int offset, int length) throws IOException {
+            inflater.reset();
+            inflater.setInput(bytes, offset, length);
+            int size = 0;
+            try {
+                while (!inflater.finished()) {
+                    ensureDecodedCapacity(size);
+                    int count = inflater.inflate(decoded, size, decoded.length - size);
+                    size += count;
+                    checkDecodedSize(size);
+                    if (count == 0 && !inflater.finished()) {
+                        throw new IOException("Saved chunk zlib payload is truncated or requires a dictionary");
+                    }
+                }
+            } catch (DataFormatException exception) {
+                throw new IOException("Invalid saved chunk zlib payload", exception);
+            }
+            return size;
+        }
+
+        private void ensureDecodedCapacity(int size) throws IOException {
+            checkDecodedSize(size);
+            if (size == decoded.length) {
+                decoded = Arrays.copyOf(decoded, Math.min(MAX_CHUNK_BYTES + 1, decoded.length * 2));
+            }
+        }
+
+        private void checkDecodedSize(int size) throws IOException {
+            if (size > MAX_CHUNK_BYTES) {
+                throw new IOException("Saved chunk decompressed payload exceeds the size limit");
+            }
+        }
+    }
+
+    private record Payload(byte[] bytes, int offset, int length) {
     }
 
     private record Section(Palette<BoundaryColumnGeometry.Voxel> blocks, Palette<String> biomes) {

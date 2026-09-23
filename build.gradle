@@ -368,6 +368,7 @@ if (localVolmLibCheckout != null) {
 
 Closure<Void> declareModdedJarIo = { Exec task, String adapter, String artifactName, Map<String, String> versions ->
     task.inputs.files(moddedSharedInputs).withPropertyName('moddedSharedSources')
+        .withPathSensitivity(PathSensitivity.RELATIVE)
     task.inputs.files(
         layout.projectDirectory.file("adapters/${adapter}/src").asFile,
         layout.projectDirectory.file("adapters/${adapter}/build.gradle").asFile,
@@ -376,7 +377,6 @@ Closure<Void> declareModdedJarIo = { Exec task, String adapter, String artifactN
     versions.each { String key, String value -> task.inputs.property(key, value) }
     task.inputs.property('useLocalVolmLib', useLocalVolmLib)
     task.inputs.property('volmLibCoordinate', volmLibCoordinate)
-    task.inputs.property('localVolmLibCheckout', localVolmLibCheckout == null ? '' : localVolmLibCheckout.absolutePath)
     task.outputs.file(layout.projectDirectory.file("adapters/${adapter}/build/libs/${artifactName}"))
     return null
 }
@@ -395,8 +395,8 @@ tasks.register('fabricJar', Exec) {
         "-PuseLocalVolmLib=${useLocalVolmLib}",
         "-PvolmLibCoordinate=${volmLibCoordinate}"
     ]
-    if (localVolmLibDirectory != null && !localVolmLibDirectory.isBlank()) {
-        command.add("-PlocalVolmLibDirectory=${localVolmLibDirectory}")
+    if (localVolmLibCheckout != null) {
+        environment('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
     }
     commandLine(command)
     declareModdedJarIo(it, 'fabric', fabricArtifactName, [
@@ -433,8 +433,8 @@ tasks.register('forgeJar', Exec) {
         "-PuseLocalVolmLib=${useLocalVolmLib}",
         "-PvolmLibCoordinate=${volmLibCoordinate}"
     ]
-    if (localVolmLibDirectory != null && !localVolmLibDirectory.isBlank()) {
-        command.add("-PlocalVolmLibDirectory=${localVolmLibDirectory}")
+    if (localVolmLibCheckout != null) {
+        environment('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
     }
     commandLine(command)
     declareModdedJarIo(it, 'forge', forgeArtifactName, [
@@ -471,8 +471,8 @@ tasks.register('neoforgeJar', Exec) {
         "-PuseLocalVolmLib=${useLocalVolmLib}",
         "-PvolmLibCoordinate=${volmLibCoordinate}"
     ]
-    if (localVolmLibDirectory != null && !localVolmLibDirectory.isBlank()) {
-        command.add("-PlocalVolmLibDirectory=${localVolmLibDirectory}")
+    if (localVolmLibCheckout != null) {
+        environment('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
     }
     commandLine(command)
     declareModdedJarIo(it, 'neoforge', neoForgeArtifactName, [
@@ -529,11 +529,12 @@ tasks.register('moddedTest', Exec) {
         "-PuseLocalVolmLib=${useLocalVolmLib}",
         "-PvolmLibCoordinate=${volmLibCoordinate}"
     ]
-    if (localVolmLibDirectory != null && !localVolmLibDirectory.isBlank()) {
-        command.add("-PlocalVolmLibDirectory=${localVolmLibDirectory}")
+    if (localVolmLibCheckout != null) {
+        environment('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
     }
     commandLine(command)
     inputs.files(moddedSharedInputs).withPropertyName('moddedSharedSources')
+        .withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.files(
         layout.projectDirectory.file('adapters/fabric/src').asFile,
         layout.projectDirectory.file('adapters/fabric/build.gradle').asFile,
@@ -544,7 +545,6 @@ tasks.register('moddedTest', Exec) {
     inputs.property('fabricLoaderVersion', fabricLoaderVersion)
     inputs.property('useLocalVolmLib', useLocalVolmLib)
     inputs.property('volmLibCoordinate', volmLibCoordinate)
-    inputs.property('localVolmLibCheckout', localVolmLibCheckout == null ? '' : localVolmLibCheckout.absolutePath)
     outputs.dir(layout.projectDirectory.dir('adapters/fabric/build/test-results/test'))
     mustRunAfter(tasks.named('jar'))
     mustRunAfter(project(':core').tasks.named('check'))
@@ -553,6 +553,19 @@ tasks.register('moddedTest', Exec) {
 
 tasks.named('fabricJar').configure {
     mustRunAfter(tasks.named('moddedTest'))
+}
+
+gradle.projectsEvaluated {
+    List<Task> sharedOutputTasks = allprojects.collectMany { Project candidate ->
+        candidate.tasks.findAll { Task task ->
+            task instanceof JavaCompile || task instanceof Jar || task instanceof Test
+        }
+    }
+    for (String taskName : ['moddedTest', 'fabricJar', 'forgeJar', 'neoforgeJar']) {
+        tasks.named(taskName).configure {
+            mustRunAfter(sharedOutputTasks)
+        }
+    }
 }
 
 tasks.named('check').configure {

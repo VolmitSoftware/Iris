@@ -34,6 +34,11 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertFalse;
@@ -95,6 +100,128 @@ public class EngineShutdownDrainTest {
         if (previousPlatform != null) {
             IrisPlatforms.bind(previousPlatform);
         }
+    }
+
+    @Test
+    public void closingRuntimeAllowsItsBackgroundWorkersToOpenCapturedScopes() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        doCallRealMethod().when(fixture.engine).openGenerationRuntimeScope(any());
+        IrisEngine.GenerationRuntimeBinding binding = new IrisEngine.GenerationRuntimeBinding(
+                fixture.engine, fixture.generation);
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        doAnswer(invocation -> {
+            Future<?> continuation = worker.submit(() -> {
+                try (IrisEngine.GenerationRuntimeScope ignored = fixture.engine.openGenerationRuntimeScope(binding)) {
+                    assertSame(binding, fixture.engine.generationRuntimeScopes.current());
+                    assertSame(fixture.runtime, fixture.engine.runtime);
+                    assertTrue(fixture.engine.getClosing().get());
+                    assertThrows(IllegalStateException.class, () -> fixture.engine.requireRunning("start generation"));
+                }
+            });
+            continuation.get(5, TimeUnit.SECONDS);
+            return null;
+        }).when(fixture.complex).close();
+
+        try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class)) {
+            fixture.shutdown.close();
+            assertTrue(fixture.engine.closed);
+            assertThrows(IllegalStateException.class, () -> fixture.engine.openGenerationRuntimeScope(binding));
+        } finally {
+            worker.shutdownNow();
+            assertTrue(worker.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void concurrentCloseWaitsForTheRunningShutdown() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        ExecutorService closer = Executors.newSingleThreadExecutor();
+        CompletableFuture<Future<?>> concurrentClose = new CompletableFuture<>();
+        CountDownLatch entered = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            concurrentClose.complete(closer.submit(() -> {
+                entered.countDown();
+                fixture.shutdown.close();
+            }));
+            assertTrue(entered.await(5, TimeUnit.SECONDS));
+            return null;
+        }).when(fixture.complex).close();
+
+        try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class)) {
+            fixture.shutdown.close();
+            concurrentClose.get(5, TimeUnit.SECONDS).get(5, TimeUnit.SECONDS);
+            verify(fixture.complex).close();
+            verify(fixture.mantle).close();
+            assertTrue(fixture.engine.closed);
+        } finally {
+            closer.shutdownNow();
+            assertTrue(closer.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void shutdownWaitsForConcurrentDetachedRetirementWithoutClosingItTwice() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        GenerationRuntime detached = generation(target(), mock(EngineMantle.class));
+        IrisComplex detachedComplex = detached.complex();
+        fixture.engine.detachedGenerationRuntimes.add(detached);
+        CountDownLatch retirementStarted = new CountDownLatch(1);
+        CountDownLatch allowRetirement = new CountDownLatch(1);
+        CountDownLatch backgroundDrained = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            retirementStarted.countDown();
+            assertTrue(allowRetirement.await(5, TimeUnit.SECONDS));
+            return null;
+        }).when(detachedComplex).close();
+        when(fixture.engine.backgroundTasks.drainBackgroundTasks("close")).thenAnswer(invocation -> {
+            backgroundDrained.countDown();
+            return new EngineBackgroundTasks.BackgroundTaskDrain(null, true);
+        });
+        ExecutorService workers = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> retiring = workers.submit(() -> fixture.engine.closeDetachedGenerationRuntime(
+                    new IrisEngine.GenerationRuntimeBinding(fixture.engine, detached)));
+            assertTrue(retirementStarted.await(5, TimeUnit.SECONDS));
+            Future<?> shutdown = workers.submit(() -> {
+                try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class)) {
+                    fixture.shutdown.close();
+                }
+            });
+            assertTrue(backgroundDrained.await(5, TimeUnit.SECONDS));
+            assertFalse(shutdown.isDone());
+            verify(fixture.target, never()).close();
+            allowRetirement.countDown();
+            retiring.get(5, TimeUnit.SECONDS);
+            shutdown.get(5, TimeUnit.SECONDS);
+            verify(detached.complex()).close();
+            verify(detached.target()).close();
+            assertTrue(fixture.engine.closed);
+        } finally {
+            allowRetirement.countDown();
+            workers.shutdownNow();
+            assertTrue(workers.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void failedDetachedRetirementRetainsOwnershipForShutdownRetry() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        GenerationRuntime detached = generation(target(), mock(EngineMantle.class));
+        IrisComplex detachedComplex = detached.complex();
+        fixture.engine.detachedGenerationRuntimes.add(detached);
+        doThrow(new IllegalStateException("Background work is still active")).doNothing()
+                .when(detachedComplex).close();
+
+        assertThrows(IllegalStateException.class, () -> fixture.engine.closeDetachedGenerationRuntime(
+                new IrisEngine.GenerationRuntimeBinding(fixture.engine, detached)));
+        assertTrue(fixture.engine.detachedGenerationRuntimes.contains(detached));
+        verify(detached.target(), never()).close();
+        try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class)) {
+            fixture.shutdown.close();
+        }
+        verify(detached.complex(), times(2)).close();
+        verify(detached.target()).close();
+        assertTrue(fixture.engine.closed);
     }
 
     @Test
@@ -726,14 +853,21 @@ public class EngineShutdownDrainTest {
             setField(engine, "lifecycleLock", new Object());
             setField(engine, "runtimeAssembly", new ThreadLocal<RuntimeAssembly>());
             setField(engine, "detachedGenerationRuntimes", ConcurrentHashMap.newKeySet());
-            when(engine.getClosing()).thenReturn(new AtomicBoolean());
+            setField(engine, "retiringGenerationRuntimes", ConcurrentHashMap.newKeySet());
+            setField(engine, "generationRuntimeScopes", new GenerationRuntimeScopeState());
+            AtomicBoolean closing = new AtomicBoolean();
+            setField(engine, "closing", closing);
+            when(engine.getClosing()).thenReturn(closing);
             when(engine.getGenerationSessions()).thenReturn(sessions);
             when(engine.getPlatformHooks()).thenReturn(mock(EnginePlatformHooks.class));
             when(engine.getMantle()).thenReturn(mantle);
             IrisWorld world = target.getWorld();
             when(engine.getWorld()).thenReturn(world);
-            when(engine.beginShutdown()).thenReturn(true);
+            doCallRealMethod().when(engine).beginShutdown();
+            doCallRealMethod().when(engine).requireRunning(anyString());
+            doCallRealMethod().when(engine).closeDetachedGenerationRuntime(any());
             engine.runtime = runtime;
+            engine.lifecycleState = IrisEngine.LifecycleState.RUNNING;
             engine.publishedTarget = target;
         }
     }

@@ -4,6 +4,7 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.world.pregen.PregenPerformanceProfile;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.hydrology.HydrologyPlanner;
+import art.arcane.iris.generation.hydrology.HydrologyPlannerSettings;
 import art.arcane.iris.generation.hydrology.HydrologyTile;
 import art.arcane.iris.generation.hydrology.HydrologyTileCache;
 import art.arcane.iris.generation.hydrology.HydrologyTileKey;
@@ -335,6 +336,7 @@ public class IrisComplexHydrologyNoiseCacheTest {
 
         private HydrologyTileCache planningCache(HydrologyNoiseCacheBudget budget) {
             HydrologyPlanner planner = mock(HydrologyPlanner.class);
+            when(planner.settings()).thenReturn(HydrologyPlannerSettings.defaults());
             when(planner.plan(any(HydrologyTileKey.class))).thenReturn(mock(HydrologyTile.class));
             HydrologyTileCache cache = new HydrologyTileCache(planner, 4);
             cache.setTerrainPreparation(() -> complex.expandHydrologyNoiseCaches(budget));

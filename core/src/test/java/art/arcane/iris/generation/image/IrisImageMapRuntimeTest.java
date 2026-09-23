@@ -2,6 +2,7 @@ package art.arcane.iris.generation.image;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.ProceduralTerrainHeightSampler;
 import art.arcane.volmlib.util.collection.KList;
 import com.google.gson.Gson;
 import org.junit.Rule;
@@ -46,6 +47,33 @@ public class IrisImageMapRuntimeTest {
         assertEquals(first.minimum(), second.minimum(), 0D);
         assertEquals(first.maximum(), second.maximum(), 0D);
         assertEquals(first.hash(), second.hash());
+    }
+
+    @Test
+    public void heightImagesRetainPixelDetailAfterProceduralLatticeSampling() throws Exception {
+        File pack = temporaryFolder.newFolder("sampled-height-pack");
+        writeMap(pack, "terrain", "terrain", grayscale(0, 255, 0, 255), new IrisImageMap()
+                .setSource("terrain")
+                .setType(IrisImageMapType.GRAYSCALE_HEIGHT)
+                .setMinimumHeight(-64D)
+                .setMaximumHeight(320D)
+                .setOutOfBounds(IrisImageMapOutOfBounds.CLAMP));
+        IrisDimension dimension = new IrisDimension();
+        dimension.getImageMaps().add(new IrisImageMapBinding()
+                .setKey("terrain")
+                .setMap("terrain")
+                .setApplication(IrisImageMapApplication.TERRAIN_HEIGHT));
+        ProceduralTerrainHeightSampler terrain = new ProceduralTerrainHeightSampler((x, z) -> x + 100D, 4);
+        IrisData data = IrisData.openDatapackCompiler(pack);
+        try {
+            IrisImageMapRuntime runtime = IrisImageMapRuntime.compile(data, dimension, -64);
+            for (int x = 0; x < 4; x++) {
+                assertEquals(x % 2 == 0 ? 0D : 384D,
+                        runtime.sampleTerrainHeight(x, 0D, terrain.sample(x, 0D)), EPSILON);
+            }
+        } finally {
+            data.close();
+        }
     }
 
     @Test

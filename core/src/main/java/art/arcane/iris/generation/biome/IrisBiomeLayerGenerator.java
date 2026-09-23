@@ -25,7 +25,6 @@ import art.arcane.iris.structure.object.IrisObjectPlacement;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisComplex;
-import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -316,27 +315,10 @@ final class IrisBiomeLayerGenerator {
         return getHeightGenerators(biome.getLayerSeaHeightGenerators(), biome.getSeaLayers(), 7735, rng, data);
     }
 
-    private static KList<CNG> getHeightGenerators(AtomicCache<KList<CNG>> cache,
+    private static KList<CNG> getHeightGenerators(IrisBiomeLayerHeightCache cache,
                                                   KList<IrisBiomePaletteLayer> layers,
                                                   int seedOffset, RNG rng, IrisData data) {
-        KList<CNG> cached = cache.getIfPresent();
-
-        if (cached != null) {
-            return cached;
-        }
-
-        return cache.aquire(() ->
-        {
-            KList<CNG> layerHeightGenerators = new KList<>();
-
-            int m = seedOffset;
-
-            for (IrisBiomePaletteLayer layer : layers) {
-                layerHeightGenerators.add(layer.getHeightGenerator(rng.nextParallelRNG((m++) * m * m * m), data));
-            }
-
-            return layerHeightGenerators;
-        });
+        return cache.get(layers, seedOffset, rng, data);
     }
 
     private static void appendLayer(KList<NativeBlockState> blocks, IrisBiomePaletteLayer layer,

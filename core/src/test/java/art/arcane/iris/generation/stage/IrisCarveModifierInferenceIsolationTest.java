@@ -64,7 +64,7 @@ public class IrisCarveModifierInferenceIsolationTest {
                 int.class,
                 int.class,
                 int.class,
-                IrisDimensionCarvingResolver.State.class,
+                IrisCarveModifier.CaveInputs.class,
                 Long2ObjectOpenHashMap.class,
                 Map.class
         );
@@ -80,7 +80,7 @@ public class IrisCarveModifierInferenceIsolationTest {
                 0,
                 1,
                 1,
-                new IrisDimensionCarvingResolver.State(),
+                new IrisCarveModifier.CaveInputs(engine),
                 new Long2ObjectOpenHashMap<IrisBiome>(),
                 customBiomes
         );

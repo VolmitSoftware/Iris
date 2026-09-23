@@ -4,6 +4,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.volmlib.util.noise.CNG;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.math.RNG;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 
@@ -16,6 +17,8 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 public final class Terrain3DRuntime {
     private static final int STEP = 4;
     private static final int CACHE_STRIPES = 16;
+    private static final int MAXIMUM_ANCHORS = 32_768;
+    private static final long ANCHOR_CACHE_BYTES = 64L * 1024 * 1024;
     private static final long DENSITY_SALT = 0x536E4A11C924B3D7L;
     private static final long CRACK_SALT = 0x7839A16DC4052EFBL;
     private static final NodeSample EMPTY_SAMPLE = new NodeSample(0D, 0D, 0D);
@@ -44,12 +47,30 @@ public final class Terrain3DRuntime {
         this.options = Objects.requireNonNull(options, "Terrain options");
         this.noiseFactory = Objects.requireNonNull(noiseFactory, "Terrain noise factory");
         columns = new BoundedCache<>(options.maximumColumns());
-        anchors = new BoundedCache<>(Math.max(CACHE_STRIPES, options.maximumColumns() / 4));
+        anchors = new BoundedCache<>(anchorCacheCapacity(options.height(), options.maximumColumns()));
         fragments = new Terrain3DFragmentFilter(this::rawColumn);
     }
 
     public boolean active() {
         return options.enabled();
+    }
+
+    static int anchorCacheCapacity(int height, int maximumColumns) {
+        long bytesPerAnchor = 160L + 48L * (Math.ceilDiv((long) height, STEP) + 1);
+        long maximumEntries = Math.min(MAXIMUM_ANCHORS,
+                Math.min((long) maximumColumns * 8, ANCHOR_CACHE_BYTES / bytesPerAnchor));
+        return Math.max(CACHE_STRIPES, (int) (maximumEntries / CACHE_STRIPES) * CACHE_STRIPES);
+    }
+
+    public double height(int x, int z) {
+        if (!active()) {
+            return baseHeight(x, z);
+        }
+        ColumnMemo memo = localColumn.get();
+        if (memo.generation == cacheGeneration && memo.key == pack(x, z)) {
+            return memo.column.shaped() ? memo.column.topY() : memo.column.baseHeight();
+        }
+        return fragments.height(x, z);
     }
 
     public Terrain3DColumn column(int x, int z) {
@@ -78,6 +99,10 @@ public final class Terrain3DRuntime {
         }
         cacheGeneration = new Object();
         localColumn.remove();
+    }
+
+    int cachedColumnCount() {
+        return columns.size();
     }
 
     private Terrain3DFragmentFilter.DensityColumn rawColumn(int x, int z) {
@@ -408,11 +433,16 @@ public final class Terrain3DRuntime {
             }
         }
 
+        private int size() {
+            int size = 0;
+            for (CacheStripe<T> stripe : stripes) {
+                size += stripe.size();
+            }
+            return size;
+        }
+
         private CacheStripe<T> stripe(long key) {
-            long mixed = key ^ (key >>> 33);
-            mixed *= 0xff51afd7ed558ccdL;
-            mixed ^= mixed >>> 33;
-            return stripes[(int) mixed & (CACHE_STRIPES - 1)];
+            return stripes[(int) CacheKey.mix(key) & (CACHE_STRIPES - 1)];
         }
     }
 
@@ -442,6 +472,10 @@ public final class Terrain3DRuntime {
 
         private synchronized void clear() {
             entries.clear();
+        }
+
+        private synchronized int size() {
+            return entries.size();
         }
     }
 }

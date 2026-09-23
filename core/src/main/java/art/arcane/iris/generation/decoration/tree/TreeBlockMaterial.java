@@ -13,7 +13,9 @@ public record TreeBlockMaterial(String materialKey) {
     }
 
     public static TreeBlockMaterial of(NativeBlockState state) {
-        return of(Objects.requireNonNull(state, "state").key());
+        NativeBlockState resolved = Objects.requireNonNull(state, "state");
+        String materialKey = resolved.materialKey();
+        return materialKey == null ? of(resolved.key()) : new TreeBlockMaterial(materialKey);
     }
 
     public static TreeBlockMaterial of(String blockStateKey) {

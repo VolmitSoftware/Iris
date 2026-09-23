@@ -128,7 +128,7 @@ public class IrisCarveModifierBiomeBlendTest {
     private static IrisCarveModifier modifier(Engine engine, RNG rng) throws ReflectiveOperationException {
         IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
         doReturn(engine).when(modifier).getEngine();
-        doReturn(mock(IrisComplex.class)).when(modifier).getComplex();
+        doReturn(mock(IrisComplex.class)).when(engine).getComplex();
         Field field = IrisCarveModifier.class.getDeclaredField("rng");
         field.setAccessible(true);
         field.set(modifier, rng);
@@ -138,7 +138,7 @@ public class IrisCarveModifierBiomeBlendTest {
     private static IrisBiome resolve(IrisCarveModifier modifier, int[] coordinate,
                                      Long2ObjectOpenHashMap<IrisBiome> cache) {
         return modifier.resolveCaveBoundaryBiome(null, coordinate[0], coordinate[1], coordinate[2],
-                new IrisDimensionCarvingResolver.State(), cache, new HashMap<>());
+                new IrisCarveModifier.CaveInputs(modifier.getEngine()), cache, new HashMap<>());
     }
 
     private static int[] coordinate(int roll, int sign) {

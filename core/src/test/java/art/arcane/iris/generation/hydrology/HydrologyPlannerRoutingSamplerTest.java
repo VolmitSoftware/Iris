@@ -143,7 +143,7 @@ public class HydrologyPlannerRoutingSamplerTest {
             assertEquals(6, heightCalls.get());
             HydrologyLandHeightCache shared = planner.planningSamples.get().fallbackLandHeights();
             for (int trial = 0; trial < 3; trial++) {
-                planner.planningSamples.set(new HydrologyPlanner.PlanningSamples(shared));
+                planner.planningSamples.set(new HydrologyPlanner.PlanningSamples(shared, null));
                 assertEquals(Double.NaN, planner.sampleLandHeight(0, -17), 0D);
                 assertEquals(0D, planner.sampleLandHeight(1, -17), 0D);
                 assertEquals(Integer.MIN_VALUE, planner.sampleLandHeight(2, -17), 0D);

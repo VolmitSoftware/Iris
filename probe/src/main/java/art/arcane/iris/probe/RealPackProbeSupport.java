@@ -18,21 +18,33 @@ import art.arcane.iris.generation.mantle.MantleComponent;
 import art.arcane.iris.generation.mantle.MantleObjectComponent;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.world.IrisWorld;
+import art.arcane.iris.world.history.GenerationHistory;
+import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.world.history.IrisBoundarySignatureSampler;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitOption;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.EnumSet;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Stream;
 
@@ -43,6 +55,15 @@ final class RealPackProbeSupport {
     }
 
     static Workspace openWorkspace(File packSource, String dimensionKey, String logPrefix) throws Exception {
+        return openWorkspace(new WorkspaceOptions(packSource, dimensionKey, logPrefix, null,
+                Path.of(System.getProperty("java.io.tmpdir"))));
+    }
+
+    static Workspace openWorkspace(WorkspaceOptions options) throws Exception {
+        File packSource = options.packSource();
+        String dimensionKey = options.dimensionKey();
+        String logPrefix = options.logPrefix();
+        RuntimeBindings bindings = options.bindings();
         if (packSource == null || !packSource.isDirectory()) {
             throw new IllegalArgumentException("Pack folder not found: "
                     + (packSource == null ? "null" : packSource.getAbsolutePath()));
@@ -51,12 +72,12 @@ final class RealPackProbeSupport {
                 || dimensionKey.chars().anyMatch(Character::isWhitespace)) {
             throw new IllegalArgumentException("Dimension key must be non-blank and contain no whitespace.");
         }
-        File workRoot = Files.createTempDirectory("iris-real-pack-probe-").toFile();
+        File workRoot = Files.createTempDirectory(options.parent(), "iris-real-pack-probe-").toFile();
         try {
             File pack = clonePack(packSource, workRoot);
-            configureRuntime(new File(workRoot, "platform-validation"), false);
+            configureRuntime(new File(workRoot, "platform-validation"), false, bindings);
             validatePack(pack, logPrefix);
-            return new Workspace(workRoot, pack, dimensionKey, logPrefix, false);
+            return new Workspace(workRoot, pack, dimensionKey, logPrefix, false, bindings);
         } catch (Throwable failure) {
             Throwable cleanupFailure = deleteWorkRoot(workRoot);
             if (cleanupFailure != null) {
@@ -79,8 +100,8 @@ final class RealPackProbeSupport {
         }
         File workRoot = Files.createTempDirectory("iris-generated-chunk-probe-").toFile();
         try {
-            configureRuntime(new File(workRoot, "platform-validation"), hydrologyGeneratedVerification);
-            return new Workspace(workRoot, pack, dimensionKey, logPrefix, hydrologyGeneratedVerification);
+            configureRuntime(new File(workRoot, "platform-validation"), hydrologyGeneratedVerification, null);
+            return new Workspace(workRoot, pack, dimensionKey, logPrefix, hydrologyGeneratedVerification, null);
         } catch (Throwable failure) {
             Throwable cleanupFailure = deleteWorkRoot(workRoot);
             if (cleanupFailure != null) {
@@ -190,12 +211,20 @@ final class RealPackProbeSupport {
         }
     }
 
+    record WorkspaceOptions(File packSource, String dimensionKey, String logPrefix,
+                            RuntimeBindings bindings, Path parent) {
+        WorkspaceOptions {
+            Objects.requireNonNull(parent, "parent");
+        }
+    }
+
     static final class Workspace implements AutoCloseable {
         private final File workRoot;
         private final File pack;
         private final String dimensionKey;
         private final String logPrefix;
         private final boolean hydrologyGeneratedVerification;
+        private final RuntimeBindings bindings;
         private int sessionSequence;
         private boolean sessionOpen;
         private boolean closed;
@@ -205,13 +234,15 @@ final class RealPackProbeSupport {
                 File pack,
                 String dimensionKey,
                 String logPrefix,
-                boolean hydrologyGeneratedVerification
+                boolean hydrologyGeneratedVerification,
+                RuntimeBindings bindings
         ) {
             this.workRoot = workRoot;
             this.pack = pack;
             this.dimensionKey = dimensionKey;
             this.logPrefix = logPrefix;
             this.hydrologyGeneratedVerification = hydrologyGeneratedVerification;
+            this.bindings = bindings;
         }
 
         EngineSession openEngine(long seed, boolean studio, String runLabel) throws Exception {
@@ -228,12 +259,27 @@ final class RealPackProbeSupport {
             IrisData data = null;
             Engine engine = null;
             try {
-                configureRuntime(platformRoot, hydrologyGeneratedVerification);
+                configureRuntime(platformRoot, hydrologyGeneratedVerification, bindings);
                 data = IrisData.openRuntime(pack);
                 IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
                 if (dimension == null) {
                     throw new IllegalStateException("Dimension '" + dimensionKey
                             + "' did not load from " + pack.getAbsolutePath());
+                }
+                if (bindings != null) {
+                    bindings.prepare(data, dimension);
+                }
+                GenerationHistory history = bindings == null ? null
+                        : Objects.requireNonNull(bindings.createHistory(
+                                new HistoryRequest(worldRoot.toPath(), data, dimension, seed)), "Native generation history");
+                if (history != null) {
+                    data.close();
+                    data = IrisData.openRuntime(history.activePackRoot().toFile());
+                    data.bindGenerationRegistryContract(history.activeEpoch().registryContract());
+                    dimension = data.getDimensionLoader().load(dimensionKey);
+                    if (dimension == null) {
+                        throw new IOException("Immutable generation pack does not contain dimension " + dimensionKey);
+                    }
                 }
                 IrisWorld world = IrisWorld.builder()
                         .platformIdentity("iris:probe")
@@ -244,13 +290,30 @@ final class RealPackProbeSupport {
                         .maxHeight(dimension.getMaxHeight())
                         .build();
                 long started = System.nanoTime();
-                engine = new IrisEngine(
-                        new EngineTarget(world, dimension, data),
-                        studio ? IrisEngine.InitializationMode.STUDIO : IrisEngine.InitializationMode.RUNTIME
-                );
+                EngineTarget target = new EngineTarget(world, dimension, data);
+                IrisEngine.InitializationMode mode = studio
+                        ? IrisEngine.InitializationMode.STUDIO : IrisEngine.InitializationMode.RUNTIME;
+                if (history == null) {
+                    engine = new IrisEngine(target, mode);
+                } else {
+                    IrisEngine created = new IrisEngine(target, mode,
+                            history.paths().activationMantleRoot(history.activeActivation().activationId()),
+                            history.activeEpoch().kernelVersion(), null);
+                    engine = created;
+                    GenerationHistoryRuntimeRouter router = GenerationHistoryRuntimeRouter.attach(
+                            created, history, IrisBoundarySignatureSampler.INSTANCE);
+                    router.preloadActiveRuntimes();
+                }
                 long readyNanos = System.nanoTime() - started;
                 List<Throwable> initializationReports = settleAndDrain();
                 printReports(logPrefix, runLabel + " engine-init reports", initializationReports);
+                if (bindings != null && !initializationReports.isEmpty()) {
+                    IllegalStateException failure = new IllegalStateException("Native engine initialization reported failures");
+                    for (Throwable report : initializationReports) {
+                        failure.addSuppressed(report);
+                    }
+                    throw failure;
+                }
                 return new EngineSession(this, data, engine, readyNanos);
             } catch (Throwable failure) {
                 Throwable cleanupFailure = closeResources(engine, data);
@@ -276,9 +339,20 @@ final class RealPackProbeSupport {
                 throw new IllegalStateException("Cannot close a probe workspace with an open engine session.");
             }
             closed = true;
+            Throwable failure = null;
+            if (bindings != null) {
+                try {
+                    bindings.close();
+                } catch (Throwable bindingFailure) {
+                    failure = bindingFailure;
+                }
+            }
             IrisPlatforms.unbind();
             StubPlatform.errorSink(null);
-            Throwable failure = deleteWorkRoot(workRoot);
+            Throwable cleanupFailure = deleteWorkRoot(workRoot);
+            if (cleanupFailure != null) {
+                failure = appendFailure(failure, cleanupFailure);
+            }
             if (failure != null) {
                 throwAsException(failure);
             }
@@ -294,6 +368,7 @@ final class RealPackProbeSupport {
         private final IrisData data;
         private final Engine engine;
         private final long readyNanos;
+        private Path retainedWorld;
         private boolean closed;
 
         private EngineSession(Workspace workspace, IrisData data, Engine engine, long readyNanos) {
@@ -309,6 +384,13 @@ final class RealPackProbeSupport {
 
         long readyNanos() {
             return readyNanos;
+        }
+
+        void retainWorld(Path destination) {
+            if (closed || retainedWorld != null || Files.exists(destination)) {
+                throw new IllegalStateException("World retention requires an open session and unused destination");
+            }
+            retainedWorld = destination;
         }
 
         @Override
@@ -330,6 +412,10 @@ final class RealPackProbeSupport {
             workspace.releaseSession();
             if (failure != null) {
                 throwAsException(failure);
+            }
+            if (retainedWorld != null) {
+                Files.move(engine.getTarget().getWorld().worldFolder().toPath(), retainedWorld,
+                        StandardCopyOption.ATOMIC_MOVE);
             }
         }
     }
@@ -408,7 +494,7 @@ final class RealPackProbeSupport {
         }
     }
 
-    private static void configureRuntime(File platformRoot, boolean hydrologyGeneratedVerification) {
+    private static void configureRuntime(File platformRoot, boolean hydrologyGeneratedVerification, RuntimeBindings bindings) {
         REPORTED.clear();
         StubPlatform.bindGenerationStateHandlers();
         StubPlatform.verbose(false);
@@ -417,9 +503,21 @@ final class RealPackProbeSupport {
         IrisServices.register(EngineWorldManagerProvider.class,
                 (EngineWorldManagerProvider) (Engine engine) -> new InertWorldManager());
         IrisServices.register(EngineEffectsProvider.class, (EngineEffectsProvider) InertEffects::new);
-        IrisServices.register(EnginePlatformHooks.class, new InertPlatformHooks(hydrologyGeneratedVerification));
+        IrisServices.register(EnginePlatformHooks.class, bindings == null
+                ? new InertPlatformHooks(hydrologyGeneratedVerification) : bindings);
         IrisPlatforms.unbind();
-        IrisPlatforms.bind(new StubPlatform(platformRoot));
+        IrisPlatforms.bind(bindings == null ? new StubPlatform(platformRoot) : bindings.create(platformRoot));
+    }
+
+    interface RuntimeBindings extends AutoCloseable, EnginePlatformHooks {
+        IrisPlatform create(File platformRoot);
+
+        void prepare(IrisData data, IrisDimension dimension);
+
+        GenerationHistory createHistory(HistoryRequest request) throws IOException;
+    }
+
+    record HistoryRequest(Path worldRoot, IrisData data, IrisDimension dimension, long seed) {
     }
 
     private static void validatePack(File pack, String logPrefix) {
@@ -438,18 +536,29 @@ final class RealPackProbeSupport {
 
     private static File clonePack(File source, File workRoot) throws Exception {
         File destination = new File(workRoot, "pack");
-        Process clone = new ProcessBuilder("cp", "-Rc", source.getAbsolutePath(), destination.getAbsolutePath())
-                .inheritIO()
-                .start();
-        if (clone.waitFor() != 0) {
-            deleteRecursively(destination.toPath());
-            Process copy = new ProcessBuilder("cp", "-R", source.getAbsolutePath(), destination.getAbsolutePath())
-                    .inheritIO()
-                    .start();
-            if (copy.waitFor() != 0) {
-                throw new IllegalStateException("Failed to copy pack to " + destination.getAbsolutePath());
+        if (System.getProperty("os.name").startsWith("Mac")) {
+            Process clone = new ProcessBuilder("/bin/cp", "-Rc", source.getAbsolutePath(), destination.getAbsolutePath())
+                    .inheritIO().start();
+            if (clone.waitFor() == 0) {
+                return destination;
             }
+            deleteRecursively(destination.toPath());
         }
+        Path sourcePath = source.toPath();
+        Files.walkFileTree(sourcePath, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE,
+                new SimpleFileVisitor<>() {
+                    @Override
+                    public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes attributes) throws IOException {
+                        Files.createDirectory(destination.toPath().resolve(sourcePath.relativize(directory)));
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    @Override
+                    public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) throws IOException {
+                        Files.copy(file, destination.toPath().resolve(sourcePath.relativize(file)), StandardCopyOption.COPY_ATTRIBUTES);
+                        return FileVisitResult.CONTINUE;
+                    }
+                });
         return destination;
     }
 

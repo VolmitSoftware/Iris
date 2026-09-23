@@ -74,6 +74,11 @@ public final class HydrologyOceanReceiver implements HydrologyTerrainSampler {
     }
 
     @Override
+    public HydrologyTerrainSample[] sampleBatch(long[] coordinates, int count) {
+        return source.sampleBatch(coordinates, count);
+    }
+
+    @Override
     public boolean receivingWater(int blockX, int blockZ, int queriedSeaLevel) {
         return queriedSeaLevel == seaLevel && receiving.contains(RiverFootprint.pack(blockX, blockZ))
                 || source.receivingWater(blockX, blockZ, queriedSeaLevel);

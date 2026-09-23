@@ -79,6 +79,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final int workerPoolThreads;
     private final int runtimeCpuThreads;
     private final int effectiveWorkerThreads;
+    private final int pregenWorkerThreads;
     private final int recommendedRuntimeConcurrencyCap;
     private final Method directChunkAtAsyncUrgentMethod;
     private final Method directChunkAtAsyncMethod;
@@ -141,10 +142,11 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         this.chunkAccessMode = chunkAsyncMethodSelection.mode();
         int detectedWorkerPoolThreads = resolveWorkerPoolThreads();
         int detectedCpuThreads = Math.max(1, Runtime.getRuntime().availableProcessors());
-        int configuredWorldGenThreads = Math.max(1, IrisSettings.get().getConcurrency().getWorldGenThreads());
+        this.pregenWorkerThreads = pregenWorkerThreadTarget(detectedCpuThreads, Runtime.getRuntime().maxMemory(),
+                !foliaRuntime && !strictSerial && detectedWorkerPoolThreads > 0);
         int workerThreadsForCap = foliaRuntime
-                ? resolveFoliaConcurrencyWorkerThreads(detectedWorkerPoolThreads, detectedCpuThreads, configuredWorldGenThreads)
-                : resolvePaperLikeConcurrencyWorkerThreads(detectedWorkerPoolThreads, detectedCpuThreads, configuredWorldGenThreads);
+                ? resolveFoliaConcurrencyWorkerThreads(detectedWorkerPoolThreads, detectedCpuThreads, pregenWorkerThreads)
+                : resolvePaperLikeConcurrencyWorkerThreads(detectedWorkerPoolThreads, detectedCpuThreads, pregenWorkerThreads);
         if (foliaRuntime) {
             this.paperLikeBackendMode = IrisPaperLikeBackendMode.AUTO;
             this.backendMode = "folia-region";
@@ -650,12 +652,20 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     static int computeInitialInFlightLimit(int concurrencyCap, int workerThreads) {
-        int initial = Math.max(4, Math.max(1, workerThreads));
-        return Math.min(Math.max(1, concurrencyCap), initial);
+        long initial = Math.max(1L, workerThreads) * 8L;
+        return (int) Math.min(Math.max(1, concurrencyCap), initial);
     }
 
     static int nextAdaptiveInFlightLimit(int current, int concurrencyCap) {
         return Math.min(Math.max(1, concurrencyCap), Math.max(1, current) + 1);
+    }
+
+    static int pregenWorkerThreadTarget(int availableProcessors, long maximumHeapBytes, boolean expanded) {
+        int baseline = Math.max(2, availableProcessors);
+        if (!expanded || maximumHeapBytes < (16L << 30)) {
+            return baseline;
+        }
+        return Math.max(baseline, (int) Math.min(32L, (long) baseline * 2L));
     }
 
     static int resolvePaperLikeConcurrencyWorkerThreads(int detectedWorkerPoolThreads, int detectedCpuThreads, int configuredWorldGenThreads) {
@@ -804,8 +814,10 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 + ", recommendedCap=" + recommendedRuntimeConcurrencyCap
                 + ", urgent=" + urgent
                 + ", slowWarning=" + slowRequestWarningSeconds + "s");
-        if (workerPoolThreads > 0 && holdsWorkerBoost.compareAndSet(false, true)) {
-            acquireWorkerThreadBoost();
+        synchronized (this) {
+            if (!closing.get() && workerPoolThreads > 0 && holdsWorkerBoost.compareAndSet(false, true)) {
+                acquireWorkerThreadBoost(pregenWorkerThreads);
+            }
         }
     }
 
@@ -837,17 +849,25 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             flushAllRemainingChunks();
             chunkFlush.close(CHUNK_FLUSH_DRAIN_SECONDS, TimeUnit.SECONDS);
             executor.shutdown();
-            if (holdsWorkerBoost.compareAndSet(true, false)) {
-                releaseWorkerThreadBoost();
-            }
         } finally {
-            HydrologyTileCache.PregenerationScope scope = hydrologyPrefetchScope;
-            if (scope != null) {
-                scope.close();
-                hydrologyPrefetchScope = null;
-            }
-            if (interrupted) {
-                Thread.currentThread().interrupt();
+            try {
+                HydrologyTileCache.PregenerationScope scope = hydrologyPrefetchScope;
+                if (scope != null) {
+                    scope.close();
+                    hydrologyPrefetchScope = null;
+                }
+            } finally {
+                try {
+                    synchronized (this) {
+                        if (holdsWorkerBoost.compareAndSet(true, false)) {
+                            releaseWorkerThreadBoost();
+                        }
+                    }
+                } finally {
+                    if (interrupted) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
             }
         }
     }
@@ -1007,62 +1027,51 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         return null;
     }
 
-    public static void acquireWorkerThreadBoost() {
-        if (BOOST_HOLDERS.getAndIncrement() > 0) {
-            return;
+    public static synchronized void acquireWorkerThreadBoost(int targetThreads) {
+        if (targetThreads < 1) {
+            throw new IllegalArgumentException("Worker thread target must be positive");
         }
-        increaseWorkerThreads();
+        BOOST_HOLDERS.incrementAndGet();
+        increaseWorkerThreads(targetThreads);
     }
 
-    public static void releaseWorkerThreadBoost() {
-        if (BOOST_HOLDERS.decrementAndGet() > 0) {
+    public static synchronized void releaseWorkerThreadBoost() {
+        if (BOOST_HOLDERS.get() == 0 || BOOST_HOLDERS.decrementAndGet() > 0) {
             return;
         }
         resetWorkerThreads();
     }
 
-    private static void increaseWorkerThreads() {
-        THREAD_COUNT.updateAndGet(i -> {
-            if (i > 0) {
-                return i;
+    private static void increaseWorkerThreads(int targetThreads) {
+        try {
+            NativeWorkerPool pool = workerPool();
+            int threads = pool.threadCount();
+            if (threads >= targetThreads) {
+                return;
             }
-
-            int adjusted = IrisSettings.get().getConcurrency().getWorldGenThreads();
-            try {
-                NativeWorkerPool pool = workerPool();
-                int threads = pool.threadCount();
-                if (threads >= adjusted) {
-                    return 0;
-                }
-
-                pool.adjustThreadCount(adjusted);
-                return threads;
-            } catch (Throwable e) {
-                IrisLogging.warn("Failed to increase worker threads, if you are on paper or a fork of it please increase it manually to " + adjusted);
-                IrisLogging.warn("For more information see https://docs.papermc.io/paper/reference/global-configuration#chunk_system_worker_threads");
-                if (e instanceof InvocationTargetException) {
-                    IrisLogging.reportError(e);
-                }
+            if (THREAD_COUNT.get() == 0) {
+                THREAD_COUNT.set(threads);
             }
-            return 0;
-        });
+            pool.adjustThreadCount(targetThreads);
+        } catch (Throwable e) {
+            IrisLogging.reportError(e);
+            IrisLogging.warn("Failed to increase worker threads, if you are on paper or a fork of it please increase it manually to " + targetThreads);
+            IrisLogging.warn("For more information see https://docs.papermc.io/paper/reference/global-configuration#chunk_system_worker_threads");
+        }
     }
 
     private static void resetWorkerThreads() {
-        THREAD_COUNT.updateAndGet(i -> {
-            if (i == 0) {
-                return 0;
-            }
-
-            try {
-                workerPool().adjustThreadCount(i);
-                return 0;
-            } catch (Throwable e) {
-                IrisLogging.reportError(e);
-                IrisLogging.error("Failed to reset worker threads");
-            }
-            return i;
-        });
+        int original = THREAD_COUNT.get();
+        if (original == 0) {
+            return;
+        }
+        try {
+            workerPool().adjustThreadCount(original);
+            THREAD_COUNT.set(0);
+        } catch (Throwable e) {
+            IrisLogging.reportError(e);
+            IrisLogging.error("Failed to reset worker threads");
+        }
     }
 
     private static NativeWorkerPool workerPool() {

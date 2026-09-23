@@ -34,6 +34,7 @@ public class HydrologyDiagnosticCacheTest {
     @Test
     public void terrainLoadsLeaveDiagnosticsLazyAndQueriesRetainImmutableResults() {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(HydrologyPlannerSettings.defaults());
         HydrologyTile tile = mock(HydrologyTile.class);
         HydrologyTileKey key = new HydrologyTileKey(0, 0);
         HydrologyDiagnosticCandidate candidate = mock(HydrologyDiagnosticCandidate.class);
@@ -59,6 +60,7 @@ public class HydrologyDiagnosticCacheTest {
     @Test
     public void forbiddenThreadsCanReadOnlyCompleteCachedDiagnostics() {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(HydrologyPlannerSettings.defaults());
         HydrologyTile tile = mock(HydrologyTile.class);
         HydrologyTileKey key = new HydrologyTileKey(0, 0);
         AtomicBoolean forbidden = new AtomicBoolean(true);
@@ -77,6 +79,7 @@ public class HydrologyDiagnosticCacheTest {
     @Test
     public void interruptedWaiterLeavesTheSharedDiagnosticLoadRunning() throws Exception {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(HydrologyPlannerSettings.defaults());
         HydrologyTile tile = mock(HydrologyTile.class);
         HydrologyTileKey key = new HydrologyTileKey(0, 0);
         List<HydrologyDiagnosticCandidate> expected = List.of(mock(HydrologyDiagnosticCandidate.class));
@@ -127,6 +130,7 @@ public class HydrologyDiagnosticCacheTest {
     @Test
     public void clearDoesNotPublishAnOlderDiagnosticResultIntoTheNewEpoch() throws Exception {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(HydrologyPlannerSettings.defaults());
         HydrologyTile tile = mock(HydrologyTile.class);
         HydrologyTileKey key = new HydrologyTileKey(0, 0);
         List<HydrologyDiagnosticCandidate> old = List.of(mock(HydrologyDiagnosticCandidate.class));
@@ -166,6 +170,7 @@ public class HydrologyDiagnosticCacheTest {
     @Test
     public void closeCancelsQueuedDiagnosticsAndDrainsActiveDiagnostics() throws Exception {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(HydrologyPlannerSettings.defaults());
         HydrologyTile tile = mock(HydrologyTile.class);
         HydrologyTileKey firstKey = new HydrologyTileKey(0, 0);
         HydrologyTileKey secondKey = new HydrologyTileKey(1, 0);
@@ -213,6 +218,7 @@ public class HydrologyDiagnosticCacheTest {
     @Test
     public void aDiagnosticLoadCannotCloseItsOwnCache() {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(HydrologyPlannerSettings.defaults());
         HydrologyTile tile = mock(HydrologyTile.class);
         HydrologyTileKey key = new HydrologyTileKey(0, 0);
         when(planner.plan(key)).thenReturn(tile);
@@ -229,6 +235,7 @@ public class HydrologyDiagnosticCacheTest {
     @Test
     public void diagnosticFailureIsRetriedAndCompletedListsRemainBounded() throws Exception {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(HydrologyPlannerSettings.defaults());
         HydrologyTile tile = mock(HydrologyTile.class);
         when(planner.plan(any(HydrologyTileKey.class))).thenReturn(tile);
         when(planner.diagnosticCandidates(tile)).thenThrow(new IllegalStateException("expected")).thenReturn(List.of());

@@ -75,10 +75,15 @@ public record SurfaceCenterline(int[] x, int[] z, double[] tangentX, double[] ta
     }
 
     public double distanceToSegment(int station, double pointX, double pointZ) {
+        return distanceToSegment(station, pointX, pointZ, null);
+    }
+
+    double distanceToSegment(int station, double pointX, double pointZ, SurfaceDistanceTable distances) {
         double startX = x[station];
         double startZ = z[station];
         if (station + 1 >= x.length) {
-            return StrictMath.hypot(pointX - startX, pointZ - startZ);
+            return distances == null ? StrictMath.hypot(pointX - startX, pointZ - startZ)
+                    : distances.hypot(pointX - startX, pointZ - startZ);
         }
         double endX = x[station + 1];
         double endZ = z[station + 1];
@@ -91,7 +96,8 @@ public record SurfaceCenterline(int[] x, int[] z, double[] tangentX, double[] ta
         progress = Math.max(0D, Math.min(1D, progress));
         double closestX = startX + segmentX * progress;
         double closestZ = startZ + segmentZ * progress;
-        return StrictMath.hypot(pointX - closestX, pointZ - closestZ);
+        return distances == null ? StrictMath.hypot(pointX - closestX, pointZ - closestZ)
+                : distances.hypot(pointX - closestX, pointZ - closestZ);
     }
 
     public SurfaceCenterline truncate(int stations) {

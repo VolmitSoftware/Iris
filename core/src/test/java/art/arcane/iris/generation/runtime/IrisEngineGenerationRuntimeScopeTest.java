@@ -1,6 +1,9 @@
 package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntimeContext;
+import art.arcane.volmlib.nativelib.terrain.NativeGenerationScope;
 import art.arcane.iris.generation.runtime.GenerationRuntime.BiomeMaxes;
 import art.arcane.iris.world.history.SavedBiomeRuntime;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
@@ -32,6 +35,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collections;
@@ -47,6 +51,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntConsumer;
+import java.util.function.Supplier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
@@ -69,6 +76,52 @@ import static org.mockito.Mockito.when;
 public class IrisEngineGenerationRuntimeScopeTest {
     @ClassRule
     public static final PlatformBinding PLATFORM = PlatformBinding.mockPlatform();
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void hydrologyBasisWorkersRetainHistoricalBindingAndRestoreAmbientContext() throws Exception {
+        RuntimeFixture active = runtime(1, 1D, 1D, 1D);
+        RuntimeFixture historical = runtime(2, 2D, 2D, 2D);
+        IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
+        setField(engine, "runtimeBuilder", new EngineRuntimeBuilder(engine));
+        IrisHydrologyRuntime hydrology = mock(IrisHydrologyRuntime.class, CALLS_REAL_METHODS);
+        when(historical.data.getEngine()).thenReturn(engine);
+        when(historical.complex.getHydrologyRuntime()).thenReturn(hydrology);
+        IrisHydrologyRuntimeContext context = new IrisHydrologyRuntimeContext(17L, 384, historical.dimension,
+                historical.data, (x, z, height) -> null, (x, z) -> 80D, (x, z) -> "constant",
+                (x, z) -> false, footprint -> null, () -> false, () -> {});
+        Field runtimeContext = IrisHydrologyRuntime.class.getDeclaredField("context");
+        runtimeContext.setAccessible(true);
+        runtimeContext.set(hydrology, context);
+        Method capture = IrisHydrologyRuntime.class.getDeclaredMethod("captureBasisScope");
+        capture.setAccessible(true);
+        assertNull(capture.invoke(hydrology));
+        Supplier<NativeGenerationScope> workerScope;
+        try (IrisEngine.GenerationRuntimeScope ignored = engine.openGenerationRuntimeScope(detachedBinding(engine, historical.runtime));
+             IrisContext.Scope execution = IrisContext.open(engine, 73L, mock(ChunkContext.class))) {
+            workerScope = (Supplier<NativeGenerationScope>) capture.invoke(hydrology);
+        }
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        try {
+            worker.submit(() -> {
+                assertSame(active.complex, engine.getComplex());
+                try (IrisContext.Scope ambient = IrisContext.open(engine, 99L, null)) {
+                    try (NativeGenerationScope selected = workerScope.get()) {
+                        assertSame(historical.complex, engine.getComplex());
+                        assertSame(historical.data, IrisContext.require().getData());
+                        assertEquals(73L, IrisContext.require().getGenerationSessionId());
+                        assertNull(IrisContext.require().getChunkContext());
+                    }
+                    assertSame(active.complex, engine.getComplex());
+                    assertEquals(99L, IrisContext.require().getGenerationSessionId());
+                }
+                assertNull(IrisContext.get());
+            }).get(5, TimeUnit.SECONDS);
+        } finally {
+            worker.shutdownNow();
+            assertTrue(worker.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
 
     @Test
     public void carvingResolverRestoresNestedRuntimeDefinitions() throws Exception {

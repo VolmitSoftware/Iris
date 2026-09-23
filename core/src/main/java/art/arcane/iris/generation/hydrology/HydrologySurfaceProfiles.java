@@ -73,7 +73,7 @@ final class HydrologySurfaceProfiles {
             if (course.type() != RiverCourseType.SURFACE) {
                 continue;
             }
-            SurfaceFootprint footprint = compiler.surfaceFootprint(course);
+            SurfaceFootprint footprint = compiler.surfaceFootprintForPublication(course);
             if (!footprint.accepted()) {
                 iterator.remove();
                 rejectedOutlets.add(course.outletId().orElseThrow());

@@ -9,6 +9,7 @@ String nativeLibraryCoordinate = providers.gradleProperty('volmLibCoordinate')
     .getOrElse(nativeLibraryProperties.getProperty('volmLibCoordinate'))
 String nativeSourceLoader = extensions.extraProperties.get('nativeSourceLoader')
 String nativeSourceImplementation = 'minecraft26_2'
+String nativeSourceMinecraftVersion = providers.gradleProperty('minecraftVersion').getOrElse('26.2')
 extensions.extraProperties.set('nativeSourceImplementation', nativeSourceImplementation)
 dependencies.add(nativeMinecraftSources.name,
     "com.github.VolmitSoftware.VolmLib:native-${nativeSourceImplementation}-sources:${nativeLibraryCoordinate.tokenize(':').last()}")
@@ -17,7 +18,13 @@ TaskProvider<Sync> unpackNativeMinecraftSources = tasks.register('unpackNativeMi
     dependsOn(nativeMinecraftSources)
     from(provider { nativeMinecraftSources.collect { File artifact -> zipTree(artifact) } }) {
         include('art/**', 'modded/**', "${nativeSourceLoader}/**",
-            'resources/modded/**', "resources/${nativeSourceLoader}/**")
+            'resources/modded/**', "resources/${nativeSourceLoader}/**", "versions/${nativeSourceMinecraftVersion}/**")
+        eachFile { FileCopyDetails source ->
+            String versionPrefix = "versions/${nativeSourceMinecraftVersion}/"
+            if (source.path.startsWith(versionPrefix)) {
+                source.path = source.path.substring(versionPrefix.length())
+            }
+        }
     }
     into(layout.buildDirectory.dir('generated/sources/native-minecraft'))
 }

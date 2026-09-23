@@ -13,6 +13,7 @@ import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
@@ -105,9 +106,33 @@ public final class ErosionFieldCompiler {
         return new PreparedField(count, basin, bendOffsets, blendWidth, radii, inletStart);
     }
 
+    ErosionField compileForPublication(long courseSeed, SurfaceCenterline centerline, ChannelProfile channel,
+                                       ValleyProfile valley, SurfaceTerminal terminal, int apronLimit,
+                                       HydrologyPlannerSettings.Ponds ponds, SurfaceRasterContext context,
+                                       PreparedField prepared) {
+        RasterGeometry geometry = new RasterGeometry();
+        if (context.bounds() == null) {
+            ErosionField wet = compile(courseSeed, centerline, channel, valley, terminal, apronLimit,
+                    ponds, context, prepared, geometry, true);
+            if (wet.rejection() != null) {
+                return wet;
+            }
+        }
+        return compile(courseSeed, centerline, channel, valley, terminal, apronLimit,
+                ponds, context, prepared, geometry, false);
+    }
+
     ErosionField compile(long courseSeed, SurfaceCenterline centerline, ChannelProfile channel, ValleyProfile valley,
                          SurfaceTerminal terminal, int apronLimit, HydrologyPlannerSettings.Ponds ponds,
                          SurfaceRasterContext context, PreparedField prepared) {
+        return compile(courseSeed, centerline, channel, valley, terminal, apronLimit,
+                ponds, context, prepared, new RasterGeometry(), false);
+    }
+
+    private ErosionField compile(long courseSeed, SurfaceCenterline centerline, ChannelProfile channel,
+                                 ValleyProfile valley, SurfaceTerminal terminal, int apronLimit,
+                                 HydrologyPlannerSettings.Ponds ponds, SurfaceRasterContext context,
+                                 PreparedField prepared, RasterGeometry geometry, boolean wetOnly) {
         Objects.requireNonNull(context, "context");
         SurfaceBounds bounds = context.bounds();
         SurfaceBounds samplingBounds = bounds == null ? null : bounds.expand(2);
@@ -124,147 +149,190 @@ public final class ErosionFieldCompiler {
         boolean[] basin = prepared.basin();
         double[] bendOffsets = prepared.bendOffsets();
         double[][] blendWidth = prepared.blendWidth();
-        Long2IntOpenHashMap nearest = new Long2IntOpenHashMap();
-        nearest.defaultReturnValue(-1);
-        Long2DoubleOpenHashMap distance = new Long2DoubleOpenHashMap();
-        for (int station = 0; station < count; station++) {
-            int radius = prepared.radii()[station];
-            int stationX = centerline.x()[station];
-            int stationZ = centerline.z()[station];
-            if (samplingBounds != null && !samplingBounds.intersects(stationX, stationZ, radius)) {
-                continue;
-            }
-            int minimumZ = samplingBounds == null ? -radius : Math.max(-radius, samplingBounds.minimumZ() - stationZ);
-            int maximumZ = samplingBounds == null ? radius : Math.min(radius, samplingBounds.maximumZ() - stationZ);
-            int minimumX = samplingBounds == null ? -radius : Math.max(-radius, samplingBounds.minimumX() - stationX);
-            int maximumX = samplingBounds == null ? radius : Math.min(radius, samplingBounds.maximumX() - stationX);
-            for (int deltaZ = minimumZ; deltaZ <= maximumZ; deltaZ++) {
-                for (int deltaX = minimumX; deltaX <= maximumX; deltaX++) {
-                    int cellX = stationX + deltaX;
-                    int cellZ = stationZ + deltaZ;
-                    double cellDistance = centerline.distanceToSegment(station, cellX, cellZ);
-                    if (cellDistance > radius) {
-                        continue;
-                    }
-                    long key = RiverFootprint.pack(cellX, cellZ);
-                    int existing = nearest.get(key);
-                    // A cell on a station's cross-section row ties between the two segments meeting
-                    // there; the later station owns it so the row uses the head its own ring bounded.
-                    if (existing < 0
-                            || cellDistance < distance.get(key) - EPSILON
-                            || Math.abs(cellDistance - distance.get(key)) <= EPSILON && station > existing) {
-                        nearest.put(key, station);
-                        distance.put(key, cellDistance);
+        Long2IntOpenHashMap nearest = geometry.nearest;
+        Long2DoubleOpenHashMap distance = geometry.distance;
+        if (!geometry.prepared) {
+            for (int station = 0; station < count; station++) {
+                int radius = prepared.radii()[station];
+                int stationX = centerline.x()[station];
+                int stationZ = centerline.z()[station];
+                if (samplingBounds != null && !samplingBounds.intersects(stationX, stationZ, radius)) {
+                    continue;
+                }
+                int minimumZ = samplingBounds == null ? -radius : Math.max(-radius, samplingBounds.minimumZ() - stationZ);
+                int maximumZ = samplingBounds == null ? radius : Math.min(radius, samplingBounds.maximumZ() - stationZ);
+                int minimumX = samplingBounds == null ? -radius : Math.max(-radius, samplingBounds.minimumX() - stationX);
+                int maximumX = samplingBounds == null ? radius : Math.min(radius, samplingBounds.maximumX() - stationX);
+                for (int deltaZ = minimumZ; deltaZ <= maximumZ; deltaZ++) {
+                    for (int deltaX = minimumX; deltaX <= maximumX; deltaX++) {
+                        int cellX = stationX + deltaX;
+                        int cellZ = stationZ + deltaZ;
+                        double cellDistance = centerline.distanceToSegment(station, cellX, cellZ, SurfaceDistanceTable.SHARED);
+                        if (cellDistance > radius) {
+                            continue;
+                        }
+                        long key = RiverFootprint.pack(cellX, cellZ);
+                        int existing = nearest.get(key);
+                        // A cell on a station's cross-section row ties between the two segments meeting
+                        // there; the later station owns it so the row uses the head its own ring bounded.
+                        if (existing < 0
+                                || cellDistance < distance.get(key) - EPSILON
+                                || Math.abs(cellDistance - distance.get(key)) <= EPSILON && station > existing) {
+                            nearest.put(key, station);
+                            distance.put(key, cellDistance);
+                        }
                     }
                 }
             }
+            geometry.prepared = true;
         }
         int oceanStart = oceanStart(centerline, valley, terminal);
         int inletStart = prepared.inletStart();
-        Long2ObjectOpenHashMap<SurfaceColumn> columns = new Long2ObjectOpenHashMap<>(nearest.size());
+        Long2ObjectOpenHashMap<SurfaceColumn> columns = new Long2ObjectOpenHashMap<>(wetOnly
+                ? Math.min(nearest.size(), Math.max(16, count * 8)) : nearest.size());
         LongArrayList wetKeys = new LongArrayList();
-        for (long key : nearest.keySet()) {
-            int station = nearest.get(key);
-            double cellDistance = distance.get(key);
-            int cellX = RiverFootprint.unpackX(key);
-            int cellZ = RiverFootprint.unpackZ(key);
-            int head = valley.head()[station];
-            if (!context.boundary().allows(cellX, cellZ) || context.drops().connects(cellX, cellZ, head)) {
-                continue;
-            }
-            double halfWidth = channel.halfWidth()[station];
-            double outline = halfWidth * (1D + roughness * SurfaceNoise.signed(
-                    courseSeed ^ OUTLINE_SALT, cellX, cellZ, banks.roughnessWavelength()));
-            outline = Math.max(
-                    Math.max(0.5D, channelSettings.outlineMinimumRatio() * halfWidth),
-                    Math.min(channelSettings.outlineMaximumRatio() * halfWidth, outline));
-            boolean wet = cellDistance <= outline + 0.25D;
-            double bankDistance = cellDistance - outline;
-            if (!wet && cellDistance > outline + maximumShoreWidth + 0.25D
-                    && (bankDistance > erosion.excavation().maximumWidth() || !erosion.enabled()
-                    || bankDistance - maximumShoreWidth >= blendWidth[station][side(centerline, station, cellX, cellZ) < 0D ? 0 : 1])) {
-                continue;
-            }
-            HydrologyTerrainSample terrain = sampler.sample(cellX, cellZ);
-            boolean mouthLand = terminal == SurfaceTerminal.OCEAN_MOUTH && head == seaLevel
-                    && SurfaceCellAdmission.mouthLand(terrain, seaLevel);
-            if (!SurfaceCellAdmission.writable(terrain, seaLevel) && !mouthLand) {
-                if (sampler.receivingWater(cellX, cellZ, seaLevel) && wet && terminal == SurfaceTerminal.OCEAN_MOUTH
-                        && station >= valley.exposedStations() - 1
-                        && station - oceanStart < apronLimit
-                        && cellDistance <= apronLimit + 0.25D) {
-                    columns.put(key, new SurfaceColumn(
-                            cellX, cellZ, terrain, station, SurfaceRole.CHANNEL, terrain.naturalHeight(), seaLevel, true));
+        LongIterator candidates = nearest.keySet().iterator();
+        long[] coordinates = new long[Math.min(nearest.size(), HydrologyTerrainSampler.MAXIMUM_BATCH_SIZE)];
+        double[] outlines = new double[coordinates.length];
+        while (candidates.hasNext()) {
+            int pageSize = 0;
+            while (candidates.hasNext() && pageSize < coordinates.length) {
+                long key = candidates.nextLong();
+                int station = nearest.get(key);
+                double cellDistance = distance.get(key);
+                int cellX = RiverFootprint.unpackX(key);
+                int cellZ = RiverFootprint.unpackZ(key);
+                int head = valley.head()[station];
+                if (!context.boundary().allows(cellX, cellZ) || context.drops().connects(cellX, cellZ, head)) {
+                    continue;
                 }
-                continue;
-            }
-            int natural = terrain.naturalHeight();
-            if (wet) {
-                double normalized = Math.min(1D, cellDistance / Math.max(0.5D, outline));
-                normalized = SurfaceBendProfile.normalizedDistance(normalized,
-                        side(centerline, station, cellX, cellZ), bendOffsets[station]);
-                double depth = channel.depth()[station];
-                double local = 1D + (depth - 1D) * bedFactor(normalized, erosion)
-                        + erosion.bedNoise() * roughness * SurfaceNoise.signed(courseSeed ^ BED_SALT, cellX, cellZ, banks.roughnessWavelength())
-                        + (basin[station] ? flow.plungeBasinDepth() : 0D);
-                int bed = Math.min(natural, head - Math.max(1, (int) StrictMath.round(local)));
-                int minimumBed = natural - maximumIncision(terrain, station >= inletStart);
-                if (minimumBed < head) {
-                    bed = Math.max(bed, minimumBed);
+                double halfWidth = channel.halfWidth()[station];
+                double outline = halfWidth * (1D + roughness * SurfaceNoise.signed(
+                        courseSeed ^ OUTLINE_SALT, cellX, cellZ, banks.roughnessWavelength()));
+                outline = Math.max(
+                        Math.max(0.5D, channelSettings.outlineMinimumRatio() * halfWidth),
+                        Math.min(channelSettings.outlineMaximumRatio() * halfWidth, outline));
+                boolean wet = cellDistance <= outline + 0.25D;
+                double bankDistance = cellDistance - outline;
+                if (wetOnly && !wet) {
+                    continue;
                 }
-                columns.put(key, new SurfaceColumn(cellX, cellZ, terrain, station, SurfaceRole.CHANNEL, bed, head, false));
-                wetKeys.add(key);
-                continue;
-            }
-            int bankTop = head + sink;
-            // The geometric shore is the column's own policy width where it sets one, so a beach can be
-            // wide on one bank and narrow on the other.
-            double shore = terrain.shoreWidth(shoreWidth);
-            // The SHORE role is the shore biome band: the column's policy width, or the geometric shore
-            // width where no policy sets one. It is independent of the flattened geometric shore and of
-            // the eroded valley, so a wide band reaches over untouched ground and a zero band leaves the
-            // geometric shore with the bank biome.
-            boolean shoreBiome = cellDistance <= outline + terrain.shoreBiomeWidth(shoreWidth) + 0.25D;
-            SurfaceRole dryRole = shoreBiome ? SurfaceRole.SHORE : SurfaceRole.BANK;
-            if (bankDistance > erosion.excavation().maximumWidth()) {
-                if (shoreBiome) {
-                    columns.put(key, new SurfaceColumn(cellX, cellZ, terrain, station, SurfaceRole.SHORE, natural, natural, false));
+                if (!wet && cellDistance > outline + maximumShoreWidth + 0.25D
+                        && (bankDistance > erosion.excavation().maximumWidth() || !erosion.enabled()
+                        || bankDistance - maximumShoreWidth >= blendWidth[station][side(centerline, station, cellX, cellZ) < 0D ? 0 : 1])) {
+                    continue;
                 }
+                coordinates[pageSize] = key;
+                outlines[pageSize++] = outline;
+            }
+            if (pageSize == 0) {
                 continue;
             }
-            if (cellDistance <= outline + shore + 0.25D) {
-                int height = bankTop + (int) StrictMath.round(shoreRise * benchProgress(cellDistance, outline, shore));
+            HydrologyTerrainSample[] samples = sampler.sampleBatch(coordinates, pageSize);
+            for (int index = 0; index < pageSize; index++) {
+                long key = coordinates[index];
+                int station = nearest.get(key);
+                double cellDistance = distance.get(key);
+                int cellX = RiverFootprint.unpackX(key);
+                int cellZ = RiverFootprint.unpackZ(key);
+                int head = valley.head()[station];
+                double outline = outlines[index];
+                boolean wet = cellDistance <= outline + 0.25D;
+                double bankDistance = cellDistance - outline;
+                HydrologyTerrainSample terrain = samples[index];
+                boolean mouthLand = terminal == SurfaceTerminal.OCEAN_MOUTH && head == seaLevel
+                        && SurfaceCellAdmission.mouthLand(terrain, seaLevel);
+                if (!SurfaceCellAdmission.writable(terrain, seaLevel) && !mouthLand) {
+                    if (sampler.receivingWater(cellX, cellZ, seaLevel) && wet && terminal == SurfaceTerminal.OCEAN_MOUTH
+                            && station >= valley.exposedStations() - 1
+                            && station - oceanStart < apronLimit
+                            && cellDistance <= apronLimit + 0.25D) {
+                        columns.put(key, new SurfaceColumn(
+                                cellX, cellZ, terrain, station, SurfaceRole.CHANNEL, terrain.naturalHeight(), seaLevel, true));
+                    }
+                    continue;
+                }
+                int natural = terrain.naturalHeight();
+                if (wet) {
+                    double normalized = Math.min(1D, cellDistance / Math.max(0.5D, outline));
+                    normalized = SurfaceBendProfile.normalizedDistance(normalized,
+                            side(centerline, station, cellX, cellZ), bendOffsets[station]);
+                    double depth = channel.depth()[station];
+                    double local = 1D + (depth - 1D) * bedFactor(normalized, erosion)
+                            + erosion.bedNoise() * roughness * SurfaceNoise.signed(courseSeed ^ BED_SALT, cellX, cellZ, banks.roughnessWavelength())
+                            + (basin[station] ? flow.plungeBasinDepth() : 0D);
+                    int bed = Math.min(natural, head - Math.max(1, (int) StrictMath.round(local)));
+                    int minimumBed = natural - maximumIncision(terrain, station >= inletStart);
+                    if (minimumBed < head) {
+                        bed = Math.max(bed, minimumBed);
+                    }
+                    columns.put(key, new SurfaceColumn(cellX, cellZ, terrain, station, SurfaceRole.CHANNEL, bed, head, false));
+                    wetKeys.add(key);
+                    continue;
+                }
+                int bankTop = head + sink;
+                // The geometric shore is the column's own policy width where it sets one, so a beach can be
+                // wide on one bank and narrow on the other.
+                double shore = terrain.shoreWidth(shoreWidth);
+                // The SHORE role is the shore biome band: the column's policy width, or the geometric shore
+                // width where no policy sets one. It is independent of the flattened geometric shore and of
+                // the eroded valley, so a wide band reaches over untouched ground and a zero band leaves the
+                // geometric shore with the bank biome.
+                boolean shoreBiome = cellDistance <= outline + terrain.shoreBiomeWidth(shoreWidth) + 0.25D;
+                SurfaceRole dryRole = shoreBiome ? SurfaceRole.SHORE : SurfaceRole.BANK;
+                if (bankDistance > erosion.excavation().maximumWidth()) {
+                    if (shoreBiome) {
+                        columns.put(key, new SurfaceColumn(cellX, cellZ, terrain, station, SurfaceRole.SHORE, natural, natural, false));
+                    }
+                    continue;
+                }
+                if (cellDistance <= outline + shore + 0.25D) {
+                    int height = bankTop + (int) StrictMath.round(shoreRise * benchProgress(cellDistance, outline, shore));
+                    height = boundedBankHeight(terrain, height, erosion.excavation());
+                    columns.put(key, new SurfaceColumn(cellX, cellZ, terrain, station, dryRole, height, height, false));
+                    continue;
+                }
+                int shoreTop = bankTop + (int) StrictMath.round(shoreRise);
+                int cut = natural - shoreTop;
+                if (cut == 0 || !erosion.enabled() || !terrain.erosion()) {
+                    if (shoreBiome) {
+                        columns.put(key, new SurfaceColumn(cellX, cellZ, terrain, station, SurfaceRole.SHORE, natural, natural, false));
+                    }
+                    continue;
+                }
+                double side = side(centerline, station, cellX, cellZ);
+                double width = blendWidth[station][side < 0D ? 0 : 1];
+                width = Math.min(width, Math.max(0.25D, erosion.excavation().maximumWidth() - shore));
+                double progress = (cellDistance - outline - shore) / width;
+                if (progress >= 1D) {
+                    if (shoreBiome) {
+                        columns.put(key, new SurfaceColumn(cellX, cellZ, terrain, station, SurfaceRole.SHORE, natural, natural, false));
+                    }
+                    continue;
+                }
+                int height = (int) StrictMath.round(shoreTop + cut * blend(progress, erosion));
                 height = boundedBankHeight(terrain, height, erosion.excavation());
                 columns.put(key, new SurfaceColumn(cellX, cellZ, terrain, station, dryRole, height, height, false));
-                continue;
             }
-            int shoreTop = bankTop + (int) StrictMath.round(shoreRise);
-            int cut = natural - shoreTop;
-            if (cut == 0 || !erosion.enabled() || !terrain.erosion()) {
-                if (shoreBiome) {
-                    columns.put(key, new SurfaceColumn(cellX, cellZ, terrain, station, SurfaceRole.SHORE, natural, natural, false));
-                }
-                continue;
-            }
-            double side = side(centerline, station, cellX, cellZ);
-            double width = blendWidth[station][side < 0D ? 0 : 1];
-            width = Math.min(width, Math.max(0.25D, erosion.excavation().maximumWidth() - shore));
-            double progress = (cellDistance - outline - shore) / width;
-            if (progress >= 1D) {
-                if (shoreBiome) {
-                    columns.put(key, new SurfaceColumn(cellX, cellZ, terrain, station, SurfaceRole.SHORE, natural, natural, false));
-                }
-                continue;
-            }
-            int height = (int) StrictMath.round(shoreTop + cut * blend(progress, erosion));
-            height = boundedBankHeight(terrain, height, erosion.excavation());
-            columns.put(key, new SurfaceColumn(cellX, cellZ, terrain, station, dryRole, height, height, false));
         }
         if (count > 0) {
-            pond(columns, wetKeys, courseSeed ^ SOURCE_POND_SALT, ponds.source(), centerline, 0, valley.head()[0], samplingContext);
+            pond(columns, wetKeys, courseSeed ^ SOURCE_POND_SALT, ponds.source(), centerline, 0, valley.head()[0], samplingContext, wetOnly);
             if (terminal == SurfaceTerminal.SINKHOLE) {
-                pond(columns, wetKeys, courseSeed ^ TERMINAL_POND_SALT, ponds.terminal(), centerline, count - 1, valley.head()[count - 1], samplingContext);
+                pond(columns, wetKeys, courseSeed ^ TERMINAL_POND_SALT, ponds.terminal(), centerline, count - 1, valley.head()[count - 1], samplingContext, wetOnly);
             }
+        }
+        if (wetOnly) {
+            connectSteps(columns, wetKeys);
+            for (SurfaceColumn column : columns.values()) {
+                if (!column.apron()) {
+                    int cut = unsupportedIncisionCut(column, inletStart);
+                    if (cut > 0) {
+                        return new ErosionField(columns, 0,
+                                HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED, cut, 0L);
+                    }
+                }
+            }
+            return new ErosionField(columns, 0, null, 0, 0L);
         }
         int uncontained = contain(columns, wetKeys, sink, bounds, context.drops());
         connectSteps(columns, wetKeys);
@@ -286,7 +354,8 @@ public final class ErosionFieldCompiler {
             SurfaceCenterline centerline,
             int station,
             int head,
-            SurfaceRasterContext context
+            SurfaceRasterContext context,
+            boolean wetOnly
     ) {
         SurfaceBounds bounds = context.bounds();
         if (!pond.enabled()) {
@@ -315,6 +384,8 @@ public final class ErosionFieldCompiler {
         }
         int bankTop = head + sink;
         int shoreTop = bankTop + (int) StrictMath.round(shoreRise);
+        double maximumBlendWidth = Math.min(banks.maximumBlendWidth(),
+                Math.max(0.25D, erosion.excavation().maximumWidth() - shore));
         int reach = (int) StrictMath.ceil(radius * (1D + roughness) + shore + banks.maximumBlendWidth()) + 1;
         for (int deltaZ = -reach; deltaZ <= reach; deltaZ++) {
             for (int deltaX = -reach; deltaX <= reach; deltaX++) {
@@ -329,11 +400,6 @@ public final class ErosionFieldCompiler {
                         || context.drops().connects(cellX, cellZ, head)) {
                     continue;
                 }
-                HydrologyTerrainSample terrain = sampler.sample(cellX, cellZ);
-                if (!SurfaceCellAdmission.writable(terrain, seaLevel)) {
-                    continue;
-                }
-                int natural = terrain.naturalHeight();
                 long key = RiverFootprint.pack(cellX, cellZ);
                 SurfaceColumn existing = columns.get(key);
                 if (existing != null && existing.apron()) {
@@ -344,7 +410,22 @@ public final class ErosionFieldCompiler {
                 outline = Math.max(
                         Math.max(0.5D, channelSettings.outlineMinimumRatio() * radius),
                         Math.min(channelSettings.outlineMaximumRatio() * radius, outline));
-                if (distance <= outline + 0.25D) {
+                boolean wet = distance <= outline + 0.25D;
+                if (wetOnly && !wet) {
+                    continue;
+                }
+                if (!wet && (existing != null && existing.role() == SurfaceRole.CHANNEL
+                        || distance - outline > erosion.excavation().maximumWidth()
+                        || distance > outline + shore + 0.25D && (!erosion.enabled() || !erode
+                        || (distance - outline - shore) / maximumBlendWidth >= 1D))) {
+                    continue;
+                }
+                HydrologyTerrainSample terrain = sampler.sample(cellX, cellZ);
+                if (!SurfaceCellAdmission.writable(terrain, seaLevel)) {
+                    continue;
+                }
+                int natural = terrain.naturalHeight();
+                if (wet) {
                     double normalized = Math.min(1D, distance / Math.max(0.5D, outline));
                     double local = 1D + (pond.depth() - 1D) * bedFactor(normalized, erosion)
                             + erosion.bedNoise() * roughness * SurfaceNoise.signed(seed ^ BED_SALT, cellX, cellZ, banks.roughnessWavelength());
@@ -363,12 +444,6 @@ public final class ErosionFieldCompiler {
                     }
                     continue;
                 }
-                if (existing != null && existing.role() == SurfaceRole.CHANNEL) {
-                    continue;
-                }
-                if (distance - outline > erosion.excavation().maximumWidth()) {
-                    continue;
-                }
                 if (distance <= outline + shore + 0.25D) {
                     int height = bankTop + (int) StrictMath.round(shoreRise * benchProgress(distance, outline, shore));
                     height = boundedBankHeight(terrain, height, erosion.excavation());
@@ -376,7 +451,7 @@ public final class ErosionFieldCompiler {
                     continue;
                 }
                 int cut = natural - shoreTop;
-                if (cut == 0 || !erosion.enabled() || !erode) {
+                if (cut == 0) {
                     continue;
                 }
                 double width = Math.max(banks.minimumBlendWidth(),
@@ -624,6 +699,12 @@ public final class ErosionFieldCompiler {
         return Math.min(incision, (int) StrictMath.floor(incision * terrain.incisionMultiplier()));
     }
 
+    private int unsupportedIncisionCut(SurfaceColumn column, int inletStart) {
+        int incision = maximumIncision(column.terrain(), column.station() >= inletStart);
+        int cut = column.terrain().naturalHeight() - column.height();
+        return cut > incision ? cut : 0;
+    }
+
     private ErosionField validate(Long2ObjectOpenHashMap<SurfaceColumn> columns, LongArrayList wetKeys,
                                   SurfaceCenterline centerline, SurfaceTerminal terminal,
                                   SurfaceBounds bounds, int uncontained, int inletStart) {
@@ -635,10 +716,8 @@ public final class ErosionFieldCompiler {
                 continue;
             }
             if (column.role() == SurfaceRole.CHANNEL) {
-                HydrologyTerrainSample terrain = column.terrain();
-                int incision = maximumIncision(terrain, column.station() >= inletStart);
-                int cut = terrain.naturalHeight() - column.height();
-                if (cut > incision) {
+                int cut = unsupportedIncisionCut(column, inletStart);
+                if (cut > 0) {
                     return new ErosionField(columns, uncontained,
                             HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED,
                             cut, excavation);
@@ -816,6 +895,16 @@ public final class ErosionFieldCompiler {
         double deltaX = cellX - centerline.x()[station];
         double deltaZ = cellZ - centerline.z()[station];
         return deltaX * centerline.normalX(station) + deltaZ * centerline.normalZ(station);
+    }
+
+    private static final class RasterGeometry {
+        private final Long2IntOpenHashMap nearest = new Long2IntOpenHashMap();
+        private final Long2DoubleOpenHashMap distance = new Long2DoubleOpenHashMap();
+        private boolean prepared;
+
+        private RasterGeometry() {
+            nearest.defaultReturnValue(-1);
+        }
     }
 
     record PreparedField(int count, boolean[] basin, double[] bendOffsets, double[][] blendWidth, int[] radii,

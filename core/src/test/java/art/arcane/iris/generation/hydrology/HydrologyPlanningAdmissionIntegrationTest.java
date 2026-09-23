@@ -40,7 +40,9 @@ public class HydrologyPlanningAdmissionIntegrationTest {
         AtomicInteger peak = new AtomicInteger();
         HydrologyTile tile = mock(HydrologyTile.class);
         HydrologyPlanner firstPlanner = mock(HydrologyPlanner.class);
+        when(firstPlanner.settings()).thenReturn(HydrologyPlannerSettings.defaults());
         HydrologyPlanner secondPlanner = mock(HydrologyPlanner.class);
+        when(secondPlanner.settings()).thenReturn(HydrologyPlannerSettings.defaults());
         HydrologyTileKey key = new HydrologyTileKey(0, 0);
         when(firstPlanner.plan(key)).thenAnswer(invocation -> {
             peak.accumulateAndGet(active.incrementAndGet(), Math::max);
@@ -86,6 +88,7 @@ public class HydrologyPlanningAdmissionIntegrationTest {
         ExecutorService workers = Executors.newSingleThreadExecutor();
         ExecutorService callers = Executors.newFixedThreadPool(2);
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(HydrologyPlannerSettings.defaults());
         HydrologyTileCache cache = new HydrologyTileCache(planner, 4, workers);
         HydrologyTileKey key = new HydrologyTileKey(0, 0);
         try {
@@ -101,6 +104,7 @@ public class HydrologyPlanningAdmissionIntegrationTest {
             releaseRoots(held);
             HydrologyTile tile = mock(HydrologyTile.class);
             HydrologyPlanner nextPlanner = mock(HydrologyPlanner.class);
+        when(nextPlanner.settings()).thenReturn(HydrologyPlannerSettings.defaults());
             when(nextPlanner.plan(key)).thenReturn(tile);
             try (HydrologyTileCache next = new HydrologyTileCache(nextPlanner, 4, workers)) {
                 assertSame(tile, callers.submit(() -> next.get(key)).get(5L, TimeUnit.SECONDS));

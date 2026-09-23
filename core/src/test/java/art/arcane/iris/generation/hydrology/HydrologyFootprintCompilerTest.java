@@ -114,6 +114,34 @@ public class HydrologyFootprintCompilerTest {
     }
 
     @Test
+    public void fallbackCompilersShareBasisWithoutChangingValidationOrFootprints() {
+        HydraulicSegment segment = new HydraulicSegment(
+                9001L, 9000L, HydrologyFeatureType.SURFACE_POOL, 70, 70, 6, 3, false, false,
+                List.of(new HydrologyPoint(-12, 70, -3), new HydrologyPoint(32, 70, 5)),
+                HydraulicChannelProfile.uniform(6, 3));
+        RiverCourse course = course(9000L, RiverCourseType.SURFACE, segment);
+        SlopeCountingSampler sampler = new SlopeCountingSampler(true);
+        HydrologyFootprintCompiler owner = new HydrologyFootprintCompiler(
+                HydrologyPlannerSettings.defaults(),
+                new HydrologyFootprintCompiler.Sampling(sampler, request -> request.minimum(), sampler));
+        HydrologyFootprintCompiler.ValidationRaster expectedValidation = owner.compileValidation(List.of(course));
+        RiverFootprint expected = owner.compile(List.of(course));
+        int ownerCalls = sampler.slopeFreeCalls;
+        assertTrue(ownerCalls > 0);
+        HydrologyBasisCache shared = new HydrologyBasisCache();
+        shared.seedWithoutSlope(owner.terrainBases);
+        for (int trial = 0; trial < 3; trial++) {
+            HydrologyFootprintCompiler alternative = new HydrologyFootprintCompiler(
+                    HydrologyPlannerSettings.defaults(),
+                    new HydrologyFootprintCompiler.Sampling(sampler, request -> request.minimum(), sampler));
+            alternative.sharedBasis = shared;
+            assertEquals(expectedValidation.columns(), alternative.compileValidation(List.of(course)).columns());
+            assertEquals(expected, alternative.compile(List.of(course)));
+        }
+        assertEquals(ownerCalls, sampler.slopeFreeCalls);
+    }
+
+    @Test
     public void surfaceChannelNeverRaisesTerrainOrPublishesUnsupportedFluid() {
         HydraulicSegment segment = new HydraulicSegment(
                 9L,
@@ -536,11 +564,14 @@ public class HydrologyFootprintCompilerTest {
         );
         RiverCourse course = course(42L, RiverCourseType.SURFACE, segment);
         HydrologyTerrainSampler terrain = (int x, int z) -> HydrologyTerrainSample.openLand(80, 1D, "parent");
-        RiverFootprint footprint = new HydrologyFootprintCompiler(
+        HydrologyFootprintCompiler compiler = new HydrologyFootprintCompiler(
                 HydrologyPlannerSettings.defaults(),
                 terrain,
                 request -> request.minimum()
-        ).compile(List.of(course));
+        );
+        assertEquals(HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED,
+                compiler.surfaceFootprintForPublication(course).rejection());
+        RiverFootprint footprint = compiler.compile(List.of(course));
 
         int channelEdge = 0;
         while (layerAt(footprint, channelEdge + 1, 0).channel()) {

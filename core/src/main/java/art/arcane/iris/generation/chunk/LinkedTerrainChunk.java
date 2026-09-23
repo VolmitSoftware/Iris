@@ -35,7 +35,8 @@ public class LinkedTerrainChunk implements TerrainChunk {
     private final int minHeight;
     private final int maxHeight;
     private final int biomeHeight;
-    private final Biome[] biomes;
+    private final NativeBiome[] biomes;
+    private volatile NativeBiome defaultBiome;
 
     public LinkedTerrainChunk(World world) {
         this(Bukkit.createChunkData(world));
@@ -46,19 +47,27 @@ public class LinkedTerrainChunk implements TerrainChunk {
         minHeight = data.getMinHeight();
         maxHeight = data.getMaxHeight();
         biomeHeight = Math.max(1, maxHeight - minHeight);
-        biomes = new Biome[CHUNK_SIZE * biomeHeight * CHUNK_SIZE];
+        biomes = new NativeBiome[CHUNK_SIZE * biomeHeight * CHUNK_SIZE];
     }
 
     @Override
     public NativeBiome getBiome(int x, int y, int z) {
         int index = biomeIndex(x, y, z);
-        Biome biome = biomes[index];
-        return BukkitBiome.of(biome == null ? Biome.PLAINS : biome);
+        NativeBiome biome = biomes[index];
+        if (biome != null) {
+            return biome;
+        }
+        NativeBiome fallback = defaultBiome;
+        if (fallback == null) {
+            fallback = BukkitBiome.of(Biome.PLAINS);
+            defaultBiome = fallback;
+        }
+        return fallback;
     }
 
     @Override
     public void setBiome(int x, int y, int z, NativeBiome bio) {
-        biomes[biomeIndex(x, y, z)] = (Biome) bio.nativeHandle();
+        biomes[biomeIndex(x, y, z)] = canonicalBiome(bio);
     }
 
     /**
@@ -66,7 +75,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
      * calling setBiome for every y in [minHeight, maxHeight).
      */
     public void fillBiomeColumn(int x, int z, NativeBiome bio) {
-        Biome handle = (Biome) bio.nativeHandle();
+        NativeBiome handle = canonicalBiome(bio);
         int stride = CHUNK_SIZE * CHUNK_SIZE;
         int index = (z & (CHUNK_SIZE - 1)) * CHUNK_SIZE + (x & (CHUNK_SIZE - 1));
 
@@ -119,5 +128,13 @@ public class LinkedTerrainChunk implements TerrainChunk {
         int clampedZ = z & (CHUNK_SIZE - 1);
         int clampedY = Math.max(minHeight, Math.min(maxHeight - 1, y)) - minHeight;
         return (clampedY * CHUNK_SIZE + clampedZ) * CHUNK_SIZE + clampedX;
+    }
+
+    private static NativeBiome canonicalBiome(NativeBiome biome) {
+        if (biome instanceof BukkitBiome) {
+            return biome;
+        }
+        Biome handle = (Biome) biome.nativeHandle();
+        return handle == null ? null : BukkitBiome.of(handle);
     }
 }

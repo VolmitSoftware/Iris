@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.terrain;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.pack.value.IrisRange;
 import art.arcane.iris.world.IrisWorld;
 
@@ -48,6 +49,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class IrisDimensionCarvingResolverParityTest {
@@ -57,6 +59,67 @@ public class IrisDimensionCarvingResolverParityTest {
     @BeforeClass
     public static void setupBukkit() {
         BukkitTestServer.install();
+    }
+
+    @Test
+    public void scopedSnapshotMatchesScalarRootsAndReadsRuntimeIdentityOnce() {
+        Fixture fixture = createFixture();
+        Map<String, IrisBiome> expected = new HashMap<>();
+        for (int y = -80; y <= 340; y += 13) {
+            for (int x = -17; x <= 17; x += 17) {
+                expected.put(x + ":" + y, IrisDimensionCarvingResolver.resolveBiome(
+                        fixture.engine, x, y, -23, new IrisDimensionCarvingResolver.State()));
+            }
+        }
+        clearInvocations(fixture.engine);
+        IrisDimensionCarvingResolver.Snapshot snapshot = IrisDimensionCarvingResolver.snapshot(fixture.engine);
+        for (int y = -80; y <= 340; y += 13) {
+            for (int x = -17; x <= 17; x += 17) {
+                assertSame(expected.get(x + ":" + y), snapshot.resolveBiome(x, y, -23));
+            }
+        }
+        verify(fixture.engine).getDimension();
+        verify(fixture.engine).getData();
+    }
+
+    @Test
+    public void scopedSnapshotsBindReplacementRuntimeWithoutSharingPriorResults() {
+        Fixture first = createFixture();
+        Fixture replacement = createMixedDepthFixture();
+        IrisBiome expectedFirst = IrisDimensionCarvingResolver.resolveBiome(first.engine, -17, 80, 23, null);
+        IrisBiome expectedReplacement = IrisDimensionCarvingResolver.resolveBiome(replacement.engine, -17, 80, 23, null);
+        assertSame(expectedFirst, IrisDimensionCarvingResolver.snapshot(first.engine).resolveBiome(-17, 80, 23));
+        doReturn(replacement.engine.getData()).when(first.engine).getData();
+        doReturn(replacement.engine.getDimension()).when(first.engine).getDimension();
+        doReturn(replacement.engine.getSeedManager()).when(first.engine).getSeedManager();
+        assertSame(expectedReplacement, IrisDimensionCarvingResolver.snapshot(first.engine).resolveBiome(-17, 80, 23));
+    }
+
+    @Test
+    public void scopedSnapshotsKeepExpressionSamplingPerImplicitCell() {
+        for (boolean fracture : new boolean[]{false, true}) {
+            Fixture fixture = createFixture();
+            IrisDimension dimension = fixture.engine.getDimension();
+            IrisDimensionCarvingEntry parent = spy(dimension.getCarvingEntryIndex().get("root-low"));
+            parent.setChildRecursionDepth(1);
+            if (fracture) {
+                parent.getChildStyle().setFracture(new IrisGeneratorStyle().setExpression("live-height"));
+            } else {
+                parent.getChildStyle().setExpression("live-height");
+            }
+            KList<IrisDimensionCarvingEntry> entries = new KList<>(dimension.getCarving());
+            entries.set(0, parent);
+            doReturn(entries).when(dimension).getCarving();
+            dimension.getCarvingEntryIndex().put("root-low", parent);
+            CNG generator = mock(CNG.class);
+            doReturn(0.5D, 0D).when(generator).noiseFast2D(-17D, 23D);
+            doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(IrisData.class));
+            IrisDimensionCarvingResolver.Snapshot snapshot = IrisDimensionCarvingResolver.snapshot(fixture.engine);
+
+            assertSame(fixture.engine.getData().getBiomeLoader().load("child-a"), snapshot.resolveBiome(-17, 40, 23));
+            assertSame(fixture.engine.getData().getBiomeLoader().load("root-low"), snapshot.resolveBiome(-17, 41, 23));
+            verify(generator, times(2)).noiseFast2D(-17D, 23D);
+        }
     }
 
     @Test
@@ -82,6 +145,72 @@ public class IrisDimensionCarvingResolverParityTest {
         assertSame(engine.getDimension().getCarvingEntryIndex().get("child-a"), selected);
         verify(generator).noiseFast2D(-17D, 23D);
         verify(generator, never()).fit2D(anyInt(), anyInt(), anyDouble(), anyDouble());
+    }
+
+    @Test
+    public void repeatedColumnResolutionSamplesChildrenOnceAcrossHeights() {
+        Fixture fixture = createFixture();
+        IrisDimensionCarvingEntry parent = spy(fixture.engine.getDimension().getCarvingEntryIndex().get("root-low"));
+        parent.setChildRecursionDepth(1);
+        CNG generator = mock(CNG.class);
+        doReturn(0.5D).when(generator).noiseFast2D(anyDouble(), anyDouble());
+        doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(IrisData.class));
+        IrisDimensionCarvingEntry child = fixture.engine.getDimension().getCarvingEntryIndex().get("child-a");
+        IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
+
+        for (int height = 0; height < 16; height++) {
+            for (int x = -16; x < 0; x++) {
+                for (int z = 0; z < 16; z++) {
+                    assertSame(child, IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, parent, x, z, state));
+                }
+            }
+        }
+
+        verify(generator, times(256)).noiseFast2D(anyDouble(), anyDouble());
+    }
+
+    @Test
+    public void expressionChildStylesKeepSamplingTheCurrentContext() {
+        for (boolean fracture : new boolean[]{false, true}) {
+            Fixture fixture = createFixture();
+            IrisDimensionCarvingEntry parent = spy(fixture.engine.getDimension().getCarvingEntryIndex().get("root-low"));
+            parent.setChildRecursionDepth(1);
+            if (fracture) {
+                parent.getChildStyle().setFracture(new IrisGeneratorStyle().setExpression("live-height"));
+            } else {
+                parent.getChildStyle().setExpression("live-height");
+            }
+            CNG generator = mock(CNG.class);
+            doReturn(0.5D, 0D).when(generator).noiseFast2D(-17D, 23D);
+            doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(IrisData.class));
+            IrisDimensionCarvingEntry child = fixture.engine.getDimension().getCarvingEntryIndex().get("child-a");
+            IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
+
+            assertSame(child, IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, parent, -17, 23, state));
+            assertSame(parent, IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, parent, -17, 23, state));
+        }
+    }
+
+    @Test
+    public void cachedColumnResolutionInvalidatesWithDataAndEngineChanges() {
+        Fixture fixture = createFixture();
+        Fixture replacement = createFixture();
+        IrisDimensionCarvingEntry parent = spy(fixture.engine.getDimension().getCarvingEntryIndex().get("root-low"));
+        parent.setChildRecursionDepth(1);
+        CNG generator = mock(CNG.class);
+        doReturn(0.5D).when(generator).noiseFast2D(anyDouble(), anyDouble());
+        doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(IrisData.class));
+        IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
+        IrisDimensionCarvingEntry firstChild = fixture.engine.getDimension().getCarvingEntryIndex().get("child-a");
+        IrisDimensionCarvingEntry replacementChild = replacement.engine.getDimension().getCarvingEntryIndex().get("child-a");
+
+        assertSame(firstChild, IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, parent, -17, 23, state));
+        doReturn(replacement.engine.getData()).when(fixture.engine).getData();
+        assertSame(firstChild, IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, parent, -17, 23, state));
+        assertSame(replacementChild, IrisDimensionCarvingResolver.resolveFromRoot(replacement.engine, parent, -17, 23, state));
+        assertSame(replacementChild, IrisDimensionCarvingResolver.resolveFromRoot(replacement.engine, parent, -17, 23, state));
+
+        verify(generator, times(3)).noiseFast2D(-17D, 23D);
     }
 
     @Test

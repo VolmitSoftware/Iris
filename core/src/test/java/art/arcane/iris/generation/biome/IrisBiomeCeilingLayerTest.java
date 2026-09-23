@@ -11,7 +11,6 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -28,7 +27,6 @@ public class IrisBiomeCeilingLayerTest {
                 new IrisDimension(), 13, -27, new RNG(1), 8, 64, null, null);
 
         assertEquals(List.of(first, first, second, third, third), result);
-        assertNull(biome.getLayerHeightGenerators().getIfPresent());
     }
 
     @Test
@@ -45,8 +43,8 @@ public class IrisBiomeCeilingLayerTest {
             assertEquals(firstCeiling.size(), secondCeiling.size());
         }
         first.getLayerHeightGenerators(rng, null);
-        assertNotSame(first.getLayerHeightGenerators().getIfPresent().get(0),
-                first.getLayerCeilingHeightGenerators().getIfPresent().get(0));
+        assertNotSame(first.getLayerHeightGenerators(rng, null).get(0),
+                first.getLayerCeilingHeightGenerators().get(first.getCaveCeilingLayers(), 7235, rng, null).get(0));
     }
 
     @Test

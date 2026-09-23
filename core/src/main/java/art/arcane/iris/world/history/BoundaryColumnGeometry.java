@@ -163,13 +163,14 @@ public final class BoundaryColumnGeometry implements NativeBlockColumn {
         }
         int nearest = -1;
         double nearestDistance = Double.POSITIVE_INFINITY;
-        for (int offset = 0; offset + 1 < height(); offset++) {
-            Voxel current = voxelAt(minimumY + offset);
-            Voxel above = voxelAt(minimumY + offset + 1);
+        for (int run = 0; run + 1 < runEnds.length; run++) {
+            Voxel current = palette.get(paletteIndices[run]);
+            Voxel above = palette.get(paletteIndices[run + 1]);
             if (current.phase() != Phase.SOLID || current.protectedContent()
                     || above.phase() == Phase.SOLID && !above.protectedContent()) {
                 continue;
             }
+            int offset = runEnds[run] - 1;
             double distance = Math.abs(offset - expectedOffset);
             if (distance < nearestDistance) {
                 nearest = offset;
@@ -179,10 +180,10 @@ public final class BoundaryColumnGeometry implements NativeBlockColumn {
         if (nearest >= 0) {
             return nearest;
         }
-        for (int offset = height() - 1; offset >= 0; offset--) {
-            Voxel current = voxelAt(minimumY + offset);
+        for (int run = runEnds.length - 1; run >= 0; run--) {
+            Voxel current = palette.get(paletteIndices[run]);
             if (current.phase() == Phase.SOLID && !current.protectedContent()) {
-                return offset;
+                return runEnds[run] - 1;
             }
         }
         return 0;

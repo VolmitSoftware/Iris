@@ -176,16 +176,20 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
         return block == null ? fallbackSolid : block;
     }
 
-    private PaletteContext createPaletteContext(IrisBiome parent, IrisFloatingChildBiomes entry, IrisDimension dimension, int wx, int wz, long colSeed, int paletteDepth, IrisData data, IrisComplex complex) {
+    private PaletteContext createPaletteContext(IrisBiome parent, IrisFloatingChildBiomes entry, IrisDimension dimension, int wx, int wz, int paletteDepth, IrisData data, IrisComplex complex) {
         IrisBiome target = entry == null ? parent : entry.getRealBiome(parent, data);
-        int entrySeed = entry == null || entry.getBiome() == null ? 0 : entry.getBiome().hashCode();
-        RNG layerRng = rng.nextParallelRNG((int) (colSeed ^ 0x7A4E ^ entrySeed));
+        RNG layerRng = paletteRng(rng, entry);
         KList<NativeBlockState> topBlocks = target == null ? null : target.generateLayers(dimension, wx, wz, layerRng, paletteDepth, paletteDepth, data, complex);
         if (topBlocks == null || topBlocks.isEmpty()) {
             topBlocks = parent.generateLayers(dimension, wx, wz, layerRng, paletteDepth, paletteDepth, data, complex);
         }
         KList<NativeBlockState> bottomBlocks = generateBottomPaletteLayers(entry, dimension, wx, wz, layerRng, paletteDepth, data, complex);
         return new PaletteContext(topBlocks, bottomBlocks, B.getState("minecraft:stone"));
+    }
+
+    static RNG paletteRng(RNG worldRng, IrisFloatingChildBiomes entry) {
+        int entrySeed = entry == null || entry.getBiome() == null ? 0 : entry.getBiome().hashCode();
+        return worldRng.nextParallelRNG(0x7A4E ^ entrySeed);
     }
 
     private static final class PaletteContext {
@@ -230,7 +234,6 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                     continue;
                 }
 
-                long colSeed = FloatingIslandSample.columnSeed(baseSeed, wx, wz);
                 int paletteDepth = Math.max(4, sample.solidCount + 4);
                 IdentityHashMap<IrisFloatingChildBiomes, PaletteContext> paletteContexts = new IdentityHashMap<>();
                 IdentityHashMap<IrisFloatingChildBiomes, Integer> topDepthByEntry = new IdentityHashMap<>();
@@ -246,7 +249,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                     IrisFloatingChildBiomes entry = sample.entryAt(k);
                     PaletteContext paletteContext = paletteContexts.get(entry);
                     if (paletteContext == null) {
-                        paletteContext = createPaletteContext(parent, entry, dimension, wx, wz, colSeed, paletteDepth, data, complex);
+                        paletteContext = createPaletteContext(parent, entry, dimension, wx, wz, paletteDepth, data, complex);
                         paletteContexts.put(entry, paletteContext);
                     }
                     int depth = topDepthByEntry.getOrDefault(entry, 0);

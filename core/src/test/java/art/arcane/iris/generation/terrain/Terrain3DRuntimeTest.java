@@ -22,6 +22,35 @@ import static org.junit.Assert.assertTrue;
 
 public class Terrain3DRuntimeTest {
     @Test
+    public void heightQueriesPreserveCompleteDensityColumnsAndFractionalFallback() {
+        Terrain3DRuntime.NoiseSource noise = (x, y, z) -> StrictMath.sin(y * StrictMath.PI / 16D)
+                * StrictMath.cos(x * 0.08D) * StrictMath.cos(z * 0.06D);
+        Terrain3DRuntime reference = runtime(profile(), noise);
+        Terrain3DRuntime selective = runtime(profile(), noise);
+        for (int pass = 0; pass < 2; pass++) {
+            for (int x = -12; x <= 12; x++) {
+                for (int z = -6; z <= 6; z++) {
+                    Terrain3DColumn expected = reference.column(x, z);
+                    assertEquals(expected.topY(), selective.height(x, z), 0D);
+                    assertEquals(expected, selective.column(x, z));
+                    assertEquals(expected.topY(), selective.height(x, z), 0D);
+                }
+            }
+            selective.clear();
+        }
+        Terrain3DRuntime unshaped = new Terrain3DRuntime(
+                new Terrain3DRuntime.Sources((x, z) -> 300.25D, (x, z) -> new IrisBiome()),
+                options(true), (style, seed) -> noise);
+        assertEquals(300.25D, unshaped.height(-17, 23), 0D);
+        assertEquals(255, unshaped.column(-17, 23).topY());
+        assertEquals(300.25D, unshaped.height(-17, 23), 0D);
+        Terrain3DRuntime inactive = new Terrain3DRuntime(
+                new Terrain3DRuntime.Sources((x, z) -> -12.75D, (x, z) -> null),
+                options(false), (style, seed) -> noise);
+        assertEquals(-12.75D, inactive.height(0, 0), 0D);
+    }
+
+    @Test
     public void alignedColumnsOnlySampleContributingAnchors() {
         for (int x = -8; x <= -7; x++) {
             for (int z = -8; z <= -7; z++) {
@@ -258,6 +287,138 @@ public class Terrain3DRuntimeTest {
                 (style, seed) -> (x, y, z) -> -1D);
         assertFalse(water.column(0, 0).shaped());
         assertEquals(40, water.column(0, 0).topY());
+    }
+
+    @Test
+    public void anchorRetentionBoundsFullHeightNoiseStorage() {
+        int shorter = Terrain3DRuntime.anchorCacheCapacity(256, 4096);
+        int taller = Terrain3DRuntime.anchorCacheCapacity(1024, 4096);
+        assertTrue(shorter > taller);
+        assertTrue(taller > 4096 / 4);
+        for (int height : new int[]{16, 256, 640, 1024, 4096, 16_384}) {
+            for (int columns : new int[]{16, 4096, Integer.MAX_VALUE}) {
+                int capacity = Terrain3DRuntime.anchorCacheCapacity(height, columns);
+                long fullHeightStorage = 160L + 48L * (Math.ceilDiv((long) height, 4) + 1);
+                assertEquals(0, capacity % 16);
+                assertTrue(capacity >= 16);
+                assertTrue(capacity <= 32_768);
+                assertTrue(capacity * fullHeightStorage <= 64L * 1024 * 1024);
+            }
+        }
+    }
+
+    @Test
+    public void sharedColumnWorkingSetReusesTerrainAcrossChunksAndClearsCompletely() {
+        AtomicInteger sourceCalls = new AtomicInteger();
+        AtomicInteger height = new AtomicInteger(96);
+        IrisBiome biome = new IrisBiome().setTerrain3D(profile());
+        Terrain3DRuntime runtime = new Terrain3DRuntime(
+                new Terrain3DRuntime.Sources((x, z) -> {
+                    sourceCalls.incrementAndGet();
+                    return height.get();
+                }, (x, z) -> biome),
+                new Terrain3DRuntime.Options(12, 256, 0, null, true, 65_536),
+                (style, seed) -> (x, y, z) -> 0D);
+        List<Terrain3DColumn> columns = new ArrayList<>(128 * 128);
+        for (int x = -64; x < 64; x++) {
+            for (int z = -64; z < 64; z++) {
+                Terrain3DColumn column = runtime.column(x, z);
+                assertTrue(column.shaped());
+                assertEquals(96, column.topY());
+                columns.add(column);
+            }
+        }
+        int callsBeforeRevisit = sourceCalls.get();
+        int index = 0;
+        for (int x = -64; x < 64; x++) {
+            for (int z = -64; z < 64; z++) {
+                assertSame(columns.get(index++), runtime.column(x, z));
+            }
+        }
+        assertEquals(callsBeforeRevisit, sourceCalls.get());
+        assertEquals(columns.size(), runtime.cachedColumnCount());
+        height.set(120);
+        runtime.clear();
+        assertEquals(0, runtime.cachedColumnCount());
+        assertEquals(120, runtime.column(-64, -64).topY());
+        assertTrue(sourceCalls.get() > callsBeforeRevisit);
+    }
+
+    @Test
+    public void sharedColumnCacheRemainsBoundedAcrossDistantWorkingSets() {
+        IrisBiome biome = new IrisBiome();
+        Terrain3DRuntime runtime = new Terrain3DRuntime(
+                new Terrain3DRuntime.Sources((x, z) -> 96D, (x, z) -> biome),
+                new Terrain3DRuntime.Options(12, 256, 0, null, true, 65_536),
+                (style, seed) -> (x, y, z) -> 0D);
+        for (int x = -65_536; x < 65_536; x++) {
+            assertEquals(96, runtime.column(x, -1).topY());
+        }
+        assertEquals(65_536, runtime.cachedColumnCount());
+        assertEquals(96, runtime.column(-65_536, -1).topY());
+        assertEquals(65_536, runtime.cachedColumnCount());
+        runtime.clear();
+        assertEquals(0, runtime.cachedColumnCount());
+    }
+
+    @Test
+    public void evictedAnchorsRecomputeIdenticalColumns() {
+        AtomicInteger samples = new AtomicInteger();
+        IrisBiome biome = new IrisBiome().setTerrain3D(profile());
+        Terrain3DRuntime runtime = new Terrain3DRuntime(
+                new Terrain3DRuntime.Sources((x, z) -> 96D, (x, z) -> biome),
+                new Terrain3DRuntime.Options(12, 256, 0, null, true, 16),
+                (style, seed) -> (x, y, z) -> {
+                    samples.incrementAndGet();
+                    return 0.2D * StrictMath.sin(x + z);
+                });
+        Terrain3DColumn original = runtime.column(-4, -4);
+        for (int index = 0; index < 512; index++) {
+            runtime.column(index * 4, -16);
+        }
+        int samplesBeforeRevisit = samples.get();
+
+        assertEquals(original, runtime.column(-4, -4));
+        assertTrue(samples.get() > samplesBeforeRevisit);
+    }
+
+    @Test
+    public void anchorNoiseSurvivesColumnCacheTurnover() {
+        AtomicInteger samples = new AtomicInteger();
+        AtomicInteger biomes = new AtomicInteger();
+        IrisBiome biome = new IrisBiome().setTerrain3D(profile());
+        Terrain3DRuntime runtime = new Terrain3DRuntime(
+                new Terrain3DRuntime.Sources((x, z) -> 96D, (x, z) -> {
+                    biomes.incrementAndGet();
+                    return biome;
+                }),
+                new Terrain3DRuntime.Options(12, 256, 0, null, true, 64),
+                (style, seed) -> (x, y, z) -> {
+                    samples.incrementAndGet();
+                    return 0.2D * StrictMath.sin(x + z);
+                });
+        List<Terrain3DColumn> columns = new ArrayList<>();
+        for (int x = -32; x < 32; x += 4) {
+            for (int z = -32; z < 32; z += 4) {
+                columns.add(runtime.column(x, z));
+            }
+        }
+        int initialSamples = samples.get();
+        int initialBiomes = biomes.get();
+        int index = 0;
+        for (int x = -32; x < 32; x += 4) {
+            for (int z = -32; z < 32; z += 4) {
+                assertEquals(columns.get(index++), runtime.column(x, z));
+            }
+        }
+
+        assertTrue(initialSamples > 0);
+        assertEquals(initialSamples, samples.get());
+        assertEquals(initialBiomes, biomes.get());
+        runtime.clear();
+        assertEquals(columns.getFirst(), runtime.column(-32, -32));
+        assertTrue(samples.get() > initialSamples);
+        assertTrue(biomes.get() > initialBiomes);
     }
 
     @Test

@@ -17,6 +17,24 @@ import static org.junit.Assert.assertTrue;
 
 public class AsyncPregenMethodConcurrencyCapTest {
     @Test
+    public void pregenWorkerTargetExpandsOnlyOptedInHighHeapJobs() {
+        assertEquals(16, AsyncPregenMethod.pregenWorkerThreadTarget(16, (16L << 30) - 1L, true));
+        assertEquals(32, AsyncPregenMethod.pregenWorkerThreadTarget(16, 16L << 30, true));
+        assertEquals(32, AsyncPregenMethod.pregenWorkerThreadTarget(24, 16L << 30, true));
+        assertEquals(64, AsyncPregenMethod.pregenWorkerThreadTarget(64, 16L << 30, true));
+        assertEquals(16, AsyncPregenMethod.pregenWorkerThreadTarget(16, 32L << 30, false));
+        assertEquals(2, AsyncPregenMethod.pregenWorkerThreadTarget(1, 8L << 30, true));
+        assertEquals(Integer.MAX_VALUE, AsyncPregenMethod.pregenWorkerThreadTarget(Integer.MAX_VALUE, Long.MAX_VALUE, true));
+        int target = AsyncPregenMethod.pregenWorkerThreadTarget(16, 16L << 30, true);
+        int workers = AsyncPregenMethod.resolvePaperLikeConcurrencyWorkerThreads(4, 16, target);
+        assertEquals(32, workers);
+        assertEquals(256, AsyncPregenMethod.computePaperLikeRecommendedCap(workers));
+        assertEquals(256, AsyncPregenMethod.computeInitialInFlightLimit(256, workers));
+        assertEquals(48, AsyncPregenMethod.resolvePaperLikeConcurrencyWorkerThreads(48, 16, target));
+        assertEquals(1, AsyncPregenMethod.selectConcurrencyCap(256, true));
+    }
+
+    @Test
     public void paperLikeRecommendedCapTracksWorkerThreads() {
         assertEquals(16, AsyncPregenMethod.computePaperLikeRecommendedCap(1));
         assertEquals(32, AsyncPregenMethod.computePaperLikeRecommendedCap(4));
@@ -57,11 +75,16 @@ public class AsyncPregenMethodConcurrencyCapTest {
     }
 
     @Test
-    public void coldStartMatchesAvailableWorkersBeforeAdaptiveGrowth() {
+    public void coldStartFillsChunkStatusPipelineWithinHardCap() {
         assertEquals(1, AsyncPregenMethod.computeInitialInFlightLimit(1, 16));
-        assertEquals(4, AsyncPregenMethod.computeInitialInFlightLimit(128, 1));
-        assertEquals(16, AsyncPregenMethod.computeInitialInFlightLimit(128, 16));
+        assertEquals(8, AsyncPregenMethod.computeInitialInFlightLimit(128, 1));
+        assertEquals(128, AsyncPregenMethod.computeInitialInFlightLimit(128, 16));
         assertEquals(6, AsyncPregenMethod.computeInitialInFlightLimit(6, 16));
+        assertEquals(64, AsyncPregenMethod.computeInitialInFlightLimit(64, 8));
+        assertEquals(192, AsyncPregenMethod.computeInitialInFlightLimit(192, 64));
+        assertEquals(256, AsyncPregenMethod.computeInitialInFlightLimit(256, Integer.MAX_VALUE));
+        assertEquals(8, AsyncPregenMethod.computeInitialInFlightLimit(128, Integer.MIN_VALUE));
+        assertEquals(1, AsyncPregenMethod.computeInitialInFlightLimit(0, 16));
     }
 
     @Test

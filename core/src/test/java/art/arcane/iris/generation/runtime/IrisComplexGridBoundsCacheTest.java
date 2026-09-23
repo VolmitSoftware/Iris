@@ -84,6 +84,72 @@ public class IrisComplexGridBoundsCacheTest {
         }
     }
 
+    public static class CoarseBounds {
+        @Test
+        public void coarseBoundsUseGlobalCornersAcrossNegativeChunkSeams() throws Exception {
+            for (int step : new int[]{8, 16, 32}) {
+                IrisComplex complex = createComplex();
+                setStep(complex, step);
+                CoordinateInterpolator interpolator = new CoordinateInterpolator();
+                for (double x : new double[]{-33D, -32D, -17D, -16D, -1D, 0D, 15D, 16D, 31D, 32D}) {
+                    for (double z : new double[]{-17D, -0.25D, 0D, 15.5D, 16D}) {
+                        NoiseBounds actual = invokeGridSampleBounds(complex, gridSampleBoundsMethod(), interpolator, x, z);
+                        assertBoundsBitsEqual(expectedGridSampleBounds(x, z, step), actual);
+                    }
+                }
+            }
+        }
+
+        @Test
+        public void coarseGridReducesDistinctEnvelopeEvaluationsForDenseTerrainNodes() throws Exception {
+            for (int step : new int[]{4, 8, 16, 32}) {
+                IrisComplex complex = createComplex();
+                setStep(complex, step);
+                CountingInterpolator interpolator = new CountingInterpolator(1D, 9D);
+                for (int x = 0; x < 32; x += 4) {
+                    for (int z = 0; z < 32; z += 4) {
+                        NoiseBounds actual = invokeGridSampleBounds(complex, gridSampleBoundsMethod(), interpolator, x, z);
+                        assertEquals(1D, actual.min(), 0D);
+                        assertEquals(9D, actual.max(), 0D);
+                    }
+                }
+                int side = step == 4 ? 8 : 32 / step + 1;
+                assertEquals(side * side, interpolator.getInvocations());
+            }
+        }
+
+        @Test
+        public void everyInterpolatorGroupKeepsItsOwnEnvelopeAndGenerators() throws Exception {
+            IrisComplex complex = createComplex();
+            setStep(complex, 16);
+            CountingInterpolator first = new CountingInterpolator(1D, 2D);
+            CountingInterpolator second = new CountingInterpolator(10D, 20D);
+            SampleGenerator firstGenerator = new SampleGenerator(0.25D);
+            SampleGenerator secondGenerator = new SampleGenerator(0.75D);
+            setField(complex, "frozenInterpolators", new IrisInterpolator[]{first, second});
+            setField(complex, "frozenGenerators", new IrisGenerator[][]{{firstGenerator}, {secondGenerator}});
+            setField(complex, "biomeBuffetGenerators", new HashMap<>());
+            Method method = IrisComplex.class.getDeclaredMethod("getInterpolatedHeight", Engine.class,
+                    double.class, double.class, long.class);
+            method.setAccessible(true);
+            assertEquals(18.75D, (double) method.invoke(complex, null, -1D, 17D, 31L), 0D);
+            assertEquals(4, first.getInvocations());
+            assertEquals(4, second.getInvocations());
+            assertEquals(1, firstGenerator.invocations);
+            assertEquals(1, secondGenerator.invocations);
+        }
+
+        private static void setStep(IrisComplex complex, int step) throws Exception {
+            setField(complex, "biomeBoundsSamplingStep", step);
+        }
+
+        private static void setField(IrisComplex complex, String name, Object value) throws Exception {
+            Field field = IrisComplex.class.getDeclaredField(name);
+            field.setAccessible(true);
+            field.set(complex, value);
+        }
+    }
+
     @RunWith(Parameterized.class)
     public static class LegacyBilerpParity {
         @Parameters(name = "x={0} z={1}")
@@ -121,6 +187,9 @@ public class IrisComplexGridBoundsCacheTest {
 
     private static IrisComplex createComplex() throws Exception {
         IrisComplex complex = mock(IrisComplex.class, CALLS_REAL_METHODS);
+        Field biomeBoundsSamplingStep = IrisComplex.class.getDeclaredField("biomeBoundsSamplingStep");
+        biomeBoundsSamplingStep.setAccessible(true);
+        biomeBoundsSamplingStep.setInt(complex, 4);
 
         Field generatorBounds = IrisComplex.class.getDeclaredField("generatorBounds");
         generatorBounds.setAccessible(true);
@@ -192,7 +261,10 @@ public class IrisComplexGridBoundsCacheTest {
     }
 
     private static NoiseBounds legacyGridSampleBounds(double x, double z) {
-        int grid = 4;
+        return expectedGridSampleBounds(x, z, 4);
+    }
+
+    private static NoiseBounds expectedGridSampleBounds(double x, double z, int grid) {
         int xi = (int) Math.floor(x);
         int zi = (int) Math.floor(z);
         int mask = grid - 1;
@@ -262,6 +334,21 @@ public class IrisComplexGridBoundsCacheTest {
         }
     }
 
+    private static final class SampleGenerator extends IrisGenerator {
+        private final double value;
+        private int invocations;
+
+        private SampleGenerator(double value) {
+            this.value = value;
+        }
+
+        @Override
+        public double getHeight(double x, double z, long seed) {
+            invocations++;
+            return value;
+        }
+    }
+
     private static final class CoordinateInterpolator extends IrisInterpolator {
         private final AtomicInteger invocations = new AtomicInteger();
 
@@ -272,11 +359,11 @@ public class IrisComplexGridBoundsCacheTest {
         }
 
         private static double low(double x, double z) {
-            return x * 0.125D - z * 0.0625D - 7.75D;
+            return x * 0.125D - z * 0.0625D - 7.75D + x * x * 0.000125D;
         }
 
         private static double high(double x, double z) {
-            return x * -0.03125D + z * 0.1875D + 12.5D;
+            return x * -0.03125D + z * 0.1875D + 12.5D + z * z * 0.00015625D;
         }
 
         private int getInvocations() {

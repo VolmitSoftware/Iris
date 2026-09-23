@@ -63,6 +63,7 @@ import art.arcane.iris.generation.hydrology.IrisRiverProfile;
 import art.arcane.iris.generation.noise.IrisShapedGeneratorStyle;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.generation.terrain.Terrain3DRuntime;
+import art.arcane.iris.generation.terrain.ProceduralTerrainHeightSampler;
 import art.arcane.iris.generation.terrain.HydrologyBankTerrainRuntime;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisLogging;
@@ -113,9 +114,9 @@ public class IrisComplex implements DataProvider {
     private static final AtomicLong lastBoundsFailureLog = new AtomicLong(0L);
     private static final int GRID_BOUNDS_CACHE_SIZE = 8192;
     private static final int STUDIO_NOISE_CACHE_SIZE = 32_768;
+    private static final int TERRAIN_COLUMN_CACHE_SIZE = 65_536;
     /** One million corners: about 16 MB, roughly a 4000 by 4000 block area at the 4-block grid. */
     private static final int SHARED_CORNER_BOUNDS_CAPACITY = 1 << 20;
-    private static final int HEIGHT_BOUNDS_GRID = 4;
     /** The slope streams measure the rise across a run of this many blocks, so gradient is slope over run. */
     private static final double SLOPE_RUN = 3D;
     /** A sheer coast would let shoreMinimumWidth buy unbounded height, so the shore band stops climbing here. */
@@ -135,6 +136,8 @@ public class IrisComplex implements DataProvider {
     };
     @Getter(AccessLevel.NONE)
     private final transient ThreadLocal<GridBoundsCache> gridBoundsCache = ThreadLocal.withInitial(GridBoundsCache::new);
+    @Getter(AccessLevel.NONE)
+    private final int biomeBoundsSamplingStep;
     private transient volatile SharedCornerBounds sharedCornerBounds = new SharedCornerBounds(SHARED_CORNER_BOUNDS_CAPACITY);
     @Getter(AccessLevel.NONE)
     private final transient IrisInterpolator[] frozenInterpolators;
@@ -177,6 +180,8 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<NativeBiome> trueBiomeDerivativeStream;
     private ProceduralStream<Double> naturalHeightStream;
     private ProceduralStream<Double> baseTerrainHeightStream;
+    @Getter(AccessLevel.NONE)
+    private final ProceduralTerrainHeightSampler proceduralTerrainHeight;
     @Getter(AccessLevel.NONE)
     private final transient Engine terrainEngine;
     @Getter(AccessLevel.NONE)
@@ -240,6 +245,7 @@ public class IrisComplex implements DataProvider {
 
     IrisComplex(Engine engine, boolean simple, TransitionGenerationPlan transitionGenerationPlan, boolean detached) {
         terrainEngine = engine;
+        biomeBoundsSamplingStep = engine.getDimension().getBiomeBoundsSamplingStep();
         this.detached = detached;
         this.transitionGenerationPlan = transitionGenerationPlan;
         this.resolvedTerrain = new ResolvedTerrainProvider(engine);
@@ -379,8 +385,11 @@ public class IrisComplex implements DataProvider {
                     IrisBiome mapped = imageMapRuntime.sampleBiome(x, z);
                     return mapped == null ? biome : mapped;
                 }), "imageMappedBaseBiomeStream", engine, cacheSize);
+        proceduralTerrainHeight = new ProceduralTerrainHeightSampler(
+                (x, z) -> getHeight(engine, x, z, engine.getSeedManager().getHeight()),
+                engine.getDimension().getTerrainSamplingStep());
         baseTerrainHeightStream = GenerationStreams.cache2DDouble(ProceduralStream.of(
-                (x, z) -> sampleUnblendedNaturalTerrainHeight(engine, x, z),
+                this::sampleUnblendedNaturalTerrainHeight,
                 Interpolated.DOUBLE
         ), "baseTerrainHeightStream", engine, cacheSize);
         boolean terrain3DEnabled = false;
@@ -395,7 +404,7 @@ public class IrisComplex implements DataProvider {
                         (x, z) -> baseTerrainHeightStream.getDouble(x, z),
                         this::sampleTerrain3DBiome),
                 new Terrain3DRuntime.Options(engine.getSeedManager().getTerrain(), engine.getHeight(),
-                        fluidHeight, data, terrain3DEnabled, Math.max(4_096, cacheSize)));
+                        fluidHeight, data, terrain3DEnabled, TERRAIN_COLUMN_CACHE_SIZE));
         unblendedNaturalHeightStream = terrain3DEnabled
                 ? GenerationStreams.cache2DDouble(ProceduralStream.ofDouble(this::sampleTerrain3DHeight), "unblendedNaturalHeightStream", engine, cacheSize)
                 : baseTerrainHeightStream;
@@ -634,12 +643,11 @@ public class IrisComplex implements DataProvider {
     private double sampleNaturalTerrainHeight(Engine engine, double x, double z) {
         return terrain3D != null && terrain3D.active()
                 ? sampleTerrain3DHeight(x, z)
-                : sampleUnblendedNaturalTerrainHeight(engine, x, z);
+                : sampleUnblendedNaturalTerrainHeight(x, z);
     }
 
     private double sampleTerrain3DHeight(double x, double z) {
-        Terrain3DColumn column = terrain3D.column(blockCoordinate(x), blockCoordinate(z));
-        return column.shaped() ? column.topY() : column.baseHeight();
+        return terrain3D.height(blockCoordinate(x), blockCoordinate(z));
     }
 
     private IrisBiome focusedBiomeAt(double x, double z) {
@@ -735,8 +743,8 @@ public class IrisComplex implements DataProvider {
         return column == null ? getPlacementHeightStream().getDouble(x, z) : column.nearestSurfaceY(surfaceY);
     }
 
-    private double sampleUnblendedNaturalTerrainHeight(Engine engine, double x, double z) {
-        double proceduralHeight = getHeight(engine, x, z, engine.getSeedManager().getHeight());
+    private double sampleUnblendedNaturalTerrainHeight(double x, double z) {
+        double proceduralHeight = proceduralTerrainHeight.sample(x, z);
         return imageMapRuntime.sampleTerrainHeight(x, z, proceduralHeight);
     }
 
@@ -1279,11 +1287,8 @@ public class IrisComplex implements DataProvider {
         return null;
     }
 
-    public double sampleProceduralTerrainHeight(Engine engine, double worldX, double worldZ) {
-        if (engine == null) {
-            throw new IllegalArgumentException("Engine is required to sample procedural terrain height");
-        }
-        return getHeight(engine, worldX, worldZ, engine.getSeedManager().getHeight());
+    public double sampleProceduralTerrainHeight(double worldX, double worldZ) {
+        return proceduralTerrainHeight.sample(worldX, worldZ);
     }
 
     private IrisDecorator decorateFor(IrisBiome b, double x, double z, IrisDecorationPart part) {
@@ -1439,7 +1444,7 @@ public class IrisComplex implements DataProvider {
         if (biomeBuffet != null && !biomeBuffet.cells().isEmpty()) {
             return generatorBounds.get(interpolator).get(focusedBiomeAt(x, z)).noiseBounds;
         }
-        int grid = HEIGHT_BOUNDS_GRID;
+        int grid = biomeBoundsSamplingStep;
         GridBoundsCache cache = gridBoundsCache.get();
         if (grid <= 1) {
             return sampleBoundsRaw(cache, engine, interpolator, generators, x, z);

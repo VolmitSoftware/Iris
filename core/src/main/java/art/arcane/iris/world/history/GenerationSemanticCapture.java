@@ -3,6 +3,10 @@ package art.arcane.iris.world.history;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockPositionPredicate;
 
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.generation.runtime.DimensionStackContext;
+import art.arcane.iris.generation.runtime.DimensionStackLayout;
+import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.structure.placement.StructurePlacementMarker;
@@ -12,6 +16,7 @@ import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -26,6 +31,14 @@ public final class GenerationSemanticCapture {
     private static final int CHUNK_SIZE = 16;
 
     private GenerationSemanticCapture() {
+    }
+
+    static ChunkGenerationSemantics captureScoped(
+            Engine engine,
+            GenerationHistory.GenerationStage stage,
+            NativeBlockPositionPredicate caveSpace
+    ) {
+        return capture(engine, stage.chunkX(), stage.chunkZ(), stage.activation().activationId(), caveSpace, true);
     }
 
     public static ChunkGenerationSemantics capture(
@@ -47,7 +60,8 @@ public final class GenerationSemanticCapture {
                 requiredStage.chunkX(),
                 requiredStage.chunkZ(),
                 requiredStage.activation().activationId(),
-                caveSpace
+                caveSpace,
+                false
         );
     }
 
@@ -57,7 +71,7 @@ public final class GenerationSemanticCapture {
             int chunkZ,
             long activationId
     ) {
-        return capture(engine, chunkX, chunkZ, activationId, (x, y, z) -> true);
+        return capture(engine, chunkX, chunkZ, activationId, (x, y, z) -> true, false);
     }
 
     private static ChunkGenerationSemantics capture(
@@ -65,7 +79,8 @@ public final class GenerationSemanticCapture {
             int chunkX,
             int chunkZ,
             long activationId,
-            NativeBlockPositionPredicate caveSpace
+            NativeBlockPositionPredicate caveSpace,
+            boolean scoped
     ) {
         Objects.requireNonNull(caveSpace, "cave space");
         Engine requiredEngine = Objects.requireNonNull(engine, "engine");
@@ -75,7 +90,7 @@ public final class GenerationSemanticCapture {
                 activationId
         );
         captureColumns(requiredEngine, chunkX, chunkZ, semantics);
-        captureMantleFacts(requiredEngine, chunkX, chunkZ, semantics, caveSpace);
+        captureMantleFacts(requiredEngine, chunkX, chunkZ, semantics, caveSpace, scoped);
         captureStructures(requiredEngine, chunkX, chunkZ, semantics);
         return semantics.seal().build();
     }
@@ -133,18 +148,20 @@ public final class GenerationSemanticCapture {
             int chunkX,
             int chunkZ,
             ChunkGenerationSemantics.Builder semantics,
-            NativeBlockPositionPredicate caveSpace
+            NativeBlockPositionPredicate caveSpace,
+            boolean scoped
     ) {
         Mantle<Matter> mantle = engine.getMantle().getMantle();
         int minimumX = Math.multiplyExact(chunkX, CHUNK_SIZE);
         int minimumZ = Math.multiplyExact(chunkZ, CHUNK_SIZE);
         BitSet resolvedCaves = new BitSet();
+        CaveBiomes caveBiomes = new CaveBiomes(engine, scoped);
         mantle.iterateChunk(chunkX, chunkZ, MatterCavern.class, (localX, y, localZ, cavern) -> {
             if (!caveSpace.test(localX, y, localZ)) {
                 return;
             }
             captureCave(
-                    engine,
+                    caveBiomes,
                     semantics,
                     resolvedCaves,
                     minimumX + localX,
@@ -163,7 +180,7 @@ public final class GenerationSemanticCapture {
                 return;
             }
             captureCave(
-                    engine,
+                    caveBiomes,
                     semantics,
                     resolvedCaves,
                     blockX,
@@ -196,7 +213,7 @@ public final class GenerationSemanticCapture {
     }
 
     private static void captureCave(
-            Engine engine,
+            CaveBiomes caveBiomes,
             ChunkGenerationSemantics.Builder semantics,
             BitSet resolvedCaves,
             int blockX,
@@ -213,7 +230,7 @@ public final class GenerationSemanticCapture {
             semantics.addCaveBiome(explicitBiomeKey);
             return;
         }
-        IrisBiome caveBiome = engine.getCaveBiome(blockX, y, blockZ);
+        IrisBiome caveBiome = caveBiomes.resolve(blockX, y, blockZ);
         if (caveBiome != null && caveBiome.getLoadKey() != null) {
             semantics.addCaveBiome(caveBiome.getLoadKey());
         }
@@ -254,6 +271,82 @@ public final class GenerationSemanticCapture {
                     resolved.originZ()
             );
         }
+    }
+
+    private static final class CaveBiomes {
+        private final Engine engine;
+        private final boolean scoped;
+        private final CaveFallback fallback;
+        private final IrisDimensionCarvingResolver.State fallbackState = new IrisDimensionCarvingResolver.State();
+        private IrisDimensionCarvingResolver.Snapshot snapshot;
+        private int minimumY;
+
+        private CaveBiomes(Engine engine, boolean scoped) {
+            this.engine = engine;
+            this.scoped = scoped;
+            this.fallback = scoped && engine instanceof IrisEngine irisEngine
+                    && irisEngine.hasGenerationRuntimeScope() && !engine.getPlatformHooks().isMainThread()
+                    ? new CaveFallback(engine.getComplex(), engine.getDimensionStackContext())
+                    : null;
+        }
+
+        private IrisBiome resolve(int x, int y, int z) {
+            if (!scoped) {
+                return engine.getCaveBiome(x, y, z);
+            }
+            if (snapshot == null) {
+                snapshot = IrisDimensionCarvingResolver.snapshot(engine);
+                minimumY = engine.getWorld().minHeight();
+            }
+            IrisBiome configured = snapshot.resolveBiome(x, y + minimumY, z);
+            if (configured != null) {
+                return configured;
+            }
+            return fallback == null ? engine.getCaveBiome(x, y, z, fallbackState) : fallback.resolve(x, y, z);
+        }
+    }
+
+    private static final class CaveFallback {
+        private final ProceduralStream<IrisBiome> surfaceBiomes;
+        private final ProceduralStream<IrisBiome> caveBiomes;
+        private final ProceduralStream<Double> heights;
+        private final DimensionStackContext stack;
+        private final CaveColumn[] columns = new CaveColumn[CHUNK_SIZE * CHUNK_SIZE];
+
+        private CaveFallback(IrisComplex complex, DimensionStackContext stack) {
+            this.surfaceBiomes = complex.getTrueBiomeStream();
+            this.caveBiomes = complex.getCaveBiomeStream();
+            this.heights = complex.getHeightStream();
+            this.stack = stack;
+        }
+
+        private IrisBiome resolve(int x, int y, int z) {
+            int index = ((x & 15) << 4) | (z & 15);
+            CaveColumn column = columns[index];
+            if (column == null) {
+                IrisBiome surfaceBiome = surfaceBiomes.get(x, z);
+                int surfaceY = heights.get(x, z).intValue();
+                IrisBiome caveBiome = caveBiomes.get(x, z);
+                if (caveBiome == null || caveBiome.getLoadKey() == null) {
+                    caveBiome = surfaceBiome;
+                    if (stack != null) {
+                        DimensionStackLayout.Layer layer = stack.getLayout(x, z).surfaceLayer();
+                        if (layer != null && layer.biome() != null) {
+                            caveBiome = layer.biome();
+                        }
+                    }
+                }
+                column = new CaveColumn(surfaceBiome, caveBiome, surfaceY,
+                        caveBiome == null ? 0 : Math.max(0, caveBiome.getCaveMinDepthBelowSurface()));
+                columns[index] = column;
+            }
+            int depth = column.surfaceY() - y;
+            return column.caveBiome() == null || depth <= 0 || depth < column.minimumDepth()
+                    ? column.surfaceBiome() : column.caveBiome();
+        }
+    }
+
+    private record CaveColumn(IrisBiome surfaceBiome, IrisBiome caveBiome, int surfaceY, int minimumDepth) {
     }
 
 }

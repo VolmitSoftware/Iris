@@ -38,6 +38,8 @@ import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
+import net.minecraft.core.HolderLookup;
+
 import java.io.File;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,11 +63,23 @@ public final class ModdedPlatform implements IrisPlatform {
     public ModdedPlatform(NativeModdedLoader loader) {
         this.loader = loader;
         this.registries = new ModdedRegistries(
-                new NativeRegistryAccess(ModdedEngineBootstrap::currentServer, ModdedRegistries::warnNotReady),
+                new NativeRegistryAccess(new NativeRegistryAccess.Configuration(
+                        ModdedPlatform::nativeRegistries, ModdedPlatform::reloadableRegistries,
+                        ModdedRegistries::warnNotReady)),
                 ModdedPlatform::generationRegistry);
         this.scheduler = new ModdedScheduler();
         this.structureHooks = new ModdedStructureHooks(ModdedEngineBootstrap::currentServer);
         this.biomeWriter = new ModdedBiomeWriter(new NativeBiomeRegistry(ModdedEngineBootstrap::currentServer, "minecraft:plains"));
+    }
+
+    private static HolderLookup.Provider nativeRegistries() {
+        NativeModdedServer server = ModdedEngineBootstrap.currentServer();
+        return server == null ? null : server.registryAccess();
+    }
+
+    private static HolderLookup.Provider reloadableRegistries() {
+        NativeModdedServer server = ModdedEngineBootstrap.currentServer();
+        return server == null ? null : server.reloadableRegistries();
     }
 
     public static void errorSink(Consumer<Throwable> sink) {

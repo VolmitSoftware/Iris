@@ -2,6 +2,12 @@ package art.arcane.iris.generation.hydrology.surface;
 
 import art.arcane.iris.generation.hydrology.policy.SurfaceRiverPolicy;
 
+import art.arcane.iris.generation.hydrology.HydraulicChannelProfile;
+import art.arcane.iris.generation.hydrology.HydraulicSegment;
+import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.HydrologySurfaceDropRaster;
+import art.arcane.iris.generation.hydrology.RiverCourse;
+import art.arcane.iris.generation.hydrology.RiverCourseType;
 import art.arcane.iris.generation.hydrology.HydrologyGeometrySampler;
 import art.arcane.iris.generation.hydrology.HydrologyCandidateRejection;
 import art.arcane.iris.generation.hydrology.HydrologyPlannerSettings;
@@ -13,10 +19,18 @@ import art.arcane.iris.generation.hydrology.IrisRiverBedProfile;
 import art.arcane.iris.generation.hydrology.IrisRiverBlendStyle;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.HashSet;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntBinaryOperator;
 
@@ -32,6 +46,223 @@ public class ErosionFieldCompilerTest {
         case SURFACE_DEPTH -> 3;
         default -> request.minimum();
     };
+
+    @Test
+    public void wetIncisionPreflightMatchesFullVerdictsAcrossPondsCrossingsStepsAndPolicies() {
+        int accepted = 0;
+        int unsupported = 0;
+        for (int scenario = 0; scenario < 24; scenario++) {
+            int fixture = scenario;
+            boolean crossing = scenario % 3 == 1;
+            boolean coastal = scenario % 6 == 5;
+            HydrologyPlannerSettings.Ponds ponds = scenario % 4 == 0 ? noPonds()
+                    : new HydrologyPlannerSettings.Ponds(new HydrologyPlannerSettings.Pond(true, 3, 8, 3),
+                    new HydrologyPlannerSettings.Pond(true, 3, 7, 2));
+            HydrologyPlannerSettings.Erosion erosion = shapedErosion(
+                    IrisRiverBlendStyle.values()[scenario % IrisRiverBlendStyle.values().length], 4, 0.5D,
+                    IrisRiverBedProfile.values()[scenario % IrisRiverBedProfile.values().length], 1D, 2D);
+            HydrologyPlannerSettings.Surface surface = surfaceWith(scenario % 2 == 0 ? 0D : 0.6D,
+                    0, 1.5D, erosion, ponds, HydrologyPlannerSettings.Channel.defaults(),
+                    HydrologyPlannerSettings.Flow.defaults());
+            HydrologyTerrainSampler terrain = (x, z) -> {
+                if (coastal && x > 12) {
+                    return HydrologyTerrainSample.ocean(50, "ocean");
+                }
+                int natural = coastal ? SEA_LEVEL : 90;
+                if (fixture >= 12 && x >= -2 && x <= 2) {
+                    natural += 30;
+                }
+                if (fixture % 4 == 2 && z > 4) {
+                    natural += 12;
+                }
+                HydrologyTerrainSample sample = HydrologyTerrainSample.openLand(natural, 0D, "land")
+                        .withErosion(fixture % 7 != 0).withShoreWidth(z < 0 ? 0.5D : 3D);
+                return fixture % 3 == 2 ? sample.withSurfacePolicy(new SurfaceRiverPolicy(
+                        "local", null, null, null, null, null, null, x < 0 ? 3 : 16)) : sample;
+            };
+            List<HydrologyPoint> path = crossing
+                    ? List.of(new HydrologyPoint(-18, 90, -8), new HydrologyPoint(18, 90, 8),
+                    new HydrologyPoint(-18, 90, 8), new HydrologyPoint(18, 90, -8))
+                    : List.of(new HydrologyPoint(-18, 90, 0), new HydrologyPoint(18, 90, 0));
+            SurfaceCenterline centerline = SurfaceCenterline.densify(path);
+            double[] widths = new double[centerline.size()];
+            double[] depths = new double[centerline.size()];
+            double[] multipliers = new double[centerline.size()];
+            int[] heads = new int[centerline.size()];
+            Arrays.fill(widths, 3D);
+            Arrays.fill(depths, 3D);
+            Arrays.fill(multipliers, 1D);
+            for (int station = 0; station < heads.length; station++) {
+                heads[station] = coastal ? SEA_LEVEL : 89 - (scenario % 4 == 3 ? station / 8 : 0);
+            }
+            ChannelProfile channel = new ChannelProfile(widths, depths, multipliers);
+            ValleyProfile valley = ValleyProfile.fromHeads(heads, heads.length);
+            SurfaceTerminal terminal = coastal ? SurfaceTerminal.OCEAN_MOUTH : SurfaceTerminal.SINKHOLE;
+            HydrologyPlannerSettings settings = rasterSettings(surface);
+            HydrologySurfaceDropRaster drops = HydrologySurfaceDropRaster.empty();
+            if (scenario % 4 == 3 && !coastal) {
+                HydraulicSegment fall = new HydraulicSegment(2L, 1L, HydrologyFeatureType.WATERFALL,
+                        89, 81, 6, 3, true, true,
+                        List.of(new HydrologyPoint(-5, 89, 0), new HydrologyPoint(-4, 81, 0)),
+                        HydraulicChannelProfile.uniform(6, 3));
+                RiverCourse course = new RiverCourse(1L, RiverCourseType.SURFACE, OptionalLong.of(9L),
+                        OptionalLong.of(8L), "water", 1, List.of(), List.of(fall));
+                drops = HydrologySurfaceDropRaster.compile(settings, terrain, CONSTANT_GEOMETRY, course);
+                assertTrue("Drop raster scenario " + scenario, !drops.columns().isEmpty());
+            }
+            SurfaceRasterContext context = new SurfaceRasterContext(null, drops,
+                    scenario % 4 == 1 ? new SurfaceRunBoundary(
+                            new SurfaceRunBoundary.Plane(-18, 0, 1, 0, 10D),
+                            new SurfaceRunBoundary.Plane(18, 0, 1, 0, 10D)) : SurfaceRunBoundary.unbounded());
+            ErosionFieldCompiler compiler = new ErosionFieldCompiler(settings, terrain);
+            ErosionFieldCompiler.PreparedField prepared = compiler.prepare(centerline, channel, valley,
+                    terminal, coastal ? Math.max(0, centerline.size() - 12) : centerline.size());
+            for (long seed = 0; seed < 4; seed++) {
+                ErosionField full = compiler.compile(seed, centerline, channel, valley, terminal, 8,
+                        ponds, context, prepared);
+                ErosionField publication = compiler.compileForPublication(seed, centerline, channel, valley,
+                        terminal, 8, ponds, context, prepared);
+                assertEquals("scenario=" + scenario + " seed=" + seed, full.rejection(), publication.rejection());
+                if (full.rejection() == HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED) {
+                    unsupported++;
+                    for (SurfaceColumn wet : publication.columns().values()) {
+                        if (wet.role() == SurfaceRole.CHANNEL) {
+                            assertEquals(full.column(wet.x(), wet.z()), wet);
+                        }
+                    }
+                } else {
+                    assertEqualFields(full, publication);
+                    if (full.rejection() == null) {
+                        accepted++;
+                    }
+                }
+            }
+        }
+        assertTrue("Accepted oracle cases: " + accepted, accepted >= 8);
+        assertTrue("Unsupported oracle cases: " + unsupported, unsupported >= 8);
+    }
+
+    @Test
+    public void rasterBatchesPreserveExactDemandAndColumnOrder() {
+        Map<Long, Integer> serialCalls = new HashMap<>();
+        Map<Long, Integer> batchCalls = new HashMap<>();
+        AtomicInteger batches = new AtomicInteger();
+        HydrologyTerrainSampler serial = (x, z) -> {
+            serialCalls.merge(RiverFootprint.pack(x, z), 1, Integer::sum);
+            return HydrologyTerrainSample.openLand(80 + Math.floorMod(z, 7), 0D, "land");
+        };
+        HydrologyTerrainSampler batched = new HydrologyTerrainSampler() {
+            @Override
+            public HydrologyTerrainSample sample(int x, int z) {
+                batchCalls.merge(RiverFootprint.pack(x, z), 1, Integer::sum);
+                return HydrologyTerrainSample.openLand(80 + Math.floorMod(z, 7), 0D, "land");
+            }
+
+            public HydrologyTerrainSample[] sampleBatch(long[] coordinates, int count) {
+                assertTrue(count > 0 && count <= 4096);
+                batches.incrementAndGet();
+                HydrologyTerrainSample[] samples = new HydrologyTerrainSample[count];
+                for (int index = 0; index < count; index++) {
+                    samples[index] = sample(RiverFootprint.unpackX(coordinates[index]), RiverFootprint.unpackZ(coordinates[index]));
+                }
+                return samples;
+            }
+        };
+        ErosionField expected = compile(serial, 300, SurfaceTerminal.SINKHOLE, 40).field();
+        ErosionField actual = compile(batched, 300, SurfaceTerminal.SINKHOLE, 40).field();
+        assertEquals(new ArrayList<>(expected.columns().values()), new ArrayList<>(actual.columns().values()));
+        assertEquals(expected.rejection(), actual.rejection());
+        assertEquals(expected.rejectionDetail(), actual.rejectionDetail());
+        assertEquals(expected.uncontainedWetCells(), actual.uncontainedWetCells());
+        assertEquals(expected.bankExcavation(), actual.bankExcavation());
+        assertEquals(serialCalls, batchCalls);
+        assertTrue(batches.get() > 1);
+    }
+
+    @Test
+    public void pondExclusionsPreserveCompleteAndClippedFieldsWithFewerTerrainSamples() throws Exception {
+        List<String> fingerprints = new ArrayList<>();
+        List<Integer> sampleCounts = new ArrayList<>();
+        for (int scenario = 0; scenario < 8; scenario++) {
+            double shore = switch (scenario) {
+                case 0 -> Math.nextDown(1.75D);
+                case 1 -> 1.75D;
+                case 2 -> Math.nextUp(1.75D);
+                default -> 1.5D;
+            };
+            boolean enabled = scenario != 4;
+            boolean erode = scenario != 5;
+            boolean coastal = scenario == 7;
+            HydrologyPlannerSettings.Erosion defaults = HydrologyPlannerSettings.Erosion.defaults();
+            HydrologyPlannerSettings.Erosion erosion = new HydrologyPlannerSettings.Erosion(enabled,
+                    defaults.smoothingRadius(), defaults.thalwegFraction(), defaults.blendCurve(), defaults.bedNoise(),
+                    defaults.style(), defaults.terraceSteps(), defaults.cliffFraction(), defaults.bedProfile(),
+                    defaults.shoreRise(), defaults.blendBaseWidth(),
+                    new HydrologyPlannerSettings.Excavation(16, scenario == 6 ? 5 : 48, 256));
+            HydrologyPlannerSettings.Ponds ponds = new HydrologyPlannerSettings.Ponds(
+                    new HydrologyPlannerSettings.Pond(true, 6, 6, 3),
+                    new HydrologyPlannerSettings.Pond(true, 5, 5, 2));
+            HydrologyPlannerSettings.Surface surface = surfaceWith(scenario == 3 ? 0.65D : 0D, 0, shore,
+                    erosion, ponds, HydrologyPlannerSettings.Channel.defaults(), HydrologyPlannerSettings.Flow.defaults());
+            HydrologyTerrainSampler terrain = (x, z) -> coastal && x >= 4
+                    ? HydrologyTerrainSample.ocean(50, "ocean")
+                    : HydrologyTerrainSample.openLand(coastal ? SEA_LEVEL : 80 + Math.max(0, z) / 3, 0D, "land")
+                    .withErosion(erode);
+            SurfaceCenterline centerline = SurfaceCenterline.densify(List.of(
+                    new HydrologyPoint(-12, 80, 0), new HydrologyPoint(12, 80, 0)));
+            double[] widths = new double[centerline.size()];
+            double[] depths = new double[centerline.size()];
+            double[] multipliers = new double[centerline.size()];
+            int[] heads = new int[centerline.size()];
+            Arrays.fill(widths, 3D);
+            Arrays.fill(depths, 2D);
+            Arrays.fill(multipliers, 1D);
+            Arrays.fill(heads, coastal ? SEA_LEVEL : 80);
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            AtomicInteger samples = new AtomicInteger();
+            ErosionField complete = null;
+            for (SurfaceBounds bounds : new SurfaceBounds[]{null, new SurfaceBounds(-20, -12, -1, 12),
+                    new SurfaceBounds(0, -12, 20, 12)}) {
+                ErosionField field = new ErosionFieldCompiler(rasterSettings(surface), (x, z) -> {
+                    samples.incrementAndGet();
+                    return terrain.sample(x, z);
+                }).compile(1234L, centerline, new ChannelProfile(widths, depths, multipliers),
+                        ValleyProfile.fromHeads(heads, coastal ? 17 : heads.length),
+                        coastal ? SurfaceTerminal.OCEAN_MOUTH : SurfaceTerminal.SINKHOLE, 8, ponds,
+                        SurfaceRasterContext.bounded(bounds));
+                List<SurfaceColumn> ordered = new ArrayList<>(field.columns().values());
+                ordered.sort(Comparator.comparingLong(column -> RiverFootprint.pack(column.x(), column.z())));
+                for (SurfaceColumn column : ordered) {
+                    digest.update(column.toString().getBytes(StandardCharsets.UTF_8));
+                    if (bounds != null && bounds.contains(column.x(), column.z())) {
+                        assertEquals(complete.column(column.x(), column.z()), column);
+                    }
+                }
+                digest.update((field.rejection() + ":" + field.rejectionDetail() + ":"
+                        + field.uncontainedWetCells() + ":" + field.bankExcavation()).getBytes(StandardCharsets.UTF_8));
+                if (bounds == null) {
+                    complete = field;
+                }
+            }
+            fingerprints.add(HexFormat.of().formatHex(digest.digest()));
+            sampleCounts.add(samples.get());
+        }
+        assertEquals(List.of(
+                "66595850077d44389c5c78594276de4568f85f08854d3333137dfc05ebf3455a",
+                "66595850077d44389c5c78594276de4568f85f08854d3333137dfc05ebf3455a",
+                "66595850077d44389c5c78594276de4568f85f08854d3333137dfc05ebf3455a",
+                "744b15e684ba996f9c730ab1409ada2643985c902a6da1aadb5cc2b4882d640b",
+                "2e7e4af1e433ccd0a7392f0d2e93bb85ac122088cd2cf8d55107f7dcfb4ec283",
+                "7beee0b78c37b1287510fa0719375e14e0f0013eb8af81df8e20a3b5628612b7",
+                "ad35016194318efa42dc862df4e2bb3d9ec398d3bacec79588576d74bfd1723a",
+                "a2fe6d20c87be6b6ebf1f4503da75ee767e65d5c8e8c43d5c344957f48f3085a"), fingerprints);
+        int[] previousSamples = {16724, 16724, 16724, 19594, 15164, 15464, 16724, 7367};
+        int[] maximumSamples = {15500, 15500, 15500, 17000, 3000, 3300, 5000, 7367};
+        for (int scenario = 0; scenario < previousSamples.length; scenario++) {
+            assertTrue("scenario " + scenario + " samples " + sampleCounts.get(scenario)
+                            + "/" + previousSamples[scenario], sampleCounts.get(scenario) <= maximumSamples[scenario]);
+        }
+    }
 
     @Test
     public void geometricExclusionAvoidsTerrainSamplesWithoutChangingAsymmetricBanks() {

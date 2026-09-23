@@ -23,6 +23,27 @@ final class Terrain3DFragmentFilter {
         this.source = Objects.requireNonNull(source, "Raw density columns");
     }
 
+    double height(int x, int z) {
+        DensityColumn density = source.column(x, z);
+        Terrain3DColumn raw = density.raw;
+        if (!raw.shaped()) {
+            return raw.baseHeight();
+        }
+        Terrain3DColumn resolved = density.resolved;
+        if (resolved != null) {
+            return resolved.topY();
+        }
+        for (int span = raw.spanCount() - 1; span > 0; span--) {
+            if (density.state(span) == UNKNOWN) {
+                TRAVERSALS.get().classify(this, x, z, density, span);
+            }
+            if (density.state(span) == KEEP) {
+                return raw.floor(span);
+            }
+        }
+        return raw.floor(0);
+    }
+
     Terrain3DColumn column(int x, int z) {
         DensityColumn density = source.column(x, z);
         Terrain3DColumn resolved = density.resolved;

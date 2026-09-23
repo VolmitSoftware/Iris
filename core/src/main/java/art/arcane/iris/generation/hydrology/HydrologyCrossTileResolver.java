@@ -269,6 +269,7 @@ final class HydrologyCrossTileResolver {
         }
         HydrologyCaveCourseFilter.Result result = publication.result();
         List<HydrologyDiagnosticCandidate> uniqueDiagnostics = planner.sourcePlanner.uniqueDiagnostics(diagnostics);
+        footprintCompiler.sharedBasis = null;
         HydrologyOwnerDraft draft = new HydrologyOwnerDraft(
                 key,
                 result,
@@ -295,9 +296,15 @@ final class HydrologyCrossTileResolver {
         HydrologyPlanner.PlanningSamples ownerSamples = planner.planningSamples.get();
         HydrologyLandHeightCache sharedLandHeights = planner.naturalSampler == null ? null
                 : ownerSamples == null ? new HydrologyLandHeightCache() : ownerSamples.fallbackLandHeights();
+        HydrologyBasisCache sharedBasis = null;
+        if (planner.naturalSampler != null) {
+            sharedBasis = ownerSamples == null ? new HydrologyBasisCache()
+                    : ownerSamples.fallbackBasis(context.footprintCompiler().terrainBases);
+        }
+        FallbackSamples shared = new FallbackSamples(sharedLandHeights, sharedBasis);
         for (int index = start; index < end; index++) {
             OutletCandidate outlet = outlets.get(index);
-            tasks.add(() -> compileFallbackTrial(context, outlet, sharedLandHeights));
+            tasks.add(() -> compileFallbackTrial(context, outlet, shared));
         }
         List<FallbackTrial> trials = HydrologyForkJoin.invokeAll(tasks,
                 IrisPlatforms.isBound() ? MultiBurst.hydrology : null);
@@ -318,7 +325,7 @@ final class HydrologyCrossTileResolver {
     private FallbackTrial compileFallbackTrial(
             FallbackContext context,
             OutletCandidate outlet,
-            HydrologyLandHeightCache sharedLandHeights
+            FallbackSamples shared
     ) {
         HydrologyPlanner.PlanningSamples previousSamples = planner.planningSamples.get();
         DraftProfile previousProfile = planner.draftProfiles.get();
@@ -328,12 +335,13 @@ final class HydrologyCrossTileResolver {
         HashMap<SourceCompilationKey, SourceCompilation> sourceCompilations = new HashMap<>(context.sourceCompilations());
         HydrologyFootprintCompiler footprints = null;
         try {
-            planner.planningSamples.set(new HydrologyPlanner.PlanningSamples(sharedLandHeights));
+            planner.planningSamples.set(new HydrologyPlanner.PlanningSamples(shared.landHeights(), shared.basis()));
             planner.draftProfiles.set(profile);
             footprints = new HydrologyFootprintCompiler(
                     planner.settings,
                     new HydrologyFootprintCompiler.Sampling(planner.sampler, planner.geometrySampler, planner.naturalSampler)
             );
+            footprints.sharedBasis = shared.basis();
             footprints.regionalNetwork = context.footprintCompiler().regionalNetwork;
             footprints.regionalSurfaceFootprints.putAll(context.footprintCompiler().regionalSurfaceFootprints);
             footprints.regionalDropRasters.putAll(context.footprintCompiler().regionalDropRasters);
@@ -366,6 +374,9 @@ final class HydrologyCrossTileResolver {
                 planner.draftProfiles.set(previousProfile);
             }
         }
+    }
+
+    private record FallbackSamples(HydrologyLandHeightCache landHeights, HydrologyBasisCache basis) {
     }
 
     private record FallbackContext(

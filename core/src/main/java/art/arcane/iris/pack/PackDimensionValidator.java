@@ -56,6 +56,9 @@ final class PackDimensionValidator {
 
             validateImportedStructurePolicy(dimensionKey, dimJson, blockingErrors, warnings);
             validateDimensionHeights(packFolder, dimensionKey, dimJson, blockingErrors);
+            validateSamplingStep(dimensionKey, dimJson, "terrainSamplingStep", 1, blockingErrors);
+            validateSamplingStep(dimensionKey, dimJson, "caveDensitySamplingStep", 1, blockingErrors);
+            validateSamplingStep(dimensionKey, dimJson, "biomeBoundsSamplingStep", 4, blockingErrors);
             validateWorldBoundary(dimensionKey, dimJson, blockingErrors);
             validateStaticObjects(packFolder, dimensionKey, dimJson, blockingErrors);
             validateObjectScaleFactor(dimensionKey, dimJson, blockingErrors);
@@ -107,6 +110,21 @@ final class PackDimensionValidator {
     static void validateObjectScaleFactor(String dimensionKey, JSONObject dimension, List<String> errors) {
         validateFiniteNumber(dimension, "allObjectScaleFactor", IrisObjectScale.MINIMUM_FACTOR,
                 IrisObjectScale.MAXIMUM_FACTOR, "Dimension '" + dimensionKey + "'", errors);
+    }
+
+    private static void validateSamplingStep(String dimensionKey, JSONObject dimension, String field, int minimum, List<String> errors) {
+        if (!dimension.has(field)) {
+            return;
+        }
+        Object value = dimension.opt(field);
+        if (value instanceof Number number) {
+            double step = number.doubleValue();
+            if (step == minimum || step == minimum * 2D || step == minimum * 4D || step == minimum * 8D) {
+                return;
+            }
+        }
+        errors.add("Dimension '" + dimensionKey + "' " + field + " must be one of " + minimum + ", "
+                + minimum * 2 + ", " + minimum * 4 + ", or " + minimum * 8 + ".");
     }
 
     static void validateDimensionStack(File packFolder, String dimensionKey, JSONObject dimension, Set<String> dimensionKeys,

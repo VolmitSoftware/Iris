@@ -38,6 +38,27 @@ public class SurfaceFootprintCompilerTest {
     };
 
     @Test
+    public void impossibleWetIncisionRejectsBeforeSamplingWideBanks() {
+        AtomicInteger bankSamples = new AtomicInteger();
+        HydrologyTerrainSampler sampler = (x, z) -> {
+            if (Math.abs(z) > 8) {
+                bankSamples.incrementAndGet();
+            }
+            return HydrologyTerrainSample.openLand(x >= 60 && x <= 68 ? 170 : 90, 0D, "land");
+        };
+        RiverCourse course = course(List.of(segment(1L, HydrologyFeatureType.SURFACE_POOL,
+                89, 89, points(0, 200, 89))));
+
+        SurfaceFootprint footprint = compiler(sampler).compileForPublication(course);
+
+        assertEquals(HydrologyCandidateRejection.SURFACE_CORRIDOR_UNSUPPORTED, footprint.rejection());
+        assertTrue("Wide-bank terrain samples: " + bankSamples.get(), bankSamples.get() < 1_000);
+        SurfaceFootprint complete = compiler(sampler).compile(course);
+        assertEquals(complete.rejection(), footprint.rejection());
+        assertTrue(complete.columns().size() > footprint.columns().size());
+    }
+
+    @Test
     public void mouthUsesConnectedFloodedLandWithoutChangingTerrainMetadataOrOwningWater() {
         int seaLevel = HydrologyPlannerSettings.defaults().seaLevel();
         HydrologyTerrainSampler sampler = (x, z) -> x >= 132

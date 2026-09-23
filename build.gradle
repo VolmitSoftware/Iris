@@ -163,6 +163,9 @@ nmsBindings.each { String key ->
             compileOnly(rootProject.libs.byteBuddy.core)
             testImplementation('junit:junit:4.13.2')
             testImplementation('org.mockito:mockito-core:5.23.0')
+            if (key == 'v26_3_R1') {
+                testImplementation(project(':probe'))
+            }
             testImplementation(project(':core'))
             testImplementation(testFixtures(project(':core')))
             testImplementation("com.github.VolmitSoftware.VolmLib:native-common:${volmLibCoordinate.tokenize(':').last()}") {
@@ -953,5 +956,159 @@ pluginPackaging {
             }
             shrinkRelocations = runtimeDownloadRelocations
         }
+    }
+}
+
+project(':adapters:bukkit:nms:v26_3_R1') {
+    Configuration headlessNativeSources = configurations.create('headlessNativeSources') {
+        canBeConsumed = false
+        canBeResolved = true
+    }
+    dependencies.add(headlessNativeSources.name,
+            "com.github.VolmitSoftware.VolmLib:native-minecraft26_2-sources:${volmLibCoordinate.tokenize(':').last()}")
+    List<String> headlessNativeTypes = ['ModdedBlockState', 'ModdedBiome', 'NativeBlockProperties', 'NativeBlockResolver',
+            'NativeBlockFaces', 'NativeStateRotator', 'NativeStateMerger',
+            'NativeRegistryAccess', 'ModdedItem', 'ModdedEntityType', 'NativeTileReader', 'NativeTileData']
+    TaskProvider<Sync> unpackHeadlessNativeSources = tasks.register('unpackHeadlessNativeSources', Sync) {
+        dependsOn(headlessNativeSources)
+        inputs.property('nativeTypes', headlessNativeTypes)
+        inputs.property('nativeVersion', '26.3')
+        from(provider { headlessNativeSources.collect { File artifact -> zipTree(artifact) } }) {
+            headlessNativeTypes.each { String type -> include("art/arcane/volmlib/nativelib/minecraft26_2/modded/${type}.java") }
+            include('versions/26.3/**')
+            eachFile { FileCopyDetails source ->
+                if (source.path.startsWith('versions/26.3/')) {
+                    source.path = source.path.substring('versions/26.3/'.length())
+                }
+            }
+        }
+        from(rootProject.file('adapters/modded-common/src/main/java')) {
+            include('art/arcane/iris/modded/ModdedDecoratorHooks.java',
+                    'art/arcane/iris/modded/ModdedStateRotator.java', 'art/arcane/iris/modded/ModdedTileData.java')
+        }
+        into(layout.buildDirectory.dir('generated/sources/headless-native'))
+    }
+    sourceSets {
+        offline {
+            java.srcDir(unpackHeadlessNativeSources)
+            compileClasspath += sourceSets.main.compileClasspath
+            runtimeClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+        }
+    }
+    dependencies {
+        offlineImplementation(project(':probe'))
+        offlineImplementation(project(':core'))
+        offlineImplementation("com.github.VolmitSoftware.VolmLib:native-common:${volmLibCoordinate.tokenize(':').last()}") {
+            transitive = false
+        }
+        offlineImplementation(volmLibCoordinate) {
+            transitive = false
+        }
+    }
+    sourceSets.test.compileClasspath += sourceSets.offline.output
+    sourceSets.test.runtimeClasspath += sourceSets.offline.output
+    tasks.named('test', Test).configure {
+        forkEvery = 1
+    }
+
+    TaskProvider<Jar> offlineJar = tasks.register('offlineJar', Jar) {
+        dependsOn(offlineClasses)
+        archiveClassifier = 'offline'
+        from(sourceSets.offline.runtimeClasspath.filter { File file -> file.isDirectory() })
+    }
+    FileCollection offlineLibraries = sourceSets.offline.runtimeClasspath.filter { File file -> file.isFile() }
+    TaskProvider<CreateStartScripts> offlineStartScripts = tasks.register('offlineStartScripts', CreateStartScripts) {
+        dependsOn(offlineJar)
+        mainClass = 'art.arcane.iris.probe.OfflineRegionGenerator'
+        applicationName = 'iris-offline'
+        outputDir = layout.buildDirectory.dir('offline-scripts').get().asFile
+        classpath = files(offlineJar) + offlineLibraries
+        defaultJvmOpts = ['-Xmx8G', '--add-modules=jdk.incubator.vector', '-Djava.awt.headless=true']
+    }
+    tasks.register('installOffline', Sync) {
+        group = 'distribution'
+        description = 'Installs the standalone native region generator and its runtime libraries.'
+        dependsOn(offlineJar, offlineStartScripts)
+        into(layout.buildDirectory.dir('install/iris-offline'))
+        into('lib') { from(offlineJar, offlineLibraries) }
+        into('bin') {
+            from(offlineStartScripts)
+            filePermissions { unix('rwxr-xr-x') }
+        }
+    }
+
+    tasks.register('regionMantleInspection', JavaExec) {
+        group = 'verification'
+        dependsOn(testClasses)
+        mainClass = 'art.arcane.iris.probe.HeadlessMantleInspection'
+        classpath = sourceSets.test.runtimeClasspath
+        maxHeapSize = '4G'
+        jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
+        doFirst {
+            args(['probePack', 'probeDimension', 'probeSeed', 'probeWorld', 'probeRegionX', 'probeRegionZ']
+                    .collect { String name -> providers.gradleProperty(name).get() })
+        }
+    }
+
+    tasks.register('generateOfflineRegions', JavaExec) {
+        group = 'verification'
+        description = 'Writes fresh native TERRAIN checkpoints with exact prerequisites for subsequent native FULL completion.'
+        dependsOn(offlineClasses)
+        mainClass = 'art.arcane.iris.probe.OfflineRegionGenerator'
+        classpath = sourceSets.offline.runtimeClasspath
+        maxHeapSize = '8G'
+        jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
+        doFirst {
+            List<String> names = ['probePack', 'probeDimension', 'probeSeed', 'probeChunkX', 'probeChunkZ',
+                    'probeWidth', 'probeRegionsX', 'probeRegionsZ', 'probeParallelism', 'probeSpigot', 'probeWorldName', 'probeLevelKey',
+                    'probeNoiseSettings', 'probeOutput']
+            args(names.collect { String name -> providers.gradleProperty(name).get() })
+        }
+    }
+
+
+}
+
+project(':adapters:bukkit:nms:v26_3_R1') {
+    Provider<Directory> fixtureResources = layout.buildDirectory.dir('generated/region-native-fixture')
+    TaskProvider<Task> fixtureDescriptor = tasks.register('regionNativeFixtureDescriptor') {
+        outputs.dir(fixtureResources)
+        doLast {
+            File descriptor = fixtureResources.get().file('plugin.yml').asFile
+            descriptor.parentFile.mkdirs()
+            descriptor.text = '''name: RegionNativeFixture
+version: 1.0
+main: art.arcane.iris.probe.RegionNativeFixture
+api-version: '26.3'
+depend: [Iris]
+commands:
+  mcaterrain:
+    description: Export native terrain checkpoints on an isolated test server
+  mcaload:
+    description: Verify native terrain checkpoints finish generation on reload
+'''
+        }
+    }
+    TaskProvider<JavaCompile> compileRegionNativeFixture = tasks.register('compileRegionNativeFixture', JavaCompile) {
+        source(fileTree('src/test/java') {
+            include('art/arcane/iris/probe/RegionNativeFixture.java',
+                    'art/arcane/iris/probe/DetachedNativeTerrain.java')
+        })
+        source(fileTree('src/offline/java') {
+            include('art/arcane/iris/probe/RegionGenerationWindow.java',
+                    'art/arcane/iris/probe/NativeRegionTerrainWriter.java',
+                    'art/arcane/iris/probe/NativeRegionPlan.java')
+        })
+        classpath = sourceSets.test.compileClasspath
+        destinationDirectory = layout.buildDirectory.dir('classes/region-native-fixture')
+        javaCompiler = javaToolchains.compilerFor { languageVersion = JavaLanguageVersion.of(25) }
+        options.release = 25
+        options.compilerArgs.add('-parameters')
+    }
+    tasks.register('regionNativeFixtureJar', Jar) {
+        dependsOn(compileRegionNativeFixture, fixtureDescriptor)
+        archiveFileName = 'mca-native-fixture.jar'
+        from(compileRegionNativeFixture.flatMap { JavaCompile task -> task.destinationDirectory })
+        from(fixtureResources)
     }
 }

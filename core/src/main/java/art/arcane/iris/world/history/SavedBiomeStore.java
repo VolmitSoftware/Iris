@@ -106,7 +106,8 @@ public final class SavedBiomeStore {
     public boolean claimAndPersist(SavedBiomeChunk chunk) throws IOException {
         SavedBiomeChunk required = Objects.requireNonNull(chunk, "chunk");
         WriteStripe lock = regionLock(required.chunkX(), required.chunkZ());
-        if (!lock.writing) {
+        requireWritable();
+        if (cached(required.chunkX(), required.chunkZ()).isPresent()) {
             synchronized (lock) {
                 if (alreadyClaimed(required)) {
                     return false;
@@ -119,15 +120,8 @@ public final class SavedBiomeStore {
         PendingWrite pending = new PendingWrite(required, record);
         lock.pending.add(pending);
         synchronized (lock) {
-            if (!pending.completed) {
-                lock.writing = true;
-                try {
-                    while (!pending.completed) {
-                        persistPending(lock);
-                    }
-                } finally {
-                    lock.writing = false;
-                }
+            while (!pending.completed) {
+                persistPending(lock);
             }
             if (pending.failure != null) {
                 throw pending.failure;
@@ -788,7 +782,6 @@ public final class SavedBiomeStore {
 
     private static final class WriteStripe {
         private final ConcurrentLinkedQueue<PendingWrite> pending = new ConcurrentLinkedQueue<>();
-        private volatile boolean writing;
     }
 
     private static final class PendingWrite {

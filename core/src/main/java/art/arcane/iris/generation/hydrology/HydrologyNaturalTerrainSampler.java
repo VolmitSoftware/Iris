@@ -11,4 +11,12 @@ public interface HydrologyNaturalTerrainSampler extends HydrologyRoutingTerrainS
         HydrologyTerrainSample terrain = sampleBasisWithoutSlope(blockX, blockZ);
         return terrain == null || terrain.ocean() ? Double.NaN : terrain.naturalHeight();
     }
+
+    default HydrologyTerrainSample[] sampleBasisWithoutSlopeBatch(long[] coordinates, int count) {
+        HydrologyTerrainSample[] samples = new HydrologyTerrainSample[count];
+        for (int index = 0; index < count; index++) {
+            samples[index] = sampleBasisWithoutSlope(RiverFootprint.unpackX(coordinates[index]), RiverFootprint.unpackZ(coordinates[index]));
+        }
+        return samples;
+    }
 }

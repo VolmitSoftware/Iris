@@ -40,6 +40,12 @@ final class CaveCarveScratch {
     final double[] planeThresholdLimit = new double[256];
     final boolean[] planeCarve = new boolean[256];
     final double[] adaptivePlaneDensity = new double[81];
+    double[] verticalDensityLower = new double[9];
+    double[] verticalDensityUpper = new double[9];
+    int verticalDensityLowerY = Integer.MIN_VALUE;
+    int verticalDensityUpperY = Integer.MIN_VALUE;
+    int verticalDensityX;
+    int verticalDensityZ;
     final double[] adaptivePlanePrediction = new double[256];
     final double[] adaptivePlaneAmbiguity = new double[256];
     final int[] adaptivePlaneSampleBounds = new int[4];

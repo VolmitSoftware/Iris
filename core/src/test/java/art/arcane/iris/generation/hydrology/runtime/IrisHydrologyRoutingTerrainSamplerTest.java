@@ -2,6 +2,7 @@ package art.arcane.iris.generation.hydrology.runtime;
 
 import art.arcane.iris.generation.hydrology.HydrologyRoutingTerrainSampler;
 import art.arcane.iris.generation.hydrology.HydrologyTerrainSample;
+import art.arcane.iris.generation.hydrology.RiverFootprint;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.runtime.Engine;
@@ -26,6 +27,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -36,6 +40,75 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 public class IrisHydrologyRoutingTerrainSamplerTest {
+    @Test
+    public void boundedBasisBatchUsesScopedWorkersAndDrainsNestedPool() throws Exception {
+        ThreadLocal<Integer> scope = new ThreadLocal<>();
+        AtomicInteger opened = new AtomicInteger();
+        AtomicInteger closed = new AtomicInteger();
+        AtomicInteger samples = new AtomicInteger();
+        CountDownLatch simultaneous = new CountDownLatch(2);
+        ForkJoinPool pool = new ForkJoinPool(2);
+        try {
+            IrisHydrologyRoutingTerrainSampler sampler = new IrisHydrologyRoutingTerrainSampler(
+                    new IrisHydrologyRoutingTerrainSampler.Sources((x, z, height) -> {
+                        assertEquals(Integer.valueOf(7), scope.get());
+                        if (x >= 10_000) {
+                            throw new IllegalStateException("terrain failure");
+                        }
+                        simultaneous.countDown();
+                        try {
+                            assertTrue(simultaneous.await(5, TimeUnit.SECONDS));
+                        } catch (InterruptedException failure) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException(failure);
+                        }
+                        samples.incrementAndGet();
+                        return new IrisHydrologyRoutingTerrainSampler.TerrainBasis(height,
+                                HydrologyTerrainSample.openLand((int) height, 0D, "land"));
+                    }, (x, z) -> 100 + Math.floorMod(x + z, 17), (x, z) -> false, 60),
+                    new IrisHydrologyRoutingTerrainSampler.SamplingOptions(8192, 2, pool, () -> () -> {
+                        Integer previous = scope.get();
+                        scope.set(7);
+                        opened.incrementAndGet();
+                        return () -> {
+                            if (previous == null) {
+                                scope.remove();
+                            } else {
+                                scope.set(previous);
+                            }
+                            closed.incrementAndGet();
+                        };
+                    }));
+            long[] coordinates = new long[4096];
+            for (int index = 0; index < coordinates.length; index++) {
+                coordinates[index] = RiverFootprint.pack(index - 2048, -index);
+            }
+            HydrologyTerrainSample[] result = pool.submit(() -> sampler.sampleBasisWithoutSlopeBatch(
+                    coordinates, coordinates.length)).get(10, TimeUnit.SECONDS);
+            for (int index = 0; index < result.length; index++) {
+                assertEquals(100 + Math.floorMod(-2048, 17), result[index].naturalHeight());
+            }
+            assertEquals(coordinates.length, samples.get());
+            assertEquals(2, opened.get());
+            assertEquals(opened.get(), closed.get());
+            assertEquals(null, pool.submit(scope::get).get(5, TimeUnit.SECONDS));
+            assertThrows(IllegalArgumentException.class,
+                    () -> sampler.sampleBasisWithoutSlopeBatch(new long[4097], 4097));
+            long[] failureCoordinates = new long[4096];
+            for (int index = 0; index < failureCoordinates.length; index++) {
+                failureCoordinates[index] = RiverFootprint.pack(10_000 + index, -index);
+            }
+            assertThrows(ExecutionException.class, () -> pool.submit(() -> sampler.sampleBasisWithoutSlopeBatch(
+                    failureCoordinates, failureCoordinates.length)).get(10, TimeUnit.SECONDS));
+            assertEquals(4, opened.get());
+            assertEquals(opened.get(), closed.get());
+            assertEquals(null, pool.submit(scope::get).get(5, TimeUnit.SECONDS));
+        } finally {
+            pool.shutdownNow();
+            assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
+
     @Test
     public void bankHeightsAtSeaLevelSkipOceanIntentSampling() {
         AtomicInteger classifierCalls = new AtomicInteger();

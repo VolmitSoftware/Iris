@@ -4,7 +4,6 @@ import art.arcane.volmlib.nativelib.terrain.NativeBiomeRegistry;
 import art.arcane.volmlib.nativelib.terrain.NativeBiomeSourcePolicy;
 import java.util.function.IntUnaryOperator;
 
-import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.generation.runtime.DimensionStackContext;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
@@ -22,7 +21,6 @@ import art.arcane.iris.platform.generation.BukkitChunkGenerator;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.RNG;
-import org.bukkit.World;
 import org.bukkit.block.Biome;
 
 import java.io.IOException;
@@ -37,6 +35,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.Objects;
 
 public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H> {
     private static final int NOISE_BIOME_CACHE_MAX = 262144;
@@ -49,6 +49,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
     private final BukkitChunkGenerator platformGenerator;
     private final NativeBiomeRegistry<H, V> biomeCustomRegistry;
     private final NativeBiomeRegistry<H, V> biomeRegistry;
+    private final Supplier<NativeBiomeRegistry<H, V>> possibleBiomeRegistry;
     private final H fallbackBiome;
     private final ConcurrentHashMap<RuntimeNoiseKey, H> noiseBiomeCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<RuntimeNoiseKey, H> structureBiomeCache = new ConcurrentHashMap<>();
@@ -56,13 +57,11 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
     private final ConcurrentHashMap<RuntimeColumnKey, H> naturalSurfaceStructureBiomeCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, RuntimeBiomeState<H, V>> runtimeBiomeStates = new ConcurrentHashMap<>();
 
-    public BukkitBiomePolicy(RuntimeOptions options, NativeBiomeRegistry<H, V> registry) {
+    public BukkitBiomePolicy(RuntimeOptions<H, V> options, NativeBiomeRegistry<H, V> registry) {
         Engine engine = options.engine();
-        World world = options.world();
         this.engine = engine;
-        this.platformGenerator = world.getGenerator() instanceof BukkitChunkGenerator generator
-                ? generator
-                : null;
+        this.platformGenerator = options.platformGenerator();
+        this.possibleBiomeRegistry = options.possibleBiomeRegistry();
         this.seed = options.seed();
         this.biomeCustomRegistry = registry;
         this.biomeRegistry = biomeCustomRegistry;
@@ -179,12 +178,8 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
                 throw new IllegalStateException("Iris possible biome lookup has no active engine runtime");
             }
             runtimeBiomeState();
-            World world = BukkitWorldBinding.world(engine.getWorld());
-            if (world == null) {
-                throw new IllegalStateException("Iris biome source has no bound Bukkit world");
-            }
             NativeBiomeRegistry<H, V> customRegistry = biomeCustomRegistry;
-            NativeBiomeRegistry<H, V> worldRegistry = biomeRegistry.forWorld(world);
+            NativeBiomeRegistry<H, V> worldRegistry = Objects.requireNonNull(possibleBiomeRegistry.get(), "possible biome registry");
             return Set.copyOf(getAllBiomes(
                     customRegistry, worldRegistry, engine, includeDimensionStack));
         }
@@ -1105,7 +1100,12 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
             Map<V, H> vanillaSpawnBiomes
     ) {
     }
-    public record RuntimeOptions(long seed, Engine engine, World world) {
+    public record RuntimeOptions<H, V>(long seed, Engine engine, BukkitChunkGenerator platformGenerator,
+                                      Supplier<NativeBiomeRegistry<H, V>> possibleBiomeRegistry) {
+        public RuntimeOptions {
+            Objects.requireNonNull(engine, "engine");
+            Objects.requireNonNull(possibleBiomeRegistry, "possible biome registry");
+        }
     }
     @Override
     public VisibleResolver<H> visibleResolver() {

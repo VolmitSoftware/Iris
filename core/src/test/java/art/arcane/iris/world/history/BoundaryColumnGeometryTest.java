@@ -53,6 +53,59 @@ public class BoundaryColumnGeometryTest {
     }
 
     @Test
+    public void nearestSurfaceMatchesDenseColumnsAcrossRunsProtectionAndTies() {
+        List<BoundaryColumnGeometry.Voxel> states = List.of(STONE, AIR,
+                new BoundaryColumnGeometry.Voxel("minecraft:oak_log[axis=y]",
+                        BoundaryColumnGeometry.Phase.SOLID, "", true),
+                new BoundaryColumnGeometry.Voxel("minecraft:water[level=0]",
+                        BoundaryColumnGeometry.Phase.FLUID, "minecraft:water[level=0]", false));
+        for (int combination = 0; combination < 4096; combination++) {
+            int encoded = combination;
+            ArrayList<BoundaryColumnGeometry.Voxel> voxels = new ArrayList<>(18);
+            for (int run = 0; run < 6; run++) {
+                BoundaryColumnGeometry.Voxel voxel = states.get(encoded & 3);
+                encoded >>= 2;
+                for (int offset = 0; offset <= run % 3; offset++) {
+                    voxels.add(voxel);
+                }
+            }
+            BoundaryColumnGeometry geometry = BoundaryColumnGeometry.fromVoxels(-64, voxels);
+            for (double expected : new double[]{-10D, 0D, 1.5D, 3D, 5.5D, 8D, 12D, 100D}) {
+                assertEquals(denseSurface(voxels, expected), geometry.surfaceOffsetNear(expected));
+            }
+        }
+        assertThrows(IllegalArgumentException.class, () -> BoundaryColumnGeometry.empty().surfaceOffsetNear(0D));
+        BoundaryColumnGeometry solid = BoundaryColumnGeometry.fromVoxels(-64, List.of(STONE));
+        assertThrows(IllegalArgumentException.class, () -> solid.surfaceOffsetNear(Double.NaN));
+        assertThrows(IllegalArgumentException.class, () -> solid.surfaceOffsetNear(Double.POSITIVE_INFINITY));
+    }
+
+    private static int denseSurface(List<BoundaryColumnGeometry.Voxel> voxels, double expected) {
+        int selected = -1;
+        double distance = Double.POSITIVE_INFINITY;
+        for (int index = 0; index + 1 < voxels.size(); index++) {
+            BoundaryColumnGeometry.Voxel current = voxels.get(index);
+            BoundaryColumnGeometry.Voxel above = voxels.get(index + 1);
+            if (current.phase() == BoundaryColumnGeometry.Phase.SOLID && !current.protectedContent()
+                    && (above.phase() != BoundaryColumnGeometry.Phase.SOLID || above.protectedContent())
+                    && Math.abs(index - expected) < distance) {
+                selected = index;
+                distance = Math.abs(index - expected);
+            }
+        }
+        if (selected >= 0) {
+            return selected;
+        }
+        for (int index = voxels.size() - 1; index >= 0; index--) {
+            BoundaryColumnGeometry.Voxel voxel = voxels.get(index);
+            if (voxel.phase() == BoundaryColumnGeometry.Phase.SOLID && !voxel.protectedContent()) {
+                return index;
+            }
+        }
+        return 0;
+    }
+
+    @Test
     public void enclosedOpenQueriesIncludeUpperCavesAndExcludeOpenSky() {
         BoundaryColumnGeometry geometry = BoundaryColumnGeometry.fromVoxels(-4,
                 List.of(STONE, AIR, STONE, AIR, STONE, AIR));

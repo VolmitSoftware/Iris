@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -52,6 +54,7 @@ final class EngineShutdownSequence {
             Collections.newSetFromMap(new IdentityHashMap<>()));
     private final Set<EngineTarget> incompleteTargets = Collections.synchronizedSet(
             Collections.newSetFromMap(new IdentityHashMap<>()));
+    private final Map<GenerationRuntime, CompletableFuture<Throwable>> detachedRuntimeCloses = new IdentityHashMap<>();
     private boolean runtimeReleased;
     private boolean worldManagerStopped;
     private boolean targetReleased;
@@ -66,7 +69,7 @@ final class EngineShutdownSequence {
         generationAdmissions.add(history.retainRuntime());
     }
 
-    void close() {
+    synchronized void close() {
         if (!engine.beginShutdown()) {
             return;
         }
@@ -91,91 +94,93 @@ final class EngineShutdownSequence {
             }
             engine.lifecycleState = LifecycleState.CLOSING;
             engine.getClosing().set(true);
-            engine.backgroundTasks.closeBackgroundTaskAdmission();
-            EngineTickRegistry.unregisterTicking(engine);
-            // Best-effort like every other step: a pregen join timeout must not escape the
-            // synchronized block before anything is saved or released. On failure, save what
-            // can be saved and leave the close incomplete-but-retryable (a live pregen writer
-            // may still hold the mantle, so the releases are skipped).
-            Throwable pregenFailure = runCleanup(null, () -> engine.getPlatformHooks().shutdownPregenerator(engine));
-            if (pregenFailure != null) {
-                engine.lifecycleState = LifecycleState.FAILED;
-                failure = pregenFailure;
-                failure = runCleanup(failure, engine::savePrefetchOnce);
-                failure = runCleanup(failure, engine::saveEngineData);
-                failure = runCleanup(failure, () -> engine.getMantle().saveAllNow());
-                reportIncompleteClose(failure);
-                return;
-            }
-            Throwable drainFailure = null;
+        }
+        engine.backgroundTasks.closeBackgroundTaskAdmission();
+        EngineTickRegistry.unregisterTicking(engine);
+        // Best-effort like every other step: a pregen join timeout must not escape the
+        // shutdown before anything is saved or released. On failure, save what
+        // can be saved and leave the close incomplete-but-retryable (a live pregen writer
+        // may still hold the mantle, so the releases are skipped).
+        Throwable pregenFailure = runCleanup(null, () -> engine.getPlatformHooks().shutdownPregenerator(engine));
+        if (pregenFailure != null) {
+            engine.lifecycleState = LifecycleState.FAILED;
+            failure = pregenFailure;
+            failure = runCleanup(failure, engine::savePrefetchOnce);
+            failure = runCleanup(failure, engine::saveEngineData);
+            failure = runCleanup(failure, () -> engine.getMantle().saveAllNow());
+            reportIncompleteClose(failure);
+            return;
+        }
+        Throwable drainFailure = null;
+        try {
+            engine.getGenerationSessions().sealAndAwait("close", IrisEngine.SESSION_DRAIN_TIMEOUT_MILLIS, true);
+        } catch (GenerationSessionException e) {
+            drainFailure = e;
+        }
+        if (drainFailure != null) {
+            // A drain timeout must not abandon teardown: give remaining admitted work
+            // one final bounded drain before deciding whether resources can be released.
+            IrisLogging.warn("Iris generation did not drain for close on " + engine.getWorld().name()
+                    + "; waiting briefly for remaining work.");
             try {
-                engine.getGenerationSessions().sealAndAwait("close", IrisEngine.SESSION_DRAIN_TIMEOUT_MILLIS, true);
+                engine.getGenerationSessions().sealAndAwait("close-retry", CLOSE_RETRY_DRAIN_TIMEOUT_MILLIS, true);
+                drainFailure = null;
             } catch (GenerationSessionException e) {
-                drainFailure = e;
+                drainFailure = appendFailure(drainFailure, e);
             }
-            if (drainFailure != null) {
-                // A drain timeout must not abandon teardown: give remaining admitted work
-                // one final bounded drain before deciding whether resources can be released.
-                IrisLogging.warn("Iris generation did not drain for close on " + engine.getWorld().name()
-                        + "; waiting briefly for remaining work.");
-                try {
-                    engine.getGenerationSessions().sealAndAwait("close-retry", CLOSE_RETRY_DRAIN_TIMEOUT_MILLIS, true);
-                    drainFailure = null;
-                } catch (GenerationSessionException e) {
-                    drainFailure = appendFailure(drainFailure, e);
+        }
+        if (drainFailure != null) {
+            // A live lease may be mid-write, so the mantle must not be closed at it — but
+            // dirty plates can still be flushed (saveAll is synchronized) so terrain since
+            // the last periodic save is not lost. The close stays incomplete and retryable.
+            engine.lifecycleState = LifecycleState.FAILED;
+            failure = runCleanup(drainFailure, () -> engine.getMantle().saveAllNow());
+            reportIncompleteClose(failure);
+            return;
+        }
+
+        BackgroundTaskDrain backgroundDrain = engine.backgroundTasks.drainBackgroundTasks("close");
+        failure = backgroundDrain.failure();
+        if (!backgroundDrain.allowsResourceRelease() && failure == null) {
+            failure = new IllegalStateException("Iris background tasks remain active during close.");
+        }
+
+        if (backgroundDrain.allowsResourceRelease()) {
+            Throwable ownershipFailure = runCleanup(null,
+                    () -> NativeStructureOwnershipStore.close(engine));
+            failure = appendFailure(failure, ownershipFailure);
+            if (ownershipFailure == null) {
+                Throwable prefetchFailure = runCleanup(null, engine::savePrefetchOnce);
+                Throwable engineDataFailure = runCleanup(null, engine::saveEngineData);
+                failure = appendFailure(failure, prefetchFailure);
+                failure = appendFailure(failure, engineDataFailure);
+                failure = releaseRuntime(failure);
+                if (runtimeReleased) {
+                    failure = releaseTarget(failure);
+                }
+                if (prefetchFailure == null
+                        && engineDataFailure == null
+                        && runtimeReleased
+                        && targetReleased) {
+                    failure = releaseEngineDataForShutdown(failure);
+                }
+                if (engineDataReleased) {
+                    failure = releasePreservation(failure);
                 }
             }
-            if (drainFailure != null) {
-                // A live lease may be mid-write, so the mantle must not be closed at it — but
-                // dirty plates can still be flushed (saveAll is synchronized) so terrain since
-                // the last periodic save is not lost. The close stays incomplete and retryable.
-                engine.lifecycleState = LifecycleState.FAILED;
-                failure = runCleanup(drainFailure, () -> engine.getMantle().saveAllNow());
-                reportIncompleteClose(failure);
-                return;
-            }
-
-            BackgroundTaskDrain backgroundDrain = engine.backgroundTasks.drainBackgroundTasks("close");
-            failure = backgroundDrain.failure();
-            if (!backgroundDrain.allowsResourceRelease() && failure == null) {
-                failure = new IllegalStateException("Iris background tasks remain active during close.");
-            }
-
-            if (backgroundDrain.allowsResourceRelease()) {
-                Throwable ownershipFailure = runCleanup(null,
-                        () -> NativeStructureOwnershipStore.close(engine));
-                failure = appendFailure(failure, ownershipFailure);
-                if (ownershipFailure == null) {
-                    Throwable prefetchFailure = runCleanup(null, engine::savePrefetchOnce);
-                    Throwable engineDataFailure = runCleanup(null, engine::saveEngineData);
-                    failure = appendFailure(failure, prefetchFailure);
-                    failure = appendFailure(failure, engineDataFailure);
-                    failure = releaseRuntime(failure);
-                    if (runtimeReleased) {
-                        failure = releaseTarget(failure);
-                    }
-                    if (prefetchFailure == null
-                            && engineDataFailure == null
-                            && runtimeReleased
-                            && targetReleased) {
-                        failure = releaseEngineDataForShutdown(failure);
-                    }
-                    if (engineDataReleased) {
-                        failure = releasePreservation(failure);
-                    }
-                }
-            }
-            if (failure == null
-                    && runtimeReleased
-                    && targetReleased
-                    && engineDataReleased
-                    && preservationReleased) {
-                failure = releaseGenerationAdmissions(failure);
-                if (failure == null) {
+        }
+        if (failure == null
+                && runtimeReleased
+                && targetReleased
+                && engineDataReleased
+                && preservationReleased) {
+            failure = releaseGenerationAdmissions(failure);
+            if (failure == null) {
+                synchronized (engine.lifecycleLock) {
                     engine.closed = true;
                     engine.lifecycleState = LifecycleState.CLOSED;
-                    IrisLogging.debug("Engine Fully Shutdown!");
                 }
+                IrisLogging.debug("Engine Fully Shutdown!");
             }
         }
         if (failure != null) {
@@ -359,6 +364,38 @@ final class EngineShutdownSequence {
         return failure;
     }
 
+    DetachedRuntimeClose claimDetachedRuntimeClose(GenerationRuntime runtime, boolean rejectConcurrent) {
+        synchronized (engine.lifecycleLock) {
+            if (!engine.detachedGenerationRuntimes.contains(runtime)) {
+                return new DetachedRuntimeClose(CompletableFuture.completedFuture(null), false);
+            }
+            CompletableFuture<Throwable> existing = detachedRuntimeCloses.get(runtime);
+            if (existing != null) {
+                if (rejectConcurrent) {
+                    throw new IllegalStateException("Detached Iris generation runtime is already retiring.");
+                }
+                return new DetachedRuntimeClose(existing, false);
+            }
+            CompletableFuture<Throwable> completion = new CompletableFuture<>();
+            detachedRuntimeCloses.put(runtime, completion);
+            if (rejectConcurrent) {
+                engine.retiringGenerationRuntimes.add(runtime);
+            }
+            return new DetachedRuntimeClose(completion, true);
+        }
+    }
+
+    void finishDetachedRuntimeClose(GenerationRuntime runtime, DetachedRuntimeClose close, Throwable failure) {
+        synchronized (engine.lifecycleLock) {
+            if (failure == null) {
+                engine.detachedGenerationRuntimes.remove(runtime);
+            }
+            engine.retiringGenerationRuntimes.remove(runtime);
+            close.completion().complete(failure);
+            detachedRuntimeCloses.remove(runtime);
+        }
+    }
+
     Throwable closeDetachedGenerationRuntime(GenerationRuntime generationRuntime, Throwable failure) {
         IrisEngine.GenerationRuntimeBinding binding = new IrisEngine.GenerationRuntimeBinding(
                 engine,
@@ -509,13 +546,26 @@ final class EngineShutdownSequence {
     private Throwable closeDetachedGenerationRuntimes(Throwable failure) {
         GenerationRuntime[] detachedRuntimes = engine.detachedGenerationRuntimes.toArray(new GenerationRuntime[0]);
         for (GenerationRuntime detached : detachedRuntimes) {
-            Throwable detachedFailure = closeDetachedGenerationRuntime(detached, null);
-            failure = appendFailure(failure, detachedFailure);
-            if (detachedFailure == null) {
-                engine.detachedGenerationRuntimes.remove(detached);
+            DetachedRuntimeClose close = claimDetachedRuntimeClose(detached, false);
+            Throwable detachedFailure;
+            if (close.owner()) {
+                detachedFailure = null;
+                try {
+                    detachedFailure = closeDetachedGenerationRuntime(detached, null);
+                } catch (Throwable closeFailure) {
+                    detachedFailure = closeFailure;
+                } finally {
+                    finishDetachedRuntimeClose(detached, close, detachedFailure);
+                }
+            } else {
+                detachedFailure = close.completion().join();
             }
+            failure = appendFailure(failure, detachedFailure);
         }
         return failure;
+    }
+
+    record DetachedRuntimeClose(CompletableFuture<Throwable> completion, boolean owner) {
     }
 
     private Throwable releaseTarget(Throwable failure) {

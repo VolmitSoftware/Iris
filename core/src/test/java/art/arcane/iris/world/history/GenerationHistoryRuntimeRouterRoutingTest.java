@@ -369,6 +369,10 @@ public final class GenerationHistoryRuntimeRouterRoutingTest extends GenerationH
         GenerationHistoryRuntimeRouter.RuntimeRoute route = router.openRoute(4, -3);
 
         assertThrows(IllegalStateException.class, route::claimGeneratedSemantics);
+        try (GenerationHistoryRuntimeRouter.RuntimeRoute other = router.openRoute(5, -3);
+             GenerationHistoryRuntimeRouter.RuntimeRoute.RuntimeScope ignored = other.openRuntimeScope()) {
+            assertThrows(IllegalStateException.class, route::claimGeneratedSemantics);
+        }
         try (GenerationHistoryRuntimeRouter.RuntimeRoute.RuntimeScope ignored = route.openRuntimeScope()) {
             assertTrue(route.claimGeneratedSemantics());
             assertFalse(route.claimGeneratedSemantics());

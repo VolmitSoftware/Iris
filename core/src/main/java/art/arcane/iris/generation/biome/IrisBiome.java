@@ -115,9 +115,9 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     private final transient AtomicCache<Integer> maxWithObjectHeight = new AtomicCache<>();
     private final transient AtomicCache<IrisBiome> realCarveBiome = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
-    private final transient AtomicCache<KList<CNG>> layerHeightGenerators = new AtomicCache<>();
-    private final transient AtomicCache<KList<CNG>> layerCeilingHeightGenerators = new AtomicCache<>();
-    private final transient AtomicCache<KList<CNG>> layerSeaHeightGenerators = new AtomicCache<>();
+    private final transient IrisBiomeLayerHeightCache layerHeightGenerators = new IrisBiomeLayerHeightCache();
+    private final transient IrisBiomeLayerHeightCache layerCeilingHeightGenerators = new IrisBiomeLayerHeightCache();
+    private final transient IrisBiomeLayerHeightCache layerSeaHeightGenerators = new IrisBiomeLayerHeightCache();
     private final transient AtomicCache<KList<IrisOreGenerator>> surfaceOreCache = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisOreGenerator>> undergroundOreCache = new AtomicCache<>();
     private final transient AtomicCache<IrisOreGeneratorBounds> surfaceOreBoundsCache = new AtomicCache<>();

@@ -19,6 +19,8 @@ import art.arcane.volmlib.util.function.Consumer4;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import org.junit.Test;
@@ -208,6 +210,7 @@ public class IrisCarveWallPaletteScopeTest {
             engine.runtime = published;
             doReturn(IrisWorld.builder().minHeight(-64).maxHeight(0).build()).when(engine).getWorld();
             doReturn(64).when(engine).getHeight();
+            doReturn(mock(EnginePlatformHooks.class)).when(engine).getPlatformHooks();
             doReturn(mock(EngineMetrics.class, RETURNS_DEEP_STUBS)).when(engine).getMetrics();
             doReturn(48).when(context).getRoundedHeight(anyInt(), anyInt());
             IrisComplex activeComplex = active.complex();
@@ -230,13 +233,15 @@ public class IrisCarveWallPaletteScopeTest {
                 paletteCalls.incrementAndGet();
                 return wall;
             }).when(palette).get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class));
-            doAnswer(call -> {
-                try (IrisEngine.GenerationRuntimeScope ignored = engine.openGenerationRuntimeScope(
-                        new IrisEngine.GenerationRuntimeBinding(engine, active))) {
-                    assertSame(engine.runtimeAssembly.get() == null ? active.data() : assemblyData, engine.getData());
-                }
-                return biome;
-            }).when(engine).getCaveBiome(anyInt(), anyInt(), anyInt(), any(IrisDimensionCarvingResolver.State.class));
+            for (IrisComplex complex : new IrisComplex[]{activeComplex, detachedComplex, assemblyComplex}) {
+                doReturn(ProceduralStream.of((x, z) -> biome, Interpolated.of(value -> 0D, value -> null)))
+                        .when(complex).getTrueBiomeStream();
+                doReturn(ProceduralStream.of((x, z) -> scopedBiome(biome), Interpolated.of(value -> 0D, value -> null)))
+                        .when(complex).getCaveBiomeStream();
+                doReturn(ProceduralStream.of((x, z) -> 48D, Interpolated.DOUBLE))
+                        .when(complex).getHeightStream();
+            }
+            doAnswer(call -> scopedBiome(biome)).when(engine).getCaveBiome(anyInt(), anyInt(), anyInt(), any(IrisDimensionCarvingResolver.State.class));
             doReturn(engine).when(modifier).getEngine();
             doAnswer(call -> {
                 dataLookups.incrementAndGet();
@@ -246,5 +251,14 @@ public class IrisCarveWallPaletteScopeTest {
             field(modifier, IrisCarveModifier.class, "AIR", air);
             field(modifier, IrisCarveModifier.class, "LAVA", air);
         }
+
+        private IrisBiome scopedBiome(IrisBiome biome) {
+            try (IrisEngine.GenerationRuntimeScope ignored = engine.openGenerationRuntimeScope(
+                    new IrisEngine.GenerationRuntimeBinding(engine, active))) {
+                assertSame(engine.runtimeAssembly.get() == null ? active.data() : assemblyData, engine.getData());
+            }
+            return biome;
+        }
+
     }
 }

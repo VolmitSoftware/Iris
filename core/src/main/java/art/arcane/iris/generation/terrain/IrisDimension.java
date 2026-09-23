@@ -71,6 +71,7 @@ import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
+import art.arcane.iris.pack.schema.annotation.IntegerOptions;
 import art.arcane.iris.pack.schema.annotation.RegistryListFunction;
 import art.arcane.iris.pack.schema.annotation.RegistryListResource;
 import art.arcane.iris.pack.schema.annotation.Required;
@@ -278,6 +279,21 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(512)
     @Description("Zoom in or out the biome size. Higher = bigger biomes")
     private double biomeZoom = 1D;
+    @MinNumber(1)
+    @MaxNumber(8)
+    @IntegerOptions({1, 2, 4, 8})
+    @Description("Procedural terrain height sampling interval in blocks: 1, 2, 4, or 8. 1 retains full detail. Larger intervals interpolate between shared samples, reducing generation work and smoothing small height features. Image maps retain their configured sampling. Set before creating a world.")
+    private int terrainSamplingStep = 1;
+    @MinNumber(4)
+    @MaxNumber(32)
+    @IntegerOptions({4, 8, 16, 32})
+    @Description("Biome height-bound sampling interval in blocks: 4, 8, 16, or 32. 4 retains the original biome blending. Larger intervals interpolate the configured generator bounds between shared anchors, smoothing small biome-height features. Generator interpolation styles and radii remain active at the anchors. Set before creating a world.")
+    private int biomeBoundsSamplingStep = 4;
+    @MinNumber(1)
+    @MaxNumber(8)
+    @IntegerOptions({1, 2, 4, 8})
+    @Description("Vertical cave density sampling interval in blocks: 1, 2, 4, or 8. Larger intervals interpolate density while retaining cave module bounds, surface protection, and fluid rules. Changes cave geometry. Set before creating a world.")
+    private int caveDensitySamplingStep = 1;
     @MinNumber(0)
     @MaxNumber(360)
     @Description("You can rotate the input coordinates by an angle. This can make terrain appear more natural (less sharp corners and lines). This literally rotates the entire dimension by an angle. Hint: Try 12 degrees or something not on a 90 or 45 degree angle.")
@@ -511,6 +527,14 @@ public class IrisDimension extends IrisRegistrant {
 
             return filtered;
         });
+    }
+
+    public int getBiomeBoundsSamplingStep() {
+        if (biomeBoundsSamplingStep != 4 && biomeBoundsSamplingStep != 8
+                && biomeBoundsSamplingStep != 16 && biomeBoundsSamplingStep != 32) {
+            throw new IllegalArgumentException("Biome bounds sampling step must be 4, 8, 16, or 32");
+        }
+        return biomeBoundsSamplingStep;
     }
 
     public int getFluidHeight() {

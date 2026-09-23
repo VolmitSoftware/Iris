@@ -2118,13 +2118,15 @@ public class HydrologyPlannerTest {
     }
 
     @Test
-    public void fallbackAlternatesCoastalAndInlandTrials() {
+    public void fallbackAlternatesCoastalAndInlandTrials() throws Exception {
         // An island whose coast is walled by a berm between the lattice columns: every mouth course
         // needs a cut deeper than the channel may make, so the surface routing falls back. The coast
         // offers more fallback mouths than the trial budget, so a sinkhole only gets its trial when
         // the fallback alternates coastal and inland candidates.
         HydrologyPlannerSettings settings = standardSettings(1D, 0D, true, true, List.of());
+        AtomicInteger terrainSamples = new AtomicInteger();
         HydrologyTerrainSampler island = (int x, int z) -> {
+            terrainSamples.incrementAndGet();
             if (x < -16 || x > 144 || z < -16 || z > 144) {
                 return oceanTerrain();
             }
@@ -2135,6 +2137,7 @@ public class HydrologyPlannerTest {
         };
 
         HydrologyTile tile = new HydrologyPlanner(885L, settings, island, solidCaveView()).plan(TILE);
+        assertTrue("Fallback terrain samples: " + terrainSamples.get(), terrainSamples.get() < 37_500);
 
         assertFalse("diagnostics=" + tile.localDiagnosticCandidates(), surfaceCourses(tile).isEmpty());
         assertTrue(tile.localDiagnosticCandidates().stream().anyMatch((HydrologyDiagnosticCandidate candidate) ->
@@ -2143,6 +2146,46 @@ public class HydrologyPlannerTest {
             RiverOutlet outlet = tile.outlet(course.outletId().orElseThrow()).orElseThrow();
             assertFalse("outlet=" + outlet, outlet.directOcean());
             assertTrue(course.surfaceSinkholeContinuation());
+        }
+
+        HydrologyNaturalTerrainSampler natural = new HydrologyNaturalTerrainSampler() {
+            @Override
+            public HydrologyTerrainSample sampleBasis(int x, int z) {
+                return island.sample(x, z);
+            }
+
+            @Override
+            public HydrologyTerrainSample[] sampleGrid(GridRequest request) {
+                HydrologyTerrainSample[] samples = new HydrologyTerrainSample[request.width() * request.width()];
+                for (int z = 0; z < request.width(); z++) {
+                    for (int x = 0; x < request.width(); x++) {
+                        samples[z * request.width() + x] = island.sample(
+                                request.minimumX() + x * request.spacing(), request.minimumZ() + z * request.spacing());
+                    }
+                }
+                return samples;
+            }
+
+            @Override
+            public NaturalClassification classifyNatural(int x, int z) {
+                return island.sample(x, z).ocean() ? NaturalClassification.OCEAN : NaturalClassification.LAND;
+            }
+
+            @Override
+            public boolean supportsSharedGridSamples() {
+                return true;
+            }
+        };
+        HydrologyPlanner sharedPlanner = new HydrologyPlanner(885L, settings, island, natural,
+                HydrologyGeometrySampler.deterministic(island), Integer.MIN_VALUE, footprint -> solidCaveView());
+        ForkJoinPool workers = new ForkJoinPool(4);
+        try {
+            HydrologyTile shared = workers.submit(() -> sharedPlanner.plan(TILE)).get(30, TimeUnit.SECONDS);
+            assertTileContentsEqual(tile, shared);
+            assertEquals(tile.courses(), shared.courses());
+            assertEquals(tile.localDiagnosticCandidates(), shared.localDiagnosticCandidates());
+        } finally {
+            workers.shutdownNow();
         }
     }
 

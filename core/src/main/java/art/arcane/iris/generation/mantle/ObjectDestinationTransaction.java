@@ -3,6 +3,7 @@ package art.arcane.iris.generation.mantle;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.structure.object.IObjectPlacer;
@@ -11,6 +12,9 @@ import art.arcane.iris.generation.block.B;
 import art.arcane.iris.world.storage.matter.TileWrapper;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import org.jetbrains.annotations.Nullable;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,7 +30,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     private final int destinationChunkZ;
     private final int worldHeight;
     private final List<Mutation> mutations;
-    private final Map<DataKey, Object> overlay;
+    private final Long2ObjectOpenHashMap<Int2ObjectOpenHashMap<OverlayCell>> overlay;
 
     ObjectDestinationTransaction(MantleWriter writer, int destinationChunkX, int destinationChunkZ) {
         this.writer = writer;
@@ -34,7 +38,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         this.destinationChunkZ = destinationChunkZ;
         this.worldHeight = writer.getMantle().getWorldHeight();
         this.mutations = new ArrayList<>();
-        this.overlay = new HashMap<>();
+        this.overlay = new Long2ObjectOpenHashMap<>();
     }
 
     void commit() {
@@ -53,9 +57,10 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     }
 
     void apply(ObjectSourcePlan plan) {
-        for (Mutation mutation : plan.mutations()) {
-            if (isDestination(mutation.x(), mutation.z())) {
-                mutation.apply(this);
+        for (Mutation mutation : plan.mutationsFor(destinationChunkX, destinationChunkZ)) {
+            switch (mutation) {
+                case SetMutation set -> setData(set.key().x(), set.key().y(), set.key().z(), set.value(), set);
+                case CustomBlockMutation custom -> set(custom.key().x(), custom.key().y(), custom.key().z(), custom.state(), custom);
             }
         }
     }
@@ -102,6 +107,10 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     @Override
     public void set(int x, int y, int z, NativeBlockState state) {
+        set(x, y, z, state, null);
+    }
+
+    private void set(int x, int y, int z, NativeBlockState state, CustomBlockMutation replayed) {
         if (state == null) {
             return;
         }
@@ -111,11 +120,12 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             if (!canSetBlock(x, y, z)) {
                 return;
             }
-            DataKey blockKey = new DataKey(x, y, z, NativeBlockState.class);
             Identifier identifier = Identifier.fromString(placementKey);
-            overlay.put(blockKey, baseState);
-            overlay.put(new DataKey(x, y, z, Identifier.class), identifier);
-            mutations.add(new CustomBlockMutation(blockKey, state));
+            OverlayCell cell = writableCell(x, y, z);
+            cell.block = baseState;
+            cell.identifier = identifier;
+            mutations.add(replayed != null
+                    ? replayed : new CustomBlockMutation(new DataKey(x, y, z, NativeBlockState.class), state));
             return;
         }
         setData(x, y, z, state);
@@ -123,8 +133,8 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     @Override
     public NativeBlockState get(int x, int y, int z) {
-        DataKey key = new DataKey(x, y, z, NativeBlockState.class);
-        Object value = overlay.get(key);
+        OverlayCell cell = overlayCell(x, y, z);
+        Object value = cell == null ? null : cell.block;
         if (value == CLEARED) {
             return EngineMantle.AIR.get();
         }
@@ -140,15 +150,19 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     @Override
     public boolean isCarved(int x, int y, int z) {
-        Object block = overlay.get(new DataKey(x, y, z, NativeBlockState.class));
+        OverlayCell cell = overlayCell(x, y, z);
+        if (cell == null) {
+            return writer.isPrerequisiteCarved(x, y, z);
+        }
+        Object block = cell.block;
         if (block instanceof NativeBlockState state && !state.isAir() && !state.isFluid()) {
             return false;
         }
-        Object hydrologyValue = overlay.get(new DataKey(x, y, z, HydrologyCaveCell.class));
+        Object hydrologyValue = cell.hydrology;
         if (hydrologyValue instanceof HydrologyCaveCell hydrology) {
             return hydrology.carves();
         }
-        Object cavern = overlay.get(new DataKey(x, y, z, MatterCavern.class));
+        Object cavern = cell.cavern;
         return cavern == null ? writer.isPrerequisiteCarved(x, y, z) : cavern != CLEARED;
     }
 
@@ -186,6 +200,10 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     @Override
     public <T> void setData(int x, int y, int z, T data) {
+        setData(x, y, z, data, null);
+    }
+
+    private void setData(int x, int y, int z, Object data, SetMutation replayed) {
         if (data == null || y < 0 || y >= worldHeight) {
             return;
         }
@@ -196,18 +214,21 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             return;
         }
         Class<?> type = data instanceof NativeBlockState ? NativeBlockState.class : data.getClass();
+        OverlayCell cell = writableCell(x, y, z);
         if (data instanceof NativeBlockState) {
-            overlay.put(new DataKey(x, y, z, Identifier.class), CLEARED);
+            cell.block = data;
+            cell.identifier = CLEARED;
+        } else {
+            cell.put(type, data);
         }
-        DataKey key = new DataKey(x, y, z, type);
-        overlay.put(key, data);
-        mutations.add(new SetMutation(key, data));
+        mutations.add(replayed != null
+                ? replayed : new SetMutation(new DataKey(x, y, z, type), data));
     }
 
     @Override
     public <T> @Nullable T getDataIfPresent(int x, int y, int z, Class<T> type) {
-        DataKey key = new DataKey(x, y, z, type);
-        Object value = overlay.get(key);
+        OverlayCell cell = overlayCell(x, y, z);
+        Object value = cell == null ? null : cell.get(type);
         if (value == CLEARED) {
             return null;
         }
@@ -228,22 +249,22 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         } else {
             carved = carved.clone();
         }
-        for (int y = 0; y < cappedHeight; y++) {
-            Object block = overlay.get(new DataKey(x, y, z, NativeBlockState.class));
-            if (block instanceof NativeBlockState state && !state.isAir() && !state.isFluid()) {
+        Int2ObjectOpenHashMap<OverlayCell> column = overlay.get(columnKey(x, z));
+        if (column == null) {
+            return carved;
+        }
+        for (Int2ObjectMap.Entry<OverlayCell> entry : column.int2ObjectEntrySet()) {
+            int y = entry.getIntKey();
+            if (y >= cappedHeight) {
+                continue;
+            }
+            OverlayCell cell = entry.getValue();
+            if (cell.block instanceof NativeBlockState state && !state.isAir() && !state.isFluid()) {
                 carved[y] = 0;
-                continue;
-            }
-            DataKey hydrologyKey = new DataKey(x, y, z, HydrologyCaveCell.class);
-            Object hydrologyValue = overlay.get(hydrologyKey);
-            if (hydrologyValue instanceof HydrologyCaveCell hydrology) {
+            } else if (cell.hydrology instanceof HydrologyCaveCell hydrology) {
                 carved[y] = hydrology.carves() ? (byte) 1 : 0;
-                continue;
-            }
-            DataKey cavernKey = new DataKey(x, y, z, MatterCavern.class);
-            Object cavernValue = overlay.get(cavernKey);
-            if (cavernValue != null) {
-                carved[y] = cavernValue == CLEARED ? (byte) 0 : (byte) 1;
+            } else if (cell.cavern != null) {
+                carved[y] = cell.cavern == CLEARED ? (byte) 0 : (byte) 1;
             }
         }
         return carved;
@@ -252,6 +273,30 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     @Override
     public Engine getEngine() {
         return writer.getEngine();
+    }
+
+    private static long columnKey(int x, int z) {
+        return ((long) x << 32) | (z & 0xffffffffL);
+    }
+
+    private OverlayCell overlayCell(int x, int y, int z) {
+        Int2ObjectOpenHashMap<OverlayCell> column = overlay.get(columnKey(x, z));
+        return column == null ? null : column.get(y);
+    }
+
+    private OverlayCell writableCell(int x, int y, int z) {
+        long coordinate = columnKey(x, z);
+        Int2ObjectOpenHashMap<OverlayCell> column = overlay.get(coordinate);
+        if (column == null) {
+            column = new Int2ObjectOpenHashMap<>(4);
+            overlay.put(coordinate, column);
+        }
+        OverlayCell cell = column.get(y);
+        if (cell == null) {
+            cell = new OverlayCell();
+            column.put(y, cell);
+        }
+        return cell;
     }
 
     private Object prerequisiteOrCleared(int x, int y, int z, Class<?> type) {
@@ -317,10 +362,61 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         }
     }
 
+    private static final class OverlayCell {
+        private Object block;
+        private Object hydrology;
+        private Object cavern;
+        private Object identifier;
+        private Object string;
+        private Object treeMaterial;
+        private Map<Class<?>, Object> other;
+
+        private Object get(Class<?> type) {
+            if (type == NativeBlockState.class) {
+                return block;
+            }
+            if (type == HydrologyCaveCell.class) {
+                return hydrology;
+            }
+            if (type == MatterCavern.class) {
+                return cavern;
+            }
+            if (type == Identifier.class) {
+                return identifier;
+            }
+            if (type == String.class) {
+                return string;
+            }
+            if (type == TreeBlockMaterial.class) {
+                return treeMaterial;
+            }
+            return other == null ? null : other.get(type);
+        }
+
+        private void put(Class<?> type, Object value) {
+            if (type == HydrologyCaveCell.class) {
+                hydrology = value;
+            } else if (type == MatterCavern.class) {
+                cavern = value;
+            } else if (type == Identifier.class) {
+                identifier = value;
+            } else if (type == String.class) {
+                string = value;
+            } else if (type == TreeBlockMaterial.class) {
+                treeMaterial = value;
+            } else {
+                if (other == null) {
+                    other = new HashMap<>();
+                }
+                other.put(type, value);
+            }
+        }
+    }
+
     record DataKey(int x, int y, int z, Class<?> type) {
     }
 
-    interface Mutation {
+    sealed interface Mutation permits SetMutation, CustomBlockMutation {
         int x();
 
         int z();

@@ -65,7 +65,13 @@ public class IrisBiomePaletteLayer {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private final transient AtomicReference<CachedLayerGenerator> recentLayerGenerator = new AtomicReference<>();
-    private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final transient LazyBoundedCache<LayerGeneratorKey, CNG> heightGenerators =
+            new LazyBoundedCache<>(LAYER_GENERATOR_CACHE_SIZE);
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final transient AtomicReference<CachedLayerGenerator> recentHeightGenerator = new AtomicReference<>();
     @Description("The style of noise")
     private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
     @DependsOn({"minHeight", "maxHeight"})
@@ -91,13 +97,18 @@ public class IrisBiomePaletteLayer {
     private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("GRASS_BLOCK"));
 
     public CNG getHeightGenerator(RNG rng, IrisData data) {
-        CNG cached = heightGenerator.getIfPresent();
-
-        if (cached != null) {
-            return cached;
+        Engine engine = data == null ? null : data.getEngine();
+        long generatorSeed = rng.getSeed() + minHeight * maxHeight + getBlockData(data).size();
+        CachedLayerGenerator recent = recentHeightGenerator.get();
+        if (recent != null && recent.key.matches(data, engine, generatorSeed)) {
+            return recent.generator;
         }
 
-        return heightGenerator.aquire(() -> CNG.signature(rng.nextParallelRNG(minHeight * maxHeight + getBlockData(data).size())));
+        LayerGeneratorKey key = new LayerGeneratorKey(data, engine, generatorSeed);
+        CNG generator = heightGenerators.computeIfAbsent(key,
+                ignored -> CNG.signature(new RNG(generatorSeed)));
+        recentHeightGenerator.set(new CachedLayerGenerator(key, generator));
+        return generator;
     }
 
     public NativeBlockState get(RNG rng, double x, double y, double z, IrisData data) {

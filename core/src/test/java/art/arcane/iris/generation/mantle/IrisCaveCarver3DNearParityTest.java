@@ -127,6 +127,176 @@ public class IrisCaveCarver3DNearParityTest {
     }
 
     @Test
+    public void verticalDensityPlanesUseGlobalAnchorsAndReduceSamplesAcrossChunkEdges() throws Exception {
+        Engine engine = createEngine(128, 110);
+        IrisDimension dimension = engine.getDimension();
+        doReturn(4).when(dimension).getCaveDensitySamplingStep();
+        doReturn(IrisWorld.builder().minHeight(-63).maxHeight(65).build()).when(engine).getWorld();
+        IrisCaveCarver3D carver = new IrisCaveCarver3D(engine,
+                createProfile(false, false).setDetailWeight(0D).setAllowFluid(false));
+        AtomicInteger calls = new AtomicInteger();
+        Set<Integer> sampledY = new HashSet<>();
+        CNG density = mock(CNG.class);
+        doAnswer(invocation -> {
+            calls.incrementAndGet();
+            double x = invocation.getArgument(0);
+            double y = invocation.getArgument(1);
+            double z = invocation.getArgument(2);
+            sampledY.add((int) y);
+            return x * 0.0001D + y * 0.01D + z * 0.0002D;
+        }).when(density).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
+        baseDensityField.set(carver, density);
+        Method prepare = IrisCaveCarver3D.class.getDeclaredMethod("prepareVerticalDensityPlane",
+                CaveCarveScratch.class, int.class, int.class, int.class);
+        prepare.setAccessible(true);
+        CaveCarveScratch scratch = new CaveCarveScratch();
+        for (int y = 0; y < 64; y++) {
+            prepare.invoke(carver, scratch, -16, 32, y);
+            for (int x = 0; x < 3; x++) {
+                for (int z = 0; z < 3; z++) {
+                    assertEquals((-16 + x * 8) * 0.0001D + y * 0.01D + (32 + z * 8) * 0.0002D,
+                            scratch.adaptivePlaneDensity[x * 3 + z], 1.0E-14D);
+                }
+            }
+        }
+        assertEquals(153, calls.get());
+        assertFalse(sampledY.contains(1));
+        int interpolatedCalls = calls.get();
+        doReturn(1).when(dimension).getCaveDensitySamplingStep();
+        IrisCaveCarver3D scalar = new IrisCaveCarver3D(engine,
+                createProfile(false, false).setDetailWeight(0D).setAllowFluid(false));
+        baseDensityField.set(scalar, density);
+        CaveCarveScratch scalarScratch = new CaveCarveScratch();
+        for (int index = 0; index < 256; index++) {
+            scalarScratch.planeColumnIndices[index] = index;
+        }
+        Method classify = IrisCaveCarver3D.class.getDeclaredMethod("classifyDensityPlaneAdaptive",
+                CaveCarveScratch.class, int.class, int.class, int.class, int[].class, double[].class,
+                int.class, boolean[].class, int.class, double.class);
+        classify.setAccessible(true);
+        calls.set(0);
+        for (int y = 0; y < 64; y++) {
+            classify.invoke(scalar, scalarScratch, -16, 32, y, scalarScratch.planeColumnIndices,
+                    scalarScratch.planeThresholdLimit, 256, scalarScratch.planeCarve, 8, 0.04D);
+        }
+        assertEquals(576, calls.get());
+        assertTrue(interpolatedCalls < calls.get() * 0.3D);
+        assertTrue(sampledY.containsAll(List.of(0, 3, 7, 63)));
+        CaveCarveScratch neighboring = new CaveCarveScratch();
+        prepare.invoke(carver, neighboring, 0, 32, 63);
+        for (int z = 0; z < 3; z++) {
+            assertEquals(scratch.adaptivePlaneDensity[6 + z], neighboring.adaptivePlaneDensity[z], 0D);
+        }
+        prepare.invoke(carver, scratch, 48, -32, 9);
+        assertEquals(48 * 0.0001D + 0.09D - 32 * 0.0002D, scratch.adaptivePlaneDensity[0], 1.0E-14D);
+    }
+
+    @Test
+    public void expressionStylesKeepTheOriginalSamplingAndCarvingBehavior() throws Exception {
+        CNG density = mock(CNG.class);
+        AtomicInteger calls = new AtomicInteger();
+        doAnswer(invocation -> {
+            calls.incrementAndGet();
+            double y = invocation.getArgument(1);
+            return Math.sin(y * 0.2D);
+        }).when(density).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
+        IrisGeneratorStyle style = mock(IrisGeneratorStyle.class);
+        doReturn("density_expression").when(style).getExpression();
+        doReturn(density).when(style).create(any(RNG.class), any(IrisData.class));
+        IrisCaveProfile profile = createProfile(false, false).setBaseDensityStyle(style)
+                .setDetailWeight(0D).setAllowFluid(false)
+                .setDensityThreshold(new IrisStyledRange(0.15D, 0.15D, new IrisGeneratorStyle(NoiseStyle.FLAT)));
+        WriterCapture expected = null;
+        int expectedSamples = 0;
+        for (int step : new int[]{1, 4}) {
+            Engine engine = createEngine(128, 110);
+            IrisDimension dimension = engine.getDimension();
+            doReturn(step).when(dimension).getCaveDensitySamplingStep();
+            WriterCapture capture = createWriterCapture(128);
+            calls.set(0);
+            new IrisCaveCarver3D(engine, profile).carve(capture.writer, 0, 0,
+                    fullWeights(), 0D, 0D, null, filledHeights(110));
+            assertFalse(capture.carvedCells.isEmpty());
+            if (expected == null) {
+                expected = capture;
+                expectedSamples = calls.get();
+            } else {
+                assertEquals(expectedSamples, calls.get());
+                assertEquals(expected.carvedCells, capture.carvedCells);
+                assertEquals(expected.carvedLiquids, capture.carvedLiquids);
+            }
+        }
+    }
+
+    @Test
+    public void verticalDensityPreservesTwoBlockModuleTunnelsWithoutBleedingAcrossBands() throws Exception {
+        for (int step : new int[]{2, 4, 8}) {
+            Engine engine = createEngine(128, 110);
+            IrisDimension dimension = engine.getDimension();
+            doReturn(step).when(dimension).getCaveDensitySamplingStep();
+            IrisCaveProfile profile = createProfile(false, false).setDetailWeight(0D).setAllowFluid(false)
+                    .setVerticalEdgeFade(0).setVerticalEdgeFadeStrength(0D).setAllowSurfaceBreak(false)
+                    .setDensityThreshold(new IrisStyledRange(0.25D, 0.25D, new IrisGeneratorStyle(NoiseStyle.FLAT)))
+                    .setModules(new KList<>(new IrisCaveFieldModule(new IrisGeneratorStyle(NoiseStyle.FLAT),
+                            1D, 0D, new IrisRange(5D, 6D), false)));
+            IrisCaveCarver3D carver = new IrisCaveCarver3D(engine, profile);
+            CNG base = mock(CNG.class);
+            doReturn(1D).when(base).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
+            baseDensityField.set(carver, base);
+            CNG module = mock(CNG.class);
+            doReturn(-1D).when(module).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
+            moduleDensityField.set(((CaveFieldModuleState[]) modulesField.get(carver))[0], module);
+            WriterCapture capture = createWriterCapture(128);
+            carver.carve(capture.writer, -1, 2, fullWeights(), 0D, 0D, null, filledHeights(110));
+            assertEquals(512, capture.carvedCells.size());
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    assertTrue(capture.carvedCells.contains(cellKey(x, 5, z)));
+                    assertTrue(capture.carvedCells.contains(cellKey(x, 6, z)));
+                    assertFalse(capture.carvedCells.contains(cellKey(x, 4, z)));
+                    assertFalse(capture.carvedCells.contains(cellKey(x, 7, z)));
+                }
+            }
+        }
+    }
+
+    @Test
+    public void verticalDensityMatchesParallelDecisionsAndKeepsSurfaceFluidBarriers() throws Exception {
+        try (ForkJoinPool pool = new ForkJoinPool(4)) {
+            for (boolean warp : new boolean[]{false, true}) {
+                Engine engine = createEngine(128, 110);
+                IrisDimension dimension = engine.getDimension();
+                doReturn(4).when(dimension).getCaveDensitySamplingStep();
+                doReturn(IrisWorld.builder().minHeight(-63).maxHeight(65).build()).when(engine).getWorld();
+                IrisCaveProfile profile = createProfile(warp, true).setFluidRequiresFloor(false)
+                        .setDensityThreshold(new IrisStyledRange(0.15D, 0.15D, new IrisGeneratorStyle(NoiseStyle.FLAT)));
+                IrisCaveCarver3D carver = new IrisCaveCarver3D(engine, profile);
+                long[] boundaries = new long[256];
+                Arrays.fill(boundaries, SurfaceFluidBoundaryPlan.boundary(
+                        SurfaceFluidBoundaryPlan.NO_BOUNDARY, Integer.MIN_VALUE));
+                boundaries[16] = SurfaceFluidBoundaryPlan.boundary(61, 64);
+                WriterCapture serial = createWriterCapture(128);
+                WriterCapture parallel = createWriterCapture(128);
+                int[] heights = filledHeights(110);
+                int expected = carver.carve(serial.writer, -17, 19, fullWeights(), 0D, 0D,
+                        null, heights, boundaries, null, new CaveFluidSupportPlan());
+                int actual = pool.submit(() -> carver.carve(parallel.writer, -17, 19, fullWeights(), 0D, 0D,
+                        null, heights, boundaries, null, new CaveFluidSupportPlan())).get(20, TimeUnit.SECONDS);
+                assertTrue(expected > 0);
+                assertEquals(expected, actual);
+                assertEquals(serial.carvedCells, parallel.carvedCells);
+                assertEquals(serial.carvedLiquids, parallel.carvedLiquids);
+                for (int y = 61; y <= 64; y++) {
+                    assertFalse(serial.carvedCells.contains(cellKey(1, y, 0)));
+                }
+                assertTrue(countLiquid(serial, (byte) 2) > 0);
+                assertTrue(countLiquid(serial, (byte) 0) > 0);
+                assertTrue(maxY(serial.carvedCells) <= 110);
+            }
+        }
+    }
+
+    @Test
     public void carvingReleasesSectionReferencesAfterSuccessAndFailure() throws Exception {
         for (boolean fail : new boolean[]{false, true}) {
             Engine engine = createEngine(128, 110);

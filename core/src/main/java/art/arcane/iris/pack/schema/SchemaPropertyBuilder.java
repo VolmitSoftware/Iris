@@ -22,11 +22,13 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
+import art.arcane.iris.pack.schema.annotation.IntegerOptions;
 import art.arcane.iris.pack.schema.annotation.RegistryMapBlockState;
 import art.arcane.iris.pack.schema.annotation.Required;
 import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.json.JSONObject;
+import art.arcane.volmlib.util.json.JSONArray;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -67,6 +69,13 @@ final class SchemaPropertyBuilder {
     }
 
     private String integerProperty(Field k, JSONObject prop, KList<String> description) {
+        if (k.isAnnotationPresent(IntegerOptions.class)) {
+            JSONArray options = new JSONArray();
+            for (int value : k.getDeclaredAnnotation(IntegerOptions.class).value()) {
+                options.put(value);
+            }
+            prop.put("enum", options);
+        }
         if (k.isAnnotationPresent(MinNumber.class)) {
             int min = (int) k.getDeclaredAnnotation(MinNumber.class).value();
             prop.put("minimum", min);

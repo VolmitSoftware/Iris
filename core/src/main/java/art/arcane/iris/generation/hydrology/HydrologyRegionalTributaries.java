@@ -89,7 +89,7 @@ final class HydrologyRegionalTributaries {
         if (tributary == null || !confined(tributary)) {
             return null;
         }
-        SurfaceFootprint footprint = footprints.surfaceFootprint(tributary);
+        SurfaceFootprint footprint = footprints.surfaceFootprintForPublication(tributary);
         if (!footprint.accepted() || !joinsWater(tributary, footprint, receiver.course())) {
             if (!footprint.accepted()) {
                 planner.tributaries.addTributaryDiagnostic(local.id(), local.segments().getFirst().start(),

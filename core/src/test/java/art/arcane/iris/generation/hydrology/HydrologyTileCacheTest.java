@@ -280,6 +280,7 @@ public class HydrologyTileCacheTest {
     @Test
     public void interruptedWaiterExitsWithoutCancellingTheSharedPlan() throws Exception {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(emptySettings());
         HydrologyTile tile = mock(HydrologyTile.class);
         HydrologyTileKey key = new HydrologyTileKey(0, 0);
         CountDownLatch started = new CountDownLatch(1);
@@ -331,6 +332,7 @@ public class HydrologyTileCacheTest {
     @Test
     public void closeDrainsBackgroundPlanningAndRejectsNewDemand() throws Exception {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(emptySettings());
         HydrologyTile tile = mock(HydrologyTile.class);
         HydrologyTileKey key = new HydrologyTileKey(0, 0);
         CountDownLatch started = new CountDownLatch(1);
@@ -402,6 +404,7 @@ public class HydrologyTileCacheTest {
     @Test
     public void closingFromAnOwnedLoadFailsWithoutDeadlockingOrClosingTheCache() {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(emptySettings());
         HydrologyTile tile = mock(HydrologyTile.class);
         HydrologyTileCache cache = new HydrologyTileCache(planner, 4);
         HydrologyTileKey key = new HydrologyTileKey(0, 0);
@@ -707,6 +710,7 @@ public class HydrologyTileCacheTest {
     @Test
     public void equivalentStudioRuntimesReuseCompletedTiles() {
         HydrologyPlanner firstPlanner = mock(HydrologyPlanner.class);
+        when(firstPlanner.settings()).thenReturn(emptySettings());
         HydrologyPlanner secondPlanner = mock(HydrologyPlanner.class);
         HydrologyTile tile = mock(HydrologyTile.class);
         HydrologyTileKey key = new HydrologyTileKey(2, -3);
@@ -739,7 +743,9 @@ public class HydrologyTileCacheTest {
     @Test
     public void failedPlansDoNotEnterTheSharedStudioCache() {
         HydrologyPlanner failingPlanner = mock(HydrologyPlanner.class);
+        when(failingPlanner.settings()).thenReturn(emptySettings());
         HydrologyPlanner succeedingPlanner = mock(HydrologyPlanner.class);
+        when(succeedingPlanner.settings()).thenReturn(emptySettings());
         HydrologyTile emptyTile = mock(HydrologyTile.class);
         HydrologyTile plannedTile = mock(HydrologyTile.class);
         HydrologyTileKey key = new HydrologyTileKey(-4, 5);
@@ -759,6 +765,7 @@ public class HydrologyTileCacheTest {
     @Test
     public void closeWaitsForActivePlansWithoutPublishingTheirSharedTiles() throws Exception {
         HydrologyPlanner closingPlanner = mock(HydrologyPlanner.class);
+        when(closingPlanner.settings()).thenReturn(emptySettings());
         HydrologyPlanner succeedingPlanner = mock(HydrologyPlanner.class);
         HydrologyTile lateTile = mock(HydrologyTile.class);
         HydrologyTile plannedTile = mock(HydrologyTile.class);
@@ -954,6 +961,106 @@ public class HydrologyTileCacheTest {
         for (HydrologyColumnLayer layer : plannedColumn.layers()) {
             assertEquals(layer.feature().type(), renderedFeatures.get(layer.feature().id()));
         }
+    }
+
+    @Test
+    public void singleColumnContributionReusesItsImmutableSample() {
+        HydrologyColumnSample sample = compositionSample(90, List.of(compositionLayer(11L, 80)));
+        try (HydrologyTileCache cache = compositionCache(Map.of(new HydrologyTileKey(-1, 0), sample))) {
+            assertSame(sample, cache.columnAt(-1, 0).orElseThrow());
+            assertTrue(cache.columnAt(-2, 0).isEmpty());
+        }
+    }
+
+    @Test
+    public void singleColumnContributionPreservesCanonicalLayerOrder() {
+        HydrologyColumnSample sample = compositionSample(90,
+                List.of(compositionLayer(11L, 80), compositionLayer(12L, 78)));
+        try (HydrologyTileCache cache = compositionCache(Map.of(new HydrologyTileKey(-1, 0), sample))) {
+            assertSame(sample, cache.columnAt(-1, 0).orElseThrow());
+        }
+    }
+
+    @Test
+    public void singleColumnContributionDeduplicatesIdenticalFeatureIds() {
+        HydrologyColumnLayer layer = compositionLayer(11L, 80);
+        HydrologyColumnSample sample = compositionSample(90, List.of(layer, layer));
+        try (HydrologyTileCache cache = compositionCache(Map.of(new HydrologyTileKey(-1, 0), sample))) {
+            assertEquals(compositionSample(90, List.of(layer)), cache.columnAt(-1, 0).orElseThrow());
+        }
+    }
+
+    @Test
+    public void singleColumnContributionRejectsConflictingFeatureIds() {
+        HydrologyColumnSample sample = compositionSample(90,
+                List.of(compositionLayer(11L, 80), compositionLayer(11L, 79)));
+        try (HydrologyTileCache cache = compositionCache(Map.of(new HydrologyTileKey(-1, 0), sample))) {
+            IllegalStateException failure = assertThrows(IllegalStateException.class, () -> cache.columnAt(-1, 0));
+            assertEquals("Hydrology feature id collision at -1,0.", failure.getMessage());
+        }
+    }
+
+    @Test
+    public void overlappingColumnContributionsMergeAndDeduplicateLayers() {
+        HydrologyColumnLayer shared = compositionLayer(11L, 80);
+        HydrologyColumnLayer additional = compositionLayer(12L, 78);
+        HydrologyColumnSample first = compositionSample(90, List.of(shared));
+        HydrologyColumnSample second = compositionSample(90, List.of(additional, shared));
+        try (HydrologyTileCache cache = compositionCache(Map.of(
+                new HydrologyTileKey(-1, 0), first, new HydrologyTileKey(0, 0), second))) {
+            assertEquals(compositionSample(90, List.of(shared, additional)), cache.columnAt(-1, 0).orElseThrow());
+        }
+    }
+
+    @Test
+    public void overlappingColumnContributionsRejectConflictingFeatureIds() {
+        HydrologyColumnSample first = compositionSample(90, List.of(compositionLayer(11L, 80)));
+        HydrologyColumnSample second = compositionSample(90, List.of(compositionLayer(11L, 79)));
+        try (HydrologyTileCache cache = compositionCache(Map.of(
+                new HydrologyTileKey(-1, 0), first, new HydrologyTileKey(0, 0), second))) {
+            IllegalStateException failure = assertThrows(IllegalStateException.class, () -> cache.columnAt(-1, 0));
+            assertEquals("Hydrology feature id collision at -1,0.", failure.getMessage());
+        }
+    }
+
+    @Test
+    public void overlappingColumnContributionsRejectDifferentNaturalTerrain() {
+        HydrologyColumnSample first = compositionSample(90, List.of(compositionLayer(11L, 80)));
+        HydrologyColumnSample second = compositionSample(91, List.of(compositionLayer(12L, 78)));
+        try (HydrologyTileCache cache = compositionCache(Map.of(
+                new HydrologyTileKey(-1, 0), first, new HydrologyTileKey(0, 0), second))) {
+            IllegalStateException failure = assertThrows(IllegalStateException.class, () -> cache.columnAt(-1, 0));
+            assertEquals("Hydrology plans disagree on terrain metadata at -1,0.", failure.getMessage());
+        }
+    }
+
+    private HydrologyTileCache compositionCache(Map<HydrologyTileKey, HydrologyColumnSample> samples) {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(featureSettings());
+        when(planner.plan(any(HydrologyTileKey.class))).thenAnswer(invocation -> {
+            HydrologyTileKey key = invocation.getArgument(0);
+            HydrologyColumnSample sample = samples.get(key);
+            RiverFootprint footprint = sample == null ? RiverFootprint.empty()
+                    : new RiverFootprint(Map.of(RiverFootprint.pack(sample.x(), sample.z()), sample));
+            HydrologyTile tile = mock(HydrologyTile.class);
+            when(tile.footprint()).thenReturn(footprint);
+            when(tile.columnAt(anyInt(), anyInt())).thenAnswer(query ->
+                    footprint.sample(query.getArgument(0), query.getArgument(1)));
+            return tile;
+        });
+        return new HydrologyTileCache(planner, 64);
+    }
+
+    private static HydrologyColumnSample compositionSample(int naturalHeight, List<HydrologyColumnLayer> layers) {
+        return new HydrologyColumnSample(-1, 0, naturalHeight, 63, false, "parent", layers);
+    }
+
+    private static HydrologyColumnLayer compositionLayer(long featureId, int bedY) {
+        HydrologyFeatureRef feature = new HydrologyFeatureRef(featureId, HydrologyFeatureType.SURFACE_POOL,
+                1L, 1L, -1, 82, 0, 1, 0, false);
+        return new HydrologyColumnLayer(feature, bedY, 82, 82,
+                true, false, false, true, false, false, true, true, false,
+                "default", "river", "mouth", "shore", "bank", "cave");
     }
 
     @Test
@@ -1338,6 +1445,7 @@ public class HydrologyTileCacheTest {
 
     private void assertConcurrentTilePlanning(List<HydrologyTileKey> keys) throws Exception {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(emptySettings());
         HydrologyTile tile = mock(HydrologyTile.class);
         CountDownLatch started = new CountDownLatch(Math.min(keys.size(), HydrologyPlanningAdmission.maximumRoots()));
         CountDownLatch release = new CountDownLatch(1);
@@ -1449,6 +1557,7 @@ public class HydrologyTileCacheTest {
     @Test
     public void clearDoesNotJoinOrPublishAnOldTilePlan() throws Exception {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(emptySettings());
         HydrologyTile oldTile = mock(HydrologyTile.class);
         HydrologyTile newTile = mock(HydrologyTile.class);
         HydrologyTileKey key = new HydrologyTileKey(0, 0);

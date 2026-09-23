@@ -1,6 +1,9 @@
 package art.arcane.iris.generation.hydrology.runtime;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.context.IrisContext;
+import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.volmlib.nativelib.terrain.NativeGenerationScope;
 import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
@@ -53,6 +56,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.IntConsumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public final class IrisHydrologyRuntime implements AutoCloseable {
     private static final int MAXIMUM_CACHE_TILES = 64;
@@ -102,7 +106,7 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
         );
         this.routingTerrainSampler = new IrisHydrologyRoutingTerrainSampler(
                 terrainSources,
-                IrisHydrologyRoutingTerrainSampler.SamplingOptions.production(MAXIMUM_TERRAIN_SAMPLES)
+                IrisHydrologyRoutingTerrainSampler.SamplingOptions.production(MAXIMUM_TERRAIN_SAMPLES, this::captureBasisScope)
         );
         HydrologyPlanner planner = new HydrologyPlanner(
                 context.seed(),
@@ -530,6 +534,37 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
         }
         return "Hydrology natural height was not finite at " + x + "," + z
                 + " (raw=" + rawNaturalHeight + ", sampled=" + sampledNaturalHeight + "; " + breakdown + ")";
+    }
+
+    private Supplier<NativeGenerationScope> captureBasisScope() {
+        if (!(context.data().getEngine() instanceof IrisEngine engine)) {
+            return null;
+        }
+        IrisEngine.GenerationRuntimeBinding binding = engine.captureGenerationRuntimeBinding();
+        try (IrisEngine.GenerationRuntimeScope ignored = engine.openGenerationRuntimeScope(binding)) {
+            if (engine.getComplex().getHydrologyRuntime() != this) {
+                return null;
+            }
+        }
+        IrisContext current = IrisContext.get();
+        long session = current != null && current.getEngine() == engine ? current.getGenerationSessionId() : 0L;
+        return () -> {
+            IrisEngine.GenerationRuntimeScope runtime = engine.openGenerationRuntimeScope(binding);
+            IrisContext.Scope execution;
+            try {
+                execution = IrisContext.open(engine, session, null);
+            } catch (RuntimeException | Error failure) {
+                runtime.close();
+                throw failure;
+            }
+            return () -> {
+                try {
+                    execution.close();
+                } finally {
+                    runtime.close();
+                }
+            };
+        };
     }
 
     private IrisHydrologyRoutingTerrainSampler.TerrainBasis createTerrainBasis(

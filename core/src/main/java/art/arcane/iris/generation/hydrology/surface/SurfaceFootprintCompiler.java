@@ -54,11 +54,19 @@ public final class SurfaceFootprintCompiler {
         return compile(prepare(course), bounds);
     }
 
+    public SurfaceFootprint compileForPublication(RiverCourse course) {
+        return compile(prepare(course), null, true);
+    }
+
     public PreparedCourse prepare(RiverCourse course) {
         return new PreparedCourse(this, Objects.requireNonNull(course, "course"));
     }
 
     public SurfaceFootprint compile(PreparedCourse prepared, SurfaceBounds bounds) {
+        return compile(prepared, bounds, false);
+    }
+
+    private SurfaceFootprint compile(PreparedCourse prepared, SurfaceBounds bounds, boolean publication) {
         if (prepared.compiler != this) {
             throw new IllegalArgumentException("Prepared course belongs to another surface compiler");
         }
@@ -89,7 +97,7 @@ public final class SurfaceFootprintCompiler {
             while (after < course.segments().size() && exposedSegment(course.segments().get(after))) {
                 after++;
             }
-            SurfaceFootprint run = compileRun(prepared, first, after, prepared.inlet.offset(first), bounds, drops, pool, receivingSampler);
+            SurfaceFootprint run = compileRun(prepared, first, after, prepared.inlet.offset(first), bounds, drops, pool, receivingSampler, publication);
             columns.addAll(run.columns());
             uncontained += run.uncontainedWetCells();
             excavation += run.bankExcavation();
@@ -147,7 +155,7 @@ public final class SurfaceFootprintCompiler {
 
     private SurfaceFootprint compileRun(PreparedCourse prepared, int first, int after, int stationOffset,
                                         SurfaceBounds bounds, HydrologySurfaceDropRaster drops, boolean pool,
-                                        HydrologyTerrainSampler receivingSampler) {
+                                        HydrologyTerrainSampler receivingSampler, boolean publication) {
         RiverCourse course = prepared.course;
         PreparedRun run = prepared.runs[first];
         if (run == null) {
@@ -159,9 +167,13 @@ public final class SurfaceFootprintCompiler {
         SurfaceCenterline centerline = run.centerline();
         boolean coastalChannel = run.coastalChannel();
         String poolBiome = run.poolBiome();
-        ErosionField field = run.erosion().compile(
-                HydrologyHash.mix(course.id(), COURSE_SEED_SALT), centerline, run.channel(), run.valley(), run.terminal(),
-                settings.outlets().maximumOceanApron(), run.ponds(), new SurfaceRasterContext(bounds, drops, run.boundary()),
+        SurfaceRasterContext context = new SurfaceRasterContext(bounds, drops, run.boundary());
+        long seed = HydrologyHash.mix(course.id(), COURSE_SEED_SALT);
+        ErosionField field = publication ? run.erosion().compileForPublication(
+                seed, centerline, run.channel(), run.valley(), run.terminal(),
+                settings.outlets().maximumOceanApron(), run.ponds(), context, run.field()) : run.erosion().compile(
+                seed, centerline, run.channel(), run.valley(), run.terminal(),
+                settings.outlets().maximumOceanApron(), run.ponds(), context,
                 run.field());
         ArrayList<SurfaceColumn> ordered = new ArrayList<>(field.columns().values());
         ordered.sort(Comparator.comparingInt(SurfaceColumn::station)

@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.integration.Identifier;
+import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.world.history.BoundaryColumnGeometry;
@@ -27,6 +28,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -47,6 +51,219 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ObjectDestinationTransactionTest {
+    @Test
+    public void commonAndGenericMetadataSurviveBlockReplacementAndSourceReplay() {
+        MantleWriter writer = writer();
+        NativeBlockState custom = mock(NativeBlockState.class);
+        NativeBlockState base = mock(NativeBlockState.class);
+        NativeBlockState replacement = mock(NativeBlockState.class);
+        Identifier identifier = Identifier.fromString("iris:tree_block");
+        when(custom.isCustom()).thenReturn(true);
+        when(custom.deferredPlacementKey()).thenReturn(identifier.toString());
+        when(custom.placementBaseState()).thenReturn(base);
+        TreeBlockMaterial firstMaterial = new TreeBlockMaterial("minecraft:oak_log");
+        TreeBlockMaterial secondMaterial = new TreeBlockMaterial("minecraft:birch_log");
+        Marker generic = new Marker("generic");
+        ObjectDestinationTransaction source = new ObjectDestinationTransaction(writer, 0, 0);
+        int[][] positions = {{-17, 31}, {Integer.MIN_VALUE, Integer.MAX_VALUE}};
+        for (int[] position : positions) {
+            int x = position[0];
+            int z = position[1];
+            source.setData(x, 7, z, "first");
+            source.setData(x, 7, z, firstMaterial);
+            source.setData(x, 7, z, generic);
+            source.set(x, 7, z, custom);
+            source.setData(x, 7, z, "second");
+            source.setData(x, 7, z, secondMaterial);
+            source.setData(x, 7, z, Integer.valueOf(42));
+            source.setData(x, 7, z, replacement);
+            source.setData(x, 7, z, null);
+            assertNull(source.getDataIfPresent(x, 7, z, Identifier.class));
+        }
+        ObjectSourcePlan plan = source.sourcePlanSince(0);
+        assertEquals(16, source.mutationCheckpoint());
+        assertEquals(35, plan.mutationWeight());
+        for (int[] position : positions) {
+            int x = position[0];
+            int z = position[1];
+            ObjectDestinationTransaction destination = new ObjectDestinationTransaction(writer, x >> 4, z >> 4);
+            destination.apply(plan);
+            List<ObjectDestinationTransaction.Mutation> sourceMutations = plan.mutationsFor(x >> 4, z >> 4);
+            List<ObjectDestinationTransaction.Mutation> replayed = destination.sourcePlanSince(0).mutationsFor(x >> 4, z >> 4);
+            assertEquals(sourceMutations.size(), replayed.size());
+            for (int index = 0; index < sourceMutations.size(); index++) {
+                assertSame(sourceMutations.get(index), replayed.get(index));
+            }
+            assertEquals(8, destination.mutationCheckpoint());
+            assertSame(replacement, destination.get(x, 7, z));
+            assertNull(destination.getDataIfPresent(x, 7, z, Identifier.class));
+            assertEquals("second", destination.getDataIfPresent(x, 7, z, String.class));
+            assertSame(secondMaterial, destination.getDataIfPresent(x, 7, z, TreeBlockMaterial.class));
+            assertSame(generic, destination.getDataIfPresent(x, 7, z, Marker.class));
+            assertEquals(Integer.valueOf(42), destination.getDataIfPresent(x, 7, z, Integer.class));
+            destination.commit();
+            InOrder order = inOrder(writer);
+            order.verify(writer).setData(x, 7, z, "first");
+            order.verify(writer).setData(x, 7, z, firstMaterial);
+            order.verify(writer).setData(x, 7, z, generic);
+            order.verify(writer).set(x, 7, z, custom);
+            order.verify(writer).setData(x, 7, z, "second");
+            order.verify(writer).setData(x, 7, z, secondMaterial);
+            order.verify(writer).setData(x, 7, z, Integer.valueOf(42));
+            order.verify(writer).setData(x, 7, z, replacement);
+        }
+    }
+
+    @Test
+    public void replayRechecksDestinationProtectionAndHeightBeforeRetainingMutations() {
+        MantleWriter sourceWriter = writer();
+        when(sourceWriter.getMantle().getWorldHeight()).thenReturn(128);
+        NativeBlockState block = mock(NativeBlockState.class);
+        NativeBlockState custom = mock(NativeBlockState.class);
+        when(custom.isCustom()).thenReturn(true);
+        when(custom.deferredPlacementKey()).thenReturn("iris:tree_block");
+        when(custom.placementBaseState()).thenReturn(block);
+        MatterCavern cavern = new MatterCavern(true, "", (byte) 0);
+        TreeBlockMaterial material = new TreeBlockMaterial("minecraft:oak_log");
+        ObjectDestinationTransaction source = new ObjectDestinationTransaction(sourceWriter, 0, 0);
+        source.setData(0, 4, 0, block);
+        source.setData(1, 4, 0, cavern);
+        source.set(2, 4, 0, custom);
+        source.setData(3, 0, 0, block);
+        source.setData(4, 80, 0, block);
+        source.setData(0, 4, 0, "tree");
+        source.setData(0, 4, 0, material);
+        ObjectSourcePlan plan = source.sourcePlanSince(0);
+        assertEquals(7, plan.mutationsFor(0, 0).size());
+        MantleWriter destinationWriter = writer();
+        when(destinationWriter.getEngine().getDimension().isBedrock()).thenReturn(true);
+        for (int x = 0; x < 3; x++) {
+            when(destinationWriter.getPrerequisiteDataIfPresent(x, 4, 0, HydrologyCaveCell.class))
+                    .thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
+        }
+        ObjectDestinationTransaction destination = new ObjectDestinationTransaction(destinationWriter, 0, 0);
+
+        destination.apply(plan);
+
+        List<ObjectDestinationTransaction.Mutation> replayed = destination.sourcePlanSince(0).mutationsFor(0, 0);
+        assertEquals(2, replayed.size());
+        assertSame(plan.mutationsFor(0, 0).get(5), replayed.get(0));
+        assertSame(plan.mutationsFor(0, 0).get(6), replayed.get(1));
+        assertNull(destination.getDataIfPresent(2, 4, 0, Identifier.class));
+        assertNull(destination.getDataIfPresent(1, 4, 0, MatterCavern.class));
+        assertEquals("tree", destination.getDataIfPresent(0, 4, 0, String.class));
+        assertSame(material, destination.getDataIfPresent(0, 4, 0, TreeBlockMaterial.class));
+        destination.commit();
+        verify(destinationWriter, never()).setData(anyInt(), anyInt(), anyInt(), any(NativeBlockState.class));
+        verify(destinationWriter, never()).set(anyInt(), anyInt(), anyInt(), any(NativeBlockState.class));
+        verify(destinationWriter, never()).setData(anyInt(), anyInt(), anyInt(), any(MatterCavern.class));
+    }
+
+    @Test
+    public void failedCommonMetadataPublicationRestoresOriginalValuesAndMissingTypes() {
+        MantleWriter writer = writer();
+        TreeBlockMaterial originalMaterial = new TreeBlockMaterial("minecraft:oak_log");
+        TreeBlockMaterial replacementMaterial = new TreeBlockMaterial("minecraft:birch_log");
+        Marker generic = new Marker("generic");
+        Marker failure = new Marker("failure");
+        when(writer.getPrerequisiteDataIfPresent(0, 4, 0, String.class)).thenReturn("original");
+        when(writer.getPrerequisiteDataIfPresent(0, 4, 0, TreeBlockMaterial.class)).thenReturn(originalMaterial);
+        doThrow(new IllegalStateException("publication failed"))
+                .when(writer).setData(1, 4, 0, failure);
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
+        assertEquals("original", transaction.getDataIfPresent(0, 4, 0, String.class));
+        assertSame(originalMaterial, transaction.getDataIfPresent(0, 4, 0, TreeBlockMaterial.class));
+        transaction.setData(0, 4, 0, "replacement");
+        transaction.setData(0, 4, 0, replacementMaterial);
+        transaction.setData(0, 4, 0, generic);
+        transaction.setData(1, 4, 0, failure);
+
+        assertThrows(IllegalStateException.class, transaction::commit);
+
+        verify(writer).clearData(0, 4, 0, String.class);
+        verify(writer).setData(0, 4, 0, "original");
+        verify(writer).clearData(0, 4, 0, TreeBlockMaterial.class);
+        verify(writer).setData(0, 4, 0, originalMaterial);
+        verify(writer).clearData(0, 4, 0, Marker.class);
+        verify(writer).setData(0, 4, 0, generic);
+    }
+
+    @Test
+    public void sparseOverlayMatchesScalarAndColumnReadsAcrossSignedCoordinates() {
+        MantleWriter writer = writer();
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
+        int[][] columns = {{0, 0}, {-1, -1}, {1, -1}, {-1, 1},
+                {Integer.MIN_VALUE, Integer.MAX_VALUE}, {Integer.MAX_VALUE, Integer.MIN_VALUE},
+                {0, 1 << 26}, {1 << 26, 0}};
+        NativeBlockState solid = mock(NativeBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
+        NativeBlockState fluid = mock(NativeBlockState.class);
+        when(air.isAir()).thenReturn(true);
+        when(fluid.isFluid()).thenReturn(true);
+        MatterCavern cavern = new MatterCavern(true, "", (byte) 0);
+        Object[] values = {solid, air, fluid, cavern,
+                HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD),
+                HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR)};
+        Map<ObjectDestinationTransaction.DataKey, Object> expected = new HashMap<>();
+        Random random = new Random(918241L);
+        for (int pass = 0; pass < 12; pass++) {
+            for (int write = 0; write < 80; write++) {
+                int[] column = columns[random.nextInt(columns.length)];
+                int y = random.nextInt(64);
+                Object value = values[random.nextInt(values.length)];
+                transaction.setData(column[0], y, column[1], value);
+                HydrologyCaveCell hydrology = (HydrologyCaveCell) expected.get(
+                        new ObjectDestinationTransaction.DataKey(column[0], y, column[1], HydrologyCaveCell.class));
+                if (!(value instanceof HydrologyCaveCell)
+                        && hydrology != null && hydrology.protectsPlacement()) {
+                    continue;
+                }
+                Class<?> type = value instanceof NativeBlockState ? NativeBlockState.class : value.getClass();
+                expected.put(new ObjectDestinationTransaction.DataKey(column[0], y, column[1], type), value);
+            }
+            for (int[] column : columns) {
+                byte[] carved = new byte[64];
+                for (int y = 0; y < 64; y++) {
+                    NativeBlockState block = (NativeBlockState) expected.get(
+                            new ObjectDestinationTransaction.DataKey(column[0], y, column[1], NativeBlockState.class));
+                    HydrologyCaveCell hydrology = (HydrologyCaveCell) expected.get(
+                            new ObjectDestinationTransaction.DataKey(column[0], y, column[1], HydrologyCaveCell.class));
+                    MatterCavern expectedCavern = (MatterCavern) expected.get(
+                            new ObjectDestinationTransaction.DataKey(column[0], y, column[1], MatterCavern.class));
+                    boolean isCarved = block != solid && (hydrology == null
+                            ? expectedCavern != null : hydrology.carves());
+                    carved[y] = isCarved ? (byte) 1 : 0;
+                    assertSame(block, transaction.get(column[0], y, column[1]));
+                    assertSame(hydrology, transaction.getDataIfPresent(column[0], y, column[1], HydrologyCaveCell.class));
+                    assertSame(expectedCavern, transaction.getDataIfPresent(column[0], y, column[1], MatterCavern.class));
+                    assertEquals(isCarved, transaction.isCarved(column[0], y, column[1]));
+                }
+                assertArrayEquals(carved, transaction.getCarvedColumn(column[0], column[1], 64));
+            }
+        }
+    }
+
+    @Test
+    public void overlayReadsLeavePrerequisiteUpdatesVisibleAndReturnedColumnsIndependent() {
+        MantleWriter writer = writer();
+        NativeBlockState first = mock(NativeBlockState.class);
+        NativeBlockState second = mock(NativeBlockState.class);
+        when(writer.getPrerequisiteBlock(-1, 5, -1)).thenReturn(first, second);
+        byte[] prerequisite = new byte[64];
+        prerequisite[5] = 1;
+        when(writer.getPrerequisiteCarvedColumn(-1, -1, 64)).thenReturn(prerequisite);
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, -1, -1);
+
+        assertSame(first, transaction.get(-1, 5, -1));
+        assertSame(second, transaction.get(-1, 5, -1));
+        byte[] column = transaction.getCarvedColumn(-1, -1, 64);
+        column[5] = 0;
+        assertEquals(1, transaction.getCarvedColumn(-1, -1, 64)[5]);
+        transaction.setData(-1, 5, -1, second);
+        assertEquals(0, transaction.getCarvedColumn(-1, -1, 64)[5]);
+        assertEquals(1, prerequisite[5]);
+    }
+
     @Test
     public void overlayReadsEarlierWritesAndCommitsOnlyDestinationChunk() {
         MantleWriter writer = writer();
@@ -120,6 +337,46 @@ public class ObjectDestinationTransactionTest {
         order.verify(writer).setData(-1, 4, 0, second);
         verify(writer, never()).setData(0, 4, 0, foreign);
         verify(writer, never()).setData(-1, 4, 16, foreign);
+    }
+
+    @Test
+    public void indexedSourceReplayPreservesCustomIdentityAndWriteOrderAtNegativeChunks() {
+        MantleWriter writer = writer();
+        NativeBlockState custom = mock(NativeBlockState.class);
+        NativeBlockState base = mock(NativeBlockState.class);
+        NativeBlockState replacement = mock(NativeBlockState.class);
+        Identifier identifier = Identifier.fromString("iris:custom_block");
+        when(custom.isCustom()).thenReturn(true);
+        when(custom.deferredPlacementKey()).thenReturn(identifier.toString());
+        when(custom.placementBaseState()).thenReturn(base);
+        Marker first = new Marker("first");
+        Marker second = new Marker("second");
+        Marker foreign = new Marker("foreign");
+        ObjectDestinationTransaction source = new ObjectDestinationTransaction(writer, 0, 0);
+        source.setData(-17, 4, 31, first);
+        source.set(-17, 4, 31, custom);
+        source.setData(-16, 4, 31, foreign);
+        source.setData(-17, 4, 31, replacement);
+        source.setData(-17, 4, 32, foreign);
+        source.set(-17, 4, 31, custom);
+        source.setData(-17, 4, 31, second);
+        ObjectDestinationTransaction destination = new ObjectDestinationTransaction(writer, -2, 1);
+
+        destination.apply(source.sourcePlanSince(0));
+
+        assertEquals(5, destination.mutationCheckpoint());
+        assertSame(base, destination.get(-17, 4, 31));
+        assertEquals(identifier, destination.getDataIfPresent(-17, 4, 31, Identifier.class));
+        assertSame(second, destination.getDataIfPresent(-17, 4, 31, Marker.class));
+        destination.commit();
+        InOrder order = inOrder(writer);
+        order.verify(writer).setData(-17, 4, 31, first);
+        order.verify(writer).set(-17, 4, 31, custom);
+        order.verify(writer).setData(-17, 4, 31, replacement);
+        order.verify(writer).set(-17, 4, 31, custom);
+        order.verify(writer).setData(-17, 4, 31, second);
+        verify(writer, never()).setData(-16, 4, 31, foreign);
+        verify(writer, never()).setData(-17, 4, 32, foreign);
     }
 
     @Test
@@ -340,8 +597,13 @@ public class ObjectDestinationTransactionTest {
         transaction.setData(0, 4, 0, block);
         assertNull(transaction.getDataIfPresent(0, 4, 0, Identifier.class));
         transaction.setData(1, 4, 0, failure);
+        ObjectSourcePlan plan = transaction.sourcePlanSince(0);
+        ObjectDestinationTransaction destination = new ObjectDestinationTransaction(writer, 0, 0);
+        destination.apply(plan);
+        assertNull(destination.getDataIfPresent(0, 4, 0, Identifier.class));
+        assertSame(plan.mutationsFor(0, 0).getFirst(), destination.sourcePlanSince(0).mutationsFor(0, 0).getFirst());
 
-        assertThrows(IllegalStateException.class, transaction::commit);
+        assertThrows(IllegalStateException.class, destination::commit);
         verify(writer).clearData(0, 4, 0, Identifier.class);
         verify(writer).setData(0, 4, 0, originalIdentifier);
     }

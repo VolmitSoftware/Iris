@@ -8,6 +8,7 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
+import art.arcane.volmlib.util.matter.MatterSlice;
 
 import java.util.Objects;
 import java.util.ArrayList;
@@ -117,6 +118,7 @@ public final class TerrainMatterView {
     }
 
     private static <T> T raw(Matter matter, int x, int y, int z, Class<T> type) {
-        return !matter.hasSlice(type) ? null : matter.<T>getSlice(type).get(x & 15, y & 15, z & 15);
+        MatterSlice<T> slice = matter.getSlice(type);
+        return slice == null ? null : slice.get(x & 15, y & 15, z & 15);
     }
 }

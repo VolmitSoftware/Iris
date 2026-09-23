@@ -1,0 +1,48 @@
+package art.arcane.iris.probe;
+
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockResolver;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+
+public final class HeadlessNativeStateTest {
+    @BeforeClass
+    public static void bootstrap() {
+        HeadlessNativeBootstrap.initialize();
+    }
+
+    @Test
+    public void nativeMaterialsDistinguishDecorationsFluidsGlassAndBlockEntities() {
+        assertFalse(NativeBlockResolver.strictParse("minecraft:short_grass").isSolid());
+        assertTrue(NativeBlockResolver.strictParse("minecraft:glass").isSolid());
+        assertFalse(NativeBlockResolver.strictParse("minecraft:glass").isOccluding());
+        assertTrue(NativeBlockResolver.strictParse("minecraft:stone").isOccluding());
+        assertTrue(NativeBlockResolver.strictParse("minecraft:oak_log").isTreeBlock());
+        assertTrue(NativeBlockResolver.strictParse("minecraft:oak_leaves").isTreeBlock());
+        assertTrue(NativeBlockResolver.strictParse("minecraft:chest").hasTileEntity());
+        NativeBlockState slab = NativeBlockResolver.strictParse("minecraft:oak_slab[waterlogged=true]");
+        assertTrue(slab.isWaterLogged());
+        assertFalse(slab.isFluid());
+        assertTrue(NativeBlockResolver.strictParse("minecraft:water").isFluid());
+    }
+
+    @Test
+    public void canonicalStateKeysRoundTripEveryNativeDefaultState() {
+        for (Block block : BuiltInRegistries.BLOCK) {
+            BlockState state = block.defaultBlockState();
+            ModdedBlockState decoded = NativeBlockResolver.strictParse(ModdedBlockState.serialize(state));
+            assertEquals(state, decoded.handle());
+        }
+        assertThrows(IllegalArgumentException.class,
+                () -> NativeBlockResolver.strictParse("minecraft:oak_log[axis=invalid]"));
+    }
+}

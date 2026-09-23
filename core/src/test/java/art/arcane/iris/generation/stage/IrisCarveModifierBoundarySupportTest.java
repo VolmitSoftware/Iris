@@ -50,7 +50,7 @@ public class IrisCarveModifierBoundarySupportTest {
 
         IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
         doReturn(engine).when(modifier).getEngine();
-        doReturn(mock(IrisComplex.class)).when(modifier).getComplex();
+        doReturn(mock(IrisComplex.class)).when(engine).getComplex();
         Field rng = IrisCarveModifier.class.getDeclaredField("rng");
         rng.setAccessible(true);
         rng.set(modifier, new RNG(71L));
@@ -73,7 +73,7 @@ public class IrisCarveModifierBoundarySupportTest {
 
         Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache = new Long2ObjectOpenHashMap<>();
         Map<String, IrisBiome> customBiomeCache = new HashMap<>();
-        IrisDimensionCarvingResolver.State resolverState = new IrisDimensionCarvingResolver.State();
+        IrisCarveModifier.CaveInputs resolverState = new IrisCarveModifier.CaveInputs(engine);
 
         IrisBiome floor = modifier.resolveCaveBoundaryBiome(
                 mantleChunk, 1, 6, 2, 40, 44, resolverState, caveBiomeCache, customBiomeCache);
@@ -94,11 +94,13 @@ public class IrisCarveModifierBoundarySupportTest {
         doReturn(biomes).when(complex).getTrueBiomeStream();
         doReturn(surface).when(biomes).get(40, 44);
         IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
-        doReturn(complex).when(modifier).getComplex();
+        Engine engine = mock(Engine.class);
+        doReturn(engine).when(modifier).getEngine();
+        doReturn(complex).when(engine).getComplex();
 
         IrisBiome biome = modifier.resolveCaveBoundaryBiome(
                 new MatterCavern(true, "carving/deep", (byte) 0), 40, 42, 44,
-                new IrisDimensionCarvingResolver.State(), new Long2ObjectOpenHashMap<>(), new HashMap<>());
+                new IrisCarveModifier.CaveInputs(engine), new Long2ObjectOpenHashMap<>(), new HashMap<>());
 
         assertSame(surface, biome);
     }

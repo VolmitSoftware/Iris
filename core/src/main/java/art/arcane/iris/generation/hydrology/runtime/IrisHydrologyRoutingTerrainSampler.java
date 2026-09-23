@@ -5,6 +5,9 @@ import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.generation.hydrology.HydrologyNaturalTerrainSampler;
 import art.arcane.iris.generation.hydrology.HydrologyRoutingTerrainSampler;
 import art.arcane.iris.generation.hydrology.HydrologyTerrainSample;
+import art.arcane.iris.generation.hydrology.HydrologyTerrainSampler;
+import art.arcane.iris.generation.hydrology.RiverFootprint;
+import art.arcane.volmlib.nativelib.terrain.NativeGenerationScope;
 import art.arcane.iris.generation.hydrology.HydrologyForkJoin;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import it.unimi.dsi.fastutil.longs.Long2DoubleLinkedOpenHashMap;
@@ -15,6 +18,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+import java.util.concurrent.CancellationException;
+import java.util.function.Supplier;
 
 final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrainSampler, AutoCloseable {
     private static final int MINIMUM_PARALLEL_BASIS_SAMPLES = 64;
@@ -128,6 +133,44 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
     @Override
     public HydrologyTerrainSample sampleBasisWithoutSlope(int blockX, int blockZ) {
         return basis(blockX, blockZ).terrain();
+    }
+
+    @Override
+    public HydrologyTerrainSample[] sampleBasisWithoutSlopeBatch(long[] coordinates, int count) {
+        Objects.checkFromIndexSize(0, count, coordinates.length);
+        if (count > HydrologyTerrainSampler.MAXIMUM_BATCH_SIZE) {
+            throw new IllegalArgumentException("Terrain basis batch exceeds its sample limit");
+        }
+        int workers = Math.min(Math.min(samplingOptions.maximumWorkers(), Runtime.getRuntime().availableProcessors()),
+                Math.ceilDiv(count, MINIMUM_PARALLEL_BASIS_SAMPLES));
+        Supplier<NativeGenerationScope> scope = workers > 1 ? samplingOptions.batchScopes().capture() : null;
+        if (scope == null) {
+            return HydrologyNaturalTerrainSampler.super.sampleBasisWithoutSlopeBatch(coordinates, count);
+        }
+        HydrologyTerrainSample[] samples = new HydrologyTerrainSample[count];
+        int perWorker = Math.ceilDiv(count, workers);
+        ArrayList<Callable<Void>> tasks = new ArrayList<>(workers);
+        for (int worker = 0; worker < workers; worker++) {
+            int start = worker * perWorker;
+            int end = Math.min(count, start + perWorker);
+            if (start >= end) {
+                break;
+            }
+            tasks.add(() -> {
+                try (NativeGenerationScope ignored = scope.get()) {
+                    for (int index = start; index < end; index++) {
+                        if (Thread.currentThread().isInterrupted()) {
+                            throw new CancellationException("Terrain basis sampling interrupted");
+                        }
+                        samples[index] = sampleBasisWithoutSlope(RiverFootprint.unpackX(coordinates[index]),
+                                RiverFootprint.unpackZ(coordinates[index]));
+                    }
+                }
+                return null;
+            });
+        }
+        HydrologyForkJoin.invokeAll(tasks, samplingOptions.executor());
+        return samples;
     }
 
     @Override
@@ -415,8 +458,13 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
     record SamplingOptions(
             int maximumEntries,
             int maximumWorkers,
-            Executor executor
+            Executor executor,
+            BatchScopes batchScopes
     ) {
+        SamplingOptions(int maximumEntries, int maximumWorkers, Executor executor) {
+            this(maximumEntries, maximumWorkers, executor, () -> () -> () -> {});
+        }
+
         SamplingOptions {
             if (maximumEntries < 1) {
                 throw new IllegalArgumentException("maximumEntries must be positive");
@@ -425,22 +473,28 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
                 throw new IllegalArgumentException("maximumWorkers must be positive");
             }
             Objects.requireNonNull(executor, "executor");
+            Objects.requireNonNull(batchScopes, "batchScopes");
         }
 
-        static SamplingOptions production(int maximumEntries) {
+        static SamplingOptions production(int maximumEntries, BatchScopes batchScopes) {
             int configuredWorkers = IrisSettings.getThreadCount(
                     IrisSettings.get().getConcurrency().getParallelism()
             );
             return new SamplingOptions(
                     maximumEntries,
                     Math.max(1, configuredWorkers),
-                    MultiBurst.burst
+                    MultiBurst.burst,
+                    batchScopes
             );
         }
 
         static SamplingOptions serial(int maximumEntries) {
             return new SamplingOptions(maximumEntries, 1, Runnable::run);
         }
+    }
+
+    interface BatchScopes {
+        Supplier<NativeGenerationScope> capture();
     }
 
     record TerrainBasis(double naturalHeight, HydrologyTerrainSample terrain) {

@@ -583,7 +583,7 @@ public final class ImageMapStudioGUI {
                 && !engine.isClosed()
                 && engine.getComplex() != null) {
             proceduralHeightSampler = (worldX, worldZ) -> engine.getComplex()
-                    .sampleProceduralTerrainHeight(engine, worldX, worldZ);
+                    .sampleProceduralTerrainHeight(worldX, worldZ);
         }
         DoubleBinaryOperator currentProceduralHeightSampler = proceduralHeightSampler;
         new SwingWorker<ImageMapStudioExporter.PreviewResult, Void>() {

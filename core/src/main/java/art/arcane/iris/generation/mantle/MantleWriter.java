@@ -590,29 +590,25 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
                 if (matter == null) {
                     continue;
                 }
-                MatterSlice<PreObjectMatterCell> journalSlice = matter.hasSlice(PreObjectMatterCell.class)
-                        ? matter.getSlice(PreObjectMatterCell.class)
-                        : null;
-                MatterSlice<MatterCavern> cavernSlice = matter.hasSlice(MatterCavern.class)
-                        ? matter.getSlice(MatterCavern.class)
-                        : null;
-                MatterSlice<HydrologyCaveCell> hydrologySlice = matter.hasSlice(HydrologyCaveCell.class)
-                        ? matter.getSlice(HydrologyCaveCell.class)
-                        : null;
+                MatterSlice<PreObjectMatterCell> journalSlice = matter.getSlice(PreObjectMatterCell.class);
+                MatterSlice<MatterCavern> cavernSlice = matter.getSlice(MatterCavern.class);
+                MatterSlice<HydrologyCaveCell> hydrologySlice = matter.getSlice(HydrologyCaveCell.class);
                 int sectionBaseY = section << 4;
                 int sectionMaxY = Math.min(cappedHeight, sectionBaseY + 16);
                 for (int y = sectionBaseY; y < sectionMaxY; y++) {
                     int localY = y & 15;
-                    HydrologyCaveCell hydrology = hydrologySlice == null
+                    PreObjectMatterCell cell = journalSlice == null
+                            ? null
+                            : journalSlice.get(x & 15, localY, z & 15);
+                    HydrologyCaveCell hydrology = cell != null && cell.hydrologyCaptured()
+                            ? cell.hydrology()
+                            : hydrologySlice == null
                             ? null
                             : hydrologySlice.get(x & 15, localY, z & 15);
                     if (hydrology != null) {
                         carvedColumn[y] = hydrology.carves() ? (byte) 1 : 0;
                         continue;
                     }
-                    PreObjectMatterCell cell = journalSlice == null
-                            ? null
-                            : journalSlice.get(x & 15, localY, z & 15);
                     MatterCavern cavern = cell != null && cell.cavernCaptured()
                             ? cell.cavern()
                             : cavernSlice == null ? null : cavernSlice.get(x & 15, localY, z & 15);
@@ -799,9 +795,11 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     }
 
     private static <T> T prerequisiteValue(Matter matter, int x, int y, int z, Class<T> type) {
-        PreObjectMatterCell cell = preObjectCell(matter, x, y, z);
-        if (cell != null && cell.captures(type)) {
-            return cell.original(type);
+        if (isPreObjectType(type) || type == HydrologyCaveCell.class) {
+            PreObjectMatterCell cell = preObjectCell(matter, x, y, z);
+            if (cell != null && cell.captures(type)) {
+                return cell.original(type);
+            }
         }
         MatterSlice<T> slice = matter.getSlice(type);
         return slice == null ? null : slice.get(x & 15, y & 15, z & 15);

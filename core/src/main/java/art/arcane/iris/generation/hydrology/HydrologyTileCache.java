@@ -44,6 +44,8 @@ public final class HydrologyTileCache implements AutoCloseable {
             .build();
 
     private final HydrologyPlanner planner;
+    private final int tileSize;
+    private final int publicationRadius;
     private final int maximumEntries;
     private final Cache<HydrologyTileKey, HydrologyTile> tiles;
     private final Cache<Long, ChunkColumns> composedChunks;
@@ -107,6 +109,8 @@ public final class HydrologyTileCache implements AutoCloseable {
             SharedCacheScope sharedCacheScope
     ) {
         this.planner = Objects.requireNonNull(planner, "planner");
+        this.tileSize = planner.settings().routing().tileSize();
+        this.publicationRadius = planner.settings().publicationRadius();
         this.prefetchExecutor = prefetchExecutor;
         this.waitingForbidden = waitingForbidden;
         this.sharedCacheScope = sharedCacheScope;
@@ -560,8 +564,6 @@ public final class HydrologyTileCache implements AutoCloseable {
 
     public PregenerationScope preparePregeneration(PregenerationArea area) {
         Objects.requireNonNull(area, "area");
-        int tileSize = planner.settings().routing().tileSize();
-        int publicationRadius = planner.settings().publicationRadius();
         TileBounds bounds = new TileBounds(
                 tileCoordinate(Math.subtractExact(area.minimumBlockX(), publicationRadius), tileSize),
                 tileCoordinate(Math.subtractExact(area.minimumBlockZ(), publicationRadius), tileSize),
@@ -590,7 +592,7 @@ public final class HydrologyTileCache implements AutoCloseable {
         sharedCacheScope = Objects.requireNonNull(scope, "scope");
         persistentStore = persistentRoot == null
                 ? null
-                : new PreparedHydrologyTileStore(persistentRoot, scope, planner.settings().routing().tileSize());
+                : new PreparedHydrologyTileStore(persistentRoot, scope, tileSize);
     }
 
     @Override
@@ -670,7 +672,7 @@ public final class HydrologyTileCache implements AutoCloseable {
         return tile.key().equals(sharedKey.tileKey())
                 && tile.worldSeed() == scope.worldSeed()
                 && tile.settingsFingerprint() == scope.settingsFingerprint()
-                && tile.tileSize() == planner.settings().routing().tileSize();
+                && tile.tileSize() == tileSize;
     }
 
     private ChunkColumns chunkColumns(int blockX, int blockZ) {
@@ -765,8 +767,6 @@ public final class HydrologyTileCache implements AutoCloseable {
     private ArrayList<HydrologyTileKey> relevantKeys(int chunkX, int chunkZ) {
         int minimumBlockX = Math.multiplyExact(chunkX, CHUNK_SIZE);
         int minimumBlockZ = Math.multiplyExact(chunkZ, CHUNK_SIZE);
-        int tileSize = planner.settings().routing().tileSize();
-        int publicationRadius = planner.settings().publicationRadius();
         int minimumTileX = tileCoordinate((long) minimumBlockX - publicationRadius, tileSize);
         int maximumTileX = tileCoordinate((long) minimumBlockX + CHUNK_SIZE - 1L + publicationRadius, tileSize);
         int minimumTileZ = tileCoordinate((long) minimumBlockZ - publicationRadius, tileSize);
@@ -854,8 +854,6 @@ public final class HydrologyTileCache implements AutoCloseable {
 
     private List<HydrologyTileKey> prefetchAreaKeys(long minimumBlockX, long minimumBlockZ, long maximumBlockX,
                                                   long maximumBlockZ, int centreBlockX, int centreBlockZ) {
-        int tileSize = planner.settings().routing().tileSize();
-        int publicationRadius = planner.settings().publicationRadius();
         int minimumTileX = tileCoordinate((long) minimumBlockX - publicationRadius, tileSize);
         int maximumTileX = tileCoordinate((long) maximumBlockX + publicationRadius, tileSize);
         int minimumTileZ = tileCoordinate((long) minimumBlockZ - publicationRadius, tileSize);
@@ -1127,20 +1125,39 @@ public final class HydrologyTileCache implements AutoCloseable {
                 return List.of(loaded);
             }
             int batch = Math.max(1, Math.min(maximumEntries / 2, HydrologyPlanningAdmission.maximumRoots()));
-            ArrayList<CompletableFuture<HydrologyTile>> futures = new ArrayList<>(Math.min(batch, loaded.length));
-            for (int start = 0; start < loaded.length; start += batch) {
-                int end = Math.min(loaded.length, start + batch);
-                futures.clear();
-                for (int index = start; index < end; index++) {
-                    futures.add(planDemandAsync(keys.get(index)));
-                }
-                for (int index = start; index < end; index++) {
-                    loaded[index] = awaitPlan(futures.get(index - start));
-                }
-            }
+            loadDemandTiles(keys, loaded, batch);
             return List.of(loaded);
         } finally {
             finishDemandBatch(demandEpoch);
+        }
+    }
+
+    private void loadDemandTiles(List<HydrologyTileKey> keys, HydrologyTile[] loaded, int maximumPending) {
+        ArrayList<PendingTile> pending = new ArrayList<>(Math.min(maximumPending, loaded.length));
+        int next = 0;
+        while (next < loaded.length || !pending.isEmpty()) {
+            while (next < loaded.length && pending.size() < maximumPending) {
+                if (loaded[next] == null) {
+                    pending.add(new PendingTile(next, planDemandAsync(keys.get(next))));
+                }
+                next++;
+            }
+            boolean completed = false;
+            for (int index = pending.size() - 1; index >= 0; index--) {
+                PendingTile tile = pending.get(index);
+                if (tile.future().isDone()) {
+                    loaded[tile.index()] = awaitPlan(tile.future());
+                    pending.remove(index);
+                    completed = true;
+                }
+            }
+            if (!completed && !pending.isEmpty()) {
+                CompletableFuture<?>[] futures = new CompletableFuture<?>[pending.size()];
+                for (int index = 0; index < pending.size(); index++) {
+                    futures[index] = pending.get(index).future();
+                }
+                awaitPlan(CompletableFuture.anyOf(futures));
+            }
         }
     }
 
@@ -1283,10 +1300,8 @@ public final class HydrologyTileCache implements AutoCloseable {
             List<HydrologyTileKey> relevantKeys,
             List<HydrologyTile> relevantTiles
     ) {
-        ArrayList<HydrologyColumnLayer> layers = new ArrayList<>();
+        ArrayList<HydrologyColumnLayer> layers = null;
         HydrologyColumnSample template = null;
-        int tileSize = planner.settings().routing().tileSize();
-        int publicationRadius = planner.settings().publicationRadius();
         int minimumTileX = tileCoordinate((long) blockX - publicationRadius, tileSize);
         int maximumTileX = tileCoordinate((long) blockX + publicationRadius, tileSize);
         int minimumTileZ = tileCoordinate((long) blockZ - publicationRadius, tileSize);
@@ -1307,18 +1322,27 @@ public final class HydrologyTileCache implements AutoCloseable {
                 template = sample;
             } else {
                 requireMatchingTerrain(template, sample);
+                if (layers == null) {
+                    layers = new ArrayList<>(template.layers());
+                }
+                layers.addAll(sample.layers());
             }
-            layers.addAll(sample.layers());
         }
         if (template == null) {
             return Optional.empty();
         }
+        if (layers == null && template.layers().size() < 2) {
+            return Optional.of(template);
+        }
         LinkedHashMap<Long, HydrologyColumnLayer> unique = new LinkedHashMap<>();
-        for (HydrologyColumnLayer layer : layers) {
+        for (HydrologyColumnLayer layer : layers == null ? template.layers() : layers) {
             HydrologyColumnLayer existing = unique.putIfAbsent(layer.feature().id(), layer);
             if (existing != null && !existing.equals(layer)) {
                 throw new IllegalStateException("Hydrology feature id collision at " + blockX + "," + blockZ + ".");
             }
+        }
+        if (layers == null && unique.size() == template.layers().size()) {
+            return Optional.of(template);
         }
         return Optional.of(new HydrologyColumnSample(
                 blockX,
@@ -1382,6 +1406,9 @@ public final class HydrologyTileCache implements AutoCloseable {
                 queuedPrefetches.clear();
             }
         }
+    }
+
+    private record PendingTile(int index, CompletableFuture<HydrologyTile> future) {
     }
 
     private record TileBounds(int minimumX, int minimumZ, int maximumX, int maximumZ) {

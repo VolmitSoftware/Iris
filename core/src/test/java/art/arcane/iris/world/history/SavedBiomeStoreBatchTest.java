@@ -250,24 +250,24 @@ public class SavedBiomeStoreBatchTest {
     private static List<Future<ClaimResult>> enqueue(SavedBiomeStore store, Path root, BatchControl control,
                                                     ExecutorService workers, List<SavedBiomeChunk> chunks) throws Exception {
         Object stripe = regionLock(store, 0, 0);
-        Field writingField = stripe.getClass().getDeclaredField("writing");
         Field pendingField = stripe.getClass().getDeclaredField("pending");
-        writingField.setAccessible(true);
         pendingField.setAccessible(true);
         Queue<?> pending = (Queue<?>) pendingField.get(stripe);
         ArrayList<Future<ClaimResult>> results = new ArrayList<>(chunks.size());
-        synchronized (stripe) {
-            writingField.setBoolean(stripe, true);
-            try {
-                for (SavedBiomeChunk chunk : chunks) {
-                    results.add(workers.submit(() -> claim(store, root, control, chunk)));
-                }
-                Await.reached("every claim to queue behind the region write", Duration.ofSeconds(5L),
-                        () -> pending.size() == chunks.size());
-                assertEquals(chunks.size(), pending.size());
-            } finally {
-                writingField.setBoolean(stripe, false);
+        int uncachedClaims = 0;
+        for (SavedBiomeChunk chunk : chunks) {
+            if (store.cached(chunk.chunkX(), chunk.chunkZ()).isEmpty()) {
+                uncachedClaims++;
             }
+        }
+        int expectedQueuedClaims = uncachedClaims;
+        synchronized (stripe) {
+            for (SavedBiomeChunk chunk : chunks) {
+                results.add(workers.submit(() -> claim(store, root, control, chunk)));
+            }
+            Await.reached("uncached claims to queue before acquiring the region write lock", Duration.ofSeconds(5L),
+                    () -> pending.size() == expectedQueuedClaims);
+            assertEquals(expectedQueuedClaims, pending.size());
         }
         return results;
     }

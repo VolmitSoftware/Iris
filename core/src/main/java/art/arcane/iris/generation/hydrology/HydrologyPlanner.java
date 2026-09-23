@@ -11,6 +11,7 @@ import art.arcane.volmlib.util.noise.SimplexNoise;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 
 import java.util.ArrayList;
@@ -549,7 +550,8 @@ public final class HydrologyPlanner {
         }
         HydrologyTerrainSample sampled = naturalSampler == null
                 ? sampler.sample(blockX, blockZ)
-                : naturalSampler.sampleBasis(blockX, blockZ);
+                : samples.sharedBasis == null ? naturalSampler.sampleBasis(blockX, blockZ)
+                : samples.sharedBasis.sample(blockX, blockZ, naturalSampler);
         samples.basis.put(packed, sampled);
         return sampled;
     }
@@ -576,7 +578,9 @@ public final class HydrologyPlanner {
         if (cached != null || samples.basisWithoutSlope.containsKey(packed)) {
             return cached;
         }
-        HydrologyTerrainSample sampled = naturalSampler.sampleBasisWithoutSlope(blockX, blockZ);
+        HydrologyTerrainSample sampled = samples.sharedBasis == null
+                ? naturalSampler.sampleBasisWithoutSlope(blockX, blockZ)
+                : samples.sharedBasis.sampleWithoutSlope(blockX, blockZ, naturalSampler);
         samples.basisWithoutSlope.put(packed, sampled);
         return sampled;
     }
@@ -692,6 +696,7 @@ public final class HydrologyPlanner {
         private final Long2ObjectOpenHashMap<HydrologyTerrainSample> basisWithoutSlope;
         private final Long2DoubleOpenHashMap landHeights;
         private HydrologyLandHeightCache sharedLandHeights;
+        private HydrologyBasisCache sharedBasis;
         final Long2ObjectOpenHashMap<HydrologyTerrainSample> detailed;
         private final Long2ObjectOpenHashMap<HydrologyRoutingTerrainSampler.NaturalClassification> classifications;
         private final HashMap<HydrologyGeometrySampler.Request, Integer> geometry;
@@ -704,11 +709,12 @@ public final class HydrologyPlanner {
         final HydrologyCaveContainmentPlanner.ValidationCache caveValidations;
 
         PlanningSamples() {
-            this(null);
+            this(null, null);
         }
 
-        PlanningSamples(HydrologyLandHeightCache sharedLandHeights) {
+        PlanningSamples(HydrologyLandHeightCache sharedLandHeights, HydrologyBasisCache sharedBasis) {
             this.sharedLandHeights = sharedLandHeights;
+            this.sharedBasis = sharedBasis;
             this.basis = new Long2ObjectOpenHashMap<>();
             this.basisWithoutSlope = new Long2ObjectOpenHashMap<>();
             this.landHeights = new Long2DoubleOpenHashMap();
@@ -723,6 +729,16 @@ public final class HydrologyPlanner {
             this.surfaceRouteAnchors = new HashMap<>();
             this.caveCandidates = new HydrologyCaveCourseFilter.CandidateCache();
             this.caveValidations = new HydrologyCaveContainmentPlanner.ValidationCache();
+        }
+
+        HydrologyBasisCache fallbackBasis(Long2ObjectMap<HydrologyTerrainSample> footprintBasis) {
+            if (sharedBasis == null) {
+                sharedBasis = new HydrologyBasisCache();
+                sharedBasis.seed(basis);
+                sharedBasis.seedWithoutSlope(basisWithoutSlope);
+                sharedBasis.seedWithoutSlope(footprintBasis);
+            }
+            return sharedBasis;
         }
 
         HydrologyLandHeightCache fallbackLandHeights() {

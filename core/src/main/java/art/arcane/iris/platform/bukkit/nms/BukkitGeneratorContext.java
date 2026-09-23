@@ -5,6 +5,7 @@ import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.EngineLifecycleTasks;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.platform.generation.BukkitChunkGenerator;
+import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.structure.nativegen.IrisStructurePolicy;
 import art.arcane.iris.structure.nativegen.ImportedFeaturePolicy;
 import art.arcane.iris.structure.nativegen.IrisStructureVolumePolicy;
@@ -50,7 +51,16 @@ public final class BukkitGeneratorContext extends BukkitGenerationPolicy impleme
 
     @Override
     public <H, V> NativeBiomeSourcePolicy<H> biomes(NativeBiomeRegistry<H, V> registry) {
-        return new BukkitBiomePolicy<>(new BukkitBiomePolicy.RuntimeOptions(options.seed(), current(), options.world()), registry);
+        return new BukkitBiomePolicy<>(new BukkitBiomePolicy.RuntimeOptions<>(options.seed(), current(), generator,
+                () -> worldBiomeRegistry(registry)), registry);
+    }
+
+    private <H, V> NativeBiomeRegistry<H, V> worldBiomeRegistry(NativeBiomeRegistry<H, V> registry) {
+        World world = BukkitWorldBinding.world(current().getWorld());
+        if (world == null) {
+            throw new IllegalStateException("Iris biome source has no bound Bukkit world");
+        }
+        return registry.forWorld(world);
     }
 
     @Override

@@ -1166,6 +1166,7 @@ public class IrisEngine implements Engine {
     public void closeDetachedGenerationRuntime(GenerationRuntimeBinding binding) {
         GenerationRuntimeBinding required = Objects.requireNonNull(binding, "detached generation runtime binding");
         GenerationRuntime retired;
+        EngineShutdownSequence.DetachedRuntimeClose retirement;
         synchronized (lifecycleLock) {
             if (required.engine != this) {
                 throw new IllegalArgumentException("Generation runtime binding belongs to a different Iris engine.");
@@ -1177,19 +1178,17 @@ public class IrisEngine implements Engine {
             if (!detachedGenerationRuntimes.contains(required.runtime)) {
                 return;
             }
-            if (!retiringGenerationRuntimes.add(required.runtime)) {
-                throw new IllegalStateException("Detached Iris generation runtime is already retiring.");
-            }
             retired = required.runtime;
+            retirement = shutdownSequence.claimDetachedRuntimeClose(retired, true);
         }
-        Throwable failure = retireGenerationRuntimeCaches(retired.cacheId(), null);
+        Throwable failure = null;
         try {
+            failure = retireGenerationRuntimeCaches(retired.cacheId(), null);
             failure = shutdownSequence.closeDetachedGenerationRuntime(retired, failure);
+        } catch (Throwable closeFailure) {
+            failure = EngineShutdownSequence.appendFailure(failure, closeFailure);
         } finally {
-            synchronized (lifecycleLock) {
-                detachedGenerationRuntimes.remove(retired);
-                retiringGenerationRuntimes.remove(retired);
-            }
+            shutdownSequence.finishDetachedRuntimeClose(retired, retirement, failure);
         }
         if (failure != null) {
             throw new IllegalStateException("Failed to close a detached Iris generation runtime.", failure);

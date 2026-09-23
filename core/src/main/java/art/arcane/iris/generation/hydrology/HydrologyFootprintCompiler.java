@@ -46,6 +46,7 @@ final class HydrologyFootprintCompiler {
     final Map<Long, SurfaceFootprint> regionalSurfaceFootprints;
     final Map<Long, HydrologySurfaceDropRaster> regionalDropRasters;
     HydrologyRegionalNetwork regionalNetwork;
+    HydrologyBasisCache sharedBasis;
 
     int fullMaterializationCount;
     final HydrologyFootprintRasterizer rasterizer;
@@ -86,7 +87,17 @@ final class HydrologyFootprintCompiler {
         this.courseFootprints = new LinkedHashMap<>(COURSE_FOOTPRINT_CACHE_SIZE, 1F, true);
         this.validationCourseRasters = new LinkedHashMap<>(VALIDATION_RASTER_CACHE_SIZE, 1F, true);
         this.rasterStencils = new HashMap<>();
-        this.surfaceCompiler = new SurfaceFootprintCompiler(settings, this::sampleTerrainBasis, this.geometrySampler);
+        this.surfaceCompiler = new SurfaceFootprintCompiler(settings, new HydrologyTerrainSampler() {
+            @Override
+            public HydrologyTerrainSample sample(int x, int z) {
+                return sampleTerrainBasis(x, z);
+            }
+
+            @Override
+            public HydrologyTerrainSample[] sampleBatch(long[] coordinates, int count) {
+                return sampleTerrainBases(coordinates, count);
+            }
+        }, this.geometrySampler);
         this.surfaceFootprints = new LinkedHashMap<>(COURSE_FOOTPRINT_CACHE_SIZE, 1F, true);
         this.regionalSurfaceFootprints = new LinkedHashMap<>();
         this.regionalDropRasters = new LinkedHashMap<>();
@@ -101,6 +112,14 @@ final class HydrologyFootprintCompiler {
     }
 
     SurfaceFootprint surfaceFootprint(RiverCourse course) {
+        return surfaceFootprint(course, false);
+    }
+
+    SurfaceFootprint surfaceFootprintForPublication(RiverCourse course) {
+        return surfaceFootprint(course, true);
+    }
+
+    private SurfaceFootprint surfaceFootprint(RiverCourse course, boolean publication) {
         SurfaceFootprint regional = regionalSurfaceFootprints.get(course.id());
         if (regional != null) {
             return regional;
@@ -115,7 +134,10 @@ final class HydrologyFootprintCompiler {
         if (cached != null) {
             return cached;
         }
-        SurfaceFootprint compiled = surfaceCompiler.compile(course);
+        SurfaceFootprint compiled = publication ? surfaceCompiler.compileForPublication(course) : surfaceCompiler.compile(course);
+        if (publication && !compiled.accepted()) {
+            return compiled;
+        }
         surfaceFootprints.put(rasterKey, compiled);
         if (surfaceFootprints.size() > COURSE_FOOTPRINT_CACHE_SIZE) {
             surfaceFootprints.remove(surfaceFootprints.sequencedKeySet().getFirst());
@@ -906,11 +928,46 @@ final class HydrologyFootprintCompiler {
         if (cached != null) {
             return cached;
         }
-        HydrologyTerrainSample sampled = naturalSampler.sampleBasisWithoutSlope(x, z);
+        HydrologyTerrainSample sampled = sharedBasis == null ? naturalSampler.sampleBasisWithoutSlope(x, z)
+                : sharedBasis.sampleWithoutSlope(x, z, naturalSampler);
         if (sampled != null) {
             terrainBases.put(packed, sampled);
         }
         return sampled;
+    }
+
+    private HydrologyTerrainSample[] sampleTerrainBases(long[] coordinates, int count) {
+        HydrologyTerrainSample[] samples = new HydrologyTerrainSample[count];
+        long[] missing = new long[count];
+        int[] positions = new int[count];
+        int missingCount = 0;
+        for (int index = 0; index < count; index++) {
+            long key = coordinates[index];
+            HydrologyTerrainSample cached = terrainBases.get(key);
+            if (cached != null) {
+                samples[index] = cached;
+            } else if (sharedBasis != null && sharedBasis.findWithoutSlope(key, samples, index)) {
+                continue;
+            } else if (naturalSampler == null) {
+                samples[index] = sampleTerrainBasis(RiverFootprint.unpackX(key), RiverFootprint.unpackZ(key));
+            } else {
+                missing[missingCount] = key;
+                positions[missingCount++] = index;
+            }
+        }
+        if (missingCount > 0) {
+            HydrologyTerrainSample[] loaded = naturalSampler.sampleBasisWithoutSlopeBatch(missing, missingCount);
+            for (int index = 0; index < missingCount; index++) {
+                samples[positions[index]] = sharedBasis == null ? loaded[index]
+                        : sharedBasis.rememberWithoutSlope(missing[index], loaded[index]);
+            }
+        }
+        for (int index = 0; index < count; index++) {
+            if (samples[index] != null) {
+                terrainBases.put(coordinates[index], samples[index]);
+            }
+        }
+        return samples;
     }
 
     HydrologyRoutingTerrainSampler.NaturalClassification classifyNatural(int x, int z) {

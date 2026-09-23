@@ -104,6 +104,21 @@ public class NativeStructureVolumeIndexTest {
     }
 
     @Test
+    public void completedOriginsRemainBoundedAndPendingBuildsAreReleased() throws Exception {
+        NativeStructureVolumeIndex index = NativeStructureVolumeIndex.forTesting(
+                (engine, chunkX, chunkZ) -> NativeStructureVolume.NONE);
+        for (int chunkX = -8_192; chunkX <= 8_192; chunkX++) {
+            index.originVolumes(null, chunkX, -17);
+        }
+        assertEquals(16_384, cache(index, "originCache").size());
+        assertTrue(cache(index, "originBuilds").isEmpty());
+        index.resolve(null, -16, -16, -1, -1);
+        assertEquals(16_384, cache(index, "originCache").size());
+        assertTrue(cache(index, "originBuilds").isEmpty());
+        assertTrue(cache(index, "queryBuilds").isEmpty());
+    }
+
+    @Test
     public void runtimeBucketsStayIsolatedAndRetirementEvictsOnlyTheirEntries() {
         AtomicInteger runtimeId = new AtomicInteger(1);
         Engine engine = runtimeEngine(runtimeId);
@@ -282,7 +297,7 @@ public class NativeStructureVolumeIndexTest {
     }
 
     @Test
-    public void overlappingColdQueriesCoordinateBeforeResolvingOrigins() throws Exception {
+    public void overlappingColdQueriesResolveIndependentOriginsConcurrently() throws Exception {
         BlockingResolver resolver = new BlockingResolver();
         NativeStructureVolumeIndex index = NativeStructureVolumeIndex.forTesting(resolver);
         ExecutorService executor = Executors.newFixedThreadPool(2);
@@ -291,7 +306,8 @@ public class NativeStructureVolumeIndexTest {
             assertTrue(resolver.awaitFirstEntry());
             Future<KList<NativeStructureVolume>> adjacent = executor.submit(() -> index.resolve(null, 16, 0, 31, 15));
 
-            assertFalse(resolver.awaitSecondEntry(250));
+            assertTrue(resolver.awaitSecondEntry(5_000));
+            assertTrue(adjacent.get(5, TimeUnit.SECONDS).isEmpty());
             resolver.release();
             assertTrue(first.get(5, TimeUnit.SECONDS).isEmpty());
             assertTrue(adjacent.get(5, TimeUnit.SECONDS).isEmpty());
@@ -303,12 +319,42 @@ public class NativeStructureVolumeIndexTest {
     }
 
     @Test
-    public void contendedNativeWindowsAllowQueuedTerrainWorkToRun() throws Exception {
+    public void overlappingNegativeQueriesPreserveEveryVolumeAndOriginOrder() throws Exception {
+        BlockingResolver coordination = new BlockingResolver();
+        NativeStructureVolumeIndex.OriginResolver volumes = (engine, chunkX, chunkZ) ->
+                new KList<>(new NativeStructureVolume(chunkX + ":" + chunkZ,
+                        -256, 0, -256, 256, 255, 256));
+        NativeStructureVolumeIndex index = NativeStructureVolumeIndex.forTesting((engine, chunkX, chunkZ) -> {
+            coordination.volumesAt(engine, chunkX, chunkZ);
+            return volumes.volumesAt(engine, chunkX, chunkZ);
+        });
+        NativeStructureVolumeIndex sequential = NativeStructureVolumeIndex.forTesting(volumes);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<KList<NativeStructureVolume>> negative = executor.submit(
+                    () -> index.resolve(null, -16, 0, -1, 15));
+            assertTrue(coordination.awaitFirstEntry());
+            Future<KList<NativeStructureVolume>> positive = executor.submit(
+                    () -> index.resolve(null, 0, 0, 15, 15));
+            assertTrue(coordination.awaitSecondEntry(5_000));
+            assertEquals(sequential.resolve(null, 0, 0, 15, 15), positive.get(5, TimeUnit.SECONDS));
+            coordination.release();
+            assertEquals(sequential.resolve(null, -16, 0, -1, 15), negative.get(5, TimeUnit.SECONDS));
+            assertEquals(306, coordination.resolutions());
+        } finally {
+            coordination.release();
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void sharedOriginWaitAllowsQueuedTerrainWorkToRun() throws Exception {
         assertQueuedTerrainCanComplete(false);
     }
 
     @Test
-    public void interruptedNativeWindowWaitStillAcquiresAndReleasesOnce() throws Exception {
+    public void interruptedOriginWaitPreservesInterruptAndResult() throws Exception {
         assertQueuedTerrainCanComplete(true);
     }
 
@@ -331,7 +377,7 @@ public class NativeStructureVolumeIndexTest {
         AtomicReference<Thread> secondWaiter = new AtomicReference<>();
         try {
             Future<KList<NativeStructureVolume>> original = owner.submit(
-                    () -> index.resolve(null, 0, 0, 15, 15));
+                    () -> index.originVolumes(null, -6, -8));
             assertTrue(ownerEntered.await(5, TimeUnit.SECONDS));
             Future<KList<NativeStructureVolume>> adjacent = workers.submit(() -> {
                 firstWaiter.set(Thread.currentThread());
@@ -343,15 +389,15 @@ public class NativeStructureVolumeIndexTest {
                 secondWaiter.set(Thread.currentThread());
                 return index.resolve(null, 32, 0, 47, 15);
             });
-            awaitOriginWindowWaiter(firstWaiter);
-            awaitOriginWindowWaiter(secondWaiter);
+            awaitOriginWaiter(firstWaiter);
+            awaitOriginWaiter(secondWaiter);
             if (interruptWaiter) {
                 firstWaiter.get().interrupt();
             }
 
             Future<?> terrainTask = workers.submit(() -> terrain.complete(null));
             terrainTask.get(3, TimeUnit.SECONDS);
-            assertEquals(289, original.get(3, TimeUnit.SECONDS).size());
+            assertEquals(1, original.get(3, TimeUnit.SECONDS).size());
             KList<NativeStructureVolume> adjacentVolumes = adjacent.get(3, TimeUnit.SECONDS);
             assertEquals(289, adjacentVolumes.size());
             assertEquals(adjacentVolumes, index.resolve(null, 16, 0, 31, 15));
@@ -366,28 +412,28 @@ public class NativeStructureVolumeIndexTest {
         }
     }
 
-    private static void awaitOriginWindowWaiter(AtomicReference<Thread> reference) {
+    private static void awaitOriginWaiter(AtomicReference<Thread> reference) {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
         while (System.nanoTime() < deadline) {
             Thread thread = reference.get();
             if (thread != null && thread.getState() == Thread.State.WAITING) {
                 for (StackTraceElement frame : thread.getStackTrace()) {
-                    if (frame.getClassName().equals(NativeStructureVolumeIndex.class.getName())
-                            && frame.getMethodName().equals("lockOriginWindow")) {
+                    if (frame.getClassName().equals("art.arcane.volmlib.nativelib.terrain.NativeBuildFutures")
+                            && frame.getMethodName().equals("awaitBuild")) {
                         return;
                     }
                 }
             }
             LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
         }
-        throw new AssertionError("Native query did not wait for the occupied origin window");
+        throw new AssertionError("Native query did not wait for the shared origin");
     }
 
     @Test
     public void distantColdQueriesCanResolveOriginsConcurrently() throws Exception {
         BlockingResolver resolver = new BlockingResolver();
         NativeStructureVolumeIndex index = NativeStructureVolumeIndex.forTesting(resolver);
-        int distantChunkX = findDisjointWindow(0, 0);
+        int distantChunkX = 64;
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
             Future<KList<NativeStructureVolume>> first = executor.submit(() -> index.resolve(null, 0, 0, 15, 15));
@@ -476,16 +522,6 @@ public class NativeStructureVolumeIndexTest {
                     throw new UnsupportedOperationException(method.getName());
                 }
         );
-    }
-
-    private static int findDisjointWindow(int chunkX, int chunkZ) {
-        long sourceMask = NativeStructureVolumeIndex.originWindowStripeMask(chunkX, chunkZ);
-        for (int candidate = 64; candidate < 16_384; candidate += 17) {
-            if ((sourceMask & NativeStructureVolumeIndex.originWindowStripeMask(candidate, chunkZ)) == 0L) {
-                return candidate;
-            }
-        }
-        throw new IllegalStateException("Unable to find a disjoint native structure window stripe");
     }
 
     private static final class CountingResolver implements NativeStructureVolumeIndex.OriginResolver {

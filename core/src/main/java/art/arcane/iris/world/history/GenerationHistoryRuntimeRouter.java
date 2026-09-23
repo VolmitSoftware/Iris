@@ -1415,7 +1415,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
                     || router.history.resolveActivation(chunkX(), chunkZ()).activationId() != stage.activation().activationId()) {
                 return false;
             }
-            ChunkGenerationSemantics semantics = GenerationSemanticCapture.capture(
+            ChunkGenerationSemantics semantics = GenerationSemanticCapture.captureScoped(
                     router.engine,
                     stage,
                     caveSpace

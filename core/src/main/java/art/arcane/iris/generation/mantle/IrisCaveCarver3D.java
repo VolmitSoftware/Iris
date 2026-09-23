@@ -91,6 +91,9 @@ public class IrisCaveCarver3D {
     private final int fluidHeight;
     private final int aquiferCeilingY;
     private final boolean parallelDensity;
+    private final int verticalDensityStep;
+    private final int worldMinimumY;
+    private final int densityMaximumY;
     private final ThreadLocal<Boolean> carving = ThreadLocal.withInitial(() -> false);
     private final ThreadLocal<CaveCarveScratch> scratchCache = ThreadLocal.withInitial(CaveCarveScratch::new);
 
@@ -139,6 +142,9 @@ public class IrisCaveCarver3D {
         detailMinContribution = -detailWeight;
         detailMaxContribution = detailWeight;
         parallelDensity = fixedDensityStyles(profile);
+        verticalDensityStep = parallelDensity ? Math.max(1, engine.getDimension().getCaveDensitySamplingStep()) : 1;
+        worldMinimumY = engine.getWorld().minHeight();
+        densityMaximumY = engine.getWorld().getHeight() - 1;
     }
 
     public int carve(MantleWriter writer, int chunkX, int chunkZ) {
@@ -1354,6 +1360,13 @@ public class IrisCaveCarver3D {
             return;
         }
 
+        if (verticalDensityStep > 1 && adaptiveSampleStep == ADAPTIVE_DEEP_SAMPLE_STEP) {
+            prepareVerticalDensityPlane(scratch, x0, z0, y);
+            classifyDeepAdaptivePlaneFromSamples(scratch, planeColumnIndices, planeThresholdLimit,
+                    planeCount, planeCarve, ADAPTIVE_DEEP_SAMPLE_STEP, scratch.adaptivePlaneDensity, 2, 3);
+            return;
+        }
+
         if (!hasWarp) {
             if (!hasModules) {
                 classifyDensityPlaneAdaptiveNoWarpNoModules(scratch, x0, z0, y, planeColumnIndices, planeThresholdLimit, planeCount, planeCarve, adaptiveSampleStep, adaptiveThresholdMargin);
@@ -1370,6 +1383,65 @@ public class IrisCaveCarver3D {
         }
 
         classifyDensityPlaneAdaptiveWarpModules(scratch, x0, z0, y, planeColumnIndices, planeThresholdLimit, planeCount, planeCarve, adaptiveSampleStep, adaptiveThresholdMargin);
+    }
+
+    private void prepareVerticalDensityPlane(CaveCarveScratch scratch, int x0, int z0, int y) {
+        int lower = (int) (Math.floorDiv((long) y + worldMinimumY, verticalDensityStep)
+                * verticalDensityStep - worldMinimumY);
+        int upper = Math.min(densityMaximumY, lower + verticalDensityStep);
+        lower = Math.max(0, lower);
+        for (CaveFieldModuleState module : modules) {
+            if (y < module.minY) {
+                upper = Math.min(upper, module.minY - 1);
+            } else if (y > module.maxY) {
+                lower = Math.max(lower, module.maxY + 1);
+            } else {
+                lower = Math.max(lower, module.minY);
+                upper = Math.min(upper, module.maxY);
+            }
+        }
+        if (scratch.verticalDensityX != x0 || scratch.verticalDensityZ != z0) {
+            scratch.verticalDensityX = x0;
+            scratch.verticalDensityZ = z0;
+            scratch.verticalDensityLowerY = Integer.MIN_VALUE;
+            scratch.verticalDensityUpperY = Integer.MIN_VALUE;
+        }
+        if (scratch.verticalDensityUpperY == lower) {
+            double[] previousLower = scratch.verticalDensityLower;
+            scratch.verticalDensityLower = scratch.verticalDensityUpper;
+            scratch.verticalDensityUpper = previousLower;
+            scratch.verticalDensityUpperY = scratch.verticalDensityLowerY;
+            scratch.verticalDensityLowerY = lower;
+        }
+        if (scratch.verticalDensityLowerY != lower) {
+            scratch.verticalDensityLowerY = Integer.MIN_VALUE;
+            sampleVerticalDensityPlane(scratch, x0, z0, lower, scratch.verticalDensityLower);
+            scratch.verticalDensityLowerY = lower;
+        }
+        if (y == lower) {
+            System.arraycopy(scratch.verticalDensityLower, 0, scratch.adaptivePlaneDensity, 0, 9);
+            return;
+        }
+        if (scratch.verticalDensityUpperY != upper) {
+            scratch.verticalDensityUpperY = Integer.MIN_VALUE;
+            sampleVerticalDensityPlane(scratch, x0, z0, upper, scratch.verticalDensityUpper);
+            scratch.verticalDensityUpperY = upper;
+        }
+        double fraction = (y - lower) / (double) (upper - lower);
+        for (int index = 0; index < 9; index++) {
+            double lowerDensity = scratch.verticalDensityLower[index];
+            scratch.adaptivePlaneDensity[index] = lowerDensity
+                    + (scratch.verticalDensityUpper[index] - lowerDensity) * fraction;
+        }
+    }
+
+    private void sampleVerticalDensityPlane(CaveCarveScratch scratch, int x0, int z0, int y, double[] samples) {
+        for (int x = 0; x < 3; x++) {
+            for (int z = 0; z < 3; z++) {
+                samples[x * 3 + z] = sampleDensityOptimized(scratch,
+                        x0 + x * ADAPTIVE_DEEP_SAMPLE_STEP, y, z0 + z * ADAPTIVE_DEEP_SAMPLE_STEP);
+            }
+        }
     }
 
     private void classifyDensityPlaneNoWarpNoModules(int x0, int z0, int y, int[] planeColumnIndices, double[] planeThresholdLimit, int planeCount, boolean[] planeCarve) {

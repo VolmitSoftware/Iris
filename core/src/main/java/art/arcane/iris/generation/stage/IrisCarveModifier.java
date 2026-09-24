@@ -532,44 +532,46 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             return;
         }
 
+        int height = maxY + 1;
+        MatterCavern[] ownWest = west == null ? null : TerrainMatterView.getComposedFace(mc, TerrainMatterView.Face.WEST, height);
+        MatterCavern[] ownEast = east == null ? null : TerrainMatterView.getComposedFace(mc, TerrainMatterView.Face.EAST, height);
+        MatterCavern[] ownNorth = north == null ? null : TerrainMatterView.getComposedFace(mc, TerrainMatterView.Face.NORTH, height);
+        MatterCavern[] ownSouth = south == null ? null : TerrainMatterView.getComposedFace(mc, TerrainMatterView.Face.SOUTH, height);
+        MatterCavern[] fromWest = west == null ? null : TerrainMatterView.getComposedFace(west, TerrainMatterView.Face.EAST, height);
+        MatterCavern[] fromEast = east == null ? null : TerrainMatterView.getComposedFace(east, TerrainMatterView.Face.WEST, height);
+        MatterCavern[] fromNorth = north == null ? null : TerrainMatterView.getComposedFace(north, TerrainMatterView.Face.SOUTH, height);
+        MatterCavern[] fromSouth = south == null ? null : TerrainMatterView.getComposedFace(south, TerrainMatterView.Face.NORTH, height);
         for (int yy = 1; yy <= maxY; yy++) {
             for (int offset = 0; offset < 16; offset++) {
+                int index = yy * 16 + offset;
                 if (west != null) {
-                    tryAddBoundaryWall(mc, west, walls, boundaryMasks, 0, yy, offset, 15, offset);
+                    tryAddBoundaryWall(ownWest[index], fromWest[index], walls, boundaryMasks, 0, yy, offset);
                 }
                 if (east != null) {
-                    tryAddBoundaryWall(mc, east, walls, boundaryMasks, 15, yy, offset, 0, offset);
+                    tryAddBoundaryWall(ownEast[index], fromEast[index], walls, boundaryMasks, 15, yy, offset);
                 }
                 if (north != null) {
-                    tryAddBoundaryWall(mc, north, walls, boundaryMasks, offset, yy, 0, offset, 15);
+                    tryAddBoundaryWall(ownNorth[index], fromNorth[index], walls, boundaryMasks, offset, yy, 0);
                 }
                 if (south != null) {
-                    tryAddBoundaryWall(mc, south, walls, boundaryMasks, offset, yy, 15, offset, 0);
+                    tryAddBoundaryWall(ownSouth[index], fromSouth[index], walls, boundaryMasks, offset, yy, 15);
                 }
             }
         }
     }
 
     private void tryAddBoundaryWall(
-            MantleChunk<Matter> mc,
-            MantleChunk<Matter> neighborChunk,
+            MatterCavern current,
+            MatterCavern neighbor,
             CarveWallBuffer walls,
             CarveColumnMask[] boundaryMasks,
             int localX,
             int yy,
-            int localZ,
-            int neighborX,
-            int neighborZ
+            int localZ
     ) {
-        if (composedCavernAt(mc, localX, yy, localZ) != null) {
+        if (current != null || neighbor == null) {
             return;
         }
-
-        MatterCavern neighbor = composedCavernAt(neighborChunk, neighborX, yy, neighborZ);
-        if (neighbor == null) {
-            return;
-        }
-
         walls.put(localX, yy, localZ, neighbor);
         int columnIndex = PowerOfTwoCoordinates.packLocal16(localX, localZ);
         boundaryMasks[columnIndex].add(yy);

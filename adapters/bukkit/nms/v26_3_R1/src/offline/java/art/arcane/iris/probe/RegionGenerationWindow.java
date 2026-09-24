@@ -11,20 +11,55 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-final class RegionGenerationWindow {
+final class RegionGenerationWindow implements AutoCloseable {
     private static final int UNRESPONSIVE_WORKER_EXIT = 70;
 
-    private RegionGenerationWindow() {
+    private final int parallelism;
+    private final Policy policy;
+    private final ExecutorService workers;
+    private boolean closed;
+    private boolean processing;
+
+    RegionGenerationWindow(int parallelism, Policy policy) {
+        if (parallelism < 1 || parallelism > 32) {
+            throw new IllegalArgumentException("Generation workers must be 1..32");
+        }
+        this.parallelism = parallelism;
+        this.policy = Objects.requireNonNull(policy, "policy");
+        workers = Executors.newFixedThreadPool(parallelism);
     }
 
-    static <T> void process(Request<T> request) throws Exception {
-        process(request, Policy.EMBEDDED);
+    @Override
+    public synchronized void close() {
+        if (processing) {
+            throw new IllegalStateException("Cannot close generation workers from an active batch");
+        }
+        if (closed) {
+            return;
+        }
+        closed = true;
+        workers.shutdown();
+        drain(workers, policy, null);
     }
 
-    static <T> void process(Request<T> request, Policy policy) throws Exception {
-        ExecutorService workers = Executors.newFixedThreadPool(request.parallelism());
+    int parallelism() {
+        return parallelism;
+    }
+
+    synchronized void requireOpen() {
+        if (closed) {
+            throw new IllegalStateException("Generation workers are closed");
+        }
+    }
+
+    synchronized <T> void process(Request<T> request) throws Exception {
+        requireOpen();
+        if (processing || request.parallelism() > parallelism) {
+            throw new IllegalArgumentException("Generation batch requires idle workers within the session limit");
+        }
         ExecutorCompletionService<Completed<T>> completions = new ExecutorCompletionService<>(workers);
         Set<Future<Completed<T>>> active = new HashSet<>(request.parallelism());
+        processing = true;
         try {
             int submitted = 0;
             for (; submitted < Math.min(request.count(), request.parallelism()); submitted++) {
@@ -43,15 +78,16 @@ final class RegionGenerationWindow {
                 request.sink().accept(result.index(), result.value());
             }
         } catch (Exception | Error failure) {
+            closed = true;
             for (Future<Completed<T>> future : active) {
                 future.cancel(true);
             }
             workers.shutdownNow();
             drain(workers, policy, failure);
             throw failure;
+        } finally {
+            processing = false;
         }
-        workers.shutdown();
-        drain(workers, policy, null);
     }
 
     private static void drain(ExecutorService workers, Policy policy, Throwable failure) {

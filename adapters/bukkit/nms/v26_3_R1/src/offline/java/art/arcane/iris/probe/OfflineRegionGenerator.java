@@ -82,7 +82,7 @@ public final class OfflineRegionGenerator {
         Path capturedConfiguration = staged.resolve("spigot.yml");
         Files.write(capturedConfiguration, configurationBytes, StandardOpenOption.CREATE_NEW);
         String configurationHash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(configurationBytes));
-        HeadlessNativeRuntime runtime = new HeadlessNativeRuntime();
+        HeadlessNativeRuntime runtime = new HeadlessNativeRuntime(staged);
         long started = System.nanoTime();
         long writes = 0;
         long terrainWrites = 0;
@@ -102,12 +102,14 @@ public final class OfflineRegionGenerator {
                     : hydrology.preparePregeneration(configuration.hydrologyArea());
                  HeadlessTerrainContext context = HeadlessTerrainContext.create(new HeadlessTerrainContext.Options(
                     session.engine(), runtime, staged.resolve("templates"), configuration.levelKey(),
-                    configuration.noiseSettings(), spigot))) {
-                HeadlessRegionTerrain.Session rolling = new HeadlessRegionTerrain.Session(RegionGenerationWindow.Policy.STANDALONE);
+                    configuration.noiseSettings(), spigot));
+                 RegionGenerationWindow workers = new RegionGenerationWindow(configuration.parallelism(),
+                         RegionGenerationWindow.Policy.STANDALONE)) {
+                HeadlessRegionTerrain.Session rolling = new HeadlessRegionTerrain.Session(workers);
                 Path regionDirectory = session.engine().getTarget().getWorld().worldFolder().toPath().resolve("region");
                 Files.createDirectory(regionDirectory);
                 OfflineRegionWriter writer = new OfflineRegionWriter(new OfflineRegionWriter.Options(
-                        context, regionDirectory, configuration.parallelism(), RegionGenerationWindow.Policy.STANDALONE));
+                        context, regionDirectory, workers));
                 for (int row = 0; row < configuration.regionsZ(); row++) {
                     for (int column = 0; column < configuration.regionsX(); column++) {
                         int regionX = row % 2 == 0 ? column : configuration.regionsX() - column - 1;
@@ -142,9 +144,7 @@ public final class OfflineRegionGenerator {
                 wallSeconds, generationSeconds, serializationSeconds);
         Files.writeString(staged.resolve("checkpoint.properties"), report, StandardOpenOption.CREATE_NEW);
         long publicationStarted = System.nanoTime();
-        forceTree(staged);
-        Files.move(staged, configuration.output().resolve("native-terrain-checkpoint"), StandardCopyOption.ATOMIC_MOVE);
-        force(configuration.output());
+        publish(staged, configuration.output().resolve("native-terrain-checkpoint"));
         System.out.println(report);
         System.out.println("publicationSeconds=" + (System.nanoTime() - publicationStarted) / 1_000_000_000.0);
         System.out.println("totalSeconds=" + (System.nanoTime() - started) / 1_000_000_000.0);
@@ -205,6 +205,12 @@ public final class OfflineRegionGenerator {
                 return FileVisitResult.CONTINUE;
             }
         });
+    }
+
+    static void publish(Path staged, Path destination) throws IOException {
+        forceTree(staged);
+        Files.move(staged, destination, StandardCopyOption.ATOMIC_MOVE);
+        force(destination.getParent());
     }
 
     private static void force(Path path) throws IOException {

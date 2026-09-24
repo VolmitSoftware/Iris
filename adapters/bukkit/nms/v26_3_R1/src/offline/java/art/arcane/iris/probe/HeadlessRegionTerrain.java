@@ -45,14 +45,15 @@ final class HeadlessRegionTerrain {
 
     static final class Session {
         private final Map<Long, HeadlessStructurePlanner.PlannedChunk<NativeStructureOwnershipRecord>> chunks = new HashMap<>();
-        private final RegionGenerationWindow.Policy workerPolicy;
+        private final RegionGenerationWindow workers;
         private HeadlessTerrainContext context;
 
-        Session(RegionGenerationWindow.Policy workerPolicy) {
-            this.workerPolicy = Objects.requireNonNull(workerPolicy, "workerPolicy");
+        Session(RegionGenerationWindow workers) {
+            this.workers = Objects.requireNonNull(workers, "workers");
         }
 
         Result generate(Request request, Consumer<String> progress) throws Exception {
+            workers.requireOpen();
             if (context != null && context != request.context()) {
                 throw new IllegalArgumentException("Rolling regions require one native terrain context");
             }
@@ -85,7 +86,7 @@ final class HeadlessRegionTerrain {
                 }
                 long started = System.nanoTime();
                 AtomicInteger completed = new AtomicInteger();
-                RegionGenerationWindow.process(new RegionGenerationWindow.Request<>(eligible.size(), request.parallelism(),
+                workers.process(new RegionGenerationWindow.Request<>(eligible.size(), request.parallelism(),
                         index -> apply(request.context(), eligible.get(index), status, chunks),
                         (index, result) -> {
                             if (status == ChunkStatus.STRUCTURE_STARTS) {
@@ -96,7 +97,7 @@ final class HeadlessRegionTerrain {
                                 progress.accept("stage=" + status.getName() + " chunks=" + count + "/" + eligible.size()
                                         + " seconds=" + (System.nanoTime() - started) / 1_000_000_000.0);
                             }
-                        }), workerPolicy);
+                        }));
                 failReported();
             }
             List<ProtoChunk> ordered = new ArrayList<>(plan.size());

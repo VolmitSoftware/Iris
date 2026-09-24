@@ -125,8 +125,8 @@ public final class RegionNativeFixture extends JavaPlugin {
         int chunks = request.width() * request.width();
         getLogger().info("NATIVE_LOAD_STARTED chunks=" + chunks + " chunkX=" + request.chunkX()
                 + " chunkZ=" + request.chunkZ() + " workers=" + request.parallelism());
-        try {
-            RegionGenerationWindow.process(new RegionGenerationWindow.Request<>(chunks, request.parallelism(),
+        try (RegionGenerationWindow workers = new RegionGenerationWindow(request.parallelism(), RegionGenerationWindow.Policy.EMBEDDED)) {
+            workers.process(new RegionGenerationWindow.Request<>(chunks, request.parallelism(),
                     index -> {
                         int x = request.chunkX() + index % request.width();
                         int z = request.chunkZ() + index / request.width();

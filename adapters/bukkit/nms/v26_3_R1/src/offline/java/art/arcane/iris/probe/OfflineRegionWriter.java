@@ -38,6 +38,7 @@ final class OfflineRegionWriter {
     }
 
     Result write(HeadlessRegionTerrain.Result generated) throws Exception {
+        options.workers().requireOpen();
         try (OpenRegions regions = new OpenRegions(options)) {
             List<ChunkWrite> pending = new ArrayList<>(generated.updated().size());
             for (ProtoChunk chunk : generated.updated()) {
@@ -62,8 +63,8 @@ final class OfflineRegionWriter {
                 return new Result(0, 0);
             }
             int[] counts = new int[2];
-            RegionGenerationWindow.process(new RegionGenerationWindow.Request<>(pending.size(),
-                    Math.min(options.parallelism(), MAXIMUM_PREPARATION_WORKERS),
+            options.workers().process(new RegionGenerationWindow.Request<>(pending.size(),
+                    Math.min(options.workers().parallelism(), MAXIMUM_PREPARATION_WORKERS),
                     index -> prepare(pending.get(index)),
                     (index, prepared) -> {
                         ChunkWrite chunk = prepared.chunk();
@@ -73,7 +74,7 @@ final class OfflineRegionWriter {
                         if (chunk.chunk().getPersistedStatus().isOrAfter(ChunkStatus.TERRAIN)) {
                             counts[1]++;
                         }
-                    }), options.policy());
+                    }));
             return new Result(counts[0], counts[1]);
         }
     }
@@ -100,14 +101,11 @@ final class OfflineRegionWriter {
         }
     }
 
-    record Options(HeadlessTerrainContext context, Path directory, int parallelism, RegionGenerationWindow.Policy policy) {
+    record Options(HeadlessTerrainContext context, Path directory, RegionGenerationWindow workers) {
         Options {
             Objects.requireNonNull(context, "context");
             Objects.requireNonNull(directory, "directory");
-            Objects.requireNonNull(policy, "policy");
-            if (parallelism < 1 || parallelism > 32) {
-                throw new IllegalArgumentException("Offline writer parallelism must be 1..32");
-            }
+            Objects.requireNonNull(workers, "workers");
         }
     }
 

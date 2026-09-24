@@ -30,11 +30,9 @@ import art.arcane.iris.generation.concurrent.BurstExecutor;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockState> {
     private static final BoundBlockState AIR = BoundBlockState.of("AIR");
@@ -86,82 +84,65 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockSt
         if (getDimension().isHideOresForHiddenOre()) {
             hideOres(output, multicore);
         }
-        AtomicBoolean changed = new AtomicBoolean(true);
         BurstExecutor burst = burst().burst(multicore);
-        while (changed.get()) {
-            changed.set(false);
-            for (int i = 0; i < 16; i++) {
-                int finalI = i;
-                burst.queue(() -> {
-                    List<Integer> surfaces = new ArrayList<>();
-                    List<Integer> ceilings = new ArrayList<>();
-                    for (int j = 0; j < 16; j++) {
-                        surfaces.clear();
-                        ceilings.clear();
-                        int top = getHeight(output, finalI, j);
-                        boolean inside = true;
-                        surfaces.add(top);
-
-                        for (int k = top; k >= 0; k--) {
-                            NativeBlockState b = output.get(finalI, k, j);
-                            if (IrisSpeleothems.isSpike(b)) {
-                                b = normalizeSpike(b, output, finalI, j, k, AIR.get(), WATER.get());
-                            }
-                            boolean now = b != null && !(B.isAir(b) || B.isFluid(b));
-
-                            if (now != inside) {
-                                inside = now;
-
-                                if (inside) {
-                                    surfaces.add(k);
-                                } else {
-                                    ceilings.add(k + 1);
-                                }
-                            }
-                        }
-
-                        for (int k : surfaces) {
-                            NativeBlockState tip = output.get(finalI, k, j);
-
-                            if (tip == null) {
-                                continue;
-                            }
-
-                            boolean remove = false;
-                            boolean remove2 = false;
-
-                            if (B.isDecorant(tip)) {
-                                NativeBlockState bel = output.get(finalI, k - 1, j);
-
-                                if (bel == null) {
-                                    remove = true;
-                                } else if (!B.canPlaceOnto(tip, bel)) {
-                                    remove = true;
-                                } else if (IrisProceduralBlocks.hasProperty(bel, "half")) {
-                                    NativeBlockState bb = output.get(finalI, k - 2, j);
-                                    if (bb == null || !B.canPlaceOnto(bel, bb)) {
-                                        remove = true;
-                                        remove2 = true;
-                                    }
-                                }
-
-                                if (remove) {
-                                    changed.set(true);
-                                    output.set(finalI, k, j, AIR.get());
-
-                                    if (remove2) {
-                                        output.set(finalI, k - 1, j, AIR.get());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-            burst.complete();
+        for (int index = 0; index < 16; index++) {
+            int columnX = index;
+            burst.queue(() -> perfectSlice(output, columnX));
         }
+        burst.complete();
 
         getEngine().getMetrics().getPerfection().put(p.getMilliseconds());
+    }
+
+    private void perfectSlice(Hunk<NativeBlockState> output, int x) {
+        IntArrayList surfaces = new IntArrayList();
+        for (int z = 0; z < 16; z++) {
+            boolean changed;
+            do {
+                surfaces.clear();
+                int top = getHeight(output, x, z);
+                boolean inside = true;
+                surfaces.add(top);
+                for (int y = top; y >= 0; y--) {
+                    NativeBlockState block = output.get(x, y, z);
+                    if (IrisSpeleothems.isSpike(block)) {
+                        block = normalizeSpike(block, output, x, z, y, AIR.get(), WATER.get());
+                    }
+                    boolean now = block != null && !(B.isAir(block) || B.isFluid(block));
+                    if (now != inside) {
+                        inside = now;
+                        if (inside) {
+                            surfaces.add(y);
+                        }
+                    }
+                }
+                changed = false;
+                for (int index = 0; index < surfaces.size(); index++) {
+                    int y = surfaces.getInt(index);
+                    NativeBlockState tip = output.get(x, y, z);
+                    if (!B.isDecorant(tip)) {
+                        continue;
+                    }
+                    NativeBlockState below = output.get(x, y - 1, z);
+                    boolean remove = below == null || !B.canPlaceOnto(tip, below);
+                    boolean removeBelow = false;
+                    if (!remove && IrisProceduralBlocks.hasProperty(below, "half")) {
+                        NativeBlockState support = output.get(x, y - 2, z);
+                        if (support == null || !B.canPlaceOnto(below, support)) {
+                            remove = true;
+                            removeBelow = true;
+                        }
+                    }
+                    if (remove) {
+                        changed = true;
+                        output.set(x, y, z, AIR.get());
+                        if (removeBelow) {
+                            output.set(x, y - 1, z, AIR.get());
+                        }
+                    }
+                }
+            } while (changed);
+        }
     }
 
     static NativeBlockState normalizeSpike(NativeBlockState state, Hunk<NativeBlockState> output,

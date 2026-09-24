@@ -22,6 +22,17 @@ final class HeadlessGenerationHistorySession {
     }
 
     static GenerationHistory create(RealPackProbeSupport.HistoryRequest request, IDataFixer fixer) throws IOException {
+        GenerationHistory.FreshCreation creation = capture(request, fixer);
+        Files.createDirectories(creation.dimensionRoot());
+        return GenerationHistory.create(creation.dimensionRoot(), creation.packSource(), creation.packFingerprint(),
+                creation.worldSeed(), creation.dimensionContract(), creation.registryContract());
+    }
+
+    static GenerationHistory createUnpublished(RealPackProbeSupport.HistoryRequest request, IDataFixer fixer) throws IOException {
+        return GenerationHistory.createUnpublished(capture(request, fixer));
+    }
+
+    private static GenerationHistory.FreshCreation capture(RealPackProbeSupport.HistoryRequest request, IDataFixer fixer) throws IOException {
         IrisData data = request.data();
         IrisDimension dimension = request.dimension();
         PlatformRegistries registries = IrisPlatforms.get().registries();
@@ -34,8 +45,7 @@ final class HeadlessGenerationHistorySession {
                 data.getDataFolder().getName(), dimension.getLoadKey(), dimension.getDimensionTypeKey());
         GenerationEpoch.DimensionContract dimensionContract = GenerationEpochContractFactory.create(
                 dimension, dimension.getLoadKey(), dimensionTypeKey);
-        Files.createDirectories(request.worldRoot());
-        return GenerationHistory.create(request.worldRoot(), pack, fingerprint, request.seed(),
+        return new GenerationHistory.FreshCreation(request.worldRoot(), pack, fingerprint, request.seed(),
                 dimensionContract, registryContract);
     }
 }

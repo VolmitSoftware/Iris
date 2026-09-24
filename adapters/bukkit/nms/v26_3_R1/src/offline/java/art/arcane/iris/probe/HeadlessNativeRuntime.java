@@ -22,15 +22,25 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeStateMerger;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.server.packs.resources.ResourceManager;
 
 final class HeadlessNativeRuntime implements RealPackProbeSupport.RuntimeBindings {
+    private final Path stagingRoot;
     private NativeRegionTerrainWriter writer;
     private HeadlessNativeRegistries nativeRegistries;
     private HolderLookup.Provider registries;
+
+    HeadlessNativeRuntime() {
+        stagingRoot = null;
+    }
+
+    HeadlessNativeRuntime(Path stagingRoot) throws IOException {
+        this.stagingRoot = stagingRoot.toRealPath();
+    }
 
     @Override
     public IrisPlatform create(File root) {
@@ -68,6 +78,12 @@ final class HeadlessNativeRuntime implements RealPackProbeSupport.RuntimeBinding
 
     @Override
     public GenerationHistory createHistory(RealPackProbeSupport.HistoryRequest request) throws IOException {
+        if (stagingRoot != null) {
+            if (!request.worldRoot().getParent().toRealPath().startsWith(stagingRoot)) {
+                throw new IOException("Unpublished native generation must remain inside its private staging directory");
+            }
+            return HeadlessGenerationHistorySession.createUnpublished(request, new DataFixerV263());
+        }
         return HeadlessGenerationHistorySession.create(request, new DataFixerV263());
     }
 

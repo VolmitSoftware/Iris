@@ -49,14 +49,16 @@ public final class SavedBiomeStore {
 
     private final Path dimensionRoot;
     private final Path directory;
+    private final boolean unpublished;
     private final WriteStripe[] regionLocks = new WriteStripe[64];
     private final LinkedHashMap<Long, RegionIndex> regions = new LinkedHashMap<>(64, 0.75F, true);
     private final LinkedHashMap<Long, Optional<SavedBiomeChunk>> chunks = new LinkedHashMap<>(128, 0.75F, true);
     private long cachedBytes;
     private volatile IOException writeFailure;
 
-    private SavedBiomeStore(Path dimensionRoot) throws IOException {
+    private SavedBiomeStore(Path dimensionRoot, boolean unpublished) throws IOException {
         this.dimensionRoot = Objects.requireNonNull(dimensionRoot, "dimensionRoot").toAbsolutePath().normalize();
+        this.unpublished = unpublished;
         directory = this.dimensionRoot.resolve("iris/generation/biomes");
         requireSafeAncestors();
         for (int index = 0; index < regionLocks.length; index++) {
@@ -65,7 +67,11 @@ public final class SavedBiomeStore {
     }
 
     public static SavedBiomeStore open(Path dimensionRoot) throws IOException {
-        return new SavedBiomeStore(dimensionRoot);
+        return open(dimensionRoot, false);
+    }
+
+    static SavedBiomeStore open(Path dimensionRoot, boolean unpublished) throws IOException {
+        return new SavedBiomeStore(dimensionRoot, unpublished);
     }
 
     public Path storageDirectory() {
@@ -195,11 +201,14 @@ public final class SavedBiomeStore {
             RegionIndex region = region(first.chunkX(), first.chunkZ());
             ensureRegionFile(region);
             long offset = 0L;
-            boolean durable = false;
+            boolean appendCompleted = false;
             try (RandomAccessFile output = new RandomAccessFile(region.path.toFile(), "rw")) {
                 offset = output.length();
                 long length = 0L;
+                ByteBuffer[] records = new ByteBuffer[claimed.size()];
+                int recordIndex = 0;
                 for (PendingWrite pending : claimed.values()) {
+                    records[recordIndex++] = ByteBuffer.wrap(pending.record);
                     length += pending.record.length;
                 }
                 if (offset + length > MAXIMUM_REGION_BYTES) {
@@ -207,15 +216,24 @@ public final class SavedBiomeStore {
                 }
                 try {
                     output.seek(offset);
-                    for (PendingWrite pending : claimed.values()) {
-                        output.write(pending.record);
+                    FileChannel channel = output.getChannel();
+                    int firstBuffer = 0;
+                    while (firstBuffer < records.length) {
+                        channel.write(records, firstBuffer, records.length - firstBuffer);
+                        while (firstBuffer < records.length && !records[firstBuffer].hasRemaining()) {
+                            firstBuffer++;
+                        }
                     }
-                    output.getChannel().force(true);
-                    durable = true;
+                    if (!unpublished) {
+                        output.getChannel().force(true);
+                    }
+                    appendCompleted = true;
                 } catch (IOException failure) {
                     try {
                         output.setLength(offset);
-                        output.getChannel().force(true);
+                        if (!unpublished) {
+                            output.getChannel().force(true);
+                        }
                     } catch (IOException rollback) {
                         failure.addSuppressed(rollback);
                         writeFailure = failure;
@@ -223,7 +241,7 @@ public final class SavedBiomeStore {
                     throw failure;
                 }
             } catch (IOException failure) {
-                if (durable) {
+                if (appendCompleted) {
                     writeFailure = failure;
                 }
                 throw failure;

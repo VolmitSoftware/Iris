@@ -55,15 +55,17 @@ final class DetachedNativeTerrain {
                     request.level(), request.level().palettedContainerFactory(), null)));
         }
         long started = System.nanoTime();
-        for (ChunkStatus status : ChunkStatus.getStatusList()) {
-            if (status == ChunkStatus.EMPTY) {
-                continue;
+        try (RegionGenerationWindow workers = new RegionGenerationWindow(request.parallelism(), RegionGenerationWindow.Policy.EMBEDDED)) {
+            for (ChunkStatus status : ChunkStatus.getStatusList()) {
+                if (status == ChunkStatus.EMPTY) {
+                    continue;
+                }
+                if (status.isAfter(ChunkStatus.TERRAIN)) {
+                    break;
+                }
+                ChunkStep step = ChunkPyramid.GENERATION_PYRAMID.getStepTo(status);
+                executeStage(new Stage(context, step, plan, holders, request.parallelism()), workers, progress);
             }
-            if (status.isAfter(ChunkStatus.TERRAIN)) {
-                break;
-            }
-            ChunkStep step = ChunkPyramid.GENERATION_PYRAMID.getStepTo(status);
-            executeStage(new Stage(context, step, plan, holders, request.parallelism()), progress);
         }
         long serializationStarted = System.nanoTime();
         write(request.level(), output, plan, holders);
@@ -72,7 +74,7 @@ final class DetachedNativeTerrain {
         return new Result(request.width() * request.width(), plan.size(), seconds);
     }
 
-    private static void executeStage(Stage stage, Consumer<String> progress) throws Exception {
+    private static void executeStage(Stage stage, RegionGenerationWindow workers, Consumer<String> progress) throws Exception {
         long started = System.nanoTime();
         List<PlannedChunk> eligible = new ArrayList<>();
         for (PlannedChunk planned : stage.plan()) {
@@ -82,7 +84,7 @@ final class DetachedNativeTerrain {
         }
         AtomicInteger completed = new AtomicInteger();
         AtomicInteger targetCompleted = new AtomicInteger();
-        RegionGenerationWindow.process(new RegionGenerationWindow.Request<>(eligible.size(), stage.parallelism(),
+        workers.process(new RegionGenerationWindow.Request<>(eligible.size(), stage.parallelism(),
                 index -> {
                     PlannedChunk planned = eligible.get(index);
                     apply(stage, planned);

@@ -53,7 +53,8 @@ public final class GenerationHistory {
             GenerationHistoryStore store,
             ChunkGenerationOwnership ownership,
             GenerationKernelRegistry kernels,
-            Optional<FreshPublication> publication
+            Optional<FreshPublication> publication,
+            boolean unpublished
     ) throws IOException {
         this.paths = Objects.requireNonNull(paths, "paths");
         this.packs = Objects.requireNonNull(packs, "packs");
@@ -62,8 +63,8 @@ public final class GenerationHistory {
         this.kernels = Objects.requireNonNull(kernels, "kernels");
         this.boundaries = new GenerationBoundaryStore(paths.dimensionRoot());
         this.terrainSignatures = new TerrainBoundarySignatureStore(paths.dimensionRoot());
-        this.semantics = GenerationSemanticIndex.loadRequired(paths.dimensionRoot());
-        this.savedBiomes = SavedBiomeStore.open(paths.dimensionRoot());
+        this.semantics = GenerationSemanticIndex.loadRequired(paths.dimensionRoot(), unpublished);
+        this.savedBiomes = SavedBiomeStore.open(paths.dimensionRoot(), unpublished);
         this.admission = new GenerationAdmission(paths.dimensionRoot());
         this.boundaryCache = boundedCache(MAXIMUM_CACHED_BOUNDARIES);
         this.terrainSignatureCache = boundedCache(MAXIMUM_CACHED_TERRAIN_SIGNATURES);
@@ -108,6 +109,25 @@ public final class GenerationHistory {
             GenerationKernelRegistry.Version version,
             GenerationKernelRegistry kernels
     ) throws IOException {
+        return create(new FreshCreation(dimensionRoot, packSource, packFingerprint, worldSeed, dimensionContract, registryContract),
+                version, kernels, false);
+    }
+
+    public static GenerationHistory createUnpublished(FreshCreation creation) throws IOException {
+        Objects.requireNonNull(creation, "creation");
+        Files.createDirectory(creation.dimensionRoot());
+        GenerationKernelRegistry kernels = GenerationKernelRegistry.standard();
+        return create(creation, kernels.current(), kernels, true);
+    }
+
+    private static GenerationHistory create(FreshCreation creation, GenerationKernelRegistry.Version version,
+                                             GenerationKernelRegistry kernels, boolean unpublished) throws IOException {
+        Path dimensionRoot = creation.dimensionRoot();
+        Path packSource = creation.packSource();
+        String packFingerprint = creation.packFingerprint();
+        long worldSeed = creation.worldSeed();
+        GenerationEpoch.DimensionContract dimensionContract = creation.dimensionContract();
+        GenerationRegistryContract registryContract = creation.registryContract();
         GenerationHistoryPaths paths = GenerationHistoryPaths.forDimension(dimensionRoot);
         requireSafeStatePaths(paths);
         if (Files.exists(paths.manifest(), LinkOption.NOFOLLOW_LINKS)
@@ -141,7 +161,7 @@ public final class GenerationHistory {
         GenerationSemanticIndex.initialize(paths.dimensionRoot());
         GenerationHistoryStore store = GenerationHistoryStore.initialize(paths.generationRoot(), epoch);
         return new GenerationHistory(paths, packs, store, ownership, kernels,
-                Optional.of(new FreshPublication(publishedPack, epoch)));
+                Optional.of(new FreshPublication(publishedPack, epoch)), unpublished);
     }
 
     public static GenerationHistory open(Path dimensionRoot) throws IOException {
@@ -183,7 +203,7 @@ public final class GenerationHistory {
         GenerationPackRepository packs = new GenerationPackRepository(paths.dimensionRoot());
         GenerationHistoryStore store = GenerationHistoryStore.open(paths.generationRoot());
         ChunkGenerationOwnership ownership = ChunkGenerationOwnership.load(paths.ownershipRoot());
-        return new GenerationHistory(paths, packs, store, ownership, kernels, Optional.empty());
+        return new GenerationHistory(paths, packs, store, ownership, kernels, Optional.empty(), false);
     }
 
     public static Optional<GenerationHistory> openIfPresent(Path dimensionRoot) throws IOException {
@@ -1344,4 +1364,15 @@ public final class GenerationHistory {
     public interface BoundarySignatureCapture {
         TerrainBoundarySignatureStore.SignatureSampler capture(GenerationBoundary boundary) throws IOException;
     }
+    public record FreshCreation(Path dimensionRoot, Path packSource, String packFingerprint, long worldSeed,
+                                GenerationEpoch.DimensionContract dimensionContract, GenerationRegistryContract registryContract) {
+        public FreshCreation {
+            Objects.requireNonNull(dimensionRoot, "dimensionRoot");
+            Objects.requireNonNull(packSource, "packSource");
+            Objects.requireNonNull(packFingerprint, "packFingerprint");
+            Objects.requireNonNull(dimensionContract, "dimensionContract");
+            Objects.requireNonNull(registryContract, "registryContract");
+        }
+    }
+
 }

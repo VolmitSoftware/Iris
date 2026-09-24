@@ -92,6 +92,7 @@ public final class GenerationSemanticIndex {
     private final ShardPublisher publisher;
     private final PointerPublisher pointerPublisher;
     private final CatalogPublisher catalogPublisher;
+    private final boolean unpublished;
     private long regionDecodeCount;
     private volatile IOException journalFailure;
     private long appendingRegionKey;
@@ -101,7 +102,8 @@ public final class GenerationSemanticIndex {
             Path dimensionRoot,
             ShardPublisher publisher,
             PointerPublisher pointerPublisher,
-            CatalogPublisher catalogPublisher
+            CatalogPublisher catalogPublisher,
+            boolean unpublished
     ) {
         this.dimensionRoot = dimensionRoot.toAbsolutePath().normalize();
         directory = this.dimensionRoot.resolve("iris").resolve("generation").resolve("semantics");
@@ -115,6 +117,7 @@ public final class GenerationSemanticIndex {
         this.publisher = publisher;
         this.pointerPublisher = pointerPublisher;
         this.catalogPublisher = catalogPublisher;
+        this.unpublished = unpublished;
     }
 
     public static GenerationSemanticIndex load(Path dimensionRoot) throws IOException {
@@ -126,7 +129,8 @@ public final class GenerationSemanticIndex {
                 Objects.requireNonNull(dimensionRoot, "dimensionRoot"),
                 RegionShard::publish,
                 ShardPointer::publish,
-                Catalog::publish
+                Catalog::publish,
+                false
         );
         index.ensureStorageDirectory();
         Path catalog = index.directory.resolve(CATALOG_FILE_NAME);
@@ -138,7 +142,13 @@ public final class GenerationSemanticIndex {
     }
 
     public static GenerationSemanticIndex loadRequired(Path dimensionRoot) throws IOException {
-        GenerationSemanticIndex index = load(dimensionRoot);
+        return loadRequired(dimensionRoot, false);
+    }
+
+    static GenerationSemanticIndex loadRequired(Path dimensionRoot, boolean unpublished) throws IOException {
+        GenerationSemanticIndex index = new GenerationSemanticIndex(Objects.requireNonNull(dimensionRoot, "dimensionRoot"),
+                RegionShard::publish, ShardPointer::publish, Catalog::publish, unpublished);
+        index.loadShards();
         Path catalog = index.directory.resolve(CATALOG_FILE_NAME);
         if (!Files.isRegularFile(catalog, LinkOption.NOFOLLOW_LINKS)) {
             throw new IOException("Generation semantic shard catalog is missing: " + catalog);
@@ -167,7 +177,8 @@ public final class GenerationSemanticIndex {
                 Objects.requireNonNull(dimensionRoot, "dimensionRoot"),
                 Objects.requireNonNull(publisher, "publisher"),
                 Objects.requireNonNull(pointerPublisher, "pointerPublisher"),
-                Objects.requireNonNull(catalogPublisher, "catalogPublisher")
+                Objects.requireNonNull(catalogPublisher, "catalogPublisher"),
+                false
         );
         index.loadShards();
         return index;
@@ -254,7 +265,7 @@ public final class GenerationSemanticIndex {
             appendingBase = baseRegion;
             publicationLock.unlock();
             try {
-                SemanticJournal.append(directory, regionX, regionZ, updates);
+                SemanticJournal.append(directory, regionX, regionZ, updates, unpublished);
             } catch (JournalAppendFailure failure) {
                 journalFailure = failure;
                 throw failure;
@@ -1928,7 +1939,8 @@ public final class GenerationSemanticIndex {
                 Path directory,
                 int regionX,
                 int regionZ,
-                List<ChunkGenerationSemantics> claims
+                List<ChunkGenerationSemantics> claims,
+                boolean unpublished
         ) throws IOException {
             Path file = directory.resolve(journalFileName(regionX, regionZ));
             boolean created = !Files.exists(file, LinkOption.NOFOLLOW_LINKS);
@@ -1961,14 +1973,18 @@ public final class GenerationSemanticIndex {
                             channel.write(entry);
                         }
                     }
-                    Durability.force(channel);
+                    if (!unpublished) {
+                        Durability.force(channel);
+                    }
                     if (created) {
                         RegionShard.forceDirectory(directory);
                     }
                 } catch (IOException failure) {
                     try {
                         channel.truncate(size);
-                        Durability.force(channel);
+                        if (!unpublished) {
+                            Durability.force(channel);
+                        }
                         if (created) {
                             RegionShard.forceDirectory(directory);
                         }

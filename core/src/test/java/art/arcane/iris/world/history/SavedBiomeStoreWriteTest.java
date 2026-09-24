@@ -10,6 +10,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -103,7 +104,8 @@ public class SavedBiomeStoreWriteTest {
                             (file, context) -> doReturn(channel).when(file).getChannel())) {
                         boolean result = store.claimAndPersist(chunk(1, 3L));
                         assertEquals(1, files.constructed().size());
-                        verify(files.constructed().getFirst()).write(any(byte[].class));
+                        verify(channel).write(any(ByteBuffer[].class), anyInt(), anyInt());
+                        verify(files.constructed().getFirst(), never()).write(any(byte[].class));
                         verify(files.constructed().getFirst(), never()).writeInt(anyInt());
                         return result;
                     }

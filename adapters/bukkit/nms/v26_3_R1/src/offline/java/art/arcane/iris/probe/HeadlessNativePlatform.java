@@ -37,6 +37,7 @@ final class HeadlessNativePlatform implements IrisPlatform, PlatformRegistries, 
     private final PlatformBiomeWriter biomeWriter;
     private final PlatformGenerationRegistry generationRegistry;
     private final NativeBlockResolver blocks = new NativeBlockResolver(this);
+    private final NativeBlockState air = blocks.getAir();
     private final ConcurrentHashMap<String, NativeBlockState> states = new ConcurrentHashMap<>();
 
     HeadlessNativePlatform(File root, Supplier<HolderLookup.Provider> registries) {
@@ -101,7 +102,7 @@ final class HeadlessNativePlatform implements IrisPlatform, PlatformRegistries, 
 
     @Override
     public NativeBlockState air() {
-        return blocks.getAir();
+        return air;
     }
 
     @Override

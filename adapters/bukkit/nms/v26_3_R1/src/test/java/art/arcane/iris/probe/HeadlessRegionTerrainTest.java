@@ -56,8 +56,9 @@ public final class HeadlessRegionTerrainTest {
                     configuration, "probe", Level.OVERWORLD, root.resolve("configuration")));
             try (HeadlessTerrainContext context = HeadlessTerrainContext.create(new HeadlessTerrainContext.Options(
                     session.engine(), runtime, root.resolve("templates"), Level.OVERWORLD,
-                    NoiseGeneratorSettings.OVERWORLD, spigot))) {
-                HeadlessRegionTerrain.Session rolling = new HeadlessRegionTerrain.Session(RegionGenerationWindow.Policy.EMBEDDED);
+                    NoiseGeneratorSettings.OVERWORLD, spigot));
+                 RegionGenerationWindow workers = new RegionGenerationWindow(4, RegionGenerationWindow.Policy.EMBEDDED)) {
+                HeadlessRegionTerrain.Session rolling = new HeadlessRegionTerrain.Session(workers);
                 HeadlessRegionTerrain.Result result = rolling.generate(
                         new HeadlessRegionTerrain.Request(context, -3, 2, 1, 4), System.out::println);
                 OfflineRegionGenerator.Configuration export = new OfflineRegionGenerator.Configuration(
@@ -100,14 +101,14 @@ public final class HeadlessRegionTerrainTest {
                 assertEquals(ChunkStatus.TERRAIN, retained.getPersistedStatus());
                 Path regionDirectory = Files.createDirectory(root.resolve("region"));
                 OfflineRegionWriter writer = new OfflineRegionWriter(new OfflineRegionWriter.Options(
-                        context, regionDirectory, 4, RegionGenerationWindow.Policy.EMBEDDED));
+                        context, regionDirectory, workers));
                 OfflineRegionWriter.Result firstWrite = writer.write(result);
                 assertEquals(result.updated().size(), firstWrite.chunks());
                 assertEquals(tag, read(regionDirectory, target.getPos()));
                 OfflineRegionWriter.Result duplicateWrite = writer.write(result);
                 assertEquals(0, duplicateWrite.chunks());
                 OfflineRegionWriter reopened = new OfflineRegionWriter(new OfflineRegionWriter.Options(
-                        context, regionDirectory, 4, RegionGenerationWindow.Policy.EMBEDDED));
+                        context, regionDirectory, workers));
                 assertEquals(0, reopened.write(result).chunks());
                 target.setPersistedStatus(ChunkStatus.STRUCTURE_STARTS);
                 try {
@@ -138,7 +139,7 @@ public final class HeadlessRegionTerrainTest {
                 assertEquals(0, writer.write(back).chunks());
                 Path oversizedDirectory = Files.createDirectory(root.resolve("oversized"));
                 OfflineRegionWriter oversizedWriter = new OfflineRegionWriter(new OfflineRegionWriter.Options(
-                        context, oversizedDirectory, 4, RegionGenerationWindow.Policy.EMBEDDED));
+                        context, oversizedDirectory, workers));
                 NamespacedKey payloadKey = new NamespacedKey("iris", "serialization_test_payload");
                 byte[] payload = new byte[2 * 1024 * 1024];
                 new Random(69420L).nextBytes(payload);
@@ -151,14 +152,19 @@ public final class HeadlessRegionTerrainTest {
                 regenerated.persistentDataContainer.remove(payloadKey);
                 Path failedDirectory = Files.createDirectory(root.resolve("failed"));
                 OfflineRegionWriter failedWriter = new OfflineRegionWriter(new OfflineRegionWriter.Options(
-                        context, failedDirectory, 4, RegionGenerationWindow.Policy.EMBEDDED));
+                        context, failedDirectory, workers));
                 regenerated.setPersistedStatus(ChunkStatus.FULL);
                 try {
                     assertThrows(Exception.class, () -> failedWriter.write(singleton));
                 } finally {
                     regenerated.setPersistedStatus(ChunkStatus.TERRAIN);
                 }
-                assertEquals(1, failedWriter.write(singleton).chunks());
+                assertThrows(IllegalStateException.class, () -> failedWriter.write(singleton));
+                try (RegionGenerationWindow replacement = new RegionGenerationWindow(4, RegionGenerationWindow.Policy.EMBEDDED)) {
+                    OfflineRegionWriter retried = new OfflineRegionWriter(new OfflineRegionWriter.Options(
+                            context, failedDirectory, replacement));
+                    assertEquals(1, retried.write(singleton).chunks());
+                }
                 assertEquals("minecraft:terrain", read(failedDirectory, regenerated.getPos()).getStringOr("Status", ""));
             }
         }

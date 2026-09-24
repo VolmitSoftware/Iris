@@ -1125,3 +1125,5 @@ commands:
         from(fixtureResources)
     }
 }
+
+apply from: file('gradle/packed-jar.gradle')

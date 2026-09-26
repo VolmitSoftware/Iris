@@ -6,10 +6,28 @@ import java.io.IOException;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Installer {
     private static volatile Instrumentation instrumentation;
     private static final Map<ClassLoader, Boolean> retainedClassLoaders = new IdentityHashMap<>();
+    private static final Map<Object, AtomicBoolean> serverStorage = new IdentityHashMap<>();
+
+    public static synchronized AtomicBoolean trackServerStorage(Object storage) {
+        return serverStorage.computeIfAbsent(Objects.requireNonNull(storage, "Server storage"),
+                ignored -> new AtomicBoolean());
+    }
+
+    public static synchronized void serverStorageClosed(Object storage) {
+        AtomicBoolean closed = serverStorage.get(storage);
+        if (closed != null) {
+            closed.set(true);
+        }
+    }
+
+    public static synchronized void releaseServerStorage(Object storage) {
+        serverStorage.remove(storage);
+    }
 
     public static synchronized void retainClassLoader(ClassLoader loader) {
         ClassLoader requiredLoader = Objects.requireNonNull(loader, "Plugin class loader");

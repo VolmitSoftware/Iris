@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class IrisPerfectionModifierColumnTest {
     @Rule
@@ -200,7 +201,7 @@ public class IrisPerfectionModifierColumnTest {
             if (existing != null) {
                 return existing;
             }
-            NativeBlockState block = mock(NativeBlockState.class);
+            NativeBlockState block = mock(NativeBlockState.class, withSettings().stubOnly());
             states.put(key, block);
             when(block.key()).thenReturn(key);
             when(block.isAir()).thenReturn(key.equals("minecraft:air"));
@@ -209,7 +210,7 @@ public class IrisPerfectionModifierColumnTest {
             when(block.isWaterLogged()).thenReturn(key.contains("waterlogged=true"));
             when(block.isDecorant()).thenReturn(key.equals("minecraft:poppy") || key.startsWith("minecraft:tall_grass"));
             when(block.canPlaceOnto(any())).thenAnswer(call -> "minecraft:tall_grass[half=lower]".equals(call.<NativeBlockState>getArgument(0).key()));
-            BlockData handle = mock(BlockData.class);
+            BlockData handle = mock(BlockData.class, withSettings().stubOnly());
             when(block.nativeHandle()).thenReturn(handle);
             when(handle.isFaceSturdy(any(), any())).thenReturn(key.equals("minecraft:stone"));
             when(block.withProperty(anyString(), anyString())).thenAnswer(call -> {

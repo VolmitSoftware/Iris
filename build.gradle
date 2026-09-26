@@ -1,3 +1,4 @@
+import art.arcane.volmit.packaging.PackedJar
 import art.arcane.volmit.packaging.PackagingMode
 import art.arcane.volmit.packaging.NativeDevelopmentTargets
 import io.papermc.paperweight.userdev.PaperweightUser
@@ -63,7 +64,7 @@ interface IrisFileOperations {
 IrisFileOperations irisFileOperations = objects.newInstance(IrisFileOperations)
 
 group = 'art.arcane'
-version = providers.gradleProperty('irisVersion').getOrElse('4.1.1-26.2')
+version = providers.gradleProperty('irisVersion').getOrElse('4.1.2-26.2')
 
 project(':core') {
     group = 'art.arcane'
@@ -255,8 +256,9 @@ tasks.named('jar', Jar).configure {
 
 tasks.register('iris', Copy) {
     group = 'iris'
-    dependsOn('jar')
-    from(layout.buildDirectory.file("libs/${bukkitArtifactName}"))
+    dependsOn('packedJar')
+    from({ tasks.named('packedJar').get().outputJar })
+    rename { String ignored -> bukkitArtifactName }
     into(layout.buildDirectory.dir('consumer'))
     doFirst {
         irisFileOperations.fileSystemOperations.delete { DeleteSpec spec -> spec.delete(staleConsumerBukkitJars) }
@@ -294,8 +296,9 @@ tasks.register('buildSwiftSwamp') {
 
 tasks.register('buildBukkit', Copy) {
     group = 'iris'
-    dependsOn('jar')
-    from(layout.buildDirectory.file("libs/${bukkitArtifactName}"))
+    dependsOn('packedJar')
+    from({ tasks.named('packedJar').get().outputJar })
+    rename { String ignored -> bukkitArtifactName }
     into(pluginOutDirectory)
     File legacyOutJar = new File(pluginOutDirectory, "Iris-${project.version}+mc${minecraftVersion}.jar")
     doFirst {
@@ -928,6 +931,8 @@ pluginPackaging {
         create('distribution') {
             taskName = 'jar'
             policyName = 'Iris Bukkit'
+            packed = true
+            packedJarAccessors = ['art/arcane/iris/platform/bukkit/plugin/VolmitPlugin#getJarFile']
             stripDirectories = true
             stripLocalVariables = true
             releaseCompression = providers.gradleProperty('compactRelease')
@@ -1126,4 +1131,15 @@ commands:
     }
 }
 
-apply from: file('gradle/packed-jar.gradle')
+tasks.withType(PackedJar).configureEach {
+    nativeManifestPath.set('META-INF/iris/native-runtime.properties')
+    nativeResourceDirectory.set('META-INF/iris/native/')
+    dependsOn(tasks.named('verifyBukkitArtifact'), configurations.nativeRuntime)
+    nativeArtifacts.set(providers.provider {
+        Map<ComponentIdentifier, File> resolved = new LinkedHashMap<>()
+        configurations.nativeRuntime.incoming.artifacts.artifacts.each { artifact ->
+            resolved.put(artifact.id.componentIdentifier, artifact.file)
+        }
+        PackedJar.resolveNativeArtifacts(resolved)
+    })
+}

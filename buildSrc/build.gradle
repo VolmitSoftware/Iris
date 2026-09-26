@@ -31,7 +31,6 @@ tasks.named('test').configure {
 dependencies {
     implementation(gradleApi())
     implementation('org.ow2.asm:asm:9.10.1')
-    implementation('org.tukaani:xz:1.10')
     implementation('org.apache.commons:commons-compress:1.28.0')
     implementation('io.papermc.paperweight:paperweight-userdev:2.0.0-beta.21')
     testImplementation('junit:junit:4.13.2')

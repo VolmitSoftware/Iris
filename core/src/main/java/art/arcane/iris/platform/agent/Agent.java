@@ -29,6 +29,9 @@ public class Agent {
         installer.getMethod("retainClassLoader", ClassLoader.class);
         installer.getMethod("deferClassLoaderClose", ClassLoader.class);
         installer.getMethod("releaseClassLoader", ClassLoader.class);
+        installer.getMethod("trackServerStorage", Object.class);
+        installer.getMethod("serverStorageClosed", Object.class);
+        installer.getMethod("releaseServerStorage", Object.class);
     }
 
     public static void retainClassLoader(ClassLoader loader) {

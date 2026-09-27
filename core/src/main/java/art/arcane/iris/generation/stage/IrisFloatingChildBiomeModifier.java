@@ -431,9 +431,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                 }
                 context.setNaturalBiome(wx & 15, y, wz & 15, selected);
                 context.floatingBiomes(chunkHeight).record(wx & 15, y, wz & 15, matter.identity());
-                if (!context.isSpeculativeTerrain()) {
-                    getEngine().getMantle().getMantle().set(wx, y, wz, BiomeInjectMatter.get(selected.key()));
-                }
+                getEngine().getMantle().getMantle().set(wx, y, wz, BiomeInjectMatter.get(selected.key()));
             }
         } catch (Throwable e) {
             IrisLogging.reportError(e);

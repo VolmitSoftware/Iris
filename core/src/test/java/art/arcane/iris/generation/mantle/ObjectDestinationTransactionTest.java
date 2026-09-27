@@ -4,8 +4,6 @@ import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.world.history.BoundaryColumnGeometry;
-import art.arcane.iris.world.history.TerrainBoundarySignature;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -25,9 +23,7 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -465,30 +461,6 @@ public class ObjectDestinationTransactionTest {
                     transaction.getCarvedColumn(0, 0, 16));
             assertFalse(transaction.isCarved(0, 6, 0));
             assertTrue(transaction.isCarved(0, 7, 0));
-        }
-    }
-
-    @Test
-    public void historicalGeometryOwnsTransactionalCarvingOverCurrentDensity() {
-        try (TerrainFixture fixture = new TerrainFixture()) {
-            BoundaryColumnGeometry.Voxel solid = new BoundaryColumnGeometry.Voxel(
-                    "minecraft:stone", BoundaryColumnGeometry.Phase.SOLID, "", false);
-            BoundaryColumnGeometry.Voxel air = new BoundaryColumnGeometry.Voxel(
-                    "minecraft:air", BoundaryColumnGeometry.Phase.AIR, "", false);
-            List<BoundaryColumnGeometry.Voxel> voxels = new ArrayList<>(Collections.nCopies(16, solid));
-            voxels.set(2, air);
-            TerrainBoundarySignature historical = mock(TerrainBoundarySignature.class);
-            when(historical.geometry()).thenReturn(BoundaryColumnGeometry.fromVoxels(-64, voxels));
-            when(fixture.engine.getMinHeight()).thenReturn(-64);
-            when(fixture.complex.resolvedTerrainColumn(0, 0)).thenReturn(Optional.of(historical));
-            fixture.matter.<HydrologyCaveCell>slice(HydrologyCaveCell.class)
-                    .set(0, 2, 0, HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
-            ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(fixture.writer, 0, 0);
-
-            assertArrayEquals(new byte[]{0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                    transaction.getCarvedColumn(0, 0, 16));
-            assertTrue(transaction.isCarved(0, 2, 0));
-            assertFalse(transaction.isCarved(0, 5, 0));
         }
     }
 

@@ -37,7 +37,7 @@ public class Terrain3DSurfaceSlopeTest {
     public void neighboringContinuousRiverTerrainUsesItsPlacementHeight() {
         IrisComplex complex = complex();
         when(complex.terrainColumn(0, 0)).thenReturn(column(60, 100, 120));
-        when(complex.getPlacementHeightStream()).thenReturn(
+        when(complex.getHeightStream()).thenReturn(
                 ProceduralStream.ofDouble((x, z) -> x == 3D ? 63D : 64D));
 
         assertEquals(5D, complex.terrainSurfaceSlope(0, 60, 0), 0D);

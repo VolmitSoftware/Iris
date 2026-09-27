@@ -66,7 +66,6 @@ import art.arcane.iris.world.history.TerrainNativeBlockKeys;
 
 import art.arcane.volmlib.nativelib.terrain.NativeChunkWritePolicy;
 
-import art.arcane.iris.world.history.TerrainBoundarySignature;
 import art.arcane.iris.world.history.NativeBiomeSpawnSelection;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.PackValidationRegistry;
@@ -1086,7 +1085,7 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
 
     @Override
     public NativeBlockColumn resolvedColumn(Engine current, int x, int z) {
-        return current.getComplex().resolvedTerrainColumn(x, z).map(TerrainBoundarySignature::geometry).orElse(null);
+        return null;
     }
 
     @Override

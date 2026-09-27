@@ -97,6 +97,61 @@ public class GenerationHistoryRecoveryTest extends GenerationHistorySupport {
     }
 
     @Test
+    public void unchangedKernelBuildRetainsActivationOwnershipAndSavedMetadata() throws Exception {
+        Path world = temporaryFolder.newFolder("unchanged-build-world").toPath();
+        Path pack = createPack("unchanged-build-pack", "alpha");
+        GenerationKernelRegistry.Version version = new GenerationKernelRegistry.Version(101, 1, 1);
+        GenerationHistory original = GenerationHistory.create(world, pack, fingerprint(pack), 42L,
+                contract(), GenerationRegistryContract.empty(), version, singleKernel(version, "a"));
+        GenerationEpoch epoch = original.activeEpoch();
+        Path installedPack = original.activePackRoot();
+        Path region = Files.createDirectories(world.resolve("region")).resolve("r.0.0.mca");
+        SavedTerrainTestRegion.write(region, new int[][]{{0, 0}});
+        byte[] savedBlocks = Files.readAllBytes(region);
+        byte[] manifest = Files.readAllBytes(original.paths().manifest());
+
+        GenerationHistory rebuilt = GenerationHistory.open(world, singleKernel(version, "a"));
+        assertTrue(rebuilt.usesCurrentGenerator());
+        rebuilt.prepareCurrentGenerator(32);
+
+        assertEquals(1L, rebuilt.activeActivation().activationId());
+        assertEquals(1, rebuilt.manifest().activations().size());
+        assertEquals(1, rebuilt.manifest().epochs().size());
+        assertEquals(epoch, rebuilt.activeEpoch());
+        assertEquals(installedPack, rebuilt.activePackRoot());
+        assertEquals(1L, rebuilt.resolveActivation(0, 0).activationId());
+        assertEquals(1L, rebuilt.resolveActivation(1, 0).activationId());
+        assertTrue(rebuilt.pendingActivation().isEmpty());
+        assertArrayEquals(manifest, Files.readAllBytes(rebuilt.paths().manifest()));
+        assertArrayEquals(savedBlocks, Files.readAllBytes(region));
+        assertThrows(IllegalArgumentException.class, () -> rebuilt.transitionPlan(1L));
+    }
+
+    @Test
+    public void changedImplementationWithTheSameAbiCreatesATransitionAndRetainsOldMetadata() throws Exception {
+        Path world = temporaryFolder.newFolder("changed-implementation-world").toPath();
+        Path pack = createPack("changed-implementation-pack", "alpha");
+        GenerationKernelRegistry.Version version = new GenerationKernelRegistry.Version(101, 1, 1);
+        GenerationHistory original = GenerationHistory.create(world, pack, fingerprint(pack), 42L,
+                contract(), GenerationRegistryContract.empty(), version, singleKernel(version, "a"));
+        GenerationEpoch previous = original.activeEpoch();
+        Path region = Files.createDirectories(world.resolve("region")).resolve("r.0.0.mca");
+        SavedTerrainTestRegion.write(region, new int[][]{{0, 0}});
+        byte[] savedBlocks = Files.readAllBytes(region);
+        GenerationHistory changed = GenerationHistory.open(world, singleKernel(version, "b"));
+        assertFalse(changed.usesCurrentGenerator());
+
+        changed.prepareCurrentGenerator(32);
+
+        assertEquals(2L, changed.activeActivation().activationId());
+        assertEquals(previous, changed.resolveEpoch(0, 0));
+        assertEquals("b".repeat(64), changed.resolveEpoch(1, 0).kernelImplementationFingerprint());
+        assertEquals(previous.kernelVersion(), changed.activeEpoch().kernelVersion());
+        assertTrue(changed.transitionPlan(2L).hasTransitionAtChunk(1, 0));
+        assertArrayEquals(savedBlocks, Files.readAllBytes(region));
+    }
+
+    @Test
     public void changedBuildExpandsFromSavedTerrainWithoutTheOldFactory() throws Exception {
         Path world = temporaryFolder.newFolder("build-upgrade-world").toPath();
         Path pack = createPack("build-upgrade-pack", "alpha");

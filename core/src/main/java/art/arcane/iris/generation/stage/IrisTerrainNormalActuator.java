@@ -149,7 +149,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             boolean riverOwned = padRiverBed && hydrologyTerrain != null && hydrologyTerrain.terrainOwned();
             IrisRiverMaterialConfig roleMaterial = hydrologyRoleMaterial(
                     hydrologyTerrain, bedMaterial, shoreMaterial, bankMaterial);
-            NativeBlockState fluid = hydrologyFluid == null
+            NativeBlockState fluid = hydrologyFluid == null || complex.getTransitionDisplacement() != null
                     ? complex.resolveSurfaceFluid(realX, realZ)
                     : complex.resolveHydrologyFluid(hydrologyFluid.profileKey(), realX, realZ);
             NativeBlockState rock = rockCache.get(xf, zf);

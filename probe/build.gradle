@@ -37,6 +37,7 @@ dependencies {
     runtimeOnly(libs.fastutil)
     runtimeOnly(libs.caffeine)
     runtimeOnly(libs.lz4)
+    runtimeOnly('com.fulcrumgenomics:jlibdeflate:0.2.0')
     runtimeOnly(libs.zip)
     runtimeOnly(libs.guava)
     runtimeOnly(libs.oshi)
@@ -291,7 +292,31 @@ tasks.register('riverTransectProbe', JavaExec) {
     }
 }
 
-['hydrologyProbe', 'genProbe', 'hydrologyPackProbe', 'generationOrderProbe', 'riverTransectProbe', 'terrain3DProbe', 'hydrologyBlockProbe'].each { String taskName ->
+tasks.register('transitionProbe', JavaExec) {
+    group = 'verification'
+    description = 'Exercises a bounded two-pack Studio cutover, transition routing, receipts and semantics with a vanilla-biome pack.'
+    mainClass = 'art.arcane.iris.probe.TransitionProbe'
+    workingDir = rootProject.projectDir
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs('--add-modules', 'jdk.incubator.vector')
+    timeout = java.time.Duration.ofMinutes(12)
+    doFirst {
+        Provider<String> replacement = providers.gradleProperty('probeReplacementPack')
+        if (!probePack.isPresent() || !replacement.isPresent() || !probeDimension.isPresent() || !probeOutput.isPresent()) {
+            throw new GradleException('transitionProbe requires probePack, probeReplacementPack, probeDimension and probeOutput')
+        }
+        java.nio.file.Path output = new File(probeOutput.get()).canonicalFile.toPath()
+        if (output.startsWith(rootProject.projectDir.canonicalFile.toPath())) {
+            throw new GradleException('probeOutput must point outside the repository')
+        }
+        args(probePack.get(), replacement.get(), probeDimension.get(), probeSeed.getOrElse('1337'),
+            providers.gradleProperty('probeTransitionWidth').getOrElse('32'),
+            providers.gradleProperty('probeTransitionChunks').getOrElse('2'), output.toString(),
+            providers.gradleProperty('probeTransitionReverse').getOrElse('false'))
+    }
+}
+
+['transitionProbe', 'hydrologyProbe', 'genProbe', 'hydrologyPackProbe', 'generationOrderProbe', 'riverTransectProbe', 'terrain3DProbe', 'hydrologyBlockProbe'].each { String taskName ->
     tasks.named(taskName, JavaExec).configure { JavaExec task ->
         classpath += configurations.studioProbeApi
         doFirst {

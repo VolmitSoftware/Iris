@@ -10,6 +10,8 @@ import org.mockito.MockedStatic;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mockStatic;
@@ -192,6 +194,42 @@ public class GenerationHistoryTest extends GenerationHistorySupport {
 
         assertEquals(2L, active.activationId());
         assertEquals(history.boundary(2L).identity(), active.transition().boundaryIdentity());
+    }
+
+    @Test
+    public void transitionPlansReuseFrozenInputsAcrossPromotionsAndReopen() throws Exception {
+        Path world = temporaryFolder.newFolder("shared-plan-world").toPath();
+        Path packA = createPack("shared-plan-a", "alpha");
+        Path packB = createPack("shared-plan-b", "beta");
+        GenerationHistory history = createHistory(world, packA);
+        Path region = Files.createDirectories(world.resolve("region")).resolve("r.0.0.mca");
+        writeRegion(region, new int[][]{{0, 0}});
+        stage(history, packB);
+        history.promotePending(signaturesForChunks(new int[][]{{0, 0}}));
+        TransitionGenerationPlan first = history.transitionPlan(2L);
+        assertSame(first, history.transitionPlan(2L));
+        assertSame(history.boundary(2L), first.boundary());
+        assertSame(history.terrainSignatures(2L), first.terrainSignatures());
+        assertTrue(first.hasTransitionAtChunk(1, 0));
+
+        writeRegion(region, new int[][]{{0, 0}, {1, 0}});
+        stage(history, packA);
+        history.promotePending(signaturesForChunks(new int[][]{{0, 0}, {1, 0}}));
+        TransitionGenerationPlan second = history.transitionPlan(3L);
+        assertSame(first, history.transitionPlan(2L));
+        assertSame(second, history.transitionPlan(3L));
+        assertNotSame(first, second);
+        assertTrue(first.hasTransitionAtChunk(1, 0));
+        assertFalse(second.hasTransitionAtChunk(1, 0));
+        assertEquals(history.activeActivation().transition().terrainSignatureIdentity(),
+                second.terrainSignatures().identity());
+
+        GenerationHistory reopened = GenerationHistory.open(world);
+        TransitionGenerationPlan restored = reopened.transitionPlan(3L);
+        assertNotSame(second, restored);
+        assertSame(restored, reopened.transitionPlan(3L));
+        assertEquals(second.specification(), restored.specification());
+        assertFalse(restored.hasTransitionAtChunk(1, 0));
     }
 
     @Test

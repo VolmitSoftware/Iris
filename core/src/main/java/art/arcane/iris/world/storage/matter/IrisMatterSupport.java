@@ -40,6 +40,7 @@ public final class IrisMatterSupport {
         }
 
         IrisMatter.registerSliceType(new EntityMatter());
+        IrisMatter.registerSliceType(new ObjectContinuationMatter());
         IrisMatter.registerSliceType("art.arcane.iris.core.link.Identifier", new IdentifierMatter());
         IrisMatter.registerSliceType("art.arcane.iris.engine.framework.NativeStructureOwnershipBundle", new NativeStructureOwnershipMatter());
         IrisMatter.registerSliceType(new PlatformBlockMatter());

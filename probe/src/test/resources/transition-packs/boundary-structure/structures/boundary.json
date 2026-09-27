@@ -1,0 +1,5 @@
+{
+  "startPool": "boundary",
+  "maxDepth": 1,
+  "maxSizeChunks": 2
+}

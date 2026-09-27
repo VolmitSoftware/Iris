@@ -112,7 +112,7 @@ final class GenerationKernelV1 implements GenerationKernelRegistry.RuntimeFactor
     public void registerStaticObjects(IrisEngine engine, EngineMode mode) {
         IrisStaticObjectLayer staticObjects = engine.getDimension().getStaticObjectLayer(engine.getData());
         mode.registerStage((x, z, blocks, biomes, multicore, context) ->
-                staticObjects.apply(engine, x, z, blocks));
+                staticObjects.forTransition(engine).apply(engine, x, z, blocks));
     }
 
     @Override

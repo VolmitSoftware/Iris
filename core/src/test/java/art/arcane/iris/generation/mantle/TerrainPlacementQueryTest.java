@@ -2,8 +2,10 @@ package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.world.history.BoundaryColumnGeometry;
-import art.arcane.iris.world.history.TerrainBoundarySignature;
+import art.arcane.iris.generation.runtime.EngineMode;
+import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.volmlib.util.matter.MatterCavern;
+import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -21,26 +23,21 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.OptionalInt;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class ResolvedTerrainPlacementTest {
+public class TerrainPlacementQueryTest {
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
 
@@ -67,27 +64,19 @@ public class ResolvedTerrainPlacementTest {
         IrisPlatforms.bind(platform);
         IrisMatterSupport.ensureRegistered();
 
-        BoundaryColumnGeometry.Voxel solid = new BoundaryColumnGeometry.Voxel(
-                "minecraft:stone", BoundaryColumnGeometry.Phase.SOLID, "", false);
-        BoundaryColumnGeometry.Voxel open = new BoundaryColumnGeometry.Voxel(
-                "minecraft:air", BoundaryColumnGeometry.Phase.AIR, "", false);
-        TerrainBoundarySignature column = mock(TerrainBoundarySignature.class);
-        when(column.geometry()).thenReturn(BoundaryColumnGeometry.fromVoxels(-64,
-                List.of(solid, open, solid, open)));
-        when(column.oceanFloorHeight()).thenReturn(2);
-        when(column.surfaceHeight()).thenReturn(5);
-        when(column.fluidHeight()).thenReturn(OptionalInt.of(5));
         IrisComplex complex = mock(IrisComplex.class);
-        when(complex.resolvedTerrainColumn(anyInt(), anyInt())).thenReturn(Optional.of(column));
-        when(complex.resolvedTerrainHeight(anyInt(), anyInt(), eq(true)))
-                .thenReturn(OptionalInt.of(2));
-        when(complex.resolvedTerrainHeight(anyInt(), anyInt(), eq(false)))
-                .thenReturn(OptionalInt.of(5));
+        ProceduralStream<Integer> heights = mock(ProceduralStream.class);
+        when(heights.get(anyDouble(), anyDouble())).thenReturn(2);
+        when(complex.getRoundedHeighteightStream()).thenReturn(heights);
+        when(complex.getRiverWaterSurfaceStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 5D));
         Engine engine = mock(Engine.class);
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getComplex()).thenReturn(complex);
         mantle = mock(Mantle.class);
+        when(mantle.getLoadedRegions()).thenReturn(new KMap<>());
         when(mantle.getWorldHeight()).thenReturn(4);
+        when(mantle.get(0, 0, 0, NativeBlockState.class)).thenReturn(stone);
+        when(mantle.get(0, 1, 0, MatterCavern.class)).thenReturn(new MatterCavern(true, "", (byte) 0));
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
         when(mantle.getChunk(0, 0)).thenReturn(chunk);
         when(chunk.use()).thenReturn(chunk);
@@ -105,7 +94,7 @@ public class ResolvedTerrainPlacementTest {
     }
 
     @Test
-    public void placementUsesResolvedSurfaceFluidAndEnclosedOccupancy() {
+    public void placementUsesTerrainStreamsAndRecordedCarving() {
         assertEquals(2, engineMantle.getHighest(0, 0, null, true));
         assertEquals(5, engineMantle.getHighest(0, 0, null, false));
         assertEquals(5, engineMantle.getFluidHeight(0, 0));
@@ -116,22 +105,27 @@ public class ResolvedTerrainPlacementTest {
     }
 
     @Test
-    public void scalarPlacementQueriesDoNotReloadColumnGeometry() {
+    public void scalarPlacementQueriesDoNotGenerateTerrain() {
         Engine engine = mock(Engine.class, CALLS_REAL_METHODS);
         IrisComplex complex = engineMantle.getComplex();
         doReturn(complex).when(engine).getComplex();
+        doReturn(null).when(engine).getData();
+        doReturn(false).when(engine).answersFromNaturalTerrain(0, 0);
+        doReturn(engineMantle).when(engine).getMantle();
+        EngineMode mode = mock(EngineMode.class);
+        doReturn(mode).when(engine).getMode();
 
         assertEquals(2, engine.getHeight(0, 0, true));
         assertEquals(5, engine.getHeight(0, 0, false));
         assertEquals(2, engineMantle.getHighest(0, 0, null, true));
         assertEquals(5, engineMantle.getHighest(0, 0, null, false));
-        verify(complex, never()).resolvedTerrainColumn(anyInt(), anyInt());
+        verifyNoInteractions(mode);
     }
 
     @Test
-    public void writerPrerequisitesIgnoreContentWhileLiveOccupancyIncludesBlockOnlyFills() {
+    public void writerPrerequisitesRetainNaturalCarvingBeforeContentFills() {
         matter.<NativeBlockState>slice(NativeBlockState.class).set(0, 1, 0, stone);
-        matter.<PreObjectMatterCell>slice(PreObjectMatterCell.class).set(0, 1, 0, PreObjectMatterCell.block(null));
+        matter.<PreObjectMatterCell>slice(PreObjectMatterCell.class).set(0, 1, 0, PreObjectMatterCell.block(null).captureCavern(new MatterCavern(true, "", (byte) 0)));
         try (MantleWriter writer = new MantleWriter(engineMantle, mantle, 0, 0, 0, false)) {
             assertSame(air, writer.getPrerequisiteBlock(0, 1, 0));
             assertSame(stone, writer.get(0, 1, 0));

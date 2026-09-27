@@ -92,7 +92,9 @@ public final class GenerationUnpublishedHistoryTest extends GenerationHistorySup
     }
 
     private static void assertBiomeAppendForces(SavedBiomeStore store, Path root, int x, int count) throws Exception {
-        try (RandomAccessFile actual = new RandomAccessFile(region(root).toFile(), "rw")) {
+        try (MockedStatic<Durability> durability = mockStatic(Durability.class, CALLS_REAL_METHODS);
+             RandomAccessFile actual = new RandomAccessFile(region(root).toFile(), "rw")) {
+            durability.when(Durability::enabled).thenReturn(true);
             FileChannel channel = mock(FileChannel.class, delegatesTo(actual.getChannel()));
             try (MockedConstruction<RandomAccessFile> ignored = mockConstruction(RandomAccessFile.class,
                     withSettings().defaultAnswer(delegatesTo(actual)),

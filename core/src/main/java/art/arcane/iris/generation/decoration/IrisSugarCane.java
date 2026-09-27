@@ -2,17 +2,14 @@ package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.world.history.TerrainBoundarySignature;
 import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
-import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 
-import java.util.Optional;
 
 final class IrisSugarCane {
     private static final int[][] NEIGHBORS = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
@@ -74,11 +71,6 @@ final class IrisSugarCane {
 
     private static boolean plannedWater(Engine engine, int x, int y, int z) {
         IrisComplex complex = engine.getComplex();
-        Optional<TerrainBoundarySignature> resolved = complex.resolvedTerrainColumn(x, z);
-        if (resolved.isPresent()) {
-            String key = resolved.get().geometry().voxelAt(y + engine.getMinHeight()).stateKey();
-            return supportsAdjacent(IrisPlatforms.get().registries().blockOrNull(key));
-        }
         HydrologyColumnSample sample = complex.sampleHydrologyColumn(x, z);
         HydrologyColumnLayer fluid = sample == null ? null : sample.primarySurfaceFluidLayerOrNull();
         if (fluid != null) {

@@ -94,7 +94,8 @@ public class ImportedFeaturePolicy implements NativeImportedFeaturePolicy<IrisDi
 
     @Override
     public Placement placement() {
-        IrisStaticObjectLayer staticObjects = engine.getDimension().getStaticObjectLayer(engine.getData());
+        IrisStaticObjectLayer staticObjects = engine.getDimension().getStaticObjectLayer(engine.getData())
+                .forTransition(engine);
         int minimumY = engine.getMinHeight();
         DimensionStackContext stack = engine.getDimensionStackContext();
         if (staticObjects.isEmpty() && stack == null) {

@@ -208,8 +208,8 @@ public final class GenerationSemanticCapture {
     }
 
     private static boolean hasFullHydrologyWeight(IrisComplex complex, int blockX, int blockZ) {
-        TransitionGenerationPlan transition = complex.getTransitionGenerationPlan();
-        return transition == null || transition.hydrologyWeightAt(blockX, blockZ) == 1D;
+        TransitionDisplacementField displacement = complex.getTransitionDisplacement();
+        return displacement == null || displacement.seamWeight(blockX, blockZ) == 1D;
     }
 
     private static void captureCave(

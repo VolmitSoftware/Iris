@@ -59,7 +59,7 @@ public class TransitionGeometryCursorTest {
     }
 
     @Test
-    public void matchesOpeningCutoffAndProtectedVoxelsInsideOpenings() {
+    public void matchesOpeningHeightsAndProtectedVoxelsInsideOpenings() {
         Random random = new Random(1234);
         for (int opening : new int[]{1, 63, 64, 65, 66}) {
             for (boolean protectedMiddle : new boolean[]{false, true}) {

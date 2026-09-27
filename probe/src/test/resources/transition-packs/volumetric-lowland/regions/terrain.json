@@ -1,0 +1,12 @@
+{
+  "name": "Terrain",
+  "landBiomes": [
+    "terrain"
+  ],
+  "seaBiomes": [
+    "terrain"
+  ],
+  "shoreBiomes": [
+    "terrain"
+  ]
+}

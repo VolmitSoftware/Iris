@@ -30,6 +30,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     private final int destinationChunkZ;
     private final int worldHeight;
     private final List<Mutation> mutations;
+    private final List<PlacementRange> placements = new ArrayList<>();
     private final Long2ObjectOpenHashMap<Int2ObjectOpenHashMap<OverlayCell>> overlay;
 
     ObjectDestinationTransaction(MantleWriter writer, int destinationChunkX, int destinationChunkZ) {
@@ -53,7 +54,25 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         if (checkpoint < 0 || checkpoint > mutations.size()) {
             throw new IllegalArgumentException("Mutation checkpoint is outside the transaction");
         }
-        return new ObjectSourcePlan(mutations.subList(checkpoint, mutations.size()));
+        ArrayList<List<Mutation>> accepted = new ArrayList<>();
+        for (PlacementRange placement : placements) {
+            if (placement.start() >= checkpoint) {
+                accepted.add(List.copyOf(mutations.subList(placement.start(), placement.end())));
+            }
+        }
+        return new ObjectSourcePlan(mutations.subList(checkpoint, mutations.size()), accepted);
+    }
+
+    @Override
+    public int beginObjectPlacement() {
+        return mutations.size();
+    }
+
+    @Override
+    public void endObjectPlacement(int checkpoint) {
+        if (checkpoint >= 0 && checkpoint < mutations.size()) {
+            placements.add(new PlacementRange(checkpoint, mutations.size()));
+        }
     }
 
     void apply(ObjectSourcePlan plan) {
@@ -411,6 +430,9 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
                 other.put(type, value);
             }
         }
+    }
+
+    private record PlacementRange(int start, int end) {
     }
 
     record DataKey(int x, int y, int z, Class<?> type) {

@@ -29,6 +29,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 public final class GenerationHistory {
     private static final int MAXIMUM_CACHED_BOUNDARIES = 4;
     private static final int MAXIMUM_CACHED_TERRAIN_SIGNATURES = 4;
+    private static final int MAXIMUM_CACHED_TRANSITION_PLANS = 4;
     private static final int MAXIMUM_SEMANTIC_BATCH = 32;
     private static final int MAXIMUM_PENDING_SEMANTIC_CLAIMS = 128;
 
@@ -44,6 +45,7 @@ public final class GenerationHistory {
     private final GenerationAdmission admission;
     private final Map<Long, GenerationBoundary> boundaryCache;
     private final Map<Long, TerrainBoundarySignatureStore.Snapshot> terrainSignatureCache;
+    private final Map<Long, TransitionGenerationPlan> transitionPlanCache;
     private final ArrayBlockingQueue<PendingSemanticClaim> pendingSemanticClaims =
             new ArrayBlockingQueue<>(MAXIMUM_PENDING_SEMANTIC_CLAIMS);
 
@@ -68,6 +70,7 @@ public final class GenerationHistory {
         this.admission = new GenerationAdmission(paths.dimensionRoot());
         this.boundaryCache = boundedCache(MAXIMUM_CACHED_BOUNDARIES);
         this.terrainSignatureCache = boundedCache(MAXIMUM_CACHED_TERRAIN_SIGNATURES);
+        this.transitionPlanCache = boundedCache(MAXIMUM_CACHED_TRANSITION_PLANS);
         validateReferencedState(publication, true);
     }
 
@@ -872,6 +875,10 @@ public final class GenerationHistory {
     }
 
     public synchronized TransitionGenerationPlan transitionPlan(long activationId) throws IOException {
+        TransitionGenerationPlan cached = transitionPlanCache.get(activationId);
+        if (cached != null) {
+            return cached;
+        }
         GenerationActivation activation = requireActivation(activationId);
         if (activation.isInitial()) {
             throw new IllegalArgumentException("The initial generation activation has no transition plan.");
@@ -888,7 +895,7 @@ public final class GenerationHistory {
         GenerationBoundary boundary = boundary(activationId);
         TerrainBoundarySignatureStore.Snapshot terrainSnapshot = terrainSignatures(activationId);
         requireTransitionSnapshotIdentities(activation, boundary, terrainSnapshot);
-        return new TransitionGenerationPlan(
+        TransitionGenerationPlan plan = new TransitionGenerationPlan(
                 new TransitionGenerationPlan.Specification(
                         activation.activationId(),
                         requireEpoch(parent.epochId()).epochId(),
@@ -901,6 +908,8 @@ public final class GenerationHistory {
                 boundary,
                 terrainSnapshot
         );
+        transitionPlanCache.put(activationId, plan);
+        return plan;
     }
 
     public synchronized int explicitChunkCount() {

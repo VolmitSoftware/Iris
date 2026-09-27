@@ -205,8 +205,8 @@ public final class GenerationSemanticQueries {
     }
 
     private static boolean allowsActiveHydrologyPrediction(Engine engine, int blockX, int blockZ) {
-        TransitionGenerationPlan transition = engine.getComplex().getTransitionGenerationPlan();
-        if (transition != null && transition.hydrologyWeightAt(blockX, blockZ) != 1D) {
+        TransitionDisplacementField displacement = engine.getComplex().getTransitionDisplacement();
+        if (displacement != null && displacement.seamWeight(blockX, blockZ) != 1D) {
             return false;
         }
         return allowsActivePrediction(

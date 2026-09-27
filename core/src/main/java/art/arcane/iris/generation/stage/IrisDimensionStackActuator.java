@@ -82,8 +82,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Nat
         if (getEngine().getDimensionStackContext() == null) {
             return;
         }
-        MantleChunk<Matter> mantleChunk = context.isSpeculativeTerrain() ? null
-                : getEngine().getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
+        MantleChunk<Matter> mantleChunk = getEngine().getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
         try {
             MetadataCleaner metadata = new MetadataCleaner(mantleChunk, blocks.getHeight());
             for (int localX = 0; localX < blocks.getWidth(); localX++) {

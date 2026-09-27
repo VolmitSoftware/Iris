@@ -5,11 +5,8 @@ import java.util.List;
 import java.util.Objects;
 
 public final class TransitionGeometryBlender {
-    private static final int MAXIMUM_OPENING_HEIGHT = 64;
     private static final BoundaryColumnGeometry.Voxel AIR = new BoundaryColumnGeometry.Voxel(
             "minecraft:air", BoundaryColumnGeometry.Phase.AIR, "", false);
-    private static final BoundaryColumnGeometry.Voxel FLUID_BARRIER = new BoundaryColumnGeometry.Voxel(
-            "minecraft:obsidian", BoundaryColumnGeometry.Phase.SOLID, "", false);
 
     private TransitionGeometryBlender() {
     }
@@ -49,8 +46,7 @@ public final class TransitionGeometryBlender {
         boolean changed = false;
         for (int offset = 0; offset < currentGeometry.height(); offset++) {
             BoundaryColumnGeometry.Voxel value = blendVoxel(current, historical, offset,
-                    influence.newTerrainWeight(), influence.openingWeight(), GenerationBlend.usesHistoricalMaterial(blockX,
-                            currentGeometry.minimumY() + offset, blockZ, influence.newTerrainWeight()));
+                    influence.newTerrainWeight());
             result.add(value);
             changed |= !value.equals(current.voxelAt(offset));
         }
@@ -61,88 +57,58 @@ public final class TransitionGeometryBlender {
             ColumnProfile current,
             List<WeightedProfile> historical,
             int offset,
-            double currentWeight,
-            double openingWeight,
-            boolean historicalMaterial
+            double currentWeight
     ) {
         BoundaryColumnGeometry.Voxel currentVoxel = current.voxelAt(offset);
-        if (currentVoxel.protectedContent()) {
+        if (currentVoxel.protectedContent() || offset == 0) {
             return currentVoxel;
         }
-        boolean historicalOpening = false;
         double solid = 0D;
-        double fluid = 0D;
         double total = 0D;
-        double solidMaterialWeight = -1D;
-        double fluidMaterialWeight = -1D;
         BoundaryColumnGeometry.Voxel oldSolid = null;
         BoundaryColumnGeometry.Voxel oldFluid = null;
+        double fluidWeight = 0D;
         for (WeightedProfile contribution : historical) {
             ColumnProfile profile = contribution.profile();
-            if (profile.voxelAt(offset).protectedContent()) {
+            BoundaryColumnGeometry.Voxel oldVoxel = profile.voxelAt(offset);
+            if (oldVoxel.protectedContent()) {
                 continue;
             }
-            historicalOpening |= profile.enclosedOpeningAt(offset);
-            double weight = contribution.weight();
-            total += weight;
-            solid += profile.solid.distanceAt(offset) * weight;
-            fluid += profile.fluid.distanceAt(offset) * weight;
-            if (profile.solid.materialAt(offset) != null && weight > solidMaterialWeight) {
+            total += contribution.weight();
+            solid += profile.solid.distanceAt(offset) * contribution.weight();
+            if (oldSolid == null) {
                 oldSolid = profile.solid.materialAt(offset);
-                solidMaterialWeight = weight;
             }
-            if (profile.fluid.materialAt(offset) != null && weight > fluidMaterialWeight) {
-                oldFluid = profile.fluid.materialAt(offset);
-                fluidMaterialWeight = weight;
+            if (oldVoxel.phase() == BoundaryColumnGeometry.Phase.FLUID
+                    && profile.geometry.hasSolidAbove(profile.geometry.minimumY() + offset)
+                    && contribution.weight() > fluidWeight) {
+                oldFluid = oldVoxel;
+                fluidWeight = contribution.weight();
             }
         }
         if (total == 0D) {
             return currentVoxel;
         }
         double blendedSolid = GenerationBlend.interpolate(solid / total,
-                current.solid.distanceAt(offset), historicalOpening ? openingWeight : currentWeight);
+                current.solid.distanceAt(offset), currentWeight);
         if (blendedSolid > 0D) {
-            return selectMaterial(oldSolid, current.solid.materialAt(offset), historicalMaterial);
+            BoundaryColumnGeometry.Voxel material = current.solid.materialAt(offset);
+            return material != null ? material : oldSolid != null ? oldSolid : currentVoxel;
         }
-        double blendedFluid = GenerationBlend.interpolate(fluid / total,
-                current.fluid.distanceAt(offset), historicalOpening ? openingWeight : currentWeight);
-        if (blendedFluid > 0D) {
-            BoundaryColumnGeometry.Voxel newFluid = current.fluid.materialAt(offset);
-            if (oldFluid != null && newFluid != null && !fluidFamily(oldFluid).equals(fluidFamily(newFluid))) {
-                return FLUID_BARRIER;
-            }
-            return selectMaterial(oldFluid, newFluid, currentWeight <= 0.5D);
+        if (currentVoxel.phase() == BoundaryColumnGeometry.Phase.FLUID) {
+            return currentVoxel;
         }
-        return AIR;
-    }
-
-    private static String fluidFamily(BoundaryColumnGeometry.Voxel voxel) {
-        String key = voxel.fluidStateKey();
-        int properties = key.indexOf('[');
-        return properties < 0 ? key : key.substring(0, properties);
-    }
-
-    private static BoundaryColumnGeometry.Voxel selectMaterial(
-            BoundaryColumnGeometry.Voxel historical,
-            BoundaryColumnGeometry.Voxel current,
-            boolean historicalMaterial
-    ) {
-        if (historical == null) {
-            return current == null ? AIR : current;
-        }
-        return current == null || historicalMaterial ? historical : current;
+        return oldFluid != null && currentWeight < 0.5D ? oldFluid : AIR;
     }
 
     private static final class ColumnProfile {
         private final BoundaryColumnGeometry geometry;
         private final PhaseCursor solid;
-        private final PhaseCursor fluid;
         private int run;
 
         private ColumnProfile(BoundaryColumnGeometry geometry) {
             this.geometry = geometry;
             solid = new PhaseCursor(geometry, BoundaryColumnGeometry.Phase.SOLID);
-            fluid = new PhaseCursor(geometry, BoundaryColumnGeometry.Phase.FLUID);
         }
 
         private BoundaryColumnGeometry.Voxel voxelAt(int offset) {
@@ -152,12 +118,6 @@ public final class TransitionGeometryBlender {
             return geometry.runVoxel(run);
         }
 
-        private boolean enclosedOpeningAt(int offset) {
-            solid.advanceTo(offset);
-            return !solid.occupied && solid.start > 0 && solid.end < geometry.height()
-                    && solid.end - solid.start <= MAXIMUM_OPENING_HEIGHT
-                    && !voxelAt(offset).protectedContent();
-        }
     }
 
     private static final class PhaseCursor {

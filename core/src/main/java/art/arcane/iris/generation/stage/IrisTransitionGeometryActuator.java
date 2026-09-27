@@ -5,7 +5,6 @@ import art.arcane.iris.generation.runtime.EngineAssignedComponent;
 import art.arcane.iris.generation.runtime.EngineStage;
 import art.arcane.iris.world.history.BoundaryColumnGeometry;
 import art.arcane.iris.world.history.BoundaryGeometryInfluence;
-import art.arcane.iris.world.history.GenerationBlend;
 import art.arcane.iris.world.history.SavedTerrainChunk;
 import art.arcane.iris.world.history.TransitionGenerationPlan;
 import art.arcane.iris.world.history.TransitionGeometryBlender;
@@ -70,9 +69,7 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
                 if (blended == current) {
                     continue;
                 }
-                double expectedFloor = GenerationBlend.interpolate(
-                        plan.terrainSampleAt(x + localX, z + localZ).historicalOceanFloorHeight(),
-                        context.getRoundedHeight(localX, localZ), influence.newTerrainWeight());
+                double expectedFloor = context.getRoundedHeight(localX, localZ);
                 int floor = blended.surfaceOffsetNear(expectedFloor);
                 List<BoundaryColumnGeometry.Voxel> voxels = blended.voxels();
                 for (int offset = 0; offset < voxels.size(); offset++) {

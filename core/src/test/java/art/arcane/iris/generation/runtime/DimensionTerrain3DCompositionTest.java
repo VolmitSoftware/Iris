@@ -1,6 +1,10 @@
 package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.generation.stage.IrisDimensionStackActuator;
+import art.arcane.iris.generation.mantle.EngineMantle;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.iris.generation.stage.IrisTerrainNormalActuator;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -291,12 +295,19 @@ public class DimensionTerrain3DCompositionTest {
         return blocks;
     }
 
+    @SuppressWarnings("unchecked")
     private Hunk<NativeBlockState> render(DimensionStackLayout layout, int height) {
         Engine engine = mock(Engine.class);
         when(engine.getSeedManager()).thenReturn(mock(SeedManager.class));
         when(engine.getDimensionStackContext()).thenReturn(mock(DimensionStackContext.class));
         ChunkContext context = mock(ChunkContext.class);
-        when(context.isSpeculativeTerrain()).thenReturn(true);
+        EngineMantle engineMantle = mock(EngineMantle.class);
+        Mantle<Matter> mantle = mock(Mantle.class);
+        MantleChunk<Matter> mantleChunk = mock(MantleChunk.class);
+        when(engine.getMantle()).thenReturn(engineMantle);
+        when(engineMantle.getMantle()).thenReturn(mantle);
+        when(mantle.getChunk(0, 0)).thenReturn(mantleChunk);
+        when(mantleChunk.use()).thenReturn(mantleChunk);
         when(context.getDimensionStackLayout(0, 0)).thenReturn(layout);
         Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, height, 1);
         for (int y = 0; y < height; y++) {

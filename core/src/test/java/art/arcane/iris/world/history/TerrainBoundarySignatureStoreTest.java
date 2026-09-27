@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -29,6 +30,49 @@ import static org.junit.Assert.assertTrue;
 public class TerrainBoundarySignatureStoreTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Test
+    public void loadsOnlyRequestedShardsAndValidatesTheirBytesBeforeUse() throws Exception {
+        TerrainBoundarySignatureStore store = new TerrainBoundarySignatureStore(
+                temporaryFolder.newFolder("lazy-shards").toPath());
+        TerrainBoundarySignature first = simpleSignature(1, 2, 70);
+        store.publish(1L, List.of(first));
+        Path damaged;
+        try (DirectoryStream<Path> shards = Files.newDirectoryStream(store.directory(), "terrain-cell-*.irtm")) {
+            damaged = shards.iterator().next();
+        }
+        store.publish(2L, List.of(first, simpleSignature(2048, 2, 90)));
+        byte[] original = Files.readAllBytes(damaged);
+        Files.write(damaged, Arrays.copyOf(original, original.length - 1));
+
+        TerrainBoundarySignatureStore.Snapshot loaded = store.load(2L);
+        assertEquals(0L, loaded.shardLoadCount());
+        assertEquals(0, loaded.cachedShardCount());
+        assertEquals(90, loaded.signatureAt(2048, 2).orElseThrow().surfaceHeight());
+        assertEquals(1L, loaded.shardLoadCount());
+        IllegalStateException failure = assertThrows(IllegalStateException.class,
+                () -> loaded.signatureAt(1, 2));
+        assertTrue(failure.getCause() instanceof IOException);
+        assertEquals(1, loaded.cachedShardCount());
+
+        Files.write(damaged, original);
+        assertEquals(70, loaded.signatureAt(1, 2).orElseThrow().surfaceHeight());
+        assertEquals(2L, loaded.shardLoadCount());
+    }
+
+    @Test
+    public void missingShardFailsWhenItsTerrainIsRequested() throws Exception {
+        TerrainBoundarySignatureStore store = new TerrainBoundarySignatureStore(
+                temporaryFolder.newFolder("missing-shard").toPath());
+        store.publish(1L, List.of(simpleSignature(-1, -1, 70)));
+        try (DirectoryStream<Path> shards = Files.newDirectoryStream(store.directory(), "terrain-cell-*.irtm")) {
+            Files.delete(shards.iterator().next());
+        }
+        TerrainBoundarySignatureStore.Snapshot loaded = store.load(1L);
+        assertTrue(loaded.signatureAt(2048, 2048).isEmpty());
+        assertThrows(IllegalStateException.class, () -> loaded.signatureAt(-1, -1));
+        assertEquals(0, loaded.cachedShardCount());
+    }
 
     @Test
     public void preservesPresentAndAbsentUpperCeilingsAcrossShardReloads() throws Exception {

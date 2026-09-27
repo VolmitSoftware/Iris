@@ -38,7 +38,7 @@ public class TransitionGeometryBlenderTest {
     }
 
     @Test
-    public void narrowHistoricalCaveContinuesBeforeTaperingIntoTallSolidTerrain() throws Exception {
+    public void narrowHistoricalCaveIsPatchedOnlyAtTheSeam() throws Exception {
         ArrayList<BoundaryColumnGeometry.Voxel> oldVoxels = new ArrayList<>(768);
         for (int offset = 0; offset < 768; offset++) {
             oldVoxels.add(offset == 384 ? AIR : STONE);
@@ -47,9 +47,8 @@ public class TransitionGeometryBlenderTest {
         BoundaryColumnGeometry current = filled(STONE, 768);
         TransitionGenerationPlan plan = plan(List.of(signature(15, 0, old)));
 
-        for (int x = 16; x <= 23; x++) {
-            assertEquals(AIR, TransitionGeometryBlender.blendColumn(plan, x, 0, current).voxelAt(380));
-        }
+        assertEquals(AIR, TransitionGeometryBlender.blendColumn(plan, 16, 0, current).voxelAt(380));
+        assertSame(current, TransitionGeometryBlender.blendColumn(plan, 19, 0, current));
         assertSame(current, TransitionGeometryBlender.blendColumn(plan, 47, 0, current));
     }
 
@@ -74,7 +73,7 @@ public class TransitionGeometryBlenderTest {
     }
 
     @Test
-    public void conflictingFluidFamiliesProduceANewSideSolidPlug() throws Exception {
+    public void conflictingFluidFamiliesKeepTheNativeFluidWithoutSolidPlugs() throws Exception {
         BoundaryColumnGeometry.Voxel lava = new BoundaryColumnGeometry.Voxel("minecraft:lava[level=0]",
                 BoundaryColumnGeometry.Phase.FLUID, "minecraft:lava[level=0]", false);
         BoundaryColumnGeometry current = filled(lava, 8);
@@ -83,10 +82,21 @@ public class TransitionGeometryBlenderTest {
         BoundaryColumnGeometry blended = TransitionGeometryBlender.blendColumn(plan, 16, 0, current);
 
         for (BoundaryColumnGeometry.Voxel voxel : blended.voxels()) {
-            assertEquals(BoundaryColumnGeometry.Phase.SOLID, voxel.phase());
-            assertEquals("minecraft:obsidian", voxel.stateKey());
+            assertEquals(lava, voxel);
         }
         assertSame(current, TransitionGeometryBlender.blendColumn(plan, 47, 0, current));
+    }
+
+    @Test
+    public void seamPatchKeepsTheNativeSolidPaletteWithoutDithering() throws Exception {
+        BoundaryColumnGeometry.Voxel deepslate = new BoundaryColumnGeometry.Voxel(
+                "minecraft:deepslate", BoundaryColumnGeometry.Phase.SOLID, "", false);
+        BoundaryColumnGeometry current = filled(deepslate, 8);
+        TransitionGenerationPlan plan = plan(List.of(signature(15, 0, filled(STONE, 8))));
+
+        for (int x = 16; x < 32; x++) {
+            assertSame(current, TransitionGeometryBlender.blendColumn(plan, x, 0, current));
+        }
     }
 
     @Test
@@ -96,7 +106,7 @@ public class TransitionGeometryBlenderTest {
         BoundaryColumnGeometry current = filled(flowing, 8);
         TransitionGenerationPlan plan = plan(List.of(signature(15, 0, filled(WATER, 8))));
 
-        assertEquals(WATER, TransitionGeometryBlender.blendColumn(plan, 16, 0, current).voxelAt(0));
+        assertEquals(flowing, TransitionGeometryBlender.blendColumn(plan, 16, 0, current).voxelAt(0));
     }
 
     @Test
@@ -105,13 +115,13 @@ public class TransitionGeometryBlenderTest {
                 List.of(STONE, STONE, AIR, AIR, STONE, AIR, AIR, AIR));
         BoundaryColumnGeometry current = filled(STONE, 8);
         TransitionGenerationPlan plan = plan(List.of(signature(15, 0, old), signature(0, 15, old)));
-        BoundaryColumnGeometry before = TransitionGeometryBlender.blendColumn(plan, 25, 6, current);
+        BoundaryColumnGeometry before = TransitionGeometryBlender.blendColumn(plan, 16, 1, current);
 
         for (int x = 46; x >= 16; x--) {
             TransitionGeometryBlender.blendColumn(plan, x, 0, current);
         }
 
-        assertEquals(before, TransitionGeometryBlender.blendColumn(plan, 25, 6, current));
+        assertEquals(before, TransitionGeometryBlender.blendColumn(plan, 16, 1, current));
         assertSame(current, TransitionGeometryBlender.blendColumn(plan, 80, 0, current));
     }
 
@@ -121,8 +131,8 @@ public class TransitionGeometryBlenderTest {
                 List.of(STONE, STONE, AIR, AIR, AIR, AIR, AIR, AIR));
         BoundaryColumnGeometry upper = BoundaryColumnGeometry.fromVoxels(-4,
                 List.of(AIR, AIR, AIR, AIR, STONE, STONE, AIR, AIR));
-        TerrainBoundarySignature west = signature(15, 0, lower);
-        TerrainBoundarySignature south = signature(0, 15, upper);
+        TerrainBoundarySignature west = signature(15, 15, lower);
+        TerrainBoundarySignature south = signature(14, 15, upper);
         TransitionGenerationPlan first = plan(List.of(west, south));
         TransitionGenerationPlan second = plan(List.of(south, west));
         BoundaryColumnGeometry current = filled(STONE, 8);

@@ -102,7 +102,8 @@ final class ModdedNativeStructurePolicy implements NativeModdedStructureStage.Po
 
     @Override
     public NativeBlockPositionPredicate protectedPositions(Engine context) {
-        return GenerationWritePolicy.protectedPositions(context.getDimension().getStaticObjectLayer(context.getData()),
+        return GenerationWritePolicy.protectedPositions(context.getDimension().getStaticObjectLayer(context.getData())
+                        .forTransition(context),
                 context.getDimensionStackContext(), context.getMinHeight());
     }
 

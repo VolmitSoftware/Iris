@@ -32,9 +32,6 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.world.history.TransitionGenerationPlan;
-import art.arcane.iris.world.history.TerrainBoundarySignature;
-import art.arcane.iris.world.history.BoundaryColumnGeometry;
-import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.generation.block.TileData;
@@ -46,6 +43,7 @@ import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterSlice;
 import art.arcane.volmlib.util.noise.CNG;
@@ -61,9 +59,13 @@ import art.arcane.iris.generation.block.B;
 import org.bukkit.util.Vector;
 
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.function.Supplier;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -86,6 +88,8 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
     private final ThreadLocal<Integer> activeComponentPriority = new ThreadLocal<>();
+    @Getter(AccessLevel.NONE)
+    private final ThreadLocal<ObjectPlacementCapture> objectPlacementCapture = new ThreadLocal<>();
 
     public MantleWriter(EngineMantle engineMantle, Mantle<Matter> mantle, int x, int z, int radius, boolean multicore) {
         this(engineMantle, mantle, x, z, radius, radius * 2, multicore);
@@ -292,6 +296,22 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
                 (int) Math.round(style.warp(rng, data, z, -y, z, x)), t);
     }
 
+    public ObjectPlacementCapture captureObjectPlacement(ObjectContinuationBundle.PlacementKey key) {
+        if (objectPlacementCapture.get() != null) {
+            throw new IllegalStateException("Object placement capture is already active");
+        }
+        ObjectPlacementCapture capture = new ObjectPlacementCapture(key);
+        objectPlacementCapture.set(capture);
+        return capture;
+    }
+
+    private void recordObjectValue(int x, int y, int z, Class<?> type, Object value) {
+        ObjectPlacementCapture capture = objectPlacementCapture.get();
+        if (capture != null) {
+            capture.set(x, y, z, type, value);
+        }
+    }
+
     public <T> void setData(int x, int y, int z, T t) {
         if (t == null || !allowsWrite(x, z)) {
             return;
@@ -323,6 +343,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             Class<?> sliceType = t instanceof NativeBlockState ? NativeBlockState.class : matter.getClass(t);
             capturePreObjectOriginal(matter, x, y, z, sliceType);
             matter.slice(sliceType).set(x & 15, y & 15, z & 15, t);
+            recordObjectValue(x, y, z, sliceType, t);
         }
     }
 
@@ -361,6 +382,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
                 cavernSlice = matter.slice(MatterCavern.class);
             }
             cavernSlice.set(x & 15, y & 15, z & 15, value);
+            recordObjectValue(x, y, z, MatterCavern.class, value);
             return true;
         }
     }
@@ -384,6 +406,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             if (blockSlice != null) {
                 capturePreObjectOriginal(matter, x, y, z, NativeBlockState.class);
                 blockSlice.set(x & 15, y & 15, z & 15, null);
+                recordObjectValue(x, y, z, NativeBlockState.class, AIR.get());
             }
             clearDeferredPlacement(matter, x, y, z);
             MatterSlice<MatterCavern> cavernSlice = matter.getSlice(MatterCavern.class);
@@ -395,6 +418,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
                 cavernSlice = matter.slice(MatterCavern.class);
             }
             cavernSlice.set(x & 15, y & 15, z & 15, value);
+            recordObjectValue(x, y, z, MatterCavern.class, value);
             return true;
         }
     }
@@ -413,14 +437,13 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             if (hasProtectedHydrology(matter, x, y, z)) {
                 return;
             }
-            MatterSlice<NativeBlockState> blockSlice = matter.getSlice(NativeBlockState.class);
-            if (blockSlice != null) {
-                capturePreObjectOriginal(matter, x, y, z, NativeBlockState.class);
-                blockSlice.set(x & 15, y & 15, z & 15, null);
-            }
+            capturePreObjectOriginal(matter, x, y, z, NativeBlockState.class);
+            matter.<NativeBlockState>slice(NativeBlockState.class).set(x & 15, y & 15, z & 15, AIR.get());
             clearDeferredPlacement(matter, x, y, z);
             capturePreObjectOriginal(matter, x, y, z, MatterCavern.class);
             matter.<MatterCavern>slice(MatterCavern.class).set(x & 15, y & 15, z & 15, value);
+            recordObjectValue(x, y, z, NativeBlockState.class, AIR.get());
+            recordObjectValue(x, y, z, MatterCavern.class, value);
         }
     }
 
@@ -448,6 +471,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             if (blockSlice != null) {
                 capturePreObjectOriginal(matter, x, y, z, NativeBlockState.class);
                 blockSlice.set(x & 15, y & 15, z & 15, null);
+                recordObjectValue(x, y, z, NativeBlockState.class, AIR.get());
             }
             clearDeferredPlacement(matter, x, y, z);
         }
@@ -517,34 +541,14 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         }
     }
 
-    private Optional<TerrainBoundarySignature> resolvedColumn(int x, int z) {
-        IrisComplex complex = engineMantle.getComplex();
-        return complex == null ? Optional.empty() : complex.resolvedTerrainColumn(x, z);
-    }
 
-    private NativeBlockState resolvedBlock(TerrainBoundarySignature column, int y) {
-        String stateKey = column.geometry().voxelAt(y + engineMantle.getEngine().getMinHeight()).stateKey();
-        NativeBlockState state = IrisPlatforms.get().registries().blockOrNull(stateKey);
-        if (state == null) {
-            throw new IllegalStateException("Saved terrain state is unavailable: " + stateKey);
-        }
-        return state;
-    }
 
     public NativeBlockState getPrerequisiteBlock(int x, int y, int z) {
-        Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
-        if (resolved.isPresent()) {
-            return resolvedBlock(resolved.get(), y);
-        }
         NativeBlockState block = getPrerequisiteDataIfPresent(x, y, z, NativeBlockState.class);
         return block == null ? AIR.get() : block;
     }
 
     public boolean isPrerequisiteCarved(int x, int y, int z) {
-        Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
-        if (resolved.isPresent()) {
-            return resolved.get().geometry().isEnclosedOpenAt(y + engineMantle.getEngine().getMinHeight());
-        }
         HydrologyCaveCell hydrology = getPrerequisiteDataIfPresent(x, y, z, HydrologyCaveCell.class);
         if (hydrology != null) {
             return hydrology.carves();
@@ -554,10 +558,6 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     }
 
     public byte[] getPrerequisiteCarvedColumn(int x, int z, int height) {
-        Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
-        if (resolved.isPresent()) {
-            return resolvedCarvedColumn(resolved.get(), height);
-        }
         int cappedHeight = Math.min(Math.max(height, 0), mantle.getWorldHeight());
         byte[] carvedColumn = new byte[cappedHeight];
         if (cappedHeight <= 0) {
@@ -646,6 +646,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
                 return false;
             }
             restoreRaw(matter, x, y, z, type, cell.original(type));
+            recordObjectValue(x, y, z, type, cell.original(type));
             return true;
         }
     }
@@ -672,12 +673,15 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             }
             if (cell.blockCaptured()) {
                 restoreRaw(matter, x, y, z, NativeBlockState.class, cell.block());
+                recordObjectValue(x, y, z, NativeBlockState.class, cell.block());
             }
             if (cell.stringCaptured()) {
                 restoreRaw(matter, x, y, z, String.class, cell.string());
+                recordObjectValue(x, y, z, String.class, cell.string());
             }
             if (cell.cavernCaptured()) {
                 restoreRaw(matter, x, y, z, MatterCavern.class, cell.cavern());
+                recordObjectValue(x, y, z, MatterCavern.class, cell.cavern());
             }
             return true;
         }
@@ -705,6 +709,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             }
             capturePreObjectOriginal(matter, x, y, z, type);
             matter.getSlice(type).set(x & 15, y & 15, z & 15, null);
+            recordObjectValue(x, y, z, type, null);
         }
     }
 
@@ -747,6 +752,8 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             capturePreObjectOriginal(matter, x, y, z, NativeBlockState.class);
             blockSlice.set(x & 15, y & 15, z & 15, baseState);
             identifierSlice.set(x & 15, y & 15, z & 15, identifier);
+            recordObjectValue(x, y, z, NativeBlockState.class, baseState);
+            recordObjectValue(x, y, z, Identifier.class, identifier);
         }
     }
 
@@ -905,13 +912,6 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         // Read-only probe: getDataIfPresent returns the identical answer without materializing
         // a 16^3 section + slice on a miss the way getData's getOrCreate path does.
         NativeBlockState block = getDataIfPresent(x, y, z, NativeBlockState.class);
-        Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
-        if (resolved.isPresent()) {
-            PreObjectMatterCell cell = getDataIfPresent(x, y, z, PreObjectMatterCell.class);
-            if (cell == null || !cell.blockCaptured()) {
-                return resolvedBlock(resolved.get(), y);
-            }
-        }
         if (block == null)
             return AIR.get();
         return block;
@@ -924,20 +924,6 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
     @Override
     public boolean isCarved(int x, int y, int z) {
-        Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
-        if (resolved.isPresent()) {
-            PreObjectMatterCell cell = getDataIfPresent(x, y, z, PreObjectMatterCell.class);
-            if (cell != null && cell.blockCaptured()) {
-                NativeBlockState block = getDataIfPresent(x, y, z, NativeBlockState.class);
-                if (block != null) {
-                    return (block.isAir() || block.isFluid())
-                            && resolved.get().geometry().hasSolidAbove(y + engineMantle.getEngine().getMinHeight());
-                }
-            }
-            return cell != null && cell.cavernCaptured()
-                    ? getDataIfPresent(x, y, z, MatterCavern.class) != null
-                    : resolved.get().geometry().isEnclosedOpenAt(y + engineMantle.getEngine().getMinHeight());
-        }
         HydrologyCaveCell hydrology = getDataIfPresent(x, y, z, HydrologyCaveCell.class);
         if (hydrology != null) {
             return hydrology.carves();
@@ -946,45 +932,8 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
                 || engineMantle.getComplex().isTerrain3DOpening(x, y, z);
     }
 
-    private byte[] resolvedCarvedColumn(TerrainBoundarySignature column, int height) {
-        int cappedHeight = Math.min(Math.max(height, 0), mantle.getWorldHeight());
-        byte[] carved = new byte[cappedHeight];
-        int minimumY = engineMantle.getEngine().getMinHeight();
-        BoundaryColumnGeometry geometry = column.geometry();
-        boolean ceiling = false;
-        for (int worldY = geometry.minimumY() + geometry.height() - 1; worldY >= minimumY; worldY--) {
-            BoundaryColumnGeometry.Voxel voxel = geometry.voxelAt(worldY);
-            int internalY = worldY - minimumY;
-            if (voxel.phase() == BoundaryColumnGeometry.Phase.SOLID) {
-                ceiling = true;
-            } else if (ceiling && internalY < cappedHeight) {
-                carved[internalY] = 1;
-            }
-        }
-        return carved;
-    }
 
     public byte[] getCarvedColumn(int x, int z, int height) {
-        Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
-        if (resolved.isPresent()) {
-            byte[] carved = resolvedCarvedColumn(resolved.get(), height);
-            for (int y = 0; y < carved.length; y++) {
-                PreObjectMatterCell cell = getDataIfPresent(x, y, z, PreObjectMatterCell.class);
-                if (cell != null && cell.blockCaptured()) {
-                    NativeBlockState block = getDataIfPresent(x, y, z, NativeBlockState.class);
-                    if (block != null) {
-                        carved[y] = (block.isAir() || block.isFluid())
-                                && resolved.get().geometry().hasSolidAbove(y + engineMantle.getEngine().getMinHeight())
-                                ? (byte) 1 : 0;
-                        continue;
-                    }
-                }
-                if (cell != null && cell.cavernCaptured()) {
-                    carved[y] = getDataIfPresent(x, y, z, MatterCavern.class) != null ? (byte) 1 : 0;
-                }
-            }
-            return carved;
-        }
         int cappedHeight = Math.min(Math.max(height, 0), mantle.getWorldHeight());
         byte[] carvedColumn = new byte[cappedHeight];
         if (cappedHeight <= 0) {
@@ -1045,11 +994,6 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
     @Override
     public boolean isSurfaceSolid(int x, int y, int z) {
-        Optional<TerrainBoundarySignature> resolved = resolvedColumn(x, z);
-        if (resolved.isPresent()) {
-            return resolved.get().geometry()
-                    .voxelAt(y + engineMantle.getEngine().getMinHeight()).phase() == BoundaryColumnGeometry.Phase.SOLID;
-        }
         return engineMantle.getEngine().isTerrainSurfaceSolid(x, y, z);
     }
 
@@ -1564,4 +1508,64 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             }
         }
     }
+
+    public final class ObjectPlacementCapture implements AutoCloseable {
+        private final ObjectContinuationBundle.PlacementKey key;
+        private final Long2ObjectOpenHashMap<Matter> fragments = new Long2ObjectOpenHashMap<>();
+        private int minimumX = Integer.MAX_VALUE;
+        private int minimumZ = Integer.MAX_VALUE;
+        private int maximumX = Integer.MIN_VALUE;
+        private int maximumZ = Integer.MIN_VALUE;
+        private boolean closed;
+
+        private ObjectPlacementCapture(ObjectContinuationBundle.PlacementKey key) {
+            this.key = Objects.requireNonNull(key);
+        }
+
+        public void commit() {
+            close();
+            if (fragments.size() > 1) {
+                Map<ObjectContinuationBundle.ChunkPosition, Supplier<Matter>> pending = new LinkedHashMap<>();
+                for (Long2ObjectMap.Entry<Matter> entry : fragments.long2ObjectEntrySet()) {
+                    long coordinate = entry.getLongKey();
+                    Matter matter = entry.getValue();
+                    pending.put(new ObjectContinuationBundle.ChunkPosition((int) (coordinate >> 32), (int) coordinate), () -> matter);
+                }
+                ObjectContinuationPersistence.persist(mantle, key,
+                        new ObjectContinuationBundle.Bounds(minimumX, minimumZ, maximumX, maximumZ), pending);
+            }
+        }
+
+        @Override
+        public void close() {
+            if (closed) {
+                return;
+            }
+            if (objectPlacementCapture.get() != this) {
+                throw new IllegalStateException("Object placement capture closed outside its owner");
+            }
+            objectPlacementCapture.remove();
+            closed = true;
+        }
+
+        private void set(int x, int y, int z, Class<?> type, Object value) {
+            long coordinate = ((long) (x >> 4) << 32) | ((z >> 4) & 0xffffffffL);
+            Matter fragment = fragments.get(coordinate);
+            if (fragment == null) {
+                fragment = new IrisMatter(16, mantle.getWorldHeight(), 16);
+                fragments.put(coordinate, fragment);
+            }
+            minimumX = Math.min(minimumX, x);
+            minimumZ = Math.min(minimumZ, z);
+            maximumX = Math.max(maximumX, x);
+            maximumZ = Math.max(maximumZ, z);
+            if (type == NativeBlockState.class) {
+                fragment.slice(Identifier.class).set(x & 15, y, z & 15, null);
+                fragment.slice(type).set(x & 15, y, z & 15, value == null ? AIR.get() : value);
+            } else {
+                fragment.slice(type).set(x & 15, y, z & 15, value);
+            }
+        }
+    }
+
 }

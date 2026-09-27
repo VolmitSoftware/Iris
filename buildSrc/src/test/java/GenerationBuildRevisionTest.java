@@ -34,6 +34,31 @@ public class GenerationBuildRevisionTest {
     }
 
     @Test
+    public void dependencyReleaseNamesAndMavenMetadataDoNotChangeGenerationIdentity() throws Exception {
+        Fixture fixture = fixture();
+        String original = GenerationBuildRevision.fingerprint(GenerationBuildRevision.read(fixture.revision()));
+        Path released = fixture.root().resolve("math-2.0.jar");
+        try (ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(released))) {
+            for (Map.Entry<String, String> entry : Map.of(
+                    "META-INF/MANIFEST.MF", "Manifest-Version: 1.0\r\nImplementation-Version: 2.0\r\nBuild-Time: 12345\r\n\r\n",
+                    "META-INF/maven/example/math/pom.properties", "groupId=example\nartifactId=math\nversion=2.0\n",
+                    "META-INF/maven/example/math/pom.xml", "<project><version>2.0</version></project>",
+                    "example/Math.class", "same code").entrySet()) {
+                ZipEntry archiveEntry = new ZipEntry(entry.getKey());
+                archiveEntry.setTime(1_700_000_000_000L);
+                output.putNextEntry(archiveEntry);
+                output.write(entry.getValue().getBytes(StandardCharsets.UTF_8));
+                output.closeEntry();
+            }
+        }
+        Map<String, Path> dependencies = Map.of("math", released);
+
+        GenerationBuildRevision.verifySnapshot(fixture.root(), fixture.revision(), dependencies);
+        assertEquals(original, GenerationBuildRevision.fingerprint(
+                GenerationBuildRevision.capture(fixture.options(), dependencies)));
+    }
+
+    @Test
     public void rejectsChangedAddedAndDeletedGenerationSources() throws Exception {
         Fixture fixture = fixture();
         Path source = fixture.root().resolve("generation/Noise.java");

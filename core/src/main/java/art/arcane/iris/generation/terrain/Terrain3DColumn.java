@@ -86,6 +86,30 @@ public final class Terrain3DColumn {
         return nearest;
     }
 
+    public Terrain3DColumn displaced(int offset, int height) {
+        if (height < 1) {
+            throw new IllegalArgumentException("Terrain column height must be positive");
+        }
+        if (offset == 0) {
+            return this;
+        }
+        double displacedBase = Math.clamp(baseHeight + offset, 0D, height - 1D);
+        int[] displaced = new int[boundaries.length];
+        int count = 0;
+        for (int index = 0; index < boundaries.length; index += 2) {
+            long minimum = index == 0 && boundaries[index] == 0 ? 0L : (long) boundaries[index] + offset;
+            long maximum = (long) boundaries[index + 1] + offset;
+            if (minimum >= height || maximum < 0L) {
+                continue;
+            }
+            displaced[count++] = (int) Math.max(0L, minimum);
+            displaced[count++] = (int) Math.min(height - 1L, maximum);
+        }
+        return count == 0 ? unshaped(displacedBase, height)
+                : new Terrain3DColumn(displacedBase, Math.clamp((long) minY + offset, 0, height),
+                shaped, Arrays.copyOf(displaced, count));
+    }
+
     @Override
     public boolean equals(Object value) {
         return this == value || value instanceof Terrain3DColumn other

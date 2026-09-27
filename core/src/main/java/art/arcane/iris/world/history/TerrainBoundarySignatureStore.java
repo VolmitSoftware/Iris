@@ -48,6 +48,7 @@ import java.util.PriorityQueue;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.function.Consumer;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.zip.CRC32;
 
@@ -243,11 +244,6 @@ public final class TerrainBoundarySignatureStore {
 
             long[] cellKeys = new long[cellCount];
             Long2ObjectOpenHashMap<CellReference> cells = new Long2ObjectOpenHashMap<>(cellCount);
-            LinkedHashMap<String, List<TerrainBoundarySignature>> validated = new LinkedHashMap<>(
-                    MAXIMUM_CACHED_SHARDS,
-                    0.75F,
-                    true
-            );
             int countedEntries = 0;
             long previousCellKey = 0L;
             for (int index = 0; index < cellCount; index++) {
@@ -266,19 +262,6 @@ public final class TerrainBoundarySignatureStore {
                     throw invalid(snapshot, "truncated shard hash");
                 }
                 String hash = HexFormat.of().formatHex(hashBytes);
-                List<TerrainBoundarySignature> signatures = validated.get(hash);
-                if (signatures == null) {
-                    Path shard = directory.resolve(shardFileName(hash));
-                    requireRegularFile(shard, "Terrain boundary shard");
-                    signatures = CellShard.read(shard, hash, cellX, cellZ);
-                    validated.put(hash, signatures);
-                    trim(validated);
-                } else {
-                    signatures = relocate(signatures, cellX, cellZ);
-                }
-                if (signatures.size() != count) {
-                    throw invalid(snapshot, "terrain signature shard count does not match its catalog entry");
-                }
                 countedEntries = Math.addExact(countedEntries, count);
                 cellKeys[index] = cellKey;
                 cells.put(cellKey, new CellReference(hash, count));
@@ -603,33 +586,6 @@ public final class TerrainBoundarySignatureStore {
         }
     }
 
-    private static List<TerrainBoundarySignature> relocate(
-            List<TerrainBoundarySignature> source,
-            int cellX,
-            int cellZ
-    ) {
-        int minimumX = Math.multiplyExact(cellX, CELL_SIZE);
-        int minimumZ = Math.multiplyExact(cellZ, CELL_SIZE);
-        ArrayList<TerrainBoundarySignature> relocated = new ArrayList<>(source.size());
-        for (TerrainBoundarySignature signature : source) {
-            int localX = Math.floorMod(signature.blockX(), CELL_SIZE);
-            int localZ = Math.floorMod(signature.blockZ(), CELL_SIZE);
-            relocated.add(new TerrainBoundarySignature(
-                    new TerrainBoundarySignature.Column(
-                            minimumX + localX,
-                            minimumZ + localZ,
-                            signature.surfaceHeight(),
-                            signature.oceanFloorHeight(),
-                            signature.fluidHeight(),
-                            signature.upperCeilingDepth()
-                    ),
-                    signature.samples(),
-                    signature.geometry()
-            ));
-        }
-        return List.copyOf(relocated);
-    }
-
     private static void trim(LinkedHashMap<?, ?> cache) {
         while (cache.size() > MAXIMUM_CACHED_SHARDS) {
             Iterator<?> entries = cache.entrySet().iterator();
@@ -771,6 +727,14 @@ public final class TerrainBoundarySignatureStore {
         List<TerrainBoundarySignature> nearestCandidatesForChunk(int chunkX, int chunkZ, int searchWidth) {
             try {
                 return source.nearestCandidatesForChunk(chunkX, chunkZ, searchWidth);
+            } catch (IOException error) {
+                throw new IllegalStateException("Unable to query terrain boundary signatures", error);
+            }
+        }
+
+        void forEachSignature(BlockBounds bounds, Consumer<TerrainBoundarySignature> consumer) {
+            try {
+                source.forEachSignature(bounds, consumer);
             } catch (IOException error) {
                 throw new IllegalStateException("Unable to query terrain boundary signatures", error);
             }
@@ -1038,6 +1002,25 @@ public final class TerrainBoundarySignatureStore {
                     for (TerrainBoundarySignature signature : load(cellKey, cells.get(cellKey))) {
                         if (footprint.distanceSquared(signature.blockX(), signature.blockZ()) < distanceSquared) {
                             return true;
+                        }
+                    }
+                }
+                return false;
+            });
+        }
+
+        private void forEachSignature(BlockBounds bounds, Consumer<TerrainBoundarySignature> consumer) throws IOException {
+            visitSuperCells(bounds, superKey -> {
+                for (long cellKey : cellsBySuperCell.get(superKey)) {
+                    BlockBounds cell = BlockBounds.cell(cellKey, CELL_SIZE);
+                    if (cell.maximumX() < bounds.minimumX() || cell.minimumX() > bounds.maximumX()
+                            || cell.maximumZ() < bounds.minimumZ() || cell.minimumZ() > bounds.maximumZ()) {
+                        continue;
+                    }
+                    for (TerrainBoundarySignature signature : load(cellKey, cells.get(cellKey))) {
+                        if (signature.blockX() >= bounds.minimumX() && signature.blockX() <= bounds.maximumX()
+                                && signature.blockZ() >= bounds.minimumZ() && signature.blockZ() <= bounds.maximumZ()) {
+                            consumer.accept(signature);
                         }
                     }
                 }

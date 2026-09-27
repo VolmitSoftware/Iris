@@ -1,7 +1,5 @@
 package art.arcane.iris.generation.mantle;
 
-import art.arcane.iris.world.history.BoundaryColumnGeometry;
-
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
@@ -12,20 +10,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class MantleObjectComponentCaveAnchorTest {
-    @Test
-    public void retainedCaveAnchorsUseResolvedFluidAndOccupancyWithoutRawCarveFacts() {
-        BoundaryColumnGeometry.Voxel air = new BoundaryColumnGeometry.Voxel(
-                "minecraft:air", BoundaryColumnGeometry.Phase.AIR, "", false);
-        BoundaryColumnGeometry.Voxel water = new BoundaryColumnGeometry.Voxel(
-                "minecraft:water[level=0]", BoundaryColumnGeometry.Phase.FLUID, "minecraft:water[level=0]", false);
-        BoundaryColumnGeometry.Voxel stone = new BoundaryColumnGeometry.Voxel(
-                "minecraft:stone", BoundaryColumnGeometry.Phase.SOLID, "", false);
-        assertTrue(MantleObjectComponent.acceptsResolvedCaveAnchor(false, air));
-        assertFalse(MantleObjectComponent.acceptsResolvedCaveAnchor(false, water));
-        assertTrue(MantleObjectComponent.acceptsResolvedCaveAnchor(true, water));
-        assertFalse(MantleObjectComponent.acceptsResolvedCaveAnchor(true, stone));
-    }
-
     @Test
     public void biomeOwnedPlacementsRejectForeignCaveBands() {
         IrisBiome frozen = biome("carving/ice");

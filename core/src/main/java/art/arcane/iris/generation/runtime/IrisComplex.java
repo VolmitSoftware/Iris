@@ -30,7 +30,7 @@ import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.studio.generation.BiomeBuffetLayout;
 import art.arcane.iris.world.history.GenerationBlend;
 import art.arcane.iris.world.history.TransitionGenerationPlan;
-import art.arcane.iris.world.history.TerrainBoundarySignature;
+import art.arcane.iris.world.history.TransitionDisplacementField;
 import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
 import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
 import art.arcane.iris.generation.hydrology.HydrologyColumnSnapshot;
@@ -41,6 +41,8 @@ import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntimeContext;
 import art.arcane.iris.generation.image.IrisImageMapApplication;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
 import art.arcane.iris.generation.mantle.MantleHydrologyCaveVoxelView;
+import art.arcane.iris.generation.mantle.ObjectContinuationBundle;
+import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeGeneratorLink;
@@ -99,7 +101,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -175,7 +176,6 @@ public class IrisComplex implements DataProvider {
     private final transient boolean reuseNaturalBaseBiome;
     private ProceduralStream<UUID> baseBiomeIDStream;
     private ProceduralStream<IrisBiome> naturalTrueBiomeStream;
-    private ProceduralStream<IrisBiome> unblendedNaturalTrueBiomeStream;
     private ProceduralStream<IrisBiome> trueBiomeStream;
     private ProceduralStream<NativeBiome> trueBiomeDerivativeStream;
     private ProceduralStream<Double> naturalHeightStream;
@@ -188,8 +188,7 @@ public class IrisComplex implements DataProvider {
     private transient Terrain3DRuntime terrain3D;
     private transient HydrologyBankTerrainRuntime hydrologyBanks3D;
     private ProceduralStream<Double> unblendedNaturalHeightStream;
-    private final ResolvedTerrainProvider resolvedTerrain;
-    private ProceduralStream<Double> placementHeightStream;
+    private final TransitionDisplacementField transitionDisplacement;
     private ProceduralStream<Double> heightStream;
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
@@ -248,7 +247,6 @@ public class IrisComplex implements DataProvider {
         biomeBoundsSamplingStep = engine.getDimension().getBiomeBoundsSamplingStep();
         this.detached = detached;
         this.transitionGenerationPlan = transitionGenerationPlan;
-        this.resolvedTerrain = new ResolvedTerrainProvider(engine);
         int cacheSize = noiseCacheSize(engine, IrisSettings.get().getPerformance().getNoiseCacheSize(), detached);
         IrisBiome emptyBiome = new IrisBiome().setInferredType(InferredType.CAVE);
         UUID focusUUID = UUID.nameUUIDFromBytes("focus".getBytes());
@@ -408,22 +406,21 @@ public class IrisComplex implements DataProvider {
         unblendedNaturalHeightStream = terrain3DEnabled
                 ? GenerationStreams.cache2DDouble(ProceduralStream.ofDouble(this::sampleTerrain3DHeight), "unblendedNaturalHeightStream", engine, cacheSize)
                 : baseTerrainHeightStream;
-        naturalHeightStream = unblendedNaturalHeightStream;
+        transitionDisplacement = transitionGenerationPlan == null ? null : new TransitionDisplacementField(
+                transitionGenerationPlan, new TransitionDisplacementField.Sources(
+                (x, z) -> unblendedNaturalHeightStream.getDouble(x, z), engine.getHeight()));
+        naturalHeightStream = transitionDisplacement == null ? unblendedNaturalHeightStream
+                : GenerationStreams.cache2DDouble(ProceduralStream.ofDouble((x, z) -> transitionDisplacement.height(
+                blockCoordinate(x), blockCoordinate(z), unblendedNaturalHeightStream.getDouble(x, z))),
+                "naturalHeightStream", engine, cacheSize);
         naturalTrueBiomeStream = focusedBiomes != null ? GenerationStreams.cache2D(focusedBiomes, "naturalTrueBiomeStream-focus", engine, cacheSize) : GenerationStreams.cache2D(naturalHeightStream
                 .convertAware2D((h, x, z) -> {
                     IrisBiome mapped = imageMapRuntime.sampleBiome(x, z);
                     return mapped == null
-                            ? fixBiomeType(h, baseBiomeStream.get(x, z), regionStream.get(x, z), x, z, fluidHeight)
+                            ? fixBiomeType(h, baseBiomeStream.get(x, z), regionStream.get(x, z), x, z,
+                            transitionFluidHeight(x, z, fluidHeight))
                             : mapped;
                 }), "naturalTrueBiomeStream", engine, cacheSize);
-        unblendedNaturalTrueBiomeStream = transitionGenerationPlan == null || focusedBiomes != null
-                ? naturalTrueBiomeStream
-                : GenerationStreams.cache2D(unblendedNaturalHeightStream.convertAware2D((h, x, z) -> {
-                    IrisBiome mapped = imageMapRuntime.sampleBiome(x, z);
-                    return mapped == null
-                            ? fixBiomeType(h, baseBiomeStream.get(x, z), regionStream.get(x, z), x, z, fluidHeight)
-                            : mapped;
-                }), "unblendedNaturalTrueBiomeStream", engine, cacheSize);
         IrisHydrology configuredHydrology = engine.getDimension().getHydrology();
         if (hydrologyActive(configuredHydrology)) {
             hydrologyRuntime = new IrisHydrologyRuntime(new IrisHydrologyRuntimeContext(
@@ -456,10 +453,9 @@ public class IrisComplex implements DataProvider {
                 ProceduralStream.ofDouble(this::resolveHydrologyTerrainHeight), cacheSize);
         heightStream = ProceduralStream.ofDouble((x, z) -> terrainEngine.getPlatformHooks().isMainThread()
                 ? nonblockingTerrainHeight(x, z) : cachedHeightStream.getDouble(x, z));
-        placementHeightStream = ProceduralStream.ofDouble(this::samplePlacementHeight);
-        roundedHeighteightStream = GenerationStreams.contextInjecting(placementHeightStream, engine, (c, x, z) -> c.getHeight().getDouble(x, z))
+        roundedHeighteightStream = GenerationStreams.contextInjecting(heightStream, engine, (c, x, z) -> c.getHeight().getDouble(x, z))
                 .round();
-        slopeStream = GenerationStreams.contextInjecting(placementHeightStream, engine, (c, x, z) -> c.getHeight().getDouble(x, z))
+        slopeStream = GenerationStreams.contextInjecting(heightStream, engine, (c, x, z) -> c.getHeight().getDouble(x, z))
                 .slope(3);
         naturalSlopeStream = GenerationStreams.cache2DDouble(naturalHeightStream.slope(3), "naturalSlopeStream", engine, cacheSize);
         // Terrain3D column heights resolve the surface biome, so the shore band reads the pre-terrain3D slope or it recurses.
@@ -534,7 +530,7 @@ public class IrisComplex implements DataProvider {
         List<NoiseCacheCapacity> capacities = new ArrayList<>(5);
         int additionalChunks = HydrologyNoiseCacheBudget.MAXIMUM_CHUNKS;
         for (ProceduralStream<?> stream : new ProceduralStream<?>[]{
-                baseBiomeStream, baseTerrainHeightStream, unblendedNaturalHeightStream, regionStream, bridgeStream}) {
+                baseBiomeStream, baseTerrainHeightStream, unblendedNaturalHeightStream, naturalHeightStream, regionStream, bridgeStream}) {
             if (!(stream instanceof CachedStream2D<?> || stream instanceof CachedDoubleStream2D)
                     || selected.put(stream, Boolean.TRUE) != null) {
                 continue;
@@ -641,9 +637,7 @@ public class IrisComplex implements DataProvider {
     }
 
     private double sampleNaturalTerrainHeight(Engine engine, double x, double z) {
-        return terrain3D != null && terrain3D.active()
-                ? sampleTerrain3DHeight(x, z)
-                : sampleUnblendedNaturalTerrainHeight(x, z);
+        return naturalHeightStream.getDouble(x, z);
     }
 
     private double sampleTerrain3DHeight(double x, double z) {
@@ -672,6 +666,10 @@ public class IrisComplex implements DataProvider {
             return null;
         }
         Terrain3DColumn column = terrain3D.column(x, z);
+        if (transitionDisplacement != null && column.shaped()) {
+            int offset = (int) Math.round(naturalHeightStream.getDouble(x, z)) - column.topY();
+            column = column.displaced(offset, terrainEngine.getHeight());
+        }
         return column.shaped() ? column : null;
     }
 
@@ -740,7 +738,7 @@ public class IrisComplex implements DataProvider {
 
     private double nearbyTerrainSurfaceHeight(int x, int surfaceY, int z) {
         Terrain3DColumn column = terrainColumn(x, z);
-        return column == null ? getPlacementHeightStream().getDouble(x, z) : column.nearestSurfaceY(surfaceY);
+        return column == null ? getHeightStream().getDouble(x, z) : column.nearestSurfaceY(surfaceY);
     }
 
     private double sampleUnblendedNaturalTerrainHeight(double x, double z) {
@@ -783,17 +781,18 @@ public class IrisComplex implements DataProvider {
         if (biome == null || region == null) {
             return biome;
         }
-        double shoreTop = shoreBandTop(height, region, x, z, fluidHeight, shoreSlopeStream);
-        if (height >= fluidHeight - 1 && height <= shoreTop && !biome.isShore()) {
+        double localFluidHeight = transitionFluidHeight(x, z, fluidHeight);
+        double shoreTop = shoreBandTop(height, region, x, z, localFluidHeight, shoreSlopeStream);
+        if (height >= localFluidHeight - 1 && height <= shoreTop && !biome.isShore()) {
             return sampleInferredBiome(region, InferredType.SHORE, x, z);
         }
         if (height > shoreTop && !biome.isLand()) {
             return sampleInferredBiome(region, InferredType.LAND, x, z);
         }
-        if (height < fluidHeight && !biome.isAquatic()) {
+        if (height < localFluidHeight && !biome.isAquatic()) {
             return sampleInferredBiome(region, InferredType.SEA, x, z);
         }
-        if (height == fluidHeight && !biome.isShore()) {
+        if (height == localFluidHeight && !biome.isShore()) {
             return sampleInferredBiome(region, InferredType.SHORE, x, z);
         }
         return biome;
@@ -955,6 +954,16 @@ public class IrisComplex implements DataProvider {
     }
 
     public NativeBlockState resolveSurfaceFluid(double x, double z) {
+        if (transitionDisplacement != null) {
+            String historical = transitionDisplacement.fluidStateKey(blockCoordinate(x), blockCoordinate(z));
+            if (historical != null && !historical.isEmpty()) {
+                NativeBlockState fluid = IrisPlatforms.get().registries().blockOrNull(historical);
+                if (fluid == null || !fluid.isFluid()) {
+                    throw new IllegalStateException("Historical surface fluid is unavailable: " + historical);
+                }
+                return fluid;
+            }
+        }
         HydrologyColumnLayer layer = surfaceFluidLayer(x, z);
         if (layer != null) {
             return resolveHydrologyFluid(layer.profileKey(), x, z);
@@ -1023,7 +1032,15 @@ public class IrisComplex implements DataProvider {
 
     private double resolveHydrologyFluidSurface(double x, double z) {
         HydrologyColumnLayer layer = surfaceFluidLayer(x, z);
-        return layer == null ? fluidHeight : layer.fluidHeadY();
+        if (layer != null) {
+            return layer.fluidHeadY();
+        }
+        return transitionFluidHeight(x, z, fluidHeight);
+    }
+
+    private double transitionFluidHeight(double x, double z, double nativeHead) {
+        return transitionDisplacement == null ? nativeHead
+                : transitionDisplacement.fluidHeight(blockCoordinate(x), blockCoordinate(z), nativeHead);
     }
 
     public HydrologyColumnSample sampleHydrologyColumn(double x, double z) {
@@ -1034,27 +1051,55 @@ public class IrisComplex implements DataProvider {
             return hydrologyRuntime.sample(x, z).orElse(null);
         }
         double hydrologyWeight = transitionHydrologyWeight(x, z);
-        if (hydrologyWeight == 0D) {
-            return null;
-        }
         HydrologyColumnSample sample = hydrologyRuntime.sample(x, z).orElse(null);
-        if (sample == null || hydrologyWeight == 1D) {
+        if (sample == null) {
             return sample;
         }
-        return taperHydrologySample(sample, hydrologyWeight);
+        return transitionHydrologySample(sample, hydrologyWeight, transitionDisplacement);
     }
 
     private HydrologyColumnSnapshot sampleHydrologySnapshot(int x, int z) {
         if (hydrologyRuntime == null) {
             return HydrologyColumnSnapshot.ready(null);
         }
-        double weight = transitionHydrologyWeight(x, z);
-        if (weight == 0D) {
-            return HydrologyColumnSnapshot.ready(null);
-        }
         HydrologyColumnSnapshot snapshot = hydrologyRuntime.sampleSnapshot(x, z);
-        return !snapshot.available() || snapshot.column() == null || weight == 1D ? snapshot
-                : HydrologyColumnSnapshot.ready(taperHydrologySample(snapshot.column(), weight));
+        return !snapshot.available() || snapshot.column() == null ? snapshot
+                : HydrologyColumnSnapshot.ready(transitionHydrologySample(
+                        snapshot.column(), transitionHydrologyWeight(x, z), transitionDisplacement));
+    }
+
+    static HydrologyColumnSample transitionHydrologySample(
+            HydrologyColumnSample sample, double weight, TransitionDisplacementField transitionDisplacement
+    ) {
+        HydrologyColumnSample tapered = taperHydrologySample(sample, weight);
+        if (transitionDisplacement == null
+                || transitionDisplacement.sample(sample.x(), sample.z()).newTerrainWeight() == 1D) {
+            return tapered;
+        }
+        ArrayList<HydrologyColumnLayer> layers = new ArrayList<>(tapered.layers().size());
+        int seaLevel = (int) Math.round(transitionDisplacement.fluidHeight(sample.x(), sample.z(), tapered.seaLevel()));
+        for (int index = 0; index < tapered.layers().size(); index++) {
+            HydrologyColumnLayer layer = tapered.layers().get(index);
+            if (layer.feature().type().isUnderground() || layer.feature().type().isDeepFluid()) {
+                layers.add(layer);
+                continue;
+            }
+            HydrologyColumnLayer original = sample.layers().get(index);
+            int head = (int) Math.round(transitionDisplacement.fluidHeight(sample.x(), sample.z(), layer.fluidHeadY()));
+            if ((tapered.naturalHeight() < seaLevel || tapered.naturalHeight() == seaLevel && head > seaLevel)
+                    && (original.terrainOwned() || original.fluidOwned() || original.grading() || original.shore())) {
+                continue;
+            }
+            boolean dryChannel = original.channel() && layer.bedY() > head;
+            layers.add(new HydrologyColumnLayer(layer.feature(), layer.bedY(),
+                    head, head, original.channel() && !dryChannel, layer.shore(), layer.grading(), original.connectedFluid() && !dryChannel,
+                    original.fallingFluid() && !dryChannel, original.receivingPool() && !dryChannel,
+                    layer.terrainOwned(), original.fluidOwned() && !dryChannel, layer.oceanApron(),
+                    layer.profileKey(), layer.surfaceBiomeKey(), layer.mouthBiomeKey(), layer.shoreBiomeKey(),
+                    layer.bankBiomeKey(), layer.floodedCaveBiomeKey()));
+        }
+        return new HydrologyColumnSample(tapered.x(), tapered.z(), tapered.naturalHeight(), Math.max(tapered.seaLevel(), seaLevel),
+                tapered.ocean(), tapered.parentBiomeKey(), layers);
     }
 
     static HydrologyColumnSample taperHydrologySample(
@@ -1067,6 +1112,9 @@ public class IrisComplex implements DataProvider {
         }
         ArrayList<HydrologyColumnLayer> taperedLayers = new ArrayList<>(sample.layers().size());
         for (HydrologyColumnLayer layer : sample.layers()) {
+            if (hydrologyWeight == 0D && !layer.feature().type().isUnderground() && !layer.feature().type().isDeepFluid()) {
+                continue;
+            }
             taperedLayers.add(taperHydrologyLayer(layer, sample.naturalHeight(), hydrologyWeight));
         }
         return new HydrologyColumnSample(
@@ -1087,19 +1135,21 @@ public class IrisComplex implements DataProvider {
         if (layer.feature().type().isUnderground() || layer.feature().type().isDeepFluid()) {
             return layer;
         }
+        int bed = GenerationBlend.interpolateHeight(naturalHeight, layer.bedY(), hydrologyWeight);
+        boolean dryChannel = layer.channel() && bed > layer.fluidHeadY();
         return new HydrologyColumnLayer(
                 layer.feature(),
-                GenerationBlend.interpolateHeight(naturalHeight, layer.bedY(), hydrologyWeight),
-                GenerationBlend.interpolateHeight(naturalHeight, layer.fluidHeadY(), hydrologyWeight),
-                GenerationBlend.interpolateHeight(naturalHeight, layer.ceilingY(), hydrologyWeight),
-                layer.channel(),
+                bed,
+                layer.fluidHeadY(),
+                layer.ceilingY(),
+                layer.channel() && !dryChannel,
                 layer.shore(),
                 layer.grading(),
-                layer.connectedFluid(),
-                layer.fallingFluid(),
-                layer.receivingPool(),
+                layer.connectedFluid() && !dryChannel,
+                layer.fallingFluid() && !dryChannel,
+                layer.receivingPool() && !dryChannel,
                 layer.terrainOwned(),
-                layer.fluidOwned(),
+                layer.fluidOwned() && !dryChannel,
                 layer.oceanApron(),
                 layer.profileKey(),
                 layer.surfaceBiomeKey(),
@@ -1114,14 +1164,14 @@ public class IrisComplex implements DataProvider {
     }
 
     private double transitionHydrologyWeight(double x, double z) {
-        return transitionGenerationPlan == null
+        return transitionDisplacement == null
                 ? 1D
-                : transitionGenerationPlan.hydrologyWeightAt(blockCoordinate(x), blockCoordinate(z));
+                : transitionDisplacement.seamWeight(blockCoordinate(x), blockCoordinate(z));
     }
 
     /** Whether the column's hydrology can be sampled without waiting for a plan (see Engine.answersFromNaturalTerrain). */
     public boolean isHydrologyPlanned(int x, int z) {
-        if (hydrologyRuntime == null || transitionHydrologyWeight(x, z) == 0D) {
+        if (hydrologyRuntime == null) {
             return true;
         }
         if (!hydrologyRuntime.isPlanned(x, z)) {
@@ -1144,23 +1194,7 @@ public class IrisComplex implements DataProvider {
     }
 
     public ProceduralStream<Double> getHeightStream() {
-        return placementHeightStream;
-    }
-
-    public Optional<TerrainBoundarySignature> resolvedTerrainColumn(int blockX, int blockZ) {
-        if (transitionGenerationPlan == null || isNaturalTerrainContext()
-                || !transitionGenerationPlan.hasTransitionAtChunk(blockX >> 4, blockZ >> 4)) {
-            return Optional.empty();
-        }
-        return Optional.of(resolvedTerrain.column(blockX, blockZ));
-    }
-
-    public OptionalInt resolvedTerrainHeight(int blockX, int blockZ, boolean ignoreFluid) {
-        if (transitionGenerationPlan == null || isNaturalTerrainContext()
-                || !transitionGenerationPlan.hasTransitionAtChunk(blockX >> 4, blockZ >> 4)) {
-            return OptionalInt.empty();
-        }
-        return OptionalInt.of(resolvedTerrain.height(blockX, blockZ, ignoreFluid));
+        return heightStream;
     }
 
     boolean isNaturalTerrainContext() {
@@ -1168,11 +1202,6 @@ public class IrisComplex implements DataProvider {
         return context != null && context.getChunkContext() != null
                 && context.getChunkContext().getComplex() == this
                 && context.getChunkContext().isNaturalTerrain();
-    }
-
-    private double samplePlacementHeight(double x, double z) {
-        OptionalInt resolved = resolvedTerrainHeight(blockCoordinate(x), blockCoordinate(z), true);
-        return resolved.isPresent() ? resolved.getAsInt() : heightStream.getDouble(x, z);
     }
 
     public boolean isHistoricalChunk(int chunkX, int chunkZ) {
@@ -1214,8 +1243,16 @@ public class IrisComplex implements DataProvider {
             int maximumX,
             int maximumZ
     ) {
-        return transitionGenerationPlan == null
-                || transitionGenerationPlan.allowsNewFootprint(minimumX, minimumZ, maximumX, maximumZ);
+        if (transitionGenerationPlan == null) {
+            return true;
+        }
+        if (!transitionGenerationPlan.allowsNewFootprint(minimumX, minimumZ, maximumX, maximumZ)) {
+            return false;
+        }
+        GenerationHistoryRuntimeRouter router = terrainEngine instanceof IrisEngine irisEngine
+                ? irisEngine.getGenerationHistoryRuntimeRouter().orElse(null) : null;
+        return router == null || router.allowsObjectFootprint(transitionGenerationPlan,
+                new ObjectContinuationBundle.Bounds(minimumX, minimumZ, maximumX, maximumZ));
     }
 
     public Optional<String> historicalPhysicalBiomeKeyAt(int blockX, int blockY, int blockZ) {
@@ -1248,7 +1285,8 @@ public class IrisComplex implements DataProvider {
             return mapped;
         }
         double terrainHeight = naturalHeightStream.getDouble(x, z);
-        return fixBiomeType(terrainHeight, baseBiomeStream.get(x, z), regionStream.get(x, z), (double) x, (double) z, fluidHeight);
+        return fixBiomeType(terrainHeight, baseBiomeStream.get(x, z), regionStream.get(x, z), (double) x, (double) z,
+                transitionFluidHeight(x, z, fluidHeight));
     }
 
     private HydrologyColumnLayer surfaceLayer(double x, double z) {
@@ -1336,7 +1374,7 @@ public class IrisComplex implements DataProvider {
                 regionStream.get(x, z),
                 x,
                 z,
-                fluidHeight
+                transitionFluidHeight(x, z, fluidHeight)
         );
     }
 
@@ -2094,6 +2132,8 @@ public class IrisComplex implements DataProvider {
             hydrologyRuntime.close();
         }
         releaseHydrologyNoiseCaches();
-        resolvedTerrain.clear();
+        if (transitionDisplacement != null) {
+            transitionDisplacement.clear();
+        }
     }
 }

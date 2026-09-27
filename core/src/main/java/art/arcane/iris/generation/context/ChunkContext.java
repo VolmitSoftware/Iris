@@ -21,7 +21,6 @@ import java.util.concurrent.CompletableFuture;
 
 public class ChunkContext {
     private boolean naturalTerrain = true;
-    private boolean speculativeTerrain;
     private Hunk<NativeBiome> terrainBiomes;
     private FloatingBiomeOverlay floatingBiomes;
     private final int x;
@@ -162,14 +161,6 @@ public class ChunkContext {
         if (terrainBiomes != null) {
             terrainBiomes.setRaw(localX, y, localZ, biome);
         }
-    }
-
-    public boolean isSpeculativeTerrain() {
-        return speculativeTerrain;
-    }
-
-    public void beginSpeculativeTerrain() {
-        speculativeTerrain = true;
     }
 
     public boolean isNaturalTerrain() {

@@ -23,9 +23,6 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.generation.runtime.IrisComplex;
-import art.arcane.iris.world.history.TerrainBoundarySignature;
-import art.arcane.iris.world.history.BoundaryColumnGeometry;
-import java.util.Optional;
 import art.arcane.iris.generation.runtime.UpperDimensionContext;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
@@ -145,11 +142,12 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 x,
                 z,
                 getRadius(),
-                (sourceX, sourceZ) -> transaction.apply(sourcePlans.get(
-                        sourceX,
-                        sourceZ,
-                        () -> buildSourcePlan(writer, sourceX, sourceZ, context)
-                ))
+                (sourceX, sourceZ) -> {
+                    ObjectSourcePlan plan = sourcePlans.get(sourceX, sourceZ,
+                            () -> buildSourcePlan(writer, sourceX, sourceZ, context));
+                    transaction.apply(plan);
+                    plan.persistContinuations(writer, sourceX, sourceZ, x, z);
+                }
         );
         transaction.commit();
     }
@@ -668,6 +666,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 try {
                     int placeResult = -1;
                     CaveObjectPlacementTransaction.CommitResult commitResult = CaveObjectPlacementTransaction.CommitResult.EMPTY;
+                    int continuation = writer.beginObjectPlacement();
                     if (carving) {
                         int caveFloorY = caveAnchor.y();
                         if (golden) {
@@ -706,6 +705,9 @@ public class MantleObjectComponent extends IrisMantleComponent {
                                 writeTreeMaterial(placer, b.getX(), b.getY(), b.getZ(), data);
                             }
                         }, null, getData());
+                    }
+                    if (placeResult >= 0 && (!carving || commitResult == CaveObjectPlacementTransaction.CommitResult.COMMITTED)) {
+                        writer.endObjectPlacement(continuation);
                     }
                     if (golden) {
                         IrisLogging.debug("Goldendebug procedural result: chunk=" + x + "," + z
@@ -778,19 +780,10 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     private boolean acceptsCaveAnchorAt(int x, int y, int z, boolean underwater,
                                         MatterCavern cavern, HydrologyCaveCell hydrology) {
-        Optional<TerrainBoundarySignature> resolved = getEngineMantle().getComplex().resolvedTerrainColumn(x, z);
-        if (resolved.isPresent()) {
-            return acceptsResolvedCaveAnchor(underwater,
-                    resolved.get().geometry().voxelAt(y + getEngineMantle().getEngine().getMinHeight()));
-        }
         return acceptsCaveAnchorFluid(underwater, hydrology == null ? cavern : hydrology.asCavern(),
                 hydrology, y, getDimension().getCaveLavaHeight());
     }
 
-    static boolean acceptsResolvedCaveAnchor(boolean underwater, BoundaryColumnGeometry.Voxel voxel) {
-        return !voxel.protectedContent() && (voxel.phase() == BoundaryColumnGeometry.Phase.AIR
-                || underwater && voxel.phase() == BoundaryColumnGeometry.Phase.FLUID);
-    }
 
     static boolean acceptsCaveAnchorFluid(boolean underwater, MatterCavern cavern, int y, int lavaHeight) {
         return acceptsCaveAnchorFluid(underwater, cavern, null, y, lavaHeight);
@@ -914,6 +907,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             }
             try {
                 String marker = placementMarker(v, id, "surface");
+                int continuation = writer.beginObjectPlacement();
                 int result = v.place(xx, -1, zz, placePlacer, effectivePlacement, rng, (b, data) -> {
                     if (marker != null) {
                         writer.setData(b.getX(), b.getY(), b.getZ(), marker);
@@ -927,6 +921,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 }, null, getData());
 
                 if (result >= 0) {
+                    writer.endObjectPlacement(continuation);
                     placed++;
                 } else {
                     rejected++;
@@ -1096,6 +1091,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             IrisObjectPlacement effectivePlacement = resolveCavePlacement(objectPlacement, object, caveProfile);
 
             try {
+                int continuation = writer.beginObjectPlacement();
                 ContainedPlacementResult contained = placeContainedCaveObject(
                         writer,
                         object,
@@ -1112,6 +1108,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 int result = contained.resultY();
                 boolean wroteBlocks = contained.commitResult() == CaveObjectPlacementTransaction.CommitResult.COMMITTED;
                 if (wroteBlocks) {
+                    writer.endObjectPlacement(continuation);
                     placed++;
                 } else {
                     rejected++;
@@ -1286,7 +1283,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             }
             boolean treePlacement = isTreePlacement(v, objectPlacement);
             String marker = placementMarker(v, id, "upper");
-
+            int continuation = writer.beginObjectPlacement();
             int result = v.place(xx, anchorY, zz, writer, placement, rng, (b, data) -> {
                 if (marker != null) {
                     writer.setData(b.getX(), b.getY(), b.getZ(), marker);
@@ -1299,6 +1296,9 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 }
             }, null, getData());
 
+            if (result >= 0) {
+                writer.endObjectPlacement(continuation);
+            }
             if (traceRegen) {
                 IrisLogging.debug("Upper object placement: chunk=" + chunkX + "," + chunkZ
                         + " scope=" + scope

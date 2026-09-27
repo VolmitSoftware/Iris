@@ -1,0 +1,49 @@
+{
+  "name": "Boundary structure transition fixture",
+  "version": 1,
+  "mode": {
+    "type": "OVERWORLD"
+  },
+  "regions": [
+    "terrain"
+  ],
+  "environment": "NORMAL",
+  "dimensionHeight": {
+    "min": 0,
+    "max": 128
+  },
+  "logicalHeight": 128,
+  "fluidHeight": 40,
+  "caveProfile": {
+    "enabled": false
+  },
+  "structures": [
+    {
+      "structures": [
+        "boundary"
+      ],
+      "distribution": "RANDOM_SPREAD",
+      "spacing": 4,
+      "separation": 3,
+      "anchor": "HEIGHT_BAND",
+      "minHeight": 48,
+      "maxHeight": 64,
+      "terrain": {
+        "mode": "BORE",
+        "horizontalPadding": 2,
+        "floorPadding": 10,
+        "ceilingPadding": 2
+      },
+      "stilt": {
+        "maxDepth": 20,
+        "palette": {
+          "palette": [
+            {
+              "block": "minecraft:cobblestone"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

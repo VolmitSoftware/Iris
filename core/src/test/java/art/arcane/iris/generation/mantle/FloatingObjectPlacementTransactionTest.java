@@ -22,9 +22,17 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.junit.Test;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.mantle.flag.MantleFlag;
+import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.IrisMatter;
+import art.arcane.iris.structure.object.IObjectPlacer;
+import art.arcane.iris.world.storage.matter.IrisMatterSupport;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.inOrder;
@@ -37,7 +45,8 @@ public class FloatingObjectPlacementTransactionTest {
     @Test
     public void unsupportedFinalTerrainRejectsBlocksTilesAndMarkersTogether() {
         IslandObjectPlacer delegate = createPlacer(false);
-        FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate);
+        FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate,
+                new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 0));
         NativeBlockState first = mock(NativeBlockState.class);
         NativeBlockState second = mock(NativeBlockState.class);
         TileData tile = mock(TileData.class);
@@ -63,7 +72,8 @@ public class FloatingObjectPlacementTransactionTest {
     @Test
     public void supportedNeighborChunkCommitsBlocksTilesAndMarkers() {
         IslandObjectPlacer delegate = createPlacer(true);
-        FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate);
+        FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate,
+                new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 0));
         NativeBlockState first = mock(NativeBlockState.class);
         NativeBlockState second = mock(NativeBlockState.class);
         TileData tile = mock(TileData.class);
@@ -86,10 +96,59 @@ public class FloatingObjectPlacementTransactionTest {
         verify(delegate).set(16, 101, 8, second);
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void freelyFloatingObjectsPersistBothPendingFragments() {
+        IrisMatterSupport.ensureRegistered();
+        IObjectPlacer delegate = mock(IObjectPlacer.class);
+        Engine engine = mock(Engine.class);
+        EngineMantle engineMantle = mock(EngineMantle.class);
+        Mantle<Matter> mantle = mock(Mantle.class);
+        MantleChunk<Matter> left = mock(MantleChunk.class);
+        MantleChunk<Matter> right = mock(MantleChunk.class);
+        Matter leftSection = new IrisMatter(16, 16, 16);
+        Matter rightSection = new IrisMatter(16, 16, 16);
+        when(delegate.getEngine()).thenReturn(engine);
+        when(engine.getHeight()).thenReturn(128);
+        when(engine.getMantle()).thenReturn(engineMantle);
+        when(engineMantle.getMantle()).thenReturn(mantle);
+        when(mantle.getChunk(0, 0)).thenReturn(left);
+        when(mantle.getChunk(1, 0)).thenReturn(right);
+        when(left.use()).thenReturn(left);
+        when(right.use()).thenReturn(right);
+        when(left.getOrCreate(0)).thenReturn(leftSection);
+        when(right.getOrCreate(0)).thenReturn(rightSection);
+        NativeBlockState state = mock(NativeBlockState.class);
+        when(state.key()).thenReturn("minecraft:oak_log");
+        ObjectContinuationBundle.PlacementKey key = new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 7);
+        FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate, key);
+        transaction.set(15, 101, 8, state);
+        transaction.set(16, 101, 8, state);
+        transaction.setData(16, 101, 8, "floating-tree@7");
+
+        assertEquals(FloatingObjectPlacementTransaction.CommitResult.COMMITTED, transaction.commit());
+
+        for (Matter section : new Matter[]{leftSection, rightSection}) {
+            ObjectContinuationBundle bundle = section.<ObjectContinuationBundle>getSlice(ObjectContinuationBundle.class).get(0, 0, 0);
+            assertNotNull(bundle);
+            assertEquals(key, bundle.fragments().getFirst().key());
+            assertEquals(2, bundle.fragments().getFirst().touchedChunks().size());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
     private IslandObjectPlacer createPlacer(boolean supportNeighborChunk) {
         IslandObjectPlacer placer = mock(IslandObjectPlacer.class);
         Engine engine = mock(Engine.class);
         when(engine.getHeight()).thenReturn(384);
+        EngineMantle engineMantle = mock(EngineMantle.class);
+        Mantle<Matter> mantle = mock(Mantle.class);
+        MantleChunk<Matter> chunk = mock(MantleChunk.class);
+        when(engine.getMantle()).thenReturn(engineMantle);
+        when(engineMantle.getMantle()).thenReturn(mantle);
+        when(mantle.getChunk(anyInt(), anyInt())).thenReturn(chunk);
+        when(chunk.use()).thenReturn(chunk);
+        when(chunk.isFlagged(MantleFlag.REAL)).thenReturn(true);
         when(placer.getEngine()).thenReturn(engine);
         when(placer.canWriteObjectBlock(anyInt(), anyInt(), anyInt())).thenAnswer(invocation -> {
             int x = invocation.getArgument(0);

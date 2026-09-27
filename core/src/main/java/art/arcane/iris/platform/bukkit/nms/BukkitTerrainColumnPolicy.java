@@ -8,7 +8,6 @@ import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.platform.generation.BukkitChunkGenerator;
 import art.arcane.iris.studio.generation.JigsawStudioGenerator;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
-import art.arcane.iris.world.history.TerrainBoundarySignature;
 import art.arcane.iris.world.history.TerrainNativeBlockKeys;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockColumn;
 import art.arcane.volmlib.nativelib.terrain.NativeTerrainColumnPolicy;
@@ -99,8 +98,7 @@ public final class BukkitTerrainColumnPolicy implements NativeTerrainColumnPolic
 
         @Override
         public Optional<? extends NativeBlockColumn> resolvedColumn() {
-            return engine.getComplex().resolvedTerrainColumn(query.blockX(), query.blockZ())
-                    .map(TerrainBoundarySignature::geometry);
+            return Optional.empty();
         }
 
         @Override

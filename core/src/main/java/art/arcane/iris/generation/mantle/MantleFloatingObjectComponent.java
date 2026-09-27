@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.mantle;
 
+import java.io.UncheckedIOException;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.cache.Cache;
@@ -65,6 +66,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
             return;
         }
         IrisData data = getData();
+        PlacementSequence placements = new PlacementSequence();
         int minX = x << 4;
         int minZ = z << 4;
         RNG chunkRng = new RNG(Cache.key(x, z) + seed() + 0x0FA710BEL);
@@ -122,7 +124,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
             KList<IrisObjectPlacement> floating = entry.getFloatingObjects();
             if (floating != null && !floating.isEmpty()) {
                 for (IrisObjectPlacement placement : floating) {
-                    tryPlaceFloatingChunk(writer, complex, chunkRng, data, placement, columns, minX, minZ, entry);
+                    tryPlaceFloatingChunk(writer, complex, chunkRng, data, placement, columns, minX, minZ, entry, placements);
                 }
             }
 
@@ -135,12 +137,12 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                 interior = interiorColumns(sampleResolver, columns, minX, minZ, entry, IslandObjectPlacer.AnchorFace.TOP);
                 if (hasSurface) {
                     for (IrisObjectPlacement placement : surface) {
-                        tryPlaceAnchoredChunk(writer, complex, chunkRng, data, placement, samples, sampleResolver, columns, interior, minX, minZ, entry);
+                        tryPlaceAnchoredChunk(writer, complex, chunkRng, data, placement, samples, sampleResolver, columns, interior, minX, minZ, entry, placements);
                     }
                 }
                 if (hasExtras) {
                     for (IrisObjectPlacement placement : extras) {
-                        tryPlaceAnchoredChunk(writer, complex, chunkRng, data, placement, samples, sampleResolver, columns, interior, minX, minZ, entry);
+                        tryPlaceAnchoredChunk(writer, complex, chunkRng, data, placement, samples, sampleResolver, columns, interior, minX, minZ, entry, placements);
                     }
                 }
             }
@@ -159,14 +161,14 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
             if (bottom != null && !bottom.isEmpty()) {
                 KList<Integer> interior = interiorColumns(sampleResolver, columns, minX, minZ, entry, IslandObjectPlacer.AnchorFace.BOTTOM);
                 for (IrisObjectPlacement placement : bottom) {
-                    tryPlaceInvertedChunk(writer, complex, chunkRng, data, placement, samples, sampleResolver, columns, interior, minX, minZ, entry);
+                    tryPlaceInvertedChunk(writer, complex, chunkRng, data, placement, samples, sampleResolver, columns, interior, minX, minZ, entry, placements);
                 }
             }
         }
     }
 
     @ChunkCoordinates
-    private void tryPlaceFloatingChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, KList<Integer> columns, int minX, int minZ, IrisFloatingChildBiomes entry) {
+    private void tryPlaceFloatingChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, KList<Integer> columns, int minX, int minZ, IrisFloatingChildBiomes entry, PlacementSequence placements) {
         if (placement == null || columns == null || columns.isEmpty()) {
             return;
         }
@@ -210,21 +212,32 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
             }
             int id = rng.i(0, Integer.MAX_VALUE);
 
+            FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(
+                    writer, placements.next(minX >> 4, minZ >> 4));
             try {
-                obj.place(xx, -1, zz, writer, floatingPlacement, rng, (b, bd) -> {
+                int resultY = obj.place(xx, -1, zz, transaction, floatingPlacement, rng, (b, bd) -> {
                     String marker = placementMarker(obj, id);
-                    if (marker != null && shouldWritePlacementMarker(writer, bd, b.getX(), b.getY(), b.getZ())) {
-                        writer.setData(b.getX(), b.getY(), b.getZ(), marker);
+                    if (marker != null && shouldWritePlacementMarker(transaction, bd, b.getX(), b.getY(), b.getZ())) {
+                        transaction.setData(b.getX(), b.getY(), b.getZ(), marker);
                     }
                 }, null, data);
+                if (resultY < 0) {
+                    transaction.discard();
+                } else {
+                    transaction.commit();
+                }
+            } catch (UncheckedIOException failure) {
+                transaction.discard();
+                throw failure;
             } catch (Throwable e) {
+                transaction.discard();
                 IrisLogging.reportError(e);
             }
         }
     }
 
     @ChunkCoordinates
-    private void tryPlaceAnchoredChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, FloatingIslandSample[] samples, IslandObjectPlacer.SampleProvider sampleProvider, KList<Integer> columns, KList<Integer> interior, int minX, int minZ, IrisFloatingChildBiomes entry) {
+    private void tryPlaceAnchoredChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, FloatingIslandSample[] samples, IslandObjectPlacer.SampleProvider sampleProvider, KList<Integer> columns, KList<Integer> interior, int minX, int minZ, IrisFloatingChildBiomes entry, PlacementSequence placements) {
         if (placement == null || columns.isEmpty()) {
             return;
         }
@@ -293,7 +306,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
             int yv = pickTopY + 1 - fp.getLowestSolidKeyY();
 
             IslandObjectPlacer islandPlacer = IslandObjectPlacer.top(writer, sampleProvider, entry, pickTopY);
-            FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(islandPlacer);
+            FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(islandPlacer, placements.next(minX >> 4, minZ >> 4));
             int id = rng.i(0, Integer.MAX_VALUE);
 
             try {
@@ -308,6 +321,9 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                 } else {
                     transaction.commit();
                 }
+            } catch (UncheckedIOException failure) {
+                transaction.discard();
+                throw failure;
             } catch (Throwable e) {
                 transaction.discard();
                 IrisLogging.reportError(e);
@@ -316,7 +332,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
     }
 
     @ChunkCoordinates
-    private void tryPlaceInvertedChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, FloatingIslandSample[] samples, IslandObjectPlacer.SampleProvider sampleProvider, KList<Integer> columns, KList<Integer> interior, int minX, int minZ, IrisFloatingChildBiomes entry) {
+    private void tryPlaceInvertedChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, FloatingIslandSample[] samples, IslandObjectPlacer.SampleProvider sampleProvider, KList<Integer> columns, KList<Integer> interior, int minX, int minZ, IrisFloatingChildBiomes entry, PlacementSequence placements) {
         if (placement == null || columns.isEmpty()) {
             return;
         }
@@ -402,7 +418,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
             int yv = invertedBaseY(pickBottomY, fp, invertedRotation);
 
             IslandObjectPlacer islandPlacer = IslandObjectPlacer.bottom(writer, sampleProvider, entry, pickBottomY);
-            FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(islandPlacer);
+            FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(islandPlacer, placements.next(minX >> 4, minZ >> 4));
             int id = rng.i(0, Integer.MAX_VALUE);
 
             try {
@@ -417,6 +433,9 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                 } else {
                     transaction.commit();
                 }
+            } catch (UncheckedIOException failure) {
+                transaction.discard();
+                throw failure;
             } catch (Throwable e) {
                 transaction.discard();
                 IrisLogging.reportError(e);
@@ -636,4 +655,12 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
         }
         return radius;
     }
+    private static final class PlacementSequence {
+        private int ordinal;
+
+        private ObjectContinuationBundle.PlacementKey next(int sourceX, int sourceZ) {
+            return new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, sourceX, sourceZ, ordinal++);
+        }
+    }
+
 }

@@ -41,7 +41,7 @@ public class UpperDimensionTransitionTest {
         IrisComplex complex = mock(IrisComplex.class);
         Terrain3DColumn terrain = Terrain3DColumnFixtures.spans(80, 0, 30, 40, 60, 100, 110);
         when(complex.naturalTerrainColumn(-17, 8)).thenReturn(terrain);
-        when(complex.getUnblendedNaturalHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 110D));
+        when(complex.getNaturalHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 110D));
         when(complex.getHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 64D));
         Engine engine = mock(Engine.class);
         when(engine.getDimension()).thenReturn(dimension);
@@ -62,7 +62,7 @@ public class UpperDimensionTransitionTest {
         when(dimension.getLoadKey()).thenReturn("main");
         when(dimension.getUpperDimensionGap()).thenReturn(32);
         IrisComplex complex = mock(IrisComplex.class);
-        when(complex.getUnblendedNaturalHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 139D));
+        when(complex.getNaturalHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 139D));
         when(complex.getHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 75D + 4D * x));
         TransitionGenerationPlan plan = mock(TransitionGenerationPlan.class);
         when(complex.getTransitionGenerationPlan()).thenReturn(plan);
@@ -80,12 +80,12 @@ public class UpperDimensionTransitionTest {
     }
 
     @Test
-    public void upperTerrainUsesUnblendedCurrentGeneratorBeforeGeometryReconciliation() {
+    public void upperTerrainUsesDisplacedNaturalGeneratorBeforeMirroring() {
         IrisDimension dimension = mock(IrisDimension.class);
         when(dimension.getLoadKey()).thenReturn("main");
         when(dimension.getUpperDimensionGap()).thenReturn(32);
         IrisComplex complex = mock(IrisComplex.class);
-        when(complex.getUnblendedNaturalHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 80D));
+        when(complex.getNaturalHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 80D));
         when(complex.getHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 64D));
         TransitionGenerationPlan plan = mock(TransitionGenerationPlan.class);
         when(complex.getTransitionGenerationPlan()).thenReturn(plan);
@@ -98,8 +98,7 @@ public class UpperDimensionTransitionTest {
 
         assertEquals(175, context.getEffectiveSurfaceY(-17, 8));
         verify(plan, never()).terrainSampleAt(anyInt(), anyInt());
-        verify(complex, never()).getNaturalHeightStream();
-        verify(complex, never()).getNaturalTrueBiomeStream();
+        verify(complex, never()).getUnblendedNaturalHeightStream();
     }
 
     @Test

@@ -64,7 +64,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
         int depth = h.getDepth();
         int height = h.getHeight();
         Engine engine = getEngine();
-        Mantle<Matter> mantle = context.isSpeculativeTerrain() ? null : engine.getMantle().getMantle();
+        Mantle<Matter> mantle = engine.getMantle().getMantle();
         ChunkedDataCache<IrisBiome> biomeCache = context.getBiome();
         IrisComplex complex = context.getComplex();
         DimensionStackContext dimensionStackContext = engine.getDimensionStackContext();
@@ -109,7 +109,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
 
     public static void publishNaturalMetadata(Engine engine, int x, int z, Hunk<NativeBiome> biomes,
                                                ChunkContext context) {
-        if (context.isSpeculativeTerrain() || !context.getComplex().allowsMantleChunkWrite(x >> 4, z >> 4)) {
+        if (!context.getComplex().allowsMantleChunkWrite(x >> 4, z >> 4)) {
             return;
         }
         Mantle<Matter> mantle = engine.getMantle().getMantle();
@@ -146,7 +146,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
             IrisComplex complex
     ) {
         TransitionGenerationPlan transitionPlan = complex.getTransitionGenerationPlan();
-        if (transitionPlan == null) {
+        if (transitionPlan == null || !transitionPlan.hasTransitionAtChunk(worldX >> 4, worldZ >> 4)) {
             return;
         }
         TransitionGenerationPlan.TerrainSample terrainSample = transitionPlan.terrainSampleAt(worldX, worldZ);

@@ -10,14 +10,21 @@ import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.IrisEngineMantle;
 import art.arcane.iris.generation.runtime.EngineTarget;
 import art.arcane.iris.generation.runtime.GenerationTransitionGate;
+import art.arcane.iris.generation.mantle.ObjectContinuationBundle;
+import art.arcane.iris.world.storage.matter.IrisMatterContext;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.volmlib.util.mantle.MantleRegionFiles;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.mantle.runtime.TectonicPlate;
 import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.MatterSlice;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +39,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
     private final IrisEngine engine;
     private final GenerationHistory history;
     private final SavedBiomeRuntime biomes;
+    private final HistoricalObjectContinuations objectContinuations;
     private final GenerationBoundarySignatureSampler signatureSampler;
     private final ActivationRuntimeFactory runtimeFactory;
     private final LinkedHashMap<Long, RuntimeCacheEntry> bindings;
@@ -65,6 +73,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         this.operationDepth = ThreadLocal.withInitial(() -> 0);
         this.scopedRoute = new ThreadLocal<>();
         this.biomes = new SavedBiomeRuntime(engine, history);
+        this.objectContinuations = new HistoricalObjectContinuations(history, this::readObjectContinuationRegion);
 
         GenerationActivation active = history.activeActivation();
         GenerationEpoch epoch = requireEpoch(active);
@@ -94,6 +103,41 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
 
     public SavedBiomeRuntime biomes() {
         return biomes;
+    }
+
+    public List<ObjectContinuation> objectContinuations(TransitionGenerationPlan plan, int chunkX, int chunkZ) {
+        return objectContinuations.at(plan, chunkX, chunkZ);
+    }
+
+    public List<Matter> decodeObjectContinuations(List<ObjectContinuation> continuations) throws IOException {
+        ArrayList<Matter> decoded = new ArrayList<>(continuations.size());
+        enterOperation();
+        try {
+            int index = 0;
+            while (index < continuations.size()) {
+                long activationId = continuations.get(index).activationId();
+                GenerationActivation activation = history.manifest().activation(activationId)
+                        .orElseThrow(() -> new IOException("Missing object continuation activation " + activationId));
+                SavedMantleAccess access = acquireSavedMantle(activation, requireEpoch(activation));
+                try (IrisMatterContext.Scope scope = IrisMatterContext.open(access.data())) {
+                    do {
+                        decoded.add(continuations.get(index++).fragment().decode());
+                    } while (index < continuations.size() && continuations.get(index).activationId() == activationId);
+                } finally {
+                    access.release().run();
+                }
+            }
+            return List.copyOf(decoded);
+        } finally {
+            leaveOperation();
+        }
+    }
+
+    public record ObjectContinuation(long activationId, ObjectContinuationBundle.Fragment fragment) {
+    }
+
+    public boolean allowsObjectFootprint(TransitionGenerationPlan plan, ObjectContinuationBundle.Bounds bounds) {
+        return objectContinuations.allowsFootprint(plan, bounds.minimumX(), bounds.minimumZ(), bounds.maximumX(), bounds.maximumZ());
     }
 
     public static GenerationHistoryRuntimeRouter attach(
@@ -461,6 +505,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         } catch (Throwable biomeFailure) {
             failure = appendFailure(failure, biomeFailure);
         }
+        objectContinuations.clear();
         try {
             retireBindings(retired);
         } catch (Throwable retirementFailure) {
@@ -491,6 +536,45 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
             GenerationBoundary boundary
     ) throws IOException {
         return signatureSampler.open(engine);
+    }
+
+    private Map<Long, ObjectContinuationBundle> readObjectContinuationRegion(
+            GenerationActivation activation, int regionX, int regionZ
+    ) throws IOException {
+        Path root = history.paths().activationMantleRoot(activation.activationId());
+        if (!MantleRegionFiles.fileForRegion(root.toFile(), Mantle.key(regionX, regionZ), false).isFile()) {
+            return Map.of();
+        }
+        enterOperation();
+        try {
+            SavedMantleAccess access = acquireSavedMantle(activation, requireEpoch(activation));
+            try {
+                Mantle<Matter> mantle = access.mantle();
+                MantleChunk<Matter> anchor = mantle.getChunk(regionX << 5, regionZ << 5).use();
+                try {
+                    TectonicPlate<Matter> plate = mantle.getLoadedRegions().get(Mantle.key(regionX, regionZ));
+                    HashMap<Long, ObjectContinuationBundle> bundles = new HashMap<>();
+                    for (int x = 0; x < 32; x++) {
+                        for (int z = 0; z < 32; z++) {
+                            MantleChunk<Matter> chunk = plate.get(x, z);
+                            Matter section = chunk == null ? null : chunk.get(0);
+                            MatterSlice<ObjectContinuationBundle> slice = section == null ? null : section.getSlice(ObjectContinuationBundle.class);
+                            ObjectContinuationBundle bundle = slice == null ? null : slice.get(0, 0, 0);
+                            if (bundle != null && !bundle.fragments().isEmpty()) {
+                                bundles.put(ChunkGenerationOwnership.packChunk((regionX << 5) + x, (regionZ << 5) + z), bundle);
+                            }
+                        }
+                    }
+                    return Map.copyOf(bundles);
+                } finally {
+                    anchor.release();
+                }
+            } finally {
+                access.release().run();
+            }
+        } finally {
+            leaveOperation();
+        }
     }
 
     private SavedMantleAccess acquireSavedMantle(GenerationActivation activation, GenerationEpoch epoch) throws IOException {
@@ -526,7 +610,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         if (runtime != null) {
             RuntimeLease lease = awaitRuntime(runtime, activation.activationId());
             try (IrisEngine.GenerationRuntimeScope ignored = engine.openGenerationRuntimeScope(lease.binding())) {
-                return new SavedMantleAccess(engine.getMantle().getMantle(), lease::close);
+                return new SavedMantleAccess(engine.getMantle().getMantle(), engine.getData(), lease::close);
             } catch (Throwable failure) {
                 lease.close();
                 throw failure;
@@ -552,7 +636,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
                 entry.leases--;
                 throw propagate(entry.failure, "Unable to load saved mantle for activation " + entry.activationId + ".");
             }
-            return new SavedMantleAccess(entry.mantle, () -> releaseSavedMantle(entry));
+            return new SavedMantleAccess(entry.mantle, entry.data, () -> releaseSavedMantle(entry));
         } finally {
             stateLock.unlock();
         }
@@ -1064,7 +1148,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         }
     }
 
-    private record SavedMantleAccess(Mantle<Matter> mantle, Runnable release) {
+    private record SavedMantleAccess(Mantle<Matter> mantle, IrisData data, Runnable release) {
     }
 
     private record SavedChunkResources(GenerationHistory.GenerationStage stage,

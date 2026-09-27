@@ -22,9 +22,7 @@ import art.arcane.iris.generation.block.TileData;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.world.history.TerrainBoundarySignature;
 
-import java.util.Optional;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.jetbrains.annotations.Nullable;
 
@@ -61,11 +59,6 @@ public interface IObjectPlacer {
             return getFluidHeight();
         }
         int coordinateShift = getFluidHeight() - engine.getDimension().getFluidHeight();
-        Optional<TerrainBoundarySignature> resolved = engine.getComplex().resolvedTerrainColumn(x, z);
-        if (resolved.isPresent()) {
-            return resolved.get().fluidHeight().isPresent()
-                    ? coordinateShift + resolved.get().fluidHeight().getAsInt() : -1;
-        }
         return coordinateShift + (int) Math.round(
                 engine.getComplex().getRiverWaterSurfaceStream().get(x, z)
         );

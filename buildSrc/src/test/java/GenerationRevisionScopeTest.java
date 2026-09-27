@@ -45,6 +45,25 @@ public class GenerationRevisionScopeTest {
     }
 
     @Test
+    public void releaseVersionAndExpandedPluginMetadataPreserveTheGenerationFingerprint() throws Exception {
+        Fixture fixture = fixture();
+        String original = GenerationBuildRevision.fingerprint(GenerationBuildRevision.read(fixture.revision()));
+        for (String version : List.of("4.1.2-26.2", "4.1.3-26.2", "4.1.3-26.2-build-123")) {
+            write(fixture.root().resolve("gradle.properties"), "irisVersion=" + version + "\n");
+            write(fixture.root().resolve("adapters/bukkit/plugin/src/main/resources/paper-plugin.yml"),
+                    "name: Iris\nversion: " + version + "\n");
+            write(fixture.root().resolve("adapters/bukkit/plugin/build/resources/main/paper-plugin.yml"),
+                    "name: Iris\nversion: " + version + "\n");
+            write(fixture.root().resolve("adapters/fabric/build/resources/main/fabric.mod.json"),
+                    "{\"id\":\"iris\",\"version\":\"" + version + "\"}\n");
+
+            GenerationBuildRevision.verifySnapshot(fixture.root(), fixture.revision(), fixture.dependencies());
+            assertEquals(original, GenerationBuildRevision.fingerprint(
+                    GenerationBuildRevision.capture(fixture.options(), fixture.dependencies())));
+        }
+    }
+
+    @Test
     public void generationChangesProduceANewBuildRevision() throws Exception {
         Fixture fixture = fixture();
         for (String relative : generationSources()) {
@@ -88,6 +107,10 @@ public class GenerationRevisionScopeTest {
         }
         assertFalse(manifest.sources().containsKey(ENGINE_ROOT + "EngineDiagnostics.java"));
         assertFalse(manifest.sources().containsKey(COMMAND_ROOT + "CommandIris.java"));
+        assertFalse(manifest.sources().containsKey(COMMAND_ROOT + "CommandDebug.java"));
+        assertFalse(manifest.sources().containsKey("core/src/main/java/art/arcane/iris/diagnostics/splash/IrisSplashComposer.java"));
+        assertFalse(manifest.sources().containsKey("core/src/main/java/art/arcane/iris/diagnostics/splash/IrisSplashPackScanner.java"));
+        assertFalse(manifest.sources().containsKey("adapters/modded-common/src/main/java/art/arcane/iris/modded/ModdedIrisSplash.java"));
     }
 
     @Test

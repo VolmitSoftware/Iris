@@ -206,7 +206,10 @@ public final class StubPlatform implements IrisPlatform {
 
         @Override
         public boolean isStorageChest() {
-            return false;
+            return switch (blockKey()) {
+                case "minecraft:chest", "minecraft:trapped_chest", "minecraft:barrel" -> true;
+                default -> false;
+            };
         }
 
         @Override

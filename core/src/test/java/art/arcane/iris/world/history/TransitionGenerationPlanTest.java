@@ -175,7 +175,7 @@ public class TransitionGenerationPlanTest {
     }
 
     @Test
-    public void exposesTheNearestFrozenPhysicalBiomeUntilDiscreteHandoff() throws Exception {
+    public void exposesTheNearestFrozenPhysicalBiomeOnlyInsideTheSeamPatch() throws Exception {
         GenerationBoundary boundary = GenerationBoundary.freeze("biomes", List.of(
                 new GenerationBoundary.ChunkCoordinate(0, 0)
         ));
@@ -193,15 +193,13 @@ public class TransitionGenerationPlanTest {
 
         assertEquals("iris:middle", plan.historicalPhysicalBiomeKeyAt(16, 14, 8).orElseThrow());
         assertEquals("iris:high", plan.historicalPhysicalBiomeKeyAt(16, 18, 8).orElseThrow());
+        assertTrue(plan.historicalPhysicalBiomeKeyAt(19, 14, 8).isEmpty());
         assertTrue(plan.historicalPhysicalBiomeKeyAt(31, 14, 8).isEmpty());
         for (int blockX = -2; blockX <= 34; blockX++) {
             for (int blockZ : new int[]{-2, 8, 17}) {
                 TransitionGenerationPlan.TerrainSample sample = plan.terrainSampleAt(blockX, blockZ);
                 for (int blockY = -16; blockY <= 48; blockY++) {
-                    double weight = GenerationBlend.newEpochWeight(
-                            Math.max(0D, sample.distanceToHistoricalTerrain() - 1D), Math.max(1, plan.widthBlocks() - 1));
-                    Optional<String> expected = sample.newEpochWeight() != 1D
-                            && GenerationBlend.usesHistoricalMaterial(blockX, blockY, blockZ, weight)
+                    Optional<String> expected = sample.distanceToHistoricalTerrain() < 4D
                             ? sample.historicalPhysicalBiomeKeyAt(blockY) : Optional.empty();
                     assertEquals(expected, plan.historicalPhysicalBiomeKeyAt(blockX, blockY, blockZ, sample));
                     assertEquals(expected, plan.historicalPhysicalBiomeKeyAt(blockX, blockY, blockZ));

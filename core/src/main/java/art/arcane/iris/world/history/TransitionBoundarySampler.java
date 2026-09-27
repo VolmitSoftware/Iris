@@ -59,13 +59,14 @@ final class TransitionBoundarySampler {
 
     BoundaryGeometryInfluence geometryAt(int blockX, int blockZ) {
         CandidateIndex candidates = chunkCache(blockX, blockZ).candidates;
-        Nearest nearest = candidates.nearest(blockX, blockZ, square(terrainWidth));
-        if (nearest.count == 0 || nearest.distancesSquared[0] >= square(terrainWidth)) {
+        int seamWidth = Math.min(4, terrainWidth);
+        Nearest nearest = candidates.nearest(blockX, blockZ, square(seamWidth));
+        if (nearest.count == 0 || nearest.distancesSquared[0] >= square(seamWidth)) {
             return BoundaryGeometryInfluence.none();
         }
         double distance = Math.sqrt(nearest.distancesSquared[0]);
         double weight = GenerationBlend.newEpochWeight(Math.max(0D, distance - 1D),
-                Math.max(1, terrainWidth - 1));
+                Math.max(1, seamWidth - 1));
         int count = nearest.distancesSquared[0] <= 1D ? 1 : nearest.count;
         double total = 0D;
         for (int index = 0; index < count; index++) {
@@ -77,10 +78,7 @@ final class TransitionBoundarySampler {
                     nearest.signatures[index].geometry(),
                     (1D / Math.max(1D, nearest.distancesSquared[index])) / total));
         }
-        int openingDepth = Math.min(8, Math.max(1, terrainWidth / 4));
-        double openingWeight = GenerationBlend.newEpochWeight(Math.max(0D, distance - openingDepth),
-                Math.max(1, terrainWidth - openingDepth));
-        return new BoundaryGeometryInfluence(weight, openingWeight, contributions);
+        return new BoundaryGeometryInfluence(weight, weight, contributions);
     }
 
     boolean intersectsTerrainBand(int minimumX, int minimumZ, int maximumX, int maximumZ) {

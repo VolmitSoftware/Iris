@@ -26,7 +26,6 @@ import java.util.List;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -110,14 +109,16 @@ public class IrisTransitionGeometryActuatorTest {
     }
 
     @Test
-    public void refusesUnresolvableRetainedMaterialInsteadOfReplacingItWithAir() {
+    public void usesNativeMaterialWhenHistoricalPaletteIsUnavailable() {
         Engine engine = mock(Engine.class);
         ChunkContext context = context("removed:stone");
         Hunk<NativeBlockState> blocks = filled();
         Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, 16, 16);
 
-        assertThrows(IllegalStateException.class, () -> new IrisTransitionGeometryActuator(engine)
-                .generate(16, 0, blocks, biomes, false, context));
+        new IrisTransitionGeometryActuator(engine).generate(16, 0, blocks, biomes, false, context);
+
+        assertSame(stone, blocks.getRaw(0, 3, 0));
+        assertSame(air, blocks.getRaw(0, 2, 0));
     }
 
     private ChunkContext context(String material) {
@@ -139,6 +140,7 @@ public class IrisTransitionGeometryActuatorTest {
         when(complex.getTransitionGenerationPlan()).thenReturn(plan);
         ChunkContext context = mock(ChunkContext.class);
         when(context.getComplex()).thenReturn(complex);
+        when(context.getRoundedHeight(anyInt(), anyInt())).thenReturn(3);
         return context;
     }
 

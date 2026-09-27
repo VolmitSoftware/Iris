@@ -21,8 +21,6 @@ package art.arcane.iris.generation.mantle;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisComplex;
-import art.arcane.iris.world.history.TerrainBoundarySignature;
-import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.generation.runtime.DimensionStackContext;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.runtime.UpperDimensionContext;
@@ -55,8 +53,6 @@ import org.jetbrains.annotations.UnmodifiableView;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 
 public interface EngineMantle extends MatterGenerator {
@@ -112,10 +108,6 @@ public interface EngineMantle extends MatterGenerator {
     }
 
     default int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
-        OptionalInt resolved = getComplex().resolvedTerrainHeight(x, z, ignoreFluid);
-        if (resolved.isPresent()) {
-            return resolved.getAsInt();
-        }
         return ignoreFluid ? trueHeight(x, z) : Math.max(trueHeight(x, z), getFluidHeight(x, z));
     }
 
@@ -124,21 +116,6 @@ public interface EngineMantle extends MatterGenerator {
     }
 
     default boolean isCarved(int x, int h, int z) {
-        Optional<TerrainBoundarySignature> resolved = getComplex().resolvedTerrainColumn(x, z);
-        if (resolved.isPresent()) {
-            PreObjectMatterCell cell = getMantle().get(x, h, z, PreObjectMatterCell.class);
-            if (cell != null && cell.blockCaptured()) {
-                NativeBlockState block = getMantle().get(x, h, z, NativeBlockState.class);
-                if (block != null) {
-                    return (block.isAir() || block.isFluid())
-                            && resolved.get().geometry().hasSolidAbove(h + getEngine().getMinHeight());
-                }
-            }
-            if (cell != null && cell.cavernCaptured()) {
-                return getMantle().get(x, h, z, MatterCavern.class) != null;
-            }
-            return resolved.get().geometry().isEnclosedOpenAt(h + getEngine().getMinHeight());
-        }
         HydrologyCaveCell hydrology = HydrologyCaveStorage.getIfPresent(getMantle(), x, h, z);
         if (hydrology != null) {
             return hydrology.carves();
@@ -149,18 +126,6 @@ public interface EngineMantle extends MatterGenerator {
 
     default NativeBlockState get(int x, int y, int z) {
         NativeBlockState block = getMantle().get(x, y, z, NativeBlockState.class);
-        Optional<TerrainBoundarySignature> resolved = getComplex().resolvedTerrainColumn(x, z);
-        if (resolved.isPresent()) {
-            PreObjectMatterCell cell = getMantle().get(x, y, z, PreObjectMatterCell.class);
-            if (cell == null || !cell.blockCaptured()) {
-                String stateKey = resolved.get().geometry().voxelAt(y + getEngine().getMinHeight()).stateKey();
-                NativeBlockState natural = IrisPlatforms.get().registries().blockOrNull(stateKey);
-                if (natural == null) {
-                    throw new IllegalStateException("Saved terrain state is unavailable: " + stateKey);
-                }
-                return natural;
-            }
-        }
         return block == null ? AIR.get() : block;
     }
 
@@ -177,10 +142,6 @@ public interface EngineMantle extends MatterGenerator {
     }
 
     default int getFluidHeight(int x, int z) {
-        Optional<TerrainBoundarySignature> resolved = getComplex().resolvedTerrainColumn(x, z);
-        if (resolved.isPresent()) {
-            return resolved.get().fluidHeight().orElse(-1);
-        }
         return (int) Math.round(getComplex().getRiverWaterSurfaceStream().get(x, z));
     }
 

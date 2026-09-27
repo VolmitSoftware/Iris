@@ -29,16 +29,24 @@ import art.arcane.volmlib.util.collection.KList;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.function.Supplier;
+import java.util.Objects;
+import art.arcane.volmlib.util.matter.IrisMatter;
+import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.iris.world.storage.matter.IrisMatterSupport;
 import java.util.Map;
 
 final class FloatingObjectPlacementTransaction implements IObjectPlacer {
-    private final IslandObjectPlacer delegate;
+    private final IObjectPlacer delegate;
+    private final ObjectContinuationBundle.PlacementKey placementKey;
     private final KList<BufferedMutation> mutations;
     private final Map<PositionKey, NativeBlockState> bufferedBlocks;
     private int blockWrites;
 
-    FloatingObjectPlacementTransaction(IslandObjectPlacer delegate) {
-        this.delegate = delegate;
+    FloatingObjectPlacementTransaction(IObjectPlacer delegate, ObjectContinuationBundle.PlacementKey placementKey) {
+        this.delegate = Objects.requireNonNull(delegate);
+        this.placementKey = Objects.requireNonNull(placementKey);
         this.mutations = new KList<>();
         this.bufferedBlocks = new HashMap<>();
     }
@@ -56,7 +64,8 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
                 discard();
                 return CommitResult.REJECTED_TRANSITION;
             }
-            if (!delegate.canWriteObjectBlock(mutation.x(), mutation.y(), mutation.z())) {
+            if (delegate instanceof IslandObjectPlacer island
+                    && !island.canWriteObjectBlock(mutation.x(), mutation.y(), mutation.z())) {
                 discard();
                 return CommitResult.REJECTED_SUPPORT;
             }
@@ -64,8 +73,36 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
         for (BufferedMutation mutation : mutations) {
             mutation.apply(delegate);
         }
+        persistContinuation(engine);
         discard();
         return CommitResult.COMMITTED;
+    }
+
+    private void persistContinuation(Engine engine) {
+        int minimumX = Integer.MAX_VALUE;
+        int minimumZ = Integer.MAX_VALUE;
+        int maximumX = Integer.MIN_VALUE;
+        int maximumZ = Integer.MIN_VALUE;
+        for (BufferedMutation mutation : mutations) {
+            minimumX = Math.min(minimumX, mutation.x());
+            minimumZ = Math.min(minimumZ, mutation.z());
+            maximumX = Math.max(maximumX, mutation.x());
+            maximumZ = Math.max(maximumZ, mutation.z());
+        }
+        if ((minimumX >> 4) == (maximumX >> 4) && (minimumZ >> 4) == (maximumZ >> 4)) {
+            return;
+        }
+        IrisMatterSupport.ensureRegistered();
+        LinkedHashMap<ObjectContinuationBundle.ChunkPosition, Matter> payloads = new LinkedHashMap<>();
+        for (BufferedMutation mutation : mutations) {
+            ObjectContinuationBundle.ChunkPosition chunk = new ObjectContinuationBundle.ChunkPosition(mutation.x() >> 4, mutation.z() >> 4);
+            Matter payload = payloads.computeIfAbsent(chunk, ignored -> new IrisMatter(16, engine.getHeight(), 16));
+            ObjectContinuationPersistence.put(payload, mutation.x() & 15, mutation.y(), mutation.z() & 15, mutation.value());
+        }
+        LinkedHashMap<ObjectContinuationBundle.ChunkPosition, Supplier<Matter>> destinations = new LinkedHashMap<>();
+        payloads.forEach((chunk, payload) -> destinations.put(chunk, () -> payload));
+        ObjectContinuationPersistence.persist(engine.getMantle().getMantle(), placementKey,
+                new ObjectContinuationBundle.Bounds(minimumX, minimumZ, maximumX, maximumZ), destinations);
     }
 
     void discard() {

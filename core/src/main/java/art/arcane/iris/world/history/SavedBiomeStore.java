@@ -1,5 +1,7 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.iris.world.storage.Durability;
+
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -225,14 +227,14 @@ public final class SavedBiomeStore {
                         }
                     }
                     if (!unpublished) {
-                        output.getChannel().force(true);
+                        Durability.force(output.getChannel());
                     }
                     appendCompleted = true;
                 } catch (IOException failure) {
                     try {
                         output.setLength(offset);
                         if (!unpublished) {
-                            output.getChannel().force(true);
+                            Durability.force(output.getChannel());
                         }
                     } catch (IOException rollback) {
                         failure.addSuppressed(rollback);
@@ -467,7 +469,7 @@ public final class SavedBiomeStore {
                 while (header.hasRemaining()) {
                     output.write(header);
                 }
-                output.force(true);
+                Durability.force(output);
             }
             Files.move(temporary, region.path, StandardCopyOption.ATOMIC_MOVE);
             forceDirectory(directory);
@@ -477,11 +479,11 @@ public final class SavedBiomeStore {
     }
 
     private static void forceDirectory(Path path) throws IOException {
-        if (File.separatorChar == '\\') {
+        if (File.separatorChar == '\\' || !Durability.enabled()) {
             return;
         }
         try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ)) {
-            channel.force(true);
+            Durability.force(channel);
         } catch (UnsupportedOperationException failure) {
             throw new IOException("Saved biome directory cannot be durability-synced: " + path, failure);
         }
@@ -498,7 +500,7 @@ public final class SavedBiomeStore {
                         transfer(input, output, region.offsets[slot], region.lengths[slot] + 8L);
                     }
                 }
-                output.force(true);
+                Durability.force(output);
             }
             Files.move(temporary, region.path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             synchronized (regions) {
@@ -591,7 +593,7 @@ public final class SavedBiomeStore {
 
     private static void truncateTail(RandomAccessFile file, long length) throws IOException {
         file.setLength(length);
-        file.getChannel().force(true);
+        Durability.force(file.getChannel());
     }
 
     private static int checksum(byte[] bytes) {

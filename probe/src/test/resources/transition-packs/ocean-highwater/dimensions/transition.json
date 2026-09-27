@@ -1,0 +1,20 @@
+{
+  "name": "Ocean-highwater transition fixture",
+  "version": 1,
+  "mode": {
+    "type": "OVERWORLD"
+  },
+  "regions": [
+    "terrain"
+  ],
+  "environment": "NORMAL",
+  "dimensionHeight": {
+    "min": 0,
+    "max": 128
+  },
+  "logicalHeight": 128,
+  "fluidHeight": 48,
+  "caveProfile": {
+    "enabled": false
+  }
+}

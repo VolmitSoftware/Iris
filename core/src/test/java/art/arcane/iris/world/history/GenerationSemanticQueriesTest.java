@@ -137,7 +137,7 @@ public final class GenerationSemanticQueriesTest {
         IrisComplex complex = mock(IrisComplex.class);
         IrisHydrologyRuntime runtime = mock(IrisHydrologyRuntime.class);
         IrisDimension dimension = mock(IrisDimension.class);
-        TransitionGenerationPlan transition = mock(TransitionGenerationPlan.class);
+        TransitionDisplacementField displacement = mock(TransitionDisplacementField.class);
         GenerationHistory history = mock(GenerationHistory.class);
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
         GenerationActivation activation = mock(GenerationActivation.class);
@@ -159,9 +159,9 @@ public final class GenerationSemanticQueriesTest {
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
         when(complex.getHydrologyRuntime()).thenReturn(runtime);
-        when(complex.getTransitionGenerationPlan()).thenReturn(transition);
+        when(complex.getTransitionDisplacement()).thenReturn(displacement);
         when(complex.allowsNewGenerationChunk(anyInt(), anyInt())).thenReturn(true);
-        when(transition.hydrologyWeightAt(anyInt(), anyInt())).thenAnswer(invocation ->
+        when(displacement.seamWeight(anyInt(), anyInt())).thenAnswer(invocation ->
                 invocation.<Integer>getArgument(0) == tapered.x() ? 0.5D : 1D);
         when(dimension.getMinHeight()).thenReturn(-64);
         when(router.history()).thenReturn(history);

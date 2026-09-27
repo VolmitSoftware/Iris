@@ -58,23 +58,6 @@ public final class GenerationBlend {
         return (int) Math.round(historicalHeight + ((double) newHeight - historicalHeight) * newEpochWeight);
     }
 
-    public static boolean usesHistoricalMaterial(int blockX, int blockY, int blockZ, double newWeight) {
-        validateWeight(newWeight);
-        if (newWeight == 0D) {
-            return true;
-        }
-        if (newWeight == 1D) {
-            return false;
-        }
-        long hash = Math.floorDiv(blockX, 8) * 341873128712L
-                ^ Math.floorDiv(blockY, 8) * 132897987541L
-                ^ Math.floorDiv(blockZ, 8) * 42317861L;
-        hash = (hash ^ (hash >>> 30)) * 0xbf58476d1ce4e5b9L;
-        hash = (hash ^ (hash >>> 27)) * 0x94d049bb133111ebL;
-        hash ^= hash >>> 31;
-        return newWeight < (hash >>> 11) * 0x1.0p-53;
-    }
-
     private static void validateWeight(double weight) {
         if (!Double.isFinite(weight) || weight < 0D || weight > 1D) {
             throw new IllegalArgumentException("Blend weight must be finite and between zero and one");

@@ -11,6 +11,7 @@ import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.world.history.TransitionDisplacementField;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
@@ -84,6 +85,20 @@ public class IrisComplexNaturalBiomeReuseTest {
         assertFalse(IrisComplex.hasFixedNaturalBiomeNoise(dimension, List.of(leaf)));
         leaf.setChildStyle(new IrisGeneratorStyle().setFracture(new IrisGeneratorStyle().setExpression("context")));
         assertFalse(IrisComplex.hasFixedNaturalBiomeNoise(dimension, List.of(leaf)));
+    }
+
+    @Test
+    public void naturalBiomeUsesTransitionWaterHead() throws Exception {
+        Fixture fixture = new Fixture();
+        TransitionDisplacementField displacement = mock(TransitionDisplacementField.class);
+        doReturn(40D).when(displacement).fluidHeight(-17, 262144, 63D);
+        Field field = IrisComplex.class.getDeclaredField("transitionDisplacement");
+        field.setAccessible(true);
+        field.set(fixture.complex, displacement);
+
+        assertSame(fixture.sea, fixture.sample(30D));
+        assertSame(fixture.shore, fixture.sample(40D));
+        assertSame(fixture.land, fixture.sample(50D));
     }
 
     private static final class Fixture {

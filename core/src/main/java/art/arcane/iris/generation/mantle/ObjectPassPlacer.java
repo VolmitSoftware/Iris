@@ -8,6 +8,13 @@ public interface ObjectPassPlacer extends IObjectPlacer {
 
     byte[] getCarvedColumn(int x, int z, int height);
 
+    default int beginObjectPlacement() {
+        return -1;
+    }
+
+    default void endObjectPlacement(int checkpoint) {
+    }
+
     @Override
     default <T> @Nullable T getData(int x, int y, int z, Class<T> type) {
         return getDataIfPresent(x, y, z, type);

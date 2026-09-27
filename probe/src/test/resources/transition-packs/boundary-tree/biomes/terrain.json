@@ -1,0 +1,38 @@
+{
+  "name": "Terrain",
+  "derivative": "minecraft:plains",
+  "vanillaDerivative": "minecraft:plains",
+  "layers": [
+    {
+      "palette": [
+        {
+          "block": "minecraft:stone"
+        }
+      ]
+    }
+  ],
+  "generators": [
+    {
+      "generator": "flat",
+      "min": 32,
+      "max": 32
+    }
+  ],
+  "objects": [
+    {
+      "place": [
+        "trees/boundary"
+      ],
+      "chance": 1,
+      "density": 2,
+      "rotation": {
+        "enabled": false
+      },
+      "forcePlace": true,
+      "requireSurfaceSupport": false,
+      "translate": {
+        "y": 4
+      }
+    }
+  ]
+}

@@ -159,6 +159,17 @@ public class MantleWriterOverlayTest {
     }
 
     @Test
+    public void forcedStructureCarvePublishesAirForTheContentStage() {
+        MatterCavern cavern = new MatterCavern(true, "", (byte) 3);
+
+        writer.setForcedCarve(X, Y, Z, cavern);
+
+        verify(blockSlice).set(X, Y, Z, platform.block());
+        verify(cavernSlice).set(X, Y, Z, cavern);
+        verify(identifierSlice).set(X, Y, Z, null);
+    }
+
+    @Test
     public void protectedHydrologyRejectsLaterBlockAndCavernWrites() {
         NativeBlockState replacement = mock(NativeBlockState.class);
         MatterCavern cavern = new MatterCavern(true, "", (byte) 3);

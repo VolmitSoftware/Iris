@@ -54,6 +54,9 @@ import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.matter.MatterStructurePOI;
+import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.iris.generation.mantle.ObjectContinuationBundle;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import lombok.AccessLevel;
@@ -1478,7 +1481,18 @@ public class IrisEngine implements Engine {
 
             boolean skipRealFlag = platformHooks.shouldBypassMantleStages(this);
             if (!skipRealFlag) {
-                getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.REAL, true);
+                MantleChunk<Matter> chunk = getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
+                try {
+                    synchronized (chunk) {
+                        Matter section = chunk.get(0);
+                        if (section != null) {
+                            section.deleteSlice(ObjectContinuationBundle.class);
+                        }
+                        chunk.flag(MantleFlag.REAL, true);
+                    }
+                } finally {
+                    chunk.release();
+                }
             }
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();

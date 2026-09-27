@@ -55,10 +55,12 @@ public class IrisBiomeActuatorCoordinateTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void speculativeTerrainDoesNotPublishPersistentMetadata() {
+    public void historicalChunkDoesNotPublishNewPersistentMetadata() {
         Engine engine = mock(Engine.class);
         ChunkContext context = mock(ChunkContext.class);
-        when(context.isSpeculativeTerrain()).thenReturn(true);
+        IrisComplex complex = mock(IrisComplex.class);
+        when(context.getComplex()).thenReturn(complex);
+        when(complex.allowsMantleChunkWrite(0, 0)).thenReturn(false);
 
         IrisBiomeActuator.publishNaturalMetadata(engine, 0, 0, mock(Hunk.class), context);
 
@@ -119,6 +121,7 @@ public class IrisBiomeActuatorCoordinateTest {
         IrisComplex complex = mock(IrisComplex.class);
         when(complex.allowsNewDiscreteContentAt(100, -200)).thenReturn(false);
         TransitionGenerationPlan transitionPlan = mock(TransitionGenerationPlan.class);
+        when(transitionPlan.hasTransitionAtChunk(6, -13)).thenReturn(true);
         TransitionGenerationPlan.TerrainSample terrainSample = mock(TransitionGenerationPlan.TerrainSample.class);
         when(complex.getTransitionGenerationPlan()).thenReturn(transitionPlan);
         when(transitionPlan.terrainSampleAt(100, -200)).thenReturn(terrainSample);
@@ -154,6 +157,7 @@ public class IrisBiomeActuatorCoordinateTest {
         IrisComplex complex = mock(IrisComplex.class);
         when(complex.allowsNewDiscreteContentAt(100, -200)).thenReturn(false);
         TransitionGenerationPlan transitionPlan = mock(TransitionGenerationPlan.class);
+        when(transitionPlan.hasTransitionAtChunk(6, -13)).thenReturn(true);
         TransitionGenerationPlan.TerrainSample terrainSample = mock(TransitionGenerationPlan.TerrainSample.class);
         when(complex.getTransitionGenerationPlan()).thenReturn(transitionPlan);
         when(transitionPlan.terrainSampleAt(100, -200)).thenReturn(terrainSample);

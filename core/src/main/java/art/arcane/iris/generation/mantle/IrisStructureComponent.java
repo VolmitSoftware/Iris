@@ -81,12 +81,14 @@ public class IrisStructureComponent extends IrisMantleComponent {
         if (!complex.allowsNewGenerationChunk(x, z)) {
             return;
         }
+        int ordinal = 0;
         for (IrisStructurePlacement placement : StructurePlacementScope.placementsAt(
                 getEngineMantle().getEngine(), x, z)) {
+            int placementOrdinal = ordinal++;
             if (!placement.hasIrisStructures()) {
                 continue;
             }
-            placeFromPlacement(writer, placement, x, z, complex);
+            placeFromPlacement(writer, placement, x, z, placementOrdinal);
         }
     }
 
@@ -96,7 +98,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
             IrisStructurePlacement placement,
             int cx,
             int cz,
-            IrisComplex complex
+            int ordinal
     ) {
         IrisStructureLocator.ResolvedPlacement resolved = IrisStructureLocator.resolvePlacement(
                 getEngineMantle().getEngine(), placement, cx, cz);
@@ -117,16 +119,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
             return;
         }
         IrisStructureTerrain terrain = placement.resolvedTerrain();
-        int[] bounds = computePieceBounds(pieces);
-        int horizontalPadding = terrain.resolvedMode() == StructureTerrainMode.FORCE_CARVE
-                || terrain.resolvedMode() == StructureTerrainMode.BORE
-                ? Math.max(0, terrain.getHorizontalPadding())
-                : 0;
-        if (bounds == null || !complex.allowsNewGenerationFootprint(
-                saturatedOffset(bounds[0], -horizontalPadding),
-                saturatedOffset(bounds[2], -horizontalPadding),
-                saturatedOffset(bounds[3], horizontalPadding),
-                saturatedOffset(bounds[5], horizontalPadding))) {
+        if (!IrisStructureLocator.allowsResolvedFootprint(getEngineMantle().getEngine(), resolved)) {
             return;
         }
         RNG rng = resolved.rng();
@@ -135,59 +128,65 @@ public class IrisStructureComponent extends IrisMantleComponent {
             IrisLogging.debug("[StructTrace] ASSEMBLED chunk=" + cx + "," + cz + " key=" + key + " baseY=" + baseY + " pieces=" + pieces.size());
         }
 
-        if (!placement.isAnchoredUnderground()) {
-            clearIntersectingObjectTrees(writer, resolved);
-        }
+        try (MantleWriter.ObjectPlacementCapture capture = writer.captureObjectPlacement(
+                new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.STRUCTURE, cx, cz, ordinal))) {
+            if (!placement.isAnchoredUnderground()) {
+                clearIntersectingObjectTrees(writer, resolved);
+            }
 
-        StructureTerrainMode terrainMode = terrain.resolvedMode();
-        if (terrainMode == StructureTerrainMode.FORCE_CARVE) {
-            forceCarveStructure(writer, pieces, terrain);
-        } else if (terrainMode == StructureTerrainMode.BORE) {
-            boreStructure(writer, pieces, terrain);
-        } else if (terrainMode != StructureTerrainMode.PRESERVE
-                && terrainMode != StructureTerrainMode.SOURCE) {
-            throw new IllegalStateException("Iris assembly terrain mode " + terrainMode
-                    + " is not implemented for structure '" + key + "'");
-        }
+            StructureTerrainMode terrainMode = terrain.resolvedMode();
+            if (terrainMode == StructureTerrainMode.FORCE_CARVE) {
+                forceCarveStructure(writer, pieces, terrain);
+            } else if (terrainMode == StructureTerrainMode.BORE) {
+                boreStructure(writer, pieces, terrain);
+            } else if (terrainMode != StructureTerrainMode.PRESERVE
+                    && terrainMode != StructureTerrainMode.SOURCE) {
+                throw new IllegalStateException("Iris assembly terrain mode " + terrainMode
+                        + " is not implemented for structure '" + key + "'");
+            }
 
-        ObjectPlaceMode mode = structure.getPlaceMode();
-        int failedPieces = 0;
-        IrisStructureStiltSettings stilt = placement.getStilt();
-        Long2IntOpenHashMap foundationColumns = stilt == null
-                ? null : new Long2IntOpenHashMap();
-        boolean supportNonOccluding = stilt != null && stilt.isSupportNonOccluding();
-        if (placement.isAnchoredUnderground()) {
-            ObjectPlaceMode undergroundMode = (mode == ObjectPlaceMode.ORGANIC_STILT || mode == ObjectPlaceMode.CEILING_HANG)
-                    ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
-            for (PlacedStructurePiece p : pieces) {
-                if (placeObject(writer, structure, p, undergroundMode, p.getY(), rng,
+            ObjectPlaceMode mode = structure.getPlaceMode();
+            int failedPieces = 0;
+            IrisStructureStiltSettings stilt = placement.getStilt();
+            Long2IntOpenHashMap foundationColumns = stilt == null
+                    ? null : new Long2IntOpenHashMap();
+            boolean supportNonOccluding = stilt != null && stilt.isSupportNonOccluding();
+            if (placement.isAnchoredUnderground()) {
+                ObjectPlaceMode undergroundMode = (mode == ObjectPlaceMode.ORGANIC_STILT || mode == ObjectPlaceMode.CEILING_HANG)
+                        ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
+                for (PlacedStructurePiece p : pieces) {
+                    if (placeObject(writer, structure, p, undergroundMode, p.getY(), rng,
+                            foundationColumns, supportNonOccluding) == -1) {
+                        failedPieces++;
+                    }
+                }
+            } else if (mode == ObjectPlaceMode.STRUCTURE_PIECE || mode == ObjectPlaceMode.FLOATING) {
+                for (PlacedStructurePiece p : pieces) {
+                    if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, p.getY(), rng,
+                            foundationColumns, supportNonOccluding) == -1) {
+                        failedPieces++;
+                    }
+                }
+            } else if (pieces.size() == 1) {
+                if (placeObject(writer, structure, pieces.getFirst(), mode, -1, rng,
                         foundationColumns, supportNonOccluding) == -1) {
                     failedPieces++;
                 }
-            }
-        } else if (mode == ObjectPlaceMode.STRUCTURE_PIECE || mode == ObjectPlaceMode.FLOATING) {
-            for (PlacedStructurePiece p : pieces) {
-                if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, p.getY(), rng,
-                        foundationColumns, supportNonOccluding) == -1) {
-                    failedPieces++;
+            } else {
+                for (PlacedStructurePiece p : pieces) {
+                    if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, p.getY(), rng,
+                            foundationColumns, supportNonOccluding) == -1) {
+                        failedPieces++;
+                    }
                 }
             }
-        } else if (pieces.size() == 1) {
-            if (placeObject(writer, structure, pieces.getFirst(), mode, -1, rng,
-                    foundationColumns, supportNonOccluding) == -1) {
-                failedPieces++;
+            requireAppliedPieces(resolved, cx, cz, failedPieces);
+            if (failedPieces == 0 && stilt != null) {
+                placeFoundation(writer, foundationColumns, stilt, rng, !placement.isAnchoredUnderground());
             }
-        } else {
-            for (PlacedStructurePiece p : pieces) {
-                if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, p.getY(), rng,
-                        foundationColumns, supportNonOccluding) == -1) {
-                    failedPieces++;
-                }
+            if (failedPieces == 0) {
+                capture.commit();
             }
-        }
-        requireAppliedPieces(resolved, cx, cz, failedPieces);
-        if (failedPieces == 0 && stilt != null) {
-            placeFoundation(writer, foundationColumns, stilt, rng, !placement.isAnchoredUnderground());
         }
     }
 
@@ -556,11 +555,6 @@ public class IrisStructureComponent extends IrisMantleComponent {
             maxZ = Math.max(maxZ, p.getMaxZ());
         }
         return new int[]{minX, minY, minZ, maxX, maxY, maxZ};
-    }
-
-    private static int saturatedOffset(int coordinate, int offset) {
-        long result = (long) coordinate + offset;
-        return (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, result));
     }
 
     private int placeObject(MantleWriter writer, IrisStructure structure, PlacedStructurePiece p,

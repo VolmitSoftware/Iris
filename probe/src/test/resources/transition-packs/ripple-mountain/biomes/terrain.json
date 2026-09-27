@@ -1,0 +1,21 @@
+{
+  "name": "Terrain",
+  "derivative": "minecraft:plains",
+  "vanillaDerivative": "minecraft:plains",
+  "layers": [
+    {
+      "palette": [
+        {
+          "block": "minecraft:stone"
+        }
+      ]
+    }
+  ],
+  "generators": [
+    {
+      "generator": "flat",
+      "min": 48,
+      "max": 80
+    }
+  ]
+}

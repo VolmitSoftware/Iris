@@ -316,7 +316,6 @@ public class IrisComplexHydrologyNoiseCacheTest {
             complex.setBaseTerrainHeightStream(height);
             complex.setUnblendedNaturalHeightStream(height);
             complex.setHydrologyRuntime(hydrology);
-            setField(complex, "resolvedTerrain", mock(ResolvedTerrainProvider.class));
         }
 
         @Override

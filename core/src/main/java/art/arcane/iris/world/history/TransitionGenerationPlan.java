@@ -8,6 +8,8 @@ public final class TransitionGenerationPlan {
     private final GenerationBoundary boundary;
     private final TerrainBoundarySignatureStore.Snapshot terrainSignatures;
     private final TransitionBoundarySampler terrainSampler;
+    private final TransitionBandIndex terrainBand;
+    private final TerrainSample newTerrain;
 
     public TransitionGenerationPlan(
             Specification specification,
@@ -34,6 +36,8 @@ public final class TransitionGenerationPlan {
                 specification.widthBlocks(),
                 terrainSignatures
         );
+        terrainBand = new TransitionBandIndex(boundary, terrainSampler);
+        newTerrain = TerrainSample.newTerrain(specification.widthBlocks());
     }
 
     public long activationId() {
@@ -93,18 +97,11 @@ public final class TransitionGenerationPlan {
     }
 
     public boolean hasTransitionAtChunk(int chunkX, int chunkZ) {
-        if (boundary.isHistoricalChunk(chunkX, chunkZ)) {
-            return false;
-        }
-        int minimumX = Math.multiplyExact(chunkX, GenerationBoundary.CHUNK_SIZE);
-        int minimumZ = Math.multiplyExact(chunkZ, GenerationBoundary.CHUNK_SIZE);
-        return terrainSampler.intersectsTerrainBand(minimumX, minimumZ,
-                Math.addExact(minimumX, GenerationBoundary.CHUNK_SIZE - 1),
-                Math.addExact(minimumZ, GenerationBoundary.CHUNK_SIZE - 1));
+        return terrainBand.contains(chunkX, chunkZ);
     }
 
     public BoundaryGeometryInfluence geometryAt(int blockX, int blockZ) {
-        if (boundary.isHistoricalBlock(blockX, blockZ)) {
+        if (!terrainBand.contains(blockX >> 4, blockZ >> 4)) {
             return BoundaryGeometryInfluence.none();
         }
         return terrainSampler.geometryAt(blockX, blockZ);
@@ -114,7 +111,7 @@ public final class TransitionGenerationPlan {
         if (boundary.isHistoricalBlock(blockX, blockZ)) {
             return TerrainSample.historicalTerrain();
         }
-        return terrainSampler.sample(blockX, blockZ);
+        return terrainBand.contains(blockX >> 4, blockZ >> 4) ? terrainSampler.sample(blockX, blockZ) : newTerrain;
     }
 
     public Optional<String> historicalPhysicalBiomeKeyAt(int blockX, int blockY, int blockZ) {
@@ -128,12 +125,7 @@ public final class TransitionGenerationPlan {
             TerrainSample sample
     ) {
         Objects.requireNonNull(sample, "Terrain sample");
-        if (sample.newEpochWeight() == 1D) {
-            return Optional.empty();
-        }
-        double weight = GenerationBlend.newEpochWeight(
-                Math.max(0D, sample.distanceToHistoricalTerrain() - 1D), Math.max(1, widthBlocks() - 1));
-        return GenerationBlend.usesHistoricalMaterial(blockX, blockY, blockZ, weight)
+        return sample.distanceToHistoricalTerrain() < Math.min(4, widthBlocks())
                 ? sample.historicalPhysicalBiomeKeyAt(blockY) : Optional.empty();
     }
 

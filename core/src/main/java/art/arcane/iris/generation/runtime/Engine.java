@@ -47,7 +47,6 @@ import art.arcane.iris.structure.placement.IrisStructure;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveStorage;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
@@ -68,20 +67,15 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.iris.generation.concurrent.BurstExecutor;
 import art.arcane.iris.generation.concurrent.MultiBurst;
-import art.arcane.volmlib.util.scheduling.ChronoLatch;
-import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
 import java.nio.file.Path;
-import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -496,10 +490,6 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     default int getHeight(int x, int z, boolean ignoreFluid) {
-        OptionalInt resolved = getComplex().resolvedTerrainHeight(x, z, ignoreFluid);
-        if (resolved.isPresent()) {
-            return resolved.getAsInt();
-        }
         DimensionStackContext dimensionStackContext = getDimensionStackContext();
         if (dimensionStackContext != null) {
             return ignoreFluid

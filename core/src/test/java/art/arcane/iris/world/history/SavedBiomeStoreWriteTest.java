@@ -1,5 +1,6 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.iris.world.storage.Durability;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -55,6 +56,35 @@ public class SavedBiomeStoreWriteTest {
         SavedBiomeStore store = SavedBiomeStore.open(root);
         store.claimAndPersist(chunk(0, 3L));
         assertArrayEquals(expectedRegion(), Files.readAllBytes(regionPath(root)));
+    }
+
+    @Test
+    public void relaxedDurabilityPreservesRecordsWithoutForcingEachAppend() throws Exception {
+        String previousMode = System.getProperty(Durability.MODE_PROPERTY);
+        Path root = temporaryFolder.newFolder().toPath();
+        SavedBiomeStore store = SavedBiomeStore.open(root);
+        store.claimAndPersist(chunk(0, 3L));
+        try {
+            System.setProperty(Durability.MODE_PROPERTY, "relaxed");
+            try (RandomAccessFile actual = new RandomAccessFile(regionPath(root).toFile(), "rw")) {
+                FileChannel channel = mock(FileChannel.class, delegatesTo(actual.getChannel()));
+                try (MockedConstruction<RandomAccessFile> ignored = mockConstruction(RandomAccessFile.class,
+                        withSettings().defaultAnswer(delegatesTo(actual)),
+                        (file, context) -> doReturn(channel).when(file).getChannel())) {
+                    assertTrue(store.claimAndPersist(chunk(1, 3L)));
+                    verify(channel, never()).force(true);
+                    verify(channel).write(any(ByteBuffer[].class), anyInt(), anyInt());
+                }
+            }
+            assertEquals(chunk(0, 3L), SavedBiomeStore.open(root).get(0, 0).orElseThrow());
+            assertEquals(chunk(1, 3L), SavedBiomeStore.open(root).get(1, 0).orElseThrow());
+        } finally {
+            if (previousMode == null) {
+                System.clearProperty(Durability.MODE_PROPERTY);
+            } else {
+                System.setProperty(Durability.MODE_PROPERTY, previousMode);
+            }
+        }
     }
 
     @Test

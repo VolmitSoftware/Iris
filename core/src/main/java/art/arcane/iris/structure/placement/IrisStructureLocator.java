@@ -41,6 +41,7 @@ import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.structure.nativegen.NativeStructureSuppression;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
+import art.arcane.iris.structure.object.IrisObjectVacuum;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -589,7 +590,7 @@ public final class IrisStructureLocator {
                 "assembled pieces exceed the configured structure or world bounds")) {
             return null;
         }
-        if (!allowsResolvedFootprint(engine, placement, pieces)) {
+        if (!allowsResolvedFootprint(engine, placement, structure, pieces)) {
             return null;
         }
         return new ResolvedPlacement(placement, selectedKey, structure, pieces, rng, originX, baseY, originZ, exactY);
@@ -597,7 +598,7 @@ public final class IrisStructureLocator {
 
     public static boolean allowsResolvedFootprint(Engine engine, ResolvedPlacement resolved) {
         Objects.requireNonNull(resolved, "resolved placement");
-        return allowsResolvedFootprint(engine, resolved.placement(), resolved.pieces());
+        return allowsResolvedFootprint(engine, resolved.placement(), resolved.structure(), resolved.pieces());
     }
 
     public static boolean requirePlacementOutput(IrisStructurePlacement placement, String structureKey,
@@ -909,6 +910,7 @@ public final class IrisStructureLocator {
     private static boolean allowsResolvedFootprint(
             Engine engine,
             IrisStructurePlacement placement,
+            IrisStructure structure,
             KList<PlacedStructurePiece> pieces
     ) {
         int[] bounds = computeBounds(pieces);
@@ -921,6 +923,10 @@ public final class IrisStructureLocator {
                 || mode == StructureTerrainMode.BORE
                 ? Math.max(0, terrain.getHorizontalPadding())
                 : 0;
+        if (pieces.size() == 1 && !placement.isAnchoredUnderground()
+                && IrisObjectVacuum.isVacuumMode(structure.getPlaceMode())) {
+            padding = Math.max(padding, IrisObjectVacuum.resolveRadius(structure.getPlaceMode(), null));
+        }
         return engine.getComplex().allowsNewGenerationFootprint(
                 saturatedOffset(bounds[0], -padding),
                 saturatedOffset(bounds[2], -padding),

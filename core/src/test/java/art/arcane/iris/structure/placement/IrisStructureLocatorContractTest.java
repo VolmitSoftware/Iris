@@ -566,6 +566,41 @@ public class IrisStructureLocatorContractTest {
     }
 
     @Test
+    public void vacuumStructureRejectsApronThatCrossesHistoricalTerrain() {
+        Engine engine = mock(Engine.class);
+        IrisComplex complex = mock(IrisComplex.class);
+        when(engine.getComplex()).thenReturn(complex);
+        when(complex.allowsNewGenerationFootprint(anyInt(), anyInt(), anyInt(), anyInt()))
+                .thenAnswer(call -> (int) call.getArgument(0) >= 16);
+        IrisStructurePlacement placement = new IrisStructurePlacement();
+        IrisStructure structure = new IrisStructure().setPlaceMode(ObjectPlaceMode.VACUUM_HIGH);
+        IrisStructureLocator.ResolvedPlacement resolved = new IrisStructureLocator.ResolvedPlacement(
+                placement, "test:vacuum", structure,
+                new KList<>(piece(24, 64, 24, 28, 68, 28)), new RNG(1L), 26, 64, 26, false);
+
+        assertFalse(IrisStructureLocator.allowsResolvedFootprint(engine, resolved));
+        verify(complex).allowsNewGenerationFootprint(4, 4, 48, 48);
+        structure.setPlaceMode(ObjectPlaceMode.STRUCTURE_PIECE);
+        assertTrue(IrisStructureLocator.allowsResolvedFootprint(engine, resolved));
+        verify(complex).allowsNewGenerationFootprint(24, 24, 28, 28);
+    }
+
+    @Test
+    public void multiPieceAssembliesDoNotUseSinglePieceVacuumAprons() {
+        Engine engine = mock(Engine.class);
+        IrisComplex complex = mock(IrisComplex.class);
+        when(engine.getComplex()).thenReturn(complex);
+        when(complex.allowsNewGenerationFootprint(24, 24, 34, 28)).thenReturn(true);
+        IrisStructureLocator.ResolvedPlacement resolved = new IrisStructureLocator.ResolvedPlacement(
+                new IrisStructurePlacement(), "test:vacuum", new IrisStructure().setPlaceMode(ObjectPlaceMode.VACUUM),
+                new KList<>(piece(24, 64, 24, 28, 68, 28), piece(30, 64, 24, 34, 68, 28)),
+                new RNG(1L), 26, 64, 26, false);
+
+        assertTrue(IrisStructureLocator.allowsResolvedFootprint(engine, resolved));
+        verify(complex).allowsNewGenerationFootprint(24, 24, 34, 28);
+    }
+
+    @Test
     public void undergroundAssemblyIsShiftedToFitOrRejectedWhole() {
         IrisStructurePlacement placement = new IrisStructurePlacement();
         placement.setUnderground(true);

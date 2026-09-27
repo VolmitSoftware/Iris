@@ -1,0 +1,46 @@
+{
+  "name": "Lowland transition fixture",
+  "version": 1,
+  "mode": {
+    "type": "OVERWORLD"
+  },
+  "regions": [
+    "terrain"
+  ],
+  "environment": "NORMAL",
+  "dimensionHeight": {
+    "min": 0,
+    "max": 128
+  },
+  "logicalHeight": 128,
+  "fluidHeight": 40,
+  "caveProfile": {
+    "enabled": true,
+    "verticalRange": {
+      "min": 32,
+      "max": 47
+    },
+    "verticalEdgeFade": 0,
+    "baseDensityStyle": {
+      "style": "FLAT"
+    },
+    "detailWeight": 0,
+    "densityThreshold": {
+      "min": 1,
+      "max": 1
+    },
+    "thresholdBias": 0,
+    "adaptiveSampling": false,
+    "allowSurfaceBreak": false,
+    "allowFluid": false,
+    "allowLava": false
+  },
+  "rockPalette": {
+    "palette": [
+      {
+        "block": "minecraft:stone"
+      }
+    ]
+  },
+  "bedrock": false
+}

@@ -335,7 +335,7 @@ public class IrisEngineMantle implements EngineMantle {
 
             @Override
             public void writeSection(Matter section, java.io.DataOutputStream dos) throws IOException {
-                section.writeDos(dos);
+                section.writeTrimmedDos(dos);
             }
 
             @Override

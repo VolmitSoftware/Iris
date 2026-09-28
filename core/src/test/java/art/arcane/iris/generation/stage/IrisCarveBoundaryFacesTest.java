@@ -22,7 +22,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
@@ -74,7 +73,7 @@ public class IrisCarveBoundaryFacesTest {
         matter[0][0].slice(PreObjectMatterCell.class).set(0, 5, 0, PreObjectMatterCell.cavern(null));
         Mantle<Matter> mantle = mock(Mantle.class, RETURNS_DEEP_STUBS);
         TectonicPlate<Matter> plate = mock(TectonicPlate.class);
-        when(mantle.getLoadedRegions().get(anyLong())).thenReturn(plate);
+        when(mantle.getLoadedRegion(anyInt(), anyInt())).thenReturn(plate);
         when(plate.get(31, 0)).thenReturn(chunks[1]);
         when(plate.get(1, 0)).thenReturn(chunks[2]);
         when(plate.get(0, 31)).thenReturn(chunks[3]);

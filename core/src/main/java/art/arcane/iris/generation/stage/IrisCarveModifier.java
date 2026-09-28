@@ -571,7 +571,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
     }
 
     private MantleChunk<Matter> existingMantleChunk(Mantle<Matter> mantle, int chunkX, int chunkZ) {
-        TectonicPlate<Matter> plate = mantle.getLoadedRegions().get(Mantle.key(chunkX >> 5, chunkZ >> 5));
+        TectonicPlate<Matter> plate = mantle.getLoadedRegion(chunkX >> 5, chunkZ >> 5);
         if (plate == null || plate.isClosed()) {
             return null;
         }

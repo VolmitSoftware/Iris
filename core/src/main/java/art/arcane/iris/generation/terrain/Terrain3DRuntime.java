@@ -1,12 +1,11 @@
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.generation.cache.ConcurrentClockCache;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.volmlib.util.noise.CNG;
-import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.math.RNG;
-import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 
 import java.util.Arrays;
 import java.util.IdentityHashMap;
@@ -16,9 +15,10 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 
 public final class Terrain3DRuntime {
     private static final int STEP = 4;
-    private static final int CACHE_STRIPES = 16;
+    private static final int MINIMUM_COLUMNS = 16;
+    private static final int ANCHOR_BLOCK_SIZE = 16;
     private static final int MAXIMUM_ANCHORS = 32_768;
-    private static final long ANCHOR_CACHE_BYTES = 64L * 1024 * 1024;
+    private static final long ANCHOR_CACHE_BYTES = 128L * 1024 * 1024;
     private static final long DENSITY_SALT = 0x536E4A11C924B3D7L;
     private static final long CRACK_SALT = 0x7839A16DC4052EFBL;
     private static final NodeSample EMPTY_SAMPLE = new NodeSample(0D, 0D, 0D);
@@ -28,10 +28,11 @@ public final class Terrain3DRuntime {
     private final Sources sources;
     private final Options options;
     private final NoiseFactory noiseFactory;
-    private final BoundedCache<Terrain3DFragmentFilter.DensityColumn> columns;
-    private final BoundedCache<Anchor> anchors;
+    private final BlockCache<Terrain3DFragmentFilter.DensityColumn> columns;
+    private final BlockCache<Anchor> anchors;
     private final Terrain3DFragmentFilter fragments;
-    private final Map<IrisTerrain3D, CompiledProfile> profiles = new IdentityHashMap<>();
+    private final Object profileLock = new Object();
+    private volatile Map<IrisTerrain3D, CompiledProfile> profiles = new IdentityHashMap<>();
     private final ThreadLocal<ColumnMemo> localColumn = ThreadLocal.withInitial(ColumnMemo::new);
     private volatile Object cacheGeneration = new Object();
 
@@ -46,8 +47,8 @@ public final class Terrain3DRuntime {
         this.sources = Objects.requireNonNull(sources, "Terrain sources");
         this.options = Objects.requireNonNull(options, "Terrain options");
         this.noiseFactory = Objects.requireNonNull(noiseFactory, "Terrain noise factory");
-        columns = new BoundedCache<>(options.maximumColumns());
-        anchors = new BoundedCache<>(anchorCacheCapacity(options.height(), options.maximumColumns()));
+        columns = new BlockCache<>(options.maximumColumns(), 0);
+        anchors = new BlockCache<>(anchorCacheCapacity(options.height(), options.maximumColumns()), 2);
         fragments = new Terrain3DFragmentFilter(this::rawColumn);
     }
 
@@ -59,7 +60,7 @@ public final class Terrain3DRuntime {
         long bytesPerAnchor = 160L + 48L * (Math.ceilDiv((long) height, STEP) + 1);
         long maximumEntries = Math.min(MAXIMUM_ANCHORS,
                 Math.min((long) maximumColumns * 8, ANCHOR_CACHE_BYTES / bytesPerAnchor));
-        return Math.max(CACHE_STRIPES, (int) (maximumEntries / CACHE_STRIPES) * CACHE_STRIPES);
+        return Math.max(ANCHOR_BLOCK_SIZE, (int) (maximumEntries / ANCHOR_BLOCK_SIZE) * ANCHOR_BLOCK_SIZE);
     }
 
     public double height(int x, int z) {
@@ -94,8 +95,8 @@ public final class Terrain3DRuntime {
         columns.clear();
         anchors.clear();
         fragments.clear();
-        synchronized (profiles) {
-            profiles.clear();
+        synchronized (profileLock) {
+            profiles = new IdentityHashMap<>();
         }
         cacheGeneration = new Object();
         localColumn.remove();
@@ -106,9 +107,8 @@ public final class Terrain3DRuntime {
     }
 
     private Terrain3DFragmentFilter.DensityColumn rawColumn(int x, int z) {
-        long key = pack(x, z);
-        Terrain3DFragmentFilter.DensityColumn cached = columns.get(key);
-        return cached == null ? columns.putIfAbsent(key,
+        Terrain3DFragmentFilter.DensityColumn cached = columns.get(x, z);
+        return cached == null ? columns.putIfAbsent(x, z,
                 new Terrain3DFragmentFilter.DensityColumn(createColumn(x, z))) : cached;
     }
 
@@ -196,9 +196,8 @@ public final class Terrain3DRuntime {
     }
 
     private Anchor anchor(int x, int z) {
-        long key = pack(x, z);
-        Anchor cached = anchors.get(key);
-        return cached == null ? anchors.putIfAbsent(key, createAnchor(x, z)) : cached;
+        Anchor cached = anchors.get(x, z);
+        return cached == null ? anchors.putIfAbsent(x, z, createAnchor(x, z)) : cached;
     }
 
     private Anchor createAnchor(int x, int z) {
@@ -227,19 +226,19 @@ public final class Terrain3DRuntime {
         if (config == null || !config.isEnabled()) {
             return DISABLED;
         }
-        synchronized (profiles) {
-            CompiledProfile cached = profiles.get(config);
-            if (cached != null) {
-                return cached;
-            }
+        CompiledProfile cached = profiles.get(config);
+        if (cached != null) {
+            return cached;
         }
         CompiledProfile compiled = compile(config);
-        synchronized (profiles) {
+        synchronized (profileLock) {
             CompiledProfile existing = profiles.get(config);
             if (existing != null) {
                 return existing;
             }
-            profiles.put(config, compiled);
+            Map<IrisTerrain3D, CompiledProfile> updated = new IdentityHashMap<>(profiles);
+            updated.put(config, compiled);
+            profiles = updated;
             return compiled;
         }
     }
@@ -314,7 +313,7 @@ public final class Terrain3DRuntime {
                           boolean enabled, int maximumColumns) {
         public Options {
             if (height < 2 || height > 4096 || !Double.isFinite(fluidHeight)
-                    || maximumColumns < CACHE_STRIPES) {
+                    || maximumColumns < MINIMUM_COLUMNS) {
                 throw new IllegalArgumentException("Invalid volumetric terrain runtime options");
             }
         }
@@ -408,74 +407,61 @@ public final class Terrain3DRuntime {
                                    double fluidFade, NoiseSource density, NoiseSource cracks) {
     }
 
-    private static final class BoundedCache<T> {
-        private final CacheStripe<T>[] stripes;
+    /**
+     * Groups the 16x16 block area of one chunk into a single cache entry, so neighbouring lookups share one
+     * lock-free set probe and a working set of whole chunks is evicted together.
+     */
+    private static final class BlockCache<T> {
+        private final ConcurrentClockCache<AtomicReferenceArray<T>> blocks;
+        private final int cellShift;
+        private final int axisMask;
+        private final int axisBits;
 
-        @SuppressWarnings("unchecked")
-        private BoundedCache(int maximumSize) {
-            stripes = (CacheStripe<T>[]) new CacheStripe<?>[CACHE_STRIPES];
-            for (int index = 0; index < stripes.length; index++) {
-                stripes[index] = new CacheStripe<>(Math.ceilDiv(maximumSize, CACHE_STRIPES));
+        private BlockCache(int maximumEntries, int cellShift) {
+            this.cellShift = cellShift;
+            axisBits = 4 - cellShift;
+            axisMask = (1 << axisBits) - 1;
+            int blockSize = 1 << (axisBits * 2);
+            blocks = new ConcurrentClockCache<>(Math.ceilDiv(maximumEntries, blockSize));
+        }
+
+        private T get(int x, int z) {
+            AtomicReferenceArray<T> block = blocks.get(blockKey(x, z));
+            return block == null ? null : block.getAcquire(slot(x, z));
+        }
+
+        private T putIfAbsent(int x, int z, T value) {
+            long key = blockKey(x, z);
+            AtomicReferenceArray<T> block = blocks.get(key);
+            if (block == null) {
+                block = blocks.putIfAbsent(key, new AtomicReferenceArray<>(1 << (axisBits * 2)));
             }
-        }
-
-        private T get(long key) {
-            return stripe(key).get(key);
-        }
-
-        private T putIfAbsent(long key, T value) {
-            return stripe(key).putIfAbsent(key, value);
+            T existing = block.compareAndExchange(slot(x, z), null, value);
+            return existing == null ? value : existing;
         }
 
         private void clear() {
-            for (CacheStripe<T> stripe : stripes) {
-                stripe.clear();
-            }
+            blocks.clear();
         }
 
         private int size() {
-            int size = 0;
-            for (CacheStripe<T> stripe : stripes) {
-                size += stripe.size();
-            }
-            return size;
+            int[] size = new int[1];
+            blocks.forEach(block -> {
+                for (int index = 0; index < block.length(); index++) {
+                    if (block.getAcquire(index) != null) {
+                        size[0]++;
+                    }
+                }
+            });
+            return size[0];
         }
 
-        private CacheStripe<T> stripe(long key) {
-            return stripes[(int) CacheKey.mix(key) & (CACHE_STRIPES - 1)];
-        }
-    }
-
-    private static final class CacheStripe<T> {
-        private final int maximumSize;
-        private final Long2ObjectLinkedOpenHashMap<T> entries = new Long2ObjectLinkedOpenHashMap<>(16);
-
-        private CacheStripe(int maximumSize) {
-            this.maximumSize = maximumSize;
+        private static long blockKey(int x, int z) {
+            return pack(x >> 4, z >> 4);
         }
 
-        private synchronized T get(long key) {
-            return entries.getAndMoveToLast(key);
-        }
-
-        private synchronized T putIfAbsent(long key, T value) {
-            T existing = entries.getAndMoveToLast(key);
-            if (existing != null) {
-                return existing;
-            }
-            entries.putAndMoveToLast(key, value);
-            if (entries.size() > maximumSize) {
-                entries.removeFirst();
-            }
-            return value;
-        }
-
-        private synchronized void clear() {
-            entries.clear();
-        }
-
-        private synchronized int size() {
-            return entries.size();
+        private int slot(int x, int z) {
+            return ((x >> cellShift) & axisMask) << axisBits | ((z >> cellShift) & axisMask);
         }
     }
 }

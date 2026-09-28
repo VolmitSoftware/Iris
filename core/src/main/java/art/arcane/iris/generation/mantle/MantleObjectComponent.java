@@ -140,12 +140,14 @@ public class MantleObjectComponent extends IrisMantleComponent {
     @Override
     public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, x, z);
+        int radius = getRadius();
+        int sourceChunkRadius = sourceChunkRadius(radius);
         replaySourceChunks(
                 x,
                 z,
-                getRadius(),
+                radius,
                 (sourceX, sourceZ) -> {
-                    ObjectSourcePlan plan = sourcePlans.acquire(sourceX, sourceZ, x, z,
+                    ObjectSourcePlan plan = sourcePlans.acquire(sourceX, sourceZ, x, z, sourceChunkRadius,
                             () -> buildSourcePlan(writer, sourceX, sourceZ, context));
                     if (plan != null) {
                         transaction.apply(plan);
@@ -169,6 +171,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 + " waits=" + stats.waits()
                 + " replays=" + stats.replays()
                 + " drained=" + stats.drained()
+                + " retired=" + stats.retired()
                 + " retained=" + stats.retained()
                 + " retainedMiB=" + (stats.retainedBytes() >> 20)
                 + " budgetMiB=" + (stats.budgetBytes() >> 20));

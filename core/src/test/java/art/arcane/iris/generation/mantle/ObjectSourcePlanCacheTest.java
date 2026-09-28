@@ -30,14 +30,14 @@ public class ObjectSourcePlanCacheTest {
                 if ((x == 0 || x == 1) && z == 0) {
                     continue;
                 }
-                assertNull(cache.acquire(0, 0, x, z, () -> {
+                assertNull(cache.acquire(0, 0, x, z, 7, () -> {
                     builds.incrementAndGet();
                     return plan;
                 }));
             }
         }
         assertEquals(1, builds.get());
-        assertSame(plan, cache.acquire(0, 0, 1, 0, () -> {
+        assertSame(plan, cache.acquire(0, 0, 1, 0, 7, () -> {
             builds.incrementAndGet();
             return plan;
         }));
@@ -54,29 +54,30 @@ public class ObjectSourcePlanCacheTest {
         AtomicInteger builds = new AtomicInteger();
         ObjectSourcePlan plan = planTouching(new int[]{0, 0}, new int[]{1, 0});
         ObjectSourcePlan rebuilt = planTouching(new int[]{0, 0}, new int[]{1, 0});
-        assertSame(plan, cache.acquire(0, 0, 0, 0, () -> {
+        assertSame(plan, cache.acquire(0, 0, 0, 0, 7, () -> {
             builds.incrementAndGet();
             return plan;
         }));
-        assertSame(plan, cache.acquire(0, 0, 1, 0, () -> {
+        long retainedBeforeDrain = cache.stats().retainedBytes();
+        assertSame(plan, cache.acquire(0, 0, 1, 0, 7, () -> {
             builds.incrementAndGet();
             return rebuilt;
         }));
         assertEquals(1, builds.get());
         assertEquals(1L, cache.stats().drained());
-        assertTrue(cache.stats().retainedBytes() < plan.estimatedRetainedBytes());
+        assertTrue(cache.stats().retainedBytes() < retainedBeforeDrain);
 
-        assertNull(cache.acquire(0, 0, 2, 0, () -> {
+        assertNull(cache.acquire(0, 0, 2, 0, 7, () -> {
             builds.incrementAndGet();
             return rebuilt;
         }));
-        assertSame(rebuilt, cache.acquire(0, 0, 0, 0, () -> {
+        assertSame(rebuilt, cache.acquire(0, 0, 0, 0, 7, () -> {
             builds.incrementAndGet();
             return rebuilt;
         }));
         assertEquals(2, builds.get());
         assertEquals(1L, cache.stats().replays());
-        assertSame(rebuilt, cache.acquire(0, 0, 1, 0, () -> {
+        assertSame(rebuilt, cache.acquire(0, 0, 1, 0, 7, () -> {
             builds.incrementAndGet();
             return plan;
         }));
@@ -85,12 +86,44 @@ public class ObjectSourcePlanCacheTest {
     }
 
     @Test
+    public void sourcesRetireOnceEveryDestinationInReachAskedForThem() {
+        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(1024L * 1024L);
+        AtomicInteger builds = new AtomicInteger();
+        ObjectSourcePlan plan = planTouching(new int[]{0, 0}, new int[]{1, 0});
+        int returned = 0;
+        int visits = 0;
+        for (int x = 7; x >= -7; x--) {
+            for (int z = -7; z <= 7; z++) {
+                if (cache.acquire(0, 0, x, z, 7, () -> {
+                    builds.incrementAndGet();
+                    return plan;
+                }) != null) {
+                    returned++;
+                }
+                if (++visits < 225) {
+                    assertEquals(1L, cache.estimatedSize());
+                }
+            }
+        }
+
+        assertEquals(2, returned);
+        assertEquals(1, builds.get());
+        assertEquals(0L, cache.estimatedSize());
+        assertEquals(1L, cache.stats().retired());
+        assertSame(plan, cache.acquire(0, 0, 1, 0, 7, () -> {
+            builds.incrementAndGet();
+            return plan;
+        }));
+        assertEquals(2, builds.get());
+    }
+
+    @Test
     public void emptyPlansAreRetainedAsIndexesAndNeverRebuilt() {
         ObjectSourcePlanCache cache = new ObjectSourcePlanCache(1024L * 1024L);
         AtomicInteger builds = new AtomicInteger();
         for (int sweep = 0; sweep < 3; sweep++) {
             for (int chunk = 0; chunk < 1000; chunk++) {
-                assertNull(cache.acquire(chunk, 0, chunk, 0, () -> {
+                assertNull(cache.acquire(chunk, 0, chunk, 0, 7, () -> {
                     builds.incrementAndGet();
                     return new ObjectSourcePlan(List.of());
                 }));
@@ -113,13 +146,13 @@ public class ObjectSourcePlanCacheTest {
         try {
             assertEquals(Long.hashCode(CacheKey.mix(CacheKey.key(32113, 37))),
                     Long.hashCode(CacheKey.mix(CacheKey.key(32667, 37))));
-            Future<ObjectSourcePlan> firstResult = executor.submit(() -> cache.acquire(32113, 37, 32113, 37, () -> {
+            Future<ObjectSourcePlan> firstResult = executor.submit(() -> cache.acquire(32113, 37, 32113, 37, 7, () -> {
                 firstEntered.countDown();
                 await(releaseFirst);
                 return first;
             }));
             assertTrue(firstEntered.await(5L, TimeUnit.SECONDS));
-            Future<ObjectSourcePlan> secondResult = executor.submit(() -> cache.acquire(32667, 37, 32667, 37, () -> second));
+            Future<ObjectSourcePlan> secondResult = executor.submit(() -> cache.acquire(32667, 37, 32667, 37, 7, () -> second));
 
             assertSame(second, secondResult.get(3L, TimeUnit.SECONDS));
             releaseFirst.countDown();
@@ -149,7 +182,7 @@ public class ObjectSourcePlanCacheTest {
                 futures.add(executor.submit(() -> {
                     ready.countDown();
                     assertTrue(start.await(5L, TimeUnit.SECONDS));
-                    return cache.acquire(4, -7, destinationX, -7, () -> {
+                    return cache.acquire(4, -7, destinationX, -7, 7, () -> {
                         builds.incrementAndGet();
                         return expected;
                     });
@@ -174,12 +207,12 @@ public class ObjectSourcePlanCacheTest {
         ObjectSourcePlanCache cache = new ObjectSourcePlanCache(large.estimatedRetainedBytes());
         AtomicInteger builds = new AtomicInteger();
 
-        assertSame(large, cache.acquire(0, 0, 0, 0, () -> {
+        assertSame(large, cache.acquire(0, 0, 0, 0, 7, () -> {
             builds.incrementAndGet();
             return large;
         }));
         assertEquals(0L, cache.estimatedSize());
-        assertSame(large, cache.acquire(0, 0, 1, 0, () -> {
+        assertSame(large, cache.acquire(0, 0, 1, 0, 7, () -> {
             builds.incrementAndGet();
             return large;
         }));
@@ -190,10 +223,10 @@ public class ObjectSourcePlanCacheTest {
     public void cacheEvictsByRetainedBytesAndCanBeCleared() {
         ObjectSourcePlan first = planTouching(new int[]{0, 0}, new int[]{9, 9});
         ObjectSourcePlan second = planTouching(new int[]{1, 0}, new int[]{9, 9});
-        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(first.estimatedRetainedBytes() + 128L);
+        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(first.estimatedRetainedBytes() + 256L);
 
-        cache.acquire(0, 0, 0, 0, () -> first);
-        cache.acquire(1, 0, 1, 0, () -> second);
+        cache.acquire(0, 0, 0, 0, 7, () -> first);
+        cache.acquire(1, 0, 1, 0, 7, () -> second);
 
         assertEquals(1L, cache.estimatedSize());
         cache.clear();
@@ -213,7 +246,7 @@ public class ObjectSourcePlanCacheTest {
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
-            Future<ObjectSourcePlan> first = executor.submit(() -> cache.acquire(7, 8, 7, 8, () -> {
+            Future<ObjectSourcePlan> first = executor.submit(() -> cache.acquire(7, 8, 7, 8, 7, () -> {
                 entered.countDown();
                 await(release);
                 return old;
@@ -221,12 +254,12 @@ public class ObjectSourcePlanCacheTest {
             try {
                 assertTrue(entered.await(5L, TimeUnit.SECONDS));
                 cache.clear();
-                assertSame(replacement, cache.acquire(7, 8, 7, 8, () -> replacement));
+                assertSame(replacement, cache.acquire(7, 8, 7, 8, 7, () -> replacement));
             } finally {
                 release.countDown();
             }
             assertSame(old, first.get(5L, TimeUnit.SECONDS));
-            assertSame(old, cache.acquire(7, 8, 7, 8, () -> old));
+            assertSame(old, cache.acquire(7, 8, 7, 8, 7, () -> old));
         }
     }
 
@@ -239,7 +272,7 @@ public class ObjectSourcePlanCacheTest {
         CountDownLatch release = new CountDownLatch(1);
         try (ExecutorService owner = Executors.newSingleThreadExecutor();
              ForkJoinPool pool = new ForkJoinPool(1)) {
-            Future<ObjectSourcePlan> first = owner.submit(() -> cache.acquire(7, 8, 7, 8, () -> {
+            Future<ObjectSourcePlan> first = owner.submit(() -> cache.acquire(7, 8, 7, 8, 7, () -> {
                 entered.countDown();
                 await(release);
                 return expected;
@@ -248,7 +281,7 @@ public class ObjectSourcePlanCacheTest {
                 assertTrue(entered.await(5L, TimeUnit.SECONDS));
                 Future<ObjectSourcePlan> second = pool.submit(() -> {
                     waiting.countDown();
-                    return cache.acquire(7, 8, 8, 8, () -> { throw new AssertionError("Duplicate build"); });
+                    return cache.acquire(7, 8, 8, 8, 7, () -> { throw new AssertionError("Duplicate build"); });
                 });
                 assertTrue(waiting.await(5L, TimeUnit.SECONDS));
                 pool.submit(release::countDown).get(5L, TimeUnit.SECONDS);
@@ -265,12 +298,12 @@ public class ObjectSourcePlanCacheTest {
         ObjectSourcePlanCache cache = new ObjectSourcePlanCache(4096L);
         IllegalArgumentException failure = new IllegalArgumentException("Build failed");
         assertSame(failure, assertThrows(IllegalArgumentException.class,
-                () -> cache.acquire(7, 8, 7, 8, () -> { throw failure; })));
-        assertThrows(NullPointerException.class, () -> cache.acquire(7, 8, 7, 8, () -> null));
-        assertThrows(IllegalStateException.class, () -> cache.acquire(7, 8, 7, 8,
-                () -> cache.acquire(7, 8, 7, 8, () -> planTouching(new int[]{7, 8}))));
+                () -> cache.acquire(7, 8, 7, 8, 7, () -> { throw failure; })));
+        assertThrows(NullPointerException.class, () -> cache.acquire(7, 8, 7, 8, 7, () -> null));
+        assertThrows(IllegalStateException.class, () -> cache.acquire(7, 8, 7, 8, 7,
+                () -> cache.acquire(7, 8, 7, 8, 7, () -> planTouching(new int[]{7, 8}))));
         ObjectSourcePlan expected = planTouching(new int[]{7, 8});
-        assertSame(expected, cache.acquire(7, 8, 7, 8, () -> expected));
+        assertSame(expected, cache.acquire(7, 8, 7, 8, 7, () -> expected));
     }
 
     @Test

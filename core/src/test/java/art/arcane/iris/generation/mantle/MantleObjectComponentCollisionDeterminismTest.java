@@ -141,7 +141,7 @@ public class MantleObjectComponentCollisionDeterminismTest {
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, destination, 0);
         MantleObjectComponent.replaySourceChunks(destination, 0, RADIUS, (sourceX, sourceZ) -> {
             ObjectSourcePlan plan = cache.acquire(sourceX, sourceZ, destination, 0,
-                    () -> buildSourcePlan(writer, sourceX, sourceZ, scenario));
+                    MantleObjectComponent.sourceChunkRadius(RADIUS), () -> buildSourcePlan(writer, sourceX, sourceZ, scenario));
             if (plan != null) {
                 transaction.apply(plan);
             }

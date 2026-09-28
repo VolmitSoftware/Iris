@@ -23,6 +23,7 @@ final class ObjectSourcePlanCache {
     private final LongAdder waits = new LongAdder();
     private final LongAdder replays = new LongAdder();
     private final LongAdder drained = new LongAdder();
+    private final LongAdder retired = new LongAdder();
     private volatile State state;
 
     ObjectSourcePlanCache() {
@@ -44,18 +45,31 @@ final class ObjectSourcePlanCache {
     /**
      * Returns the plan whose mutations the destination still has to replay, or null when the source writes nothing
      * there. Each destination consumes a retained plan once; a plan whose destinations were all consumed keeps only
-     * its destination index, so a repeated consumption rebuilds it instead of trusting released state.
+     * its destination index, so a repeated consumption rebuilds it instead of trusting released state. The entry is
+     * dropped once every destination within the source chunk radius has asked for it.
      */
     ObjectSourcePlan acquire(int sourceChunkX, int sourceChunkZ, int destinationChunkX, int destinationChunkZ,
-                             Supplier<ObjectSourcePlan> builder) {
+                             int sourceChunkRadius, Supplier<ObjectSourcePlan> builder) {
         Objects.requireNonNull(builder, "Source plan builder");
         lookups.increment();
         State current = state;
         long source = CacheKey.mix(key(sourceChunkX, sourceChunkZ));
         Entry entry = current.plans.getIfPresent(source);
         if (entry == null) {
-            entry = load(current, source, builder);
+            entry = load(current, source, sourceChunkRadius, builder);
         }
+        boolean lastVisitor = entry.visitors.visit(destinationChunkX - sourceChunkX, destinationChunkZ - sourceChunkZ);
+        ObjectSourcePlan plan = claim(current, source, entry, destinationChunkX, destinationChunkZ, builder);
+        if (lastVisitor) {
+            retired.increment();
+            Visitors visitors = entry.visitors;
+            current.plans.asMap().computeIfPresent(source, (Long key, Entry mapped) -> mapped.visitors == visitors ? null : mapped);
+        }
+        return plan;
+    }
+
+    private ObjectSourcePlan claim(State current, long source, Entry entry, int destinationChunkX, int destinationChunkZ,
+                                   Supplier<ObjectSourcePlan> builder) {
         int slot = entry.slot(destinationChunkX, destinationChunkZ);
         if (slot < 0) {
             return null;
@@ -74,7 +88,7 @@ final class ObjectSourcePlanCache {
 
     private ObjectSourcePlan replay(State current, long source, Entry consumed, int destinationChunkX, int destinationChunkZ,
                                     Supplier<ObjectSourcePlan> builder) {
-        Entry rebuilt = new Entry(build(builder));
+        Entry rebuilt = new Entry(build(builder), consumed.visitors);
         int slot = rebuilt.slot(destinationChunkX, destinationChunkZ);
         Claim claim = slot < 0 ? null : rebuilt.claim(slot);
         if (claim == null) {
@@ -86,7 +100,7 @@ final class ObjectSourcePlanCache {
         return claim.plan();
     }
 
-    private Entry load(State current, long source, Supplier<ObjectSourcePlan> builder) {
+    private Entry load(State current, long source, int sourceChunkRadius, Supplier<ObjectSourcePlan> builder) {
         Pending created = new Pending(Thread.currentThread());
         Pending pending = current.pending.putIfAbsent(source, created);
         if (pending != null) {
@@ -96,7 +110,7 @@ final class ObjectSourcePlanCache {
         try {
             Entry entry = current.plans.getIfPresent(source);
             if (entry == null) {
-                entry = new Entry(build(builder));
+                entry = new Entry(build(builder), new Visitors(sourceChunkRadius));
                 if (entry.weight() <= maximumRetainedBytes) {
                     current.plans.put(source, entry);
                 }
@@ -133,11 +147,11 @@ final class ObjectSourcePlanCache {
         long retainedBytes = current.plans.policy().eviction()
                 .map(eviction -> eviction.weightedSize().orElse(0L))
                 .orElse(0L);
-        return new Stats(lookups.sum(), builds.sum(), waits.sum(), replays.sum(), drained.sum(),
+        return new Stats(lookups.sum(), builds.sum(), waits.sum(), replays.sum(), drained.sum(), retired.sum(),
                 current.plans.estimatedSize(), retainedBytes, maximumRetainedBytes);
     }
 
-    record Stats(long lookups, long builds, long waits, long replays, long drained, long retained,
+    record Stats(long lookups, long builds, long waits, long replays, long drained, long retired, long retained,
                  long retainedBytes, long budgetBytes) {
     }
 
@@ -159,22 +173,25 @@ final class ObjectSourcePlanCache {
     private static final class Entry {
         private final ObjectSourcePlan index;
         private final boolean[] claimed;
+        private final Visitors visitors;
         private final int weight;
         private ObjectSourcePlan plan;
         private int remaining;
 
-        private Entry(ObjectSourcePlan plan) {
+        private Entry(ObjectSourcePlan plan, Visitors visitors) {
             this.index = plan.isEmpty() ? ObjectSourcePlan.EMPTY : plan;
             this.plan = plan.isEmpty() ? null : plan;
             this.claimed = new boolean[plan.destinationCount()];
+            this.visitors = visitors;
             this.remaining = claimed.length;
-            this.weight = saturatedWeight(ENTRY_BYTES + (long) claimed.length + index.estimatedRetainedBytes());
+            this.weight = weigh(index, claimed, visitors);
         }
 
-        private Entry(ObjectSourcePlan index, boolean[] claimed) {
+        private Entry(ObjectSourcePlan index, boolean[] claimed, Visitors visitors) {
             this.index = index;
             this.claimed = claimed;
-            this.weight = saturatedWeight(ENTRY_BYTES + (long) claimed.length + index.estimatedRetainedBytes());
+            this.visitors = visitors;
+            this.weight = weigh(index, claimed, visitors);
         }
 
         private int slot(int destinationChunkX, int destinationChunkZ) {
@@ -195,15 +212,50 @@ final class ObjectSourcePlanCache {
         }
 
         private Entry released() {
-            return new Entry(index.destinationIndex(), claimed);
+            return new Entry(index.destinationIndex(), claimed, visitors);
         }
 
         private int weight() {
             return weight;
         }
 
-        private static int saturatedWeight(long weight) {
-            return (int) Math.min(Integer.MAX_VALUE, weight);
+        private static int weigh(ObjectSourcePlan index, boolean[] claimed, Visitors visitors) {
+            return (int) Math.min(Integer.MAX_VALUE,
+                    ENTRY_BYTES + (long) claimed.length + visitors.retainedBytes() + index.estimatedRetainedBytes());
+        }
+    }
+
+    private static final class Visitors {
+        private final int radius;
+        private final int side;
+        private final long[] seen;
+        private int remaining;
+
+        private Visitors(int radius) {
+            if (radius < 0) {
+                throw new IllegalArgumentException("Source chunk radius must not be negative");
+            }
+            this.radius = radius;
+            this.side = 2 * radius + 1;
+            this.seen = new long[(side * side + 63) >>> 6];
+            this.remaining = side * side;
+        }
+
+        private synchronized boolean visit(int offsetX, int offsetZ) {
+            if (Math.abs(offsetX) > radius || Math.abs(offsetZ) > radius) {
+                return false;
+            }
+            int bit = (offsetX + radius) * side + offsetZ + radius;
+            long mask = 1L << (bit & 63);
+            if ((seen[bit >>> 6] & mask) != 0L) {
+                return false;
+            }
+            seen[bit >>> 6] |= mask;
+            return --remaining == 0;
+        }
+
+        private long retainedBytes() {
+            return 32L + 8L * seen.length;
         }
     }
 

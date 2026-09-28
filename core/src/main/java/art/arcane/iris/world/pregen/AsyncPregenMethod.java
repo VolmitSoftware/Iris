@@ -69,7 +69,6 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private static final long MANTLE_CLEANUP_DRAIN_SECONDS = 60L;
     private static final long CHUNK_FLUSH_DRAIN_SECONDS = 30L;
     private static final long ADMISSION_WAIT_BOUND_MS = 500L;
-    private static final int HYDROLOGY_PREFETCH_HALO_BLOCKS = 512;
     private final World world;
     private final IrisRuntimeSchedulerMode runtimeSchedulerMode;
     private final IrisPaperLikeBackendMode paperLikeBackendMode;
@@ -283,10 +282,10 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
         HydrologyTileCache.PregenerationArea area = new HydrologyTileCache.PregenerationArea(
                 centerBlockX, centerBlockZ,
-                (long) boundsMinRegionX * 512L - HYDROLOGY_PREFETCH_HALO_BLOCKS,
-                (long) boundsMinRegionZ * 512L - HYDROLOGY_PREFETCH_HALO_BLOCKS,
-                ((long) boundsMaxRegionX + 1L) * 512L - 1L + HYDROLOGY_PREFETCH_HALO_BLOCKS,
-                ((long) boundsMaxRegionZ + 1L) * 512L - 1L + HYDROLOGY_PREFETCH_HALO_BLOCKS);
+                (long) boundsMinRegionX * 512L,
+                (long) boundsMinRegionZ * 512L,
+                ((long) boundsMaxRegionX + 1L) * 512L - 1L,
+                ((long) boundsMaxRegionZ + 1L) * 512L - 1L);
         HydrologyTileCache.PregenerationScope scope = engine.getComplex().getHydrologyRuntime().preparePregeneration(area);
         hydrologyPrefetchScope = scope;
         if (closing.get()) {

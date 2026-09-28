@@ -3,6 +3,7 @@ package art.arcane.iris.generation.mantle;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.block.TileData;
@@ -32,6 +33,10 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     private final List<Mutation> mutations;
     private final List<PlacementRange> placements = new ArrayList<>();
     private final Long2ObjectOpenHashMap<Int2ObjectOpenHashMap<OverlayCell>> overlay;
+    private boolean hydrologyGateKnown;
+    private int hydrologyGateChunkX;
+    private int hydrologyGateChunkZ;
+    private boolean hydrologyGateOpen;
 
     ObjectDestinationTransaction(MantleWriter writer, int destinationChunkX, int destinationChunkZ) {
         this.writer = writer;
@@ -350,8 +355,22 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     }
 
     private boolean hasProtectedHydrology(int x, int y, int z) {
+        if (!mayHoldHydrologyCells(x >> 4, z >> 4)) {
+            return false;
+        }
         HydrologyCaveCell hydrology = getDataIfPresent(x, y, z, HydrologyCaveCell.class);
         return hydrology != null && hydrology.protectsPlacement();
+    }
+
+    private boolean mayHoldHydrologyCells(int chunkX, int chunkZ) {
+        if (!hydrologyGateKnown || hydrologyGateChunkX != chunkX || hydrologyGateChunkZ != chunkZ) {
+            IrisComplex complex = writer.getEngine().getComplex();
+            hydrologyGateOpen = complex == null || complex.mayHoldHydrologyCells(chunkX, chunkZ);
+            hydrologyGateChunkX = chunkX;
+            hydrologyGateChunkZ = chunkZ;
+            hydrologyGateKnown = true;
+        }
+        return hydrologyGateOpen;
     }
 
     private void rollback(LinkedHashMap<DataKey, Object> originals, Throwable failure) {

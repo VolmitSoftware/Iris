@@ -36,7 +36,8 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
         super();
         this.stream = stream;
         this.engine = engine;
-        cache = WorldCache2D.<T>ofInts(stream::get, size, () -> new ChunkCache2D<>("iris"));
+        cache = WorldCache2D.<T>ofInts((x, z) -> ProvisionalSampling.memoizable(stream, x, z), size,
+                () -> new ChunkCache2D<>("iris"));
         IrisServices.get(PreservationRegistry.class).registerCache(this);
     }
 
@@ -52,7 +53,11 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
 
     @Override
     public T get(double x, double z) {
-        return cache.get((int) x, (int) z);
+        try {
+            return cache.get((int) x, (int) z);
+        } catch (ProvisionalSampling.Unmemoizable provisional) {
+            return provisional.value();
+        }
     }
 
     @Override
@@ -87,6 +92,14 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
     public void fillChunkRaw(int worldX, int worldZ, Object[] target) {
         int chunkX = worldX >> 4;
         int chunkZ = worldZ >> 4;
-        cache.fillChunk(chunkX, chunkZ, target);
+        try {
+            cache.fillChunk(chunkX, chunkZ, target);
+        } catch (ProvisionalSampling.Unmemoizable provisional) {
+            int originX = chunkX << 4;
+            int originZ = chunkZ << 4;
+            for (int index = 0; index < 256; index++) {
+                target[index] = get(originX + (index & 15), originZ + (index >> 4));
+            }
+        }
     }
 }

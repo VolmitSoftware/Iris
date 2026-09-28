@@ -61,10 +61,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class MantleHydrologyComponentTest {
@@ -2006,5 +2008,24 @@ public class MantleHydrologyComponentTest {
         private void setOpenToSurface(CavePosition position) {
             openToSurface.add(position);
         }
+    }
+
+    @Test
+    public void chunksWithoutNearbyFootprintColumnsPublishNothingWithoutReadingCavePlans() {
+        IrisComplex complex = mock(IrisComplex.class);
+        IrisHydrologyRuntime runtime = mock(IrisHydrologyRuntime.class);
+        ChunkContext context = mock(ChunkContext.class);
+        MantleWriter writer = mock(MantleWriter.class);
+        when(context.getComplex()).thenReturn(complex);
+        when(complex.getHydrologyRuntime()).thenReturn(runtime);
+        when(complex.allowsMantleChunkWrite(3, -4)).thenReturn(true);
+        when(runtime.hasColumnsAround(3, -4)).thenReturn(false);
+
+        new MantleHydrologyComponent(mock(EngineMantle.class)).generateLayer(writer, 3, -4, context);
+
+        verify(runtime).hasColumnsAround(3, -4);
+        verify(runtime, never()).cavePlansIn(anyInt(), anyInt(), anyInt(), anyInt());
+        verify(complex, never()).sampleHydrologyColumn(anyDouble(), anyDouble());
+        verifyNoInteractions(writer);
     }
 }

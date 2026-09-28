@@ -2,6 +2,7 @@ package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -74,6 +75,7 @@ public class MantleWriterPreObjectJournalTest {
 
         EngineMantle engineMantle = mock(EngineMantle.class);
         when(engineMantle.getComplex()).thenReturn(mock(IrisComplex.class));
+        when(engineMantle.getEngine()).thenReturn(mock(Engine.class));
         Mantle<Matter> mantle = mock(Mantle.class);
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
         matter = spy(new IrisMatter(16, 16, 16));

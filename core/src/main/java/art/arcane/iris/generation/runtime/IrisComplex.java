@@ -21,6 +21,7 @@ package art.arcane.iris.generation.runtime;
 import art.arcane.iris.generation.stream.GenerationStreams;
 import art.arcane.iris.generation.stream.CachedDoubleStream2D;
 import art.arcane.iris.generation.stream.CachedStream2D;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 
 
 import art.arcane.iris.configuration.IrisSettings;
@@ -992,7 +993,11 @@ public class IrisComplex implements DataProvider {
         HydrologyColumnLayer layer = sample.primarySurfaceLayerOrNull();
         if (hydrologyBanks3D != null && layer != null && layer.terrainOwned() && !layer.channel()) {
             Optional<Terrain3DColumn> column = hydrologyBanks3D.columnIfReady(blockCoordinate(x), blockCoordinate(z));
-            return column.isPresent() ? column.get().topY() : naturalHeightStream.getDouble(x, z);
+            if (column.isPresent()) {
+                return column.get().topY();
+            }
+            ProvisionalSampling.mark();
+            return naturalHeightStream.getDouble(x, z);
         }
         return sample.terrainHeight();
     }
@@ -1185,8 +1190,11 @@ public class IrisComplex implements DataProvider {
             return false;
         }
         HydrologyColumnLayer layer = snapshot.column() == null ? null : snapshot.column().primarySurfaceLayerOrNull();
-        return layer == null || !layer.terrainOwned() || layer.channel()
-                || hydrologyBanks3D.columnIfReady(x, z).isPresent();
+        if (layer == null || !layer.terrainOwned() || layer.channel() || hydrologyBanks3D.columnIfReady(x, z).isPresent()) {
+            return true;
+        }
+        ProvisionalSampling.mark();
+        return false;
     }
 
     public ProceduralStream<Double> getRawHeightStream() {
@@ -1217,6 +1225,17 @@ public class IrisComplex implements DataProvider {
     public boolean allowsMantleChunkWrite(int chunkX, int chunkZ) {
         return transitionGenerationPlan == null
                 || !transitionGenerationPlan.boundary().isHistoricalChunk(chunkX, chunkZ);
+    }
+
+    /**
+     * Whether the mantle chunk can hold hydrology cave cells. The hydrology component publishes them
+     * only from footprint columns within one block of the chunk, so a chunk with none around it holds
+     * none. A transition world or a studio keeps cells an earlier plan wrote, so there every chunk may.
+     */
+    public boolean mayHoldHydrologyCells(int chunkX, int chunkZ) {
+        return hydrologyRuntime == null || transitionGenerationPlan != null
+                || terrainEngine == null || terrainEngine.isStudio()
+                || hydrologyRuntime.hasColumnsAround(chunkX, chunkZ);
     }
 
     public boolean allowsNewDiscreteContentAt(int blockX, int blockZ) {

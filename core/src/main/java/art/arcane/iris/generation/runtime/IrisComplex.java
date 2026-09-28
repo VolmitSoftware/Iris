@@ -386,10 +386,9 @@ public class IrisComplex implements DataProvider {
         proceduralTerrainHeight = new ProceduralTerrainHeightSampler(
                 (x, z) -> getHeight(engine, x, z, engine.getSeedManager().getHeight()),
                 engine.getDimension().getTerrainSamplingStep());
-        baseTerrainHeightStream = GenerationStreams.cache2DDouble(ProceduralStream.of(
-                this::sampleUnblendedNaturalTerrainHeight,
-                Interpolated.DOUBLE
-        ), "baseTerrainHeightStream", engine, cacheSize);
+        baseTerrainHeightStream = GenerationStreams.cache2DDouble(
+                ProceduralStream.ofDouble(this::sampleUnblendedNaturalTerrainHeight),
+                "baseTerrainHeightStream", engine, cacheSize);
         boolean terrain3DEnabled = false;
         for (IrisBiome biome : generatorBiomes) {
             if (biome.getTerrain3D() != null) {

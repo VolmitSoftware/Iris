@@ -304,7 +304,12 @@ public class IrisDepositGenerator {
         return new ClumpFootprint(cells.extentX * 2 + 1, cells.minY, false);
     }
 
-    private static void vanillaEllipsoidCells(RNG rng, int size, CellSink sink) {
+    /**
+     * Emits the clump's cells sphere by sphere in x, y, z order, duplicates included. The squared y and z
+     * offsets are computed once per sphere row; the sums keep the per-cell evaluation order, so every cell
+     * test is bit-identical to evaluating {@code nx * nx + ny * ny + nz * nz} in place.
+     */
+    static void vanillaEllipsoidCells(RNG rng, int size, CellSink sink) {
         float angle = rng.nextFloat() * (float) Math.PI;
         float reach = size / 8F;
         double startX = Math.sin(angle) * reach;
@@ -347,6 +352,8 @@ public class IrisDepositGenerator {
             }
         }
 
+        double[] squaredY = new double[16];
+        double[] squaredZ = new double[16];
         for (int i = 0; i < size; i++) {
             double radius = nodes[i * 4 + 3];
             if (radius < 0D) {
@@ -361,21 +368,37 @@ public class IrisDepositGenerator {
             int maxY = Math.max((int) Math.floor(centerY + radius), minY);
             int minZ = (int) Math.floor(centerZ - radius);
             int maxZ = Math.max((int) Math.floor(centerZ + radius), minZ);
+            int spanY = maxY - minY + 1;
+            int spanZ = maxZ - minZ + 1;
+            if (spanY > squaredY.length) {
+                squaredY = new double[spanY];
+            }
+            if (spanZ > squaredZ.length) {
+                squaredZ = new double[spanZ];
+            }
+            for (int y = 0; y < spanY; y++) {
+                double ny = (minY + y + 0.5D - centerY) / radius;
+                squaredY[y] = ny * ny;
+            }
+            for (int z = 0; z < spanZ; z++) {
+                double nz = (minZ + z + 0.5D - centerZ) / radius;
+                squaredZ[z] = nz * nz;
+            }
 
             for (int x = minX; x <= maxX; x++) {
                 double nx = (x + 0.5D - centerX) / radius;
-                if (nx * nx >= 1D) {
+                double squaredX = nx * nx;
+                if (squaredX >= 1D) {
                     continue;
                 }
-                for (int y = minY; y <= maxY; y++) {
-                    double ny = (y + 0.5D - centerY) / radius;
-                    if (nx * nx + ny * ny >= 1D) {
+                for (int y = 0; y < spanY; y++) {
+                    double squaredXY = squaredX + squaredY[y];
+                    if (squaredXY >= 1D) {
                         continue;
                     }
-                    for (int z = minZ; z <= maxZ; z++) {
-                        double nz = (z + 0.5D - centerZ) / radius;
-                        if (nx * nx + ny * ny + nz * nz < 1D) {
-                            sink.add(x, y, z);
+                    for (int z = 0; z < spanZ; z++) {
+                        if (squaredXY + squaredZ[z] < 1D) {
+                            sink.add(x, minY + y, minZ + z);
                         }
                     }
                 }
@@ -601,7 +624,7 @@ public class IrisDepositGenerator {
     }
 
     @FunctionalInterface
-    private interface CellSink {
+    interface CellSink {
         void add(int x, int y, int z);
     }
 

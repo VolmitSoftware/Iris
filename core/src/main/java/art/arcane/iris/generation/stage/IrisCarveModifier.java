@@ -880,7 +880,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                 chunk.release();
             }
         }
-        CaveInputs resolver = new CaveInputs(getEngine());
+        CaveInputs resolver = CaveInputs.forContentChunk(getEngine(), blockX >> 4, blockZ >> 4);
         Long2ObjectOpenHashMap<IrisBiome> caveBiomes = new Long2ObjectOpenHashMap<>(256);
         Map<String, IrisBiome> customBiomes = new HashMap<>();
         int width = output.getWidth();
@@ -1163,19 +1163,39 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         private final ProceduralStream<IrisBiome> caveBiomes;
         private final ProceduralStream<Double> heights;
         private final CaveColumn[] columns;
+        private final boolean chunkLimited;
+        private final int chunkX;
+        private final int chunkZ;
 
         CaveInputs(Engine engine) {
+            this(engine, false, 0, 0);
+        }
+
+        /**
+         * Inputs for the content stage of one chunk. A coordinate inside that chunk resolves under the chunk's
+         * own generation route, exactly the binding the natural terrain stage samples with, so it takes the
+         * captured column path; any other coordinate keeps the per-coordinate history dispatch.
+         */
+        static CaveInputs forContentChunk(Engine engine, int chunkX, int chunkZ) {
+            return new CaveInputs(engine, true, chunkX, chunkZ);
+        }
+
+        private CaveInputs(Engine engine, boolean contentChunk, int chunkX, int chunkZ) {
             this.engine = engine;
             complex = engine.getComplex();
             dimension = engine.getDimension();
             data = engine.getData();
             height = engine.getHeight();
             IrisContext context = IrisContext.get();
-            boolean scoped = engine instanceof IrisEngine irisEngine
+            boolean generating = engine instanceof IrisEngine irisEngine
                     && irisEngine.hasGenerationRuntimeScope() && !engine.getPlatformHooks().isMainThread()
                     && context != null && context.getChunkContext() != null
-                    && context.getChunkContext().getComplex() == complex
-                    && context.getChunkContext().isNaturalTerrain();
+                    && context.getChunkContext().getComplex() == complex;
+            boolean natural = generating && context.getChunkContext().isNaturalTerrain();
+            boolean scoped = natural || generating && contentChunk;
+            this.chunkLimited = !natural;
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
             snapshot = scoped ? IrisDimensionCarvingResolver.snapshot(engine) : null;
             minimumY = scoped ? engine.getWorld().minHeight() : 0;
             stack = scoped ? engine.getDimensionStackContext() : null;
@@ -1186,7 +1206,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         }
 
         IrisBiome resolve(int x, int y, int z) {
-            if (snapshot == null) {
+            if (snapshot == null || chunkLimited && ((x >> 4) != chunkX || (z >> 4) != chunkZ)) {
                 return engine.getCaveBiome(x, y, z, state);
             }
             IrisBiome configured = snapshot.resolveBiome(x, y + minimumY, z);

@@ -103,20 +103,18 @@ public class FloatingIslandBoundarySamplerTest {
     }
 
     @Test
-    public void parent_cachesResolvedBiomeColumns() {
+    public void parent_readsOnlyTheQueriedColumnWithoutBuildingTheBoundaryField() {
         IrisBiome parent = new IrisBiome();
+        IrisBiome other = new IrisBiome();
         AtomicInteger calls = new AtomicInteger();
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> {
             calls.incrementAndGet();
-            return parent;
+            return x == 12 && z == -9 ? parent : other;
         });
 
         assertSame(parent, sampler.parent(12, -9));
-        int firstReadCount = calls.get();
-        assertSame(parent, sampler.parent(12, -9));
-        assertEquals(firstReadCount, calls.get());
-        int rawWidth = 16 + (FloatingIslandBoundarySampler.EDGE_FADE_RADIUS * 2) + 2;
-        assertEquals(rawWidth * rawWidth, firstReadCount);
+        assertSame(other, sampler.parent(13, -9));
+        assertEquals(2, calls.get());
     }
 
     @Test

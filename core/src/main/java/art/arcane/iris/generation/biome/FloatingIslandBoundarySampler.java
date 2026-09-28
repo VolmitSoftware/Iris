@@ -48,7 +48,7 @@ public final class FloatingIslandBoundarySampler {
     }
 
     public @Nullable IrisBiome parent(int x, int z) {
-        return parentField(x, z, EDGE_TAPER_WIDTH).parent(x, z);
+        return source.sample(x, z);
     }
 
     public double edgeFade(IrisBiome parent, int x, int z) {
@@ -228,10 +228,6 @@ public final class FloatingIslandBoundarySampler {
             this.distance = new byte[geometry.area()];
             this.viable = new boolean[geometry.area()];
             build(source);
-        }
-
-        private @Nullable IrisBiome parent(int x, int z) {
-            return parents[geometry.index(x - minX, z - minZ)];
         }
 
         private int edgeDistance(IrisBiome expected, int x, int z) {

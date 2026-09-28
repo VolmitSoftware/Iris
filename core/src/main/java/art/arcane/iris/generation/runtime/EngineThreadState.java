@@ -23,24 +23,38 @@ import art.arcane.iris.generation.runtime.IrisEngine.BiomeEnvironmentBinding;
 import art.arcane.iris.generation.runtime.IrisEngine.GenerationRuntimeBinding;
 import art.arcane.iris.generation.runtime.IrisEngine.GenerationRuntimeScope;
 
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReferenceArray;
+
 /**
- * Every per-thread engine binding (runtime assembly, biome environment, generation runtime scope) in one frame,
- * so the engine getters on generation hot paths pay a single ThreadLocal lookup.
+ * Every per-thread engine binding (runtime assembly, biome environment, generation runtime scope) in one frame.
+ * The engine getters run on generation hot paths, where a ThreadLocal lookup probes long collision chains in the
+ * workers' crowded thread-local maps. Frames therefore live in a table indexed by thread id and owned by their
+ * thread; a frame whose slot is taken by another thread falls back to a ThreadLocal.
  */
 final class EngineThreadState {
-    private final ThreadLocal<Frame> frames = new ThreadLocal<>();
+    private static final int SLOTS = 256;
+
+    private final AtomicReferenceArray<Frame> slots = new AtomicReferenceArray<>(SLOTS);
+    private final ThreadLocal<Frame> overflow = new ThreadLocal<>();
+    private final AtomicInteger overflowFrames = new AtomicInteger();
 
     Frame current() {
-        return frames.get();
+        Thread thread = Thread.currentThread();
+        Frame frame = slots.getPlain(slot(thread));
+        if (frame != null && frame.owner == thread) {
+            return frame;
+        }
+        return overflowFrames.get() == 0 ? null : overflow.get();
     }
 
     GenerationRuntimeBinding binding() {
-        Frame frame = frames.get();
+        Frame frame = current();
         return frame == null ? null : frame.binding;
     }
 
     RuntimeAssembly assembly() {
-        Frame frame = frames.get();
+        Frame frame = current();
         return frame == null ? null : frame.assembly;
     }
 
@@ -49,7 +63,7 @@ final class EngineThreadState {
             frame().assembly = assembly;
             return;
         }
-        Frame frame = frames.get();
+        Frame frame = current();
         if (frame != null) {
             frame.assembly = null;
             releaseIfEmpty(frame);
@@ -57,7 +71,7 @@ final class EngineThreadState {
     }
 
     BiomeEnvironmentBinding environment() {
-        Frame frame = frames.get();
+        Frame frame = current();
         return frame == null ? null : frame.environment;
     }
 
@@ -66,7 +80,7 @@ final class EngineThreadState {
             frame().environment = environment;
             return;
         }
-        Frame frame = frames.get();
+        Frame frame = current();
         if (frame != null) {
             frame.environment = null;
             releaseIfEmpty(frame);
@@ -89,7 +103,7 @@ final class EngineThreadState {
         if (Thread.currentThread() != owner) {
             throw new IllegalStateException("Iris generation runtime scope closed from a different thread.");
         }
-        Frame frame = frames.get();
+        Frame frame = current();
         if ((frame == null ? null : frame.binding) != installed) {
             throw new IllegalStateException("Iris generation runtime scopes must close in LIFO order.");
         }
@@ -104,23 +118,45 @@ final class EngineThreadState {
     }
 
     private Frame frame() {
-        Frame frame = frames.get();
-        if (frame == null) {
-            frame = new Frame();
-            frames.set(frame);
+        Frame frame = current();
+        if (frame != null) {
+            return frame;
+        }
+        Thread thread = Thread.currentThread();
+        frame = new Frame(thread);
+        if (!slots.compareAndSet(slot(thread), null, frame)) {
+            frame.overflow = true;
+            overflow.set(frame);
+            overflowFrames.incrementAndGet();
         }
         return frame;
     }
 
     private void releaseIfEmpty(Frame frame) {
-        if (frame.assembly == null && frame.environment == null && frame.binding == null) {
-            frames.remove();
+        if (frame.assembly != null || frame.environment != null || frame.binding != null) {
+            return;
         }
+        if (frame.overflow) {
+            overflow.remove();
+            overflowFrames.decrementAndGet();
+            return;
+        }
+        slots.compareAndSet(slot(frame.owner), frame, null);
+    }
+
+    private static int slot(Thread thread) {
+        return (int) thread.threadId() & (SLOTS - 1);
     }
 
     static final class Frame {
+        private final Thread owner;
+        private boolean overflow;
         RuntimeAssembly assembly;
         BiomeEnvironmentBinding environment;
         GenerationRuntimeBinding binding;
+
+        private Frame(Thread owner) {
+            this.owner = owner;
+        }
     }
 }

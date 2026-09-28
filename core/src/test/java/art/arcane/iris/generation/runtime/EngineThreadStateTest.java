@@ -50,6 +50,39 @@ public class EngineThreadStateTest {
     }
 
     @Test
+    public void threadsSharingATableSlotKeepSeparateFrames() throws InterruptedException {
+        EngineThreadState state = new EngineThreadState();
+        IrisEngine.GenerationRuntimeBinding mainBinding = new IrisEngine.GenerationRuntimeBinding(
+                mock(IrisEngine.class), mock(GenerationRuntime.class));
+        IrisEngine.GenerationRuntimeBinding otherBinding = new IrisEngine.GenerationRuntimeBinding(
+                mock(IrisEngine.class), mock(GenerationRuntime.class));
+        IrisEngine.GenerationRuntimeScope mainScope = state.open(mainBinding);
+        long slot = Thread.currentThread().threadId() & 255;
+        AtomicReference<Object> otherSeen = new AtomicReference<>();
+        AtomicReference<Object> otherAfterClose = new AtomicReference<>(otherBinding);
+        Thread colliding = null;
+        while (colliding == null) {
+            Thread candidate = new Thread(() -> {
+                IrisEngine.GenerationRuntimeScope scope = state.open(otherBinding);
+                otherSeen.set(state.binding());
+                scope.close();
+                otherAfterClose.set(state.current());
+            });
+            if ((candidate.threadId() & 255) == slot) {
+                colliding = candidate;
+            }
+        }
+        colliding.start();
+        colliding.join();
+
+        assertSame(otherBinding, otherSeen.get());
+        assertNull(otherAfterClose.get());
+        assertSame(mainBinding, state.binding());
+        mainScope.close();
+        assertNull(state.current());
+    }
+
+    @Test
     public void framesAreThreadConfinedAndScopesRejectForeignClose() throws InterruptedException {
         EngineThreadState state = new EngineThreadState();
         IrisEngine.GenerationRuntimeBinding binding = new IrisEngine.GenerationRuntimeBinding(

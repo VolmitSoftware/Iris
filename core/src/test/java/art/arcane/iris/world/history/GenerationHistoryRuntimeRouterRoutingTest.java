@@ -16,6 +16,7 @@ import org.mockito.MockedStatic;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -350,6 +351,11 @@ public final class GenerationHistoryRuntimeRouterRoutingTest extends GenerationH
         when(engine.getBiomeOrMantle(anyInt(), anyInt(), anyInt())).thenReturn(biome);
         when(engine.getRegion(anyInt(), anyInt())).thenReturn(region);
         when(engine.getRegion(anyInt(), anyInt(), anyInt())).thenReturn(region);
+        doAnswer(invocation -> {
+            Arrays.fill((IrisBiome[]) invocation.getArgument(3), biome);
+            Arrays.fill((IrisRegion[]) invocation.getArgument(4), region);
+            return null;
+        }).when(engine).getBiomeOrMantleColumn(anyInt(), anyInt(), anyInt(), any(), any());
         EngineMantle engineMantle = mock(EngineMantle.class);
         @SuppressWarnings("unchecked")
         Mantle<Matter> mantle = mock(Mantle.class);
@@ -427,6 +433,46 @@ public final class GenerationHistoryRuntimeRouterRoutingTest extends GenerationH
             assertFalse(bypassed.claimGeneratedSemantics());
         }
         verify(engine, times(2)).openGenerationRuntimeScope(first);
+        router.close();
+    }
+
+    @Test
+    public void readScopeBorrowsTheBoundRouteRuntimeForOtherChunks() throws Exception {
+        Path world = temporaryFolder.newFolder("router-read-world").toPath();
+        Path pack = createPack("router-read-pack", "alpha");
+        GenerationHistory history = createHistory(world, pack);
+        IrisEngine engine = mock(IrisEngine.class);
+        FakeRuntimeFactory runtimes = new FakeRuntimeFactory();
+        IrisEngine.GenerationRuntimeBinding first = runtimes.binding(history, history.activeActivation());
+        when(engine.getActiveGenerationRuntimeBinding()).thenReturn(first);
+        AtomicReference<IrisEngine.GenerationRuntimeBinding> scoped = installScopeTracking(engine);
+        when(engine.captureGenerationRuntimeBinding()).thenAnswer(invocation -> scoped.get());
+        GenerationHistoryRuntimeRouter router = GenerationHistoryRuntimeRouter.attach(
+                engine,
+                history,
+                (ignored, blockX, blockZ) -> signature(blockX, blockZ),
+                runtimes
+        );
+
+        try (GenerationHistoryRuntimeRouter.RuntimeRoute route = router.openRoute(-1, -2);
+             GenerationHistoryRuntimeRouter.RuntimeRoute.RuntimeScope ignored = route.openRuntimeScope()) {
+            try (GenerationHistoryRuntimeRouter.CoordinateScope same = router.openReadScope(-1, -17)) {
+                assertSame(route.activation(), same.activation());
+            }
+            try (GenerationHistoryRuntimeRouter.CoordinateScope neighbour = router.openReadScope(16, 0)) {
+                assertEquals(1, neighbour.chunkX());
+                assertEquals(0, neighbour.chunkZ());
+                assertFalse(neighbour.claimGeneratedSemantics());
+                assertSame(first, scoped.get());
+            }
+            verify(engine, times(1)).openGenerationRuntimeScope(first);
+
+            scoped.set(runtimes.binding(history, history.activeActivation()));
+            try (GenerationHistoryRuntimeRouter.CoordinateScope rebound = router.openReadScope(16, 0)) {
+                assertSame(route.activation(), rebound.activation());
+            }
+            verify(engine, times(2)).openGenerationRuntimeScope(first);
+        }
         router.close();
     }
 }

@@ -519,7 +519,7 @@ public class IrisEngine implements Engine {
                     return drawBiomeEnvironment(x, z, saved.get());
                 }
                 try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                             openGenerationHistoryCoordinateScopeUnchecked(x, z, "draw a pregeneration preview")) {
+                             openGenerationHistoryReadScope(x, z, "draw a pregeneration preview")) {
                     return Engine.super.draw(x, z);
                 }
             });
@@ -535,7 +535,7 @@ public class IrisEngine implements Engine {
             return saved.get();
         }
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve a biome environment")) {
+                     openGenerationHistoryReadScope(x, z, "resolve a biome environment")) {
             return Engine.super.getBiomeEnvironment(x, y, z);
         }
     }
@@ -547,7 +547,7 @@ public class IrisEngine implements Engine {
             return saved.get();
         }
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve a mantle biome environment")) {
+                     openGenerationHistoryReadScope(x, z, "resolve a mantle biome environment")) {
             return Engine.super.getBiomeOrMantleEnvironment(x, y, z);
         }
     }
@@ -559,7 +559,7 @@ public class IrisEngine implements Engine {
             return saved.get();
         }
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve a surface biome environment")) {
+                     openGenerationHistoryReadScope(x, z, "resolve a surface biome environment")) {
             return Engine.super.getSurfaceBiomeEnvironment(x, z);
         }
     }
@@ -595,7 +595,7 @@ public class IrisEngine implements Engine {
             return saved.get().biome();
         }
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve a biome")) {
+                     openGenerationHistoryReadScope(x, z, "resolve a biome")) {
             return Engine.super.getBiome(x, y, z);
         }
     }
@@ -608,8 +608,24 @@ public class IrisEngine implements Engine {
             return saved.get().biome();
         }
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve a biome or mantle biome")) {
+                     openGenerationHistoryReadScope(x, z, "resolve a biome or mantle biome")) {
             return Engine.super.getBiomeOrMantle(x, y, z);
+        }
+    }
+
+    @BlockCoordinates
+    @Override
+    public void getBiomeOrMantleColumn(int x, int z, int step, IrisBiome[] biomes, IrisRegion[] regions) {
+        if (usesSavedBiomeEnvironment()) {
+            for (int index = 0; index < biomes.length; index++) {
+                biomes[index] = getBiomeOrMantle(x, index * step, z);
+                regions[index] = getRegion(x, index * step, z);
+            }
+            return;
+        }
+        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
+                     openGenerationHistoryReadScope(x, z, "resolve a biome or mantle biome column")) {
+            Engine.super.getBiomeOrMantleColumn(x, z, step, biomes, regions);
         }
     }
 
@@ -621,7 +637,7 @@ public class IrisEngine implements Engine {
             return saved.get().region();
         }
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve a region")) {
+                     openGenerationHistoryReadScope(x, z, "resolve a region")) {
             return Engine.super.getRegion(x, z);
         }
     }
@@ -634,7 +650,7 @@ public class IrisEngine implements Engine {
             return saved.get().region();
         }
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve a vertical region")) {
+                     openGenerationHistoryReadScope(x, z, "resolve a vertical region")) {
             return Engine.super.getRegion(x, y, z);
         }
     }
@@ -647,7 +663,7 @@ public class IrisEngine implements Engine {
             return saved.get().biome();
         }
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve a cave or mantle biome")) {
+                     openGenerationHistoryReadScope(x, z, "resolve a cave or mantle biome")) {
             return Engine.super.getCaveOrMantleBiome(x, y, z);
         }
     }
@@ -665,7 +681,7 @@ public class IrisEngine implements Engine {
             return Engine.super.getCaveBiome(x, z);
         }
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve a cave biome")) {
+                     openGenerationHistoryReadScope(x, z, "resolve a cave biome")) {
             return Engine.super.getCaveBiome(x, z);
         }
     }
@@ -692,7 +708,7 @@ public class IrisEngine implements Engine {
             return Engine.super.getCaveBiome(x, y, z, state);
         }
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve a vertical cave biome")) {
+                     openGenerationHistoryReadScope(x, z, "resolve a vertical cave biome")) {
             return Engine.super.getCaveBiome(x, y, z, state);
         }
     }
@@ -708,7 +724,7 @@ public class IrisEngine implements Engine {
             return Engine.super.getSurfaceBiome(x, z);
         }
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve a surface biome")) {
+                     openGenerationHistoryReadScope(x, z, "resolve a surface biome")) {
             return Engine.super.getSurfaceBiome(x, z);
         }
     }
@@ -717,7 +733,7 @@ public class IrisEngine implements Engine {
     @Override
     public double getSlope(int x, int z) {
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve terrain slope")) {
+                     openGenerationHistoryReadScope(x, z, "resolve terrain slope")) {
             return Engine.super.getSlope(x, z);
         }
     }
@@ -732,7 +748,7 @@ public class IrisEngine implements Engine {
     @Override
     public int getHeight(int x, int z, boolean ignoreFluid) {
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(x, z, "resolve terrain height")) {
+                     openGenerationHistoryReadScope(x, z, "resolve terrain height")) {
             return Engine.super.getHeight(x, z, ignoreFluid);
         }
     }
@@ -745,7 +761,7 @@ public class IrisEngine implements Engine {
             return recorded.get().objectKeys();
         }
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(x << 4, z << 4, "resolve chunk objects")) {
+                     openGenerationHistoryReadScope(x << 4, z << 4, "resolve chunk objects")) {
             return getMantle().getObjectComponent().guess(x, z);
         }
     }
@@ -758,7 +774,7 @@ public class IrisEngine implements Engine {
             return new HashSet<>(recorded.get().pointsOfInterest());
         }
         try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryCoordinateScopeUnchecked(
+                     openGenerationHistoryReadScope(
                              chunkX << 4, chunkZ << 4, "resolve chunk points of interest")) {
             Set<ChunkGenerationSemantics.PointOfInterest> pois = new HashSet<>();
             getMantle().getMantle().iterateChunk(
@@ -854,7 +870,7 @@ public class IrisEngine implements Engine {
                 int queryMinimumZ = Math.max(minimumZ, chunkMinimumZ);
                 int queryMaximumZ = Math.min(maximumZ, chunkMinimumZ + 15);
                 try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                             openGenerationHistoryCoordinateScopeUnchecked(
+                             openGenerationHistoryReadScope(
                                      chunkMinimumX,
                                      chunkMinimumZ,
                                      "resolve native structure volumes")) {
@@ -981,13 +997,16 @@ public class IrisEngine implements Engine {
         return hasGenerationRuntimeScope() && getComplex().isNaturalTerrainContext();
     }
 
-    private GenerationHistoryRuntimeRouter.CoordinateScope openGenerationHistoryCoordinateScopeUnchecked(
+    private GenerationHistoryRuntimeRouter.CoordinateScope openGenerationHistoryReadScope(
             int blockX,
             int blockZ,
             String operation
     ) {
         try {
-            return openGenerationHistoryCoordinateScope(blockX, blockZ);
+            GenerationHistoryRuntimeRouter router = generationHistoryRuntimeRouter;
+            return router == null
+                    ? openGenerationHistoryCoordinateScope(blockX, blockZ)
+                    : router.openReadScope(blockX, blockZ);
         } catch (IOException failure) {
             throw new IllegalStateException("Unable to " + operation + " through Iris generation history at "
                     + blockX + "," + blockZ + ".", failure);

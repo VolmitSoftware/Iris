@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.mantle.CaveTerrainSnapshot;
 import art.arcane.iris.generation.mantle.TerrainMatterView;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
@@ -56,6 +57,7 @@ public class IrisCarveBoundaryFacesTest {
                 return true;
             });
             when(chunks[side].get(anyInt())).thenAnswer(call -> matter[selected][(int) call.getArgument(0)]);
+            when(chunks[side].sectionCount()).thenReturn(2);
             if (side == 0) {
                 continue;
             }
@@ -87,10 +89,10 @@ public class IrisCarveBoundaryFacesTest {
         int[] surfaces = new int[256];
         Arrays.fill(surfaces, 30);
         Method method = IrisCarveModifier.class.getDeclaredMethod("addCrossChunkBoundaryWalls",
-                Mantle.class, MantleChunk.class, CarveWallBuffer.class, CarveColumnMask[].class,
+                Mantle.class, CaveTerrainSnapshot.class, CarveWallBuffer.class, CarveColumnMask[].class,
                 int.class, int.class, int[].class);
         method.setAccessible(true);
-        method.invoke(modifier, mantle, chunks[0], walls, masks, 0, 0, surfaces);
+        method.invoke(modifier, mantle, CaveTerrainSnapshot.capture(chunks[0], 0, 0), walls, masks, 0, 0, surfaces);
         CarveWallBuffer expectedWalls = new CarveWallBuffer(64);
         for (int y = 1; y < 32; y++) {
             for (int offset = 0; offset < 16; offset++) {

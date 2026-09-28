@@ -110,6 +110,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Nat
         if (!context.hasDimensionStack() || !context.getComplex().allowsMantleChunkWrite(x >> 4, z >> 4)) {
             return;
         }
+        context.setCaveTerrain(null);
         MantleChunk<Matter> chunk = engine.getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
         try {
             synchronized (chunk) {

@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -186,6 +187,23 @@ public class MantleObjectComponentBoundaryRadiusTest {
         assertEquals(130, MantleObjectComponent.calculateInputRadius(33, true));
         assertEquals(Integer.MAX_VALUE,
                 MantleObjectComponent.calculateInputRadius(Integer.MAX_VALUE, true));
+    }
+
+    @Test
+    public void eagerInputRadiusCoversEverySourceChunkPlusOneChunkOfFootprint() {
+        assertEquals(129, MantleObjectComponent.calculateEagerInputRadius(103, false));
+        assertEquals(65, MantleObjectComponent.calculateEagerInputRadius(33, false));
+        assertEquals(113, MantleObjectComponent.calculateEagerInputRadius(33, true));
+        assertEquals(27, MantleObjectComponent.calculateEagerInputRadius(10, false));
+        assertEquals(1, MantleObjectComponent.calculateEagerInputRadius(0, false));
+        for (int radius = 0; radius < 300; radius++) {
+            for (boolean collisions : new boolean[]{false, true}) {
+                assertTrue(MantleObjectComponent.calculateEagerInputRadius(radius, collisions)
+                        <= MantleObjectComponent.calculateInputRadius(radius, collisions));
+            }
+        }
+        assertEquals(Integer.MAX_VALUE,
+                MantleObjectComponent.calculateEagerInputRadius(Integer.MAX_VALUE, true));
     }
 
     @Test

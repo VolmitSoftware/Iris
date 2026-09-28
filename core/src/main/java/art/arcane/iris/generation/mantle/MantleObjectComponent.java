@@ -129,6 +129,11 @@ public class MantleObjectComponent extends IrisMantleComponent {
     }
 
     @Override
+    public int getEagerInputRadius(int inputRadius) {
+        return Math.min(inputRadius, calculateEagerInputRadius(getRadius(), hasCollisionRules()));
+    }
+
+    @Override
     public void hotload() {
         super.hotload();
         synchronized (collisionRuleLock) {
@@ -270,6 +275,17 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     static int sourceChunkRadius(int radius) {
         return radius > 0 ? Math.ceilDiv(radius, 16) : 0;
+    }
+
+    /**
+     * Every replayed source chunk plus one chunk of placement footprint. Larger footprints read past it and
+     * get their terrain generated on first access.
+     */
+    static int calculateEagerInputRadius(int radius, boolean sourceAnchoredCollisions) {
+        int normalizedRadius = Math.max(0, radius);
+        long sourceLegs = sourceAnchoredCollisions ? 2L : 1L;
+        long inputRadius = (sourceChunkRadius(normalizedRadius) * 16L * sourceLegs) + Math.min(normalizedRadius, 16) + 1L;
+        return inputRadius >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) inputRadius;
     }
 
     static int calculateInputRadius(int radius, boolean sourceAnchoredCollisions) {

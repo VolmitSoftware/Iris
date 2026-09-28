@@ -109,7 +109,7 @@ public class ModeOverworld extends IrisEngineMode implements EngineMode {
         registerTerrainStage(sCave);
         registerTerrainStage(sPost);
         registerTerrainStage(sFloatingTerrainSolid);
-        registerStage((x, z, k, p, m, c) -> cave.decorateNaturalCaves(x, z, k));
+        registerStage((x, z, k, p, m, c) -> cave.decorateNaturalCaves(x, z, k, c));
         // Never burst these three: all of them write the same block hunk (and sDecorant reads
         // the surface sInsertMatter writes), so parallel order is scheduler-dependent. The
         // production path already runs them inline in this order; sequential registration

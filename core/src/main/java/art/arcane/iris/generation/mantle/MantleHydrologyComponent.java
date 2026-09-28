@@ -67,8 +67,8 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
     }
 
     @Override
-    public boolean isInputGenerationLazy() {
-        return true;
+    public int getEagerInputRadius(int inputRadius) {
+        return 0;
     }
 
     @Override

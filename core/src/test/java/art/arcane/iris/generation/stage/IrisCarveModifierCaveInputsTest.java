@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
@@ -119,6 +120,31 @@ public class IrisCarveModifierCaveInputsTest {
             when(fixture.engine.getCaveBiome(anyInt(), anyInt(), anyInt(), any(IrisDimensionCarvingResolver.State.class))).thenReturn(historical);
             assertSame(historical, new IrisCarveModifier.CaveInputs(fixture.engine).resolve(-17, 20, 16));
             assertEquals(0, fixture.samples.get());
+        }
+    }
+
+    @Test
+    public void contentChunkCapturesOnlyItsOwnColumnsAndDispatchesTheRestThroughHistory() {
+        try (Fixture fixture = new Fixture()) {
+            when(fixture.context.isNaturalTerrain()).thenReturn(false);
+            IrisBiome historical = biome("historical", 0);
+            when(fixture.engine.getCaveBiome(anyInt(), anyInt(), anyInt(), any(IrisDimensionCarvingResolver.State.class))).thenReturn(historical);
+            IrisCarveModifier.CaveInputs inputs = IrisCarveModifier.CaveInputs.forContentChunk(fixture.engine, -2, 1);
+            IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
+            for (int x = -32; x <= -17; x++) {
+                for (int z = 16; z <= 31; z += 5) {
+                    for (int y : new int[]{0, 30, 33, 34, 39, 40}) {
+                        assertSame(fixture.scalar.getCaveBiome(x, y, z, state), inputs.resolve(x, y, z));
+                    }
+                }
+            }
+            int captured = fixture.samples.get();
+            assertTrue(captured > 0);
+            assertSame(historical, inputs.resolve(-33, 20, 16));
+            assertSame(historical, inputs.resolve(-16, 20, 16));
+            assertSame(historical, inputs.resolve(-17, 20, 15));
+            assertSame(historical, inputs.resolve(-17, 20, 32));
+            assertEquals(captured, fixture.samples.get());
         }
     }
 

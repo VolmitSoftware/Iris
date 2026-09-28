@@ -309,8 +309,8 @@ public class MatterGeneratorCarvePassRadiusTest {
         }
 
         @Override
-        public boolean isInputGenerationLazy() {
-            return lazyInputGeneration;
+        public int getEagerInputRadius(int inputRadius) {
+            return lazyInputGeneration ? 0 : inputRadius;
         }
 
         @Override

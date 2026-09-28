@@ -55,8 +55,12 @@ public interface MantleComponent extends Comparable<MantleComponent> {
         return getInputRadius();
     }
 
-    default boolean isInputGenerationLazy() {
-        return false;
+    /**
+     * The part of {@code inputRadius} generated before this component runs. Content writers generate the
+     * terrain of any chunk read beyond it on first access, so this sizes the eager window, not what may be read.
+     */
+    default int getEagerInputRadius(int inputRadius) {
+        return inputRadius;
     }
 
     default IrisData getData() {

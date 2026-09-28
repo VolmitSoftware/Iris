@@ -6,6 +6,7 @@ import art.arcane.iris.generation.terrain.IrisRegion;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,8 @@ public final class SavedBiomeCapture {
         TransitionGenerationPlan transition = engine.getComplex().getTransitionGenerationPlan();
         Map<Long, Optional<SavedBiomeChunk>> historical = new HashMap<>();
         Map<Integer, List<SavedBiomeChunk.Span>> vertical = new HashMap<>(16);
+        Cells cells = new Cells(activationId);
+        Column column = new Column(engine, minimumY, height);
         for (int localX = 0; localX < 16; localX++) {
             for (int localZ = 0; localZ < 16; localZ++) {
                 int blockX = startX + localX;
@@ -37,7 +40,7 @@ public final class SavedBiomeCapture {
                 IrisRegion region = engine.getRegion(blockX, blockZ);
                 IrisBiome surface = engine.getSurfaceBiome(blockX, blockZ);
                 int surfaceY = minimumY + engine.getHeight(blockX, blockZ);
-                SavedBiomeChunk.Cell surfaceCell = cell(activationId, surface, region);
+                SavedBiomeChunk.Cell surfaceCell = cells.cell(surface, region);
                 if (floating != null) {
                     FloatingBiomeOverlay.Identity floatingSurface = floating.surfaceAt(localX, localZ);
                     if (floatingSurface != null) {
@@ -53,33 +56,33 @@ public final class SavedBiomeCapture {
                 int quartKey = quartX * 16 + quartZ;
                 List<SavedBiomeChunk.Span> spans = vertical.get(quartKey);
                 if (spans == null) {
-                    spans = captureVertical(new Column(engine, activationId, startX + quartX, startZ + quartZ), transition, saved, historical, floating);
+                    spans = captureVertical(column, startX + quartX, startZ + quartZ, cells, transition, saved, historical, floating);
                     vertical.put(quartKey, spans);
                 }
-                SavedBiomeChunk.Cell caveBase = cell(activationId, engine.getCaveBiome(blockX, blockZ), region);
+                SavedBiomeChunk.Cell caveBase = cells.cell(engine.getCaveBiome(blockX, blockZ), region);
                 result.column(localX, localZ, new SavedBiomeChunk.Column(surfaceCell, caveBase, spans));
             }
         }
         return result.build();
     }
 
-    private static List<SavedBiomeChunk.Span> captureVertical(Column column, TransitionGenerationPlan transition,
-                                                             SavedBiomeRuntime saved, Map<Long, Optional<SavedBiomeChunk>> historical, FloatingBiomeOverlay floating) throws IOException {
-        Engine engine = column.engine();
-        int minimumY = engine.getMinHeight();
-        int maximumY = minimumY + engine.getHeight();
+    private static List<SavedBiomeChunk.Span> captureVertical(Column column, int blockX, int blockZ, Cells cells,
+                                                             TransitionGenerationPlan transition, SavedBiomeRuntime saved,
+                                                             Map<Long, Optional<SavedBiomeChunk>> historical, FloatingBiomeOverlay floating) throws IOException {
+        column.engine().getBiomeOrMantleColumn(blockX, blockZ, 4, column.biomes(), column.regions());
+        int minimumY = column.minimumY();
+        int maximumY = minimumY + column.height();
         List<SavedBiomeChunk.Span> spans = new ArrayList<>();
         SavedBiomeChunk.Cell previous = null;
         int startY = minimumY;
-        for (int worldY = minimumY; worldY < maximumY; worldY += 4) {
-            IrisBiome biome = engine.getBiomeOrMantle(column.blockX(), worldY - minimumY, column.blockZ());
-            IrisRegion region = engine.getRegion(column.blockX(), worldY - minimumY, column.blockZ());
-            SavedBiomeChunk.Cell current = cell(column.activationId(), biome, region);
+        for (int index = 0; index < column.biomes().length; index++) {
+            int worldY = minimumY + index * 4;
+            SavedBiomeChunk.Cell current = cells.cell(column.biomes()[index], column.regions()[index]);
             if (floating != null) {
-                current = overlay(current, floating.volumeAt(column.blockX() & 15, worldY - minimumY, column.blockZ() & 15));
+                current = overlay(current, floating.volumeAt(blockX & 15, worldY - minimumY, blockZ & 15));
             }
             if (transition != null) {
-                current = historicalCell(new Sample(column.blockX(), worldY, column.blockZ(), false), current, transition, saved, historical);
+                current = historicalCell(new Sample(blockX, worldY, blockZ, false), current, transition, saved, historical);
             }
             if (previous != null && !previous.equals(current)) {
                 spans.add(new SavedBiomeChunk.Span(startY, worldY, previous));
@@ -132,7 +135,40 @@ public final class SavedBiomeCapture {
                 Objects.requireNonNull(region, "region").getLoadKey());
     }
 
-    private record Column(Engine engine, long activationId, int blockX, int blockZ) {
+    private record Column(Engine engine, int minimumY, int height, IrisBiome[] biomes, IrisRegion[] regions) {
+        private Column(Engine engine, int minimumY, int height) {
+            this(engine, minimumY, height, new IrisBiome[(height + 3) / 4], new IrisRegion[(height + 3) / 4]);
+        }
+    }
+
+    private static final class Cells {
+        private final long activationId;
+        private IrisBiome[] biomes = new IrisBiome[8];
+        private IrisRegion[] regions = new IrisRegion[8];
+        private SavedBiomeChunk.Cell[] cells = new SavedBiomeChunk.Cell[8];
+        private int size;
+
+        private Cells(long activationId) {
+            this.activationId = activationId;
+        }
+
+        private SavedBiomeChunk.Cell cell(IrisBiome biome, IrisRegion region) {
+            for (int index = 0; index < size; index++) {
+                if (biomes[index] == biome && regions[index] == region) {
+                    return cells[index];
+                }
+            }
+            SavedBiomeChunk.Cell created = SavedBiomeCapture.cell(activationId, biome, region);
+            if (size == cells.length) {
+                biomes = Arrays.copyOf(biomes, size * 2);
+                regions = Arrays.copyOf(regions, size * 2);
+                cells = Arrays.copyOf(cells, size * 2);
+            }
+            biomes[size] = biome;
+            regions[size] = region;
+            cells[size++] = created;
+            return created;
+        }
     }
 
     private record Sample(int x, int y, int z, boolean surface) {

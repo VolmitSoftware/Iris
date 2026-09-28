@@ -494,12 +494,11 @@ public class IrisDimensionCarvingResolverParityTest {
         assertSame(fixture.entry(), IrisDimensionCarvingResolver.resolveRootEntry(
                 fixture.engine(), 80, state));
 
-        Field rootEntriesField = IrisDimensionCarvingResolver.State.class
-                .getDeclaredField("rootEntriesByWorldY");
-        rootEntriesField.setAccessible(true);
+        Field rootsField = IrisDimensionCarvingResolver.State.class.getDeclaredField("roots");
+        rootsField.setAccessible(true);
         System.gc();
 
-        assertSame(fixture.entry(), ((Map<?, ?>) rootEntriesField.get(state)).get(80));
+        assertSame(fixture.entry(), ((IrisDimensionCarvingEntry[]) rootsField.get(state))[80]);
     }
 
     private RetainedFixture createRetainedFixture() {

@@ -1075,7 +1075,11 @@ public final class GenerationSemanticIndex {
 
     private void cacheRegion(long regionKey, RegionShard region) {
         regions.put(regionKey, region);
-        cacheSummary(regionKey, region.summary());
+        if (region.summary == null) {
+            summaries.remove(regionKey);
+        } else {
+            cacheSummary(regionKey, region.summary);
+        }
         while (regions.size() > MAXIMUM_CACHED_REGIONS) {
             Iterator<Map.Entry<Long, RegionShard>> entries = regions.entrySet().iterator();
             entries.next();

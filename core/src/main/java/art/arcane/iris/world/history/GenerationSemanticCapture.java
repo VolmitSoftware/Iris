@@ -227,12 +227,12 @@ public final class GenerationSemanticCapture {
         }
         resolvedCaves.set(position);
         if (explicitBiomeKey != null && !explicitBiomeKey.isBlank()) {
-            semantics.addCaveBiome(explicitBiomeKey);
+            caveBiomes.add(semantics, explicitBiomeKey);
             return;
         }
         IrisBiome caveBiome = caveBiomes.resolve(blockX, y, blockZ);
         if (caveBiome != null && caveBiome.getLoadKey() != null) {
-            semantics.addCaveBiome(caveBiome.getLoadKey());
+            caveBiomes.add(semantics, caveBiome.getLoadKey());
         }
     }
 
@@ -280,6 +280,7 @@ public final class GenerationSemanticCapture {
         private final IrisDimensionCarvingResolver.State fallbackState = new IrisDimensionCarvingResolver.State();
         private IrisDimensionCarvingResolver.Snapshot snapshot;
         private int minimumY;
+        private String lastKey;
 
         private CaveBiomes(Engine engine, boolean scoped) {
             this.engine = engine;
@@ -288,6 +289,13 @@ public final class GenerationSemanticCapture {
                     && irisEngine.hasGenerationRuntimeScope() && !engine.getPlatformHooks().isMainThread()
                     ? new CaveFallback(engine.getComplex(), engine.getDimensionStackContext())
                     : null;
+        }
+
+        private void add(ChunkGenerationSemantics.Builder semantics, String key) {
+            if (key != lastKey) {
+                semantics.addCaveBiome(key);
+                lastKey = key;
+            }
         }
 
         private IrisBiome resolve(int x, int y, int z) {

@@ -11,9 +11,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -92,6 +94,7 @@ public class SavedBiomeCaptureTest {
         when(engine.getSurfaceBiome(anyInt(), anyInt())).thenReturn(host);
         when(engine.getCaveBiome(anyInt(), anyInt())).thenReturn(host);
         when(engine.getBiomeOrMantle(anyInt(), anyInt(), anyInt())).thenReturn(host);
+        columnsFromPointLookups(engine);
         FloatingBiomeOverlay floating = new FloatingBiomeOverlay(16);
         FloatingBiomeOverlay.Identity childIdentity = new FloatingBiomeOverlay.Identity(child.getLoadKey(), region.getLoadKey());
         floating.record(0, 8, 0, childIdentity);
@@ -135,6 +138,7 @@ public class SavedBiomeCaptureTest {
         when(engine.getSurfaceBiome(anyInt(), anyInt())).thenAnswer(call -> (int) call.getArgument(0) == -15 ? right : left);
         when(engine.getCaveBiome(anyInt(), anyInt())).thenReturn(cave);
         when(engine.getBiomeOrMantle(anyInt(), anyInt(), anyInt())).thenAnswer(call -> (int) call.getArgument(1) < 8 ? lower : upper);
+        columnsFromPointLookups(engine);
 
         SavedBiomeChunk chunk = SavedBiomeCapture.capture(engine, stage, historical, null);
 
@@ -167,7 +171,23 @@ public class SavedBiomeCaptureTest {
         doCallRealMethod().when(engine).getBiomeOrMantle(anyInt(), anyInt(), anyInt());
         when(engine.getCaveOrMantleBiome(anyInt(), anyInt(), anyInt()))
                 .thenAnswer(call -> engine.getCaveBiome(call.getArgument(0), call.getArgument(2)));
+        columnsFromPointLookups(engine);
         return engine;
+    }
+
+    private static void columnsFromPointLookups(Engine engine) {
+        doAnswer(call -> {
+            int x = call.getArgument(0);
+            int z = call.getArgument(1);
+            int step = call.getArgument(2);
+            IrisBiome[] biomes = call.getArgument(3);
+            IrisRegion[] regions = call.getArgument(4);
+            for (int index = 0; index < biomes.length; index++) {
+                biomes[index] = engine.getBiomeOrMantle(x, index * step, z);
+                regions[index] = engine.getRegion(x, index * step, z);
+            }
+            return null;
+        }).when(engine).getBiomeOrMantleColumn(anyInt(), anyInt(), anyInt(), any(), any());
     }
 
     private static GenerationHistory.GenerationStage stage() {

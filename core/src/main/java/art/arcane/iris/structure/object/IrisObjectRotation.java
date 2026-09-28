@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Snippet("object-rotator")
 @Accessors(chain = true)
@@ -59,6 +60,8 @@ import java.util.Set;
 @Data
 public class IrisObjectRotation {
     private static volatile StateRotator PLATFORM_ROTATOR = null;
+    private static final Object ROTATED_AWAY = new Object();
+    private static final int SPIN_STEPS = 5;
 
     public interface StateRotator {
         NativeBlockState rotate(IrisObjectRotation rotation, NativeBlockState state, int spinx, int spiny, int spinz);
@@ -90,6 +93,8 @@ public class IrisObjectRotation {
 
     @Description("The z axis rotation")
     private IrisAxisRotationClamp zAxis = new IrisAxisRotationClamp();
+
+    private final transient ConcurrentHashMap<NativeBlockState, Object[]> stateRotations = new ConcurrentHashMap<>();
 
     public static IrisObjectRotation xFlip180() {
         IrisObjectRotation rt = new IrisObjectRotation();
@@ -316,9 +321,19 @@ public class IrisObjectRotation {
             return state;
         }
 
-        BlockData raw = original.clone();
-        BlockData rotated = rotate(raw, spinx, spiny, spinz);
-        return rotated == null ? null : BukkitBlockState.of(rotated);
+        Object[] rotations = stateRotations.computeIfAbsent(state, (NativeBlockState ignored) -> new Object[SPIN_STEPS * SPIN_STEPS * SPIN_STEPS]);
+        int index = (spinStep(spinx) * SPIN_STEPS + spinStep(spiny)) * SPIN_STEPS + spinStep(spinz);
+        Object memo = rotations[index];
+        if (memo == null) {
+            BlockData rotated = rotate(original.clone(), spinx, spiny, spinz);
+            memo = rotated == null ? ROTATED_AWAY : BukkitBlockState.of(rotated);
+            rotations[index] = memo;
+        }
+        return memo == ROTATED_AWAY ? null : (NativeBlockState) memo;
+    }
+
+    private static int spinStep(int spin) {
+        return (int) Math.ceil(Math.abs((spin % 360D) / 90D));
     }
 
     private static boolean canRotateBlockData(BlockData data) {

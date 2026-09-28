@@ -80,6 +80,7 @@ public final class BukkitBlockState implements NativeBlockState {
     private volatile Boolean deepSlate;
     private volatile Boolean vineBlock;
     private volatile Boolean tileEntity;
+    private volatile ConcurrentHashMap<String, ConcurrentHashMap<String, NativeBlockState>> propertyVariants;
 
     private BukkitBlockState(BlockData data, String key) {
         this.data = data;
@@ -428,7 +429,18 @@ public final class BukkitBlockState implements NativeBlockState {
             BlockData resolved = Bukkit.createBlockData(merged);
             return of(IrisCustomData.of(resolved, custom.getCustom()));
         }
-        return of(Bukkit.createBlockData(BlockStateKey.withProperty(key, name, value)));
+        ConcurrentHashMap<String, ConcurrentHashMap<String, NativeBlockState>> variants = propertyVariants;
+        if (variants == null) {
+            variants = new ConcurrentHashMap<>(4);
+            propertyVariants = variants;
+        }
+        ConcurrentHashMap<String, NativeBlockState> values = variants.computeIfAbsent(name, (String ignored) -> new ConcurrentHashMap<>(4));
+        NativeBlockState variant = values.get(value);
+        if (variant == null) {
+            variant = of(Bukkit.createBlockData(BlockStateKey.withProperty(key, name, value)));
+            values.putIfAbsent(value, variant);
+        }
+        return variant;
     }
 
     @Override

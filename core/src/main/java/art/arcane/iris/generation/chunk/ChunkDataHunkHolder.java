@@ -23,19 +23,35 @@ import art.arcane.volmlib.nativelib.terrain.NativeBlockVolume;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.BoundBlockState;
 import art.arcane.iris.generation.block.IrisCustomData;
-import art.arcane.volmlib.util.hunk.storage.AtomicHunk;
+import art.arcane.volmlib.util.hunk.storage.StorageHunk;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
-@SuppressWarnings("ClassCanBeRecord")
-public class ChunkDataHunkHolder extends AtomicHunk<NativeBlockState> implements NativeBlockVolume {
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.util.Arrays;
+
+/**
+ * Plain-array block buffer for one chunk. Stages write disjoint columns when they fan out and every hand-off
+ * between threads is a join, so the cells need no per-access fences. Each column tracks its highest stored y;
+ * a raise is a CAS so concurrent writers to one column can never lose the maximum.
+ */
+public class ChunkDataHunkHolder extends StorageHunk<NativeBlockState> implements NativeBlockVolume, ColumnExtent {
     private static final BoundBlockState AIR = BoundBlockState.of("AIR");
+    private static final VarHandle COLUMN_TOPS = MethodHandles.arrayElementVarHandle(int[].class);
 
     private final ChunkData chunk;
+    private final NativeBlockState[] data;
+    private final int[] columnTops;
+    private final int zStride;
 
     public ChunkDataHunkHolder(ChunkData chunk) {
         super(16, chunk.getMaxHeight() - chunk.getMinHeight(), 16);
         this.chunk = chunk;
+        this.zStride = 16 * getHeight();
+        this.data = new NativeBlockState[zStride * 16];
+        this.columnTops = new int[256];
+        Arrays.fill(columnTops, -1);
     }
 
     @Override
@@ -56,7 +72,16 @@ public class ChunkDataHunkHolder extends AtomicHunk<NativeBlockState> implements
         if (t == null) {
             return;
         }
-        super.setRaw(x, y, z, t);
+        data[index(x, y, z)] = t;
+        int column = (z << 4) | x;
+        int top = (int) COLUMN_TOPS.getOpaque(columnTops, column);
+        while (y > top) {
+            int witness = (int) COLUMN_TOPS.compareAndExchange(columnTops, column, top, y);
+            if (witness == top) {
+                break;
+            }
+            top = witness;
+        }
     }
 
     @Override
@@ -65,13 +90,23 @@ public class ChunkDataHunkHolder extends AtomicHunk<NativeBlockState> implements
             return AIR.get();
         }
 
-        NativeBlockState b = super.getRaw(x, y, z);
+        NativeBlockState b = data[index(x, y, z)];
 
         return b != null ? b : AIR.get();
     }
 
+    @Override
     public NativeBlockState getStoredRaw(int x, int y, int z) {
-        return super.getRaw(x, y, z);
+        return data[index(x, y, z)];
+    }
+
+    @Override
+    public int highestStoredY(int x, int z) {
+        return (int) COLUMN_TOPS.getOpaque(columnTops, (z << 4) | x);
+    }
+
+    private int index(int x, int y, int z) {
+        return (z * zStride) + (y << 4) + x;
     }
 
     public void apply() {
@@ -90,7 +125,7 @@ public class ChunkDataHunkHolder extends AtomicHunk<NativeBlockState> implements
                 int runStart = -1;
 
                 for (int y = 0; y < height; y++) {
-                    NativeBlockState state = super.getRaw(x, y, z);
+                    NativeBlockState state = getStoredRaw(x, y, z);
                     BlockData block = state == null ? null : (BlockData) state.nativeHandle();
                     // Custom wrappers are not real Bukkit data; write the vanilla base like the
                     // NMS fast path (NMSBinding.applyChunkDataBlocks) does.

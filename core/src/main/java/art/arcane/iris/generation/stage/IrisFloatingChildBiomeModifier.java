@@ -44,7 +44,6 @@ import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.volmlib.util.matter.slices.BiomeInjectMatter;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -431,7 +430,6 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                 }
                 context.setNaturalBiome(wx & 15, y, wz & 15, selected);
                 context.floatingBiomes(chunkHeight).record(wx & 15, y, wz & 15, matter.identity());
-                getEngine().getMantle().getMantle().set(wx, y, wz, BiomeInjectMatter.get(selected.key()));
             }
         } catch (Throwable e) {
             IrisLogging.reportError(e);

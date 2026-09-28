@@ -48,6 +48,7 @@ import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.atomics.AtomicRollingSequence;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
+import art.arcane.iris.generation.chunk.ColumnExtentListeningHunk;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -116,13 +117,7 @@ public class IrisEngine implements Engine {
     final Object generationHistoryRuntimeRouterLock = new Object();
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
-    final ThreadLocal<RuntimeAssembly> runtimeAssembly = new ThreadLocal<>();
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    final ThreadLocal<BiomeEnvironmentBinding> biomeEnvironmentScopes = new ThreadLocal<>();
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    final GenerationRuntimeScopeState generationRuntimeScopes = new GenerationRuntimeScopeState();
+    final EngineThreadState threadState = new EngineThreadState();
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     final Set<GenerationRuntime> detachedGenerationRuntimes = Collections.synchronizedSet(
@@ -382,7 +377,7 @@ public class IrisEngine implements Engine {
             throw new IllegalStateException("World entry hydrology preparation could not acquire its generation session.", failure);
         }
         try (lease;
-             GenerationRuntimeScope runtimeScope = generationRuntimeScopes.open(binding);
+             GenerationRuntimeScope runtimeScope = threadState.open(binding);
              IrisContext.Scope context = IrisContext.open(this, lease.sessionId(), null)) {
             getComplex().getHydrologyRuntime().prepareChunkColumns(blockX, blockZ);
         } catch (Exception failure) {
@@ -572,8 +567,8 @@ public class IrisEngine implements Engine {
     @Override
     public BiomeEnvironment.Scope openBiomeEnvironmentScope(BiomeEnvironment environment) {
         BiomeEnvironmentBinding binding = new BiomeEnvironmentBinding(
-                Objects.requireNonNull(environment, "environment"), biomeEnvironmentScopes.get());
-        biomeEnvironmentScopes.set(binding);
+                Objects.requireNonNull(environment, "environment"), threadState.environment());
+        threadState.setEnvironment(binding);
         return binding;
     }
 
@@ -979,7 +974,7 @@ public class IrisEngine implements Engine {
     }
 
     public boolean hasGenerationRuntimeScope() {
-        return generationRuntimeScopes.current() != null;
+        return threadState.binding() != null;
     }
 
     private boolean usesScopedNaturalTerrain() {
@@ -1058,7 +1053,7 @@ public class IrisEngine implements Engine {
     }
 
     public GenerationRuntimeBinding captureGenerationRuntimeBinding() {
-        GenerationRuntimeBinding scoped = generationRuntimeScopes.current();
+        GenerationRuntimeBinding scoped = threadState.binding();
         return scoped == null ? getActiveGenerationRuntimeBinding() : scoped;
     }
 
@@ -1074,7 +1069,7 @@ public class IrisEngine implements Engine {
             if (!isGenerationRuntimeBindingLive(required)) {
                 throw new IllegalStateException("Iris generation runtime binding is closed or no longer owned.");
             }
-            return generationRuntimeScopes.open(required);
+            return threadState.open(required);
         }
     }
 
@@ -1265,75 +1260,85 @@ public class IrisEngine implements Engine {
 
     @Override
     public SeedManager getSeedManager() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
+        EngineThreadState.Frame frame = threadState.current();
+        RuntimeAssembly assembly = frame == null ? null : frame.assembly;
         if (assembly != null) {
             return assembly.seedManager;
         }
-        GenerationRuntime current = selectedGenerationRuntime();
+        GenerationRuntime current = selectedGenerationRuntime(frame);
         return current == null ? seedManager : current.seedManager();
     }
 
     @Override
     public IrisComplex getComplex() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
+        EngineThreadState.Frame frame = threadState.current();
+        RuntimeAssembly assembly = frame == null ? null : frame.assembly;
         if (assembly != null && assembly.complex != null) {
             return assembly.complex;
         }
-        GenerationRuntime current = selectedGenerationRuntime();
+        GenerationRuntime current = selectedGenerationRuntime(frame);
         return current == null ? null : current.complex();
     }
 
     @Override
     public EngineTarget getTarget() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
+        EngineThreadState.Frame frame = threadState.current();
+        RuntimeAssembly assembly = frame == null ? null : frame.assembly;
         if (assembly != null) {
             return assembly.target;
         }
-        GenerationRuntime current = selectedGenerationRuntime();
+        GenerationRuntime current = selectedGenerationRuntime(frame);
         return current == null ? publishedTarget : current.target();
     }
 
     @Override
     public IrisData getData() {
-        BiomeEnvironmentBinding environment = biomeEnvironmentScopes.get();
-        if (environment != null && !hasGenerationRuntimeScope()) {
-            return environment.environment.data();
+        EngineThreadState.Frame frame = threadState.current();
+        if (frame != null) {
+            BiomeEnvironmentBinding environment = frame.environment;
+            if (environment != null && frame.binding == null) {
+                return environment.environment.data();
+            }
+            RuntimeAssembly assembly = frame.assembly;
+            if (assembly != null) {
+                return assembly.target.getData();
+            }
         }
-        RuntimeAssembly assembly = runtimeAssembly.get();
-        if (assembly != null) {
-            return assembly.target.getData();
-        }
-        GenerationRuntime current = selectedGenerationRuntime();
+        GenerationRuntime current = selectedGenerationRuntime(frame);
         return current == null ? publishedTarget.getData() : current.data();
     }
 
     @Override
     public IrisDimension getDimension() {
-        BiomeEnvironmentBinding environment = biomeEnvironmentScopes.get();
-        if (environment != null && !hasGenerationRuntimeScope()) {
-            return environment.environment.dimension();
+        EngineThreadState.Frame frame = threadState.current();
+        if (frame != null) {
+            BiomeEnvironmentBinding environment = frame.environment;
+            if (environment != null && frame.binding == null) {
+                return environment.environment.dimension();
+            }
+            RuntimeAssembly assembly = frame.assembly;
+            if (assembly != null) {
+                return assembly.target.getDimension();
+            }
         }
-        RuntimeAssembly assembly = runtimeAssembly.get();
-        if (assembly != null) {
-            return assembly.target.getDimension();
-        }
-        GenerationRuntime current = selectedGenerationRuntime();
+        GenerationRuntime current = selectedGenerationRuntime(frame);
         return current == null ? publishedTarget.getDimension() : current.dimension();
     }
 
     @Override
     public EngineMantle getMantle() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
+        EngineThreadState.Frame frame = threadState.current();
+        RuntimeAssembly assembly = frame == null ? null : frame.assembly;
         if (assembly != null && assembly.mantle != null) {
             return assembly.mantle;
         }
-        GenerationRuntime current = selectedGenerationRuntime();
+        GenerationRuntime current = selectedGenerationRuntime(frame);
         return current == null ? null : current.mantle();
     }
 
     @Override
     public EngineMode getMode() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
+        RuntimeAssembly assembly = threadState.assembly();
         if (assembly != null && assembly.mode != null) {
             return assembly.mode;
         }
@@ -1343,7 +1348,7 @@ public class IrisEngine implements Engine {
 
     @Override
     public EngineEffects getEffects() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
+        RuntimeAssembly assembly = threadState.assembly();
         if (assembly != null && assembly.effects != null) {
             return assembly.effects;
         }
@@ -1353,7 +1358,7 @@ public class IrisEngine implements Engine {
 
     @Override
     public EngineWorldManager getWorldManager() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
+        RuntimeAssembly assembly = threadState.assembly();
         if (assembly != null && assembly.worldManager != null) {
             return assembly.worldManager;
         }
@@ -1363,27 +1368,29 @@ public class IrisEngine implements Engine {
 
     @Override
     public UpperDimensionContext getUpperContext() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
+        EngineThreadState.Frame frame = threadState.current();
+        RuntimeAssembly assembly = frame == null ? null : frame.assembly;
         if (assembly != null) {
             return assembly.upperContext;
         }
-        GenerationRuntime current = selectedGenerationRuntime();
+        GenerationRuntime current = selectedGenerationRuntime(frame);
         return current == null ? null : current.upperContext();
     }
 
     @Override
     public DimensionStackContext getDimensionStackContext() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
+        EngineThreadState.Frame frame = threadState.current();
+        RuntimeAssembly assembly = frame == null ? null : frame.assembly;
         if (assembly != null) {
             return assembly.dimensionStackContext;
         }
-        GenerationRuntime current = selectedGenerationRuntime();
+        GenerationRuntime current = selectedGenerationRuntime(frame);
         return current == null ? null : current.dimensionStackContext();
     }
 
     @Override
     public CompletableFuture<Long> getHash32() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
+        RuntimeAssembly assembly = threadState.assembly();
         if (assembly != null && assembly.hash32 != null) {
             return assembly.hash32;
         }
@@ -1465,7 +1472,7 @@ public class IrisEngine implements Engine {
              IrisContext.Scope generationScope = IrisContext.open(this, lease.sessionId(), null)) {
             getEngineData().getStatistics().generatedChunk();
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            Hunk<NativeBlockState> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y, z + zz, t));
+            Hunk<NativeBlockState> blocks = new ColumnExtentListeningHunk<>(vblocks, (xx, y, zz, t) -> catchBlockUpdates(x + xx, y, z + zz, t));
 
             if (getDimension().isDebugChunkCrossSections() && ((x >> 4) % getDimension().getDebugCrossSectionsMod() == 0 || (z >> 4) % getDimension().getDebugCrossSectionsMod() == 0)) {
                 NativeBlockState crossSection = B.getState("CRYING_OBSIDIAN");
@@ -1593,16 +1600,21 @@ public class IrisEngine implements Engine {
 
     @Override
     public int getCacheID() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
+        EngineThreadState.Frame frame = threadState.current();
+        RuntimeAssembly assembly = frame == null ? null : frame.assembly;
         if (assembly != null) {
             return assembly.cacheId;
         }
-        GenerationRuntime current = selectedGenerationRuntime();
+        GenerationRuntime current = selectedGenerationRuntime(frame);
         return current == null ? -1 : current.cacheId();
     }
 
     private GenerationRuntime selectedGenerationRuntime() {
-        GenerationRuntimeBinding scoped = generationRuntimeScopes.current();
+        return selectedGenerationRuntime(threadState.current());
+    }
+
+    private GenerationRuntime selectedGenerationRuntime(EngineThreadState.Frame frame) {
+        GenerationRuntimeBinding scoped = frame == null ? null : frame.binding;
         if (scoped != null && isGenerationRuntimeBindingLive(scoped)) {
             return scoped.runtime;
         }
@@ -1611,7 +1623,7 @@ public class IrisEngine implements Engine {
     }
 
     public GenerationKernelRegistry.Version getGenerationKernelVersion() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
+        RuntimeAssembly assembly = threadState.assembly();
         if (assembly != null) {
             return assembly.kernelVersion;
         }
@@ -1619,7 +1631,7 @@ public class IrisEngine implements Engine {
     }
 
     public GenerationKernelRegistry.RuntimeKernel getGenerationRuntimeKernel() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
+        RuntimeAssembly assembly = threadState.assembly();
         if (assembly != null) {
             return assembly.runtimeKernel;
         }
@@ -1627,7 +1639,7 @@ public class IrisEngine implements Engine {
     }
 
     public TransitionGenerationPlan getTransitionGenerationPlan() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
+        RuntimeAssembly assembly = threadState.assembly();
         if (assembly != null) {
             return assembly.transitionPlan;
         }
@@ -1751,14 +1763,14 @@ public class IrisEngine implements Engine {
     }
 
     public static final class GenerationRuntimeScope implements AutoCloseable {
-        private final GenerationRuntimeScopeState state;
+        private final EngineThreadState state;
         private final Thread owner;
         private final GenerationRuntimeBinding previous;
         private final GenerationRuntimeBinding installed;
         private boolean closed;
 
         GenerationRuntimeScope(
-                GenerationRuntimeScopeState state,
+                EngineThreadState state,
                 Thread owner,
                 GenerationRuntimeBinding previous,
                 GenerationRuntimeBinding installed
@@ -1780,7 +1792,7 @@ public class IrisEngine implements Engine {
     }
 
 
-    private final class BiomeEnvironmentBinding implements BiomeEnvironment.Scope {
+    final class BiomeEnvironmentBinding implements BiomeEnvironment.Scope {
         private final BiomeEnvironment environment;
         private final BiomeEnvironmentBinding previous;
         private final Thread owner = Thread.currentThread();
@@ -1799,14 +1811,10 @@ public class IrisEngine implements Engine {
             if (closed) {
                 return;
             }
-            if (biomeEnvironmentScopes.get() != this) {
+            if (threadState.environment() != this) {
                 throw new IllegalStateException("Biome environment scopes must close in reverse order.");
             }
-            if (previous == null) {
-                biomeEnvironmentScopes.remove();
-            } else {
-                biomeEnvironmentScopes.set(previous);
-            }
+            threadState.setEnvironment(previous);
             closed = true;
         }
     }

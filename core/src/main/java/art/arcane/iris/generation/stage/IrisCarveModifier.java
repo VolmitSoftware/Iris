@@ -40,6 +40,7 @@ import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 import art.arcane.iris.generation.hydrology.IrisRiverMaterialConfig;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.chunk.ColumnExtent;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.generation.block.B;
@@ -896,12 +897,17 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             int width = output.getWidth();
             int depth = output.getDepth();
             int height = output.getHeight();
+            ColumnExtent extent = output instanceof ColumnExtent columnExtent ? columnExtent : null;
             for (int localX = 0; localX < width; localX++) {
                 for (int localZ = 0; localZ < depth; localZ++) {
                     int worldX = blockX + localX;
                     int worldZ = blockZ + localZ;
                     int floor = -1;
+                    int top = extent == null ? height - 1 : extent.highestStoredY(localX, localZ);
                     for (int y = 1; y < height; y++) {
+                        if (y > top) {
+                            break;
+                        }
                         NativeBlockState state = output.getRaw(localX, y, localZ);
                         if (B.isSolid(state)) {
                             if (floor >= 0) {
@@ -922,6 +928,9 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                                             worldX, worldZ, resolver, caveBiomes, customBiomes);
                                     decorateZone(output, zone, localX, localZ, worldX, worldZ,
                                             floorBiome, ceilingBiome);
+                                    if (extent != null) {
+                                        top = extent.highestStoredY(localX, localZ);
+                                    }
                                 }
                                 floor = -1;
                             }

@@ -23,7 +23,7 @@ import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.generation.mantle.EngineMantle;
-import art.arcane.iris.generation.stage.IrisBiomeActuator;
+import art.arcane.iris.generation.stage.IrisDimensionStackActuator;
 import art.arcane.iris.generation.stage.IrisTransitionGeometryActuator;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
@@ -215,7 +215,7 @@ public interface EngineMode extends Staged {
         try (IrisContext.Scope chunkScope = IrisContext.open(getEngine(), generationSessionId, ctx)) {
             generateTerrain(x, z, blocks, biomes, multicore, ctx);
             recordNaturalTerrain(x, z, blocks, biomes, ctx);
-            IrisBiomeActuator.publishNaturalMetadata(getEngine(), x, z, biomes, ctx);
+            IrisDimensionStackActuator.clearHostNaturalMetadata(getEngine(), x, z, biomes.getHeight(), ctx);
             ctx.beginContent();
             List<Matter> continuations = restoreObjectContinuations(x, z);
             for (EngineStage i : stages) {

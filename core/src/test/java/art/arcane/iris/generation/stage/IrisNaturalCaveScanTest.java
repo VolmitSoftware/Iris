@@ -12,6 +12,11 @@ import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.iris.generation.block.B;
+import art.arcane.iris.generation.chunk.ChunkDataHunkHolder;
+import art.arcane.iris.generation.chunk.ColumnExtentListeningHunk;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
+import org.bukkit.generator.ChunkGenerator;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
@@ -89,6 +94,46 @@ public class IrisNaturalCaveScanTest {
         assertSame(failure, assertThrows(IllegalStateException.class,
                 () -> fixture.modifier.decorateNaturalCaves(-32, 48, output)));
         verify(fixture.chunk).release();
+    }
+
+    @Test
+    public void columnExtentScanMatchesFullScanWhenDecorationBuildsAboveTheColumnTop() throws Exception {
+        IrisPlatforms.bind(mock(IrisPlatform.class));
+        try {
+            Fixture full = new Fixture(true);
+            Hunk<NativeBlockState> fullOutput = full.sparseOutput(Hunk.newArrayHunk(16, 32, 16));
+            List<String> fullWrites = new ArrayList<>();
+            full.modifier.decorateNaturalCaves(-32, 48,
+                    fullOutput.listen((x, y, z, state) -> fullWrites.add(x + ":" + y + ":" + z + ":" + state.key())));
+
+            Fixture bounded = new Fixture(true);
+            ChunkGenerator.ChunkData chunkData = mock(ChunkGenerator.ChunkData.class);
+            doReturn(0).when(chunkData).getMinHeight();
+            doReturn(32).when(chunkData).getMaxHeight();
+            ChunkDataHunkHolder holder = new ChunkDataHunkHolder(chunkData);
+            bounded.sparseOutput(holder);
+            List<String> boundedWrites = new ArrayList<>();
+            bounded.modifier.decorateNaturalCaves(-32, 48, new ColumnExtentListeningHunk<>(holder,
+                    (x, y, z, state) -> boundedWrites.add(x + ":" + y + ":" + z + ":" + state.key())));
+
+            assertTrue("fixture must decorate a zone above the initial column top",
+                    full.calls.contains("floor:0:0:27:1"));
+            assertEquals(full.calls, bounded.calls);
+            assertEquals(fullWrites, boundedWrites);
+            assertEquals(full.markers, bounded.markers);
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    for (int y = 0; y < 32; y++) {
+                        NativeBlockState expected = fullOutput.getRaw(x, y, z);
+                        NativeBlockState actual = holder.getStoredRaw(x, y, z);
+                        assertEquals("block " + x + ":" + y + ":" + z,
+                                expected == null ? null : expected.key(), actual == null ? null : actual.key());
+                    }
+                }
+            }
+        } finally {
+            IrisPlatforms.unbind();
+        }
     }
 
     private static void verifyScan(int width, int depth) throws Exception {
@@ -169,8 +214,12 @@ public class IrisNaturalCaveScanTest {
         private final List<String> calls = new ArrayList<>();
         private final List<String> markers = new ArrayList<>();
 
-        @SuppressWarnings("unchecked")
         private Fixture() throws Exception {
+            this(false);
+        }
+
+        @SuppressWarnings("unchecked")
+        private Fixture(boolean buildAboveTop) throws Exception {
             Engine engine = mock(Engine.class);
             EngineMantle engineMantle = mock(EngineMantle.class);
             Mantle<Matter> mantle = mock(Mantle.class);
@@ -211,6 +260,9 @@ public class IrisNaturalCaveScanTest {
                     for (int height = 20; height <= 22; height++) {
                         output.setRaw(x, height, z, air);
                     }
+                    if (buildAboveTop) {
+                        output.setRaw(x, 31, z, stone);
+                    }
                 }
                 return null;
             }).when(surface).decorate(anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), any(), eq(biome), any(), anyInt(), anyInt());
@@ -223,6 +275,20 @@ public class IrisNaturalCaveScanTest {
                 output.setRaw(x, y, z, ceiling);
                 return null;
             }).when(roof).decorate(anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), any(), eq(biome), any(), anyInt(), anyInt());
+        }
+
+        private <H extends Hunk<NativeBlockState>> H sparseOutput(H output) {
+            for (int x = 0; x < output.getWidth(); x++) {
+                for (int z = 0; z < output.getDepth(); z++) {
+                    for (int y = 0; y < 32; y++) {
+                        NativeBlockState state = initialState(this, y);
+                        if (state != air) {
+                            output.setRaw(x, y, z, state);
+                        }
+                    }
+                }
+            }
+            return output;
         }
 
         private Hunk<NativeBlockState> output(int width, int depth) {

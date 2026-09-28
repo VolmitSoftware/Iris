@@ -81,7 +81,7 @@ final class EngineHotloader {
                         previousGeneration.transitionPlan());
                 PreparedHydrologyCacheIdentity cacheIdentity = PreparedHydrologyCacheIdentity.capture(
                         assembly.target, assembly.runtimeKernel, assembly.transitionPlan, engine.isStudio());
-                engine.runtimeAssembly.set(assembly);
+                engine.threadState.setAssembly(assembly);
                 EngineRuntime next;
                 try (IrisContext.Scope ignored = IrisContext.open(engine, engine.getGenerationSessions().currentSessionId(), null)) {
                     assembly.complex = assembly.runtimeKernel.createComplex(engine, assembly.transitionPlan, false);
@@ -97,7 +97,7 @@ final class EngineHotloader {
                             biomeMaxes);
                     next = previous.withGeneration(nextGeneration);
                 } finally {
-                    engine.runtimeAssembly.remove();
+                    engine.threadState.setAssembly(null);
                 }
                 Throwable retirementFailure = runCleanup(null, previousGeneration.complex()::close);
                 if (retirementFailure != null) {

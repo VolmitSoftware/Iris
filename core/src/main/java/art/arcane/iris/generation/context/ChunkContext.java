@@ -230,6 +230,10 @@ public class ChunkContext {
         return region;
     }
 
+    public boolean hasDimensionStack() {
+        return dimensionStackContext != null;
+    }
+
     public DimensionStackLayout getDimensionStackLayout(int localX, int localZ) {
         if (dimensionStackContext == null) {
             return null;

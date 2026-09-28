@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.chunk.ColumnExtent;
 import art.arcane.iris.generation.decoration.IrisSpeleothems;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineAssignedModifier;
@@ -203,7 +204,7 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockSt
     }
 
     private int getHeight(Hunk<NativeBlockState> output, int x, int z) {
-        for (int i = output.getHeight() - 1; i >= 0; i--) {
+        for (int i = Math.min(output.getHeight() - 1, ColumnExtent.highestStoredY(output, x, z)); i >= 0; i--) {
             NativeBlockState b = output.get(x, i, z);
 
             if (b != null) {

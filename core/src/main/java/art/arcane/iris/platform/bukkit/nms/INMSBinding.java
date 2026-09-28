@@ -233,6 +233,18 @@ public interface INMSBinding extends NativeTerrainAccess {
         return false;
     }
 
+    default int fullChunkDependencyRadius() {
+        return -1;
+    }
+
+    default boolean retainChunk(World world, int x, int z) {
+        return false;
+    }
+
+    default boolean releaseChunk(World world, int x, int z) {
+        return false;
+    }
+
     default boolean pollChunkTask(World world) {
         return false;
     }

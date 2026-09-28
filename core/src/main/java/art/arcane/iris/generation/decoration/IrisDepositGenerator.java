@@ -53,6 +53,8 @@ import lombok.experimental.Accessors;
 @Description("Creates ore & other block deposits underground")
 @Data
 public class IrisDepositGenerator {
+    private static final int FOOTPRINT_MAXIMUM_SIZE = 64;
+    private static final ThreadLocal<FootprintCells> FOOTPRINT_CELLS = ThreadLocal.withInitial(FootprintCells::new);
     private static final long FNV_OFFSET_BASIS = 0xcbf29ce484222325L;
     private static final long FNV_PRIME = 0x100000001b3L;
 
@@ -267,6 +269,42 @@ public class IrisDepositGenerator {
             return new IrisObject(1, 1, 1);
         }
 
+        KSet<BlockPosition> cells = new KSet<>();
+        vanillaEllipsoidCells(rng, size, (x, y, z) -> cells.add(new BlockPosition(x, y, z)));
+        return objectFromCells(cells, rng, rdata);
+    }
+
+    /**
+     * Advances {@code rng} exactly as {@link #getClump(Engine, RNG, IrisData)} would and reports the clump's width
+     * and lowest block offset without building it, so a caller can reject the clump first and replay the build
+     * only for clumps it keeps. Returns null without drawing when the shape has no footprint path.
+     */
+    public ClumpFootprint sampleClumpFootprint(RNG rng, IrisData rdata) {
+        if (shape != IrisDepositShape.VANILLA_ELLIPSOID || minSize > FOOTPRINT_MAXIMUM_SIZE
+                || maxSize > FOOTPRINT_MAXIMUM_SIZE) {
+            return null;
+        }
+        int paletteSize = getBlockData(rdata).size();
+        if (paletteSize == 0) {
+            return null;
+        }
+        int size = rng.i(minSize, maxSize + 1);
+        if (size <= 0) {
+            return ClumpFootprint.EMPTY;
+        }
+        FootprintCells cells = FOOTPRINT_CELLS.get();
+        cells.reset();
+        vanillaEllipsoidCells(rng, size, cells);
+        if (cells.count == 0) {
+            return ClumpFootprint.EMPTY;
+        }
+        for (int cell = 0; cell < cells.count; cell++) {
+            rng.i(0, paletteSize);
+        }
+        return new ClumpFootprint(cells.extentX * 2 + 1, cells.minY, false);
+    }
+
+    private static void vanillaEllipsoidCells(RNG rng, int size, CellSink sink) {
         float angle = rng.nextFloat() * (float) Math.PI;
         float reach = size / 8F;
         double startX = Math.sin(angle) * reach;
@@ -309,7 +347,6 @@ public class IrisDepositGenerator {
             }
         }
 
-        KSet<BlockPosition> cells = new KSet<>();
         for (int i = 0; i < size; i++) {
             double radius = nodes[i * 4 + 3];
             if (radius < 0D) {
@@ -338,14 +375,12 @@ public class IrisDepositGenerator {
                     for (int z = minZ; z <= maxZ; z++) {
                         double nz = (z + 0.5D - centerZ) / radius;
                         if (nx * nx + ny * ny + nz * nz < 1D) {
-                            cells.add(new BlockPosition(x, y, z));
+                            sink.add(x, y, z);
                         }
                     }
                 }
             }
         }
-
-        return objectFromCells(cells, rng, rdata);
     }
 
     IrisObject generateVanillaScattered(RNG rng, IrisData rdata, int size) {
@@ -563,5 +598,53 @@ public class IrisDepositGenerator {
     }
 
     record ClumpCacheKey(long depositSeed, int minSize, int maxSize) {
+    }
+
+    @FunctionalInterface
+    private interface CellSink {
+        void add(int x, int y, int z);
+    }
+
+    public record ClumpFootprint(int width, int minY, boolean empty) {
+        static final ClumpFootprint EMPTY = new ClumpFootprint(1, 0, true);
+    }
+
+    private static final class FootprintCells implements CellSink {
+        private static final int OFFSET = 32;
+        private static final int AXIS = 64;
+        private final long[] occupied = new long[AXIS * AXIS * AXIS / 64];
+        private final int[] touched = new int[AXIS * AXIS * AXIS / 64];
+        private int touchedCount;
+        private int count;
+        private int extentX;
+        private int minY;
+
+        private void reset() {
+            for (int index = 0; index < touchedCount; index++) {
+                occupied[touched[index]] = 0L;
+            }
+            touchedCount = 0;
+            count = 0;
+            extentX = 0;
+            minY = Integer.MAX_VALUE;
+        }
+
+        @Override
+        public void add(int x, int y, int z) {
+            int index = ((x + OFFSET) * AXIS + (y + OFFSET)) * AXIS + (z + OFFSET);
+            int word = index >>> 6;
+            long bit = 1L << (index & 63);
+            long current = occupied[word];
+            if ((current & bit) != 0L) {
+                return;
+            }
+            if (current == 0L) {
+                touched[touchedCount++] = word;
+            }
+            occupied[word] = current | bit;
+            count++;
+            extentX = Math.max(extentX, Math.abs(x));
+            minY = Math.min(minY, y);
+        }
     }
 }

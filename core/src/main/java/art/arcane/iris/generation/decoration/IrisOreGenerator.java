@@ -71,7 +71,10 @@ public class IrisOreGenerator {
             return null;
         }
 
-        CNG chance = chanceCache.aquire(() -> chanceStyle.create(rng, data));
+        CNG chance = chanceCache.getIfPresent();
+        if (chance == null) {
+            chance = chanceCache.aquire(() -> chanceStyle.create(rng, data));
+        }
 
         if (chance.noise(x, y, z) > threshold) {
             return null;

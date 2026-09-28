@@ -54,6 +54,8 @@ public class MantleCarvingComponent extends IrisMantleComponent {
     private static final double THRESHOLD_PENALTY = 0.24D;
     private static final int MAX_BLENDED_PROFILE_PASSES = 2;
     private static final int MAX_POOLED_WEIGHT_BUFFERS = 64;
+    /** Lattice columns kept for neighbouring chunks: about 3 KB each on land, roughly 50 MB when full. */
+    private static final int DENSITY_GRID_COLUMNS = 16_384;
     private static final int KERNEL_WIDTH = (BLEND_RADIUS * 2) + 1;
     private static final int KERNEL_SIZE = KERNEL_WIDTH * KERNEL_WIDTH;
     private static final int[] KERNEL_DX = new int[KERNEL_SIZE];
@@ -62,6 +64,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
     private static final ThreadLocal<BlendScratch> BLEND_SCRATCH = ThreadLocal.withInitial(BlendScratch::new);
 
     private final Object profileCarverLock = new Object();
+    private final CaveDensityGrid densityGrid = new CaveDensityGrid(DENSITY_GRID_COLUMNS);
     private volatile Map<IrisCaveProfile, IrisCaveCarver3D> profileCarvers = new IdentityHashMap<>();
 
     static {
@@ -94,6 +97,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         // Carvers rebuild deterministically from the carve seed, so output is unchanged.
         synchronized (profileCarverLock) {
             profileCarvers = new IdentityHashMap<>();
+            densityGrid.clear();
         }
     }
 
@@ -524,7 +528,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
             return carver;
         }
 
-        IrisCaveCarver3D createdCarver = new IrisCaveCarver3D(getEngineMantle().getEngine(), profile);
+        IrisCaveCarver3D createdCarver = new IrisCaveCarver3D(getEngineMantle().getEngine(), profile, densityGrid);
         synchronized (profileCarverLock) {
             IrisCaveCarver3D published = profileCarvers.get(profile);
             if (published != null) {

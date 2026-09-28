@@ -61,6 +61,7 @@ public class IrisCaveCarver3D {
     private static final int MINIMUM_PARALLEL_DENSITY_CELLS = 16_384;
     private static final int MAXIMUM_DENSITY_WORKERS = 4;
     private static final int[] LATTICE_TILE_OFFSETS = {0, 1, 16, 17};
+    private static final int STANDALONE_DENSITY_GRID_COLUMNS = 1024;
 
     private final Engine engine;
     private final IrisData data;
@@ -96,9 +97,16 @@ public class IrisCaveCarver3D {
     private final int densityMaximumY;
     private final ThreadLocal<Boolean> carving = ThreadLocal.withInitial(() -> false);
     private final ThreadLocal<CaveCarveScratch> scratchCache = ThreadLocal.withInitial(CaveCarveScratch::new);
+    private final CaveDensityGrid densityGrid;
+    private final int densityGridOwner = CaveDensityGrid.nextOwner();
 
     public IrisCaveCarver3D(Engine engine, IrisCaveProfile profile) {
+        this(engine, profile, new CaveDensityGrid(STANDALONE_DENSITY_GRID_COLUMNS));
+    }
+
+    IrisCaveCarver3D(Engine engine, IrisCaveProfile profile, CaveDensityGrid densityGrid) {
         this.engine = engine;
+        this.densityGrid = densityGrid;
         this.data = engine.getData();
         this.profile = profile;
         this.carveAir = new MatterCavern(true, "", LIQUID_AIR);
@@ -1542,7 +1550,7 @@ public class IrisCaveCarver3D {
             int rowOffset = sampleXIndex * axisSamples;
             for (int sampleZIndex = adaptivePlaneSampleBounds[2]; sampleZIndex <= adaptivePlaneSampleBounds[3]; sampleZIndex++) {
                 int sampleLocalZ = Math.min(sampleZIndex * adaptiveSampleStep, 16);
-                adaptivePlaneDensity[rowOffset + sampleZIndex] = sampleDensityNoWarpNoModules(x, y, z0 + sampleLocalZ);
+                adaptivePlaneDensity[rowOffset + sampleZIndex] = latticeDensity(scratch, x, y, z0 + sampleLocalZ);
             }
         }
 
@@ -1595,7 +1603,7 @@ public class IrisCaveCarver3D {
             int rowOffset = sampleXIndex * axisSamples;
             for (int sampleZIndex = adaptivePlaneSampleBounds[2]; sampleZIndex <= adaptivePlaneSampleBounds[3]; sampleZIndex++) {
                 int sampleLocalZ = Math.min(sampleZIndex * adaptiveSampleStep, 16);
-                adaptivePlaneDensity[rowOffset + sampleZIndex] = sampleDensityNoWarpNoModules(x, y, z0 + sampleLocalZ);
+                adaptivePlaneDensity[rowOffset + sampleZIndex] = latticeDensity(scratch, x, y, z0 + sampleLocalZ);
             }
         }
 
@@ -1643,7 +1651,7 @@ public class IrisCaveCarver3D {
             int rowOffset = sampleXIndex * axisSamples;
             for (int sampleZIndex = adaptivePlaneSampleBounds[2]; sampleZIndex <= adaptivePlaneSampleBounds[3]; sampleZIndex++) {
                 int sampleLocalZ = Math.min(sampleZIndex * adaptiveSampleStep, 16);
-                adaptivePlaneDensity[rowOffset + sampleZIndex] = sampleDensityWarpOnly(scratch, x, y, z0 + sampleLocalZ);
+                adaptivePlaneDensity[rowOffset + sampleZIndex] = latticeDensity(scratch, x, y, z0 + sampleLocalZ);
             }
         }
 
@@ -1696,14 +1704,7 @@ public class IrisCaveCarver3D {
             int rowOffset = sampleXIndex * axisSamples;
             for (int sampleZIndex = adaptivePlaneSampleBounds[2]; sampleZIndex <= adaptivePlaneSampleBounds[3]; sampleZIndex++) {
                 int sampleLocalZ = Math.min(sampleZIndex * adaptiveSampleStep, 16);
-                adaptivePlaneDensity[rowOffset + sampleZIndex] = sampleDensityWarpModules(
-                        scratch,
-                        x,
-                        y,
-                        z0 + sampleLocalZ,
-                        localModules,
-                        activeModuleCount
-                );
+                adaptivePlaneDensity[rowOffset + sampleZIndex] = latticeDensity(scratch, x, y, z0 + sampleLocalZ);
             }
         }
 
@@ -2461,6 +2462,33 @@ public class IrisCaveCarver3D {
 
         scratch.adaptiveGeometryStep = adaptiveSampleStep;
         scratch.adaptiveGeometryAxisCells = axisCells;
+    }
+
+    private double latticeDensity(CaveCarveScratch scratch, int x, int y, int z) {
+        int latticeMask = (1 << CaveDensityGrid.LATTICE_SHIFT) - 1;
+        CaveDensityGrid.Column column = ((x | z) & latticeMask) != 0 ? null : densityGrid.column(this, densityGridOwner,
+                densityMaximumY + 1, x >> CaveDensityGrid.LATTICE_SHIFT, z >> CaveDensityGrid.LATTICE_SHIFT);
+        if (column == null) {
+            return samplePlaneDensity(scratch, x, y, z);
+        }
+        double cached = column.get(y);
+        if (!Double.isNaN(cached)) {
+            return cached;
+        }
+        double density = samplePlaneDensity(scratch, x, y, z);
+        column.set(y, density);
+        return density;
+    }
+
+    private double samplePlaneDensity(CaveCarveScratch scratch, int x, int y, int z) {
+        if (!hasWarp) {
+            return sampleDensityNoWarpNoModules(x, y, z);
+        }
+        int activeModuleCount = hasModules ? prepareActiveModules(scratch, y) : 0;
+        if (activeModuleCount == 0) {
+            return sampleDensityWarpOnly(scratch, x, y, z);
+        }
+        return sampleDensityWarpModules(scratch, x, y, z, scratch.activeModules, activeModuleCount);
     }
 
     private double sampleDensityNoWarpNoModules(int x, int y, int z) {

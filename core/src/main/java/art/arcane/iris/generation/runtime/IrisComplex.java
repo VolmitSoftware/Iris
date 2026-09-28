@@ -115,7 +115,7 @@ public class IrisComplex implements DataProvider {
     private static final AtomicLong lastBoundsFailureLog = new AtomicLong(0L);
     private static final int GRID_BOUNDS_CACHE_SIZE = 8192;
     private static final int STUDIO_NOISE_CACHE_SIZE = 32_768;
-    private static final int TERRAIN_COLUMN_CACHE_SIZE = 65_536;
+    private static final int TERRAIN_COLUMN_CACHE_SIZE = 524_288;
     /** One million corners: about 16 MB, roughly a 4000 by 4000 block area at the 4-block grid. */
     private static final int SHARED_CORNER_BOUNDS_CAPACITY = 1 << 20;
     /** The slope streams measure the rise across a run of this many blocks, so gradient is slope over run. */
@@ -386,10 +386,9 @@ public class IrisComplex implements DataProvider {
         proceduralTerrainHeight = new ProceduralTerrainHeightSampler(
                 (x, z) -> getHeight(engine, x, z, engine.getSeedManager().getHeight()),
                 engine.getDimension().getTerrainSamplingStep());
-        baseTerrainHeightStream = GenerationStreams.cache2DDouble(ProceduralStream.of(
-                this::sampleUnblendedNaturalTerrainHeight,
-                Interpolated.DOUBLE
-        ), "baseTerrainHeightStream", engine, cacheSize);
+        baseTerrainHeightStream = GenerationStreams.cache2DDouble(
+                ProceduralStream.ofDouble(this::sampleUnblendedNaturalTerrainHeight),
+                "baseTerrainHeightStream", engine, cacheSize);
         boolean terrain3DEnabled = false;
         for (IrisBiome biome : generatorBiomes) {
             if (biome.getTerrain3D() != null) {

@@ -86,6 +86,7 @@ public class IrisObject extends IrisRegistrant {
                 NativeBlockState stone,
                 NativeBlockState vair,
                 NativeBlockState vairDebug,
+                NativeBlockState dirt,
                 NativeBlockState[] snowLayers) {
         }
 
@@ -102,6 +103,7 @@ public class IrisObject extends IrisRegistrant {
                     B.getState("STONE"),
                     B.getState("VOID_AIR"),
                     B.getState("COBWEB"),
+                    B.getState("minecraft:dirt"),
                     new NativeBlockState[]{B.getState("minecraft:snow[layers=1]"), B.getState("minecraft:snow[layers=2]"), B.getState("minecraft:snow[layers=3]"), B.getState("minecraft:snow[layers=4]"), B.getState("minecraft:snow[layers=5]"), B.getState("minecraft:snow[layers=6]"), B.getState("minecraft:snow[layers=7]"), B.getState("minecraft:snow[layers=8]")});
             bound = resolved;
             return resolved;
@@ -121,6 +123,10 @@ public class IrisObject extends IrisRegistrant {
 
         static NativeBlockState vairDebug() {
             return bound().vairDebug();
+        }
+
+        static NativeBlockState dirt() {
+            return bound().dirt();
         }
 
         static NativeBlockState snowLayer(int layerIndex) {

@@ -87,11 +87,54 @@ public class ObjectContinuationTest {
     }
 
     @Test
+    public void packedCrossingFragmentsKeepEachPlacementRunInSourceOrder() throws Exception {
+        Fixture fixture = new Fixture();
+        List<ObjectDestinationTransaction.Mutation> mutations = List.of(
+                marker(1, "a"), marker(17, "a"), marker(33, "a"),
+                marker(5, "b"),
+                marker(18, "loose"),
+                marker(40, "c"), marker(20, "c"), marker(2, "c"), marker(41, "d"));
+        ObjectSourcePlan plan = new ObjectSourcePlan(mutations, List.of(
+                new ObjectDestinationTransaction.PlacementRange(0, 3),
+                new ObjectDestinationTransaction.PlacementRange(3, 4),
+                new ObjectDestinationTransaction.PlacementRange(5, 9)));
+
+        plan.persistContinuations(fixture.writer, 0, 0, 0, 0);
+
+        ObjectContinuationBundle.ChunkPosition zero = new ObjectContinuationBundle.ChunkPosition(0, 0);
+        ObjectContinuationBundle.ChunkPosition one = new ObjectContinuationBundle.ChunkPosition(1, 0);
+        ObjectContinuationBundle.ChunkPosition two = new ObjectContinuationBundle.ChunkPosition(2, 0);
+        assertEquals(2, fixture.bundles.size());
+        assertFragment(fixture.bundles.get(1).fragments().get(0), 0, new ObjectContinuationBundle.Bounds(1, 1, 33, 1),
+                List.of(zero, one, two), List.of(marker(17, "a")));
+        assertFragment(fixture.bundles.get(1).fragments().get(1), 2, new ObjectContinuationBundle.Bounds(2, 1, 41, 1),
+                List.of(two, one, zero), List.of(marker(20, "c")));
+        assertFragment(fixture.bundles.get(2).fragments().get(0), 0, new ObjectContinuationBundle.Bounds(1, 1, 33, 1),
+                List.of(zero, one, two), List.of(marker(33, "a")));
+        assertFragment(fixture.bundles.get(2).fragments().get(1), 2, new ObjectContinuationBundle.Bounds(2, 1, 41, 1),
+                List.of(two, one, zero), List.of(marker(40, "c"), marker(41, "d")));
+    }
+
+    private static void assertFragment(ObjectContinuationBundle.Fragment fragment, int ordinal, ObjectContinuationBundle.Bounds bounds,
+                                       List<ObjectContinuationBundle.ChunkPosition> touched,
+                                       List<ObjectDestinationTransaction.Mutation> mutations) throws IOException {
+        assertEquals(new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.BIOME, 0, 0, ordinal), fragment.key());
+        assertEquals(bounds, fragment.bounds());
+        assertEquals(touched, fragment.touchedChunks());
+        Matter decoded = fragment.decode();
+        assertEquals(mutations.size(), decoded.getSlice(String.class).getEntryCount());
+        for (ObjectDestinationTransaction.Mutation mutation : mutations) {
+            ObjectDestinationTransaction.SetMutation set = (ObjectDestinationTransaction.SetMutation) mutation;
+            assertEquals(set.value(), decoded.getSlice(String.class).get(set.x() & 15, set.key().y(), set.z() & 15));
+        }
+    }
+
+    @Test
     public void generatedDestinationsDoNotRetainContinuations() {
         Fixture fixture = new Fixture();
         when(fixture.chunk.isFlagged(MantleFlag.REAL)).thenReturn(true);
         List<ObjectDestinationTransaction.Mutation> mutations = List.of(marker(-1, "left"), marker(0, "right"));
-        ObjectSourcePlan plan = new ObjectSourcePlan(mutations, List.of(mutations));
+        ObjectSourcePlan plan = new ObjectSourcePlan(mutations, List.of(new ObjectDestinationTransaction.PlacementRange(0, 2)));
 
         plan.persistContinuations(fixture.writer, -1, 0, -1, 0);
 

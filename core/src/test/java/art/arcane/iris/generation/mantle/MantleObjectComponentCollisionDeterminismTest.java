@@ -139,9 +139,13 @@ public class MantleObjectComponentCollisionDeterminismTest {
         Map<Position, String> blocks = new HashMap<>();
         MantleWriter writer = writer(blocks);
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, destination, 0);
-        MantleObjectComponent.replaySourceChunks(destination, 0, RADIUS, (sourceX, sourceZ) ->
-                transaction.apply(cache.get(sourceX, sourceZ,
-                        () -> buildSourcePlan(writer, sourceX, sourceZ, scenario))));
+        MantleObjectComponent.replaySourceChunks(destination, 0, RADIUS, (sourceX, sourceZ) -> {
+            ObjectSourcePlan plan = cache.acquire(sourceX, sourceZ, destination, 0,
+                    MantleObjectComponent.sourceChunkRadius(RADIUS), () -> buildSourcePlan(writer, sourceX, sourceZ, scenario));
+            if (plan != null) {
+                transaction.apply(plan);
+            }
+        });
         transaction.commit();
         return blocks;
     }

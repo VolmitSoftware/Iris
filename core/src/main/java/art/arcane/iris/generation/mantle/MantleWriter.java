@@ -93,10 +93,6 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     @Getter(AccessLevel.NONE)
     private final ThreadLocal<ObjectPlacementCapture> objectPlacementCapture = new ThreadLocal<>();
     @Getter(AccessLevel.NONE)
-    @EqualsAndHashCode.Exclude
-    @ToString.Exclude
-    private final boolean[] terrainReady;
-    @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
@@ -155,7 +151,6 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         // boxed per-block map lookup on the placement and carve hot paths.
         this.windowSide = (this.radius * 2) + 1;
         this.window = new AtomicReferenceArray<>(windowSide * windowSide);
-        this.terrainReady = new boolean[windowSide * windowSide];
     }
 
     /**
@@ -894,9 +889,9 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             }
         }
         TerrainAccess access = terrainAccess;
-        if (access != null && !terrainReady[index]) {
+        if (access != null && !access.ready[index]) {
             access.ensure(chunk, cx, cz);
-            terrainReady[index] = true;
+            access.ready[index] = true;
         }
         return chunk;
     }
@@ -1543,6 +1538,9 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     @Override
     public void close() {
         for (int index = 0; index < window.length(); index++) {
+            if (window.get(index) == null) {
+                continue;
+            }
             MantleChunk<Matter> chunk = window.getAndSet(index, null);
             if (chunk != null) {
                 chunk.release();
@@ -1554,6 +1552,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         private final MantleComponent[] components;
         private final ChunkContext context;
         private final IrisComplex complex;
+        private final boolean[] ready = new boolean[window.length()];
 
         private TerrainAccess(MantleComponent[] components, ChunkContext context, IrisComplex complex) {
             this.components = components;

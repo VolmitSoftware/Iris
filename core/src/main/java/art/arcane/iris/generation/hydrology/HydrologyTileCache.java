@@ -538,14 +538,6 @@ public final class HydrologyTileCache implements AutoCloseable {
     }
 
     /**
-     * Every column of the block's chunk, indexed {@code localZ * 16 + localX}; a column without hydrology
-     * is null. The array is shared with the cache and must not be modified.
-     */
-    public HydrologyColumnSample[] chunkSamples(int blockX, int blockZ) {
-        return chunkColumns(blockX, blockZ).columns();
-    }
-
-    /**
      * Whether the column's chunk can be answered without planning: every tile it composes from is
      * already planned. A caller that must not wait (the server thread answering a height or biome
      * query) uses this before sampling: when the answer is false the missing tiles are handed to the

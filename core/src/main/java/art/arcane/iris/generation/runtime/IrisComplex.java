@@ -1062,31 +1062,6 @@ public class IrisComplex implements DataProvider {
         return transitionHydrologySample(sample, hydrologyWeight, transitionDisplacement);
     }
 
-    /**
-     * The raw hydrology columns of the chunk holding the block, for a caller that samples every column of
-     * one chunk through {@link #sampleHydrologyColumn(HydrologyColumnSample[], int, int)}; null without
-     * hydrology.
-     */
-    public HydrologyColumnSample[] hydrologyChunkSamples(int x, int z) {
-        return hydrologyRuntime == null ? null : hydrologyRuntime.chunkSamples(x, z);
-    }
-
-    /** {@link #sampleHydrologyColumn(double, double)} for a column of the chunk {@code chunkSamples} came from. */
-    public HydrologyColumnSample sampleHydrologyColumn(HydrologyColumnSample[] chunkSamples, int x, int z) {
-        if (chunkSamples == null) {
-            return null;
-        }
-        HydrologyColumnSample sample = chunkSamples[(z & 15) << 4 | (x & 15)];
-        if (transitionGenerationPlan == null) {
-            return sample;
-        }
-        double hydrologyWeight = transitionHydrologyWeight(x, z);
-        if (sample == null) {
-            return sample;
-        }
-        return transitionHydrologySample(sample, hydrologyWeight, transitionDisplacement);
-    }
-
     private HydrologyColumnSnapshot sampleHydrologySnapshot(int x, int z) {
         if (hydrologyRuntime == null) {
             return HydrologyColumnSnapshot.ready(null);

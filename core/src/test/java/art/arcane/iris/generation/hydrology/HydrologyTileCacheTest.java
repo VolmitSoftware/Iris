@@ -1126,34 +1126,6 @@ public class HydrologyTileCacheTest {
     }
 
     @Test
-    public void chunkSamplesMatchPerColumnLookups() {
-        HydrologyTileCache perColumn = new HydrologyTileCache(new HydrologyPlanner(811L, featureSettings(), this::featureTerrain), 8);
-        HydrologyTileCache perChunk = new HydrologyTileCache(new HydrologyPlanner(811L, featureSettings(), this::featureTerrain), 8);
-        HydrologyColumnSample plannedColumn = perColumn.get(new HydrologyTileKey(0, 0)).footprint().columns().values().stream()
-                .filter(HydrologyColumnSample::present)
-                .findFirst()
-                .orElseThrow();
-        int centreChunkX = Math.floorDiv(plannedColumn.x(), 16);
-        int centreChunkZ = Math.floorDiv(plannedColumn.z(), 16);
-        int present = 0;
-        for (int chunkZ = centreChunkZ - 2; chunkZ <= centreChunkZ + 2; chunkZ++) {
-            for (int chunkX = centreChunkX - 2; chunkX <= centreChunkX + 2; chunkX++) {
-                HydrologyColumnSample[] samples = perChunk.chunkSamples(chunkX * 16 + 5, chunkZ * 16 + 11);
-                assertEquals(256, samples.length);
-                for (int localZ = 0; localZ < 16; localZ++) {
-                    for (int localX = 0; localX < 16; localX++) {
-                        HydrologyColumnSample expected = perColumn
-                                .columnAt(chunkX * 16 + localX, chunkZ * 16 + localZ).orElse(null);
-                        assertEquals(expected, samples[localZ * 16 + localX]);
-                        present += expected == null ? 0 : 1;
-                    }
-                }
-            }
-        }
-        assertTrue(present > 0);
-    }
-
-    @Test
     public void singleColumnContributionReusesItsImmutableSample() {
         HydrologyColumnSample sample = compositionSample(90, List.of(compositionLayer(11L, 80)));
         try (HydrologyTileCache cache = compositionCache(Map.of(new HydrologyTileKey(-1, 0), sample))) {

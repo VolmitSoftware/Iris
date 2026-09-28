@@ -154,7 +154,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         private final IrisData data;
         private final IrisComplex complex;
         private final ProceduralStream<Double> riverWaterSurfaceStream;
-        private final HydrologyColumnSample[] hydrologySamples;
         private final boolean bedrockEnabled;
         private final boolean hideOres;
         private final boolean transitionDisplaced;
@@ -187,7 +186,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             data = getData();
             complex = getComplex();
             riverWaterSurfaceStream = complex.getRiverWaterSurfaceStream();
-            hydrologySamples = complex.hydrologyChunkSamples(x, z);
             bedrockEnabled = dimension.isBedrock();
             hideOres = dimension.isHideOresForHiddenOre();
             transitionDisplaced = complex.getTransitionDisplacement() != null;
@@ -228,7 +226,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             }
 
             int topY = Math.min(hf, chunkHeight - 1);
-            HydrologyColumnSample hydrology = complex.sampleHydrologyColumn(hydrologySamples, realX, realZ);
+            HydrologyColumnSample hydrology = complex.sampleHydrologyColumn(realX, realZ);
             HydrologyColumnLayer hydrologyFluid = hydrology == null
                     ? null
                     : hydrology.primarySurfaceFluidLayerOrNull();

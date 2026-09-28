@@ -31,9 +31,12 @@ import art.arcane.iris.generation.block.IrisCustomData;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import lombok.experimental.Accessors;
 import org.bukkit.Axis;
 import org.bukkit.block.BlockFace;
@@ -94,6 +97,8 @@ public class IrisObjectRotation {
     @Description("The z axis rotation")
     private IrisAxisRotationClamp zAxis = new IrisAxisRotationClamp();
 
+    @Getter(AccessLevel.NONE)
+    @ToString.Exclude
     private final transient ConcurrentHashMap<NativeBlockState, Object[]> stateRotations = new ConcurrentHashMap<>();
 
     public static IrisObjectRotation xFlip180() {

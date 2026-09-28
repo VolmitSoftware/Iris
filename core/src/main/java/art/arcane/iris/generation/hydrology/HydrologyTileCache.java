@@ -690,7 +690,7 @@ public final class HydrologyTileCache implements AutoCloseable {
                 tileCoordinate(Math.addExact(area.maximumBlockZ(), publicationRadius), tileSize));
         List<HydrologyTileKey> keys = nearestFirst(required, tileCoordinate(area.centerBlockX(), tileSize),
                 tileCoordinate(area.centerBlockZ(), tileSize), MAXIMUM_PREGENERATION_TILES);
-        PregenerationScope scope = new PregenerationScope(bounds);
+        PregenerationScope scope = new PregenerationScope(bounds, required);
         try {
             enqueuePrefetchArea(keys, scope);
             return scope;
@@ -1082,6 +1082,7 @@ public final class HydrologyTileCache implements AutoCloseable {
                 scope.previousNeighbourPrefetch = pregenerationScope == null
                         ? neighbourPrefetchEnabled : pregenerationScope.previousNeighbourPrefetch;
                 pregenerationScope = scope;
+                planner.limitEarlyOwners(scope.required::contains);
                 prefetchQueue.removeIf(key -> {
                     if (!area.contains(key)) {
                         queuedPrefetches.remove(key);
@@ -1619,12 +1620,19 @@ public final class HydrologyTileCache implements AutoCloseable {
         }
     }
 
+    /**
+     * Speculative planning during a pregeneration: tiles inside {@code bounds} may be planned ahead of
+     * generation, and owner drafts start their lower-rank neighbours early only inside {@code required},
+     * the tiles the area composes from.
+     */
     public final class PregenerationScope implements AutoCloseable {
         private final TileBounds bounds;
+        private final TileBounds required;
         private boolean previousNeighbourPrefetch;
 
-        private PregenerationScope(TileBounds bounds) {
+        private PregenerationScope(TileBounds bounds, TileBounds required) {
             this.bounds = bounds;
+            this.required = required;
         }
 
         @Override
@@ -1634,6 +1642,7 @@ public final class HydrologyTileCache implements AutoCloseable {
                     return;
                 }
                 pregenerationScope = null;
+                planner.limitEarlyOwners(null);
                 neighbourPrefetchEnabled = previousNeighbourPrefetch;
                 prefetchQueue.clear();
                 queuedPrefetches.clear();

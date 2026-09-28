@@ -45,15 +45,20 @@ import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.block.VectorMap;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.pack.loading.IrisRegistrant;
+import art.arcane.iris.pack.loading.ResourceLoader;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState> {
     private static final int CLUMPS_PER_BATCH = 8;
     private static final int PREPARATION_BATCH_COUNT = 4;
 
     private final RNG rng;
+    private volatile DepositVariantScan variantScan;
 
     public IrisDepositModifier(Engine engine) {
         super(engine, "Deposit");
@@ -271,6 +276,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         boolean oreDeposit = deposit.ore();
         IrisDimensionCarvingResolver.State carvingState = new IrisDimensionCarvingResolver.State();
         IrisDimension dimension = getDimension();
+        boolean variants = depositVariantsPossible();
         for (PreparedClump prepared : deposit.clumps()) {
             IrisObject clump = prepared.object();
             int x = prepared.x();
@@ -325,8 +331,8 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
 
                 if (chunk.get(nx, ny, nz, MatterCavern.class) == null) {
                     NativeBlockState ore = cursor.value();
-                    NativeBlockState remapped = resolveDepositVariant(
-                            cx, cz, nx, ny, nz, ore, dimension, context, carvingState);
+                    NativeBlockState remapped = variants ? resolveDepositVariant(
+                            cx, cz, nx, ny, nz, ore, dimension, context, carvingState) : null;
                     NativeBlockState finalBlock = remapped != null
                             ? remapped
                             : B.toDeepSlateOre(current, ore);
@@ -460,6 +466,51 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         return Math.max(minimum, Math.min(center, maximum));
     }
 
+    /**
+     * The per-block variant lookup resolves a cave biome for every placed ore, but it can only ever match when
+     * some biome, region or the dimension of the loaded pack declares variants. Anything the scan cannot
+     * enumerate (stacked dimensions, unreadable loaders) keeps the lookup.
+     */
+    private boolean depositVariantsPossible() {
+        IrisData data = getData();
+        DepositVariantScan scan = variantScan;
+        if (scan == null || scan.data() != data) {
+            scan = new DepositVariantScan(data, scanDepositVariants(data));
+            variantScan = scan;
+        }
+        return scan.possible();
+    }
+
+    private boolean scanDepositVariants(IrisData data) {
+        IrisDimension dimension = getDimension();
+        if (data == null || dimension == null || getEngine().getDimensionStackContext() != null
+                || dimension.getDepositVariants() == null || !dimension.getDepositVariants().isEmpty()) {
+            return true;
+        }
+        Boolean regions = declaresVariants(data.getRegionLoader(), IrisRegion::getDepositVariants);
+        Boolean biomes = declaresVariants(data.getBiomeLoader(), IrisBiome::getDepositVariants);
+        return regions == null || regions || biomes == null || biomes;
+    }
+
+    private static <T extends IrisRegistrant> Boolean declaresVariants(ResourceLoader<T> loader,
+                                                Function<T, ? extends List<IrisDepositVariant>> variants) {
+        String[] keys = loader == null ? null : loader.getPossibleKeys();
+        if (keys == null) {
+            return null;
+        }
+        for (String key : keys) {
+            T loaded = loader.load(key);
+            if (loaded == null) {
+                continue;
+            }
+            List<IrisDepositVariant> declared = variants.apply(loaded);
+            if (declared == null || !declared.isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private NativeBlockState resolveDepositVariant(int cx, int cz, int nx, int localY, int nz, NativeBlockState ore, IrisDimension dimension, ChunkContext context, IrisDimensionCarvingResolver.State carvingState) {
         int worldX = (cx << 4) + nx;
         int worldZ = (cz << 4) + nz;
@@ -546,6 +597,9 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
     }
 
     private record DepositPlan(IrisDepositGenerator generator, long seed, boolean ore, int attempts) {
+    }
+
+    private record DepositVariantScan(IrisData data, boolean possible) {
     }
 
     private record PreparedDeposit(IrisDepositGenerator generator, boolean ore, List<PreparedClump> clumps) {

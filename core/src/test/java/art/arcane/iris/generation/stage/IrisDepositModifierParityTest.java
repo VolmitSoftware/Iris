@@ -30,12 +30,15 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.MockedStatic;
+import art.arcane.iris.pack.loading.ResourceLoader;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -84,8 +87,25 @@ public class IrisDepositModifierParityTest {
         }
     }
 
-    @SuppressWarnings("unchecked")
+    @Test
+    public void variantFreePacksSkipPerBlockCaveBiomeLookupsWithIdenticalOutput() {
+        for (long seed : new long[]{101L, -73L, 90181L}) {
+            AtomicInteger scannedLookups = new AtomicInteger();
+            AtomicInteger unscannedLookups = new AtomicInteger();
+            long[] scanned = generateConfigured(seed, false, false, true, scannedLookups);
+            long[] unscanned = generateConfigured(seed, false, false, false, unscannedLookups);
+            assertArrayEquals("seed=" + seed, unscanned, scanned);
+            assertTrue(scannedLookups.get() < unscannedLookups.get());
+        }
+    }
+
     private long[] generateConfigured(long seed, boolean multicore) {
+        return generateConfigured(seed, multicore, true, false, new AtomicInteger());
+    }
+
+    @SuppressWarnings("unchecked")
+    private long[] generateConfigured(long seed, boolean multicore, boolean caveVariant, boolean enumerablePack,
+                                      AtomicInteger caveBiomeLookups) {
         Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
         ChunkContext context = mock(ChunkContext.class, RETURNS_DEEP_STUBS);
         IrisDimension dimension = new IrisDimension();
@@ -99,7 +119,9 @@ public class IrisDepositModifierParityTest {
         denied.setLoadKey("denied");
         IrisDepositVariant variant = new IrisDepositVariant().setMinHeight(-64).setMaxHeight(64);
         variant.getRemap().put("minecraft:gold_ore", "minecraft:redstone_ore");
-        cave.getDepositVariants().add(variant);
+        if (caveVariant) {
+            cave.getDepositVariants().add(variant);
+        }
         dimension.getDeposits().add(generator("granite", IrisDepositShape.IRIS, 25, 70,
                 IrisDepositHeightDistribution.CLIPPED_UNIFORM, "stone", "deepslate"));
         region.getDeposits().add(generator("iron_ore", IrisDepositShape.VANILLA_ELLIPSOID, 20, 110,
@@ -118,7 +140,23 @@ public class IrisDepositModifierParityTest {
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getSeedManager().getDeposit()).thenReturn(seed);
         when(engine.getDimension()).thenReturn(dimension);
+        if (enumerablePack) {
+            IrisData data = mock(IrisData.class);
+            ResourceLoader<IrisBiome> biomes = mock(ResourceLoader.class);
+            ResourceLoader<IrisRegion> regions = mock(ResourceLoader.class);
+            when(data.getBiomeLoader()).thenReturn(biomes);
+            when(data.getRegionLoader()).thenReturn(regions);
+            when(biomes.getPossibleKeys()).thenReturn(new String[]{"allowed", "denied", "surface"});
+            when(biomes.load("allowed")).thenReturn(cave);
+            when(biomes.load("denied")).thenReturn(denied);
+            when(biomes.load("surface")).thenReturn(surface);
+            when(regions.getPossibleKeys()).thenReturn(new String[]{"region"});
+            when(regions.load("region")).thenReturn(region);
+            when(engine.getData()).thenReturn(data);
+            when(engine.getDimensionStackContext()).thenReturn(null);
+        }
         when(engine.getCaveBiome(anyInt(), anyInt(), anyInt(), any())).thenAnswer(invocation -> {
+            caveBiomeLookups.incrementAndGet();
             int x = invocation.getArgument(0);
             int y = invocation.getArgument(1);
             int z = invocation.getArgument(2);

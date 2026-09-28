@@ -7,6 +7,7 @@ import art.arcane.iris.testsupport.Await;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
+import art.arcane.iris.spi.LogLevel;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -46,6 +47,8 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -420,12 +423,21 @@ public class MatterGeneratorConcurrencyTest {
     }
 
     @Test
-    public void timedOutRunningComponentRetainsWriterAndSharedClaimUntilItExits() throws Exception {
+    public void slowRunningComponentRetainsWriterAndSharedClaimAndCompletesSuccessfully() throws Exception {
         GeneratorFixture fixture = new GeneratorFixture(true);
         CountDownLatch started = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         CountDownLatch writersAcquired = new CountDownLatch(2);
-        CountDownLatch cancelled = new CountDownLatch(1);
+        CountDownLatch warned = new CountDownLatch(1);
+        CountDownLatch polls = new CountDownLatch(6);
+        AtomicInteger warnings = new AtomicInteger();
+        AtomicReference<String> diagnostic = new AtomicReference<>();
+        doAnswer(invocation -> {
+            warnings.incrementAndGet();
+            diagnostic.set(invocation.getArgument(1));
+            warned.countDown();
+            return null;
+        }).when(PLATFORM.platform()).log(eq(LogLevel.WARN), startsWith("Mantle component OBJECT at 0,0 is still pending"));
         AtomicInteger runs = new AtomicInteger();
         MantleChunk<Matter> chunk = fixture.mantle.getChunk(0, 0);
         when(chunk.use()).thenAnswer(invocation -> {
@@ -448,9 +460,9 @@ public class MatterGeneratorConcurrencyTest {
         MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(fixture.mantle, 0, 0, ReservedFlag.OBJECT);
         MatterGenerator.MatterComponentTask task = MatterGenerator.IN_FLIGHT_COMPONENTS.get(key);
         Future<?> submission = mock(Future.class);
-        when(submission.cancel(true)).thenAnswer(invocation -> {
-            cancelled.countDown();
-            return true;
+        when(submission.isDone()).thenAnswer(invocation -> {
+            polls.countDown();
+            return false;
         });
         task.setSubmission(submission);
         CompletableFuture<Void> second = MultiBurst.burst.completeValueAsync(() -> {
@@ -458,45 +470,86 @@ public class MatterGeneratorConcurrencyTest {
             return null;
         });
         CompletableFuture<Void> timeout = CompletableFuture.runAsync(() -> task.await(0L));
+        CompletableFuture<Void> otherTimeout = CompletableFuture.runAsync(() -> task.await(0L));
         try {
             await(writersAcquired);
-            await(cancelled);
+            await(warned);
+            await(polls);
             assertSame(task, MatterGenerator.IN_FLIGHT_COMPONENTS.get(key));
             assertFalse(first.isDone());
             assertFalse(second.isDone());
             assertFalse(timeout.isDone());
+            assertFalse(otherTimeout.isDone());
+            assertEquals(1, warnings.get());
+            assertTrue(diagnostic.get().contains("Worker="));
+            assertTrue(diagnostic.get().contains("runningForMs="));
+            assertTrue(diagnostic.get().contains("\n\tat "));
+            verify(submission, never()).cancel(anyBoolean());
             verify(chunk, never()).release();
             assertEquals(1, runs.get());
         } finally {
             release.countDown();
         }
-        assertThrows(ExecutionException.class, () -> timeout.get(5L, TimeUnit.SECONDS));
-        assertThrows(ExecutionException.class, () -> first.get(5L, TimeUnit.SECONDS));
-        assertThrows(ExecutionException.class, () -> second.get(5L, TimeUnit.SECONDS));
+        timeout.get(5L, TimeUnit.SECONDS);
+        otherTimeout.get(5L, TimeUnit.SECONDS);
+        first.get(5L, TimeUnit.SECONDS);
+        second.get(5L, TimeUnit.SECONDS);
         verify(chunk, times(2)).release();
         assertFalse(MatterGenerator.IN_FLIGHT_COMPONENTS.containsKey(key));
     }
 
     @Test
-    public void queuedTimeoutPreventsLateExecutionAndAllowsANewClaim() {
+    public void slowQueuedComponentCanStartAndCompleteSuccessfully() throws Exception {
         GeneratorFixture fixture = new GeneratorFixture();
-        MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(fixture.mantle, 0, 0, ReservedFlag.OBJECT);
+        MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(fixture.mantle, 1, 0, ReservedFlag.OBJECT);
         MatterGenerator.MatterComponentTask task = new MatterGenerator.MatterComponentTask(key);
         MatterGenerator.IN_FLIGHT_COMPONENTS.put(key, task);
         Future<?> submission = mock(Future.class);
         task.setSubmission(submission);
-
-        CompletionException failure = assertThrows(CompletionException.class, () -> task.await(0L));
-
-        assertTrue(failure.getCause().getMessage().contains("did not complete"));
-        assertFalse(task.start());
+        CountDownLatch warned = new CountDownLatch(1);
+        AtomicReference<String> diagnostic = new AtomicReference<>();
+        doAnswer(invocation -> {
+            diagnostic.set(invocation.getArgument(1));
+            warned.countDown();
+            return null;
+        }).when(PLATFORM.platform()).log(eq(LogLevel.WARN), startsWith("Mantle component OBJECT at 1,0 is still pending"));
+        CompletableFuture<Void> completion = CompletableFuture.runAsync(() -> task.await(0L));
+        try {
+            await(warned);
+            assertTrue(diagnostic.get().contains("Task is queued"));
+            assertFalse(completion.isDone());
+            assertSame(task, MatterGenerator.IN_FLIGHT_COMPONENTS.get(key));
+            verify(submission, never()).cancel(anyBoolean());
+            assertTrue(task.start());
+        } finally {
+            task.finish(null);
+        }
+        completion.get(5L, TimeUnit.SECONDS);
         assertFalse(MatterGenerator.IN_FLIGHT_COMPONENTS.containsKey(key));
-        verify(submission).cancel(true);
-        MatterGenerator.MatterComponentTask replacement = new MatterGenerator.MatterComponentTask(key);
-        assertNull(MatterGenerator.IN_FLIGHT_COMPONENTS.putIfAbsent(key, replacement));
-        task.finish(null);
-        assertSame(replacement, MatterGenerator.IN_FLIGHT_COMPONENTS.get(key));
-        replacement.finish(null);
+    }
+
+    @Test
+    public void slowComponentPreservesItsActualFailure() throws Exception {
+        GeneratorFixture fixture = new GeneratorFixture();
+        MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(fixture.mantle, 2, 0, ReservedFlag.OBJECT);
+        MatterGenerator.MatterComponentTask task = new MatterGenerator.MatterComponentTask(key);
+        CountDownLatch warned = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            warned.countDown();
+            return null;
+        }).when(PLATFORM.platform()).log(eq(LogLevel.WARN), startsWith("Mantle component OBJECT at 2,0 is still pending"));
+        IllegalStateException failure = new IllegalStateException("Object generation failed");
+        assertTrue(task.start());
+        CompletableFuture<Void> completion = CompletableFuture.runAsync(() -> task.await(0L));
+        try {
+            await(warned);
+            assertFalse(completion.isDone());
+        } finally {
+            task.finish(failure);
+        }
+        ExecutionException observed = assertThrows(ExecutionException.class,
+                () -> completion.get(5L, TimeUnit.SECONDS));
+        assertSame(failure, observed.getCause());
     }
 
     @Test

@@ -89,5 +89,8 @@ public interface PregeneratorMethod {
     default void onRegionSubmitted(int regionX, int regionZ) {
     }
 
+    default void reclaimMemory() {
+    }
+
     Mantle getMantle();
 }

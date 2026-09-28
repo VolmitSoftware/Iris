@@ -53,7 +53,6 @@ public class PregenSilentFailureContractTest {
         String async = read("art/arcane/iris/world/pregen/AsyncPregenMethod.java");
 
         assertTrue(method(async, "private int resolveWorkerPoolThreads()").contains("PregenDiagnostics.probeFailed("));
-        assertTrue(method(async, "private int evictionWindow()").contains("PregenDiagnostics.probeFailed("));
         assertTrue(method(async, "private Engine resolveMetricsEngine()").contains("PregenDiagnostics.probeFailed("));
     }
 

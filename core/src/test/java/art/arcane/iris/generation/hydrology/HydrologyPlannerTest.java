@@ -114,6 +114,50 @@ public class HydrologyPlannerTest {
     }
 
     @Test
+    public void restoredTilePreservesOwnerOrderingAndRejectedCoursesAfterEviction() {
+        HydrologyPlanner planner = new HydrologyPlanner(77L, EARLY_OWNER_SETTINGS, EARLY_OWNER_TERRAIN);
+        HydrologyTile tile = planner.plan(EARLY_OWNER_TILE);
+        CrossTileResolvedOwner original = tile.resolvedOwner();
+        assertNotNull(original);
+        assertNull(original.draft().footprintCompiler());
+        assertFalse(original.observedRejections().isEmpty());
+        CrossTileResolutionContext context = new CrossTileResolutionContext(EARLY_OWNER_TILE, 64L, 4096);
+        context.remember(EARLY_OWNER_TILE, original);
+        planner.clearOwnerDrafts();
+
+        planner.reuseResolvedTile(tile);
+        CrossTileResolvedOwner restored = planner.resolveIndependentOwner(EARLY_OWNER_TILE);
+
+        context.remember(EARLY_OWNER_TILE, restored);
+        assertEquals(original, restored);
+        assertTileContentsEqual(tile, planner.plan(EARLY_OWNER_TILE));
+    }
+
+    @Test
+    public void restoringPreparedTileKeepsExistingCanonicalOwner() {
+        HydrologyPlanner planner = new HydrologyPlanner(77L, EARLY_OWNER_SETTINGS, EARLY_OWNER_TERRAIN);
+        HydrologyTile tile = planner.plan(EARLY_OWNER_TILE);
+        CrossTileResolvedOwner existing = planner.resolveIndependentOwner(EARLY_OWNER_TILE);
+
+        planner.reuseResolvedTile(tile);
+
+        assertSame(existing, planner.resolveIndependentOwner(EARLY_OWNER_TILE));
+    }
+
+    @Test
+    public void finalTileWithoutOwnerMetadataCannotInventOwnerDraft() {
+        HydrologyPlanner planner = new HydrologyPlanner(77L, EARLY_OWNER_SETTINGS, EARLY_OWNER_TERRAIN);
+
+        HydrologyTile tile = new HydrologyTile(EARLY_OWNER_TILE, 77L, EARLY_OWNER_SETTINGS.fingerprint(),
+                EARLY_OWNER_SETTINGS.routing().tileSize(), List.of(), List.of(), List.of(), List.of(),
+                Set.of(), List.of(), List.of(), RiverFootprint.empty());
+        planner.reuseResolvedTile(tile);
+
+        assertNull(planner.resolvedOwners.getIfPresent(EARLY_OWNER_TILE));
+        assertTileContentsEqual(EARLY_OWNER_BASELINE, planner.plan(EARLY_OWNER_TILE));
+    }
+
+    @Test
     public void collidingRoutingContextKeysCompileIndependently() throws Exception {
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);

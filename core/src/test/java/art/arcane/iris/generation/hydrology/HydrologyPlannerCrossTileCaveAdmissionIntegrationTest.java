@@ -23,6 +23,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -105,6 +106,41 @@ public class HydrologyPlannerCrossTileCaveAdmissionIntegrationTest {
         }
 
         assertEquals(lazy, parallel);
+    }
+
+    @Test
+    public void repeatedDependencyRequestsKeepTheirContextOwnersAfterCacheEviction() {
+        HydrologyPlanner planner = planner();
+        List<HydrologyTileKey> keys = List.of(new HydrologyTileKey(0, 0), new HydrologyTileKey(-1, 0));
+        CrossTileResolutionContext context = new CrossTileResolutionContext(new HydrologyTileKey(-1, -1), 64L, 4096);
+        Map<HydrologyTileKey, CrossTileResolvedOwner> original = new LinkedHashMap<>();
+        Map<HydrologyTileKey, HydrologyForkJoin.Task<CrossTileResolvedOwner>> prepared = new LinkedHashMap<>();
+        for (HydrologyTileKey key : keys) {
+            CrossTileResolvedOwner owner = planner.resolveIndependentOwner(key);
+            original.put(key, owner);
+            context.remember(key, owner);
+            prepared.put(key, new HydrologyForkJoin.Task<>(() -> {
+                throw new AssertionError("A remembered owner must not be resolved again");
+            }));
+        }
+        planner.clearOwnerDrafts();
+        IrisSettings previousSettings = IrisSettings.settings;
+        IrisSettings.settings = new IrisSettings();
+        try {
+            for (boolean bound : List.of(false, true)) {
+                IrisPlatforms.unbind();
+                if (bound) {
+                    IrisPlatforms.bind(mock(IrisPlatform.class));
+                }
+                List<CrossTileResolvedOwner> owners = planner.resolveLowerRankOwners(keys, context, prepared);
+                for (int index = 0; index < keys.size(); index++) {
+                    assertSame(original.get(keys.get(index)), owners.get(index));
+                }
+            }
+        } finally {
+            IrisPlatforms.unbind();
+            IrisSettings.settings = previousSettings;
+        }
     }
 
     @Test

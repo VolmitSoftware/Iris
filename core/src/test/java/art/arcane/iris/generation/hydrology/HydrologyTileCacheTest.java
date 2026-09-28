@@ -57,6 +57,32 @@ public class HydrologyTileCacheTest {
     public TemporaryFolder preparedFolder = new TemporaryFolder();
 
     @Test
+    public void sharedTileReuseDoesNotDecodeThePersistedCopy() throws Exception {
+        HydrologyPlanner firstPlanner = mock(HydrologyPlanner.class);
+        HydrologyPlanner secondPlanner = mock(HydrologyPlanner.class);
+        when(firstPlanner.settings()).thenReturn(emptySettings());
+        when(secondPlanner.settings()).thenReturn(emptySettings());
+        HydrologyTileCache.SharedCacheScope scope = sharedScope();
+        HydrologyTileKey key = new HydrologyTileKey(10, -15);
+        HydrologyTile tile = preparedTile(key, scope);
+        when(firstPlanner.plan(key)).thenReturn(tile);
+        PreparedHydrologyTileStore store = mock(PreparedHydrologyTileStore.class);
+        when(store.contains(key)).thenReturn(true);
+        try (HydrologyTileCache first = new HydrologyTileCache(firstPlanner, 4, null, null, scope);
+             HydrologyTileCache second = new HydrologyTileCache(secondPlanner, 4, null, null, scope)) {
+            assertSame(tile, first.get(key));
+            Field persistentStore = HydrologyTileCache.class.getDeclaredField("persistentStore");
+            persistentStore.setAccessible(true);
+            persistentStore.set(second, store);
+            assertSame(tile, second.get(key));
+            verify(store).contains(key);
+            verify(store, never()).load(key);
+            verify(store, never()).save(tile);
+            verify(secondPlanner, never()).plan(key);
+        }
+    }
+
+    @Test
     public void preparedPlansRestoreFarFromOriginWithoutTerrainPlanning() throws Exception {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
         when(planner.settings()).thenReturn(emptySettings());
@@ -740,26 +766,56 @@ public class HydrologyTileCacheTest {
         assertEquals(1, terrainPreparations.get());
     }
 
-    @Test
-    public void failedPlansDoNotEnterTheSharedStudioCache() {
-        HydrologyPlanner failingPlanner = mock(HydrologyPlanner.class);
-        when(failingPlanner.settings()).thenReturn(emptySettings());
-        HydrologyPlanner succeedingPlanner = mock(HydrologyPlanner.class);
-        when(succeedingPlanner.settings()).thenReturn(emptySettings());
-        HydrologyTile emptyTile = mock(HydrologyTile.class);
-        HydrologyTile plannedTile = mock(HydrologyTile.class);
-        HydrologyTileKey key = new HydrologyTileKey(-4, 5);
+    @Test(timeout = 10000L)
+    public void failedPlansRetryBeforePublishingToMemorySharedCacheOrDisk() throws Exception {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(emptySettings());
         HydrologyTileCache.SharedCacheScope scope = sharedScope();
-        when(failingPlanner.plan(key)).thenThrow(new IllegalStateException("test failure"));
-        when(failingPlanner.emptyTile(key)).thenReturn(emptyTile);
-        when(succeedingPlanner.plan(key)).thenReturn(plannedTile);
-        HydrologyTileCache first = new HydrologyTileCache(failingPlanner, 4, null, null, scope);
-        HydrologyTileCache second = new HydrologyTileCache(succeedingPlanner, 4, null, null, scope);
-
-        assertSame(emptyTile, first.get(key));
-        assertSame(plannedTile, second.get(key));
-
-        verify(succeedingPlanner, times(1)).plan(key);
+        HydrologyTileKey key = new HydrologyTileKey(-4, 5);
+        HydrologyTile tile = preparedTile(key, scope);
+        AtomicInteger attempts = new AtomicInteger();
+        CountDownLatch rebuilding = new CountDownLatch(1);
+        CountDownLatch recovered = new CountDownLatch(1);
+        when(planner.plan(key)).thenAnswer(invocation -> {
+            if (attempts.incrementAndGet() <= 3) {
+                throw new IllegalStateException("Inconsistent owner metadata");
+            }
+            rebuilding.countDown();
+            assertTrue(recovered.await(5L, TimeUnit.SECONDS));
+            return tile;
+        });
+        PreparedHydrologyTileStore store = mock(PreparedHydrologyTileStore.class);
+        ExecutorService callers = Executors.newFixedThreadPool(2);
+        try (HydrologyTileCache cache = new HydrologyTileCache(planner, 4, null, null, scope)) {
+            Field persistentStore = HydrologyTileCache.class.getDeclaredField("persistentStore");
+            persistentStore.setAccessible(true);
+            persistentStore.set(cache, store);
+            Future<HydrologyTile> first = callers.submit(() -> cache.get(key));
+            Future<HydrologyTile> second = callers.submit(() -> cache.get(key));
+            assertTrue(rebuilding.await(5L, TimeUnit.SECONDS));
+            assertFalse(first.isDone());
+            assertFalse(second.isDone());
+            assertEquals(0, cache.size());
+            verify(store, never()).save(any(HydrologyTile.class));
+            recovered.countDown();
+            assertSame(tile, first.get(5L, TimeUnit.SECONDS));
+            assertSame(tile, second.get(5L, TimeUnit.SECONDS));
+            assertSame(tile, cache.get(key));
+            verify(planner, times(4)).plan(key);
+            verify(planner, times(3)).clearOwnerDrafts();
+            verify(store, times(1)).load(key);
+            verify(store, times(1)).save(tile);
+            HydrologyPlanner sharedPlanner = mock(HydrologyPlanner.class);
+            when(sharedPlanner.settings()).thenReturn(emptySettings());
+            try (HydrologyTileCache shared = new HydrologyTileCache(sharedPlanner, 4, null, null, scope)) {
+                assertSame(tile, shared.get(key));
+                verify(sharedPlanner, never()).plan(key);
+            }
+        } finally {
+            recovered.countDown();
+            callers.shutdownNow();
+            assertTrue(callers.awaitTermination(5L, TimeUnit.SECONDS));
+        }
     }
 
     @Test
@@ -1243,35 +1299,139 @@ public class HydrologyTileCacheTest {
         );
     }
 
-    @Test
-    public void planningFailureFallsBackToTheEmptyTileAndIsCached() {
+    @Test(timeout = 10000L)
+    public void planningFailureRetriesAndCachesTheRecoveredTile() {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
-        HydrologyTileKey key = new HydrologyTileKey(3, -2);
-        HydrologyTile empty = new HydrologyTile(key, 7L, 11L, 1024, List.of(), List.of(), List.of(), List.of(), Set.of(), List.of(), List.of(), RiverFootprint.empty());
-        when(planner.settings()).thenReturn(emptySettings());
-        when(planner.plan(key)).thenThrow(new IllegalStateException("Hydrology natural height was not finite at -66,-641"));
-        when(planner.emptyTile(key)).thenReturn(empty);
-        HydrologyTileCache cache = new HydrologyTileCache(planner, 4);
-
-        assertSame(empty, cache.get(key));
-        assertSame(empty, cache.get(key));
-
-        verify(planner, times(1)).plan(key);
-        assertTrue(cache.get(key).courses().isEmpty());
+        HydrologyPlanner canonical = new HydrologyPlanner(811L, featureSettings(), this::featureTerrain);
+        HydrologyTileKey key = new HydrologyTileKey(0, 0);
+        HydrologyTile tile = canonical.plan(key);
+        HydrologyColumnSample sample = tile.footprint().columns().values().stream()
+                .filter(HydrologyColumnSample::present).findFirst().orElseThrow();
+        when(planner.settings()).thenReturn(featureSettings());
+        when(planner.plan(any(HydrologyTileKey.class))).thenAnswer(invocation ->
+                canonical.plan(invocation.getArgument(0)));
+        when(planner.plan(key)).thenThrow(new IllegalStateException("Inconsistent owner metadata"))
+                .thenReturn(tile);
+        try (HydrologyTileCache cache = new HydrologyTileCache(planner, 8)) {
+            assertSame(tile, cache.get(key));
+            assertSame(tile, cache.get(key));
+            assertFalse(tile.courses().isEmpty());
+            assertTrue(tile.footprint().size() > 0);
+            HydrologyColumnSample published = cache.columnAt(sample.x(), sample.z()).orElseThrow();
+            assertEquals(sample.x(), published.x());
+            assertEquals(sample.z(), published.z());
+            assertTrue(published.layers().containsAll(sample.layers()));
+            verify(planner, times(2)).plan(key);
+            verify(planner).clearOwnerDrafts();
+        }
     }
 
-    @Test
-    public void plannerEmptyTileCarriesTheTileIdentityAndNoContent() {
-        HydrologyPlanner planner = new HydrologyPlanner(811L, featureSettings(), this::featureTerrain);
-        HydrologyTileKey key = new HydrologyTileKey(-4, 9);
+    @Test(timeout = 10000L)
+    public void clearingDuringRetryCompletesTheSnapshotWithoutPublishing() throws Exception {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(emptySettings());
+        HydrologyTileCache.SharedCacheScope scope = sharedScope();
+        HydrologyTileKey key = new HydrologyTileKey(3, -2);
+        HydrologyTile tile = preparedTile(key, scope);
+        CountDownLatch failed = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            failed.countDown();
+            return null;
+        }).when(planner).clearOwnerDrafts();
+        when(planner.plan(key)).thenThrow(new IllegalStateException("Inconsistent owner metadata"))
+                .thenReturn(tile);
+        PreparedHydrologyTileStore store = mock(PreparedHydrologyTileStore.class);
+        ExecutorService caller = Executors.newSingleThreadExecutor();
+        try (HydrologyTileCache cache = new HydrologyTileCache(planner, 4, null, null, scope)) {
+            Field persistentStore = HydrologyTileCache.class.getDeclaredField("persistentStore");
+            persistentStore.setAccessible(true);
+            persistentStore.set(cache, store);
+            Future<HydrologyTile> pending = caller.submit(() -> cache.get(key));
+            assertTrue(failed.await(5L, TimeUnit.SECONDS));
+            cache.clear();
+            assertSame(tile, pending.get(5L, TimeUnit.SECONDS));
+            assertEquals(0, cache.size());
+            verify(store, never()).save(any(HydrologyTile.class));
+            HydrologyPlanner freshPlanner = mock(HydrologyPlanner.class);
+            when(freshPlanner.settings()).thenReturn(emptySettings());
+            when(freshPlanner.plan(key)).thenReturn(tile);
+            try (HydrologyTileCache fresh = new HydrologyTileCache(freshPlanner, 4, null, null, scope)) {
+                assertSame(tile, fresh.get(key));
+                verify(freshPlanner).plan(key);
+            }
+        } finally {
+            caller.shutdownNow();
+            assertTrue(caller.awaitTermination(5L, TimeUnit.SECONDS));
+        }
+    }
 
-        HydrologyTile tile = planner.emptyTile(key);
+    @Test(timeout = 10000L)
+    public void closingDuringRetryCancelsWithoutPublishing() throws Exception {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(emptySettings());
+        HydrologyTileKey key = new HydrologyTileKey(3, -2);
+        CountDownLatch failed = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            failed.countDown();
+            return null;
+        }).when(planner).clearOwnerDrafts();
+        when(planner.plan(key)).thenThrow(new IllegalStateException("Inconsistent owner metadata"));
+        ExecutorService caller = Executors.newSingleThreadExecutor();
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 4);
+        try {
+            Future<HydrologyTile> pending = caller.submit(() -> cache.get(key));
+            assertTrue(failed.await(5L, TimeUnit.SECONDS));
+            cache.close();
+            ExecutionException failure = assertThrows(ExecutionException.class,
+                    () -> pending.get(2L, TimeUnit.SECONDS));
+            assertTrue(failure.getCause() instanceof CancellationException);
+            assertEquals(0, cache.size());
+            verify(planner, times(1)).plan(key);
+        } finally {
+            caller.shutdownNow();
+            assertTrue(caller.awaitTermination(5L, TimeUnit.SECONDS));
+            cache.close();
+        }
+    }
 
-        assertEquals(key, tile.key());
-        assertEquals(featureSettings().routing().tileSize(), tile.tileSize());
-        assertTrue(tile.courses().isEmpty());
-        assertTrue(tile.outlets().isEmpty());
-        assertTrue(tile.columnAt(0, 0).isEmpty());
+    @Test(timeout = 10000L)
+    public void interruptionDuringRetryPreservesInterruptAndPublishesNothing() throws Exception {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        when(planner.settings()).thenReturn(emptySettings());
+        HydrologyTileKey key = new HydrologyTileKey(3, -2);
+        AtomicReference<Thread> planningThread = new AtomicReference<>();
+        CountDownLatch failed = new CountDownLatch(1);
+        AtomicBoolean interruptPreserved = new AtomicBoolean();
+        when(planner.plan(key)).thenAnswer(invocation -> {
+            planningThread.set(Thread.currentThread());
+            throw new IllegalStateException("Inconsistent owner metadata");
+        });
+        doAnswer(invocation -> {
+            failed.countDown();
+            return null;
+        }).when(planner).clearOwnerDrafts();
+        ExecutorService caller = Executors.newSingleThreadExecutor();
+        try (HydrologyTileCache cache = new HydrologyTileCache(planner, 4)) {
+            Future<HydrologyTile> pending = caller.submit(() -> {
+                try {
+                    return cache.get(key);
+                } catch (CancellationException failure) {
+                    interruptPreserved.set(Thread.currentThread().isInterrupted());
+                    throw failure;
+                }
+            });
+            assertTrue(failed.await(5L, TimeUnit.SECONDS));
+            planningThread.get().interrupt();
+            ExecutionException failure = assertThrows(ExecutionException.class,
+                    () -> pending.get(2L, TimeUnit.SECONDS));
+            assertTrue(failure.getCause() instanceof CancellationException);
+            assertTrue(interruptPreserved.get());
+            assertEquals(0, cache.size());
+            verify(planner, times(1)).plan(key);
+        } finally {
+            caller.shutdownNow();
+            assertTrue(caller.awaitTermination(5L, TimeUnit.SECONDS));
+        }
     }
 
     @Test
@@ -1794,7 +1954,6 @@ public class HydrologyTileCacheTest {
         assertEquals(0, cache.size());
         assertSame(tile, cache.get(key));
         assertEquals(2, plans.get());
-        verify(planner, org.mockito.Mockito.never()).emptyTile(any(HydrologyTileKey.class));
     }
 
     @Test

@@ -214,33 +214,12 @@ public final class HydrologyPlanner {
         return settings;
     }
 
-    /**
-     * A tile with the same identity as a planned tile but no rivers, used when planning the tile
-     * failed and terrain there must still generate.
-     */
-    public HydrologyTile emptyTile(HydrologyTileKey key) {
-        Objects.requireNonNull(key, "key");
-        return new HydrologyTile(
-                key,
-                worldSeed,
-                settings.fingerprint(),
-                settings.routing().tileSize(),
-                List.of(),
-                List.of(),
-                List.of(),
-                List.of(),
-                Set.of(),
-                List.of(),
-                List.of(),
-                RiverFootprint.empty()
-        );
-    }
-
     public HydrologyTile plan(HydrologyTileKey key) {
         long started = System.nanoTime();
         CrossTileResolution resolution = resolveCrossTileOwner(key);
         long materializeStarted = System.nanoTime();
-        HydrologyTile tile = crossTile.materializeAcceptedTile(resolution);
+        HydrologyTile tile = crossTile.materializeAcceptedTile(resolution)
+                .withResolvedOwner(new CrossTileResolvedOwner(resolution.draft(), resolution.observedRejections()));
         long finished = System.nanoTime();
         IrisLogging.debug(
                 "Hydrology tile %d,%d planned in %dms: owners=%d resolve=%dms materialize=%dms courses=%d on %s",
@@ -277,32 +256,10 @@ public final class HydrologyPlanner {
                 || tile.tileSize() != settings.routing().tileSize()) {
             throw new IllegalArgumentException("Hydrology tile does not match this planner.");
         }
-        ArrayList<RiverCourse> localCourses = new ArrayList<>(tile.courses().size());
-        for (RiverCourse course : tile.courses()) {
-            if (!tile.regionalCourseIds().contains(course.id())) {
-                localCourses.add(course);
-            }
+        CrossTileResolvedOwner owner = tile.resolvedOwner();
+        if (owner != null) {
+            resolvedOwners.asMap().putIfAbsent(tile.key(), owner);
         }
-        ArrayList<HydrologyCavePlan> localPlans = new ArrayList<>(tile.cavePlans().size());
-        for (HydrologyCavePlan plan : tile.cavePlans()) {
-            if (!tile.regionalCourseIds().contains(plan.source().sourceId())) {
-                localPlans.add(plan);
-            }
-        }
-        HydrologyCaveCourseFilter.Result result = new HydrologyCaveCourseFilter.Result(
-                tile.nodes(),
-                tile.edges(),
-                tile.outlets(),
-                localCourses,
-                localPlans
-        );
-        HydrologyOwnerDraft draft = new HydrologyOwnerDraft(
-                tile.key(),
-                result,
-                tile.localDiagnosticCandidates(),
-                null
-        );
-        resolvedOwners.put(tile.key(), new CrossTileResolvedOwner(draft, List.of()));
     }
 
     CrossTileResolution resolveCrossTileOwner(HydrologyTileKey key) {
@@ -386,6 +343,11 @@ public final class HydrologyPlanner {
         if (candidateKeys.size() < 2 || !IrisPlatforms.isBound()) {
             ArrayList<CrossTileResolvedOwner> resolved = new ArrayList<>(candidateKeys.size());
             for (HydrologyTileKey candidateKey : candidateKeys) {
+                CrossTileResolvedOwner local = context.resolved(candidateKey);
+                if (local != null) {
+                    resolved.add(local);
+                    continue;
+                }
                 HydrologyForkJoin.Task<CrossTileResolvedOwner> prepared = preparedOwners.get(candidateKey);
                 CrossTileResolvedOwner owner = prepared == null
                         ? resolveCrossTileOwner(candidateKey, context, false) : prepared.await();
@@ -397,16 +359,25 @@ public final class HydrologyPlanner {
         // Neighbour drafts use the current pool (or the burst pool from outside any pool).
         // Waiting workers claim their own tasks without helping unrelated owner drafts.
         ArrayList<Callable<CrossTileResolvedOwner>> tasks = new ArrayList<>(candidateKeys.size());
+        ArrayList<CrossTileResolvedOwner> resolved = new ArrayList<>(candidateKeys.size());
         for (HydrologyTileKey candidateKey : candidateKeys) {
+            CrossTileResolvedOwner local = context.resolved(candidateKey);
+            resolved.add(local);
+            if (local != null) {
+                continue;
+            }
             HydrologyForkJoin.Task<CrossTileResolvedOwner> prepared = preparedOwners.get(candidateKey);
             tasks.add(prepared == null ? () -> resolveIndependentOwner(candidateKey) : prepared::await);
         }
         List<CrossTileResolvedOwner> owners = HydrologyForkJoin.invokeAll(tasks, MultiBurst.burst);
-        ArrayList<CrossTileResolvedOwner> resolved = new ArrayList<>(candidateKeys.size());
+        int completed = 0;
         for (int index = 0; index < candidateKeys.size(); index++) {
-            CrossTileResolvedOwner owner = owners.get(index);
+            if (resolved.get(index) != null) {
+                continue;
+            }
+            CrossTileResolvedOwner owner = owners.get(completed++);
             context.remember(candidateKeys.get(index), owner);
-            resolved.add(owner);
+            resolved.set(index, owner);
         }
         return List.copyOf(resolved);
     }

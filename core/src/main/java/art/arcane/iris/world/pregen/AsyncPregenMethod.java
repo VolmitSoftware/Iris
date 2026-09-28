@@ -31,7 +31,6 @@ import art.arcane.iris.platform.bukkit.nms.INMSBinding;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.hydrology.HydrologyTileCache;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
-import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.iris.generation.concurrent.MultiBurst;
@@ -97,9 +96,6 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final ConcurrentHashMap<Long, AtomicInteger> regionPending;
     private final ConcurrentHashMap<Long, Queue<Chunk>> regionChunks;
     private final Queue<CompletableFuture<Void>> pendingEvictions;
-    private final KSet<Long> drainedRegions;
-    private final KSet<Long> evictedRegions;
-    private volatile int evictionWindowRegions;
     private volatile int boundsMinRegionX;
     private volatile int boundsMinRegionZ;
     private volatile int boundsMaxRegionX;
@@ -164,6 +160,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         int configuredThreads = foliaRuntime
                 ? computeFoliaRecommendedCap(workerThreadsForCap)
                 : computePaperLikeRecommendedCap(workerThreadsForCap);
+        configuredThreads = heapLimitedConcurrency(configuredThreads, Runtime.getRuntime().maxMemory());
         this.threads = selectConcurrencyCap(configuredThreads, strictSerial);
         this.workerPoolThreads = detectedWorkerPoolThreads;
         this.runtimeCpuThreads = detectedCpuThreads;
@@ -183,9 +180,6 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         this.regionPending = new ConcurrentHashMap<>();
         this.regionChunks = new ConcurrentHashMap<>();
         this.pendingEvictions = new ConcurrentLinkedQueue<>();
-        this.drainedRegions = new KSet<>();
-        this.evictedRegions = new KSet<>();
-        this.evictionWindowRegions = -1;
         this.boundsMinRegionX = Integer.MIN_VALUE;
         this.boundsMinRegionZ = Integer.MIN_VALUE;
         this.boundsMaxRegionX = Integer.MAX_VALUE;
@@ -232,28 +226,6 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         return (((long) rx) << 32) | (rz & 0xFFFFFFFFL);
     }
 
-    private int evictionWindow() {
-        int cached = evictionWindowRegions;
-        if (cached > 0) {
-            return cached;
-        }
-
-        Engine engine = resolveMetricsEngine();
-        if (engine == null) {
-            return 2;
-        }
-
-        try {
-            int radius = engine.getMantle().getRadius();
-            int resolved = radius > 0 ? Math.max(1, (int) Math.ceil(radius / 32.0)) : 2;
-            evictionWindowRegions = resolved;
-            return resolved;
-        } catch (Throwable e) {
-            PregenDiagnostics.probeFailed("mantle radius for eviction window", e);
-            return 2;
-        }
-    }
-
     private void onChunkCompleted(int x, int z, Chunk chunk) {
         if (chunk == null) {
             return;
@@ -261,10 +233,16 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
         try {
             long rk = rkey(x >> 5, z >> 5);
-            regionChunks.computeIfAbsent(rk, k -> new ConcurrentLinkedQueue<>()).add(chunk);
+            regionChunks.compute(rk, (key, existing) -> {
+                Queue<Chunk> chunks = existing == null ? new ConcurrentLinkedQueue<>() : existing;
+                chunks.add(chunk);
+                return chunks;
+            });
             AtomicInteger pending = regionPending.get(rk);
             if (pending != null && pending.decrementAndGet() == 0) {
                 onRegionDrained(rk);
+            } else if (MantleHeapPressure.overHighWater()) {
+                evictRegion(rk);
             }
         } catch (Throwable e) {
             IrisLogging.reportError(e);
@@ -317,10 +295,6 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
     }
 
-    private boolean inBounds(int rx, int rz) {
-        return rx >= boundsMinRegionX && rx <= boundsMaxRegionX && rz >= boundsMinRegionZ && rz <= boundsMaxRegionZ;
-    }
-
     @Override
     public void onRegionSubmitted(int regionX, int regionZ) {
         try {
@@ -335,58 +309,14 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     private void onRegionDrained(long rk) {
-        if (!drainedRegions.add(rk)) {
-            return;
-        }
-
-        int w = evictionWindow();
-        int rx = (int) (rk >> 32);
-        int rz = (int) rk;
-        for (int dx = -w; dx <= w; dx++) {
-            for (int dz = -w; dz <= w; dz++) {
-                int cx = rx + dx;
-                int cz = rz + dz;
-                long candidate = rkey(cx, cz);
-                if (evictedRegions.contains(candidate)) {
-                    continue;
-                }
-                if (!drainedRegions.contains(candidate)) {
-                    continue;
-                }
-                if (allNeighborsDrained(cx, cz, w)) {
-                    evictRegion(candidate);
-                }
-            }
-        }
-    }
-
-    private boolean allNeighborsDrained(int rx, int rz, int w) {
-        for (int dx = -w; dx <= w; dx++) {
-            for (int dz = -w; dz <= w; dz++) {
-                int nx = rx + dx;
-                int nz = rz + dz;
-                if (!inBounds(nx, nz)) {
-                    continue;
-                }
-
-                if (!drainedRegions.contains(rkey(nx, nz))) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
+        regionPending.remove(rk);
+        evictRegion(rk);
     }
 
     private CompletableFuture<Void> evictRegion(long c) {
         if (IrisToolbelt.isServerStopping()) {
             return CompletableFuture.completedFuture(null);
         }
-        if (!evictedRegions.add(c)) {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        regionPending.remove(c);
         Queue<Chunk> chunks = regionChunks.remove(c);
         if (chunks == null || chunks.isEmpty()) {
             return CompletableFuture.completedFuture(null);
@@ -651,6 +581,11 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         return strictSerial ? 1 : Math.max(1, recommendedCap);
     }
 
+    static int heapLimitedConcurrency(int recommendedCap, long maximumHeapBytes) {
+        long heapCap = Math.max(1L, maximumHeapBytes / (256L * 1024L * 1024L));
+        return (int) Math.min(Math.max(1, recommendedCap), heapCap);
+    }
+
     static int computeInitialInFlightLimit(int concurrencyCap, int workerThreads) {
         long initial = Math.max(1L, workerThreads) * 8L;
         return (int) Math.min(Math.max(1, concurrencyCap), initial);
@@ -881,6 +816,14 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     @Override
+    public void reclaimMemory() {
+        if (regionChunks.isEmpty() && pendingEvictions.isEmpty()) {
+            return;
+        }
+        flushAllRemainingChunks();
+    }
+
+    @Override
     public boolean supportsRegions(int x, int z, PregenListener listener) {
         return false;
     }
@@ -893,8 +836,11 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
         listener.onChunkGenerating(x, z);
+        if (MantleHeapPressure.overHighWater()) {
+            reclaimMemory();
+        }
         backpressure.enforceMantleBudget();
-        backpressure.awaitHeapHeadroom();
+        backpressure.awaitHeapHeadroom(MantleHeapPressure::overHighWater, this::reclaimHeapPressure);
         if (isCancelled()) {
             return;
         }
@@ -922,6 +868,13 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         regionPending.computeIfAbsent(rkey(x >> 5, z >> 5), k -> new AtomicInteger(1)).incrementAndGet();
         markSubmitted();
         executor.generate(x, z, listener);
+    }
+
+    private void reclaimHeapPressure() {
+        if (!regionChunks.isEmpty() || !pendingEvictions.isEmpty()) {
+            reclaimMemory();
+        }
+        MantleHeapPressure.requestPanicReclaim();
     }
 
     private CompletableFuture<Chunk> requestChunkAsync(int x, int z) {

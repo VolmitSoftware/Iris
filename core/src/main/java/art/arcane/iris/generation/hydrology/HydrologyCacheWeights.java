@@ -24,6 +24,9 @@ final class HydrologyCacheWeights {
         long bytes = network(tile.nodes(), tile.edges(), tile.outlets(), tile.courses(), tile.cavePlans());
         bytes += diagnostics(tile.localDiagnosticCandidates());
         bytes += (long) tile.regionalCourseIds().size() * 64L;
+        if (tile.resolvedOwner() != null) {
+            bytes += owner(tile.resolvedOwner());
+        }
         RiverFootprint footprint = tile.footprint();
         if (footprint != null) {
             bytes += (long) footprint.size() * 64L;

@@ -99,7 +99,6 @@ public class HydrologyPlanningAdmissionIntegrationTest {
                     () -> pending.get(2L, TimeUnit.SECONDS));
             assertTrue(failure.getCause() instanceof CancellationException);
             verify(planner, never()).plan(any(HydrologyTileKey.class));
-            verify(planner, never()).emptyTile(any(HydrologyTileKey.class));
             assertEquals(0, cache.size());
             releaseRoots(held);
             HydrologyTile tile = mock(HydrologyTile.class);

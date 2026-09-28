@@ -22,14 +22,14 @@ import static org.junit.Assert.assertTrue;
 
 public class ObjectSourcePlanCacheTest {
     @Test
-    public void defaultCapacityRetainsNeighboringSourceWorkingSetWithoutRebuilding() {
-        ObjectSourcePlanCache cache = new ObjectSourcePlanCache();
+    public void budgetRetainsNeighboringSourceWorkingSetWithoutRebuilding() {
+        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(1024L * 1024L);
         AtomicInteger builds = new AtomicInteger();
         ObjectDestinationTransaction.DataKey key = new ObjectDestinationTransaction.DataKey(
                 0, 4, 0, String.class);
         ObjectDestinationTransaction.Mutation mutation = new ObjectDestinationTransaction.SetMutation(key, "marker");
-        ObjectSourcePlan expected = new ObjectSourcePlan(Collections.nCopies(2048, mutation));
-        assertTrue(expected.mutationWeight() * 1024L > 1_048_576L);
+        ObjectSourcePlan expected = new ObjectSourcePlan(Collections.nCopies(2, mutation));
+        assertTrue(expected.estimatedRetainedBytes() * 1024L < 1_048_576L);
         for (int sweep = 0; sweep < 3; sweep++) {
             for (int x = -16; x < 16; x++) {
                 for (int z = -16; z < 16; z++) {
@@ -53,7 +53,7 @@ public class ObjectSourcePlanCacheTest {
 
     @Test
     public void unrelatedCoordinatesBuildWhileAnotherPlanIsPending() throws Exception {
-        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(64L);
+        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(4096L);
         ObjectSourcePlan first = planAt(1);
         ObjectSourcePlan second = planAt(2);
         CountDownLatch firstEntered = new CountDownLatch(1);
@@ -88,7 +88,7 @@ public class ObjectSourcePlanCacheTest {
 
     @Test
     public void concurrentRequestsBuildOneSourcePlan() throws Exception {
-        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(64L);
+        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(4096L);
         ObjectSourcePlan expected = new ObjectSourcePlan(List.of());
         AtomicInteger builds = new AtomicInteger();
         CountDownLatch ready = new CountDownLatch(8);
@@ -119,10 +119,10 @@ public class ObjectSourcePlanCacheTest {
     }
 
     @Test
-    public void cacheEvictsByMutationWeightAndCanBeCleared() {
+    public void cacheEvictsByRetainedBytesAndCanBeCleared() {
         ObjectSourcePlan first = planAt(0);
         ObjectSourcePlan second = planAt(1);
-        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(first.mutationWeight());
+        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(first.estimatedRetainedBytes());
 
         cache.get(0, 0, () -> first);
         cache.get(1, 0, () -> second);
@@ -133,13 +133,13 @@ public class ObjectSourcePlanCacheTest {
     }
 
     @Test
-    public void cacheRejectsNonPositiveMutationCapacity() {
+    public void cacheRejectsNonPositiveByteCapacity() {
         assertThrows(IllegalArgumentException.class, () -> new ObjectSourcePlanCache(0L));
     }
 
     @Test
     public void clearingPendingWorkKeepsNewGenerationIsolated() throws Exception {
-        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(64L);
+        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(4096L);
         ObjectSourcePlan old = planAt(1);
         ObjectSourcePlan replacement = planAt(2);
         CountDownLatch entered = new CountDownLatch(1);
@@ -164,7 +164,7 @@ public class ObjectSourcePlanCacheTest {
 
     @Test
     public void waitingForkJoinWorkerAllowsQueuedDependencyToRun() throws Exception {
-        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(64L);
+        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(4096L);
         ObjectSourcePlan expected = planAt(1);
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch waiting = new CountDownLatch(1);
@@ -194,7 +194,7 @@ public class ObjectSourcePlanCacheTest {
 
     @Test
     public void failedAndNullBuildsAreRetryableAndRecursionFailsImmediately() {
-        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(64L);
+        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(4096L);
         IllegalArgumentException failure = new IllegalArgumentException("Build failed");
         assertSame(failure, assertThrows(IllegalArgumentException.class,
                 () -> cache.get(7, 8, () -> { throw failure; })));
@@ -203,6 +203,43 @@ public class ObjectSourcePlanCacheTest {
                 () -> cache.get(7, 8, () -> planAt(1))));
         ObjectSourcePlan expected = planAt(1);
         assertSame(expected, cache.get(7, 8, () -> expected));
+    }
+
+    @Test
+    public void byteBudgetScalesWithHeapAndHasAnUpperBound() {
+        assertEquals(64L * 1024L * 1024L, ObjectSourcePlanCache.retainedByteBudget(4L * 1024L * 1024L * 1024L));
+        assertEquals(16L * 1024L * 1024L, ObjectSourcePlanCache.retainedByteBudget(1024L * 1024L * 1024L));
+        assertEquals(256L * 1024L * 1024L, ObjectSourcePlanCache.retainedByteBudget(Long.MAX_VALUE));
+    }
+
+    @Test
+    public void emptyPlansConsumeTheByteBudget() {
+        ObjectSourcePlan empty = new ObjectSourcePlan(List.of());
+        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(4L * empty.estimatedRetainedBytes());
+        for (int chunk = 0; chunk < 1000; chunk++) {
+            cache.get(chunk, 0, () -> empty);
+        }
+        assertTrue(cache.estimatedSize() <= 4L);
+    }
+
+    @Test
+    public void oversizedAndUnmeasuredPlansAreReturnedWithoutRetention() {
+        ObjectSourcePlan large = planAt(1);
+        ObjectSourcePlan unmeasured = new ObjectSourcePlan(List.of(new ObjectDestinationTransaction.SetMutation(
+                new ObjectDestinationTransaction.DataKey(0, 4, 0, Object.class), new Object())));
+        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(large.estimatedRetainedBytes() - 1L);
+        assertSame(large, cache.get(1, 0, () -> large));
+        assertSame(unmeasured, cache.get(2, 0, () -> unmeasured));
+        assertEquals(0L, cache.estimatedSize());
+        AtomicInteger builds = new AtomicInteger();
+        cache.get(1, 0, () -> {
+            builds.incrementAndGet();
+            return large;
+        });
+        assertEquals(1, builds.get());
+        ObjectSourcePlanCache roomy = new ObjectSourcePlanCache(Long.MAX_VALUE);
+        assertSame(unmeasured, roomy.get(2, 0, () -> unmeasured));
+        assertEquals(0L, roomy.estimatedSize());
     }
 
     private static void await(CountDownLatch latch) {

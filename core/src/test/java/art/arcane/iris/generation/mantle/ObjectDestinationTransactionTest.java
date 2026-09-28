@@ -82,7 +82,7 @@ public class ObjectDestinationTransactionTest {
         }
         ObjectSourcePlan plan = source.sourcePlanSince(0);
         assertEquals(16, source.mutationCheckpoint());
-        assertEquals(35, plan.mutationWeight());
+        assertEquals(Integer.MAX_VALUE, plan.estimatedRetainedBytes());
         for (int[] position : positions) {
             int x = position[0];
             int z = position[1];

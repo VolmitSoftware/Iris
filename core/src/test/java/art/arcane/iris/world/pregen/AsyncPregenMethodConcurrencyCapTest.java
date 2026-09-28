@@ -17,6 +17,16 @@ import static org.junit.Assert.assertTrue;
 
 public class AsyncPregenMethodConcurrencyCapTest {
     @Test
+    public void outstandingChunksReserveHeapForGenerationDependencies() {
+        assertEquals(16, AsyncPregenMethod.heapLimitedConcurrency(256, 4L << 30));
+        assertEquals(32, AsyncPregenMethod.heapLimitedConcurrency(256, 8L << 30));
+        assertEquals(64, AsyncPregenMethod.heapLimitedConcurrency(256, 16L << 30));
+        assertEquals(8, AsyncPregenMethod.heapLimitedConcurrency(8, 16L << 30));
+        assertEquals(1, AsyncPregenMethod.heapLimitedConcurrency(256, 0L));
+        assertEquals(256, AsyncPregenMethod.heapLimitedConcurrency(256, Long.MAX_VALUE));
+    }
+
+    @Test
     public void pregenWorkerTargetExpandsOnlyOptedInHighHeapJobs() {
         assertEquals(16, AsyncPregenMethod.pregenWorkerThreadTarget(16, (16L << 30) - 1L, true));
         assertEquals(32, AsyncPregenMethod.pregenWorkerThreadTarget(16, 16L << 30, true));

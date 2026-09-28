@@ -577,6 +577,9 @@ public interface MatterGenerator {
         private volatile Future<?> submission;
         private volatile Throwable failure;
         private boolean started;
+        private boolean slowWarningIssued;
+        private Thread runningThread;
+        private long startedNanos;
 
         MatterComponentTask(MatterTaskKey key) {
             this.key = key;
@@ -587,6 +590,8 @@ public interface MatterGenerator {
                 return false;
             }
             started = true;
+            runningThread = Thread.currentThread();
+            startedNanos = System.nanoTime();
             return true;
         }
 
@@ -612,6 +617,7 @@ public interface MatterGenerator {
         }
 
         synchronized void finish(Throwable cause) {
+            runningThread = null;
             if (failure == null) {
                 failure = cause;
             } else if (cause != null && cause != failure) {
@@ -644,13 +650,14 @@ public interface MatterGenerator {
                         Future<?> submitted = submission;
                         boolean dropped = submitted != null && submitted.isDone();
                         long waited = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-                        if (!dropped && waited < timeoutMillis) {
-                            continue;
-                        }
-                        IllegalStateException timeoutFailure = new IllegalStateException("Mantle component " + key
-                                + (dropped ? " was dropped by the dispatcher" : " did not complete in " + waited + "ms"));
-                        if (cancel(timeoutFailure)) {
-                            IrisLogging.error(timeoutFailure.getMessage());
+                        if (dropped) {
+                            IllegalStateException dispatchFailure = new IllegalStateException(
+                                    "Mantle component " + key + " was dropped by the dispatcher");
+                            if (cancel(dispatchFailure)) {
+                                IrisLogging.reportError(dispatchFailure.getMessage(), dispatchFailure);
+                            }
+                        } else if (waited >= timeoutMillis) {
+                            warnSlowComponent(waited);
                         }
                     } catch (ExecutionException executionFailure) {
                         Throwable cause = executionFailure.getCause();
@@ -662,6 +669,33 @@ public interface MatterGenerator {
                     Thread.currentThread().interrupt();
                 }
             }
+        }
+
+        private void warnSlowComponent(long waited) {
+            Thread worker;
+            long runningMillis;
+            synchronized (this) {
+                if (slowWarningIssued || future.isDone() || failure != null) {
+                    return;
+                }
+                slowWarningIssued = true;
+                worker = runningThread;
+                runningMillis = started ? TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedNanos) : 0L;
+            }
+            StringBuilder diagnostic = new StringBuilder("Mantle component ")
+                    .append(key).append(" is still pending after ").append(waited)
+                    .append("ms; waiting for completion. ");
+            if (worker == null) {
+                diagnostic.append("Task is queued for the dispatcher.");
+            } else {
+                diagnostic.append("Worker=").append(worker.getName())
+                        .append(" state=").append(worker.getState())
+                        .append(" runningForMs=").append(runningMillis);
+                for (StackTraceElement frame : worker.getStackTrace()) {
+                    diagnostic.append("\n\tat ").append(frame);
+                }
+            }
+            IrisLogging.warn(diagnostic.toString());
         }
     }
 

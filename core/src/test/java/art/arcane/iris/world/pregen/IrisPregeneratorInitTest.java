@@ -1,13 +1,18 @@
 package art.arcane.iris.world.pregen;
 
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.spi.IrisLogging;
+import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.math.Position2;
 import org.junit.Test;
+import org.mockito.InOrder;
+import org.mockito.MockedStatic;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +23,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 public class IrisPregeneratorInitTest {
     @Test
@@ -161,6 +172,43 @@ public class IrisPregeneratorInitTest {
         } finally {
             System.setOut(previousOut);
             IrisSettings.settings = previousSettings;
+        }
+    }
+
+    @Test
+    public void outerHeapReclaimReleasesServerChunksBeforeMantleAndSurvivesChunkFailure() throws Exception {
+        for (boolean failReclaim : new boolean[]{false, true}) {
+            PregeneratorMethod generator = mock(PregeneratorMethod.class);
+            Mantle mantle = mock(Mantle.class);
+            when(generator.getMantle()).thenReturn(mantle);
+            IllegalStateException failure = new IllegalStateException("chunk reclaim failed");
+            if (failReclaim) {
+                doThrow(failure).when(generator).reclaimMemory();
+            }
+            ChronoLatch latch = mock(ChronoLatch.class);
+            when(latch.flip()).thenReturn(true);
+            IrisPregenerator pregenerator = mock(IrisPregenerator.class, CALLS_REAL_METHODS);
+            Field generatorField = IrisPregenerator.class.getDeclaredField("generator");
+            generatorField.setAccessible(true);
+            generatorField.set(pregenerator, generator);
+            Field latchField = IrisPregenerator.class.getDeclaredField("heapReclaimLatch");
+            latchField.setAccessible(true);
+            latchField.set(pregenerator, latch);
+            Method reclaim = IrisPregenerator.class.getDeclaredMethod("reclaimHeapPressure");
+            reclaim.setAccessible(true);
+            try (MockedStatic<MantleHeapPressure> pressure = mockStatic(MantleHeapPressure.class);
+                 MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
+                reclaim.invoke(pregenerator);
+                InOrder order = inOrder(generator, mantle);
+                order.verify(generator).reclaimMemory();
+                order.verify(generator).getMantle();
+                order.verify(mantle).saveOldestIdleTectonicPlate();
+                pressure.verify(MantleHeapPressure::requestPanicReclaim);
+                if (failReclaim) {
+                    logging.verify(() -> IrisLogging.reportError(
+                            "Pregen could not reclaim completed server chunks under heap pressure.", failure));
+                }
+            }
         }
     }
 

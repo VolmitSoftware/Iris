@@ -39,6 +39,7 @@ public class HydrologyRegionalPlannerTest {
         });
 
         restored.reuseResolvedTile(original);
+        assertEquals(original.resolvedOwner(), restored.resolveIndependentOwner(key));
         planning.set(true);
 
         assertEquals(expected, restored.plan(adjacent));

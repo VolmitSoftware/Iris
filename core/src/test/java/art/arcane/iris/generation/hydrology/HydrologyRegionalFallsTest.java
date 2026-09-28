@@ -44,19 +44,33 @@ public final class HydrologyRegionalFallsTest {
                 .materializeFinalHydrology(new HydrologyCaveCourseFilter.Result(network.nodes(), network.edges(),
                         network.outlets(), network.courses(), plans), new ArrayList<>(), compiler, true);
         HydrologyCaveCourseFilter.Result clipped = HydrologyCrossTileResolver.clipRegionalPlans(materialized.result(), network, bounds);
-        RiverCourse local = new RiverCourse(101L, RiverCourseType.SURFACE, regional.sourceNodeId(), regional.outletId(),
+        DrainageNode localNode = new DrainageNode(103L, 0, 0,
+                HydrologyTerrainSample.openLand(89, 0D, "parent"), 100D, 104L);
+        RiverOutlet localOutlet = new RiverOutlet(104L, HydrologyFeatureType.MOUTH, 103L,
+                new HydrologyPoint(0, 72, 0), new HydrologyPoint(1, 63, 0), 63, true);
+        RiverCourse local = new RiverCourse(101L, RiverCourseType.SURFACE, OptionalLong.of(103L), OptionalLong.of(104L),
                 "water", 1, List.of(), List.of(new HydraulicSegment(102L, 101L, HydrologyFeatureType.SURFACE_POOL,
                 72, 72, 4, 2, false, false, List.of(new HydrologyPoint(0, 72, 0), new HydrologyPoint(1, 72, 0)),
                 HydraulicChannelProfile.uniform(4, 2))));
-        HydrologyTile original = new HydrologyTile(new HydrologyTileKey(0, 0), 1L, SETTINGS.fingerprint(),
-                SETTINGS.routing().tileSize(), network.nodes(), network.edges(), network.outlets(),
-                List.of(regional, local), Set.of(regional.id()), clipped.cavePlans(), List.of(), materialized.footprint());
+        HydrologyTileKey key = new HydrologyTileKey(0, 0);
+        CrossTileResolvedOwner owner = new CrossTileResolvedOwner(new HydrologyOwnerDraft(key,
+                new HydrologyCaveCourseFilter.Result(List.of(localNode), List.of(), List.of(localOutlet),
+                        List.of(local), List.of()), List.of(), null), List.of());
+        ArrayList<DrainageNode> publishedNodes = new ArrayList<>(network.nodes());
+        publishedNodes.add(localNode);
+        ArrayList<RiverOutlet> publishedOutlets = new ArrayList<>(network.outlets());
+        publishedOutlets.add(localOutlet);
+        HydrologyTile original = new HydrologyTile(key, 1L, SETTINGS.fingerprint(),
+                SETTINGS.routing().tileSize(), publishedNodes, network.edges(), publishedOutlets,
+                List.of(regional, local), Set.of(regional.id()), clipped.cavePlans(), List.of(), materialized.footprint())
+                .withResolvedOwner(owner);
         PreparedHydrologyTileStore store = new PreparedHydrologyTileStore(temporaryFolder.newFolder().toPath(),
                 new HydrologyTileCache.SharedCacheScope("regional-ownership", 1L, 128, "overworld", SETTINGS.fingerprint()),
                 SETTINGS.routing().tileSize());
         store.save(original);
         HydrologyTile restored = store.load(original.key()).orElseThrow();
         assertEquals(original, restored);
+        assertEquals(owner, restored.resolvedOwner());
         assertFalse(restored.cavePlans().isEmpty());
         HydrologyPlanner fresh = new HydrologyPlanner(1L, SETTINGS, (x, z) -> {
             throw new AssertionError("Restoring final ownership must not sample terrain");
@@ -64,12 +78,14 @@ public final class HydrologyRegionalFallsTest {
 
         fresh.reuseResolvedTile(restored);
 
-        HydrologyCaveCourseFilter.Result owned = fresh.resolvedOwners.getIfPresent(restored.key()).draft().result();
+        CrossTileResolvedOwner restoredOwner = fresh.resolveIndependentOwner(restored.key());
+        assertEquals(owner, restoredOwner);
+        HydrologyCaveCourseFilter.Result owned = restoredOwner.draft().result();
         assertEquals(List.of(local), owned.courses());
         assertTrue(owned.cavePlans().isEmpty());
-        assertEquals(restored.nodes(), owned.nodes());
-        assertEquals(restored.edges(), owned.edges());
-        assertEquals(restored.outlets(), owned.outlets());
+        assertEquals(List.of(localNode), owned.nodes());
+        assertTrue(owned.edges().isEmpty());
+        assertEquals(List.of(localOutlet), owned.outlets());
     }
 
     @Test

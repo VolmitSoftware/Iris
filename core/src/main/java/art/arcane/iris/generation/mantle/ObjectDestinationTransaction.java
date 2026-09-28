@@ -424,10 +424,6 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         DataKey key();
 
         void apply(IObjectPlacer placer);
-
-        default int weight() {
-            return 1;
-        }
     }
 
     record SetMutation(DataKey key, Object value) implements Mutation {
@@ -461,11 +457,6 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         @Override
         public void apply(IObjectPlacer placer) {
             placer.set(key.x(), key.y(), key.z(), state);
-        }
-
-        @Override
-        public int weight() {
-            return 2;
         }
     }
 }

@@ -45,9 +45,17 @@ public class ObjectSourcePlanTest {
         ObjectSourcePlan compact = new ObjectSourcePlan(List.of(first, nearby));
         ObjectSourcePlan scattered = new ObjectSourcePlan(List.of(first, remote));
 
-        assertTrue(compact.mutationWeight() > 1 + first.weight() + nearby.weight());
-        assertTrue(scattered.mutationWeight() > compact.mutationWeight());
+        assertTrue(compact.estimatedRetainedBytes() > new ObjectSourcePlan(List.of()).estimatedRetainedBytes());
+        assertTrue(scattered.estimatedRetainedBytes() > compact.estimatedRetainedBytes());
         assertThrows(NullPointerException.class, () -> new ObjectSourcePlan(Arrays.asList(first, null)));
+    }
+
+    @Test
+    public void retainedBytesIncludeVariableLengthMarkers() {
+        ObjectDestinationTransaction.DataKey key = new ObjectDestinationTransaction.DataKey(0, 4, 0, String.class);
+        ObjectSourcePlan shortMarker = new ObjectSourcePlan(List.of(new ObjectDestinationTransaction.SetMutation(key, "a")));
+        ObjectSourcePlan longMarker = new ObjectSourcePlan(List.of(new ObjectDestinationTransaction.SetMutation(key, "a".repeat(4096))));
+        assertTrue(longMarker.estimatedRetainedBytes() - shortMarker.estimatedRetainedBytes() >= 8190);
     }
 
     private static ObjectDestinationTransaction.Mutation mutationAt(int x, int z) {

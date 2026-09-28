@@ -39,7 +39,8 @@ final class CrossTileResolutionContext {
         CrossTileResolvedOwner existing = resolved.putIfAbsent(key, owner);
         if (existing != null
                 && !existing.withoutFootprintCompiler().equals(owner.withoutFootprintCompiler())) {
-            throw new IllegalStateException("Cross-tile owner resolution produced inconsistent cached results.");
+            throw new IllegalStateException("Cross-tile owner resolution produced inconsistent cached results for "
+                    + key.tileX() + "," + key.tileZ() + " while planning " + root.tileX() + "," + root.tileZ() + ".");
         }
         if (resolved.size() > maximumOwners) {
             throw new IllegalStateException("Cross-tile owner dependencies exceeded their color-ranked count bound.");

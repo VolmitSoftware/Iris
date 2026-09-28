@@ -903,8 +903,9 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                     int worldX = blockX + localX;
                     int worldZ = blockZ + localZ;
                     int floor = -1;
+                    int top = extent == null ? height - 1 : extent.highestStoredY(localX, localZ);
                     for (int y = 1; y < height; y++) {
-                        if (extent != null && y > extent.highestStoredY(localX, localZ)) {
+                        if (y > top) {
                             break;
                         }
                         NativeBlockState state = output.getRaw(localX, y, localZ);
@@ -927,6 +928,9 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                                             worldX, worldZ, resolver, caveBiomes, customBiomes);
                                     decorateZone(output, zone, localX, localZ, worldX, worldZ,
                                             floorBiome, ceilingBiome);
+                                    if (extent != null) {
+                                        top = extent.highestStoredY(localX, localZ);
+                                    }
                                 }
                                 floor = -1;
                             }

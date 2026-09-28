@@ -130,7 +130,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
         return (clampedY * CHUNK_SIZE + clampedZ) * CHUNK_SIZE + clampedX;
     }
 
-    private static NativeBiome canonicalBiome(NativeBiome biome) {
+    static NativeBiome canonicalBiome(NativeBiome biome) {
         if (biome instanceof BukkitBiome) {
             return biome;
         }

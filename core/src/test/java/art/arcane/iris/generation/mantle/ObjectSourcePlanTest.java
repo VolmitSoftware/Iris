@@ -45,9 +45,39 @@ public class ObjectSourcePlanTest {
         ObjectSourcePlan compact = new ObjectSourcePlan(List.of(first, nearby));
         ObjectSourcePlan scattered = new ObjectSourcePlan(List.of(first, remote));
 
-        assertTrue(compact.mutationWeight() > 1 + first.weight() + nearby.weight());
-        assertTrue(scattered.mutationWeight() > compact.mutationWeight());
+        assertTrue(compact.estimatedRetainedBytes() > new ObjectSourcePlan(List.of()).estimatedRetainedBytes());
+        assertTrue(scattered.estimatedRetainedBytes() > compact.estimatedRetainedBytes());
         assertThrows(NullPointerException.class, () -> new ObjectSourcePlan(Arrays.asList(first, null)));
+    }
+
+    @Test
+    public void retainedBytesIncludeVariableLengthMarkers() {
+        ObjectDestinationTransaction.DataKey key = new ObjectDestinationTransaction.DataKey(0, 4, 0, String.class);
+        ObjectSourcePlan shortMarker = new ObjectSourcePlan(List.of(new ObjectDestinationTransaction.SetMutation(key, "a")));
+        ObjectSourcePlan longMarker = new ObjectSourcePlan(List.of(new ObjectDestinationTransaction.SetMutation(key, "a".repeat(4096))));
+        assertTrue(longMarker.estimatedRetainedBytes() - shortMarker.estimatedRetainedBytes() >= 8190);
+    }
+
+    @Test
+    public void continuationMetadataAddsRetainedBytesWithoutCountingPayloadsTwice() {
+        List<ObjectDestinationTransaction.Mutation> shortMarkers = List.of(mutationAt(0, 0), mutationAt(16, 0));
+        List<ObjectDestinationTransaction.Mutation> longMarkers = List.of(
+                new ObjectDestinationTransaction.SetMutation(
+                        new ObjectDestinationTransaction.DataKey(0, 4, 0, String.class), "a".repeat(4096)),
+                new ObjectDestinationTransaction.SetMutation(
+                        new ObjectDestinationTransaction.DataKey(16, 4, 0, String.class), "b".repeat(4096)));
+        ObjectSourcePlan shortPlain = new ObjectSourcePlan(shortMarkers);
+        ObjectSourcePlan shortCrossing = new ObjectSourcePlan(shortMarkers, List.of(shortMarkers));
+        ObjectSourcePlan longPlain = new ObjectSourcePlan(longMarkers);
+        ObjectSourcePlan longCrossing = new ObjectSourcePlan(longMarkers, List.of(longMarkers));
+        ObjectSourcePlan repeatedCrossing = new ObjectSourcePlan(shortMarkers, List.of(shortMarkers, shortMarkers));
+        int metadataBytes = shortCrossing.estimatedRetainedBytes() - shortPlain.estimatedRetainedBytes();
+
+        assertTrue(metadataBytes > 0);
+        assertEquals(metadataBytes, longCrossing.estimatedRetainedBytes() - longPlain.estimatedRetainedBytes());
+        assertTrue(repeatedCrossing.estimatedRetainedBytes() > shortCrossing.estimatedRetainedBytes());
+        assertSame(shortMarkers.getFirst(), shortCrossing.mutationsFor(0, 0).getFirst());
+        assertSame(shortMarkers.getLast(), shortCrossing.mutationsFor(1, 0).getFirst());
     }
 
     private static ObjectDestinationTransaction.Mutation mutationAt(int x, int z) {

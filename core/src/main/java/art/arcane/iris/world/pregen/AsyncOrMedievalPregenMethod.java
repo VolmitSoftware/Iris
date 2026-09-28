@@ -96,6 +96,11 @@ public class AsyncOrMedievalPregenMethod implements PregeneratorMethod {
     }
 
     @Override
+    public void reclaimMemory() {
+        method.reclaimMemory();
+    }
+
+    @Override
     public Mantle getMantle() {
         return method.getMantle();
     }

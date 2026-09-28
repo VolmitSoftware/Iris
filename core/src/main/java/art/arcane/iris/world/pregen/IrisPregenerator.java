@@ -439,6 +439,12 @@ public class IrisPregenerator {
         }
 
         try {
+            generator.reclaimMemory();
+        } catch (Throwable e) {
+            IrisLogging.reportError("Pregen could not reclaim completed server chunks under heap pressure.", e);
+        }
+
+        try {
             Mantle mantle = getMantle();
             if (mantle != null) {
                 mantle.saveOldestIdleTectonicPlate();

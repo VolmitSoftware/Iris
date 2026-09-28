@@ -27,7 +27,6 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONException;
 import art.arcane.volmlib.util.json.JSONObject;
-import art.arcane.iris.platform.bootstrap.getHardware;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import lombok.Data;
 
@@ -226,7 +225,7 @@ public class IrisSettings {
     public static class IrisSettingsPregen {
         private static final int REFERENCE_WORLD_HEIGHT = 384;
         private static final int MIN_RESIDENT_TECTONIC_PLATES = 16;
-        private static final double MANTLE_HEAP_FRACTION = 0.6D;
+        private static final double MANTLE_HEAP_FRACTION = 0.25D;
         private static final int REFERENCE_PLATE_MEGABYTES = 48;
         public IrisRuntimeSchedulerMode runtimeSchedulerMode = IrisRuntimeSchedulerMode.AUTO;
         public IrisPaperLikeBackendMode paperLikeBackendMode = IrisPaperLikeBackendMode.AUTO;
@@ -256,10 +255,14 @@ public class IrisSettings {
         }
 
         public int getEffectiveResidentTectonicPlates(int worldHeight) {
+            return effectiveResidentTectonicPlates(worldHeight, Runtime.getRuntime().maxMemory());
+        }
+
+        int effectiveResidentTectonicPlates(int worldHeight, long maximumHeapBytes) {
             int baseCap = getMaxResidentTectonicPlates();
             int normalizedHeight = Math.max(1, worldHeight);
             int heightScaledCap = (int) Math.round((double) baseCap * REFERENCE_WORLD_HEIGHT / (double) normalizedHeight);
-            long maxHeapMegabytes = getHardware.getProcessMemory();
+            long maxHeapMegabytes = maximumHeapBytes / (1024L * 1024L);
             double plateMegabytes = (double) REFERENCE_PLATE_MEGABYTES * (double) normalizedHeight / (double) REFERENCE_WORLD_HEIGHT;
             int byteBudgetCap = (int) Math.floor(MANTLE_HEAP_FRACTION * (double) maxHeapMegabytes / plateMegabytes);
             int effective = Math.min(heightScaledCap, byteBudgetCap);

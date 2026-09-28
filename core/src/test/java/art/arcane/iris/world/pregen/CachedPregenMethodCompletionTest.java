@@ -106,7 +106,7 @@ public class CachedPregenMethodCompletionTest {
     }
 
     @Test
-    public void pregenStartReachesTheSelectedMethodThroughEveryWrapper() throws Exception {
+    public void pregenLifecycleHooksReachTheSelectedMethodThroughEveryWrapper() throws Exception {
         Constructor<AsyncOrMedievalPregenMethod> selectorConstructor = AsyncOrMedievalPregenMethod.class
                 .getDeclaredConstructor(PregeneratorMethod.class);
         selectorConstructor.setAccessible(true);
@@ -119,6 +119,9 @@ public class CachedPregenMethodCompletionTest {
                 new PregenSavedChunkStatus((x, z) -> false)));
 
         wrapped.onPregenStart(123, -456);
+        wrapped.reclaimMemory();
+
+        assertEquals(1, underlying.reclaimCalls.get());
 
         assertEquals(1, underlying.pregenStartCalls.get());
         assertEquals(123, underlying.centerBlockX.get());
@@ -179,6 +182,7 @@ public class CachedPregenMethodCompletionTest {
         private final AtomicInteger generateChunkCalls = new AtomicInteger();
         private final AtomicInteger generateRegionCalls = new AtomicInteger();
         private final AtomicInteger pregenStartCalls = new AtomicInteger();
+        private final AtomicInteger reclaimCalls = new AtomicInteger();
         private final AtomicInteger centerBlockX = new AtomicInteger();
         private final AtomicInteger centerBlockZ = new AtomicInteger();
         private final AtomicReference<PregenListener> capturedListener = new AtomicReference<>();
@@ -222,6 +226,11 @@ public class CachedPregenMethodCompletionTest {
             pregenStartCalls.incrementAndGet();
             this.centerBlockX.set(centerBlockX);
             this.centerBlockZ.set(centerBlockZ);
+        }
+
+        @Override
+        public void reclaimMemory() {
+            reclaimCalls.incrementAndGet();
         }
 
         @Override

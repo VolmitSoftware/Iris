@@ -6,7 +6,6 @@ import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.task.J;
-import art.arcane.volmlib.util.collection.KSet;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
@@ -31,7 +30,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
@@ -240,7 +241,7 @@ public class AsyncPregenServerSaveOwnershipTest {
         try (SchedulingContext ignored = new SchedulingContext(fixture)) {
             Future<?> flushed = executor.submit(() -> {
                 try (SchedulingContext context = new SchedulingContext(fixture)) {
-                    invoke(fixture.method, "flushAllRemainingChunks");
+                    fixture.method.reclaimMemory();
                 }
                 return null;
             });
@@ -253,6 +254,57 @@ public class AsyncPregenServerSaveOwnershipTest {
             flushed.get(5L, TimeUnit.SECONDS);
             verify(fixture.binding, times(2)).flushChunkIO(fixture.world);
             assertTrue(fixture.chunks.isEmpty());
+        } finally {
+            fixture.pending.complete(null);
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5L, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void emptyPublicReclaimDoesNotScheduleWorldIo() throws Exception {
+        Fixture fixture = new Fixture();
+        fixture.chunks.clear();
+        fixture.set("pendingEvictions", new ConcurrentLinkedQueue<CompletableFuture<Void>>());
+        try (SchedulingContext context = new SchedulingContext(fixture)) {
+            fixture.method.reclaimMemory();
+            context.scheduling.verifyNoInteractions();
+            verifyNoInteractions(fixture.binding);
+        }
+    }
+
+    @Test
+    public void publicReclaimFlushesCompletedChunksWithoutPriorEvictions() throws Exception {
+        Fixture fixture = new Fixture();
+        fixture.set("pendingEvictions", new ConcurrentLinkedQueue<CompletableFuture<Void>>());
+        try (SchedulingContext context = new SchedulingContext(fixture)) {
+            fixture.method.reclaimMemory();
+            assertTrue(fixture.chunks.isEmpty());
+            verify(fixture.binding).saveAndUnloadChunk(fixture.world, 2, 3);
+            verify(fixture.binding, times(2)).flushChunkIO(fixture.world);
+        }
+    }
+
+    @Test
+    public void publicReclaimWaitsForEvictionsWithoutNewChunks() throws Exception {
+        Fixture fixture = new Fixture();
+        fixture.chunks.clear();
+        CountDownLatch started = new CountDownLatch(1);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try (SchedulingContext owner = new SchedulingContext(fixture)) {
+            Future<?> reclaimed = executor.submit(() -> {
+                try (SchedulingContext context = new SchedulingContext(fixture)) {
+                    started.countDown();
+                    fixture.method.reclaimMemory();
+                }
+            });
+            assertTrue(started.await(5L, TimeUnit.SECONDS));
+            assertThrows(TimeoutException.class, () -> reclaimed.get(30L, TimeUnit.MILLISECONDS));
+            verifyNoInteractions(fixture.binding);
+            fixture.pending.complete(null);
+            reclaimed.get(5L, TimeUnit.SECONDS);
+            owner.scheduling.verifyNoInteractions();
+            verify(fixture.binding).flushChunkIO(fixture.world);
         } finally {
             fixture.pending.complete(null);
             executor.shutdownNow();
@@ -280,10 +332,110 @@ public class AsyncPregenServerSaveOwnershipTest {
         }
     }
 
+    @Test
+    public void completedRegionsUnloadWithoutWaitingForTheirNeighbors() throws Exception {
+        Fixture fixture = new Fixture();
+        fixture.chunks.clear();
+        try (SchedulingContext context = new SchedulingContext(fixture)) {
+            for (int region = 0; region < 128; region++) {
+                long key = (long) region << 32;
+                fixture.pendingRegions.put(key, new AtomicInteger(2));
+                invoke(fixture.method, "onChunkCompleted", region << 5, 0, fixture.chunk);
+                assertEquals(1, fixture.pendingRegions.get(key).get());
+                fixture.method.onRegionSubmitted(region, 0);
+                assertTrue(fixture.pendingRegions.isEmpty());
+                assertTrue(fixture.chunks.isEmpty());
+            }
+            verify(fixture.binding, times(128)).saveAndUnloadChunk(fixture.world, 2, 3);
+        }
+    }
+
+    @Test
+    public void partialRegionEvictionKeepsPendingSubmissionsAndAcceptsLaterCompletions() throws Exception {
+        Fixture fixture = new Fixture();
+        AtomicInteger pendingChunks = new AtomicInteger(2);
+        fixture.pendingRegions.put(0L, pendingChunks);
+        try (SchedulingContext context = new SchedulingContext(fixture)) {
+            CompletableFuture<?> eviction = (CompletableFuture<?>) invoke(fixture.method, "evictRegion", 0L);
+            eviction.get(5L, TimeUnit.SECONDS);
+            assertSame(pendingChunks, fixture.pendingRegions.get(0L));
+            assertEquals(2, pendingChunks.get());
+            assertTrue(fixture.chunks.isEmpty());
+
+            invoke(fixture.method, "onChunkCompleted", 2, 3, fixture.chunk);
+            assertEquals(1, pendingChunks.get());
+            assertSame(fixture.chunk, fixture.chunks.get(0L).peek());
+            fixture.method.onRegionSubmitted(0, 0);
+            assertTrue(fixture.pendingRegions.isEmpty());
+            assertTrue(fixture.chunks.isEmpty());
+            verify(fixture.binding, times(2)).saveAndUnloadChunk(fixture.world, 2, 3);
+        }
+    }
+
+    @Test
+    public void completionDuringHeapWaitEvictsWithoutWaitingForRegionSubmission() throws Exception {
+        Fixture fixture = new Fixture();
+        fixture.chunks.clear();
+        AtomicInteger pendingChunks = new AtomicInteger(2);
+        fixture.pendingRegions.put(0L, pendingChunks);
+        try (SchedulingContext context = new SchedulingContext(fixture);
+             MockedStatic<MantleHeapPressure> pressure = mockStatic(MantleHeapPressure.class)) {
+            pressure.when(MantleHeapPressure::overHighWater).thenReturn(true);
+            invoke(fixture.method, "onChunkCompleted", 2, 3, fixture.chunk);
+            assertEquals(1, pendingChunks.get());
+            assertSame(pendingChunks, fixture.pendingRegions.get(0L));
+            assertTrue(fixture.chunks.isEmpty());
+            verify(fixture.binding).saveAndUnloadChunk(fixture.world, 2, 3);
+            fixture.method.onRegionSubmitted(0, 0);
+            assertTrue(fixture.pendingRegions.isEmpty());
+        }
+    }
+
+    @Test
+    public void heapPressureStartingAfterInitialCheckStillReclaimsCompletedChunks() throws Exception {
+        Fixture fixture = new Fixture();
+        fixture.pending.complete(null);
+        fixture.set("closing", new AtomicBoolean(true));
+        PregenMantleBackpressure backpressure = mock(PregenMantleBackpressure.class);
+        fixture.set("backpressure", backpressure);
+        doAnswer(invocation -> {
+            BooleanSupplier pressure = invocation.getArgument(0);
+            Runnable reclaim = invocation.getArgument(1);
+            assertTrue(pressure.getAsBoolean());
+            reclaim.run();
+            return null;
+        }).when(backpressure).awaitHeapHeadroom(any(BooleanSupplier.class), any(Runnable.class));
+        try (SchedulingContext context = new SchedulingContext(fixture);
+             MockedStatic<MantleHeapPressure> pressure = mockStatic(MantleHeapPressure.class)) {
+            pressure.when(MantleHeapPressure::overHighWater).thenReturn(false, true);
+            fixture.method.generateChunk(2, 3, mock(PregenListener.class));
+            assertTrue(fixture.chunks.isEmpty());
+            verify(fixture.binding).saveAndUnloadChunk(fixture.world, 2, 3);
+            pressure.verify(MantleHeapPressure::requestPanicReclaim);
+        }
+    }
+
+    @Test
+    public void emptyPressurePollDoesNotScheduleWorldIo() throws Exception {
+        Fixture fixture = new Fixture();
+        fixture.chunks.clear();
+        fixture.set("pendingEvictions", new ConcurrentLinkedQueue<CompletableFuture<Void>>());
+        try (SchedulingContext context = new SchedulingContext(fixture);
+             MockedStatic<MantleHeapPressure> pressure = mockStatic(MantleHeapPressure.class)) {
+            invoke(fixture.method, "reclaimHeapPressure");
+            verifyNoInteractions(fixture.binding);
+            context.scheduling.verifyNoInteractions();
+            pressure.verify(MantleHeapPressure::requestPanicReclaim);
+        }
+    }
+
     private static Object invoke(AsyncPregenMethod target, String name, Object... arguments) throws Exception {
-        Method method = arguments.length == 0
-                ? AsyncPregenMethod.class.getDeclaredMethod(name)
-                : AsyncPregenMethod.class.getDeclaredMethod(name, long.class);
+        Class<?>[] parameterTypes = new Class<?>[arguments.length];
+        for (int index = 0; index < arguments.length; index++) {
+            parameterTypes[index] = arguments[index] instanceof Integer ? int.class
+                    : arguments[index] instanceof Long ? long.class : Chunk.class;
+        }
+        Method method = AsyncPregenMethod.class.getDeclaredMethod(name, parameterTypes);
         method.setAccessible(true);
         try {
             return method.invoke(target, arguments);
@@ -299,6 +451,7 @@ public class AsyncPregenServerSaveOwnershipTest {
         private final INMSBinding binding = mock(INMSBinding.class);
         private final ConcurrentHashMap<Long, Queue<Chunk>> chunks = new ConcurrentHashMap<>();
         private final CompletableFuture<Void> pending = new CompletableFuture<>();
+        private final ConcurrentHashMap<Long, AtomicInteger> pendingRegions = new ConcurrentHashMap<>();
 
         private Fixture() throws Exception {
             Queue<Chunk> region = new ConcurrentLinkedQueue<>();
@@ -308,9 +461,8 @@ public class AsyncPregenServerSaveOwnershipTest {
             evictions.add(pending);
             set("world", world);
             set("regionChunks", chunks);
-            set("regionPending", new ConcurrentHashMap<>());
+            set("regionPending", pendingRegions);
             set("pendingEvictions", evictions);
-            set("evictedRegions", new KSet<>());
             set("chunkIoExecutor", (Executor) Runnable::run);
             when(chunk.getX()).thenReturn(2);
             when(chunk.getZ()).thenReturn(3);

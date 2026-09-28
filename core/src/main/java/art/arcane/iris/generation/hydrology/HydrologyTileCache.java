@@ -316,7 +316,7 @@ public final class HydrologyTileCache implements AutoCloseable {
         }
         try {
             present = tiles.getIfPresent(key);
-            HydrologyTile tile = present == null ? planOrEmpty(key, epoch) : present;
+            HydrologyTile tile = present == null ? planRequired(key, epoch) : present;
             synchronized (publicationLock) {
                 if (!closed.get() && cacheEpoch.get() == epoch) {
                     tiles.put(key, tile);
@@ -332,69 +332,107 @@ public final class HydrologyTileCache implements AutoCloseable {
         }
     }
 
-    /**
-     * A tile whose planning throws is published without rivers instead of failing the chunks that
-     * asked for it: one bad column must not take the chunk system down. The failure is logged in
-     * full so the cause can be traced, and the empty tile is cached like any other so the session
-     * stays consistent. A plan that was interrupted is not a bad tile: it is rethrown without being
-     * cached so the next request plans it again.
-     */
-    private HydrologyTile planOrEmpty(HydrologyTileKey key, long planningEpoch) {
+    private HydrologyTile planRequired(HydrologyTileKey key, long planningEpoch) {
         SharedTileKey sharedKey = sharedCacheScope == null ? null : new SharedTileKey(sharedCacheScope, key);
-        HydrologyTile shared = sharedKey == null ? null : SHARED_TILES.getIfPresent(sharedKey);
-        if (shared != null && validSharedTile(shared, sharedKey)) {
-            PreparedHydrologyTileStore store = persistentStore;
-            if (store != null && store.load(key).isEmpty()) {
-                persistTile(store, shared);
-            }
-            planner.reuseResolvedTile(shared);
-            IrisLogging.debug("Reused shared prepared hydrology tile %d,%d", key.tileX(), key.tileZ());
-            return shared;
-        }
-        if (shared != null) {
-            SHARED_TILES.invalidate(sharedKey);
-        }
         PreparedHydrologyTileStore store = persistentStore;
-        try (HydrologyPlanningAdmission.Permit ignored = HydrologyPlanningAdmission.acquireRoot(closed::get)) {
-            return planAdmitted(key, planningEpoch, sharedKey, store);
+        long attempt = 0L;
+        long retryDelayMillis = 250L;
+        long nextFailureLog = 0L;
+        while (true) {
+            requirePlanningActive();
+            try {
+                if (attempt == 0L && sharedKey != null) {
+                    HydrologyTile shared = SHARED_TILES.getIfPresent(sharedKey);
+                    if (shared != null && validSharedTile(shared, sharedKey)) {
+                        planner.reuseResolvedTile(shared);
+                        if (store != null && !store.contains(key)) {
+                            persistTile(store, shared);
+                        }
+                        IrisLogging.debug("Reused shared prepared hydrology tile %d,%d", key.tileX(), key.tileZ());
+                        return shared;
+                    }
+                    if (shared != null) {
+                        SHARED_TILES.invalidate(sharedKey);
+                    }
+                }
+                try (HydrologyPlanningAdmission.Permit ignored = HydrologyPlanningAdmission.acquireRoot(
+                        closed::get)) {
+                    return planAdmitted(key, planningEpoch, sharedKey, store, attempt == 0L);
+                }
+            } catch (RuntimeException failure) {
+                if (failure instanceof CancellationException || interrupted(failure)) {
+                    throw failure;
+                }
+                requirePlanningActive();
+                attempt++;
+                long now = System.nanoTime();
+                if (nextFailureLog == 0L || now - nextFailureLog >= 0L) {
+                    IrisLogging.error("Hydrology tile " + key.tileX() + "," + key.tileZ()
+                            + " failed planning attempt " + attempt + "; retrying in " + retryDelayMillis
+                            + " ms. Generation is waiting for its river plan: " + failure.getMessage());
+                    IrisLogging.reportError(failure);
+                    nextFailureLog = now + TimeUnit.SECONDS.toNanos(30L);
+                }
+                if (sharedKey != null) {
+                    SHARED_TILES.invalidate(sharedKey);
+                }
+                planner.clearOwnerDrafts();
+                awaitPlanningRetry(retryDelayMillis);
+                retryDelayMillis = Math.min(5000L, retryDelayMillis * 2L);
+            }
+        }
+    }
+
+    private void requirePlanningActive() {
+        requireOpen();
+        if (Thread.currentThread().isInterrupted()) {
+            throw new CancellationException("Hydrology plan retry interrupted.");
+        }
+    }
+
+    private void awaitPlanningRetry(long delayMillis) {
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(delayMillis);
+        while (true) {
+            requirePlanningActive();
+            long remaining = deadline - System.nanoTime();
+            if (remaining <= 0L) {
+                return;
+            }
+            try {
+                TimeUnit.NANOSECONDS.sleep(Math.min(remaining, TimeUnit.MILLISECONDS.toNanos(100L)));
+            } catch (InterruptedException interruption) {
+                Thread.currentThread().interrupt();
+                throw new CancellationException("Hydrology plan retry interrupted.");
+            }
         }
     }
 
     private HydrologyTile planAdmitted(HydrologyTileKey key, long planningEpoch,
-                                       SharedTileKey sharedKey, PreparedHydrologyTileStore store) {
-        if (store != null) {
+                                       SharedTileKey sharedKey, PreparedHydrologyTileStore store,
+                                       boolean reusePrepared) {
+        if (store != null && reusePrepared) {
             HydrologyTile persisted = store.load(key).orElse(null);
             if (persisted != null) {
-                SHARED_TILES.put(sharedKey, persisted);
                 planner.reuseResolvedTile(persisted);
+                SHARED_TILES.put(sharedKey, persisted);
                 IrisLogging.debug("Loaded persisted prepared hydrology tile %d,%d", key.tileX(), key.tileZ());
                 return persisted;
             }
         }
         prepareTerrain();
-        try {
-            HydrologyTile planned = planner.plan(key);
-            synchronized (publicationLock) {
-                if (sharedKey != null && !closed.get() && planningEpoch == cacheEpoch.get()) {
-                    HydrologyTile existing = SHARED_TILES.asMap().putIfAbsent(sharedKey, planned);
-                    if (existing == null) {
-                        IrisLogging.debug("Published shared prepared hydrology tile %d,%d", key.tileX(), key.tileZ());
-                    }
+        HydrologyTile planned = planner.plan(key);
+        synchronized (publicationLock) {
+            if (sharedKey != null && !closed.get() && planningEpoch == cacheEpoch.get()) {
+                HydrologyTile existing = SHARED_TILES.asMap().putIfAbsent(sharedKey, planned);
+                if (existing == null) {
+                    IrisLogging.debug("Published shared prepared hydrology tile %d,%d", key.tileX(), key.tileZ());
                 }
             }
-            if (store != null && !closed.get() && planningEpoch == cacheEpoch.get()) {
-                persistTile(store, planned);
-            }
-            return planned;
-        } catch (RuntimeException failure) {
-            if (failure instanceof CancellationException || interrupted(failure)) {
-                throw failure;
-            }
-            IrisLogging.error("Hydrology tile " + key.tileX() + "," + key.tileZ()
-                    + " failed to plan and generates without rivers: " + failure.getMessage());
-            IrisLogging.reportError(failure);
-            return planner.emptyTile(key);
         }
+        if (store != null && !closed.get() && planningEpoch == cacheEpoch.get()) {
+            persistTile(store, planned);
+        }
+        return planned;
     }
 
     private void persistTile(PreparedHydrologyTileStore store, HydrologyTile tile) {

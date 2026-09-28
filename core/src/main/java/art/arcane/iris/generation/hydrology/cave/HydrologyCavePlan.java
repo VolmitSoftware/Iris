@@ -5,6 +5,9 @@ import it.unimi.dsi.fastutil.HashCommon;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.AbstractCollection;
 import java.util.AbstractList;
 import java.util.AbstractMap;
@@ -49,7 +52,11 @@ public record HydrologyCavePlan(
                 && (!requestedActions.isEmpty() || !requestedPreconditions.isEmpty())) {
             throw new IllegalArgumentException("Rejected cave plans cannot contain mutations or preconditions");
         }
-        if (!requestedPreconditions.keySet().containsAll(requestedActions.keySet())) {
+        boolean packedInput = requestedActions instanceof ActionMap actionMap
+                && requestedPreconditions instanceof PreconditionMap preconditionMap
+                && actionMap.packed == preconditionMap.packed
+                && actionMap.spatialIndex == preconditionMap.spatialIndex;
+        if (!packedInput && !requestedPreconditions.keySet().containsAll(requestedActions.keySet())) {
             throw new IllegalArgumentException("Every cave action requires a baseline precondition");
         }
         if (rejection != HydrologyCaveRejection.OVERLAPPING_SOURCE && arbitrationWinnerSourceId.isPresent()) {
@@ -58,11 +65,58 @@ public record HydrologyCavePlan(
         if (requestedPreconditions.isEmpty()) {
             actions = Map.of();
             baselinePreconditions = Map.of();
-        } else {
+        } else if (!packedInput) {
             PackedPositions packed = new PackedPositions(requestedActions, requestedPreconditions);
             PositionSpatialIndex spatialIndex = new PositionSpatialIndex(packed);
             actions = new ActionMap(packed, requestedActions.size(), spatialIndex);
             baselinePreconditions = new PreconditionMap(packed, packed.preconditionOrder(requestedPreconditions), spatialIndex);
+        }
+    }
+
+    public static HydrologyCavePlan readCells(HydrologyCaveSource source, HydrologyCaveRejection rejection,
+                                               OptionalLong winner, DataInput input, int count) throws IOException {
+        if (count < 0 || count > 2_000_000) {
+            throw new IOException("Invalid hydrology cave cell count: " + count);
+        }
+        int actionCount = input.readInt();
+        if (actionCount < 0 || actionCount > count) {
+            throw new IOException("Invalid hydrology cave action count: " + actionCount);
+        }
+        if (count == 0) {
+            return new HydrologyCavePlan(source, rejection, Map.of(), Map.of(), winner);
+        }
+        PackedPositions packed = new PackedPositions(input, count, actionCount);
+        int[] order = new int[count];
+        boolean[] seen = new boolean[count];
+        for (int index = 0; index < count; index++) {
+            int row = input.readInt();
+            if (row < 0 || row >= count || seen[row]) {
+                throw new IOException("Invalid hydrology cave precondition order.");
+            }
+            seen[row] = true;
+            order[index] = row;
+        }
+        PositionSpatialIndex spatialIndex = new PositionSpatialIndex(packed);
+        return new HydrologyCavePlan(source, rejection,
+                new ActionMap(packed, actionCount, spatialIndex),
+                new PreconditionMap(packed, new PositionOrder(packed, order), spatialIndex), winner);
+    }
+
+    public void writeCells(DataOutput output) throws IOException {
+        output.writeInt(baselinePreconditions.size());
+        output.writeInt(actions.size());
+        if (!(baselinePreconditions instanceof PreconditionMap preconditions)) {
+            return;
+        }
+        PackedPositions packed = preconditions.packed;
+        for (int row = 0; row < packed.size(); row++) {
+            output.writeInt(packed.x[row]);
+            output.writeInt(packed.y[row]);
+            output.writeInt(packed.z[row]);
+            output.writeByte(packed.flags[row]);
+        }
+        for (int row : preconditions.order.rows) {
+            output.writeInt(row);
         }
     }
 
@@ -203,6 +257,32 @@ public record HydrologyCavePlan(
         private final int[] slots;
         private final int mask;
         private int count;
+
+        private PackedPositions(DataInput input, int size, int actionCount) throws IOException {
+            x = new int[size];
+            y = new int[size];
+            z = new int[size];
+            flags = new byte[size];
+            int required = (int) Math.max(2L, ((long) size * 4L + 2L) / 3L);
+            int capacity = Integer.highestOneBit(required - 1) << 1;
+            slots = new int[capacity];
+            mask = capacity - 1;
+            for (int row = 0; row < size; row++) {
+                CavePosition position = new CavePosition(input.readInt(), input.readInt(), input.readInt());
+                byte value = input.readByte();
+                int unsigned = Byte.toUnsignedInt(value);
+                if ((unsigned & 0x80) != 0 || (unsigned & VOXEL_MASK) >>> VOXEL_SHIFT >= VOXELS.length
+                        || hasAction(value) != (row < actionCount)
+                        || (hasAction(value) && (unsigned & ACTION_MASK) >= ACTIONS.length)
+                        || (!hasAction(value) && (unsigned & ACTION_MASK) != 0)) {
+                    throw new IOException("Invalid hydrology cave cell flags.");
+                }
+                if (row(position) >= 0) {
+                    throw new IOException("Duplicate hydrology cave cell.");
+                }
+                append(position, value);
+            }
+        }
 
         private PackedPositions(Map<CavePosition, HydrologyCaveAction> actions,
                                 Map<CavePosition, CaveVoxelPrecondition> preconditions) {

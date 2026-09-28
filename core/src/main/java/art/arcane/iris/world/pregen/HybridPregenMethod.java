@@ -89,6 +89,11 @@ public class HybridPregenMethod implements PregeneratorMethod {
     }
 
     @Override
+    public void reclaimMemory() {
+        inWorld.reclaimMemory();
+    }
+
+    @Override
     public Mantle getMantle() {
         return inWorld.getMantle();
     }

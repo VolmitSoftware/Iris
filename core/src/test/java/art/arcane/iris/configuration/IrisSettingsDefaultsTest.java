@@ -13,6 +13,16 @@ import static org.junit.Assert.assertThrows;
 
 public class IrisSettingsDefaultsTest {
     @Test
+    public void regionBudgetLeavesHeapForHydrologyAndServerChunks() {
+        IrisSettings.IrisSettingsPregen settings = new IrisSettings.IrisSettingsPregen();
+        assertEquals(21, settings.effectiveResidentTectonicPlates(384, 4L << 30));
+        assertEquals(42, settings.effectiveResidentTectonicPlates(384, 8L << 30));
+        assertEquals(16, settings.effectiveResidentTectonicPlates(768, 4L << 30));
+        settings.setMaxResidentTectonicPlates(16);
+        assertEquals(16, settings.effectiveResidentTectonicPlates(384, 16L << 30));
+    }
+
+    @Test
     public void concurrencyIsNotSerializedIntoIrisJson() {
         String json = new Gson().toJson(new IrisSettings());
 

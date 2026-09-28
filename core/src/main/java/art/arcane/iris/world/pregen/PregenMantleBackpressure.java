@@ -29,6 +29,8 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 public final class PregenMantleBackpressure {
+    private static final long LOG_INTERVAL_MS = 5_000L;
+
     private final Supplier<Mantle> mantleSupplier;
     private final int maxResidentTectonicPlates;
     private final int waitMs;
@@ -46,7 +48,7 @@ public final class PregenMantleBackpressure {
     public PregenMantleBackpressure(Supplier<Mantle> mantleSupplier, int maxResidentTectonicPlates, int waitMs, long timeoutMs, Runnable onBudgetTimeout, Supplier<String> diagnostics, BooleanSupplier cancelled) {
         this.mantleSupplier = mantleSupplier;
         this.maxResidentTectonicPlates = maxResidentTectonicPlates;
-        this.waitMs = waitMs;
+        this.waitMs = Math.max(1, waitMs);
         this.timeoutMs = timeoutMs;
         this.onBudgetTimeout = onBudgetTimeout;
         this.diagnostics = diagnostics;
@@ -69,14 +71,13 @@ public final class PregenMantleBackpressure {
             return;
         }
 
-        int hardCap = cap * 2;
-        if (mantle.getLoadedRegionCount() <= hardCap) {
+        if (mantle.getLoadedRegionCount() <= cap) {
             return;
         }
 
         long waitStart = M.ms();
         long lastLog = 0L;
-        while (mantle.getLoadedRegionCount() > hardCap) {
+        while (mantle.getLoadedRegionCount() > cap) {
             if (isCancelled()) {
                 return;
             }
@@ -87,29 +88,34 @@ public final class PregenMantleBackpressure {
                 mantle.trim(0L);
                 freed = mantle.unloadTectonicPlate(0);
                 resident = mantle.getLoadedRegionCount();
+                if (resident > cap && mantle.saveOldestIdleTectonicPlate()) {
+                    freed++;
+                    resident = mantle.getLoadedRegionCount();
+                }
             } catch (Throwable e) {
                 IrisLogging.reportError(e);
                 break;
             }
-            if (resident <= hardCap) {
+            if (resident <= cap) {
                 break;
             }
 
             long elapsed = M.ms() - waitStart;
-            if (elapsed >= timeoutMs) {
+            if (elapsed >= timeoutMs && freed == 0) {
                 IrisLogging.warn("Pregen mantle backpressure exceeded " + timeoutMs + "ms with " + resident
-                        + " tectonic plates resident (hard cap " + hardCap + "); proceeding to avoid deadlock. "
-                        + "Raise pregen.maxResidentTectonicPlates if this persists. " + diagnostics.get());
+                        + " tectonic plates resident (residency target " + cap + "); no idle plate could be evicted. "
+                        + "Allowing the active dependency working set to exceed the residency target; "
+                        + "heap pressure still blocks new chunk submissions. " + diagnostics.get());
                 onBudgetTimeout.run();
                 return;
             }
 
             long logNow = M.ms();
-            if (logNow - lastLog >= 5_000L) {
+            if (logNow - lastLog >= LOG_INTERVAL_MS) {
                 lastLog = logNow;
                 // Pausing to stay under the plate cap is the design working, and it is reported every five
                 // seconds for the whole duration of a large pregen. Only exceeding the budget is a warning.
-                IrisLogging.info("Pregen mantle backpressure: " + resident + " tectonic plates resident (hard cap " + hardCap
+                IrisLogging.info("Pregen mantle backpressure: " + resident + " tectonic plates resident (residency target " + cap
                         + "), freed " + freed + " last pass, waited " + elapsed + "ms.");
             }
 
@@ -127,6 +133,9 @@ public final class PregenMantleBackpressure {
         Mantle mantle = resolveMantle();
         long waitStart = M.ms();
         long lastLog = 0L;
+        long nextWarningElapsed = Math.max(0L, timeoutMs);
+        long nextEvictionErrorLog = 0L;
+        long warningInterval = Math.max(LOG_INTERVAL_MS, timeoutMs);
         while (heapPressure.getAsBoolean()) {
             if (isCancelled()) {
                 return;
@@ -137,22 +146,30 @@ public final class PregenMantleBackpressure {
                     mantle.saveOldestIdleTectonicPlate();
                 }
             } catch (Throwable e) {
-                IrisLogging.reportError(e);
+                long now = M.ms();
+                if (now >= nextEvictionErrorLog) {
+                    nextEvictionErrorLog = now + warningInterval;
+                    IrisLogging.reportError(e);
+                }
             }
 
             panicReclaim.run();
-
-            long elapsed = M.ms() - waitStart;
-            if (elapsed >= timeoutMs) {
-                IrisLogging.warn("Pregen heap pressure wait exceeded " + timeoutMs + "ms at "
-                        + Math.round(MantleHeapPressure.usedFraction() * 100.0D) + "% heap; proceeding to avoid deadlock. "
-                        + diagnostics.get());
-                onBudgetTimeout.run();
+            if (isCancelled() || !heapPressure.getAsBoolean()) {
                 return;
             }
 
+            long elapsed = M.ms() - waitStart;
             long logNow = M.ms();
-            if (logNow - lastLog >= 5_000L) {
+            if (elapsed >= nextWarningElapsed) {
+                nextWarningElapsed = elapsed + warningInterval;
+                lastLog = logNow;
+                IrisLogging.warn("Pregen heap pressure is still blocking new chunk submissions after " + elapsed + "ms at "
+                        + Math.round(MantleHeapPressure.usedFraction() * 100.0D) + "% heap; waiting for headroom. "
+                        + diagnostics.get());
+                onBudgetTimeout.run();
+            }
+
+            if (logNow - lastLog >= LOG_INTERVAL_MS) {
                 lastLog = logNow;
                 IrisLogging.info("Pregen heap pressure: pausing generation at "
                         + Math.round(MantleHeapPressure.usedFraction() * 100.0D) + "% heap; evicting tectonic plates and waiting for headroom"

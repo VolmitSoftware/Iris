@@ -1,8 +1,7 @@
 package art.arcane.iris.generation.mantle;
 
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-
+import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
+import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -10,16 +9,24 @@ import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.MatterCavern;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
 final class ObjectSourcePlan {
-    private static final int DESTINATION_INDEX_WEIGHT = 8;
+    private static final int PLAN_BYTES = 256;
+    private static final int DESTINATION_INDEX_BYTES = 96;
+    private static final int MUTATION_BYTES = 96;
+    private static final int PLACEMENT_BYTES = 256;
+    private static final int PLACEMENT_DESTINATION_BYTES = 128;
+    private static final int REFERENCE_BYTES = 8;
     private final Long2ObjectOpenHashMap<List<ObjectDestinationTransaction.Mutation>> destinations;
-    private final int mutationWeight;
+    private final int estimatedRetainedBytes;
     private final List<Placement> placements;
 
     ObjectSourcePlan(List<ObjectDestinationTransaction.Mutation> mutations) {
@@ -37,29 +44,34 @@ final class ObjectSourcePlan {
         }
         this.placements = List.copyOf(crossing);
         Long2ObjectOpenHashMap<ArrayList<ObjectDestinationTransaction.Mutation>> grouped = new Long2ObjectOpenHashMap<>(2);
-        long weight = 1L;
+        long weight = PLAN_BYTES;
         for (ObjectDestinationTransaction.Mutation mutation : mutations) {
             long key = destinationKey(mutation.x() >> 4, mutation.z() >> 4);
             ArrayList<ObjectDestinationTransaction.Mutation> local = grouped.get(key);
             if (local == null) {
                 local = new ArrayList<>();
                 grouped.put(key, local);
-                weight += DESTINATION_INDEX_WEIGHT;
+                weight += DESTINATION_INDEX_BYTES;
             }
             local.add(mutation);
-            weight += mutation.weight();
+            Object payload = switch (mutation) {
+                case ObjectDestinationTransaction.SetMutation set -> set.value();
+                case ObjectDestinationTransaction.CustomBlockMutation custom -> custom.state();
+            };
+            weight = Math.min(Integer.MAX_VALUE, weight + MUTATION_BYTES + payloadBytes(payload));
         }
         destinations = new Long2ObjectOpenHashMap<>(grouped.size());
         for (Long2ObjectMap.Entry<ArrayList<ObjectDestinationTransaction.Mutation>> entry : grouped.long2ObjectEntrySet()) {
             destinations.put(entry.getLongKey(), List.copyOf(entry.getValue()));
         }
         for (Placement placement : this.placements) {
-            weight += 8L + placement.touched().size() * DESTINATION_INDEX_WEIGHT;
+            weight += PLACEMENT_BYTES + (long) placement.touched().size() * PLACEMENT_DESTINATION_BYTES;
             for (List<ObjectDestinationTransaction.Mutation> fragment : placement.fragments().values()) {
-                weight += fragment.size();
+                long retainedCapacity = Math.max(10L, fragment.size() + (fragment.size() + 1L) / 2L);
+                weight += retainedCapacity * REFERENCE_BYTES;
             }
         }
-        this.mutationWeight = weight >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) weight;
+        this.estimatedRetainedBytes = weight >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) weight;
     }
 
     List<ObjectDestinationTransaction.Mutation> mutationsFor(int chunkX, int chunkZ) {
@@ -147,8 +159,34 @@ final class ObjectSourcePlan {
         return new ObjectContinuationBundle.Bounds(minimumX, minimumZ, maximumX, maximumZ);
     }
 
-    int mutationWeight() {
-        return mutationWeight;
+    int estimatedRetainedBytes() {
+        return estimatedRetainedBytes;
+    }
+
+    private static long payloadBytes(Object value) {
+        return switch (value) {
+            case null -> 0L;
+            case String text -> stringBytes(text);
+            case TreeBlockMaterial material -> 24L + stringBytes(material.materialKey());
+            case Identifier identifier -> 32L + stringBytes(identifier.namespace()) + stringBytes(identifier.key());
+            case NativeBlockState ignored -> 64L;
+            case MatterCavern cavern -> 32L + stringBytes(cavern.getCustomBiome());
+            case HydrologyCaveCell cell -> 64L + stringBytes(cell.fluidProfileKey()) + stringBytes(cell.floodedBiomeKey());
+            case Byte ignored -> 24L;
+            case Short ignored -> 24L;
+            case Integer ignored -> 24L;
+            case Long ignored -> 24L;
+            case Float ignored -> 24L;
+            case Double ignored -> 24L;
+            case Boolean ignored -> 24L;
+            case Character ignored -> 24L;
+            case Enum<?> ignored -> 0L;
+            default -> Integer.MAX_VALUE;
+        };
+    }
+
+    private static long stringBytes(String value) {
+        return value == null ? 0L : 48L + 2L * value.length();
     }
 
     private record Placement(int ordinal, ObjectContinuationBundle.Bounds bounds,

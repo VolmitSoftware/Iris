@@ -34,6 +34,7 @@ public final class HydrologyTile {
     private final Map<Long, RiverOutlet> outletsById;
     private final Map<Long, HydrologyCavePlan> cavePlansByCourseId;
     private final List<HydrologyFeatureRef> features;
+    private final CrossTileResolvedOwner resolvedOwner;
 
     public HydrologyTile(
             HydrologyTileKey key,
@@ -76,6 +77,39 @@ public final class HydrologyTile {
         validateGraph();
         validateCourses();
         this.features = collectFeatures(footprint);
+        this.resolvedOwner = null;
+    }
+
+    private HydrologyTile(HydrologyTile tile, CrossTileResolvedOwner resolvedOwner) {
+        this.key = tile.key;
+        this.worldSeed = tile.worldSeed;
+        this.settingsFingerprint = tile.settingsFingerprint;
+        this.tileSize = tile.tileSize;
+        this.nodes = tile.nodes;
+        this.edges = tile.edges;
+        this.outlets = tile.outlets;
+        this.courses = tile.courses;
+        this.regionalCourseIds = tile.regionalCourseIds;
+        this.cavePlans = tile.cavePlans;
+        this.localDiagnosticCandidates = tile.localDiagnosticCandidates;
+        this.footprint = tile.footprint;
+        this.nodesById = tile.nodesById;
+        this.outletsById = tile.outletsById;
+        this.cavePlansByCourseId = tile.cavePlansByCourseId;
+        this.features = tile.features;
+        this.resolvedOwner = resolvedOwner;
+    }
+
+    HydrologyTile withResolvedOwner(CrossTileResolvedOwner owner) {
+        Objects.requireNonNull(owner, "owner");
+        if (!key.equals(owner.draft().key())) {
+            throw new IllegalArgumentException("Resolved hydrology owner does not match its tile.");
+        }
+        return new HydrologyTile(this, owner.withoutFootprintCompiler());
+    }
+
+    CrossTileResolvedOwner resolvedOwner() {
+        return resolvedOwner;
     }
 
     public HydrologyTileKey key() {

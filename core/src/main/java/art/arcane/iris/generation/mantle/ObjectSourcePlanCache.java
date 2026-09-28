@@ -13,21 +13,25 @@ import java.util.function.Supplier;
 import static art.arcane.iris.generation.cache.Cache.key;
 
 final class ObjectSourcePlanCache {
-    static final long MAXIMUM_MUTATION_WEIGHT = 4_194_304L;
+    private static final long MAXIMUM_RETAINED_BYTES = 256L * 1024L * 1024L;
 
-    private final long maximumMutationWeight;
+    private final long maximumRetainedBytes;
     private volatile State state;
 
     ObjectSourcePlanCache() {
-        this(MAXIMUM_MUTATION_WEIGHT);
+        this(retainedByteBudget(Runtime.getRuntime().maxMemory()));
     }
 
-    ObjectSourcePlanCache(long maximumMutationWeight) {
-        if (maximumMutationWeight <= 0L) {
-            throw new IllegalArgumentException("Maximum mutation weight must be positive");
+    ObjectSourcePlanCache(long maximumRetainedBytes) {
+        if (maximumRetainedBytes <= 0L) {
+            throw new IllegalArgumentException("Maximum retained bytes must be positive");
         }
-        this.maximumMutationWeight = maximumMutationWeight;
-        state = new State(maximumMutationWeight);
+        this.maximumRetainedBytes = maximumRetainedBytes;
+        state = new State(maximumRetainedBytes);
+    }
+
+    static long retainedByteBudget(long maximumHeapBytes) {
+        return Math.max(1L, Math.min(MAXIMUM_RETAINED_BYTES, maximumHeapBytes / 64L));
     }
 
     ObjectSourcePlan get(int sourceChunkX, int sourceChunkZ, Supplier<ObjectSourcePlan> builder) {
@@ -47,7 +51,8 @@ final class ObjectSourcePlanCache {
             ObjectSourcePlan plan = current.plans.getIfPresent(source);
             if (plan == null) {
                 plan = builder.get();
-                if (plan != null) {
+                if (plan != null && plan.estimatedRetainedBytes() < Integer.MAX_VALUE
+                        && plan.estimatedRetainedBytes() <= maximumRetainedBytes) {
                     current.plans.put(source, plan);
                 }
             }
@@ -63,7 +68,7 @@ final class ObjectSourcePlanCache {
     }
 
     void clear() {
-        state = new State(maximumMutationWeight);
+        state = new State(maximumRetainedBytes);
     }
 
     long estimatedSize() {
@@ -76,10 +81,10 @@ final class ObjectSourcePlanCache {
         private final Cache<Long, ObjectSourcePlan> plans;
         private final ConcurrentHashMap<Long, Pending> pending = new ConcurrentHashMap<>();
 
-        private State(long maximumMutationWeight) {
+        private State(long maximumRetainedBytes) {
             plans = Caffeine.newBuilder()
-                    .maximumWeight(maximumMutationWeight)
-                    .weigher((Long key, ObjectSourcePlan plan) -> plan.mutationWeight())
+                    .maximumWeight(maximumRetainedBytes)
+                    .weigher((Long key, ObjectSourcePlan plan) -> plan.estimatedRetainedBytes())
                     .build();
         }
     }

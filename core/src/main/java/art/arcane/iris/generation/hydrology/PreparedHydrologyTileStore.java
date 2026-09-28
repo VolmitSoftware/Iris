@@ -1,24 +1,13 @@
 package art.arcane.iris.generation.hydrology;
 
-import art.arcane.iris.generation.hydrology.cave.CavePosition;
-import art.arcane.iris.generation.hydrology.cave.CaveVoxelPrecondition;
-import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
-import art.arcane.iris.generation.hydrology.cave.HydrologyCavePlan;
-import art.arcane.iris.generation.hydrology.cave.HydrologyCaveRejection;
-import art.arcane.iris.generation.hydrology.cave.HydrologyCaveSource;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
@@ -27,29 +16,15 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HexFormat;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalLong;
-import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 final class PreparedHydrologyTileStore {
-    private static final int SCHEMA_VERSION = 6;
     private static final long MAXIMUM_COMPRESSED_BYTES = 128L * 1024L * 1024L;
     private static final long MAXIMUM_DECOMPRESSED_BYTES = 512L * 1024L * 1024L;
-    private static final Gson GSON = new GsonBuilder()
-            .disableHtmlEscaping()
-            .serializeSpecialFloatingPointValues()
-            .create();
-
     private final Path directory;
     private final String scopeIdentity;
     private final HydrologyTileCache.SharedCacheScope scope;
@@ -68,32 +43,27 @@ final class PreparedHydrologyTileStore {
                 .resolve(scopeIdentity);
     }
 
-    Optional<HydrologyTile> load(HydrologyTileKey key) {
+    boolean contains(HydrologyTileKey key) {
         Path file = file(key);
         try {
-            if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)
-                    || Files.isSymbolicLink(file)
-                    || Files.size(file) > MAXIMUM_COMPRESSED_BYTES) {
-                return Optional.empty();
-            }
+            return Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)
+                    && !Files.isSymbolicLink(file)
+                    && Files.size(file) <= MAXIMUM_COMPRESSED_BYTES;
         } catch (IOException failure) {
+            return false;
+        }
+    }
+
+    Optional<HydrologyTile> load(HydrologyTileKey key) {
+        if (!contains(key)) {
             return Optional.empty();
         }
-        try (InputStream raw = Files.newInputStream(file);
+        try (InputStream raw = Files.newInputStream(file(key));
              InputStream buffered = new BufferedInputStream(raw);
-             InputStream compressed = new GZIPInputStream(buffered);
+             InputStream compressed = new GZIPInputStream(buffered, 32768);
              InputStream bounded = new LimitedInputStream(compressed, MAXIMUM_DECOMPRESSED_BYTES);
-             Reader reader = new InputStreamReader(bounded, StandardCharsets.UTF_8)) {
-            PersistedTile persisted = GSON.fromJson(reader, PersistedTile.class);
-            if (persisted == null
-                    || persisted.schemaVersion() != SCHEMA_VERSION
-                    || !scopeIdentity.equals(persisted.scopeIdentity())
-                    || !key.equals(persisted.key())
-                    || persisted.worldSeed() != scope.worldSeed()
-                    || persisted.settingsFingerprint() != scope.settingsFingerprint()) {
-                return Optional.empty();
-            }
-            HydrologyTile tile = persisted.toTile();
+             DataInputStream input = new DataInputStream(new BufferedInputStream(bounded, 32768))) {
+            HydrologyTile tile = new HydrologyTileCodec().read(input, scopeIdentity, key, scope, expectedTileSize);
             return valid(tile, key) ? Optional.of(tile) : Optional.empty();
         } catch (IOException | RuntimeException failure) {
             return Optional.empty();
@@ -110,9 +80,9 @@ final class PreparedHydrologyTileStore {
         try {
             try (OutputStream raw = Files.newOutputStream(staged);
                  OutputStream buffered = new BufferedOutputStream(raw);
-                 OutputStream compressed = new GZIPOutputStream(buffered);
-                 Writer writer = new OutputStreamWriter(compressed, StandardCharsets.UTF_8)) {
-                GSON.toJson(PersistedTile.from(tile, scopeIdentity), writer);
+                 OutputStream compressed = new GZIPOutputStream(buffered, 32768);
+                 DataOutputStream output = new DataOutputStream(new BufferedOutputStream(compressed, 32768))) {
+                new HydrologyTileCodec().write(output, tile, scopeIdentity);
             }
             if (Files.size(staged) > MAXIMUM_COMPRESSED_BYTES) {
                 throw new IOException("Prepared hydrology tile cache entry exceeds the size limit.");
@@ -128,7 +98,7 @@ final class PreparedHydrologyTileStore {
     }
 
     Path file(HydrologyTileKey key) {
-        return directory.resolve("tile-" + key.tileX() + "-" + key.tileZ() + ".json.gz");
+        return directory.resolve("tile-" + key.tileX() + "-" + key.tileZ() + ".bin.gz");
     }
 
     private boolean valid(HydrologyTile tile, HydrologyTileKey key) {
@@ -160,194 +130,6 @@ final class PreparedHydrologyTileStore {
         digest.update((byte) (bytes.length >>> 8));
         digest.update((byte) bytes.length);
         digest.update(bytes);
-    }
-
-    private record PersistedTile(
-            int schemaVersion,
-            String scopeIdentity,
-            HydrologyTileKey key,
-            long worldSeed,
-            long settingsFingerprint,
-            int tileSize,
-            List<DrainageNode> nodes,
-            List<DrainageEdge> edges,
-            List<RiverOutlet> outlets,
-            List<PersistedCourse> courses,
-            List<Long> regionalCourseIds,
-            List<PersistedCavePlan> cavePlans,
-            List<HydrologyDiagnosticCandidate> localDiagnosticCandidates,
-            List<HydrologyColumnSample> columns
-    ) {
-        private static PersistedTile from(HydrologyTile tile, String scopeIdentity) {
-            ArrayList<PersistedCourse> courses = new ArrayList<>(tile.courses().size());
-            for (RiverCourse course : tile.courses()) {
-                courses.add(PersistedCourse.from(course));
-            }
-            ArrayList<Long> regionalCourseIds = new ArrayList<>(tile.regionalCourseIds());
-            regionalCourseIds.sort(Long::compareTo);
-            ArrayList<PersistedCavePlan> cavePlans = new ArrayList<>(tile.cavePlans().size());
-            for (HydrologyCavePlan cavePlan : tile.cavePlans()) {
-                cavePlans.add(PersistedCavePlan.from(cavePlan));
-            }
-            return new PersistedTile(
-                    SCHEMA_VERSION,
-                    scopeIdentity,
-                    tile.key(),
-                    tile.worldSeed(),
-                    tile.settingsFingerprint(),
-                    tile.tileSize(),
-                    tile.nodes(),
-                    tile.edges(),
-                    tile.outlets(),
-                    courses,
-                    regionalCourseIds,
-                    cavePlans,
-                    tile.localDiagnosticCandidates(),
-                    new ArrayList<>(tile.footprint().columns().values())
-            );
-        }
-
-        private HydrologyTile toTile() {
-            requireCollection(nodes, "nodes");
-            requireCollection(edges, "edges");
-            requireCollection(outlets, "outlets");
-            requireCollection(courses, "courses");
-            requireCollection(regionalCourseIds, "regionalCourseIds");
-            requireCollection(cavePlans, "cavePlans");
-            requireCollection(localDiagnosticCandidates, "localDiagnosticCandidates");
-            requireCollection(columns, "columns");
-            ArrayList<RiverCourse> restoredCourses = new ArrayList<>(courses.size());
-            for (PersistedCourse course : courses) {
-                restoredCourses.add(Objects.requireNonNull(course, "course").toCourse());
-            }
-            ArrayList<HydrologyCavePlan> restoredCavePlans = new ArrayList<>(cavePlans.size());
-            for (PersistedCavePlan cavePlan : cavePlans) {
-                restoredCavePlans.add(Objects.requireNonNull(cavePlan, "cavePlan").toPlan());
-            }
-            HashMap<Long, HydrologyColumnSample> restoredColumns = HashMap.newHashMap(columns.size());
-            for (HydrologyColumnSample column : columns) {
-                HydrologyColumnSample required = Objects.requireNonNull(column, "column");
-                HydrologyColumnSample existing = restoredColumns.put(
-                        RiverFootprint.pack(required.x(), required.z()), required);
-                if (existing != null) {
-                    throw new IllegalArgumentException("Duplicate hydrology footprint column.");
-                }
-            }
-            return new HydrologyTile(
-                    key,
-                    worldSeed,
-                    settingsFingerprint,
-                    tileSize,
-                    nodes,
-                    edges,
-                    outlets,
-                    restoredCourses,
-                    Set.copyOf(regionalCourseIds),
-                    restoredCavePlans,
-                    localDiagnosticCandidates,
-                    new RiverFootprint(restoredColumns)
-            );
-        }
-
-        private static void requireCollection(List<?> values, String name) {
-            Objects.requireNonNull(values, name);
-        }
-    }
-
-    private record PersistedCourse(
-            long id,
-            RiverCourseType type,
-            Long sourceNodeId,
-            Long outletId,
-            String profileKey,
-            int discharge,
-            List<DrainageEdge> drainageEdges,
-            List<HydraulicSegment> segments
-    ) {
-        private static PersistedCourse from(RiverCourse course) {
-            return new PersistedCourse(
-                    course.id(),
-                    course.type(),
-                    course.sourceNodeId().isPresent() ? course.sourceNodeId().getAsLong() : null,
-                    course.outletId().isPresent() ? course.outletId().getAsLong() : null,
-                    course.profileKey(),
-                    course.discharge(),
-                    course.drainageEdges(),
-                    course.segments()
-            );
-        }
-
-        private RiverCourse toCourse() {
-            return new RiverCourse(
-                    id,
-                    type,
-                    sourceNodeId == null ? OptionalLong.empty() : OptionalLong.of(sourceNodeId),
-                    outletId == null ? OptionalLong.empty() : OptionalLong.of(outletId),
-                    profileKey,
-                    discharge,
-                    drainageEdges,
-                    segments
-            );
-        }
-    }
-
-    private record PersistedCavePlan(
-            HydrologyCaveSource source,
-            HydrologyCaveRejection rejection,
-            List<PersistedCaveCell> cells,
-            Long arbitrationWinnerSourceId
-    ) {
-        private static PersistedCavePlan from(HydrologyCavePlan plan) {
-            ArrayList<PersistedCaveCell> cells = new ArrayList<>(plan.baselinePreconditions().size());
-            plan.forEachPrecondition((CavePosition position, CaveVoxelPrecondition precondition) -> cells.add(
-                    new PersistedCaveCell(position, plan.actions().get(position), precondition)));
-            cells.sort(Comparator.comparingInt((PersistedCaveCell cell) -> cell.position().x())
-                    .thenComparingInt(cell -> cell.position().z())
-                    .thenComparingInt(cell -> cell.position().y()));
-            return new PersistedCavePlan(
-                    plan.source(),
-                    plan.rejection(),
-                    cells,
-                    plan.arbitrationWinnerSourceId().isPresent()
-                            ? plan.arbitrationWinnerSourceId().getAsLong()
-                            : null
-            );
-        }
-
-        private HydrologyCavePlan toPlan() {
-            LinkedHashMap<CavePosition, HydrologyCaveAction> actions = new LinkedHashMap<>();
-            LinkedHashMap<CavePosition, CaveVoxelPrecondition> preconditions = new LinkedHashMap<>();
-            for (PersistedCaveCell cell : Objects.requireNonNull(cells, "cells")) {
-                PersistedCaveCell required = Objects.requireNonNull(cell, "cell");
-                CaveVoxelPrecondition existing = preconditions.put(required.position(), required.precondition());
-                if (existing != null) {
-                    throw new IllegalArgumentException("Duplicate hydrology cave cell.");
-                }
-                if (required.action() != null) {
-                    actions.put(required.position(), required.action());
-                }
-            }
-            return new HydrologyCavePlan(
-                    source,
-                    rejection,
-                    actions,
-                    preconditions,
-                    arbitrationWinnerSourceId == null
-                            ? OptionalLong.empty()
-                            : OptionalLong.of(arbitrationWinnerSourceId)
-            );
-        }
-    }
-
-    private record PersistedCaveCell(
-            CavePosition position,
-            HydrologyCaveAction action,
-            CaveVoxelPrecondition precondition
-    ) {
-        private PersistedCaveCell {
-            Objects.requireNonNull(position, "position");
-            Objects.requireNonNull(precondition, "precondition");
-        }
     }
 
     private static final class LimitedInputStream extends FilterInputStream {

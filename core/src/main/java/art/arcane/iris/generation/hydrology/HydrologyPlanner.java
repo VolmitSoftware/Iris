@@ -28,6 +28,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ForkJoinWorkerThread;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public final class HydrologyPlanner {
     static final int ROUTING_CONTEXT_CACHE_SIZE = 64;
@@ -64,6 +66,8 @@ public final class HydrologyPlanner {
     final HydrologySegmentBuilder segments;
     final HydrologyFeatureSitePlanner featureSites;
     final HydrologyRegionalPlanner regional;
+    private volatile Predicate<HydrologyTileKey> earlyOwnerScope;
+    private volatile Function<HydrologyTileKey, HydrologyTile> plannedTiles;
 
     public HydrologyPlanner(long worldSeed, HydrologyPlannerSettings settings, HydrologyTerrainSampler sampler) {
         this(
@@ -244,6 +248,23 @@ public final class HydrologyPlanner {
         return List.copyOf(unique);
     }
 
+    /**
+     * Limits the lower-rank neighbour drafts an owner starts before its admission demands them to the
+     * tiles the scope accepts; null starts all of them. A neighbour that no admission demands and
+     * nothing plans is a draft computed for nothing, and so are the early neighbours it starts itself.
+     */
+    void limitEarlyOwners(Predicate<HydrologyTileKey> scope) {
+        earlyOwnerScope = scope;
+    }
+
+    /**
+     * Where the plans of tiles already planned are found. An owner draft that left the owner cache is
+     * restored from its tile's plan when a neighbour demands it again, instead of being drafted twice.
+     */
+    void usePlannedTiles(Function<HydrologyTileKey, HydrologyTile> source) {
+        plannedTiles = source;
+    }
+
     void clearOwnerDrafts() {
         resolvedOwners.invalidateAll();
         regional.clear();
@@ -289,6 +310,9 @@ public final class HydrologyPlanner {
             return local;
         }
         CrossTileResolvedOwner cached = resolvedOwners.getIfPresent(key);
+        if (cached == null) {
+            cached = plannedOwner(key);
+        }
         if (cached != null) {
             context.remember(key, cached);
             return cached;
@@ -333,6 +357,17 @@ public final class HydrologyPlanner {
             context.end(key);
             resolvingOwners.remove(key, owned);
         }
+    }
+
+    private CrossTileResolvedOwner plannedOwner(HydrologyTileKey key) {
+        Function<HydrologyTileKey, HydrologyTile> source = plannedTiles;
+        HydrologyTile tile = source == null ? null : source.apply(key);
+        if (tile == null || tile.resolvedOwner() == null) {
+            return null;
+        }
+        reuseResolvedTile(tile);
+        CrossTileResolvedOwner restored = resolvedOwners.getIfPresent(key);
+        return restored == null ? tile.resolvedOwner() : restored;
     }
 
     List<CrossTileResolvedOwner> resolveLowerRankOwners(
@@ -751,6 +786,7 @@ public final class HydrologyPlanner {
                 return;
             }
             int radius = settings.crossTileColorPeriod() - 1;
+            Predicate<HydrologyTileKey> scope = earlyOwnerScope;
             ArrayList<HydrologyTileKey> candidates = new ArrayList<>();
             for (long tileZ = (long) ownerKey.tileZ() - radius; tileZ <= (long) ownerKey.tileZ() + radius; tileZ++) {
                 for (long tileX = (long) ownerKey.tileX() - radius; tileX <= (long) ownerKey.tileX() + radius; tileX++) {
@@ -759,7 +795,8 @@ public final class HydrologyPlanner {
                         continue;
                     }
                     HydrologyTileKey key = new HydrologyTileKey((int) tileX, (int) tileZ);
-                    if (crossTile.ownerColorRank(key) >= ownerRank || preparedOwners.containsKey(key)
+                    if (crossTile.ownerColorRank(key) >= ownerRank || scope != null && !scope.test(key)
+                            || preparedOwners.containsKey(key)
                             || resolvedOwners.getIfPresent(key) != null || resolvingOwners.containsKey(key)) {
                         continue;
                     }

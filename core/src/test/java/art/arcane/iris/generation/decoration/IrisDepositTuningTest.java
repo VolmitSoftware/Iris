@@ -2,6 +2,8 @@ package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.block.IrisBlockData;
+import art.arcane.iris.generation.block.VectorMap;
+import art.arcane.iris.structure.object.IrisObject;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.util.documentation.Description;
@@ -222,6 +224,38 @@ public class IrisDepositTuningTest {
         assertTrue(mediumBlocks > smallBlocks);
         assertTrue(largeBlocks > mediumBlocks);
         assertNotEquals(17L * samples, largeBlocks);
+    }
+
+    @Test
+    public void ellipsoidFootprintConsumesTheBuildDrawsAndMatchesItsGeometry() {
+        IrisData data = mock(IrisData.class);
+        IrisDepositGenerator generator = generatorWithState(data, true);
+        generator.setShape(IrisDepositShape.VANILLA_ELLIPSOID);
+        for (int size : new int[]{0, 1, 3, 4, 9, 17, 25, 64}) {
+            generator.setMinSize(size).setMaxSize(size);
+            for (long seed = 0; seed < 300; seed++) {
+                RNG built = new RNG(seed);
+                IrisObject clump = generator.getClump(null, built, data);
+                RNG sampled = new RNG(seed);
+                IrisDepositGenerator.ClumpFootprint footprint = generator.sampleClumpFootprint(sampled, data);
+                assertNotNull(footprint);
+                assertEquals(clump.getW(), footprint.width());
+                assertEquals(clump.getBlocks().size() == 0, footprint.empty());
+                if (!footprint.empty()) {
+                    int minimumY = Integer.MAX_VALUE;
+                    VectorMap<NativeBlockState>.Cursor cursor = clump.getBlocks().cursor();
+                    while (cursor.next()) {
+                        minimumY = Math.min(minimumY, cursor.key().getBlockY());
+                    }
+                    assertEquals(minimumY, footprint.minY());
+                }
+                assertEquals(built.nextLong(), sampled.nextLong());
+            }
+        }
+        generator.setMinSize(65).setMaxSize(65);
+        assertNull(generator.sampleClumpFootprint(new RNG(1L), data));
+        generator.setShape(IrisDepositShape.VANILLA_SCATTERED).setMinSize(4).setMaxSize(4);
+        assertNull(generator.sampleClumpFootprint(new RNG(1L), data));
     }
 
     @Test

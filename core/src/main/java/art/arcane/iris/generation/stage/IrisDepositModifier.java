@@ -23,6 +23,7 @@ import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.EngineAssignedModifier;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.decoration.IrisDepositBiomeScope;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositHeightDistribution;
 import art.arcane.iris.generation.decoration.IrisDepositPlacementScope;
@@ -96,7 +97,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         Throwable callerFailure = null;
         try {
             for (int i = 0; i < generators.size(); i++) {
-                DepositPlan plan = plan(generators.get(i), rng.nextParallelRNG(seed * (i + 1L)));
+                DepositPlan plan = plan(generators.get(i), rng.nextParallelRNG(seed * (i + 1L)), context);
                 for (int first = 0; first < plan.attempts(); first += CLUMPS_PER_BATCH) {
                     int firstAttempt = first;
                     int limit = Math.min(plan.attempts(), first + CLUMPS_PER_BATCH);
@@ -168,20 +169,48 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
     }
 
     public void generate(IrisDepositGenerator k, MantleChunk chunk, Hunk<NativeBlockState> data, RNG rng, int cx, int cz, boolean safe, HeightMap he, ChunkContext context) {
-        DepositPlan plan = plan(k, rng);
+        DepositPlan plan = plan(k, rng, context);
         for (int first = 0; first < plan.attempts(); first += CLUMPS_PER_BATCH) {
             int limit = Math.min(plan.attempts(), first + CLUMPS_PER_BATCH);
             place(prepare(plan, first, limit, cx, cz, he, context), chunk, data, cx, cz, he, context);
         }
     }
 
-    private DepositPlan plan(IrisDepositGenerator generator, RNG rng) {
+    private DepositPlan plan(IrisDepositGenerator generator, RNG rng, ChunkContext context) {
         if (generator.getSpawnChance() < rng.d()) {
             return new DepositPlan(generator, rng.getSeed(), false, 0);
         }
         boolean ore = generator.isOre(getData());
         int attempts = rng.i(generator.getMinPerChunk(), generator.getMaxPerChunk() + 1);
-        return new DepositPlan(generator, rng.getSeed(), ore, attempts);
+        return new DepositPlan(generator, rng.getSeed(), ore,
+                attempts == 0 || surfaceBiomeMayMatch(generator, context) ? attempts : 0);
+    }
+
+    /**
+     * A surface-scoped biome filter reads the surface biome of the clump's own column, so when no column of the
+     * chunk passes it every clump is rejected at that check. Each clump draws from its own seeded RNG, so skipping
+     * them all up front changes nothing else.
+     */
+    private static boolean surfaceBiomeMayMatch(IrisDepositGenerator generator, ChunkContext context) {
+        if (generator.getBiomeScope() != IrisDepositBiomeScope.SURFACE
+                || (generator.getIncludedBiomes() == null || generator.getIncludedBiomes().isEmpty())
+                && (generator.getExcludedBiomes() == null || generator.getExcludedBiomes().isEmpty())) {
+            return true;
+        }
+        IrisBiome checked = null;
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                IrisBiome surface = context.getBiome().get(x, z);
+                if (surface == checked) {
+                    continue;
+                }
+                if (generator.matchesBiome(surface, null)) {
+                    return true;
+                }
+                checked = surface;
+            }
+        }
+        return false;
     }
 
     private PreparedDeposit prepare(DepositPlan plan, int first, int limit, int cx, int cz, HeightMap he, ChunkContext context) {
@@ -190,15 +219,18 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         boolean needsCaveBiome = oreDeposit || k.usesCaveBiomeFilter();
         IrisDimensionCarvingResolver.State carvingState = needsCaveBiome ? new IrisDimensionCarvingResolver.State() : null;
         List<PreparedClump> clumps = new ArrayList<>(limit - first);
+        int terrainLimit = Integer.MIN_VALUE;
         for (int l = first; l < limit; l++) {
-            RNG clumpRng = new RNG(clumpSeed(plan.seed(), l));
+            long clumpSeed = clumpSeed(plan.seed(), l);
+            RNG clumpRng = new RNG(clumpSeed);
             if (k.getPerClumpSpawnChance() < clumpRng.d()) {
                 continue;
             }
 
-            IrisObject clump = k.getClump(getEngine(), clumpRng, getData());
+            IrisDepositGenerator.ClumpFootprint footprint = k.sampleClumpFootprint(clumpRng, getData());
+            IrisObject clump = footprint == null ? k.getClump(getEngine(), clumpRng, getData()) : null;
 
-            int dim = clump.getW();
+            int dim = footprint == null ? clump.getW() : footprint.width();
             int min = dim / 2;
             int max = (int) (16D - dim / 2D);
 
@@ -260,6 +292,20 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
                         clump = scaledClump;
                     }
                 }
+            }
+
+            if (clump == null) {
+                if (k.getPlacementScope() == IrisDepositPlacementScope.TERRAIN && !footprint.empty()) {
+                    if (terrainLimit == Integer.MIN_VALUE) {
+                        terrainLimit = chunkTerrainLimit(cx, cz, he, context, k.getSurfaceClearance());
+                    }
+                    if (y + footprint.minY() > terrainLimit) {
+                        continue;
+                    }
+                }
+                RNG replay = new RNG(clumpSeed);
+                replay.d();
+                clump = k.getClump(getEngine(), replay, getData());
             }
 
             clumps.add(new PreparedClump(clump, x, y, z, clumpRng));
@@ -348,6 +394,20 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         return heightMap != null
                 ? heightMap.getHeight((cx << 4) + localX, (cz << 4) + localZ)
                 : context.getRoundedHeight(localX, localZ);
+    }
+
+    /**
+     * The highest block a TERRAIN-scoped deposit may place anywhere in the chunk; a clump whose lowest block sits
+     * above it would have every block rejected by {@link #placementSurfaceAllows}.
+     */
+    private int chunkTerrainLimit(int cx, int cz, HeightMap he, ChunkContext context, int surfaceClearance) {
+        int highest = Integer.MIN_VALUE;
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                highest = Math.max(highest, getDepositTerrainSurface(cx, cz, x, z, he, context));
+            }
+        }
+        return highest - Math.max(0, surfaceClearance);
     }
 
     static int depositSurfaceLimit(int surfaceY) {

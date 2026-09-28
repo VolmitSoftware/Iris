@@ -154,8 +154,7 @@ public final class IrisStaticObjectLayer {
             return;
         }
         persistContinuations(engine, x >> 4, z >> 4, output.getHeight());
-        MantleChunk<Matter> chunk = engine.getMantle().getMantle().getChunk(x >> 4, z >> 4);
-        chunk.use();
+        MantleChunk<Matter> chunk = engine.getMantle().getMantle().useChunk(x >> 4, z >> 4);
         try {
             for (Block block : blocks) {
                 Matter section = chunk.getOrCreate(block.y() >> 4);

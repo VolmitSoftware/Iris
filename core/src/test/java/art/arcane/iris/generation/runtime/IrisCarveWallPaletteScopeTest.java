@@ -184,8 +184,7 @@ public class IrisCarveWallPaletteScopeTest {
             chunk = mock(MantleChunk.class);
             EngineMantle engineMantle = mock(EngineMantle.class);
             doReturn(mantle).when(engineMantle).getMantle();
-            doReturn(chunk).when(mantle).getChunk(-2, 3);
-            doReturn(chunk).when(chunk).use();
+            doReturn(chunk).when(mantle).useChunk(-2, 3);
             IrisMatterSupport.ensureRegistered();
             Matter section = new IrisMatter(16, 16, 16);
             for (int coordinate : new int[]{4, 8, 12}) {

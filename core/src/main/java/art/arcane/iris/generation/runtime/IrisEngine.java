@@ -1507,7 +1507,7 @@ public class IrisEngine implements Engine {
 
             boolean skipRealFlag = platformHooks.shouldBypassMantleStages(this);
             if (!skipRealFlag) {
-                MantleChunk<Matter> chunk = getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
+                MantleChunk<Matter> chunk = getMantle().getMantle().useChunk(x >> 4, z >> 4);
                 try {
                     synchronized (chunk) {
                         Matter section = chunk.get(0);

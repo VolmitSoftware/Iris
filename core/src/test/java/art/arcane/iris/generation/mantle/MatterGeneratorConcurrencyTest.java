@@ -776,6 +776,8 @@ public class MatterGeneratorConcurrencyTest {
                 long key = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
                 return chunks.computeIfAbsent(key, ignored -> lockingChunks ? lockingChunk() : chunk());
             });
+            when(mantle.useChunk(anyInt(), anyInt())).thenAnswer(invocation ->
+                    mantle.getChunk(invocation.getArgument(0), invocation.getArgument(1)).use());
             context = mock(ChunkContext.class);
             when(context.getGenerationSessionId()).thenReturn(91L);
         }

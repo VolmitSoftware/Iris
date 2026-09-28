@@ -80,6 +80,7 @@ public class TerrainPlacementQueryTest {
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
         when(mantle.getChunk(0, 0)).thenReturn(chunk);
         when(chunk.use()).thenReturn(chunk);
+        when(mantle.useChunk(0, 0)).thenAnswer(call -> chunk.use());
         when(chunk.exists(0)).thenReturn(true);
         matter = new IrisMatter(16, 16, 16);
         when(chunk.get(0)).thenReturn(matter);

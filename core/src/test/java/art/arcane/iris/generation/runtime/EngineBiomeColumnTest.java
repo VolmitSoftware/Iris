@@ -106,11 +106,10 @@ public class EngineBiomeColumnTest {
         when(mantle.hasTectonicPlate(anyInt(), anyInt())).thenReturn(true);
         when(mantle.get(anyInt(), anyInt(), anyInt(), eq(MatterCavern.class))).thenAnswer(call ->
                 cavern(salt, call.getArgument(0), call.getArgument(1), call.getArgument(2)));
-        when(mantle.getChunk(anyInt(), anyInt())).thenAnswer(call -> {
+        when(mantle.useChunk(anyInt(), anyInt())).thenAnswer(call -> {
             int chunkX = call.getArgument(0);
             int chunkZ = call.getArgument(1);
             MantleChunk<Matter> chunk = mock(MantleChunk.class);
-            when(chunk.use()).thenReturn(chunk);
             when(chunk.get(anyInt(), anyInt(), anyInt(), eq(MatterCavern.class))).thenAnswer(read -> cavern(salt,
                     chunkX * 16 + (int) read.getArgument(0), read.getArgument(1), chunkZ * 16 + (int) read.getArgument(2)));
             return chunk;

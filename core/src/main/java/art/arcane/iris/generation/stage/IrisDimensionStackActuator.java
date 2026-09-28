@@ -82,7 +82,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Nat
         if (getEngine().getDimensionStackContext() == null) {
             return;
         }
-        MantleChunk<Matter> mantleChunk = getEngine().getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
+        MantleChunk<Matter> mantleChunk = getEngine().getMantle().getMantle().useChunk(x >> 4, z >> 4);
         try {
             MetadataCleaner metadata = new MetadataCleaner(mantleChunk, blocks.getHeight());
             for (int localX = 0; localX < blocks.getWidth(); localX++) {
@@ -111,7 +111,7 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Nat
             return;
         }
         context.setCaveTerrain(null);
-        MantleChunk<Matter> chunk = engine.getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
+        MantleChunk<Matter> chunk = engine.getMantle().getMantle().useChunk(x >> 4, z >> 4);
         try {
             synchronized (chunk) {
                 clearNaturalMetadata(chunk, context, height);

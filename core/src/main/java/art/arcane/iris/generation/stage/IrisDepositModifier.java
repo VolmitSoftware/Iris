@@ -93,7 +93,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
                 && irisEngine.hasGenerationRuntimeScope() ? irisEngine : null;
         PreparationContext preparation = new PreparationContext(context, generationEngine,
                 generationEngine == null ? null : generationEngine.captureGenerationRuntimeBinding(), new Throwable[PREPARATION_BATCH_COUNT]);
-        MantleChunk chunk = getEngine().getMantle().getMantle().getChunk(x, z).use();
+        MantleChunk chunk = getEngine().getMantle().getMantle().useChunk(x, z);
         Throwable callerFailure = null;
         try {
             for (int i = 0; i < generators.size(); i++) {

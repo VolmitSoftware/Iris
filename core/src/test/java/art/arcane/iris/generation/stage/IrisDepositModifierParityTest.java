@@ -193,8 +193,7 @@ public class IrisDepositModifierParityTest {
         when(context.getRegion().get(anyInt(), anyInt())).thenReturn(region);
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
         Mantle<Matter> mantle = engine.getMantle().getMantle();
-        doReturn(chunk).when(mantle).getChunk(-3, 5);
-        when(chunk.use()).thenReturn(chunk);
+        doReturn(chunk).when(mantle).useChunk(-3, 5);
         MatterCavern cavern = new MatterCavern(true, "allowed", (byte) 0);
         when(chunk.get(anyInt(), anyInt(), anyInt(), any())).thenAnswer(invocation -> {
             int x = invocation.getArgument(0);

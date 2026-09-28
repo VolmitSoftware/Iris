@@ -246,10 +246,8 @@ public class ObjectContinuationTest {
         Mantle<Matter> mantle = mock(Mantle.class);
         MantleChunk<Matter> saved = mock(MantleChunk.class);
         MantleChunk<Matter> future = mock(MantleChunk.class);
-        when(mantle.getChunk(0, 0)).thenReturn(saved);
-        when(mantle.getChunk(1, 0)).thenReturn(future);
-        when(saved.use()).thenReturn(saved);
-        when(future.use()).thenReturn(future);
+        when(mantle.useChunk(0, 0)).thenReturn(saved);
+        when(mantle.useChunk(1, 0)).thenReturn(future);
         when(saved.isFlagged(MantleFlag.REAL)).thenReturn(true);
         Matter section = new IrisMatter(16, 16, 16);
         when(future.getOrCreate(0)).thenReturn(section);

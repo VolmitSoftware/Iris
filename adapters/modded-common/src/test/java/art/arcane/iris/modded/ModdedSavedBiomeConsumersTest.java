@@ -70,8 +70,7 @@ public class ModdedSavedBiomeConsumersTest {
         when(engine.getWorld()).thenReturn(mock(IrisWorld.class));
         when(engineMantle.getMantle()).thenReturn(mantle);
         when(mantle.isChunkLoaded(2, -1)).thenReturn(true);
-        when(mantle.getChunk(2, -1)).thenReturn(chunk);
-        when(chunk.use()).thenReturn(chunk);
+        when(mantle.useChunk(2, -1)).thenReturn(chunk);
         BiomeEnvironment environment = environment();
         when(engine.getSurfaceBiomeEnvironment(40, -8))
                 .thenThrow(new SavedBiomeUnavailableException("Loading", true))

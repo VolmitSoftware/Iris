@@ -296,8 +296,7 @@ public class IrisDepositModifierOrderingTest {
             when(context.getGenerationSessionId()).thenReturn(11L);
             chunk = mock(MantleChunk.class);
             Mantle<Matter> mantle = engine.getMantle().getMantle();
-            doReturn(chunk).when(mantle).getChunk(0, 0);
-            when(chunk.use()).thenReturn(chunk);
+            doReturn(chunk).when(mantle).useChunk(0, 0);
             MultiBurst pool = mock(MultiBurst.class);
             BurstExecutor burst = new BurstExecutor(executor, 3);
             burst.setMulticore(parallel);

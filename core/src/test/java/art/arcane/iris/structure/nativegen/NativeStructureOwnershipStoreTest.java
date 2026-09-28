@@ -456,9 +456,9 @@ public class NativeStructureOwnershipStoreTest {
         currentRuntime.set(12);
 
         assertTrue(storage.flush());
-        verify(mantleA.mantle(), times(2)).getChunk(4, -5);
+        verify(mantleA.mantle(), times(2)).useChunk(4, -5);
         verify(mantleA.mantle()).saveIdleTectonicPlates(any());
-        verify(mantleB.mantle(), never()).getChunk(anyInt(), anyInt());
+        verify(mantleB.mantle(), never()).useChunk(anyInt(), anyInt());
         verify(mantleB.mantle(), never()).saveIdleTectonicPlates(any());
         storage.close();
     }
@@ -491,9 +491,9 @@ public class NativeStructureOwnershipStoreTest {
         storage.write(NativeStructureOwnershipStore.pack(9, -10), recordB);
 
         assertTrue(storage.flush());
-        verify(mantleA.mantle(), times(2)).getChunk(-7, 8);
+        verify(mantleA.mantle(), times(2)).useChunk(-7, 8);
         verify(mantleA.mantle()).saveIdleTectonicPlates(any());
-        verify(mantleB.mantle(), times(2)).getChunk(9, -10);
+        verify(mantleB.mantle(), times(2)).useChunk(9, -10);
         verify(mantleB.mantle()).saveIdleTectonicPlates(any());
         storage.close();
     }
@@ -519,8 +519,7 @@ public class NativeStructureOwnershipStoreTest {
         Matter section = mock(Matter.class);
         MatterSlice<NativeStructureOwnershipBundle> slice = mock(MatterSlice.class);
         when(engineMantle.getMantle()).thenReturn(mantle);
-        when(mantle.getChunk(anyInt(), anyInt())).thenReturn(chunk);
-        when(chunk.use()).thenReturn(chunk);
+        when(mantle.useChunk(anyInt(), anyInt())).thenReturn(chunk);
         when(chunk.getOrCreate(0)).thenReturn(section);
         when(section.<NativeStructureOwnershipBundle>slice(
                 NativeStructureOwnershipBundle.class)).thenReturn(slice);

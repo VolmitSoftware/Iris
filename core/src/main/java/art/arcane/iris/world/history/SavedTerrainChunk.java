@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
 
@@ -65,14 +63,15 @@ public final class SavedTerrainChunk {
         }
         Math.addExact(minimumY, height);
         List<TerrainBoundarySignature> columns = new ArrayList<>(256);
+        BoundaryColumnGeometry.Runs runs = new BoundaryColumnGeometry.Runs(height);
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 if (boundaryOnly && x != 0 && x != 15 && z != 0 && z != 15) {
                     columns.add(null);
                     continue;
                 }
-                List<BoundaryColumnGeometry.Voxel> voxels = new ArrayList<>(height);
-                Map<String, Short> biomePalette = new LinkedHashMap<>();
+                runs.clear();
+                List<String> biomePalette = new ArrayList<>(4);
                 short[] biomeIndices = new short[height / 4];
                 int surface = 0;
                 int floor = 0;
@@ -80,7 +79,7 @@ public final class SavedTerrainChunk {
                 for (int offset = 0; offset < height; offset++) {
                     int y = minimumY + offset;
                     BoundaryColumnGeometry.Voxel voxel = Objects.requireNonNull(source.voxel(x, y, z), "voxel");
-                    voxels.add(voxel);
+                    runs.add(voxel);
                     if (voxel.phase() != BoundaryColumnGeometry.Phase.AIR) {
                         surface = offset;
                     }
@@ -92,15 +91,10 @@ public final class SavedTerrainChunk {
                     }
                     if (offset % 4 == 0) {
                         String biome = Objects.requireNonNull(source.biome(x, y, z), "physical biome");
-                        Short index = biomePalette.get(biome);
-                        if (index == null) {
-                            index = (short) biomePalette.size();
-                            biomePalette.put(biome, index);
-                        }
-                        biomeIndices[offset / 4] = index;
+                        biomeIndices[offset / 4] = paletteIndex(biomePalette, biome);
                     }
                 }
-                BoundaryColumnGeometry geometry = BoundaryColumnGeometry.fromVoxels(minimumY, voxels);
+                BoundaryColumnGeometry geometry = runs.build(minimumY);
                 OptionalInt groundSurface = source.groundSurface(x, z);
                 if (groundSurface.isPresent()) {
                     floor = geometry.surfaceOffsetNear(groundSurface.getAsInt());
@@ -115,11 +109,22 @@ public final class SavedTerrainChunk {
                                 fluid > floor ? OptionalInt.of(fluid) : OptionalInt.empty(), OptionalInt.empty()),
                         new TerrainBoundarySignature.Samples(
                                 new TerrainBoundarySignature.VerticalLayout(minimumY, 4, biomeIndices.length),
-                                new TerrainBoundarySignature.BiomeEncoding(List.copyOf(biomePalette.keySet()), biomeIndices)),
+                                new TerrainBoundarySignature.BiomeEncoding(biomePalette, biomeIndices)),
                         geometry));
             }
         }
         return new SavedTerrainChunk(chunkX, chunkZ, nativeStatus, columns);
+    }
+
+    private static short paletteIndex(List<String> palette, String biome) {
+        for (int index = 0; index < palette.size(); index++) {
+            String candidate = palette.get(index);
+            if (candidate == biome || candidate.equals(biome)) {
+                return (short) index;
+            }
+        }
+        palette.add(biome);
+        return (short) (palette.size() - 1);
     }
 
     public SavedTerrainChunk boundaryOnly() {

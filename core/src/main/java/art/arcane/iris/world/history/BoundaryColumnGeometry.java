@@ -9,14 +9,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.TreeSet;
 
 public final class BoundaryColumnGeometry implements NativeBlockColumn {
     public static final int MAXIMUM_HEIGHT = 65_536;
-    private static final Comparator<Voxel> VOXEL_ORDER = Comparator.comparing(Voxel::stateKey)
-            .thenComparing(Voxel::phase)
-            .thenComparing(Voxel::fluidStateKey)
-            .thenComparing(Voxel::protectedContent);
+    private static final Comparator<Voxel> VOXEL_ORDER = BoundaryColumnGeometry::compareVoxels;
     private static final Voxel AIR = new Voxel("minecraft:air", Phase.AIR, "", false);
     private static final BoundaryColumnGeometry EMPTY = new BoundaryColumnGeometry(0, List.of(), new int[0], new short[0]);
 
@@ -42,36 +38,24 @@ public final class BoundaryColumnGeometry implements NativeBlockColumn {
         if (voxels.size() > MAXIMUM_HEIGHT) {
             throw new IllegalArgumentException("Geometry column exceeds maximum height");
         }
-        TreeSet<Voxel> used = new TreeSet<>(VOXEL_ORDER);
-        Voxel previous = null;
+        Runs runs = new Runs(voxels.size());
         for (Voxel voxel : voxels) {
-            if (previous == null || !previous.equals(voxel)) {
-                used.add(voxel);
-                previous = voxel;
-            }
+            runs.add(voxel);
         }
-        List<Voxel> palette = List.copyOf(used);
-        Map<Voxel, Short> indices = new HashMap<>(palette.size());
-        for (int index = 0; index < palette.size(); index++) {
-            if (index > Short.MAX_VALUE) {
-                throw new IllegalArgumentException("Geometry palette exceeds compact index capacity");
-            }
-            indices.put(palette.get(index), (short) index);
+        return runs.build(minimumY);
+    }
+
+    private static int compareVoxels(Voxel first, Voxel second) {
+        int order = first.stateKey().compareTo(second.stateKey());
+        if (order != 0) {
+            return order;
         }
-        int[] ends = new int[voxels.size()];
-        short[] values = new short[voxels.size()];
-        int runCount = 0;
-        previous = null;
-        for (int offset = 0; offset < voxels.size(); offset++) {
-            Voxel voxel = voxels.get(offset);
-            if (previous == null || !previous.equals(voxel)) {
-                values[runCount++] = indices.get(voxel);
-                previous = voxel;
-            }
-            ends[runCount - 1] = offset + 1;
+        order = first.phase().compareTo(second.phase());
+        if (order != 0) {
+            return order;
         }
-        return new BoundaryColumnGeometry(minimumY, palette,
-                Arrays.copyOf(ends, runCount), Arrays.copyOf(values, runCount));
+        order = first.fluidStateKey().compareTo(second.fluidStateKey());
+        return order != 0 ? order : Boolean.compare(first.protectedContent(), second.protectedContent());
     }
 
     public int minimumY() {
@@ -253,6 +237,90 @@ public final class BoundaryColumnGeometry implements NativeBlockColumn {
         }
         if (height() > 0) {
             Math.toIntExact((long) minimumY + height() - 1L);
+        }
+    }
+
+    static final class Runs {
+        private static final int LINEAR_PALETTE_LIMIT = 32;
+
+        private final Voxel[] voxels;
+        private final int[] ends;
+        private int count;
+        private int length;
+
+        Runs(int capacity) {
+            voxels = new Voxel[capacity];
+            ends = new int[capacity];
+        }
+
+        void clear() {
+            count = 0;
+            length = 0;
+        }
+
+        void add(Voxel voxel) {
+            Objects.requireNonNull(voxel, "Geometry voxel");
+            if (count == 0 || !sameVoxel(voxels[count - 1], voxel)) {
+                voxels[count++] = voxel;
+            }
+            ends[count - 1] = ++length;
+        }
+
+        BoundaryColumnGeometry build(int minimumY) {
+            Voxel[] distinct = new Voxel[count];
+            int[] slots = new int[count];
+            Map<Voxel, Integer> lookup = null;
+            int distinctCount = 0;
+            for (int run = 0; run < count; run++) {
+                Voxel voxel = voxels[run];
+                int slot = lookup == null ? linearIndex(distinct, distinctCount, voxel) : lookup.getOrDefault(voxel, -1);
+                if (slot < 0) {
+                    slot = distinctCount;
+                    distinct[distinctCount++] = voxel;
+                    if (lookup != null) {
+                        lookup.put(voxel, slot);
+                    } else if (distinctCount > LINEAR_PALETTE_LIMIT) {
+                        lookup = new HashMap<>();
+                        for (int index = 0; index < distinctCount; index++) {
+                            lookup.put(distinct[index], index);
+                        }
+                    }
+                }
+                slots[run] = slot;
+            }
+            if (distinctCount > Short.MAX_VALUE + 1) {
+                throw new IllegalArgumentException("Geometry palette exceeds compact index capacity");
+            }
+            Voxel[] palette = Arrays.copyOf(distinct, distinctCount);
+            Arrays.sort(palette, VOXEL_ORDER);
+            short[] slotIndices = new short[distinctCount];
+            if (lookup == null) {
+                for (int slot = 0; slot < distinctCount; slot++) {
+                    slotIndices[slot] = (short) linearIndex(palette, distinctCount, distinct[slot]);
+                }
+            } else {
+                for (int index = 0; index < distinctCount; index++) {
+                    slotIndices[lookup.get(palette[index])] = (short) index;
+                }
+            }
+            short[] values = new short[count];
+            for (int run = 0; run < count; run++) {
+                values[run] = slotIndices[slots[run]];
+            }
+            return new BoundaryColumnGeometry(minimumY, Arrays.asList(palette), Arrays.copyOf(ends, count), values);
+        }
+
+        private static int linearIndex(Voxel[] values, int size, Voxel voxel) {
+            for (int index = 0; index < size; index++) {
+                if (sameVoxel(values[index], voxel)) {
+                    return index;
+                }
+            }
+            return -1;
+        }
+
+        private static boolean sameVoxel(Voxel first, Voxel second) {
+            return first == second || first.equals(second);
         }
     }
 

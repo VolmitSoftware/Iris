@@ -27,6 +27,14 @@ public class AsyncPregenMethodConcurrencyCapTest {
     }
 
     @Test
+    public void retainedChunksAreBudgetedAtOneMegabyteOfHeapEach() {
+        assertEquals(8192, AsyncPregenMethod.retentionCapacity(8L << 30));
+        assertEquals(16384, AsyncPregenMethod.retentionCapacity(16L << 30));
+        assertEquals(0, AsyncPregenMethod.retentionCapacity(0L));
+        assertEquals(Integer.MAX_VALUE, AsyncPregenMethod.retentionCapacity(Long.MAX_VALUE));
+    }
+
+    @Test
     public void pregenWorkerTargetExpandsOnlyOptedInHighHeapJobs() {
         assertEquals(16, AsyncPregenMethod.pregenWorkerThreadTarget(16, (16L << 30) - 1L, true));
         assertEquals(32, AsyncPregenMethod.pregenWorkerThreadTarget(16, 16L << 30, true));

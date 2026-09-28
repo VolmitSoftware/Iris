@@ -69,6 +69,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private static final long MANTLE_CLEANUP_DRAIN_SECONDS = 60L;
     private static final long CHUNK_FLUSH_DRAIN_SECONDS = 30L;
     private static final long ADMISSION_WAIT_BOUND_MS = 500L;
+    private static final long RETAINED_CHUNK_BYTES = 1024L * 1024L;
     private final World world;
     private final IrisRuntimeSchedulerMode runtimeSchedulerMode;
     private final IrisPaperLikeBackendMode paperLikeBackendMode;
@@ -116,6 +117,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private volatile Engine metricsEngine;
     private volatile Mantle cachedMantle;
     private volatile HydrologyTileCache.PregenerationScope hydrologyPrefetchScope;
+    private volatile PregenChunkRetention retention;
     private final PregenMantleBackpressure backpressure;
 
     public AsyncPregenMethod(World world, int unusedThreads) {
@@ -241,6 +243,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             if (pending != null && pending.decrementAndGet() == 0) {
                 onRegionDrained(rk);
             } else if (MantleHeapPressure.overHighWater()) {
+                releaseRetention();
                 evictRegion(rk);
             }
         } catch (Throwable e) {
@@ -272,6 +275,66 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         boundsMinRegionZ = minRegionZ;
         boundsMaxRegionX = maxRegionX;
         boundsMaxRegionZ = maxRegionZ;
+        retention = createRetention(minRegionX, minRegionZ, maxRegionX, maxRegionZ);
+    }
+
+    private PregenChunkRetention createRetention(int minRegionX, int minRegionZ, int maxRegionX, int maxRegionZ) {
+        if (foliaRuntime) {
+            return null;
+        }
+        try {
+            INMSBinding binding = INMS.get();
+            int radius = binding.fullChunkDependencyRadius();
+            if (radius < 0 || radius > 31) {
+                return null;
+            }
+            PregenChunkRetention.Tickets tickets = new PregenChunkRetention.Tickets() {
+                @Override
+                public void retain(int chunkX, int chunkZ) {
+                    binding.retainChunk(world, chunkX, chunkZ);
+                }
+
+                @Override
+                public void release(int chunkX, int chunkZ) {
+                    binding.releaseChunk(world, chunkX, chunkZ);
+                }
+            };
+            return new PregenChunkRetention(tickets, radius, retentionCapacity(Runtime.getRuntime().maxMemory()),
+                    minRegionX, minRegionZ, maxRegionX, maxRegionZ);
+        } catch (Throwable e) {
+            PregenDiagnostics.probeFailed("pregen chunk retention for world " + world.getName(), e);
+            return null;
+        }
+    }
+
+    static int retentionCapacity(long maximumHeapBytes) {
+        return (int) Math.min(Integer.MAX_VALUE, Math.max(0L, maximumHeapBytes) / RETAINED_CHUNK_BYTES);
+    }
+
+    private void retainAround(int x, int z) {
+        PregenChunkRetention active = retention;
+        if (active == null) {
+            return;
+        }
+        try {
+            active.retainAround(x, z);
+        } catch (Throwable e) {
+            retention = null;
+            IrisLogging.reportError("Async pregen chunk retention failed at " + x + "," + z + " in world " + world.getName()
+                    + "; neighbouring regions reload their borders from disk from now on.", e);
+            try {
+                active.releaseAll();
+            } catch (Throwable releaseFailure) {
+                IrisLogging.reportError(releaseFailure);
+            }
+        }
+    }
+
+    private void releaseRetention() {
+        PregenChunkRetention active = retention;
+        if (active != null) {
+            active.releaseAll();
+        }
     }
 
     @Override
@@ -309,6 +372,10 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     private void onRegionDrained(long rk) {
         regionPending.remove(rk);
+        PregenChunkRetention active = retention;
+        if (active != null) {
+            active.drained((int) (rk >> 32), (int) rk);
+        }
         evictRegion(rk);
     }
 
@@ -781,6 +848,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             syncGenerationHistory();
 
             mantleCleanup.close(MANTLE_CLEANUP_DRAIN_SECONDS, TimeUnit.SECONDS);
+            releaseRetention();
             flushAllRemainingChunks();
             chunkFlush.close(CHUNK_FLUSH_DRAIN_SECONDS, TimeUnit.SECONDS);
             executor.shutdown();
@@ -830,6 +898,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     @Override
     public void reclaimMemory() {
+        releaseRetention();
         if (regionChunks.isEmpty() && pendingEvictions.isEmpty()) {
             return;
         }
@@ -879,6 +948,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         regionPending.computeIfAbsent(rkey(x >> 5, z >> 5), k -> new AtomicInteger(1)).incrementAndGet();
+        retainAround(x, z);
         markSubmitted();
         executor.generate(x, z, listener);
     }

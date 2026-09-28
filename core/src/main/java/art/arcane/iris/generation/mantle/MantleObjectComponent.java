@@ -79,9 +79,11 @@ public class MantleObjectComponent extends IrisMantleComponent {
     private static final byte LIQUID_FORCED_AIR = 3;
     private static final Map<String, CaveRejectLogState> CAVE_REJECT_LOG_STATE = new ConcurrentHashMap<>();
     private static final Set<String> MISSING_LOAD_KEY_WARNED = ConcurrentHashMap.newKeySet();
+    private static final long SOURCE_PLAN_STATS_INTERVAL_MS = 30_000L;
 
     private final Object collisionRuleLock;
     private final ObjectSourcePlanCache sourcePlans;
+    private final AtomicLong lastSourcePlanStatsLog = new AtomicLong();
     private volatile int collisionRuleState;
 
     public MantleObjectComponent(EngineMantle engineMantle) {
@@ -143,13 +145,33 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 z,
                 getRadius(),
                 (sourceX, sourceZ) -> {
-                    ObjectSourcePlan plan = sourcePlans.get(sourceX, sourceZ,
+                    ObjectSourcePlan plan = sourcePlans.acquire(sourceX, sourceZ, x, z,
                             () -> buildSourcePlan(writer, sourceX, sourceZ, context));
-                    transaction.apply(plan);
-                    plan.persistContinuations(writer, sourceX, sourceZ, x, z);
+                    if (plan != null) {
+                        transaction.apply(plan);
+                        plan.persistContinuations(writer, sourceX, sourceZ, x, z);
+                    }
                 }
         );
         transaction.commit();
+        logSourcePlanStats();
+    }
+
+    private void logSourcePlanStats() {
+        long now = System.currentTimeMillis();
+        long last = lastSourcePlanStatsLog.get();
+        if (now - last < SOURCE_PLAN_STATS_INTERVAL_MS || !lastSourcePlanStatsLog.compareAndSet(last, now)) {
+            return;
+        }
+        ObjectSourcePlanCache.Stats stats = sourcePlans.stats();
+        IrisLogging.debug("Object source plans: lookups=" + stats.lookups()
+                + " builds=" + stats.builds()
+                + " waits=" + stats.waits()
+                + " replays=" + stats.replays()
+                + " drained=" + stats.drained()
+                + " retained=" + stats.retained()
+                + " retainedMiB=" + (stats.retainedBytes() >> 20)
+                + " budgetMiB=" + (stats.budgetBytes() >> 20));
     }
 
     private ObjectSourcePlan buildSourcePlan(

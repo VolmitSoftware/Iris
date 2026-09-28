@@ -54,10 +54,10 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         if (checkpoint < 0 || checkpoint > mutations.size()) {
             throw new IllegalArgumentException("Mutation checkpoint is outside the transaction");
         }
-        ArrayList<List<Mutation>> accepted = new ArrayList<>();
+        ArrayList<PlacementRange> accepted = new ArrayList<>();
         for (PlacementRange placement : placements) {
             if (placement.start() >= checkpoint) {
-                accepted.add(List.copyOf(mutations.subList(placement.start(), placement.end())));
+                accepted.add(new PlacementRange(placement.start() - checkpoint, placement.end() - checkpoint));
             }
         }
         return new ObjectSourcePlan(mutations.subList(checkpoint, mutations.size()), accepted);
@@ -432,7 +432,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         }
     }
 
-    private record PlacementRange(int start, int end) {
+    record PlacementRange(int start, int end) {
     }
 
     record DataKey(int x, int y, int z, Class<?> type) {

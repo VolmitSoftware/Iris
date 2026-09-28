@@ -78,7 +78,7 @@ public class ObjectDestinationTransactionTest {
         }
         ObjectSourcePlan plan = source.sourcePlanSince(0);
         assertEquals(16, source.mutationCheckpoint());
-        assertEquals(Integer.MAX_VALUE, plan.estimatedRetainedBytes());
+        assertTrue(plan.estimatedRetainedBytes() < Integer.MAX_VALUE);
         for (int[] position : positions) {
             int x = position[0];
             int z = position[1];
@@ -87,9 +87,7 @@ public class ObjectDestinationTransactionTest {
             List<ObjectDestinationTransaction.Mutation> sourceMutations = plan.mutationsFor(x >> 4, z >> 4);
             List<ObjectDestinationTransaction.Mutation> replayed = destination.sourcePlanSince(0).mutationsFor(x >> 4, z >> 4);
             assertEquals(sourceMutations.size(), replayed.size());
-            for (int index = 0; index < sourceMutations.size(); index++) {
-                assertSame(sourceMutations.get(index), replayed.get(index));
-            }
+            assertEquals(sourceMutations, replayed);
             assertEquals(8, destination.mutationCheckpoint());
             assertSame(replacement, destination.get(x, 7, z));
             assertNull(destination.getDataIfPresent(x, 7, z, Identifier.class));
@@ -143,8 +141,8 @@ public class ObjectDestinationTransactionTest {
 
         List<ObjectDestinationTransaction.Mutation> replayed = destination.sourcePlanSince(0).mutationsFor(0, 0);
         assertEquals(2, replayed.size());
-        assertSame(plan.mutationsFor(0, 0).get(5), replayed.get(0));
-        assertSame(plan.mutationsFor(0, 0).get(6), replayed.get(1));
+        assertEquals(plan.mutationsFor(0, 0).get(5), replayed.get(0));
+        assertEquals(plan.mutationsFor(0, 0).get(6), replayed.get(1));
         assertNull(destination.getDataIfPresent(2, 4, 0, Identifier.class));
         assertNull(destination.getDataIfPresent(1, 4, 0, MatterCavern.class));
         assertEquals("tree", destination.getDataIfPresent(0, 4, 0, String.class));
@@ -573,7 +571,7 @@ public class ObjectDestinationTransactionTest {
         ObjectDestinationTransaction destination = new ObjectDestinationTransaction(writer, 0, 0);
         destination.apply(plan);
         assertNull(destination.getDataIfPresent(0, 4, 0, Identifier.class));
-        assertSame(plan.mutationsFor(0, 0).getFirst(), destination.sourcePlanSince(0).mutationsFor(0, 0).getFirst());
+        assertEquals(plan.mutationsFor(0, 0).getFirst(), destination.sourcePlanSince(0).mutationsFor(0, 0).getFirst());
 
         assertThrows(IllegalStateException.class, destination::commit);
         verify(writer).clearData(0, 4, 0, Identifier.class);

@@ -56,21 +56,29 @@ public class MantleObjectComponentPlacementDeterminismTest {
     }
 
     @Test
-    public void ordinaryObjectSourcePlansRemainReusableAfterNeighborPublicationAndHotload() {
+    public void consumedObjectSourcePlansRebuildIdenticallyAfterNeighborPublicationAndHotload() {
         Fixture fixture = new Fixture();
         fixture.generate(List.of(1, 0));
         Map<Position, String> expected = fixture.snapshot();
-        Map<Chunk, Integer> calls = Map.copyOf(fixture.sourceCalls);
+        assertEquals(12, fixture.sourceCalls.size());
+        for (Integer calls : fixture.sourceCalls.values()) {
+            assertEquals(1, calls.intValue());
+        }
 
         fixture.generate(List.of(0, 1));
 
         assertEquals(expected, fixture.snapshot());
-        assertEquals(calls, fixture.sourceCalls);
+        assertSourceCalls(fixture, 2, 1);
         fixture.component.hotload();
         fixture.generate(List.of(0, 1));
         assertEquals(expected, fixture.snapshot());
+        assertSourceCalls(fixture, 3, 2);
+    }
+
+    private static void assertSourceCalls(Fixture fixture, int writingSources, int emptySources) {
         for (Map.Entry<Chunk, Integer> entry : fixture.sourceCalls.entrySet()) {
-            assertEquals(2, entry.getValue().intValue());
+            boolean writes = entry.getKey().z() == 0 && (entry.getKey().x() == 0 || entry.getKey().x() == 1);
+            assertEquals(entry.getKey().toString(), writes ? writingSources : emptySources, entry.getValue().intValue());
         }
     }
 

@@ -5,6 +5,7 @@ import art.arcane.iris.generation.decoration.IrisCeilingDecorator;
 import art.arcane.iris.generation.decoration.IrisSurfaceDecorator;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
+import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.mantle.CaveTerrainSnapshot;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.biome.IrisBiome;
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -42,10 +44,12 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 public class IrisNaturalCaveScanTest {
@@ -70,6 +74,26 @@ public class IrisNaturalCaveScanTest {
     @Test
     public void chunkScanPreservesDecoratedBlocksMarkersAndMutationOrder() throws Exception {
         verifyScan(16, 16);
+    }
+
+    @Test
+    public void decorationReusesOnlyTheCarveSnapshotOfItsOwnChunk() throws Exception {
+        Fixture fixture = new Fixture();
+        ChunkContext context = mock(ChunkContext.class);
+        doReturn(CaveTerrainSnapshot.capture(fixture.chunk, -2, 3)).when(context).getCaveTerrain();
+        clearInvocations(fixture.chunk);
+        fixture.modifier.decorateNaturalCaves(-32, 48, fixture.output(3, 2), context);
+        verify(fixture.chunk, never()).use();
+        verify(context).setCaveTerrain(null);
+        assertFalse(fixture.calls.isEmpty());
+
+        Fixture other = new Fixture();
+        ChunkContext stale = mock(ChunkContext.class);
+        doReturn(CaveTerrainSnapshot.capture(other.chunk, 5, 5)).when(stale).getCaveTerrain();
+        clearInvocations(other.chunk);
+        other.modifier.decorateNaturalCaves(-32, 48, other.output(3, 2), stale);
+        verify(other.chunk).use();
+        assertEquals(fixture.calls, other.calls);
     }
 
     @Test

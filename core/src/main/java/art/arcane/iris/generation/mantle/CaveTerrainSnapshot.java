@@ -17,8 +17,9 @@ import java.util.function.IntFunction;
 /**
  * The terrain view of one mantle chunk's cavern and hydrology cells (journaled pre-object values win),
  * copied once under the chunk monitor. Terrain components finish before any content write reaches a
- * chunk and every later write journals the value it replaces, so this view never goes stale while the
- * chunk generates.
+ * chunk and every mantle-writer write journals the value it replaces, so the view holds while the chunk
+ * generates; the raw writers that run after sCave (dimension stack clearing, continuation restore) drop
+ * it from the chunk context instead.
  */
 public final class CaveTerrainSnapshot {
     private static final int SECTION_VOLUME = 4096;

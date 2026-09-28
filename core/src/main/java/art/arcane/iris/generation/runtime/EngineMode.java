@@ -218,6 +218,9 @@ public interface EngineMode extends Staged {
             IrisDimensionStackActuator.clearHostNaturalMetadata(getEngine(), x, z, biomes.getHeight(), ctx);
             ctx.beginContent();
             List<Matter> continuations = restoreObjectContinuations(x, z);
+            if (!continuations.isEmpty()) {
+                ctx.setCaveTerrain(null);
+            }
             for (EngineStage i : stages) {
                 i.generate(x, z, blocks, biomes, multicore, ctx);
             }
